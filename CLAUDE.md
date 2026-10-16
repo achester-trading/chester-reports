@@ -137,6 +137,13 @@ altdata/                  Shared ingestion package — used by every report
                           shift flag per pair, the named rows. Rides the
                           market_features pass (last few sessions); the full
                           history is `compute --backfill`. Narrow flags only
+  thesis_register.py      AQ-6: the Quarterly's theses, ledgered under
+                          alt_asset:<family>. Loads the operator's
+                          config/alt_asset_theses/<YYYY>q<N>.yaml (measurables
+                          only), resolves from the store as of, grades sets by
+                          ordering and direction, writes book DRAFTS only; reached
+                          through `python -m altdata.probability_ledger
+                          seed-alt-asset | show | resolve-alt-asset`
 
 monthly_macro/            The Monthly. Since T3 it is the STACKED Monthly: the ten
                           sections at Monthly depth, Slow layers eleventh, then the
@@ -201,7 +208,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — fifty-nine code gates (fifty-six Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — sixty code gates (fifty-seven Python, three shell) and five data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
