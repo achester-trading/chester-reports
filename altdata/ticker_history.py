@@ -15,7 +15,13 @@ THE RULES, one composite FIGI at a time, walking the snapshots in date order:
                  closes with an EXACT, EXCLUSIVE effective_to on the snapshot date,
                  and the new holder's row opens from it
   delisting      the ticker gone                              -> its row closes
-  new listing    a FIGI first seen after the first snapshot   -> a row from that date
+  new listing    a FIGI first seen after the first snapshot   -> a row from the day
+                 after the PREVIOUS snapshot (ruled 16 Oct 2026, aud-3b Needs-you 9),
+                 so a missed morning makes the start early, never late. Exact on
+                 consecutive trading days but for the weekend's calendar days, on
+                 which nothing trades. A reused ticker's new holder still opens on
+                 the snapshot date, where the old holder's row closes, so the two
+                 never overlap
 
 Where a boundary falls between two snapshots and the master knows its real date
 (BAM in 2022, SPCX in 2026, the ETF's SPCX -> SPCK in April 2026), the master's
@@ -117,19 +123,23 @@ def build(snapshots, assignments: Assignments, master=None) -> dict[str, list[di
             if f:
                 holder[r["symbol"]] = f
         # close every open row whose ticker no longer belongs to its FIGI
+        closed = set()
         for f, rs in hist.items():
             for row in rs:
                 if row["effective_to"] is None and holder.get(row["ticker"]) != f:
                     w = _master_at(windows, row["ticker"], prev)
                     row["effective_to"] = (w["to_x"] if w and w["to_x"]
                                            and prev < w["to_x"] <= day else day)
+                    closed.add(row["ticker"])
         # open a row for every holding not already open
         for s, f in holder.items():
+            new_listing = f not in hist and s not in closed
             rs = hist.setdefault(f, [])
             if any(x["ticker"] == s and x["effective_to"] is None for x in rs):
                 continue
             w = _master_at(windows, s, day)
-            start = (w["from"] if w and w["from"] and prev < w["from"] <= day else day)
+            start = (w["from"] if w and w["from"] and prev < w["from"] <= day
+                     else _next(prev) if new_listing else day)
             rs.append({"ticker": s, "effective_from": start, "effective_to": None,
                        "from_known": True})
         prev = day

@@ -12,13 +12,16 @@ an exact effective_to on a reused ticker repairs its history, and a start stated
 too late would wipe it (altdata/ticker_history.py: unknown starts are 1900-01-01
 with from_known false).
 
-THE FILE: schema_version "1.0", exported_at (UTC, Z), source "chester-reports",
+THE FILE: schema_version "1.1", exported_at (UTC, Z), source "chester-reports",
 and `securities`, one per composite FIGI that a Nasdaq Trader listing mapped to
 (altdata/figi.py): figi, share_class_figi, cik (null in v1), name, type, venue,
 active and ticker_history, tickers in ACT form as Nasdaq Trader prints them
-(BRK.B, ABR$D, AAC.W). Two extra fields the schema allows: `restricted` (the
-Brookfield complex, by register.instruments' rule over every ticker the security
-has held and its name) and, on each history row, `from_known`. Indices,
+(BRK.B, ABR$D, AAC.W). Schema 1.1 (16 Oct 2026; the change order is
+docs/change-order-sm-schema-1-1-2026-10-16.md) adds `restricted`, written on
+every security, false included (the Brookfield complex, by register.instruments'
+rule over every ticker the security has held and its name), and
+`restricted_reason`, written only when it is true.
+One extra field the schema allows: `from_known` on each history row. Indices,
 futures, FX, crypto, rates and prediction contracts are not in the contract and
 are not exported.
 
@@ -94,6 +97,15 @@ def _stream(snaps: list[Path]):
         yield p.stem, listings.read_snapshot(p)
 
 
+def reason_of(hit: dict) -> str:
+    """The restriction's short reason: the entity, then the tier and root, or the
+    name pattern that caught it."""
+    ent = str(hit.get("entity_id") or "restricted").capitalize()
+    if hit.get("matched_on") == "root":
+        return f"{ent} complex: tier {hit.get('tier')}, root {hit.get('root')}"
+    return f"{ent} complex: name match on {hit.get('pattern')!r}"
+
+
 def build(master, listings_dir: Optional[Path] = None, figi_dir: Optional[Path] = None,
           exported_at: Optional[str] = None) -> tuple[dict, dict]:
     """(the document, a summary). Reads only the repo's own reference data."""
@@ -136,8 +148,9 @@ def build(master, listings_dir: Optional[Path] = None, figi_dir: Optional[Path] 
                                 "effective_to": r["effective_to"],
                                 "from_known": r["from_known"]} for r in rows],
             "restricted": hit is not None,
+            **({"restricted_reason": reason_of(hit)} if hit else {}),
         })
-    doc = {"schema_version": "1.0",
+    doc = {"schema_version": "1.1",
            "exported_at": exported_at or dt.datetime.now(dt.timezone.utc)
            .strftime("%Y-%m-%dT%H:%M:%SZ"),
            "source": "chester-reports", "securities": out}
