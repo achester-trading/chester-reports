@@ -211,6 +211,11 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     rv, rv_data = ai_revisions_block(st, cutoff)
     if rv:
         subs.append(rv)
+    # SIGNAL-TRIAGE BATCH 6 (16 Oct 2026): concentration and breadth (items 31
+    # and 44, section 4 ruling 3) and the oil-shock signature (item 32, ruling 4),
+    # report-only, with no paragraph of their own.
+    from . import t1_rest_block                                 # noqa: PLC0415
+    subs += t1_rest_block.mechanics_subsections(st, cutoff, "weekly")
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],
@@ -536,6 +541,14 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     rt_sub = rates_transmission_block.subsection(st, now, cadence)
     if rt_sub:
         subs.append(rt_sub)
+    # SIGNAL-TRIAGE BATCH 6, items 42 and 39: the expectations composite and the
+    # cross-country real yields; the US-DE and US-JP real differentials print in
+    # the Currencies read, "Global rates and FX".
+    from . import t1_rest_block                                 # noqa: PLC0415
+    subs += t1_rest_block.plumbing_subsections(st, now, cadence)
+    cur = t1_rest_block.currencies_lines(st, now)
+    if cur:
+        subs[0]["lines"] = list(subs[0].get("lines") or []) + cur
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
@@ -818,6 +831,13 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
     from . import index_carry_block as icb                      # noqa: PLC0415
     alloc = icb.positioning_subsection(st, now)
     if alloc:
+        # Batch 6 item 38: the gold/equity ratio, printed beside the allocation
+        # block ("record equity allocation and gold still low as a share of
+        # financial wealth are one observation from two sides").
+        from . import t1_rest_block                             # noqa: PLC0415
+        gl = t1_rest_block.allocation_line(st, now)
+        if gl:
+            alloc["lines"] = list(alloc.get("lines") or []) + [gl]
         subs.append(alloc)
     return {"items": items, "not_tracked": nt, "data": data, "print_items": False,
             "subsections": subs, "_cftc_series": cftc, "_leadership": lead}
@@ -1932,6 +1952,11 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),
         }
+        # SIGNAL-TRIAGE BATCH 6 item 43: the growth lead's line in Ahead.
+        from . import t1_rest_block                             # noqa: PLC0415
+        ah43 = t1_rest_block.ahead_subsection(st, now)
+        if ah43:
+            built["ahead"].setdefault("subsections", []).append(ah43)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.

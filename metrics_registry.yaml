@@ -12441,6 +12441,88 @@ metrics:
     description: >-
       Euro CCC spread, entered by hand IN BASIS POINTS when public reporting carries one (Batch 6 item 41: no free daily euro CCC series; FRED serves only the euro HY aggregate). The note names the measure (OAS, or CCC less AAA) and the source. ST-R5.41a's by-hand line.
 
+  sp500.member_weight:
+    source: sp500_members
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      An S&P 500 member's weight in SPY's daily holdings file (SSGA), % of net assets, instrument = the member's ticker in Yahoo's form (BRK-B). The float-adjusted capitalisation share. ST-R5.31a's top-10 share and ST-R5.44a's membership; the writer is held for D1c.
+  sp500.member_close:
+    source: sp500_members
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      An S&P 500 member's daily close from Yahoo, USD, split-adjusted and dividend-unadjusted (yfinance_source's close), instrument = the ticker in Yahoo's form. ST-R5.44a's drawdown histogram and gap; Batch 5 item 18's dispersion fallback reads it. The writer is held for D1c.
+  wgc.above_ground_t:
+    source: wgc_stock
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      The World Gold Council's above-ground stock of gold, TONNES, at the quarter-end its page names (222,600 t at end-Q2 2026). ST-R5.38a's numerator; the writer is held for D1c.
+  bis.policy_rate:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_rate
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      Every BIS reference area's central-bank policy rate, percent, month-end (WS_CBPOL; instrument = the BIS area code, XM the euro area). 49 areas on 16 Oct 2026, 38 current. ST-R5.43a's global policy diffusion index.
+  manual.msci_acwi_mcap_usd_bn:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MSCI ACWI's total market capitalisation (float-adjusted), IN BILLIONS OF US DOLLARS, entered by hand from MSCI's ACWI factsheet ("Mkt Cap (USD Millions)", divided by 1,000); observed_at = the factsheet's date. ST-R5.38a's monthly proxy for world equity capitalisation: no PDF reader in the repo, and WFE's portal needs a login.
+  manual.global_pmi:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      The J.P.Morgan Global Manufacturing PMI headline (S&P Global; 50 = no change), entered by hand from the public release: the series is S&P Global's. observed_at = the reference month's first day. ST-R5.43a's growth read beside the diffusion index.
+
 bulk_imports:
 
   fred_macro:
@@ -12527,7 +12609,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 33   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 52   # + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
     units: from_member
@@ -13620,6 +13702,32 @@ bulk_imports:
     long_window: 365d
 
 families:
+  # Signal-triage Batch 6, the rest of Tranche 1 (16 Oct 2026).
+  sp500.member_weight: ratio
+  sp500.member_close: price
+  wgc.above_ground_t: quantity
+  bis.policy_rate: rate
+  manual.msci_acwi_mcap_usd_bn: quantity
+  manual.global_pmi: release
+  fred.expinf_10y: rate
+  fred.oecd_cli_g7: release
+  fred.hicp_de: release
+  fred.hicp_fr: release
+  fred.hicp_it: release
+  fred.hicp_nl: release
+  fred.hicp_be: release
+  fred.hicp_se: release
+  fred.hicp_ch: release
+  fred.hicp_core_de: release
+  fred.hicp_core_fr: release
+  fred.hicp_core_it: release
+  fred.hicp_core_nl: release
+  fred.hicp_core_be: release
+  fred.hicp_core_se: release
+  fred.hicp_core_ch: release
+  fred.oecd_10y_mx: rate
+  fred.oecd_10y_za: rate
+  fred.oecd_10y_kr: rate
   # Signal-triage Batch 6 (16 Oct 2026).
   fred.hh_equity_share: ratio
   fred.hh_fin_assets: quantity
@@ -13680,6 +13788,33 @@ families:
 # Declared for the series batch 3's Tranche A adds and reads; the gate
 # (tools/validate_batch3_a.py) holds each new key to a line here.
 long_windows:
+  # Signal-triage Batch 6, the rest of Tranche 1: each long window is its whole
+  # stored history (the constituent closes hold two years by design).
+  sp500.member_weight: full
+  sp500.member_close: full
+  wgc.above_ground_t: full
+  bis.policy_rate: full
+  manual.msci_acwi_mcap_usd_bn: full
+  manual.global_pmi: full
+  fred.expinf_10y: full
+  fred.oecd_cli_g7: full
+  fred.hicp_de: full
+  fred.hicp_fr: full
+  fred.hicp_it: full
+  fred.hicp_nl: full
+  fred.hicp_be: full
+  fred.hicp_se: full
+  fred.hicp_ch: full
+  fred.hicp_core_de: full
+  fred.hicp_core_fr: full
+  fred.hicp_core_it: full
+  fred.hicp_core_nl: full
+  fred.hicp_core_be: full
+  fred.hicp_core_se: full
+  fred.hicp_core_ch: full
+  fred.oecd_10y_mx: full
+  fred.oecd_10y_za: full
+  fred.oecd_10y_kr: full
   # Signal-triage Batch 6, items 30 and 35: Z.1 from 1945, ULC from 1947, the
   # PPI leg from 2013 -- each long window is its whole stored history.
   fred.hh_equity_share: full

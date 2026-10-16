@@ -146,7 +146,27 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
 NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      # ST-R5.30a and ST-R5.35a (16 Oct 2026)
                      "fred.hh_equity_share", "fred.hh_fin_assets",
-                     "fred.ppi_fd_core_ts", "fred.ulc_nfb"}
+                     "fred.ppi_fd_core_ts", "fred.ulc_nfb",
+                     # ST-R5.42a, 43a and 39a (16 Oct 2026)
+                     "fred.expinf_10y",
+                     "fred.oecd_cli_g7",
+                     "fred.hicp_de",
+                     "fred.hicp_fr",
+                     "fred.hicp_it",
+                     "fred.hicp_nl",
+                     "fred.hicp_be",
+                     "fred.hicp_se",
+                     "fred.hicp_ch",
+                     "fred.hicp_core_de",
+                     "fred.hicp_core_fr",
+                     "fred.hicp_core_it",
+                     "fred.hicp_core_nl",
+                     "fred.hicp_core_be",
+                     "fred.hicp_core_se",
+                     "fred.hicp_core_ch",
+                     "fred.oecd_10y_mx",
+                     "fred.oecd_10y_za",
+                     "fred.oecd_10y_kr"}
 
 
 def check(c, m: str) -> None:
@@ -781,7 +801,7 @@ def group_f() -> None:
     faults = printed_count_faults(text, counts)
     check(not faults, f"each of the {len(PRINTED_COUNTS)} counts CLAUDE.md prints "
           f"equals the code's ({faults or counts})")
-    stale = text.replace("33 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
+    stale = text.replace("52 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
     check(any("FRED_SIGNAL_SERIES: CLAUDE.md prints 20" in f
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")

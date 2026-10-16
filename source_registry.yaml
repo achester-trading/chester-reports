@@ -1567,6 +1567,53 @@ sources:
     implemented_by: altdata/sources/aaii.py
     status: live
 
+  sp500_members:
+    name: S&P 500 constituents -- SPY's daily holdings (SSGA) and the members' daily closes (Yahoo)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [equities, breadth]
+    geography: [US]
+    latency: daily; the holdings file is dated the prior session, closes after 16:00 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Holdings: Last-Modified where sent (observed), else the write instant.
+      Closes: the write instant (ingest_instant), as yfinance_source's live pull.
+    license: >-
+      SSGA's public fund-data workbook, within www.ssga.com's robots.txt (read each
+      run; checked 16 Oct 2026); Yahoo through yfinance under the operator's
+      sanctioned exception, never passing for a browser
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/sp500_members.py
+    status: held
+    caveats:
+      - >-
+        HELD for D1c: a new store writer waits for the repo-wide write lock;
+        pull() fetches and writes nothing and the module is on no feeds roster.
+        SPY's weights are the S&P 500's float-adjusted shares, not total US
+        market capitalisation.
+
+  wgc_stock:
+    name: World Gold Council -- above-ground stock of gold (the "how much gold" page)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [global]
+    latency: quarterly; the page names its quarter-end (end-Q2 2026 on 16 Oct 2026)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The page's Last-Modified is the serving instant, so the write instant stands
+      in (ingest_instant); observed_at is the quarter-end the page names.
+    license: >-
+      public page at www.gold.org, allowed by its robots.txt (read each run;
+      checked 16 Oct 2026)
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/wgc_stock.py
+    status: held
+    caveats:
+      - >-
+        HELD for D1c: a new store writer waits for the repo-wide write lock. One
+        sentence of the page body, read by phrase; a changed sentence is refused.
+
   redfin:
     name: Redfin data center -- monthly housing market data (national and top-50 metros)
     tier: B
@@ -1724,12 +1771,16 @@ sources:
       The response's Last-Modified where sent (`observed`), else the ingest instant.
     license: >-
       BIS statistics: free reuse with attribution ('Source: BIS'), per the BIS terms of use.
-    allowed_reports: [monthly_macro, alt_asset]
+    allowed_reports: [monthly_macro, weekly_tactical, alt_asset]
     implemented_by: altdata/sources/bis_cbpol.py
     status: live
     caveats:
       - >-
         No row for Taiwan or the UAE (11 Oct 2026). Definition breaks are documented by the BIS in each series' COMPILATION field.
+      - >-
+        Extended 16 Oct 2026 (ST-R5.43a): a second request stores every area as
+        bis.policy_rate (49 areas, 38 current). The BIS sent no Last-Modified that
+        day, so those rows carry the ingest instant.
 
   wb_qeds:
     name: World Bank Quarterly External Debt Statistics (QEDS, SDDS; API source 22)

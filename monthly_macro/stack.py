@@ -513,6 +513,10 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     fcf, fcf_data = ws.ai_fcf_block(st, now)
     rv, rv_data = ws.ai_revisions_block(st, now)
     subs += [x for x in (fcf, rv) if x]
+    # SIGNAL-TRIAGE BATCH 6: concentration and breadth (31, 44) and the
+    # oil-shock signature (32), report-only.
+    from daily_cascade import t1_rest_block                     # noqa: PLC0415
+    subs += t1_rest_block.mechanics_subsections(st, now, "monthly")
     extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
              **({"ai_revisions": rv_data} if rv_data else {})}
     return {"items": items, "print_items": False,
@@ -832,6 +836,12 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     rt_sub = rates_transmission_block.subsection(st, now, "monthly")
     if rt_sub:
         b["subsections"].append(rt_sub)
+    # Items 42 and 39 after it; the real differentials in the global bucket.
+    from daily_cascade import t1_rest_block                     # noqa: PLC0415
+    b["subsections"] += t1_rest_block.plumbing_subsections(st, now, "monthly")
+    cur = t1_rest_block.currencies_lines(st, now)
+    if cur and glob is not None:
+        glob["lines"] = list(glob.get("lines") or []) + cur
     b["claim_only"] = True
     return b
 
@@ -1508,6 +1518,15 @@ def correlations_block(st, now: str, then: str) -> dict:
             "not_tracked": nt, "data": data}
 
 
+def _with_growth_lead(b: dict, st, now: str) -> dict:
+    """Batch 6 item 43: the policy-diffusion line in Ahead (report-only)."""
+    from daily_cascade import t1_rest_block                     # noqa: PLC0415
+    ah = t1_rest_block.ahead_subsection(st, now) if st is not None else None
+    if ah:
+        b.setdefault("subsections", []).append(ah)
+    return b
+
+
 def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                 db_path: Optional[str] = None) -> dict:
     tb = p.get("top_bottom") or {}
@@ -1683,6 +1702,11 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         log.warning("EM scorecard line unavailable", exc_info=True)
         subs.append({"title": em_title,
                      "not_tracked": [f"the EM scorecard: FAULT {exc}"]})
+    # SIGNAL-TRIAGE BATCH 6: Factor V's gold/equity ratio (item 38) and the
+    # global policy diffusion index (item 43, section 4 ruling 5), report-only.
+    if st is not None and now:
+        from daily_cascade import t1_rest_block                 # noqa: PLC0415
+        subs += t1_rest_block.slow_subsections(st, now)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)
@@ -2052,7 +2076,8 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
             "priced": lambda: priced_section(st, now, then, cfg, pmb, fed, fed_then),
             "narratives": lambda: narratives_section(
                 p, on_tape, set(built.get("plumbing", {}).get("_printed") or [])),
-            "ahead": lambda: ahead_section(p, now, db_path),
+            "ahead": lambda: _with_growth_lead(ahead_section(p, now, db_path),
+                                               st, now),
             "book": lambda: book_section(p),
         }
         for sid, fn in steps.items():
