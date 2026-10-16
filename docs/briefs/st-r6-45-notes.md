@@ -304,6 +304,10 @@ tells the read to write dates the same way, and adds the check to
 `tools/validate_es_block.py` (69 checks). The fixed tip's run is recorded in
 `docs/briefs/st-r4-tranche-1-notes.md` (branch `st-r4-tranche-1`, rebased onto
 that tip).
+**Run 38904259575 (`4dd24ac`, the ISO-date fix): passed. 93 of 93 jobs green**,
+the `gates-passed` summary among them (read once, 16 Oct 2026). This tip is the
+one `st-r4-tranche-1` and `st-r4-tranche-1b` are cut from; this notes-only commit
+after it is not in them, and it touches nothing they change.
 
 ## Needs you
 
