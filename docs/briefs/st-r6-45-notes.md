@@ -277,7 +277,14 @@ Checked against every remote branch ahead of `aud-3b-security-master` on 16 Oct.
 
 ## CI
 
-Part 1's CI is filled in below after the push.
+Locally, only the gates this branch writes or changes were run, one at a time:
+`tools/validate_es_block.py` 68 passed, 0 failed;
+`tools/validate_audit_3a.py` (CLAUDE.md's counts and the catalogue) 83 passed,
+0 failed; `tools/check_library.py` 0 failures, 0 warnings. Every other gate is
+left to CI. The base, `aud-3b-security-master` at `2fb1048`, is green in CI
+(run 38795223151). This branch's run was still in progress when the session
+handed off, so its verdict is not recorded here. Read it with
+`gh run list --branch st-r6-es-block --limit 3`.
 
 ## Needs you
 
