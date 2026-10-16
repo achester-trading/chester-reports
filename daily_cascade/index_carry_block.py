@@ -121,7 +121,8 @@ def positioning_subsection(st, now: str, cfg: Optional[dict] = None) -> Optional
             "lines": ix.allocation_lines(a), "paragraph_wanted": False,
             "not_tracked": ix.allocation_absent(a),
             "table_note": ("Federal Reserve Z.1 (Financial Accounts), households and "
-                           "nonprofits, via FRED, quarterly with about a ten-week lag. "
+                           "nonprofits, via FRED, quarterly, published about seventy "
+                           "days after the quarter ends. "
                            "Equities are the Fed's published share, directly and "
                            "indirectly held; bonds are debt securities directly held "
                            "(Z.1 does not split fund shares by type); cash is "

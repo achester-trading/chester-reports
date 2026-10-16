@@ -103,6 +103,22 @@ any `fred.`/`yfinance.`/… id in a rendered edition. This branch's decompositio
 reason named `yfinance.mkt_gspc`, and three of the rates cluster's reasons named
 keys. All now name the series.
 
+## CI
+
+| Run | Commit | Result |
+|---|---|---|
+| 38904790271 | `0a55984` (the build) | failure, 92 of 94 jobs passed |
+| 38905177161 | `e5677f4` (the notes) | failure, 92 of 94 jobs passed |
+
+**The verdict: both failed on this branch's own change, and it is fixed.** In each
+run the one failing gate was `validate_stack_cadence`, plus the `gates-passed`
+roll-up that follows from it. Its check "positioning at 'monthly' prints no week
+phrase" caught the allocation block's table note, which said Z.1 arrives "with
+about a ten-week lag". A Monthly prints no week word. The note now says Z.1 is
+"published about seventy days after the quarter ends". `validate_stack_cadence`
+passes locally after the fix (99/0), and so does `validate_st_r5_index` (56/0).
+The run for the fix commit is read once and recorded below.
+
 ## What was built, item by item
 
 ### ST-R5.40a — the standing decomposition (`altdata/st_r5_index.py` `decomposition`, `read_line`, `chart_series`)
