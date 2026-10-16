@@ -31,6 +31,8 @@ reader is poisoned), no model, no live store.
   H  THE PRINT AND THE REGISTRY: each subsection's table and lines; the hooks in
      the Weekly and the Monthly; every new key registered with its units; the
      catalogue lines; neither module can fetch.
+  I  NO ID IN PRINT: every subsection rendered on an empty store names its
+     series in plain words; no store key reaches an edition.
 
     python tools/validate_st_r4_t1.py
 """
@@ -133,8 +135,8 @@ def group_a() -> None:
           f"printed where the attribution prints, n and real window in the cell ({row})")
     with observations.ObservationStore(store([])) as st:
         none = batch5.term_premium(st, CUT)
-    check(none["absent"] and "no acm.term_premium_10y" in none["reason"],
-          "absent with its reason when nothing is stored")
+    check(none["absent"] and "no ACM's 10-year term premium" in none["reason"],
+          "absent with its reason when nothing is stored, the series by its plain name")
 
 
 def _bark_store(fit_bp: float, tp_bp: float, path_bp: float) -> str:
@@ -492,6 +494,22 @@ def group_h() -> None:
           "neither the computation nor the print can fetch")
 
 
+def group_i() -> None:
+    head("I. NO INTERNAL ID REACHES AN EDITION (CI 38904629572)")
+    import json
+    import re
+    from daily_cascade import batch5_block as blk
+    with observations.ObservationStore(store([])) as st:
+        subs = (blk.plumbing_subsections(st, CUT, CUT, "weekly")
+                + [blk.mechanics_subsection(st, CUT), blk.slow_subsection(st, CUT)])
+    body = json.dumps([{k: v for k, v in x.items() if k != "data"} for x in subs if x],
+                      ensure_ascii=False)
+    ids = re.findall(r"\b(?:fred|calc|cftc|pm|dial|ndl|yfinance|acm|census|ecb)"
+                     r"\.[a-z0-9_]+\b", body)
+    check(not ids, f"every absence on an empty store names its series in plain words "
+                   f"({ids[:3]})")
+
+
 def main() -> int:
     td = gate_tmp.mkdtemp("st_r4_t1_")
     group_a()
@@ -502,6 +520,7 @@ def main() -> int:
     group_f(td)
     group_g()
     group_h()
+    group_i()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

@@ -71,6 +71,29 @@ def _bp(a: float, b: float) -> float:
 # ---------------------------------------------------------------------------
 # ST-R4.21b -- the term premium, printed
 # ---------------------------------------------------------------------------
+
+# Plain names for an absence reason: a reason prints in the edition, and no
+# internal id may reach a rendered edition (validate_weekly_edits, B).
+_NAMES = {
+    "acm.term_premium_10y": "ACM's 10-year term premium",
+    "acm.fitted_yield_10y": "ACM's fitted 10-year yield",
+    "acm.risk_neutral_yield_10y": "ACM's expected short-rate path",
+    "fred.yield_10y": "the 10-year Treasury yield",
+    "fred.breakeven_10y": "the 10-year breakeven",
+    "calc.corr_spy_tlt_60d": "the 60-day SPY-TLT correlation",
+    "calc.net_liquidity": "net liquidity",
+    "fred.ppi_construction": "the construction PPI (PPIDCS)",
+    "census.vip_data_center": "Census data-center construction",
+    "census.vip_total": "Census total construction",
+}
+
+
+def _name(key) -> str:
+    """The plain name of a store key, else its last part in words."""
+    k = str(key or "")
+    return _NAMES.get(k) or k.split(".")[-1].replace("_", " ")
+
+
 def term_premium(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     """ACM's 10-year term premium: its level, its change on the prior print, and
     its percentile against each trailing window, with that window's n and first
@@ -80,7 +103,7 @@ def term_premium(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     ser = _pts(st, key, cutoff)
     if not ser:
         return {"key": key, "label": c.get("label"), "absent": True,
-                "reason": f"no {key} observation knowable at {cutoff[:10]}"}
+                "reason": f"no {_name(key)} observation knowable at {cutoff[:10]}"}
     day, lvl = ser[-1]
     prior = ser[-2] if len(ser) > 1 else None
     years = tuple(int(y) for y in c.get("windows_years") or (5, 20))
@@ -116,7 +139,7 @@ def fiscal_bark(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     tp, fit, path = (_pts(st, c.get(k), cutoff) for k in ("tp", "fitted", "path"))
     q = _pts(st, c.get("quoted", "fred.yield_10y"), cutoff)
     if not (tp and fit and path):
-        miss = [c.get(k) for k, s in (("tp", tp), ("fitted", fit), ("path", path)) if not s]
+        miss = [_name(c.get(k)) for k, s in (("tp", tp), ("fitted", fit), ("path", path)) if not s]
         return {"absent": True, "months": months,
                 "reason": f"not knowable at {cutoff[:10]}: {', '.join(miss)}"}
     end = min(tp[-1][0], fit[-1][0], path[-1][0])
@@ -229,7 +252,7 @@ def stock_bond(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     n = int(c.get("breakeven_sessions", 60))
     be_bp = _bp(be[-1][1], be[-n - 1][1]) if len(be) > n else None
     if c60 is None:
-        return {"absent": True, "reason": f"{c.get('corr_60d')} not knowable at "
+        return {"absent": True, "reason": f"{_name(c.get('corr_60d'))} not knowable at "
                 f"{cutoff[:10]}", "two_year": two}
     live = c60[1] > float(c.get("live_above", 0.2))
     s, why = strength(live, rs[1] if rs else None, ts[1] if ts else None, be_bp, c)
@@ -256,7 +279,7 @@ def net_liquidity(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     c = (cfg or config()).get("net_liquidity") or {}
     ser = _pts(st, c.get("key", "calc.net_liquidity"), cutoff)
     if len(ser) < 2:
-        return {"absent": True, "reason": f"calc.net_liquidity has {len(ser)} "
+        return {"absent": True, "reason": f"net liquidity has {len(ser)} "
                 f"observation(s) knowable at {cutoff[:10]}"}
     legs = {name: (dict(_pts(st, k, cutoff)), float(mult))
             for name, (k, mult) in (c.get("legs") or {}).items()}
@@ -305,10 +328,10 @@ def construction(st, cutoff: str, cfg: Optional[dict] = None,
                                   "power", "deflator"))
     if not dc or not tot:
         return {"absent": True,
-                "reason": held_reason or (f"{c.get('data_center')} / {c.get('total')} "
+                "reason": held_reason or (f"{_name(c.get('data_center'))} / {_name(c.get('total'))} "
                                           f"not knowable at {cutoff[:10]}")}
     if not ppi:
-        return {"absent": True, "reason": f"{c.get('deflator')} not knowable at "
+        return {"absent": True, "reason": f"{_name(c.get('deflator'))} not knowable at "
                 f"{cutoff[:10]}: nothing to deflate by"}
     exdc = {d: tot[d] - dc[d] for d in tot if d in dc}
     base = str(int(c.get("base_year", 2019)))

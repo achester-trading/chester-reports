@@ -24,7 +24,8 @@ and `validate_readability.py` and the summary failed. The ES block's absent note
 and lines printed ISO dates outside a table. Fixed in `4dd24ac`: dates print as
 "28 Sep", and the check was added to `validate_es_block.py` (69 checks). Both
 causes were that branch's own. Both are recorded in `docs/briefs/st-r6-45-notes.md`.
-`4dd24ac`'s own run is not separate from this branch's (see "CI" below).
+`4dd24ac`'s own run, 38904259575, passed: 93 of 93 jobs green (read once, 16 Oct,
+for the part 2 paste).
 
 **b. `6e-metric-lenses`.** Its last run, 38738521798 (15 Oct), failed. 82 jobs
 passed; `validate_audit_3a.py` and the summary failed on one check: "a count in
@@ -315,13 +316,23 @@ arrive at the next scheduled pulls after the merge.
 ## CI
 
 Locally, only the gates this branch writes or changes were run, one at a time:
-- `tools/validate_st_r4_t1.py`: 48 passed, 0 failed.
+- `tools/validate_st_r4_t1.py`: 49 passed, 0 failed (48 at `1ee6e76`; group I
+  added with the fix below).
 - `tools/validate_batch3_a.py`: 62 passed, 0 failed.
 - `tools/validate_audit_3a.py`: 83 passed, 0 failed.
 - `tools/check_registry.py`: OK.
 - On `st-r6-es-block`, `tools/validate_es_block.py`: 69 passed.
 
-This branch's CI run is read once, after the push; see the session report.
+Run 38904629572 (`1ee6e76`) **failed**: 92 jobs passed; `validate_weekly_edits.py`
+(89 passed, 1 failed) and the summary failed. The failing check was "no unlabelled
+id reaches the rendered edition": `calc.corr_spy_tlt_60d` and `calc.net_liquidity`
+reached the Weekly. On the gate's synthetic week those series are short, so
+`batch5.stock_bond` and `batch5.net_liquidity` were absent, and their absence
+reasons printed the store keys. The cause was this branch's. Fixed in the next
+commit: every absence reason names its series in plain words (`batch5._name`), and
+`validate_st_r4_t1.py` group I renders every subsection on an empty store and
+refuses any id in what prints. The fix's own run is read in
+`docs/briefs/st-r4-tranche-1b-notes.md`, step 0.
 
 ## Needs you
 
