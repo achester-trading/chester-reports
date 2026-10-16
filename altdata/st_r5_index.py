@@ -453,7 +453,8 @@ def allocation_rows(a: dict) -> list[list[str]]:
         lz = p["lens"]
         pct = (f"{lens_text(lz)}")
         rows.append([p["label"], f"{p['share_pct']:.1f}%", quarter_name(p["quarter"]),
-                     "—" if p["change_pp"] is None else f"{p['change_pp']:+.1f} pp", pct])
+                     "—" if p["change_pp"] is None else
+                     f"{(p['change_pp'] if round(p['change_pp'], 1) else 0.0):+.1f} pp", pct])
     return rows
 
 
