@@ -109,6 +109,7 @@ keys. All now name the series.
 |---|---|---|
 | 38904790271 | `0a55984` (the build) | failure, 92 of 94 jobs passed |
 | 38905177161 | `e5677f4` (the notes) | failure, 92 of 94 jobs passed |
+| 38939100628 | `204a051` (the fix) | **success, 94 of 94 jobs** |
 
 **The verdict: both failed on this branch's own change, and it is fixed.** In each
 run the one failing gate was `validate_stack_cadence`, plus the `gates-passed`
@@ -117,7 +118,7 @@ phrase" caught the allocation block's table note, which said Z.1 arrives "with
 about a ten-week lag". A Monthly prints no week word. The note now says Z.1 is
 "published about seventy days after the quarter ends". `validate_stack_cadence`
 passes locally after the fix (99/0), and so does `validate_st_r5_index` (56/0).
-The run for the fix commit is read once and recorded below.
+The fix commit's run, read once, passed every job: **the branch is green.**
 
 ## What was built, item by item
 
