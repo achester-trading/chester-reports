@@ -518,6 +518,12 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     sb = batch5_block.mechanics_subsection(st, now)
     if sb:
         subs.append(sb)
+    # BATCH 5 ITEMS 18 AND 19 (ST-R4.18a, 19a), in Mechanics; the vol divergence
+    # line joins the read's items when the flag is active.
+    from daily_cascade import batch5b_block                      # noqa: PLC0415
+    subs += batch5b_block.mechanics_subsections(st, now)
+    items += [item(iid, text, 1, val)
+              for iid, text, val in batch5b_block.read_items(st, now)]
     extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
              **({"ai_revisions": rv_data} if rv_data else {})}
     return {"items": items, "print_items": False,
@@ -1697,6 +1703,10 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         con = batch5_block.slow_subsection(st, now)
         if con:
             subs.append(con)
+        # BATCH 5 ITEM 22 (ST-R4.22a, 22b): the expansion's age with the post-war
+        # hazard, and Factor I's information-processing dependency line.
+        from daily_cascade import batch5b_block                  # noqa: PLC0415
+        subs += batch5b_block.slow_subsections(st, now)
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]

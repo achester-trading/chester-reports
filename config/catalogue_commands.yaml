@@ -24,6 +24,9 @@ commands:
   altdata.batch5:
     domain: rates
     line: 'Batch 5 Tranche 1: the term premium printed, the fiscal-bark and stock-bond flags, net liquidity attributed, construction spending real'
+  altdata.batch5b:
+    domain: rates
+    line: 'Batch 5 Tranche 1, part 2: the dispersion panel, the MOVE-VIX divergence flag, the expansion age and Factor I line, Treasury moves overnight against the session'
   altdata.benchmark:
     domain: portfolio
     line: Book Z -- the benchmark ledgers

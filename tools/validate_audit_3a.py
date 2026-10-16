@@ -144,7 +144,17 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
 # their spec line, not by the resolver fix (signal-triage Batch 5, ST-R4.23a:
 # PPIDCS joins FRED_SIGNAL_SERIES, 16 Oct 2026; st-r5-rates declares its own two
 # the same way -- the merge takes the union).
-NEW_BLOCK_MEMBERS = {"fred.ppi_construction"}
+NEW_BLOCK_MEMBERS = {"fred.ppi_construction",
+                     # ST-R4 Tranche 1 part 2 (Batch 5 items 18, 22, 27; 16 Oct
+                     # 2026): two FRED contributions, four basket symbols with
+                     # their actions, ZN=F's volume, TLT's and ZN=F's OHLC.
+                     "fred.contrib_info_equipment", "fred.contrib_software",
+                     *(f"yfinance.mkt_{s}{x}" for s in ("dspx", "cor1m", "cor3m",
+                                                       "zn_front")
+                       for x in ("", "_dividend", "_split")),
+                     "yfinance.mkt_zn_front_volume",
+                     *(f"yfinance.mkt_{s}_{x}" for s in ("tlt", "zn_front")
+                       for x in ("open", "high", "low"))}
 
 
 def check(c, m: str) -> None:

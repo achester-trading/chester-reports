@@ -4249,6 +4249,32 @@ metrics:
     trigger_eligible: false
     description: >-
       CBO baseline federal deficit for the NEXT fiscal year, percent of GDP, observed_at = the baseline's publication date -- SR-23's projection input. The note names the report and the fiscal year.
+  manual.flashalpha_implied_corr:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      FlashAlpha's index-vs-basket IMPLIED correlation, 0..1 -- ST-R4.18b, the cross-check on Cboe's COR indices in the dispersion panel (Batch 5 item 18). Entered from Claude's chat-side Wednesday vendor pull; the note names the index, the basket, its weights and the horizon.
+  manual.flashalpha_realized_corr:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    description: >-
+      FlashAlpha's REALIZED correlation across the same basket and horizon, 0..1 -- ST-R4.18b, beside the implied figure (the gap is the correlation premium). Entered with it from the Wednesday pull; the note names the basket and horizon.
   manual.ig_nic_median_bp:
     source: manual_input
     mechanism_group: manual_entry
@@ -12431,7 +12457,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 28   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + PPIDCS (ST-R4.23a, Batch 5 item 23: index, Nov 2009=100, SA)
+    expected_members: 30   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + PPIDCS (ST-R4.23a, Batch 5 item 23: index, Nov 2009=100, SA) + Y034RY2Q224SBEA, B985RY2Q224SBEA (ST-R4.22b, Batch 5 item 22: contributions to real GDP growth, pp SAAR)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -12443,6 +12469,12 @@ bulk_imports:
     # is what forbids it. First prints for SR-5 come from ALFRED, not this pull.
     revision_policy: revised
     revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested (O.16)"
+    # ST-R4.22b (16 Oct 2026): BEA's contributions to real GDP growth are
+    # percentage points of a growth rate, quoted "%" by FRED; their change prints
+    # in pp, never bp (AUD-3a's rule for shares and rates of change).
+    member_units:
+      fred.contrib_info_equipment: percent_return
+      fred.contrib_software: percent_return
     trigger_eligible: false
     mechanism_group_from_member: pillar
     mechanism_group_map:
@@ -12643,7 +12675,14 @@ bulk_imports:
       yfinance.mkt_vvix: vol_index
       yfinance.mkt_move: vol_index
       yfinance.mkt_skew: index_points
-    expected_members: 106   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+      # ST-R4.18a (Batch 5 item 18, 16 Oct 2026): Cboe's dispersion index is an
+      # implied-volatility spread in vol points, like the VIX; the two implied-
+      # correlation indexes are levels on 0-100 whose percent change means
+      # nothing. All three move in points.
+      yfinance.mkt_dspx: vol_index
+      yfinance.mkt_cor1m: index_points
+      yfinance.mkt_cor3m: index_points
+    expected_members: 110   # + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27) + 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -12660,6 +12699,8 @@ bulk_imports:
       BTC-USD), keyed yfinance.mkt_<sym>_open / _high / _low, so the tape's daily
       frames and the Weekly's candles read the store and the bars table holds
       intraday only. Same basis as the close: split-adjusted, dividend-unadjusted.
+      ST-R4.27a (Batch 5 item 27, 16 Oct 2026) adds TLT and ZN=F, whose open
+      splits a Treasury move into its overnight and session legs.
     source: yfinance
     members_from: altdata.sources.yfinance_source.OHLC_KEYS
     members_are: values
@@ -12673,7 +12714,7 @@ bulk_imports:
       yfinance.mkt_tyx_open: percent_rate
       yfinance.mkt_tyx_high: percent_rate
       yfinance.mkt_tyx_low: percent_rate
-    expected_members: 9
+    expected_members: 11
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -12716,7 +12757,7 @@ bulk_imports:
     members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 5
+    expected_members: 6   # GC=F CL=F HG=F RB=F HO=F + ZN=F (Batch 5 item 27)
     key_prefix: yfinance.
     units: count
     native_horizon: daily
@@ -12831,7 +12872,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 106   # the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 110   # the market_closes basket (+ ^DSPX ^COR1M ^COR3M ZN=F, Batch 5): 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily

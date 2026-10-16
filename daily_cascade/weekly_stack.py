@@ -217,6 +217,12 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     sb = batch5_block.mechanics_subsection(st, cutoff)
     if sb:
         subs.append(sb)
+    # BATCH 5 ITEMS 18 AND 19 (ST-R4.18a, 19a): the dispersion panel and the
+    # cross-asset vol divergence flag, with a line in the read when it is active.
+    from . import batch5b_block                                 # noqa: PLC0415
+    subs += batch5b_block.mechanics_subsections(st, cutoff)
+    for iid, text, val in batch5b_block.read_items(st, cutoff):
+        items.append(item(iid, text, 1, val))
     # THE ES BLOCK'S WEEKLY PANEL (ST-R6.45d, Batch 6 item 45): the position
     # window (three months on daily bars) and the week's ES ledger -- levels
     # held, broke or untested, leans resolved or not. Tables only.
@@ -870,6 +876,13 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
+    # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
+    # under the CFTC table and SR-36's line -- a co-signal of the Japan
+    # slow-money set and of SR-36's unwind watch, never a flag of its own.
+    from . import batch5b_block                                 # noqa: PLC0415
+    on = batch5b_block.positioning_subsection(st, now)
+    if on:
+        out.append(on)
     si = [[f"{sym} days to cover", f"{data[f'finra:{sym}']['level']:,.2f}",
            _change(data[f"finra:{sym}"]), data[f"finra:{sym}"]["observed_at"]]
           for sym in ("SPY", "QQQ", "IWM") if data.get(f"finra:{sym}")]

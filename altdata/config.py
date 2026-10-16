@@ -171,6 +171,14 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # read off its FRED page 16 Oct 2026 (latest Sep 2026, 188.186). Seasonally
     # adjusted, to match the Census SAAR it deflates.
     SeriesSpec("ppi_construction", "PPIDCS",     "PPI final demand: construction (Nov 2009=100)","2","idx","monthly"),
+    # ST-R4.22b (Batch 5 item 22, 16 Oct 2026): Factor I's dependency line, BEA's
+    # contributions to the percent change in real GDP (NIPA table 1.1.2) of
+    # information-processing equipment and of software. "Percentage Points at
+    # Annual Rate, Seasonally Adjusted Annual Rate", quarterly, read off each
+    # FRED page 16 Oct 2026 (latest Q2 2026: 0.19 and 0.33). Their sum is the
+    # order's measurable; the combined series (A679RY2Q224SBEA) ended in Q1 2013.
+    SeriesSpec("contrib_info_equipment","Y034RY2Q224SBEA","Contribution to real GDP growth: information processing equipment (pp, SAAR)","2","%","quarterly"),
+    SeriesSpec("contrib_software", "B985RY2Q224SBEA","Contribution to real GDP growth: software (pp, SAAR)","2","%","quarterly"),
 
     # Dollar -- SR-14 / G-12. The nominal broad index is FRED_SERIES' `dxy`.
     SeriesSpec("real_dollar_broad","RTWEXBGS",   "Real Broad Dollar Index (Jan 2006=100)","7","idx","monthly"),

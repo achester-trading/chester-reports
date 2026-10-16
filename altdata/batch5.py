@@ -141,7 +141,7 @@ def fiscal_bark(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     if not (tp and fit and path):
         miss = [_name(c.get(k)) for k, s in (("tp", tp), ("fitted", fit), ("path", path)) if not s]
         return {"absent": True, "months": months,
-                "reason": f"not knowable at {cutoff[:10]}: {', '.join(miss)}"}
+                "reason": f"{', '.join(miss)} not knowable at {cutoff[:10]}"}
     end = min(tp[-1][0], fit[-1][0], path[-1][0])
     tp_, fit_, path_ = ([x for x in s if x[0] <= end] for s in (tp, fit, path))
     start = _months_back(end, months)
@@ -332,7 +332,7 @@ def construction(st, cutoff: str, cfg: Optional[dict] = None,
                                           f"not knowable at {cutoff[:10]}")}
     if not ppi:
         return {"absent": True, "reason": f"{_name(c.get('deflator'))} not knowable at "
-                f"{cutoff[:10]}: nothing to deflate by"}
+                f"{cutoff[:10]}, so nothing to deflate by"}
     exdc = {d: tot[d] - dc[d] for d in tot if d in dc}
     base = str(int(c.get("base_year", 2019)))
     common = sorted(set(dc) & set(ppi) & set(exdc))

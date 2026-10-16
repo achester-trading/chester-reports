@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 28 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 30 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 130, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 132, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -125,7 +125,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    106 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    110 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-six code gates (eighty-three Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-seven code gates (eighty-four Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -399,6 +399,23 @@ them in Plumbing, Mechanics and the Monthly's slow layers, tables and lines only
 The Census writer `altdata/sources/census_vip.py` is HELD for D1c, like Redfin.
 The thresholds are `config/batch5_tranche_1.yaml`'s, all session-set.
 `tools/validate_st_r4_t1.py` holds it on fixtures.
+
+**Batch 5's Tranche 1 ends with two top-side tells, a base rate and a co-signal
+(ST-R4, Tranche 1 part 2, 16 Oct 2026).** `altdata/batch5b.py` reads the store as
+of the cutoff and decides nothing: the dispersion panel, Cboe's DSPX, COR1M and
+COR3M with dual percentiles and a "dispersion regime: high or low" flag (18a;
+Yahoo serves the two COR indices as a quote without history, so theirs starts at
+the first pull, and the constituent fallback prints "awaiting constituent prices"
+until Batch 6 item 44's writer runs); the MOVE-VIX divergence flag on one-year z,
+watch and strong tiers, with the T&B conditioner's path in place and inactive
+(19a); the expansion's age with the post-war hazard from the committed NBER
+fixture `config/nber_expansions.yaml` (22a); BEA's information-processing
+contribution to real GDP growth, two FRED series (22b); and TLT's and ZN=F's
+overnight and session legs over 20 sessions (27a), which SR-36's unwind watch
+counts as its fifth co-signal. `daily_cascade/batch5b_block.py` prints them in
+Mechanics, the slow layers and Positioning & flows. The thresholds are
+`config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
+fixtures.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
