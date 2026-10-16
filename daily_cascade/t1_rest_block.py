@@ -71,7 +71,7 @@ def mechanics_subsections(st, now: str, cadence: str = "weekly",
     def build():
         b = reads(st, now, cfg)
         br, co, oil = b["breadth"], b["concentration"], b["oil_shock"]
-        conc = {"title": CONC_TITLE,
+        conc = {"title": CONC_TITLE, "not_tracked": [],
                 "lines": [tr.concentration_line(co), tr.breadth_line(br)],
                 "paragraph_wanted": False,
                 "table_note": ("SPY's daily holdings (SSGA) are the S&P 500's "
@@ -84,7 +84,7 @@ def mechanics_subsections(st, now: str, cadence: str = "weekly",
                 "data": {"concentration": tr.public(co), "breadth": tr.public(br)}}
         if br["state"] == "read":
             conc["table"] = {"columns": BREADTH_COLUMNS, "rows": tr.breadth_rows(br)}
-        oil_sub = {"title": OIL_TITLE, "lines": [tr.oil_shock_line(oil)],
+        oil_sub = {"title": OIL_TITLE, "not_tracked": [], "lines": [tr.oil_shock_line(oil)],
                    "paragraph_wanted": False,
                    "table_note": ("Brent (DCOILBRENTEU) against the S&P 500 and the "
                                   "10-year, daily changes, six-month windows. "
@@ -149,7 +149,7 @@ def slow_subsections(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
                                "capitalisation (by hand, monthly). "
                                + (g.get("definition_note") or "") + "."),
                 "data": {"gold_equity": tr.public(g)}}
-        diff = {"title": DIFF_TITLE, "lines": tr.diffusion_lines(d),
+        diff = {"title": DIFF_TITLE, "not_tracked": [], "lines": tr.diffusion_lines(d),
                 "paragraph_wanted": False,
                 "table_note": ("The BIS policy-rate table, month-end: each central "
                                "bank's last move is its latest month-end change of a "
@@ -165,6 +165,6 @@ def slow_subsections(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
 def ahead_subsection(st, now: str, cfg: Optional[dict] = None) -> Optional[dict]:
     def build():
         ln = tr.ahead_line(reads(st, now, cfg)["diffusion"])
-        return ({"title": AHEAD_TITLE, "lines": [ln], "paragraph_wanted": False}
+        return ({"title": AHEAD_TITLE, "not_tracked": [], "lines": [ln], "paragraph_wanted": False}
                 if ln else None)
     return _safe(build, "the ahead line", None)

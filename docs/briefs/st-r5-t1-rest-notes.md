@@ -165,8 +165,14 @@ fixed them there first, as the paste required:
 | `check_registry` | OK |
 
 Every other gate is left to CI, including the market-state object's own and
-anything that renders a PDF. CI's numbers for this branch are recorded below
-once read.
+anything that renders a PDF.
+
+**CI on this branch:**
+
+| Run | Commit | Result |
+|---|---|---|
+| 38943816188 | aef5fdb | failure, 90/95. Two faults, both this branch's own. (1) The diffusion sub-section and three others carried no `not_tracked` list, and the Monthly's slow layers append the sourced-figures absence to the last sub-section's list: `KeyError: 'not_tracked'` in `validate_monthly_stack`, `validate_crypto_basket` and `validate_correlation_layer`. (2) The oil-shock line wrote "20th"/"80th" by hand, which `validate_numeral_audit` refuses; it now goes through `ordinal()`. The fifth failure is `gates-passed`, the roll-up. |
+| (next push) | — | recorded at the next read |
 
 ## What was built, item by item
 

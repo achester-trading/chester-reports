@@ -372,8 +372,8 @@ def oil_shock_line(o: dict) -> str:
             f"percentile); Brent against the 10-year {o['brent_10y_corr_ratio']:+.2f} "
             f"({ordinal(o['percentile_brent_10y'])}); over {hist} (n={o['n_windows']:,} "
             f"windows), on {o['day']}: {read}. The order's rule: the first at or below "
-            f"its {o['spx_below_percentile']}th percentile while the second is at or above its "
-            f"{o['ten_year_above_percentile']}th.")
+            f"its {ordinal(o['spx_below_percentile'])} percentile while the second is at or "
+            f"above its {ordinal(o['ten_year_above_percentile'])}.")
 
 
 # ---------------------------------------------------------------------------
