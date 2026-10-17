@@ -380,6 +380,28 @@ crypto flows block (at most 12 lines, a table in Positioning & flows) and the
 Monthly's network-health and data-layer rows, every Monthly row in the triple form
 with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
 
+**Item 49 and the addendum's Phase 2 (digital-49-51b, 17 Oct 2026).**
+`altdata/sources/treasury.py` stores three inputs:
+- the treasury companies' BTC holdings, from BitcoinTreasuries.com's table
+  (treasuries.bitbo.io);
+- Strategy's share count, from EDGAR, which needs `CHESTER_SEC_CONTACT`, otherwise
+  a listed gap;
+- MSTR's spot, from the captured chains.
+
+`crypto_derived.py` computes `calc.mnav` (market cap over BTC value, the order's
+basic definition) and `calc.treasury_net_purchases`. The Digital Assets addendum's
+panels read Tranche A by key:
+- mNAV carries the 1.2 watch line and item 49's one flag at 1.0, which prints with
+  its date;
+- "who is buying" sets ETF flow and treasury purchases against new supply, and
+  withholds the residual when a leg is missing;
+- an absent series prints "awaiting the first pull", "not tracked" or "awaiting
+  EL-12".
+
+The page holds Phase 1's 52-line budget, and the read's audits gain a flag-word
+check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
+watch, read-only.
+
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates
 and spreads, percent for prices, raw for counts), never from one formula. Do not
