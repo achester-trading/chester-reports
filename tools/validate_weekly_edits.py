@@ -368,7 +368,9 @@ def main() -> int:
                            "amplified_range_ratio": 1.2}}
     base_c = {"close": 700.0, "prior_close": 700.0, "session_high": 704.5,
               "session_low": 692.0, "max_pain": 700.5, "call_wall_morning": 705.0,
-              "put_wall_morning": 692.5, "flip_morning": 699.0, "flip_crossed": True}
+              "put_wall_morning": 692.5, "flip_morning": 699.0, "flip_crossed": True,
+              # The held flags read the morning's OTM walls (ruled 17 Oct 2026).
+              "call_wall_otm_morning": 705.0, "put_wall_otm_morning": 692.5}
     f = wsec.flags_for(base_c, 20.0, fc)
     check(f["pinned"] is True, "pinned: the close within 0.25% of max pain")
     check(wsec.flags_for({**base_c, "max_pain": 703.0}, 20.0, fc)["pinned"] is False,
@@ -389,6 +391,12 @@ def main() -> int:
     g = wsec.flags_for({"close": 700.0}, None, fc)
     check(g["pinned"] is None and g["amplified"] is None and g["call_wall_held"] is None,
           "a flag whose field is missing is None, never guessed")
+    legacy = {k: v for k, v in base_c.items() if "otm" not in k}
+    far = wsec.flags_for({**base_c, "session_high": 701.0}, 20.0, fc)
+    check(wsec.flags_for(legacy, 20.0, fc)["call_wall_held"] is None
+          and far["call_wall_held"] is None,
+          "the held flags read the OTM walls only (a card with only the all-strike "
+          "walls is None), and a wall never approached is None, not False (6b part 2)")
     mt = next(ss for ss in sec["mechanics"]["subsections"]
               if ss["title"] == "Ranges and flags")["table"]
     check(mt["columns"][-1] == "Flags" and len(mt["rows"]) == len(sessions)

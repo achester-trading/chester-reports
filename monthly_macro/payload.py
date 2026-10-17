@@ -730,6 +730,11 @@ def v2_sections(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 # The payload
 # ---------------------------------------------------------------------------
+def _computed_dir() -> str:
+    from altdata import config as acfg                          # noqa: PLC0415
+    return str(acfg.COMPUTED_DIR)
+
+
 def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
           period: str = "month") -> dict:
     """Every section. Reads only; never raises on a missing one. `period`
@@ -747,6 +752,9 @@ def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
             "run_id": run_id,
             "sections": list(SECTIONS),
             "pillar_mapping_version": pillars.load()["version"],
+            # Where the computed dealer profiles live (6b part 2): M12 reads the
+            # month's last settled capture there.
+            "computed_dir": str(_computed_dir()),
         }
         out["regime"] = regime_block(cutoff, store=db)
         out["scenarios"] = scenarios_block()

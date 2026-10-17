@@ -266,6 +266,9 @@ FIELD_MECHANISM_GROUPS: dict[str, str] = {
     "peak_put_gex_strike": "dealer_chain_derived",
     "call_concentration_otm_2": "dealer_chain_derived",
     "put_concentration_otm_2": "dealer_chain_derived",
+    # 6b part 2: the profile's +/-1% asymmetry (sentence 1, figure 2).
+    "net_gex_up_1pct": "dealer_chain_derived",
+    "net_gex_down_1pct": "dealer_chain_derived",
     "gex": "dealer_chain_derived",
     "call_gex": "dealer_chain_derived",
     "put_gex": "dealer_chain_derived",
@@ -985,6 +988,27 @@ BAND_ADDITIVE = ("call_gamma_per_1pct", "put_gamma_per_1pct",
                  "dollar_gamma_per_1pct", "gross_gamma_per_1pct", "dex_notional")
 
 
+PROFILE_BAND = 0.08     # figure 2's +/-8% window, the brief's chart
+PROFILE_STEPS = 81      # 0.2% apart: enough for the chart, cheap on the box
+
+
+def gamma_profile_curve(rows: list[dict], spot: float, r: float,
+                        band: float = PROFILE_BAND, steps: int = PROFILE_STEPS) -> dict:
+    """Net GEX (net_gex units) at each hypothetical spot across +/-band, and
+    at exactly +1% and -1%. Empty lists and None when there is nothing to
+    price -- never a curve of zeros."""
+    usable = [x for x in rows if (x.get("implied_vol") or 0) > 0
+              and (x.get("open_interest") or 0) > 0 and x.get("strike")]
+    if not spot or not usable:
+        return {"band_pct": band * 100, "spots": [], "net_gex": [],
+                "up_1pct": None, "down_1pct": None}
+    xs = [spot * (1 - band + 2 * band * i / (steps - 1)) for i in range(steps)]
+    return {"band_pct": band * 100, "spots": [round(x, 4) for x in xs],
+            "net_gex": [net_gex_at_spot(usable, x, r) for x in xs],
+            "up_1pct": net_gex_at_spot(usable, spot * 1.01, r),
+            "down_1pct": net_gex_at_spot(usable, spot * 0.99, r)}
+
+
 def horizon_windows_config() -> dict:
     """`horizon_windows` from config/reporting_stack.yaml; the defaults (the
     brief's own) when the file or the block is absent."""
@@ -1229,6 +1253,13 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
     # renderer recomputes nothing.
     hz_cfg = horizon_windows_config()
     horizons = horizon_profiles(usable, exposure_rows, spot, settled, hz_cfg)
+    # THE GAMMA PROFILE ACROSS SPOT (6b part 2; brief v2 section 3, figure 2):
+    # net GEX if spot were X, every contract's gamma re-priced at X with OI and
+    # IV held (sticky strike), over the exposure rows. Stored so the chart and
+    # the first sentence are views; the +/-1% points carry the asymmetry.
+    profile_curve = gamma_profile_curve(exposure_rows, spot, config.RISK_FREE_RATE)
+    overall["net_gex_up_1pct"] = profile_curve.get("up_1pct")
+    overall["net_gex_down_1pct"] = profile_curve.get("down_1pct")
 
     mp = max_pain(usable)
     per_strike = overall.pop("per_strike", [])
@@ -1276,6 +1307,12 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         "buckets": buckets,
         "horizons": horizons["windows"],
         "bands": horizons["bands"],
+        "gamma_profile": {k: profile_curve[k] for k in ("band_pct", "spots",
+                                                        "net_gex")},
+        # Open interest is the PRIOR CLOSE's in every capture: OCC publishes it
+        # once a day, so an intraday capture carries today's IV and spot on
+        # yesterday's OI (brief v2, Captures).
+        "oi_vintage": "prior_close",
         "quality": quality,
         # Data-quality gates over the same chain. Carried on the profile so the
         # pin log can refuse to let a bad day into the base rate silently.

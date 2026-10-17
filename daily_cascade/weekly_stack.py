@@ -2090,6 +2090,11 @@ def chart_plan(ed: dict) -> list[str]:
         cap += 1
     misfit = next(s for s in ed["sections"] if s["id"] == "misfit")
     want = ["W1", "W2", "W8", "W7", "W3", "W5", "W4", "W9", "W11", "W10"]
+    # W12, THE DEALER PANEL (6b part 2; brief v2 section 3: figures 2, 1 and 3),
+    # in Mechanics after W7, when the edition reads the computed profiles. At the
+    # cap of 10 it sets W10 aside; with W6 open and no trigger, W11 too.
+    if ed.get("dealer_computed_dir"):
+        want.insert(4, "W12")
     if (misfit.get("data") or {}).get("open_contradictions"):
         want.insert(4, "W6")
     return want[:cap]
@@ -2100,7 +2105,8 @@ PLACE = {"W1": ("tape", None), "W2": ("tape", None), "W8": ("tape", None),
          "W7": ("mechanics", None), "W3": ("plumbing", None),
          "W6": ("misfit", None), "W5": ("positioning", 0),
          "W4": ("positioning", 1), "W9": ("positioning", 3),
-         "W10": ("priced", 1), "W11": ("priced", None)}
+         "W10": ("priced", 1), "W11": ("priced", None),
+         "W12": ("mechanics", None)}
 
 # W8's six panels: (tape id, panel title).
 W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY"),
@@ -2300,6 +2306,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W11" in plan:
         charts["W11"] = charts_mod.index_carry("W11", cd.get("carry"), "twelve months",
                                                f"{base}_w11", out_dir)
+    if "W12" in plan:
+        from . import dealer_block                              # noqa: PLC0415
+        charts["W12"] = charts_mod.dealer_chart(
+            "W12", dealer_block.newest_settled(ending, "SPY", ed["dealer_computed_dir"]),
+            f"{base}_w12", out_dir)
     if "W6" in plan:
         c6 = [v for v in extras["contradictions"].values() if v]
         n6 = max((len(v) for v in c6), default=0)

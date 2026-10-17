@@ -379,7 +379,14 @@ the call- and put-gamma masses, the horizon windows and exclusive bands
 extremes as peaks: the walls are `call_wall_otm` and `put_wall_otm`. The regime
 word prints only at net-to-gross of 0.10 or more, "inferred, not observed" heads
 every dealer table, and the block proposes setups from `config/setups.yaml`
-without writing the register. `tools/validate_dealer_block.py` holds it.
+without writing the register. `tools/validate_dealer_block.py` holds it. Part 2
+(17 Oct 2026) adds the charts (`tools/dealer_charts.py`'s draw functions through
+`daily_cascade/charts.py`: D2 on the close, W12 and M12 panels), the three fixed
+sentences behind the flag-word audit (pinned, held, amplified, dampened), the
+scorecard's pre-registration (`docs/ledgers/dealer-scorecard-preregistration-2026-10.md`,
+never edited; `altdata/dealer_scorecard.py` scores it and prints k/n with Wilson
+intervals), and the 09:45 and 12:30 captures (`altdata/dealer_capture.py`,
+`daily_cascade/midday_gate.py`; their timers are the operator's to enable).
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

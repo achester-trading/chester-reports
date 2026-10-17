@@ -652,14 +652,12 @@ dealer_block:
   # (T4 names the date it compares against).
   equivalent_lookback_sessions: 3
   # WHAT COUNTS AS AN EXPIRY SESSION for the setups and T2's max-pain row.
-  # SESSION-SET: "friday" -- the target session is a Friday with a listed
-  # expiry (the weekly, monthly and quarterly cycles all expire on Fridays).
-  # SPY lists an expiry EVERY weekday, so "any" would make every session an
-  # expiry session and d_forced_flow fire at every close. A holiday-shifted
-  # Thursday monthly is missed under "friday" (noted). "any" is the alternative.
-  # The scorecard's is_expiry_session (any DTE 0 rows) is unchanged: part 2's
-  # pre-registration rules on it.
-  expiry_sessions: friday
+  # RULED 17 Oct 2026: "monthly" -- the target session is the monthly third
+  # Friday, with a listed expiry; weekly Fridays stay out, and the scorecard's
+  # pinned hypothesis uses the same day (the pre-registration records the
+  # choice so it can be revisited with evidence). "friday" and "any" are the
+  # alternatives; SPY lists an expiry every weekday.
+  expiry_sessions: monthly
   # THE SETUP CONDITIONS (config/setups.yaml; Doctrine 4.3 and 4.4). The block
   # proposes; the books decide; nothing writes the register.
   setups:
@@ -703,6 +701,27 @@ dealer_block:
     peak_put_gamma_strike: "where put gamma peaks, near the money by construction; a peak, not a wall (audit F5)"
     put_oi_shelf: "the largest out-of-the-money put open interest; an OI level, not a gamma one (DH 7.2)"
     max_pain: "an OI construct; meaningful only where it coincides with the peak-gamma strike (DH 7.4)"
+
+# THE DEALER SCORECARD'S PRE-REGISTERED HYPOTHESES (6b part 2; brief v2 section
+# 5, ratified 16 Oct 2026). MIRRORS the registration,
+# docs/ledgers/dealer-scorecard-preregistration-2026-10.md (dated 17 Oct 2026,
+# unchanged thereafter; a change is a new registration): tools/validate_dealer_
+# block.py holds these values to its text and the file to its recorded SHA-256.
+# Read by altdata/dealer_scorecard.py.
+dealer_scorecard:
+  registration: docs/ledgers/dealer-scorecard-preregistration-2026-10.md
+  net_to_gross_min: 0.10        # a regime session (H1, H2)
+  dampened_ratio: 0.8           # H1: range at or under 0.8 x the implied one-day range
+  amplified_ratio: 1.2          # H2: range at or over 1.2 x implied
+  wall_pct: 0.25                # H3: the approach band to the morning OTM wall
+  pin_pct: 0.25                 # H4: the close within this % of the peak-gamma strike
+  round_step: 5.0               # the round-number baselines (H3, H4): SPY's $5 grid
+  flip_forward_sessions: 3      # H5: the next three sessions' realised vol ...
+  flip_prior_sessions: 10       # ... against the prior ten's
+  print_floor_sessions: 20      # no count prints below 20 scored sessions
+  decision_floor_eligible: 120  # below 120 eligible sessions no rate is a decision
+  formation_sessions: 120       # the first 120 eligible form; the next 120 test
+  bh_q: 0.10                    # Benjamini-Hochberg across the registered family
 
 # THE TECHNICAL APPENDIX (W-1.3a item 3.7): the reference tier's formulas, units
 # and sign conventions, printed after the Weekly's detail tables. The GEX/DEX

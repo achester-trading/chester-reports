@@ -164,8 +164,12 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict],
     ntg_min = float((stack_mod.config().get("dealer_block") or {})
                     .get("net_to_gross_min", 0.10))
     ntg_m = morning.get("net_to_gross")
+    from altdata import dealer_scorecard as dsc                 # noqa: PLC0415
     row.update({
-        "is_expiry_session": _carried_0dte(cp),
+        # The monthly third Friday (ruled 17 Oct 2026, the pinned hypothesis's
+        # eligibility); `carried_0dte` keeps the capture's own fact.
+        "is_expiry_session": dsc.is_monthly_expiry(sess),
+        "carried_0dte": _carried_0dte(cp),
         "call_wall_otm_morning": morning.get("call_wall_otm"),
         "put_wall_otm_morning": morning.get("put_wall_otm"),
         "wall_approached_call": _within_pct(hi, morning.get("call_wall_otm"), wall_pct),
@@ -250,6 +254,14 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                         "charts_rendered"] = ["C3"]
             tape = next(s for s in ed["sections"] if s["id"] == "tape")
             tape["charts_rendered"] = [c for c in ("C1", "C2") if c in charts]
+            if "D2" in plan:
+                from . import dealer_block                      # noqa: PLC0415
+                prof = dealer_block.newest_settled(sess, "SPY", ed["dealer_computed_dir"],
+                                                   lookback_days=0)
+                charts["D2"] = charts_mod.dealer_chart("D2", prof, f"{base_name}_d2",
+                                                       out_dir)
+                next(s for s in ed["sections"] if s["id"] == "mechanics")[
+                    "charts_rendered"] = ["D2"]
             # THE DEALER SCORECARD ROW (1.2), for the Monthly's retrospective.
             import pin_log                                      # noqa: PLC0415
             prev = session.previous_trading_session(sess).isoformat()

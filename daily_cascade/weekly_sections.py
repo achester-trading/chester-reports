@@ -330,8 +330,12 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     implied = (spot * (iv / 100.0) * math.sqrt(1.0 / 252.0)
                if spot and iv else None)
     actual = (hi - lo) if None not in (hi, lo) else None
-    cw = card.get("call_wall_morning") or card.get("call_wall")
-    pw = card.get("put_wall_morning") or card.get("put_wall")
+    # THE WALLS ARE THE MORNING'S OTM WALLS (ruled 17 Oct 2026; audit F5): the
+    # put wall moves from the all-strike put peak to the OTM put gamma wall, and
+    # the call wall likewise. A card stored before 6b part 1 carries no OTM wall,
+    # so its held flags are None, never scored against a peak.
+    cw = card.get("call_wall_otm_morning")
+    pw = card.get("put_wall_otm_morning")
     mp = card.get("max_pain")
     out = {"implied_range": round(implied, 2) if implied else None,
            "iv_source": ("SPY ATM 30-day IV" if own_iv else
@@ -339,13 +343,22 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
            "actual_range": round(actual, 2) if actual is not None else None,
            "pinned": (None if close is None or mp is None
                       else _within(close, mp, pin_pct)),
-           "call_wall_held": (None if None in (hi, close, cw) else
-                              _within(hi, cw, wall_pct) and close < cw),
-           "put_wall_held": (None if None in (lo, close, pw) else
-                             _within(lo, pw, wall_pct) and close > pw),
+           # ELIGIBILITY BEFORE OUTCOME (brief v2 section 5.2): a wall the
+           # session never approached is None, never False.
+           "call_wall_held": (None if None in (hi, close, cw)
+                              or not _within(hi, cw, wall_pct) else close < cw),
+           "put_wall_held": (None if None in (lo, close, pw)
+                             or not _within(lo, pw, wall_pct) else close > pw),
            "amplified": (None if card.get("flip_crossed") is None or not implied
                          or actual is None else
                          bool(card["flip_crossed"]) and actual >= ratio * implied)}
+    # DAMPENED (6b part 2; the pre-registration's H1 outcome): a regime session
+    # (the morning's net-to-gross at the gate) in positive gamma whose range came
+    # in at or under the declared share of the implied range. Ineligible: None.
+    damp = float(fc.get("dampened_range_ratio", 0.8))
+    elig = (card.get("regime_eligible") and (card.get("net_gex_morning") or 0) > 0)
+    out["dampened"] = (None if not elig or not implied or actual is None
+                       else actual <= damp * implied)
     flip = card.get("flip_morning")
     out["close_vs_flip"] = (None if None in (close, flip) else
                             ("above" if close > flip else "below"))
@@ -355,6 +368,19 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     out["iv_check"] = bool(own_iv and vix and abs(own_iv - vix) > gap)
     out["spy_iv"], out["vix"] = own_iv, vix
     return out
+
+
+def _gated_regime(card: dict, cfg: dict) -> str:
+    """The close's regime word, gated on net-to-gross (6b; ruled 16 Oct 2026).
+    A card stored before the gate carries no net-to-gross: its sign prints
+    marked ungated, never as a regime."""
+    from . import dealer_block                                  # noqa: PLC0415
+    ntg = card.get("net_to_gross_close")
+    if ntg is None:
+        g = card.get("gamma_regime")
+        return f"{g} (ungated)" if g else "—"
+    return dealer_block.regime(card.get("net_gex_close"), ntg,
+                               cfg.get("dealer_block") or {})
 
 
 def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
@@ -385,13 +411,14 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
         set_flags = [n for n, k in (("pinned", "pinned"), ("call wall held",
                                      "call_wall_held"), ("put wall held",
                                                          "put_wall_held"),
-                                    ("amplified", "amplified")) if f.get(k)]
-        rows.append([_day(c["session"]), c.get("gamma_regime") or "—",
+                                    ("amplified", "amplified"),
+                                    ("dampened", "dampened")) if f.get(k)]
+        rows.append([_day(c["session"]), _gated_regime(c, cfg),
                      bn(c.get("net_gex_close")),
                      bn(c.get("dex_close")),
                      g(c.get("flip_morning")),
-                     f"{g(c.get('call_wall_morning') or c.get('call_wall'))} / "
-                     f"{g(c.get('put_wall_morning') or c.get('put_wall'))}",
+                     f"{g(c.get('call_wall_otm_morning'))} / "
+                     f"{g(c.get('put_wall_otm_morning'))}",
                      # -- the second table from here
                      _day(c["session"]), g(c.get("max_pain")),
                      (g(f["implied_range"])
@@ -404,14 +431,15 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                      ", ".join(set_flags + (["check"] if f.get("iv_check") else []))
                      or "none"])
         scored.append({"session": c["session"], "flags": {k: f[k] for k in
-                       ("pinned", "call_wall_held", "put_wall_held", "amplified")},
+                       ("pinned", "call_wall_held", "put_wall_held", "amplified",
+                        "dampened")},
                        "implied_range": f["implied_range"],
                        "actual_range": f["actual_range"],
                        "close_vs_flip": f["close_vs_flip"],
                        "gamma_regime": c.get("gamma_regime")})
     # TWO TABLES OF SIX (T2.3 mobile rule): the profile, then the ranges.
     return {"table": {"columns": ["Session", "Gamma regime", "Net GEX", "DEX",
-                                  "Flip", "Call / put wall"],
+                                  "Flip", "OTM call / put wall"],
                       "rows": [r[:6] for r in rows]},
             "ranges_table": {"columns": ["Session", "Max pain", "Implied range",
                                          "Actual range", "Close vs flip", "Flags"],

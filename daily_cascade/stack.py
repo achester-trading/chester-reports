@@ -220,7 +220,7 @@ def mechanics_section(p: dict, dealer: Optional[list] = None) -> dict:
         st = (dials.get(d) or {}).get("state")
         items.append(item(f"mech:dial:{d}", f"{'Dealer gamma' if d == 'gamma' else 'Volatility regime'} "
                           f"read: {st or 'absent'}.", 2, st))
-    subs, notes, nt = [], [], []
+    subs, notes, nt, extra = [], [], [], {}
     for b in dealer or []:
         if b.get("absent"):
             nt.append(b["absent"])
@@ -236,6 +236,8 @@ def mechanics_section(p: dict, dealer: Optional[list] = None) -> dict:
                           1, b["fingerprint"]))
         if b.get("notes") and not notes:
             notes = [x for x in b["notes"] if x]
+        if b.get("sentences") and "dealer_sentences" not in extra:
+            extra["dealer_sentences"] = b["sentences"]
     return {"items": items,
             "table": {"columns": ["Symbol", "Regime (gated)", "Zero-gamma",
                                   "OTM call wall", "OTM put wall", "Max pain"],
@@ -250,7 +252,8 @@ def mechanics_section(p: dict, dealer: Optional[list] = None) -> dict:
                                   for r in p.get("exposure") or []
                                   if r.get("symbol") in ("SPY", "QQQ", "IWM")],
                      "pin_hits": hits, "pin_rows": len(p.get("pins") or []),
-                     "dials": {k: (v or {}).get("state") for k, v in dials.items()}}}
+                     "dials": {k: (v or {}).get("state") for k, v in dials.items()},
+                     **extra}}
 
 
 def screen_items(screen: Optional[dict], cadence: str = "daily") -> tuple[list, dict]:
@@ -918,6 +921,7 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                 st, cutoff, p["session"])
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
+            "dealer_computed_dir": p.get("computed_dir"),
             "config_version": cfg.get("version"), "as_of": cutoff,
             "prior_session": (prior or {}).get("session"),
             "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
@@ -1115,8 +1119,13 @@ def chart_plan(ed: dict, available: dict[str, Optional[str]]) -> list[str]:
     want = ["C1", "C2"]
     misfit = next(s for s in ed["sections"] if s["id"] == "misfit")
     plumb = next(s for s in ed["sections"] if s["id"] == "plumbing")
-    if (misfit.get("data") or {}).get("open_contradictions"):
+    c3 = bool((misfit.get("data") or {}).get("open_contradictions")
+              or plumb.get("depth") == "deep")
+    if c3:
         want.append("C3")
-    elif plumb.get("depth") == "deep":
-        want.append("C3")
+    # D2, THE CLOSE'S ONE DEALER CHART (6b part 2; brief v2 section 3), when the
+    # edition reads the computed profiles: after C1 and any C3, before C2. On a
+    # day with C3 and no fired trigger, C2 is the one set aside.
+    if ed.get("dealer_computed_dir"):
+        want = ["C1"] + (["C3"] if c3 else []) + ["D2", "C2"]
     return [c for c in want][:cap]

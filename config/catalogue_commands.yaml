@@ -48,6 +48,9 @@ commands:
     domain: crypto
     line: The crypto long-shot basket -- measured, not narrated
     sources: [saturday_scan]
+  altdata.dealer_capture:
+    domain: options
+    line: 'The intraday dealer captures, 09:45 and 12:30 ET: chains, the exposure JSON per capture, and the 12:30 gates'
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report

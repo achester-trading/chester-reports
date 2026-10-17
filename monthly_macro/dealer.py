@@ -48,7 +48,9 @@ def min_sessions(cfg: dict) -> int:
     return int(cfg.get("dealer_retrospective_min_sessions") or DEFAULT_MIN_SESSIONS)
 
 FLAGS = (("pinned", "pinned"), ("call_wall_held", "call wall held"),
-         ("put_wall_held", "put wall held"), ("amplified", "amplified"))
+         ("put_wall_held", "put wall held"), ("amplified", "amplified"),
+         # 6b part 2 (brief v2 section 4): the fourth flag word.
+         ("dampened", "dampened"))
 
 
 def cards(st, first: str, last: str, cutoff: str,
@@ -214,9 +216,11 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
 
 
 # ---------------------------------------------------------------------------
-# The prose may say pinned, held or amplified only where the flag says so
+# The prose may say pinned, held, amplified or dampened only where the flag says
+# so (6b part 2 extends the audit to dampened; brief v2 section 4)
 # ---------------------------------------------------------------------------
-_FLAG_WORD = re.compile(r"\b(pinned|pinning|held|amplif(?:ied|ies|y|ying))\b", re.I)
+_FLAG_WORD = re.compile(r"\b(pinned|pinning|held|amplif(?:ied|ies|y|ying)"
+                        r"|dampen(?:ed|s|ing)?)\b", re.I)
 _MONTHS = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
 _DATE = re.compile(rf"\b(\d{{1,2}})\s(?:{_MONTHS})[a-z]*\b|\b(?:{_MONTHS})[a-z]*\s"
                    rf"(\d{{1,2}})\b|\b\d{{4}}-\d{{2}}-(\d{{2}})\b")
@@ -228,6 +232,8 @@ def _kind(word: str) -> str:
         return "pinned"
     if w.startswith("amplif"):
         return "amplified"
+    if w.startswith("dampen"):
+        return "dampened"
     return "held"
 
 
@@ -239,7 +245,8 @@ def flag_word_faults(text: Optional[str], retro: dict) -> list[str]:
     counts = {"pinned": {c.get("pinned")},
               "held": {c.get("call_wall_held"), c.get("put_wall_held"),
                        (c.get("call_wall_held") or 0) + (c.get("put_wall_held") or 0)},
-              "amplified": {c.get("amplified")}}
+              "amplified": {c.get("amplified")},
+              "dampened": {c.get("dampened")}}
     out = []
     for s in re.split(r"(?<=[.!?])\s+", text or ""):
         words = {_kind(m.group(1)) for m in _FLAG_WORD.finditer(s)}

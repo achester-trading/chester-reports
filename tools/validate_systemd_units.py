@@ -361,6 +361,15 @@ OOM_SCORES = {
 }
 REPORT_UNITS = [u for u, v in OOM_SCORES.items()
                 if u not in ("ibgateway.service", "chester-eod.service")]
+# THE INTRADAY DEALER CAPTURES (6b part 2, session-set): capped and scored as
+# captures (a chain cannot be fetched again: 300, as the EOD pass), checked unit
+# by unit and kept OUT of the sum above -- they run at 09:45 and 12:30, when no
+# heavy unit runs. Their timers are not in DEPLOY_TIMERS: enabling them is the
+# operator's. (unit, (MemoryHigh, MemoryMax), timer's OnCalendar)
+CAPTURE_UNITS = {
+    "chester-dealer-0945.service": (("0.8G", "1G"), "Mon-Fri 09:45 America/New_York"),
+    "chester-dealer-1230.service": (("0.8G", "1G"), "Mon-Fri 12:30 America/New_York"),
+}
 SANDBOX = ("NoNewPrivileges=true", "PrivateTmp=true", "ProtectSystem=strict")
 
 
@@ -434,6 +443,7 @@ def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
     if eod is not None and any(score[u] is not None and score[u] <= eod
                                for u in REPORT_UNITS):
         faults.append("the EOD capture's OOM score is not below every report's")
+    faults += check_captures(unit_dir, score)
     bk = directives(unit_dir / "chester-backup.service")
     bt = directives(unit_dir / "chester-backup.timer")
     wk = directives(unit_dir / "chester-weekly.timer")
@@ -452,6 +462,52 @@ def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
                           f"{wstart[1]}:{wstart[2]}")
     else:
         faults.append("could not read the backup's or the Weekly's OnCalendar")
+    return faults
+
+
+def check_captures(unit_dir: Path, score: dict) -> list[str]:
+    """6b part 2's capture units: caps, the OOM order (below every report,
+    above the Gateway), the sandbox, the wrapper, the calendar, and their timers
+    left out of DEPLOY_TIMERS."""
+    faults = []
+    remote = (Path(__file__).resolve().parent.parent / "scripts" / "deploy_remote.sh")
+    timers = remote.read_text(encoding="utf-8") if remote.exists() else ""
+    for name, ((high, mx), cal) in CAPTURE_UNITS.items():
+        p = unit_dir / name
+        if not p.exists():
+            faults.append(f"{name}: missing")
+            continue
+        d = directives(p)
+        if d.get("MemoryHigh") != [high] or d.get("MemoryMax") != [mx]:
+            faults.append(f"{name}: MemoryHigh/MemoryMax {d.get('MemoryHigh')}/"
+                          f"{d.get('MemoryMax')}, want {high}/{mx}")
+        oom = d.get("OOMScoreAdjust")
+        try:
+            v = int(oom[0]) if oom and len(oom) == 1 else None
+        except ValueError:
+            v = None
+        gw = score.get("ibgateway.service")
+        if v is None or (gw is not None and v <= gw) or any(
+                score.get(u) is not None and score[u] <= v for u in REPORT_UNITS):
+            faults.append(f"{name}: OOMScoreAdjust {oom}: must sit above the Gateway "
+                          f"and below every report")
+        for kv in SANDBOX:
+            k, val = kv.split("=")
+            if d.get(k) != [val]:
+                faults.append(f"{name} lacks {kv}")
+        slot = name.split("-")[-1].split(".")[0]
+        if d.get("ExecStart") != [f"%h/chester-reports/scripts/run_dealer_capture.sh {slot}"]:
+            faults.append(f"{name}: ExecStart {d.get('ExecStart')}")
+        if d.get("EnvironmentFile") != ["-%h/chester-reports/.env"]:
+            faults.append(f"{name}: EnvironmentFile not the optional repo one")
+        t = directives(p.with_suffix(".timer"))
+        if t.get("OnCalendar") != [cal]:
+            faults.append(f"{name[:-8]}.timer: OnCalendar {t.get('OnCalendar')}, want {cal}")
+        if t.get("Persistent") != ["false"]:
+            faults.append(f"{name[:-8]}.timer: Persistent must be false")
+        if p.with_suffix(".timer").name in timers:
+            faults.append(f"{p.with_suffix('.timer').name} is in DEPLOY_TIMERS: enabling "
+                          f"it is the operator's")
     return faults
 
 
@@ -485,7 +541,16 @@ def aud2() -> None:
             ("a report with no score", "chester-restore-drill.service",
              "OOMScoreAdjust=500", ""),
             ("the old 2h30 timeout", "chester-backup.service",
-             "TimeoutStartSec=2h", "TimeoutStartSec=2h30min")):
+             "TimeoutStartSec=2h", "TimeoutStartSec=2h30min"),
+            # 6b part 2: the capture units.
+            ("a capture without its cap", "chester-dealer-0945.service",
+             "MemoryMax=1G", ""),
+            ("a capture level with the reports", "chester-dealer-1230.service",
+             "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
+            ("a capture timer that catches up", "chester-dealer-1230.timer",
+             "Persistent=false", "Persistent=true"),
+            ("a capture at the wrong minute", "chester-dealer-0945.timer",
+             "OnCalendar=Mon-Fri 09:45", "OnCalendar=Mon-Fri 09:30")):
         with tempfile.TemporaryDirectory() as td:
             for f in UNIT_DIR.iterdir():
                 if f.is_file():

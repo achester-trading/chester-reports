@@ -981,3 +981,79 @@ def index_carry(cid: str, cs: dict, plain: str, name: str,
     out = lines_chart(cid, cs["series"], title, name, out_dir, min_points=3)
     return {**out, "title": title, "version": cs["version"],
             "anchor_day": cs["anchor_day"]}
+
+
+# ---------------------------------------------------------------------------
+# THE DEALER CHARTS (6b part 2; brief v2 section 3, ratified 16 Oct 2026)
+# ---------------------------------------------------------------------------
+# Drawn by tools/dealer_charts.py's draw_* functions, imported here, from one
+# computed profile (the engine's exposure JSON): every value a chart draws is
+# returned in `drawn`, so the gate reconciles it with the dealer block's tables.
+# Each is stamped with the capture time, settled or intraday, and "OI as of prior
+# close". No chart draws a direction for DEX or the roll-off (audit F3).
+#   D2   the close's one dealer chart: figure 2, the gamma profile across spot
+#   W12  the Weekly's dealer panel: figures 2, 1 and 3
+#   M12  the Monthly's dealer panel: figures 2, 1, 3 and 4
+DEALER_FIGURES = {"D2": (2,), "W12": (2, 1, 3), "M12": (2, 1, 3, 4)}
+FIGURE_TITLES = {2: "Gamma profile across spot", 1: "Gamma by strike, OTM walls",
+                 3: "Gamma by days to expiry", 4: "The hedge book by horizon"}
+
+
+def _dealer_charts():
+    import sys                                                  # noqa: PLC0415
+    tools = str(Path(__file__).resolve().parent.parent / "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import dealer_charts                                        # noqa: PLC0415
+    return dealer_charts
+
+
+def dealer_chart(cid: str, profile: Optional[dict], name: str,
+                 out_dir: Optional[str]) -> dict:
+    """D2, W12 or M12 from one profile. Unavailable, with its reason, when the
+    profile is missing, errored, or predates the stored gamma profile."""
+    figs = DEALER_FIGURES[cid]
+    if not profile or profile.get("error"):
+        return {"id": cid, "unavailable": ((profile or {}).get("error")
+                                           or "no computed dealer profile")}
+    if not (profile.get("gamma_profile") or {}).get("spots"):
+        return {"id": cid, "unavailable": "the profile predates the stored gamma "
+                                          "profile (6b part 2); the next capture has it"}
+    dc = _dealer_charts()
+    plt = _plt()
+    rows = sum(2 if f == 3 else 1 for f in figs)
+    drawn: dict[str, Any] = {}
+    with plt.rc_context(dc.RC):
+        fig, axes = plt.subplots(rows, 1, figsize=(CHART_W, 2.9 * rows + 0.4),
+                                 squeeze=False)
+        k = 0
+        for f in figs:
+            ax = axes[k][0]
+            if f == 2:
+                drawn["figure_2"] = dc.draw_profile([profile], ax=ax)
+            elif f == 1:
+                drawn["figure_1"] = dc.draw_per_strike(profile, ax=ax)
+            elif f == 3:
+                drawn["figure_3"] = dc.draw_buckets_release([profile], ax=ax,
+                                                            ax2=axes[k + 1][0])
+                axes[k + 1][0].set_title("", loc="center")
+                axes[k + 1][0].set_title("The hedge rolling off by expiry (size)",
+                                         fontsize=9, loc="left")
+                k += 1
+            elif f == 4:
+                drawn["figure_4"] = dc.draw_dex_horizon([profile], ax=ax)
+            ax.set_title("", loc="center")
+            ax.set_title(FIGURE_TITLES[f], fontsize=9, loc="left")
+            if f == 1 and ax.get_legend():
+                ax.legend(loc="lower right", frameon=False, fontsize=7)
+            k += 1
+        stamp = dc._stamp(profile)
+        fig.suptitle(f"{profile.get('symbol')} dealer positioning — inferred, not observed",
+                     fontsize=9, x=0.02, ha="left")
+        fig.tight_layout()
+        out = _finish(fig, name, out_dir)
+    cap = (f"{profile.get('symbol')}, {stamp}. Figures "
+           f"{', '.join(str(f) for f in figs)} of the dealer-positioning brief; "
+           "inferred, not observed (dealers-hand-v1).")
+    return {"id": cid, "title": f"{profile.get('symbol')} dealer positioning",
+            "caption": cap, "drawn": drawn, "figures": list(figs), **out}

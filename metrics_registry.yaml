@@ -825,6 +825,30 @@ metrics:
     added_date: "2026-10-17"
     description: >-
       The secondary call concentration: the out-of-the-money strike above spot with the second-largest positive signed GEX (T2's row).
+  exposure.net_gex_up_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_point
+    added_date: "2026-10-17"
+    description: >-
+      Net GEX if spot were 1% higher, every contract's gamma re-priced there with OI and IV held (sticky strike); net_gex units. With net_gex_down_1pct, the profile's +/-1% asymmetry (6b part 2, sentence 1 and figure 2).
+  exposure.net_gex_down_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_point
+    added_date: "2026-10-17"
+    description: >-
+      Net GEX if spot were 1% lower, as net_gex_up_1pct.
   exposure.put_concentration_otm_2:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -13836,6 +13860,8 @@ non_metrics:
     - risk_free_rate
     - capture
     - settled_0dte_rule
+    # 6b part 2: every capture's open interest is the prior close's.
+    - oi_vintage
     - greeks_status
     - underlying_verified_from
     - close_source
@@ -13893,6 +13919,8 @@ non_metrics:
     # exclusive bands, each a container of the figures registered above.
     - horizons
     - bands
+    # 6b part 2: figure 2's stored curve (band_pct, spots, net_gex lists).
+    - gamma_profile
     # The per-field mechanism_group map. Structure that says how to READ the
     # metrics, not a metric.
     - field_mechanism_groups
@@ -13911,6 +13939,8 @@ non_metrics:
     - label
     - min_dte
     - max_dte
+    - band_pct
+    - spots
     - listing_buckets
     - status
 

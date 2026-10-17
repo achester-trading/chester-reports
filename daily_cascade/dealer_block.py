@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -181,8 +182,8 @@ def expiry_on_target(p: dict, cfg: Optional[dict] = None) -> Optional[bool]:
     """An expiry session on the target session: for an intraday capture, the
     capture carried DTE 0 rows; for the settled capture, a listed expiry falls
     on the next trading session (from the stored release ladder and buckets).
-    Under `expiry_sessions: friday` (session-set) the target must also be a
-    Friday -- SPY lists an expiry every weekday."""
+    Under `expiry_sessions: monthly` (ruled 17 Oct 2026) the target must be the
+    monthly third Friday -- SPY lists an expiry every weekday."""
     if not p or p.get("error"):
         return None
     tgt = target_session(p)
@@ -195,8 +196,15 @@ def expiry_on_target(p: dict, cfg: Optional[dict] = None) -> Optional[bool]:
         listed = tgt in exps
     if not listed:
         return False
-    rule = str((cfg or {}).get("expiry_sessions") or "friday")
-    return rule == "any" or (bool(tgt) and dt.date.fromisoformat(tgt).weekday() == 4)
+    rule = str((cfg or {}).get("expiry_sessions") or "monthly")
+    if rule == "any" or not tgt:
+        return rule == "any"
+    d = dt.date.fromisoformat(tgt)
+    if rule == "friday":
+        return d.weekday() == 4
+    # "monthly" (ruled 17 Oct 2026): the monthly third Friday only.
+    first = d.replace(day=1)
+    return d == first + dt.timedelta(days=(4 - first.weekday()) % 7 + 14)
 
 
 def _stamp(head: str, cfg: dict) -> str:
@@ -553,8 +561,9 @@ def block(p: dict, prior: Optional[dict], why: str = "no equivalent capture",
     o = p.get("overall") or {}
     return {"subsections": subs, "summary": s,
             "notes": [cfg.get("convention_line") or ""],
-            # The three fixed sentences of the brief's section 4 are part 2's.
-            "sentences": None,
+            # The three fixed sentences' facts (brief v2 section 4): the model
+            # writes them in the section's paragraph, behind the audits.
+            "sentences": sentence_facts(p, s, cfg),
             "fingerprint": [o.get(k) for k in ("net_gex", "gamma_flip", "call_wall_otm",
                                                "put_wall_otm", "peak_abs_gex_strike")]
                            + [x["id"] for x in s["setups"]],
@@ -563,6 +572,92 @@ def block(p: dict, prior: Optional[dict], why: str = "no equivalent capture",
                      "slot": slot_of(p, cfg), "regime": s["regime"],
                      "setups": s["setups"], "equivalent": (prior or {}).get("fetched_at"),
                      "reconciliation": reconciliation(p)}}
+
+
+# ---------------------------------------------------------------------------
+# The three fixed sentences' facts, and the flag-word audit (6b part 2)
+# ---------------------------------------------------------------------------
+def sentence_facts(p: dict, s: dict, cfg: dict) -> dict:
+    """What the three fixed sentences of the brief's section 4 may cite, each
+    figure exactly as the tables print it: (1) the regime with net-to-gross,
+    the zero-gamma level's distance and the +/-1% asymmetry; (2) the two OTM
+    walls, the peak-gamma strike, which expiry carries it and the size rolling
+    off at the next expiry; (3) the setups whose conditions hold, or none, with
+    the invalidating level. The model writes them in the existing narrative
+    step, behind the numeral and flag-word audits."""
+    o, spot = p.get("overall") or {}, p.get("spot")
+    up, dn = o.get("net_gex_up_1pct"), o.get("net_gex_down_1pct")
+    rel = (p.get("expiration_release") or [None])[0] or {}
+    return {
+        "sentence_1": {"regime": s["regime"], "net_to_gross": pct(o.get("net_to_gross")),
+                       "zero_gamma_level": price(o.get("gamma_flip")),
+                       "zero_gamma_from_spot": dist(o.get("gamma_flip"), spot),
+                       "net_gex_at_spot": usd((o.get("net_gex") or 0) * 0.01 * spot, True)
+                       if o.get("net_gex") is not None and spot else "n/a",
+                       "net_gex_if_spot_up_1pct": usd(up * 0.01 * spot * 1.01, True)
+                       if up is not None and spot else "n/a",
+                       "net_gex_if_spot_down_1pct": usd(dn * 0.01 * spot * 0.99, True)
+                       if dn is not None and spot else "n/a"},
+        "sentence_2": {"otm_call_wall": price(o.get("call_wall_otm")),
+                       "otm_put_gamma_wall": price(o.get("put_wall_otm")),
+                       "peak_gamma_strike": price(o.get("peak_abs_gex_strike")),
+                       "expiry_carrying_the_peak": p.get("expiry_type") or "n/a",
+                       "next_expiry": rel.get("expiry") or "n/a",
+                       "hedge_rolling_off_at_next_expiry": usd(abs(rel["dex_notional"]))
+                       if rel.get("dex_notional") is not None else "n/a"},
+        "sentence_3": {"setups": [{"setup": x["id"], "level": price(x["level"]),
+                                   "invalidation": x["invalidation"]}
+                                  for x in s["setups"]] or "no setup",
+                       "for_session": target_session(p)},
+    }
+
+
+FLAG_WORD = re.compile(r"\b(pinned|pinning|held|amplif(?:ied|ies|y|ying)"
+                       r"|dampen(?:ed|s|ing)?)\b", re.I)
+_MON = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
+_WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday")
+
+
+def _flag_kind(word: str) -> str:
+    w = word.lower()
+    return ("pinned" if w.startswith("pin") else "amplified" if w.startswith("amplif")
+            else "dampened" if w.startswith("dampen") else "held")
+
+
+def _named_sessions(sentence: str, sessions: list[dict]) -> list[dict]:
+    """The sessions a sentence names: an ISO date, '16 Oct' / 'Oct 16', or a
+    weekday (the week's own)."""
+    out = []
+    for r in sessions:
+        d = dt.date.fromisoformat(str(r["session"])[:10])
+        forms = [d.isoformat(), f"{d.day} {d:%b}", f"{d:%b} {d.day}",
+                 _WEEKDAYS[d.weekday()] if d.weekday() < 5 else "\0"]
+        if any(re.search(rf"\b{re.escape(f)}\b", sentence, re.I) for f in forms):
+            out.append(r)
+    return out
+
+
+def flag_word_faults(text: Optional[str], sessions: Optional[list[dict]]) -> list[str]:
+    """THE FLAG-WORD AUDIT (brief v2 section 4, extended to 'dampened' in 6b
+    part 2): 'pinned', 'held', 'amplified' and 'dampened' only in a sentence
+    that names a session whose flag for that word is True. `sessions` are the
+    scored rows ({"session", "flags"}); None or empty -- the close, whose
+    session's flags are computed after its prose -- withholds every flag word."""
+    out = []
+    for s in re.split(r"(?<=[.!?])\s+", text or ""):
+        kinds = {_flag_kind(m.group(1)) for m in FLAG_WORD.finditer(s)}
+        if not kinds:
+            continue
+        named = _named_sessions(s, sessions or [])
+        for k in sorted(kinds):
+            ok = any(bool((r.get("flags") or {}).get(k)) if k != "held" else
+                     bool((r.get("flags") or {}).get("call_wall_held")
+                          or (r.get("flags") or {}).get("put_wall_held"))
+                     for r in named)
+            if not ok:
+                out.append(f"flag word '{k}' without a session whose {k} flag is set: "
+                           f"'{s[:100]}'")
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +676,21 @@ def captures_on(day: str, symbol: str, base_dir: Optional[str] = None) -> list[d
         if (rec.get("session_date") or day) == day:
             out.append(rec)
     return out
+
+
+def newest_settled(day: str, symbol: str = "SPY", base_dir: Optional[str] = None,
+                   lookback_days: int = 7) -> Optional[dict]:
+    """The newest settled capture of `symbol` on `day` or the days before it
+    (up to `lookback_days`): the Weekly's and the Monthly's dealer charts read
+    the period's last close. None when there is none."""
+    d = dt.date.fromisoformat(day[:10])
+    for _ in range(lookback_days + 1):
+        caps = [c for c in captures_on(d.isoformat(), symbol, base_dir)
+                if not c.get("error") and c.get("capture") == "settled_eod"]
+        if caps:
+            return max(caps, key=lambda c: c.get("fetched_at") or "")
+        d -= dt.timedelta(days=1)
+    return None
 
 
 def for_session(sess: str, base_dir: Optional[str] = None,
