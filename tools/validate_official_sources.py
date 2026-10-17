@@ -912,9 +912,13 @@ def group_n() -> None:
         for name, mod in mods:
             before = count(db)
             r = mod.pull(db=db)
-            check(r["status"] == pub.STALE and r["written"] == 0
+            # An inbox writer NEVER YET DROPPED is PENDING, a clean empty run
+            # (ruled 13 Oct 2026, SR-38); with no file and an empty store, that
+            # is what spdji must say. Its STALE cases are in validate_sr38_inbox.
+            want = pub.PENDING if name == "spdji" else pub.STALE
+            check(r["status"] == want and r["written"] == 0
                   and count(db) == before,
-                  f"{name}: an outage is STALE and writes nothing")
+                  f"{name}: an outage is {want} and writes nothing")
     finally:
         for (mod, attr), fn in saved.items():
             setattr(mod, attr, fn)

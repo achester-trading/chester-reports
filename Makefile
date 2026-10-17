@@ -91,6 +91,7 @@ PY_VALIDATORS := \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \
 	tools/validate_ai_fcf.py \
+	tools/validate_sr38_inbox.py \
 	tools/validate_correlation_layer.py \
 	tools/check_library.py \
 	tools/validate_gates.py

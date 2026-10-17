@@ -234,9 +234,13 @@ def ai_revisions_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]
     except Exception:                                           # noqa: BLE001
         log.warning("the forward-EPS revision line is unavailable", exc_info=True)
         return None, None
-    return ({"title": AI_REVISIONS_TITLE, "lines": [ra.revision_line(v)],
+    # The INDEX's line first (S&P DJI's drops, 13 Oct 2026), then the names'.
+    return ({"title": AI_REVISIONS_TITLE,
+             "lines": [ra.index_revision_line(v["index"], v["tag"]),
+                       ra.revision_line(v)],
              "table": ra.revision_table(v), "paragraph_wanted": False},
-            {"median": v["median"], "covered": v["covered"], "tag": v["tag"]})
+            {"median": v["median"], "covered": v["covered"], "tag": v["tag"],
+             "index_revision": ra.index_revision_data(v)})
 
 
 def ai_fcf_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
