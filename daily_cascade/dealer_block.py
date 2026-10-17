@@ -39,6 +39,8 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+from altdata.numeral_audit import ordinal as _ordinal
+
 REPO = Path(__file__).resolve().parent.parent
 
 FIELDS_T4 = (("call_gamma_per_1pct", "Call-gamma mass ($/1%)", "usd"),
@@ -426,7 +428,7 @@ def t3(p: dict, cfg: dict, history: Optional[dict] = None,
         pct_ = (round(100.0 * sum(1 for x in n5 if x <= abs(mag)) / len(n5))
                 if n5 and mag is not None else None)
         mag_s = (f"{usd(mag, True)} per 1%"
-                 + (f", {pct_}th percentile of {len(n5)} stored" if pct_ is not None
+                 + (f", {_ordinal(pct_)} percentile of {len(n5)} stored" if pct_ is not None
                     else ", no stored history yet"))
         name, lvl = _nearest_level(w, spot)
         near = f"{name} {price(lvl)} ({dist(lvl, spot)})" if name else "none in range"

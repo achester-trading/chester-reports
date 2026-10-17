@@ -13,7 +13,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=%h/chester-reports
-ExecStart=%h/chester-reports/.venv/bin/python -m altdata.sources.flashalpha pull
+ExecStart=%h/chester-reports/scripts/run_flashalpha.sh
 # FLASHALPHA_API_KEY and FLASHALPHA_BASE_URL reach this run through .env.
 EnvironmentFile=-%h/chester-reports/.env
 TimeoutStartSec=10min
