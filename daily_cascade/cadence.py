@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-NAMES = ("daily", "weekly", "monthly")
+NAMES = ("daily", "weekly", "monthly", "quarterly")
 
 
 def get(name: str, cfg: Optional[dict] = None) -> dict:

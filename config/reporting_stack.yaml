@@ -80,13 +80,21 @@ budget:
   daily: {words: 1000, charts: 3}
   weekly: {words: 3500, charts: 10}
   monthly: {words: 10000, charts: 12}
+  # THE QUARTERLY (AQ-1; change order 10 Oct 2026, section 3): two budgets. The
+  # READ -- the executive summary and every chapter's lead page -- is held to a
+  # reading time (reading_targets_minutes.quarterly), warned on and never
+  # withheld; the REFERENCE is unbudgeted, so `words` is null and nothing is
+  # trimmed. Chart cap 40: three per chapter lead (33) plus the front matter's
+  # seven (three horizon bars, the quilt, two heatmaps, the transmission map).
+  # The operator rules the number at the December dry run.
+  quarterly: {words: null, charts: 40}
 
 # THE READING-TIME TARGETS (brief 1.4; item 10: daily 5, Weekly 20, Monthly 40
 # minutes), as configuration rather than prose (T3, 7 Oct 2026). The header's
 # estimate is prose words at 250 a minute plus 20 seconds a chart
 # (daily_cascade/readability.py); these are what it is read against.
 # The Monthly's target rose from 40 to 55 minutes with its words (T3.1 item 22).
-reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55}
+reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55, quarterly: 90}
 
 # CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
 # (item 10). A firing trigger raises the report's chart cap by one (stack.chart_plan).
@@ -165,20 +173,20 @@ outlooks:
 # The Weekly column (T2) is the brief's matrix: What's priced goes deep on a
 # major movement over the week (`weekly_deep_on`); Plumbing has no weekly rule.
 sections:
-  - {id: read,        title: "The read", subtitle: "the week's five lines, and the events alongside each session",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it"}
-  - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep, monthly: light, monthly_note: "light + the long frame (brief 3.4)"}
-  - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)"}
-  - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep}
-  - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium, monthly: deep}
-  - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium}
-  - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep}
-  - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep}
+  - {id: read,        title: "The read", subtitle: "the week's five lines, and the events alongside each session",            daily: deep,  weekly: deep, monthly: deep, monthly_subtitle: "the month's five lines, and what drove it", quarterly: deep, quarterly_tier: lead, quarterly_subtitle: "the quarter's five lines, and the chapters' verdicts"}
+  - {id: tape,        title: "The tape", subtitle: "where prices went and the levels they met",            daily: deep,  weekly: deep, monthly: light, monthly_note: "light + the long frame (brief 3.4)", quarterly: medium, quarterly_tier: reference}
+  - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)", quarterly: light, quarterly_tier: reference}
+  - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep, quarterly: medium, quarterly_tier: reference}
+  - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium, monthly: deep, quarterly: deep, quarterly_tier: reference}
+  - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium, quarterly: deep, quarterly_tier: reference}
+  - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep, quarterly: deep, quarterly_tier: reference}
+  - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep, quarterly: medium, quarterly_tier: reference}
   # THE READING CHAPTER, the Monthly only (reading-shelf brief section 5; ruling
   # D1, 5 Oct 2026: immediately after Narratives, before Ahead). No daily or
   # weekly depth: the close and the Weekly never carry it. No model call.
   - {id: reading,     title: "Reading", subtitle: "what the shelf published this month, and what is due",                                    monthly: deep}
-  - {id: ahead,       title: "Ahead", subtitle: "what is scheduled, and what we are watching",               daily: deep,  weekly: deep, monthly: deep}
-  - {id: book,        title: "The book", subtitle: "our decisions, our rules and our attention",            daily: short, weekly: medium, monthly: medium}
+  - {id: ahead,       title: "Ahead", subtitle: "what is scheduled, and what we are watching",               daily: deep,  weekly: deep, monthly: deep, quarterly: deep, quarterly_tier: reference}
+  - {id: book,        title: "The book", subtitle: "our decisions, our rules and our attention",            daily: short, weekly: medium, monthly: medium, quarterly: medium, quarterly_tier: reference}
 
 # Paragraphs a section's commentary may run to, by depth. (Session-set, T1.)
 depth_paragraphs: {deep: "2 to 3", medium: "1", light: "0", short: "0", line: "0"}
@@ -193,6 +201,9 @@ depth_words_weekly: {deep: 420, medium: 220, light: 60, short: 60, line: 40}
 # twenty, and the long-form Monthly v2 prose (themes, the look-ahead, our read)
 # sits inside the same budget (10,000 words since T3.1 item 22).
 depth_words_monthly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
+# The Quarterly's front matter (AQ-1, session-set): the Monthly's allowances. The
+# reference is unbudgeted, so these cap a paragraph, never the edition.
+depth_words_quarterly: {deep: 450, medium: 220, light: 60, short: 60, line: 40}
 
 # THE CADENCES (T2.6, 8 Oct 2026): one entry per stacked report, read by
 # daily_cascade/cadence.py and through it by the shared builders, the renderer,
@@ -279,6 +290,31 @@ cadences:
     chars_scale: 2.5
     read_chars: 2400
     mobile_tables: true
+  # THE FOURTH CADENCE (AQ-1, change order 10 Oct 2026 section 3): the
+  # Alternative Assets Quarterly. The stack's ten sections are its front matter
+  # at quarterly depth; the eleven family chapters are its slow layers
+  # (quarterly_chapters below). `read_budget` and `reference_budget` are the two
+  # paths: the read is the executive summary and every lead-tier section and
+  # chapter item, timed and warned on; the reference is everything else,
+  # unbudgeted. trim_to_budget false: nothing is cut to fit.
+  quarterly:
+    report: "the Quarterly"
+    period: quarter
+    column: "The quarter"
+    depth_words: depth_words_quarterly
+    paragraphs: null
+    paragraph_words: depth
+    paragraph_figures: 8
+    summary_figures: 3            # as the Monthly's (T3.4; Friday stitching, 13 Oct)
+    subsection_paragraphs: true
+    subsection_charts: true
+    trim_to_budget: false
+    frames: "the months of the quarter first, then the quarter as a whole, then where the quarter sits in the long frame."
+    chars_scale: 2.5
+    read_chars: 2400
+    mobile_tables: true
+    read_budget: {target_minutes: 90, on_over: warn}
+    reference_budget: {words: null}
 
 # THE PARENT SECTIONS (T3.4, 10 Oct 2026): the sections with blocks beneath them
 # whose frames carry at most the cadence's `paragraph_figures` -- their largest
@@ -335,6 +371,46 @@ figure_budget_sections:
 # scenario record, the register's month and the pillar appendix -- prints after
 # it as the detail tables (T3, 7 Oct 2026).
 monthly_slow_layers: {id: slow, title: "Slow layers", subtitle: "valuation, base rates, tails and themes", monthly: deep}
+
+# THE QUARTERLY'S CHAPTERS (AQ-1; change order 10 Oct 2026, sections 2 and 4):
+# its slow layers, one per family, in this order. `weight` is deep or light
+# (section 4.1's last paragraph: light chapters carry items 1-4, 7, 8, 10;
+# Thailand the full template less item 11). `thesis_family` is the thesis
+# register's family (AQ-6); `correlation_assets` the correlation layer's asset
+# ids (AQ-5, config/correlation.yaml) whose rows the chapter prints.
+quarterly_chapters:
+  - {id: metals,        title: "Metals",                 subtitle: "gold, silver, copper",                              weight: deep,  thesis_family: metals,        correlation_assets: [gold, silver, copper]}
+  - {id: oil_energy,    title: "Oil and energy",         subtitle: "oil, and its impact on the global economy",          weight: deep,  thesis_family: oil,           correlation_assets: [oil, natgas]}
+  - {id: currency,      title: "Currency",               subtitle: "the dollar and its crosses",                          weight: deep,  thesis_family: currency,      correlation_assets: [dxy, eur, jpy, cny]}
+  - {id: em,            title: "Emerging markets",       subtitle: "flows, external balances, EM credit",                 weight: deep,  thesis_family: em,            correlation_assets: [em]}
+  - {id: china,         title: "China",                  subtitle: "growth, property, policy and its politics",          weight: deep,  thesis_family: china,         correlation_assets: [china, cny]}
+  - {id: crypto,        title: "Crypto",                 subtitle: "the coins, emerging trends, the scan",                weight: deep,  thesis_family: crypto,        correlation_assets: [btc, eth, sol, zec]}
+  - {id: real_estate,   title: "Real estate",            subtitle: "CRE, REITs, housing",                                 weight: light, thesis_family: real_estate,   correlation_assets: [us_re, intl_re]}
+  - {id: credit,        title: "Credit",                 subtitle: "the cycle-critical set",                              weight: light, thesis_family: credit,        correlation_assets: []}
+  - {id: intl_equities, title: "International equities", subtitle: "US against the world, region by region",              weight: light, thesis_family: intl_equities, correlation_assets: [intl]}
+  - {id: thailand,      title: "Thailand",               subtitle: "the market block and the country (isolated)",         weight: country, thesis_family: thailand,    correlation_assets: []}
+  - {id: agriculture,   title: "Agriculture",            subtitle: "balances, the crop calendar, the nitrogen complex",   weight: light, thesis_family: agriculture,   correlation_assets: [agri]}
+
+# THE CHAPTER TEMPLATE (section 4.1), every chapter's sub-sections in this order.
+# `tier`: lead items print on the chapter's lead page and count in the read's
+# time; reference items print beneath (section 3: the lead page is last
+# quarter's theses graded, the new theses, the quarter in five lines and its
+# charts, the falsification tests' one-line verdicts). `in`: which chapter
+# weights carry the item. `hook`: an item an existing module fills (AQ-6, AQ-5);
+# every other item prints "not yet built -- AQ-2".
+quarterly_template:
+  - {id: graded,      n: "1",  title: "Last quarter's theses, graded", tier: lead,      in: [deep, light, country], hook: thesis_graded}
+  - {id: theses,      n: "2",  title: "Theses",                        tier: lead,      in: [deep, light, country], hook: thesis_seed}
+  - {id: quarter,     n: "3",  title: "The quarter",                   tier: lead,      in: [deep, light, country]}
+  - {id: priced,      n: "3a", title: "What's priced",                 tier: reference, in: [deep, light, country]}
+  - {id: structure,   n: "4",  title: "Structure",                     tier: reference, in: [deep, light, country]}
+  - {id: supply,      n: "5",  title: "Supply and demand",             tier: reference, in: [deep, country]}
+  - {id: analyses,    n: "6",  title: "The analyses",                  tier: reference, in: [deep, country]}
+  - {id: falsify,     n: "7",  title: "Falsification tests",           tier: lead,      in: [deep, light, country]}
+  - {id: correlation, n: "8",  title: "Correlations",                  tier: reference, in: [deep, light, country], hook: correlation_rows}
+  - {id: stories,     n: "9",  title: "Emerging stories, and what changed in the world", tier: reference, in: [deep, country]}
+  - {id: book,        n: "10", title: "The book",                      tier: reference, in: [deep, light, country]}
+  - {id: questions,   n: "11", title: "The ten questions",             tier: reference, in: [deep]}
 
 # THE DEALER RETROSPECTIVE'S FLOOR (Mechanics, Monthly; ruled 8 Oct 2026, T3):
 # fewer scored sessions than this and the section prints "insufficient sessions

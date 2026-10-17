@@ -648,7 +648,7 @@ def stack_plan(ed: dict) -> list[dict]:
         why = f" ({s['depth_reason']})" if s.get("depth_reason") else ""
         system = sp.stack_system_prompt(base) + sp.RULES.format(
             title=s["title"], depth=s["depth"], why=why, body=body,
-            report="the Monthly", period="month", frames=MONTHLY_FRAMES,
+            report=voice(ed)[0], period=voice(ed)[1], frames=voice(ed)[2],
             figure_cap=_cap_word(), figure_tail=" -- the tables carry the rest")
         system += (sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
                    + parent_note(s)
@@ -698,7 +698,7 @@ def block_plan(ed: dict) -> list[dict]:
     from daily_cascade import stack_prose as sp                 # noqa: PLC0415
     from daily_cascade import narrative as base                 # noqa: PLC0415
     tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
-        .replace("{frames}", MONTHLY_FRAMES)
+        .replace("{frames}", voice(ed)[2])
     out = []
     for s in ed.get("sections") or []:
         if s.get("empty"):
@@ -710,9 +710,9 @@ def block_plan(ed: dict) -> list[dict]:
             words_ = str(spec.get("words") or "60 to 100")
             hi = max(int(x) for x in re.findall(r"\d+", words_) or ["100"])
             system = sp.stack_system_prompt(base) + BLOCK_RULES.format(
-                report="the Monthly", title=ss["title"], section=s["title"],
+                report=voice(ed)[0], title=ss["title"], section=s["title"],
                 scope=(spec.get("scope") or "").rstrip(".") + ".", words=words_,
-                period="month", figure_cap=_cap_word(),
+                period=voice(ed)[1], figure_cap=_cap_word(),
                 ordinals=ORDINAL_RULE) + tape
             sl = block_slice(s, ss, ed)
             system += ((spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
@@ -790,6 +790,18 @@ about the market, never about this report or its sections.
 SUMMARY_WITHHELD = "(summary withheld — audit)"
 
 
+def voice(ed: Optional[dict]) -> tuple[str, str, str]:
+    """(report, period noun, frames) for the edition's cadence: the Monthly's own
+    words, or -- for the Quarterly (AQ-1) -- the cadence's from
+    config/reporting_stack.yaml."""
+    name = (ed or {}).get("cadence") or "monthly"
+    if name == "monthly":
+        return "the Monthly", "month", MONTHLY_FRAMES
+    from daily_cascade import cadence as cadence_mod             # noqa: PLC0415
+    c = cadence_mod.get(name)
+    return c["report"], c["period"], c["frames"]
+
+
 def summary_slice(s: dict) -> dict:
     """What a finished section prints, for its summary paragraph."""
     from daily_cascade import stack_prose as sp                 # noqa: PLC0415
@@ -809,20 +821,21 @@ def summary_slice(s: dict) -> dict:
             "subsections": subs, "data": sp._scrub(s.get("data") or {})}
 
 
-def summary_plan(ed: dict) -> list[dict]:
+def summary_plan(ed: dict, sections: Optional[list] = None) -> list[dict]:
     """One entry per section that is not empty, in stack order -- the read,
     the tape, ..., Reading, Ahead, the book, Slow layers. An empty section gets
-    no call; its summary line is its empty note."""
+    no call; its summary line is its empty note. `sections` (AQ-1): the
+    Quarterly's summary is one paragraph per CHAPTER, so it passes its chapters."""
     from daily_cascade import stack_prose as sp                 # noqa: PLC0415
     from daily_cascade import narrative as base                 # noqa: PLC0415
     tape = "THE TAPE'S RULES:" + sp.RULES.split("THE TAPE'S RULES:", 1)[1] \
-        .replace("{frames}", MONTHLY_FRAMES)
+        .replace("{frames}", voice(ed)[2])
     out = []
-    for s in ed.get("sections") or []:
+    for s in (sections if sections is not None else ed.get("sections") or []):
         if s.get("empty"):
             continue
         system = sp.stack_system_prompt(base) + SUMMARY_RULES.format(
-            report="the Monthly", title=s["title"], period="month",
+            report=voice(ed)[0], title=s["title"], period=voice(ed)[1],
             figures=_cap_word(summary_figures()).lower(),
             ordinals=ORDINAL_RULE) + tape
         frame = summary_frame(s, ed)
