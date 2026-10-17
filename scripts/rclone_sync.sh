@@ -303,6 +303,61 @@ pull_etf_archive() {
 }
 pull_etf_archive || true
 
+# --- the X pilot's files (Batch 8 items 50 and 51; 17 Oct 2026) -------------
+# The Grok digest (Drive chester-x-digest/, one x-digest-YYYY-MM-DD.md a day) and
+# the reader task's two ledgers (Drive chester-vendor-checks/x-triage/) are read
+# by the Digital Assets addendum (daily_cascade/digital_addendum.py) from the
+# inbox, never from Drive:
+#   chester-x-digest/x-digest-YYYY-MM-DD.md   -> ~/chester-data/inbox/x-digest/
+#   chester-vendor-checks/x-triage/x-attention-ledger.csv, x-voices-ledger.csv
+#                                             -> ~/chester-data/inbox/x-triage/
+# `copyto` of each named file, never a sync. Each copied file gets a stamp
+# beside it, <file>.copied_at, holding the instant its bytes arrived: that is
+# the addendum's available_at (copyto carries Drive's modification time over,
+# which is not when the box could read the file). A file whose bytes did not
+# change keeps its stamp. Runs after the trees and NEVER touches RC.
+pull_x_pilot() {
+    local rname="${REMOTE%%:*}" f n=0 files
+    x_copy() {    # x_copy <remote src> <local dest>
+        local src="$1" dest="$2" before="" after=""
+        [[ -f "$dest" ]] && before="$(sha256sum "$dest" | cut -d' ' -f1)"
+        if timeout 3m rclone copyto "$src" "$dest" $RCLONE_LIMITS \
+                --log-file "$LOG" --log-level INFO; then
+            after="$(sha256sum "$dest" | cut -d' ' -f1)"
+            if [[ "$before" != "$after" || ! -f "$dest.copied_at" ]]; then
+                date -u --iso-8601=seconds >"$dest.copied_at"
+            fi
+            return 0
+        fi
+        log "  x pilot: FAILED copyto $(basename "$dest") (not counted against the sweep)"
+        return 1
+    }
+    if files=$(timeout 2m rclone lsf "$rname:chester-vendor-checks/x-triage" \
+            --files-only --max-depth 1 $RCLONE_LIMITS 2>>"$LOG"); then
+        while IFS= read -r f; do
+            [[ "$f" == "x-attention-ledger.csv" || "$f" == "x-voices-ledger.csv" ]] \
+                || continue
+            x_copy "$rname:chester-vendor-checks/x-triage/$f" \
+                "$DATA_DIR/inbox/x-triage/$f" && n=$((n + 1))
+        done <<< "$files"
+    else
+        log "  x pilot: skip -- chester-vendor-checks/x-triage is absent (or unlistable)"
+    fi
+    if files=$(timeout 2m rclone lsf "$rname:chester-x-digest" --files-only \
+            --max-depth 1 $RCLONE_LIMITS 2>>"$LOG"); then
+        while IFS= read -r f; do
+            [[ "$f" =~ ^x-digest-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] || continue
+            x_copy "$rname:chester-x-digest/$f" "$DATA_DIR/inbox/x-digest/$f" \
+                && n=$((n + 1))
+        done <<< "$files"
+    else
+        log "  x pilot: skip -- chester-x-digest is absent (or unlistable)"
+    fi
+    log "  x pilot: $n file(s) -> $DATA_DIR/inbox/x-triage, x-digest"
+    return 0
+}
+pull_x_pilot || true
+
 if [[ $RC -eq 0 ]]; then
     finish ok 0 "all trees copied to $REMOTE; db/ prune: $PRUNE"
 fi

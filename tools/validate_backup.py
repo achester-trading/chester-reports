@@ -534,7 +534,7 @@ def group_e() -> None:
     pulls = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copyto\b", ln)]
     body = code[code.find("pull_inbox_file() {"):code.find("pull_inbox_file aaii")]
     calls = re.findall(r"^pull_inbox_file (\S+) (\S+) \|\| true$", code, re.M)
-    if (len(pulls) == 2 and all('"$src" "$dest"' in x for x in pulls)
+    if (len(pulls) == 3 and all('"$src" "$dest"' in x for x in pulls)
             and 'src="$rname:chester-vendor-checks/$folder/$name"' in body
             and 'dest="$DATA_DIR/inbox/$folder/$name"' in body
             and 'rname="${REMOTE%%:*}"' in body):
@@ -569,15 +569,35 @@ def group_e() -> None:
            "never setting the sweep's exit; an empty folder is a skip")
     else:
         bad("the GLD archive pull is not a per-file copyto into the ETF inbox")
+    # 17 Oct 2026 (Batch 8 items 50-51): the X pilot's ledgers and digests, each
+    # file by name (copyto), stamped with its copy instant, never a sync.
+    xb = code[code.find("pull_x_pilot() {"):code.find("pull_x_pilot || true")]
+    if (xb and '"$rname:chester-vendor-checks/x-triage/$f"' in xb
+            and '"$DATA_DIR/inbox/x-triage/$f"' in xb
+            and '"$rname:chester-x-digest/$f"' in xb
+            and '"$DATA_DIR/inbox/x-digest/$f"' in xb
+            and "x-attention-ledger.csv" in xb and "x-voices-ledger.csv" in xb
+            and r"^x-digest-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$" in xb
+            and '>"$dest.copied_at"' in xb and "sha256sum" in xb
+            and "RC=" not in xb and "finish " not in xb and "absent" in xb
+            and code.find("pull_x_pilot || true") > code.find('log "  prune: $PRUNE"')
+            and code.find("pull_x_pilot || true") < code.find("finish ok 0")):
+        ok("the X pilot's two ledgers and daily digests come back by name into "
+           "inbox/x-triage and inbox/x-digest (copyto, never a sync), each stamped "
+           "with its copy instant when its bytes changed, after the trees, never "
+           "setting the sweep's exit")
+    else:
+        bad("the X pilot pull is not a stamped per-file copyto into its inboxes")
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
     rw = m.group(1).split() if m else []
     inboxes = ("-%h/chester-data/inbox/aaii", "-%h/chester-data/inbox/spdji",
-               "-%h/chester-data/inbox/etf")
+               "-%h/chester-data/inbox/etf", "-%h/chester-data/inbox/x-triage",
+               "-%h/chester-data/inbox/x-digest")
     if all(x in rw for x in inboxes) and not [x for x in rw if "chester-data" in x
                                               and x not in inboxes]:
-        ok("the sweep's unit may write the three inboxes (AAII, S&P DJI, ETF) and "
-           "nothing else of ~/chester-data")
+        ok("the sweep's unit may write the five inboxes (AAII, S&P DJI, ETF, the X "
+           "pilot's two) and nothing else of ~/chester-data")
     else:
         bad("under ProtectSystem=strict an inbox pull cannot write its inbox")
 

@@ -44,7 +44,9 @@ ProtectHome=no
 # before the sweep starts for the pull to write.
 # -%h/chester-data/inbox/spdji (13 Oct 2026): S&P DJI's EPS workbook, the same
 # way; mkdir -p it once.
-ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/chester-data/inbox/spdji -%h/chester-data/inbox/etf
+# -%h/chester-data/inbox/x-triage and x-digest (17 Oct 2026): the X pilot's two
+# ledgers and daily digests, for the Digital Assets addendum; mkdir -p both once.
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/chester-data/inbox/spdji -%h/chester-data/inbox/etf -%h/chester-data/inbox/x-triage -%h/chester-data/inbox/x-digest
 ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true

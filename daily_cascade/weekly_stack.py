@@ -2342,6 +2342,12 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
         ed.get("changed_since") or [], "Changed since last Weekly")
+    # THE ADDENDUM'S ONE LINE (Batch 8 item 51): where the Digital Assets page is;
+    # nothing when the run carries no addendum.
+    from . import digital_addendum                              # noqa: PLC0415
+    link = digital_addendum.link_line(p.get("addendum"), mode)
+    if link:
+        head += f'<p style="{stack_render.SUB}">{stack_render.esc(link)}</p>'
     # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
     # then the ten sections; the reference tables after the last section.
     from . import precis                                        # noqa: PLC0415

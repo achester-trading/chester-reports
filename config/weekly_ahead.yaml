@@ -50,6 +50,10 @@ classes:
   earnings_tracked:   {tier: 3, channel: "a name a tracked story turns on", amplifiers: []}
   prediction_family:  {tier: 3, channel: "a prediction market's resolution: the outcome its traders have priced", amplifiers: []}
   thailand_political: {tier: 3, channel: "Thailand's policy calendar: the baht and Thai rates", amplifiers: []}
+  # Batch 8 item 49c (6e-digital, 17 Oct 2026): index events for the crypto
+  # proxies -- MSCI's November review and Strategy (MSTR), the STRC vote, the
+  # other providers' reviews as the broad-exclusion watch. SESSION-SET tier 2.
+  crypto_index_event: {tier: 2, channel: "passive flows in the crypto proxies (MSTR first), and through Strategy's financing the largest corporate bitcoin buyer", amplifiers: []}
   # Signal-triage batch 3, Tranche A's own calendar rows (config/release_calendar.yaml
   # `scheduled` / `recurring`; Friday stitching, 13 Oct).
   boj_decision:       {tier: 2, channel: "the yen's funding rate and the JGB curve", amplifiers: [USD_INDEX, UST10Y]}
@@ -98,6 +102,7 @@ hand_calendars:
   - {path: config/em_calendar.yaml, class: em_event, who: country}
   - {path: config/china_political_calendar.yaml, class: china_political, who: body}
   - {path: config/thailand_political_calendar.yaml, class: thailand_political, who: body}
+  - {path: config/digital_asset_calendar.yaml, class: crypto_index_event, who: body}
 
 # THE CLAIMS REGISTER'S DATED EVENTS (config/claims.yaml): a claim whose value is
 # an ISO date inside the coming week prints as an event.

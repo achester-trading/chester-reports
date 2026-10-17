@@ -241,12 +241,17 @@ def deliver(subject: str, html: str, archive_name: str,
             archive_dir: Optional[str] = None,
             archive_html: Optional[str] = None,
             inline_images: Optional[list[tuple[str, bytes]]] = None,
-            pdf: Optional[bytes] = None) -> dict:
+            pdf: Optional[bytes] = None,
+            attachments: Optional[list] = None) -> dict:
     """Archive, then send. Returns the outcome; raises nothing.
 
     Order matters and is the point of rule 1: the file is on disk before a
     socket is opened, so a mail server having a bad day costs the delivery and
     never the record.
+
+    `attachments` (filename, data, subtype) ride beside the PDF: the Weekly's
+    Digital Assets addendum, a second page archived on its own by its producer
+    (Batch 8 item 51; daily_cascade/digital_addendum.py).
     """
     # The archived edition may differ from the mailed one ONLY in how it points
     # at its charts (SVG files on disk, not cid: parts); `archive_html` is that.
@@ -255,8 +260,10 @@ def deliver(subject: str, html: str, archive_name: str,
     # before the send; then attached beside the body.
     pdf_name = Path(archive_name).with_suffix(".pdf").name
     pdf_path = archive_bytes(pdf, pdf_name, archive_dir) if pdf else None
+    extra = list(attachments or [])
     state, detail = send_html(subject, html, text_fallback,
-                              attachments=[(pdf_name, pdf, "pdf")] if pdf else None,
+                              attachments=([(pdf_name, pdf, "pdf")] if pdf else [])
+                              + extra or None,
                               inline_images=inline_images)
 
     if path is None:

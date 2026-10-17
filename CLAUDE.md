@@ -223,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-eight code gates (seventy-five Python,
+**`make validate` runs every gate** — seventy-nine code gates (seventy-six Python,
 three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -329,6 +329,24 @@ lead) and `altdata/sources/clevfed_rules.py` (the Cleveland Fed's policy-rules
 path, not market pricing). The BLS API and data.bls.gov disallow every agent in
 robots.txt, so the CES industry diffusion indexes, birth-death and the new-tenant
 rent index are listed gaps. `tools/validate_releases.py` holds it.
+
+**The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
+17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a
+page of its own in the Sunday Weekly's run, before the Weekly, archives it beside
+the Weekly (`weekly_digital_<ending>.html`, its edition JSON and its appendix
+line) and attaches it to the Weekly's message; the Weekly prints one line naming
+it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
+the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
+minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
+Tranche A" until its key has a row; the read is one paragraph through the
+existing narrative step and its audits, from the page's figures only. The X
+pilot's ledgers and digests are read from the box's inbox, which the nightly
+sweep fills from the Drive folders chester-x-digest and x-triage,
+each file's available_at its `.copied_at` stamp. The book section opens the
+register read-only (`mode=ro`). The dated index events (the STRC vote, MSCI's
+review, FTSE Russell's reconstitution) are `config/digital_asset_calendar.yaml`,
+by hand, which the Weekly's Ahead also reads. `tools/validate_digital_addendum.py`
+holds it.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates

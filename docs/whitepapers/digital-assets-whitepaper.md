@@ -1088,6 +1088,12 @@ If time permits only a brief periodic review, these ten questions cover most of 
 9. What is the current credible range on quantum timelines, and has migration progressed?
 10. Which ten-year scenario did this quarter's evidence support?
 
+## Appendix E: Dated Record
+
+*Added 17 October 2026 as a draft for the operator's accept-all (Batch 8, items 49 and 51).* One dated line a week from the Digital Assets addendum to the Sunday Weekly, first the week to 31 October 2026, and the dated base-rate notes item 49 calls for. Each weekly line is written by code from that week's page, never by a model, and enters here only once the operator has accepted it; until then it waits beside the week's addendum in the report archive. Item 49's base-rate note (the GBTC premium-to-discount of 2021–22 as the analogue, the reflexive loop written out, this event's outcome after 1 December) is written by hand.
+
+No line has been accepted yet.
+
 ---
 
 ## Closing Note

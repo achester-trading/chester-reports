@@ -167,10 +167,14 @@ def hand_rows(cfg: dict, mon: dt.date, sat: dt.date,
                 continue
             if mon <= d < sat:
                 who = e.get(hc.get("who") or "body") or e.get("country") or e.get("body")
+                ev = f"{who}: {e.get('event')}" if who else str(e.get("event"))
+                # A DATE NOT YET CONFIRMED AT ITS SOURCE carries its marker
+                # ("30 Nov, to verify on MSCI's calendar"; Batch 8 item 49c).
+                if e.get("marker"):
+                    ev += f" ({e['marker']})"
                 rows.append({"date": d.isoformat(),
                              "time": str(e.get("time") or "time not stated"),
-                             "event": f"{who}: {e.get('event')}" if who
-                             else str(e.get("event")),
+                             "event": ev,
                              "consensus": "—", "cls": hc["class"],
                              "source": e.get("source")})
     return rows, absent

@@ -319,6 +319,19 @@ def main() -> int:
           and "china_political_calendar.yaml" in absent,
           f"a hand-seeded entry in the window prints; a file not present is named "
           f"({absent})")
+    # BATCH 8 ITEM 49c: the digital-asset calendar, its marker printed.
+    (repo / "config" / "digital_asset_calendar.yaml").write_text(
+        f"entries:\n  - {{date: {day(3)}, body: MSCI, event: 'Index Review takes "
+        f"effect', time: 'at the US close', marker: '30 Nov, to verify on MSCI''s "
+        f"calendar', source: 'fixture'}}\n", encoding="utf-8")
+    hr3, _ = ahead.hand_rows(cfg, dt.date.fromisoformat(MON),
+                             dt.date.fromisoformat(day(5)), repo)
+    dg = [r for r in hr3 if r["cls"] == "crypto_index_event"]
+    check(len(dg) == 1 and dg[0]["event"] == "MSCI: Index Review takes effect (30 Nov, "
+          "to verify on MSCI's calendar)" and dg[0]["time"] == "at the US close"
+          and cfg["classes"]["crypto_index_event"]["tier"] == 2,
+          "a digital-asset calendar entry prints in its week as crypto_index_event, "
+          "its \"to verify\" marker beside the event")
     rr = ahead.register_rows(cfg, dt.date(2026, 11, 2), dt.date(2026, 11, 7))
     check(len(rr) == 1 and rr[0]["cls"] == "register_event"
           and rr[0]["date"] == "2026-11-03",

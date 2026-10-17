@@ -250,6 +250,14 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                          f"weekly_tactical_{ending}_payload.json", args.archive_dir)
     except Exception as exc:                                   # noqa: BLE001
         log.warning("payload archive failed (%s) -- the report continues", exc)
+    # THE DIGITAL ASSETS ADDENDUM (Batch 8 item 51, Phase 1): its own page, built
+    # before the Weekly so the Weekly's one link line knows its state; archived
+    # beside the Weekly and attached to its message. A failure costs the addendum,
+    # never the Weekly.
+    from daily_cascade import digital_addendum  # noqa: PLC0415
+    add = digital_addendum.produce(p, archive_dir=archive_dir,
+                                   narrative=not args.no_narrative,
+                                   model=args.narrative_model)
     from daily_cascade import consistency  # noqa: PLC0415
     try:
         out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
@@ -292,6 +300,12 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
     print(f"  subject    : {readability.subject('Weekly', when, ed)}")
     print(f"  pdf        : {'built, ' if out.get('pdf') else 'NOT built -- '}"
           f"{out.get('pdf_detail')}")
+    print(f"  addendum   : " + (f"{add['name']}, {add['edition']['words']} words, "
+                                f"the read {add['edition']['prose'].get('state')}"
+                                if add.get("state") == "built" else
+                                f"DRY RUN -- {add.get('reason')}"
+                                if add.get("state") == "dry_run"
+                                else f"NOT built -- {add.get('reason')}"))
     if args.dry_run:
         if getattr(args, "email", False):
             # THE DRY RUN, MAILED (PB-1): the same render, to the configured
@@ -304,7 +318,8 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                                    archive_dir=args.archive_dir,
                                    archive_html=out["html_archive"],
                                    inline_images=out["inline_images"],
-                                   pdf=out.get("pdf"))
+                                   pdf=out.get("pdf"),
+                                   attachments=digital_addendum.attachment(add))
             print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
             print(f"  pdf archive: {res.get('pdf_path') or 'none'}")
             print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})"
@@ -322,7 +337,8 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                            archive_dir=args.archive_dir,
                            archive_html=out["html_archive"],
                            inline_images=out["inline_images"],
-                           pdf=out.get("pdf"))
+                           pdf=out.get("pdf"),
+                           attachments=digital_addendum.attachment(add))
     print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
     print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})")
     _emit(args, _status(p, res),
