@@ -378,5 +378,11 @@ For the Tuesday stitch, keep this branch's check, then st-r5's call.
 
 Locally after the fix: `validate_batch3_a` 60/0, `validate_audit_fixes` 73/0,
 `validate_weekly_stack` 70/0, group M 32/0. `validate_readability` renders PDFs,
-so it is left to CI. The re-run is recorded on `writer-fixes-1`'s notes, which
-carry this branch.
+so it is left to CI.
+
+| Run | Commit | Result |
+|---|---|---|
+| 39072463041 (Gates, push) | `a5e38e5` | **passed: 82 of 82 gate jobs** (76 code, 6 data) |
+
+Read once; green. (`writer-fixes-1`, which carries this branch, is green too: run
+39072731374.)
