@@ -175,11 +175,23 @@ Trial merges (`git merge-tree`, nothing committed) against `6e-releases`, `6e-di
 3. **The Weekly's part of the placement** ("the Weekly carries the week's events and ledger line") is not built here; the paste's build list did not ask for it. It is a small addition beside 6b part 3's Weekly wiring. Say whether it goes there.
 4. **The base rate covers the one-day arm only.** The five-day, band and compression arms say so. Say if any of them should get its own conditioning.
 5. **The 12:30 alert's delivery:** the same question as 6b part 2's needs-you 4. It is a file in the outbox today.
+6. **Two security-master entries**, `SM00195` (^VIX9D) and `SM00196` (^VIX6M), added for the gate in ^VIX3M's pattern, with their unverified fields listed. The master is reviewed by you.
 
 ## CI
 
 | Branch | Commit | Run | Result |
 |---|---|---|---|
 | `6b-dealer-2` | `ada7cb2` | 39038449525 | failed on three gates (6b part 2's; see its notes); fixed in `345f1d3` and merged here |
-| `6b-dealer-2` | `345f1d3` | recorded at the next read | |
+| `6b-dealer-2` | `345f1d3` | 39039815290 | **failed**, one check: `validate_audit_2`, "each edition's produce() is metered" -- the chart-dir helper had landed between the Monthly's metering decorator and `produce()`. Fixed on `6b-dealer-2` (`549619d`) and merged here |
+| `vol-event-52` | `cd8bd07` | 39039856971 | **failed**, this branch's own (below) and the inherited decorator |
 | `vol-event-52` | this commit | recorded at the next read | |
+
+**The first run's failures, this branch's own, and the fixes:**
+- **`validate_prices`:** it pins the basket at 106 symbols; with ^VIX9D and ^VIX6M it is 108. The gate now pins 108 and names them.
+- **`validate_security_master`:** every basket identifier must resolve to one master entry. ^VIX9D and ^VIX6M are added as `SM00195` and `SM00196`, in ^VIX3M's pattern (index; name, currency, exchange and multiplier listed unverified). The master is reviewed by Ari: needs-you 6.
+- **`validate_audit_3a`:**
+  - CLAUDE.md's "106 market symbols" is now 108;
+  - the four new block members (the two closes and their action series) are declared by name in `NEW_BLOCK_MEMBERS`;
+  - the count self-test planted nothing at "ninety", the first one-word count in this line. The fix is copied byte for byte from aud-3c's `531d158`, so the two lines meet cleanly at stitching.
+
+  `validate_audit_3a` 85/0, `validate_prices` 101/0.
