@@ -331,7 +331,10 @@ appendix. The exact lines on this branch:
 | `tools/validate_systemd_units.py` | `KNOWN` 95–98, identical to aud-2's | — |
 
 Trial merges with each are clean apart from the `CLAUDE.md` conflict that main
-already has with them.
+already has with them, and, since the CI fix, one in `tools/validate_batch3_a.py`
+against `st-r5-audit` / `6b-dealer-3`. The ECB-legs check had to stop pinning
+the branch name (item 11), and st-r5 inserts `group_b_daily()` on the next line.
+For the Tuesday stitch, keep this branch's check, then st-r5's call.
 
 ## Needs you
 

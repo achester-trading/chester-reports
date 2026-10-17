@@ -198,8 +198,22 @@ next pull writes ounces and tonnes.
 `altdata/sources/fedboard.py`, `nyfed_sce.py`, `treasury_auctions.py`,
 `spdr_gld.py` and `tools/validate_official_sources.py` (group U before `main`,
 plus one line in `main`'s group list). Session A's branches carry
-`validate_official_sources.py` changes from the earlier chain. Trial merges are
-recorded in the CI section below.
+`validate_official_sources.py` changes from the earlier chain.
+
+**Trial merges** (`git merge-tree`, nothing written), this branch's tip against:
+
+- Monday's chain (`docs-batch-9`, `aud-3a`, `aud-3b`, `aud-3c`, `aud-3d`):
+  **clean**.
+- `st-r5-audit` and `6b-dealer-3` (the second chain, session A's line): the
+  pre-existing `CLAUDE.md` conflict (main has it with them already), and **one
+  in `tools/validate_batch3_a.py`**. It comes from `weekly-fixes-7`'s CI fix.
+  The ECB-legs check had to stop pinning the branch name (item 11), and
+  st-r5-audit inserts `group_b_daily()` on the very next line.
+  - **The resolution for the Tuesday stitch:** keep weekly-fixes-7's rewritten
+    check, then st-r5's `group_b_daily()` call after it.
+  - st-r5's own `batch3.py` still names the branch in `EU_WRITER`, but its lines
+    there do not overlap mine, so the merge takes this branch's text, and group
+    M11 checks the result.
 
 ## Needs you
 
