@@ -184,7 +184,8 @@ Trial merges (`git merge-tree`, nothing committed) against `6e-releases`, `6e-di
 | `6b-dealer-2` | `ada7cb2` | 39038449525 | failed on three gates (6b part 2's; see its notes); fixed in `345f1d3` and merged here |
 | `6b-dealer-2` | `345f1d3` | 39039815290 | **failed**, one check: `validate_audit_2`, "each edition's produce() is metered" -- the chart-dir helper had landed between the Monthly's metering decorator and `produce()`. Fixed on `6b-dealer-2` (`549619d`) and merged here |
 | `vol-event-52` | `cd8bd07` | 39039856971 | **failed**, this branch's own (below) and the inherited decorator |
-| `vol-event-52` | this commit | recorded at the next read | |
+| `vol-event-52` | `1663521` (the fixes) | 39041321537 | **failed**, one check, this branch's own: `validate_security_master`, "SM ids under next_id 195" -- the two new entries took SM00195 and SM00196 without moving `next_id` |
+| `vol-event-52` | `5a67995` (`next_id: 197`) and these notes | recorded at the next read | |
 
 **The first run's failures, this branch's own, and the fixes:**
 - **`validate_prices`:** it pins the basket at 106 symbols; with ^VIX9D and ^VIX6M it is 108. The gate now pins 108 and names them.

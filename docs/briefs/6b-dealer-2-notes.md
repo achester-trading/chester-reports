@@ -230,7 +230,9 @@ All merge cleanly in the trials.
 | `st-r5-audit` | `c60c458` (the repair) | 39036555800 | **green**: every branch in the second chain is green on its own |
 | `docs-batch-9` | `e20df42` | 39036581128 | **green** |
 | `6b-dealer-2` | `ada7cb2` | 39038449525 | **failed**, three gates, all this branch's own (below) |
-| `6b-dealer-2` | the fix commit | recorded at the next read | |
+| `6b-dealer-2` | `345f1d3` (the fix) | 39039815290 | **failed**, one check: `validate_audit_2`, "each edition's produce() is metered under its report" -- the fix's chart-dir helper landed between the Monthly's `@model_meter.metered` decorator and `produce()` |
+| `6b-dealer-2` | `549619d` (the decorator back on `produce()`) | 39041206588 | **green** |
+| `6b-dealer-2` | `ebbe8fd` (these notes) | 39041337734 | **green**: this branch is green on its own |
 
 **The first run's three failures, and the fix:**
 - **`validate_weekly_stack` and `validate_weekly_opener`:** the flag-word audit read "held" as the flag word in ordinary prose. The fixtures' generic paragraph says "the relationships that held at the start of the week held at its end". So the Weekly's Mechanics was withheld and retried, adding model calls (11 against 9) and spoiling the opener's retry count. **Fix:** "held" is the flag word only in a sentence about a dealer level (a wall, the flip, a strike, max pain). Pinned, amplified and dampened always count. `validate_dealer_block` group L gains the plain-English case.
