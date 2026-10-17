@@ -291,9 +291,10 @@ Trial merges (`git merge-tree`, nothing committed) of this branch's commit again
 
 | Commit | Run | Result |
 |---|---|---|
-| `e9b7fc9` (notes) | 39033119597 | superseded by the fix below; inherits st-r5-audit's `validate_secrets` failure |
-| the fix commit | recorded at the next read | |
+| `e9b7fc9` (notes) | 39033119597 | **failed**: one check, `validate_secrets` on the inherited `validate_by_hand_audit.py` |
+| `d7c1593` (the fix) | 39033223933 | **green**: every gate passes |
 
 ## Needs you, added
 
 7. **`st-r5-audit` is red** on one gate text of mine (above). The fix is on this branch. Either let Tuesday's stitch carry it, or name `st-r5-audit` in a paste and I'll put the same commit there.
+   - **Ruled 17 Oct:** repaired on `st-r5-audit` itself (the 6b part 2 paste, Part 0).
