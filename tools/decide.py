@@ -69,7 +69,8 @@ from register.store import (                      # noqa: E402
     THESIS_STATES,
     Register, RestrictedInstrumentError,
     ENGINE_IDS, REVIEW_CHANGED, setup_ids, review_from_gate,
-    PacketIncompleteError)
+    PacketIncompleteError, PacketRefusedError, packet_faults, refusal_text,
+    EL1_PACKET_NAMES)
 import exposure_compute as ec                     # noqa: E402
 import expression_check                           # noqa: E402
 import pin_log                                    # noqa: E402
@@ -386,6 +387,17 @@ def horizon_alignment(direction: str) -> tuple:
             f"direction {direction} against trend {state} on the {day} object")
 
 
+def packet_args(args) -> dict:
+    """The EL-1 decision-object fields, as the register's keywords."""
+    return {"mechanism": args.mechanism, "falsifier_date": args.falsifier_date,
+            "expected_return": args.expected_return,
+            "expected_downside": args.expected_downside,
+            "entry_condition": args.entry_condition,
+            "risk_budget": args.risk_budget, "benchmark": args.benchmark,
+            "red_team": args.red_team,
+            "red_team_review_minutes": args.red_team_minutes}
+
+
 def cmd_record(args) -> int:
     reg = Register(args.db)
     try:
@@ -430,6 +442,8 @@ def cmd_record(args) -> int:
         if not args.falsifier:
             print(f"  falsifier       : (none)")
         print(f"  counter_thesis  : {args.counter_thesis or '(none)'}")
+        for k, v in packet_args(args).items():
+            print(f"  {k:<16}: {v if v not in (None, '') else '(none)'}")
 
         # THE RESTRICTION, CHECKED IN DRY RUN TOO.
         print(f"\n  restriction check")
@@ -462,6 +476,20 @@ def cmd_record(args) -> int:
             print(f"{LINE}")
             return 2
         print(f"    clear -- {norm!r} is not restricted")
+
+        # EL-1: THE SETUP MUST BE IN THE CATALOGUE. Refused here, logged through
+        # the register, never an argparse usage error that leaves no record.
+        if args.setup not in setup_ids():
+            reason = (f"setup_id {args.setup!r} is not in the catalogue "
+                      f"(config/setups.yaml); name a family there, or "
+                      f"`unclassified`")
+            print(f"\n  REFUSED -- {reason}")
+            if not args.dry_run:
+                reg.log_refusal(args.instrument, args.setup, "unknown_setup",
+                                reason, "decide.py", {"thesis": args.thesis})
+                print(f"  refusal logged to packet_refusals")
+            print(LINE)
+            return 2
 
         # ---- DECISION_BLOCKED (26.2 #7) --------------------------------
         # AS WRITTEN, not the normalised root. The store keys a position on
@@ -512,15 +540,24 @@ def cmd_record(args) -> int:
                       f"--book {{{','.join(BOOKS)}}}")
                 print(LINE)
                 return 2
-            # EL-1, Red Team v0. The register refuses this at write time; saying
-            # so here, before the gate runs, names the missing field in dry run.
-            missing = [n for n, v in (("--falsifier", args.falsifier),
-                                      ("--counter-thesis", args.counter_thesis))
-                       if not v]
-            if missing:
-                print(f"\n  REFUSED -- DECISION_OK needs {' and '.join(missing)} "
-                      f"(EL-1): what would show this wrong, and the other side's "
-                      f"case in one sentence, stated before entry")
+            # EL-1, the decision object and Red Team v0. The register refuses
+            # this at write time; the same rule here names every missing field in
+            # a dry run, and a real run logs the refusal before returning.
+            faults = packet_faults(
+                {"thesis": args.thesis, "falsifiers": args.falsifier,
+                 "setup_id": args.setup, "invalidation": args.invalidation,
+                 "size": args.size, "quantity": args.position_quantity,
+                 "notional_usd": args.notional, "horizon": args.horizon,
+                 "counter_thesis": args.counter_thesis, **packet_args(args)},
+                session.utc_iso())
+            if faults:
+                reason = refusal_text(faults)
+                print(f"\n  REFUSED -- {reason}")
+                if not args.dry_run:
+                    reg.log_refusal(args.instrument, args.setup,
+                                    "incomplete_packet", reason, "decide.py",
+                                    {"thesis": args.thesis})
+                    print(f"  refusal logged to packet_refusals")
                 print(LINE)
                 return 2
             bind = _binding_expression(args)
@@ -534,6 +571,7 @@ def cmd_record(args) -> int:
             "id": "candidate", "instrument": args.instrument,
             "direction": args.direction, "book": args.book,
             "notional_usd": args.notional, "vega_usd": args.vega,
+            "risk_usd": args.risk_usd,
             "expression_family": args.expression_family,
             "leverage_form": args.leverage_form})
         if gate_out["outcome"] != "approve" and status == "active":
@@ -608,6 +646,7 @@ def cmd_record(args) -> int:
                          leverage_form=args.leverage_form,
                          book=args.book, quantity=args.position_quantity,
                          notional_usd=args.notional, vega_usd=args.vega,
+                         risk_usd=args.risk_usd,
                          time_stop=args.time_stop,
                          gate_outcome=(gate_out or {}).get("outcome"),
                          gate_detail=(_gate_detail(gate_out) if gate_out else None),
@@ -618,7 +657,9 @@ def cmd_record(args) -> int:
                              (gate_out or {}).get("outcome"), args.review_changed),
                          falsifiers=list(args.falsifier or []),
                          counter_thesis=args.counter_thesis,
-                         expression_currency=args.expression_currency)
+                         expression_currency=args.expression_currency,
+                         refusal_source="decide.py",
+                         **packet_args(args))
         pid = reg.attach_packet(did, pkt)
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
@@ -713,7 +754,7 @@ def cmd_show(args) -> int:
             print(f"no decision {args.id!r}")
             return 1
         el1 = ("setup_id", "engine_id", "horizon_alignment", "review_changed",
-               "falsifiers", "counter_thesis")
+               "falsifiers", "counter_thesis") + EL1_PACKET_NAMES
         for k, v in d.items():
             if k in el1 and v is None:
                 v = "not recorded"          # a pre-P5-B row, not a default
@@ -1006,14 +1047,17 @@ def cmd_set_status(args) -> int:
         # them later -- a pre-P5-B draft without them is refused here, as the
         # register would refuse it, and a new decision is recorded instead.
         if becoming_active:
-            fals = json.loads(old_d.get("falsifiers") or "null")
-            missing = [n for n, v in (("falsifiers", fals),
-                                      ("counter_thesis", old_d.get("counter_thesis")))
-                       if not v]
-            if missing:
-                print(f"\n  REFUSED -- this draft has no {' or '.join(missing)} "
-                      f"(EL-1), so it cannot become DECISION_OK. Record a new "
-                      f"decision with --falsifier and --counter-thesis.")
+            faults = packet_faults(old_d)
+            if faults:
+                reason = ("this draft cannot become DECISION_OK. "
+                          + refusal_text(faults)
+                          + " Record a new decision with them.")
+                print(f"\n  REFUSED -- {reason}")
+                if not args.dry_run:
+                    reg.log_refusal(old_d["instrument"], old_d.get("setup_id"),
+                                    "incomplete_packet", reason, "set-status",
+                                    {"decision_id": args.id})
+                    print(f"  refusal logged to packet_refusals")
                 print(LINE)
                 return 2
         if args.dry_run:
@@ -1059,7 +1103,8 @@ def cmd_set_status(args) -> int:
                 # and the gate's verdict new on this row.
                 book=book, quantity=old_d.get("quantity"),
                 notional_usd=old_d.get("notional_usd"),
-                vega_usd=old_d.get("vega_usd"), time_stop=old_d.get("time_stop"),
+                vega_usd=old_d.get("vega_usd"), risk_usd=old_d.get("risk_usd"),
+                time_stop=old_d.get("time_stop"),
                 close_reason=(args.close_reason if args.status == "closed"
                               else old_d.get("close_reason")),
                 gate_outcome=((gate_out or {}).get("outcome")
@@ -1077,6 +1122,11 @@ def cmd_set_status(args) -> int:
                 falsifiers=(json.loads(old_d["falsifiers"])
                             if old_d.get("falsifiers") else None),
                 counter_thesis=old_d.get("counter_thesis"),
+                # EL-1, 12 Oct 2026: the decision object, carried forward and never
+                # rewritten; the outcome slot is the grader's, not carried.
+                **{k: old_d.get(k) for k in EL1_PACKET_NAMES
+                   if k not in ("outcome", "outcome_at")},
+                refusal_source="set-status",
                 # INC-8: resolved above -- the flag, else the old row's, else the
                 # listing's own suffix, else EMPTY. Never an invented "USD".
                 expression_currency=expr_ccy,
@@ -1232,13 +1282,18 @@ def main() -> int:
                    help="Options expressions: dollars of vega per one vol point, "
                         "SIGNED (negative when short volatility). Without it the "
                         "gate delays an options decision rather than guess.")
+    r.add_argument("--risk-usd", type=float, default=None, metavar="USD",
+                   help="EL-2: dollars at risk, entry to invalidation x size (an "
+                        "options expression's defined maximum loss). The "
+                        "Doctrine's heat across Books B-D sums it; without it "
+                        "the gate delays a Book B, C or D decision.")
     r.add_argument("--time-stop", default=None, metavar="YYYY-MM-DD",
                    help="The date past which the position is closed regardless "
                         "of thesis (Doctrine, Books B and D).")
     # -- EL-1 (§3.1): the packet fields. falsifiers and counter_thesis are
     #    required for an active decision; the register refuses DECISION_OK
     #    without them at write time.
-    r.add_argument("--setup", default="unclassified", choices=setup_ids(),
+    r.add_argument("--setup", default="unclassified", metavar="SETUP_ID",
                    help="The setup family, from config/setups.yaml -- the Edge "
                         "Ledger's key. `unclassified` is allowed and counted in "
                         "the Weekly.")
@@ -1251,6 +1306,28 @@ def main() -> int:
     r.add_argument("--counter-thesis", default=None, metavar="SENTENCE",
                    help="The other side's case in one sentence, written from the "
                         "evidence. Required for an active decision.")
+    # EL-1 (the brief of 12 Oct 2026): the decision object. All required for an
+    # active decision; the register refuses DECISION_OK without them and logs it.
+    r.add_argument("--mechanism", default=None, metavar="TEXT",
+                   help="Why the edge should exist, in a sentence or two.")
+    r.add_argument("--falsifier-date", default=None, metavar="YYYY-MM-DD",
+                   help="The date by which the falsifier is judged.")
+    r.add_argument("--expected-return", default=None, metavar="TEXT",
+                   help="The expected return, as a figure and its basis.")
+    r.add_argument("--expected-downside", default=None, metavar="TEXT",
+                   help="The expected downside if the thesis is wrong.")
+    r.add_argument("--entry-condition", default=None, metavar="TEXT",
+                   help="The condition that triggers entry.")
+    r.add_argument("--risk-budget", default=None, metavar="TEXT",
+                   help="The risk budget: dollars or percent of the book at risk.")
+    r.add_argument("--benchmark", default=None, metavar="TEXT",
+                   help="What the decision must beat (SPY, 60/40, cash, a pair).")
+    r.add_argument("--red-team", default=None, metavar="TEXT",
+                   help="RED TEAM v0 (R-5): the CHEAPEST way the thesis could be "
+                        "wrong -- the check that would most cheaply sink it.")
+    r.add_argument("--red-team-minutes", type=int, default=None, metavar="N",
+                   help="RED TEAM v0 (R-5): the review time that check would "
+                        "cost, in whole minutes.")
     r.add_argument("--review-changed", default=None, choices=REVIEW_CHANGED,
                    help="Set when a review changed the packet before entry. "
                         "Defaults to the gate's verdict folded in (approve -> "
