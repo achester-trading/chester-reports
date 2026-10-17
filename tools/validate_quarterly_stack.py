@@ -807,11 +807,11 @@ def group_g(r: dict) -> None:
     an = met["analyses"]["table"]["rows"]
     # A hook whose branch is on this one reads its store instead of naming the
     # branch it waits for (Friday stitching, 13 Oct).
-    check(all(len(x) == 3 and x[2] for x in an)
+    check(all(len(x) == 4 and x[2] and x[3] for x in an)
           and (qi_.module("attribution") is not None or any("AQ-8a" in x[1] for x in an))
           and (qi_.module("correlation") is not None or any("AQ-5" in x[1] for x in an)),
-          "item 6: each analysis's state and its kill condition; the hooks name the "
-          "branch they wait for")
+          "item 6: each analysis's state, its kill condition and its kill state "
+          "(AQ-10); the hooks name the branch they wait for where it is absent")
     pr = met["priced"]
     check(any("6b" in x for x in pr["not_tracked"])
           and any("GLD" in x for x in pr["not_tracked"])

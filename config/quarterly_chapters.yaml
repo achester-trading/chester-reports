@@ -21,6 +21,15 @@
 #     rest by name only. T3.4 (t3-4-figure-budget) is not merged under this
 #     branch, so the rule is applied here by the chapter's own frames.
 #
+#   - Every analysis (item 6) carries `kill`: the kill condition section 5
+#     ruled for it, or "none ruled" where the ruling gave none. An analysis
+#     without one fails AQ-10's kill-condition gate. Its kill STATE prints
+#     beside its reading -- holds / strained / killed / not measured -- <reason>
+#     -- from `kill_measurable` (a measurable, below; met = killed), or from
+#     `kill_reader` (a function of the analysis's own module, with `kill_args`),
+#     or else "not measured" with the reason (monthly_macro.quarterly_items.
+#     kill_state).
+#
 # RULE KINDS for a measurable (evaluated by monthly_macro.quarterly_items):
 #   quarters_negative  {series, quarters}: the level fell in each of the last N
 #                      calendar quarters -> fails; the last quarter alone -> strained
@@ -106,6 +115,7 @@ families:
       - {id: gold_residual, title: "The gold residual", module: altdata.attribution, reader: gold_block,
          kill: "none ruled (section 5)"}
       - {id: two_bid, title: "The two-bid decomposition", module: altdata.paper_bid, reader: two_bid,
+         kill_reader: oi_kill_state, kill_args: [GLD],
          kill: "drop call-put OI if its percentile shows no relationship to forward 20-day returns in either direction after twelve months"}
       - {id: effective_float, title: "Effective-float elasticity", waits: "not built (AQ-8)",
          kill: "only above a market-cap floor"}
@@ -600,7 +610,9 @@ families:
   #   diff / share / ratio_pct / rel_return / corr
   #                  rows computed from two registered keys (quarterly_items)
   #   book_rule      `line` printed in item 10, or `no_draft` (an isolated
-  #                  chapter writes no register draft at all)
+  #                  chapter writes no register draft at all); `understood_
+  #                  instruments` (agriculture) the only instruments a draft
+  #                  may name -- any other prints as a no draft
   #   isolation      namespace, trigger_eligible, feeds (Thailand)
   # =========================================================================
 
@@ -1614,6 +1626,11 @@ families:
     questions_note: "no owning paper — not stated"
     book_rule:
       line: "a liquid contract or fund is named only where one exists and is understood; \"thin or poorly understood contracts\" are a no draft by rule (section 4.11)."
+      # The contracts and funds the operator names as liquid and understood. A
+      # draft on any other instrument prints as a no draft, "thin or poorly
+      # understood" by rule (AQ-10's draft-per-horizon gate). Empty until the
+      # operator names them: every agriculture draft is a no draft until then.
+      understood_instruments: []
     scenarios:
       - name: "The four (section 4.11), each mapped to food inflation and EM terms of trade"
         horizon: "12 months"
