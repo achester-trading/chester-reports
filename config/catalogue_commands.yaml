@@ -231,7 +231,7 @@ commands:
     line: The Fed's H.4.1 FIMA repo line -- a writer entry for altdata/feeds.py
   altdata.sources.flashalpha:
     domain: options
-    line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, quota-guarded, the key never printed'
+    line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, labelled vendor, never in place of its figures; a daily budget of 30 calls (config/flashalpha.yaml); on the freshness roster as family vendor; the key never printed'
   altdata.sources.finra:
     domain: positioning
     line: FINRA margin statistics -- customer debit balances in margin accounts, monthly

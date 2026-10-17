@@ -13,8 +13,12 @@ cannot be evaluated is closed, with its reason. When every gate stays closed the
 slot writes nothing and calls nothing. When one opens, the slot writes the
 alert: the open gates' trigger lines, code-written, and nothing else; no model
 is called here (a narrated alert would go through the existing narrative step,
-behind its audits, and is not built). The alert is a file in the outbox; how it
-reaches the operator is the operator's to decide.
+behind its audits, and is not built). The alert is a file in the outbox, and
+it is MAILED (ruling 2 of 17 Oct 2026) by the path the heartbeat and the Weekly
+already use (daily_cascade/deliver.py, the same SMTP credentials): subject
+"12:30 alert: <the trigger line>", at most one message a session (a marker
+beside the outbox copy), the outbox copy kept whatever the send does. No other
+channel. A send failure is recorded in the alert file, never raised.
 
 THE GATES (registered in GATES; a later order adds its own):
   dealer_flip_cross  by 12:30 spot is at least `confirm_pct` (0.10%, the
@@ -111,11 +115,37 @@ def alert_dir() -> Path:
                 or Path.home() / "chester-data" / "outbox" / "midday")
 
 
+def _send(subject: str, body: str) -> tuple[str, str]:
+    from . import deliver                                       # noqa: PLC0415
+    html = "<pre>" + body.replace("&", "&amp;").replace("<", "&lt;") + "</pre>"
+    return deliver.send_html(subject, html, body)
+
+
+def mail_alert(day: str, lines: list[str], d: Path,
+               send: Optional[Callable[[str, str], tuple[str, str]]] = None) -> dict:
+    """Mail the session's alert once. The marker is written before the send, so
+    a crash mid-send cannot produce a second message; the state is returned."""
+    marker = d / f"midday_{day}_1230.mailed"
+    if marker.exists():
+        return {"state": "already_sent", "detail": marker.read_text(encoding="utf-8")}
+    subject = f"12:30 alert: {lines[0]}"
+    body = "\n".join([f"{day}, 12:30 ET -- code-written; no model was called.", ""]
+                     + lines)
+    marker.write_text(f"{day} {subject}", encoding="utf-8")
+    try:
+        state, detail = (send or _send)(subject, body)
+    except Exception as exc:                                    # noqa: BLE001
+        state, detail = "send_failed", f"{type(exc).__name__}"
+    return {"state": state, "detail": detail, "subject": subject}
+
+
 def run(day: str, base_dir: Optional[str] = None, gates: Optional[list] = None,
         out_dir: Optional[Path] = None, ctx: Optional[dict] = None,
-        extra: Optional[dict] = None) -> dict:
-    """Evaluate; write the alert only when a gate opens. Never calls a model.
-    `extra` joins the stored context (the 12:30 quotes, the vol history)."""
+        extra: Optional[dict] = None,
+        send: Optional[Callable[[str, str], tuple[str, str]]] = None) -> dict:
+    """Evaluate; write the alert only when a gate opens, then mail it once.
+    Never calls a model. `extra` joins the stored context (the 12:30 quotes, the
+    vol history); `send` replaces the SMTP send (the gate's fake)."""
     ctx = ctx if ctx is not None else context(day, base_dir)
     ctx = {**ctx, **(extra or {})}
     res = evaluate(ctx, gates)
@@ -126,9 +156,11 @@ def run(day: str, base_dir: Optional[str] = None, gates: Optional[list] = None,
         d = Path(out_dir) if out_dir else alert_dir()
         d.mkdir(parents=True, exist_ok=True)
         path = d / f"midday_{day}_1230.json"
-        path.write_text(json.dumps({"day": day, "slot": "12:30",
-                                    "lines": [r["line"] for r in opened],
-                                    "gates": res}, indent=2, default=str),
-                        encoding="utf-8")
+        lines = [r["line"] for r in opened]
+        rec = {"day": day, "slot": "12:30", "lines": lines, "gates": res}
+        path.write_text(json.dumps(rec, indent=2, default=str), encoding="utf-8")
         out["alert"] = str(path)
+        out["mail"] = mail_alert(day, lines, d, send)
+        rec["mail"] = {k: v for k, v in out["mail"].items() if k != "detail"}
+        path.write_text(json.dumps(rec, indent=2, default=str), encoding="utf-8")
     return out

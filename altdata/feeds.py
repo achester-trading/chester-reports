@@ -707,6 +707,10 @@ def freshness(as_of: Optional[str] = None,
         from . import fed_funds as _ff                         # noqa: PLC0415
         rosters += [("prediction_markets", list(PREDICTION_KEYS)),
                     ("fed_funds", [_ff.KEY])]
+        # THE VENDOR WRITER (ruling 3 of 17 Oct 2026): its own 16:25 unit; pending
+        # until its first run records an attempt.
+        from .sources import flashalpha as _fa                 # noqa: PLC0415
+        rosters += [("vendor", list(_fa.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None

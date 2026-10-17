@@ -885,8 +885,27 @@ def group_n() -> None:
     def spy(*a, **k):
         calls.append(a)
         return real(*a, **k)
+    sent = []
+    fake = lambda subj, body: sent.append((subj, body)) or ("sent", "fake")  # noqa: E731
     opened = mg.run("2026-10-16", out_dir=alerts,
-                    ctx={"cfg": cfg, "midday": mid(678.0), "morning": morning})
+                    ctx={"cfg": cfg, "midday": mid(678.0), "morning": morning},
+                    send=fake)
+    again = mg.run("2026-10-16", out_dir=alerts,
+                   ctx={"cfg": cfg, "midday": mid(678.0), "morning": morning},
+                   send=fake)
+    rec = json.loads(Path(opened["alert"]).read_text(encoding="utf-8"))
+    check(len(sent) == 1 and sent[0][0] == "12:30 alert: " + rec["lines"][0]
+          and opened["mail"]["state"] == "sent"
+          and again["mail"]["state"] == "already_sent"
+          and rec["mail"]["state"] == "already_sent" and Path(again["alert"]).exists()
+          and "detail" not in rec["mail"],
+          "ruling 2: the open alert is mailed once, subject '12:30 alert: <the trigger "
+          "line>'; a second run that session sends nothing; the outbox copy is kept "
+          "and carries the mail state, never the recipient")
+    boom = mg.mail_alert("2026-10-15", ["x"], alerts,
+                         send=lambda s, b: (_ for _ in ()).throw(OSError("down")))
+    check(boom["state"] == "send_failed",
+          "a send that raises is recorded as send_failed, never raised")
     check(opened["opened"] == ["dealer_flip_cross"] and opened["alert"]
           and Path(opened["alert"]).exists() and not opened["model_called"]
           and "down through the morning zero-gamma level 680.00" in

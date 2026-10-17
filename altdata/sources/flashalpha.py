@@ -48,6 +48,11 @@ KEYS = {"gex": "dealer.vendor_gex_per_1pct", "dex": "dealer.vendor_dex_raw",
         "vex": "dealer.vendor_vex", "flip": "dealer.vendor_gamma_flip",
         "call_wall": "dealer.vendor_call_wall", "put_wall": "dealer.vendor_put_wall",
         "spot": "dealer.vendor_spot"}
+# THE FRESHNESS ROSTER (ruling 3 of 17 Oct 2026): the levels endpoint's fields,
+# which tools/cross_check.py has read since 4 Sep. The GEX endpoint's names are
+# unverified, so its three keys stay off the roster until a box run stores them;
+# an absent GEX field is a listed gap, never a stale feed.
+ROSTER_KEYS = [KEYS["flip"], KEYS["call_wall"], KEYS["put_wall"], KEYS["spot"]]
 VEX_FLAG = "unreconciled: sign and scale differ from the engine's (ledger 9 Oct)"
 TIMEOUT = 30
 
@@ -257,12 +262,16 @@ def vendor_line(vendor: dict, profile: Optional[dict], cfg: Optional[dict] = Non
     """The Weekly's vendor line (brief v2 section 5.6): read from the stored
     series, never fetched."""
     if not vendor:
-        return ["FlashAlpha: no stored vendor reading this week (the 16:25 writer)."]
+        return ["FlashAlpha (vendor): no stored vendor reading this week (the 16:25 "
+                "writer)."]
     if not profile:
-        return [f"FlashAlpha, {vendor.get('day')}: stored, but no engine profile to set "
-                f"it against."]
-    lines = [f"FlashAlpha, {vendor.get('day')} (their capture after our 16:10; one OI "
-             f"vintage; a gap is a question, never a correction):"]
+        return [f"FlashAlpha (vendor), {vendor.get('day')}: stored, but no engine "
+                f"profile to set it against."]
+    # RULING 3 OF 17 OCT 2026: a cross-check printed beside the engine's figures,
+    # labelled vendor, never in place of them.
+    lines = [f"FlashAlpha (vendor), {vendor.get('day')}, beside the engine's own "
+             f"figures (their capture after our 16:10; one OI vintage; a gap is a "
+             f"question, never a correction):"]
     for c in compare(vendor, profile, cfg):
         if c["kind"] == "flag":
             lines.append(f"VEX: theirs {c['theirs'] if c['theirs'] is not None else 'n/a'}"
@@ -287,6 +296,9 @@ def _main(argv: list[str]) -> int:
     ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
     res = pull()
+    if res.get("status") in ("OK", "BUDGET"):
+        from .. import feeds                                    # noqa: PLC0415
+        feeds.record_attempted("vendor", ROSTER_KEYS)
     print(json.dumps(res, indent=2, default=str))
     return 0 if res.get("status") in ("OK", "SKIPPED", "BUDGET") else 1
 
