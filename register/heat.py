@@ -31,6 +31,21 @@ WHAT IS SUMMED, AND WHERE EACH NUMBER COMES FROM
     duration                 notional x declared duration / 100: dollars per 100bp.
     vega                     the decision's own vega_usd, dollars per vol point,
                              signed (negative when short volatility).
+    heat                     the decision's own risk_usd -- dollars from entry to
+                             invalidation, or an options expression's defined
+                             maximum loss -- summed across Books B, C and D.
+
+-----------------------------------------------------------------------------
+CORRELATED POSITIONS COUNTED ONCE (Doctrine §4.5, Rule 16; EL-2, 12 Oct 2026)
+-----------------------------------------------------------------------------
+"Two long semiconductor names in Book B and a long NQ call spread in Book C are
+one position for heat purposes." Each decision is assigned a COMMON FACTOR: its
+dominant look-through sector when that sector carries at least
+`common_factor.min_weight` of it (NVDA, XLK and QQQ are all technology), else
+the instrument itself. The heat-book decisions sharing a factor are one
+CLUSTER: their risk is summed, gross (an offsetting leg earns no credit), and
+the cluster is held to ONE position's limit, `cluster_max_pct`. A cluster of
+one is governed by its book's own sizing and is never breached here.
 
 The limits are in config/risk_limits.yaml with their provenance. The net-beta cap
 is the Doctrine's: the top of Book A's band plus 15 points. The band comes from
@@ -233,7 +248,8 @@ def to_usd(amount: float, ccy: str, store: Any,
 
 def exposure(dec: dict, store: Any, ref: dict,
              as_of: Optional[str] = None,
-             _beta_cache: Optional[dict] = None) -> dict:
+             _beta_cache: Optional[dict] = None,
+             limits: Optional[dict] = None) -> dict:
     """What one decision contributes, and every input it is missing."""
     from register import instruments  # noqa: PLC0415
     root = instruments.normalise(dec.get("instrument"))
@@ -281,17 +297,51 @@ def exposure(dec: dict, store: Any, ref: dict,
     sec.pop("as_of", None)
     out["sectors_usd"] = {k: signed * float(w) for k, w in sec.items()}
     out["sector_weights_proposed"] = sec_proposed
-    if not sec and signed != 0:
+    dur = ((ref.get("durations") or {}).get(root) or {}).get("years")
+    # A RATE INSTRUMENT IS CLASSIFIED BY ITS DURATION, not a sector (EL-2, 12 Oct
+    # 2026): TLT has no equity sector to declare, and asking for one delayed
+    # every Treasury decision at the gate.
+    if not sec and dur is None and signed != 0:
         out["missing"].append(f"sector: {root} has no weights in "
                               f"config/instrument_reference.yaml")
-    dur = ((ref.get("durations") or {}).get(root) or {}).get("years")
     out["duration_usd_per_100bp"] = (signed * float(dur) / 100.0
                                      if dur is not None else 0.0)
     vega = dec.get("vega_usd")
     if is_opt and vega is None:
         out["missing"].append("vega_usd: an options expression records no vega")
     out["vega_usd"] = float(vega) if vega is not None else 0.0
+    # EL-2: heat and the common factor. Only Books B-D carry heat (§4.5).
+    out["factor"] = common_factor(root, ref, limits)
+    out["heat_book"] = out["book"] in heat_books(limits)
+    risk = dec.get("risk_usd")
+    if out["heat_book"] and risk is None:
+        out["missing"].append(f"risk_usd: a Book {out['book']} decision records "
+                              f"no dollars at risk, and heat sums them")
+    out["risk_usd"] = (abs(float(risk)) if (risk is not None and out["heat_book"])
+                       else 0.0)
     return out
+
+
+def heat_books(limits: Optional[dict] = None) -> tuple:
+    """The books the Doctrine's heat cap covers: B, C and D (§4.5)."""
+    spec = ((limits or {}).get("limits") or {}).get("heat_max_pct") or {}
+    return tuple(spec.get("books") or ("B", "C", "D"))
+
+
+def common_factor(root: str, ref: dict, limits: Optional[dict] = None) -> str:
+    """The factor a decision is counted once at: its dominant look-through
+    sector when that sector carries at least `common_factor.min_weight` of the
+    instrument, else the instrument itself."""
+    cf = (limits or {}).get("common_factor") or {}
+    min_w = float(cf.get("min_weight", 0.5))
+    sec = {k: v for k, v in ((ref.get("sectors") or {}).get(root) or {}).items()
+           if k not in ("proposed", "source", "as_of")
+           and isinstance(v, (int, float))}
+    if sec:
+        top, w = max(sec.items(), key=lambda kv: kv[1])
+        if float(w) >= min_w:
+            return top
+    return str(root)
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +355,7 @@ def view(decisions: list[dict], store: Any, as_of: Optional[str] = None,
     cap_usd = float((lim.get("capital_usd") or {}).get("value") or 0)
     rb = regime_band(store, as_of, lim)
     cache: dict = {}
-    rows = [exposure(d, store, ref, as_of, cache) for d in decisions]
+    rows = [exposure(d, store, ref, as_of, cache, lim) for d in decisions]
     net_beta = sum(r["beta_adj_usd"] or 0.0 for r in rows)
     by_book: dict[str, float] = {}
     for r in rows:
@@ -320,6 +370,17 @@ def view(decisions: list[dict], store: Any, as_of: Optional[str] = None,
     for r in rows:
         if r["vega_usd"]:
             vega_by_root[r["root"]] = vega_by_root.get(r["root"], 0.0) + r["vega_usd"]
+
+    # HEAT, AND THE CLUSTERS IT IS COUNTED IN (§4.5).
+    heat_usd = sum(r["risk_usd"] for r in rows if r["heat_book"])
+    clusters: dict[str, dict] = {}
+    for r in rows:
+        if not r["heat_book"]:
+            continue
+        c = clusters.setdefault(r["factor"], {"factor": r["factor"],
+                                              "risk_usd": 0.0, "members": []})
+        c["risk_usd"] += r["risk_usd"]
+        c["members"].append(f"{r['root']} ({r['book']})")
 
     L = lim.get("limits") or {}
 
@@ -357,6 +418,19 @@ def view(decisions: list[dict], store: Any, as_of: Optional[str] = None,
     dspec = L.get("duration_max_pct_per_100bp") or {}
     add("duration", duration, dspec.get("value"), dspec,
         "net dollar duration per 100bp, rate instruments")
+    hspec = L.get("heat_max_pct") or {}
+    add("heat", heat_usd, hspec.get("value"), hspec,
+        "open risk, Books " + "/".join(heat_books(lim))
+        + ", correlated positions counted once")
+    cspec = L.get("cluster_max_pct") or {}
+    for f, c in sorted(clusters.items(), key=lambda kv: -kv[1]["risk_usd"]):
+        add(f"cluster:{f}", c["risk_usd"], cspec.get("value"), cspec,
+            f"{f}: {', '.join(c['members'])} -- one position for heat")
+        # A CLUSTER OF ONE is the book's own sizing, never this rule's breach;
+        # its row stays so a second member's room is measured from it.
+        if len(c["members"]) < 2:
+            checks[-1]["breached"] = False
+            checks[-1]["single"] = True
 
     concentrations = []
     for c in checks:
@@ -377,6 +451,20 @@ def view(decisions: list[dict], store: Any, as_of: Optional[str] = None,
                 abs(c["value_pct"] or 0) >= 0.8 * c["limit_pct"]:
             concentrations.append(
                 f"net beta {c['value_pct']:.1f}% of capital (cap {c['limit_pct']:g}%)")
+        if c["limit"] == "heat" and c["limit_pct"] is not None and \
+                abs(c["value_pct"] or 0) >= 0.8 * c["limit_pct"]:
+            concentrations.append(
+                f"heat {c['value_usd']:,.0f} at risk ({c['value_pct']:.2f}% of "
+                f"capital, cap {c['limit_pct']:g}%)")
+        if c["limit"].startswith("cluster:") and not c.get("single") and \
+                c["limit_pct"] is not None and \
+                abs(c["value_pct"] or 0) >= 0.8 * c["limit_pct"]:
+            f = c["limit"].split(":", 1)[1]
+            concentrations.append(
+                f"{f} counted once: {', '.join(clusters[f]['members'])} are one "
+                f"position, {c['value_usd']:,.0f} at risk ({c['value_pct']:.2f}% "
+                f"of capital, one position's limit {c['limit_pct']:g}%"
+                + (", proposed" if c["proposed"] else "") + ")")
     missing = [f"{r['root']} ({r['book']}): {m}" for r in rows for m in r["missing"]]
     return {"capital_usd": cap_usd, "regime": rb, "positions": rows,
             "net_beta_usd": round(net_beta, 2), "net_beta_pct": pct(net_beta),
@@ -385,6 +473,10 @@ def view(decisions: list[dict], store: Any, as_of: Optional[str] = None,
             "duration_usd_per_100bp": round(duration, 2),
             "vega_usd": round(vega, 2),
             "vega_by_root_usd": {k: round(v, 2) for k, v in vega_by_root.items()},
+            "heat_usd": round(heat_usd, 2), "heat_pct": pct(heat_usd),
+            "clusters": {k: {**c, "risk_usd": round(c["risk_usd"], 2),
+                             "risk_pct": pct(c["risk_usd"])}
+                         for k, c in clusters.items()},
             "checks": checks, "breaches": [c for c in checks if c["breached"]],
             "concentrations": concentrations, "missing": missing,
             "limits_version": lim.get("version"),
@@ -444,11 +536,16 @@ def gate(candidate: dict, open_decisions: list[dict], store: Any,
         f"{c['limit']}: {c['value_pct']:.2f}% of capital after, limit "
         f"{c['limit_pct']:g}%" + (" (proposed)" if c["proposed"] else "")
         for c, _ in worse]
+    # THE REFUSAL NAMES WHAT THE BOOK IS CONCENTRATED IN (EL-2 §3.2's
+    # acceptance test): every concentration of the view after the candidate,
+    # not only the limit this packet tipped.
+    named = [f"concentration: {c}" for c in after["concentrations"]]
     if "vega" in names:
         out["outcome"] = "restructure"
         out["reasons"].insert(0, "the expression adds vega past the limit -- "
                                  "change the structure (defined wings, less vega), "
                                  "not the size")
+        out["reasons"] += named
         return out
 
     # The largest share of the request that fits every worsened limit.
@@ -472,6 +569,7 @@ def gate(candidate: dict, open_decisions: list[dict], store: Any,
     else:
         out["outcome"] = "reject"
         out["reasons"].insert(0, "no useful size fits the limits it breaches")
+    out["reasons"] += named
     assert out["outcome"] in GATE_OUTCOMES
     return out
 
@@ -511,6 +609,12 @@ def format_view(v: dict) -> str:
                                                  key=lambda kv: -abs(kv[1]))))
     L.append(f"  duration : {v['duration_usd_per_100bp']:+,.0f} per 100bp;  "
              f"vega {v['vega_usd']:+,.0f} per vol pt")
+    if v.get("heat_pct") is not None:
+        L.append(f"  heat     : {v['heat_usd']:,.0f} at risk ({v['heat_pct']}% of "
+                 f"capital), Books B-D; clusters "
+                 + (", ".join(f"{k} [{', '.join(c['members'])}] {c['risk_usd']:,.0f}"
+                              for k, c in sorted(v["clusters"].items()))
+                    or "none"))
     for c in v["checks"]:
         if c["limit_pct"] is None:
             continue
