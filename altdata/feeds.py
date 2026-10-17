@@ -110,6 +110,13 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # AQ-3 part 1: Baker Hughes' monthly rig count, as the EIA
                     # republishes it (the Quarterly's oil chapter)
                     "eia_rigs",
+                    # AQ-3 part 2: the daily Bund (Bundesbank), the monthly
+                    # Bund/OAT/BTP (the ECB data portal), and China's 70-city
+                    # prices, starts and sales (the NBS English releases)
+                    "bundesbank", "ecb_irs", "nbs",
+                    # AQ-3 part 2, THAILAND (namespace thailand, never a trigger):
+                    # the BoT policy rate, TPSO's CPI, MOTS's arrivals, NESDC's GDP
+                    "bot", "tpso", "mots", "nesdc",
                     # 10 Oct 2026: central-bank gold by country (IMF IL)
                     "imf_ifs",
                     # AQ-9a (11 Oct 2026): the EM scorecard's sources, then its
@@ -146,7 +153,9 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # GLD's archive (inbox; its API host disallows robots), the
                     # iShares gold, silver and bitcoin trusts' share counts, SHFE
                     # weekly metal stocks, and USD/CNH's New York close
-                    "spdr_gld", "ishares_trusts", "shfe", "cnh")
+                    "spdr_gld", "ishares_trusts", "shfe", "cnh",
+                    # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
+                    "thai_set")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

@@ -117,6 +117,13 @@ SYMBOLS: dict[str, str] = {
     # International
     "EFA": "mkt_efa",
     "EEM": "mkt_eem",
+    # AQ-3 PART 2 (11 Oct 2026; the Quarterly's real-estate and international
+    # chapters): VNQ beside XLRE for REITs against SPY; VEA beside EFA for
+    # developed ex-US; HEFA, EFA currency-hedged, for the hedged-vs-unhedged pair
+    # (calc.hefa_efa, altdata/market_features.py).
+    "VNQ": "mkt_vnq",
+    "VEA": "mkt_vea",
+    "HEFA": "mkt_hefa",
     # SIGNAL-TRIAGE ORDER ST-2. Nine additions, each named for the entry that
     # asked for it; GLD and EEM were already here and are not duplicated.
     #   Growth vs value (SR-1): the S&P 500 and Russell 1000 style pairs.

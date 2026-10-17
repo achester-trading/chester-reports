@@ -780,6 +780,7 @@ def compute_rows(db: observations.ObservationStore,
     rows += macro_rows(db, as_of=as_of, first_day=first_day)
     rows += rates_rows(db, as_of=as_of, first_day=first_day)
     rows += aq3_rows(db, as_of=as_of, first_day=first_day)
+    rows += aq3b_rows(db, as_of=as_of, first_day=first_day)
     return rows
 
 
@@ -862,6 +863,133 @@ def aq3_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
         if cny[day][0]:
             emit("calc.cnh_cny_bp", day, cfets.gap_bp(cnh[day][0], cny[day][0]),
                  [(cny[day][1], cny[day][2]), (cnh[day][1], cnh[day][2])])
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# AQ-3 PART 2 (11 Oct 2026): RELATIVE PRICES, SPREADS AND THE HEDGED YIELDS.
+# Computed from stored closes, yields and policy rates; availability is the
+# latest input's.
+# ---------------------------------------------------------------------------
+RATIO_PAIRS = {
+    # key: (numerator, denominator) -- a price ratio, moved in percent of itself
+    "calc.xlre_spy": ("yfinance.mkt_xlre", "yfinance.mkt_spy"),
+    "calc.vnq_spy": ("yfinance.mkt_vnq", "yfinance.mkt_spy"),
+    "calc.efa_spy": ("yfinance.mkt_efa", "yfinance.mkt_spy"),
+    "calc.vea_spy": ("yfinance.mkt_vea", "yfinance.mkt_spy"),
+    "calc.hefa_efa": ("yfinance.mkt_hefa", "yfinance.mkt_efa"),
+}
+UST_10Y = "fred.yield_10y"
+MORTGAGE_30Y = "fred.mortgage_30y"
+JGB_10Y = "mof.jgb_10y"
+BUND_10Y = "bbk.bund_10y"
+US_POLICY = "fred.effr_daily"
+EUR_POLICY = "fred.ecb_dfr"
+JPY_POLICY = "fred.jp_call_rate"          # monthly: carried to the days it covers
+EURO_10Y = {"de": "ecb.irs_10y_de", "fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it"}
+# A monthly or weekly leg is carried forward to a daily one for at most this many
+# days; beyond it the day is skipped rather than joined to a stale print.
+CARRY_DAYS = 70
+
+AQ3B_FEATURES = {
+    **{k: f"{a.split('.')[-1][4:].upper()} / {b.split('.')[-1][4:].upper()}, "
+          f"the price ratio of the two closes" for k, (a, b) in RATIO_PAIRS.items()},
+    "calc.mortgage_spread_10y_bp":
+        "The 30-year mortgage rate (Freddie Mac PMMS, weekly) less the 10-year "
+        "Treasury on the survey date, basis points",
+    "calc.us_jgb_10y_bp": "The 10-year Treasury less the 10-year JGB (MoF), basis points",
+    "calc.oat_bund_bp": "The 10-year OAT less the 10-year Bund (ECB IRS, monthly), bp",
+    "calc.btp_bund_bp": "The 10-year BTP less the 10-year Bund (ECB IRS, monthly), bp",
+    "calc.bund_hedged_yield":
+        "APPROXIMATION. The 10-year Bund hedged into dollars for a US investor: "
+        "the Bund yield less the hedging cost, taken as the policy-rate "
+        "differential (EFFR less the ECB deposit rate) -- covered interest parity "
+        "on policy rates, not on the 3-month FX forward points or the basis",
+    "calc.bund_hedged_spread_bp":
+        "APPROXIMATION. calc.bund_hedged_yield less the 10-year Treasury, bp",
+    "calc.jgb_hedged_yield":
+        "APPROXIMATION. The 10-year JGB hedged into dollars: the JGB yield less "
+        "(EFFR less Japan's call rate, monthly, carried forward)",
+    "calc.jgb_hedged_spread_bp":
+        "APPROXIMATION. calc.jgb_hedged_yield less the 10-year Treasury, bp",
+}
+
+
+def hedged_yield(foreign_10y: float, us_policy: float, foreign_policy: float) -> float:
+    """A foreign 10-year yield hedged into dollars, percent: the yield less the
+    annualised hedging cost, approximated by the policy-rate differential (a
+    3-month forward's carry under covered interest parity, basis ignored)."""
+    return foreign_10y - (us_policy - foreign_policy)
+
+
+def spread_bp(a: float, b: float) -> float:
+    """a less b, both in percent, in basis points."""
+    return 100.0 * (a - b)
+
+
+def _carried(series: dict, day: str) -> Optional[tuple]:
+    """The latest point of a slower series on or before `day`, within CARRY_DAYS."""
+    best = None
+    for d in series:
+        if d <= day and (best is None or d > best):
+            best = d
+    if best is None or (dt.date.fromisoformat(day)
+                        - dt.date.fromisoformat(best)).days > CARRY_DAYS:
+        return None
+    return series[best]
+
+
+def aq3b_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
+              first_day: Optional[str] = None) -> list[dict]:
+    rows: list[dict] = []
+
+    def emit(key: str, day: str, value: Optional[float], parts: list) -> None:
+        if first_day and day < first_day:
+            return
+        if value is None or not math.isfinite(value):
+            return
+        avail, kind = _availability([(p[1], p[2]) for p in parts])
+        rows.append({"registry_key": key, "instrument": None, "observed_at": day,
+                     "available_at": avail, "value": round(value, 6),
+                     "source": "calc", "availability_kind": kind})
+
+    for key, (a_key, b_key) in RATIO_PAIRS.items():
+        a, b = _load(db, a_key, as_of), _load(db, b_key, as_of)
+        for day in sorted(set(a) & set(b)):
+            if b[day][0]:
+                emit(key, day, a[day][0] / b[day][0], [a[day], b[day]])
+
+    ust = _load(db, UST_10Y, as_of)
+    mort = _load(db, MORTGAGE_30Y, as_of)
+    for day in sorted(set(mort) & set(ust)):
+        emit("calc.mortgage_spread_10y_bp", day,
+             spread_bp(mort[day][0], ust[day][0]), [mort[day], ust[day]])
+    jgb = _load(db, JGB_10Y, as_of)
+    for day in sorted(set(ust) & set(jgb)):
+        emit("calc.us_jgb_10y_bp", day, spread_bp(ust[day][0], jgb[day][0]),
+             [ust[day], jgb[day]])
+
+    euro = {c: _load(db, k, as_of) for c, k in EURO_10Y.items()}
+    for c, key in (("fr", "calc.oat_bund_bp"), ("it", "calc.btp_bund_bp")):
+        for day in sorted(set(euro[c]) & set(euro["de"])):
+            emit(key, day, spread_bp(euro[c][day][0], euro["de"][day][0]),
+                 [euro[c][day], euro["de"][day]])
+
+    effr = _load(db, US_POLICY, as_of)
+    for (leg, fpol_key, h_key, s_key) in (
+            (_load(db, BUND_10Y, as_of), EUR_POLICY,
+             "calc.bund_hedged_yield", "calc.bund_hedged_spread_bp"),
+            (jgb, JPY_POLICY, "calc.jgb_hedged_yield", "calc.jgb_hedged_spread_bp")):
+        fpol = _load(db, fpol_key, as_of)
+        for day in sorted(set(leg) & set(ust)):
+            us = effr.get(day) or _carried(effr, day)
+            fp = fpol.get(day) or _carried(fpol, day)
+            if us is None or fp is None:
+                continue
+            h = hedged_yield(leg[day][0], us[0], fp[0])
+            parts = [leg[day], us, fp]
+            emit(h_key, day, h, parts)
+            emit(s_key, day, spread_bp(h, ust[day][0]), parts + [ust[day]])
     return rows
 
 

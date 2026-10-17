@@ -1138,7 +1138,7 @@ sources:
         Monthly. rigcount.bakerhughes.com refuses scripted requests (Akamai 403, robots.txt included, 11 Oct 2026), so the weekly count has no free source.
 
   spdr_gld:
-    name: SPDR Gold Trust (World Gold Trust Services) -- the GLD historical archive
+    name: SPDR Gold Trust -- the GLD historical archive (one-time, the anchor) and State Street's daily NAV-history workbook
     tier: A1
     epistemic_role: primary_fact
     domain: [commodities]
@@ -1146,14 +1146,16 @@ sources:
     latency: the next business day
     timestamp_reliability: medium
     timestamp_notes: >-
-      Read from the operator's inbox (~/chester-data/inbox/etf/): available_at is the file's modification time (ingest_instant), an upper bound.
+      The archive is read from the operator's inbox (~/chester-data/inbox/etf/, swept from Drive chester-vendor-checks/etf/): available_at is the file's modification time (ingest_instant), an upper bound. The daily workbook (www.ssga.com navhist-us-en-gld.xlsx) is available at its Last-Modified (observed).
     license: issuer file; redistribution prohibited by its disclaimer -- stored for the operator's own read only
     allowed_reports: [monthly_macro, alt_asset]
     implemented_by: altdata/sources/spdr_gld.py
     status: live
     caveats:
       - >-
-        api.spdrgoldshares.com's robots.txt is Disallow: / (11 Oct 2026), so the writer fetches only while that changes; until then the operator places the archive in the inbox.
+        api.spdrgoldshares.com's robots.txt is Disallow: / (11 Oct 2026), so the writer fetches the archive only while that changes; the operator drops it once in Drive and the rclone sweep brings it to the inbox.
+      - >-
+        www.ssga.com's robots.txt has no rule matching the daily workbook's path (12 Oct 2026; nearest "Disallow: /fd"), read each run. The workbook carries shares, NAV and total net assets but NOT gold in ounces: ounces and tonnes after the archive's last date are an APPROXIMATION (shares x ounces per share, decayed at the expense ratio), re-anchored by each newer archive.
 
   ishares_trusts:
     name: iShares (BlackRock) -- IAU, SLV and IBIT product pages
@@ -1208,6 +1210,152 @@ sources:
     caveats:
       - >-
         Yahoo serves one DAILY bar for CNH=X whatever the period (PB-1, 5 Oct 2026); the hourly bars are served, 730 days back.
+
+  # --- AQ-3 part 2 (11 Oct 2026): the remaining structure series --------------
+  bundesbank:
+    name: Deutsche Bundesbank -- time-series API (SDMX), the daily term structure of Federal securities
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [DE]
+    latency: the next business morning, Frankfurt
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at is the next weekday 12:00 Frankfurt by rule (reconstructed), never after the write instant.
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/bundesbank.py
+    status: live
+    caveats:
+      - >-
+        The 10-year point is the Svensson-fitted zero-coupon yield, not the benchmark bond's quoted yield. CSV is served only to an Accept header naming it.
+
+  ecb:
+    name: European Central Bank data portal -- IRS, long-term interest rates for convergence purposes
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [DE, FR, IT]
+    latency: monthly, about six weeks after the month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified stamps the vintage (observed); the write instant without it. Either is an upper bound for the history it carries.
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/ecb_irs.py
+    status: live
+    caveats:
+      - >-
+        Monthly averages. A daily OAT or BTP is not published keyless (Banque de France's Webstat API needs a registered key).
+
+  nbs:
+    name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro, real_estate]
+    geography: [CN]
+    latency: mid-month, 09:30-10:00 Beijing
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      available_at is the release date (from the release URL) at its stated hour, Beijing (reconstructed).
+    license: public, no key
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/nbs.py
+    status: live
+    caveats:
+      - >-
+        Forward from the first run: the index lists about thirty releases across its two pages; the query database that holds history (data.stats.gov.cn) answers 403. The English 70-city edition prints no aggregate, so the counts and means are computed here.
+
+  # --- AQ-3 part 2: Thailand (isolated, namespace thailand) -------------------
+  bot:
+    name: Bank of Thailand -- MPC decisions table (keyless) and the policy-rate API (key)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [TH]
+    latency: 14:05 Bangkok on the meeting date
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each decision stamped 14:05 Bangkok on its date (the BoT's stated release time), reconstructed.
+    license: public; the API needs a free personal key (BOT_API_KEY, the operator's .env) and is optional
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/bot.py
+    status: live
+    caveats:
+      - >-
+        The table's link changes with each meeting and is found on the page. Without a key the API leg is skipped and logged as "no key".
+
+  tpso:
+    name: Trade Policy and Strategy Office (Thailand, Ministry of Commerce) -- CPI index service
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: the first week of the next month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      No Last-Modified; available_at the 10th of the next month 10:30 Bangkok by rule (reconstructed, an upper bound).
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/tpso.py
+    status: live
+    caveats:
+      - >-
+        A POST query (index.tpso.go.th/api/cpig/filter); years in the Buddhist Era. FRED carries Thai CPI only annually.
+
+  mots:
+    name: Ministry of Tourism and Sports (Thailand) -- international tourist arrivals workbook
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: about the first of the next month (preliminary)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The workbook's Last-Modified (observed), else the write instant.
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/mots.py
+    status: live
+    caveats:
+      - >-
+        robots.txt disallows /web-api/ and paths containing "api"; the writer reads only /news/category/ pages and /images/ files. History starts with the first release read (this year and the prior year's same months).
+
+  nesdc:
+    name: NESDC (Thailand) -- quarterly national accounts, CSV tables
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [TH]
+    latency: about seven weeks after the quarter
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The zip's Last-Modified (observed), an upper bound for the history it carries.
+    license: public, no key
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/nesdc.py
+    status: live
+    caveats:
+      - >-
+        The download link redirects through a cookie-setting hop; the file is a zip of CSVs read by content.
+
+  yahoo_set:
+    name: Yahoo Finance -- ^SET.BK (via yfinance), the SET index close
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [equities]
+    geography: [TH]
+    latency: the session's close
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      17:00 Bangkok on the session date (reconstructed).
+    license: none -- unofficial scrape, no SLA, no redistribution right
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/sources/thai_set.py
+    status: live
+    caveats:
+      - >-
+        One bar whatever the period (11 Oct 2026): forward-only. Yahoo's query hosts' robots.txt is Disallow: / for every agent, as for the whole yfinance basket -- named for the operator's ruling.
 
   # --- Signal-triage order ST-2, step 2 ----------------------------------------
   eia:
