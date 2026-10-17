@@ -490,3 +490,9 @@ Group B (PPI lenses 12-14, GDP lenses 15-20) is the next paste on this line.
 ## CI
 
 The run on this branch's push is read once and recorded here.
+
+| Run | Commit | Result |
+|---|---|---|
+| 38993064152 (Gates, push) | 0fcad0e | green: 86 of 86 jobs succeeded, 7m37s, read 17 Oct 2026 |
+
+`validate_monthly_stack`, left to CI because it renders, passed there.
