@@ -181,3 +181,120 @@ AUD-3a's items that wait on aud-1:
 ## CI
 
 The table above records each branch's CI, read once each. This notes commit is the last on aud-3b; its run is below.
+
+## Monday's fold (session A, 17 Oct 2026)
+
+The Friday merges are done, and main (`1148c66`) now carries the 25 Friday branches, the EL pair among them. This pass makes Monday's chain clean against that main and applies the three fixes the Friday stitching deferred. Branch-only: nothing merged to main, deployed or run on the box. Session B's `6e-rest` and `st-r4-tranche-1b`, and my own `st-r5-*` branches (which fold on Tuesday), were not touched.
+
+### Monday's merge order
+
+1. `post-friday-fixes`
+2. `aud-1-data-fixes`
+3. `aud-2-ops-security`
+4. `aud-3a-catalogue`
+5. `aud-3c-quality`
+6. `aud-3d-fred-history`
+7. `alpha-lab-2`
+8. `t3-6-monthly-polish`
+9. `vp-1-volume-profile`
+10. `aud-3b-security-master`
+11. `docs-batch-7`
+
+**Branch *k* carries 1 to *k*−1.** Merged in this order, each is a fast merge of what is already reviewed. Merging out of order would bring the earlier branches in with it.
+
+**`docs-batch-7` (`7b4f821`) was not folded**, because the paste does not name it for the fold. It adds one file, the Batch 7 change order. A trial merge onto aud-3b's new tip (`git merge-tree`, nothing committed) is clean.
+
+### post-friday-fixes
+
+- **Tip `129caae`**, cut from `origin/main` at `1148c66`. Notes: `docs/briefs/post-friday-fixes-notes.md`.
+- **Fix 1. The filler rule exempts code-written tagged lines.**
+  - `stack_prose.filler_faults(..., code_written=True)` passes a line that ends on "(descriptive; unvalidated, n=N)".
+  - A model's paragraph is never exempt.
+  - The rule's gate, `validate_no_filler`, gains group F, built on SR-43/49's anchors line itself: 26/0.
+- **Fix 2. AQ-8a's official gold leg reads the IMF IFS writer's series.**
+  - The leg is now `imf.ifs.gold_net_purchases_oz.total`, a flow summed over three months, read with its country count. It replaces SAFE's China holdings.
+  - `imf.ifs_official_gold_oz` is superseded by it.
+  - The fixture follows in `validate_attribution`: 85/0.
+- **Fix 3. The Ahead classes are unchanged**, as ruled: `boj_decision` tier 2; `treasury_buyback`, `jgb_auction` and `weekly_release` tier 3.
+- **CI:** see the CI section below.
+
+### The new tips
+
+The count column is code gates / Python, three shell gates throughout, recounted from each merged Makefile; the data gates stay six.
+
+| # | Branch | Was | New tip | Merged in | Count |
+|---|---|---|---|---|---|
+| 1 | aud-1-data-fixes | `63ec6a8` | `ff6af51` | post-friday-fixes `129caae` | 77 / 74 |
+| 2 | aud-2-ops-security | `4a40842` | `1072a85` | aud-1 `ff6af51` | 78 / 75 |
+| 3 | aud-3a-catalogue | `2522987` | `9f027ee` | aud-2 `1072a85` | 79 / 76 |
+| 4 | aud-3c-quality | `dafb54d` | `531d158` | aud-3a `9f027ee` (merge `c9b43a2`), then the count self-test fix | 80 / 77 |
+| 5 | aud-3d-fred-history | `358122e` | `8c71795` | aud-3c `531d158` | 81 / 78 |
+| 6 | alpha-lab-2 | `1df8b05` | `b0d391f` | aud-3d `8c71795` | 84 / 81 |
+| 7 | t3-6-monthly-polish | `9ce3da2` | `a3cba85` | alpha-lab-2 `b0d391f` | 84 / 81 |
+| 8 | vp-1-volume-profile | `c601a2a` | `427a93b` | t3-6 `a3cba85` | 85 / 82 |
+| 9 | aud-3b-security-master | `2fb1048` | this notes commit | vp-1 `427a93b` (merge `c31ff64`), then the listing fix `c5175a1` | 86 / 83 |
+
+Each branch was pushed before the next merge began.
+
+### CLAUDE.md's count line, as resolved
+
+On aud-3b, the tip of the chain:
+
+> **`make validate` runs every gate** — eighty-six code gates (eighty-three Python, three shell) and six data gates, no network, no box.
+
+This is the line the Friday EL trial predicted (86/83, six data gates).
+
+- **The count gate confirms it.** `validate_audit_3a` group F: **84/0** on aud-3c's tip and again on aud-3b's.
+- **Main's CLAUDE.md said "five data gates"** (EL's line) while its Makefile holds six: `validate_imf_china` came with imf-ifs-gold. Every resolution says six, the Makefile's number.
+- **The EL pair added two Python gates, `validate_packets` and `validate_rollup`**, not one Python and one other as the paste put it. Main counts 76/73 against aud-1's 75/72 because aud-1 carries `validate_audit_1`, which main lacks. Each line above is the merged Makefile's own count.
+
+### Other conflicts
+
+- **None textual.** At every merge the one conflict was the count line, except t3-6, which had none (T3.6 adds no gate).
+- **One meeting** (no textual conflict, but a gate failed until fixed), on **aud-3c**:
+  - AUD-3a's count self-test planted a wrong count by matching a hyphenated number word.
+  - At eighty code gates, the first one-word count, it planted nothing, so `validate_audit_3a` failed one check: "a count in words is read and caught too".
+  - The plant now matches either form, anchored on the count line, and checks the plant took (`531d158`). It is on aud-3c, the first tip where the count is one word, and flows down the chain from there.
+  - This is a mechanical change to a gate text on AUD-3a's own gate, the same kind as the week-19 stitching's.
+
+### aud-3b's fix: a missed morning's listing start
+
+Ruled 15 Oct (`docs/briefs/aud-3b-notes.md`, needs-you 9) and built in `c5175a1`:
+
+- **When a session falls between two snapshots** (the 06:45 job missed a morning), a listing first seen on the later one starts on **the day after the previous snapshot**, with **`from_known: false`**.
+- **Sessions are counted by the session calendar** (`derived.sessions_between`), so a weekend or a holiday is no miss.
+- **The master's known date still wins** where it falls in the gap.
+- **Ticker changes and reuse keep the snapshot date**, because the ruling names new listings. See needs-you 2.
+- **Code:** `altdata/ticker_history.py`, `_missed_morning` and the new-listing branch of `build`.
+- **Fixture:** `tools/validate_security_master.py` group L, **90/0**:
+  - consecutive sessions keep the snapshot date;
+  - a **one-day gap** (Mon 19, Tuesday missed, Wed 21) starts Tue 20, from_known false;
+  - a **three-day gap** (Mon 19, Tue to Thu missed, Fri 23) starts Tue 20, from_known false;
+  - a weekend keeps the snapshot date;
+  - the bound counts from the snapshot just before the listing appeared;
+  - the master's date inside the gap wins;
+  - a ticker change across a gap keeps the snapshot date.
+- The aud-3b notes' needs-you 9 now records the ruling and the build.
+
+### Gates run locally
+
+One at a time, only those this pass wrote or changed:
+- validate_no_filler **26/0**;
+- validate_attribution **85/0**;
+- validate_audit_3a **84/0**: the count gate, as the paste asks, run on aud-3c and on aud-3b;
+- validate_security_master **90/0**. The week-19 local failure on `jsonschema` did not recur.
+
+Every other gate is left to CI.
+
+### Needs you
+
+1. **The EL pair's gate kind.** The paste said one of EL's two gates is Python. Both are Python in the Makefile, and the count is written from the Makefile. If one was meant to be a data gate, it would need `GATE_KIND = "data"` and a move to `DATA_GATES`. That is EL's branch, already on main.
+2. **A ticker change after a missed morning** still takes the snapshot date, which states the new ticker's start too late by the missed days. The ruling named new listings only. Say if ticker changes and reuse should take the same lower bound.
+3. **docs-batch-7 is last on Monday** and merges clean onto this tip. Nothing to do unless it moves.
+
+### CI
+
+| Branch | Commit | Run | Result |
+|---|---|---|---|
+| post-friday-fixes | `129caae` | 39029276141 | queued at the first read; see below |
+| aud-3b-security-master | this notes commit | recorded at the next read | |
