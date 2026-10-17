@@ -264,6 +264,9 @@ def group_b() -> None:
     from altdata import macro_6e
     from altdata.sources import clevfed_rules, rent_indices
     one_by_one = set(macro_6e.KEYS) | set(rent_indices.KEYS) | set(clevfed_rules.KEYS)
+    # 6e-digital (17 Oct 2026): Tranche A's derived keys the addendum names, declared
+    # not yet sourced until their writers land.
+    one_by_one |= {"calc.funding_agg", "calc.oi_usd", "calc.froth_z"}
     new = [k for k in resolved if k not in base and k not in one_by_one]
     blocks = {derived.registry_entry(k).get("bulk_block") for k in new}
     check(blocks <= NEW_KEY_BLOCKS,

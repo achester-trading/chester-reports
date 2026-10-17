@@ -455,3 +455,19 @@ Weekly of 1 Nov is the first edition, attached.
 ## CI
 
 The runs on this branch's push and on `docs-batch-8` are read once and recorded here.
+
+| Run | Branch, commit | Result |
+|---|---|---|
+| 39031045828 (Gates, push) | `docs-batch-8`, `1388967` | green: 84 of 84 jobs, read 17 Oct 2026 |
+| 39032637251 (Gates, push) | `6e-digital`, `aff064f` | **failed: 85 of 87 jobs passed.** `tools/validate_config_refs.py` failed. `config/digital_addendum.yaml` names `calc.froth_z`, `calc.funding_agg` and `calc.oi_usd`, three Tranche A keys under a registered namespace that were not registered yet. The second failed job, `gates-passed`, only rolls up that one failure. |
+
+**The fix, on this branch.** The three keys are registered as `status_extra: not_yet_sourced` (declared, never written), the registry's form for a planned series. `tools/validate_audit_3a.py` counts them among the keys registered one by one. Gates run locally after the fix:
+
+| Gate | Result |
+|---|---|
+| `validate_config_refs` | 55/55 |
+| `check_registry` | OK |
+| `validate_lenses` | 49/49 |
+| `validate_audit_3a` | 83/83 |
+
+`crypto-tranche-a-1` (Tranche A part 1) then registers `calc.funding_agg` and `calc.oi_usd` for real. The CI run on this fix is recorded on that branch's notes.
