@@ -9229,6 +9229,162 @@ metrics:
     trigger_eligible: false
     description: >-
       MU: cost of revenue for the quarter, dollars (yfinance quarterly statements).
+  yfinance.fund_nvda_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      NVDA: operating cash flow for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_nvda_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      NVDA: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_nvda_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      NVDA: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_nvda_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      NVDA: cost of revenue for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_avgo_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AVGO: operating cash flow for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_avgo_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AVGO: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_avgo_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AVGO: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_avgo_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AVGO: cost of revenue for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_amat_operating_cash_flow:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMAT: operating cash flow for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_amat_capex:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMAT: capital expenditure for the quarter, AS PUBLISHED (negative = outflow), dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_amat_net_debt:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMAT: Total Debt minus Cash And Cash Equivalents, same balance sheet, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
+  yfinance.fund_amat_cogs:
+    source: yfinance_fundamentals
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      AMAT: cost of revenue for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
 
   # -------------------------------------------------------------------------
   # OPERATOR-ENTERED, ST-2 (tools/manual_input.py). Labels are CODED: the CLI

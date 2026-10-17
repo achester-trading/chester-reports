@@ -483,6 +483,15 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
                      "table_note": "Flags are computed by the Weekly's rule "
                                    "(config/reporting_stack.yaml dealer_flags), "
                                    "never by the model."})
+    # SR-37 and SR-38 (batch 4; placement: Mechanics, Monthly): the AI
+    # FCF-transfer panel and the forward-EPS revision line, code-written and
+    # tagged, with no paragraph of their own (report-only).
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    fcf, fcf_data = ws.ai_fcf_block(st, now)
+    rv, rv_data = ws.ai_revisions_block(st, now)
+    subs += [x for x in (fcf, rv) if x]
+    extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
+             **({"ai_revisions": rv_data} if rv_data else {})}
     return {"items": items, "print_items": False,
             "table": r["table"] if r["sessions"] else None,
             "subsections": subs,
@@ -496,7 +505,7 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
                      "sessions": [{"session": x["session"],
                                    "gamma_regime": x["gamma_regime"],
                                    "flags": x["flags"], "iv_check": x["iv_check"]}
-                                  for x in r["sessions"]]},
+                                  for x in r["sessions"]], **extra},
             "_retro": r}
 
 
@@ -878,6 +887,13 @@ def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> di
                                   if rest else None)})
         else:
             out.append(ss)
+    # SR-38 (batch 4; placement: What's priced, Monthly): the 12-month return
+    # split into earnings and multiple, and EY minus the bill -- trailing,
+    # code-written and tagged, with no paragraph of their own (report-only).
+    att, att_data = ws.attribution_block(st, now)
+    if att:
+        out.append(att)
+        b.setdefault("data", {})["return_attribution"] = att_data
     b["subsections"] = out
     b["claim_only"] = True
     return b

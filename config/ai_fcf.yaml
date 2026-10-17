@@ -1,0 +1,59 @@
+# ai_fcf.yaml -- SR-37 and SR-38 (signal-triage batch 4, ST4-01 and ST4-02):
+# the AI FCF-transfer panel and the return-attribution lens. Read by
+# altdata/ai_fcf.py and altdata/return_attribution.py.
+#
+# RIGHTS (batch 4): SR-37 a modifier on the Factor I score, report-only; SR-38
+# report-only, the revision line a narrow-flag candidate after a quarter of
+# history. Nothing here is a trigger or a book rule. Every printed line carries
+# the tag below.
+version: ai-fcf-v1
+tag: "(descriptive; unvalidated, n=0)"
+
+# ---------------------------------------------------------------------------
+# SR-37 -- THE FCF-TRANSFER PANEL. Trailing twelve months from the quarterly
+# cash-flow statements (altdata/sources/fundamentals.py; batch-4 decision 2 as
+# recommended: trailing from filings now, LABELLED trailing; forward consensus
+# when a free source exists). FCF = operating cash flow + capital expenditure
+# (capex is stored as published, negative for an outflow).
+# ---------------------------------------------------------------------------
+fcf:
+  hyperscalers: [AMZN, GOOGL, META, MSFT, ORCL]
+  semis: [NVDA, MU, AVGO, AMAT]
+  # Four quarters, each within this many days of the next: a gap means a
+  # missing quarter, and a TTM across it would be three quarters wearing four.
+  max_quarter_gap_days: 100
+  # The defined threshold state (the entry): hyperscaler aggregate FCF below 0.
+  threshold_usd: 0
+  # The forward series the source chart plots (BofA, 12-month-forward FCF) has
+  # no free feed; it is named, not substituted.
+  forward_source: "BofA Investment Research's 12-month-forward FCF (via a16z Growth): no free feed"
+
+# ---------------------------------------------------------------------------
+# SR-38 -- THE RETURN-ATTRIBUTION LENS, THE REVISION LINE, EY MINUS THE BILL.
+# ---------------------------------------------------------------------------
+attribution:
+  # The S&P 500's 12-month price return split, in logs, into earnings growth
+  # and multiple change: ln(P1/P0) = ln(E1/E0) + ln(M1/M0). TRAILING earnings
+  # (Shiller's monthly S&P Composite file), labelled -- the entry's forward
+  # split needs S&P DJI's forward operating EPS, below.
+  price_key: shiller.sp_price
+  earnings_key: shiller.sp_earnings
+  months: 12
+  # EY minus the 3-month bill: the trailing earnings yield at the S&P 500's last
+  # close against its latest trailing earnings.
+  index_key: yfinance.mkt_gspc
+  bill_key: fred.tbill_3m
+  # Sources the entry names that the store does not hold, each with its reason.
+  absent:
+    forward_eps: "S&P Dow Jones Indices' EPS-estimates spreadsheet (forward operating EPS): the site answers any non-browser client with a 403, and a writer never passes for a browser"
+    ey_minus_baa: "EY minus Baa: no Baa yield is stored (the GTM valuation quad is not built here)"
+    ai_share: "the AI complex's share of the index return: index weights are not stored, and eight of the nine names' closes are not in the price basket"
+
+revision:
+  # The index's forward-EPS revision line needs the S&P DJI forward estimate
+  # (absent, above). The AI names' own consensus is stored nightly
+  # (yf.forward_eps, altdata/loggers/consensus.py) and prints in its place,
+  # labelled as the names' and not the index's.
+  key: yf.forward_eps
+  names: [AMZN, GOOGL, META, MSFT, ORCL, NVDA, MU, AVGO, AMAT]
+  windows_days: {"4-week": 28, "13-week": 91}

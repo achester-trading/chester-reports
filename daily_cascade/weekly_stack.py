@@ -205,13 +205,63 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                      "paragraph_wanted": False})
     vol = wsec.volatility(st, cutoff, wis, week_ago(cutoff))
     subs.append({**vol, "paragraph_wanted": True})
+    # SR-38 (batch 4; placement: the revision line weekly in Mechanics),
+    # report-only and tagged.
+    rv, rv_data = ai_revisions_block(st, cutoff)
+    if rv:
+        subs.append(rv)
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],
             "table_note": dw["table_note"] if dw["table"]["rows"] else None,
             "data": {"dealer_week": dw["data"]["sessions"], "dials_now": dials,
                      "volatility": vol.get("data"),
-                     "dial_changes": wis.get("dial_changes") or []}}
+                     "dial_changes": wis.get("dial_changes") or [],
+                     **({"ai_revisions": rv_data} if rv_data else {})}}
+
+
+AI_REVISIONS_TITLE = "Forward-EPS revisions: the AI names"
+AI_FCF_TITLE = "The AI FCF transfer: hyperscalers and semiconductors (trailing)"
+ATTRIBUTION_TITLE = "The S&P 500's return: earnings against the multiple (trailing)"
+
+
+def ai_revisions_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-38's revision line, or (None, None) on a fault: report-only, never
+    costing the section."""
+    try:
+        from altdata import return_attribution as ra            # noqa: PLC0415
+        v = ra.revisions(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the forward-EPS revision line is unavailable", exc_info=True)
+        return None, None
+    return ({"title": AI_REVISIONS_TITLE, "lines": [ra.revision_line(v)],
+             "table": ra.revision_table(v), "paragraph_wanted": False},
+            {"median": v["median"], "covered": v["covered"], "tag": v["tag"]})
+
+
+def ai_fcf_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-37's panel (the Monthly's Mechanics), or (None, None) on a fault."""
+    try:
+        from altdata import ai_fcf                              # noqa: PLC0415
+        r = ai_fcf.read(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the AI FCF panel is unavailable", exc_info=True)
+        return None, None
+    return ({"title": AI_FCF_TITLE, "lines": ai_fcf.lines(r), "table": ai_fcf.table(r),
+             "paragraph_wanted": False}, ai_fcf.data(r))
+
+
+def attribution_block(st, cutoff: str) -> tuple[Optional[dict], Optional[dict]]:
+    """SR-38's attribution and EY minus the bill (the Monthly's What's priced),
+    or (None, None) on a fault."""
+    try:
+        from altdata import return_attribution as ra            # noqa: PLC0415
+        a = ra.attribution(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the return attribution is unavailable", exc_info=True)
+        return None, None
+    return ({"title": ATTRIBUTION_TITLE, "lines": ra.attribution_lines(a),
+             "paragraph_wanted": False}, ra.data(a))
 
 
 def stored_objects(st, now: str) -> list[tuple[str, dict]]:
