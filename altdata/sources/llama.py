@@ -6,6 +6,7 @@ pulled forward by the crypto basket brief of 12 Oct 2026, decision 7).
     python -m altdata.sources.llama pull --only basket   # the basket's protocols
     python -m altdata.sources.llama pull --only coins    # caps and supply
     python -m altdata.sources.llama pull --only macro    # stablecoins, chains, DEX, OI
+    python -m altdata.sources.llama pull --only watch    # the watch names' fees
     python -m altdata.sources.llama pull --dry-run       # fetch and parse, write nothing
     python -m altdata.sources.llama resolve              # the basket's slugs, from /protocols
 
@@ -29,9 +30,19 @@ WHAT IS PULLED
   DEX volume            llama.dex_volume (/overview/dexs, daily total)
   perps                 llama.perps_oi (/overview/open-interest, daily total)
 
+  per watch name        llama.fees_<sym>, llama.revenue_<sym> for the order's watch
+                        names that are not basket names (BTC, ETH, SOL, ZEC, HYPE,
+                        LINK; config/crypto_sources.yaml). The slug is RESOLVED AT
+                        RUN TIME, never written down: a chain from /overview/fees
+                        (protocolType "chain", by name), a protocol as the parent
+                        its /protocols rows share (by symbol). Tranche A part 1,
+                        crypto-tranche-a-1, 17 Oct 2026.
+  per watch coin        llama.mcap_btc, llama.mcap_eth (and supply), the S-3
+                        denominator, forward-only like the basket's caps
+
 NOT SERVED FREE, and so not pulled: `/raises` ("Upgrade to the paid API plan",
-probed 13 Oct 2026) and `/emissions` (Pro, as the order recorded). DS-21's unlock
-schedules stay by hand.
+probed 13 Oct 2026, and again 17 Oct 2026: HTTP 402) and `/emissions` (Pro, as the
+order recorded). DS-21's unlock schedules stay by hand.
 
 POINT-IN-TIME (ST-13's conventions, as altdata/sources/yfinance_source.py writes
 them): observed_at is the UTC day the figure describes; available_at is the pull
@@ -102,11 +113,26 @@ def coin_keys(path: Optional[Path] = None) -> list[str]:
     return out
 
 
+def watch(path: Optional[Path] = None) -> dict:
+    """config/crypto_sources.yaml: the watch names and coins (CD-1, Tranche A)."""
+    import yaml  # noqa: PLC0415
+    p = path or (REPO / "config" / "crypto_sources.yaml")
+    cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    return {"names": cfg.get("watch_names") or [], "coins": cfg.get("watch_coins") or []}
+
+
+def watch_keys(path: Optional[Path] = None) -> list[str]:
+    return [f"{kind}_{n['sym'].lower()}" for n in watch(path)["names"]
+            for kind in n.get("series") or []]
+
+
 MACRO_KEYS = ["stable_total", "stable_by_chain", "chain_tvl", "dex_volume",
               "perps_oi"]
 # The registry's bulk blocks read these (member names; key_prefix `llama.`).
 PROTOCOL_KEYS = protocol_keys()
-COIN_KEYS = coin_keys()
+WATCH_KEYS = watch_keys()
+COIN_KEYS = coin_keys() + [f"{k}_{c['sym'].lower()}" for c in watch()["coins"]
+                           for k in ("mcap", "supply")]
 MCAP_KEYS = [k for k in COIN_KEYS if k.startswith("mcap_")]
 SUPPLY_KEYS = [k for k in COIN_KEYS if k.startswith("supply_")]
 
@@ -201,6 +227,34 @@ def parse_coins(mcaps: dict, prices: dict) -> dict[str, dict]:
 # ---------------------------------------------------------------------------
 # Fetch
 # ---------------------------------------------------------------------------
+def resolve_watch(names: list[dict], protocols: list, fees_overview: dict
+                  ) -> dict[str, tuple[Optional[str], str]]:
+    """sym -> (slug, how), or (None, why). A chain is the /overview/fees row of
+    protocolType "chain" named `match`; a protocol is the one parent shared by the
+    /protocols rows whose symbol is `match`. Two parents, or none: no slug."""
+    out: dict[str, tuple[Optional[str], str]] = {}
+    rows = (fees_overview or {}).get("protocols") or []
+    for n in names:
+        sym, m = n["sym"], str(n.get("match") or n["sym"])
+        if n.get("kind") == "chain":
+            hit = sorted({str(r.get("slug")) for r in rows
+                          if r.get("protocolType") == "chain" and r.get("slug")
+                          and str(r.get("name") or "").lower() == m.lower()})
+            out[sym] = ((hit[0], f"chain row '{m}'") if len(hit) == 1 else
+                        (None, f"{len(hit)} chain slugs named {m} in /overview/fees"
+                               + (f": {', '.join(hit)}" if hit else "")))
+            continue
+        parents = sorted({str(p.get("parentProtocol"))
+                          for p in protocols or []
+                          if str(p.get("symbol") or "").upper() == m.upper()
+                          and str(p.get("parentProtocol") or "").startswith("parent#")})
+        out[sym] = ((parents[0].split("#", 1)[1], f"parent of the {m} rows")
+                    if len(parents) == 1 else
+                    (None, f"{len(parents)} parents among /protocols rows of symbol {m}"
+                           + (f": {', '.join(parents)}" if parents else "")))
+    return out
+
+
 def _get(url: str, params: Optional[dict] = None) -> Any:
     return http_get_json(url, params=params, timeout=120)
 
@@ -278,10 +332,32 @@ def collect(only: Optional[str] = None, fetch: Callable[..., Any] = _get,
                 guard(f"tvl_{s}", lambda slug=slug, s=s: take(
                     f"tvl_{s}", parse_protocol_tvl(fetch(f"{API}/protocol/{slug}"),
                                                    today)))
+    if only in (None, "watch"):
+        def watch_names() -> None:
+            w = watch()["names"]
+            slugs = resolve_watch(w, fetch(f"{API}/protocols"),
+                                  fetch(f"{API}/overview/fees",
+                                        {"excludeTotalDataChart": "true",
+                                         "excludeTotalDataChartBreakdown": "true",
+                                         "dataType": "dailyFees"}))
+            summary["watch_slugs"] = {k: v for k, v in slugs.items()}
+            for n in w:
+                s = n["sym"].lower()
+                slug, how = slugs.get(n["sym"], (None, "not resolved"))
+                if not slug:
+                    summary["failed"].append((f"watch_{s}", how))
+                    continue
+                for kind in n.get("series") or []:
+                    dtype = FEE_TYPES[kind]
+                    guard(f"{kind}_{s}", lambda kind=kind, dtype=dtype, slug=slug, s=s: take(
+                        f"{kind}_{s}", parse_chart(fetch(f"{API}/summary/fees/{slug}",
+                                                         {"dataType": dtype}), today)))
+        guard("watch", watch_names)
     if only in (None, "coins"):
         def coins() -> None:
             ids = {n["llama_coin"]: sym.lower() for sym, n in names.items()
                    if n.get("llama_coin")}
+            ids.update({c["coin"]: c["sym"].lower() for c in watch()["coins"]})
             caps = post(f"{COINS}/mcaps", {"coins": sorted(ids)})
             prices = fetch(f"{COINS}/prices/current/{','.join(sorted(ids))}")
             parsed = parse_coins(caps, prices)
@@ -342,6 +418,10 @@ def pull(only: Optional[str] = None, dry_run: bool = False, store: Any = None,
     if only in (None, "macro"):
         from .. import crypto_basket                         # noqa: PLC0415
         summary["derived"] = crypto_basket.write_stable_impulse(store=store)
+        # S-1's share by chain (and S-3 from what the venues have stored), the
+        # derived writer of Tranche A part 1.
+        from . import crypto_derived                           # noqa: PLC0415
+        summary["derived_tranche_a"] = crypto_derived.pull(db=store).get("written")
     return summary
 
 
@@ -366,7 +446,8 @@ def _main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="DefiLlama, the llama.* family.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("pull")
-    p.add_argument("--only", choices=("basket", "coins", "macro"), default=None)
+    p.add_argument("--only", choices=("basket", "coins", "macro", "watch"),
+                   default=None)
     p.add_argument("--dry-run", action="store_true")
     sub.add_parser("resolve")
     a = ap.parse_args(argv)

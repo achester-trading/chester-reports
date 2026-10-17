@@ -1,0 +1,23 @@
+{
+ "retCode": 0,
+ "retMsg": "OK",
+ "result": {
+  "category": "linear",
+  "list": [
+   {
+    "symbol": "BTCUSDT",
+    "lastPrice": "81500.10",
+    "markPrice": "81501.00",
+    "indexPrice": "81495.20",
+    "openInterest": "55000.123",
+    "openInterestValue": "4482560000.12",
+    "fundingRate": "0.0001",
+    "nextFundingTime": "1792252800000",
+    "volume24h": "60000.5",
+    "turnover24h": "4900000000"
+   }
+  ]
+ },
+ "retExtInfo": {},
+ "time": 1792240000000
+}

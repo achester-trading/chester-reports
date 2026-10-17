@@ -1600,6 +1600,92 @@ sources:
     allowed_reports: [monthly_macro, daily_cascade]
     implemented_by: altdata/sources/rent_indices.py
     status: live
+  hyperliquid:
+    name: Hyperliquid info API -- perp funding and open interest
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: funding hourly; open interest live (read once a day)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Funding prints carry their own epoch-millisecond time and are summed by UTC
+      day, complete days only; open interest is a snapshot filed under the pull's
+      UTC day. available_at is the pull instant. No robots.txt (404: no rules).
+      Weight limit 1,200 a minute per IP (documentation, read 17 Oct 2026); the
+      writer spends at most 600.
+    license: public info endpoint, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/hl.py
+    status: live
+  perp_venues:
+    name: OKX and Deribit public market APIs -- perp funding, open interest, long/short
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: funding eight-hourly (OKX) or hourly (Deribit); open interest live
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Funding by UTC day from each print's own time, complete days only; OKX's
+      daily OI and long/short buckets are stamped 16:00 UTC and filed under that
+      UTC date; Deribit's OI is a snapshot. available_at is the pull instant.
+      www.okx.com's robots.txt disallows nothing under /api/v5/; www.deribit.com
+      publishes none. Bybit's reader exists and is switched off: api.bybit.com
+      answers the US with 403 (17 Oct 2026).
+    license: public market-data endpoints, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fut.py
+    status: live
+  mempool_space:
+    name: mempool.space open API -- Bitcoin hashrate, difficulty, fees, mempool, pools
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_network]
+    geography: [global]
+    latency: hashrate daily; fees, mempool and pools live (read once a day)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Hashrate by UTC day (complete days), difficulty by adjustment; the rest are
+      snapshots filed under the pull's UTC day. available_at is the pull instant.
+      /robots.txt returns the site's app page (no rules).
+    license: open API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/mempool.py
+    status: live
+  alternative_me:
+    name: alternative.me Crypto Fear & Greed Index
+    tier: C
+    epistemic_role: derived_index
+    domain: [crypto_sentiment]
+    geography: [global]
+    latency: daily, set at 00:00 UTC
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each value carries its day's epoch time; full history from 1 Feb 2018 in one
+      call. available_at is the pull instant. No robots.txt (404: no rules).
+    license: open API, no key; attribution to alternative.me
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fng.py
+    status: live
+  blockscout:
+    name: Blockscout Ethereum explorer API -- gas oracle, utilisation, daily transactions
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_network]
+    geography: [global]
+    latency: gas and utilisation live (read once a day); transactions daily
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Gas and utilisation are snapshots filed under the pull's UTC day; the
+      transaction chart is by UTC date (30 days served), complete days only.
+      robots.txt: Allow /. Its price and market cap are CoinGecko's and are not
+      stored (13 Oct 2026). The keyless path in place of Etherscan (no
+      ETHERSCAN_API_KEY; rule (b) of 16 Oct 2026).
+    license: public explorer API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/blockscout.py
+    status: live
 
   clevfed_rules:
     name: Federal Reserve Bank of Cleveland -- simple monetary policy rules

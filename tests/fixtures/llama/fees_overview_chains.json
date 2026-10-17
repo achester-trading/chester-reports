@@ -1,0 +1,260 @@
+{
+ "protocols": [
+  {
+   "name": "Bitcoin",
+   "slug": "bitcoin",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 217350,
+   "defillamaId": "chain#bitcoin"
+  },
+  {
+   "name": "Solana",
+   "slug": "solana",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 774564,
+   "defillamaId": "chain#solana"
+  },
+  {
+   "name": "Ethereum",
+   "slug": "ethereum",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 257185,
+   "defillamaId": "chain#ethereum"
+  },
+  {
+   "name": "Zcash",
+   "slug": "zcash",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 2362,
+   "defillamaId": "chain#zcash"
+  },
+  {
+   "name": "Tron",
+   "slug": "tron",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 956285,
+   "defillamaId": "chain#tron"
+  },
+  {
+   "name": "World Mobile Token",
+   "slug": "world-mobile-token",
+   "protocolType": "chain",
+   "category": "Services",
+   "total24h": 742,
+   "defillamaId": "2847"
+  },
+  {
+   "name": "Everclear",
+   "slug": "everclear",
+   "protocolType": "chain",
+   "category": "Cross Chain Bridge",
+   "total24h": null,
+   "defillamaId": "7114"
+  },
+  {
+   "name": "Space and Time",
+   "slug": "space-and-time",
+   "protocolType": "chain",
+   "category": "Developer Tools",
+   "total24h": 244,
+   "defillamaId": "7210"
+  },
+  {
+   "name": "Bitcoincash",
+   "slug": "bitcoincash",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 68,
+   "defillamaId": "chain#bitcoin-cash"
+  },
+  {
+   "name": "Doge",
+   "slug": "doge",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 624,
+   "defillamaId": "chain#doge"
+  },
+  {
+   "name": "Injective",
+   "slug": "injective",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 8050,
+   "defillamaId": "chain#injective"
+  },
+  {
+   "name": "OP Mainnet",
+   "slug": "op-mainnet",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 3767,
+   "defillamaId": "chain#optimism"
+  },
+  {
+   "name": "Flow",
+   "slug": "flow",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 3.21,
+   "defillamaId": "chain#flow"
+  },
+  {
+   "name": "Avalanche",
+   "slug": "avalanche",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 11315,
+   "defillamaId": "chain#avalanche"
+  },
+  {
+   "name": "Polygon",
+   "slug": "polygon",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 63962,
+   "defillamaId": "chain#polygon"
+  },
+  {
+   "name": "Robinhood Chain",
+   "slug": "robinhood-chain",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 51905,
+   "defillamaId": "chain#robinhood"
+  },
+  {
+   "name": "Ronin",
+   "slug": "ronin",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 48,
+   "defillamaId": "chain#ronin"
+  },
+  {
+   "name": "Cardano",
+   "slug": "cardano",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 2903,
+   "defillamaId": "chain#cardano"
+  },
+  {
+   "name": "aelf",
+   "slug": "aelf",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 0.62,
+   "defillamaId": "chain#aelf"
+  },
+  {
+   "name": "Aptos",
+   "slug": "aptos",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 4981,
+   "defillamaId": "chain#aptos"
+  },
+  {
+   "name": "Fraxtal",
+   "slug": "fraxtal",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 3.96,
+   "defillamaId": "chain#fraxtal"
+  },
+  {
+   "name": "Hedera",
+   "slug": "hedera",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 436,
+   "defillamaId": "chain#hedera"
+  },
+  {
+   "name": "Merlin",
+   "slug": "merlin",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 42,
+   "defillamaId": "chain#merlin-chain"
+  },
+  {
+   "name": "Morph",
+   "slug": "morph",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 59.27,
+   "defillamaId": "chain#morph"
+  },
+  {
+   "name": "Movement",
+   "slug": "movement",
+   "protocolType": "chain",
+   "category": "Chain",
+   "total24h": 0.12,
+   "defillamaId": "chain#move"
+  },
+  {
+   "name": "Hyperliquid HLP",
+   "slug": "hyperliquid-hlp",
+   "protocolType": "protocol",
+   "category": "Derivatives",
+   "total24h": 18703,
+   "defillamaId": "5448"
+  },
+  {
+   "name": "Hyperliquid Perps",
+   "slug": "hyperliquid-perps",
+   "protocolType": "protocol",
+   "category": "Derivatives",
+   "total24h": 3025918,
+   "defillamaId": "5507"
+  },
+  {
+   "name": "Hyperliquid Spot Orderbook",
+   "slug": "hyperliquid-spot-orderbook",
+   "protocolType": "protocol",
+   "category": "Dexs",
+   "total24h": 94464,
+   "defillamaId": "5761"
+  },
+  {
+   "name": "Kinto Hyperliquid",
+   "slug": "kinto-hyperliquid",
+   "protocolType": "protocol",
+   "category": "Interface",
+   "total24h": null,
+   "defillamaId": "6560"
+  },
+  {
+   "name": "Hyperliquid Strategies HYPE Staking",
+   "slug": "hyperliquid-strategies-hype-staking",
+   "protocolType": "protocol",
+   "category": "Staking Pool",
+   "total24h": 186082,
+   "defillamaId": "8267"
+  },
+  {
+   "name": "Hyperliquid Outcomes",
+   "slug": "hyperliquid-outcomes",
+   "protocolType": "protocol",
+   "category": "Prediction Market",
+   "total24h": 2486,
+   "defillamaId": "8941"
+  },
+  {
+   "name": "Infinex Hyperliquid Spot",
+   "slug": "infinex-hyperliquid-spot",
+   "protocolType": "protocol",
+   "category": "Interface",
+   "total24h": 0,
+   "defillamaId": "9001"
+  }
+ ]
+}

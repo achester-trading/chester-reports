@@ -75,6 +75,7 @@ CONFIG_PATH = REPO / "config" / "digital_addendum.yaml"
 NO_DIGEST = "no digest rows this week"
 NOT_CAPTURED = "not captured"
 PAGE_NAME = "weekly_digital_{ending}.html"
+PDF_NAME = "weekly_digital_{ending}.pdf"
 EDITION_NAME = "weekly_digital_{ending}_edition.json"
 APPENDIX_NAME = "weekly_digital_{ending}_appendix.md"
 SECTIONS = [("read", "The read"), ("tape", "Tape"), ("flows", "Flows"),
@@ -250,7 +251,7 @@ def cell(st, c: dict, cutoff: str, week_end: str, awaiting: str) -> dict:
     key = c.get("key")
     if not key:
         return {"label": c["label"], "text": absent, "value": None, "as_of": None}
-    pts = [p for p in _pts(st, key, cutoff) if p[0] <= week_end]
+    pts = [p for p in _pts(st, key, cutoff, c.get("instrument")) if p[0] <= week_end]
     if not pts:
         return {"label": c["label"], "text": absent, "value": None, "as_of": None}
     agg = c.get("agg")
@@ -989,15 +990,26 @@ def link_line(addendum: Optional[dict], mode: str = "email") -> str:
     where = ("attached to this message" if mode == "email" else
              "beside this edition")
     return (f"Digital Assets addendum, about {addendum.get('minutes')} minutes: "
-            f"{addendum['name']}, {where}.")
+            f"{addendum.get('attached') or addendum['name']}, {where}.")
+
+
+def _pdf(html: str) -> tuple[Optional[bytes], str]:
+    from . import readability                                    # noqa: PLC0415
+    return readability.pdf_bytes(html, [])
 
 
 def produce(p: dict, *, archive_dir: Optional[str], db_path: Optional[str] = None,
             narrative: bool = True, client=None, model: Optional[str] = None,
-            **kw) -> dict:
+            pdf_renderer=None, **kw) -> dict:
     """Build, render and archive the addendum for the Weekly payload `p`; record
     it on `p["addendum"]` for the Weekly's link line. Never raises: a failed
-    addendum costs the addendum, never the Weekly."""
+    addendum costs the addendum, never the Weekly.
+
+    THE PAGE TRAVELS AS A SECOND PDF on the Weekly's own email (ruling (e) of 17
+    Oct 2026), rendered by the Weekly's own PDF step (readability.pdf_bytes) and
+    archived beside the HTML. A PDF that cannot be built leaves the HTML attached
+    in its place, and the run says why. `pdf_renderer` is injectable so a gate
+    never renders one."""
     from . import deliver                                        # noqa: PLC0415
     ending = p.get("week_ending")
     try:
@@ -1013,6 +1025,9 @@ def produce(p: dict, *, archive_dir: Optional[str], db_path: Optional[str] = Non
         name = page_name(ending)
         html = render(ed, deliver.archive_path(name, archive_dir))
         path = deliver.archive(html, name, archive_dir)
+        pdf, pdf_detail = (pdf_renderer or _pdf)(html)
+        if pdf:
+            deliver.archive_bytes(pdf, PDF_NAME.format(ending=ending), archive_dir)
         deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                         EDITION_NAME.format(ending=ending), archive_dir)
         deliver.archive(appendix_md(ed), APPENDIX_NAME.format(ending=ending),
@@ -1023,21 +1038,27 @@ def produce(p: dict, *, archive_dir: Optional[str], db_path: Optional[str] = Non
         return {"state": "failed", "reason": p["addendum"]["reason"]}
     if dry:
         return {"state": "dry_run", "edition": ed, "html": html, "name": name,
-                "archive_path": path,
+                "archive_path": path, "pdf": pdf, "pdf_detail": pdf_detail,
                 "reason": f"a dry run before the first edition (the Weekly of "
                           f"{first}): archived to {path}, not attached"}
-    p["addendum"] = {"state": "built", "name": name, "minutes": ed["minutes"],
-                     "words": ed["words"], "archive_path": path,
-                     "read": ed["prose"].get("state")}
+    attached = PDF_NAME.format(ending=ending) if pdf else name
+    p["addendum"] = {"state": "built", "name": name, "attached": attached,
+                     "minutes": ed["minutes"], "words": ed["words"],
+                     "archive_path": path, "read": ed["prose"].get("state"),
+                     "pdf": "built" if pdf else f"NOT built -- {pdf_detail}"}
     return {"state": "built", "edition": ed, "html": html, "name": name,
-            "archive_path": path}
+            "archive_path": path, "pdf": pdf, "pdf_detail": pdf_detail,
+            "pdf_name": PDF_NAME.format(ending=ending)}
 
 
-def attachment(out: Optional[dict]) -> list[tuple[str, str, str]]:
-    """The addendum as an attachment of the Weekly's message: (filename, html,
-    "html"); none when it was not built."""
+def attachment(out: Optional[dict]) -> list[tuple[str, Any, str]]:
+    """The addendum as an attachment of the Weekly's message: the second PDF
+    (ruling (e) of 17 Oct 2026), or the HTML where no PDF could be built; none
+    when the addendum was not built."""
     if not out or out.get("state") != "built":
         return []
+    if out.get("pdf"):
+        return [(out["pdf_name"], out["pdf"], "pdf")]
     return [(out["name"], out["html"], "html")]
 
 

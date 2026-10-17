@@ -168,7 +168,14 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "thai_set",
                     # 6e-releases (16 Oct 2026, Batch 7 lens 7): Zillow's and
                     # Apartment List's national rent indices, the shelter lead
-                    "rent_indices")
+                    "rent_indices",
+                    # Batch 4 Tranche A part 1 (17 Oct 2026): perp funding and OI
+                    # (Hyperliquid; OKX and Deribit), Bitcoin's network state, the
+                    # fear-and-greed index, Ethereum's gas (keyless), then the S-1
+                    # and S-3 derived series, which read what those just wrote --
+                    # the order of the tuple is the order they run in. DefiLlama
+                    # (llama) stays on the crypto basket's own timer.
+                    "hl", "fut", "mempool", "fng", "blockscout", "crypto_derived")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

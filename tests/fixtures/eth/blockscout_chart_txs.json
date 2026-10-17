@@ -1,0 +1,128 @@
+{
+ "chart_data": [
+  {
+   "date": "2026-10-16",
+   "transactions_count": 1769890
+  },
+  {
+   "date": "2026-10-15",
+   "transactions_count": 1857021
+  },
+  {
+   "date": "2026-10-14",
+   "transactions_count": 1793378
+  },
+  {
+   "date": "2026-10-13",
+   "transactions_count": 1938056
+  },
+  {
+   "date": "2026-10-12",
+   "transactions_count": 1882099
+  },
+  {
+   "date": "2026-10-11",
+   "transactions_count": 1597680
+  },
+  {
+   "date": "2026-10-10",
+   "transactions_count": 1645365
+  },
+  {
+   "date": "2026-10-09",
+   "transactions_count": 1801067
+  },
+  {
+   "date": "2026-10-08",
+   "transactions_count": 1837570
+  },
+  {
+   "date": "2026-10-07",
+   "transactions_count": 1963594
+  },
+  {
+   "date": "2026-10-06",
+   "transactions_count": 1957602
+  },
+  {
+   "date": "2026-10-05",
+   "transactions_count": 1774270
+  },
+  {
+   "date": "2026-10-04",
+   "transactions_count": 1526358
+  },
+  {
+   "date": "2026-10-03",
+   "transactions_count": 1562292
+  },
+  {
+   "date": "2026-10-02",
+   "transactions_count": 1875646
+  },
+  {
+   "date": "2026-10-01",
+   "transactions_count": 2036041
+  },
+  {
+   "date": "2026-09-30",
+   "transactions_count": 2015774
+  },
+  {
+   "date": "2026-09-29",
+   "transactions_count": 2021591
+  },
+  {
+   "date": "2026-09-28",
+   "transactions_count": 2060459
+  },
+  {
+   "date": "2026-09-27",
+   "transactions_count": 1609374
+  },
+  {
+   "date": "2026-09-26",
+   "transactions_count": 1652718
+  },
+  {
+   "date": "2026-09-25",
+   "transactions_count": 2113352
+  },
+  {
+   "date": "2026-09-24",
+   "transactions_count": 1831489
+  },
+  {
+   "date": "2026-09-23",
+   "transactions_count": 1820433
+  },
+  {
+   "date": "2026-09-22",
+   "transactions_count": 2094087
+  },
+  {
+   "date": "2026-09-21",
+   "transactions_count": 2085232
+  },
+  {
+   "date": "2026-09-20",
+   "transactions_count": 1696117
+  },
+  {
+   "date": "2026-09-19",
+   "transactions_count": 1745429
+  },
+  {
+   "date": "2026-09-18",
+   "transactions_count": 2048145
+  },
+  {
+   "date": "2026-09-17",
+   "transactions_count": 1955636
+  },
+  {
+   "date": "2026-09-16",
+   "transactions_count": 1956696
+  }
+ ]
+}

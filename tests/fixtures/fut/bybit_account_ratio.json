@@ -1,0 +1,41 @@
+{
+ "retCode": 0,
+ "retMsg": "OK",
+ "result": {
+  "list": [
+   {
+    "symbol": "BTCUSDT",
+    "buyRatio": "0.5500",
+    "sellRatio": "0.4500",
+    "timestamp": "1792195200000"
+   },
+   {
+    "symbol": "BTCUSDT",
+    "buyRatio": "0.5600",
+    "sellRatio": "0.4400",
+    "timestamp": "1792108800000"
+   },
+   {
+    "symbol": "BTCUSDT",
+    "buyRatio": "0.5700",
+    "sellRatio": "0.4300",
+    "timestamp": "1792022400000"
+   },
+   {
+    "symbol": "BTCUSDT",
+    "buyRatio": "0.5800",
+    "sellRatio": "0.4200",
+    "timestamp": "1791936000000"
+   },
+   {
+    "symbol": "BTCUSDT",
+    "buyRatio": "0.5900",
+    "sellRatio": "0.4100",
+    "timestamp": "1791849600000"
+   }
+  ],
+  "nextPageCursor": ""
+ },
+ "retExtInfo": {},
+ "time": 1792240000000
+}

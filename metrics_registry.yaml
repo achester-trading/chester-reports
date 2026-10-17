@@ -552,6 +552,11 @@ vocabularies:
     - prediction_market
     # The correlation layer (AQ-5): one mechanism, however many pairs.
     - cross_asset_correlation
+    # Batch 4 Tranche A part 1 (17 Oct 2026): crypto perp leverage (funding,
+    # open interest, long/short across the venues) and Bitcoin's and Ethereum's
+    # network state (hashrate, fees, gas).
+    - crypto_leverage
+    - crypto_network
 
 defaults:
   trigger_eligible: false
@@ -12466,6 +12471,349 @@ metrics:
     description: >-
       The Cleveland Fed's simple monetary policy rules: the 75th less the 25th percentile prescription four quarters on, PERCENT (its change in bp) -- the path's width across rules, the architecture's path dispersion (Session 3b) as the rules give it. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
 
+  # -------------------------------------------------------------------------
+  # BATCH 4 TRANCHE A, PART 1 (crypto-tranche-a-1, 17 Oct 2026): CD-2's perp
+  # venues (hl.*, fut.*), CD-5's network state (mempool.*, blockscout.*), the
+  # fear-and-greed index (fng.*), and the S-1 / S-3 derived series (calc.*).
+  # config/crypto_sources.yaml; docs/briefs/crypto-tranche-a-1-notes.md.
+  # -------------------------------------------------------------------------
+  hl.funding:
+    source: hyperliquid
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      Hyperliquid perp funding for one coin (instrument BTC or ETH), the UTC day's hourly prints summed x 365, annualised percent; complete days only; history from 12 May 2023 (fundingHistory).
+  hl.oi:
+    source: hyperliquid
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Hyperliquid open interest for one coin in USD (openInterest in coins x markPx, metaAndAssetCtxs): a snapshot filed under the pull's UTC day. FORWARD-ONLY: Hyperliquid serves no OI history.
+  fut.funding_okx:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      OKX USDT-swap funding for one coin (instrument BTC or ETH), the UTC day's eight-hourly realizedRate prints summed x 365, annualised percent; OKX serves about three months of history.
+  fut.oi_okx:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      OKX USDT-swap open interest for one coin in USD: history from rubik open-interest-history (period 1D, OKX's day stamped 16:00 UTC, filed under that UTC date), today from public/open-interest (oiUsd).
+  fut.ls_account_okx:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      OKX's account long/short ratio for the currency's contracts (instrument BTC or ETH), daily (rubik long-short-account-ratio, about 180 days served). Stored, never a direction call: the order reads it as a retail-skew measure.
+  fut.funding_deribit:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      Deribit perpetual funding for one coin (instrument BTC or ETH), the UTC day's hourly interest_1h summed x 365, annualised percent; history from 2019. Deribit is the third venue in place of Bybit, which is geo-blocked from the US.
+  fut.oi_deribit:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Deribit perpetual open interest for one coin in USD (an inverse perpetual's open_interest is USD), get_book_summary_by_instrument: a snapshot, FORWARD-ONLY.
+  mempool.hashrate:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Bitcoin's average hashrate for the UTC day, hashes a second (mempool.space /v1/mining/hashrate; backfill from 2009 with /all); complete days only.
+  mempool.difficulty:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Bitcoin's difficulty as set at each adjustment, filed under the adjustment's UTC day (mempool.space /v1/mining/hashrate's difficulty list).
+  mempool.difficulty_change_est:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      The next difficulty adjustment's estimated change, percent (/v1/difficulty-adjustment): a snapshot of an estimate that moves until the retarget.
+  mempool.fee_rate:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: conditions
+    long_window: 365d
+    description: >-
+      mempool.space's recommended fee rate, sat/vB; instrument fastest, half_hour, hour, economy or minimum (/v1/fees/recommended): a snapshot.
+  mempool.mempool_vsize:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The projected mempool blocks' total virtual size, vbytes (/v1/fees/mempool-blocks): a snapshot of the queue.
+  mempool.tip_height:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Bitcoin's chain-tip height (/blocks/tip/height): a snapshot.
+  mempool.pool_share:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      A mining pool's share of the last week's blocks, percent; instrument = the pool's slug, the top ten (/v1/mining/pools/1w): a snapshot.
+  fng.value:
+    source: alternative_me
+    mechanism_group: macro_sentiment
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      alternative.me's Crypto Fear & Greed Index, 0 (extreme fear) to 100 (extreme greed), the UTC day's value; full history from 1 Feb 2018 in one call. The publisher's classification is its banding of the value and is not stored.
+  blockscout.gas_gwei:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: conditions
+    long_window: 365d
+    description: >-
+      Ethereum's gas oracle, gwei; instrument slow, average or fast (eth.blockscout.com /api/v2/stats): a snapshot. The keyless path in place of Etherscan's gas oracle (no ETHERSCAN_API_KEY; rule (b) of 16 Oct 2026).
+  blockscout.utilization:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      Ethereum network utilisation, percent of block gas used (Blockscout /api/v2/stats): a snapshot.
+  blockscout.tx_count:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Ethereum transactions a day (Blockscout /api/v2/stats/charts/transactions, the last 30 days served); complete UTC days.
+  calc.stable_share:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-1: one chain's share of total stablecoin supply, percent (instrument Ethereum, Tron, Solana or Base): llama.stable_by_chain over llama.stable_total, the same day. A scorecard row, no rights.
+  calc.funding_agg:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      S-3: open-interest-weighted perp funding across the enabled venues (Hyperliquid, OKX, Deribit), annualised percent, per coin (instrument BTC or ETH); at least two venues carrying both funding and OI that day, else not written. Starts with the venues' first common OI day (no OI history at two of them).
+  calc.oi_usd:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      S-3: total perp open interest in USD across every enabled venue (a day missing one is not written); instrument BTC or ETH, NULL = BTC + ETH.
+  calc.oi_mcap:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3: calc.oi_usd over the coin's market cap (llama.mcap_btc / _eth, on the day or within the three before), percent; instrument BTC or ETH.
+  calc.funding_agg_z:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3: z-score of calc.funding_agg against its trailing 90 days (60 observations needed). The leverage flag (z > +2 with OI/mcap at a 90-day high) waits for its gate.
+  calc.oi_mcap_z:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3: z-score of calc.oi_mcap against its trailing 90 days (60 observations needed).
+
 bulk_imports:
 
   fred_macro:
@@ -13884,14 +14232,15 @@ bulk_imports:
     long_window: 365d
   llama_coin_mcap:
     description: >-
-      Market cap (llama.mcap_<sym>) for all twelve, from coins.llama.fi/mcaps.
+      Market cap (llama.mcap_<sym>) for all twelve, and BTC and ETH for S-3's
+      denominator (Tranche A part 1), from coins.llama.fi/mcaps.
       FORWARD-ONLY: the service serves the current cap and no history, so the
       series starts the day the writer first runs.
     source: defillama
     members_from: altdata.sources.llama.MCAP_KEYS
     family: quantity   # ambiguous: a market capitalisation, price times supply; alternative: price
     members_are: values
-    expected_members: 12
+    expected_members: 14  # the twelve basket names, and BTC and ETH (S-3)
     key_prefix: llama.
     units: usd
     native_horizon: daily
@@ -13903,6 +14252,28 @@ bulk_imports:
     mechanism_group: crypto_basket_price
     family: quantity
     long_window: full
+  llama_watch_daily:
+    description: >-
+      CD-1, Tranche A part 1 (17 Oct 2026): fees and revenue for the order's watch
+      names that are not basket names -- llama.fees_<sym>, llama.revenue_<sym> for
+      BTC, ETH, SOL, ZEC (chain fees) and HYPE, LINK (their parent protocol) --
+      from /summary/fees/{slug}, the slug resolved at run time
+      (config/crypto_sources.yaml watch_names). Daily flows, USD.
+    source: defillama
+    members_from: altdata.sources.llama.WATCH_KEYS
+    members_are: values
+    expected_members: 12
+    key_prefix: llama.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    trigger_eligible: false
+    mechanism_group: crypto_protocol_economics
+    family: quantity
+    long_window: 365d
   llama_coin_supply:
     description: >-
       Circulating supply in tokens (llama.supply_<sym>): the coin service's cap
@@ -13912,7 +14283,7 @@ bulk_imports:
     members_from: altdata.sources.llama.SUPPLY_KEYS
     family: quantity
     members_are: values
-    expected_members: 12
+    expected_members: 14  # the twelve basket names, and BTC and ETH (S-3)
     key_prefix: llama.
     units: count
     native_horizon: daily

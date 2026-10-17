@@ -9,9 +9,9 @@
 # (config/digital_addendum.yaml `ahead.window_days`).
 #
 # One entry per event, each with its source. `marker` prints after the event in
-# brackets and says what is not yet confirmed -- "to verify on MSCI's calendar"
-# until MSCI's own calendar has been read (Batch 8 section 7, verify item 2).
-# Remove the marker, and correct the date if it moved, once it is verified.
+# brackets and says what is not yet confirmed at its source ("15 Nov, to verify").
+# Remove the marker, and correct the date if it moved, once it is verified: MSCI's
+# came off on 17 Oct 2026 when Ari read MSCI's schedule (ruling (f)).
 #
 #   - date:   YYYY-MM-DD
 #     body:   "MSCI"                  # who
@@ -52,15 +52,15 @@ entries:
   - date: 2026-11-15
     body: "SEC"
     event: "VanEck JitoSOL ETF decision"
+    marker: "15 Nov, to verify"
     kind: regulation
-    source: "the Batch 8 order, item 51 (section 8 of the addendum)"
+    source: "the Batch 8 order, item 51 (section 8 of the addendum); not yet read at the SEC (ruling (e) of 17 Oct 2026: keeps its marker)"
   - date: 2026-11-30
     body: "MSCI"
-    event: "November 2026 Index Review takes effect at the close"
+    event: "November 2026 Index Review implemented at the close of 30 Nov, effective 1 Dec"
     time: "at the US close"
-    marker: "30 Nov, to verify on MSCI's calendar"
     kind: index
-    source: "the Batch 8 order, item 49 (the last business day of November; verify item 2)"
+    source: "MSCI's index review schedule, read by Ari on 17 Oct 2026 (ruling (f); verify item 2 closed)"
   - date: 2026-12-11
     body: "FTSE Russell"
     event: "Russell US December reconstitution takes effect"

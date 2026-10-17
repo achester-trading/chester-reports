@@ -255,6 +255,30 @@ commands:
     domain: crypto
     line: DefiLlama -- the `llama.*` family
     sources: [defillama]
+  altdata.sources.hl:
+    domain: crypto
+    line: Hyperliquid -- perp funding and open interest, the `hl.*` family (Tranche A, CD-2)
+    sources: [hyperliquid]
+  altdata.sources.fut:
+    domain: crypto
+    line: OKX and Deribit perps -- funding, open interest, long/short, the `fut.*` family (Tranche A, CD-2)
+    sources: [perp_venues]
+  altdata.sources.mempool:
+    domain: crypto
+    line: mempool.space -- Bitcoin hashrate, difficulty, fees, mempool, pools (Tranche A, CD-5)
+    sources: [mempool_space]
+  altdata.sources.fng:
+    domain: crypto
+    line: alternative.me's Crypto Fear & Greed Index, full history (Tranche A, CD-5)
+    sources: [alternative_me]
+  altdata.sources.blockscout:
+    domain: crypto
+    line: Blockscout's Ethereum explorer -- gas, utilisation, daily transactions, keyless (Tranche A, CD-5)
+    sources: [blockscout]
+  altdata.sources.crypto_derived:
+    domain: crypto
+    line: The crypto data layer's derived series -- S-1's share by chain and S-3 (Tranche A)
+    sources: [derived_state]
   altdata.sources.massive_chain:
     domain: options
     line: Option chain fetcher (Massive, ex-Polygon) -- the symbols yfinance cannot serve

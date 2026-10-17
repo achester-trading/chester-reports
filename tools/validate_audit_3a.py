@@ -142,7 +142,10 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "event_types", "pin_log_columns", "bars_prices",
                   "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd",
                   "fred_6e",   # 6e, the rest (16 Oct 2026): the FRED legs of Session 3 and the CPI lead
-                  "fred_releases"}   # 6e-releases (16 Oct 2026): Batch 7 Group A's FRED legs
+                  "fred_releases",   # 6e-releases (16 Oct 2026): Batch 7 Group A's FRED legs
+                  # Tranche A part 1 (17 Oct 2026): the watch names' DefiLlama
+                  # fees, and BTC's and ETH's caps and supply in the coin blocks
+                  "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply"}
 
 
 def check(c, m: str) -> None:
@@ -264,6 +267,10 @@ def group_b() -> None:
     from altdata import macro_6e
     from altdata.sources import clevfed_rules, rent_indices
     one_by_one = set(macro_6e.KEYS) | set(rent_indices.KEYS) | set(clevfed_rules.KEYS)
+    # Tranche A part 1 (17 Oct 2026) registers its writers' keys one by one.
+    from altdata.sources import blockscout, crypto_derived, fng, fut, hl, mempool
+    for mod in (hl, fut, mempool, fng, blockscout, crypto_derived):
+        one_by_one |= set(mod.KEYS)
     new = [k for k in resolved if k not in base and k not in one_by_one]
     blocks = {derived.registry_entry(k).get("bulk_block") for k in new}
     check(blocks <= NEW_KEY_BLOCKS,

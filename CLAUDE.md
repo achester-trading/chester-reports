@@ -223,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-nine code gates (seventy-six Python,
+**`make validate` runs every gate** — eighty code gates (seventy-seven Python,
 three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -333,8 +333,9 @@ rent index are listed gaps. `tools/validate_releases.py` holds it.
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a
 page of its own in the Sunday Weekly's run, before the Weekly, archives it beside
-the Weekly (`weekly_digital_<ending>.html`, its edition JSON and its appendix
-line) and attaches it to the Weekly's message; the Weekly prints one line naming
+the Weekly (`weekly_digital_<ending>.html` and `.pdf`, its edition JSON and its
+appendix line) and attaches it to the Weekly's own email as a second PDF (ruled
+17 Oct 2026); the Weekly prints one line naming
 it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
 the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
 minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
@@ -347,6 +348,21 @@ register read-only (`mode=ro`). The dated index events (the STRC vote, MSCI's
 review, FTSE Russell's reconstitution) are `config/digital_asset_calendar.yaml`,
 by hand, which the Weekly's Ahead also reads. `tools/validate_digital_addendum.py`
 holds it.
+
+**The crypto data layer, Batch 4 Tranche A part 1 (crypto-tranche-a-1, 17 Oct
+2026).** Keyless writers on `feeds.EXTERNAL_WRITERS` and on the crypto basket's
+daily run (`scripts/run_crypto_basket.sh`, which covers the weekend): perp funding
+and open interest from Hyperliquid (`altdata/sources/hl.py`, behind a weight guard
+under its documented 1,200-a-minute limit) and from OKX and Deribit
+(`altdata/sources/fut.py`; Bybit is geo-blocked from the US and switched off);
+Bitcoin's network state (`mempool.py`); the fear-and-greed index (`fng.py`);
+Ethereum's gas and activity, keyless, from Blockscout (`blockscout.py`; Etherscan's
+key was not registered, so ETH supply and burn are a gap). DefiLlama's watch names
+resolve their slugs at run time (`llama.py`). `altdata/sources/crypto_derived.py`
+writes S-1's share by chain and S-3 (OI-weighted funding, total OI, OI over market
+cap, 90-day z), which begin when two venues carry OI on the same day. Every row is
+point in time: the pull instant as available_at, complete UTC days for history.
+Config `config/crypto_sources.yaml`; `tools/validate_crypto_sources.py` holds it.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates

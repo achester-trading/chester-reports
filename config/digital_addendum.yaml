@@ -56,9 +56,12 @@ tape:
   derivatives:
     - {label: "BTC implied vol (DVOL)", key: deribit.dvol_btc, unit: points}
     - {label: "ETH implied vol (DVOL)", key: deribit.dvol_eth, unit: points}
-    - {label: "Funding, OI-weighted", key: calc.funding_agg, unit: pct}
+    # S-3 is per coin (Tranche A part 1, 17 Oct 2026): instrument BTC or ETH; the
+    # OI total's instrument NULL is BTC + ETH.
+    - {label: "BTC funding, OI-weighted (annualised)", key: calc.funding_agg, instrument: BTC, unit: pct}
+    - {label: "ETH funding, OI-weighted (annualised)", key: calc.funding_agg, instrument: ETH, unit: pct}
     - {label: "Basis (futures over spot)", key: null, unit: pct}
-    - {label: "Open interest", key: calc.oi_usd, unit: usd}
+    - {label: "Open interest (BTC + ETH)", key: calc.oi_usd, unit: usd}
     - {label: "Liquidations", key: null, unit: usd}
 
 # SECTION 3, FLOWS. The stablecoin supply is stored today (llama.stable_total,

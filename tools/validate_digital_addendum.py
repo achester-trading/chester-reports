@@ -130,7 +130,8 @@ def seed_store(path: str, *, tranche_a: bool = False, late: bool = False) -> Non
         for i, d in enumerate(DAYS[-10:]):
             put("deribit.dvol_btc", d, 50.0 + i)
             put("deribit.dvol_eth", d, 70.0 + i)
-            put("calc.funding_agg", d, 0.01)
+            put("calc.funding_agg", d, 0.01, inst="BTC")
+            put("calc.funding_agg", d, 0.02, inst="ETH")
             put("calc.oi_usd", d, 40e9 + 1e9 * i)
             put("farside.btc_total", d, 10.0 * (i - 4))
             put("farside.eth_total", d, -5.0)
@@ -301,9 +302,13 @@ def main() -> int:
     check(m11 and m11.get("time") == "after the US close" and not m11.get("marker"),
           "11 Nov: MSCI's review announcement, after the US close")
     m30 = ents.get(("2026-11-30", "MSCI"))
-    check(m30 and m30.get("marker") == "30 Nov, to verify on MSCI's calendar",
-          "30 Nov: the effective date, marked \"30 Nov, to verify on MSCI's calendar\" "
-          "(verify item 2)")
+    check(m30 and not m30.get("marker") and m30["event"].endswith(
+        "implemented at the close of 30 Nov, effective 1 Dec"),
+          "30 Nov: MSCI's review \"implemented at the close of 30 Nov, effective 1 Dec\", "
+          "the marker off (ruling (f) of 17 Oct: verify item 2 closed)")
+    v15 = ents.get(("2026-11-15", "SEC"))
+    check(v15 and v15.get("marker") == "15 Nov, to verify",
+          "15 Nov: the VanEck JitoSOL decision keeps its \"to verify\" marker (ruling (e))")
     check(("2026-12-11", "FTSE Russell") in ents and ("2026-11-13", "FTSE Russell") in ents,
           "FTSE Russell's published December reconstitution dates (13 Nov lists, "
           "11 Dec effective)")
@@ -356,8 +361,10 @@ def main() -> int:
     aw = "awaiting Tranche A"
     ca = {**cells(ed_a, "tape"), **cells(ed_a, "flows"), **cells(ed_a, "mechanics"),
           **cells(ed_a, "onchain")}
-    tranche = ["BTC implied vol (DVOL)", "ETH implied vol (DVOL)", "Funding, OI-weighted",
-               "Basis (futures over spot)", "Open interest", "Liquidations",
+    tranche = ["BTC implied vol (DVOL)", "ETH implied vol (DVOL)",
+               "BTC funding, OI-weighted (annualised)",
+               "ETH funding, OI-weighted (annualised)",
+               "Basis (futures over spot)", "Open interest (BTC + ETH)", "Liquidations",
                "BTC ETF net flow, the week", "ETH ETF net flow, the week",
                "Exchange net flows", "Treasury-company purchases (item 49b)",
                "Deribit skew and term structure", "MSTR mNAV (item 49a; lines 1.2 and 1.0)",
@@ -376,8 +383,9 @@ def main() -> int:
           "the rendered page carries the phrase in every awaiting cell")
     cb = {**cells(ed_late, "tape"), **cells(ed_late, "flows"), **cells(ed_late, "onchain")}
     check(cb["BTC implied vol (DVOL)"]["text"] == "59.0"
-          and cb["Open interest"]["text"] == "$49.0bn"
-          and cb["Funding, OI-weighted"]["text"] == "0.01%",
+          and cb["Open interest (BTC + ETH)"]["text"] == "$49.0bn"
+          and cb["BTC funding, OI-weighted (annualised)"]["text"] == "0.01%"
+          and cb["ETH funding, OI-weighted (annualised)"]["text"] == "0.02%",
           "with Tranche A rows the cells print their figures: DVOL 59.0, OI $49.0bn, "
           "funding 0.01%")
     want_etf = sum(10.0 * (i - 4) for i, d in enumerate(DAYS[-10:]) if SUN <= d <= SAT)
@@ -460,8 +468,11 @@ def main() -> int:
           "28 Oct prints the STRC vote")
     check(txt["11 Nov"][2] == "after the US close" and "MSCI" in txt["11 Nov"][1],
           "11 Nov prints MSCI's announcement, after the US close")
-    check(txt["30 Nov"][2] == "at the US close; 30 Nov, to verify on MSCI's calendar",
-          "30 Nov prints the effective date with \"to verify on MSCI's calendar\"")
+    check(txt["30 Nov"][2] == "at the US close" and txt["30 Nov"][1].endswith(
+        "implemented at the close of 30 Nov, effective 1 Dec"),
+          "30 Nov prints \"implemented at the close of 30 Nov, effective 1 Dec\", no marker")
+    check(txt["15 Nov"][2] == "15 Nov, to verify",
+          "15 Nov prints the VanEck decision with its \"to verify\" marker")
     check("27 Nov" in txt and "Deribit" in txt["27 Nov"][1]
           and "to verify" in txt["27 Nov"][2] and "30 Oct" in txt,
           "Deribit's month-end expiries (30 Oct, 27 Nov) by rule, marked to verify")
@@ -483,8 +494,10 @@ def main() -> int:
               for r_ in hr),
           "the Weekly of the week of 9 Nov prints MSCI's 11 Nov announcement")
     hr2, _ = ahead.hand_rows(acfg, dt.date(2026, 11, 30), dt.date(2026, 12, 5))
-    check(any(r_["event"].endswith("(30 Nov, to verify on MSCI's calendar)") for r_ in hr2),
-          "and the week of 30 Nov prints the effective date with its marker")
+    check(any(r_["event"] == "MSCI: November 2026 Index Review implemented at the "
+              "close of 30 Nov, effective 1 Dec" and r_["time"] == "at the US close"
+              for r_ in hr2),
+          "and the week of 30 Nov prints MSCI's implementation date")
 
     # --- F --------------------------------------------------------------------
     head("F. THE BOOK: BOOK D FROM THE REGISTER, READ-ONLY")
@@ -572,14 +585,19 @@ def main() -> int:
     head("I. PUBLISH: THE SECOND PAGE ON A FIXTURE SUNDAY")
     arch = TD / "reports"
     p = {"week_ending": ENDING, "as_of": AS_OF, "run_id": "fixture-run"}
+    rendered: list = []
+    # A FIXTURE PDF RENDERER: the gate never renders a PDF (CI renders the real one
+    # through the Weekly's own step).
+    fake_pdf = lambda html: (rendered.append(html) or b"%PDF-1.4 fixture", "fixture")  # noqa: E731
     out = da.produce(p, archive_dir=str(arch), db_path=db_a, narrative=False,
-                     inbox=inbox, cfg=cfg, **kw)
+                     inbox=inbox, cfg=cfg, pdf_renderer=fake_pdf, **kw)
     names = sorted(x.name for x in arch.iterdir())
     check(out["state"] == "built" and names == [
-        f"weekly_digital_{ENDING}.html", f"weekly_digital_{ENDING}_appendix.md",
-        f"weekly_digital_{ENDING}_edition.json"],
-          f"the page, its edition and its appendix line archive beside the Weekly "
-          f"({', '.join(names)})")
+        f"weekly_digital_{ENDING}.html", f"weekly_digital_{ENDING}.pdf",
+        f"weekly_digital_{ENDING}_appendix.md", f"weekly_digital_{ENDING}_edition.json"]
+          and rendered and rendered[0] == out["html"],
+          f"the page, its PDF (from the page's own HTML), its edition and its appendix "
+          f"line archive beside the Weekly ({', '.join(names)})")
     check(p["addendum"]["state"] == "built" and p["addendum"]["name"]
           == f"weekly_digital_{ENDING}.html",
           "the Weekly's payload records the addendum for its link line")
@@ -587,7 +605,7 @@ def main() -> int:
     ln_e = digital_addendum.link_line(p["addendum"], "email")
     ln_a = digital_addendum.link_line(p["addendum"], "archive")
     check(ln_e.endswith("attached to this message.") and ln_a.endswith("beside this edition.")
-          and f"weekly_digital_{ENDING}.html" in ln_e,
+          and f"weekly_digital_{ENDING}.pdf" in ln_e,
           f"the link line: \"{ln_e}\"")
     ed_w = {"sections": [], "week_ending": ENDING, "as_of": AS_OF, "chart_count": 0,
             "words": 0, "config_version": "fixture"}
@@ -608,8 +626,13 @@ def main() -> int:
                                 + att)
     parts = {pt.get_filename(): pt.get_content_type() for pt in msg.iter_attachments()}
     check(parts == {"weekly_tactical.pdf": "application/pdf",
-                    f"weekly_digital_{ENDING}.html": "text/html"},
-          "the Weekly's message carries the PDF and the addendum page as attachments")
+                    f"weekly_digital_{ENDING}.pdf": "application/pdf"},
+          "the Weekly's own email carries the addendum as a second PDF (ruling (e))")
+    nopdf = da.produce({"week_ending": ENDING, "as_of": AS_OF}, archive_dir=str(TD / "rp"),
+                       db_path=db_a, narrative=False, inbox=inbox, cfg=cfg,
+                       pdf_renderer=lambda h: (None, "WeasyPrint unavailable"), **kw)
+    check(digital_addendum.attachment(nopdf)[0][2] == "html",
+          "a PDF that cannot be built leaves the HTML attached in its place")
     src = (REPO / "daily_cascade" / "deliver.py").read_text(encoding="utf-8")
     check("attachments: Optional[list] = None" in src and "+ extra or None" in src,
           "deliver() passes the addendum beside the PDF (the one change to the "
@@ -621,7 +644,7 @@ def main() -> int:
           "both sends (the live one and the mailed dry run)")
     p3 = {"week_ending": "2026-10-23", "as_of": "2026-10-25T09:00:00+00:00"}
     arch3 = TD / "reports3"
-    out3 = da.produce(p3, archive_dir=str(arch3), db_path=db_a, narrative=False,
+    out3 = da.produce(p3, archive_dir=str(arch3), db_path=db_a, pdf_renderer=fake_pdf, narrative=False,
                       inbox=inbox, cfg=cfg, **kw)
     check(out3["state"] == "dry_run" and "addendum" not in p3
           and digital_addendum.attachment(out3) == []
@@ -630,7 +653,7 @@ def main() -> int:
           "the Weekly of 25 Oct (before the first edition of 1 Nov): a dry-run page "
           "under dryrun/, not attached, no link line")
     p2 = {"week_ending": ENDING, "as_of": AS_OF}
-    out2 = da.produce(p2, archive_dir=str(TD / "reports2"), db_path=db_a,
+    out2 = da.produce(p2, archive_dir=str(TD / "reports2"), db_path=db_a, pdf_renderer=fake_pdf,
                       narrative=False, cfg={"tape": {"coins": [{"sym": "X"}]}}, calendar={}, **kw)
     check(out2["state"] == "failed" and p2["addendum"]["state"] == "failed"
           and "not built this week" in digital_addendum.link_line(p2["addendum"])

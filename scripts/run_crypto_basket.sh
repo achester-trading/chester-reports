@@ -5,6 +5,13 @@
 #   git pull --ff-only -> Yahoo closes and volume for the twelve
 #   -> DefiLlama (the basket's protocols, caps and supply, S-1 and the chain,
 #      DEX and perps series) -> the derived series (dilution, S-1 impulse)
+#   -> Batch 4 Tranche A part 1 (17 Oct 2026): perp funding and OI
+#      (Hyperliquid; OKX and Deribit), Bitcoin's network state, the
+#      fear-and-greed index, Ethereum's gas, then S-1's share and S-3. They are
+#      on feeds.EXTERNAL_WRITERS too (the weekday 16:10 pass and the freshness
+#      roster); this daily run is what covers the weekend, when crypto still
+#      trades. A second run the same weekday writes a later vintage of the day's
+#      snapshots and nothing else (unchanged rows are dropped).
 #
 # After the 16:45 close capture and inside the evening window. A crypto bar is
 # written once its UTC day has ended, so this run writes yesterday's; DefiLlama's
@@ -45,6 +52,12 @@ step() {
 }
 step prices "$PY" -c "from altdata.sources import yfinance_source as y; s = y.pull_crypto_basket(); print(s['success'], 'of', s['total'], 'failed', s['failed'])"
 step llama  "$PY" -m altdata.sources.llama pull
+step hl     "$PY" -m altdata.sources.hl
+step fut    "$PY" -m altdata.sources.fut
+step mempool "$PY" -m altdata.sources.mempool
+step fng    "$PY" -m altdata.sources.fng
+step blockscout "$PY" -m altdata.sources.blockscout
+step s1_s3  "$PY" -m altdata.sources.crypto_derived
 step derive "$PY" -m altdata.crypto_basket derive
 log "crypto basket: done"
 exit 0

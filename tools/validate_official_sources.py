@@ -475,8 +475,11 @@ def group_g() -> None:
         getattr(feeds, "EXTERNAL_WRITERS", ()))
     alt = "|".join(re.escape(w) for w in writers + ["_publication"])
     units = [p.name for p in (REPO / "deploy" / "systemd").iterdir()]
+    # A WRITER'S NAME AS A WHOLE TOKEN of the unit's name (17 Oct 2026): the
+    # Hyperliquid writer is `hl`, which a plain substring finds inside "monthly".
     check(not [u for u in units if re.search(
-        rf"(?:{alt}|auction_results|official|external)", u.replace("-", "_"))],
+        rf"(?:^|_)(?:{alt}|auction_results|official|external)(?:_|\.|$)",
+        u.replace("-", "_"))],
           f"no systemd unit was added for any of the {len(writers)} writers -- "
           f"they ride the existing pull")
     pat = re.compile(r"sources\s*(import|\.)\s*\(?\s*[^\n]*\b(" + alt + r")\b")

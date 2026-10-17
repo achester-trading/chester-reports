@@ -1,0 +1,121 @@
+# config/crypto_sources.yaml -- Batch 4 Tranche A, part 1: CD-1 (the watch names'
+# DefiLlama series), CD-2 (perp funding, open interest, long/short) and CD-5 (chain
+# and mempool state, the fear-and-greed index), with the S-1 and S-3 derived series.
+# docs/change-order-crypto-data-sources-2026-10-06.md, pulled forward by Batch 8
+# (docs/change-order-signal-triage-batch-8-2026-10-17.md section 6). crypto-tranche-
+# a-1, 17 Oct 2026, session B. Read by altdata/sources/{llama,hl,fut,mempool,fng,
+# blockscout}.py and altdata/sources/crypto_derived.py.
+#
+# Every source here is keyless and read within robots.txt (a 4xx robots.txt is no
+# rules, RFC 9309 2.3.1.3). SESSION-SET values are marked; the notes list them.
+version: 1
+
+# ---------------------------------------------------------------------------
+# CD-1: the watch names' fees and revenue (DS-29). The order's watch names are the
+# deep and light tiers of the alternative-assets order (BTC, ETH, SOL, ZEC, PRL;
+# HYPE, TAO, LINK, AAVE). AAVE, TAO and PRL are crypto-basket names and already
+# carry llama.fees_<sym> from config/crypto_basket.yaml, so they are NOT pulled
+# again here (one series, one writer). The slug is RESOLVED AT RUN TIME, never
+# written down:
+#   kind chain     the /overview/fees row whose protocolType is "chain" and whose
+#                  name is `match`
+#   kind protocol  the parent protocol shared by the /protocols rows whose symbol
+#                  is `match` (parentProtocol "parent#<slug>")
+# A name that resolves to nothing, or to two parents, is a named failure that
+# run, never a guess.
+watch_names:
+  - {sym: BTC, kind: chain, match: Bitcoin, series: [fees, revenue]}
+  - {sym: ETH, kind: chain, match: Ethereum, series: [fees, revenue]}
+  - {sym: SOL, kind: chain, match: Solana, series: [fees, revenue]}
+  - {sym: ZEC, kind: chain, match: Zcash, series: [fees, revenue]}
+  - {sym: HYPE, kind: protocol, match: HYPE, series: [fees, revenue]}
+  - {sym: LINK, kind: protocol, match: LINK, series: [fees, revenue]}
+# The coin service's caps for the S-3 denominator (OI over market cap). Forward-
+# only, as the basket's caps are.
+watch_coins:
+  - {sym: BTC, coin: "coingecko:bitcoin"}
+  - {sym: ETH, coin: "coingecko:ethereum"}
+
+# ---------------------------------------------------------------------------
+# CD-2: the perp venues. The order's three are Hyperliquid, Bybit and OKX
+# (Binance dropped, D-2). BYBIT IS GEO-BLOCKED FROM THE US: api.bybit.com's
+# CloudFront answers 403 "configured to block access from your country" (probed
+# 17 Oct 2026 from the laptop), the condition D-2 dropped Binance for -- a leg
+# that runs on the box only and cannot be tested from the laptop. Under the 16 Oct
+# rule (friction -> a keyless alternative or a listed gap) the third venue is
+# DERIBIT's perpetuals (keyless, reachable from both; www.deribit.com publishes no
+# robots.txt), already an adopted source in the order (DS-41). Bybit's reader is
+# built and fixture-tested on its documented response shape, and switched off.
+coins: [BTC, ETH]
+venues:
+  hyperliquid: {enabled: true, family: hl}
+  okx: {enabled: true, family: fut, inst: {BTC: BTC-USDT-SWAP, ETH: ETH-USDT-SWAP}}
+  deribit: {enabled: true, family: fut, inst: {BTC: BTC-PERPETUAL, ETH: ETH-PERPETUAL}}
+  bybit: {enabled: false, family: fut, inst: {BTC: BTCUSDT, ETH: ETHUSDT},
+          off: "geo-blocked from the US (403, 17 Oct 2026); on the box only if Ari rules so"}
+
+# HYPERLIQUID'S WEIGHT LIMIT, from its documentation (hyperliquid.gitbook.io,
+# "Rate limits and user limits", read 17 Oct 2026): REST requests share an
+# aggregated weight limit of 1,200 per minute per IP; metaAndAssetCtxs and
+# fundingHistory weigh 20; fundingHistory adds 1 per 20 items returned (at most
+# 500 a call). SESSION-SET: the guard spends at most 600 a minute, half the limit,
+# because the box shares its IP with nothing else that calls Hyperliquid but a
+# second process (a by-hand backfill beside the nightly pull) must still fit.
+hyperliquid:
+  limit_per_min: 1200
+  budget_per_min: 600
+  weight_info: 20
+  weight_per_items: {fundingHistory: 20}
+  max_items: 500
+
+# BACKFILL BOUNDS (SESSION-SET). Every backfill is bounded by a start date and a
+# page cap and writes point in time: available_at is the pull instant, never
+# backdated (the venues refill nothing, but the system could not know a past day
+# before it read it).
+backfill:
+  hyperliquid_funding_from: 2023-05-12      # Hyperliquid's first funding print
+  okx_oi_days: 365                          # OKX serves per-instrument OI history
+  okx_funding_days: 92                      # OKX serves about three months
+  deribit_funding_from: 2019-01-01
+  max_pages: 200
+
+# The daily pull's own window (the first pull of an empty key writes all of it).
+daily_window_days: 14
+
+# ---------------------------------------------------------------------------
+# S-3 (the order's section 3): OI-weighted funding across the venues, annualised;
+# total OI in USD; OI over market cap; z-scores on a 90-day window. SESSION-SET:
+# an aggregate needs at least two venues with both funding and OI on the day
+# (the order rejects single-venue readings); a z needs 60 of the 90 days.
+s3:
+  min_venues: 2
+  z_window: 90
+  z_min_obs: 60
+
+# ---------------------------------------------------------------------------
+# CD-5
+mempool:
+  base: https://mempool.space/api
+  # mempool.space serves its single-page app at /robots.txt (200, HTML, no rules):
+  # read as no rules. /v1/mining/hashrate/3m and /all are the history.
+  pools_top: 10
+fng:
+  url: https://api.alternative.me/fng/
+# ETHEREUM, under the 16 Oct rule (b). The order's DS-11 is Etherscan (ethsupply2,
+# the gas oracle), which needs ETHERSCAN_API_KEY, a registration Ari has not made.
+# The keyless path within robots is Blockscout's Ethereum explorer
+# (eth.blockscout.com, robots: Allow /): the gas oracle (slow/average/fast gwei),
+# network utilisation and the daily transaction count (30 days of history). ETH
+# supply, staked and burnt (ethsupply2) has no keyless source here: a listed gap,
+# with the key's name. Blockscout's price and market cap are CoinGecko's and are
+# NOT stored (the 13 Oct ruling on CoinGecko's terms).
+blockscout:
+  base: https://eth.blockscout.com/api/v2
+
+# ---------------------------------------------------------------------------
+# GAPS, named (each printed by its writer's summary and in the notes).
+gaps:
+  raises: "DefiLlama /raises answers 402 'Upgrade to the paid API plan' (re-probed 17 Oct 2026)"
+  eth_supply_burn: "Etherscan ethsupply2 needs ETHERSCAN_API_KEY (a registration Ari has not made); no keyless source within robots serves supply, staked and burnt"
+  coingecko_global: "CoinGecko /global (total market cap, BTC dominance): no ST-13 fetcher exists, and CoinGecko's terms bar storing its data (ruled 13 Oct 2026); no free source with storable terms serves the total"
+  bybit: "geo-blocked from the US (17 Oct 2026); Deribit perpetuals are the third venue"
