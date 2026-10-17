@@ -354,3 +354,16 @@ the funding and OI cells already wired.
 
 This branch's push and the `6e-digital` fix (`938b5e2`) are each read once and
 recorded here.
+
+| Run | Branch, commit | Result |
+|---|---|---|
+| 39034690356 (Gates, push) | `6e-digital`, `938b5e2` (the fix) | green: 87 of 87 jobs |
+| 39034892068 (Gates, push) | `crypto-tranche-a-1`, `d2da8ad` | green: 88 of 88 jobs |
+
+Read 17 Oct 2026. Ari's rulings of 17 Oct on this report are applied on
+`crypto-tranche-a-2`:
+- Bybit stays out, with its reader switched off by config and no call path.
+- `/global` stays unbuilt; total market cap and dominance come from a keyless source or are a listed gap.
+- ETH supply and burn stay a gap.
+- The session-set values stand.
+- The z-score levels print from mid-December.
