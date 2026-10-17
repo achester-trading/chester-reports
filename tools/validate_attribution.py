@@ -258,9 +258,12 @@ def group_a() -> None:
           "call-put OI carries section 5's twelve-month kill condition, added today")
     imf = mets.get("imf.ifs_official_gold_oz") or {}
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
+    # The source itself goes live with imf-ifs-gold's writer (Friday stitching,
+    # 13 Oct); this metric stays not_yet_sourced until it is pointed at the
+    # writer's imf.ifs.* series.
     check(imf.get("status_extra") == "not_yet_sourced"
-          and (src.get("imf_ifs") or {}).get("status") == "not_yet_sourced",
-          "IMF IFS is registered not_yet_sourced (a ruling pending)")
+          and (src.get("imf_ifs") or {}).get("status") in ("not_yet_sourced", "live"),
+          "IMF IFS's two-bid leg is registered not_yet_sourced (a ruling pending)")
     writers = [p for p in (REPO / "altdata").rglob("*.py")
                if "imf.ifs_official_gold_oz" in p.read_text(encoding="utf-8")
                and "registry_key" in p.read_text(encoding="utf-8")
