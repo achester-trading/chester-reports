@@ -222,4 +222,9 @@ plus one line in `main`'s group list). Session A's branches carry
 
 ## CI
 
-Read once after the push; recorded below.
+| Run | Commit | Result |
+|---|---|---|
+| 39072731374 (Gates, push) | `0a51898` | **passed: 82 of 82 gate jobs** (76 code, 6 data) |
+
+Read once; green. It ran on the tip that carries `weekly-fixes-7`'s CI fix
+(`a5e38e5`, itself green as run 39072463041).
