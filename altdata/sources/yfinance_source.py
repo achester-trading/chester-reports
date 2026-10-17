@@ -132,6 +132,12 @@ SYMBOLS: dict[str, str] = {
     #   Commodity producers (SR-24; G-15 asks whether GUNR is an adequate proxy --
     #   ST-4's question, not this list's).
     "GUNR": "mkt_gunr",
+    # AQ-4 (10 Oct 2026, the returns quilt): broad commodities. The quilt's
+    # commodity class needs an index and the store held none -- GUNR above is
+    # producers' equity, not the commodities -- so the fund is read rather than
+    # an index synthesised. A futures fund: its return carries the roll. Like
+    # NVDA, it needs tools/backfill_prices.py before its history reads.
+    "DBC": "mkt_dbc",           # Invesco DB Commodity Index Tracking Fund
     #   The yuan (SR-4): USD/CNY, yuan per dollar, onshore. REPLACED CNH=X on
     #   5 Oct 2026 (PB-1): Yahoo served one bar for CNH=X whatever the period
     #   asked, and on 5 Oct none at all; CNY=X serves a daily history. The
