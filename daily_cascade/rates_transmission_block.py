@@ -81,8 +81,9 @@ def subsection(st, now: str, cadence: str = "weekly",
             f"{', '.join(gaps) or 'none'}. The euro area's 2-year is Germany's, from "
             f"the Bundesbank's fitted curve. FRED serves the ICE BofA spreads from "
             f"October 2023 only, so each percentile names the window it covers and "
-            f"its n. Housing is monthly (Redfin) with the MBA purchase index as its "
-            f"weekly line; the MBA level and NAR's index are entered by hand. Flags "
+            f"its n. Housing is monthly (Redfin alone, single-source) with the MBA "
+            f"purchase index as its weekly line, its level chained from the weekly "
+            f"changes; nothing is entered by hand. Flags "
             f"are descriptive and unvalidated: no state, trigger or overlay reads "
             f"them.")
     return {"title": b.get("header") or TITLE,

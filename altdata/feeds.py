@@ -171,7 +171,12 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "redfin", "mba", "sp500_members", "wgc_stock",
                     # ST-R5 fixes (16 Oct 2026): Japan's national CPI from the
                     # Statistics Bureau's own files (item 39's US-JP gap)
-                    "stat_jp_cpi")
+                    "stat_jp_cpi",
+                    # The by-hand audit (16 Oct 2026): the UK's and Canada's CPI
+                    # from the ONS and Statistics Canada (the real-yield panel's
+                    # gaps), and SR-30's daily OAT from the Banque de France's
+                    # keyless Webstat export
+                    "ons_cpi", "statcan_cpi", "bdf_webstat")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

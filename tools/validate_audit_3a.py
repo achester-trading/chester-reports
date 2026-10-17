@@ -137,6 +137,21 @@ UNCHANGED_RULED = ("fred.sloos_ci_large", "fred.sloos_ci_small",
                    "fred.sloos_cre_multifamily")
 # Keys the registry resolves for the first time (no rule at fb67bf3), by block:
 # what the resolver fix and the bars blocks add.
+# Keys fb67bf3 resolved that the by-hand audit removed (st-r5-audit, ruled 16
+# Oct 2026: no recurring by-hand data line without the operator's yes). Gone on
+# purpose, so not "lost"; manual.cbo_deficit_path's declared change above stays
+# held on its fixture pair, which reads no registry.
+DROPPED_BY_HAND = {
+    "manual.sep_median_next2", "manual.sep_median_12m",
+    "manual.fedwatch_next_meeting_prob", "manual.cbo_deficit_path",
+    "manual.ig_nic_median_bp", "manual.ig_cover_median",
+    "manual.aaii_stocks_pct", "manual.aaii_bonds_pct", "manual.aaii_cash_pct",
+    "manual.msci_em_usd", "manual.msci_em_local", "manual.msci_world_usd",
+    "manual.msci_acwi_exus_usd", "manual.oecd_days_cover",
+    "manual.global_visible_stocks_bbl", "manual.cofer_usd_share",
+    "manual.cofer_usd_share_constant_fx", "manual.gold_share_total_reserves",
+    "manual.mu_hbm_share", "manual.dram_contract_dir", "manual.g4_issuance_gap_gdp",
+    "manual.panda_bond_issuance", "manual.state_bank_dollar_selling"}
 NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_columns",
                   "event_types", "pin_log_columns", "bars_prices",
                   "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd"}
@@ -279,10 +294,13 @@ def group_b() -> None:
           f"no delta rule moved from fb67bf3's but the {len(CHANGED_RULES)} declared "
           f"({len(moved)} moved; undeclared: {undeclared[:6] or 'none'})")
     check(all(derived.delta_unit_for(k)[0] == want for k, (want, _) in
-              CHANGED_RULES.items()),
+              CHANGED_RULES.items() if k not in DROPPED_BY_HAND),
           "and each declared one now reads its new rule")
-    lost = sorted(k for k in base if k not in resolved)
+    lost = sorted(k for k in base if k not in resolved and k not in DROPPED_BY_HAND)
     check(not lost, f"no key fb67bf3 resolved is lost ({lost[:5] or 'none'})")
+    check(not DROPPED_BY_HAND & set(resolved) and DROPPED_BY_HAND <= set(base),
+          f"the {len(DROPPED_BY_HAND)} keys the by-hand audit dropped are gone, and "
+          f"each was one fb67bf3 resolved")
     new = [k for k in resolved if k not in base]
     # A metric registered one by one since fb67bf3 (another branch's new series:
     # VP-1's calc.vp_*, stitched 15 Oct) is new by its own entry. A BLOCK key

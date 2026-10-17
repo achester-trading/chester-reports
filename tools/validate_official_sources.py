@@ -42,8 +42,10 @@ same on a CI runner as on the laptop.
   J  manual_input. One observation with the note on the same row, the entry
      instant as available_at and a run_id; unregistered keys, out-of-range
      fractions, future dates, non-numbers and missing notes are refused; a
-     correction is a new vintage that supersedes, not an edit; the order's six
-     keys exist.
+     correction is a new vintage that supersedes, not an edit. Since the by-hand
+     audit (16 Oct 2026) the one key registered is manual.global_pmi; a dropped
+     key is refused, and the fraction and label rules are held on synthetic
+     keys.
   S  AAII (T2.7). The parser reads the bull-bear spread in percentage points
      from a sheet whose header row is found by name, skips undated and
      non-numeric rows, and refuses a sheet with no Bullish/Bearish header;
@@ -638,24 +640,24 @@ def group_j() -> None:
         "manual_input", REPO / "tools" / "manual_input.py")
     mi = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mi)
-    required = {"manual.sep_median_next2", "manual.sep_median_12m",
-                "manual.fedwatch_next_meeting_prob", "manual.cbo_deficit_path",
-                "manual.ig_nic_median_bp", "manual.ig_cover_median"}
+    # The by-hand audit (16 Oct 2026): the order's six keys are dropped, and
+    # the one key standing is the global PMI (the operator's yes, Batch 6 item
+    # 43). The CLI's rules are held on it, and on synthetic keys for the units
+    # no registered key carries any more (fraction, label).
     keys = mi.manual_keys()
-    check(required <= set(keys),
-          f"the order's six keys are registered "
-          f"(missing {sorted(required - set(keys))})")
+    check(set(keys) == {"manual.global_pmi"},
+          f"one manual_input key stands, the global PMI ({sorted(keys)})")
+    K = "manual.global_pmi"
     fd, path = tempfile.mkstemp(suffix=".sqlite", dir=_TMP)
     os.close(fd)
     os.unlink(path)
-    mi.write("manual.sep_median_12m", "3.625", "2020-09-16",
-             "SEP Sep 2020 -- fixture", db_path=path)
+    mi.write(K, "50.2", "2020-09-01", "Global PMI Sep 2020 -- fixture", db_path=path)
     with observations.ObservationStore(path) as db:
         got = db.conn.execute(
             "SELECT value_num, value_text, run_id, source, available_at "
             "FROM observations").fetchall()
-        check(len(got) == 1 and got[0][0] == 3.625
-              and got[0][1] == "SEP Sep 2020 -- fixture",
+        check(len(got) == 1 and got[0][0] == 50.2
+              and got[0][1] == "Global PMI Sep 2020 -- fixture",
               "one observation, the number and its note on the same row")
         check(got[0][2].startswith("manual_input-")
               and got[0][3] == "manual_input",
@@ -665,22 +667,20 @@ def group_j() -> None:
               and got[0][4][:10] >= session.utc_iso()[:10],
               "available_at is the ENTRY instant, canonical microsecond UTC, "
               "not the observed date")
-        mi.write("manual.sep_median_12m", "3.375", "2020-09-16",
-                 "SEP Sep 2020 -- corrected", db_path=path)
-        last = db.latest_as_of("manual.sep_median_12m")
-        check(count(db, "manual.sep_median_12m") == 2
-              and last["value_num"] == 3.375,
+        mi.write(K, "50.4", "2020-09-01", "Global PMI Sep 2020 -- corrected",
+                 db_path=path)
+        last = db.latest_as_of(K)
+        check(count(db, K) == 2 and last["value_num"] == 50.4,
               "a correction is a second vintage that supersedes; the first "
               "stays on record")
     tomorrow = (session.session_date_obj() + dt.timedelta(days=1)).isoformat()
     cases = ((("manual.nope", "1", "2020-01-01", "n"), "an unregistered key"),
-             (("manual.fedwatch_next_meeting_prob", "72", "2020-01-01", "n"),
-              "a fraction entered as a percent"),
-             (("manual.sep_median_12m", "3.5", tomorrow, "n"), "a future date"),
-             (("manual.sep_median_12m", "3.5", "2020-01-01", "  "), "no note"),
-             (("manual.sep_median_12m", "abc", "2020-01-01", "n"),
-              "a non-number"),
-             (("manual.sep_median_12m", "nan", "2020-01-01", "n"), "NaN"))
+             (("manual.sep_median_12m", "3.5", "2020-01-01", "n"),
+              "a key the by-hand audit dropped"),
+             ((K, "50.1", tomorrow, "n"), "a future date"),
+             ((K, "50.1", "2020-01-01", "  "), "no note"),
+             ((K, "abc", "2020-01-01", "n"), "a non-number"),
+             ((K, "nan", "2020-01-01", "n"), "NaN"))
     for args, why in cases:
         try:
             mi.write(*args, db_path=path)
@@ -691,6 +691,23 @@ def group_j() -> None:
         check(count(db) == 2, "and a refusal writes nothing")
     check(mi.main(["manual.nope", "1", "2020-01-01", "n", "--db", path]) == 2,
           "the CLI exits 2 on a refusal")
+    # The unit rules, on synthetic keys (no registered key is a fraction or a
+    # label since the audit; the rules stay for the next ruled key).
+    syn = {"fixture.prob": {"units": "fraction"},
+           "fixture.label": {"units": "label", "codes": {"yes": 1, "no": 0, "unknown": -1}},
+           "fixture.nocodes": {"units": "label"}}
+    for args, why in ((("fixture.prob", "72"), "a fraction entered as a percent"),
+                      (("fixture.label", "maybe"), "a label outside its codes"),
+                      (("fixture.label", "1"), "a code typed in place of its label"),
+                      (("fixture.nocodes", "yes"), "a label key with no codes")):
+        try:
+            mi.validate(args[0], args[1], "2020-01-02", "n", syn)
+            bad(f"refuses {why}")
+        except mi.Refused:
+            ok(f"refuses {why}")
+    check(mi.validate("fixture.prob", "0.72", "2020-01-02", "n", syn)[0] == 0.72
+          and mi.validate("fixture.label", "Yes ", "2020-01-02", "n", syn)[0] == 1.0,
+          "a fraction in range stands, and a label stores its code (Yes -> 1)")
 
 
 # ===========================================================================
@@ -1129,7 +1146,10 @@ def group_p() -> None:
         "manual_input", REPO / "tools" / "manual_input.py")
     mi = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mi)
-    want = {"manual.aaii_stocks_pct", "manual.aaii_bonds_pct", "manual.aaii_cash_pct",
+    # The by-hand audit (16 Oct 2026) drops the seventeen ST-2 keys: none is
+    # registered, and the label rules they carried are held on synthetic keys
+    # in group J. Their verdicts: docs/briefs/st-r5-audit-notes.md.
+    gone = {"manual.aaii_stocks_pct", "manual.aaii_bonds_pct", "manual.aaii_cash_pct",
             "manual.msci_em_usd", "manual.msci_em_local", "manual.msci_world_usd",
             "manual.msci_acwi_exus_usd", "manual.oecd_days_cover",
             "manual.global_visible_stocks_bbl", "manual.cofer_usd_share",
@@ -1138,31 +1158,9 @@ def group_p() -> None:
             "manual.g4_issuance_gap_gdp", "manual.panda_bond_issuance",
             "manual.state_bank_dollar_selling"}
     keys = mi.manual_keys()
-    check(want <= set(keys) and all(keys[k].get("units") and keys[k].get("description")
-                                    for k in want),
-          f"the 17 ST-2 manual keys are registered with units and a description "
-          f"(missing {sorted(want - set(keys))})")
-    check(keys["manual.aaii_stocks_pct"].get("delta_unit") == "pp",
-          "a share in percent moves in points (delta_unit pp), not basis points")
-    fd, path = tempfile.mkstemp(suffix=".sqlite", dir=_TMP)
-    os.close(fd)
-    os.unlink(path)
-    mi.write("manual.state_bank_dollar_selling", "Yes", "2020-01-02",
-             "fixture -- G-21 by hand", db_path=path)
-    mi.write("manual.dram_contract_dir", "down", "2020-01-31", "fixture", db_path=path)
-    with observations.ObservationStore(path) as db:
-        sb = db.latest_as_of("manual.state_bank_dollar_selling")
-        dr = db.latest_as_of("manual.dram_contract_dir")
-    check(sb["value_num"] == 1.0 and sb["value_text"] == "fixture -- G-21 by hand"
-          and dr["value_num"] == -1.0,
-          "a coded label stores its code (yes=1, down=-1) and keeps the note")
-    for bad_value in ("maybe", "1"):
-        try:
-            mi.write("manual.state_bank_dollar_selling", bad_value, "2020-01-02",
-                     "n", db_path=path)
-            bad(f"refuses the label {bad_value!r}")
-        except mi.Refused:
-            ok(f"refuses the label {bad_value!r} -- only yes / no / unknown")
+    check(not gone & set(keys),
+          f"the 17 ST-2 manual keys are dropped by the by-hand audit "
+          f"(still registered: {sorted(gone & set(keys)) or 'none'})")
 
 
 def group_q() -> None:

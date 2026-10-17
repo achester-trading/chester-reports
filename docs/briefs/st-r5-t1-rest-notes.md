@@ -564,12 +564,8 @@ Canada stay blank until a current CPI is stored.
 >   tightening";
 > - both rising, or both off, is a draw and is said to be one.
 
-**42 — the Warsh-matrix line:**
-
-> Inflation-expectations composite at or above +1.0 z and rising: weight the
-> hikes-resume cell up. Composite below 0 and falling while the 10-year rises:
-> weight the hold-and-let-the-curve-work cell up. Descriptive, unvalidated; the
-> matrix's weights stay yours.
+**42 — the Warsh-matrix line:** moved to `docs/warsh-matrix-lines.md` (branch
+`st-r5-audit`, 16 Oct 2026), the home the Warsh-matrix lines now have.
 
 **43 — the global PMI**, monthly, by hand (the command is below).
 

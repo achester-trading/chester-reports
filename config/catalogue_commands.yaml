@@ -397,6 +397,18 @@ commands:
     domain: japan
     line: Statistics Bureau of Japan -- the national CPI's change on the year (all items, core, less fresh food), monthly
     sources: [stat_jp_cpi]
+  altdata.sources.ons_cpi:
+    domain: macro
+    line: Office for National Statistics -- the UK CPI's 12-month rate, headline and core, monthly
+    sources: [ons_cpi]
+  altdata.sources.statcan_cpi:
+    domain: macro
+    line: Statistics Canada -- the CPI's change on the year, headline and core (excluding food and energy), monthly
+    sources: [statcan_cpi]
+  altdata.sources.bdf_webstat:
+    domain: rates
+    line: Banque de France, Webstat -- the French 10-year (TEC 10), daily, SR-30's OAT leg
+    sources: [bdf_webstat]
   altdata.sources.wgc_stock:
     domain: commodities
     line: World Gold Council -- the above-ground stock of gold, quarterly

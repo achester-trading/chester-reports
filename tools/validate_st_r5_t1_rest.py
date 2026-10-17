@@ -354,6 +354,7 @@ def group_b() -> None:
 
 
     jp_cpi_reader()
+    uk_ca_cpi_readers()
 
 
 def jp_csv(base: int, months_: list[str], codes=("0001", "0178", "0161"),
@@ -372,6 +373,112 @@ def jp_csv(base: int, months_: list[str], codes=("0001", "0178", "0161"),
     out = io.StringIO()
     csv.writer(out, lineterminator="\r\n").writerows(head + body)
     return out.getvalue().encode("cp932")
+
+
+def ons_csv(cdid: str, months_: list[str], unit: str = "%",
+            release: str = "16-09-2026") -> str:
+    """The ONS generator's layout: labelled header rows, then annual, quarterly
+    and monthly rows. Monthly values 2.0 + 0.1 per month."""
+    names = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT",
+             "NOV", "DEC")
+    head = [("Title", f"FIXTURE {cdid}"), ("CDID", cdid), ("Source dataset ID", "MM23"),
+            ("PreUnit", ""), ("Unit", unit), ("Release date", release),
+            ("Next release", "21 October 2026"), ("Important notes", "")]
+    body = [("2025", "3.0"), ("2025 Q4", "3.1")]
+    body += [(f"{m[:4]} {names[int(m[5:]) - 1]}", f"{2.0 + 0.1 * i:.1f}")
+             for i, m in enumerate(months_)]
+    return "".join(f'"{a}","{b}"\n' for a, b in head + body)
+
+
+def statcan_json(months_: list[str], vectors=(41690973, 41691233)) -> bytes:
+    """Statistics Canada's WDS layout: one SUCCESS block per vector, each point
+    with its month, index and releaseTime (local Ottawa)."""
+    blocks = []
+    for j, vid in enumerate(vectors):
+        pts = [{"refPer": f"{m}-01", "value": 150.0 + i * 0.3 + j,
+                "releaseTime": f"{m}-28T08:30"} for i, m in enumerate(months_)]
+        blocks.append({"status": "SUCCESS",
+                       "object": {"vectorId": vid, "vectorDataPoint": pts}})
+    import json as _json                                         # noqa: PLC0415
+    return _json.dumps(blocks).encode()
+
+
+def uk_ca_cpi_readers() -> None:
+    """The by-hand audit's two CPI readers (16 Oct 2026): fixtures, refusals,
+    a robots disallow, and a pull into a temporary store."""
+    from altdata import feeds                                   # noqa: PLC0415
+    from altdata.sources import _base as base                   # noqa: PLC0415
+    from altdata.sources import ons_cpi as oc                   # noqa: PLC0415
+    from altdata.sources import statcan_cpi as sc               # noqa: PLC0415
+    mm = months("2025-01", "2026-08")
+    rows = oc.rows_from({"D7G7": ons_csv("D7G7", mm), "DKO8": ons_csv("DKO8", mm)})
+    by = {(r["registry_key"], r["observed_at"]): r for r in rows}
+    aug = by[("uk.cpi_core_yoy", "2026-08-01")]
+    check(len(rows) == 2 * len(mm) and aug["value"] == round(2.0 + 0.1 * 19, 1)
+          and aug["available_at"] == "2026-09-16T06:00:00.000000+00:00"
+          and aug["availability_kind"] == "observed"
+          and ("uk.cpi_yoy", "2025-01-01") in by,
+          "the ONS file: monthly rows only (annual and quarterly skipped), the "
+          "rate as published, stamped at the release date's 07:00 UK (06:00 UTC)")
+    for text, why in ((ons_csv("DKO8", mm), "another series under the asked CDID"),
+                      (ons_csv("D7G7", mm, unit="Index"), "another unit"),
+                      (ons_csv("D7G7", mm, release=""), "no release date"),
+                      (ons_csv("D7G7", mm, release="16-09-2099"), "a release in the future"),
+                      (ons_csv("D7G7", []), "no monthly row")):
+        try:
+            oc.parse(text, "D7G7")
+            check(False, f"the ONS reader refuses {why}")
+        except ValueError:
+            check(True, f"the ONS reader refuses {why}")
+    srows = sc.rows_from(statcan_json(mm))
+    sby = {(r["registry_key"], r["observed_at"]): r for r in srows}
+    # Aug 2026 (i = 19) over Aug 2025 (i = 7): (150 + 5.7 + j) / (150 + 2.1 + j).
+    want = round(((150.0 + 19 * 0.3 + 1) / (150.0 + 7 * 0.3 + 1) - 1) * 100, 1)
+    got = sby[("ca.cpi_core_yoy", "2026-08-01")]
+    check(got["value"] == want and got["available_at"] == "2026-08-28T12:30:00.000000+00:00"
+          and min(d for k, d in sby if k == "ca.cpi_yoy") == "2026-01-01",
+          f"Statistics Canada: the change on the year from the index, by hand "
+          f"({want}%), stamped at the month's releaseTime (08:30 Ottawa); no month "
+          f"without its year-earlier month")
+    for data, why in ((statcan_json(mm, vectors=(41690973,)), "a missing vector"),
+                      (statcan_json(mm, vectors=(41690973, 99999999)), "another vector"),
+                      (statcan_json([]), "a vector with no point")):
+        try:
+            sc.rows_from(data)
+            check(False, f"the Statistics Canada reader refuses {why}")
+        except ValueError:
+            check(True, f"the Statistics Canada reader refuses {why}")
+    check({"ons_cpi", "statcan_cpi"} <= set(feeds.EXTERNAL_WRITERS)
+          and set(oc.KEYS + sc.KEYS) <= set(feeds.external_keys()),
+          "both on feeds.EXTERNAL_WRITERS, their four keys on the external roster")
+    saved = (base.http_get_text, oc.http_get_response, sc.http_get_response)
+    try:
+        def no_robots(*a, **k):
+            raise base.FetchError("HTTP 404 from https://www.ons.gov.uk/robots.txt: x")
+        base.http_get_text = lambda *a, **k: "User-agent: *\nDisallow: /generator\n"
+        oc.http_get_response = boom
+        with open_store(store([])) as st:
+            r0 = oc.pull(db=st)
+        check(r0["status"] != "OK" and "robots" in str(r0.get("reason", "")),
+              "an ONS robots disallow stops the fetch before any file is read")
+        base.http_get_text = no_robots
+        files = {oc.url_of("D7G7"): ons_csv("D7G7", mm).encode(),
+                 oc.url_of("DKO8"): ons_csv("DKO8", mm).encode()}
+        oc.http_get_response = lambda url, **k: (files[url], {})
+        base_text = lambda *a, **k: "User-agent: *\nDisallow: /t1/tbl1/\n"
+        with open_store(store([])) as st:
+            r1 = oc.pull(db=st)
+            base.http_get_text = base_text
+            sc.http_get_response = lambda url, **k: (statcan_json(mm), {})
+            r2 = sc.pull(db=st)
+            n = count(st)
+        check(r1["status"] == "OK" and r1["written"] == 2 * len(mm)
+              and r2["status"] == "OK" and r2["written"] == 2 * (len(mm) - 12)
+              and n == r1["written"] + r2["written"],
+              f"robots.txt answered 404 is no rules (RFC 9309): the ONS pull writes "
+              f"{r1['written']} rows, Statistics Canada {r2['written']}, in a temporary store")
+    finally:
+        base.http_get_text, oc.http_get_response, sc.http_get_response = saved
 
 
 def jp_cpi_reader() -> None:
@@ -707,6 +814,23 @@ def group_g() -> None:
     d0 = {x["pair"]: x for x in ry0["differentials"]}
     check(d0["US-JP"]["spread_bp"] is None and "Japan" in d0["US-JP"]["reason"],
           "without Japan's CPI stored, US less JP is a gap, Japan named")
+    uk_ca = ry_rows() + [("fred.gilt_10y", None, "2026-09-15", 4.6),
+                         ("uk.cpi_core_yoy", None, "2026-08-01", 2.6),
+                         ("uk.cpi_yoy", None, "2026-08-01", 3.1),
+                         ("fred.oecd_10y_ca", None, "2026-09-01", 3.4),
+                         ("ca.cpi_core_yoy", None, "2026-08-01", 2.1),
+                         ("ca.cpi_yoy", None, "2026-08-01", 3.0)]
+    with open_store(store(uk_ca)) as st:
+        ry2 = tr.real_yields(st, NOW, CFG)
+    b2 = {r["id"]: r for r in ry2["rows"]}
+    gb, ca = b2["GB"], b2["CA"]
+    check(gb.get("real_core_pct") == round(4.6 - 2.6, 2)
+          and gb.get("real_headline_pct") == round(4.6 - 3.1, 2)
+          and ca.get("real_core_pct") == round(3.4 - 2.1, 2)
+          and ca.get("real_headline_pct") == round(3.4 - 3.0, 2),
+          f"the UK on the ONS's CPI and Canada on Statistics Canada's: real on core "
+          f"and on headline, by hand (GB {gb.get('real_core_pct')}%, CA "
+          f"{ca.get('real_core_pct')}%) -- no longer gaps (the by-hand audit)")
     fr = by["FR"]
     check("real_core_pct" not in fr and "its core CPI is stale against the yield" in fr["gaps"],
           "France's HICP five months behind its yield: a gap, not a stale real yield")
@@ -947,7 +1071,8 @@ def group_k() -> None:
         if isinstance(v, dict):
             for k, x in v.items():
                 if isinstance(x, str) and (k.endswith("_key") or k in (
-                        "key", "nominal", "core", "headline", "headline_yoy", "linker")):
+                        "key", "nominal", "core", "headline", "headline_yoy",
+                        "core_yoy", "linker")):
                     keys.add(x)
                 walk(x)
         elif isinstance(v, list):
@@ -961,7 +1086,8 @@ def group_k() -> None:
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
     new = ["sp500.member_weight", "sp500.member_close", "wgc.above_ground_t",
            "bis.policy_rate", "jp.cpi_core_yoy", "manual.global_pmi",
-           "fred.expinf_10y", "fred.oecd_cli_g7", "fred.hicp_core_de", "fred.oecd_10y_kr"]
+           "fred.expinf_10y", "fred.oecd_cli_g7", "fred.hicp_core_de", "fred.oecd_10y_kr",
+           "uk.cpi_yoy", "uk.cpi_core_yoy", "ca.cpi_yoy", "ca.cpi_core_yoy"]
     check(all(k in reg["families"] and k in reg["long_windows"] for k in new),
           "the new series carry a family and a long window (the metric-lens rule)")
     check(derived.registry_entry("sp500.member_weight").get("units") == "percent_share"
@@ -971,13 +1097,17 @@ def group_k() -> None:
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
     check(all(src.get(s, {}).get("status") == "live"
               and src[s].get("implemented_by") == f"altdata/sources/{s}.py"
-              for s in ("sp500_members", "wgc_stock", "stat_jp_cpi")),
-          "sp500_members, wgc_stock and stat_jp_cpi are registered sources, status live")
+              for s in ("sp500_members", "wgc_stock", "stat_jp_cpi", "ons_cpi",
+                        "statcan_cpi")),
+          "sp500_members, wgc_stock, stat_jp_cpi, ons_cpi and statcan_cpi are "
+          "registered sources, status live")
     cmds = catalogue.commands()
     check(all(m in cmds for m in ("altdata.st_r5_t1_rest", "altdata.sources.sp500_members",
                                   "altdata.sources.wgc_stock",
-                                  "altdata.sources.stat_jp_cpi")),
-          "the catalogue names the four commands")
+                                  "altdata.sources.stat_jp_cpi",
+                                  "altdata.sources.ons_cpi",
+                                  "altdata.sources.statcan_cpi")),
+          "the catalogue names the six commands")
     import manual_input                                         # noqa: PLC0415
     gone = "manual.msci_acwi_mcap_usd_bn"
     readers = [str(p.relative_to(REPO)) for p in

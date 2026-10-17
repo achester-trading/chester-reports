@@ -57,7 +57,10 @@ panel:
     source: "Bundesbank, Svensson curve"
   - id: kr
     label: Korea
-    gap: "no writer: the Bank of Korea's ECOS API needs a free key in the box's .env (the operator's), and a new writer waits for D1c"
+    # The by-hand audit (16 Oct 2026): the ECOS key is ruled out (ruling (a):
+    # friction is a gap, not a key), and KOFIA's bond information service is a
+    # script-driven frameset with no export URL a writer can read.
+    gap: "no free source a writer can read: the Bank of Korea's ECOS API needs a registered key (ruled out, 16 Oct 2026) and KOFIA's bond service is a script-driven portal with no export"
   - id: ca
     label: Canada
     gap: "no writer: the Bank of Canada's Valet API is free and daily, but a new writer waits for D1c's write lock"

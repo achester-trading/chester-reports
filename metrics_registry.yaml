@@ -496,8 +496,8 @@ vocabularies:
     # (rates_decomposition); SR-22 and SR-23 need the two to be separable.
     - treasury_supply
     # OPERATOR-ENTERED FIGURES (tools/manual_input.py). A number a human typed
-    # from a published source -- the SEP median dot, a FedWatch probability, the
-    # CBO path, IG new-issue terms. Its own group because the provenance is a
+    # from a published source -- since the by-hand audit (16 Oct 2026) only the
+    # global PMI headline, the operator's one explicit yes. Its own group because the provenance is a
     # person, and a hand-entered figure must never count as independent
     # confirmation of the automated series it may have been read beside.
     - manual_entry
@@ -4197,84 +4197,13 @@ metrics:
   # OPERATOR-ENTERED (tools/manual_input.py). Registered here or refused there.
   # available_at is the ENTRY instant (section 1.4); value_text carries the note.
   # A correction is a new entry at a later available_at, never an edit.
+  # THE BY-HAND AUDIT (st-r5-audit, ruled 16 Oct 2026): no recurring by-hand
+  # data line without the operator's explicit yes in a filed order. The six
+  # keys that stood here (the SEP median dots, FedWatch, the CBO path, IG
+  # new-issue concession and cover) are removed, each with its verdict in
+  # docs/briefs/st-r5-audit-notes.md; the one key left is manual.global_pmi
+  # (Batch 6 item 43, the operator's yes), registered further down.
   # -------------------------------------------------------------------------
-  manual.sep_median_next2:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_rate
-    trigger_eligible: false
-    description: >-
-      SEP median federal funds projection for the CURRENT year-end, midpoint, percent -- the Fed's signalled level over the next two meetings, the comparison for calc.fed_mkt_gap_m1/_m2 (ST-4). Entered on SEP day; the note names the SEP and the dot.
-  manual.sep_median_12m:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_rate
-    trigger_eligible: false
-    description: >-
-      SEP median federal funds projection for the year-end NEAREST TWELVE MONTHS AHEAD, midpoint, percent -- the comparison for calc.fed_mkt_gap_12m (ST-4). The note names which year-end dot was used.
-  manual.fedwatch_next_meeting_prob:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: daily
-    information_half_life: session
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: fraction
-    trigger_eligible: false
-    description: >-
-      CME FedWatch probability of a HIKE (any size) at the next FOMC meeting, 0..1 -- SR-21's headline object, by hand until G-4 settles a free source. The note names the meeting date and the read time.
-  manual.cbo_deficit_path:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: structural
-    freq: quarterly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      CBO baseline federal deficit for the NEXT fiscal year, percent of GDP, observed_at = the baseline's publication date -- SR-23's projection input. The note names the report and the fiscal year.
-  manual.ig_nic_median_bp:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: bps
-    trigger_eligible: false
-    description: >-
-      Median new-issue concession on US IG corporate deals over the stated window, bp -- SR-16's absorption price (Bloomberg-only, by hand). The note names the window and the source.
-  manual.ig_cover_median:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: ratio
-    trigger_eligible: false
-    description: >-
-      Median order-book cover on US IG corporate deals over the stated window, times -- SR-16. The note names the window and the source.
 
   # -------------------------------------------------------------------------
   # TIC (signal-triage order ST-2; altdata/sources/tic.py). DOLLARS; observed_at
@@ -9797,241 +9726,12 @@ metrics:
       AMAT: cost of revenue for the quarter, dollars (yfinance quarterly statements). SR-37's semiconductor leg.
 
   # -------------------------------------------------------------------------
-  # OPERATOR-ENTERED, ST-2 (tools/manual_input.py). Labels are CODED: the CLI
-  # takes the label, stores the code, keeps the note in value_text.
+  # OPERATOR-ENTERED, ST-2 (tools/manual_input.py). The seventeen keys that
+  # stood here (AAII's allocation, the MSCI month-ends, the IEA and visible
+  # oil stocks, COFER and the gold share, HBM and DRAM, the G4 gap, panda bonds,
+  # state-bank dollar selling) are removed by the by-hand audit (16 Oct 2026);
+  # each verdict is in docs/briefs/st-r5-audit-notes.md.
   # -------------------------------------------------------------------------
-  manual.aaii_stocks_pct:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      AAII Asset Allocation Survey: stocks and stock funds, percent of portfolio (SR-12).
-  manual.aaii_bonds_pct:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      AAII Asset Allocation Survey: bonds and bond funds, percent of portfolio (SR-12).
-  manual.aaii_cash_pct:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      AAII Asset Allocation Survey: cash, percent of portfolio (SR-12).
-  manual.msci_em_usd:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: price
-    trigger_eligible: false
-    description: >-
-      MSCI Emerging Markets index, USD, month-end level from the MSCI end-of-month file (SR-14).
-  manual.msci_em_local:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: price
-    trigger_eligible: false
-    description: >-
-      MSCI Emerging Markets index, local currency, month-end level (SR-14).
-  manual.msci_world_usd:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: price
-    trigger_eligible: false
-    description: >-
-      MSCI World index, USD, month-end level (SR-14).
-  manual.msci_acwi_exus_usd:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: price
-    trigger_eligible: false
-    description: >-
-      MSCI ACWI ex-US index, USD, month-end level (SR-14).
-  manual.oecd_days_cover:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: days
-    trigger_eligible: false
-    description: >-
-      OECD industry stocks in days of forward demand, IEA Oil Market Report headline (SR-18, G-17).
-  manual.global_visible_stocks_bbl:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: count
-    trigger_eligible: false
-    description: >-
-      Global visible oil inventories, BARRELS, as published by the source the note names (SR-18; JPM's figure is not free, G-17).
-  manual.cofer_usd_share:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      IMF COFER: US dollar share of allocated reserves, at market exchange rates (SR-20).
-  manual.cofer_usd_share_constant_fx:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      US dollar share of reserves at CONSTANT exchange rates (ECB or IMF calculation, SR-20).
-  manual.gold_share_total_reserves:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      Gold's share of total official reserves at market prices (SR-20 scorecard).
-  manual.mu_hbm_share:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: quarterly
-    freq: quarterly
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      Micron's share of the HBM market, as published by the source the note names (SR-25).
-  manual.dram_contract_dir:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    codes: {"up": 1, "flat": 0, "down": -1}
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: label
-    trigger_eligible: false
-    description: >-
-      Direction of DRAM contract prices this month, coded up 1 / flat 0 / down -1 (SR-25, TrendForce or equivalent).
-  manual.g4_issuance_gap_gdp:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: structural
-    freq: annual
-    delta_unit: pp
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: percent_share
-    trigger_eligible: false
-    description: >-
-      G4 net government bond supply to private hands, percent of combined GDP, annual, as published by Lustig (SR-23; cited, by hand).
-  manual.panda_bond_issuance:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: monthly
-    freq: monthly
-    information_half_life: until_next_release
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: contract_ccy
-    trigger_eligible: false
-    description: >-
-      Panda bond issuance for the month, CNY (the contract currency), as published (SR-4).
-  manual.state_bank_dollar_selling:
-    source: manual_input
-    mechanism_group: manual_entry
-    native_horizon: daily
-    # QUOTED: unquoted, YAML reads yes/no as booleans and the CLI then refuses
-    # "yes" -- caught by validate_official_sources group P.
-    codes: {"yes": 1, "no": 0, "unknown": -1}
-    information_half_life: session
-    invalidated_by: none
-    observation_type: observed
-    revision_policy: never
-    units: label
-    trigger_eligible: false
-    description: >-
-      Whether China's state banks are seen selling dollars onshore -- the devaluation tell's third leg -- coded yes 1 / no 0 / unknown -1 (SR-4, G-21: no source yet, so by hand).
 
   # ---------------------------------------------------------------------------
   # DEFILLAMA (DS-29, CD-1; the llama.* family) and the crypto basket's derived
@@ -12472,6 +12172,80 @@ metrics:
     added_date: "2026-10-16"
     description: >-
       Japan's national CPI, all items less fresh food and energy (code 0178), PERCENT change on a year earlier, computed as jp.cpi_yoy is. The aggregate closest to the US core (less food and energy): the real-yield panel's Japan core leg and the US-JP real differential's.
+  uk.cpi_yoy:
+    source: ons_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      The UK CPI, all items, 12-month rate, PERCENT (ONS CDID D7G7, dataset MM23), the ONS's own rate to one decimal. observed_at = the month's first day; available_at the file's release date at 07:00 UK. The by-hand audit (16 Oct 2026): the real-yield panel's UK headline leg.
+  uk.cpi_core_yoy:
+    source: ons_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      The UK CPI excluding energy, food, alcoholic beverages and tobacco, 12-month rate, PERCENT (ONS CDID DKO8), the ONS's core. Stamped as uk.cpi_yoy. The real-yield panel's UK core leg.
+  ca.cpi_yoy:
+    source: statcan_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      Canada's CPI, all-items, PERCENT change on the same month a year earlier, computed from Statistics Canada's index (table 18-10-0004-01, vector v41690973, 2002=100) to one decimal. available_at the later of the two months' releaseTime. The by-hand audit (16 Oct 2026): the real-yield panel's Canada headline leg.
+  ca.cpi_core_yoy:
+    source: statcan_cpi
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_return
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      Canada's CPI, all-items excluding food and energy (vector v41691233), PERCENT change on a year earlier, computed as ca.cpi_yoy is. The aggregate closest to the US core: the real-yield panel's Canada core leg.
+  bdf.oat_tec10:
+    source: bdf_webstat
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_rate
+    trigger_eligible: false
+    added_date: "2026-10-16"
+    description: >-
+      The French 10-year, PERCENT, daily: the Banque de France's constant-maturity rate (TEC 10, FM.D.FR.EUR.FR2.BB.FRMOYTEC10.HSTA), interpolated between the OATs either side of ten years, from Webstat's anonymous series export, history from November 2004. available_at the file's updated_at per row (observed; history reloaded 2 Dec 2024 carries that instant). SR-30's daily OAT leg, against bbk.bund_10y.
   jp.cpi_less_fresh_yoy:
     source: stat_jp_cpi
     mechanism_group: macro_global_fx
@@ -13705,6 +13479,11 @@ families:
   jp.cpi_yoy: release
   jp.cpi_core_yoy: release
   jp.cpi_less_fresh_yoy: release
+  uk.cpi_yoy: release
+  uk.cpi_core_yoy: release
+  ca.cpi_yoy: release
+  ca.cpi_core_yoy: release
+  bdf.oat_tec10: rate
   fred.oecd_cli_g7: release
   fred.hicp_de: release
   fred.hicp_fr: release
@@ -13794,6 +13573,11 @@ long_windows:
   jp.cpi_yoy: full
   jp.cpi_core_yoy: full
   jp.cpi_less_fresh_yoy: full
+  uk.cpi_yoy: full
+  uk.cpi_core_yoy: full
+  ca.cpi_yoy: full
+  ca.cpi_core_yoy: full
+  bdf.oat_tec10: full
   fred.oecd_cli_g7: full
   fred.hicp_de: full
   fred.hicp_fr: full

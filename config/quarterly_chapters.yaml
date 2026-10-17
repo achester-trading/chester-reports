@@ -119,7 +119,8 @@ families:
          kill: "drop call-put OI if its percentile shows no relationship to forward 20-day returns in either direction after twelve months"}
       - {id: effective_float, title: "Effective-float elasticity", waits: "not built (AQ-8)",
          kill: "only above a market-cap floor"}
-      - {id: sovereign_gap, title: "The sovereign gold-share gap", series: [manual.gold_share_total_reserves],
+      - {id: sovereign_gap, title: "The sovereign gold-share gap",
+         waits: "the by-hand gold-share key is dropped (16 Oct 2026); a reader from the IMF's keyless IFS world aggregate is listed, not built",
          kill: "none ruled (section 5)"}
       - {id: copper_gold_10y, title: "Copper/gold against the 10-year", module: altdata.correlation,
          reader: corr_triple, key: corr.copper_gold__10y.60d, kill: "none ruled (section 5)"}
@@ -412,7 +413,7 @@ families:
       - {key: cftc.noncomm_net, instrument: USD_INDEX, label: "Dollar index futures, non-commercial net (CFTC legacy)"}
       - {key: cftc.noncomm_net, instrument: JPY, label: "Yen futures, non-commercial net (CFTC legacy)"}
       - {key: tic.official_holdings, label: "Foreign official Treasury holdings (TIC)"}
-      - {key: manual.cofer_usd_share_constant_fx, label: "The dollar's COFER share, constant currency"}
+      - {label: "The dollar's COFER share, constant currency", absent: "not tracked (by-hand audit, 16 Oct 2026): no free series publishes the constant-currency share (an ECB/IMF calculation in their reports)"}
       - {key: cfets.cny_fix,         label: "The PBoC's CNY fixing"}
       - {key: mof.jgb_10y,           label: "The 10-year JGB yield"}
       - {label: "The EM dollar index", absent: "not stored (AQ-3)"}
@@ -647,9 +648,9 @@ families:
       - {key: fred.dxy,          label: "The broad dollar (DTWEXBGS)"}
       - {key: fred.usd_mxn,      label: "USD/MXN (FRED DEXMXUS)"}
     structure:
-      - {key: manual.msci_em_usd,   label: "MSCI EM, USD (SR-14)"}
-      - {key: manual.msci_em_local, label: "MSCI EM, local currency (SR-14)"}
-      - {key: manual.msci_world_usd, label: "MSCI World, USD (SR-14's DM leg)"}
+      - {label: "MSCI EM, USD (SR-14)", absent: "not tracked (by-hand audit, 16 Oct 2026): msci.com's robots.txt disallows its index pages; EEM below is the stored proxy"}
+      - {label: "MSCI EM, local currency (SR-14)", absent: "not tracked (by-hand audit, 16 Oct 2026): msci.com's robots.txt disallows its index pages"}
+      - {label: "MSCI World, USD (SR-14's DM leg)", absent: "not tracked (by-hand audit, 16 Oct 2026): msci.com's robots.txt disallows its index pages"}
       - {key: yfinance.mkt_eem,     label: "EM equity (EEM)"}
       - {key: yfinance.mkt_emxc,    label: "EM ex-China equity (EMXC)"}
       - {key: fred.usd_mxn,         label: "USD/MXN"}
@@ -751,7 +752,7 @@ families:
       - {key: safe.gold_reserves_oz, label: "Official gold, troy ounces (SAFE)"}
       - {share: [safe.gold_reserves_usd, safe.official_reserves_total], label: "Gold's share of official reserves (SAFE, market value)"}
       - {hook_key: imf.ifs.gold_reserves_oz.chn, branch: imf-ifs-gold, label: "Official gold, troy ounces (IMF IFS, the cross-check)"}
-      - {key: manual.panda_bond_issuance, label: "Panda bond issuance"}
+      - {label: "Panda bond issuance", absent: "not tracked (by-hand audit, 16 Oct 2026): no free machine-readable series"}
     structure_charts:
       - {id: fixing, title: "USD/CNY against the PBoC's fixing", kind: line,
          series: [{key: yfinance.mkt_usdcny, label: "USD/CNY"},
@@ -813,7 +814,7 @@ families:
         rows:
           - {key: tic.holdings_by_country, instrument: "China, Mainland", label: "China's Treasury holdings (TIC Major Foreign Holders)"}
           - {key: safe.gold_reserves_oz, label: "Official gold, troy ounces (SAFE)"}
-          - {key: manual.state_bank_dollar_selling, label: "State-bank dollar selling"}
+          - {label: "State-bank dollar selling", absent: "not tracked (by-hand audit, 16 Oct 2026): a reading of press reports, not a series (G-21)"}
           - {label: "Grain reserve builds", absent: "not stored; a named Gap"}
           - {label: "Crude reserve builds", absent: "not stored; a named Gap"}
       - id: china_taiwan
@@ -1400,8 +1401,8 @@ families:
                         {name: "stressed", low: 0.85, high: 0.92},
                         {name: "crisis", low: 0.92, high: 0.97}]},
          label: "The three-year rolling US-international correlation (SPY and EFA, monthly)"}
-      - {key: manual.msci_world_usd, label: "MSCI World, USD"}
-      - {key: manual.msci_acwi_exus_usd, label: "MSCI ACWI ex-US, USD"}
+      - {label: "MSCI World, USD", absent: "not tracked (by-hand audit, 16 Oct 2026): msci.com's robots.txt disallows its index pages"}
+      - {label: "MSCI ACWI ex-US, USD", absent: "not tracked (by-hand audit, 16 Oct 2026): msci.com's robots.txt disallows its index pages"}
       - {key: fred.usd_eur, label: "USD per EUR (FRED DEXUSEU)"}
       - {key: fred.usd_jpy, label: "JPY per USD (FRED DEXJPUS)"}
       - {label: "The valuation quad by region", absent: "regional forward P/E, P/B and dividend yield are not stored (AQ-3)"}

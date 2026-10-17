@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-seven code gates (eighty-four Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-eight code gates (eighty-five Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -736,3 +736,17 @@ in `.env` (gitignored) locally and in GitHub Actions secrets in CI. Committed
 files carry placeholders only. This includes pasting a key into a conversation to
 "just test something" — a key that reaches a transcript or a commit is a leaked
 key and must be rotated.
+
+### 3. By-hand data lines
+
+**No new recurring by-hand data line without the operator's explicit yes in a
+filed order; prefer public, easy-to-access sources; friction is a gap, not a
+key.** A source that needs a phone-verified registration, a portal that will not
+load, or a robots.txt or terms that forbid a writer becomes a keyless
+alternative or a listed gap, never a key and never a guess. Ruled 16 Oct 2026
+and applied by the by-hand audit (`docs/briefs/st-r5-audit-notes.md`). The
+explicit yeses are the global PMI headline (Batch 6 item 43, the one key left in
+`tools/manual_input.py`) and item 47's quarterly AI unit-economics line (Batch 7).
+Judgment drafts (narrative lines, appendix notes, rule-table rows, scorecards)
+are not data lines: a session commits them as drafted and lists them for the
+operator's accept-all.

@@ -267,6 +267,28 @@ def find_link(page_url: str, pattern: str, headers: Optional[dict] = None) -> st
     raise ValueError(f"no link matching {pattern!r} on {page_url}")
 
 
+def robots_allows(site: str, url: str) -> tuple[bool, str]:
+    """(allowed, the deciding rule) for `url` under `site`'s robots.txt, read now
+    with the wildcard-aware reader (altdata/sources/aaii.robots_verdict).
+
+    A robots.txt answered 404 or 410 means NO RULES (RFC 9309, section 2.3.1.3:
+    an unavailable file allows all) -- ons.gov.uk answers so. Any other failure
+    to read it raises: a writer does not guess at rules it could not read (the
+    by-hand audit, 16 Oct 2026: a source whose robots or terms forbid it is
+    dropped, never a guess).
+    """
+    from ._base import FetchError, http_get_text
+    from .aaii import robots_verdict
+    try:
+        text = http_get_text(site.rstrip("/") + "/robots.txt", timeout=30)
+    except FetchError as exc:
+        if re.match(r"HTTP 4(04|10)\b", str(exc)):
+            return True, "no robots.txt (HTTP 404): no rules"
+        raise
+    allowed, rule = robots_verdict(text, url)
+    return allowed, rule or "no matching rule"
+
+
 VINTAGE_KEY = "reference.file_vintage"
 
 

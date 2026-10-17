@@ -117,11 +117,14 @@ real_yields:
   # screen (config/move_screen.yaml `em:`). nominal: the OECD 10-year on FRED
   # (monthly average) or an existing writer's daily yield; core/headline: a CPI
   # index (YoY computed), or core_yoy/headline_yoy: a stored YoY. A missing leg
-  # is a listed gap. The UK and Canada stay gaps for the by-hand audit (free
-  # sources: ONS's CPI time series and Statistics Canada's table 18-10-0004).
+  # is a listed gap. The UK's and Canada's CPI are read from the ONS and
+  # Statistics Canada (the by-hand audit, 16 Oct 2026).
   countries:
     - {id: US, name: United States, nominal: fred.oecd_10y_us, core: fred.core_cpi, headline: fred.cpi, linker: fred.tips_10y}
-    - {id: GB, name: United Kingdom, nominal: fred.gilt_10y, gap_cpi: "FRED's OECD CPI for the UK stopped at Mar 2025, and Eurostat's HICP at Nov 2020", gap_linker: "no free index-linked gilt yield on FRED"}
+    # The UK's and Canada's CPI from the national statistics offices
+    # (altdata/sources/ons_cpi.py, statcan_cpi.py; the by-hand audit, 16 Oct
+    # 2026): FRED's OECD CPI for both stopped at Mar 2025.
+    - {id: GB, name: United Kingdom, nominal: fred.gilt_10y, core_yoy: uk.cpi_core_yoy, headline_yoy: uk.cpi_yoy, gap_linker: "no free index-linked gilt yield on FRED"}
     # Japan's CPI from the Statistics Bureau's own CSV (altdata/sources/stat_jp_cpi.py,
     # 16 Oct 2026): core is all items less fresh food and energy, the aggregate
     # closest to the US core; FRED's OECD CPI for Japan stopped at Jun 2021.
@@ -129,7 +132,7 @@ real_yields:
     - {id: DE, name: Germany, nominal: fred.oecd_10y_de, core: fred.hicp_core_de, headline: fred.hicp_de, gap_linker: "no Bund linker yield on FRED"}
     - {id: FR, name: France, nominal: fred.oecd_10y_fr, core: fred.hicp_core_fr, headline: fred.hicp_fr, gap_linker: "no OATi yield on FRED"}
     - {id: IT, name: Italy, nominal: fred.oecd_10y_it, core: fred.hicp_core_it, headline: fred.hicp_it, gap_linker: "no BTP Italia/BTP€i yield on FRED"}
-    - {id: CA, name: Canada, nominal: fred.oecd_10y_ca, gap_cpi: "FRED's OECD CPI for Canada stopped at Mar 2025"}
+    - {id: CA, name: Canada, nominal: fred.oecd_10y_ca, core_yoy: ca.cpi_core_yoy, headline_yoy: ca.cpi_yoy}
     - {id: CH, name: Switzerland, nominal: fred.oecd_10y_ch, core: fred.hicp_core_ch, headline: fred.hicp_ch}
     - {id: SE, name: Sweden, nominal: fred.oecd_10y_se, core: fred.hicp_core_se, headline: fred.hicp_se}
     - {id: NL, name: Netherlands, nominal: fred.oecd_10y_nl, core: fred.hicp_core_nl, headline: fred.hicp_nl}

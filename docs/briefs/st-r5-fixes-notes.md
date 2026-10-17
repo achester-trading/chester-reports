@@ -143,7 +143,7 @@ It is branch-only. Nothing was merged or deployed, and nothing ran on the box. S
   - Its side-B story `capital_competition` is a pending proposal in `config/narratives.yaml` on its branch, written through a new `proposals:` block, so the confirm is Ari's. This branch touches no narratives file.
 
 **Not committed, and why:**
-- **Item 42's Warsh-matrix line.** No Warsh matrix exists in the repository to hold it: the 25 Sep order names "Warsh matrix variables" as library work, unbuilt. The text is in the t1-rest notes' drafts. Needs-you 3.
+- **Item 42's Warsh-matrix line.** No Warsh matrix exists in the repository to hold it: the 25 Sep order names "Warsh matrix variables" as library work, unbuilt. The text is in the t1-rest notes' drafts. Needs-you 3. (Since moved to `docs/warsh-matrix-lines.md` on `st-r5-audit`.)
 - **Item 39's sovereign-scorecard column.** It rides item 21's quarterly scorecard, session B's and unbuilt here.
 - **Item 43's PMI.** It is a monthly by-hand entry, not a draft.
 
