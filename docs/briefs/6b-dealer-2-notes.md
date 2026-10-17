@@ -227,6 +227,6 @@ All merge cleanly in the trials.
 | Branch | Commit | Run | Result |
 |---|---|---|---|
 | `6b-dealer-1` | `d7c1593` | 39033223933 | green (recorded in its notes) |
-| `st-r5-audit` | `c60c458` (the repair) | recorded at the next read | |
-| `docs-batch-9` | `e20df42` | recorded at the next read | |
+| `st-r5-audit` | `c60c458` (the repair) | 39036555800 | **green**: every branch in the second chain is green on its own |
+| `docs-batch-9` | `e20df42` | 39036581128 | **green** |
 | `6b-dealer-2` | this commit | recorded at the next read | |
