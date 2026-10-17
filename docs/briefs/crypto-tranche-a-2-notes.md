@@ -301,3 +301,18 @@ on). Every overlap is an addition; at a conflict, keep both sides.
 ## CI
 
 This branch's push is read once and recorded here.
+
+| Run | Commit | Result |
+|---|---|---|
+| 39037767039 (Gates, push) | `a4d8390` | **failed: 86 of 88 jobs passed** |
+
+**The failure.** `tools/validate_weekly_edits.py` failed two checks; the second
+failed job, `gates-passed`, only rolls them up.
+1. It pinned Positioning at seven sub-sections, and the crypto flows block is the
+   eighth.
+2. The word "venue", banned in a rendered Weekly, appeared in two of the block's
+   placeholder lines.
+
+**The fix,** on this branch: the lines say "two exchanges report" and "every exchange
+reports it", and the gate's list carries "Crypto flows" as the eighth sub-section.
+Its CI run is recorded on `digital-49-51b`'s notes.

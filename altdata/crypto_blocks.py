@@ -27,6 +27,9 @@ reads a calc.flag_* key (tools/validate_crypto_sources.py holds that). Scorecard
 and lenses print from day one: the DVOL band is a lens.
 
 THE DAILY PARAGRAPH AND THE 12:30 LINE ARE TRANCHE B (after D4/D6): not wired.
+
+THE WEEKLY'S VOCABULARY: "venue" is banned in a rendered Weekly
+(tools/validate_weekly_edits.py); the lines say "exchange".
 """
 
 from __future__ import annotations
@@ -152,7 +155,7 @@ def weekly_block(st, now: str, cfg: Optional[dict] = None) -> dict:
         f = _pts(st, "calc.funding_agg", now, coin)
         lab = f"{coin} perp funding, OI-weighted (annualised)"
         if not f:
-            rows.append([lab, "from the first day two venues carry open interest", "—"])
+            rows.append([lab, "from the first day two exchanges report open interest", "—"])
             continue
         d, v = f[-1]
         w = _at(f, _minus(d, 7))
@@ -167,7 +170,7 @@ def weekly_block(st, now: str, cfg: Optional[dict] = None) -> dict:
             f", {100 * (v / w[1] - 1):+.1f}% on the week" if w and w[1] else ""), short(d)])
     else:
         rows.append(["Perp open interest, BTC + ETH",
-                     "from the first day every venue carries it", "—"])
+                     "from the first day every exchange reports it", "—"])
     # 7-8. S-4: the DVOL band (a lens)
     for coin in ("BTC", "ETH"):
         dv = _pts(st, f"deribit.dvol_{coin.lower()}", now)
