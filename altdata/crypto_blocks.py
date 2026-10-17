@@ -220,7 +220,7 @@ def weekly_block(st, now: str, cfg: Optional[dict] = None) -> dict:
             d0 = max(d0 or "", str(tv[-1]["observed_at"])[:10])
     rows.append([f"Froth gauge (unscored until {short(froth_from)})",
                  "; ".join(parts) if parts else
-                 "not sampled: GeckoTerminal's robots.txt refuses its API", short(d0)])
+                 "not sampled yet: awaiting the first GeckoTerminal pull", short(d0)])
     # 12. the total and dominance (CoinPaprika, ruling 2)
     cap = _pts(st, "paprika.total_mcap_usd", now)
     dom = _pts(st, "paprika.btc_dominance", now)

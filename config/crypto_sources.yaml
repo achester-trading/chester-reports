@@ -168,19 +168,20 @@ s2:
   flag_low: 5
   flag_high: 95
 
-# CD-7: the froth gauge (DS-19, S-5; D-5 ruled build now). GeckoTerminal's API
-# host forbids every agent in robots.txt (api.geckoterminal.com: "Disallow: /",
-# only /docs/ allowed; read 17 Oct 2026), so its API is not read: the writer
-# checks robots first and stops there. DexScreener (api.dexscreener.com, no
+# CD-7: the froth gauge (DS-19, S-5; D-5 ruled build now). Ruling 4 of 17 Oct:
+# GeckoTerminal's documented API is read under its own terms (its swagger spec,
+# read 17 Oct 2026: keyless, about 10 calls a minute, versioned by the Accept
+# header), not under the host's robots.txt, which governs crawlers of pages.
+# Terms URL and date read: source_registry.yaml `geckoterminal`. DexScreener (api.dexscreener.com, no
 # robots.txt) is the order's fallback, used only when GeckoTerminal fails, its
 # rows marked in the source column; it is a different sample (a search, not a
 # census), so it never enters the z-score.
 gt:
   base: https://api.geckoterminal.com/api/v2
-  accept: "application/json;version=20230302"
+  accept: "application/json;version=20230203"   # the swagger's current version
   networks: [solana, base]
-  per_min: 30                    # GeckoTerminal's published limit
-  budget_per_min: 20             # SESSION-SET: two thirds of it
+  per_min: 10                    # GeckoTerminal's published limit (swagger, 17 Oct 2026: "approximately 10 calls/minute")
+  budget_per_min: 6              # SESSION-SET: below it, since the published figure "may fluctuate"
   new_pool_pages: 10             # 20 pools a page; >= 200 in 24h is censored
   trending_top: 20
   dexscreener: https://api.dexscreener.com/latest/dex/search

@@ -19,10 +19,11 @@ clause on storage). api.coinpaprika.com publishes no robots.txt (404: no rules).
 Both are SNAPSHOTS filed under the pull's UTC day (altdata/sources/_crypto.py):
 the endpoint serves the current figure only, so the series are FORWARD-ONLY.
 
-The 13 Oct note in altdata/loggers/shielded.py says CoinPaprika's terms do not
-permit stored vintages; the API terms read 17 Oct carry no storage clause. The
-notes put the difference to Ari; shielded.py's own cap-share series is left as
-it is.
+RULING 3 of 17 Oct 2026: the series may be stored. The terms as read carry no
+storage clause; the 13 Oct note in altdata/loggers/shielded.py applies to
+CoinGecko's terms, not to this source. The terms URL and the date read are in
+source_registry.yaml `coinpaprika` (`catalogue show` prints them); re-read
+quarterly.
 """
 
 from __future__ import annotations

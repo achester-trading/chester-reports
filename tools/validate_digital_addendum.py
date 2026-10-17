@@ -380,11 +380,12 @@ def main() -> int:
     check(ca["Deribit skew and term structure"]["text"] == "awaiting EL-12"
           and ca["Crypto GEX"]["text"] == "awaiting EL-12",
           "skew, term structure and crypto GEX print \"awaiting EL-12\"")
-    check(ca["MSTR mNAV (item 49a; lines 1.2 and 1.0)"]["text"].startswith("not tracked (")
-          and "share count" in ca["MSTR mNAV (item 49a; lines 1.2 and 1.0)"]["text"],
+    check(ca["MSTR mNAV, equity basis (item 49a; lines 1.2 and 1.0)"]["text"].startswith("not tracked (")
+          and "share count" in ca["MSTR mNAV, equity basis (item 49a; lines 1.2 and 1.0)"]["text"],
           "mNAV with no inputs prints \"not tracked\" and names what is missing")
-    check(ca["Froth sample, Solana new pools 24h (unscored)"]["text"].startswith("not sampled"),
-          "the froth sample says why it has no sample")
+    check(ca["Froth sample, Solana new pools 24h (unscored)"]["text"] == "awaiting the first pull",
+          "the froth sample with no row says it awaits the first pull (ruling 4 of 17 Oct: "
+          "GeckoTerminal's API is read, so no refusal is printed)")
     check(ca["BTC long-term-holder supply share (SR-29)"]["text"].startswith(
         "not stored: SR-29 is by hand"),
           "SR-29's row prints as it does today (Tranche C computes it)")

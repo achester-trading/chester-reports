@@ -1728,10 +1728,16 @@ sources:
     latency: live (sampled once a day)
     timestamp_reliability: medium
     timestamp_notes: >-
-      A daily sample under the pull's UTC day, no history. api.geckoterminal.com's
-      robots.txt disallows / for every agent (only /docs/ allowed; read 17 Oct
-      2026): the writer checks robots first and reads nothing while it refuses.
-    license: public API, no key, 30 calls a minute
+      A daily sample under the pull's UTC day, no history. The host's robots.txt
+      disallows / for every agent; ruling 4 of 17 Oct 2026: a robots.txt governs
+      crawlers of pages, and the documented API is governed by its own terms.
+    license: >-
+      Public beta API, no key, "limited to approximately 10 calls/minute"; no
+      attribution or storage clause stated (the API's swagger, read 17 Oct 2026).
+      Ruling 4 of 17 Oct 2026. Re-read quarterly.
+    terms_url: https://api.geckoterminal.com/docs/v2/swagger.json
+    terms_read: 2026-10-17
+    terms_reread: quarterly
     allowed_reports: [monthly_macro, weekly_tactical]
     implemented_by: altdata/sources/gt.py
     status: built
@@ -1763,7 +1769,12 @@ sources:
     license: >-
       Free plan, keyless: personal and non-commercial use; attribution "Powered by
       Coinpaprika" where displayed; no redistribution (API terms read 17 Oct 2026;
-      no clause on storage). Ruling 2 of 17 Oct 2026.
+      no clause on storage). Ruling 2 of 17 Oct 2026; ruling 3 of 17 Oct: the series
+      may be stored, terms re-read quarterly. The 13 Oct note on storage was about
+      CoinGecko's terms, not this source's.
+    terms_url: https://docs.coinpaprika.com/api-plans
+    terms_read: 2026-10-17
+    terms_reread: quarterly
     allowed_reports: [monthly_macro, weekly_tactical]
     implemented_by: altdata/sources/paprika.py
     status: live

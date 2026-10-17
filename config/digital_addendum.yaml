@@ -100,7 +100,7 @@ who_is_buying:
 mechanics:
   cells:
     - {label: "Deribit skew and term structure", key: null, absent: "awaiting EL-12"}
-    - {label: "MSTR mNAV (item 49a; lines 1.2 and 1.0)", key: calc.mnav, instrument: MSTR, panel: mnav}
+    - {label: "MSTR mNAV, equity basis (item 49a; lines 1.2 and 1.0)", key: calc.mnav, instrument: MSTR, panel: mnav}
     - {label: "Crypto GEX", key: null, absent: "awaiting EL-12"}
   # ITEM 49's ONE FLAG (Batch 8): mNAV at or below 1.0 on the latest capture
   # prints, with its date; the watch line 1.2 is printed beside the level. No
@@ -115,8 +115,8 @@ mechanics:
 # by hand until then. The froth gauge is CD-7 (Tranche A).
 onchain:
   - {label: "BTC long-term-holder supply share (SR-29)", key: btcdata.lth_supply_share, unit: pct, absent: "not stored: SR-29 is by hand until CD-12 (Tranche C)"}
-  - {label: "Froth sample, Solana new pools 24h (unscored)", key: gt.new_pools_24h, instrument: solana, unit: count, absent: "not sampled (GeckoTerminal's robots.txt refuses its API)"}
-  - {label: "Froth sample, Base new pools 24h (unscored)", key: gt.new_pools_24h, instrument: base, unit: count, absent: "not sampled (GeckoTerminal's robots.txt refuses its API)"}
+  - {label: "Froth sample, Solana new pools 24h (unscored)", key: gt.new_pools_24h, instrument: solana, unit: count, absent: "awaiting the first pull"}
+  - {label: "Froth sample, Base new pools 24h (unscored)", key: gt.new_pools_24h, instrument: base, unit: count, absent: "awaiting the first pull"}
   - {label: "Exchange balances", key: null, unit: btc, absent: "not tracked (no keyless series within robots)"}
 
 # SECTIONS 6 AND 7, THE X PILOT'S FILES (item 50, Tranche 0), read from the box's

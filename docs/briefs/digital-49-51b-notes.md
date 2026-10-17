@@ -137,6 +137,52 @@ cd ~/chester-reports && .venv/bin/python -m altdata.sources.treasury show
 | Liquidations | D-1 (CoinGlass) stays No |
 | 25-delta skew, term structure, crypto GEX | EL-12, the dealer engine |
 
+
+## The rulings of 17 Oct on Tranche A part 2 and Phase 2 (applied here)
+
+Applied on this branch so the second chain carries them (`audit-leftovers-1`
+branches from its tip).
+
+1. **mNAV keeps the equity basis.** The cell's label is now "MSTR mNAV, equity
+   basis (item 49a; lines 1.2 and 1.0)". Strategy's enterprise-value figure is
+   **not printed**, under the ruling's "else" branch. Its debt and its preferreds'
+   par would come from EDGAR, and EDGAR is read only with `CHESTER_SEC_CONTACT`,
+   which is not set yet. The per-class liquidation preference has also not been
+   checked against a real companyfacts read. When the contact is set, a short
+   follow-up can read the XBRL tags once, and if they carry debt and par per class,
+   add the second line, labelled "Strategy's mNAV (enterprise-value basis)", with
+   the preferreds' prices from Yahoo.
+2. **CHESTER_SEC_CONTACT** is Ari's `.env` write. Until it is set, mNAV prints "not
+   tracked" (unchanged, gated).
+3. **CoinPaprika may be stored.** `source_registry.yaml` `coinpaprika` now carries
+   `terms_url` (https://docs.coinpaprika.com/api-plans, the plan table: Free is
+   "Personal", 20,000 calls a month, no redistribution, and no storage clause),
+   `terms_read: 2026-10-17` and `terms_reread: quarterly`. `python -m
+   altdata.catalogue show paprika.btc_dominance` prints them. The site's general
+   terms page (coinpaprika.com/terms-of-use/) answered 502 when I tried it. The
+   `paprika.py` docstring now says the 13 Oct note was about CoinGecko.
+4. **GeckoTerminal's API is read.** The robots gate is gone from `gt.collect`, and
+   the docstring, config, block line, addendum cells and registry say why: its
+   terms govern, not robots.txt. Terms URL: the API's own swagger,
+   https://api.geckoterminal.com/docs/v2/swagger.json, read 17 Oct 2026.
+   **One departure from the ruling, for you to confirm:** the swagger read today
+   says the public API is "limited to approximately 10 calls/minute, which may
+   fluctuate based on network traffic", not 30. The ruling says both "within its
+   published rate limit" and "keep the guard at 30 a minute", and the two now
+   conflict. I followed the published limit: `per_min: 10`, budget 6 a minute.
+   The guard paces rather than refuses, so the daily sample (at most 22 calls)
+   takes about four minutes. The same read showed the config's Accept header
+   naming version `20230302`, but the documented version is `20230203`, so I fixed
+   it. The swagger states no attribution or storage clause. DexScreener stays as
+   the fallback.
+5. **Farside** is unchanged; the box's first run decides it.
+6. **Accept-all**: nothing to change.
+
+Gates run locally: `validate_crypto_sources.py` 105/0 (gate J now holds ruling 4:
+no robots read, the guard under the published limit, the documented Accept
+version, and the terms fields on both sources); `validate_digital_addendum.py`
+94/0 (the relabelled mNAV cell; the froth cell reads "awaiting the first pull").
+
 ## Gates (locally)
 
 | Gate | Result |

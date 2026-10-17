@@ -619,7 +619,7 @@ def part2(cfg: dict) -> None:
     check(near(gt.dexscreener_volume(ds, "solana"), wds),
           "dexscreener search (the real response): the fallback's volume sum on the network")
 
-    head("J. THE GECKOTERMINAL GUARD, ROBOTS AND FALLBACK")
+    head("J. THE GECKOTERMINAL GUARD, TERMS AND FALLBACK")
     sent: list = []
     g = hl.WeightGuard(budget=3, limit=30, clock=lambda: 0.0, sleep=lambda s: None,
                        max_wait=0)
@@ -631,14 +631,36 @@ def part2(cfg: dict) -> None:
                          guard=g, today=TODAY, now="2026-10-17T20:00:00.000000+00:00")
     check(len(sent) == 3 and s["failed"] and "WeightExceeded" in s["failed"][0][1],
           "a burst past the guard's budget is refused: the fourth call is never sent")
+    # Ruling 4 of 17 Oct: the documented API is governed by its own terms, not by
+    # the host's robots.txt, so the default collect reads no robots and calls it.
     calls: list = []
-    rows, s = gt.collect(lambda u, p=None: calls.append(u), lambda u, p=None: ds,
-                         robots=lambda: gt.robots_ok(lambda u: "User-Agent: *\nAllow: /docs/\nDisallow: /\n"),
-                         today=TODAY, now=NOW)
-    check(not calls and s["failed"][0][0] == "geckoterminal"
-          and "refuses /api/v2/" in s["failed"][0][1],
-          "GeckoTerminal's robots.txt (Allow /docs/, Disallow /) stops the writer before "
-          "any API call")
+
+    def gt_ok(url, params=None):
+        calls.append(url)
+        return L("gt/new_pools_p1.json") if "new_pools" in url else L("gt/trending_pools.json")
+    g2 = hl.WeightGuard(budget=30, limit=30, clock=lambda: 0.0, sleep=lambda s: None,
+                        max_wait=0)
+    rows, s = gt.collect(gt_ok, lambda u, p=None: ds, guard=g2, today=TODAY, now=NOW)
+    check(calls and not s["failed"] and not hasattr(gt, "robots_ok")
+          and any(r["registry_key"] == "gt.new_pools_24h" for r in rows),
+          "ruling 4: the writer calls GeckoTerminal's documented API with no robots.txt "
+          "read in front of it (its terms govern, not the host's robots)")
+    gcfg = C.config().get("gt") or {}
+    check(int(gcfg.get("per_min") or 0) == 10 and int(gcfg.get("budget_per_min") or 99) < 10
+          and "version=20230203" in str(gcfg.get("accept")),
+          "the guard sits under the published limit (about 10 calls a minute, the "
+          "swagger read 17 Oct) and the Accept header names the documented version")
+    import yaml
+    srcreg = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
+    check(all(srcreg[k].get("terms_url") and str(srcreg[k].get("terms_read")) == "2026-10-17"
+              and srcreg[k].get("terms_reread") == "quarterly"
+              for k in ("coinpaprika", "geckoterminal")),
+          "rulings 3 and 4: CoinPaprika's and GeckoTerminal's catalogue entries carry the "
+          "terms URL, the date read and the quarterly re-read")
+
+    def gt_down(url, params=None):
+        raise RuntimeError("HTTP 503")
+    rows, s = gt.collect(gt_down, lambda u, p=None: ds, guard=g2, today=TODAY, now=NOW)
     fb = [r for r in rows if r["registry_key"] == "gt.trending_vol_24h"]
     check(fb and all(r["source"] == "dexscreener:fallback" for r in fb)
           and not any(r["registry_key"] == "gt.new_pools_24h" for r in rows),

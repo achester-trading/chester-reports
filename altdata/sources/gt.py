@@ -12,12 +12,14 @@ tranche-a-2, 17 Oct 2026). Config: config/crypto_sources.yaml `gt`.
     gt.trending_vol_24h  the 24-hour USD volume of the top 20 trending pools on
                          one network (/networks/{network}/trending_pools)
 
-GECKOTERMINAL'S API IS NOT READ: api.geckoterminal.com's robots.txt allows only
-/docs/ and disallows / for every agent (read 17 Oct 2026). The writer reads
-robots.txt with the wildcard-aware reader before any request and stops when it
-refuses -- so the day GeckoTerminal opens its API path, the writer starts. Its
-parsers are tested on the response shape GeckoTerminal documents in its own
-swagger spec (api.geckoterminal.com/docs/v2/swagger.json, which robots allows).
+THE API IS READ UNDER ITS OWN TERMS (ruling 4 of 17 Oct 2026). api.geckoterminal.com's
+robots.txt allows only /docs/ and disallows / for every agent, but a robots.txt
+governs crawlers of pages; a documented API endpoint with its own published terms
+is governed by those terms. The terms are the API's own documentation,
+api.geckoterminal.com/docs/v2/swagger.json (read 17 Oct 2026): a public, keyless
+beta API, "limited to approximately 10 calls/minute", versioned by the Accept
+header (20230203). It states no attribution or storage clause. The parsers are
+tested on the response shape that spec documents.
 
 THE FALLBACK (the order: DexScreener as backup, used only when GeckoTerminal
 fails): https://api.dexscreener.com/latest/dex/search?q=<network> (no key; no
@@ -25,12 +27,14 @@ robots.txt). It is a SEARCH, not a census, so its rows carry source
 `dexscreener:fallback` in the store, and S-5's z-score reads GeckoTerminal's rows
 only: a fallback row is a day sampled, never a day scored.
 
-THE GUARD: GeckoTerminal publishes 30 calls a minute; the writer spends at most 20
-(hl.WeightGuard, weight 1 a call). A burst past it is refused, never sent.
+THE GUARD: GeckoTerminal publishes about 10 calls a minute (the swagger read on
+17 Oct; the Tranche A report had 30, which is no longer what the source says);
+the writer spends at most 6 (hl.WeightGuard, weight 1 a call), pacing the sample
+over a few minutes. A call that would overrun the guard's wait is refused, never
+sent.
 
 No backfill exists (the source has no history), so S-5's z-scores need 90 days of
-GeckoTerminal store: from mid-January 2027 at the earliest, and only once its
-robots.txt admits the API.
+GeckoTerminal store: from mid-January 2027 at the earliest.
 """
 
 from __future__ import annotations
@@ -41,7 +45,7 @@ from typing import Any, Callable, Optional
 
 from . import _crypto as C
 from . import _publication as pub
-from ._base import FetchError, http_get_json, http_get_text
+from ._base import FetchError, http_get_json
 from .hl import WeightGuard
 
 log = logging.getLogger(__name__)
@@ -50,23 +54,6 @@ SOURCE = "geckoterminal"
 AGENT = "chester-reports"
 KEYS = ["gt.new_pools_24h", "gt.trending_vol_24h"]
 CENSOR = 200
-
-
-def _robots_text(url: str) -> str:
-    try:
-        return http_get_text(url, timeout=30)
-    except FetchError as exc:
-        if "HTTP 4" in str(exc):
-            return ""
-        raise
-
-
-def robots_ok(get: Callable[[str], str] = _robots_text) -> tuple[bool, str]:
-    from .aaii import robots_verdict                             # noqa: PLC0415
-    ok, rule = robots_verdict(get("https://api.geckoterminal.com/robots.txt"),
-                              "/api/v2/networks/solana/new_pools", AGENT)
-    return ok, ("" if ok else f"api.geckoterminal.com robots.txt refuses /api/v2/ "
-                              f"({rule})")
 
 
 def _get(url: str, params: Optional[dict] = None) -> Any:
@@ -130,11 +117,13 @@ def collect(get: Callable[..., Any] = _get, dex_get: Callable[..., Any] = _dex_g
     today = today or C.today_utc()
     now = now or C.now_iso()
     now_dt = dt.datetime.fromisoformat(now.replace("Z", "+00:00"))
-    guard = guard or WeightGuard(budget=int(cfg.get("budget_per_min") or 20),
-                                 limit=int(cfg.get("per_min") or 30))
+    guard = guard or WeightGuard(budget=int(cfg.get("budget_per_min") or 6),
+                                 limit=int(cfg.get("per_min") or 10))
     rows: list[dict] = []
     summary: dict = {"series": {}, "failed": [], "fallback": []}
-    ok, why = (robots or robots_ok)()
+    # Ruling 4: the documented API is governed by its terms, not by robots.txt,
+    # so no robots read gates it. `robots` stays injectable for a gate.
+    ok, why = robots() if robots else (True, "")
     if not ok:
         summary["failed"].append(("geckoterminal", why))
     base = cfg.get("base") or "https://api.geckoterminal.com/api/v2"

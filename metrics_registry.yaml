@@ -12916,7 +12916,7 @@ metrics:
     family: quantity
     long_window: 365d
     description: >-
-      S-5: DEX pools created in the last 24 hours on one network (instrument solana or base), from GeckoTerminal's new_pools, at most 200 (censored). Sampled from the first run; no backfill. Not read while GeckoTerminal's robots.txt disallows its API.
+      S-5: DEX pools created in the last 24 hours on one network (instrument solana or base), from GeckoTerminal's new_pools, at most 200 (censored). Sampled from the first run; no backfill. Read under the API's own terms (ruling 4 of 17 Oct 2026).
   gt.trending_vol_24h:
     source: geckoterminal
     mechanism_group: crypto_flows
