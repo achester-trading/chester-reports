@@ -22,7 +22,7 @@ Recorded in full in `docs/briefs/st-r4-tranche-1b-notes.md`, "Part 0". In short:
 | 38970818174 | `bd5cd2a` | 111 / 13 | `validate_security_master`, `validate_alpha`, `validate_monthly_stack` | SM00195-198 with `next_id` 199; the alpha fixture moved from TLT to IEF; 27a made the Weekly's only |
 | 38974666074 | `036c393` | 101 / 7 | `validate_official_sources`: a renderer imported the Census writer | `96342c1` |
 
-The run on `96342c1` has not been read yet.
+Run 38977257824 on `96342c1`: **passed, 95 jobs, 0 failed** (read 16 Oct). Part 0 is green.
 
 **The changes:**
 - **Census:** the hold is lifted (ruling (a)). The writer is on the external
@@ -318,8 +318,10 @@ close and the Monthly through the changed builders: `validate_weekly_*`,
 `validate_daily_close`, `validate_monthly*`, `validate_figure_budget` and
 `validate_edition_consistency`.
 
-No gate read the live store, fetched or called a model. The CI numbers are in the
-session report.
+No gate read the live store, fetched or called a model.
+
+**CI:** run 38977476616 on `9cefce1`: **passed, 85 jobs, 0 failed** (read once, 16 Oct).
+`6e-releases` starts from this tip; no fix was needed.
 
 The Makefile gains the gate. CLAUDE.md is recounted: seventy-seven code gates
 (seventy-four Python), `FRED_PULL_SERIES` 154 with `FRED_6E_SERIES` 25 named, and
