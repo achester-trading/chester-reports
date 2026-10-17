@@ -149,7 +149,8 @@ def labels_metric(k: Optional[str]) -> str:
 
 
 def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
-                   cfg: Optional[dict] = None) -> dict:
+                   cfg: Optional[dict] = None, computed_dir: Optional[str] = None,
+                   ending: Optional[str] = None) -> dict:
     dw = wsec.dealer_week(st, sessions, cutoff, cfg or stack_mod.config())
     cards = dw.pop("cards")
     items, nt = [], []
@@ -216,6 +217,15 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     # report-only, with no paragraph of their own.
     from . import t1_rest_block                                 # noqa: PLC0415
     subs += t1_rest_block.mechanics_subsections(st, cutoff, "weekly")
+    # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
+    # and the four sentences' facts -- when the payload names the profiles.
+    dealer_add = {}
+    if computed_dir:
+        from . import dealer_weekly                             # noqa: PLC0415
+        dealer_add = dealer_weekly.mechanics(st, cutoff, ending or sessions[-1],
+                                             cards, computed_dir)
+        subs += dealer_add["subsections"]
+        nt += dealer_add["not_tracked"]
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],
@@ -223,7 +233,8 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
             "data": {"dealer_week": dw["data"]["sessions"], "dials_now": dials,
                      "volatility": vol.get("data"),
                      "dial_changes": wis.get("dial_changes") or [],
-                     **({"ai_revisions": rv_data} if rv_data else {})}}
+                     **({"ai_revisions": rv_data} if rv_data else {}),
+                     **(dealer_add.get("data") or {})}}
 
 
 AI_REVISIONS_TITLE = "Forward-EPS revisions: the AI names"
@@ -1935,7 +1946,9 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         built = {
             "read": read_week(pmb, wbd),
             "tape": tape,
-            "mechanics": mechanics_week(st, sessions, now, wis, cfg),
+            "mechanics": mechanics_week(st, sessions, now, wis, cfg,
+                                        computed_dir=p.get("computed_dir"),
+                                        ending=ending),
             "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
                                   st=st, now=now),
@@ -2312,9 +2325,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
                                                f"{base}_w11", out_dir)
     if "W12" in plan:
         from . import dealer_block                              # noqa: PLC0415
+        mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})
         charts["W12"] = charts_mod.dealer_chart(
             "W12", dealer_block.newest_settled(ending, "SPY", ed["dealer_computed_dir"]),
-            f"{base}_w12", out_dir)
+            f"{base}_w12", out_dir,
+            rates=(mech.get("data") or {}).get("_dealer_rates"))
     if "W6" in plan:
         c6 = [v for v in extras["contradictions"].values() if v]
         n6 = max((len(v) for v in c6), default=0)

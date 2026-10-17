@@ -330,6 +330,41 @@ def draw_dex_horizon(exs: list[dict], out: Path = None, ax=None):
     return _save(fig, out, "4_dex_horizon.png")
 
 
+# ---------------------------------------------------------------- figure 5 --
+def draw_scorecard(rates: list[dict], out: Path = None, ax=None):
+    """Figure 5 (6b part 3; brief v2 section 3): each registered hypothesis's
+    k/n with its Wilson 95% interval, the base rate and the baseline beside it.
+    A hypothesis under the printing floor (20 scored sessions) draws no bar and
+    says so; nothing here is a reading before promotion."""
+    fig, ax, own = _fig_or(ax, (10, 4.6))
+    labels, drawn = [], []
+    for i, r in enumerate(rates):
+        labels.append(f"{r['label']}\n{r['k']}/{r['n']}")
+        if r.get("printable") and r.get("interval"):
+            p = r["k"] / r["n"]
+            lo, hi = r["interval"]
+            ax.bar(i, p * 100, width=0.55, color=BLUE, zorder=2)
+            ax.plot([i, i], [lo * 100, hi * 100], color=INK, lw=1.4, zorder=3)
+            for key, mk, col in (("base_rate", "_", ORANGE), ("baseline", "x", AQUA)):
+                if r.get(key) is not None:
+                    ax.plot([i], [r[key] * 100], marker=mk, ms=14 if mk == "_" else 7,
+                            mew=2, color=col, zorder=4, ls="none")
+            drawn.append({"hypothesis": r["hypothesis"], "rate": p, "interval": (lo, hi),
+                          "base_rate": r.get("base_rate"), "baseline": r.get("baseline")})
+        else:
+            ax.text(i, 3, "under 20\nscored", ha="center", va="bottom", fontsize=8,
+                    color=MUTED)
+            drawn.append({"hypothesis": r["hypothesis"], "rate": None})
+    ax.set_xticks(range(len(rates)), labels, fontsize=8)
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("Hit rate, % (Wilson 95%)")
+    ax.set_title("The scorecard: k/n, base rate (–) and baseline (×); none promoted")
+    _style(ax)
+    if not own:
+        return {"rates": drawn}
+    return _save(fig, out, "5_scorecard.png")
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--exposure", action="append", required=True, help="exposure JSON (compute_symbol output); repeatable, first is primary")

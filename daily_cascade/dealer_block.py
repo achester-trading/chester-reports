@@ -380,6 +380,126 @@ def t4(p: dict, prior: Optional[dict], why: str, cfg: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# T3 -- the horizon matrix (6b part 3; brief v2 section 2)
+# ---------------------------------------------------------------------------
+WINDOW_KEY = "dealer.window_gamma"
+
+
+def implied_range(spot: Optional[float], iv_pct: Optional[float]) -> Optional[float]:
+    """spot x IV x sqrt(1/252): the implied one-day range, in points."""
+    if not spot or not iv_pct:
+        return None
+    return spot * iv_pct / 100.0 * (1.0 / 252.0) ** 0.5
+
+
+def _nearest_level(w: dict, spot: float) -> tuple[Optional[str], Optional[float]]:
+    lv = [(n, w.get(k)) for n, k in (("the OTM call wall", "call_wall_otm"),
+                                     ("the OTM put gamma wall", "put_wall_otm"),
+                                     ("the zero-gamma level", "gamma_flip"))
+          if w.get(k) is not None]
+    if not lv or not spot:
+        return None, None
+    return min(lv, key=lambda x: abs(x[1] - spot))
+
+
+def t3(p: dict, cfg: dict, history: Optional[dict] = None,
+       iv: Optional[tuple] = None, registered: int = 6, promoted: int = 0) -> dict:
+    """Per horizon: the gamma sign with net-to-gross (gated), the magnitude
+    against the series' own five-year percentile (with its n), the nearest
+    major level and its distance, and the implied one-day range. `history`
+    maps window id -> the stored $/1% values before this capture; `iv` is
+    (iv_pct, source). No synthesis sentence until a registered hypothesis is
+    promoted: until then the matrix ends on that line."""
+    spot = p.get("spot")
+    iv_pct, iv_src = (iv or (None, None))
+    rng = implied_range(spot, iv_pct)
+    rows, lines = [], []
+    for w in _windows(p, cfg):
+        if w.get("excluded"):
+            rows.append([w["label"], "settled, excluded", "—", "—", "—"])
+            lines.append(f"{w['label']}: settled, excluded.")
+            continue
+        reg = regime(w.get("net_gex"), w.get("net_to_gross"), cfg)
+        mag = w.get("dollar_gamma_per_1pct")
+        hist = [abs(x) for x in (history or {}).get(w["id"], []) if x is not None]
+        n5 = hist[-1260:]
+        pct_ = (round(100.0 * sum(1 for x in n5 if x <= abs(mag)) / len(n5))
+                if n5 and mag is not None else None)
+        mag_s = (f"{usd(mag, True)} per 1%"
+                 + (f", {pct_}th percentile of {len(n5)} stored" if pct_ is not None
+                    else ", no stored history yet"))
+        name, lvl = _nearest_level(w, spot)
+        near = f"{name} {price(lvl)} ({dist(lvl, spot)})" if name else "none in range"
+        rng_s = (f"±{rng:.2f} ({iv_src})" if rng else "n/a")
+        rows.append([w["label"], f"{reg} ({pct(w.get('net_to_gross'))})", mag_s, near, rng_s])
+        lines.append(f"{w['label']}: {reg}; {mag_s}; nearest level {near}; implied "
+                     f"one-day range {rng_s}.")
+    tail = f"registered hypotheses: {registered}, none promoted" if not promoted else \
+        f"registered hypotheses: {registered}, {promoted} promoted"
+    # The stamp, and the OI vintage every 0DTE gamma figure carries (brief v2
+    # section 1), on the lines as on the table's head.
+    lines.insert(0, "Every level here is inferred, not observed; OI as of prior close.")
+    lines.append(tail[0].upper() + tail[1:] + ".")
+    return {"table": {"columns": [_stamp(f"Horizon, {p.get('symbol')}", cfg),
+                                  "Gamma (net-to-gross)", "Magnitude ($/1%)",
+                                  "Nearest level", "Implied one-day range"],
+                      "rows": rows},
+            "lines": lines, "tail": tail}
+
+
+def t2_by_horizon(p: dict, cfg: dict) -> dict:
+    """T2 per horizon (the Weekly): each window's OTM walls, zero-gamma level
+    and peak-gamma strike -- the levels the windows store."""
+    spot = p.get("spot")
+    rows = []
+    for w in _windows(p, cfg):
+        if w.get("excluded"):
+            rows.append([w["label"], "settled, excluded", "—", "—", "—"])
+            continue
+        cell = lambda k: (f"{price(w.get(k))} ({dist(w.get(k), spot)})"  # noqa: E731
+                          if w.get(k) is not None else "none")
+        rows.append([w["label"], cell("call_wall_otm"), cell("put_wall_otm"),
+                     cell("gamma_flip"), cell("peak_abs_gex_strike")])
+    return {"columns": [_stamp(f"Key levels by horizon, {p.get('symbol')}", cfg),
+                        "OTM call wall", "OTM put gamma wall", "Zero-gamma",
+                        "Peak-gamma strike"], "rows": rows}
+
+
+def window_rows(p: dict, now: str) -> list[dict]:
+    """The capture's per-window $/1% as stored series (T3's percentile history):
+    instrument '<symbol>:<window>', observed on the session."""
+    out = []
+    for w in (p.get("horizons") or {}).values():
+        if w.get("excluded") or w.get("dollar_gamma_per_1pct") is None:
+            continue
+        out.append({"registry_key": WINDOW_KEY, "instrument": f"{p['symbol']}:{w['id']}",
+                    "observed_at": p.get("session_date"), "available_at": now,
+                    "value": float(w["dollar_gamma_per_1pct"]), "source": "daily_close"})
+    return out
+
+
+def window_history(st, cutoff: str, p: dict) -> dict:
+    """{window id: [stored $/1% values before this capture's session]}."""
+    out = {}
+    for wid in (p.get("horizons") or {}):
+        out[wid] = [float(r["value_num"]) for r in
+                    st.as_of(WINDOW_KEY, cutoff, f"{p['symbol']}:{wid}")
+                    if r.get("value_num") is not None
+                    and str(r["observed_at"])[:10] < str(p.get("session_date"))]
+    return out
+
+
+def implied_vol(st, cutoff: str) -> tuple:
+    """(IV %, source): SPY's own ATM 30-day IV, else the VIX labelled proxy."""
+    for key, src in (("chain.spy_atm_iv_30d", "SPY ATM 30-day IV"),
+                     ("yfinance.mkt_vix", "VIX as proxy")):
+        r = st.latest_as_of(key, cutoff, "SPY" if key.startswith("chain.") else None)
+        if r and r.get("value_num"):
+            return float(r["value_num"]), src
+    return None, None
+
+
+# ---------------------------------------------------------------------------
 # T2 -- key levels (the close: all expiries)
 # ---------------------------------------------------------------------------
 def t2(p: dict, cfg: dict) -> dict:
@@ -535,7 +655,8 @@ def summary(p: dict, prior: Optional[dict], cfg: dict,
 # The whole block, for the close's Mechanics section
 # ---------------------------------------------------------------------------
 def block(p: dict, prior: Optional[dict], why: str = "no equivalent capture",
-          cfg: Optional[dict] = None, releases: Optional[list[str]] = None) -> dict:
+          cfg: Optional[dict] = None, releases: Optional[list[str]] = None,
+          t3ctx: Optional[dict] = None) -> dict:
     """{"subsections", "summary", "notes", "fingerprint", "data"} for one
     symbol's capture, or {"absent": reason} when the profile cannot carry it."""
     cfg = cfg if cfg is not None else config()
@@ -556,8 +677,13 @@ def block(p: dict, prior: Optional[dict], why: str = "no equivalent capture",
             {"title": f"Chain quality, {sym}", "table": quality_panel(p, cfg)},
             {"title": f"Changes since the equivalent capture, {sym}",
              "table": four["table"], "lines": four["lines"]},
-            {"title": f"Key levels, {sym}", "table": t2(p, cfg)},
-            {"title": f"Decision summary, {sym}", "lines": s["lines"]}]
+            {"title": f"Key levels, {sym}", "table": t2(p, cfg)}]
+    # T3, THE HORIZON MATRIX (6b part 3): the close prints it as lines.
+    if p.get("horizons"):
+        m = t3(p, cfg, (t3ctx or {}).get("history"), (t3ctx or {}).get("iv"))
+        subs.append({"title": f"Horizon matrix, {sym}", "table": None,
+                     "lines": m["lines"]})
+    subs.append({"title": f"Decision summary, {sym}", "lines": s["lines"]})
     o = p.get("overall") or {}
     return {"subsections": subs, "summary": s,
             "notes": [cfg.get("convention_line") or ""],
@@ -717,7 +843,8 @@ def newest_settled(day: str, symbol: str = "SPY", base_dir: Optional[str] = None
 
 def for_session(sess: str, base_dir: Optional[str] = None,
                 releases: Optional[list[str]] = None,
-                cfg: Optional[dict] = None) -> list[dict]:
+                cfg: Optional[dict] = None, st=None,
+                cutoff: Optional[str] = None) -> list[dict]:
     """The block for each configured symbol's newest capture of `sess`, with
     its equivalent capture found on the prior sessions. `releases` are the
     tier-1 releases on the capture's TARGET session (target_session)."""
@@ -735,7 +862,18 @@ def for_session(sess: str, base_dir: Optional[str] = None,
             d = session.previous_trading_session(d.isoformat())
             earlier += captures_on(d.isoformat(), sym, base_dir)
         prior, why = find_equivalent(cur, earlier, cfg)
-        out.append(block(cur, prior, why if prior is None else "", cfg, releases))
+        t3ctx = None
+        if st is not None and cutoff:
+            # T3's history and IV; a store that cannot answer leaves T3 with
+            # "no stored history yet" rather than the block absent.
+            try:
+                t3ctx = {"history": window_history(st, cutoff, cur),
+                         "iv": implied_vol(st, cutoff)}
+            except Exception:                                   # noqa: BLE001
+                t3ctx = None
+        b = block(cur, prior, why if prior is None else "", cfg, releases, t3ctx)
+        b["_window_rows"] = cur
+        out.append(b)
     return out
 
 

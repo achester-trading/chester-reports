@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety code gates (eighty-seven Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety-one code gates (eighty-eight Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -387,6 +387,15 @@ scorecard's pre-registration (`docs/ledgers/dealer-scorecard-preregistration-202
 never edited; `altdata/dealer_scorecard.py` scores it and prints k/n with Wilson
 intervals), and the 09:45 and 12:30 captures (`altdata/dealer_capture.py`,
 `daily_cascade/midday_gate.py`; their timers are the operator's to enable).
+Part 3 (17 Oct 2026) adds T3, the horizon matrix (lines on the close, a table in
+the Weekly, ending "registered hypotheses: n, none promoted"), T2 per horizon,
+the four sentences' facts in the Weekly (`daily_cascade/dealer_weekly.py`), figure
+5 in the W12 and M12 panels, the FlashAlpha vendor writer
+(`altdata/sources/flashalpha.py`, a 16:25 ET unit the operator enables; its
+divergence data gate `tools/validate_vendor_divergence.py`), and the dealer levels
+in ES (`altdata/dealer_es.py`). **Unit memory caps are percentages of the
+machine** (ruled 17 Oct 2026: the box stays at 4 GB), equal on 8 GB to AUD-2's
+figures; `tools/validate_systemd_units.py` holds the rule at 4 and 8 GB.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

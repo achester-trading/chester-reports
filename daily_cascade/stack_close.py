@@ -283,6 +283,12 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             # a fired event (altdata/vol_event.py).
             mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})
             vol_ev = (mech.get("data") or {}).pop("_vol_event", None)
+            # 6b PART 3: each capture's per-window $/1%, T3's percentile history.
+            profs = (mech.get("data") or {}).pop("_dealer_profiles", None) or []
+            if profs and not dry_run:
+                from . import dealer_block as _dbk              # noqa: PLC0415
+                st.write_many([r for pr in profs
+                               for r in _dbk.window_rows(pr, session.utc_iso())])
             if vol_ev and vol_ev.get("trigger") and not dry_run:
                 from altdata import vol_event as ve             # noqa: PLC0415
                 st.write_many(ve.event_rows(vol_ev, session.utc_iso()))

@@ -277,6 +277,26 @@ def rate(rows: list[dict], h: str, cfg: Optional[dict] = None) -> dict:
     return out
 
 
+def from_store(st, cutoff: str, cfg: Optional[dict] = None,
+               symbol: str = "SPY") -> dict:
+    """Every stored scorecard row to the cutoff, scored, with the rates table
+    (6b part 3: the Weekly's and the Monthly's printer and figure 5)."""
+    import json as _json                                        # noqa: PLC0415
+    c = cfg if cfg is not None else config()
+    by: dict[str, dict] = {}
+    for r in st.as_of("dealer.scorecard_day", cutoff, symbol):
+        try:
+            by[str(r["observed_at"])[:10]] = _json.loads(r["value_text"])
+        except (TypeError, ValueError):
+            continue
+    closes = {}
+    for r in st.as_of("yfinance.mkt_spy", cutoff):
+        if r.get("value_num") is not None:
+            closes[str(r["observed_at"])[:10]] = float(r["value_num"])
+    rows = score(list(by.values()), closes, c)
+    return {"rows": rows, **rates_table(rows, c)}
+
+
 def rate_line(r: dict) -> str:
     """One printed line. Below the printing floor, the count of scored sessions
     and nothing else; below the decision floor, 'no rate is a decision'."""

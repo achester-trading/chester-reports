@@ -1,0 +1,46 @@
+# THE FLASHALPHA VENDOR WRITER (6b part 3; brief v2 sections 5.6 and 8, ruled 16
+# Oct 2026: "the vendor writer is part 3"). Read by altdata/sources/flashalpha.py.
+# Every number is SESSION-SET, with its reason; docs/briefs/6b-dealer-3-notes.md
+# lists them.
+version: flashalpha-writer-v1
+
+# The symbols the engine covers and the vendor is asked about. SESSION-SET: the
+# three the close's Mechanics prints (SPY in full, QQQ and IWM one line each).
+symbols: [SPY, QQQ, IWM]
+
+# The endpoints. The levels path is the one tools/cross_check.py has read since 4
+# Sep (Basic tier). The GEX path is tools/probe_flashalpha.py's registered path;
+# its response's field names are UNVERIFIED -- the summary endpoint
+# (/v1/exposure/summary) answered 403 "requires the Growth plan" on 17 Oct 2026 --
+# so the parser reads the names below and stores only what it finds, listing the
+# rest as absent.
+endpoints:
+  levels: /v1/exposure/levels/{symbol}
+  gex: /v1/exposure/gex/{symbol}
+field_names:
+  net_gex: [net_gex, netGex, gex_total, total_gex, gex]
+  net_dex: [net_dex, netDex, dex_total, total_dex, dex]
+  net_vex: [net_vex, netVex, vex_total, total_vex, vex]
+  net_chex: [net_chex, netChex, chex_total, total_chex, chex]
+
+# THE QUOTA. SESSION-SET: 30 calls a day for the box. The Basic plan allows 250
+# a day, shared with the chat-side audits; two calls a symbol is six a day, so 30
+# leaves room for a rerun and never crowds the chat.
+daily_call_budget: 30
+
+# THE DIVERGENCE GATE (a data gate, tools/validate_vendor_divergence.py). SESSION-
+# SET thresholds, each with its reason. The vendor's capture is fifteen minutes
+# after ours on one OI vintage, so a gap past these is a question, never a
+# correction (cross_check.py's rule).
+divergence:
+  # GEX against our dollar_gamma_per_1pct: the profile is steepest near the flip,
+  # where 15 minutes of spot moves the headline by tens of percent (ledger
+  # gex-scale-flashalpha-2026-10-09), so only a gap past half is flagged.
+  gex_rel: 0.50
+  # DEX against our raw-signed dex_raw_notional: the 9 Oct ledger reconciled the
+  # two to 1% on the same inputs; 15% leaves room for the 15-minute gap.
+  dex_rel: 0.15
+  # The flip and the walls, in percent of spot: two SPY strikes at $5 near 680 is
+  # about 1.5%.
+  flip_pct: 1.0
+  wall_pct: 1.5

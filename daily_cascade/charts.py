@@ -994,9 +994,10 @@ def index_carry(cid: str, cs: dict, plain: str, name: str,
 #   D2   the close's one dealer chart: figure 2, the gamma profile across spot
 #   W12  the Weekly's dealer panel: figures 2, 1 and 3
 #   M12  the Monthly's dealer panel: figures 2, 1, 3 and 4
-DEALER_FIGURES = {"D2": (2,), "W12": (2, 1, 3), "M12": (2, 1, 3, 4)}
+DEALER_FIGURES = {"D2": (2,), "W12": (2, 1, 3, 5), "M12": (2, 1, 3, 4, 5)}
 FIGURE_TITLES = {2: "Gamma profile across spot", 1: "Gamma by strike, OTM walls",
-                 3: "Gamma by days to expiry", 4: "The hedge book by horizon"}
+                 3: "Gamma by days to expiry", 4: "The hedge book by horizon",
+                 5: "The scorecard (registered hypotheses)"}
 
 
 def _dealer_charts():
@@ -1009,7 +1010,7 @@ def _dealer_charts():
 
 
 def dealer_chart(cid: str, profile: Optional[dict], name: str,
-                 out_dir: Optional[str]) -> dict:
+                 out_dir: Optional[str], rates: Optional[list] = None) -> dict:
     """D2, W12 or M12 from one profile. Unavailable, with its reason, when the
     profile is missing, errored, or predates the stored gamma profile."""
     figs = DEALER_FIGURES[cid]
@@ -1042,6 +1043,9 @@ def dealer_chart(cid: str, profile: Optional[dict], name: str,
                 k += 1
             elif f == 4:
                 drawn["figure_4"] = dc.draw_dex_horizon([profile], ax=ax)
+            elif f == 5:
+                # Figure 5 (6b part 3): k/n with intervals, base rate, baseline.
+                drawn["figure_5"] = dc.draw_scorecard(rates or [], ax=ax)
             ax.set_title("", loc="center")
             ax.set_title(FIGURE_TITLES[f], fontsize=9, loc="left")
             if f == 1 and ax.get_legend():

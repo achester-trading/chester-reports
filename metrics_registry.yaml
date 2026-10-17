@@ -777,6 +777,123 @@ metrics:
     added_date: "2026-10-17"
     description: >-
       The PUT-GAMMA MASS, as call_gamma_per_1pct over puts: unsigned, dollars per 1% move.
+  exposure.dex_raw_notional:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      The raw-signed DEX in dollars: sum of delta x OI x 100 x spot with each contract's own delta (calls +, puts -), no dealer sign -- FlashAlpha's DEX definition (ledger gex-scale-flashalpha-2026-10-09), so the vendor line compares like with like (6b part 3).
+  dealer.window_gamma:
+    source: daily_close
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: calculated
+    revision_policy: never
+    units: usd_per_1pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Each settled capture's net GEX per 1% by horizon window (instrument = '<symbol>:<window>'), written by the close: T3's percentile history (6b part 3).
+  dealer.vendor_gex_per_1pct:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: usd_per_1pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's GEX, dollars per 1% move (6b part 3 vendor writer, 16:25 ET), instrument = the symbol; compared with the engine's dollar_gamma_per_1pct (ledger gex-scale-flashalpha-2026-10-09). A cross-check, never a source.
+  dealer.vendor_dex_raw:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's DEX, raw-signed sum of delta x OI x 100 x S; compared with the engine's dex_raw_notional. A cross-check, never a source.
+  dealer.vendor_vex:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: usd_per_volpt
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's VEX, stored with its flag: UNRECONCILED -- sign and scale differ from the engine's (ledger 9 Oct). Never compared until its per-strike test.
+  dealer.vendor_gamma_flip:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's gamma flip (levels endpoint).
+  dealer.vendor_call_wall:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's call wall, compared with the engine's OTM call wall.
+  dealer.vendor_put_wall:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's put wall, compared with the engine's OTM put gamma wall.
+  dealer.vendor_spot:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's underlying price at its capture.
   exposure.oi_delta_balance_shares:
     source: yfinance
     mechanism_group: dealer_chain_derived

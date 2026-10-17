@@ -336,14 +336,33 @@ def check_environment_file() -> None:
 # AUD-2 (ruled 14 Oct 2026), sized for the 8 GB box (CX33, from 17 Oct). The
 # values are SESSION-SET; deploy/systemd/README.md and docs/briefs/aud-2-notes.md
 # carry them and why. (MemoryHigh, MemoryMax) per heavy unit.
+# THE CAPS FOLLOW THE MACHINE (6b part 3; ruled 17 Oct 2026: the rescale did not
+# happen, the box stays at 4 GB). Each cap is a PERCENTAGE of physical memory; the
+# 8 GB case each equals -- AUD-2's absolute figures -- is kept beside it, and the
+# rule is checked at 4 GB and at 8 GB. (MemoryHigh %, MemoryMax %, 8 GB high,
+# 8 GB max)
 MEMORY_CAPS = {
-    "chester-eod.service":         ("1.6G", "2G"),
-    "chester-daily-close.service": ("1.6G", "2G"),
-    "chester-weekly.service":      ("2G", "2.5G"),
-    "chester-monthly.service":     ("2G", "2.5G"),
-    "chester-voices.service":      ("0.8G", "1G"),
-    "chester-backup.service":      ("1.2G", "1.5G"),
+    "chester-eod.service":         ("20%", "25%", "1.6G", "2G"),
+    "chester-daily-close.service": ("20%", "25%", "1.6G", "2G"),
+    "chester-weekly.service":      ("25%", "31%", "2G", "2.5G"),
+    "chester-monthly.service":     ("25%", "31%", "2G", "2.5G"),
+    "chester-voices.service":      ("10%", "12%", "0.8G", "1G"),
+    "chester-backup.service":      ("15%", "19%", "1.2G", "1.5G"),
 }
+MACHINES_GB = (4, 8)
+# The heavy units' caps may sum past the machine (they never all run at once) but
+# not past 1.5 times it -- AUD-2's plausibility bound, now in percent.
+CAP_SUM_LIMIT_PCT = 150.0
+
+
+def _pct(v: str) -> float:
+    m = re.fullmatch(r"([\d.]+)%", v or "")
+    return float(m.group(1)) if m else float("nan")
+
+
+def cap_at(v: str, gb: float) -> float:
+    """A cap in GiB on a machine of `gb`: a percentage scales, a size does not."""
+    return _pct(v) / 100.0 * gb if str(v).endswith("%") else _gib(v)
 # THE OOM ORDER (ruled 14 Oct 2026 evening). A report can be rendered again; a
 # day's chains cannot be fetched again; the Gateway needs Ari's supervised login.
 # So the kernel, if the caps are not enough, takes a report first, the EOD capture
@@ -367,9 +386,11 @@ REPORT_UNITS = [u for u, v in OOM_SCORES.items()
 # heavy unit runs. Their timers are not in DEPLOY_TIMERS: enabling them is the
 # operator's. (unit, (MemoryHigh, MemoryMax), timer's OnCalendar)
 CAPTURE_UNITS = {
-    "chester-dealer-0945.service": (("0.8G", "1G"), "Mon-Fri 09:45 America/New_York"),
-    "chester-dealer-1230.service": (("0.8G", "1G"), "Mon-Fri 12:30 America/New_York"),
+    "chester-dealer-0945.service": (("10%", "12%"), "Mon-Fri 09:45 America/New_York"),
+    "chester-dealer-1230.service": (("10%", "12%"), "Mon-Fri 12:30 America/New_York"),
 }
+# THE VENDOR WRITER (6b part 3): 16:25 ET, a report's OOM score, not deployed.
+VENDOR_UNIT = ("chester-flashalpha.service", ("4%", "5%"), "Mon-Fri 16:25 America/New_York")
 SANDBOX = ("NoNewPrivileges=true", "PrivateTmp=true", "ProtectSystem=strict")
 
 
@@ -402,16 +423,30 @@ def _minutes(span: str) -> float:
 def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
     """The AUD-2 unit rules; returns the faults (empty when all hold)."""
     faults = []
-    for name, (high, mx) in MEMORY_CAPS.items():
+    for name, (high, mx, h8, m8) in MEMORY_CAPS.items():
         d = directives(unit_dir / name)
         if d.get("MemoryHigh") != [high] or d.get("MemoryMax") != [mx]:
             faults.append(f"{name}: MemoryHigh/MemoryMax {d.get('MemoryHigh')}/"
-                          f"{d.get('MemoryMax')}, want {high}/{mx}")
-        elif not _gib(high) < _gib(mx):
+                          f"{d.get('MemoryMax')}, want {high}/{mx} (percentages: the "
+                          f"caps follow the machine)")
+        elif not _pct(high) < _pct(mx):
             faults.append(f"{name}: MemoryHigh must sit below MemoryMax")
-    total = sum(_gib(mx) for _, mx in MEMORY_CAPS.values())
-    if total > 8 * 1.5:
-        faults.append(f"the caps sum to {total:g}G, implausible on an 8 GB box")
+        # The 8 GB case the percentages equal is AUD-2's, within a rounding step.
+        elif abs(cap_at(mx, 8) - _gib(m8)) > 0.05 or abs(cap_at(high, 8) - _gib(h8)) > 0.05:
+            faults.append(f"{name}: {high}/{mx} at 8 GB is not AUD-2's {h8}/{m8}")
+    for gb in MACHINES_GB:
+        total = sum(cap_at(mx, gb) for _, mx, _, _ in MEMORY_CAPS.values())
+        if total > gb * CAP_SUM_LIMIT_PCT / 100.0:
+            faults.append(f"the caps sum to {total:.2f}G, implausible on a {gb} GB box")
+    # No capped unit carries an absolute cap: the rule is that every cap follows
+    # the machine.
+    for p in sorted(unit_dir.glob("*.service")):
+        d = directives(p)
+        for k in ("MemoryHigh", "MemoryMax"):
+            for v in d.get(k, []):
+                if not str(v).endswith("%"):
+                    faults.append(f"{p.name}: {k}={v} is absolute; the caps follow "
+                                  f"the machine (a percentage)")
     auc = directives(unit_dir / "chester-auction.service")
     if any("ibgateway" in v for k in ("Wants", "Requires", "BindsTo")
            for v in auc.get(k, [])):
@@ -508,6 +543,24 @@ def check_captures(unit_dir: Path, score: dict) -> list[str]:
         if p.with_suffix(".timer").name in timers:
             faults.append(f"{p.with_suffix('.timer').name} is in DEPLOY_TIMERS: enabling "
                           f"it is the operator's")
+    vname, (vh, vm), vcal = VENDOR_UNIT
+    vp = unit_dir / vname
+    if not vp.exists():
+        faults.append(f"{vname}: missing")
+    else:
+        d = directives(vp)
+        t = directives(vp.with_suffix(".timer"))
+        if d.get("MemoryHigh") != [vh] or d.get("MemoryMax") != [vm]:
+            faults.append(f"{vname}: caps {d.get('MemoryHigh')}/{d.get('MemoryMax')}")
+        if d.get("OOMScoreAdjust") != ["500"]:
+            faults.append(f"{vname}: OOMScoreAdjust must be a report's 500")
+        if d.get("EnvironmentFile") != ["-%h/chester-reports/.env"]:
+            faults.append(f"{vname}: EnvironmentFile not the optional repo one")
+        if t.get("OnCalendar") != [vcal] or t.get("Persistent") != ["false"]:
+            faults.append(f"chester-flashalpha.timer: {t.get('OnCalendar')} / "
+                          f"Persistent {t.get('Persistent')}")
+        if "chester-flashalpha.timer" in timers:
+            faults.append("chester-flashalpha.timer is in DEPLOY_TIMERS")
     return faults
 
 
@@ -519,7 +572,10 @@ def aud2() -> None:
         for f in faults:
             bad(f)
     else:
-        ok(f"the six heavy units carry their caps ({', '.join(f'{k.split('.')[0]} {h}/{m}' for k, (h, m) in MEMORY_CAPS.items())}); "
+        ok(f"the six heavy units carry their caps as percentages ({', '.join(f'{k.split('.')[0]} {h}/{m}' for k, (h, m, _, _) in MEMORY_CAPS.items())}); "
+           f"at 4 GB they sum to {sum(cap_at(m, 4) for _, m, _, _ in MEMORY_CAPS.values()):.2f}G "
+           f"and at 8 GB to {sum(cap_at(m, 8) for _, m, _, _ in MEMORY_CAPS.values()):.2f}G, "
+           f"each 8 GB figure AUD-2's; "
            f"the auction unit neither wants nor starts the Gateway and runs "
            f"sandboxed; the OOM order holds (Gateway -500 < EOD 300 < the reports "
            f"500); the backup ends by 04:35, "
@@ -528,7 +584,11 @@ def aud2() -> None:
     import shutil
     import tempfile
     for label, unit, old, new in (
-            ("a missing cap", "chester-weekly.service", "MemoryMax=2.5G", ""),
+            ("a missing cap", "chester-weekly.service", "MemoryMax=31%", ""),
+            ("an absolute cap back", "chester-weekly.service", "MemoryMax=31%",
+             "MemoryMax=2.5G"),
+            ("a percentage off the 8 GB case", "chester-eod.service", "MemoryMax=25%",
+             "MemoryMax=40%"),
             ("the Gateway wanted again", "chester-auction.service",
              "[Unit]", "[Unit]\nWants=ibgateway.service"),
             ("no OOM order", "ibgateway.service", "OOMScoreAdjust=-500", ""),
@@ -544,7 +604,9 @@ def aud2() -> None:
              "TimeoutStartSec=2h", "TimeoutStartSec=2h30min"),
             # 6b part 2: the capture units.
             ("a capture without its cap", "chester-dealer-0945.service",
-             "MemoryMax=1G", ""),
+             "MemoryMax=12%", ""),
+            ("the vendor writer at the wrong minute", "chester-flashalpha.timer",
+             "OnCalendar=Mon-Fri 16:25", "OnCalendar=Mon-Fri 16:05"),
             ("a capture level with the reports", "chester-dealer-1230.service",
              "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
             ("a capture timer that catches up", "chester-dealer-1230.timer",

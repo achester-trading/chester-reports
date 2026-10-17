@@ -803,6 +803,9 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
         sys_prompt += DEALER_SENTENCES_NOTE
     if (s.get("data") or {}).get("vol_event"):
         sys_prompt += VOL_EVENT_NOTE
+    if (s.get("data") or {}).get("dealer_week_vs_monday"):
+        from .dealer_weekly import FOURTH_NOTE                  # noqa: PLC0415
+        sys_prompt += FOURTH_NOTE
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
     sys_prompt += (extra_notes or {}).get(s["id"], "")
     if not claim_only and is_parent(s, cadence):

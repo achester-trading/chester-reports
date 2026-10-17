@@ -239,6 +239,8 @@ def mechanics_section(p: dict, dealer: Optional[list] = None,
             notes = [x for x in b["notes"] if x]
         if b.get("sentences") and "dealer_sentences" not in extra:
             extra["dealer_sentences"] = b["sentences"]
+        if b.get("_window_rows"):
+            extra.setdefault("_dealer_profiles", []).append(b["_window_rows"])
     # THE VOLATILITY EVENT (Batch 9 item 52; altdata/vol_event.py): silent unless
     # the trigger fires; then its sub-section, its trigger line as an item, and
     # the paragraph's facts.
@@ -487,7 +489,8 @@ def dealer_blocks(p: dict, st, cutoff: str, cfg: dict) -> Optional[list]:
     try:
         return dealer_block.for_session(p["session"], base_dir=p["computed_dir"],
                                         releases=releases_on(nxt.isoformat(), st,
-                                                             cutoff, cfg))
+                                                             cutoff, cfg),
+                                        st=st, cutoff=cutoff)
     except Exception as exc:                                    # noqa: BLE001
         return [{"absent": f"dealer block: {type(exc).__name__}: {exc}"}]
 

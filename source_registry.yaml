@@ -125,7 +125,10 @@ sources:
       moved, consistent with recompute over a settled OI base -- consistent
       with, not proof of.
     license: paid subscription, Basic plan
-    allowed_reports: []
+    # 6b part 3 (brief v2 section 5.6, ratified 16 Oct 2026): the vendor line
+    # prints in the Weekly's Mechanics, labelled a cross-check, read from the
+    # stored dealer.vendor_* series written by altdata/sources/flashalpha.py.
+    allowed_reports: [weekly_tactical]
     implemented_by: tools/cross_check.py
     status: live
     epistemic_note: >-
@@ -135,7 +138,10 @@ sources:
       gated above Basic, so the intended check -- recomputing from their own
       per-strike payload to catch a silent methodology change -- is impossible.
       What we run instead compares our profile against their aggregate: same
-      purpose, weaker evidence.
+      purpose, weaker evidence. From 6b part 3 the vendor writer stores their
+      levels and headline exposures (dealer.vendor_*), and the Weekly prints
+      the comparison as a cross-check line -- the one report it may reach, and
+      only as a gap against our own figure, never as a figure of its own.
     rate_limit: 250/day, verified live via X-RateLimit-Limit
 
   solver_derived:

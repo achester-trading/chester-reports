@@ -500,6 +500,15 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
                      "table": r["summary_table"], "lines": r["lines"]})
     else:
         subs.append({"title": "The month's counts and hit rates", "lines": r["lines"]})
+    # 6b PART 3: the registered hypotheses' running evidence (the registration,
+    # docs/ledgers/dealer-scorecard-preregistration-2026-10.md), every stored row
+    # to the month's end; none is promoted, so nothing here is a reading.
+    try:
+        from altdata import dealer_scorecard as dsc             # noqa: PLC0415
+        subs.append({"title": "Registered hypotheses (the scorecard)",
+                     "lines": dsc.from_store(st, now)["lines"]})
+    except Exception:                                           # noqa: BLE001
+        pass
     if r["sessions"]:
         subs.append({"title": "Ranges and flags, by session",
                      "table": r["ranges_table"],

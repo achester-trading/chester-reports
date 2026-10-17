@@ -284,6 +284,9 @@ FIELD_MECHANISM_GROUPS: dict[str, str] = {
     # OWN delta (calls +, puts -), no dealer sign -- delta-weighted open
     # interest, calls less puts. Convention-free, and given no directional word.
     "oi_delta_balance_shares": "dealer_chain_derived",
+    # 6b part 3: the same sum in dollars -- FlashAlpha's DEX definition (raw
+    # deltas, calls +, puts -; ledger gex-scale-flashalpha-2026-10-09).
+    "dex_raw_notional": "dealer_chain_derived",
     "vex_shares_per_volpt": "dealer_chain_derived",
     "vex_notional_per_volpt": "dealer_chain_derived",
     "vex": "dealer_chain_derived",
@@ -767,6 +770,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
                 "peak_call_gex_strike": None, "peak_put_gex_strike": None,
                 "call_concentration_otm_2": None, "put_concentration_otm_2": None,
                 "peak_abs_gex_strike": None, "oi_delta_balance_shares": None,
+                "dex_raw_notional": None,
                 "strikes": 0, **_empty_greek_aggregates()}
 
     # Two competing put-wall definitions, reported side by side rather than
@@ -836,6 +840,9 @@ def _profile(rows: list[dict], spot: float) -> dict:
         "put_gamma_per_1pct": sum(put_gex.values()) * 0.01 * spot,
         # Delta-weighted OI, each contract's own delta: calls less puts, shares.
         "oi_delta_balance_shares": oi_delta,
+        # The raw-signed DEX in dollars (Σ Δ·OI·100·S, each contract's own
+        # delta): what the vendor's DEX is compared against (6b part 3).
+        "dex_raw_notional": oi_delta * spot,
         # DEX: what the dealer OPTION BOOK is long, in shares. The hedge is the
         # opposite sign; the unwind at expiry is this sign. See the docstring.
         "dex_shares": dex_sh,

@@ -47,8 +47,11 @@ RestrictSUIDSGID=true
 
 # MEMORY CAPS (AUD-2 item 3, session-set for the 8 GB box): MemoryHigh throttles and
 # reclaims, MemoryMax is the hard ceiling the kernel kills at. README.md section 13.
-MemoryHigh=2G
-MemoryMax=2.5G
+# THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026: the box stays at 4 GB):
+# percentages of physical memory. The 8 GB case they equal is AUD-2's
+# MemoryHigh=2G MemoryMax=2.5G; on the 4 GB box they read half that.
+MemoryHigh=25%
+MemoryMax=31%
 # THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13). If the caps are
 # not enough, the kernel kills the highest score first: a report can be rendered
 # again; a day's chains cannot be fetched again; the Gateway needs Ari's supervised

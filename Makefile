@@ -98,6 +98,7 @@ PY_VALIDATORS := \
 	tools/validate_exposure_edges.py \
 	tools/validate_dealer_block.py \
 	tools/validate_vol_event.py \
+	tools/validate_dealer_vendor.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \
@@ -147,7 +148,8 @@ DATA_GATES := \
 	tools/validate_monthly_store.py \
 	tools/validate_regime_store.py \
 	tools/validate_weekly_store.py \
-	tools/validate_imf_china.py
+	tools/validate_imf_china.py \
+	tools/validate_vendor_divergence.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \

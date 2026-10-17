@@ -441,8 +441,9 @@ def group_h() -> None:
     titles = [s["title"] for s in sec["subsections"]]
     check(titles == ["Dealer dashboard, SPY", "Chain quality, SPY",
                      "Changes since the equivalent capture, SPY", "Key levels, SPY",
-                     "Decision summary, SPY"],
-          "Mechanics carries T1, the quality panel, T4, T2 and the decision summary")
+                     "Horizon matrix, SPY", "Decision summary, SPY"],
+          "Mechanics carries T1, the quality panel, T4, T2, T3 (6b part 3, as lines) "
+          "and the decision summary")
     line = next(i for i in sec["items"] if i["key"] == "mech:SPY")["text"]
     check("indeterminate (net is 4% of gross)" in line and "OTM call wall 685.0" in line
           and "net GEX positive" not in line,
@@ -462,9 +463,9 @@ def group_h() -> None:
     conv = (CFG.get("convention_line") or "").split(".")[0]
     chunks = re.findall(r"<table.*?</table>", html, re.S)
     figured = [c for c in chunks if "$" in c or "%" in c]
-    check(html.count(conv) == 1 and len(chunks) == 5
+    check(html.count(conv) == 1 and len(chunks) == 6
           and all("inferred, not observed" in c for c in figured),
-          f"rendered: five tables (four, and the summary's lines), every one holding a "
+          f"rendered: six tables (four, T3's and the summary's lines), every one holding a "
           f"figure stamped 'inferred, not observed' ({len(figured)}), the sign "
           f"convention once")
     sec0 = stack_mod.mechanics_section(p)
@@ -570,9 +571,10 @@ def group_k() -> None:
               for c in out.values()),
           f"all three render under the 150 KB cap, legible at 400 px "
           f"({ {k: c.get('png_bytes') for k, c in out.items()} })")
-    check(out["D2"]["figures"] == [2] and out["W12"]["figures"] == [2, 1, 3]
-          and out["M12"]["figures"] == [2, 1, 3, 4],
-          "D2 is figure 2; W12 figures 2, 1, 3; M12 figures 2, 1, 3, 4")
+    check(out["D2"]["figures"] == [2] and out["W12"]["figures"] == [2, 1, 3, 5]
+          and out["M12"]["figures"] == [2, 1, 3, 4, 5],
+          "D2 is figure 2; W12 figures 2, 1, 3 and 5; M12 figures 2, 1, 3, 4 and 5 "
+          "(figure 5, 6b part 3)")
     d = out["M12"]["drawn"]
     f1, f2, f3, f4 = d["figure_1"], d["figure_2"], d["figure_3"], d["figure_4"]
     t1 = {r[0]: r for r in db.t1(p, CFG)["rows"]}

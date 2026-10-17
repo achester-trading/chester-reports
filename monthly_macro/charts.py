@@ -751,8 +751,10 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
 
         def _m12():
             from daily_cascade import dealer_block                # noqa: PLC0415
+            from altdata import dealer_scorecard as dsc           # noqa: PLC0415
             return ch.dealer_chart("M12", dealer_block.newest_settled(
-                last, "SPY", ed["dealer_computed_dir"]), f"{base}_m12", out_dir)
+                last, "SPY", ed["dealer_computed_dir"]), f"{base}_m12", out_dir,
+                rates=dsc.from_store(st, now)["rates"])
         run("M12", _m12)
 
         def _m9():

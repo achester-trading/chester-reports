@@ -229,6 +229,9 @@ commands:
   altdata.sources.fedboard_h41:
     domain: rates
     line: The Fed's H.4.1 FIMA repo line -- a writer entry for altdata/feeds.py
+  altdata.sources.flashalpha:
+    domain: options
+    line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, quota-guarded, the key never printed'
   altdata.sources.finra:
     domain: positioning
     line: FINRA margin statistics -- customer debit balances in margin accounts, monthly
