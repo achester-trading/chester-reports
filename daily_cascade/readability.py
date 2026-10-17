@@ -809,7 +809,7 @@ figure, img, svg { break-inside: avoid; page-break-inside: avoid; }
 /* weekly-fixes-7 item 13: no chart is taller than about a third of the page, so a
    figure fits the rest of a page far more often and none forces a half-blank one;
    the pair table prints whole. */
-figure img { max-height: 95mm; width: auto !important; max-width: 100%; }
+figure img { max-height: 95mm; width: auto !important; max-width: 100%%; }
 table.chart-pair { break-inside: avoid; page-break-inside: avoid; }
 tr { break-inside: avoid; page-break-inside: avoid; }
 h1, h2, h3 { break-after: avoid; page-break-after: avoid; }

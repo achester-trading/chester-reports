@@ -211,7 +211,11 @@ def book_section() -> dict:
             "table": {"columns": ["Count", "This week", "Budget"],
                       "rows": [["Packets approved", 2, 3],
                                ["Sitting time", "22 minutes", "120 minutes"]]},
-            "subsections": [], "data": {"book_z": b["book_z"]}}
+            # weekly-fixes-7 item 6: the week's window beside since-inception, as
+            # the pipeline now prints it, so "on the week" has its figure.
+            "subsections": [], "data": {"book_z": "on the week (2026-10-02 to "
+                                        "2026-10-09): the book +0.11%; "
+                                        + b["book_z"]}}
 
 
 def group_b() -> None:

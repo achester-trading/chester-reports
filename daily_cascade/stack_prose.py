@@ -535,14 +535,24 @@ def na_signed_zero(text: str) -> list[str]:
     return numeral_audit.signed_zero_faults(text)
 
 
+_PERFORMANCE = re.compile(r"\b(?:return\w*|excess|relative to|outperform\w*|"
+                          r"underperform\w*|beat\w*|lagg?\w*|trail\w*|cash|SPY|"
+                          r"60-40|NAV|Book Z|gain\w*|lost|rose|fell|held its ground)"
+                          r"\b|%")
+
+
 def book_window_faults(text: str, ed: dict) -> list[str]:
+    """A sentence about the book's PERFORMANCE with a week word needs the week's
+    window in the book's data (benchmark.week_line); the tables' own week
+    figures (trades, sitting time) need nothing."""
     bk = next((s for s in ed.get("sections") or [] if s.get("id") == "book"), {})
     bz = str((bk.get("data") or {}).get("book_z") or "")
     if "on the week (" in bz:
         return []
     return [f"a time word with no figure on that window in '{s[:100]}': every book "
             f"figure runs since inception, so say 'since' and its date, not the week"
-            for s in _sentences(text) if _WEEK_WORD.search(s)]
+            for s in _sentences(text)
+            if _WEEK_WORD.search(s) and _PERFORMANCE.search(s)]
 
 
 def venue_percents(ed: dict) -> set:
