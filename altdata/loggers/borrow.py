@@ -13,12 +13,16 @@ Three sub-sources with three different provenances, kept apart on purpose:
          and not a build.
       -- THE API TICK returns 10358 "Fundamentals data is not allowed" with the fields
          NaN, so this account cannot see them either.
-  (b) FINRA -- Reg SHO daily short VOLUME from the public file, and semi-monthly
+  (b) FINRA -- Reg SHO daily short VOLUME from the public file (since AUD-1, every
+      symbol above a liquidity floor plus the tracked universe, and every session
+      missing from the last ten), and semi-monthly
       short INTEREST from api.finra.org, which is ANONYMOUS: probed, HTTP 200, no key,
       and a POST filter on symbolCode means the tracked universe can be asked for
       directly rather than paged out of the whole market. Short interest runs on its
       own PUBLICATION CALENDAR, not nightly -- see below.
   (c) APEWISDOM -- mention counts and rank from social venues. Public API, no key.
+      Since AUD-1 the all-stocks filter is stored WHOLE, every ticker on every page;
+      the wallstreetbets filter stays the tracked universe.
 
 The discovery funnel stays unbuilt: that is 6h and gated. Nothing here ranks,
 scores or nominates anything.
@@ -50,6 +54,7 @@ import datetime as dt
 import io as _io
 import json
 import logging
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Optional
@@ -110,7 +115,30 @@ SHORT_INTEREST_EXTRA = {
 SHORT_INTEREST_LAG_BUSINESS_DAYS = 8
 APEWISDOM_URL = "https://apewisdom.io/api/v1.0/filter/{feed}/page/{page}"
 APEWISDOM_FEEDS = ("all-stocks", "wallstreetbets")
-APEWISDOM_PAGES = 2          # ~200 names; the tail is noise and the funnel is 6h
+APEWISDOM_PAGES = 2          # wallstreetbets: ~200 names, filtered to the universe
+
+# AUD-1 item 3a (the audit of 14 Oct 2026): THE ALL-STOCKS FILTER IS STORED WHOLE.
+# A meme name is one nobody was tracking until it was one, so a log filtered to the
+# tracked universe could never contain the history that matters -- the weeks before
+# a name arrived. Every ticker on every page the free endpoint serves for all-stocks
+# is stored; the payload says how many pages there are, and APEWISDOM_MAX_PAGES
+# bounds a count that never terminates.
+APEWISDOM_WHOLE_FEEDS = ("all-stocks",)
+APEWISDOM_MAX_PAGES = 60
+APEWISDOM_PAGE_PAUSE = 1.0   # seconds between pages, for a free, keyless API
+
+# AUD-1 item 3b: THE REG SHO LIQUIDITY FLOOR, chosen over "the top 500 by short-
+# volume ratio". The ratio is the quantity being logged, and selecting on it puts a
+# name in the set on its noisiest days -- a thin name prints 100% short volume on
+# one market maker's fill -- and drops it the day the ratio settles, so each name's
+# series has holes exactly where it would be read. A floor on TOTAL volume is
+# independent of the ratio: membership is stable, and a liquid name's history is
+# continuous. 1,000,000 shares of FINRA-reported volume kept 1,205 names on
+# 13 Oct 2026 and 1,154 on 9 Oct (of 12,237 and 12,279 in the file): three keys
+# each, about 3,500-3,600 rows a session. The tracked universe is always kept,
+# whatever its volume.
+REGSHO_MIN_TOTAL_VOLUME = 1_000_000
+REGSHO_LOOKBACK_SESSIONS = 10
 
 UA = {"User-Agent": "chester-reports/1.0 (research logging)"}
 TIMEOUT = 30
@@ -426,13 +454,58 @@ def parse_regsho(text: str) -> list[dict]:
     return rows
 
 
+def regsho_keep(rows: list[dict], wanted: set[str]) -> list[dict]:
+    """AUD-1 3b: the tracked universe, plus every symbol whose FINRA-reported
+    total volume is at least REGSHO_MIN_TOTAL_VOLUME."""
+    return [r for r in rows if r["symbol"] in wanted
+            or (r["total_volume"] or 0) >= REGSHO_MIN_TOTAL_VOLUME]
+
+
+def regsho_missing_sessions(store: observations.ObservationStore,
+                            last: Optional[dt.date] = None,
+                            n: int = REGSHO_LOOKBACK_SESSIONS) -> list[str]:
+    """Of the last `n` completed sessions, the ones with no Reg SHO row stored,
+    oldest first."""
+    d = last or session.last_completed_session()
+    days = [d]
+    while len(days) < n:
+        days.append(session.previous_trading_session(days[-1]))
+    have = store.days_present(SHORT_VOLUME_TOTAL_KEY, days[-1].isoformat())
+    return sorted(x.isoformat() for x in days if x.isoformat() not in have)
+
+
+def pull_regsho_missing(run_id: Optional[str] = None,
+                        store: Optional[observations.ObservationStore] = None,
+                        last: Optional[dt.date] = None) -> dict:
+    """AUD-1 3b: fetch every session missing from the last ten, not only the
+    newest -- one missed night (a 404 before publication, a timeout) used to be
+    a hole forever."""
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        missing = regsho_missing_sessions(db, last)
+        sessions = {d: pull_regsho(day=d, run_id=run_id, store=db) for d in missing}
+        newest = (last or session.last_completed_session()).isoformat()
+        states = [r.get("state") for r in sessions.values()]
+        return {"state": ("ok" if not sessions or "ok" in states
+                          else (sessions.get(newest) or {}).get("state", "absent")),
+                "session": newest, "missing_before": missing,
+                "sessions": sessions,
+                "names": sum(int(r.get("names") or 0) for r in sessions.values()),
+                "written": sum(int(r.get("written") or 0) for r in sessions.values())}
+    finally:
+        if own:
+            db.close()
+
+
 def pull_regsho(day: Optional[str] = None, run_id: Optional[str] = None,
                 store: Optional[observations.ObservationStore] = None) -> dict:
-    """One session's Reg SHO daily short volume, filtered to the tracked universe.
+    """One session's Reg SHO daily short volume: the tracked universe plus every
+    symbol above the liquidity floor (AUD-1 3b; REGSHO_MIN_TOTAL_VOLUME says why).
 
-    THE FILE IS EVERY US SYMBOL -- thousands of rows. Only the tracked universe is
-    stored: a logger that writes the whole tape every night buys history nobody
-    declared and makes every query over this table slower for it.
+    THE FILE IS EVERY US SYMBOL -- some 12,000 rows. Until AUD-1 only the tracked
+    universe was stored, which left the log blind to a name before it was tracked.
+    The floor keeps about 1,200 of them.
     """
     # THE LAST COMPLETED SESSION. Reg SHO publishes the evening of the session, so
     # at 06:45 asking for TODAY's file gets a 404 that reads as an outage rather than
@@ -452,7 +525,7 @@ def pull_regsho(day: Optional[str] = None, run_id: Optional[str] = None,
                 "reason": f"{type(exc).__name__}: {exc}", "written": 0}
 
     wanted = set(universe())
-    rows = [r for r in parse_regsho(text) if r["symbol"] in wanted]
+    rows = regsho_keep(parse_regsho(text), wanted)
     own = store is None
     db = store or observations.ObservationStore()
     try:
@@ -700,7 +773,8 @@ def pull_short_interest(run_id: Optional[str] = None,
 # (c) ApeWisdom
 # ---------------------------------------------------------------------------
 def pull_apewisdom(run_id: Optional[str] = None,
-                   store: Optional[observations.ObservationStore] = None) -> dict:
+                   store: Optional[observations.ObservationStore] = None,
+                   pause: float = APEWISDOM_PAGE_PAUSE) -> dict:
     day = session.session_date()
     own = store is None
     db = store or observations.ObservationStore()
@@ -710,16 +784,31 @@ def pull_apewisdom(run_id: Optional[str] = None,
         wanted = set(universe())
         for feed in APEWISDOM_FEEDS:
             got = 0
-            for page in range(1, APEWISDOM_PAGES + 1):
+            whole = feed in APEWISDOM_WHOLE_FEEDS
+            last_page = APEWISDOM_MAX_PAGES if whole else APEWISDOM_PAGES
+            page = 0
+            while page < last_page:
+                page += 1
+                if page > 1 and pause:
+                    time.sleep(pause)
                 try:
                     payload = json.loads(_get(APEWISDOM_URL.format(
                         feed=feed, page=page)).decode("utf-8", "replace"))
                 except Exception as exc:                      # noqa: BLE001
-                    feeds_failed.append((feed, f"{type(exc).__name__}: {exc}"))
+                    feeds_failed.append((feed, f"page {page}: {type(exc).__name__}: {exc}"))
                     break
-                for item in payload.get("results") or []:
+                if whole:
+                    # The payload declares its page count; every page is read.
+                    try:
+                        last_page = min(APEWISDOM_MAX_PAGES, int(payload.get("pages") or page))
+                    except (TypeError, ValueError):
+                        last_page = page
+                results = payload.get("results") or []
+                if not results:
+                    break
+                for item in results:
                     ticker = str(item.get("ticker") or "").strip().upper()
-                    if not ticker or ticker not in wanted:
+                    if not ticker or (not whole and ticker not in wanted):
                         continue
                     got += 1
                     # THE INSTRUMENT CARRIES THE FEED, because a mention count on
@@ -771,7 +860,7 @@ def pull(run_id: Optional[str] = None,
             "state": file_state,
             "note": ("sampled once per ibkr-sync run" if file_state == "available"
                      else "unreachable; see ibkr.stock_loan_file_probe")}
-        out["regsho"] = pull_regsho(run_id=run_id, store=db)
+        out["regsho"] = pull_regsho_missing(run_id=run_id, store=db)
         out["short_interest"] = pull_short_interest(run_id=run_id, store=db)
         out["apewisdom"] = pull_apewisdom(run_id=run_id, store=db)
         out["written"] = sum(int((out[k] or {}).get("written") or 0)
@@ -804,8 +893,11 @@ def keys() -> list[str]:
 
 SPEC = register(LoggerSpec(
     name="borrow_short_mentions",
-    description="FINRA Reg SHO daily short volume and ApeWisdom mentions for the "
-                "tracked universe; IBKR borrow fields dormant (not entitled).",
+    description="FINRA Reg SHO daily short volume for every symbol above "
+                "1,000,000 shares of FINRA volume plus the tracked universe, the last "
+                "ten sessions kept whole; ApeWisdom mentions for every all-stocks "
+                "ticker and the tracked universe on wallstreetbets; IBKR borrow "
+                "fields dormant (not entitled).",
     keys=keys,
     run=pull,
     requires_key=None,

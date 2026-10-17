@@ -55,6 +55,7 @@ from __future__ import annotations
 import logging
 import os
 import smtplib
+import ssl
 import sys
 from email.message import EmailMessage
 from pathlib import Path
@@ -225,7 +226,7 @@ def send_html(subject: str, html: str, text_fallback: str = "",
 
     try:
         with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as s:
-            s.starttls()
+            s.starttls(context=ssl.create_default_context())  # AUD-1 2a: verify the certificate
             s.login(cfg["user"], cfg["password"])
             s.send_message(msg)
     except Exception as exc:  # noqa: BLE001 -- transport must never kill a report

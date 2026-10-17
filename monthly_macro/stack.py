@@ -59,6 +59,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import labels, observations, session
+from altdata import model_meter
 
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
@@ -1219,6 +1220,20 @@ def book_section(p: dict) -> dict:
                   rows)]
     items[0]["show"] = False
     lines, ids = [], ["our_read:prose"]
+    # EL-3 (§3.3): ONE LINE BESIDE THE BOOKS, "vs cash / SPY / 60-40", read from
+    # Book Z's stored marks (the close pass writes them; nothing is computed
+    # here). Books A-D have no paper-equity ledger of their own yet, so the line
+    # is the paper account's against the three ledgers, and each book's own
+    # figure says not yet sourced in the register's detail table.
+    bz = rm.get("books_vs_benchmark") or {}
+    bzl = bz.get("book_line") or bz.get("line")
+    why = (bz.get("book_line_absent_reason") or bz.get("absent_reason")
+           or bz.get("fault") or "not read")
+    zsub = {"title": "Against Book Z",
+            "lines": [f"Against Book Z, {bzl}." if bzl else f"Book Z absent: {why}."]}
+    if bzl:
+        items.append(item("book:z", f"Against Book Z, {bzl}.", 2, bzl))
+        items[-1]["show"] = False
     if r.get("state") == "ok" and r.get("paragraph"):
         lines.append(f"The bound, restated from the weights and the positions: "
                      f"{r['paragraph']}")
@@ -1227,12 +1242,14 @@ def book_section(p: dict) -> dict:
         items[-1]["show"] = False
     return {"items": items, "print_items": False,
             "table": {"columns": ["The register", "This month"], "rows": rows},
-            "subsections": [{"title": "Where our read lands", "lines": lines}],
+            "subsections": [{"title": "Where our read lands", "lines": lines},
+                            zsub],
             "not_tracked": ([] if r.get("state") == "ok" else
                             [f"where our read lands: {r.get('reason')}"]),
             "phase_a": ids,
             "data": {"register": rows, "live_weights": r.get("live_weights"),
-                     "active_decisions": r.get("active_decisions")}}
+                     "active_decisions": r.get("active_decisions"),
+                     "book_z": bzl}}
 
 
 # ---------------------------------------------------------------------------
@@ -1784,8 +1801,9 @@ def gold_two_bid(metals: dict, st, now: str) -> dict:
     sym = str(c.get("gold_symbol") or "GLD")
     legs = [(pb.oi_key(sym), f"{sym} net call-put open interest (contracts)", 0),
             (pb.rr_key(sym), f"{sym} 25-delta risk reversal, 30 days (vol points)", 2),
-            ((c.get("official") or {}).get("key") or "safe.gold_reserves_oz",
-             "China's reported gold holdings (troy ounces)", 0)]
+            ((c.get("official") or {}).get("key") or pb.OFFICIAL_KEY,
+             (c.get("official") or {}).get("row_label")
+             or "Central banks' net gold purchases, IMF IFS (troy ounces)", 0)]
     leg_data = {}
     for key, lab, dp in legs:
         t = att.triple(st, key, now)
@@ -2288,10 +2306,22 @@ def markdown(ed: dict) -> str:
     return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
 
 
+def meter_month(p: dict) -> str:
+    """The month the Monthly covers, YYYY-MM: the month in markets' last day,
+    else the month before the report date."""
+    end = str(((p.get("month_in_markets") or {}).get("end")) or "")
+    if len(end) >= 7 and end[4] == "-":
+        return end[:7]
+    import datetime as _dt                                      # noqa: PLC0415
+    d = _dt.date.fromisoformat(str(p.get("report_date"))[:10]).replace(day=1)
+    return (d - _dt.timedelta(days=1)).isoformat()[:7]
+
+
+@model_meter.metered("monthly")
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
-            model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, write=None,
-            prior_dir: Optional[str] = None) -> dict:
+             model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, write=None,
+             prior_dir: Optional[str] = None) -> dict:
     """Build, write, polish, budget and render the stacked Monthly. Archives
     nothing -- run.py does, through deliver.archive, as for every report.
     `write(ed) -> {key: result}` replaces the default prose step (run.py passes
@@ -2344,6 +2374,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     enforce_budget(ed)
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
+    # THE MODEL METER (AUD-2 item 4): the month's calls and tokens, by report.
+    try:
+        from altdata import model_meter                         # noqa: PLC0415
+        ed["model_lines"] = model_meter.month_lines(db_path, meter_month(p))
+    except Exception:                                           # noqa: BLE001
+        log.warning("model meter lines unavailable", exc_info=True)
     return {"edition": public(ed), "written": written, "summary_written": sw,
             "charts": charts,
             "inline_images": [(sr.cid(k), c["png"])

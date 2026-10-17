@@ -22,7 +22,15 @@ ExecStart=%h/chester-reports/scripts/rclone_sync.sh
 # the old 2h ceiling with no per-tree cap, so systemd killed the sweep and no
 # status line said which tree had stalled; the script now traps the SIGTERM
 # and writes state=killed (rc 4).
-TimeoutStartSec=2h30min
+#
+# 2h, NOT 2h30min (AUD-2, ruled 14 Oct 2026): 02:30 plus the timer's 5 minutes
+# of jitter plus 2h30 could run to 05:05, into the Sunday 05:00 Weekly -- and the
+# Weekly does not move, because the Alpha Lab's Sunday loop waits on it. THE
+# SWEEP'S OWN BUDGET ENDS IT: scripts/rclone_sync.sh gives the whole sweep 105
+# minutes (AUD-1), so it stops itself and names what it skipped before systemd's
+# ceiling is reached. 2h is the BACKSTOP, not the plan: if the budget ever fails,
+# systemd ends the sweep by 04:35 (state=killed, rc 4), still clear of the Weekly.
+TimeoutStartSec=2h
 
 NoNewPrivileges=true
 PrivateTmp=true
@@ -46,8 +54,21 @@ ProtectHome=no
 # way; mkdir -p it once.
 # -%h/chester-data/inbox/x-triage and x-digest (17 Oct 2026): the X pilot's two
 # ledgers and daily digests, for the Digital Assets addendum; mkdir -p both once.
-ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/chester-data/inbox/spdji -%h/chester-data/inbox/etf -%h/chester-data/inbox/x-triage -%h/chester-data/inbox/x-digest
+# -%h/backups/chains (AUD-1 item 1b): the sweep deletes a local chain zip past
+# the newest 14, and only once the remote holds that exact file.
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/chester-data/inbox/spdji -%h/chester-data/inbox/etf -%h/chester-data/inbox/x-triage -%h/chester-data/inbox/x-digest -%h/backups/chains
 ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
+
+# MEMORY CAPS (AUD-2 item 3, session-set for the 8 GB box): MemoryHigh throttles and
+# reclaims, MemoryMax is the hard ceiling the kernel kills at. README.md section 13.
+MemoryHigh=1.2G
+MemoryMax=1.5G
+# THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13). If the caps are
+# not enough, the kernel kills the highest score first: a report can be rendered
+# again; a day's chains cannot be fetched again; the Gateway needs Ari's supervised
+# login. So the reports 500, the EOD capture 300, the Gateway -500. Raising a score
+# needs no privilege, so this order holds on a --user unit without root.
+OOMScoreAdjust=500

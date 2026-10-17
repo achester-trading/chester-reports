@@ -13,8 +13,10 @@ Nothing here opens the live store.
      the lenses' long window pending; the yields-up/dollar-down description
      carries both papers' names; the driver blocks hold exactly the members the
      universe implies and carry section 5's kill condition; the paper-bid blocks
-     hold the four symbols, the OI block its twelve-month kill condition; IMF IFS
-     is registered not_yet_sourced and nothing writes it; the four are in the
+     hold the four symbols, the OI block its twelve-month kill condition; the
+     official leg reads the IMF IFS writer's aggregate net purchases (post-Friday
+     fix 2, 16 Oct 2026), the earlier imf.ifs_official_gold_oz is superseded by
+     it and nothing writes that name; the four are in the
      chain universe and in no exposure or pin stage; the hooks are named.
   B  THE REGRESSIONS RECOVER KNOWN BETAS. Gold built from a real-yield and a
      dollar factor with betas -0.08 and -1.0 gives those back; the residual is
@@ -258,12 +260,20 @@ def group_a() -> None:
           "call-put OI carries section 5's twelve-month kill condition, added today")
     imf = mets.get("imf.ifs_official_gold_oz") or {}
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
-    # The source itself goes live with imf-ifs-gold's writer (Friday stitching,
-    # 13 Oct); this metric stays not_yet_sourced until it is pointed at the
-    # writer's imf.ifs.* series.
-    check(imf.get("status_extra") == "not_yet_sourced"
-          and (src.get("imf_ifs") or {}).get("status") in ("not_yet_sourced", "live"),
-          "IMF IFS's two-bid leg is registered not_yet_sourced (a ruling pending)")
+    off = (P.cfg().get("official") or {})
+    # Post-Friday fix 2 (16 Oct 2026): the official leg reads the IMF IFS
+    # writer's aggregate; the placeholder name is superseded by it.
+    check(off.get("key") == "imf.ifs.gold_net_purchases_oz.total"
+          and off.get("kind") == "flow"
+          and off.get("count_key") == "imf.ifs.gold_net_purchases_count.total"
+          and "imf.ifs.gold_net_purchases_oz.total" in mets
+          and not off.get("not_yet_sourced")
+          and (src.get("imf_ifs") or {}).get("status") == "live",
+          "the two-bid official leg reads the IMF IFS writer's aggregate net "
+          "purchases (a flow, with its country count), a live source")
+    check(imf.get("status_extra") == "superseded"
+          and imf.get("superseded_by") == "imf.ifs.gold_net_purchases_oz.total",
+          "imf.ifs_official_gold_oz is superseded by the writer's aggregate")
     writers = [p for p in (REPO / "altdata").rglob("*.py")
                if "imf.ifs_official_gold_oz" in p.read_text(encoding="utf-8")
                and "registry_key" in p.read_text(encoding="utf-8")
@@ -281,7 +291,11 @@ def group_a() -> None:
           "run_eod captures the four and records the paper bid; stages 2 and 3 "
           "stay on the 13")
     cron = (REPO / "scripts" / "run_eod_cron.sh").read_text(encoding="utf-8")
-    check(cron.index("altdata.attribution compute") > cron.index("run_eod.py --close-source"),
+    # AUD-1 5a split run_eod.py into a capture pass and a compute pass
+    # (--skip-fetch); the attribution follows the LAST of them.
+    check(cron.find("altdata.attribution compute")
+          > max(cron.rfind('"$VENV_PY" run_eod.py --close-source'),
+                cron.rfind('"$VENV_PY" run_eod.py --skip-fetch')) > 0,
           "the EOD wrapper computes the attribution after the chains")
     tree = ast.parse((REPO / "altdata" / "attribution.py").read_text(encoding="utf-8"))
     fns = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
@@ -704,24 +718,42 @@ def group_h() -> None:
     check(s["state"] is None and "paper" in s["waiting"] and "official" in s["waiting"]
           and "1 of 12 months" in lines[0] and "0 of 12 months" in lines[0],
           f"below twelve months the state waits and names each leg: {lines[0]!r}")
+    # The official leg is the IMF IFS writer's aggregate net purchases, a flow
+    # (post-Friday fix 2, 16 Oct 2026): the change over three months is their sum.
+    off, cnt = P.OFFICIAL_KEY, "imf.ifs.gold_net_purchases_count.total"
+    check("IMF IFS" in lines[0] and "China" not in lines[0],
+          "the waiting line names the IMF IFS leg, not China's holdings")
     st = store()
     ms = months("2025-09", 13)
-    put(st, "safe.gold_reserves_oz", [(m + "-07", 7.4e7 + (i * 1e5 if i < 9 else 8e5))
-                                      for i, m in enumerate(ms)])
+    # Net purchases of 1e5 oz a month, then three months of none: flat.
+    put(st, off, [(m + "-28", 1e5 if i < 10 else 0.0) for i, m in enumerate(ms)])
+    put(st, cnt, [(m + "-28", 25.0) for m in ms])
+    put(st, "safe.gold_reserves_oz", [(m + "-07", 7.4e7 + i * 1e5) for i, m in enumerate(ms)])
     put(st, P.oi_key("GLD"), [(m + "-15", 1000.0 + 10 * i) for i, m in enumerate(ms)])
     put(st, P.rr_key("GLD"), [(m + "-15", -2.0 + 0.1 * i) for i, m in enumerate(ms)])
     s = P.two_bid_state(st, NOW)
     check(s["state"] == "fragile rally" and s["paper_reading"] == "surging"
-          and s["official_reading"] == "flat",
-          f"paper at its highs with the official leg flat reads fragile rally "
+          and s["official_reading"] == "flat"
+          and s["official_change"]["change_oz"] == 0.0
+          and s["official_countries"] == 25 and s["official_key"] == off,
+          f"paper at its highs with three months of no net purchases reads fragile "
+          f"rally, though China's holdings rose (the leg is no longer SAFE's) "
           f"({P.two_bid_lines(s)[0]!r})")
     st = store()
-    put(st, "safe.gold_reserves_oz", [(m + "-07", 7.4e7 + i * 1e5) for i, m in enumerate(ms)])
+    put(st, off, [(m + "-28", 1e5 * (1 + i % 3)) for i, m in enumerate(ms)])
     put(st, P.oi_key("GLD"), [(m + "-15", 1000.0 - 10 * i) for i, m in enumerate(ms)])
     put(st, P.rr_key("GLD"), [(m + "-15", -2.0 - 0.1 * i) for i, m in enumerate(ms)])
     s = P.two_bid_state(st, NOW)
-    check(s["state"] == "durable base", "the official leg accumulating with the paper leg "
-          "at its lows reads durable base")
+    check(s["state"] == "durable base" and s["official_change"]["change_oz"] == 6e5,
+          "net purchases summing to +600,000 oz over three months with the paper leg "
+          "at its lows reads durable base (the flow summed, by hand)")
+    st = store()
+    put(st, off, [(m + "-28", -2e5) for m in ms])
+    put(st, P.oi_key("GLD"), [(m + "-15", 1000.0 - 10 * i) for i, m in enumerate(ms)])
+    put(st, P.rr_key("GLD"), [(m + "-15", -2.0 - 0.1 * i) for i, m in enumerate(ms)])
+    s = P.two_bid_state(st, NOW)
+    check(s["official_reading"] == "selling" and s["state"] == "neither",
+          "net sales read selling, and neither state")
 
 
 # ---------------------------------------------------------------------------
@@ -758,9 +790,10 @@ def group_i() -> None:
         check("Kill states" in note and A.KILL_NONE in note and "kill test waits" in note
               and "risk reversal" in note,
               "the kill states print for the residual, call-put OI and the risk reversal")
-        check(any("IMF" in x for x in metals["not_tracked"])
+        check(not any("IMF" in x for x in metals["not_tracked"])
               and any("tonnes" in x for x in metals["not_tracked"]),
-              "IMF IFS and GLD tonnage are named as not yet tracked")
+              "GLD tonnage is named as not yet tracked; IMF IFS no longer is (it "
+              "is the official leg)")
         blk = stack.driver_attribution_block(st, NOW)
         cols, rows = blk["table"]["columns"], blk["table"]["rows"]
         check(blk["title"] == "Driver attribution" and cols == A.DRIVER_COLUMNS

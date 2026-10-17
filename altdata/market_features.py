@@ -1001,12 +1001,32 @@ def aq3b_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
     return rows
 
 
+RECOMPUTE_WINDOW_DAYS = 120
+
+
+def default_first_day(db) -> Optional[str]:
+    """The newest day this module has stored, less RECOMPUTE_WINDOW_DAYS; None
+    (compute everything) when it has stored nothing."""
+    import datetime as _dt                                       # noqa: PLC0415
+    last = db.last_observed(keys=list({**FEATURES, **MACRO_FEATURES, **RATES_FEATURES}))
+    if not last:
+        return None
+    return (_dt.date.fromisoformat(last)
+            - _dt.timedelta(days=RECOMPUTE_WINDOW_DAYS)).isoformat()
+
+
 def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None,
-            dry_run: bool = False) -> dict:
+            dry_run: bool = False, full: bool = False) -> dict:
     own = store is None
     db = store or observations.ObservationStore()
     try:
+        # AUD-1 4d: FROM A START DAY, NOT THE WHOLE HISTORY, EVERY RUN. Without
+        # --from, the recompute starts RECOMPUTE_WINDOW_DAYS before the newest day
+        # this module has stored -- wide enough for a late FRED revision to be
+        # re-derived -- and a store holding none of its rows computes everything.
+        if first_day is None and not full:
+            first_day = default_first_day(db)
         rows = compute_rows(db, as_of=as_of, first_day=first_day)
         written = 0 if dry_run else db.write_many(rows)
         by_key: dict[str, int] = {}
@@ -1039,7 +1059,11 @@ def _main(argv: list[str]) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("compute")
     c.add_argument("--as-of", default=None)
-    c.add_argument("--from", dest="first", default=None)
+    c.add_argument("--from", dest="first", default=None,
+                   help="recompute from this day (default: the newest stored day "
+                        "less RECOMPUTE_WINDOW_DAYS)")
+    c.add_argument("--full", action="store_true",
+                   help="recompute the whole history")
     c.add_argument("--dry-run", action="store_true")
     sh = sub.add_parser("show")
     sh.add_argument("--as-of", default=None)
@@ -1048,7 +1072,8 @@ def _main(argv: list[str]) -> int:
                         format="%(levelname)s %(name)s: %(message)s")
 
     if a.cmd == "compute":
-        r = compute(as_of=a.as_of, first_day=a.first, dry_run=a.dry_run)
+        r = compute(as_of=a.as_of, first_day=a.first, dry_run=a.dry_run,
+                    full=a.full)
         print(f"{r['computed']} rows computed, {r['written']} written"
               + ("  (dry run)" if r["dry_run"] else ""))
         for k in sorted(r["by_key"]):

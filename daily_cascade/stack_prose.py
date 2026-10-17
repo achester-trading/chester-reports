@@ -47,6 +47,7 @@ from typing import Any, Optional
 from pathlib import Path
 
 from altdata import levels as levels_mod
+from altdata import model_meter
 
 from . import direction, readability
 from . import opener as opener_mod
@@ -243,11 +244,29 @@ def bare_figure_sentence(s: str) -> bool:
     return not any(re.search(rf"\b{w}\b", s, re.I) for w in COMPARISON_WORDS)
 
 
-def filler_faults(text: str, names: Optional[list] = None) -> list[str]:
+# CODE-WRITTEN TAGGED LINES ARE EXEMPT (post-Friday fix 1, ruled 16 Oct 2026).
+# A line a block's code writes and closes on the descriptive tag -- SR-43/49's
+# anchors line: "... ACM term premium 1.03% (as of 2026-10-09). (descriptive;
+# unvalidated, n=0)" -- is a table row in sentence form, not prose: its figures
+# are computed and printed by code, and the tag alone read as a bare figure.
+# The exemption needs both: the caller says the line is code-written, and the
+# line ends on the tag. A model's paragraph is never exempt, tag or no tag.
+CODE_TAG = re.compile(r"\(descriptive; unvalidated, n=\d+\)\.?\s*$")
+
+
+def code_tagged(text: str) -> bool:
+    return bool(CODE_TAG.search(text or ""))
+
+
+def filler_faults(text: str, names: Optional[list] = None,
+                  code_written: bool = False) -> list[str]:
     """Withhold a paragraph with a filler sentence: "also/all moved(ing)",
     "moved alongside", "moved through the week" -- or three or more of the
     frame's series names joined by commas with no figure among them. The fault
-    quotes the sentence, so the retry names it."""
+    quotes the sentence, so the retry names it. A code-written line ending on
+    the descriptive tag is exempt (`code_written=True`, CODE_TAG)."""
+    if code_written and code_tagged(text):
+        return []
     out = []
     for s in _sentences(text):
         if FILLER_MOVED.search(s):
@@ -985,11 +1004,13 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     def attempt(sid: str, payload: dict, system: str, max_chars: int,
                 dup_ok: bool = False) -> dict:
         try:
-            r = base.generate(payload, model=model, client=client,
-                              system_prompt=system, max_chars=max_chars,
-                              one_paragraph=False, citable_ids=[],
-                              unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
-                              market_states=market_states)
+            from altdata import model_meter  # noqa: PLC0415
+            with model_meter.scope(section=sid):
+                r = base.generate(payload, model=model, client=client,
+                                  system_prompt=system, max_chars=max_chars,
+                                  one_paragraph=False, citable_ids=[],
+                                  unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
+                                  market_states=market_states)
         except Exception as exc:                                # noqa: BLE001
             return {"state": "fault", "published": False,
                     "reason": f"FAULT {type(exc).__name__}: {exc}"}

@@ -1,18 +1,38 @@
-# setups.yaml -- the setup families a Decision Packet names (EL-1, §3.1 of
-# docs/change-order-enterprise-layer-2026-09-27.md).
+# setups.yaml -- the setup catalogue a Decision Packet names (EL-1, §3.1 and
+# §3.6 of docs/change-order-enterprise-layer-2026-09-27.md).
 #
 # ONE ENTRY PER CANONICAL SETUP FAMILY THE OPERATING DOCTRINE NAMES PER BOOK
-# (docs/whitepapers/operating-doctrine-whitepaper.md, Part IV), plus
-# `unclassified`. `setup_id` is the Edge Ledger's key: expectancy is measured per
-# setup, so a family written here is a family whose record can be read back.
+# (docs/whitepapers/operating-doctrine-whitepaper.md, Part IV), the setups the
+# Weekly's tells already name, and `unclassified`. `setup_id` is the Edge
+# Ledger's key: expectancy is measured per setup, so a family written here is a
+# family whose record can be read back. A packet naming a setup_id that is not
+# here is REFUSED at write time and the refusal logged (register/store.py).
 #
 # `unclassified` is ALLOWED and COUNTED -- the Weekly prints how many packets used
 # it. A high count means this list is missing a family the operator actually
 # trades, and the fix is an entry here, not a vaguer label on the packet.
 #
-# Adding a family: a new entry with its book and the Doctrine passage it comes
-# from. Removing one: never -- packets that cite it would stop resolving. Retire
-# it with `retired: true` and a date instead.
+# EACH SETUP IS AN EXPERIMENT (§3.6), with, before its first trade:
+#   mechanism     one paragraph: why the edge should exist
+#   base_rate     the unconditional base rate of the setup, CITED BY ID where one
+#                 is stored ('baserate.<table>' or 'claim:<id>', the register's
+#                 base_rate_cited rule), else "not yet"
+#   claimed_edge  the conditional edge claimed over that base rate
+#   target_n      the graded paper trades before the kill criterion is read
+#   kill          `fixed` -- the order's kill criterion, below, word for word
+#   status        `stub` until the operator completes the entry (Doctrine #2,
+#                 7-8 Nov 2026), then `complete`
+#
+# Adding a family: a new entry with its book and the passage it comes from.
+# Removing one: never -- packets that cite it would stop resolving. Retire it with
+# `retired: true` and a date instead (the kill criterion retires; nothing deletes).
+
+# THE KILL CRITERION, FIXED BY THE ORDER (§3.6) AND THE SAME FOR EVERY SETUP:
+kill_criterion: >-
+  Retired when, after N >= 40 graded paper trades, expectancy after modeled
+  costs is <= 0 or its Brier is worse than the unconditional base rate's; never
+  resized before N.
+min_target_n: 40
 
 setups:
   # --- Book A -- Allocation (Doctrine 4.1) ------------------------------------
@@ -20,63 +40,170 @@ setups:
     book: A
     name: Monthly stance rebalance
     doctrine: "4.1 -- rebalance to the stance within the Macro dial's band at the monthly session"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2. The Doctrine's passage is the starting point: rebalancing to the stance inside the Macro dial's band harvests the dial's read at a monthly cadence rather than trading its noise."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   a_tb_override:
     book: A
     name: Top & Bottom override
     doctrine: "4.1 -- the stance moves to the override band when the T&B report fires"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2. The Doctrine's passage: when the Top & Bottom report fires, the stance moves to the override band, on the claim that extremes the report names are rarer and more informative than the dial's monthly read."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
 
   # --- Book B -- Swing (Doctrine 4.2) -----------------------------------------
   b_breakout:
     book: B
     name: Breakout from a defined base
     doctrine: "4.2 -- entered at or immediately after a pivotal point: a breakout from a defined base"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   b_reclaim:
     book: B
     name: Reclaim of a lost level with volume
     doctrine: "4.2 -- a reclaim of a lost level with volume"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   b_failed_breakdown:
     book: B
     name: Failed breakdown
     doctrine: "4.2 -- a failed breakdown"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
+  # The Weekly's tells (EL-1 brief, 12 Oct 2026): seeded from the signal-triage
+  # register's own rulings, as stubs.
+  b_style_regime_pair:
+    book: B
+    name: Style-regime pair -- value against growth after a growth extreme breaks
+    doctrine: "SR-1 (signal-triage register) -- Book B pair trade; the Monthly style-regime panel"
+    mechanism: "STUB, drafted from SR-1 for the operator to complete. When the log Growth/Value total-return ratio stretches more than two standard deviations above its ten-year trend, leadership is crowded into one style; a break -- the ratio below its 40-week average, or more than 8% off its 52-week high -- marks the crowd unwinding, and the pair (long IVE / short IVW, or IWD / IWF) is positioned for the rotation, with a hard stop on a new ratio high."
+    base_rate: not yet           # SR-1's ledger (Base Rates) is not yet stored
+    claimed_edge: "SR-1's rule to test: positive expectancy after costs at 6 and 12 months across at least six non-overlapping episodes; gate pending (ST-8), so unclaimed until it passes"
+    target_n: 40
+    kill: fixed
+    status: stub
+  b_consumer_rs_tell:
+    book: B
+    name: Consumer relative-strength tell
+    doctrine: "SR-5 (signal-triage register) -- weekly Book B tell (XLY/XLP; equal-weight discretionary against SPY; homebuilders)"
+    mechanism: "STUB, drafted from SR-5 for the operator to complete. Consumer-dependent relative strength -- discretionary over staples (XLY/XLP, the held calc.cyclical_over_defensive where its definition matches), equal-weight discretionary against SPY, homebuilders -- reads what the tape pays for consumer growth before the credit data confirms it; the tell is a narrow flag on that relative strength turning."
+    base_rate: not yet
+    claimed_edge: "not yet -- SR-5 adopts the tell with narrow-flag rights; no conditional edge is claimed before its gate"
+    target_n: 40
+    kill: fixed
+    status: stub
 
   # --- Book C -- Tactical (Doctrine 4.3) --------------------------------------
+  # The dealer-regime setups the Weekly's dealer scorecard grades by session.
   c_pin_fade:
     book: C
     name: Fade toward a gamma-implied pin
     doctrine: "4.3 -- a fade toward a gamma-implied pin in a Positive-gamma regime"
+    mechanism: "STUB, drafted from the Dealer's Hand for the operator to complete. In a positive-gamma regime dealers are long gamma: they sell rallies and buy dips to stay hedged, which suppresses moves in both directions and pulls price toward the strike with the largest total gamma; a move away from that strike is faded toward it, sized for the range."
+    base_rate: not yet
+    claimed_edge: "not yet -- the dealer scorecard's per-session hit rate is the evidence it will be read against"
+    target_n: 40
+    kill: fixed
+    status: stub
   c_negative_gamma_continuation:
     book: C
     name: Continuation through a level, Negative gamma
     doctrine: "4.3 -- a continuation through a level in a Negative-gamma regime after confirmation"
+    mechanism: "STUB, drafted from the Dealer's Hand for the operator to complete. Below the gamma flip dealers are short gamma: their hedging sells into declines and buys into rallies, amplifying a move through a level rather than absorbing it; after confirmation the continuation is followed rather than faded."
+    base_rate: not yet
+    claimed_edge: "not yet -- the dealer scorecard's per-session hit rate is the evidence it will be read against"
+    target_n: 40
+    kill: fixed
+    status: stub
   c_event_reaction:
     book: C
     name: Event reaction
     doctrine: "4.3 -- the session after a scheduled release, in the direction of a reaction that contradicts the positioning-implied expectation"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
 
   # --- Book D -- Opportunistic (Doctrine 4.4) ---------------------------------
   d_behavioral_alert:
     book: D
     name: Behavioral / alternative-data alert
     doctrine: "4.4 -- behavioral change visible in social velocity, search and positioning data before price"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   d_forced_flow:
     book: D
     name: Forced flow
     doctrine: "4.4 -- index inclusion, unlock and lock-up mechanics, closing-auction imbalances, expiry pins"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   d_prediction_market_divergence:
     book: D
     name: Prediction-market divergence
     doctrine: "4.4 -- a prediction market read for divergence from the corresponding financial instrument"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   d_squeeze_exhaustion:
     book: D
     name: Exhausted squeeze, short with a defined wing
     doctrine: "4.4 -- occasionally a short with a defined wing when a squeeze has exhausted"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2."
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
   d_tail_hedge:
     book: D
     name: Tail-hedge budget
     doctrine: "4.4 -- the ring-fenced 0.4%/month tail-hedge budget: far OTM puts, long-vol, gold increment"
+    mechanism: "STUB -- the operator writes the mechanism at Doctrine #2. (Whether the fixed kill criterion fits a budgeted insurance line is in the EL-1 notes, Needs you.)"
+    base_rate: not yet
+    claimed_edge: not yet
+    target_n: 40
+    kill: fixed
+    status: stub
 
   # --- the honest default ------------------------------------------------------
   unclassified:
     book: null
     name: Unclassified
     doctrine: "EL-1 §3.1 -- allowed, and counted in the Weekly"
+    mechanism: "No setup family claimed. Allowed and counted; never graded as an experiment."
+    base_rate: not yet
+    claimed_edge: none
+    target_n: null
+    kill: none
+    status: default

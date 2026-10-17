@@ -321,11 +321,13 @@ def _call(fr: dict, system: str, client, model: Optional[str]) -> str:
                     "system": system,
                     "messages": [{"role": "user", "content": prompt}],
                     "thinking": {"type": "disabled"}}
-    try:
-        resp = client.messages.create(**kwargs)
-    except TypeError:
-        kwargs.pop("thinking")
-        resp = client.messages.create(**kwargs)
+    from altdata import model_meter                             # noqa: PLC0415
+    with model_meter.scope(section="precis"):
+        try:
+            resp = model_meter.create(client, **kwargs)
+        except TypeError:
+            kwargs.pop("thinking")
+            resp = model_meter.create(client, **kwargs)
     return "".join(getattr(b, "text", "") for b in resp.content
                    if getattr(b, "type", "") == "text").strip()
 

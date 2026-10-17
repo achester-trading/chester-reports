@@ -56,6 +56,7 @@ show up as the data going stale, not as a crash.
 from __future__ import annotations
 
 import logging
+import traceback
 from typing import Any, Optional
 
 from . import observations, secrets, session
@@ -195,7 +196,7 @@ def _writer_modules(names: tuple[str, ...]) -> list:
         try:
             out.append((name, import_module(f"{__package__}.sources.{name}")))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("writer %s failed to import: %s", name, exc)
+            log.warning("writer %s failed to import: %s", name, secrets.redact(str(exc)))
             out.append((name, None))
     return out
 
@@ -296,7 +297,8 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
             probes = set(getattr(spec, "probe_keys", ()) or ())
             out.append((name, [k for k in spec.keys() if k not in probes]))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("logger %s could not list its keys: %s", name, exc)
+            log.warning("logger %s could not list its keys: %s", name,
+                        secrets.redact(str(exc)))
     return out
 
 
@@ -462,7 +464,7 @@ def pull_prices(run_id: Optional[str] = None) -> dict:
     log.info("prices: %d/%d symbols, %d failed", summary["success"],
              summary["total"], len(summary["failed"]))
     for key, err in summary["failed"]:
-        log.warning("prices: %s failed -- %s", key, err)
+        log.warning("prices: %s failed -- %s", key, secrets.redact(str(err)))
     return summary
 
 
@@ -490,7 +492,7 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     log.info("fred: %d/%d series, %d failed", summary.get("success", 0),
              summary.get("total", 0), len(summary.get("failed") or []))
     for key, err in summary.get("failed") or []:
-        log.warning("fred: %s failed -- %s", key, err)
+        log.warning("fred: %s failed -- %s", key, secrets.redact(str(err)))
     return summary
 
 
@@ -534,8 +536,8 @@ def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
         try:
             r = mod.pull(run_id=run_id)
         except Exception as exc:                              # noqa: BLE001
-            log.exception("%s raised", name)
-            r = {"status": "STALE", "reason": f"{type(exc).__name__}: {exc}",
+            log.error("%s raised: %s", name, secrets.redact(traceback.format_exc()))
+            r = {"status": "STALE", "reason": secrets.redact(f"{type(exc).__name__}: {exc}"),
                  "written": 0}
         out[name] = r
         out["written"] += int(r.get("written") or 0)
@@ -561,7 +563,8 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
         try:
             record_attempted(name, list(spec.keys()))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("logger %s could not list its keys: %s", name, exc)
+            log.warning("logger %s could not list its keys: %s", name,
+                        secrets.redact(str(exc)))
 
     for name, spec in sorted(load_all().items()):
         if spec.requires_key and not secrets.present(spec.requires_key):
@@ -577,8 +580,8 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
             out[name] = r
             out["written"] += int(r.get("written") or 0)
         except Exception as exc:                              # noqa: BLE001
-            log.exception("%s raised", name)
-            out[name] = {"error": f"{type(exc).__name__}: {exc}"}
+            log.error("%s raised: %s", name, secrets.redact(traceback.format_exc()))
+            out[name] = {"error": secrets.redact(f"{type(exc).__name__}: {exc}")}
         _attempted(name, spec)
         out["ran"].append(name)
         out["total"] += 1
@@ -618,7 +621,7 @@ def pull_prediction_markets(run_id: Optional[str] = None) -> dict:
     out = pm_src.pull(run_id=run_id)
     record_attempted("prediction_markets", list(PREDICTION_KEYS))
     for k, v in (out.get("errors") or {}).items():
-        log.warning("prediction_markets: %s -- %s", k, v)
+        log.warning("prediction_markets: %s -- %s", k, secrets.redact(str(v)))
     log.info("prediction_markets: %s markets, %s written", out.get("markets"),
              out.get("written"))
     return out
@@ -678,8 +681,8 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
         except Exception as exc:                              # noqa: BLE001
             # ONE FEED NEVER TAKES THE OTHER DOWN. The whole point of running
             # both from one step is that the step is not all-or-nothing.
-            log.exception("%s pull raised", name)
-            out[name] = {"error": f"{type(exc).__name__}: {exc}"}
+            log.error("%s pull raised: %s", name, secrets.redact(traceback.format_exc()))
+            out[name] = {"error": secrets.redact(f"{type(exc).__name__}: {exc}")}
             out["ran"].append(name)
     return out
 
@@ -730,20 +733,18 @@ def freshness(as_of: Optional[str] = None,
                                       "note": "declares no keys yet"}
                 continue
             for k in keys:
-                rows = db.as_of(k, as_of=as_of)
+                # AUD-1 4c: one row from the index, not the whole history.
+                newest_row = db.latest_as_of(k, as_of=as_of)
+                rows = [newest_row] if newest_row else []
                 if not rows:
                     # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
                     # and most macro rows carry NULL, so a per-ticker logger looks
                     # empty on the default join. Ask which instruments exist and
                     # take the freshest of them: the question here is "did this
                     # logger write last night", not "did it write for SPY".
-                    insts = db.instruments(k)
-                    newest_any = None
-                    for inst in insts:
-                        r2 = db.as_of(k, as_of=as_of, instrument=inst)
-                        if r2:
-                            d = str(r2[-1]["observed_at"])[:10]
-                            newest_any = max(newest_any or d, d)
+                    # One indexed MAX across instruments (AUD-1 3: thousands
+                    # of them now, asked one at a time until then).
+                    newest_any = db.newest_observed_any(k, as_of=as_of)
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.
