@@ -295,3 +295,37 @@ def baseline(cfg: Optional[dict] = None) -> dict:
         from altdata import bars as bars_mod                    # noqa: PLC0415
         cfg = bars_mod.load_config()
     return dict(((cfg.get("system_metrics") or {}).get("baseline_audit_4")) or {})
+
+
+def _main(argv: list[str]) -> int:
+    """`show --month YYYY-MM [--db PATH] [--archive-dir DIR]`: the block over one
+    month, printed as text. Read-only; nothing fetched."""
+    import argparse                                             # noqa: PLC0415
+    from altdata import observations, session                   # noqa: PLC0415
+    ap = argparse.ArgumentParser(prog="python -m altdata.system_metrics")
+    ap.add_argument("cmd", choices=["show"])
+    ap.add_argument("--month", required=True)
+    ap.add_argument("--db", default=None)
+    ap.add_argument("--archive-dir", default=None)
+    a = ap.parse_args(argv)
+    y, m = (int(x) for x in a.month.split("-"))
+    first = dt.date(y, m, 1)
+    last = dt.date(y + (m == 12), m % 12 + 1, 1) - dt.timedelta(days=1)
+    with observations.ObservationStore(a.db) as st:
+        src = gather(first.isoformat(), last.isoformat(), st=st, cutoff=session.utc_iso(),
+                     db_path=a.db, archive_dir=a.archive_dir)
+    b = block(first.isoformat(), last.isoformat(), src, baseline(), title=f"{first:%B %Y}")
+    print(b["title"])
+    for t in b["tables"]:
+        print(" | ".join(str(c) for c in t["columns"]))
+        for r in t["rows"]:
+            print(" | ".join(str(c) for c in r))
+        print()
+    for ln in b["lines"]:
+        print(ln)
+    return 0
+
+
+if __name__ == "__main__":
+    import sys                                                  # noqa: PLC0415
+    sys.exit(_main(sys.argv[1:]))
