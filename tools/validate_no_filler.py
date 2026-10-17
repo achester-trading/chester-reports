@@ -22,6 +22,11 @@ a paragraph that uses it, and the retry names the offending sentence.
      exactly one figure and no comparison word (against, than, while, as, from)
      is filler: "Real Estate added +1.96%." The same figure with something to
      read it against passes.
+  F  CODE-WRITTEN TAGGED LINES (post-Friday fix 1, ruled 16 Oct 2026). SR-43/49's
+     anchors line, built by altdata/rates_anchors.line, closes on "(descriptive;
+     unvalidated, n=0)", which read as a bare figure. A code-written line ending
+     on the tag is exempt; the same line from a model, an untagged code line,
+     and a line with the tag mid-sentence are not.
 
     python tools/validate_no_filler.py
 """
@@ -149,6 +154,35 @@ def group_e() -> None:
         check(not sp.filler_faults(ok, NAMES), f"passes: '{ok[:60]}'")
 
 
+def group_f() -> None:
+    print(f"\n{LINE}\nF. CODE-WRITTEN TAGGED LINES (post-Friday fix 1)\n{LINE}")
+    from altdata import rates_anchors as ra
+    r = {"inflation": {"state": "absent", "reason": "no breakeven stored"},
+         "fiscal": {"state": "absent", "reason": "fewer than 8 countries"},
+         "term_premium": {"pct": 1.03, "as_of": "2026-10-09"},
+         "tag": "(descriptive; unvalidated, n=0)"}
+    anchors = ra.line(r)
+    check(anchors.endswith("(as of 2026-10-09). (descriptive; unvalidated, n=0)"),
+          f"the fixture is SR-43/49's line as the code writes it ('{anchors[-60:]}')")
+    check(bool(sp.filler_faults(anchors, NAMES)),
+          "read as prose, its tag is a bare figure (the Friday finding)")
+    check(not sp.filler_faults(anchors, NAMES, code_written=True),
+          "code-written and tagged: exempt")
+    check(not sp.filler_faults("Basis proxy 0.42% (as of 2026-10-09). "
+                               "(descriptive; unvalidated, n=12).", NAMES,
+                               code_written=True),
+          "any n, and a closing full stop after the tag")
+    check(bool(sp.filler_faults("Real Estate added +1.96%.", NAMES, code_written=True)),
+          "a code-written line without the tag is still read")
+    check(bool(sp.filler_faults("Real Estate added +1.96% (descriptive; unvalidated, "
+                                "n=0) today. The curve, the 2-year, the 10-year "
+                                "and the 30-year rose.", NAMES, code_written=True)),
+          "the tag mid-line does not exempt the line")
+    check(bool(sp.filler_faults("The 10-year, 30-year and 2-year all moved alongside "
+                                "the curve. (descriptive; unvalidated, n=0)", NAMES)),
+          "a model's paragraph ending on the tag is not exempt")
+
+
 def main() -> int:
     print(f"{LINE}\nTHE FILLER AUDIT (W-1.1 item 1.0d)\n{LINE}")
     group_a()
@@ -156,6 +190,7 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

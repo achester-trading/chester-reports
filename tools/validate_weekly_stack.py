@@ -47,6 +47,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from packet_fixture import FALSIFIER, PACKET_CLI, PACKET_FULL  # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -141,8 +143,8 @@ def seed(db: str, breakeven_jump: float = 0.12, cpi: bool = False) -> dict:
     from register.store import Register
     from altdata import session as _sess
     base = dict(direction="long", thesis="t", edge_type="positioning",
-                horizon="swing", invalidation="i", book="B", falsifiers=["f"],
-                counter_thesis="c", currency_exposure="unhedged")
+                horizon="swing", invalidation="i", book="B", falsifiers=[FALSIFIER],
+                counter_thesis="c", currency_exposure="unhedged", **PACKET_FULL)
     # THE CLOCK IS PINNED INSIDE THE FIXTURE WEEK. The register stamps created_at
     # from the real clock, so on any day after the fixture week these rows fell
     # outside it and the counts read 0 (first seen 5 Oct 2026, 00:00 UTC).
