@@ -273,6 +273,13 @@ def _pct(vals: list[float], x: float) -> Optional[float]:
     return derived.percentile_of(vals, x)
 
 
+# THE OFFICIAL LEG (post-Friday fix 2, ruled 16 Oct 2026): the IMF IFS writer's
+# aggregate net purchases, a flow, in place of China's reported holdings
+# (safe.gold_reserves_oz). config/attribution.yaml two_bid.official names it.
+OFFICIAL_KEY = "imf.ifs.gold_net_purchases_oz.total"
+OFFICIAL_LABEL = "central banks' net gold purchases (IMF IFS)"
+
+
 def two_bid_state(st, now: str, c: Optional[dict] = None) -> dict:
     """Gold's two legs and, once both hold twelve months, the state: fragile
     rally, durable base, or neither (with why). Before then, which leg waits."""
@@ -280,13 +287,16 @@ def two_bid_state(st, now: str, c: Optional[dict] = None) -> dict:
     need = int(c.get("min_history_months", 12))
     sym = str(c.get("gold_symbol") or "GLD")
     oi, rr = _rows(st, oi_key(sym), now), _rows(st, rr_key(sym), now)
-    off_key = (c.get("official") or {}).get("key") or "safe.gold_reserves_oz"
+    oc = c.get("official") or {}
+    off_key = oc.get("key") or OFFICIAL_KEY
+    flow = (oc.get("kind") or "flow") == "flow"
     off = _rows(st, off_key, now)
     paper_n = min(months_held(oi), months_held(rr)) if oi and rr else 0
     off_n = months_held(off)
     out: dict[str, Any] = {"symbol": sym, "paper_months": paper_n,
                            "official_months": off_n, "need_months": need,
                            "official_key": off_key,
+                           "official_label": oc.get("label") or OFFICIAL_LABEL,
                            "not_yet_sourced": [x["key"] for x in
                                                (c.get("official") or {}).get("not_yet_sourced") or []]}
     if oi:
@@ -296,9 +306,17 @@ def two_bid_state(st, now: str, c: Optional[dict] = None) -> dict:
         out["paper_rr"] = {"latest": rr[-1][1], "as_of": rr[-1][0],
                            "percentile": _pct([v for _, v in rr], rr[-1][1])}
     k = int(c.get("official_months", 3))
-    if len(off) > k:
+    if flow and len(off) >= k:
+        # A flow (IMF IFS net purchases): the change is the months' sum.
+        out["official_change"] = {"change_oz": sum(v for _, v in off[-k:]),
+                                  "months": k, "as_of": off[-1][0]}
+    elif not flow and len(off) > k:
         out["official_change"] = {"change_oz": off[-1][1] - off[-1 - k][1],
                                   "months": k, "as_of": off[-1][0]}
+    if oc.get("count_key") and off:
+        cnt = dict(_rows(st, oc["count_key"], now))
+        if off[-1][0] in cnt:
+            out["official_countries"] = int(cnt[off[-1][0]])
     waiting = [leg for leg, n in (("paper", paper_n), ("official", off_n)) if n < need]
     if waiting:
         out["state"] = None
@@ -328,8 +346,8 @@ def two_bid_lines(s: dict) -> list[str]:
             parts.append(f"the paper leg ({s['symbol']} options) holds "
                          f"{s['paper_months']} of {need} months")
         if "official" in s["waiting"]:
-            parts.append(f"the official leg (China's reported holdings) holds "
-                         f"{s['official_months']} of {need} months")
+            parts.append(f"the official leg ({s.get('official_label') or OFFICIAL_LABEL}) "
+                         f"holds {s['official_months']} of {need} months")
         return [f"Two-bid state: not yet read, as both legs need {need} months; "
                 + "; ".join(parts) + "."]
     return [f"Two-bid state: {s['state']} (paper {s['paper_reading']}, official "

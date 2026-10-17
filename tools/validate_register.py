@@ -34,6 +34,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+from packet_fixture import FALSIFIER, PACKET_FULL  # noqa: E402
 
 from altdata import config, observations, session  # noqa: E402
 from register import instruments, manifest  # noqa: E402
@@ -278,7 +279,7 @@ def group_g(db_path: str) -> None:
     # thesis_state INVALIDATED) was refused as a stale activation.
     live = reg.record(instrument="QQQ", status="active",
                       operator_action="TAKE", book="B",
-                    falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis",
+                    falsifiers=[FALSIFIER], counter_thesis="fixture counter-thesis", **PACKET_FULL,
                       **{**base, "thesis": "held position"})
     reg.close()
 
@@ -313,7 +314,7 @@ def group_g(db_path: str) -> None:
     reg = Register(db_path)
     d3 = reg.record(instrument="SPY", status="active", operator_action="TAKE",
                     book="B",
-                    falsifiers=["fixture falsifier"], counter_thesis="fixture counter-thesis",
+                    falsifiers=[FALSIFIER], counter_thesis="fixture counter-thesis", **PACKET_FULL,
                     **{**base, "direction": "long", "thesis": "to re-designate"})
     reg.close()
 
@@ -859,8 +860,13 @@ def group_j(td: str) -> None:
     base = dict(instrument="SPY", direction="long", thesis="t",
                 edge_type="positioning", horizon="swing", invalidation="below 760",
                 book="B", expression_family="outright", leverage_form="none")
+    # Since EL-1's brief of 12 Oct 2026 an active packet carries the whole
+    # decision object (tools/packet_fixture.py); tools/validate_packets.py
+    # refuses each missing field in turn.
+    from packet_fixture import PACKET
     fields = dict(falsifiers=["SPY settles below 760"],
-                  counter_thesis="Dealers are short gamma and the tape can gap.")
+                  counter_thesis="Dealers are short gamma and the tape can gap.",
+                  size="100 shares", **PACKET)
     with Register(db) as reg:
         for drop in ("falsifiers", "counter_thesis"):
             f = {k: v for k, v in fields.items() if k != drop}
@@ -899,7 +905,7 @@ def group_j(td: str) -> None:
         dr = reg.record(status="draft", **base)
         raises(lambda: reg.set_status(dr, "active"), PacketIncompleteError,
                "the in-place writer cannot promote a draft without the fields")
-        dr2 = reg.record(status="draft", **base, **fields)
+        dr2 = reg.record(status="draft", setup_id="b_breakout", **base, **fields)
         reg.set_status(dr2, "active")
         check(reg.get(dr2)["status"] == "active",
               "and promotes one that has them")
@@ -948,13 +954,15 @@ def group_j(td: str) -> None:
            "--status", "active", "--book", "B", "--expression-family", "outright",
            "--leverage-form", "none", "--dry-run"]
     r = subprocess.run(rec, capture_output=True, text=True, cwd=str(REPO), env=env)
-    check(r.returncode == 2 and "DECISION_OK needs --falsifier and --counter-thesis"
-          in r.stdout,
+    check(r.returncode == 2 and "DECISION_OK refused: the packet lacks" in r.stdout
+          and "falsifiers (" in r.stdout and "counter_thesis (" in r.stdout,
           "decide.py record --status active with neither field is refused, both "
           "named")
+    from packet_fixture import PACKET_CLI
     r = subprocess.run(rec + ["--falsifier", "SPY settles below 760",
                               "--counter-thesis", "The tape can gap lower.",
-                              "--setup", "b_breakout"],
+                              "--setup", "b_breakout", "--size", "100 shares",
+                              *PACKET_CLI],
                        capture_output=True, text=True, cwd=str(REPO), env=env)
     check("REFUSED -- DECISION_OK" not in r.stdout
           and "setup_id        : b_breakout" in r.stdout
@@ -1083,7 +1091,7 @@ def group_k(td: str) -> None:
         reg.record(instrument="SPY@ARCA.USD", direction="long", thesis="t",
                    edge_type="positioning", horizon="swing", invalidation="below 760",
                    status="active", book="B", falsifiers=["below 760"],
-                   counter_thesis="the tape can gap",
+                   counter_thesis="the tape can gap", **PACKET_FULL,
                    decision_time="2026-09-19T15:00:00+00:00")
         fill = {"exec_id": "fixture.mexi.1", "instrument": "SPY@MEXI.MXN",
                 "symbol": "SPY", "side": "BOT", "qty": 100.0, "sec_type": "STK",
@@ -1201,8 +1209,8 @@ def group_l(td: str) -> None:
              "exec_time": "2026-09-22T17:00:00+00:00"}])
     with Register(db) as reg:
         base = dict(thesis="t", edge_type="positioning", horizon="swing",
-                    invalidation="i", book="B", falsifiers=["f"], counter_thesis="c",
-                    decision_time="2026-09-19T15:00:00+00:00")
+                    invalidation="i", book="B", falsifiers=[FALSIFIER], counter_thesis="c",
+                    decision_time="2026-09-19T15:00:00+00:00", **PACKET_FULL)
         long_id = reg.record(instrument="TEST@ARCA.USD", direction="long",
                              status="active", **base)
         short_id = reg.record(instrument="TEST@MEXI.MXN", direction="short",
@@ -1311,8 +1319,8 @@ def group_m(td: str) -> None:
              "value": 2000.0, "source": "ibkr_paper"}])
     base = dict(instrument="TEST@MEXI.MXN", direction="short", thesis="t",
                 edge_type="positioning", horizon="swing", invalidation="i",
-                book="B", falsifiers=["f"], counter_thesis="c",
-                currency_exposure="unhedged",
+                book="B", falsifiers=[FALSIFIER], counter_thesis="c",
+                currency_exposure="unhedged", **PACKET_FULL,
                 decision_time="2026-09-19T15:00:00+00:00")
     exit_kw = dict(exit_price=2100.0, exit_time="2026-09-22T17:00:00+00:00",
                    exit_currency="MXN", exit_fx_to_usd=0.05)
