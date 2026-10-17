@@ -62,6 +62,10 @@ directory and no store: no gate reads the live store, fetches or calls a model.
      low; from 17 Oct the flags are the pre-registration's (ruling 7) and the
      Monthly counts from then; 16 Oct's IV gap is skew, both implied ranges
      leave the ratio tests unchanged, and a pre-close capture prints its time.
+  P  EL-5, THE STATE VECTOR. Computed on fixture bars and a fixture capture, each
+     leg by hand; None for a missing leg; no label (a fixture with one fails);
+     one stored row per present field; the close's line and the Weekly's row;
+     registered with units; no engine module imports it (a planted one fails).
 
     python tools/validate_dealer_block.py
 """
@@ -1024,11 +1028,169 @@ def group_o() -> None:
           "wholly before the date counts as it was published")
 
 
+# ---------------------------------------------------------------------------
+def _sv_bars(day: str, open_: float, step: float, n: int = 78, vol: float = 1000.0):
+    """n synthetic 5-minute SPY bars from 09:30 ET (13:30Z in October)."""
+    import datetime as _dt  # noqa: PLC0415
+    t0 = _dt.datetime.fromisoformat(f"{day}T13:30:00+00:00")
+    out, px = [], open_
+    for i in range(n):
+        o, c = px, px + step
+        out.append({"observed_at": (t0 + _dt.timedelta(minutes=5 * i)).isoformat(),
+                    "open": o, "high": max(o, c) + 0.1, "low": min(o, c) - 0.1,
+                    "close": c, "volume": vol})
+        px = c
+    return out
+
+
+class _SvBars:
+    def __init__(self, by_day):
+        self.by_day = by_day
+
+    def read(self, instrument, interval, first="", last="9999", as_of=None):
+        return [b for bs in self.by_day.values() for b in bs
+                if first <= b["observed_at"] <= last]
+
+
+class _SvStore:
+    def __init__(self, vals, regime_obj=None):
+        self.vals, self.obj = vals, regime_obj
+
+    def latest_as_of(self, k, as_of=None):
+        if k == "market_state":
+            return {"value_text": json.dumps(self.obj)} if self.obj else None
+        v = self.vals.get(k)
+        return {"value_num": v} if v is not None else None
+
+    def as_of(self, k, cutoff=None, instrument=None):
+        v = self.vals.get(k)
+        return [{"value_num": v, "observed_at": "2026-10-14"}] if v is not None else []
+
+
+class _SvEvents:
+    def calendar(self, first, last, as_of=None):
+        return [{"type": "release", "observed_at": "2026-10-15T12:30:00+00:00"},
+                {"type": "headline", "observed_at": "2026-10-14T21:00:00+00:00"}]
+
+    def close(self):
+        pass
+
+
+def group_p() -> None:
+    head("P. EL-5: THE STATE VECTOR (numbers only; no engine reads it)")
+    from altdata import state_vector as sv  # noqa: PLC0415
+    day = "2026-10-14"
+    today = _sv_bars(day, 774.92, -0.08)
+    prior = {d: _sv_bars(d, 777.0, 0.0134) for d in
+             ("2026-10-13", "2026-10-12", "2026-10-09", "2026-10-08", "2026-10-07",
+              "2026-10-06", "2026-10-05", "2026-10-02", "2026-10-01", "2026-09-30",
+              "2026-09-29", "2026-09-28", "2026-09-25", "2026-09-24", "2026-09-23",
+              "2026-09-22", "2026-09-21", "2026-09-18", "2026-09-17", "2026-09-16")}
+    bst = _SvBars({day: today, **prior})
+    st = _SvStore({"chain.spy_atm_iv_30d": 13.3, "calc.breadth_sector_above_50d": 45.0,
+                   "yfinance.mkt_vix": 16.87, "yfinance.mkt_vix3m": 18.79,
+                   "yfinance.mkt_vix9d": 14.59},
+                  {"dimensions": {"trend": {"percentile": 72.0}}})
+    cap = {"capture": "settled_eod", "fetched_at": "2026-10-14T20:10:00+00:00",
+           "spot": 768.7, "overall": {"gamma_flip": 777.25, "net_gex": -2.1e9,
+                                      "net_to_gross": 0.18}}
+    g = sv.gather(st, bst, _SvEvents(), cap, day)
+    v = g["vector"]
+    pc = prior["2026-10-13"][-1]["close"]
+    check(g["slot"] == "1610" and abs(v["gap_pct"] - round(100 * (774.92 - pc) / pc, 4)) < 1e-9
+          and v["or_high"] == round(max(b["high"] for b in today[:6]), 2)
+          and v["or_break"] == -1 and v["net_gex_sign"] == -1
+          and v["flip_dist_pct"] == round(100 * (768.7 - 777.25) / 768.7, 4)
+          and v["vix3m_over_vix"] == round(18.79 / 16.87, 4)
+          and v["vix9d_over_vix"] == round(14.59 / 16.87, 4),
+          f"the 16:10 vector on fixture bars: gap {v['gap_pct']}%, opening range "
+          f"{v['or_low']}-{v['or_high']} broken below, flip {v['flip_dist_pct']}%, "
+          f"the two VIX legs, each by hand")
+    check(v["event_hours"] == 16.33 and v["volume_ratio_20d"] == 1.0
+          and v["trend_alignment"] == -1 and v["breadth_50d"] == 45.0
+          and v["rv_iv_ratio"] == round(v["rv_pct"] / 13.3, 4),
+          f"the next release 16.33 h after the capture (a headline is not a release); "
+          f"volume 1.00x the prior 20 sessions to the same clock; a down day against "
+          f"an up trend aligns -1; RV/IV {v['rv_iv_ratio']}")
+    mid = sv.gather(st, bst, None, dict(cap, capture="intraday",
+                                        fetched_at="2026-10-14T13:50:00+00:00"), day)
+    m = mid["vector"]
+    check(mid["slot"] == "0950" and m["or_high"] is None and m["or_break"] is None
+          and m["rv_pct"] is None and m["event_hours"] is None and m["gap_pct"] is not None,
+          "an intraday capture before the opening range completes: the range, its "
+          "break and realised vol are None, and no events store means no event hours")
+    bare = sv.compute({"bars": [], "profile": {}})
+    check(all(x is None for x in bare.values()) and not sv.check(bare),
+          "nothing stored: every leg is None, never a guess")
+    check(not sv.check(v) and sv.check(dict(v, regime="negative gamma"))
+          and sv.check(dict(v, gap_pct="gap up")) and sv.check(dict(v, or_break=True)),
+          "the vector holds numbers and None only: a label field, a string value or a "
+          "boolean verdict fails")
+    rows = sv.rows(g, "2026-10-14T20:45:00+00:00")
+    check(all(r["instrument"] == "SPY:1610" and r["observed_at"] == day
+              and r["registry_key"].startswith("state.") for r in rows)
+          and len(rows) == sum(1 for x in v.values() if x is not None)
+          and not sv.rows(dict(g, vector=bare), "x"),
+          "stored one row per field present, instrument SPY:1610; a None field "
+          "writes nothing")
+    import yaml  # noqa: PLC0415
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    miss = [f for f, (u, _d) in sv.FIELDS.items()
+            if (reg["metrics"].get(sv.key(f)) or {}).get("units") != u]
+    cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")
+    check(not miss and "altdata.state_vector:" in cat,
+          f"every field registered with its units, and the catalogue line ({miss[:3]})")
+    from daily_cascade import stack as stack_mod  # noqa: PLC0415
+    mech = stack_mod.mechanics_section({"exposure": [], "pins": []}, None, None, [g])
+    ss = next((s for s in mech["subsections"] if s["title"] == "State vector, SPY"), None)
+    check(ss and ss["lines"][0].startswith("16:10: gap ") and "trend alignment -1" in ss["lines"][0]
+          and mech["data"].get("_state_vectors") == [g],
+          f"the close prints one compact line per capture ({(ss or {}).get('lines', [''])[0][:70]})")
+    wr = sv.weekly_row("Wed 14", {**v, "or_break": -1.0, "net_gex_sign": -1.0})
+    check(len(wr) == 6 == len(sv.WEEKLY_COLUMNS) and wr[2].startswith("-1 /"),
+          "the Weekly's row per session: six columns, a stored sign prints as an integer")
+    # NO ENGINE READS IT (until EL-12).
+    hits = sv_engine_imports([REPO / "alpha", REPO / "alpha_proposer"])
+    fake = TD / "engine_fixture"
+    fake.mkdir(exist_ok=True)
+    (fake / "engine.py").write_text("from altdata import state_vector\n", encoding="utf-8")
+    (fake / "engine2.py").write_text("import altdata.state_vector as s\n", encoding="utf-8")
+    (fake / "ok.py").write_text("from altdata import observations\n", encoding="utf-8")
+    planted = sv_engine_imports([fake])
+    check(not hits and sorted(p.name for p in planted) == ["engine.py", "engine2.py"],
+          f"no module in alpha/ or alpha_proposer/ imports the state vector; a planted "
+          f"engine import is caught ({[p.name for p in planted]})")
+
+
+def sv_engine_imports(roots) -> list:
+    """Every .py under `roots` that imports altdata.state_vector (by AST)."""
+    out = []
+    for root in roots:
+        for p in sorted(Path(root).rglob("*.py")):
+            try:
+                tree = ast.parse(p.read_text(encoding="utf-8"))
+            except (SyntaxError, UnicodeDecodeError):
+                continue
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Import) and any(
+                        a.name == "altdata.state_vector" for a in n.names):
+                    out.append(p)
+                    break
+                if isinstance(n, ast.ImportFrom) and (
+                        n.module == "altdata.state_vector"
+                        or (n.module == "altdata" and any(a.name == "state_vector"
+                                                          for a in n.names))):
+                    out.append(p)
+                    break
+    return out
+
+
 def main() -> int:
     print(f"{LINE}\nTHE DEALER BLOCK, PARTS 1 AND 2 (6b; brief v2, ratified 16 Oct "
           f"2026)\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_i, group_j, group_k, group_l, group_m, group_n, group_o):
+              group_i, group_j, group_k, group_l, group_m, group_n, group_o,
+              group_p):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

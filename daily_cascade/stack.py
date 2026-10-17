@@ -177,8 +177,42 @@ def tape_section(book: dict, vp_windows: Optional[tuple] = ("session",
                      "volume_profile": vpt["data"]}}
 
 
+def state_vectors(p: dict, st) -> Optional[list]:
+    """EL-5: the state vector of each SPY capture of the session under the
+    payload's `computed_dir` (altdata/state_vector.py). None when the payload names
+    no directory -- a gate's synthetic payload -- so nothing is read."""
+    if not p.get("computed_dir"):
+        return None
+    from altdata import state_vector as sv                      # noqa: PLC0415
+    from . import dealer_block                                  # noqa: PLC0415
+    out = []
+    try:
+        caps = sorted((c for c in dealer_block.captures_on(p["session"], "SPY",
+                                                           p["computed_dir"])
+                       if not c.get("error") and c.get("fetched_at")),
+                      key=lambda c: c["fetched_at"])
+        if not caps:
+            return []
+        from altdata import events as events_mod                # noqa: PLC0415
+        with bars_mod.BarStore() as bst:
+            try:
+                evs = events_mod.EventStore()
+            except Exception:                                   # noqa: BLE001
+                evs = None
+            try:
+                for c in caps:
+                    out.append(sv.gather(st, bst, evs, c, p["session"]))
+            finally:
+                if evs is not None:
+                    evs.close()
+    except Exception as exc:                                    # noqa: BLE001
+        return [{"absent": f"state vector: {type(exc).__name__}: {exc}"}]
+    return out
+
+
 def mechanics_section(p: dict, dealer: Optional[list] = None,
-                      vol_ev: Optional[dict] = None) -> dict:
+                      vol_ev: Optional[dict] = None,
+                      state_vecs: Optional[list] = None) -> dict:
     """The close's Mechanics. 6b part 1 (brief v2, ratified 16 Oct 2026): the
     regime word is GATED on net-to-gross (dealer_block.regime), the walls are the
     OTM walls (audit F5), and `dealer` -- the dealer block per configured symbol
@@ -252,6 +286,16 @@ def mechanics_section(p: dict, dealer: Optional[list] = None,
         extra["vol_event"] = ve.facts(vol_ev)
     if vol_ev is not None:
         extra["_vol_event"] = vol_ev
+    # EL-5: THE STATE VECTOR, one compact line per capture; numbers only.
+    if state_vecs:
+        from altdata import state_vector as sv                  # noqa: PLC0415
+        good = [g for g in state_vecs if g.get("vector")]
+        lines = [sv.line(g) for g in good] + [g["absent"] for g in state_vecs
+                                              if g.get("absent")]
+        if lines:
+            subs.append({"title": "State vector, SPY", "table": None, "lines": lines})
+        if good:
+            extra["_state_vectors"] = good
     return {"items": items,
             "table": {"columns": ["Symbol", "Regime (gated)", "Zero-gamma",
                                   "OTM call wall", "OTM put wall", "Max pain"],
@@ -935,7 +979,8 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                 "attention_shocks": (pmb or {}).get("shocks") or []}},
             "tape": tape_section(book),
             "mechanics": mechanics_section(p, dealer_blocks(p, st, cutoff, cfg),
-                                           vol_event_for(p, st, cutoff)),
+                                           vol_event_for(p, st, cutoff),
+                                           state_vectors(p, st)),
             "misfit": misfit_section(p, pmb, screen),
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),

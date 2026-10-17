@@ -135,6 +135,7 @@ DELTA_UNITS: dict[str, str] = {
     "count": "raw",
     "shares": "raw",
     "days": "raw",
+    "hours": "raw",
     "ratio": "raw",
     "fraction": "raw",
     "0/1": "raw",        # a 0/1 indicator (USREC); its change is the flip itself

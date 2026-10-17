@@ -176,6 +176,7 @@ vocabularies:
     - fraction               # 0..1
     - count
     - days
+    - hours                  # hours, e.g. to the next scheduled release (EL-5)
     - label                  # closed-vocabulary string
     - percent                # RETIRED from entries (AUD-3a item 3, 14 Oct
                              # 2026): it meant a yield, a percentile, a return
@@ -790,6 +791,242 @@ metrics:
     added_date: "2026-10-17"
     description: >-
       The raw-signed DEX in dollars: sum of delta x OI x 100 x spot with each contract's own delta (calls +, puts -), no dealer sign -- FlashAlpha's DEX definition (ledger gex-scale-flashalpha-2026-10-09), so the vendor line compares like with like (6b part 3).
+  state.gap_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the session open against the prior close, percent. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.gap_fill:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the share of the open's gap retraced by the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.or_high:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the opening range's high (first 30 minutes of 5-minute bars). One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.or_low:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the opening range's low. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.or_break:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): +1 the capture's last price above the opening range, -1 below, 0 inside. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.vwap_rel_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the last price against the session VWAP to the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.breadth_50d:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    sample: sector_etf_proxy
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the sector-ETF proxy's share above its 50-day average, as of the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.rv_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): realised vol of the session's 5-minute returns to the capture, annualised. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.iv_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): SPY's own ATM 30-day IV as of the capture (no VIX stand-in). One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.rv_iv_ratio:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): rv_pct over iv_pct. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.vix3m_over_vix:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the champion term-structure leg, VIX3M over VIX, as of the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.vix9d_over_vix:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the challenger leg, VIX9D over VIX, as of the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.flip_dist_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): spot against the capture's zero-gamma level, percent of spot. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.net_gex_sign:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): +1, -1 or 0: the sign of the capture's net GEX. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.net_to_gross:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the capture's net-to-gross. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.event_hours:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: hours
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): hours from the capture to the next scheduled release. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.volume_ratio_20d:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): volume to the capture against the prior 20 sessions' mean to the same time. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.trend_alignment:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): +1 the day's direction agrees with the trend dimension, -1 opposes, 0 flat. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
   dealer.window_gamma:
     source: daily_close
     mechanism_group: dealer_chain_derived

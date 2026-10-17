@@ -292,6 +292,11 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 from . import dealer_block as _dbk              # noqa: PLC0415
                 st.write_many([r for pr in profs
                                for r in _dbk.window_rows(pr, session.utc_iso())])
+            # EL-5: each capture's state vector, stored for the Weekly.
+            svs = (mech.get("data") or {}).pop("_state_vectors", None) or []
+            if svs and not dry_run:
+                from altdata import state_vector as _sv          # noqa: PLC0415
+                st.write_many([r for g in svs for r in _sv.rows(g, session.utc_iso())])
             if vol_ev and vol_ev.get("trigger") and not dry_run:
                 from altdata import vol_event as ve             # noqa: PLC0415
                 st.write_many(ve.event_rows(vol_ev, session.utc_iso()))

@@ -601,6 +601,17 @@ dealer_flags:
   # retrospective counts from this date.
   definitions_from: "2026-10-17"
 
+# 6b'S STATE VECTOR (EL-5, 17 Oct 2026; altdata/state_vector.py). SESSION-SET:
+# the opening range is the first 30 minutes (six 5-minute bars), the classic
+# definition; volume is compared with the prior 20 sessions to the same clock;
+# realised vol needs ten 5-minute returns; the next release is looked for over
+# 14 days.
+state_vector:
+  opening_range_minutes: 30
+  volume_sessions: 20
+  rv_min_returns: 10
+  event_horizon_days: 14
+
 # THE DEALER BLOCK'S HORIZONS (6b part 1; brief v2 section 2, ratified 16 Oct
 # 2026). CUMULATIVE windows for the tables -- 0DTE, 7 days or less, 45 days or
 # less, all -- and EXCLUSIVE bands for the bucket chart -- 0DTE, 1 to 7, 8 to

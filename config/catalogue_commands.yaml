@@ -229,6 +229,9 @@ commands:
   altdata.sources.fedboard_h41:
     domain: rates
     line: The Fed's H.4.1 FIMA repo line -- a writer entry for altdata/feeds.py
+  altdata.state_vector:
+    domain: options
+    line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"
   altdata.sources.flashalpha:
     domain: options
     line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, labelled vendor, never in place of its figures; a daily budget of 30 calls (config/flashalpha.yaml); on the freshness roster as family vendor; the key never printed'

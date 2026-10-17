@@ -15,6 +15,7 @@ hypotheses: n, none promoted" until the registration's rule promotes one.
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import Optional
 
 from . import dealer_block as db
@@ -90,4 +91,22 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
     out["subsections"].append({"title": "Vendor line (FlashAlpha)", "table": None,
                                "lines": fa.vendor_line(vend, prof),
                                "paragraph_wanted": False})
+    # EL-5: THE STATE VECTOR, one row per session (the 16:10 capture's), read
+    # from the store; numbers only.
+    from altdata import state_vector as sv                      # noqa: PLC0415
+    rows = []
+    for c in cards:
+        day = str(c.get("session"))[:10]
+        v = sv.stored(st, day, cutoff)
+        if any(x is not None for x in v.values()):
+            d = dt.date.fromisoformat(day)
+            rows.append(sv.weekly_row(f"{d.strftime('%a')} {d.day}", v))
+    out["subsections"].append({
+        "title": "State vector by session, SPY (16:10)",
+        "table": {"columns": sv.WEEKLY_COLUMNS, "rows": rows} if rows else None,
+        "lines": (["Measured variables only, no labels; the dealer legs are inferred, "
+                   "not observed; OI as of prior close."] if rows else
+                  ["No state vector stored for the week's sessions (stored from 17 "
+                   "Oct 2026)."]),
+        "paragraph_wanted": False})
     return out
