@@ -53,13 +53,22 @@ def _decimals(text: str) -> int:
 
 
 def _tables(ed: dict):
-    """(where, table) for every table the edition prints, in order."""
+    """(where, table) for every table the edition prints, in order: each
+    section's and sub-section's table and further `tables`, then the detail
+    tables after the sections (the crypto basket's reference tier, 12 Oct 2026,
+    is the first tagged one there)."""
+    def of(where: str, b: dict):
+        for i, t in enumerate([b.get("table")] + list(b.get("tables") or [])):
+            if t:
+                yield (where if i == 0 else f"{where} ({i + 1})"), t
     for s in ed.get("sections") or []:
-        if s.get("table"):
-            yield s.get("title") or s.get("id"), s["table"]
+        yield from of(s.get("title") or s.get("id"), s)
         for ss in s.get("subsections") or []:
-            if ss.get("table"):
-                yield f"{s.get('title')} / {ss.get('title')}", ss["table"]
+            yield from of(f"{s.get('title')} / {ss.get('title')}", ss)
+    for d in ed.get("detail") or []:
+        yield from of(f"Detail / {d.get('title')}", d)
+        for ss in d.get("subsections") or []:
+            yield from of(f"Detail / {d.get('title')} / {ss.get('title')}", ss)
 
 
 def collect(ed: dict) -> dict[str, list[dict]]:

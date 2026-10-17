@@ -425,6 +425,14 @@ vocabularies:
     # measure and a ZEC price is a market one, and this family exists to watch
     # whether the two diverge -- which they cannot do inside one cluster.
     - privacy_chain
+    # THE CRYPTO BASKET (12 Oct 2026; config/crypto_basket.yaml). Four groups,
+    # because a coin's price, what pays it, the market-wide crypto flows and the
+    # scan's stories are different mechanisms: a fee series and the price it
+    # might explain must never confirm each other by sharing a cluster.
+    - crypto_basket_price
+    - crypto_protocol_economics
+    - crypto_flows
+    - crypto_basket_scan
     # RATES DECOMPOSITIONS (signal-triage order, ST-1). Every term-premium model
     # -- Kim-Wright (fred.term_premium_kw), ACM (acm.*), the SF Fed model
     # (sffed.*) and DKW (dkw.*) -- splits the SAME Treasury curve into an
@@ -1743,14 +1751,15 @@ metrics:
     units: fraction
     trigger_eligible: false
     description: >-
-      ZEC's market capitalisation divided by the total, both from CoinGecko. First
-      read 0.938 percent. FORWARD-ONLY: no history of the total is served, so this
-      series starts the day it was first logged and cannot be backfilled.
-      zec.btc_ratio KEEPS ITS OWN NAME and is a different number -- a relative price,
-      not a share of a market -- and now that both exist, having built the second is
-      no reason to conflate it with the first.
+      ZEC's market capitalisation divided by the total, both from CoinGecko, from
+      6 Oct to 12 Oct 2026. NOT SOURCED FROM 13 OCT 2026: the total has no free
+      source whose terms permit stored vintages (crypto.total_market_cap_usd), so
+      nothing writes this series; its stored history stays, dated, and the Monthly
+      prints it as "not sourced -- <reason>" rather than reading its last value as
+      current. zec.btc_ratio is a different number -- a relative price, not a share
+      of a market.
   zec.market_cap_usd:
-    source: coingecko
+    source: defillama
     mechanism_group: privacy_chain
     native_horizon: daily
     information_half_life: session
@@ -1760,9 +1769,12 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      ZEC's market capitalisation in USD, from CoinGecko. FORWARD-ONLY: the free tier
-      serves the current value and no history, so this series starts the day it was
-      first logged.
+      ZEC's market capitalisation in USD. From DefiLlama's coin service
+      (coins.llama.fi/mcaps, coingecko:zcash) from 13 Oct 2026, the same reading as
+      the crypto basket's caps; read keylessly from CoinGecko 6 to 12 Oct, rows
+      which stay with source coingecko. FORWARD-ONLY: the coin service serves the
+      current value and no history, so this series grows from the day it is read;
+      the day is the service's own timestamp's UTC day.
   crypto.total_market_cap_usd:
     source: coingecko
     mechanism_group: privacy_chain
@@ -1774,11 +1786,15 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Total crypto market capitalisation in USD, from CoinGecko's /global endpoint --
-      the denominator zec.crypto_cap_share needed. FORWARD-ONLY for the same reason,
-      which is the whole argument for logging it tonight rather than later.
+      Total crypto market capitalisation in USD, from CoinGecko's /global endpoint,
+      6 to 12 Oct 2026. STOPPED 13 OCT 2026 at its last stored value, which stays in
+      the store dated: CoinGecko's terms discourage storing data and provide for no
+      keyless plan, and no free source whose terms permit stored vintages serves the
+      total (CoinPaprika's free plan is non-commercial and bars derivative works;
+      CoinLore bars copying and data mining; DefiLlama serves no total). The
+      verdict and the terms are in docs/briefs/crypto-basket-notes.md.
   zec.cap_probe:
-    source: coingecko
+    source: defillama
     mechanism_group: privacy_chain
     native_horizon: daily
     information_half_life: permanent
@@ -1788,10 +1804,10 @@ metrics:
     units: label
     trigger_eligible: false
     description: >-
-      The stored CoinGecko probe. States: available, partial, http_error, error, plus a
-      `needs_key` flag set when a 401 or 403 says the endpoint has stopped being
-      anonymous -- the condition the ruling asked to be told about rather than worked
-      around.
+      The stored capitalisation read, nightly. From 13 Oct 2026 it is DefiLlama's
+      coin service for ZEC (states: available, partial, error) and carries `total:
+      not_sourced` with the reason; until then it was the CoinGecko probe, whose
+      rows keep source coingecko.
   zec.pool_value:
     source: zcashexplorer
     mechanism_group: privacy_chain
@@ -9855,6 +9871,134 @@ metrics:
     description: >-
       Whether China's state banks are seen selling dollars onshore -- the devaluation tell's third leg -- coded yes 1 / no 0 / unknown -1 (SR-4, G-21: no source yet, so by hand).
 
+  # ---------------------------------------------------------------------------
+  # DEFILLAMA (DS-29, CD-1; the llama.* family) and the crypto basket's derived
+  # series (12 Oct 2026). The per-name protocol and coin series are bulk blocks
+  # below; these are the market-wide ones.
+  # ---------------------------------------------------------------------------
+  llama.stable_total:
+    source: defillama
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      S-1: total dollar-pegged stablecoin supply, all chains, from
+      stablecoincharts/all (history from Nov 2017). Revised: DefiLlama's adapters
+      refill history, so a re-read can restate a day and is stored as a vintage.
+  llama.stable_by_chain:
+    source: defillama
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      S-1: dollar-pegged stablecoin supply on one chain (instrument = Ethereum,
+      Tron, Solana or Base), full history from stablecoincharts/{chain}.
+  llama.chain_tvl:
+    source: defillama
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Total value locked, all chains (instrument NULL) and per chain (Ethereum,
+      Tron, Solana, Base), from /v2/historicalChainTvl.
+  llama.dex_volume:
+    source: defillama
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Daily DEX volume, all chains, from /overview/dexs (a day's flow, not a level).
+  llama.perps_oi:
+    source: defillama
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Perpetuals open interest across the venues DefiLlama tracks, from
+      /overview/open-interest -- the overview the order names, not S-3's
+      OI-weighted funding (CD-2).
+  calc.stable_impulse_30d:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-1: the percent change of llama.stable_total over 30 days. A scorecard row,
+      no rights (the order rejects a liquidity-signal reading until a gate).
+  calc.stable_impulse_90d:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-1: the percent change of llama.stable_total over 90 days.
+  scan.crypto_basket_item:
+    source: saturday_scan
+    mechanism_group: crypto_basket_scan
+    native_horizon: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      One item from the Saturday scan on a basket name (instrument = the symbol):
+      JSON {kind, title, url}, kind in exploit / listing / delisting /
+      fee_switch_vote / unlock / governance / other. Ingested by
+      `python -m altdata.crypto_basket scan-items`, which refuses an item without
+      a basket name, a kind, a URL or a date. Feeds the Weekly's events line and
+      the Quarterly's stories; never a figure.
+
 
   # -------------------------------------------------------------------------
   # AQ-3 PART 1 (11 Oct 2026) -- the Quarterly's structure series. Writers:
@@ -12639,6 +12783,134 @@ bulk_imports:
 # T2.3 added, and the existing ones its Plumbing, Volatility and FX rows read,
 # with its family. Units stay on the series' own entry or bulk block; the T2.3
 # gate holds each listed key to a resolvable unit and a declared family.
+  # THE CRYPTO BASKET (12 Oct 2026; config/crypto_basket.yaml). Twelve names,
+  # each read at the Yahoo symbol the config resolved; their own basket, not
+  # members of the market basket, so nothing that walks SYMBOLS takes them on.
+  crypto_basket_closes:
+    description: >-
+      Daily closes for the twelve crypto-basket names, keyed yfinance.crypto_<sym>,
+      written by yfinance_source.pull_crypto_basket(). Continuous: every UTC day is
+      a bar, written once the day has ended.
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.CRYPTO_BASKET_KEYS
+    members_are: values
+    expected_members: 12
+    key_prefix: yfinance.
+    units: price
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    trigger_eligible: false
+    mechanism_group: crypto_basket_price
+    family: price
+    long_window: full
+  crypto_basket_volume:
+    description: >-
+      The basket's daily traded volume in USD (Yahoo quotes a crypto pair's volume
+      in the pair's currency), for MW-7's turnover (volume over market cap).
+    source: yfinance
+    members_from: altdata.sources.yfinance_source.CRYPTO_BASKET_KEYS
+    members_are: values
+    member_suffixes: [_volume]
+    expected_members: 12
+    key_prefix: yfinance.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: crypto_basket_price
+    family: quantity
+    long_window: 365d
+  llama_protocol_daily:
+    description: >-
+      What pays the token, per basket protocol DefiLlama lists: llama.fees_<sym>,
+      llama.revenue_<sym>, llama.holders_revenue_<sym> (daily flows, from
+      /summary/fees/{slug}) and llama.tvl_<sym> (the level, from /protocol/{slug}).
+      config/crypto_basket.yaml `llama_series` lists what DefiLlama serves per name
+      (TAO has no fee or TVL series; KAS is not listed).
+    source: defillama
+    members_from: altdata.sources.llama.PROTOCOL_KEYS
+    members_are: values
+    expected_members: 36  # 8 names x 4, ONDO x 3 (no TVL chart), PRL x 1 (a chain: fees only)
+    key_prefix: llama.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    trigger_eligible: false
+    mechanism_group: crypto_protocol_economics
+    family: quantity
+    long_window: 365d
+  llama_coin_mcap:
+    description: >-
+      Market cap (llama.mcap_<sym>) for all twelve, from coins.llama.fi/mcaps.
+      FORWARD-ONLY: the service serves the current cap and no history, so the
+      series starts the day the writer first runs.
+    source: defillama
+    members_from: altdata.sources.llama.MCAP_KEYS
+    members_are: values
+    expected_members: 12
+    key_prefix: llama.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: crypto_basket_price
+    family: quantity
+    long_window: full
+  llama_coin_supply:
+    description: >-
+      Circulating supply in tokens (llama.supply_<sym>): the coin service's cap
+      over its own price at the same instant (within an hour, else not computed).
+      Forward-only, like the cap.
+    source: defillama
+    members_from: altdata.sources.llama.SUPPLY_KEYS
+    members_are: values
+    expected_members: 12
+    key_prefix: llama.
+    units: count
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: crypto_basket_price
+    family: quantity
+    long_window: full
+  crypto_dilution:
+    description: >-
+      calc.crypto_dilution_<sym>: a year's issuance (the annualised change in
+      llama.supply_<sym>, at the latest price) over the value returned to holders
+      (llama.holders_revenue_<sym> over the last 365 days -- buybacks, burns and
+      distributions, which DefiLlama does not split). Written only when both legs
+      are stored; otherwise the reports print "not measured -- <reason>".
+    source: derived_state
+    members_from: altdata.crypto_basket.DILUTION_KEYS
+    members_are: values
+    expected_members: 12
+    key_prefix: calc.
+    units: ratio
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group: crypto_protocol_economics
+    family: ratio
+    long_window: 365d
+
 families:
   # Batch 3, Tranche A (13 Oct 2026).
   fred.tips_5y: rate

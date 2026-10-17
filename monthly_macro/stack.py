@@ -1430,6 +1430,19 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             continue
         frows, fdata, fnt = [], [], []
         for m in v.get("metrics") or []:
+            if m.get("not_sourced"):
+                # A WITHDRAWN SOURCE PRINTS ITS ROW (13 Oct 2026): "not sourced
+                # -- <reason>", and the date of the last stored value, never
+                # that value read as this month's.
+                lab = labels.metric(m["metric"])
+                lab = lab[:1].upper() + lab[1:]
+                cell = f"not sourced — {m['not_sourced']}"
+                if m.get("last_stored"):
+                    cell += f"; last stored {m['last_stored']}"
+                arows.append([fam, lab, cell, "—", "—", "—"])
+                frows.append([lab, cell, "—", "—", "—"])
+                fnt.append(f"{lab}: not sourced — {m['not_sourced']}")
+                continue
             t = triple(st, m["metric"], now, win) if st and now else None
             if m.get("level") is None or t is None:
                 alt_nt.append(f"{fam}: {m['metric']}")
@@ -1442,7 +1455,7 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             # key printed as a name withheld every paragraph that named it.
             lab = labels.metric(m["metric"])
             if lab == labels.plain(m["metric"]):
-                # No configured label (an unregistered series, zec.price): the
+                # No configured label (an unregistered series): the
                 # key in words, never with its dot.
                 lab = str(m["metric"]).replace(".", " ").replace("_", " ")
             lab = lab[:1].upper() + lab[1:]
@@ -1473,6 +1486,21 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
                                 "long-run average and percentile, naming the "
                                 "window as the table does -- and the takeaway"}
                       if frows else None)})
+    # THE CRYPTO BASKET (12 Oct 2026): Themes: digital gains the basket block,
+    # right after the classics' rows, which are unchanged -- the twelve names at
+    # the month's resolution with dilution, and a status line per name from its
+    # falsifier (altdata/crypto_basket.py). Read from the store; nothing computed
+    # here.
+    if st is not None and now:
+        try:
+            from altdata import crypto_basket as cbk             # noqa: PLC0415
+            blk = cbk.monthly_block(st, now)
+            at = next((i for i, s in enumerate(fam_subs)
+                       if s.get("family") == "digital"), len(fam_subs) - 1)
+            fam_subs.insert(at + 1, blk)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("crypto basket unavailable", exc_info=True)
+            alt_nt.append(f"the crypto basket: FAULT {type(exc).__name__}")
     seed_sub, seed_data = thesis_seed(now, db_path)
     # THE GOLD RESIDUAL AND THE TWO-BID STATE in the metals block (AQ-8a).
     metals = next((s for s in fam_subs if s.get("family") == "metals"), None)

@@ -309,6 +309,52 @@ sources:
       - >-
         IB censors a large availability as '>1000000'. That is stored as MISSING
         rather than as one million, which it is not.
+  defillama:
+    name: DefiLlama open API -- protocol fees, revenue and TVL; stablecoins; chains; coin caps
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_aggregate, crypto_protocols]
+    geography: [global]
+    latency: daily figures settle after 00:00 UTC; coin caps are current values
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Daily series are keyed by UTC day; a day is written once it has ended, and a
+      TVL chart's last intraday point is held back. The coin service's caps carry
+      their own timestamp and no history. available_at is the pull instant.
+    license: >-
+      Official public API, no key. defillama.com/terms (effective 24 Jun 2025):
+      personal, non-commercial use; no republishing of the data without
+      permission. Neither api.llama.fi nor coins.llama.fi publishes a robots.txt
+      rule (checked 13 Oct 2026). /raises and /emissions are paid and not used.
+    allowed_reports: [weekly_tactical, monthly_macro, alt_asset]
+    implemented_by: altdata/sources/llama.py
+    status: built
+    caveats:
+      - >-
+        REVISED, NOT FIXED. DefiLlama's adapters refill history, so a re-read can
+        restate a day; drop_unchanged stores only a changed value, as a vintage.
+      - >-
+        A protocol's fees are what its adapter counts. Venice's fees are on-chain
+        staking only, not the founder's reported run-rate; Maple's TVL is not its
+        assets under management. config/crypto_basket.yaml says so per name.
+  saturday_scan:
+    name: The Saturday crypto scan (chat-side scheduled task) -- items on the basket names
+    tier: E
+    epistemic_role: cross_check
+    domain: [crypto_aggregate]
+    geography: [global]
+    latency: weekly, Saturday
+    timestamp_reliability: high
+    timestamp_notes: >-
+      observed_at is the item's own date; available_at the ingest instant.
+    license: n/a -- each item carries the URL it was read from
+    allowed_reports: [weekly_tactical, alt_asset]
+    implemented_by: altdata/crypto_basket.py (ingest_scan_items)
+    status: built
+    caveats:
+      - >-
+        Nothing writes the items yet: the scan's output has no ingest path on the
+        box. `python -m altdata.crypto_basket scan-items FILE` is that path.
   coingecko:
     name: CoinGecko public API -- total crypto capitalisation and per-asset caps
     tier: C
@@ -321,11 +367,19 @@ sources:
       The endpoints serve a CURRENT value with no as-of timestamp and no history, so
       observed_at is the session on which it was read and available_at is the read
       instant. The series is forward-only by construction.
-    license: public API within its free rate limit, NO KEY -- probed and confirmed
+    license: >-
+      coingecko.com/en/api_terms: no keyless plan is provided for; "We do not
+      encourage caching or storage of Data"; a 24-hour refresh and deletion on
+      termination. A store of vintages contradicts these (ruled 13 Oct 2026).
     allowed_reports: [daily_cascade]
     implemented_by: altdata/loggers/shielded.py
-    status: active
+    status: retired
     caveats:
+      - >-
+        RETIRED 13 OCT 2026. Nothing reads CoinGecko now: ZEC's cap moved to
+        defillama, and the total crypto cap and ZEC's share of it stopped at their
+        last stored values (rows 6-12 Oct 2026 keep this source), because no free
+        source whose terms permit stored vintages serves the total.
       - >-
         FORWARD-ONLY AND NOT BACKFILLABLE. The free tier serves no history of the
         total capitalisation, so every night not logged is a night of this series that

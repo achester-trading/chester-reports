@@ -312,6 +312,30 @@ CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
                                                 "EURUSD=X", "EURCHF=X", "ETH-USD",
                                                 "SOL-USD", "ZEC-USD"})
 
+
+# THE CRYPTO BASKET (the crypto basket brief, 12 Oct 2026; config/crypto_basket.yaml).
+# Twelve long-shot names, each read at the Yahoo symbol the config RESOLVED -- not
+# the bare `-USD` pair, which is a different coin for SKY, AERO and PRL and absent
+# for TAO, MORPHO, UNI and VVV. A SEPARATE BASKET, not members of SYMBOLS: nothing
+# that walks the market basket (the tape, breadth, betas, the routine pull) takes
+# them on; `pull_crypto_basket()` is their only writer. Keys are
+# `yfinance.crypto_<sym>`. They trade every day, so they are continuous.
+def _crypto_basket() -> dict[str, str]:
+    try:
+        import yaml  # noqa: PLC0415
+        from pathlib import Path  # noqa: PLC0415
+        p = Path(__file__).resolve().parents[2] / "config" / "crypto_basket.yaml"
+        names = (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("names") or {}
+    except Exception:                                         # noqa: BLE001
+        return {}
+    return {n["yahoo"]: f"crypto_{sym.lower()}" for sym, n in names.items()
+            if n.get("yahoo")}
+
+
+CRYPTO_BASKET: dict[str, str] = _crypto_basket()
+CRYPTO_BASKET_KEYS: list[str] = list(CRYPTO_BASKET.values())
+CONTINUOUS_SYMBOLS = CONTINUOUS_SYMBOLS | frozenset(CRYPTO_BASKET)
+
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside
 # it as `yfinance.<key>_open` / `_high` / `_low`, so the tape's daily frames and
@@ -365,7 +389,11 @@ VOLUME_USD_KEYS: dict[str, str] = {s: SYMBOLS[s] for s, u in
 def volume_series(symbol: str, parsed: dict, keep_days) -> list[tuple[str, list]]:
     """[("_volume", [(day, volume)])] on the days the close was kept, positive
     volumes only; [] for a symbol whose source reports none."""
-    if symbol not in VOLUME_UNITS:
+    # THE CRYPTO BASKET'S DAILY VOLUME too (12 Oct 2026), for MW-7's turnover
+    # test: volume over market cap, in USD as Yahoo quotes a crypto pair. One
+    # function for both baskets (Friday stitching, 13 Oct): the crypto branch's
+    # own copy of it, defined later, had replaced this one.
+    if symbol not in VOLUME_UNITS and symbol not in CRYPTO_BASKET:
         return []
     keep = set(keep_days)
     return [(VOLUME_SUFFIX, [(d, v) for d, v in parsed.get("volumes") or []
@@ -517,6 +545,14 @@ def parse_rows(rows: Iterable[dict]) -> dict:
     splits.sort()
     return {"closes": closes, "dividends": dividends, "splits": splits,
             **{k: sorted(v) for k, v in ohlc.items()}}
+
+
+def pull_crypto_basket(period: Optional[str] = None,
+                       run_id: Optional[str] = None) -> dict:
+    """The crypto basket's daily closes (CRYPTO_BASKET) into the observation
+    store only -- the CSV store is the Monthly's FRED-era copy and carries no
+    crypto. `period="max"` is the backfill."""
+    return pull(store=None, symbols=CRYPTO_BASKET, period=period, run_id=run_id)
 
 
 def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
