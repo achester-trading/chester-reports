@@ -318,7 +318,9 @@ Trial merges (`git merge-tree`, nothing committed) against `digital-49-51b`, `st
 
 | Branch | Commit | Run | Result |
 |---|---|---|---|
-| `6b-dealer-2` | `26a156d` (notes) | recorded at the next read | |
-| `vol-event-52` | `986c67a` | recorded at the next read | |
-| `6b-dealer-3` | `e02aefd` | recorded at the next read | |
-| `el-4-6` | this commit | recorded at the next read | |
+| `6b-dealer-2` | `26a156d` (notes) | 39067988621 | **green** |
+| `vol-event-52` | `5a67995` (`next_id: 197`) | 39067887066 | **green** |
+| `vol-event-52` | `986c67a` (notes) | 39067993434 | **green** |
+| `6b-dealer-3` | `4cd0e9f` (step 0's fixes, before the vendor gate's) | 39068044387 | **failed**, one check: `validate_dealer_vendor` still expected the hand-written "2th" -- fixed in `e02aefd` |
+| `6b-dealer-3` | `e02aefd` | 39068814694 | **green** |
+| `el-4-6` | `6501795` | 39070454969 | in progress at the read; recorded at the next |
