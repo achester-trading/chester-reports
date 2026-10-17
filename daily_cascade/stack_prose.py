@@ -656,6 +656,17 @@ DEALER_SENTENCES_NOTE = (
     "and never write pinned, held, amplified or dampened about a session.")
 
 
+# THE VOLATILITY EVENT'S PARAGRAPH (Batch 9 item 52): in the desk voice, from
+# `vol_event` only, behind the same audits.
+VOL_EVENT_NOTE = (
+    "\n\nTHE VOLATILITY EVENT: one passage, in the desk voice, on what is behind "
+    "the move, from `vol_event` only: the trigger, then which lenses carried it "
+    "and which did not, then the regime consequence and the base rate as "
+    "printed. The catalyst is the outlet's attribution when the data names one, "
+    "never ours; where it says 'not established', say so. The Book C line is "
+    "printed, not applied. No forecast beyond the base rate's own figures.")
+
+
 def dealer_flag_faults(text: str, ed: dict) -> list[str]:
     """The flag-word audit over Mechanics: the Weekly's scored sessions
     (`dealer_week`) are the flags; the close has none at prose time."""
@@ -790,6 +801,8 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
         sys_prompt += SECTION_NOTES.get(s["id"], "")
     if (s.get("data") or {}).get("dealer_sentences"):
         sys_prompt += DEALER_SENTENCES_NOTE
+    if (s.get("data") or {}).get("vol_event"):
+        sys_prompt += VOL_EVENT_NOTE
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
     sys_prompt += (extra_notes or {}).get(s["id"], "")
     if not claim_only and is_parent(s, cadence):

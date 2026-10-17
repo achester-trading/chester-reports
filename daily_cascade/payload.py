@@ -778,6 +778,8 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         # Where the computed profiles live: the stacked close's dealer block
         # (daily_cascade/dealer_block.py) reads the session's captures there.
         "computed_dir": str(config.COMPUTED_DIR),
+        # Batch 9 item 52: the close evaluates the volatility event flag.
+        "vol_event": True,
         "pins": pins,
         "pin_hits": hits,
         # THE OBJECT, READ AND NOT RECOMPUTED. regime.latest() returns the

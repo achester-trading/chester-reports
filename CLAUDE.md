@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-nine code gates (eighty-six Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety code gates (eighty-seven Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -387,6 +387,19 @@ scorecard's pre-registration (`docs/ledgers/dealer-scorecard-preregistration-202
 never edited; `altdata/dealer_scorecard.py` scores it and prints k/n with Wilson
 intervals), and the 09:45 and 12:30 captures (`altdata/dealer_capture.py`,
 `daily_cascade/midday_gate.py`; their timers are the operator's to enable).
+
+**A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
+item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX
+change of 15% or 3 points, a five-day change past its own 95th percentile over 20
+years, a crossing of the vol dial's level bands, or compression to within 5% of
+the six-month low held three sessions (`config/vol_event.yaml`); level and change
+print apart, each with five- and 20-year percentiles. A fired event prints in the
+close's Mechanics and the next 07:00 anchor, its lenses one line each (the
+catalyst only as a sourced outlet's attribution, or "not established"), the
+regime consequence printed and never applied, and a base rate from the box's own
+history with its n. Each event enters the `vol.event_ledger` calibration ledger;
+no modifier right before 30 events. The 12:30 slot opens on a rise of 15% or 3
+points (upward only). `tools/validate_vol_event.py` holds it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

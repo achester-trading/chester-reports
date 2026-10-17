@@ -146,6 +146,9 @@ commands:
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.vol_event:
+    domain: computed
+    line: 'The volatility event flag and its attribution (Batch 9 item 52): show a session, seed the ledger, resolve its outcomes'
   altdata.volume_profile:
     domain: equity
     line: 'The volume profile: where volume traded by price over a window (VP-1)'

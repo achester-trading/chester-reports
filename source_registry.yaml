@@ -2185,6 +2185,23 @@ sources:
   # as an internal source so the store check reads it as an id. The writers keep
   # writing what they write; moving each to a single registered id comes after
   # aud-1-data-fixes merges.
+  vol_event:
+    name: The volatility event flag and attribution (Batch 9 item 52)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/vol_event.py through daily_cascade/stack_close.py:
+      vol.event_day, calc.vol_compression and vol.event_ledger, each observed on
+      the session and available when written.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/vol_event.py
+    status: live
+
   daily_close:
     name: The 16:45 close pass's own records
     tier: derived

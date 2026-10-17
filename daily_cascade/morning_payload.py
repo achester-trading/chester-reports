@@ -203,6 +203,19 @@ def overnight_block(as_of: Optional[str] = None,
     return block
 
 
+def stored_vol_event(day: str, cutoff: str, db_path: Optional[str] = None) -> Optional[dict]:
+    """The close's stored volatility read for `day` (Batch 9 item 52), or None."""
+    import json as _json                                        # noqa: PLC0415
+    try:
+        from altdata import vol_event                           # noqa: PLC0415
+        with observations.ObservationStore(db_path) as st:
+            rows = [r for r in st.as_of(vol_event.EVENT_KEY, cutoff)
+                    if str(r["observed_at"])[:10] == day]
+        return _json.loads(rows[-1]["value_text"]) if rows else None
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, db_path: Optional[str] = None) -> dict:
     """The whole morning payload. Reads only; never raises on a missing block."""
@@ -239,6 +252,10 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     events = events_block.build(f"{prior}T20:00:00+00:00", as_of=cutoff,
                                 ahead_days=EVENTS_AHEAD_DAYS)
 
+
+    # BATCH 9 ITEM 52: the prior close's volatility read, as stored (vol.event_day),
+    # never recomputed -- the same rule as the object below.
+    vol_event = stored_vol_event(prior, cutoff, db_path)
 
     state_obj = regime.latest(session_day=prior)
     changed = None
@@ -308,5 +325,6 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "portfolio": portfolio,
         "market_state": state_obj,
         "what_changed": changed,
+        "vol_event": vol_event,
         "warnings": warnings,
     }

@@ -278,6 +278,14 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
             card["put_call_volume"] = (chain.get("put_call_volume") or {}).get("ratio")
             report["scorecard"] = card
+            # BATCH 9 ITEM 52: the session's volatility read, stored point in
+            # time -- the event day, the compression flag, and a ledger row for
+            # a fired event (altdata/vol_event.py).
+            mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})
+            vol_ev = (mech.get("data") or {}).pop("_vol_event", None)
+            if vol_ev and vol_ev.get("trigger") and not dry_run:
+                from altdata import vol_event as ve             # noqa: PLC0415
+                st.write_many(ve.event_rows(vol_ev, session.utc_iso()))
             if not dry_run:
                 st.write_many([{"registry_key": SCORECARD_KEY, "instrument": "SPY",
                                 "observed_at": sess, "available_at": session.utc_iso(),

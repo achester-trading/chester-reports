@@ -508,6 +508,26 @@ A transition that has reached step three without step four is the highest-value 
 
 **Sentiment surveys and "fear and greed" indices.** They measure direction, not dispersion, and they are contemporaneous at best.
 
+### Amendment (17 October 2026): attributing a volatility event
+
+*Added by the build session as drafted, for the operator's accept-all (signal-triage Batch 9, item 52). A later change is a new dated amendment.*
+
+A large VIX change is two facts, a level and a change, and a flag that conflates them misreads both. A move of 3.5 points from 16 is a large change at a modest level; a move of 3.5 points from 35 is noise at a high one. The reporting stack therefore treats them separately. It prints the level and the one-day change side by side, each against its own five-year and 20-year percentile, and fires an event on the change, two-sided: a one-day change of 15% or 3 points either way, a five-day change beyond its own 95th percentile over 20 years, a crossing of a regime band, or compression to within 5% of the six-month low held for three sessions. Compression is the complacency case of the false-signal list above — a low VIX read as a configuration, not a level — and it feeds the Concentration & Complacency overlay's VIX input rather than a new overlay.
+
+An event is then attributed, on the same pattern as the 10-year yield-move attribution: nine lenses, one line each, each saying what it saw and none deciding alone.
+
+1. **Spot-vol.** The share of the VIX move the index move explains at its trailing 60-day beta; the residual is the volatility bid beyond spot.
+2. **Term structure.** VIX9D, the VIX, VIX3M and VIX6M: front-led (the episode priced as brief) against whole-curve (a regime being repriced), and the contango state and its change.
+3. **Tail and vol-of-vol.** SKEW and VVIX against the at-the-money move, in log terms, and the VVIX/VIX ratio (Section 9).
+4. **Cross-asset.** MOVE, the high-yield spread, crypto implied volatility, and a G10 FX volatility proxy where a free one exists — equity-specific against systemic (Section 15).
+5. **Dealer positioning.** Spot against the gamma flip, the net gamma's sign, size and its share of gross, and the vanna and charm sizes, from the stack's own engine (the Dealer's Hand paper; Section 10 here for the 0DTE share).
+6. **Realised against implied.** Ten- and 20-day realised volatility against the VIX and the change in the variance risk premium: implied running ahead (a fear premium) against realised catching up (Section 2).
+7. **Breadth.** Implied correlation and dispersion: correlation-led (macro) against dispersion-led (idiosyncratic) (Section 9).
+8. **Positioning.** The weekly CFTC VIX futures net position, and VIX product vega where a free source exists — the crowding that turns a spike into a cascade (Sections 25 and 26).
+9. **Catalyst.** The event a sourced outlet named, printed as that outlet's attribution and never as the stack's own; "not established" is a permitted value.
+
+The block closes on the regime consequence — the band, and the operating doctrine's volatile-day protocol, printed and never applied — and on the base rate for the configuration: forward index and VIX paths after prior moves of the same size from the same level band, computed from the stack's own history with their count, never recalled. Every fired event enters a calibration ledger with its attribution and its realised 5- and 20-session outcomes. The flag earns no sizing right before 30 events are in that ledger.
+
 ---
 ---
 
@@ -738,6 +758,12 @@ FOMC 15–16 September, 27–28 October, 8–9 December. CPI and PCE. Treasury r
 8. How many of the eight regime tells are firing — and is it three or more?
 9. Has any originating market — rates, FX, energy, credit — shown rising vol that equities have not reflected?
 10. What is the carry budget buying today, and is convexity cheap or expensive relative to the surface's recent history?
+
+## Appendix E: Dated Volatility Events
+
+*One line per fired volatility event (the amendment to Section 36), added as each enters the stack's ledger. Drafted by the build session for the operator's accept-all; the ledger row on the box is the record, and a line here that disagrees with it is corrected by a new dated line, never edited.*
+
+- **16 October 2026** — the VIX (Cboe ^VIX close) 19.98, up 3.53 points (+21.5%) from 16.45, a large change at a modest level, still inside the normal band. As reported in the order's worked example (FlashAlpha's macro block at the close; the box's stored series to confirm in the ledger's first row): VIX9D 20.12, VIX3M 20.50, VIX6M 21.67, so the move was led from the front and contango collapsed there; VVIX 109.9 (+18.7%) and SKEW 168.6 (+5.1%), tail and vol-of-vol bid faster than the at-the-money move; the S&P 500 down 1.09%, explaining roughly a quarter of the VIX move at the usual spot-vol beta; MOVE down 1.4%, so rates were not the driver; the index closed below the gamma flip. Catalyst: not established.
 
 ---
 

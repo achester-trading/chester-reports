@@ -73,7 +73,7 @@ def compute_written(summary: dict, symbols: list[str], out_dir: Optional[str] = 
 
 
 def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=None,
-        out_dir: Optional[str] = None) -> dict:
+        out_dir: Optional[str] = None, quotes: Optional[dict] = None) -> dict:
     """One capture. `pull` and `vendor_pull` default to the box's two sources
     (altdata.sources.options_chain and .massive_chain); the gate passes fakes."""
     if slot not in SLOTS:
@@ -85,6 +85,8 @@ def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=N
         pull = options_chain.pull
     run_id = session.new_run_id(f"dealer_capture_{slot}")
     summary = pull(symbols=universe)
+    if slot == "1230" and quotes is None:
+        quotes = fetch_quotes()
     computed = compute_written(summary, universe, out_dir, run_id)
     vendor_summary = None
     if vendor:
@@ -102,8 +104,40 @@ def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=N
                       vendor_summary.get("error") or vendor_summary.get("success"))}
     if slot == "1230":
         from daily_cascade import midday_gate                   # noqa: PLC0415
-        out["gates"] = midday_gate.run(session.session_date(), out_dir)
+        out["gates"] = midday_gate.run(session.session_date(), out_dir,
+                                       extra=vol_context(quotes))
     return out
+
+
+QUOTE_SYMBOLS = ("^VIX", "^VIX9D", "^VIX3M", "^VIX6M", "^GSPC")
+
+
+def fetch_quotes(symbols=QUOTE_SYMBOLS) -> dict:
+    """The 12:30 quotes the vol gate reads (Batch 9 item 52), from Yahoo under
+    the basket's exception; a symbol that does not answer is absent."""
+    from altdata import import_yfinance                         # noqa: PLC0415
+    yf = import_yfinance()
+    out = {}
+    for s in symbols:
+        try:
+            v = yf.Ticker(s).fast_info.get("last_price")
+            if v:
+                out[s] = float(v)
+        except Exception:                                       # noqa: BLE001
+            log.warning("no 12:30 quote for %s", s)
+    return out
+
+
+def vol_context(quotes: Optional[dict]) -> dict:
+    """The vol gate's inputs: the 12:30 quotes and the stored history to the
+    prior close."""
+    from . import observations, vol_event                       # noqa: PLC0415
+    try:
+        with observations.ObservationStore() as st:
+            ser = vol_event.read_series(st, session.utc_iso())
+    except Exception:                                           # noqa: BLE001
+        ser = {}
+    return {"quotes": quotes or {}, "vol_series": ser}
 
 
 def _main(argv: list[str]) -> int:

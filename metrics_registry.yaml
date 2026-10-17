@@ -3130,6 +3130,59 @@ metrics:
       ZQ<month><yy>.CBT symbols. 100 minus the price is the month's average
       effective fed funds rate; altdata/fed_funds.py turns the months into the
       implied rate after each FOMC meeting. Read at 16:10 ET.
+  vol.event_day:
+    source: vol_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Batch 9 item 52 (ST-R6.52a-c): one JSON row per session, written by the
+      close -- the trigger's four arms (one-day, five-day, band crossing,
+      compression), the trigger line, and when it fired the nine lenses' table,
+      the regime consequence and the base rate (altdata/vol_event.py). Point in
+      time: observed the session, available when the close wrote it. The 07:00
+      anchor reads it; a flag and an alert gate only, no composite weight.
+  vol.event_ledger:
+    source: vol_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Batch 9 item 52 (ST-R6.52d): the calibration ledger, one JSON row per fired
+      event (instrument = the event's date) with its attribution and its realised
+      5- and 20-session SPX and VIX outcomes; a resolution is a new vintage, never
+      an overwrite. No modifier right before 30 events.
+  calc.vol_compression:
+    source: vol_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: boolean
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Batch 9 item 52: 1 when the VIX has held within 5% of its trailing
+      six-month low for three sessions (compression), else 0 -- the input the
+      Concentration & Complacency overlay's VIX leg reads when that overlay is
+      built (designed, not built: config/st_r5_t1_rest.yaml). No new overlay.
   dealer.scorecard_day:
     source: derived_state
     mechanism_group: dealer_chain_derived
@@ -12694,6 +12747,9 @@ bulk_imports:
       yfinance.mkt_tyx: percent_rate
       yfinance.mkt_vix: vol_index
       yfinance.mkt_vix3m: vol_index
+      # Batch 9 item 52 (17 Oct 2026): the term structure's ends.
+      yfinance.mkt_vix9d: vol_index
+      yfinance.mkt_vix6m: vol_index
       # Ruled 15 Oct 2026: the MOVE and the VVIX are volatility indexes like the
       # VIX; SKEW is an index level whose percent change means nothing. All three
       # move in points. The move screen's basis is pinned apart, in
@@ -12701,7 +12757,7 @@ bulk_imports:
       yfinance.mkt_vvix: vol_index
       yfinance.mkt_move: vol_index
       yfinance.mkt_skew: index_points
-    expected_members: 106   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 108   # + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -12889,7 +12945,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 106   # the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 108   # + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -13651,6 +13707,11 @@ families:
   yfinance.mkt_skew: conditions
   yfinance.mkt_vix: conditions
   yfinance.mkt_vix3m: conditions
+  yfinance.mkt_vix9d: conditions
+  yfinance.mkt_vix6m: conditions
+  vol.event_day: conditions
+  vol.event_ledger: conditions
+  calc.vol_compression: conditions
   calc.net_liquidity: quantity
   fred.bank_reserves: quantity
   fred.tga: quantity
@@ -13801,6 +13862,8 @@ series_kinds:
   fred.vix: volatility
   yfinance.mkt_vix: volatility
   yfinance.mkt_vix3m: volatility
+  yfinance.mkt_vix9d: volatility
+  yfinance.mkt_vix6m: volatility
   yfinance.mkt_move: volatility
   chain.spy_atm_iv_30d: volatility
   calc.vol_spy_realized_20d: volatility

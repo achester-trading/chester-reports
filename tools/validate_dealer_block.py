@@ -896,9 +896,9 @@ def group_n() -> None:
     src = (REPO / "daily_cascade" / "midday_gate.py").read_text(encoding="utf-8")
     check(not re.search(r"^\s*(?:from|import)\s.*(?:anthropic|model_meter|narrative)"
                         r"|generate\(", src, re.M)
-          and mg.GATES == [mg.dealer_flip_cross],
-          "the 12:30 slot imports no model path; one registered gate, a later order "
-          "adds its own")
+          and mg.GATES[0] is mg.dealer_flip_cross and len(mg.GATES) == 2,
+          "the 12:30 slot imports no model path; the dealer gate first, Batch 9 item "
+          "52's VIX gate beside it")
     os.environ.pop("CHESTER_ALERT_DIR", None)
 
 

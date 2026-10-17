@@ -177,7 +177,8 @@ def tape_section(book: dict, vp_windows: Optional[tuple] = ("session",
                      "volume_profile": vpt["data"]}}
 
 
-def mechanics_section(p: dict, dealer: Optional[list] = None) -> dict:
+def mechanics_section(p: dict, dealer: Optional[list] = None,
+                      vol_ev: Optional[dict] = None) -> dict:
     """The close's Mechanics. 6b part 1 (brief v2, ratified 16 Oct 2026): the
     regime word is GATED on net-to-gross (dealer_block.regime), the walls are the
     OTM walls (audit F5), and `dealer` -- the dealer block per configured symbol
@@ -238,6 +239,17 @@ def mechanics_section(p: dict, dealer: Optional[list] = None) -> dict:
             notes = [x for x in b["notes"] if x]
         if b.get("sentences") and "dealer_sentences" not in extra:
             extra["dealer_sentences"] = b["sentences"]
+    # THE VOLATILITY EVENT (Batch 9 item 52; altdata/vol_event.py): silent unless
+    # the trigger fires; then its sub-section, its trigger line as an item, and
+    # the paragraph's facts.
+    if vol_ev and vol_ev.get("fired"):
+        from altdata import vol_event as ve                     # noqa: PLC0415
+        subs = [ve.block(vol_ev)] + subs
+        items.append(item("mech:vol_event", vol_ev["trigger_line"], 1,
+                          vol_ev["trigger_line"]))
+        extra["vol_event"] = ve.facts(vol_ev)
+    if vol_ev is not None:
+        extra["_vol_event"] = vol_ev
     return {"items": items,
             "table": {"columns": ["Symbol", "Regime (gated)", "Zero-gamma",
                                   "OTM call wall", "OTM put wall", "Max pain"],
@@ -432,6 +444,26 @@ def releases_on(day: str, st, cutoff: str, cfg: dict) -> list[str]:
     except Exception:                                           # noqa: BLE001
         pass
     return out
+
+
+def vol_event_for(p: dict, st, cutoff: str) -> Optional[dict]:
+    """Batch 9 item 52: the session's volatility read, from the store, when the
+    payload asks for it (`vol_event`, set by the close's payload builder); None
+    for a gate's synthetic payload, so nothing is read."""
+    if not p.get("vol_event"):
+        return None
+    from altdata import vol_event as ve                         # noqa: PLC0415
+    try:
+        prof = None
+        if p.get("computed_dir"):
+            from . import dealer_block                          # noqa: PLC0415
+            prof = dealer_block.newest_settled(p["session"], "SPY", p["computed_dir"],
+                                               lookback_days=0)
+        return ve.evaluate(ve.read_series(st, cutoff), p["session"], profile=prof,
+                           attributions=ve.attributions_for(p["session"], cutoff))
+    except Exception as exc:                                    # noqa: BLE001
+        return {"day": p["session"], "fired": False, "trigger": {},
+                "trigger_line": f"Volatility: the read faulted ({type(exc).__name__})"}
 
 
 def dealer_blocks(p: dict, st, cutoff: str, cfg: dict) -> Optional[list]:
@@ -894,7 +926,8 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "read": {"items": read_items(pmb), "data": {
                 "attention_shocks": (pmb or {}).get("shocks") or []}},
             "tape": tape_section(book),
-            "mechanics": mechanics_section(p, dealer_blocks(p, st, cutoff, cfg)),
+            "mechanics": mechanics_section(p, dealer_blocks(p, st, cutoff, cfg),
+                                           vol_event_for(p, st, cutoff)),
             "misfit": misfit_section(p, pmb, screen),
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),

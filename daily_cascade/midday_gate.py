@@ -74,8 +74,13 @@ def dealer_flip_cross(ctx: dict) -> dict:
     return {"id": gid, "open": True, "line": line, "why": "threshold crossing"}
 
 
-# The registry. A later order adds its gate here (Batch 9 item 52: the VIX gate).
-GATES: list[Callable[[dict], dict]] = [dealer_flip_cross]
+def _vol_gate(ctx: dict) -> dict:
+    from altdata import vol_event                               # noqa: PLC0415
+    return vol_event.vol_gate(ctx)
+
+
+# The registry. Batch 9 item 52 adds the VIX gate (upward only).
+GATES: list[Callable[[dict], dict]] = [dealer_flip_cross, _vol_gate]
 
 
 def context(day: str, base_dir: Optional[str] = None, symbol: str = "SPY") -> dict:
@@ -107,9 +112,12 @@ def alert_dir() -> Path:
 
 
 def run(day: str, base_dir: Optional[str] = None, gates: Optional[list] = None,
-        out_dir: Optional[Path] = None, ctx: Optional[dict] = None) -> dict:
-    """Evaluate; write the alert only when a gate opens. Never calls a model."""
+        out_dir: Optional[Path] = None, ctx: Optional[dict] = None,
+        extra: Optional[dict] = None) -> dict:
+    """Evaluate; write the alert only when a gate opens. Never calls a model.
+    `extra` joins the stored context (the 12:30 quotes, the vol history)."""
     ctx = ctx if ctx is not None else context(day, base_dir)
+    ctx = {**ctx, **(extra or {})}
     res = evaluate(ctx, gates)
     opened = [r for r in res if r["open"]]
     out = {"day": day, "gates": res, "opened": [r["id"] for r in opened],

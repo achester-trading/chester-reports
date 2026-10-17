@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="e35a747f8daaa826c2b0e9f155275a2ae7ab1f89814f7e83d2279626e43d6b21">
+<meta name="source-sha256" content="3e79999d1bebe94119f23180180905dc07083a939caddbfcf20fc1838f9c3660">
 <title>Volatility: A Structural Framework</title>
 <style>
 :root {
@@ -463,6 +463,22 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p><strong>Realised volatility as regime stability.</strong> Close-to-close realised vol is suppressed by the 0DTE pinning (Section 10). A very low realised print is partly a measure of the short-dated gamma structure, not of the market's true dispersion, and it says nothing about overnight and regime risk.</p>
 <p><strong>Historical percentiles across regimes.</strong> A VIX at its 20th percentile since 1990 is a different thing from a VIX at its 20th percentile since 2020. The distribution shifted with the Fed put and with 0DTE. Percentiles should be computed within a window that reflects the current structure, and the framework uses three to five years.</p>
 <p><strong>Sentiment surveys and "fear and greed" indices.</strong> They measure direction, not dispersion, and they are contemporaneous at best.</p>
+<h3>Amendment (17 October 2026): attributing a volatility event</h3>
+<p><em>Added by the build session as drafted, for the operator's accept-all (signal-triage Batch 9, item 52). A later change is a new dated amendment.</em></p>
+<p>A large VIX change is two facts, a level and a change, and a flag that conflates them misreads both. A move of 3.5 points from 16 is a large change at a modest level; a move of 3.5 points from 35 is noise at a high one. The reporting stack therefore treats them separately. It prints the level and the one-day change side by side, each against its own five-year and 20-year percentile, and fires an event on the change, two-sided: a one-day change of 15% or 3 points either way, a five-day change beyond its own 95th percentile over 20 years, a crossing of a regime band, or compression to within 5% of the six-month low held for three sessions. Compression is the complacency case of the false-signal list above — a low VIX read as a configuration, not a level — and it feeds the Concentration &amp; Complacency overlay's VIX input rather than a new overlay.</p>
+<p>An event is then attributed, on the same pattern as the 10-year yield-move attribution: nine lenses, one line each, each saying what it saw and none deciding alone.</p>
+<ol>
+<li><strong>Spot-vol.</strong> The share of the VIX move the index move explains at its trailing 60-day beta; the residual is the volatility bid beyond spot.</li>
+<li><strong>Term structure.</strong> VIX9D, the VIX, VIX3M and VIX6M: front-led (the episode priced as brief) against whole-curve (a regime being repriced), and the contango state and its change.</li>
+<li><strong>Tail and vol-of-vol.</strong> SKEW and VVIX against the at-the-money move, in log terms, and the VVIX/VIX ratio (Section 9).</li>
+<li><strong>Cross-asset.</strong> MOVE, the high-yield spread, crypto implied volatility, and a G10 FX volatility proxy where a free one exists — equity-specific against systemic (Section 15).</li>
+<li><strong>Dealer positioning.</strong> Spot against the gamma flip, the net gamma's sign, size and its share of gross, and the vanna and charm sizes, from the stack's own engine (the Dealer's Hand paper; Section 10 here for the 0DTE share).</li>
+<li><strong>Realised against implied.</strong> Ten- and 20-day realised volatility against the VIX and the change in the variance risk premium: implied running ahead (a fear premium) against realised catching up (Section 2).</li>
+<li><strong>Breadth.</strong> Implied correlation and dispersion: correlation-led (macro) against dispersion-led (idiosyncratic) (Section 9).</li>
+<li><strong>Positioning.</strong> The weekly CFTC VIX futures net position, and VIX product vega where a free source exists — the crowding that turns a spike into a cascade (Sections 25 and 26).</li>
+<li><strong>Catalyst.</strong> The event a sourced outlet named, printed as that outlet's attribution and never as the stack's own; "not established" is a permitted value.</li>
+</ol>
+<p>The block closes on the regime consequence — the band, and the operating doctrine's volatile-day protocol, printed and never applied — and on the base rate for the configuration: forward index and VIX paths after prior moves of the same size from the same level band, computed from the stack's own history with their count, never recalled. Every fired event enters a calibration ledger with its attribution and its realised 5- and 20-session outcomes. The flag earns no sizing right before 30 events are in that ledger.</p>
 <h2>---</h2>
       </div>
     </details>
@@ -833,6 +849,11 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li>Has any originating market — rates, FX, energy, credit — shown rising vol that equities have not reflected?</li>
 <li>What is the carry budget buying today, and is convexity cheap or expensive relative to the surface's recent history?</li>
 </ol>
+<h2>Appendix E: Dated Volatility Events</h2>
+<p><em>One line per fired volatility event (the amendment to Section 36), added as each enters the stack's ledger. Drafted by the build session for the operator's accept-all; the ledger row on the box is the record, and a line here that disagrees with it is corrected by a new dated line, never edited.</em></p>
+<ul>
+<li><strong>16 October 2026</strong> — the VIX (Cboe ^VIX close) 19.98, up 3.53 points (+21.5%) from 16.45, a large change at a modest level, still inside the normal band. As reported in the order's worked example (FlashAlpha's macro block at the close; the box's stored series to confirm in the ledger's first row): VIX9D 20.12, VIX3M 20.50, VIX6M 21.67, so the move was led from the front and contango collapsed there; VVIX 109.9 (+18.7%) and SKEW 168.6 (+5.1%), tail and vol-of-vol bid faster than the at-the-money move; the S&amp;P 500 down 1.09%, explaining roughly a quarter of the VIX move at the usual spot-vol beta; MOVE down 1.4%, so rates were not the driver; the index closed below the gamma flip. Catalyst: not established.</li>
+</ul>
 <hr />
 <h2>Closing Note</h2>
 <p>The variance risk premium is real, its collection is crowded, and its unwinds are violent — and those are one fact, not three. A framework that understands this stops asking whether volatility is high or low and starts asking which regime the market is in and how close the boundary is. The answer lives in the term structure, in the volatility of the markets that move first, and in the shape of the surface — and almost never in the number that gets reported.</p>

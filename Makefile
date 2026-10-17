@@ -97,6 +97,7 @@ PY_VALIDATORS := \
 	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
 	tools/validate_dealer_block.py \
+	tools/validate_vol_event.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \
