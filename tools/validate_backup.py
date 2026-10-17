@@ -895,6 +895,8 @@ def _sweep(td: Path, tree_min: str, budget: int = 105,
            "CHESTER_RCLONE_CRYPT_PASSWORD": "fixture-only",
            "CHESTER_RCLONE_CRYPT_SALT": "fixture-only",
            "CHESTER_RCLONE_INBOX_REMOTE": "fake:remote",
+           # The lab outbox's own drive.file remote (ruling 1 of 17 Oct 2026).
+           "CHESTER_RCLONE_OUTBOX_REMOTE": "fake:remote",
            "CHESTER_SWEEP_BUDGET_MIN": str(budget),
            "CHESTER_SWEEP_CLOCK": fw(td / "clock"), "FAKE_CLOCK": fw(td / "clock"),
            "FAKE_ROOT": fw(td), "FAKE_LOG": fw(td / "rclone.log"),

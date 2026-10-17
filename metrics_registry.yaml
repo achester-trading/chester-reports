@@ -12609,15 +12609,6 @@ metrics:
   mempool.difficulty_change_est:
     source: mempool_space
     mechanism_group: crypto_network
-  # THE VOLUME PROFILE (VP-1, 14 Oct 2026; altdata/volume_profile.py,
-  # docs/volume-profile.md). Prices, written by `python -m
-  # altdata.volume_profile compute` after the derived features in the EOD
-  # pass. Each row's available_at is the max of its input bars'. For the
-  # Alpha Lab's rule grammar (H-006 to H-008); none is trigger-eligible,
-  # because what the profile predicts is the lab's question, not this repo's.
-  calc.vp_spy_session_poc:
-    source: derived_state
-    mechanism_group: equity_tape
     native_horizon: daily
     information_half_life: session
     invalidated_by: none
@@ -12674,14 +12665,6 @@ metrics:
   mempool.pool_share:
     source: mempool_space
     mechanism_group: crypto_network
-    revision_policy: recomputed
-    units: price
-    trigger_eligible: false
-    description: >-
-      SPY volume profile, point of control (the bin with the most volume, its midpoint), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
-  calc.vp_spy_session_vah:
-    source: derived_state
-    mechanism_group: equity_tape
     native_horizon: daily
     information_half_life: session
     invalidated_by: none
@@ -12752,14 +12735,6 @@ metrics:
   calc.stable_share:
     source: derived_state
     mechanism_group: crypto_flows
-    revision_policy: recomputed
-    units: price
-    trigger_eligible: false
-    description: >-
-      SPY volume profile, value-area high (the upper edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
-  calc.vp_spy_session_val:
-    source: derived_state
-    mechanism_group: equity_tape
     native_horizon: daily
     information_half_life: session
     invalidated_by: none
@@ -13163,13 +13138,6 @@ metrics:
   calc.mnav:
     source: derived_state
     mechanism_group: crypto_flows
-    units: price
-    trigger_eligible: false
-    description: >-
-      SPY volume profile, value-area low (the lower edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
-  calc.vp_spy_20s_poc:
-    source: derived_state
-    mechanism_group: equity_tape
     native_horizon: daily
     information_half_life: session
     invalidated_by: none
@@ -13184,6 +13152,62 @@ metrics:
   calc.treasury_net_purchases:
     source: derived_state
     mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Item 49b: the month's net BTC bought by the tracked treasury companies, holdings at the month end less the prior month end, over companies present at both; complete months only.
+
+  calc.vp_spy_session_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, point of control (the bin with the most volume, its midpoint), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_session_vah:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, value-area high (the upper edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_session_val:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    trigger_eligible: false
+    description: >-
+      SPY volume profile, value-area low (the lower edge of the 70% value area), over the session's 5-minute bars. Where volume traded; it claims nothing about what the level does next.
+  calc.vp_spy_20s_poc:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: price
     trigger_eligible: false
     description: >-
@@ -13196,12 +13220,6 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: recomputed
-    units: count
-    trigger_eligible: false
-    family: quantity
-    long_window: full
-    description: >-
-      Item 49b: the month's net BTC bought by the tracked treasury companies, holdings at the month end less the prior month end, over companies present at both; complete months only.
     units: price
     trigger_eligible: false
     description: >-
@@ -15613,10 +15631,6 @@ families:
 # Declared for the series batch 3's Tranche A adds and reads; the gate
 # (tools/validate_batch3_a.py) holds each new key to a line here.
 long_windows:
-  # 6e (minutes 6c and 6e): valuation ratios take the full history.
-  shiller.cape: full
-  index.forward_pe: full
-  yf.forward_pe: full
   fred.tips_5y: full
   acm.risk_neutral_yield_2y: full
   acm.risk_neutral_yield_5y: full
@@ -15663,6 +15677,9 @@ long_windows:
 # a change in a yield, rate or spread, pts for a change in a probability. A price
 # stays strict. check_registry holds every kind to the vocabulary and every key
 # to a registered series.
+  shiller.cape: full
+  index.forward_pe: full
+  yf.forward_pe: full
 series_kinds:
   fred.yield_2y: yield
   fred.yield_5y: yield

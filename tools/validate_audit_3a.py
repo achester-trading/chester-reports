@@ -793,7 +793,7 @@ def group_f() -> None:
                                else "seventy-three"), text, count=1)
     check(worded != text, "the plant found the printed count to replace")
     check(any("code gates" in f for f in printed_count_faults(worded, counts)),
-          f"a count in words is read and caught too ('{wrong} code gates')")
+          "a count in words is read and caught too ('seventy-four code gates')")
     gone = text.replace("market symbols", "symbols in the basket")
     check(any("sentence is gone" in f for f in printed_count_faults(gone, counts)),
           "and a sentence reworded so its count cannot be found fails rather than "
