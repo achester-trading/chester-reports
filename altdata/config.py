@@ -283,6 +283,21 @@ FRED_AQ3_SERIES: list[SeriesSpec] = [
     SeriesSpec("dxy_em", "DTWEXEMEGS", "Nominal Emerging Market Economies US Dollar Index (DTWEXEMEGS, FRB; Jan 2006=100)", "7", "idx", "daily"),
 ]
 
+# SR-43 / SR-49 (signal-triage batch 4, ST4-09 and ST4-15): the OECD long-term
+# government bond yields the twin-deficit fit and the selloff-shape axis share --
+# the "OECD-yields fetcher" is these series on the existing FRED pull. Each id
+# and unit was read off its FRED series page on 12 Oct 2026 (Gotcha 2): all
+# "Percent, Not Seasonally Adjusted", monthly averages. The UK (gilt_10y) and
+# Japan (jp_10y) are already above; China's id 404s and is not used.
+FRED_SR43_SERIES: list[SeriesSpec] = [
+    SeriesSpec(f"oecd_10y_{c.lower()}", f"IRLTLT01{c}M156N",
+               f"{name} 10-year government bond yield, monthly average (OECD)",
+               "7", "%", "monthly")
+    for c, name in (("US", "United States"), ("CA", "Canada"), ("DE", "Germany"),
+                    ("FR", "France"), ("IT", "Italy"), ("ES", "Spain"),
+                    ("NL", "Netherlands"), ("BE", "Belgium"), ("AU", "Australia"),
+                    ("NZ", "New Zealand"), ("CH", "Switzerland"), ("SE", "Sweden"))
+]
 # THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
 # ounces between two archives are shares x the last archive's ounces per share,
 # decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
@@ -299,7 +314,8 @@ GLD_EXPENSE_RATIO = {
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
-                                      + FRED_SLOOS_SERIES + FRED_AQ3_SERIES)
+                                      + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
+                                      + FRED_SR43_SERIES)
 
 
 # Quick lookup by key

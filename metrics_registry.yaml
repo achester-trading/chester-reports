@@ -11543,6 +11543,31 @@ bulk_imports:
       "6": macro_valuation_credit
       "7": macro_global_fx
 
+  fred_sr43:
+    description: >-
+      SR-43 / SR-49 (signal-triage batch 4, ST4-09 and ST4-15): the OECD
+      long-term government bond yields on FRED (IRLTLT01<cc>M156N, 10-year,
+      monthly average, percent) for the twin-deficit fit's developed markets and
+      the selloff-shape axis's focal sovereigns -- the US, Canada, Germany,
+      France, Italy, Spain, the Netherlands, Belgium, Australia, New Zealand,
+      Switzerland and Sweden. Ids and units read off each FRED page 12 Oct 2026.
+    source: fred
+    members_from: altdata.config.FRED_SR43_SERIES
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 12
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "7": macro_global_fx
+
   fred_thailand:
     description: >-
       USD/THB, H.10 (DEXTHUS, baht per dollar; AQ-3 part 1). ISOLATED: the

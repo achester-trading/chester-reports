@@ -450,6 +450,21 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                      "lines": [basis_proxy.plumbing_line(bp)],
                      "paragraph_wanted": False})
         pdata["basis_unwind_watch"] = basis_proxy_data(bp)
+    # SR-43 and SR-49: the 10-year's anchors, the selloff's shape and what moved,
+    # and the four voices adjudicated by those measures (report-only).
+    rr = rates_read(st, now)
+    if rr:
+        from altdata import rates_anchors, rates_shape          # noqa: PLC0415
+        subs.append({"title": "The 10-year's anchors and the selloff's shape",
+                     "lines": [rates_anchors.line(rr["anchors"]),
+                               rates_shape.shape_line(rr["shape"])],
+                     "paragraph_wanted": False})
+        subs.append({"title": "The 10-year top: four voices, read against the measures",
+                     "table": rates_shape.voices_table(rr["shape"]),
+                     "lines": [f"Verdicts by declared rule, not opinion "
+                               f"{rr['anchors'].get('tag') or ''}".rstrip() + "."],
+                     "paragraph_wanted": False})
+        pdata["rates_anchors"] = rates_data(rr)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
@@ -468,6 +483,33 @@ def basis_proxy_read(st, now: str) -> Optional[dict]:
         return basis_proxy.read(st, cutoff=now)
     except Exception:                                           # noqa: BLE001
         return None
+
+
+def rates_read(st, now: str) -> Optional[dict]:
+    """SR-43 and SR-49 as of the cutoff, or None on a fault: report-only, never
+    costing the section."""
+    try:
+        from altdata import rates_anchors, rates_shape          # noqa: PLC0415
+        a = rates_anchors.read(st, now)
+        return {"anchors": a, "shape": rates_shape.read(st, now, anchors=a)}
+    except Exception:                                           # noqa: BLE001
+        log.warning("the rates anchors are unavailable", exc_info=True)
+        return None
+
+
+def rates_data(rr: dict) -> dict:
+    """The printed figures, for the section's frame (each as printed)."""
+    a, s = rr["anchors"], rr["shape"]
+    inf, fis = a["inflation"], a["fiscal"]
+    lt = s["selloffs"].get("latest") or {}
+    return {"inflation_anchor_pct": inf.get("anchor_pct"),
+            "inflation_gap_bp": inf.get("gap_bp"),
+            "inflation_residual_bp": inf.get("residual_bp"),
+            "twin_deficit_fitted_pct": fis.get("us_fitted_pct"),
+            "twin_deficit_gap_bp": fis.get("gap_bp"),
+            "shape": s["shape"].get("state"), "latest_selloff": lt.get("label"),
+            "voices": [{k: v[k] for k in ("voice", "verdict")} for v in s["voices"]],
+            "tag": a.get("tag")}
 
 
 def basis_proxy_data(r: dict) -> dict:
