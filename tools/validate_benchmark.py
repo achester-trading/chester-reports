@@ -14,7 +14,11 @@ Validation gate for Book Z -- the benchmark ledgers (EL-3, P5-B).
      others marked; the line says what is missing rather than printing a zero.
   E  WIRING. AGG in the basket, paper.benchmark registered, the 16:45 pass runs
      the marker after its price pull and before the report, and the Weekly and
-     Monthly carry the line beside each book.
+     Monthly carry the line beside each book -- the stacked Monthly (the live
+     edition) as well as its v2 fallback (EL-3 verification, 12 Oct 2026).
+  F  §3.3 AS WRITTEN. Exactly the three ledgers; the start capped at 1 Sep 2026;
+     the 60/40 rebalances on the first SESSION of a month whose first day is
+     not one.
 
     python tools/validate_benchmark.py
 """
@@ -273,6 +277,60 @@ def main() -> int:
                                              for b in "ABCD"}}}})
         check(md.count(ln["text"]) == 4 and "### Books vs Book Z" in md,
               "the Monthly prints it beside each book")
+        # THE STACKED MONTHLY (EL-3, 12 Oct 2026): the live edition read the
+        # benchmarks into its payload and printed none of them.
+        from monthly_macro import stack as mstack
+        with observations.ObservationStore(obs_db) as st:
+            bl = bz.book_line(store=st)
+        sec = mstack.book_section({"register_month": {"books_vs_benchmark": {
+            "line": ln["text"], "book_line": bl["text"],
+            "books": {b: "not yet sourced" for b in "ABCD"}}}})
+        zs = [s for s in sec["subsections"] if s["title"] == "Against Book Z"]
+        check(bool(zs) and bool(bl["text"])
+              and zs[0]["lines"] == [f"Against Book Z, {bl['text']}."],
+              f"the stacked Monthly prints the book's line against Book Z: "
+              f"{zs[0]['lines'][0] if zs else 'MISSING'}")
+        check(sec["data"].get("book_z") == bl["text"]
+              and any(i.get("key") == "book:z" for i in sec["items"]),
+              "and carries it as the book:z item, the Weekly's id")
+        sec0 = mstack.book_section({"register_month": {"books_vs_benchmark": {
+            "absent_reason": "no Book Z mark is stored"}}})
+        z0 = [s for s in sec0["subsections"] if s["title"] == "Against Book Z"]
+        check(bool(z0) and z0[0]["lines"][0].startswith("Book Z absent: no Book Z")
+              and not any(i.get("key") == "book:z" for i in sec0["items"]),
+              "with no mark the stacked Monthly says Book Z is absent and why")
+        from monthly_macro import payload as mpay
+        src = (REPO / "monthly_macro" / "payload.py").read_text(encoding="utf-8")
+        check("benchmark.book_line(as_of=as_of)" in src
+              and '"book_line": bl.get("text")' in src,
+              "the Monthly's payload reads the book line as of its own cutoff")
+
+        # --- F. §3.3 as written ----------------------------------------------------------
+        print(f"\n{LINE}\nF. §3.3 AS WRITTEN\n{LINE}")
+        check(bz.LEDGERS == ("cash", "spy", "sixty_forty")
+              and bz.WEIGHTS == {"spy": 0.60, "agg": 0.40}
+              and bz.TBILL == "fred.tbill_3m",
+              "three ledgers: cash at DTB3, SPY held, 60/40 SPY/AGG")
+        from altdata import config as acfg
+        check(any(s.key == "tbill_3m" and s.fred_id == "DTB3"
+                  for s in acfg.FRED_PULL_SERIES),
+              "fred.tbill_3m is DTB3 and is pulled")
+        check(bz.START_CAP == dt.date(2026, 9, 1),
+              "the start is capped at 1 Sep 2026")
+        # August 2026 opens on a Saturday: the rebalance is Monday the 3rd.
+        nov = sessions("2026-07-29", "2026-08-05")
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td2:
+            with observations.ObservationStore(str(Path(td2) / "f.db")) as st:
+                seed(st, bz.SPY, nov, [100 + i for i in range(len(nov))])
+                seed(st, bz.AGG, nov, [50 + 0.1 * i for i in range(len(nov))])
+                seed(st, bz.TBILL, nov, [4.0] * len(nov))
+                rows = bz.compute_marks(st, nov[-1], dt.date(2026, 7, 29))
+            reb = [json.loads(r["value_text"])["session"] for r in rows
+                   if r["instrument"] == "sixty_forty"
+                   and json.loads(r["value_text"]).get("rebalanced")]
+        check(reb == ["2026-07-29", "2026-08-03"],
+              f"the 60/40 rebalances at the start and on 3 Aug, the first "
+              f"session of a month that opens on a Saturday ({reb})")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:

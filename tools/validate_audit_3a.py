@@ -778,12 +778,14 @@ def group_f() -> None:
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")
     # Plant a wrong count in words beside whatever count the file prints (every
-    # branch that adds a gate moves it; AUD-3c moved it to seventy-six).
+    # branch that adds a gate moves it; AUD-3c moved it to seventy-six). The
+    # printed word may be one word ("eighty", the post-Friday fold of 17 Oct) as
+    # well as two, so the plant matches either.
     import re
-    worded = re.sub(r"\b[a-z]+-[a-z]+ code gates",
-                    lambda m: ("seventy-four code gates"
-                               if m.group(0) != "seventy-four code gates"
-                               else "seventy-three code gates"), text, count=1)
+    worded = re.sub(r"(?<=runs every gate\*\* — )[a-z]+(?:-[a-z]+)?(?= code gates)",
+                    lambda m: ("seventy-four" if m.group(0) != "seventy-four"
+                               else "seventy-three"), text, count=1)
+    check(worded != text, "the plant found the printed count to replace")
     check(any("code gates" in f for f in printed_count_faults(worded, counts)),
           "a count in words is read and caught too ('seventy-four code gates')")
     gone = text.replace("market symbols", "symbols in the basket")
