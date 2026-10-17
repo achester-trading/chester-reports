@@ -418,10 +418,51 @@ def main() -> int:
           f"a CPI release knowable only from Friday counts Plumbing deep on Friday "
           f"alone -- each session is judged at its own cutoff, never with "
           f"hindsight ({fired})")
-    bk = ws.book_week({"register": {"open_count": 0, "drafts_count": 0, "rule_breaks": {
-        "decision_blocked_this_week": 2, "rule_breaks_total": 5,
-        "rule_breaks_listed": [{"kind": "currency_mismatch"}]}}},
-        a, {"plumbing": [], "priced": [], "sessions": 5}, None)
+    # W-1.3c finding 9: a code gate never reads the live store. book_week with no
+    # db_path sent the Book B scanner to observations.DEFAULT_DB (the laptop's
+    # data/chester.db). Every SQLite file the call opens is recorded, and the
+    # default store is pointed at a sentinel so even the old call cannot read it.
+    import sqlite3 as _sq
+    from altdata import observations as _obs_mod
+    _opened: list[str] = []
+    _real_connect = _sq.connect
+
+    def _spy_connect(path, *a_, **k_):
+        # Recorded, and refused outside the gate's own directory: the probe of
+        # the old call must not itself open the laptop's store.
+        _opened.append(str(path))
+        if str(path) != ":memory:" and not Path(str(path)).resolve().is_relative_to(
+                Path(td).resolve()):
+            raise _sq.OperationalError(f"gate refuses a store outside its tmp: {path}")
+        return _real_connect(path, *a_, **k_)
+
+    def _book_week_paths(db_path):
+        _opened.clear()
+        sentinel = str(Path(td) / "DEFAULT_DB_SENTINEL.db")
+        saved = _obs_mod.DEFAULT_DB
+        _obs_mod.DEFAULT_DB, _sq.connect = sentinel, _spy_connect
+        try:
+            out_ = ws.book_week({"register": {"open_count": 0, "drafts_count": 0,
+                "rule_breaks": {"decision_blocked_this_week": 2, "rule_breaks_total": 5,
+                                "rule_breaks_listed": [{"kind": "currency_mismatch"}]}}},
+                a, {"plumbing": [], "priced": [], "sessions": 5}, None,
+                ending=ENDING, db_path=db_path)
+        finally:
+            _obs_mod.DEFAULT_DB, _sq.connect = saved, _real_connect
+        return out_, [p_ for p_ in _opened if p_ != ":memory:"], sentinel
+
+    _, old_paths, sentinel = _book_week_paths(None)
+    live = [p_ for p_ in old_paths
+            if not Path(p_).resolve().is_relative_to(Path(td).resolve())]
+    check(sentinel in old_paths or bool(live),
+          f"the old call (no db_path) reaches the default store -- the fault this "
+          f"fixture exists to catch ({old_paths})")
+    book_db = str(Path(td) / "book_week.db")
+    bk, new_paths, _ = _book_week_paths(book_db)
+    check(new_paths and all(Path(p_).resolve().is_relative_to(Path(td).resolve())
+                            for p_ in new_paths) and sentinel not in new_paths,
+          f"book_week with an explicit temporary db_path opens only the gate's own "
+          f"files, never the default store ({new_paths})")
     bt = {i["key"]: i["text"] for i in bk["items"]}
     check(bt["book:breaks"].startswith("1 rule break(s) this week (currency mismatch); "
                                         "5 on the register")

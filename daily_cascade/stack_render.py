@@ -421,8 +421,13 @@ OPENER = PARA + ";margin:6px 0 12px 0"
 
 def opener_html(s: dict) -> str:
     """W-1.3a item 3.0: the section's commentary as ONE paragraph -- the
-    relevance sentence, the claim in bold, the body, and the Takeaway with its
-    word in bold -- or, when it was withheld, the withholding line in its place."""
+    relevance sentence, the claim, the body, and the Takeaway with its word in
+    bold -- or, when it was withheld, the withholding line in its place.
+
+    ONLY THE LABEL IS BOLD (W-1.3c item 4). The claim was set in bold, and in dry
+    run #6 the claim was a generic definition, so the most prominent text in
+    each section said nothing about the week. The claim prints in the
+    paragraph's weight; "Takeaway:" is the one bold run."""
     from . import opener                                        # noqa: PLC0415
     c = opener.commentary(s)
     if c is None:
@@ -433,7 +438,7 @@ def opener_html(s: dict) -> str:
     if c["relevance"]:
         parts.append(f'<span class="relevance">{esc(c["relevance"])}</span>')
     if c["claim"]:
-        parts.append(f'<b class="claim">{esc(c["claim"])}</b>')
+        parts.append(f'<span class="claim">{esc(c["claim"])}</span>')
     if c["body"]:
         parts.append(esc(c["body"]))
     if c["takeaway"]:
@@ -806,7 +811,9 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
                                        _trimmed_note(cad)))
             continue
         if s.get("claim"):
-            out.append(f"**{s['claim']}**\n")
+            # W-1.3c item 4: an opener's claim is not bold.
+            out.append(f"{s['claim']}\n" if cad.get("opener")
+                       else f"**{s['claim']}**\n")
         out += md_block(s)
         for ss in s.get("subsections") or []:
             out += _md_sub(ss, cad, charts)

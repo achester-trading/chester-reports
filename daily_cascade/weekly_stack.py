@@ -369,12 +369,11 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     data.update(sdata)
     # THE EXTREMES WITH THEIR PERCENTILE (W-1.1 item 1.0a): What doesn't fit's
     # frame ranks an extreme by its percentile's distance from the median.
-    from altdata.numeral_audit import ordinal_suffix              # noqa: PLC0415
+    from altdata.numeral_audit import ordinal                     # noqa: PLC0415
     side = wis.get("exceptions_side") or {}
     data["extremes"] = [
         {"name": labels.exception(e), "percentile": side[e]["percentile"],
-         "percentile_ordinal": (f"{int(round(side[e]['percentile']))}"
-                                f"{ordinal_suffix(int(round(side[e]['percentile'])))}"),
+         "percentile_ordinal": ordinal(side[e]["percentile"]),
          "side": "the low tail" if side[e].get("side") == "low" else "the high tail"}
         for e in now_open if (side.get(e) or {}).get("percentile") is not None]
     data.update({"open_contradictions": [stack_mod.contradiction_data(c)

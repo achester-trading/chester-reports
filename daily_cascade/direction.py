@@ -69,8 +69,15 @@ def conventions() -> dict:
 
 _CLAUSE = re.compile(r"[;:,—–]|\s-\s|\s+(?:while|whereas)\s+", re.I)
 _SENT = re.compile(r"(?<=[.!?])\s+")
-_NUM = re.compile(r"(?<![\w.])(?P<sign>[+\-−]?)(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
-                  r"(?P<unit>%|bps?\b|pts\b|points\b)?")
+# A SIGN BEFORE A CURRENCY SYMBOL IS THE FIGURE'S SIGN (W-1.3c item 1). Dry run
+# #6 withheld Plumbing on "fell −$1bn the same day": the sign sat in front of the
+# "$", so the old pattern read a bare "1" -- matched a +1 bp row -- and called
+# "fell" a rise. The symbol, the sign before it (hyphen or U+2212) and a
+# magnitude suffix are read together, as figure_budget.parse_figure reads cells.
+_NUM = re.compile(r"(?<![\w.])(?P<sign>[+\-−]?)(?P<cur>[$€£¥])?"
+                  r"(?P<num>\d[\d,]*(?:\.\d+)?)\s?"
+                  r"(?P<unit>%|bps?\b|pts\b|points\b|tn\b|bn\b|mn\b|m\b|k\b)?")
+_SCALE = {"tn": 1e12, "bn": 1e9, "mn": 1e6, "m": 1e6, "k": 1e3}
 
 
 def _words(lex: dict) -> dict[str, int]:
@@ -233,7 +240,13 @@ def _figure_sign(m: "re.Match", named: list, moves: dict) -> int:
     tol = 0.5 * 10 ** -dec + 1e-9
     unit = {"bps": "bp", "points": "pts"}.get((m.group("unit") or "").lower(),
                                               (m.group("unit") or "").lower())
-    cands = [(n, v) for n, (v, _, u) in moves.items()
+    if unit in _SCALE:
+        # "−$1bn" is -1e9 in the tables' terms (figure_budget.parse_figure).
+        num, tol = num * _SCALE[unit], tol * _SCALE[unit]
+        unit = m.group("cur") or ""
+    elif m.group("cur"):
+        unit = m.group("cur")
+    cands =[(n, v) for n, (v, _, u) in moves.items()
              if abs(abs(v) - num) <= tol and (not unit or not u or u == unit)]
     if not cands:
         return 0
