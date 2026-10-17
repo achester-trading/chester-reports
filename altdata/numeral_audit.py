@@ -326,6 +326,21 @@ def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]
 
 
 # ---------------------------------------------------------------------------
+# weekly-fixes-7 item 12: THE SIGNED-ZERO RULE. A figure that rounds to zero
+# carries no sign: "−$0bn", "-0", "+0.0 bp" print "0" or "unch". Dry run 7
+# printed "−$0bn" for RRP and "−0" for short interest.
+# ---------------------------------------------------------------------------
+_SIGNED_ZERO = re.compile(
+    r"(?<![\w.,])[+\-−–][$€£]?0(?:\.0+)?(?![\d.,]*[1-9])"
+    r"(?:\s?(?:bn|tn|m|k|%|bp|pts?|points|pp))?(?![\w])")
+
+
+def signed_zero_faults(text: str) -> list[str]:
+    return [f"a signed zero {m.group(0).strip()!r}: print '0' or 'unch'"
+            for m in _SIGNED_ZERO.finditer(str(text or ""))]
+
+
+# ---------------------------------------------------------------------------
 # SCALED FIGURES ARE PRECOMPUTED (1 Oct 2026), the third time the same pattern
 # ---------------------------------------------------------------------------
 # The writer kept rescaling large figures itself -- "373 billion", "162 thousand",
@@ -1575,17 +1590,3 @@ def audit(text: str, payload: Any, *,
                        unmatched=unmatched, matched=matched,
                        payload_values=len(values), names=names)
 
-
-# ---------------------------------------------------------------------------
-# weekly-fixes-7 item 12: THE SIGNED-ZERO RULE. A figure that rounds to zero
-# carries no sign: "−$0bn", "-0", "+0.0 bp" print "0" or "unch". Dry run 7
-# printed "−$0bn" for RRP and "−0" for short interest.
-# ---------------------------------------------------------------------------
-_SIGNED_ZERO = re.compile(
-    r"(?<![\w.,])[+\-−–][$€£]?0(?:\.0+)?(?![\d.,]*[1-9])"
-    r"(?:\s?(?:bn|tn|m|k|%|bp|pts?|points|pp))?(?![\w])")
-
-
-def signed_zero_faults(text: str) -> list[str]:
-    return [f"a signed zero {m.group(0).strip()!r}: print '0' or 'unch'"
-            for m in _SIGNED_ZERO.finditer(str(text or ""))]
