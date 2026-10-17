@@ -137,6 +137,106 @@ def setup_ids(path: Optional[Path] = None) -> tuple:
         return tuple(((yaml.safe_load(fp) or {}).get("setups") or {}).keys())
 
 
+# -----------------------------------------------------------------------------
+# EL-1, THE BRIEF OF 12 OCT 2026 -- THE PACKET AS A DECISION OBJECT (§3.1 with
+# the Enterprise spec's §VII Recommendation/Decision object and §XI
+# falsifiability). Every field below is recorded at entry and immutable after.
+# A DECISION_OK (active) packet is REFUSED without any of them, at write time,
+# whoever asks -- the way a Brookfield-related security is refused -- and the
+# refusal is LOGGED to packet_refusals before the raise. A draft may be
+# incomplete: an abstention, an engine's proposal and a held packet are drafts,
+# and the rule binds at the transition to DECISION_OK.
+#
+# RED TEAM v0 (R-5): "the cheapest way the conclusion could be wrong, at a stated
+# cost in review time". Two parts, both required: `red_team` names the cheapest
+# way, `red_team_review_minutes` the review time it would cost to check.
+# -----------------------------------------------------------------------------
+RED_TEAM_RULE = ("Red Team v0 (R-5): a packet names the cheapest way the "
+                 "conclusion could be wrong, at a stated cost in review time")
+# (column, what it is) -- the order is the packet's reading order.
+ENTRY_FIELDS = (
+    ("thesis", "the thesis"),
+    ("mechanism", "the mechanism: why the edge should exist"),
+    ("falsifiers", "the falsifier: what would prove it wrong, measurable"),
+    ("falsifier_date", "the date by which the falsifier is judged (YYYY-MM-DD)"),
+    ("setup_id", "the setup family (config/setups.yaml)"),
+    ("expected_return", "the expected return"),
+    ("expected_downside", "the expected downside"),
+    ("entry_condition", "the entry condition"),
+    ("invalidation", "the invalidation level or event"),
+    ("size", "the size (size, quantity or notional)"),
+    ("risk_budget", "the risk budget"),
+    ("horizon", "the horizon"),
+    ("benchmark", "the benchmark it must beat"),
+    ("red_team", "the Red Team line: the cheapest way the thesis could be wrong"),
+    ("red_team_review_minutes", "the review time that check would cost, in minutes"),
+    ("counter_thesis", "the counter-thesis: the other side's case, one sentence"),
+)
+# Added by this brief; nullable, NULL on every earlier row ("not recorded").
+EL1_PACKET_COLUMNS = (
+    "mechanism TEXT", "falsifier_date TEXT", "expected_return TEXT",
+    "expected_downside TEXT", "entry_condition TEXT", "risk_budget TEXT",
+    "benchmark TEXT", "red_team TEXT", "red_team_review_minutes INTEGER",
+    # THE OUTCOME SLOT: empty at entry, written by the grader when the decision
+    # resolves (the spec's §VII Outcome object), never by the packet's author.
+    "outcome TEXT", "outcome_at TEXT")
+EL1_PACKET_NAMES = tuple(c.split()[0] for c in EL1_PACKET_COLUMNS)
+_MEASURABLE = re.compile(r"\d")
+
+
+def packet_faults(p: dict, decision_day: Optional[str] = None) -> list[str]:
+    """Every reason a packet is not DECISION_OK-complete, in the packet's
+    reading order. Pure: the register's write and decide.py's dry run share it."""
+    out = []
+
+    def blank(v) -> bool:
+        if isinstance(v, (list, tuple)):
+            return not [x for x in v if str(x).strip()]
+        return v is None or not str(v).strip()
+    fals = p.get("falsifiers") or []
+    if isinstance(fals, str):
+        try:
+            fals = json.loads(fals)
+        except ValueError:
+            fals = [fals]
+    for col, what in ENTRY_FIELDS:
+        v = fals if col == "falsifiers" else p.get(col)
+        if col == "size":
+            v = v or p.get("quantity") or p.get("notional_usd")
+        if blank(v):
+            out.append(f"{col} ({what})")
+    if fals and not any(_MEASURABLE.search(str(f)) for f in fals):
+        out.append("falsifiers (none is measurable: a falsifier names a level, a "
+                   "count or a date the outcome can be checked against)")
+    fd = p.get("falsifier_date")
+    if fd and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(fd)):
+        out.append(f"falsifier_date ({fd!r} is not YYYY-MM-DD)")
+    elif fd and decision_day and str(fd) < decision_day[:10]:
+        out.append(f"falsifier_date ({fd} is before the decision, "
+                   f"{decision_day[:10]})")
+    rt = p.get("red_team_review_minutes")
+    if rt is not None and str(rt).strip():
+        try:
+            ok = int(rt) > 0 and float(rt) == int(rt)
+        except (TypeError, ValueError):
+            ok = False
+        if not ok:
+            out.append(f"red_team_review_minutes ({rt!r} is not a positive whole "
+                       f"number of minutes)")
+    return out
+
+
+def refusal_text(faults: list[str]) -> str:
+    """The refusal message for an incomplete DECISION_OK; quotes the rule."""
+    red = any(f.startswith("red_team") for f in faults)
+    return ("DECISION_OK refused: the packet lacks " + "; ".join(faults) + ". "
+            "EL-1: an active decision states at entry its thesis, mechanism, a "
+            "measurable falsifier with its date, its setup, expected return and "
+            "downside, entry condition, invalidation, size and risk budget, "
+            "horizon, benchmark, counter-thesis and Red Team line."
+            + (f" The rule: \"{RED_TEAM_RULE}.\"" if red else ""))
+
+
 def review_from_gate(gate_outcome: Optional[str],
                      explicit: Optional[str] = None) -> str:
     """review_changed for a new packet: the operator's word if given, else the
@@ -242,12 +342,19 @@ class RestrictedInstrumentError(Exception):
     """
 
 
-class PacketIncompleteError(ValueError):
-    """DECISION_OK without falsifiers, invalidation or counter_thesis (EL-1).
+class PacketRefusedError(ValueError):
+    """A packet the register refuses at write time (EL-1): an unknown setup, an
+    incomplete DECISION_OK. Logged to packet_refusals before it is raised.
 
-    A ValueError, so every caller that already refuses an incomplete decision
-    refuses this one; its own class, so the refusal can be named in a report.
+    A ValueError, so every caller that already refuses a bad decision refuses
+    this one; its own class, so the refusal can be named in a report.
     """
+
+
+class PacketIncompleteError(PacketRefusedError):
+    """DECISION_OK without the packet's entry fields (EL-1): the falsifiers,
+    the invalidation, the counter-thesis, the Red Team line and the rest of
+    ENTRY_FIELDS."""
 
 
 class CurrencyMismatchError(Exception):
@@ -277,6 +384,11 @@ class CurrencyExposureUnstatedError(Exception):
 # None -- unknown, not USD, because assuming USD is what let a peso listing pass
 # for a dollar one.
 _LISTING = re.compile(r"@[A-Za-z0-9_.-]+\.([A-Z]{3})$")
+
+
+def _clean(v: Optional[str]) -> Optional[str]:
+    """One line of packet text, whitespace collapsed; None stays None."""
+    return " ".join(str(v).split()) if v is not None else None
 
 
 def listing_currency(instrument: Optional[str]) -> Optional[str]:
@@ -384,8 +496,42 @@ CREATE TABLE IF NOT EXISTS decisions (
     horizon_alignment TEXT,
     review_changed   TEXT,
     falsifiers       TEXT,
-    counter_thesis   TEXT
+    counter_thesis   TEXT,
+    -- EL-1, the brief of 12 Oct 2026: the decision object (ENTRY_FIELDS) and the
+    -- outcome slot. NULL on every earlier row, which reads "not recorded".
+    mechanism        TEXT,
+    falsifier_date   TEXT,
+    expected_return  TEXT,
+    expected_downside TEXT,
+    entry_condition  TEXT,
+    risk_budget      TEXT,
+    benchmark        TEXT,
+    red_team         TEXT,
+    red_team_review_minutes INTEGER,
+    outcome          TEXT,
+    outcome_at       TEXT
 );
+
+-- EVERY PACKET REFUSAL, LOGGED (EL-1). An unknown setup or an incomplete
+-- DECISION_OK leaves a row here before the refusal is raised -- a refusal that
+-- leaves no record is indistinguishable from nobody having tried. The Brookfield
+-- refusal keeps its own table, blocked_attempts. Immutable.
+CREATE TABLE IF NOT EXISTS packet_refusals (
+    id            INTEGER PRIMARY KEY,
+    attempted_at  TEXT NOT NULL,
+    instrument    TEXT NOT NULL,
+    setup_id      TEXT,
+    rule          TEXT NOT NULL,
+    reason        TEXT NOT NULL,
+    source        TEXT NOT NULL,
+    payload       TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS packet_refusals_immutable_update
+BEFORE UPDATE ON packet_refusals
+BEGIN SELECT RAISE(ABORT, 'packet_refusals is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS packet_refusals_immutable_delete
+BEFORE DELETE ON packet_refusals
+BEGIN SELECT RAISE(ABORT, 'packet_refusals is immutable'); END;
 
 -- THE ORDER GATE'S RECORD OF WHAT BROKE (Phase 5a). Written by the
 -- reconciliation of fills against accepted decisions and by the Doctrine's
@@ -556,7 +702,9 @@ class Register:
                     "exit_price REAL", "exit_time TEXT", "exit_currency TEXT",
                     "exit_fx_to_usd REAL",
                     # Item 4a (2 Oct 2026): why a declined packet was not taken.
-                    "abstention_reason TEXT"):
+                    "abstention_reason TEXT",
+                    # EL-1, 12 Oct 2026: the decision object and the outcome slot.
+                    *EL1_PACKET_COLUMNS):
             try:
                 self.conn.execute(f"ALTER TABLE decisions ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -672,6 +820,16 @@ class Register:
                exit_currency: Optional[str] = None,
                exit_fx_to_usd: Optional[float] = None,
                abstention_reason: Optional[str] = None,
+               mechanism: Optional[str] = None,
+               falsifier_date: Optional[str] = None,
+               expected_return: Optional[str] = None,
+               expected_downside: Optional[str] = None,
+               entry_condition: Optional[str] = None,
+               risk_budget: Optional[str] = None,
+               benchmark: Optional[str] = None,
+               red_team: Optional[str] = None,
+               red_team_review_minutes: Optional[int] = None,
+               refusal_source: str = "register",
                becoming_active: bool = True) -> str:
         """Write one decision. Raises RestrictedInstrumentError if blocked.
 
@@ -803,11 +961,16 @@ class Register:
                                                       str(time_stop)):
             raise ValueError(f"time_stop must be YYYY-MM-DD; got {time_stop!r}")
 
-        # EL-1: the vocabularies, enforced on every write.
+        # EL-1: the vocabularies, enforced on every write. An unknown setup is a
+        # REFUSAL, logged: setup_id is the Edge Ledger's key, and a packet keyed
+        # to a family the catalogue does not hold could never be graded.
         if setup_id is not None and setup_id not in setup_ids():
-            raise ValueError(
-                f"setup_id must be a family in config/setups.yaml (or "
-                f"`unclassified`); got {setup_id!r}")
+            reason = (f"setup_id {setup_id!r} is not in the catalogue "
+                      f"(config/setups.yaml); name a family there, or "
+                      f"`unclassified`")
+            self.log_refusal(instrument, setup_id, "unknown_setup", reason,
+                             refusal_source, locals())
+            raise PacketRefusedError(reason)
         if engine_id is not None and engine_id not in ENGINE_IDS:
             raise ValueError(f"engine_id must be one of {ENGINE_IDS}; got "
                              f"{engine_id!r}")
@@ -864,17 +1027,23 @@ class Register:
         # as for the book: a pre-P5-B row re-recorded while already active is
         # describing a position that exists, not entering one.
         if status == "active" and becoming_active:
-            missing = [n for n, v in (("falsifiers", falsifiers),
-                                      ("invalidation", (invalidation or "").strip()),
-                                      ("counter_thesis", counter_thesis))
-                       if not v]
-            if missing:
-                raise PacketIncompleteError(
-                    f"DECISION_OK refused: the packet has no "
-                    f"{', '.join(missing)}. EL-1 (Red Team v0): an active decision "
-                    f"states at entry what would show it wrong (>= 1 falsifier), "
-                    f"where it ends (invalidation), and the other side's case in "
-                    f"one sentence (counter_thesis)")
+            faults = packet_faults(
+                {"thesis": thesis, "mechanism": mechanism, "falsifiers": falsifiers,
+                 "falsifier_date": falsifier_date, "setup_id": setup_id,
+                 "expected_return": expected_return,
+                 "expected_downside": expected_downside,
+                 "entry_condition": entry_condition, "invalidation": invalidation,
+                 "size": size, "quantity": quantity, "notional_usd": notional_usd,
+                 "risk_budget": risk_budget, "horizon": horizon,
+                 "benchmark": benchmark, "red_team": red_team,
+                 "red_team_review_minutes": red_team_review_minutes,
+                 "counter_thesis": counter_thesis},
+                decision_time or now)
+            if faults:
+                reason = refusal_text(faults)
+                self.log_refusal(instrument, setup_id, "incomplete_packet", reason,
+                                 refusal_source, locals())
+                raise PacketIncompleteError(reason)
 
         self.conn.execute(
             "INSERT INTO decisions (id, created_at, decision_time, instrument,"
@@ -887,9 +1056,12 @@ class Register:
             " setup_id, engine_id, horizon_alignment, review_changed,"
             " falsifiers, counter_thesis, expression_currency,"
             " exit_price, exit_time, exit_currency, exit_fx_to_usd,"
-            " abstention_reason)"
+            " abstention_reason, mechanism, falsifier_date, expected_return,"
+            " expected_downside, entry_condition, risk_budget, benchmark,"
+            " red_team, red_team_review_minutes)"
             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+            "         ?,?,?,?,?,?,?,?,?)",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -902,7 +1074,12 @@ class Register:
              setup_id, engine_id, horizon_alignment, review_changed,
              (json.dumps(falsifiers) if falsifiers is not None else None),
              counter_thesis, expr, exit_price, exit_time, exit_currency,
-             exit_fx_to_usd, abstention_reason))
+             exit_fx_to_usd, abstention_reason, _clean(mechanism),
+             falsifier_date, _clean(expected_return), _clean(expected_downside),
+             _clean(entry_condition), _clean(risk_budget), _clean(benchmark),
+             _clean(red_team),
+             (int(red_team_review_minutes)
+              if red_team_review_minutes not in (None, "") else None)))
         self.conn.commit()
         return did
 
@@ -916,6 +1093,24 @@ class Register:
             (session.utc_iso(), instrument, norm, hit["matched_on"],
              str(hit.get("entity")), json.dumps(safe, default=str)))
         self.conn.commit()
+
+    def log_refusal(self, instrument: str, setup_id: Optional[str], rule: str,
+                    reason: str, source: str, payload: dict) -> None:
+        """A packet refusal, recorded before it is raised (EL-1). `source` is
+        who asked: the register, decide.py, set-status."""
+        safe = {k: v for k, v in payload.items()
+                if k not in ("self", "faults") and isinstance(
+                    v, (str, int, float, list, type(None)))}
+        self.conn.execute(
+            "INSERT INTO packet_refusals (attempted_at, instrument, setup_id, rule,"
+            " reason, source, payload) VALUES (?,?,?,?,?,?,?)",
+            (session.utc_iso(), str(instrument), setup_id, rule, reason, source,
+             json.dumps(safe, default=str, sort_keys=True)))
+        self.conn.commit()
+
+    def packet_refusals(self) -> list[dict]:
+        return [dict(r) for r in self.conn.execute(
+            "SELECT * FROM packet_refusals ORDER BY id")]
 
     # -- packets -----------------------------------------------------------
     def attach_packet(self, decision_id: str, packet: dict) -> str:
@@ -989,16 +1184,15 @@ class Register:
             # EL-1 holds for the in-place writer too: a draft promoted here
             # without the three fields would be DECISION_OK by the back door.
             if row and row.get("status") != "active":
-                fals = json.loads(row.get("falsifiers") or "null")
-                missing = [n for n, v in (
-                    ("falsifiers", fals),
-                    ("invalidation", (row.get("invalidation") or "").strip()),
-                    ("counter_thesis", row.get("counter_thesis"))) if not v]
-                if missing:
-                    raise PacketIncompleteError(
-                        f"decision {decision_id} cannot be made active: no "
-                        f"{', '.join(missing)} (EL-1). Record a new decision "
-                        f"with them.")
+                faults = packet_faults(row)
+                if faults:
+                    reason = (f"decision {decision_id} cannot be made active "
+                              f"in place. " + refusal_text(faults)
+                              + " Record a new decision with them.")
+                    self.log_refusal(row["instrument"], row.get("setup_id"),
+                                     "incomplete_packet", reason, "set_status",
+                                     {"decision_id": decision_id})
+                    raise PacketIncompleteError(reason)
         self.conn.execute(
             "UPDATE decisions SET status = ?, operator_action = COALESCE(?, operator_action)"
             " WHERE id = ?", (status, operator_action, decision_id))

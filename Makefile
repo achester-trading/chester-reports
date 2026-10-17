@@ -32,6 +32,7 @@ PYTHON ?= $(shell test -x .venv/bin/python && echo .venv/bin/python \
 PY_VALIDATORS := \
 	tools/check_registry.py \
 	tools/validate_register.py \
+	tools/validate_packets.py \
 	tools/validate_backup.py \
 	tools/validate_ibkr_portfolio.py \
 	tools/validate_ibkr_costs.py \
