@@ -458,6 +458,13 @@ def group_h() -> None:
     check(got and got[0].get("subsections"), "the close reads the captures from computed_dir")
     check(stack_mod.dealer_blocks({"session": C.SESSION}, None, "", {}) is None,
           "no computed_dir: nothing is read")
+    old = {k: v for k, v in cur.items() if k not in ("horizons", "bands")}
+    ob = db.block(old, None, "no equivalent capture", CFG)
+    check(ob["subsections"][0]["table"] is None
+          and "before the horizon windows" in ob["subsections"][0]["lines"][0]
+          and ob["subsections"][3]["table"],
+          "a profile computed before 6b: T1 says it waits for the next capture; T2 "
+          "and the rest still print")
     absent = stack_mod.mechanics_section(p, [{"absent": "dealer block, SPY: no computed "
                                                         "profile for 2026-10-16"}])
     check(any("no computed profile" in x for x in absent["not_tracked"]),

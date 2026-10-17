@@ -537,7 +537,14 @@ def block(p: dict, prior: Optional[dict], why: str = "no equivalent capture",
                           f"{(p or {}).get('error') or 'no computed profile'}"}
     s = summary(p, prior, cfg, releases)
     four = t4(p, prior, why, cfg)
-    subs = [{"title": f"Dealer dashboard, {sym}", "table": t1(p, cfg)},
+    # A profile computed before 6b carries no horizon windows: T1 says so and
+    # waits for the next capture, rather than printing an empty table.
+    dash = ({"title": f"Dealer dashboard, {sym}", "table": t1(p, cfg)}
+            if p.get("horizons") else
+            {"title": f"Dealer dashboard, {sym}", "table": None,
+             "lines": ["This capture was computed before the horizon windows "
+                       "existed (6b); the next capture carries them."]})
+    subs = [dash,
             {"title": f"Chain quality, {sym}", "table": quality_panel(p, cfg)},
             {"title": f"Changes since the equivalent capture, {sym}",
              "table": four["table"], "lines": four["lines"]},
