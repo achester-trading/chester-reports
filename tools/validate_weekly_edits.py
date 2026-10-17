@@ -210,8 +210,9 @@ def main() -> int:
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
-           "Foreign flows (TIC)"],
-          "Positioning in seven sub-sections, each with its table")
+           "Foreign flows (TIC)", "Crypto flows"],
+          "Positioning in eight sub-sections, each with its table (the crypto flows "
+          "block last; Batch 4 Tranche A, 17 Oct 2026)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the
