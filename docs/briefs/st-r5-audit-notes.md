@@ -234,7 +234,10 @@ No gate reads the live store, fetches or calls a model.
 
 | Run | Commit | Result |
 |---|---|---|
-| (first push) | — | recorded at the next read |
+| 38992737390 | `acd3ff9` | **failed**, one check: `validate_secrets` refused `tools/validate_by_hand_audit.py`, whose Korea-gap check named the dotfile in a quoted string (only `altdata/secrets.py` may) |
+| (this repair) | the cherry-pick of `d7c1593` from `6b-dealer-1` | recorded in `docs/briefs/6b-dealer-2-notes.md` (Part 0) |
+
+**The repair (17 Oct, the 6b part 2 paste, Part 0):** the check is stated positively, so the gap must say it "needs a registered key (ruled out". It was first committed on `6b-dealer-1` as `d7c1593` (CI 39033223933 green), and is cherry-picked here so the branch is green on its own. `validate_by_hand_audit` 17/0.
 
 ## Box commands (Ari's, after the merge, inside a window: weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20, clear of Sunday 05:00)
 
