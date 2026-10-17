@@ -644,10 +644,13 @@ def group_asof_paths() -> None:
                        for i in db.instruments("pm.x")]
                 want = max((str(r["observed_at"])[:10] for r in per if r), default=None)
                 same_any &= db.newest_observed_any("pm.x", as_of=cut) == want
-            check(same_any and "db.newest_observed_any(k, as_of=as_of)" in
+            # audit-leftovers-1: the freshness check reads the whole roster through
+            # newest_observed_map, whose answers equal latest_as_of and
+            # newest_observed_any key by key (validate_audit_1.py group E).
+            check(same_any and "db.newest_observed_map(" in
                   (REPO / "altdata/feeds.py").read_text(encoding="utf-8"),
                   "newest_observed_any is the per-instrument loop's answer at five "
-                  "cutoffs, and the freshness check uses it")
+                  "cutoffs, and the freshness check reads its grouped form")
             plan =" ".join(str(r[-1]) for r in db.conn.execute(
                 "EXPLAIN QUERY PLAN " + observations.LATEST_AS_OF_SQL,
                 {"key": "fred.x", "instrument": None, "as_of": "9999"}))
@@ -657,9 +660,10 @@ def group_asof_paths() -> None:
             db.close()
     src = {p: (REPO / p).read_text(encoding="utf-8")
            for p in ("altdata/feeds.py", "regime.py")}
-    check("db.latest_as_of(k, as_of=as_of)" in src["altdata/feeds.py"]
+    check("db.newest_observed_map(" in src["altdata/feeds.py"]
           and "st.latest_as_of(STORE_KEY, as_of=as_of)" in src["regime.py"],
-          "the freshness check and the regime's object read use the one-row path")
+          "the freshness check reads one grouped query, and the regime's object "
+          "read uses the one-row path")
 
 
 def group_aud1_retry() -> None:

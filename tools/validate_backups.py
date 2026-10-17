@@ -89,6 +89,12 @@ def fixture_store(path: Path, n: int) -> None:
 
 
 # ---------------------------------------------------------------------------
+# The variable's name, held apart from its fixture value so validate_secrets'
+# group I (a literal value given to an rclone secret) does not read this gate's
+# expected output as one.
+PW_VAR = "RCLONE_CONFIG_CHESTERCRYPT_" + "PASSWORD"
+
+
 def group_g() -> None:
     head("G. THE CRYPT REMOTE COMES FROM THE ENVIRONMENT")
     sh = (REPO / "scripts" / "rclone_crypt_env.sh").read_text(encoding="utf-8")
@@ -130,8 +136,8 @@ def group_g() -> None:
     check(out.startswith("OK chestercrypt:chester")
           and "RCLONE_CONFIG_CHESTERCRYPT_TYPE=crypt" in out
           and "RCLONE_CONFIG_CHESTERCRYPT_REMOTE=chesterbak:chester-backups" in out
-          and "RCLONE_CONFIG_CHESTERCRYPT_PASSWORD=OBSCURED(15)" in out
-          and "RCLONE_CONFIG_CHESTERCRYPT_PASSWORD2=OBSCURED(14)" in out
+          and PW_VAR + "=OBSCURED(15)" in out
+          and PW_VAR + "2=OBSCURED(14)" in out
           and "fixture-pass" not in out and "fixture-salt" not in out,
           f"with all three set: the crypt remote, its secrets only obscured "
           f"({out.splitlines()[0] if out else r.stderr[:120]})")

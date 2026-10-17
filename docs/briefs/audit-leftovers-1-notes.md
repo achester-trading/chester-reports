@@ -336,11 +336,22 @@ merge, before 02:30.
    ```
    It is safe at any time; every writer already inserts only. If aud-1's FRED
    compaction is still to run, it works with the triggers in (gate L).
-7. **Revoke the old full-scope token** once step 5 has passed. That is the main
+7. **The Alpha Lab outbox's own remote** (ruling 1 of 17 Oct). On the **main**
+   account, add a third Drive remote, the same way, with scope **`drive.file`**:
+   it can create and write only the files it makes. Prove it, then let the
+   outbox write through it once:
+   ```
+   ssh vps 'rclone lsd <outbox remote name>: && rclone mkdir <outbox remote name>:chester-vendor-checks/lab-outbox'
+   ```
+   Add `CHESTER_RCLONE_OUTBOX_REMOTE` to `.env`, by name. After the stitch, aud-3b's
+   lab outbox push uses that remote, and its inbox pull uses
+   `CHESTER_RCLONE_INBOX_REMOTE`. Confirm one night's sweep log shows `lab-outbox`
+   written before step 8. The read-only inbox remote stays read-only.
+8. **Revoke the old full-scope token**, only once step 5 has passed **and** the
+   outbox has written through its own remote once (step 7). That is the main
    account's Security page → third-party access → the rclone client.
-   - **Do this only after step 2 is in place:** the inbox no longer needs the old
-     token, but a revoke before the read-only remote exists stops the inbound
-     files.
+   - A revoke before steps 2 and 7 would stop the inbound files and the lab
+     outbox.
    - Then delete the old plaintext folder (`gdrive:chester-backups`) after a
      retention period you choose. The encrypted `db/` keeps 14 daily and 8
      weekly snapshots, so 8 weeks is the natural point at which nothing in the
@@ -406,22 +417,39 @@ call; see Needs you 1.
 
 ## Needs you
 
-1. **The lab outbox's write path (a decision).** After the stitch the lab outbox
-   needs a remote that can write to the main Drive.
-   - **My recommendation:** a third remote on the main account with scope
-     `drive.file`, which can create and update only the files rclone itself
-     made, so it cannot wipe the rest of the Drive. Then
-     `CHESTER_RCLONE_OUTBOX_REMOTE` in `.env`.
-   - The alternative is to keep the old full-scope token for the outbox alone,
-     which leaves the risk the audit named.
-   - Until decided, **do not revoke the old token (step 7) if the lab outbox
-     runs.**
-2. **GeckoTerminal's guard at 6 a minute against its published ~10** (the ruling
-   said 30). Confirm, or tell me to set it otherwise.
-3. **The box steps above, in order**, in the merge's window.
-4. **The crypt password and salt in your password manager before step 4.** A
+1. **The box steps above, in order**, Thursday evening in the merge's window
+   (ruling 2 of 17 Oct; the sweep exiting `no_crypt` for at most one night is
+   accepted).
+2. **The crypt password and salt in your password manager before step 4.** A
    backup no one can decrypt is not a backup.
+
+**Settled by the rulings of 17 Oct:**
+
+- the lab outbox gets its own `drive.file` remote (step 7);
+- GeckoTerminal's guard at 6 a minute is confirmed;
+- GLD's archive is a one-time download on Ari's list;
+- the fold of aud-2 stands.
 
 ## CI
 
-Read once after the push; recorded below.
+| Run | Commit | Result |
+|---|---|---|
+| 39075873690 (Gates, push) | `a71078c` | **failed: 88 of 92 gate jobs passed** (85 code, 7 data) |
+
+**The four failures, all mine, fixed on this branch:**
+
+1. `validate_secrets.py` group I flagged `tools/validate_backups.py`. Its
+   expected fake output (`…_PASSWORD=OBSCURED(15)`) read as a literal secret.
+   The gate now builds the variable's name apart from the value. The scan is
+   unchanged and still catches a literal.
+2. `validate_prices.py` pinned the freshness check's old per-key calls by their
+   source text. It now pins `newest_observed_map`, whose answers equal those
+   calls key by key (validate_audit_1 group E).
+3. `validate_sr38_inbox.py` still expected the sweep to pull S&P DJI's workbook.
+   It now expects that it does not (the workbook is withdrawn).
+4. `check_library.py` read the tree names I had put in code formatting in
+   CLAUDE.md as paths that must exist. They are words now.
+
+Locally after the fix: secrets 51/0, prices 101/0, sr38 53/0, library clean,
+backups 28/0. The re-run is recorded on `meme-ingest-ledgers-1`'s notes, which
+carry this branch.

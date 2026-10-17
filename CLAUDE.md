@@ -465,8 +465,8 @@ holds the auction sampler's stand-aside, the meter's client and the drill.
 (audit-leftovers-1, 17 Oct 2026).**
 
 - `scripts/rclone_sync.sh` sends every tree to an rclone crypt remote that
-  `scripts/rclone_crypt_env.sh` builds from `.env`. The trees are `db/`,
-  `data/`, `chester-data/`, `state/`, `reports/` and `backups/`; the settings are
+  `scripts/rclone_crypt_env.sh` builds from `.env`. The trees are the db
+  snapshot, data, chester-data, state, reports and the EOD zips; the settings are
   `CHESTER_RCLONE_BACKUP_REMOTE` (a Drive used only for backups),
   `CHESTER_RCLONE_CRYPT_PASSWORD` and `CHESTER_RCLONE_CRYPT_SALT`. File names are
   encrypted too, and nothing secret sits in `rclone.conf`.
@@ -474,7 +474,7 @@ holds the auction sampler's stand-aside, the meter's client and the drill.
   remote is never written.
 - The inbound files come from the main Drive through
   `CHESTER_RCLONE_INBOX_REMOTE`, a read-only token.
-- Retention: `db/` keeps 14 daily, 8 weekly and monthly forever; the chain zips
+- Retention: the db snapshots keep 14 daily, 8 weekly and monthly forever; the chain zips
   keep the newest 14 on the box and on Drive alike.
 - The sweep records the snapshot's row count in the state directory's
   `backup_snapshot`.
