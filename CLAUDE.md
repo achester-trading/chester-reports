@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-one code gates (eighty-eight Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety-two code gates (eighty-nine Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -396,6 +396,19 @@ divergence data gate `tools/validate_vendor_divergence.py`), and the dealer leve
 in ES (`altdata/dealer_es.py`). **Unit memory caps are percentages of the
 machine** (ruled 17 Oct 2026: the box stays at 4 GB), equal on 8 GB to AUD-2's
 figures; `tools/validate_systemd_units.py` holds the rule at 4 and 8 GB.
+
+**The Enterprise Layer's EL-4 to EL-6 (17 Oct 2026).** EL-4 wrote the Doctrine
+monthly's items 3 to 5 into the Doctrine's body as Part X (the change ladder, the
+attention budget, the intraday rung); `tools/check_library.py` check 14 holds every
+dated appendix to its as-of heading, no figures in a lesson entry, and the ruled
+entries quoted verbatim. EL-5 is 6b's state vector (`altdata/state_vector.py`):
+eighteen measured variables per capture, numbers and None only, stored by the
+close as `state.*` and printed by the close and the Weekly; no engine may import
+it until EL-12. EL-6 is the system-metrics block (`altdata/system_metrics.py`):
+uptime, feed completeness, incidents, model cost and withheld drafts, each with
+its window and source, "not recorded" where a source does not exist; the
+Monthly's last detail table and the Quarterly's opening table. The withheld
+paragraphs are logged at archive time (`altdata/withheld_log.py`).
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

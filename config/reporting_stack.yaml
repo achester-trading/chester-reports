@@ -601,6 +601,18 @@ dealer_flags:
   # retrospective counts from this date.
   definitions_from: "2026-10-17"
 
+# THE SYSTEM-METRICS BLOCK (EL-6, 17 Oct 2026; altdata/system_metrics.py). The
+# Audit #4 baseline is the row taken by hand for the agenda's item I.3
+# (docs/briefs/audit-4-agenda.md), transcribed only where the agenda recorded a
+# figure: the feeds line of 9 Oct (official 96/96; its external figure is
+# written "52/5x" and is not transcribed) and the incidents INC-1 to INC-9 with
+# one open. Uptime, model cost and withheld drafts were not recorded there, so
+# nothing prints beside them.
+system_metrics:
+  baseline_audit_4:
+    feeds: "official 96/96 (9 Oct)"
+    incidents: "INC-1 to INC-9, one open"
+
 # 6b'S STATE VECTOR (EL-5, 17 Oct 2026; altdata/state_vector.py). SESSION-SET:
 # the opening range is the first 30 minutes (six 5-minute bars), the classic
 # definition; volume is compared with the prior 20 sessions to the same clock;

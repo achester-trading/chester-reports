@@ -110,7 +110,10 @@ def load_prior(report_date: str, archive_dir: Optional[str]) -> Optional[dict]:
 
 
 def save_edition(ed: dict, archive_dir: Optional[str]) -> Optional[str]:
+    from altdata import withheld_log                            # noqa: PLC0415
     from daily_cascade import deliver                            # noqa: PLC0415
+    withheld_log.record_edition("monthly_macro", edition_name(ed["report_date"]), ed,
+                                archive_dir)
     return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                            edition_name(ed["report_date"]), archive_dir)
 
@@ -2503,6 +2506,36 @@ def markdown(ed: dict) -> str:
     return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
 
 
+def system_metrics_block(p: dict, ed: dict, db_path: Optional[str],
+                         archive_dir: Optional[str], cadence: str) -> dict:
+    """EL-6 (altdata/system_metrics.py) over the Monthly's calendar month, or the
+    Quarterly's quarter: read-only, nothing fetched; a source that does not
+    exist prints "not recorded"."""
+    import datetime as _dt                                      # noqa: PLC0415
+    from altdata import observations, system_metrics as sm      # noqa: PLC0415
+    y, m = (int(x) for x in meter_month(p).split("-"))
+    if cadence == "quarterly":
+        q0 = (m - 1) // 3 * 3 + 1
+        first = _dt.date(y, q0, 1)
+        nxt = _dt.date(y + (q0 == 10), (q0 + 2) % 12 + 1, 1)
+        label = f"Q{(q0 - 1) // 3 + 1} {y}"
+    else:
+        first = _dt.date(y, m, 1)
+        nxt = _dt.date(y + (m == 12), m % 12 + 1, 1)
+        label = f"{first:%B %Y}"
+    last = nxt - _dt.timedelta(days=1)
+    try:
+        with observations.ObservationStore(db_path) as st:
+            src = sm.gather(first.isoformat(), last.isoformat(), st=st,
+                            cutoff=ed.get("as_of"), db_path=db_path,
+                            archive_dir=archive_dir)
+    except Exception:                                           # noqa: BLE001
+        src = sm.gather(first.isoformat(), last.isoformat(), db_path=db_path,
+                        archive_dir=archive_dir)
+    return sm.block(first.isoformat(), last.isoformat(), src, sm.baseline(),
+                    title=label)
+
+
 def meter_month(p: dict) -> str:
     """The month the Monthly covers, YYYY-MM: the month in markets' last day,
     else the month before the report date."""
@@ -2534,6 +2567,9 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
                        prior_dir if prior_dir is not None else archive_dir)
     book = level_book(p, db_path)
     ed = build(p, prior, db_path, book=book)
+    # EL-6: THE SYSTEM-METRICS BLOCK, the last detail table. Data, not prose:
+    # it counts in neither the word budget nor the chart cap.
+    ed["detail"].append(system_metrics_block(p, ed, db_path, archive_dir, "monthly"))
     if not narrative:
         written = {}
     elif write is not None:

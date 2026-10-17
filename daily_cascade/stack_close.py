@@ -359,6 +359,8 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
 
 
 def save_edition(ed: dict, sess: str, archive_dir: Optional[str]) -> Optional[str]:
+    from altdata import withheld_log                            # noqa: PLC0415
     from . import deliver                                       # noqa: PLC0415
+    withheld_log.record_edition("daily_close", edition_name(sess), ed, archive_dir)
     return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                            edition_name(sess), archive_dir)

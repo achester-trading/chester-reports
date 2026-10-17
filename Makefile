@@ -99,6 +99,7 @@ PY_VALIDATORS := \
 	tools/validate_dealer_block.py \
 	tools/validate_vol_event.py \
 	tools/validate_dealer_vendor.py \
+	tools/validate_system_metrics.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \

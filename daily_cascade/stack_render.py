@@ -672,7 +672,10 @@ def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
                                    + (" for the read" if reading_line(ed) else "")
                                    if target else ""), wrap=wrap,
                        reading=reading_line(ed))
-    return (f'<div style="{WRAP}">{head}{summary_html(ed)}{secs}'
+    # EL-6: an edition's opening table (the Quarterly's system metrics), after
+    # the summary and before section 1.
+    opening = "".join(detail_html(d, cadence) for d in ed.get("opening") or [])
+    return (f'<div style="{WRAP}">{head}{summary_html(ed)}{opening}{secs}'
             f'{details_html(ed.get("detail"), cadence)}'
             f'{glossary_html(_glossary_entries(), ed, wrap)}'
             + page_footer(ed, ed.get("run_id"), ed.get("archive_path"),
@@ -807,6 +810,9 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
         out.append(f"**{changed_head}**\n")
         out += [f"- {x}" for x in ed["changed_since"]] + [""]
     out += md_summary(ed)
+    for d in ed.get("opening") or []:
+        out.append(f"## {d['title']}\n")
+        out += md_block(d)
     limit = cad.get("paragraphs")
     for n, s in enumerate(ed["sections"], start=1):
         out.append(f"## {n} · {s['title']}" + (f" — *{s['subtitle']}*"

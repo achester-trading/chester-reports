@@ -2459,6 +2459,8 @@ def _glossary() -> list[dict]:
 
 
 def save_edition(ed: dict, ending: str, archive_dir: Optional[str]) -> Optional[str]:
+    from altdata import withheld_log                            # noqa: PLC0415
     from . import deliver                                       # noqa: PLC0415
+    withheld_log.record_edition("weekly_tactical", edition_name(ending), ed, archive_dir)
     return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                            edition_name(ending), archive_dir)

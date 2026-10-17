@@ -348,3 +348,25 @@ def weekly_row(day_label: str, v: dict) -> list[str]:
             f"{_f(v['net_to_gross'], '.2f')}",
             f"{_f(v['event_hours'], '.1f')} · {_f(v['volume_ratio_20d'], '.2f')} · "
             f"{_f(v['trend_alignment'], '+d')}"]
+
+
+def _main(argv: list[str]) -> int:
+    """`show --date D [--slot 1610] [--db PATH]`: the stored vector, read-only."""
+    import argparse                                             # noqa: PLC0415
+    import json                                                 # noqa: PLC0415
+    from altdata import observations, session                   # noqa: PLC0415
+    ap = argparse.ArgumentParser(prog="python -m altdata.state_vector")
+    ap.add_argument("cmd", choices=["show"])
+    ap.add_argument("--date", required=True)
+    ap.add_argument("--slot", default="1610")
+    ap.add_argument("--db", default=None)
+    a = ap.parse_args(argv)
+    with observations.ObservationStore(a.db) as st:
+        v = stored(st, a.date, session.utc_iso(), a.slot)
+    print(json.dumps({"day": a.date, "slot": a.slot, "vector": v}, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    import sys                                                  # noqa: PLC0415
+    sys.exit(_main(sys.argv[1:]))
