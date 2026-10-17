@@ -55,6 +55,7 @@ import chains as C  # noqa: E402
 import exposure_compute as ec  # noqa: E402
 
 from daily_cascade import dealer_block as db  # noqa: E402
+from altdata.numeral_audit import ordinal as _ord  # noqa: E402
 
 LINE = "=" * 78
 PASS = FAIL = 0
@@ -91,9 +92,9 @@ def group_a() -> None:
                      / 40)
     check(by["≤ 7 days"][1] == f"{db.regime(w7['net_gex'], w7['net_to_gross'], CFG)} "
                                f"({db.pct(w7['net_to_gross'])})"
-          and f"{want_pct}th percentile of 40 stored" in by["≤ 7 days"][2],
+          and f"{_ord(want_pct)} percentile of 40 stored" in by["≤ 7 days"][2],
           f"≤ 7 days: the gated regime and net-to-gross from the window; the magnitude at "
-          f"its {want_pct}th percentile of 40 stored, by hand")
+          f"its {_ord(want_pct)} percentile of 40 stored, by hand")
     check("no stored history yet" in by["≤ 45 days"][2] and by["0DTE"][1] == "settled, excluded",
           "no history yet says so; the settled 0DTE window is excluded")
     rng = 680.0 * 0.15 * math.sqrt(1 / 252)
