@@ -1589,4 +1589,3 @@ def audit(text: str, payload: Any, *,
     return AuditResult(passed=not unmatched, figures=figures,
                        unmatched=unmatched, matched=matched,
                        payload_values=len(values), names=names)
-
