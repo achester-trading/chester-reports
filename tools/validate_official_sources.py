@@ -1584,11 +1584,163 @@ def group_t() -> None:
         db.close()
 
 
+# ---------------------------------------------------------------------------
+# U. WRITER-FIXES-1 (17 Oct 2026): the three official writers the first full pull
+# on the box broke on, and TreasuryDirect's renamed schema -- each against a
+# fixture cut from the real file (tests/fixtures/<writer>/), read 17 Oct 2026.
+# ---------------------------------------------------------------------------
+FX1 = REPO / "tests" / "fixtures"
+
+
+def group_u() -> None:
+    import json
+    from altdata.sources import fedboard, nyfed_sce, spdr_gld
+    print(f"{LINE}\nU. WRITER-FIXES-1: H.4.1, THE SCE, THE CIE, TREASURY AUCTIONS\n{LINE}")
+
+    # --- H.4.1 (fedboard_h41) ---------------------------------------------------
+    def h41(name):
+        return (FX1 / "fedboard_h41" / name).read_text(encoding="utf-8")
+    full = fedboard.h41_rows_from_csv(h41("package_2026-10-14.csv"), LM_CANON, "observed")
+    last = {r["registry_key"]: r for r in full if r["observed_at"] == "2026-10-14"}
+    sep = {r["registry_key"]: r["value"] for r in full if r["observed_at"] == "2026-09-16"}
+    check(len(full) == 40 and set(last) == {"tic.fima_repo", "tic.fima_repo_weekavg"}
+          and sep == {"tic.fima_repo": 1e6, "tic.fima_repo_weekavg": 1e6},
+          "H.4.1: the real package (20 Wednesdays to 14 Oct) carries both FIMA columns "
+          "under RESPPALGTRF_N.WW and _XAW_N.WW; millions stored as dollars")
+    check("lastobs=520&" in fedboard.URL_H41 and "lastobs=&" not in fedboard.URL_H41,
+          "the query asks for ten years: an empty `lastobs=` is answered with an "
+          "empty body, which is what failed on the box")
+    absent: dict = {}
+    part = fedboard.h41_rows_from_csv(h41("package_weekavg_only_2026-10-14.csv"),
+                                      LM_CANON, "observed", absent=absent)
+    check(len(part) == 20 and {r["registry_key"] for r in part} == {"tic.fima_repo_weekavg"}
+          and list(absent) == ["tic.fima_repo"] and "RESPPALGTRF_N.WW" in absent["tic.fima_repo"],
+          "a package without one FIMA column writes the other and marks the missing "
+          "key absent, with its reason")
+    for body, want, what in ((h41("package_no_fima_2026-10-14.csv"), "carries none of",
+                              "a package with no FIMA column at all"),
+                             ("", "no Unique Identifier row", "an empty body")):
+        try:
+            fedboard.h41_rows_from_csv(body, LM_CANON, "observed")
+            ok = False
+        except ValueError as exc:
+            ok = want in str(exc)
+        check(ok, f"{what} fails the run, saying so")
+    db = temp_store()
+    saved = fedboard.http_get_response
+    try:
+        fedboard.http_get_response = lambda *a, **k: (
+            h41("package_weekavg_only_2026-10-14.csv").encode("utf-8"),
+            {"Last-Modified": "Thu, 15 Oct 2026 20:30:00 GMT"})
+        out = fedboard.pull_h41(db=db)
+        check(out["status"] == pub.OK and out["written"] == 20
+              and "tic.fima_repo" in (out.get("absent") or {})
+              and "tic.fima_repo" in out.get("keys_without_rows", []),
+              f"through the publication runner: OK, 20 rows, the missing key absent in "
+              f"the summary and the roster ({out['status']}, {out.get('written')})")
+    finally:
+        fedboard.http_get_response = saved
+        db.close()
+
+    # --- the NY Fed SCE ---------------------------------------------------------
+    wb = json.loads((FX1 / "nyfed_sce" / "workbook_2026-10.json").read_text(encoding="utf-8"))
+    book = {n: [] for n in wb["sheets"]}
+    book["Inflation expectations"] = wb["Inflation expectations"]
+    check("Five-year ahead Infl Exp" not in wb["sheets"]
+          and "Inflation expectations" in wb["sheets"] and len(wb["sheets"]) == 43,
+          "the current workbook (43 sheets) has no 'Five-year ahead Infl Exp' sheet: "
+          "what failed on the box")
+    rows = nyfed_sce.rows_from_workbook(book, LM_CANON, "ingest_instant")
+    by: dict = {}
+    for r in rows:
+        by.setdefault(r["registry_key"], []).append(r)
+    check(set(by) == {"nyfed.sce_3y", "nyfed.sce_5y"}
+          and by["nyfed.sce_3y"][-1]["observed_at"] == "2026-09-01"
+          and abs(by["nyfed.sce_3y"][-1]["value"] - 3.25033) < 1e-5
+          and abs(by["nyfed.sce_5y"][-1]["value"] - 2.995079) < 1e-6,
+          "both keys read by pattern from 'Inflation expectations'; the three-year "
+          "keeps nyfed.sce_3y (Sep 2026 3.25%), the five-year is its column 10 "
+          "(2.995%)")
+    old = {"Inflation expectations": [["", "Median three-year ahead expected inflation rate"],
+                                      [202601.0, 3.1]],
+           "Five-year ahead Infl Exp": [["", "Median"], [202601.0, 2.9]]}
+    check(sorted(r["registry_key"] for r in nyfed_sce.rows_from_workbook(old, "x", "k"))
+          == ["nyfed.sce_3y", "nyfed.sce_5y"],
+          "the old layout still reads, should it return")
+    no5 = {"Inflation expectations": [["", "Median three-year ahead expected inflation rate"],
+                                      [202601.0, 3.1]],
+           "Inflation expectations Demo": [["", "Median five-year ahead expected "
+                                                "inflation rate"], [202601.0, 9.9]]}
+    a5: dict = {}
+    r5 = nyfed_sce.rows_from_workbook(no5, "x", "k", absent=a5)
+    check([r["registry_key"] for r in r5] == ["nyfed.sce_3y"] and list(a5) == ["nyfed.sce_5y"],
+          "a key found nowhere is absent and the rest is written; a Demo sheet never "
+          "stands in for the whole")
+    try:
+        nyfed_sce.rows_from_workbook({"Disclaimer": [], "Notes": []}, "x", "k")
+        ok = False
+    except ValueError as exc:
+        ok = "['Disclaimer', 'Notes']" in str(exc)
+    check(ok, "no inflation-expectations sheet at all raises, naming the sheets it found")
+
+    # --- the Board's CIE (frb_cie) ----------------------------------------------
+    cie = (FX1 / "frb_cie" / "cie_2026-10-16.csv").read_text(encoding="utf-8")
+    c = fedboard.rows_from_csv(cie, LM_CANON, "observed")
+    lastq = {r["instrument"]: r["value"] for r in c if r["observed_at"] == "2026-09-30"}
+    check(len(c) == 222 and c[0]["observed_at"] == "1999-03-31"
+          and lastq == {"spf": 2.22, "mich": 3.13},
+          "CIE: the 16 Oct 2026 file (YYYY-M-D periods, no BOM) reads 111 quarters to "
+          "2026Q3 (SPF 2.22, Michigan 3.13) -- the series continues, not withdrawn")
+    try:
+        fedboard.rows_from_csv("period,CIE_spf,CIE_mich\n2026Q3,2.2,3.1\n", "x", "k")
+        ok = False
+    except ValueError as exc:
+        ok = "'2026Q3'" in str(exc)
+    check(ok, "a file whose periods are unreadable raises, naming the first; never "
+              "'parsed to zero rows' in silence")
+
+    # --- TreasuryDirect (treasury_auctions) ---------------------------------------
+    recs = json.loads((FX1 / "treasury_auctions" / "search_2026-10.json")
+                      .read_text(encoding="utf-8"))["records"]
+    rows = treasury_auctions.rows_from_records(recs)
+    shares: dict = {}
+    for r in rows:
+        if r["registry_key"].endswith("_share"):
+            shares[r["instrument"]] = shares.get(r["instrument"], 0.0) + r["value"]
+    check(set(shares) == {"Note:3-Year", "Bill:4-Week"}
+          and all(abs(v - 1.0) < 1e-6 for v in shares.values())
+          and not any(r["instrument"].startswith("TIPS") for r in rows),
+          "the renamed schema (competitiveAuctionCloseDate, the *CompetitiveParAwarded "
+          "fields): dealer + direct + indirect is the competitive subtotal, on real "
+          "records; the unheld TIPS is skipped")
+    check(treasury_auctions.DATE_FIELD == "competitiveAuctionCloseDate",
+          "the query names the date field that exists: dateFieldName=auctionDate is "
+          "answered with 500 for every window, which is what failed on the box")
+    seen = {}
+    try:
+        def capture(url, params=None, **k):
+            seen.update(params or {})
+            return recs
+        treasury_auctions.http_get_json = capture
+        treasury_auctions.fetch_records("2026-09-02", "2026-10-17")
+    finally:
+        restore()
+    check(seen.get("dateFieldName") == "competitiveAuctionCloseDate",
+          f"and fetch_records sends it ({seen.get('dateFieldName')})")
+
+    # --- GLD (spdr_gld): the archive is a one-time anchor -------------------------
+    src = (REPO / "altdata" / "sources" / "spdr_gld.py").read_text(encoding="utf-8")
+    check("Needed ONCE, as the anchor" in src and "Never a recurring drop (rule 30)" in src,
+          "GLD: the archive's message asks for one browser download, once, as the "
+          "anchor -- never a recurring drop (rule 30)")
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n, group_q, group_r, group_s, group_t):
+              group_p, group_n, group_q, group_r, group_s, group_t,
+              group_u):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

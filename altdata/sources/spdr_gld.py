@@ -235,9 +235,14 @@ def archive() -> tuple[Optional[tuple[list[dict], str, str]], Optional[str]]:
         return None, (f"api.spdrgoldshares.com refused robots.txt "
                       f"({str(exc)[:60]}); the archive was not fetched")
     if not allowed:
+        # writer-fixes-1: ONE download, once. GLD's ounces per share move only
+        # by the Sponsor's fee, which this writer accrues forward from the anchor,
+        # so one archive anchors the series for good (reference data, the 17 Oct
+        # ruling); a newer one only re-anchors. Never a recurring drop (rule 30).
         return None, (f"api.spdrgoldshares.com robots.txt disallows the archive "
-                      f"({rule}); not fetched. Place it, downloaded in a browser "
-                      f"from spdrgoldshares.com/usa/historical-data/, in Drive "
+                      f"({rule}); not fetched. Needed ONCE, as the anchor (nothing "
+                      f"recurring): downloaded in a browser from "
+                      f"spdrgoldshares.com/usa/historical-data/ into Drive "
                       f"chester-vendor-checks/etf/ (the rclone sweep copies it to "
                       f"{INBOX_DIR}) or at ${FILE_VAR}")
     data, headers = http_get_response(URL, timeout=60)
