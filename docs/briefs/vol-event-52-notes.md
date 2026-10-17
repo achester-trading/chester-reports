@@ -180,5 +180,6 @@ Trial merges (`git merge-tree`, nothing committed) against `6e-releases`, `6e-di
 
 | Branch | Commit | Run | Result |
 |---|---|---|---|
-| `6b-dealer-2` | `ada7cb2` | recorded at the next read | |
+| `6b-dealer-2` | `ada7cb2` | 39038449525 | failed on three gates (6b part 2's; see its notes); fixed in `345f1d3` and merged here |
+| `6b-dealer-2` | `345f1d3` | recorded at the next read | |
 | `vol-event-52` | this commit | recorded at the next read | |
