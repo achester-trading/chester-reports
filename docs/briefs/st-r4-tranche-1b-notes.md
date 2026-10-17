@@ -382,7 +382,10 @@ Its guard "no report, renderer or regime module imports a writer" caught
 hold; with the writer on the roster the import is a renderer reaching a writer.
 The hold check is gone from the block (the hold is lifted, so there is nothing to
 read), and no renderer imports either writer. `validate_st_r4_t1` 49 of 49
-locally. The run on the fix is read once, after the push.
+locally.
+
+Run 38977257824, on `96342c1` (the fix): **passed, 95 jobs, 0 failed** (read once,
+16 Oct). The branch is green.
 
 ### The Census hold lifted (ruling (a))
 
