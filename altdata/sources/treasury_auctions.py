@@ -9,9 +9,28 @@ by the ABS_STRESS candidate flag. NOT the `ibkr.auction_*` family: those are the
 EQUITY closing auction's imbalance feed. This family is `auction.*` -- Treasury.
 
 SOURCE. https://www.treasurydirect.gov/TA_WS/securities/search
-?startDate=..&endDate=..&dateFieldName=auctionDate&format=json -- no key. One
-record per auction, back to 2009 at least. A record with no bidToCoverRatio has
-not been held and is skipped.
+?startDate=..&endDate=..&dateFieldName=competitiveAuctionCloseDate&format=json --
+no key. One record per auction, back to 2009 at least. A record with no
+bidToCoverRatio has not been held and is skipped.
+
+THE SCHEMA CHANGED (writer-fixes-1, 17 Oct 2026). The first full pull on the box
+read "500 Server Error" after three retries. It was not transient: TreasuryDirect
+renamed its fields, and `dateFieldName=auctionDate` names a field that no longer
+exists, so EVERY window answers 500 (checked 17 Oct 2026 on a year of 2009, a
+year of 2025 and the 45-day refresh window; the same query without it answers
+200). The record's fields, then and now (the old names are still read, first
+non-empty wins):
+
+  the auction day       auctionDate               competitiveAuctionCloseDate
+  dealer award          primaryDealerAccepted     primaryDealersCompetitiveParAwarded
+  direct award          directBidderAccepted      directBiddersCompetitiveParAwarded
+  indirect award        indirectBidderAccepted    indirectBiddersCompetitiveParAwarded
+  competitive accepted  competitiveAccepted       subtotalCompetitiveParAwardedInside-
+                                                  OfOfferingAmount
+
+The identity holds under the new names (the 3-year of 8 Sep 2026: 6.285 + 15.525
++ 35.809 = 57.619bn); tests/fixtures/treasury_auctions/search_2026-10.json is
+three real records, trimmed.
 
 WHAT IS STORED, per auction, keyed instrument = "<type>:<original term>" (e.g.
 "Note:10-Year"; a 9-year-10-month reopening is still "Note:10-Year") and
@@ -75,6 +94,24 @@ KEYS = ["auction.bid_to_cover", "auction.dealer_share", "auction.direct_share",
 # Registered, never written: see NOT STORED above.
 NOT_SOURCED = ["auction.tail_bp"]
 COUPON_TYPES = ("Note", "Bond", "TIPS")
+DATE_FIELD = "competitiveAuctionCloseDate"
+# Each value: its field names, newest first (writer-fixes-1: TreasuryDirect's
+# rename of Oct 2026). The first non-empty one is read.
+FIELDS = {"day": ("competitiveAuctionCloseDate", "auctionDate"),
+          "dealer": ("primaryDealersCompetitiveParAwarded", "primaryDealerAccepted"),
+          "direct": ("directBiddersCompetitiveParAwarded", "directBidderAccepted"),
+          "indirect": ("indirectBiddersCompetitiveParAwarded", "indirectBidderAccepted"),
+          "competitive": ("subtotalCompetitiveParAwardedInsideOfOfferingAmount",
+                          "competitiveAccepted")}
+
+
+def field(rec: dict, name: str) -> Any:
+    """The record's value under the first of FIELDS[name] that is present."""
+    for k in FIELDS[name]:
+        v = rec.get(k)
+        if v not in (None, ""):
+            return v
+    return None
 
 
 def _num(v: Any) -> Optional[float]:
@@ -117,7 +154,7 @@ def rows_from_records(records: list[dict]) -> list[dict]:
     seen: set[tuple[str, str]] = set()
     for rec in records:
         btc = _num(rec.get("bidToCoverRatio"))
-        day = str(rec.get("auctionDate") or "")[:10]
+        day = str(field(rec, "day") or "")[:10]
         if btc is None or len(day) != 10:
             continue
         typ = str(rec.get("type") or rec.get("securityType") or "").strip()
@@ -137,13 +174,12 @@ def rows_from_records(records: list[dict]) -> list[dict]:
         base = {"instrument": inst, "observed_at": day, "available_at": avail,
                 "availability_kind": "reconstructed"}
         vals: dict[str, Any] = {"auction.bid_to_cover": btc}
-        comp = _num(rec.get("competitiveAccepted"))
+        comp = _num(field(rec, "competitive"))
         if comp and comp > 0:
-            for key, field in (("auction.dealer_share", "primaryDealerAccepted"),
-                               ("auction.direct_share", "directBidderAccepted"),
-                               ("auction.indirect_share",
-                                "indirectBidderAccepted")):
-                x = _num(rec.get(field))
+            for key, name in (("auction.dealer_share", "dealer"),
+                              ("auction.direct_share", "direct"),
+                              ("auction.indirect_share", "indirect")):
+                x = _num(field(rec, name))
                 if x is not None:
                     vals[key] = round(x / comp, 8)
         if typ in COUPON_TYPES:
@@ -182,7 +218,7 @@ def _ranges(db: Optional[observations.ObservationStore]) -> list[tuple[str, str]
 
 def fetch_records(start: str, end: str) -> list[dict]:
     data = http_get_json(URL, params={"startDate": start, "endDate": end,
-                                      "dateFieldName": "auctionDate",
+                                      "dateFieldName": DATE_FIELD,
                                       "format": "json"}, timeout=60)
     if not isinstance(data, list):
         raise ValueError(f"TreasuryDirect returned {type(data).__name__}, "
