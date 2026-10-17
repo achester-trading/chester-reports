@@ -10148,6 +10148,26 @@ metrics:
     long_window: full
     description: >-
       S-1: the percent change of llama.stable_total over 90 days.
+  # Batch 4 Tranche A's derived series the Digital Assets addendum names before
+  # they are built (6e-digital, 17 Oct 2026): declared NOT YET SOURCED, never
+  # written, until their writer lands. Part 1 (crypto-tranche-a-1) registered
+  # calc.funding_agg and calc.oi_usd with their writer; calc.froth_z waits for
+  # part 2 (CD-7). The addendum prints "awaiting Tranche A" until a row exists.
+  calc.froth_z:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    status_extra: not_yet_sourced
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      NOT YET SOURCED. S-5: the froth gauge, new-pool count and trending-pool volume on Solana and Base, z-scored (the crypto data-sources order, CD-7).
   scan.crypto_basket_item:
     source: saturday_scan
     mechanism_group: crypto_basket_scan

@@ -267,6 +267,9 @@ def group_b() -> None:
     from altdata import macro_6e
     from altdata.sources import clevfed_rules, rent_indices
     one_by_one = set(macro_6e.KEYS) | set(rent_indices.KEYS) | set(clevfed_rules.KEYS)
+    # 6e-digital (17 Oct 2026): Tranche A's derived keys the addendum names, declared
+    # not yet sourced until their writers land; calc.froth_z still is (part 2, CD-7).
+    one_by_one |= {"calc.funding_agg", "calc.oi_usd", "calc.froth_z"}
     # Tranche A part 1 (17 Oct 2026) registers its writers' keys one by one.
     from altdata.sources import blockscout, crypto_derived, fng, fut, hl, mempool
     for mod in (hl, fut, mempool, fng, blockscout, crypto_derived):
