@@ -91,6 +91,13 @@ def _day(d: str) -> str:
         return str(d)
 
 
+def _definitions_note(frm: str, n: int) -> str:
+    return (f"Counted from {_day(frm)} {frm[:4]}, when the flags took the "
+            f"pre-registration's definitions (ruled 17 Oct 2026); the {n} earlier "
+            f"session{'s' if n != 1 else ''} this month stay as printed under the "
+            f"descriptive definitions and are not restated.")
+
+
 def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
                   vix_key: Optional[str] = None) -> dict:
     """{sessions, counts, rates, insufficient, table, ranges_table, lines}."""
@@ -99,7 +106,17 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
     vix = {str(r["observed_at"])[:10]: r["value_num"] for r in st.as_of(vk, cutoff)
            if r.get("value_num") is not None}
     rows = []
-    for c in cards(st, first, last, cutoff):
+    # RULING 7 OF 17 OCT 2026: the flags are the pre-registration's from
+    # `definitions_from`; a month that reaches that date counts from it, and its
+    # earlier sessions (printed under the descriptive definitions) are left out,
+    # not restated. A month wholly before it counts as it was published.
+    frm = str(fc.get("definitions_from") or "")
+    month_cards = cards(st, first, last, cutoff)
+    excluded = []
+    if frm and last >= frm:
+        excluded = [c for c in month_cards if str(c["session"])[:10] < frm]
+        month_cards = [c for c in month_cards if str(c["session"])[:10] >= frm]
+    for c in month_cards:
         f = wsec.flags_for(c, vix.get(str(c["session"])[:10]), cfg)
         rows.append({"session": str(c["session"])[:10],
                      "gamma_regime": c.get("gamma_regime"),
@@ -180,6 +197,8 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
         summary = None
         lines = [f"insufficient sessions (n={n}): the month's counts and hit rates "
                  f"need {floor} scored sessions"]
+        if excluded:
+            lines.append(_definitions_note(frm, len(excluded)))
     else:
         summary = [
             ["Sessions scored", n, "—"],
@@ -202,6 +221,9 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
                          f"{big['session_return_pct']:+.2f}%, net GEX that morning "
                          f"{_bn(big['net_gex_morning'])} "
                          f"({big['gamma_regime'] or 'regime not stored'}).")
+        if excluded:
+            lines.append(_definitions_note(frm, len(excluded)))
+    counts["excluded_before_definitions"] = len(excluded)
     return {"sessions": rows, "counts": counts, "rates": rates,
             "insufficient": insufficient, "min_sessions": floor,
             "table": {"columns": ["Session", "Gamma regime", "Net GEX, morning",

@@ -276,6 +276,9 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             cur = ((pin_log.load_computed(date=sess) or {}).get("SPY") or {})
             card = scorecard_row(p, book, bst, (prof.get("overall") or {}), cur)
             card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
+            # The chain's own capture instant (Part 0, 17 Oct 2026): the Weekly
+            # prints it beside the IV when it is before the close.
+            card["atm_iv_capture_at"] = chain.get("fetched_at")
             card["put_call_volume"] = (chain.get("put_call_volume") or {}).get("ratio")
             report["scorecard"] = card
             # BATCH 9 ITEM 52: the session's volatility read, stored point in

@@ -594,6 +594,12 @@ dealer_flags:
   # PB-1 (5 Oct 2026): SPY's own ATM IV and the VIX further apart than this, in
   # vol points, print side by side and mark the row "check".
   iv_vix_check_points: 5.0
+  # RULING 7 OF 17 OCT 2026: from this session date the flags are the
+  # pre-registration's outcomes (dealer_scorecard below; altdata/dealer_scorecard.py).
+  # Sessions before it keep the descriptive definitions above, as printed, with
+  # this dated note; nothing was graded under them (n = 0), and the Monthly's
+  # retrospective counts from this date.
+  definitions_from: "2026-10-17"
 
 # THE DEALER BLOCK'S HORIZONS (6b part 1; brief v2 section 2, ratified 16 Oct
 # 2026). CUMULATIVE windows for the tables -- 0DTE, 7 days or less, 45 days or

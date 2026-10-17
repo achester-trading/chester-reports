@@ -367,7 +367,56 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     gap = float((cfg.get("dealer_flags") or {}).get("iv_vix_check_points", 5.0))
     out["iv_check"] = bool(own_iv and vix and abs(own_iv - vix) > gap)
     out["spy_iv"], out["vix"] = own_iv, vix
+    # THE IV'S CAPTURE TIME (Part 0, 17 Oct 2026). The close reads the session's
+    # LAST stored chain; if the 16:10 capture is missing, that is a midday one,
+    # and the implied range would rest on a chain taken before the afternoon. A
+    # capture before 16:00 ET prints its time beside the figure.
+    out["iv_captured"] = (_capture_before_close(card.get("atm_iv_capture_at"),
+                                                card.get("session"))
+                          if own_iv else None)
+    # GAPPED THROUGH THE FLIP (Part 0, 17 Oct 2026; descriptive, not
+    # pre-registered): the prior close on one side of the morning flip and the
+    # whole cash session on the other -- the flip was crossed overnight, not in
+    # the session (14 Oct: prior close 778.04, flip 777.25, high 776.35).
+    pc = card.get("prior_close")
+    out["gapped_through_flip"] = (
+        None if None in (pc, flip, hi, lo) else
+        (not (lo <= flip <= hi)) and (pc > flip > hi or pc < flip < lo))
+    # THE PRE-REGISTRATION'S DEFINITIONS FROM 17 OCT 2026 (ruling 7 of 17 Oct):
+    # pinned, held, amplified and dampened are the registered outcomes
+    # (altdata/dealer_scorecard.py: H4 on the monthly expiry, H3 at the OTM walls,
+    # H2 and H1 on regime sessions). A session before the date keeps the
+    # descriptive definitions it was printed under -- not restated.
+    frm = str(fc.get("definitions_from") or "")
+    sess = str(card.get("session") or "")[:10]
+    if frm and sess and sess >= frm:
+        from altdata import dealer_scorecard as dsc             # noqa: PLC0415
+        sc = dsc.score_card(card, {}, dsc.config(cfg), vix)
+        for k in ("pinned", "call_wall_held", "put_wall_held", "amplified",
+                  "dampened"):
+            out[k] = sc[k]["outcome"]
+        out["definitions"] = "preregistration"
+    else:
+        out["definitions"] = "descriptive"
     return out
+
+
+def _capture_before_close(at: Optional[str], sess: Optional[str]) -> Optional[str]:
+    """The capture's time as "HH:MM ET" when it is before 16:00 ET on the
+    session; None when it is at or after the close, or either is unknown."""
+    if not at or not sess:
+        return None
+    try:
+        from zoneinfo import ZoneInfo                           # noqa: PLC0415
+        t = dt.datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=dt.timezone.utc)
+        et = t.astimezone(ZoneInfo("America/New_York"))
+    except (ValueError, KeyError):
+        return None
+    close = dt.datetime.combine(dt.date.fromisoformat(str(sess)[:10]),
+                                dt.time(16, 0), et.tzinfo)
+    return et.strftime("%H:%M ET") if et < close else None
 
 
 def _gated_regime(card: dict, cfg: dict) -> str:
@@ -412,7 +461,9 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                                      "call_wall_held"), ("put wall held",
                                                          "put_wall_held"),
                                     ("amplified", "amplified"),
-                                    ("dampened", "dampened")) if f.get(k)]
+                                    ("dampened", "dampened"),
+                                    ("gapped through the flip",
+                                     "gapped_through_flip")) if f.get(k)]
         rows.append([_day(c["session"]), _gated_regime(c, cfg),
                      bn(c.get("net_gex_close")),
                      bn(c.get("dex_close")),
@@ -422,7 +473,11 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                      # -- the second table from here
                      _day(c["session"]), g(c.get("max_pain")),
                      (g(f["implied_range"])
-                      + (f" (SPY IV {f['spy_iv']:.1f}, VIX {f['vix']:.1f}: check)"
+                      + (f" (SPY IV {f['spy_iv']:.1f} captured {f['iv_captured']})"
+                         if f.get("iv_captured") and not f.get("iv_check") else "")
+                      + (f" (SPY IV {f['spy_iv']:.1f}"
+                         + (f" captured {f['iv_captured']}" if f.get("iv_captured") else "")
+                         + f", VIX {f['vix']:.1f}: check)"
                          if f.get("iv_check") else
                          " (VIX as proxy)" if f.get("iv_source") == "VIX as proxy"
                          else "")),
@@ -456,7 +511,15 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                            "of it and the close inside; amplified = the flip "
                            "crossed and the actual range at least "
                            f"{(cfg.get('dealer_flags') or {}).get('amplified_range_ratio', 1.2)}"
-                           "× the implied."),
+                           "× the implied. From "
+                           + _day(str((cfg.get('dealer_flags') or {}).get('definitions_from')
+                                      or '2026-10-17'))
+                           + " 2026 the flags are the pre-registration's outcomes "
+                           "(pinned on the monthly expiry at the peak-gamma strike; "
+                           "amplified and dampened on regime sessions); earlier "
+                           "sessions keep the definitions they were printed under. "
+                           "Gapped through the flip: the flip crossed between the "
+                           "prior close and the open, not in the session; descriptive."),
             "data": {"sessions": scored}, "cards": cards}
 
 

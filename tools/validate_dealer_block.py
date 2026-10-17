@@ -56,6 +56,13 @@ directory and no store: no gate reads the live store, fetches or calls a model.
      gate opens on a crossing and stays closed otherwise, writing nothing and
      calling no model.
 
+  PART 0 OF THE EL-4..6 PASTE (17 Oct 2026):
+  O  THE 16 OCT WEEKLY'S TWO READINGS. 14 Oct's flip was crossed in the gap
+     ("gapped through the flip", descriptive); flip_crossed reads the high and
+     low; from 17 Oct the flags are the pre-registration's (ruling 7) and the
+     Monthly counts from then; 16 Oct's IV gap is skew, both implied ranges
+     leave the ratio tests unchanged, and a pre-close capture prints its time.
+
     python tools/validate_dealer_block.py
 """
 
@@ -906,12 +913,103 @@ def group_n() -> None:
           "52's VIX gate beside it")
     os.environ.pop("CHESTER_ALERT_DIR", None)
 
+# ---------------------------------------------------------------------------
+class _CardStore:
+    """as_of over a few stored rows -- the scorecard cards and the VIX."""
+    def __init__(self, rows):
+        self.rows = rows
+
+    def as_of(self, key, cutoff, instrument=None):
+        return [r for r in self.rows if r["k"] == key
+                and (instrument is None or r.get("i") == instrument)]
+
+
+def group_o() -> None:
+    head("O. THE 16 OCT WEEKLY'S TWO READINGS (Part 0, 17 Oct 2026)")
+    from daily_cascade import weekly_sections as wsec  # noqa: PLC0415
+    from monthly_macro import dealer as mdealer  # noqa: PLC0415
+    from daily_cascade import stack as stack_mod  # noqa: PLC0415
+    cfg = stack_mod.config()
+    # 14 OCT, AS THE BARS HAD IT: prior close 778.04, morning flip 777.25, cash
+    # high 776.35 -- the flip crossed in the gap, never in the session.
+    wed = {"session": "2026-10-14", "prior_close": 778.04, "close": 769.61,
+           "session_high": 776.35, "session_low": 766.71, "flip_morning": 777.25,
+           "flip_crossed": False, "atm_iv_30d": 13.3}
+    f = wsec.flags_for(wed, 16.87, cfg)
+    check(f["actual_range"] == 9.64 and f["amplified"] is False
+          and f["gapped_through_flip"] is True and f["definitions"] == "descriptive",
+          f"14 Oct: range {f['actual_range']}, the flip in the overnight gap -- not "
+          f"amplified under the descriptive rule (the session never crossed it), "
+          f"flagged 'gapped through the flip'")
+    cross = wsec.flags_for(dict(wed, session_high=778.5, flip_crossed=True), 16.87, cfg)
+    check(cross["amplified"] is True and cross["gapped_through_flip"] is False,
+          "the same day with the cash high through the flip: amplified, not gapped")
+    import inspect  # noqa: PLC0415
+    from daily_cascade import stack_close  # noqa: PLC0415
+    src = inspect.getsource(stack_close.scorecard_row)
+    check('"flip_crossed": (bool(lo <= flip <= hi)' in src,
+          "flip_crossed tests the session's high and low against the flip, never "
+          "the close")
+    # FROM 17 OCT (ruling 7): the registered outcomes.
+    mon = dict(wed, session="2026-10-19", net_to_gross_morning=0.25,
+               net_gex_morning=-2e9)
+    g = wsec.flags_for(mon, 16.87, cfg)
+    check(g["definitions"] == "preregistration" and g["amplified"] is True,
+          "a session from 17 Oct takes H2: a regime session in negative gamma with "
+          "range >= 1.2x implied is amplified, flip or no flip")
+    h = wsec.flags_for(dict(mon, net_gex_morning=2e9), 16.87, cfg)
+    p = wsec.flags_for(dict(mon, max_pain=769.5), 16.87, cfg)
+    check(h["amplified"] is None and p["pinned"] is None,
+          "positive gamma: amplified is ineligible (None); pinned is None off the "
+          "monthly expiry, max pain or not")
+    # 16 OCT: the IV check. SPY's own chain 14.443 against the VIX 19.99, on a
+    # prior close of 771.71; the actual range 12.61.
+    fri = {"session": "2026-10-16", "prior_close": 771.71, "close": 763.31,
+           "session_high": 773.25, "session_low": 760.64, "atm_iv_30d": 14.443,
+           "atm_iv_capture_at": "2026-10-16T20:10:31+00:00"}
+    own = wsec.flags_for(fri, 19.99, cfg)
+    vx = wsec.flags_for(dict(fri, atm_iv_30d=None), 19.99, cfg)
+    check(own["implied_range"] == 7.02 and vx["implied_range"] == 9.72
+          and own["iv_check"] and own["iv_captured"] is None,
+          f"16 Oct: implied {own['implied_range']} from SPY's 14.4 and "
+          f"{vx['implied_range']} from the VIX; the check marks the gap; a 16:10 "
+          f"capture prints no time")
+    check(own["actual_range"] / own["implied_range"] >= 1.2
+          and vx["actual_range"] / vx["implied_range"] >= 1.2,
+          "12.61 is past 1.2x either implied range (1.80x and 1.30x): no ratio test "
+          "on 16 Oct turns on which figure is used")
+    mid = wsec.flags_for(dict(fri, atm_iv_capture_at="2026-10-16T16:31:00Z"), 19.99, cfg)
+    st = _CardStore([{"k": "dealer.scorecard_day", "i": "SPY",
+                      "observed_at": "2026-10-16", "value_text": json.dumps(
+                          dict(fri, atm_iv_capture_at="2026-10-16T16:31:00Z"))},
+                     {"k": "yfinance.mkt_vix", "observed_at": "2026-10-16",
+                      "value_num": 19.99}])
+    wk = wsec.dealer_week(st, ["2026-10-16"], "2026-10-17T00:00:00Z", cfg)
+    cell = wk["ranges_table"]["rows"][0][2]
+    check(mid["iv_captured"] == "12:31 ET" and "captured 12:31 ET" in cell
+          and "VIX 20.0: check" in cell,
+          f"a chain captured before the close prints its time beside the IV ({cell})")
+    # THE MONTHLY COUNTS FROM 17 OCT; earlier sessions are not restated.
+    rows = [{"k": "dealer.scorecard_day", "i": "SPY", "observed_at": d,
+             "value_text": json.dumps(dict(wed, session=d))}
+            for d in ("2026-10-14", "2026-10-15", "2026-10-19", "2026-10-20")]
+    r = mdealer.retrospective(_CardStore(rows), "2026-10-01", "2026-10-31",
+                              "2026-11-01T00:00:00Z", cfg)
+    sep = mdealer.retrospective(_CardStore([dict(x, observed_at="2026-09-1" + x[
+        "observed_at"][-1]) for x in rows]), "2026-09-01", "2026-09-30",
+        "2026-10-01T00:00:00Z", cfg)
+    check(r["counts"]["sessions"] == 2 and r["counts"]["excluded_before_definitions"] == 2
+          and any("not restated" in ln for ln in r["lines"])
+          and sep["counts"]["sessions"] == 4,
+          "October counts its two sessions from 17 Oct with the dated note; a month "
+          "wholly before the date counts as it was published")
+
 
 def main() -> int:
     print(f"{LINE}\nTHE DEALER BLOCK, PARTS 1 AND 2 (6b; brief v2, ratified 16 Oct "
           f"2026)\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_i, group_j, group_k, group_l, group_m, group_n):
+              group_i, group_j, group_k, group_l, group_m, group_n, group_o):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
