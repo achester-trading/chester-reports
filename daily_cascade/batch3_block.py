@@ -25,6 +25,8 @@ from typing import Optional
 
 from altdata import batch3
 
+from . import readability as rd
+
 TITLE_JGB = "Japan's 30-year and the 4.5% line (SR-32, early line)"
 TITLE_EU = "EU sovereign stress: OAT–Bund and BTP–Bund (SR-30)"
 TITLE_BUYBACKS = "Treasury buybacks (SR-33)"
@@ -47,7 +49,8 @@ def _ord(p: Optional[float]) -> str:
 
 
 def _bp(v: Optional[float]) -> str:
-    return "—" if v is None else f"{v:+.1f} bp" if v else "0.0 bp"
+    # weekly-fixes-7 item 12: rounded before the sign (no "-0.0 bp").
+    return "—" if v is None else f"{v:+.1f} bp" if round(v, 1) else "0.0 bp"
 
 
 def _usd_bn(v: Optional[float], dp: int = 1) -> str:
@@ -57,6 +60,8 @@ def _usd_bn(v: Optional[float], dp: int = 1) -> str:
 def _usd_bn_signed(v: Optional[float]) -> str:
     if v is None:
         return "—"
+    if not round(v / 1e9, 1):
+        return "unch"                       # weekly-fixes-7 item 12: no "−$0.0bn"
     return f"{'+' if v > 0 else '−' if v < 0 else ''}${abs(v) / 1e9:,.1f}bn"
 
 
@@ -109,8 +114,8 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
                      "—" if x["week_change_pct"] is None else f"{x['week_change_pct']:+.2f}%",
                      "—", "—"] + (["—"] if live else []) + [x["as_of"]])
     else:
-        lines.append("EUR/CHF: not yet stored (the price feed adds EURCHF=X from the "
-                     "next run).")
+        # weekly-fixes-7 item 11: the source and the date, no symbol string.
+        lines.append(f"EUR/CHF: not yet stored ({rd.starts_line('Yahoo Finance', now)}).")
     tier = e["tier"]
     flag = {"watch": f"OAT–Bund at the watch tier (≥ {e['watch_bp']:.0f} bp)",
             "crisis": f"OAT–Bund at the crisis tier (≥ {e['crisis_bp']:.0f} bp)"}.get(tier)
@@ -178,8 +183,8 @@ def japan_subsection(st, now: str, cfg: Optional[dict] = None,
                         f"{_usd_bn_signed(sec['change'])} (to {sec['as_of']})" if sec else "")
                      + ".")
     else:
-        lines.append("Japan's reserves: not yet stored (altdata/sources/mof_reserves.py "
-                     "writes from its first run).")
+        lines.append("Japan's reserves: not yet stored "
+                     f"({rd.starts_line("Japan's Ministry of Finance", now)}).")
     f = j["fima"]
     if f:
         wa = j["fima_weekavg"]
@@ -190,8 +195,8 @@ def japan_subsection(st, now: str, cfg: Optional[dict] = None,
                      + (" — in use" if f["value"] > 0 or (wa and wa["value"] > 0)
                         else "") + " (H.4.1).")
     else:
-        lines.append("FIMA repo usage: not yet stored (the H.4.1 writer, "
-                     "altdata/sources/fedboard_h41.py, writes from its first run).")
+        lines.append("FIMA repo usage: not yet stored "
+                     f"({rd.starts_line("the Fed's H.4.1", now)}).")
     lines.append(f"Both are {(cfg.get('japan_reserves') or {}).get('lag_line')}.")
     return {"title": TITLE_JAPAN, "lines": lines, "paragraph_wanted": False,
             "data": {"japan_funding": j}}
@@ -212,11 +217,50 @@ def tenor_rows(lens: dict, window: str) -> list[list]:
                                    and r["real"] else "")
         acm = (r["acm_note"],) * 2 if r.get("acm_note") else (
             _cell(r["expected_rate"]), _cell(r["term_premium"]))
-        out.append([f"{r['tenor']}, {window}", _cell(nom), real,
+        # weekly-fixes-7 item 3: the window prints INLINE, so the table is six
+        # columns and the renderer's six-column rule no longer splits off a
+        # second table holding only the dates.
+        span = "" if not nom else f" ({_day_month(nom['from'])} to {_day_month(nom['to'])})"
+        out.append([f"{r['tenor']}, {window}{span}", _cell(nom), real,
                     "—" if r["breakeven_bp"] is None else _bp(r["breakeven_bp"]),
-                    acm[0], acm[1],
-                    "—" if not nom else f"{nom['from']} to {nom['to']}"])
+                    acm[0], acm[1]])
     return out
+
+
+def _day_month(d: str) -> str:
+    x = dt.date.fromisoformat(str(d)[:10])
+    return f"{x.day} {x:%b}"
+
+
+def fred_lag_line(fred_to: Optional[str], tape_to: Optional[str]) -> Optional[str]:
+    """Item 3: two "week" figures for the 10-year can sit in one edition -- the
+    tape's (Yahoo's ^TNX closes) and SR-6's (FRED's legs, which publish later).
+    The line names both windows' ends so a reader sees why they differ."""
+    if not fred_to or not tape_to or str(fred_to)[:10] >= str(tape_to)[:10]:
+        return None
+    from altdata import session                                 # noqa: PLC0415
+    a, b = dt.date.fromisoformat(str(fred_to)[:10]), dt.date.fromisoformat(str(tape_to)[:10])
+    n, d = 0, a
+    while d < b:
+        d += dt.timedelta(days=1)
+        try:
+            n += 1 if session.is_trading_session(d) else 0
+        except Exception:                                       # noqa: BLE001
+            n += 1 if d.weekday() < 5 else 0
+    words = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight",
+             "nine", "ten")
+    return (f"FRED's legs lag {words[n] if n < len(words) else n} "
+            f"session{'s' if n != 1 else ''} (to {_day_month(a)}); "
+            f"the nominal week in the tape runs to {_day_month(b)}.")
+
+
+def _tape_to(st, now: str) -> Optional[str]:
+    try:
+        from altdata import levels                              # noqa: PLC0415
+        rows, _ = levels.daily_bars(levels.tape_spec("y10"), now[:10], now, st)
+        return str(rows[-1]["observed_at"])[:10] if rows else None
+    except Exception:                                           # noqa: BLE001
+        return None
 
 
 def tenor_frame(lens: dict, window: str) -> Optional[str]:
@@ -243,10 +287,16 @@ def tenor_subsection(st, now: str, then_week: str, then_month: str,
     rows = (tenor_rows(wk, "week") if wk else []) + tenor_rows(mo, "month")
     lines = [x for x in ((tenor_frame(wk, "week") if wk else None),
                          tenor_frame(mo, "month")) if x]
+    if wk:
+        ten = next((r for r in wk["rows"] if r["tenor"] == "10y" and r["nominal"]), None)
+        lag = fred_lag_line(ten["nominal"]["to"] if ten else None, _tape_to(st, now))
+        if lag:
+            lines.append(lag)
     return {"title": TITLE_TENOR,
-            "table": {"columns": ["Tenor and window", "Nominal", "Real yield",
-                                  "Breakeven", "Expected short rate (ACM)",
-                                  "Term premium (ACM)", "From and to"], "rows": rows},
+            "table": {"columns": ["Tenor and window (from and to)", "Nominal",
+                                  "Real yield", "Breakeven",
+                                  "Expected short rate (ACM)",
+                                  "Term premium (ACM)"], "rows": rows},
             "lines": lines, "paragraph_wanted": False,
             "table_note": ("Breakeven is the nominal move less the real yield's, so the "
                            "two sum to the move; the 2-year has no TIPS series and reads "
@@ -254,7 +304,7 @@ def tenor_subsection(st, now: str, then_week: str, then_month: str,
                            "are ACM's (a model's split of its own fitted yield, not of "
                            "the quoted one); ACM does not publish past ten years. The "
                            "10-year attribution block's models (DKW, Kim-Wright, ACM) "
-                           "are altdata/rates_attribution.py's. Descriptive: which tenor "
+                           "are the rates attribution block's. Descriptive: which tenor "
                            "moved most and which leg was larger, nothing causal."),
             "data": {"tenor_week": wk, "tenor_month": mo}}
 

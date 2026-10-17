@@ -170,7 +170,7 @@ def main() -> int:
     check(3 <= len(ch) <= 4 and all(c["series"] and c["window"] for c in ch),
           f"{len(ch)} what-would-change items, each a series and a window")
     check(pp.get("outlook") == precis.FIRST_EDITION and precis.FIRST_EDITION in html,
-          "with no prior précis: \"First edition with a précis.\"")
+          "with no prior précis: \"First archived edition with a précis.\"")
     prior = {"precis": {"parsed": dict(pp)}}
     fr2 = precis.frame(ed, prior)
     sys2 = precis.system_prompt(fr2)
@@ -252,7 +252,7 @@ def main() -> int:
     r3 = storyline.status_for({"id": "price_vs_breadth"}, {"sessions_open": 4,
                                                            "direction": "rising"},
                               fake, cfg)
-    check(r1 == ("resolved by Plumbing & rates", "#sec-plumbing") and r2[0] == "stale"
+    check(r1 == ("read in Plumbing & rates", "#sec-plumbing") and r2[0] == "stale"
           and r3[0].startswith("carried — resolves when"),
           f"resolved (linked), stale and carried: {r1[0]}; {r2[0]}; {r3[0][:50]}")
     t = {"columns": ["Gap", "Status"], "rows": [["x", r1[0]]],
@@ -263,7 +263,7 @@ def main() -> int:
     # --- E ------------------------------------------------------------------
     print(f"\n{LINE}\nE. THE BOOK'S TERMS\n{LINE}")
     tl = (sec["book"].get("closing_lines") or [""])[0]
-    check(tl.startswith("Terms:") and "regime band" in tl and "positioned" in tl
+    check(tl.startswith("Stance:") and "regime band" in tl and "positioned" in tl
           and all(a in tl for a, _, _ in CHANGES), f"{tl[:160]}")
     enf = {"view": {"net_beta_pct": 30.0, "regime": {"regime": "Expansion",
                                                       "band": [40, 80]}}}

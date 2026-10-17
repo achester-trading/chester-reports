@@ -13,7 +13,9 @@ guess). Nothing is fetched.
 from __future__ import annotations
 
 import datetime as dt
+import re
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from altdata import session
 
@@ -26,8 +28,27 @@ def _open(d: dt.date) -> bool:
         else d.weekday() < 5
 
 
+_JST = re.compile(r"^(about )?(\d{1,2}):(\d{2}) JST$")
+
+
+def to_et(d: dt.date, time: str) -> tuple[dt.date, str]:
+    """weekly-fixes-7 item 12: a time the config states in Tokyo prints in ET,
+    under the "Time (ET)" heads, with the JST time kept in parentheses: the JGB
+    auction's "12:35 JST" on 20 Oct is "23:35 (12:35 JST)" on 19 Oct in New
+    York. The ET date may be the day before; any other time passes through."""
+    m = _JST.match(str(time).strip())
+    if not m:
+        return d, time
+    tk = dt.datetime(d.year, d.month, d.day, int(m.group(2)), int(m.group(3)),
+                     tzinfo=ZoneInfo("Asia/Tokyo"))
+    et = tk.astimezone(ZoneInfo("America/New_York"))
+    jst = time.replace("about ", "")
+    return et.date(), f"{m.group(1) or ''}{et:%H:%M} ({jst})"
+
+
 def _row(d: dt.date, r: dict) -> dict:
-    return {"date": d.isoformat(), "time": str(r.get("time") or "time not stated"),
+    d, t = to_et(d, str(r.get("time") or "time not stated"))
+    return {"date": d.isoformat(), "time": t,
             "event": str(r["label"]), "tier": int(r.get("tier") or 3),
             "consensus": str(r.get("note") or "—"),
             # The Ahead class: its tier and its channel (config/weekly_ahead.yaml).

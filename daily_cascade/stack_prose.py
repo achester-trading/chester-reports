@@ -521,6 +521,30 @@ def excess_faults(text: str) -> list[str]:
             and not re.search(r"\bexcess\b|\brelative to\b", s, re.I)]
 
 
+# weekly-fixes-7 item 6: THE BOOK'S TIME WORD. Dry run 7's opener said "this week"
+# four times over figures that all ran since 5 Sep. A time word in the book's
+# paragraph must match a figure's window in its tables: "week" needs the week's
+# window (benchmark.week_line, "on the week (... to ...)") in the book's data.
+_WEEK_WORD = re.compile(r"\b(?:this|the|last) week\b|\bon the week\b|\bweek's\b|"
+                        r"\bweekly return\b", re.I)
+
+
+def na_signed_zero(text: str) -> list[str]:
+    """weekly-fixes-7 item 12: no signed zero in prose (numeral_audit's rule)."""
+    from altdata import numeral_audit                           # noqa: PLC0415
+    return numeral_audit.signed_zero_faults(text)
+
+
+def book_window_faults(text: str, ed: dict) -> list[str]:
+    bk = next((s for s in ed.get("sections") or [] if s.get("id") == "book"), {})
+    bz = str((bk.get("data") or {}).get("book_z") or "")
+    if "on the week (" in bz:
+        return []
+    return [f"a time word with no figure on that window in '{s[:100]}': every book "
+            f"figure runs since inception, so say 'since' and its date, not the week"
+            for s in _sentences(text) if _WEEK_WORD.search(s)]
+
+
 def venue_percents(ed: dict) -> set:
     """Every probability a VENUE or the futures put in front of the prose, in
     whole percent -- figures the prose may quote as the market's price."""
@@ -1026,6 +1050,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         if text:
             faults = (style_faults(text, cfg) + id_faults(text)
                       + policy_word_faults(text, pm_cfg) + excess_faults(text)
+                      + (book_window_faults(text, ed) if sid == "book" else [])
+                      + na_signed_zero(text)
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else [])

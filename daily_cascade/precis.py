@@ -58,7 +58,13 @@ VERDICT_ASSETS = (
 VERDICTS = ("up", "down", "chop", "transition")
 STANCE_SOURCE = "weekly_stance"
 DRY_RUN_NAMESPACE = "dryrun."
-FIRST_EDITION = "First edition with a précis."
+# weekly-fixes-7 item 7: "archived". The comparison reads the ARCHIVED editions
+# (prior_dir), which carry no précis before the first live one; the stance
+# ledger's n counts graded stances wherever they were recorded, dry runs
+# included (dryrun.weekly_stance). Dry run 7 printed "First edition with a
+# précis" beside "p = 0.40 (n=1)": both true, of different stores. The word
+# says which store the first line is about, so the two no longer contradict.
+FIRST_EDITION = "First archived edition with a précis."
 WITHHELD = "(précis withheld — audit)"
 
 # A WINDOW names a date or a span inside the coming week.
@@ -492,7 +498,7 @@ def terms_line(ed: dict, enforcement: Optional[dict]) -> Optional[str]:
     obs = [f"{c['series']} ({c['window']})" for c in (p.get("change") or [])[:3]]
     wrong = ("its caution would be wrong if these move against it: " + "; ".join(obs)
              if obs else "the précis named no observables this week")
-    return f"Terms: {permits}; {held}; {wrong}."
+    return f"Stance: {permits}; {held}; {wrong}."
 
 
 # ---------------------------------------------------------------------------

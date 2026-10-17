@@ -189,8 +189,7 @@ def main() -> int:
           and "Trailing earnings yield 4.80%" in al[1] and "+0.80 percentage points" in al[1],
           "EY minus the bill: 240 / 5000 = 4.80% less the bill's 4.00%, +0.80 pp")
     check(all(TAG in x for x in al)
-          and al[2].startswith("The forward split: awaiting the first drop of S&P "
-                               "DJI's EPS workbook")
+          and al[2].startswith("The forward split: not tracked (source withdrawn)")
           and "Trailing, not forward" in al[3]
           and "no Baa yield is stored" in al[3]
           and "index weights are not stored" in al[3],

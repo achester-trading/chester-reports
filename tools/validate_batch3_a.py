@@ -378,12 +378,13 @@ def group_e() -> None:
               for r in lens["rows"]),
           "breakeven is the move less the real leg: the two sum to the move")
     r2 = sub["table"]["rows"][0]
-    check(r2[0] == "2y, week" and "(nearest: the 5-year TIPS)" in r2[2],
-          f"the 2-year's real leg names the nearest TIPS tenor ({r2[2]})")
-    r30 = next(r for r in sub["table"]["rows"] if r[0] == "30y, week")
+    check(r2[0].startswith("2y, week (") and len(r2) == 6 and "(nearest: the 5-year TIPS)" in r2[2],
+          f"the 2-year's real leg names the nearest TIPS tenor ({r2[2]}); the window "
+          f"prints inline, six columns (weekly-fixes-7 item 3: {r2[0]})")
+    r30 = next(r for r in sub["table"]["rows"] if r[0].startswith("30y, week"))
     check(r30[4] == r30[5] == "not published at this tenor",
           "ACM at the 30-year: not published at this tenor")
-    check(len(sub["table"]["rows"]) == 8 and any(r[0] == "10y, month"
+    check(len(sub["table"]["rows"]) == 8 and any(r[0].startswith("10y, month (")
                                                  for r in sub["table"]["rows"]),
           "the week's and the month's split, by tenor")
     fr = sub["lines"][0]

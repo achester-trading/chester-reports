@@ -602,8 +602,8 @@ technical_appendix:
     - {quantity: "Percentile", formula: "share of the window's observations at or below the level", units: "percentile (0-100)", sign: "high is near the window's top"}
     - {quantity: "Basis point", formula: "0.01 percentage point; yields and spreads move in it", units: "bp", sign: "+ is higher"}
     - {quantity: "Credit spread (OAS)", formula: "ICE BofA option-adjusted spread over Treasuries, via FRED (BAMLH0A0HYM2, BAMLC0A0CM, BAMLH0A3HYC)", units: "bp", sign: "+ is wider: lenders asking more"}
-    - {quantity: "Net GEX", formula: "sum over strikes of dealer position x gamma x open interest x 100 x spot, stored as shares per 1% move", units: "shares per 1% move", sign: "+ dealers long gamma (hedging damps moves); under the dealer-short-options convention"}
-    - {quantity: "DEX", formula: "sum over strikes of dealer position x delta x open interest x 100", units: "shares", sign: "+ the option book is long delta, so the hedge held is short stock"}
+    - {quantity: "Net GEX", formula: "sum over strikes of dealer position x gamma x open interest x 100 x spot (one hundredth of it is shares per 1% move)", units: "$ of delta per $1 move", sign: "+ dealers long gamma (hedging damps moves); under the dealer-short-options convention"}
+    - {quantity: "DEX", formula: "sum over strikes of dealer position x delta x open interest x 100 x spot", units: "$ (delta notional)", sign: "+ the option book is long delta, so the hedge held is short stock"}
     - {quantity: "Flip", formula: "the spot level at which net GEX changes sign", units: "index points", sign: "above it, dealer hedging damps; below it, amplifies"}
     - {quantity: "Net liquidity", formula: "Fed balance sheet - reverse repo - Treasury General Account, each leg in dollars (WALCL x 1e6, RRPONTSYD x 1e9, WTREGEN x 1e6)", units: "$", sign: "+ is more liquidity"}
     - {quantity: "CFTC net position", formula: "non-commercial longs - shorts", units: "contracts", sign: "+ speculators net long"}
@@ -613,7 +613,8 @@ technical_appendix:
 
 # W-1.2 -- THE WEEKLY'S STORYLINE (change order of 11 Oct 2026, section 3).
 storyline:
-  # Item 2.4: an open contradiction's status line. "resolved by <section>" when
+  # Item 2.4: an open contradiction's status line. "read in <section>" (was
+  # "resolved by"; weekly-fixes-7 item 12: the gap is not closed by it) when
   # the named section prints every listed row -- the decomposition that answers
   # the gap (the 9 Oct HY tension: Plumbing's CCC against investment grade) --
   # and its commentary published; "stale" when the gap has been open at least

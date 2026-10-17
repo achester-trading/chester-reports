@@ -1786,12 +1786,13 @@ sources:
       the inbox file's modification time and is stored in spdji.eps_drop.
     license: >-
       S&P DJI's public workbook; its host refuses any non-browser client, and a
-      writer never passes for a browser. The operator downloads it in a browser
-      and drops it into Drive (chester-vendor-checks/spdji); the nightly sweep
-      copies it to ~/chester-data/inbox/spdji. Nothing is fetched.
+      writer never passes for a browser. WITHDRAWN (ruled 17 Oct 2026): the public
+      link 404s and the index page no longer lists the workbook, so there is
+      nothing to drop. Off the writer roster; the forward-EPS lines print "not
+      tracked (source withdrawn)". Nothing is fetched.
     allowed_reports: [weekly_tactical, monthly_macro]
     implemented_by: altdata/sources/spdji.py
-    status: built
+    status: retired
     caveats:
       - >-
         THE LAYOUT IS DECLARED, NOT SEEN (config/spdji_eps.yaml): written from the

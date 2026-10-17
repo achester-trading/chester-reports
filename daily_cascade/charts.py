@@ -382,6 +382,28 @@ def banded_chart(cid: str, series: dict, title: str, name: str,
         return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
 
 
+def meeting_label(d: str) -> str:
+    """Item 13: an FOMC meeting's tick, "Oct 28"."""
+    x = dt.date.fromisoformat(str(d)[:10])
+    return f"{x:%b} {x.day}"
+
+
+def bar_label_inside(v: float, span: float, frac: float = 0.7) -> bool:
+    """Item 13: a bar within `frac` of the longest is labelled inside itself --
+    outside, its label would run past the axis into the tick labels."""
+    return bool(span) and abs(v) >= frac * span
+
+
+def short_title(k: str, limit: int = 24) -> str:
+    """Item 13: a small multiple's panel title -- the series' name before any
+    parenthesis, cut at a word to `limit` characters. The long name goes to the
+    caption (dry run 7: three panel titles collided)."""
+    s = str(k).split(" (")[0].strip()
+    if len(s) <= limit:
+        return s
+    return s[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
 def bars_chart(cid: str, rows: list, title: str, name: str,
                out_dir: Optional[str]) -> dict:
     """Sorted horizontal bars: the week's sector and style-pair returns (W5)."""
@@ -399,10 +421,18 @@ def bars_chart(cid: str, rows: list, title: str, name: str,
         ax.set_yticklabels([k for k, _ in rows], fontsize=7)
         ax.axvline(0, color="#94a3b8", linewidth=0.6)
         ax.tick_params(labelsize=7)
+        # weekly-fixes-7 item 13: a label that would overrun the axis (dry run 7:
+        # XLK's ran into the tick labels) prints INSIDE its bar, in white.
+        span = max(abs(v) for _, v in rows) or 1.0
         for i, (_, v) in enumerate(rows):
-            ax.annotate(f"{v:+.2f}%", xy=(v, i), xytext=(3 if v >= 0 else -3, 0),
+            inside = bar_label_inside(v, span)
+            out_dir_sign = 1 if v >= 0 else -1
+            ax.annotate(f"{v:+.2f}%", xy=(v, i),
+                        xytext=((-3 if inside else 3) * out_dir_sign, 0),
                         textcoords="offset points", va="center",
-                        ha="left" if v >= 0 else "right", fontsize=6.5)
+                        ha=(("right" if v >= 0 else "left") if inside else
+                            ("left" if v >= 0 else "right")),
+                        fontsize=6.5, color="white" if inside else "black")
         out = _finish(fig, name, out_dir)
         top, bot = rows[-1], rows[0]
         return {"id": cid, "drawn": [], "caption": f"{title}; highest {top[0]} "
@@ -564,19 +594,19 @@ def z_panel(cid: str, series: dict, title: str, name: str,
         for ax, k in zip(axes.flat, keys):
             pts = series.get(k) or []
             if len(pts) < min_points:
-                _untracked(ax, k)
+                _untracked(ax, short_title(k))
                 untracked.append(k)
                 continue
             z = zscores(pts)
             if not z:
-                _untracked(ax, k, "no variation stored")
+                _untracked(ax, short_title(k), "no variation stored")
                 untracked.append(k)
                 continue
             ax.plot(range(len(z)), [v for _, v in z], color="#0d2b45", linewidth=0.9)
             for y, c in ((0, "#94a3b8"), (1, "#d97706"), (-1, "#d97706"),
                          (2, "#b3261e"), (-2, "#b3261e")):
                 ax.axhline(y, color=c, linewidth=0.5, linestyle="--" if y else "-")
-            ax.set_title(k, fontsize=7, loc="left")
+            ax.set_title(short_title(k), fontsize=7, loc="left")
             _dated_ticks(ax, [d for d, _ in z], 2)
             stats[k] = {"z": round(z[-1][1], 2), "as_of": z[-1][0], "n": len(z)}
         for ax in list(axes.flat)[len(keys):]:
@@ -588,7 +618,8 @@ def z_panel(cid: str, series: dict, title: str, name: str,
                            for k, v in stats.items())
                + (f"; not yet tracked: {', '.join(untracked)}" if untracked else ""))
         return {"id": cid, "drawn": [], "caption": cap, **out, "stats": stats,
-                "not_drawn": untracked, "titles": [title] + keys}
+                "not_drawn": untracked, "titles": [title] + keys,
+                "panel_titles": [short_title(k) for k in keys]}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
 
@@ -797,7 +828,9 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
     fed-funds implied path today, a week ago and a month ago."""
     try:
         plt = _plt()
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(CHART_W, 3.2))
+        # weekly-fixes-7 item 13: taller, so the odds legend sits BELOW its plot
+        # (dry run 7: a six-entry legend covered the lines).
+        fig, (a1, a2) = plt.subplots(1, 2, figsize=(CHART_W, 3.8))
         for ax in (a1, a2):
             ax.tick_params(labelsize=6.5)
             for side in ("top", "right"):
@@ -816,7 +849,8 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
             a1.set_title(W10_TITLES[0], fontsize=7.5, loc="left")
             w10_span = span_title("prediction-market odds", len(alld), "days",
                                   alld[0], alld[-1], "ninety days")
-            a1.legend(fontsize=5.5, frameon=False)
+            a1.legend(fontsize=5.5, frameon=False, loc="upper center",
+                      bbox_to_anchor=(0.5, -0.14), ncol=1)
             _dated_ticks(a1, alld, 3)
         else:
             _untracked(a1, "Prediction-market odds, ninety days")
@@ -831,7 +865,8 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
                         marker="o", markersize=2.5, linewidth=0.9, label=lab)
             ms = paths[0][1]["meetings"][:6]
             a2.set_xticks(range(len(ms)))
-            a2.set_xticklabels([m["meeting"][2:10] for m in ms], fontsize=6)
+            # Item 13: meeting labels "Oct 28", not "26-10-28" (they overlapped).
+            a2.set_xticklabels([meeting_label(m["meeting"]) for m in ms], fontsize=6)
             a2.set_title(W10_TITLES[1], fontsize=7.5, loc="left")
             a2.legend(fontsize=5.5, frameon=False)
         else:

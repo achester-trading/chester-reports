@@ -2,6 +2,13 @@
 S&P Dow Jones Indices' S&P 500 EPS estimates -- the inbox reader. SR-38's forward
 series (13 Oct 2026).
 
+WITHDRAWN (item 40's forward leg, ruled 17 Oct 2026). S&P DJI no longer publishes
+the workbook: the public link 404s and the index page no longer lists it. The
+writer is off the roster (altdata/feeds.py EXTERNAL_WRITERS), the by-hand drop is
+discontinued, and every forward-EPS line prints WITHDRAWN, "not tracked (source
+withdrawn)". The parser and the forward split are kept as they are: nothing else
+of item 40 changes, and the index cluster prints its trailing (Shiller) leg.
+
     python -m altdata.sources.spdji            # read the inbox, write, summary
     python -m altdata.sources.spdji --check F  # parse one workbook, write nothing
 
@@ -86,6 +93,7 @@ DRIVE_FOLDER = "chester-vendor-checks/spdji"
 REPO = Path(__file__).resolve().parents[2]
 LAYOUT_PATH = REPO / "config" / "spdji_eps.yaml"
 NY = ZoneInfo("America/New_York")
+WITHDRAWN = "not tracked (source withdrawn)"
 AWAITING = ("awaiting the first drop of S&P DJI's EPS workbook "
             "(sp-500-eps-est.xlsx, dropped monthly into "
             f"{DRIVE_FOLDER}; its host refuses non-browser clients)")

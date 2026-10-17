@@ -1845,6 +1845,10 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         try:
             from altdata import benchmark                       # noqa: PLC0415
             bz = benchmark.book_line(now, st).get("text")
+            # weekly-fixes-7 item 6: the week's window beside since-inception,
+            # so "this week" in the book's opener has a figure to stand on.
+            bzw = benchmark.week_line(then[:10], now, st).get("text")
+            bz = "; ".join(x for x in (bzw, bz) if x) or None
         except Exception:                                       # noqa: BLE001
             bz = None
         from .stack_close import _contradiction_history          # noqa: PLC0415
@@ -1871,7 +1875,10 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         except Exception:                                       # noqa: BLE001
             log.warning("calendar unavailable", exc_info=True)
             cal = None
-        watch = wsec.watching(st, now, opened, pmb, fed)
+        # weekly-fixes-7 item 4: Watching reads section 4's counter (the same
+        # state_dates over the stored objects), never persistence_days.
+        watch = wsec.watching(st, now, opened, pmb, fed,
+                              dates=wsec.state_dates(stored_objects(st, now)))
         from altdata import move_screen                         # noqa: PLC0415
         screen = move_screen.result_for(st, ending, now)
         built = {
@@ -1957,6 +1964,10 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
           "glossary_extra": wsec.unvalidated_glossary(classes)}
     if cb:
         ed["detail"] = list(ed.get("detail") or []) + [cb["detail"]]
+    # weekly-fixes-7 item 14: a reference table whose every cell is a gap prints
+    # as one line.
+    from . import readability as _rd                            # noqa: PLC0415
+    ed["detail"] = [_rd.collapse_gap_detail(d) for d in ed.get("detail") or []]
     return ed, extras
 
 

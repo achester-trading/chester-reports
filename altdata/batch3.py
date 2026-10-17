@@ -44,7 +44,8 @@ CONFIG_PATH = REPO / "config" / "batch3_tranche_a.yaml"
 # SR-30's legs: the ECB's monthly convergence 10-year yields (aq-3-series-2).
 EU_LEGS = {"fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it", "de": "ecb.irs_10y_de"}
 EU_PAIRS = (("oat_bund", "OAT–Bund", "fr"), ("btp_bund", "BTP–Bund", "it"))
-EU_WRITER = "the ECB writer (altdata/sources/ecb_irs.py, branch aq-3-series-2)"
+# weekly-fixes-7 item 11: the source by name; the date is the edition's (eu_stress).
+EU_WRITER = "the ECB's data portal"
 EURCHF_KEY = "yfinance.mkt_eurchf"
 
 BUYBACK_KEYS = ("treasury.buyback_max", "treasury.buyback_accepted")
@@ -63,6 +64,22 @@ def _pts(st, key: str, cutoff: str, instrument: Optional[str] = None
             for r in st.as_of(key, cutoff, instrument)
             if r.get("value_num") is not None]
     return sorted(rows)
+
+
+def _next_pull(cutoff: str) -> str:
+    """weekly-fixes-7 item 11: the date a not-yet-stored leg's daily writer next
+    runs, the first NYSE session after the cutoff ("20 Oct")."""
+    from . import session                                       # noqa: PLC0415
+    d = dt.date.fromisoformat(str(cutoff)[:10])
+    for _ in range(10):
+        d += dt.timedelta(days=1)
+        try:
+            if session.is_trading_session(d):
+                break
+        except Exception:                                       # noqa: BLE001
+            if d.weekday() < 5:
+                break
+    return f"{d.day} {d:%b}"
 
 
 def _on_or_before(pts: list[tuple[str, float]], day: str) -> Optional[tuple[str, float]]:
@@ -178,7 +195,8 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
         ser = spread_series(st, cutoff, leg)
         if not ser:
             pairs.append({"id": pid, "label": label, "absent": True,
-                          "reason": f"not yet stored — the legs come from {EU_WRITER}"})
+                          "reason": f"not yet stored ({EU_WRITER}, from "
+                                    f"{_next_pull(cutoff)})"})
             continue
         day, bp = ser[-1]
         prior = ser[-2] if len(ser) > 1 else None

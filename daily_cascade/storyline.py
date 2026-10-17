@@ -3,7 +3,7 @@ THE WEEKLY'S STORYLINE LAYOUT (W-1.2 items 2.4, 2.6, 2.7; change order of 11 Oct
 2026, section 3). Code only, over the finished edition, after the prose:
 
   2.4  each open contradiction in What doesn't fit carries a status line --
-       "resolved by <section>" (linked to the section that holds the evidence),
+       "read in <section>" (linked to the section that holds the evidence),
        "carried -- resolves when <condition>", or "stale" -- from the
        contradiction's state and the sections' printed rows;
   2.6  collapse by default, expand in reference: silent and unreachable voices to
@@ -26,7 +26,10 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-STATUSES = ("resolved by", "carried", "stale")
+# weekly-fixes-7 item 12: "read in", not "resolved by" -- the line says the named
+# section prints the decomposition that answers the gap; it does not say the gap
+# has closed, which nothing here checks.
+STATUSES = ("read in", "carried", "stale")
 DAILY_TABLE_TITLES = ("The week by day", "SPY overnight against the cash session")
 
 
@@ -61,7 +64,7 @@ def status_for(c: dict, gap: dict, ed: dict, cfg: dict) -> tuple[str, Optional[s
     res = (sc.get("contradiction_resolution") or {}).get(c.get("id")) or {}
     s = by.get(res.get("section") or "")
     if s and s.get("claim") and set(res.get("rows") or []) <= row_names(s):
-        return f"resolved by {s['title']}", f"#sec-{s['id']}"
+        return f"read in {s['title']}", f"#sec-{s['id']}"
     sessions = gap.get("sessions_open") or c.get("persistence_days") or 0
     if int(sessions or 0) >= int(sc.get("stale_sessions") or 20) \
             and gap.get("direction") in ("falling", "—", None):
@@ -114,8 +117,17 @@ def collapse_voices(ed: dict) -> None:
     n_s = sum(1 for r in quiet if str(r[i]).startswith("SILENT"))
     n_u = len(quiet) - n_s
     t["rows"] = [r for r in t["rows"] if r not in quiet]
-    s.setdefault("summarised", []).append(
-        f"Voices: {n_s} silent, {n_u} unreachable.")
+    # weekly-fixes-7 item 12: ONE voices summary. Dry run 7 printed "Voices this
+    # week: 2 new, 3 silent" and "Voices: 3 silent, 0 unreachable"; the count of
+    # unreachable sources joins the first line instead of making a second.
+    st_item = next((it for it in s.get("items") or []
+                    if it.get("key") == "voices:status"), None)
+    if st_item and str(st_item.get("text") or "").endswith("."):
+        if n_u:
+            st_item["text"] = st_item["text"][:-1] + f", {n_u} unreachable."
+    else:
+        s.setdefault("summarised", []).append(
+            f"Voices: {n_s} silent, {n_u} unreachable.")
     _detail(ed, "Voices: silent and unreachable this week",
             {"columns": cols, "rows": quiet})
 

@@ -359,6 +359,59 @@ def book_line(as_of: Optional[str] = None,
             db.close()
 
 
+def week_line(then_day: str, as_of: Optional[str] = None,
+              store: Optional[observations.ObservationStore] = None) -> dict:
+    """THE WEEK'S BOOK AGAINST BOOK Z (weekly-fixes-7 item 6). Dry run 7's book
+    opener said "this week" four times while every figure ran since 5 Sep. The
+    window here is the week: the book's last Portfolio Truth NAV on or before
+    `then_day` (the prior week's close) to its newest at `as_of`, and each
+    benchmark's mark on or before that same first day to its newest -- one
+    window for all four, as book_line keeps. Absent, with its reason, where the
+    NAV has no mark at or before the week's start."""
+    own = store is None
+    db = store or observations.ObservationStore()
+    try:
+        marks = latest(as_of, db)
+        navs = []
+        for inst in [None] + list(db.instruments("portfolio.nav")):
+            navs += [r for r in db.as_of("portfolio.nav", as_of=as_of, instrument=inst)
+                     if r.get("value_num")]
+        navs.sort(key=lambda r: str(r["observed_at"]))
+        before = [r for r in navs if str(r["observed_at"])[:10] <= then_day]
+        if not before or not navs or str(navs[-1]["observed_at"])[:10] <= then_day:
+            return {"text": None, "absent_reason":
+                    f"no Portfolio Truth NAV on or before {then_day} and after it"}
+        first_day = str(before[-1]["observed_at"])[:10]
+        out: dict = {"window_start": first_day,
+                     "book_through": str(navs[-1]["observed_at"])[:10],
+                     "book_pct": round(100.0 * (navs[-1]["value_num"]
+                                                / before[-1]["value_num"] - 1.0), 2),
+                     "benchmarks_pct": {}, "excess_pts": {}}
+        for ld in LEDGERS:
+            m0 = _mark_on_or_before(db, ld, first_day, as_of)
+            m1 = (marks or {}).get(ld)
+            if not m0 or not m1 or m1["session"] <= first_day:
+                out["benchmarks_pct"][ld] = None
+                continue
+            r = round(100.0 * (m1["value"] / m0["value"] - 1.0), 2)
+            out["benchmarks_pct"][ld] = r
+            out["excess_pts"][ld] = round(out["book_pct"] - r, 2)
+
+        def pct(v):
+            return "not marked" if v is None else f"{v:+.2f}%"
+        bench = ", ".join(f"{LABEL[ld]} {pct(out['benchmarks_pct'][ld])}"
+                          for ld in LEDGERS)
+        exc = " / ".join(f"{out['excess_pts'][ld]:+.2f}" if ld in out["excess_pts"]
+                         else "n/a" for ld in LEDGERS)
+        out["text"] = (f"on the week ({first_day} to {out['book_through']}): the book "
+                       f"{pct(out['book_pct'])}; {bench}; excess vs cash / SPY / "
+                       f"60-40: {exc} pts")
+        return out
+    finally:
+        if own:
+            db.close()
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     p = argparse.ArgumentParser(description="Book Z: the benchmark ledgers.")

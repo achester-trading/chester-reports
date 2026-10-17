@@ -1117,3 +1117,20 @@ group H holds the one-connection shape.
 the self-deploy enables it after the merge. Backfill first, once, by hand —
 the commands are in `docs/briefs/crypto-basket-notes.md`. The quarterly odds
 restatement is not a timer; it runs inside the Quarterly's own run.
+
+## The Saturday price pull (weekly-fixes-7, 17 Oct 2026)
+
+`chester-prices-saturday.timer` runs `scripts/run_prices_saturday.sh` on
+Saturdays at 06:00 ET: `git pull --ff-only`, then
+`python -m altdata.feeds pull --only prices`. **Why:** the continuous symbols
+(`CONTINUOUS_SYMBOLS` in `altdata/sources/yfinance_source.py`: Bitcoin, Ether and
+the FX crosses) store a daily bar only once its UTC day has ended (the
+bar-finished rule, PB-1). The Friday 16:45 ET pull is before Friday's UTC day
+ends at 20:00 ET, and the next weekday pull is Monday 06:45, so the Sunday Weekly
+printed Friday's FX and Bitcoin as "stale since Thursday" every week (dry run 7).
+Saturday 06:00 ET is after that day has ended, inside the open weekend window and
+clear of Sunday 05:00's Weekly. No key. Caps as percentages (the 4 GB ruling of
+17 Oct), `OOMScoreAdjust=500`: a price pull can be run again. It is in
+`DEPLOY_TIMERS`, so the self-deploy enables it after the merge; nobody enables it
+by hand.
+

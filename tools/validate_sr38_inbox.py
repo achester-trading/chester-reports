@@ -369,13 +369,18 @@ def group_d() -> None:
         al = ra.attribution_lines(a)
         v = ra.revisions(db, cut)
         rv, _ = ws.ai_revisions_block(db, cut)
-        check(al[2] == f"The forward split: {spdji.AWAITING} {TAG}."
+        # Item 40's forward leg, ruled 17 Oct 2026: the workbook is withdrawn,
+        # so with no drop the lines say "not tracked (source withdrawn)".
+        check(al[2] == f"The forward split: {spdji.WITHDRAWN} {TAG}."
+              and spdji.WITHDRAWN == "not tracked (source withdrawn)"
+              and "chester-vendor-checks" not in al[2]
               and "Trailing, not forward" in al[3],
-              "before a drop: the Monthly's forward line is 'awaiting the first drop'")
+              "with no drop: the Monthly's forward line is 'not tracked (source "
+              "withdrawn)', and names no Drive path")
         check(rv and rv["lines"][0].startswith("S&P 500 forward-EPS revisions: "
-                                               "awaiting the first drop")
+                                               "not tracked (source withdrawn)")
               and rv["lines"][1].startswith("Forward-EPS revisions, the nine AI names'"),
-              "and the Weekly's revision block opens on the index line, awaiting")
+              "and the Weekly's revision block opens on the index line, withdrawn")
         # The first drop (as of 31 Aug).
         first = synthetic_workbook(as_of="2026-08-31", estimates=[
             ("2027-09-30", 77.0), ("2027-06-30", 75.0), ("2027-03-31", 73.0),
@@ -455,12 +460,17 @@ def group_d() -> None:
 def group_e() -> None:
     head("E. WIRING")
     from altdata import feeds
-    check("spdji" in feeds.EXTERNAL_WRITERS, "a registered external writer")
+    check("spdji" not in feeds.EXTERNAL_WRITERS,
+          "withdrawn 17 Oct 2026: S&P DJI's workbook is off the writer roster")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
     mets = reg.get("metrics") or reg
     check(all(k in mets and mets[k]["source"] == "spdji"
-              and mets[k]["trigger_eligible"] is False for k in spdji.KEYS),
-          "every key it writes is registered, sourced spdji, none trigger-eligible")
+              and mets[k]["trigger_eligible"] is False
+              and mets[k].get("tracked") is False
+              and mets[k].get("not_tracked_reason") == "source withdrawn"
+              for k in spdji.KEYS),
+          "every key it writes is registered, sourced spdji, none trigger-eligible, "
+          "each marked not tracked (source withdrawn)")
     srcs = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
     check("spdji" in srcs["sources"]
           and "Nothing is fetched" in srcs["sources"]["spdji"]["license"],

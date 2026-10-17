@@ -337,6 +337,11 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
                                               r["event"], r.get("consensus")]
                                              for r in full]}})
     notes = []
+    # weekly-fixes-7 item 12: "release time not captured" once, as a footnote.
+    from .weekly_sections import RELEASE_NOT_CAPTURED            # noqa: PLC0415
+    from .readability import fold_repeated_gaps                  # noqa: PLC0415
+    notes += fold_repeated_gaps(table, {RELEASE_NOT_CAPTURED: (
+        "A day with no time: the source stored the date, not the release time.")})
     if routine:
         notes.append(f"{len(routine)} routine data release(s) and bill auction(s) "
                      f"are in the reference tables.")

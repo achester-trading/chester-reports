@@ -31,7 +31,9 @@ operating EPS, from the operator's monthly drop of sp-500-eps-est.xlsx
 fetched). The same identity over the stored drops: the latest drop against the
 one nearest twelve months before it -- or, until a drop that old is stored, the
 earliest, with its span printed. One drop prints the forward EPS and the forward
-P/E and says the split needs a second; none prints "awaiting the first drop".
+P/E and says the split needs a second; none prints "not tracked (source
+withdrawn)": S&P DJI withdrew the workbook (ruled 17 Oct 2026), so the trailing
+(Shiller) leg is the index cluster's only leg.
 
 EY MINUS THE BILL. The trailing earnings yield at the S&P 500's last close
 (yfinance ^GSPC) against its latest stored trailing earnings, less the 3-month
@@ -117,8 +119,11 @@ def attribution(st, cutoff: Optional[str] = None, cfg: Optional[dict] = None) ->
 # THE FORWARD SERIES -- S&P DJI's drops (altdata/sources/spdji.py)
 # ---------------------------------------------------------------------------
 def _awaiting() -> str:
+    # Item 40's forward leg, ruled 17 Oct 2026: S&P DJI withdrew the workbook, so
+    # with no drop stored the lines say so rather than await a drop that cannot
+    # come (weekly-fixes-7 item 10).
     from .sources import spdji                                  # noqa: PLC0415
-    return spdji.AWAITING
+    return spdji.WITHDRAWN
 
 
 def forward(st, cutoff: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
@@ -318,7 +323,13 @@ def revision_line(v: dict) -> str:
         parts.append(f"{lab} median {m:+.1f}% ({v['covered'][lab]} of {v['of']} names)"
                      if m is not None else
                      f"{lab} not read (no name has the history)")
-    return (f"Forward-EPS revisions, the nine AI names' consensus (not the index's): "
+    # weekly-fixes-7 item 8: the count is the config's list, never a literal
+    # ("the nine AI names" printed over five rows in dry run 7).
+    words = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight",
+             "nine", "ten", "eleven", "twelve")
+    of = v["of"]
+    return (f"Forward-EPS revisions, the {words[of] if of < len(words) else of} AI "
+            f"names' consensus (not the index's): "
             + "; ".join(parts) + f" {v['tag']}.")
 
 
@@ -329,6 +340,10 @@ def revision_table(v: dict) -> Optional[dict]:
             for n in v["names"] if n["n"]]
     if not rows:
         return None
+    # Item 8: every listed name has a row; one with no stored estimate says so,
+    # so the rows always match the count the line names.
+    rows += [[n["symbol"], "not stored", *["—" for _ in v["windows"]], "—"]
+             for n in v["names"] if not n["n"]]
     return {"columns": ["Name", "Forward EPS", *[f"{lab} change" for lab in v["windows"]],
                         "As of"], "rows": rows}
 

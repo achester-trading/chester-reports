@@ -1306,6 +1306,9 @@ metrics:
       Consensus forward EPS for one name, read nightly. REVISED by construction -- a consensus is restated whenever an analyst moves, which is the whole point of logging it daily. NOT SERVED FOR ETFs: no analyst covers a wrapper, so the sector funds and SPY/QQQ/IWM carry no forward estimate and an index-level forward multiple needs a holdings-weighted build this does not do.
   spdji.op_eps_est_q:
     source: spdji
+    # Item 40's forward leg, ruled 17 Oct 2026: S&P DJI withdrew the workbook.
+    tracked: false
+    not_tracked_reason: source withdrawn
     mechanism_group: consensus_estimate
     native_horizon: monthly
     freq: monthly
@@ -1319,6 +1322,9 @@ metrics:
       S&P DJI's bottom-up operating EPS estimate for the S&P 500, one quarter per row (instrument = the quarter, "2027Q2"), from the estimates block of sp-500-eps-est.xlsx. One vintage per monthly drop, observed on the workbook's own "as of" date. AVAILABILITY RULE (ruled 13 Oct 2026): available_at = the as-of date plus one business day (the next NYSE session), at the end of that day in New York, availability_kind reconstructed, because S&P DJI posts the workbook a day or more after its as-of close; retrieved_at (spdji.eps_drop) stays the drop time. A later drop's estimate for the same quarter is a new row on its own date, never a restatement of this one. Revisions are read across drops (altdata/return_attribution.py). Inbox only: the host refuses non-browser clients.
   spdji.fwd12m_op_eps:
     source: spdji
+    # Item 40's forward leg, ruled 17 Oct 2026: S&P DJI withdrew the workbook.
+    tracked: false
+    not_tracked_reason: source withdrawn
     mechanism_group: consensus_estimate
     native_horizon: monthly
     freq: monthly
@@ -1332,6 +1338,9 @@ metrics:
       The S&P 500's forward twelve-month bottom-up operating EPS: the sum of the first four estimated quarters ending after the workbook's "as of" date, one row per drop. The quarters summed are in that drop's spdji.eps_drop record. AVAILABILITY RULE (ruled 13 Oct 2026): available_at = the as-of date plus one business day (the next NYSE session), at the end of that day in New York, availability_kind reconstructed (S&P DJI posts a day or more after its as-of); retrieved_at stays the drop time.
   spdji.eps_drop:
     source: spdji
+    # Item 40's forward leg, ruled 17 Oct 2026: S&P DJI withdrew the workbook.
+    tracked: false
+    not_tracked_reason: source withdrawn
     mechanism_group: consensus_estimate
     native_horizon: monthly
     freq: monthly

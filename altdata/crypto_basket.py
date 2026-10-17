@@ -573,6 +573,15 @@ def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
                         "the Quarterly."]}
     tag_moves(detail["table"], data, 2, "week_pct", "week")
     tag_moves(detail["table"], data, 3, "d30_pct", "30d")
+    # weekly-fixes-7 item 14: every row of both tables "not stored" -> one line,
+    # with the date of the first pull (the basket's writers run daily, 17:25 ET).
+    if not any(x.get("price") is not None or x.get("market_cap") is not None
+               or x.get("measurable_latest") is not None for x in data):
+        first = (dt.date.fromisoformat(str(as_of or ending)[:10])
+                 + dt.timedelta(days=1))
+        detail = {"title": detail["title"],
+                  "lines": [f"crypto basket: not stored; first pull "
+                            f"{first.day} {first:%b}"]}
     return {"detail": detail, "line": weekly_line(events), "events": events,
             "data": data}
 

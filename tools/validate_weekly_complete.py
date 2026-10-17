@@ -143,6 +143,320 @@ def seed_t23(db: str, sessions: list[str]) -> None:
         bst.write_many(bs)
 
 
+def weekly_fixes_7() -> None:
+    """WEEKLY-FIXES-7 (dry run 7's faults, 17 Oct 2026). One check group per
+    fault: M1 the units and their bounds, M2 the dedupe, M3 the two windows, M4
+    the counters agree, M5 resolved contracts, M6 the opener's time word, M7 the
+    précis line, M8 the forward-EPS count, M9 the Saturday unit, M11 no internal
+    names, M12 the small fixes (volatility context, signed zeros, one voices line,
+    the footnote rule, JST in ET, "read in"), M13 the charts render, M14 the
+    collapsed table. (Item 10 is validate_sr38_inbox's.) Fixtures only: no live
+    store, no fetch, no model."""
+    import yaml
+    from altdata import benchmark, crypto_basket as cb, labels, numeral_audit
+    from altdata import observations, prediction_markets as pm
+    from altdata import return_attribution as ra
+    from daily_cascade import (batch3_block as b3, calendar_config, charts, precis,
+                               readability as rd, stack as stack_mod,
+                               stack_prose as sp, stack_render as sr, storyline,
+                               weekly_sections as wsec)
+    import exposure_compute as ec
+
+    def store(name):
+        return observations.ObservationStore(str(Path(TD) / f"wf7_{name}.db"))
+
+    def put(st, key, rows, inst=None, text=False):
+        st.write_many([{"registry_key": key, "instrument": inst, "observed_at": d,
+                        "available_at": f"{d[:10]}T21:00:00+00:00",
+                        "value": (json.dumps(v) if text else v), "source": "fixture"}
+                       for d, v in rows])
+
+    print(f"\n{LINE}\nM1. DEX AND NET GEX: THE LABEL SAYS WHAT THE NUMBER IS\n{LINE}")
+    spot = 663.0
+    chain = [{"strike": k, "open_interest": oi, "gamma": g, "delta": dl, "right": rt,
+              "expiry": "2026-10-23"}
+             for k, oi, g, dl, rt in ((650, 40000, 0.012, 0.62, "C"),
+                                      (660, 90000, 0.018, 0.53, "C"),
+                                      (670, 70000, 0.016, 0.41, "C"),
+                                      (650, 85000, 0.011, -0.38, "P"),
+                                      (640, 60000, 0.008, -0.24, "P"),
+                                      (660, 50000, 0.017, -0.47, "P"))]
+    prof = ec._profile(chain, spot)                             # noqa: SLF001
+    oi = sum(r["open_interest"] for r in chain)
+    check(not wsec.dealer_bounds(prof["net_gex"], prof["dex_notional"], oi, spot),
+          "the engine's net GEX and DEX sit inside their bounds in dollars "
+          "(|DEX| <= sum OI x 100 x spot; |GEX per 1%| <= sum OI x 100 x spot x 0.01)")
+    check(abs(prof["dex_notional"]) > oi * 100,
+          f"and the printed DEX ({prof['dex_notional']:,.0f}) exceeds the share bound "
+          f"sum OI x 100 ({oi * 100:,}): it cannot be shares, so it is dollars")
+    check(wsec.dealer_bounds(None, 2.0562e11, 2e5, 663.0),
+          "a figure past its bound is caught (205.62bn against a 13bn cap)")
+    rows = {r["quantity"]: r for r in (stack_mod.config().get("technical_appendix")
+                                       or {}).get("rows") or []}
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    mets = reg.get("metrics") or reg
+    gl = {e["term"]: e["text"] for e in labels.glossary()}
+    check("$" in rows["DEX"]["units"] and "$" in rows["Net GEX"]["units"]
+          and "shares" not in rows["DEX"]["units"]
+          and mets["exposure.dex_notional"]["units"] == "usd"
+          and mets["exposure.net_gex"]["units"] == "usd_per_point"
+          and "net GEX, DEX" in gl and "$" in gl["net GEX, DEX"],
+          "the appendix, the registry and the glossary agree: both are dollars")
+    check(wsec.money_bn_signed(2.0562e11) == "+$205.62bn"
+          and wsec.money_bn_signed(-3.4e8) == "−$0.34bn"
+          and wsec.money_bn_signed(-1e6) == "$0.00bn",
+          "the cell prints dollars, signed, with no signed zero")
+
+    print(f"\n{LINE}\nM2. ALSO THIS WEEK: ONE BULLET PER (URL, CLAIM)\n{LINE}")
+    a = [{"source_url": u, "claim": c, "published_at": "2026-10-14"}
+         for u, c in (("https://x/1", "oil quotes"), ("https://x/2", "Lane: rates"),
+                      ("https://x/3", "BlackRock yields"))]
+    got = wsec.dedupe_attributions(a + [dict(x, claim=x["claim"] + " ") for x in a])
+    keys = [(x["source_url"], " ".join(x["claim"].split()).lower()) for x in got]
+    check(len(got) == 3 and len(set(keys)) == len(keys),
+          "six attributions (three items, each attached to two stories) print three "
+          "bullets; no two share a url and a claim")
+
+    print(f"\n{LINE}\nM3. THE 10-YEAR'S TWO WEEKS: BOTH WINDOWS PRINT\n{LINE}")
+    lens = {"rows": [{"tenor": "10y", "nominal": {"bp": -5.0, "from": "2026-10-07",
+                                                   "to": "2026-10-14", "level": 4.1},
+                      "real": None, "breakeven_bp": None, "expected_rate": None,
+                      "term_premium": None, "acm_note": None}]}
+    tr = b3.tenor_rows(lens, "week")
+    lag = b3.fred_lag_line("2026-10-14", "2026-10-16")
+    check(len(tr[0]) == 6 and tr[0][0] == "10y, week (7 Oct to 14 Oct)",
+          f"the SR-6 window prints inline, one six-column table ({tr[0][0]})")
+    check(lag == "FRED's legs lag two sessions (to 14 Oct); the nominal week in the "
+                 "tape runs to 16 Oct.", f"and the line names both windows ({lag})")
+
+    print(f"\n{LINE}\nM4. AHEAD'S WATCHING READS SECTION 4'S COUNTER\n{LINE}")
+    opened = [{"id": "equities_vs_credit", "persistence_days": 9, "magnitude": 2.4},
+              {"id": "gamma_vs_trend", "persistence_days": 9, "magnitude": 2.1}]
+    dates = {"equities_vs_credit": {"gap_since": "2026-09-25", "sessions": 15},
+             "gamma_vs_trend": {"gap_since": "2026-09-29", "sessions": 13}}
+    w = wsec.watching(None, "2026-10-16T21:00:00+00:00", opened, None, None, dates=dates)
+    td = [wsec.three_dates(dates[c["id"]]) for c in opened]
+    check("open 15 sessions" in w[0] and "open 13 sessions" in w[1]
+          and "(15 sessions)" in td[0] and "(13 sessions)" in td[1],
+          f"Watching and the gap table print the same ages ({w[0][:60]}...)")
+
+    print(f"\n{LINE}\nM5. A RESOLVED CONTRACT PRINTS 'RESOLVED' OR DROPS\n{LINE}")
+    day = dt.date(2026, 10, 16)
+    pub = {"fred.core_cpi": {"2026-09"}}
+    done = {"venue": "polymarket", "watch_id": "cpi_monthly", "probability": 0.51,
+            "question": "Will Core CPI MoM be 0.2% in September?", "volume": 9e6,
+            "decision_date": "2026-10-31", "close_at": "2026-10-31"}
+    live = {"venue": "polymarket", "watch_id": "cpi_monthly", "probability": 0.44,
+            "question": "Will Core CPI MoM be 0.2% in October?", "volume": 1e6,
+            "decision_date": "2026-11-30", "close_at": "2026-11-30"}
+    for r in (done, live):
+        r["resolved"] = pm.resolved(r, day, pub)
+    _, prow, _ = rd._pm({"watch": {"cpi_monthly": [done, live]}}, "5s")  # noqa: SLF001
+    check(done["resolved"] and done["resolved"]["outcome"] is None
+          and live["resolved"] is None,
+          "September's question is resolved (core CPI for 2026-09 is in the store); "
+          "October's is live")
+    check(len(prow) == 1 and "October" in prow[0][0],
+          f"the resolved one with no outcome drops; the live one prints ({prow})")
+    yes = dict(done, probability=0.995)
+    yes["resolved"] = pm.resolved(yes, day, pub)
+    _, prow2, _ = rd._pm({"watch": {"cpi_monthly": [yes]}}, "5s")  # noqa: SLF001
+    check(prow2 and prow2[0][2] == "resolved: Yes",
+          "one the market settled prints 'resolved' with its outcome")
+
+    print(f"\n{LINE}\nM6. THE BOOK'S OPENER: A TIME WORD NEEDS ITS WINDOW\n{LINE}")
+    st = store("book")
+    try:
+        put(st, "portfolio.nav", [("2026-09-05", 100000.0), ("2026-10-09", 101000.0),
+                                  ("2026-10-16", 101505.0)], inst="DU1")
+        for ld, a0, a1, a2 in (("cash", 100.0, 100.4, 100.5),
+                               ("spy", 100.0, 103.0, 102.0),
+                               ("sixty_forty", 100.0, 101.5, 101.2)):
+            put(st, benchmark.KEY, [(d, {"session": d, "value": v, "start": "2026-09-05"})
+                                    for d, v in (("2026-09-05", a0), ("2026-10-09", a1),
+                                                 ("2026-10-16", a2))], inst=ld, text=True)
+        wl = benchmark.week_line("2026-10-09", "2026-10-17T00:00:00+00:00", st)
+    finally:
+        st.close()
+    check(str(wl.get("text")).startswith("on the week (2026-10-09 to 2026-10-16): the "
+                                        "book +0.50%") and "SPY -0.97%" in wl["text"],
+          f"the week's book against cash, SPY and 60-40, one window ({wl.get('text')})")
+    ed_since = {"sections": [{"id": "book", "data": {"book_z": "since 2026-09-05: the "
+                                                     "book +1.50%"}}]}
+    ed_week = {"sections": [{"id": "book", "data": {"book_z": str(wl.get("text"))}}]}
+    t = "The book rose this week. It holds its stance."
+    check(sp.book_window_faults(t, ed_since) and not sp.book_window_faults(t, ed_week),
+          "'this week' over since-inception figures is a fault; with the week's "
+          "window printed it is not")
+
+    print(f"\n{LINE}\nM7. THE PRÉCIS'S FIRST LINE AND THE STANCE LEDGER AGREE\n{LINE}")
+    check(precis.FIRST_EDITION == "First archived edition with a précis.",
+          "the outlook line says which store it read (the archive), so n=1 from the "
+          "dry-run ledger does not contradict it")
+
+    print(f"\n{LINE}\nM8. THE FORWARD-EPS COUNT MATCHES THE ROWS\n{LINE}")
+    nine = ["AMZN", "GOOGL", "META", "MSFT", "ORCL", "NVDA", "MU", "AVGO", "AMAT"]
+    v = {"names": [{"symbol": s, "n": 3 if s in ("AMZN", "GOOGL", "META", "MSFT",
+                                                 "NVDA") else 0,
+                    "level": 10.0, "4-week": 1.0, "13-week": 2.0, "day": "2026-10-16"}
+                   for s in nine],
+         "median": {"4-week": 1.0, "13-week": 2.0}, "covered": {"4-week": 5, "13-week": 5},
+         "of": 9, "windows": ["4-week", "13-week"], "tag": "(x)"}
+    tb = ra.revision_table(v)
+    check(len(tb["rows"]) == 9 and sum(r[1] == "not stored" for r in tb["rows"]) == 4
+          and "the nine AI names'" in ra.revision_line(v),
+          "nine names named, nine rows: the four unstored print 'not stored'")
+
+    print(f"\n{LINE}\nM9. THE SATURDAY PRICE PULL\n{LINE}")
+    sd = REPO / "deploy" / "systemd"
+    tm = (sd / "chester-prices-saturday.timer").read_text(encoding="utf-8")
+    sv = (sd / "chester-prices-saturday.service").read_text(encoding="utf-8")
+    wr = (REPO / "scripts" / "run_prices_saturday.sh").read_text(encoding="utf-8")
+    dr = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
+    check("OnCalendar=Sat *-*-* 06:00 America/New_York" in tm and "UTC day" in tm
+          and "run_prices_saturday.sh" in sv and "EnvironmentFile=-" in sv
+          and "MemoryMax=" in sv and "OOMScoreAdjust=" in sv
+          and wr.index("git pull --ff-only") < wr.index("altdata.feeds pull --only prices")
+          and "chester-prices-saturday.timer" in re.search(r'DEPLOY_TIMERS="([^"]*)"',
+                                                          dr, re.S).group(1),
+          "Saturday 06:00 ET, after Friday's UTC day; the wrapper pulls main, then the "
+          "price feed; caps and an OOM score; in DEPLOY_TIMERS")
+
+    print(f"\n{LINE}\nM11. NO INTERNAL NAME IN A READER'S LINE\n{LINE}")
+    st = store("empty")
+    try:
+        now = "2026-10-16T23:00:00+00:00"
+        lines = (b3.japan_subsection(st, now, b3.batch3.config())["lines"]
+                 + b3.eu_subsection(st, now, b3.batch3.config())["lines"])
+    finally:
+        st.close()
+    bad = [f for ln in lines for f in rd.internal_name_faults(ln)]
+    check(not bad and any("from 19 Oct" in ln for ln in lines)
+          and any("not yet stored (" in ln for ln in lines),
+          f"the not-yet-stored lines name the source and the date ({lines[0][:70]}); "
+          f"faults: {bad[:2]}")
+    dry7 = ["the ECB writer (altdata/sources/ecb_irs.py, branch aq-3-series-2)",
+            "EUR/CHF: not yet stored (the price feed adds EURCHF=X from the next run).",
+            "HTTPError: HTTP Error 404: Not Found"]
+    check(all(rd.internal_name_faults(x) for x in dry7)
+          and not any(rd.internal_name_faults(rd.reader_safe(x)) for x in dry7[::2]),
+          "dry run 7's lines are each caught; the renderer's net clears a path, a "
+          "branch and an exception")
+    check(sr.run_id_display("chester-weekly-20261018T090001.123456Z")
+          == "chester-weekly-20261018T090001Z",
+          "the footer's run id prints to the second")
+
+    print(f"\n{LINE}\nM12. THE SMALL FIXES\n{LINE}")
+    st = store("vol")
+    try:
+        ds = [(dt.date(2025, 1, 1) + dt.timedelta(days=i)).isoformat() for i in range(400)]
+        for key, base in (("yfinance.mkt_move", 90.0), ("yfinance.mkt_skew", 140.0),
+                          ("yfinance.mkt_vix", 16.0)):
+            put(st, key, [(d, base + (i % 17)) for i, d in enumerate(ds)])
+        vol = wsec.volatility(st, f"{ds[-1]}T22:00:00+00:00")
+    finally:
+        st.close()
+    mv = {r[0]: r for r in vol["table"]["rows"]}["MOVE (Treasury volatility)"]
+    check(vol["table"]["columns"][-1] == "As of"
+          and mv[2].endswith("percentile, five years") and mv[-1] == ds[-1]
+          and vol["data"].get("move_percentile_5y") is not None,
+          f"MOVE and SKEW: Context is the percentile, the date its own column ({mv})")
+    check(stack_mod._signed(-0.4, "bp") == "0 bp"                  # noqa: SLF001
+          and stack_mod._change({"change": -0.001, "unit": ""}) == "unch"  # noqa: SLF001
+          and stack_mod._change({"change": -0.12, "unit": ""}) == "−0.12"  # noqa: SLF001
+          and wsec._bn_change(-2e8) == "unch"                     # noqa: SLF001
+          and len(numeral_audit.signed_zero_faults("RRP −$0bn; short interest -0")) == 2
+          and not numeral_audit.signed_zero_faults("fell 0.4%, +$205.62bn, 10-0, unch"),
+          "signed zeros: the formatters round first; the numeral audit's rule catches "
+          "'−$0bn' and '-0' and passes real figures")
+    ved = {"sections": [{"id": "narratives",
+                         "items": [{"key": "voices:status",
+                                    "text": "Voices this week: 2 new, 3 silent."}],
+                         "table": {"columns": ["Voice", "View", "Status", "Source",
+                                               "Horizon"],
+                                   "rows": [["A", "v", "NEW", "s", "h"],
+                                            ["B", "v", "SILENT", "s", "h"],
+                                            ["D", "v", "UNREACHABLE (x)", "s", "h"]]}}]}
+    storyline.collapse_voices(ved)
+    check(ved["sections"][0]["items"][0]["text"]
+          == "Voices this week: 2 new, 3 silent, 1 unreachable."
+          and not ved["sections"][0].get("summarised"),
+          "the two voices summaries are one line")
+    et = {"columns": ["Name", "EPS", "Verdict", "Revenue", "Next day", "Reported"],
+          "rows": [[s, "1.0", "beat", "revenue not stored", "+1%", "2026-10-14"]
+                   for s in ("A", "B", "C")]}
+    fn = rd.fold_repeated_gaps(et, {"revenue not stored": "Revenue: one footnote."})
+    ah = {"columns": ["When (ET)"], "rows": [["Mon 19 Oct, release time not captured"],
+                                            ["Tue 20 Oct, release time not captured"],
+                                            ["Wed 21 Oct, 08:30"]]}
+    fa = rd.fold_repeated_gaps(ah, {"release time not captured": "Once."})
+    check(fn == ["Revenue: one footnote."] and all(r[3] == "" for r in et["rows"])
+          and fa == ["Once."] and ah["rows"][0][0] == "Mon 19 Oct"
+          and ah["rows"][2][0] == "Wed 21 Oct, 08:30",
+          "a gap phrase repeated in a table is one footnote, the cells blank")
+    d0, t0 = calendar_config.to_et(dt.date(2026, 10, 20), "12:35 JST")
+    check(d0.isoformat() == "2026-10-19" and t0 == "23:35 (12:35 JST)",
+          f"the JGB auction prints in ET with JST in parentheses ({d0} {t0})")
+    check(storyline.STATUSES[0] == "read in",
+          "section 4's status reads 'read in <section>', not 'resolved by'")
+
+    print(f"\n{LINE}\nM13. THE CHARTS RENDER\n{LINE}")
+    out = str(Path(TD) / "wf7_charts")
+    os.makedirs(out, exist_ok=True)
+    b5 = charts.bars_chart("W5", [("XLK", -4.8), ("XLE", 1.2), ("XLF", 0.4),
+                                  ("XLV", -0.6), ("XLU", 2.1)], "Leadership",
+                           "wf7_w5", out)
+    days60 = [(dt.date(2026, 6, 1) + dt.timedelta(days=i)).isoformat() for i in range(60)]
+    zs = {"SPY put/call, volume (SPY chain, own capture)":
+          [(d, float(i % 7)) for i, d in enumerate(days60)],
+          "AAII bull-bear spread (weekly survey)":
+          [(d, float(i % 5)) for i, d in enumerate(days60)]}
+    z9 = charts.z_panel("W9", zs, "Positioning gauges", "wf7_w9", out, ncols=3)
+    w10 = charts.w10({"Kalshi: a": [("2026-09-01", .4), ("2026-09-02", .5),
+                                    ("2026-09-03", .45)]},
+                     {"tracked": True, "meetings": [{"meeting": "2026-10-28",
+                                                     "post_pct": 3.9},
+                                                    {"meeting": "2026-12-09",
+                                                     "post_pct": 3.7}]},
+                     None, None, "wf7_w10", out)
+    check(not b5.get("unavailable") and charts.bar_label_inside(-4.8, 4.8)
+          and not charts.bar_label_inside(0.4, 4.8),
+          f"the leadership bars render; the longest bar's label sits inside it "
+          f"({b5.get('unavailable') or 'drawn'})")
+    check(not z9.get("unavailable") and z9.get("panel_titles") == [
+              "SPY put/call, volume", "AAII bull-bear spread"]
+          and "own capture" in z9["caption"],
+          f"the gauges' panels carry short titles, the long names in the caption "
+          f"({z9.get('panel_titles') or z9.get('unavailable')})")
+    check(not w10.get("unavailable") and charts.meeting_label("2026-10-28") == "Oct 28",
+          f"the odds and fed-funds chart renders; meetings tick as 'Oct 28' "
+          f"({w10.get('unavailable') or 'drawn'})")
+    ph = sr.charts_seq_html(["W1", "W2"], {"W1": {"id": "W1", "caption": "a",
+                                                  "svg_path": "a.svg"},
+                                           "W2": {"id": "W2", "caption": "b",
+                                                  "svg_path": "b.svg"}}, "archive")
+    check(ph.count('width="345"') == 2 and "chart-pair" in ph
+          and "max-height" in rd.PRINT_CSS,
+          "the two SPY charts print half width side by side; no chart prints taller "
+          "than about a third of a page")
+
+    print(f"\n{LINE}\nM14. A TABLE OF GAPS IS ONE LINE\n{LINE}")
+    st = store("crypto")
+    try:
+        blk = cb.weekly_block(st, "2026-10-16", "2026-10-16T23:00:00+00:00")
+    finally:
+        st.close()
+    check(blk["detail"].get("lines") == ["crypto basket: not stored; first pull 17 Oct"]
+          and "table" not in blk["detail"],
+          f"the crypto basket with nothing stored: one line ({blk['detail'].get('lines')})")
+    g = rd.collapse_gap_detail({"title": "X", "table": {
+        "columns": ["a", "b"], "rows": [["n", "—"], ["m", "not stored"]]}})
+    k = rd.collapse_gap_detail({"title": "Y", "table": {"columns": ["a", "b"],
+                                                        "rows": [["n", "1.2"]]}})
+    check(g.get("lines") == ["X: not stored."] and "table" in k,
+          "the same rule for any reference table whose every cell is a gap")
+
+
 def main() -> int:
     import validate_weekly_stack as vws
     import validate_weekly_edits as vwe
@@ -151,6 +465,7 @@ def main() -> int:
                                weekly_sections as wsec, weekly_stack as ws)
     import yaml
     config.COMPUTED_DIR = str(Path(TD) / "computed")
+    weekly_fixes_7()                       # weekly-fixes-7's checks, M1 to M14
 
     # --- A. REGISTRY --------------------------------------------------------
     print(f"\n{LINE}\nA. EVERY NEW SERIES IS REGISTERED, WITH UNITS AND A FAMILY\n{LINE}")

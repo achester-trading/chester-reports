@@ -1,0 +1,35 @@
+[Unit]
+Description=Saturday price pull (06:00 ET) -- Friday's FX and crypto bars for the Sunday Weekly
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+# The wrapper pulls main first, as every box wrapper does, then runs
+# `python -m altdata.feeds pull --only prices` (weekly-fixes-7 item 9).
+ExecStart=%h/chester-reports/scripts/run_prices_saturday.sh
+
+# No key is read: Yahoo is keyless. Optional, as for every unit, so ALTDATA_STORE
+# and the state paths resolve as elsewhere.
+EnvironmentFile=-%h/chester-reports/.env
+
+SuccessExitStatus=0
+
+# The whole price list with its two-year re-read: minutes on a good day.
+TimeoutStartSec=30min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026: the box stays at 4 GB):
+# percentages of physical memory, about 600M high and 760M max on the 4 GB box.
+MemoryHigh=15%
+MemoryMax=19%
+# THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13): a price pull
+# can be run again (the next weekday pull re-reads two years), so it goes with
+# the reports, ahead of the EOD capture and the Gateway.
+OOMScoreAdjust=500

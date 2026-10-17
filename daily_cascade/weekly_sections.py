@@ -38,6 +38,7 @@ import yaml
 from altdata import derived, session
 from altdata.numeral_audit import ordinal as na_ordinal
 
+from . import readability as rd
 from .cadence import Period
 
 REPO = Path(__file__).resolve().parent.parent
@@ -175,7 +176,7 @@ def week_by_day(st, sessions: list[str], ending: str, now: str, then: str,
         data.append({"day": d, "spy_pct": rs, "ten_year_bp": ty,
                      "releases": rel_by.get(d) or [], "fed_or_auction": fed,
                      "most_cited_story": story})
-        for a in attrs:
+        for a in dedupe_attributions(attrs):
             if str(a["published_at"])[:10] == d:
                 lines.append(f"{_day(d)}: {attribution_text(a)} ({a['source_url']}).")
     return {"table": {"columns": ["Day", "SPY", "10-year", "Tier-1 release "
@@ -375,7 +376,11 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
         return "—" if v is None else fmt.format(v)
 
     def bn(v):
-        return "—" if v is None else f"{v / 1e9:+,.2f}bn"
+        # weekly-fixes-7 item 1: both stored figures are DOLLARS (net GEX is
+        # gamma x OI x 100 x spot, $ of delta per $1 move; DEX is delta x OI x
+        # 100 x spot), so the cell says "$". Rounded before the sign is taken:
+        # no signed zero (item 12).
+        return "—" if v is None else money_bn_signed(v)
 
     def yn(v):
         return "—" if v is None else ("yes" if v else "no")
@@ -763,15 +768,20 @@ def transition_expiry(st, now: str, limits: Optional[dict] = None) -> Optional[d
 
 
 def watching(st, now: str, opened: list[dict], pmb: Optional[dict],
-             fed: Optional[dict]) -> list[str]:
-    """Item 10: what the system is watching, in the config's words."""
+             fed: Optional[dict], dates: Optional[dict] = None) -> list[str]:
+    """Item 10: what the system is watching, in the config's words. A gap's age
+    is section 4's counter (`dates`, state_dates over the stored objects: the
+    sessions since the gap crossed its line), so the two can never disagree
+    (weekly-fixes-7 item 4: dry run 7 printed "open 9 sessions" for two gaps
+    section 4 aged 15 and 13); persistence_days only where no dates exist."""
     from altdata import labels                                  # noqa: PLC0415
     out = []
     for c in opened:
         plain = labels.contradiction_plain(c.get("id"))
         z = c.get("magnitude")
+        n = watch_sessions(c, dates)
         out.append(f"{labels.contradiction(c.get('id')).capitalize()}: open "
-                   f"{c.get('persistence_days')} session(s)"
+                   f"{n} session{'s' if n != 1 else ''}"
                    + (f" at z {float(z):+.1f}" if isinstance(z, (int, float)) else "")
                    + (f"; it closes when {plain['closes']}." if plain.get("closes")
                       else "."))
@@ -1040,8 +1050,12 @@ def _bn_change(v: Optional[float], scale: float = 1.0) -> str:
     if v is None:
         return "—"
     x = v * scale
-    sign = "+" if x >= 0 else "−"
-    return sign + _bn(abs(x))
+    mag = _bn(abs(x))
+    # weekly-fixes-7 item 12: RRP's "−$0bn" -- a change that rounds to zero is
+    # "unch", never a signed zero.
+    if not any(ch in "123456789" for ch in mag):
+        return "unch"
+    return ("+" if x > 0 else "−") + mag
 
 
 # THE AUCTION'S FIELDS (W-1.1 item 1.4, ruled 11 Oct 2026). Each of the week's
@@ -1223,7 +1237,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                      sio_asof or soa])
         data["sofr_iorb_bp"] = sp
     else:
-        nt.append("SOFR and IORB (the FRED pull adds them from the next run)")
+        nt.append(f"SOFR and IORB ({rd.starts_line('FRED', now)})")
     for key, name in (("fred.ig_oas", "Investment-grade OAS"),
                       ("fred.ccc_oas", "CCC OAS")):
         v, pv, asof = two(key)
@@ -1253,7 +1267,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                          gc_asof])
             data["gold_copper"] = round(r, 1)
     else:
-        nt.append("copper (the price feed adds HG=F from the next run)")
+        nt.append(f"copper ({rd.starts_line('Yahoo Finance', now)})")
     # THE WEEK'S AUCTIONS: coupons only, with their own figures; the tail is not
     # stored (no when-issued yield).
     auctions = []
@@ -1294,7 +1308,7 @@ def global_fx(st, now: str, then: str, cadence: str = "weekly") -> dict:
         a = st.latest_as_of(key, now)
         b = st.latest_as_of(key, then)
         if not a:
-            nt.append(name.split(" (")[0] + " (the price feed adds it from the next run)")
+            nt.append(name.split(" (")[0] + f" ({rd.starts_line('Yahoo Finance', now)})")
             continue
         rows.append([name, with_stale(f"{a['value_num']:,.{dp}f}",
                                       str(a["observed_at"])[:10], edition_session(now)),
@@ -1338,21 +1352,22 @@ def volatility(st, now: str, wis: Optional[dict] = None,
             d *= 100.0                        # realized stored as a fraction
         d = round(d, 1)
         return f"{'+' if d > 0 else ('−' if d < 0 else '')}{abs(d):.1f} pts"
-    vix_hist = [v for d, v in _closes_of(st, "yfinance.mkt_vix", now) if d >= five]
+    vix_pts = [(d, v) for d, v in _closes_of(st, "yfinance.mkt_vix", now) if d >= five]
+    vix_hist = [v for _, v in vix_pts]
     vix = vix_hist[-1] if vix_hist else None
     rows, data = [], {}
     if vix is not None:
         pct = derived.percentile_of(vix_hist, vix) if len(vix_hist) > 20 else None
         rows.append(["VIX", f"{vix:.2f}",
                      f"{na_ordinal(pct)} percentile, five years" if pct is not None else "—",
-                     wk("yfinance.mkt_vix")])
+                     wk("yfinance.mkt_vix"), vix_pts[-1][0]])
         data["vix"] = vix
         data["vix_percentile_5y"] = None if pct is None else round(pct)
     vts = (wis or {}).get("vol_term_structure") or {}
     pub = vts.get(vts.get("published_by") or "") or {}
     if pub.get("ratio") is not None:
         rows.append(["VIX3M over VIX (term structure, published)",
-                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—"), "—"])
+                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—"), "—", "—"])
     rv = st.latest_as_of("calc.vol_spy_realized_20d", now)
     rvv = rv.get("value_num") if rv else None
     if rvv is not None and rvv < 3:
@@ -1360,20 +1375,33 @@ def volatility(st, now: str, wis: Optional[dict] = None,
     if rvv is not None and vix is not None:
         rows.append(["SPY 20-day realized against the VIX", f"{rvv:.1f} vs {vix:.1f}",
                      f"implied {'above' if vix > rvv else 'below'} realized by "
-                     f"{abs(vix - rvv):.1f} points", wk("calc.vol_spy_realized_20d", True)])
+                     f"{abs(vix - rvv):.1f} points", wk("calc.vol_spy_realized_20d", True),
+                     str(rv["observed_at"])[:10]])
         data["implied_daily_move_pct"] = round(vix / 252 ** 0.5, 2)
         data["realized_daily_move_pct"] = round(rvv / 252 ** 0.5, 2)
         rows.append(["Daily move priced, and realized",
                      f"{data['implied_daily_move_pct']:.2f}% priced",
-                     f"{data['realized_daily_move_pct']:.2f}% realized", "—"])
+                     f"{data['realized_daily_move_pct']:.2f}% realized", "—", "—"])
     for key, name in (("yfinance.mkt_move", "MOVE (Treasury volatility)"),
                       ("yfinance.mkt_skew", "SKEW (tail-risk pricing)")):
+        # weekly-fixes-7 item 12: Context is the percentile, as the VIX's is;
+        # the as-of date has its own column (dry run 7 printed a date there).
         a = st.latest_as_of(key, now)
+        hist = [v for d, v in _closes_of(st, key, now) if d >= five]
+        pc = (derived.percentile_of(hist, a["value_num"])
+              if a and a.get("value_num") is not None and len(hist) > 20 else None)
         rows.append([name, f"{a['value_num']:.1f}" if a else "—",
-                     str(a["observed_at"])[:10] if a else "not yet stored", wk(key)])
+                     (f"{na_ordinal(pc)} percentile, five years" if pc is not None
+                      else "—") if a else "not yet stored", wk(key),
+                     str(a["observed_at"])[:10] if a else "—"])
+        if pc is not None:
+            data[f"{key.rsplit('_', 1)[-1]}_percentile_5y"] = round(pc)
     cols = ["Measure", "Level", "Context"] + ([Period.of("weekly").col] if then else [])
+    # The as-of column is last whatever the period column does.
+    rows = [r[:len(cols)] + [r[-1]] for r in rows]
+    cols = cols + ["As of"]
     return {"title": "Volatility",
-            "table": {"columns": cols, "rows": [r[:len(cols)] for r in rows[:6]]},
+            "table": {"columns": cols, "rows": rows[:6]},
             "data": data}
 
 
@@ -1567,8 +1595,69 @@ def earnings_block(st, ending: str, now: str, then: str,
         data.append({"symbol": sym, "eps": eps, "eps_estimate": est, "verdict": verdict,
                      "reaction_pct": react, "date": d})
     w = Period.of(cadence)
+    table = {"columns": ["Name", "EPS against consensus", "Verdict", "Revenue",
+                         "Next day", "Reported"], "rows": rows}
+    # weekly-fixes-7 item 12: one footnote, blank cells, for the repeated gap.
+    notes = rd.fold_repeated_gaps(table, {"revenue not stored": (
+        "Revenue: blank where it is not stored -- the earnings source carries the "
+        "reported EPS, not revenue.")})
     return {"title": f"Earnings {w.this}",
-            "table": {"columns": ["Name", "EPS against consensus", "Verdict", "Revenue",
-                                  "Next day", "Reported"], "rows": rows},
+            "table": table,
             "lines": [] if rows else [f"No universe name reported {w.this}."],
+            **({"table_note": " ".join(notes)} if notes else {}),
             "data": data}
+
+
+# ---------------------------------------------------------------------------
+# weekly-fixes-7 (dry run 7's faults, 17 Oct 2026)
+# ---------------------------------------------------------------------------
+def money_bn_signed(v: float, places: int = 2) -> str:
+    """A signed dollar figure in billions, "+$205.62bn" / "−$0.34bn". The value
+    is rounded BEFORE the sign is taken, so a figure that rounds to zero prints
+    "$0.00bn", never "−$0.00bn" (item 12, the signed-zero rule)."""
+    x = round(v / 1e9, places)
+    if x == 0:
+        return f"${0:.{places}f}bn"
+    return f"{'+' if x > 0 else '−'}${abs(x):,.{places}f}bn"
+
+
+def dealer_bounds(net_gex: float | None, dex: float | None, total_oi: float,
+                  spot: float) -> list[str]:
+    """ITEM 1's BOUNDS, in the units the series are stored in (dollars). With
+    |delta| <= 1, |DEX| <= sum of OI x 100 x spot; and net GEX per 1% in shares
+    (net_gex x 0.01 / spot x spot = net_gex x 0.01) is held to the paste's
+    bound, sum of OI x 100 x spot x 0.01, i.e. |net_gex| <= sum OI x 100 x spot.
+    A figure past its bound is in the wrong units (dry run 7 printed dollars
+    labelled shares: 205bn against a share bound near 2bn)."""
+    cap = abs(total_oi) * 100 * spot
+    out = []
+    if dex is not None and abs(dex) > cap:
+        out.append(f"|DEX| {abs(dex):,.0f} above sum(OI) x 100 x spot {cap:,.0f}")
+    if net_gex is not None and abs(net_gex) * 0.01 > cap * 0.01:
+        out.append(f"|net GEX per 1%| {abs(net_gex) * 0.01:,.0f} above "
+                   f"sum(OI) x 100 x spot x 0.01 {cap * 0.01:,.0f}")
+    return out
+
+
+def dedupe_attributions(attrs: list[dict]) -> list[dict]:
+    """ITEM 2: an attribution is stored once per story it supports, so the same
+    quote reached the read's "Also this week" once per story (dry run 7: six
+    bullets, three items). One bullet per (url, claim text), the first kept."""
+    seen, out = set(), []
+    for a in attrs:
+        k = (str(a.get("source_url") or "").strip(),
+             " ".join(str(a.get("claim") or "").split()).lower())
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(a)
+    return out
+
+
+def watch_sessions(c: dict, dates: Optional[dict]) -> Optional[int]:
+    """Item 4: the age Watching prints -- section 4's (`gap_table`'s) sessions
+    count for the gap where the stored objects give one, else the object's own
+    persistence_days (the gap table's own fallback)."""
+    d = (dates or {}).get(c.get("id")) or {}
+    return d.get("sessions") or c.get("persistence_days")
+

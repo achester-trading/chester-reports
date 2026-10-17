@@ -629,6 +629,8 @@ def _pct(p: Optional[float]) -> str:
 def _pts(v: Optional[float]) -> Optional[str]:
     if v is None:
         return None
+    if not round(v, 1):
+        return "0.0"                        # weekly-fixes-7 item 12: no "−0.0"
     sign = "+" if v > 0 else ("−" if v < 0 else "")
     return f"{sign}{abs(v):.1f}"
 
@@ -741,15 +743,23 @@ def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
         w = wcfg.get(wid) or {}
         name = str(w.get("label") or wid)
         name = name[0].upper() + name[1:]
+        # weekly-fixes-7 item 5: a resolved question prints "resolved" with its
+        # outcome where the market gives one, else drops from the table.
+        wrows = [r for r in wrows if not r.get("resolved")
+                 or r["resolved"].get("outcome")]
+        if not wrows:
+            continue
         picked = side_rows(wrows, w)
         if w.get("compare") is False:
             for v, r in sorted(picked.items()):
                 q = str(r.get("question") or "")
                 q = q if len(q) <= 70 else q[:69].rsplit(" ", 1)[0] + "…"
+                res = r.get("resolved")
+                cell = (f"resolved: {res['outcome']}" if res else _pct(r["probability"]))
                 rows.append([f"{name}: \"{q}\"",
-                             _pct(r["probability"]) if v == "kalshi" else "—",
-                             _pct(r["probability"]) if v == "polymarket" else "—",
-                             _change_cell({v: r.get(key)}),
+                             cell if v == "kalshi" else "—",
+                             cell if v == "polymarket" else "—",
+                             "—" if res else _change_cell({v: r.get(key)}),
                              _pm_note([r])])
                 contracts += _contracts(rows[-1][0], {v: r.get(key)})
             continue
@@ -796,6 +806,11 @@ PRINT_CSS = """
                    color: #6b7785; } }
 body { margin: 0; }
 figure, img, svg { break-inside: avoid; page-break-inside: avoid; }
+/* weekly-fixes-7 item 13: no chart is taller than about a third of the page, so a
+   figure fits the rest of a page far more often and none forces a half-blank one;
+   the pair table prints whole. */
+figure img { max-height: 95mm; width: auto !important; max-width: 100%; }
+table.chart-pair { break-inside: avoid; page-break-inside: avoid; }
 tr { break-inside: avoid; page-break-inside: avoid; }
 h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
 div { max-width: none !important; }
@@ -830,3 +845,114 @@ def pdf_bytes(html: str, inline_images: Optional[list] = None
         return None, (f"PDF is {len(pdf):,} bytes, over the {PDF_MAX_BYTES:,}-byte "
                       f"limit; not attached")
     return pdf, f"{len(pdf):,} bytes"
+
+
+# ---------------------------------------------------------------------------
+# weekly-fixes-7 item 11: NO INTERNAL NAMES IN THE READER'S EDITION. Dry run 7
+# printed a module path and a branch ("altdata/sources/ecb_irs.py, branch
+# aq-3-series-2"), two more module paths, a symbol string ("EURCHF=X from the
+# next run") and a Python exception ("HTTPError: HTTP Error 404: Not Found"). The
+# rule: a "not yet stored" line names the SOURCE and the DATE it starts, never a
+# file path, a branch, an exception or a symbol string. The archive line keeps
+# its path (the operator's), and the footer's run id prints to the second.
+# ---------------------------------------------------------------------------
+_INTERNAL = (
+    ("a file path", re.compile(r"(?<![\w.])(?:[\w-]+/)*[\w-]+\.(?:py|sh|ya?ml)\b")),
+    ("a branch", re.compile(r"\bbranch [\w.-]*\d[\w.-]*|\b[a-z]+(?:-[a-z0-9]+)+-\d+\b")),
+    ("a Python exception", re.compile(r"\b[A-Z][A-Za-z]*(?:Error|Exception)\b"
+                                      r"|\bTraceback\b|\bHTTP Error \d{3}\b")),
+    ("a symbol string", re.compile(r"(?<![\w])(?:[A-Z]{3,8}=X|[A-Z]{1,3}=F|\^[A-Z]{2,6})"
+                                   r"(?![\w])")),
+)
+
+
+def internal_name_faults(text: str) -> list[str]:
+    """Item 11's audit: each internal name in a reader-facing line."""
+    out = []
+    for what, rx in _INTERNAL:
+        for m in rx.finditer(str(text or "")):
+            out.append(f"{what}: {m.group(0)!r} in '{str(text)[:90]}'")
+    return out
+
+
+def reader_safe(text: str) -> str:
+    """The renderer's safety net for a not-yet-stored or not-tracked line built
+    from a stored reason (a feed's STALE text can carry an exception): an
+    exception becomes "the last read failed", and a parenthesis or clause naming
+    a file path or a branch is dropped. The lines this module's sections write
+    are already in the source-and-date form; this catches the rest."""
+    s = str(text or "")
+    s = re.sub(r"\b[A-Z][A-Za-z]*(?:Error|Exception)\b(?::[^;)]*)?",
+               "the last read failed", s)
+    s = re.sub(r"\s*\([^()]*(?:\.py\b|\bbranch )[^()]*\)", "", s)
+    s = re.sub(r"(?<![\w.])(?:[\w-]+/)+[\w-]+\.(?:py|sh|ya?ml)\b", "its writer", s)
+    s = re.sub(r",?\s*\bbranch [\w.-]+", "", s)
+    return s
+
+
+def next_pull_day(now: str) -> str:
+    """The date a not-yet-stored series' daily writer next runs: the first NYSE
+    session after the edition's as-of date ("20 Oct")."""
+    from altdata import session                                 # noqa: PLC0415
+    d = dt.date.fromisoformat(str(now)[:10])
+    for _ in range(10):
+        d += dt.timedelta(days=1)
+        try:
+            ok = session.is_trading_session(d)
+        except Exception:                                       # noqa: BLE001
+            ok = d.weekday() < 5
+        if ok:
+            break
+    return f"{d.day} {d:%b}"
+
+
+def starts_line(source: str, now: str) -> str:
+    """'<source>, from <date>' -- the parenthesis a not-yet-stored line carries."""
+    return f"{source}, from {next_pull_day(now)}"
+
+
+def fold_repeated_gaps(table: Optional[dict], phrases: dict) -> list[str]:
+    """weekly-fixes-7 item 12, THE FOOTNOTE RULE: a gap phrase printed in two or
+    more cells of a table ("revenue not stored" eight times, "release time not
+    captured" five) becomes ONE footnote and the cells go blank. A cell that is
+    the phrase alone blanks; a cell carrying the phrase after other text (Ahead's
+    "Mon 19 Oct, release time not captured") keeps the text before it. Returns
+    the footnotes, one per phrase that repeated; the table is edited in place."""
+    if not table or not table.get("rows"):
+        return []
+    notes = []
+    for phrase, note in phrases.items():
+        hits = [(i, j) for i, r in enumerate(table["rows"]) for j, c in enumerate(r)
+                if isinstance(c, str) and c.strip().endswith(phrase)]
+        if len(hits) < 2:
+            continue
+        for i, j in hits:
+            c = table["rows"][i][j]
+            table["rows"][i][j] = c[: len(c.rstrip()) - len(phrase)].rstrip(" ,;:")
+        notes.append(note)
+    return notes
+
+
+# weekly-fixes-7 item 14: A REFERENCE TABLE WHOSE EVERY CELL IS A GAP prints as one
+# line. Dry run 7 printed the crypto basket's two tables with every row "not
+# stored"; the rule holds for any reference table.
+GAP_CELLS = frozenset({"", "—", "-", "n/a", "not stored", "not measured",
+                       "not yet stored", "no prior print", "not yet", "no prior"})
+
+
+def is_gap_table(t: Optional[dict]) -> bool:
+    """Every cell after the row's name is a gap (the first column names the row)."""
+    rows = (t or {}).get("rows") or []
+    return bool(rows) and all(str(c).strip().lower() in GAP_CELLS
+                              for r in rows for c in list(r)[1:])
+
+
+def collapse_gap_detail(d: dict, line: Optional[str] = None) -> dict:
+    """A detail block whose every table is all gaps becomes its title and one
+    line; anything else passes through unchanged."""
+    tabs = [x for x in [d.get("table")] + list(d.get("tables") or []) if x]
+    if not tabs or not all(is_gap_table(t) for t in tabs):
+        return d
+    out = {k: v for k, v in d.items() if k not in ("table", "tables")}
+    out["lines"] = [line or f"{d.get('title')}: not stored."] + list(d.get("lines") or [])
+    return out

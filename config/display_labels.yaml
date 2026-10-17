@@ -182,6 +182,8 @@ glossary:
   # tools/validate_stack_cadence.py holds these sentences to those values.
   - term: "Slow layers"
     text: "the Monthly's eleventh section: valuation, base rates, tail risks and the long-running themes — the readings that move over months, printed as levels and frequencies, never as signals."
+  - term: "net GEX, DEX"
+    text: "the dealer book's gamma and delta in dollars, under the dealer-short-options convention. Net GEX is the dollars of delta the hedge changes by for a $1 move in SPY (one hundredth of it is shares per 1% move); DEX is the delta notional the hedge holds against. Both print in $bn."
   - term: "pinned, held, amplified"
     text: "a session's dealer flags, computed from the stored close and never judged: pinned, SPY closed within 0.25% of max pain; held, the session's high came within 0.25% of the morning's call wall (or its low of the put wall) and the close stayed inside it; amplified, price crossed the morning's gamma flip and the session's range was at least 1.2 times the one-day range implied by volatility. A flag is left blank when an input is missing, never guessed."
   - term: "IV check"

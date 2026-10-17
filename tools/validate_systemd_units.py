@@ -92,6 +92,10 @@ KNOWN: dict[str, tuple[set[str], set[str] | None]] = {
     "ProtectKernelTunables":  ({"Service"}, BOOL),
     "ProtectControlGroups":   ({"Service"}, BOOL),
     "RestrictSUIDSGID":       ({"Service"}, BOOL),
+    # AUD-2 item 3: the cgroup memory caps, and item 2: the OOM killer's order.
+    "MemoryHigh":             ({"Service"}, None),
+    "MemoryMax":              ({"Service"}, None),
+    "OOMScoreAdjust":         ({"Service"}, None),
 
     # [Timer]
     "OnCalendar":             ({"Timer"}, None),

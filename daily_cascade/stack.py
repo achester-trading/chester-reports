@@ -64,7 +64,9 @@ def _signed(v: Optional[float], unit: str) -> str:
         return "n/a"
     # Basis points whole (T2.1): a 0.4 bp move is noise printed as precision.
     mag = f"{abs(v):,.2f}" if unit == "%" else f"{abs(v):,.0f}"
-    sign = "+" if v > 0 else ("−" if v < 0 else "")
+    # weekly-fixes-7 item 12: the sign is the ROUNDED figure's, so -0.4 bp
+    # prints "0 bp", never "−0 bp" (the signed-zero rule).
+    sign = "" if not float(mag.replace(",", "")) else ("+" if v > 0 else ("−" if v < 0 else ""))
     return f"{sign}{mag}{'%' if unit == '%' else ' bp'}"
 
 
@@ -114,7 +116,15 @@ def _change(x: dict) -> str:
         return _signed(c, "bp")
     if x["unit"] == "%":
         return _signed(c, "%")
-    return x.get("change_display") or f"{c:+,.0f}"
+    if x.get("change_display"):
+        return x["change_display"]
+    # weekly-fixes-7 item 12: a raw change below one keeps two places (short
+    # interest's days to cover moved −0.12, which printed "−0"); one that rounds
+    # to zero there too is "unch", never a signed zero.
+    dp = 0 if abs(c) >= 1 else 2
+    if round(c, dp) == 0:
+        return "unch"
+    return f"{'+' if c > 0 else '−'}{abs(c):,.{dp}f}"
 
 
 # ---------------------------------------------------------------------------
