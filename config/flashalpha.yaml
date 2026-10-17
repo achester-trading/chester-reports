@@ -5,8 +5,10 @@
 version: flashalpha-writer-v1
 
 # The symbols the engine covers and the vendor is asked about. SESSION-SET: the
-# three the close's Mechanics prints (SPY in full, QQQ and IWM one line each).
-symbols: [SPY, QQQ, IWM]
+# three the close's Mechanics prints (SPY in full, QQQ and IWM one line each), and
+# MSTR, which the MSTR/MSCI event watch (Batch 8 section 5; filing note 7) reads
+# from the store from this writer's first run.
+symbols: [SPY, QQQ, IWM, MSTR]
 
 # The endpoints. The levels path is the one tools/cross_check.py has read since 4
 # Sep (Basic tier). The GEX path is tools/probe_flashalpha.py's registered path;
@@ -24,7 +26,7 @@ field_names:
   net_chex: [net_chex, netChex, chex_total, total_chex, chex]
 
 # THE QUOTA. SESSION-SET: 30 calls a day for the box. The Basic plan allows 250
-# a day, shared with the chat-side audits; two calls a symbol is six a day, so 30
+# a day, shared with the chat-side audits; two calls a symbol is eight a day, so 30
 # leaves room for a rerun and never crowds the chat.
 daily_call_budget: 30
 

@@ -170,9 +170,9 @@ def group_c() -> None:
                       quota_path=TD / "q.json")
         from altdata import session as _s  # noqa: PLC0415
         stored = fa.stored(st, _s.utc_iso(), "SPY")
-    check(out["status"] == "OK" and out["calls"] == 6 and out["written"] == 21
+    check(out["status"] == "OK" and out["calls"] == 8 and out["written"] == 28
           and all(k for _, k in calls) and stored["gex"] == 4.1e8,
-          "a run: two calls a symbol for SPY, QQQ and IWM, 21 rows, read back")
+          "a run: two calls a symbol for SPY, QQQ, IWM and MSTR, 28 rows, read back")
     tight = dict(cfg, daily_call_budget=3)
     with observations.ObservationStore(str(TD / "v2.db")) as st:
         out2 = fa.pull(db=st, get=fake_get, cfg=tight, day="2026-10-16",
