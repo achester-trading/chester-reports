@@ -243,13 +243,32 @@ def bare_figure_sentence(s: str) -> bool:
     return not any(re.search(rf"\b{w}\b", s, re.I) for w in COMPARISON_WORDS)
 
 
-def filler_faults(text: str, names: Optional[list] = None) -> list[str]:
+# CODE-WRITTEN TAGGED LINES ARE EXEMPT (post-Friday fix 1, ruled 16 Oct 2026).
+# A line a block's code writes and closes on the descriptive tag -- SR-43/49's
+# anchors line: "... ACM term premium 1.03% (as of 2026-10-09). (descriptive;
+# unvalidated, n=0)" -- is a table row in sentence form, not prose: its figures
+# are computed and printed by code, and the tag alone read as a bare figure.
+# The exemption needs both: the caller says the line is code-written, and the
+# line ends on the tag. A model's paragraph is never exempt, tag or no tag.
+CODE_TAG = re.compile(r"\(descriptive; unvalidated, n=\d+\)\.?\s*$")
+
+
+def code_tagged(text: str) -> bool:
+    return bool(CODE_TAG.search(text or ""))
+
+
+def filler_faults(text: str, names: Optional[list] = None,
+                  code_written: bool = False) -> list[str]:
     """Withhold a paragraph with a filler sentence: "also/all moved(ing)",
     "moved alongside", "moved through the week" -- or three or more of the
     frame's series names joined by commas with no figure among them. The fault
-    quotes the sentence, so the retry names it."""
+    quotes the sentence, so the retry names it. A code-written line ending on
+    the descriptive tag is exempt (`code_written=True`, CODE_TAG)."""
+    if code_written and code_tagged(text):
+        return []
     out = []
-    for s in _sentences(text):
+    ss = _sentences(text)
+    for i, s in enumerate(ss):
         if FILLER_MOVED.search(s):
             out.append(f"filler sentence: '{s[:160]}'")
             continue
@@ -258,6 +277,15 @@ def filler_faults(text: str, names: Optional[list] = None) -> list[str]:
                        f"'{s[:160]}'")
             continue
         if readability.figures(s):
+            continue
+        # THE TAKEAWAY NAMES SERIES AS A READING (dry run 7, 17 Oct 2026). The
+        # opener rule bars any figure from the Takeaway, so a Takeaway that names
+        # the series it reads ("a rotation this wide, from Technology into
+        # Utilities, Energy and Financials, ...") cannot carry one itself. It
+        # passes the list check when the paragraph's other sentences carry
+        # figures; a body sentence is read alone, as before.
+        if opener_mod.is_takeaway(s) and any(
+                readability.figures(x) for j, x in enumerate(ss) if j != i):
             continue
         hits = [n for n in names or []
                 if any(re.search(rf"(?<![\w-]){re.escape(f)}(?![\w-])", s, re.I)

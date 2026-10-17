@@ -1768,8 +1768,9 @@ def gold_two_bid(metals: dict, st, now: str) -> dict:
     sym = str(c.get("gold_symbol") or "GLD")
     legs = [(pb.oi_key(sym), f"{sym} net call-put open interest (contracts)", 0),
             (pb.rr_key(sym), f"{sym} 25-delta risk reversal, 30 days (vol points)", 2),
-            ((c.get("official") or {}).get("key") or "safe.gold_reserves_oz",
-             "China's reported gold holdings (troy ounces)", 0)]
+            ((c.get("official") or {}).get("key") or pb.OFFICIAL_KEY,
+             (c.get("official") or {}).get("row_label")
+             or "Central banks' net gold purchases, IMF IFS (troy ounces)", 0)]
     leg_data = {}
     for key, lab, dp in legs:
         t = att.triple(st, key, now)

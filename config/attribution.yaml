@@ -127,18 +127,25 @@ yields_up_dollar_down:
 #                    25-delta IVs interpolated in delta between the strikes
 #                    either side, the 30-day figure linear in days between the
 #                    two expiries bracketing it, the nearest where none does
-# The official bid reads China's reported holdings (safe.gold_reserves_oz) now;
-# the IMF IFS series is not_yet_sourced (a ruling is pending; no writer here).
+# The official bid reads the IMF IFS writer's aggregate (post-Friday fix 2, ruled
+# 16 Oct 2026): central banks' net gold purchases, ounces, summed across the
+# configured countries that reported the month and the one before
+# (imf.ifs.gold_net_purchases_oz.total, altdata/sources/imf_ifs.py), read with
+# how many countries the sum covers. It replaces China's reported holdings
+# (safe.gold_reserves_oz), which stay China's own line and the IFS cross-check.
+# kind: flow -- the official change over `official_months` is the SUM of those
+# months' net purchases; kind: level would difference a holding instead.
 # GLD's tonnage (ETF holdings) is a feeds-writer item for a later order.
 # ---------------------------------------------------------------------------
 two_bid:
   rr_target_days: 30
   rr_min_dte: 7
   official:
-    key: safe.gold_reserves_oz
-    label: "China's official gold holdings (SAFE)"
-    not_yet_sourced:
-      - {key: imf.ifs_official_gold_oz, label: "Official gold holdings by country (IMF IFS)", why: "a ruling on the source is pending"}
+    key: imf.ifs.gold_net_purchases_oz.total
+    kind: flow
+    count_key: imf.ifs.gold_net_purchases_count.total
+    label: "central banks' net gold purchases (IMF IFS)"
+    row_label: "Central banks' net gold purchases, IMF IFS (troy ounces)"
   # The states print only when both legs hold `min_history_months` of history;
   # until then the block says which leg is waiting.
   min_history_months: 12
