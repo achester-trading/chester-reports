@@ -1287,6 +1287,20 @@ def book_section(p: dict) -> dict:
                   rows)]
     items[0]["show"] = False
     lines, ids = [], ["our_read:prose"]
+    # EL-3 (§3.3): ONE LINE BESIDE THE BOOKS, "vs cash / SPY / 60-40", read from
+    # Book Z's stored marks (the close pass writes them; nothing is computed
+    # here). Books A-D have no paper-equity ledger of their own yet, so the line
+    # is the paper account's against the three ledgers, and each book's own
+    # figure says not yet sourced in the register's detail table.
+    bz = rm.get("books_vs_benchmark") or {}
+    bzl = bz.get("book_line") or bz.get("line")
+    why = (bz.get("book_line_absent_reason") or bz.get("absent_reason")
+           or bz.get("fault") or "not read")
+    zsub = {"title": "Against Book Z",
+            "lines": [f"Against Book Z, {bzl}." if bzl else f"Book Z absent: {why}."]}
+    if bzl:
+        items.append(item("book:z", f"Against Book Z, {bzl}.", 2, bzl))
+        items[-1]["show"] = False
     if r.get("state") == "ok" and r.get("paragraph"):
         lines.append(f"The bound, restated from the weights and the positions: "
                      f"{r['paragraph']}")
@@ -1295,12 +1309,14 @@ def book_section(p: dict) -> dict:
         items[-1]["show"] = False
     return {"items": items, "print_items": False,
             "table": {"columns": ["The register", "This month"], "rows": rows},
-            "subsections": [{"title": "Where our read lands", "lines": lines}],
+            "subsections": [{"title": "Where our read lands", "lines": lines},
+                            zsub],
             "not_tracked": ([] if r.get("state") == "ok" else
                             [f"where our read lands: {r.get('reason')}"]),
             "phase_a": ids,
             "data": {"register": rows, "live_weights": r.get("live_weights"),
-                     "active_decisions": r.get("active_decisions")}}
+                     "active_decisions": r.get("active_decisions"),
+                     "book_z": bzl}}
 
 
 # ---------------------------------------------------------------------------
@@ -1852,8 +1868,9 @@ def gold_two_bid(metals: dict, st, now: str) -> dict:
     sym = str(c.get("gold_symbol") or "GLD")
     legs = [(pb.oi_key(sym), f"{sym} net call-put open interest (contracts)", 0),
             (pb.rr_key(sym), f"{sym} 25-delta risk reversal, 30 days (vol points)", 2),
-            ((c.get("official") or {}).get("key") or "safe.gold_reserves_oz",
-             "China's reported gold holdings (troy ounces)", 0)]
+            ((c.get("official") or {}).get("key") or pb.OFFICIAL_KEY,
+             (c.get("official") or {}).get("row_label")
+             or "Central banks' net gold purchases, IMF IFS (troy ounces)", 0)]
     leg_data = {}
     for key, lab, dp in legs:
         t = att.triple(st, key, now)
