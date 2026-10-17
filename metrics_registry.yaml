@@ -5962,6 +5962,2544 @@ metrics:
       (imf.ifs.gold_net_purchases_oz.total) cover.
 
   # -------------------------------------------------------------------------
+  # THE EM VULNERABILITY SCORECARD (AQ-9a, 11 Oct 2026; config/em_scorecard.yaml,
+  # altdata/em_scorecard.py). Inputs from IMF WEO (every edition its own vintage),
+  # IMF IL / ITG / CPI, the BIS policy-rate table and the World Bank's QEDS; the
+  # derived lenses from the stored inputs (altdata/sources/em_lenses.py, available
+  # at the latest input's instant). A table of lenses, never a composite: every
+  # entry trigger_eligible false (section 26.8).
+  # -------------------------------------------------------------------------
+  em.weo.ca_gdp.chn:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.twn:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.ind:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.kor:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.bra:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.sau:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.zaf:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.mex:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.are:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      United Arab Emirates: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.mys:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.idn:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.pol:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.ca_gdp.tha:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: current account balance, % of GDP (IMF WEO BCA_NGDPD), annual; each WEO edition its own vintage at its publication instant; projections not stored. EM scorecard lens (trigger_eligible false; never a composite).
+  em.weo.fiscal_gdp.chn:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.twn:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.ind:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.kor:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.bra:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.sau:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.zaf:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.mex:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.are:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      United Arab Emirates: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.mys:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.idn:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.pol:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.fiscal_gdp.tha:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: general government net lending/borrowing, % of GDP (IMF WEO GGXCNL_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.chn:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.twn:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.ind:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.kor:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.bra:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.sau:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.zaf:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.mex:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.are:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      United Arab Emirates: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.mys:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.idn:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.pol:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.debt_gdp.tha:
+    source: imf_weo
+    mechanism_group: macro_sovereign
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: general government gross debt, % of GDP (IMF WEO GGXWDG_NGDP), annual, vintaged by edition. EM scorecard lens.
+  em.weo.gdp_usd.chn:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.twn:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.ind:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.kor:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.bra:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.sau:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.zaf:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.mex:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.are:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      United Arab Emirates: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.mys:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.idn:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.pol:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.weo.gdp_usd.tha:
+    source: imf_weo
+    mechanism_group: external_position
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: GDP, current US dollars (IMF WEO NGDPD, served in dollars), annual, vintaged by edition -- the external-debt lens's denominator.
+  em.ifs.reserves_usd.chn:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.twn:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.ind:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.kor:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.bra:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.sau:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.zaf:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.mex:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.are:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      United Arab Emirates: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.mys:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.idn:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.pol:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.ifs.reserves_usd.tha:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: total official reserves, gold at market value, US dollars, month-end (IMF IL TRGMV_REVS). The EM scorecard's reserves numerator.
+  em.itg.imports_usd.chn:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.twn:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.ind:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.kor:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.bra:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.sau:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.mex:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.mys:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.idn:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.pol:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.itg.imports_usd.tha:
+    source: imf_em
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: goods imports, CIF, US dollars, the month (IMF ITG MG). The months-of-imports lens's denominator (trailing twelve months).
+  em.cpi.yoy.chn:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.ind:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.kor:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.bra:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.sau:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.zaf:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.mex:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.are:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      United Arab Emirates: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.mys:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.idn:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.pol:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.cpi.yoy.tha:
+    source: imf_em
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: headline CPI inflation, % year on year (IMF CPI, COICOP total). Input of the real-policy-rate and inflation-gap lenses.
+  em.bis.policy_rate.chn:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.ind:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.kor:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.bra:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.sau:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.zaf:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.mex:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.mys:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.idn:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.pol:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.bis.policy_rate.tha:
+    source: bis_cbpol
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: the central-bank policy rate, percent, month-end (BIS WS_CBPOL; definition breaks as the BIS documents them). The real-policy-rate lens's first term.
+  em.qeds.ext_debt_usd.chn:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.ind:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.kor:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.bra:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.sau:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.zaf:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.mex:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.mys:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.idn:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.pol:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.ext_debt_usd.tha:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: gross external debt position, all sectors, all maturities (DT.DOD.DECT.CD.AR.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.chn:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.ind:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.kor:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.bra:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.sau:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.zaf:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.mex:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.mys:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.idn:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.pol:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.qeds.st_debt_usd.tha:
+    source: wb_qeds
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: short-term gross external debt, all sectors, original maturity (DT.DOD.DSTC.CD.US), US dollars, quarter-end (World Bank QEDS, SDDS).
+  em.lens.reserves_import_months.chn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.twn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Taiwan: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.ind:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.kor:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.bra:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.sau:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.mex:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.mys:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.idn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.pol:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_import_months.tha:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: total reserves over the trailing twelve months' average goods imports, months (IL over ITG). EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.chn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.ind:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.kor:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.bra:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.sau:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.zaf:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.mex:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.mys:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.idn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.pol:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.reserves_st_debt.tha:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: total reserves over short-term external debt, times (IL over QEDS), quarter-end. EM scorecard lens; lower is more vulnerable.
+  em.lens.ext_debt_gdp.chn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.ind:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.kor:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.bra:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.sau:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.zaf:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.mex:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.mys:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.idn:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.pol:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.ext_debt_gdp.tha:
+    source: em_lenses
+    mechanism_group: external_position
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: gross external debt over GDP in US dollars, percent (QEDS over WEO; the quarter's year, else the latest full year). EM scorecard lens; higher is more vulnerable.
+  em.lens.real_policy_rate.chn:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.ind:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.kor:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.bra:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.sau:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Saudi Arabia: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.zaf:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.mex:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.mys:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Malaysia: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.idn:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.pol:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.real_policy_rate.tha:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: the BIS policy rate less CPI inflation year on year, points, month-end. EM scorecard lens; lower is more vulnerable (session-set).
+  em.lens.inflation_gap.chn:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      China: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.ind:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      India: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.kor:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Korea: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.bra:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Brazil: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.zaf:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      South Africa: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.mex:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Mexico: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.idn:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Indonesia: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.pol:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Poland: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+  em.lens.inflation_gap.tha:
+    source: em_lenses
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-11"
+    description: >-
+      Thailand: CPI inflation year on year less the configured target (config/em_scorecard.yaml; today's target over the whole history), points. EM scorecard lens; higher is more vulnerable.
+
+  # -------------------------------------------------------------------------
   # REFERENCE LIBRARIES (ST-2). Each edition's own vintage is logged under
   # reference.file_vintage (instrument = the library).
   # -------------------------------------------------------------------------

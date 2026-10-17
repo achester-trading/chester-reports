@@ -1286,6 +1286,101 @@ sources:
         China's primary stays SAFE (safe.gold_reserves_oz); IL is its
         cross-check.
 
+  imf_weo:
+    name: IMF World Economic Outlook (WEO), current edition and published vintages
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: semi-annual (April and October editions); annual data, the latest year an estimate
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each dataflow's own PUBLICATION_DATE / UPDATE_DATE (the later) is available_at, `observed`; every edition is stored as its own vintage, never an overwrite.
+    license: >-
+      Free reuse with attribution (IMF: 'Source: International Monetary Fund'; commercial reuse needs permission, copyright@imf.org; the IMF's terms prohibit bulk download by automated technology without explicit permission -- the writers make a few narrow API queries a day).
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/imf_weo.py
+    status: live
+    caveats:
+      - >-
+        Projections (to five years out) are not stored: a year is stored from its year-end.
+
+  imf_em:
+    name: IMF International Liquidity (IL) reserves, International Trade in Goods (ITG) imports and Consumer Price Index (CPI), for the EM scorecard
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: monthly; one to four months behind by country
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each response's own PUBLICATION_DATE / UPDATE_DATE (the later), `observed`; the ingest instant where absent.
+    license: >-
+      Free reuse with attribution (IMF: 'Source: International Monetary Fund'; commercial reuse needs permission, copyright@imf.org; the IMF's terms prohibit bulk download by automated technology without explicit permission -- the writers make a few narrow API queries a day).
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/imf_em.py
+    status: live
+    caveats:
+      - >-
+        ITG has no row for the UAE or South Africa and CPI none for Taiwan (11 Oct 2026); those lenses print not tracked with the candidate.
+
+  bis_cbpol:
+    name: BIS central-bank policy rates (WS_CBPOL)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: monthly, end of period; current to the prior month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The response's Last-Modified where sent (`observed`), else the ingest instant.
+    license: >-
+      BIS statistics: free reuse with attribution ('Source: BIS'), per the BIS terms of use.
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/bis_cbpol.py
+    status: live
+    caveats:
+      - >-
+        No row for Taiwan or the UAE (11 Oct 2026). Definition breaks are documented by the BIS in each series' COMPILATION field.
+
+  wb_qeds:
+    name: World Bank Quarterly External Debt Statistics (QEDS, SDDS; API source 22)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: quarterly; about one quarter behind (2026Q1 on 7 Aug 2026)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The response's `lastupdated` date, taken as the end of that day, `observed`, never later than now.
+    license: >-
+      World Bank data: CC BY 4.0.
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/wb_qeds.py
+    status: live
+    caveats:
+      - >-
+        No row for Taiwan (outside the World Bank's tables) or the UAE (11 Oct 2026).
+
+  em_lenses:
+    name: The EM scorecard's derived lenses (reserves cover, external debt, the real policy rate, inflation against target)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [emerging_markets, external_position]
+    geography: [emerging_markets]
+    latency: as its inputs
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is the latest of the inputs' (a ratio is knowable when its last number was).
+    license: >-
+      Derived from the sources above.
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/em_lenses.py
+    status: live
+    caveats:
+      - >-
+        Computed from the stored inputs only; a period missing an input has no row.
+
   ken_french:
     name: Kenneth R. French Data Library (Tuck, Dartmouth)
     tier: B

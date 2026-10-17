@@ -56,6 +56,7 @@ PY_VALIDATORS := \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \
 	tools/validate_official_sources.py \
+	tools/validate_em_scorecard.py \
 	tools/validate_imf_ifs.py \
 	tools/validate_narratives.py \
 	tools/validate_config_refs.py \
