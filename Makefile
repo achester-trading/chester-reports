@@ -88,6 +88,7 @@ PY_VALIDATORS := \
 	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
 	tools/validate_aq3_series.py \
+	tools/validate_basis_proxy.py \
 	tools/validate_correlation_layer.py \
 	tools/check_library.py \
 	tools/validate_gates.py
