@@ -205,3 +205,14 @@ The Weekly's and Monthly's builders are not touched on this branch.
 
 This branch's push, and the `crypto-tranche-a-2` fix (`7e55cda`), are each read
 once and recorded here.
+
+| Run | Branch | Commit | Result |
+|---|---|---|---|
+| 39038665381 (Gates, push) | `crypto-tranche-a-2` | `7e55cda` | **passed: 86 of 86 gate jobs** (80 code, 6 data) |
+| 39038761347 (Gates, push) | `digital-49-51b` | `c5ab776` | **passed: 86 of 86 gate jobs** (80 code, 6 data) |
+
+Read once each on 17 Oct; nothing failed, so nothing to fix. The crypto branch's
+notes carry the same row and the answer on the first derive's "stable impulse:
+computed 6368, written 0" (expected: the llama pull writes the impulse itself, so
+the basket's `derive` finds every row already stored and `drop_unchanged` drops
+them). This branch merged that notes commit (`12a6567`) so it stays a superset.
