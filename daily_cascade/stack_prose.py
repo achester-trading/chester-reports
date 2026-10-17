@@ -267,7 +267,8 @@ def filler_faults(text: str, names: Optional[list] = None,
     if code_written and code_tagged(text):
         return []
     out = []
-    for s in _sentences(text):
+    ss = _sentences(text)
+    for i, s in enumerate(ss):
         if FILLER_MOVED.search(s):
             out.append(f"filler sentence: '{s[:160]}'")
             continue
@@ -276,6 +277,15 @@ def filler_faults(text: str, names: Optional[list] = None,
                        f"'{s[:160]}'")
             continue
         if readability.figures(s):
+            continue
+        # THE TAKEAWAY NAMES SERIES AS A READING (dry run 7, 17 Oct 2026). The
+        # opener rule bars any figure from the Takeaway, so a Takeaway that names
+        # the series it reads ("a rotation this wide, from Technology into
+        # Utilities, Energy and Financials, ...") cannot carry one itself. It
+        # passes the list check when the paragraph's other sentences carry
+        # figures; a body sentence is read alone, as before.
+        if opener_mod.is_takeaway(s) and any(
+                readability.figures(x) for j, x in enumerate(ss) if j != i):
             continue
         hits = [n for n in names or []
                 if any(re.search(rf"(?<![\w-]){re.escape(f)}(?![\w-])", s, re.I)

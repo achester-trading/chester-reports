@@ -27,6 +27,13 @@ a paragraph that uses it, and the retry names the offending sentence.
      unvalidated, n=0)", which read as a bare figure. A code-written line ending
      on the tag is exempt; the same line from a model, an untagged code line,
      and a line with the tag mid-sentence are not.
+  G  THE TAKEAWAY'S READING (dry run 7, 17 Oct 2026). The Weekly's Positioning
+     was withheld for "filler list of 4 series with no figure: 'Takeaway: a
+     rotation this wide, from Te...'". The opener rule bars figures from the
+     Takeaway, so a Takeaway naming the series it reads passes the list check
+     when the paragraph's other sentences carry figures; alone it is withheld,
+     a body list with no figure is still withheld, and "also moved" in a
+     Takeaway is still filler.
 
     python tools/validate_no_filler.py
 """
@@ -183,6 +190,41 @@ def group_f() -> None:
           "a model's paragraph ending on the tag is not exempt")
 
 
+def group_g() -> None:
+    print(f"\n{LINE}\nG. THE TAKEAWAY'S READING (dry run 7)\n{LINE}")
+    from daily_cascade import opener
+    names = NAMES + ["Technology", "Utilities", "Energy", "Financials"]
+    take = ("Takeaway: a rotation this wide, from Technology into Utilities, Energy "
+            "and Financials, says the book is being rebuilt rather than trimmed.")
+    body = ("Asset managers cut their Technology length by 2.1% of open interest on the "
+            "week while adding 1.4% in Utilities, the widest one-week swing since "
+            "June. Energy and Financials each took about a third of the rest, and the "
+            "net equity length barely changed at 61% long. ")
+    para = body + take
+    check(bool(sp.filler_faults(take, names))
+          and "filler list of 4 series" in sp.filler_faults(take, names)[0],
+          "the shape reproduces: the Takeaway read alone is 'filler list of 4 series'")
+    check(not sp.filler_faults(para, names),
+          "the Takeaway naming four series, after a body carrying figures: passes")
+    cad = sp.cadence_of("weekly")
+    check(not [f for f in opener.faults(para, cad, "medium") if "Takeaway" in f],
+          "and the opener rule passes the same Takeaway (no figure in it): the two "
+          "rules no longer contradict")
+    bodyless = ("Positioning moved across the book this week, with no single leg "
+                "dominating the turn. " + take)
+    check(bool(sp.filler_faults(bodyless, names)),
+          "with no figure anywhere in the paragraph, the Takeaway is still withheld")
+    listy = ("Positioning shifted in Technology, Utilities, Energy and Financials. "
+             "Net length held at 61% long, against 58% a month ago. " + take)
+    f = sp.filler_faults(listy, names)
+    check(len(f) == 1 and "Positioning shifted" in f[0],
+          "a body sentence listing the series with no figure is still withheld, the "
+          "Takeaway is not")
+    moved = body + "Takeaway: Utilities, Energy and Financials all moved alongside it."
+    check(bool(sp.filler_faults(moved, names)),
+          "'all moved alongside' in a Takeaway is still filler")
+
+
 def main() -> int:
     print(f"{LINE}\nTHE FILLER AUDIT (W-1.1 item 1.0d)\n{LINE}")
     group_a()
@@ -191,6 +233,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

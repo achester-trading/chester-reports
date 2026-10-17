@@ -24,6 +24,36 @@ The Friday stitching notes (`docs/briefs/friday-stitching-notes.md`, "Should be 
 
 Batch 3's gate still checks only its own sub-sections, as the Friday stitching left it.
 
+## 1a. Dry run 7: the Takeaway's reading (follow-up, 17 Oct 2026)
+
+**What was withheld.** Dry run 7 of the Weekly (run id `weekly-20261017T112905`, week ending 2026-10-16, on main at `1148c66`) withheld Positioning with: "filler list of 4 series with no figure: 'Takeaway: a rotation this wide, from Te...'". The run's archive is on the box. The finding below is reasoned from the code, with a fixture that reproduces the sentence's shape.
+
+**The path.** `stack_prose.write` runs every Weekly section's draft through `filler_faults(text, filler_names(payload))` and `opener_mod.faults(text, cad, depth)`, together. Two rules met on one sentence:
+- **The opener rule** (W-1.3a item 3.0). On the Weekly (`cadences.weekly.opener`) the paragraph ends in exactly one sentence beginning "Takeaway", and that sentence **carries no figure**. A figure in it is withheld: "the Takeaway restates figures … it states the implication, with no figure".
+- **The filler list check** (W-1.1 item 1.0d). It reads each sentence alone, and withholds one that names three or more of the frame's series, with a comma, and no figure.
+
+A Takeaway that reads the week's rotation names the series it rotated between, and is forbidden to carry a figure. So it fails one rule or the other, whatever the body carries. The writer had no compliant way to write it.
+
+**The verdict: (a).** This is a Takeaway naming series as a reading, with the figures in the sentences around it. It is not a thin paragraph. The rule now allows it when the paragraph as a whole carries figures.
+
+**The amendment** (`daily_cascade/stack_prose.filler_faults`), beside the code-written-tagged-lines exemption:
+- A sentence that `opener.is_takeaway` recognises skips the series-list check when any other sentence of the paragraph carries a figure.
+- Everything else is unchanged:
+  - a body sentence is still read alone;
+  - a Takeaway in a paragraph with no figure anywhere is still withheld;
+  - "also/all moved" and the bare-figure rule still apply to a Takeaway.
+
+**The fixture**, group G of `tools/validate_no_filler.py`, uses this exact shape: "Takeaway: a rotation this wide, from Technology into Utilities, Energy and Financials, says …".
+- Read alone, it reproduces the withhold: "filler list of 4 series".
+- After a body carrying figures, it passes, and `opener.faults` passes the same Takeaway on the weekly cadence. The two rules no longer contradict.
+- With no figure anywhere in the paragraph, it is withheld.
+- A body sentence listing the four with no figure is still withheld, and the Takeaway is not.
+- "all moved alongside" in a Takeaway is still filler.
+
+`validate_no_filler` **32/0**.
+
+**The Weekly of 18 Oct** runs live at 05:00 ET on main as it is, so the same shape can be withheld again there. Withholding prints the section's tables without its paragraph, as designed. This fix merges Monday with post-friday-fixes unless Ari says otherwise.
+
 ## 2. AQ-8a's official gold leg reads the IMF IFS writer's series
 
 **Before.** The two-bid decomposition's official leg read China's reported holdings (`safe.gold_reserves_oz`), and `imf.ifs_official_gold_oz` sat registered `not_yet_sourced`, printed in the metals block's not-tracked list. Meanwhile `imf-ifs-gold`'s writer (`altdata/sources/imf_ifs.py`, live since Friday) writes the aggregate its own docstring names as this leg.
@@ -62,7 +92,7 @@ Ruled as set: `boj_decision` tier 2; `treasury_buyback`, `jgb_auction` and `week
 ## Gates
 
 Run locally, one at a time, only the two this branch changes:
-- `validate_no_filler` **26/0** (group F new);
+- `validate_no_filler` **26/0** (group F new), then **32/0** with group G (dry run 7);
 - `validate_attribution` **85/0**.
 
 Every other gate is left to CI.
