@@ -124,10 +124,18 @@ def seed_objects(store, states: list[str]) -> None:
                     json.dumps(obj), source="derived_state")
 
 
-def pkt(i, root, book, direction, notional, fam="outright", vega=None):
+def pkt(i, root, book, direction, notional, fam="outright", vega=None,
+        risk="default"):
+    # EL-2 (12 Oct 2026): a Book B-D decision carries its dollars at risk, which
+    # the Doctrine's heat sums. The default is 2% of the notional (an options
+    # expression's, 1,000), small enough that no test here is about heat --
+    # tools/validate_rollup.py is.
+    if risk == "default":
+        risk = (0.02 * notional if notional else 1000.0)             if notional is not None else None
     return {"id": f"p{i}", "instrument": root, "book": book,
             "direction": direction, "notional_usd": notional,
-            "vega_usd": vega, "expression_family": fam, "leverage_form": "none"}
+            "vega_usd": vega, "expression_family": fam, "leverage_form": "none",
+            "risk_usd": risk}
 
 
 # ---------------------------------------------------------------------------

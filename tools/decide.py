@@ -571,6 +571,7 @@ def cmd_record(args) -> int:
             "id": "candidate", "instrument": args.instrument,
             "direction": args.direction, "book": args.book,
             "notional_usd": args.notional, "vega_usd": args.vega,
+            "risk_usd": args.risk_usd,
             "expression_family": args.expression_family,
             "leverage_form": args.leverage_form})
         if gate_out["outcome"] != "approve" and status == "active":
@@ -645,6 +646,7 @@ def cmd_record(args) -> int:
                          leverage_form=args.leverage_form,
                          book=args.book, quantity=args.position_quantity,
                          notional_usd=args.notional, vega_usd=args.vega,
+                         risk_usd=args.risk_usd,
                          time_stop=args.time_stop,
                          gate_outcome=(gate_out or {}).get("outcome"),
                          gate_detail=(_gate_detail(gate_out) if gate_out else None),
@@ -1101,7 +1103,8 @@ def cmd_set_status(args) -> int:
                 # and the gate's verdict new on this row.
                 book=book, quantity=old_d.get("quantity"),
                 notional_usd=old_d.get("notional_usd"),
-                vega_usd=old_d.get("vega_usd"), time_stop=old_d.get("time_stop"),
+                vega_usd=old_d.get("vega_usd"), risk_usd=old_d.get("risk_usd"),
+                time_stop=old_d.get("time_stop"),
                 close_reason=(args.close_reason if args.status == "closed"
                               else old_d.get("close_reason")),
                 gate_outcome=((gate_out or {}).get("outcome")
@@ -1279,6 +1282,11 @@ def main() -> int:
                    help="Options expressions: dollars of vega per one vol point, "
                         "SIGNED (negative when short volatility). Without it the "
                         "gate delays an options decision rather than guess.")
+    r.add_argument("--risk-usd", type=float, default=None, metavar="USD",
+                   help="EL-2: dollars at risk, entry to invalidation x size (an "
+                        "options expression's defined maximum loss). The "
+                        "Doctrine's heat across Books B-D sums it; without it "
+                        "the gate delays a Book B, C or D decision.")
     r.add_argument("--time-stop", default=None, metavar="YYYY-MM-DD",
                    help="The date past which the position is closed regardless "
                         "of thesis (Doctrine, Books B and D).")

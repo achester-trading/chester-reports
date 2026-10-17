@@ -17,7 +17,12 @@
 #
 # RATIFIED 2 OCT 2026 (minutes items 1 and 2, applied by D-1): the regime mapping
 # at dial-to-doctrine-v1.1, the crossing rule, and the sector, vega and duration
-# limits. Nothing in this file is proposed any more.
+# limits.
+#
+# EL-2 (12 Oct 2026) ADDED the Doctrine's heat cap (transcribed, source:
+# doctrine) and two PROPOSED entries the operator has not ruled on: one
+# position's limit applied to a correlated cluster (`cluster_max_pct`) and the
+# rule that assigns a decision its common factor (`common_factor`).
 version: risk-limits-v1
 updated: 2026-10-02
 
@@ -61,6 +66,33 @@ limits:
     value: 5
     proposed: false
     source: session proposal, Phase 5a; ratified Doctrine monthly 2 Oct 2026 (2d)
+  # THE DOCTRINE'S HEAT (§4.5, Rule 16): "Total open risk across Books B, C and D
+  # may not exceed 6% of capital, $18,000, at any time, with correlated positions
+  # counted once at their common factor." Open risk is each decision's risk_usd.
+  heat_max_pct:
+    value: 6
+    books: [B, C, D]
+    source: doctrine
+    note: Operating Doctrine §4.5, "Heat is capped across books"
+  # CORRELATED POSITIONS COUNTED ONCE. "Two long semiconductor names in Book B and
+  # a long NQ call spread in Book C are one position for heat purposes" (§4.5).
+  # A cluster -- the heat-book decisions sharing a common factor -- is held to
+  # ONE position's maximum risk: the Doctrine's exceptional tier, 1.5% ($4,500).
+  # The value is the Doctrine's; applying it to a cluster is the session's
+  # reading of "one position", so it stays proposed until ruled.
+  cluster_max_pct:
+    value: 1.5
+    proposed: true
+    source: session proposal, EL-2 (12 Oct 2026); the 1.5% is the Doctrine's exceptional tier per position (Book B sizing)
+
+# THE COMMON FACTOR a decision is counted once at (EL-2): its dominant
+# look-through sector (config/instrument_reference.yaml) when that sector carries
+# at least this share of it -- NVDA, XLK and QQQ (60% technology) are all
+# technology -- else the instrument itself. Proposed, 12 Oct 2026.
+common_factor:
+  min_weight: 0.5
+  proposed: true
+  source: session proposal, EL-2 (12 Oct 2026)
 
 # Book A's exposure bands by Doctrine regime, net equity beta as % of capital.
 # Transcribed from the Operating Doctrine's band table; Transition is "the lower
