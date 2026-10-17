@@ -494,6 +494,32 @@ class ObservationStore:
             "AND available_at <= ?", (registry_key, cutoff)).fetchone()
         return str(r[0])[:10] if r and r[0] else None
 
+    def newest_observed_map(self, keys: Iterable[str], as_of: Optional[str] = None
+                            ) -> dict[str, tuple[Optional[str], Optional[str]]]:
+        """{key: (newest observed day with instrument NULL, newest under any
+        instrument)}, knowable at `as_of` -- ONE grouped query for a whole roster
+        (audit-leftovers-1), the same answers as latest_as_of(key)["observed_at"]
+        and newest_observed_any(key) asked key by key. A key with no row is
+        absent from the map."""
+        keys = sorted(set(keys))
+        if not keys:
+            return {}
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
+        out: dict[str, tuple[Optional[str], Optional[str]]] = {}
+        # One statement per 900 keys keeps under SQLite's parameter limit on old
+        # builds; a roster today is about 1,100 keys, so two at most.
+        for i in range(0, len(keys), 900):
+            part = keys[i:i + 900]
+            q = ("SELECT registry_key, "
+                 "MAX(CASE WHEN instrument IS NULL THEN observed_at END), "
+                 "MAX(observed_at) FROM observations WHERE available_at <= ? "
+                 f"AND registry_key IN ({','.join('?' * len(part))}) "
+                 "GROUP BY registry_key")
+            for k, null_newest, any_newest in self.conn.execute(q, [cutoff, *part]):
+                out[k] = (str(null_newest)[:10] if null_newest else None,
+                          str(any_newest)[:10] if any_newest else None)
+        return out
+
     def latest_as_of(self, registry_key: str, as_of: Optional[str] = None,
                      instrument: Optional[str] = None) -> Optional[dict]:
         """The most recent period knowable at the cutoff, or None -- one row from

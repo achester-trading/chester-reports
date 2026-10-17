@@ -116,6 +116,30 @@ def newest_observed(db: observations.ObservationStore,
     return out
 
 
+def since(keys: Iterable[str], revision_days: int,
+          db: Optional[observations.ObservationStore] = None) -> Optional[str]:
+    """INCREMENTAL PULLS (audit-leftovers-1): the day a writer's source query may
+    start from -- the EARLIEST of its keys' newest stored days, less
+    `revision_days` -- or None, meaning the full history, when any key has
+    nothing stored (a new key gets its history) or the store cannot be read."""
+    keys = list(keys)
+    own = db is None
+    try:
+        store = db or observations.ObservationStore()
+        try:
+            held = newest_observed(store, keys)
+        finally:
+            if own:
+                store.close()
+    except Exception as exc:                                  # noqa: BLE001
+        log.warning("since: could not read the store (%s); the full history", exc)
+        return None
+    if not keys or any(not held.get(k) for k in keys):
+        return None
+    first = min(str(held[k])[:10] for k in keys)
+    return (dt.date.fromisoformat(first) - dt.timedelta(days=revision_days)).isoformat()
+
+
 def stale(source: str, keys: Iterable[str], reason: str,
           db: Optional[observations.ObservationStore] = None,
           run_id: Optional[str] = None) -> dict:

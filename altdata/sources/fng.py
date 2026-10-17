@@ -31,8 +31,24 @@ URL = "https://api.alternative.me/fng/"
 KEYS = ["fng.value"]
 
 
-def _get() -> Any:
-    return http_get_json(URL, params={"limit": "0", "format": "json"}, timeout=60)
+# INCREMENTAL (audit-leftovers-1): alternative.me's `limit` is the number of most
+# recent days. With history stored, ask for the days since the newest plus a
+# SESSION-SET margin of 7 (the index is never revised; the margin covers a missed
+# week); with none, limit=0, the whole history.
+MARGIN_DAYS = 7
+
+
+def limit_for(start: Optional[str], today: Optional[str] = None) -> str:
+    """"0" (everything) with no start, else the days from `start` to today."""
+    if not start:
+        return "0"
+    import datetime as dt                                      # noqa: PLC0415
+    t = dt.date.fromisoformat((today or C.today_utc())[:10])
+    return str(max(1, (t - dt.date.fromisoformat(start)).days + 1))
+
+
+def _get(limit: str = "0") -> Any:
+    return http_get_json(URL, params={"limit": limit, "format": "json"}, timeout=60)
 
 
 def parse(doc: dict, today: str) -> list[tuple[str, float]]:
@@ -57,6 +73,9 @@ def collect(get: Callable[[], Any] = _get, today: Optional[str] = None,
 
 
 def pull(run_id: Optional[str] = None, db=None, **kw) -> dict:
+    if "get" not in kw:
+        lim = limit_for(pub.since(KEYS, MARGIN_DAYS, db=db))
+        kw["get"] = lambda: _get(lim)
     return pub.run(SOURCE, KEYS, lambda: collect(**kw), run_id=run_id, db=db)
 
 

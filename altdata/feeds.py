@@ -720,6 +720,12 @@ def freshness(as_of: Optional[str] = None,
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
+        # ONE GROUPED QUERY for every roster (audit-leftovers-1): the newest day per
+        # key, with instrument NULL and under any instrument, where this read one
+        # indexed query per key, twice for an instrument-keyed one. The verdicts
+        # are unchanged (validate_backups holds the equivalence on a fixture).
+        newest_map = db.newest_observed_map([k for _, ks in rosters for k in ks],
+                                            as_of=as_of)
         for name, keys in rosters:
             absent, stale, fresh, pending = [], [], [], []
             detail, pdetail = {}, {}
@@ -733,9 +739,9 @@ def freshness(as_of: Optional[str] = None,
                                       "note": "declares no keys yet"}
                 continue
             for k in keys:
-                # AUD-1 4c: one row from the index, not the whole history.
-                newest_row = db.latest_as_of(k, as_of=as_of)
-                rows = [newest_row] if newest_row else []
+                # AUD-1 4c, then audit-leftovers-1: from the one grouped read.
+                null_newest, any_newest = newest_map.get(k, (None, None))
+                rows = [{"observed_at": null_newest}] if null_newest else []
                 if not rows:
                     # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
                     # and most macro rows carry NULL, so a per-ticker logger looks
@@ -744,7 +750,7 @@ def freshness(as_of: Optional[str] = None,
                     # logger write last night", not "did it write for SPY".
                     # One indexed MAX across instruments (AUD-1 3: thousands
                     # of them now, asked one at a time until then).
-                    newest_any = db.newest_observed_any(k, as_of=as_of)
+                    newest_any = any_newest
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.
