@@ -161,6 +161,19 @@ printf '%s\n' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
 log "feeds: loggers done"
 
+# ---- Farside's T-1 figure (Batch 4 Tranche A part 2, 17 Oct 2026) ------------
+#
+# Farside posts a session's ETF flows in the US evening, and issuers fill in late;
+# the 17:25 crypto run is too early for some of them. This read, before 07:00,
+# takes the previous session's completed row for the morning. One writer, its own
+# STALE-not-empty contract: a refusal writes nothing and is not this run's failure.
+log "farside: T-1 read start"
+FS_OUT="$("$PY" -m altdata.sources.farside 2>&1)"
+FS_RC=$?
+printf '%s\n' "$FS_OUT" | tail -20 | sed 's/^/  /' >>"$LOG"
+[[ $FS_RC -ne 0 ]] && log "WARN farside exited $FS_RC -- continuing"
+log "farside: T-1 read done"
+
 # THE BASE-RATE TABLES, AND WHY THERE IS NO SECOND UNIT FOR THEM.
 #
 # They recompute on the first session of a calendar year, on a method change, and

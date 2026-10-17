@@ -64,12 +64,12 @@ tape:
     - {label: "Open interest (BTC + ETH)", key: calc.oi_usd, unit: usd}
     - {label: "Liquidations", key: null, unit: usd}
 
-# SECTION 3, FLOWS. The stablecoin supply is stored today (llama.stable_total,
+# SECTION 3, FLOWS. Farside's flows are stored in dollars (Tranche A part 2). The stablecoin supply is stored today (llama.stable_total,
 # CD-1 pulled forward by the crypto basket, 13 Oct); the rest is Tranche A
 # (CD-4 Farside) or item 49b.
 flows:
-  - {label: "BTC ETF net flow, the week", key: farside.btc_total, unit: usd_m, agg: sum_week}
-  - {label: "ETH ETF net flow, the week", key: farside.eth_total, unit: usd_m, agg: sum_week}
+  - {label: "BTC ETF net flow, the week", key: farside.btc_total, unit: usd, agg: sum_week}
+  - {label: "ETH ETF net flow, the week", key: farside.eth_total, unit: usd, agg: sum_week}
   - {label: "Exchange net flows", key: null, unit: usd}
   - {label: "Stablecoin supply, change on the week", key: llama.stable_total, unit: usd, agg: change_week}
   - {label: "Treasury-company purchases (item 49b)", key: null, unit: btc}

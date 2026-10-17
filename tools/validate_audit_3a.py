@@ -272,7 +272,10 @@ def group_b() -> None:
     one_by_one |= {"calc.funding_agg", "calc.oi_usd", "calc.froth_z"}
     # Tranche A part 1 (17 Oct 2026) registers its writers' keys one by one.
     from altdata.sources import blockscout, crypto_derived, fng, fut, hl, mempool
-    for mod in (hl, fut, mempool, fng, blockscout, crypto_derived):
+    # ... and part 2 (17 Oct 2026) its four.
+    from altdata.sources import deribit, farside, gt, paprika
+    for mod in (hl, fut, mempool, fng, blockscout, crypto_derived,
+                deribit, farside, gt, paprika):
         one_by_one |= set(mod.KEYS)
     new = [k for k in resolved if k not in base and k not in one_by_one]
     blocks = {derived.registry_entry(k).get("bulk_block") for k in new}

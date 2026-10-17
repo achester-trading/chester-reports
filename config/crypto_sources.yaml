@@ -52,7 +52,7 @@ venues:
   okx: {enabled: true, family: fut, inst: {BTC: BTC-USDT-SWAP, ETH: ETH-USDT-SWAP}}
   deribit: {enabled: true, family: fut, inst: {BTC: BTC-PERPETUAL, ETH: ETH-PERPETUAL}}
   bybit: {enabled: false, family: fut, inst: {BTC: BTCUSDT, ETH: ETHUSDT},
-          off: "geo-blocked from the US (403, 17 Oct 2026); on the box only if Ari rules so"}
+          off: "blocks the box's country and the laptop's (ruling 1 of 17 Oct 2026): no call path; Deribit is the third venue"}
 
 # HYPERLIQUID'S WEIGHT LIMIT, from its documentation (hyperliquid.gitbook.io,
 # "Rate limits and user limits", read 17 Oct 2026): REST requests share an
@@ -119,3 +119,94 @@ gaps:
   eth_supply_burn: "Etherscan ethsupply2 needs ETHERSCAN_API_KEY (a registration Ari has not made); no keyless source within robots serves supply, staked and burnt"
   coingecko_global: "CoinGecko /global (total market cap, BTC dominance): no ST-13 fetcher exists, and CoinGecko's terms bar storing its data (ruled 13 Oct 2026); no free source with storable terms serves the total"
   bybit: "geo-blocked from the US (17 Oct 2026); Deribit perpetuals are the third venue"
+
+# ===========================================================================
+# TRANCHE A, PART 2 (crypto-tranche-a-2, 17 Oct 2026): CD-3, CD-4, CD-7, CD-8,
+# CD-9's Weekly and Monthly parts, CD-10; the 17 Oct rulings 1-5 on part 1.
+# ===========================================================================
+
+# CD-3: Deribit DVOL (DS-41; D-4 ruled DVOL now, strike-level OI with EL-12 --
+# not fetched here). Public, no key; www.deribit.com publishes no robots.txt.
+deribit:
+  base: https://www.deribit.com/api/v2
+  currencies: [BTC, ETH]
+  dvol_from: 2021-03-24          # the index's first print (probed 17 Oct 2026)
+  window_days: 900               # one call's window; the API pages within it
+# S-4 (SESSION-SET band): DVOL's full-history percentile at or below 20 is
+# "compressed", at or above 80 "stressed", between "normal". A lens: no gate.
+s4:
+  band: {compressed: 20, stressed: 80}
+  rv_days: 30
+  price_keys: {BTC: yfinance.mkt_btc_usd, ETH: yfinance.mkt_eth_usd}
+  pct_5y_days: 1826
+
+# CD-4: Farside (DS-33; D-3 ruled Farside). farside.co.uk's robots.txt names only
+# Twitterbot (no rule for any other agent). The order: a browser user-agent; it
+# still names the project. On 17 Oct 2026 the site answered the laptop 403
+# through Cloudflare to both user-agents: the writer is built, the gap is listed,
+# nothing is scraped around the refusal. Values are US$ millions on the page and
+# are stored in dollars.
+farside:
+  pages:
+    btc: https://farside.co.uk/btc/
+    eth: https://farside.co.uk/eth/
+  all_data:                      # verify at build: linked from the recent pages
+    btc: https://farside.co.uk/bitcoin-etf-flow-all-data/
+    eth: https://farside.co.uk/ethereum-etf-flow-all-data/
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 (compatible; chester-reports/1.0)"
+  backfill_from: 2024-01-11      # the US spot bitcoin ETFs' first day of trading
+  # THE COLUMN-CHANGE DETECTOR: the issuer columns each table must carry, exactly.
+  # A table whose header set differs is refused whole (STALE, the change named).
+  columns:
+    btc: [IBIT, FBTC, BITB, ARKB, BTCO, EZBC, BRRR, HODL, BTCW, MSBT, GBTC, BTC]
+    eth: [ETHA, FETH, ETHW, TETH, ETHV, QETH, EZET, ETHE, ETH]
+# S-2 (the order): the streak is consecutive same-sign sessions; the 5-day sum's
+# percentile against the full history (from Jan 2024); the flag at the 5th and
+# 95th. Stored, never printed (gate status: not passed).
+s2:
+  window: 5
+  flag_low: 5
+  flag_high: 95
+
+# CD-7: the froth gauge (DS-19, S-5; D-5 ruled build now). GeckoTerminal's API
+# host forbids every agent in robots.txt (api.geckoterminal.com: "Disallow: /",
+# only /docs/ allowed; read 17 Oct 2026), so its API is not read: the writer
+# checks robots first and stops there. DexScreener (api.dexscreener.com, no
+# robots.txt) is the order's fallback, used only when GeckoTerminal fails, its
+# rows marked in the source column; it is a different sample (a search, not a
+# census), so it never enters the z-score.
+gt:
+  base: https://api.geckoterminal.com/api/v2
+  accept: "application/json;version=20230302"
+  networks: [solana, base]
+  per_min: 30                    # GeckoTerminal's published limit
+  budget_per_min: 20             # SESSION-SET: two thirds of it
+  new_pool_pages: 10             # 20 pools a page; >= 200 in 24h is censored
+  trending_top: 20
+  dexscreener: https://api.dexscreener.com/latest/dex/search
+  fallback_source: "dexscreener:fallback"
+# S-5 (the order): each measure z-scored on a 20-day window once 90 days of
+# GeckoTerminal store exist. SESSION-SET flag: both measures of a network at z
+# >= +2 on the same day. Stored, never printed.
+s5:
+  z_window: 20
+  min_store_days: 90
+  flag_z: 2.0
+
+# Ruling 2 of 17 Oct: total market cap and BTC dominance from a keyless source
+# within robots. CoinPaprika's /v1/global (api.coinpaprika.com, no robots.txt;
+# the free plan is keyless, personal and non-commercial, attribution "Powered by
+# Coinpaprika", no redistribution; API terms read 17 Oct 2026). Forward-only:
+# the endpoint serves the current figure.
+paprika:
+  url: https://api.coinpaprika.com/v1/global
+  attribution: "Powered by Coinpaprika"
+
+# CD-9, the blocks. The Weekly's crypto flows block: at most 12 lines, a sub-
+# section of Positioning & flows. The Monthly's rows: mechanics (network health)
+# and the slow layers (the data layer), every row in the triple form.
+blocks:
+  weekly_max_lines: 12
+  z_from: 2026-12-15             # ruling 5: the aggregate's z prints from mid-December
+  froth_from: 2027-01-15         # S-5: 90 days of store after a first sample
+  watch_triple_window_days: 1825

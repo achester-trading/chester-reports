@@ -57,6 +57,10 @@ step fut    "$PY" -m altdata.sources.fut
 step mempool "$PY" -m altdata.sources.mempool
 step fng    "$PY" -m altdata.sources.fng
 step blockscout "$PY" -m altdata.sources.blockscout
+step deribit "$PY" -m altdata.sources.deribit
+step farside "$PY" -m altdata.sources.farside
+step gt     "$PY" -m altdata.sources.gt
+step paprika "$PY" -m altdata.sources.paprika
 step s1_s3  "$PY" -m altdata.sources.crypto_derived
 step derive "$PY" -m altdata.crypto_basket derive
 log "crypto basket: done"

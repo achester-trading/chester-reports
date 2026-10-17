@@ -175,7 +175,13 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # and S-3 derived series, which read what those just wrote --
                     # the order of the tuple is the order they run in. DefiLlama
                     # (llama) stays on the crypto basket's own timer.
-                    "hl", "fut", "mempool", "fng", "blockscout", "crypto_derived")
+                    "hl", "fut", "mempool", "fng", "blockscout",
+                    # Tranche A part 2 (17 Oct 2026): DVOL, the ETF flow tables
+                    # (Farside; also the 06:45 run for the T-1 figure), the froth
+                    # gauge's sample, CoinPaprika's global figures -- all before
+                    # the derived writer, which reads them.
+                    "deribit", "farside", "gt", "paprika",
+                    "crypto_derived")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

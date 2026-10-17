@@ -10148,26 +10148,6 @@ metrics:
     long_window: full
     description: >-
       S-1: the percent change of llama.stable_total over 90 days.
-  # Batch 4 Tranche A's derived series the Digital Assets addendum names before
-  # they are built (6e-digital, 17 Oct 2026): declared NOT YET SOURCED, never
-  # written, until their writer lands. Part 1 (crypto-tranche-a-1) registered
-  # calc.funding_agg and calc.oi_usd with their writer; calc.froth_z waits for
-  # part 2 (CD-7). The addendum prints "awaiting Tranche A" until a row exists.
-  calc.froth_z:
-    source: derived_state
-    mechanism_group: crypto_flows
-    native_horizon: daily
-    status_extra: not_yet_sourced
-    information_half_life: session
-    invalidated_by: none
-    observation_type: calculated
-    revision_policy: recomputed
-    units: ratio
-    trigger_eligible: false
-    family: ratio
-    long_window: 365d
-    description: >-
-      NOT YET SOURCED. S-5: the froth gauge, new-pool count and trending-pool volume on Solana and Base, z-scored (the crypto data-sources order, CD-7).
   scan.crypto_basket_item:
     source: saturday_scan
     mechanism_group: crypto_basket_scan
@@ -12805,7 +12785,7 @@ metrics:
     long_window: 365d
     description: >-
       S-3: calc.oi_usd over the coin's market cap (llama.mcap_btc / _eth, on the day or within the three before), percent; instrument BTC or ETH.
-  calc.funding_agg_z:
+  calc.leverage_z:
     source: derived_state
     mechanism_group: crypto_leverage
     native_horizon: daily
@@ -12818,7 +12798,7 @@ metrics:
     family: ratio
     long_window: 365d
     description: >-
-      S-3: z-score of calc.funding_agg against its trailing 90 days (60 observations needed). The leverage flag (z > +2 with OI/mcap at a 90-day high) waits for its gate.
+      S-3: z-score of calc.funding_agg against its trailing 90 days (60 observations needed); the order's calc.leverage_z (part 1 named it funding_agg_z, renamed before any row was stored). Prints from mid-December 2026 (ruling 5 of 17 Oct).
   calc.oi_mcap_z:
     source: derived_state
     mechanism_group: crypto_leverage
@@ -12833,6 +12813,278 @@ metrics:
     long_window: 365d
     description: >-
       S-3: z-score of calc.oi_mcap against its trailing 90 days (60 observations needed).
+
+  # -------------------------------------------------------------------------
+  # BATCH 4 TRANCHE A, PART 2 (crypto-tranche-a-2, 17 Oct 2026): DVOL (deribit.*),
+  # ETF flows (farside.*), the froth gauge's inputs (gt.*), CoinPaprika's global
+  # figures (paprika.*), and S-2, S-4, S-5 with the three flags (calc.*).
+  # -------------------------------------------------------------------------
+  deribit.dvol_btc:
+    source: deribit
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      Deribit's BTC volatility index (DVOL), the UTC day's close; history from 24 Mar 2021 (public/get_volatility_index_data, 1D). S-4.
+  deribit.dvol_eth:
+    source: deribit
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      Deribit's ETH volatility index (DVOL), the UTC day's close; history from 24 Mar 2021. S-4.
+  farside.btc_total:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      The day's net flow across the US spot bitcoin ETFs, USD (Farside's US$ millions x 1e6); one row a session, history from Jan 2024 (the all-data page). S-2.
+  farside.eth_total:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      The day's net flow across the US spot ether ETFs, USD; one row a session. S-2.
+  farside.btc_issuer:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      One spot bitcoin ETF's net flow for the day, USD; instrument = its ticker (Farside's issuer columns, checked by the column-change detector).
+  farside.eth_issuer:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      One spot ether ETF's net flow for the day, USD; instrument = its ticker.
+  gt.new_pools_24h:
+    source: geckoterminal
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      S-5: DEX pools created in the last 24 hours on one network (instrument solana or base), from GeckoTerminal's new_pools, at most 200 (censored). Sampled from the first run; no backfill. Not read while GeckoTerminal's robots.txt disallows its API.
+  gt.trending_vol_24h:
+    source: geckoterminal
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      S-5: the 24-hour USD volume of the top 20 trending pools on one network. A row whose source is dexscreener:fallback is DexScreener's search (a different sample), stored when GeckoTerminal fails and never scored.
+  paprika.total_mcap_usd:
+    source: coinpaprika
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Total crypto market capitalisation, USD (CoinPaprika /v1/global; keyless free plan, attribution "Powered by Coinpaprika"). A snapshot under the pull's UTC day, forward-only. Ruling 2 of 17 Oct 2026, in place of CoinGecko /global.
+  paprika.btc_dominance:
+    source: coinpaprika
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      Bitcoin's share of total crypto market capitalisation, percent (CoinPaprika /v1/global): a snapshot, forward-only.
+  calc.etf_streak:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      S-2: consecutive same-sign ETF flow sessions to the day, signed (+3 is three inflow sessions; a zero session is 0); instrument btc or eth.
+  calc.etf_5d_pct:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-2: the five-session ETF flow sum's percentile against every stored five-session sum to the day (from Jan 2024; 20 needed); instrument btc or eth.
+  calc.dvol_pct_5y:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-4: the day's DVOL percentile over the five years before it (instrument BTC or ETH); 60 days needed. The regime band (compressed / normal / stressed at 20 and 80 on the full-history percentile) is a lens printed from it, no gate.
+  calc.dvol_pct_full:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-4: the day's DVOL percentile over its full history (from Mar 2021); 60 days needed.
+  calc.dvol_minus_rv30:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: vol_index
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      S-4: DVOL less 30-day realised volatility, points; realised from the stored daily closes (yfinance.mkt_btc_usd / _eth_usd), 30 log returns annualised over 365 days.
+  calc.froth_z:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-5: the froth gauge, z-score on a 20-day window of one network's measure (instrument solana:new_pools, solana:trending_vol, base:...), from GeckoTerminal's own rows only, once 90 days of its store exist: mid-January 2027 at the earliest. Unscored until then.
+  calc.flag_etf_extreme:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-2 FLAG: 1 when the five-session ETF flow sum's percentile is at or below 5 or at or above 95, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
+  calc.flag_leverage_crowded:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3 FLAG: 1 when calc.leverage_z > +2 with calc.oi_mcap at its 90-day high, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
+  calc.flag_froth:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-5 FLAG: 1 when both of a network's froth measures are at z >= +2 the same day, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
 
 bulk_imports:
 

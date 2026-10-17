@@ -280,8 +280,8 @@ def main() -> int:
     xs = [v for d, v in agg.items() if lo <= d <= zd]
     mu = sum(xs) / len(xs)
     sd = math.sqrt(sum((x - mu) ** 2 for x in xs) / len(xs))
-    check(near(get("calc.funding_agg_z", "BTC", zd), round((agg[zd] - mu) / sd, 4), 1e-6)
-          and len(xs) >= 60 and get("calc.funding_agg_z", "BTC", days[60]) is None,
+    check(near(get("calc.leverage_z", "BTC", zd), round((agg[zd] - mu) / sd, 4), 1e-6)
+          and len(xs) >= 60 and get("calc.leverage_z", "BTC", days[60]) is None,
           f"S-3: the 90-day z of the aggregate on {zd} by hand ({(agg[zd] - mu) / sd:+.3f},"
           f" n={len(xs)}); not written under 60 observations")
     check(D.funding_agg({"a": (10.0, 1e9), "b": (None, 1e9)}) is None
@@ -547,10 +547,284 @@ def main() -> int:
           and ls["watch_slugs"]["HYPE"][0] == "hyperliquid" and not ls["failed"],
           f"llama --only watch writes the twelve watch series ({len(lrows)} rows)")
 
+    part2(cfg)
     check(not _SOCKETS, "no connection was attempted")
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 0 if FAIL == 0 else 1
+
+
+# ===========================================================================
+# PART 2 (crypto-tranche-a-2, 17 Oct 2026): CD-3, CD-4, CD-7, CD-8, CD-9, CD-10
+# ===========================================================================
+def part2(cfg: dict) -> None:
+    from altdata.sources import (_crypto as C, crypto_derived as D, deribit, farside,
+                                 fut, gt, hl, paprika)
+    from altdata import crypto_blocks as B
+
+    head("I. PART 2 PARSERS, ON THE STORED RESPONSES")
+    dv = L("deribit/dvol_btc.json")["result"]["data"]
+    want = {day_of(r[0]): r[4] for r in dv if day_of(r[0]) < TODAY}
+    got = dict(deribit.parse_dvol(L("deribit/dvol_btc.json"), TODAY))
+    check(got == want and len(got) >= 30,
+          f"deribit get_volatility_index_data: each UTC day's candle close "
+          f"({len(got)} days; today's open candle held back)")
+    try:
+        deribit.parse_dvol({"error": {"code": 10001}}, TODAY)
+        raised = False
+    except ValueError:
+        raised = True
+    check(raised, "a Deribit error answer raises, never parses to nothing")
+    pg = paprika.parse(L("paprika/global.json"))
+    check(pg["total_mcap_usd"] == L("paprika/global.json")["market_cap_usd"]
+          and pg["btc_dominance"] == L("paprika/global.json")["bitcoin_dominance_percentage"],
+          f"coinpaprika /v1/global: total cap and BTC dominance "
+          f"({pg['btc_dominance']}%)")
+    cols = cfg["farside"]["columns"]["btc"]
+    fs = farside.parse_table((FX / "farside" / "btc.html").read_text(encoding="utf-8"),
+                             "btc", cols)
+    d16 = next(x for x in fs if x["date"] == "2026-10-16")
+    d13 = next(x for x in fs if x["date"] == "2026-10-13")
+    check(len(fs) == 5 and d16["total"] == -82.4 and d16["issuers"]["IBIT"] == -71.8
+          and d16["issuers"]["BITB"] is None and d13["issuers"]["GBTC"] == -10.0
+          and d13["issuers"]["BTCO"] == 0.0,
+          "farside: date rows only (fee, Total, Average, Max, Min dropped); (x) is "
+          "negative; '-' is no figure, never a zero; 0.0 stays 0.0")
+    fr = farside.rows_from(fs, "btc", NOW, TODAY)
+    tot = {r["observed_at"]: r["value"] for r in fr if r["registry_key"] == "farside.btc_total"}
+    check(tot["2026-10-16"] == -82.4e6 and "2026-10-17" not in tot,
+          "stored in dollars (US$m x 1e6); a session with no Total is not written")
+    try:
+        farside.parse_table((FX / "farside" / "btc_changed.html").read_text(encoding="utf-8"),
+                            "btc", cols)
+        refused = False
+    except farside.HeaderChanged as exc:
+        refused = "NEWF" in str(exc)
+    check(refused, "THE COLUMN-CHANGE DETECTOR refuses a table whose issuer columns "
+                   "changed, naming the change")
+    now_dt = dt.datetime(2026, 10, 17, 20, 0, tzinfo=dt.timezone.utc)
+    n, sat = gt.count_new([L("gt/new_pools_p1.json"), L("gt/new_pools_p2.json")], now_dt)
+    want_n = sum(1 for p in L("gt/new_pools_p1.json")["data"] + L("gt/new_pools_p2.json")["data"]
+                 if p["attributes"]["pool_created_at"] >= "2026-10-16T20:00:00Z")
+    check(n == want_n and not sat,
+          f"geckoterminal new_pools (the documented shape): {n} created in 24 hours, "
+          f"counted across pages, newest first")
+    tv = gt.trending_volume(L("gt/trending_pools.json"), 20)
+    check(near(tv, sum(1e6 * (i + 1) for i in range(20))),
+          "geckoterminal trending_pools: the top 20 pools' 24-hour volume summed")
+    ds = L("gt/dexscreener_search_solana.json")
+    wds = sum(sorted((p.get("volume") or {}).get("h24") or 0 for p in ds["pairs"]
+                     if p["chainId"] == "solana")[::-1][:20])
+    check(near(gt.dexscreener_volume(ds, "solana"), wds),
+          "dexscreener search (the real response): the fallback's volume sum on the network")
+
+    head("J. THE GECKOTERMINAL GUARD, ROBOTS AND FALLBACK")
+    sent: list = []
+    g = hl.WeightGuard(budget=3, limit=30, clock=lambda: 0.0, sleep=lambda s: None,
+                       max_wait=0)
+
+    def gt_get(url, params=None):
+        sent.append(url)
+        return L("gt/new_pools_p1.json") if "new_pools" in url else L("gt/trending_pools.json")
+    rows, s = gt.collect(gt_get, lambda u, p=None: ds, robots=lambda: (True, ""),
+                         guard=g, today=TODAY, now="2026-10-17T20:00:00.000000+00:00")
+    check(len(sent) == 3 and s["failed"] and "WeightExceeded" in s["failed"][0][1],
+          "a burst past the guard's budget is refused: the fourth call is never sent")
+    calls: list = []
+    rows, s = gt.collect(lambda u, p=None: calls.append(u), lambda u, p=None: ds,
+                         robots=lambda: gt.robots_ok(lambda u: "User-Agent: *\nAllow: /docs/\nDisallow: /\n"),
+                         today=TODAY, now=NOW)
+    check(not calls and s["failed"][0][0] == "geckoterminal"
+          and "refuses /api/v2/" in s["failed"][0][1],
+          "GeckoTerminal's robots.txt (Allow /docs/, Disallow /) stops the writer before "
+          "any API call")
+    fb = [r for r in rows if r["registry_key"] == "gt.trending_vol_24h"]
+    check(fb and all(r["source"] == "dexscreener:fallback" for r in fb)
+          and not any(r["registry_key"] == "gt.new_pools_24h" for r in rows),
+          "the DexScreener fallback writes trending volume only, its row marked "
+          "dexscreener:fallback in the source column")
+
+    head("K. S-2, S-4, S-5 AND THE FLAGS AGAINST HAND COMPUTATIONS")
+    db = str(TD / "p2.sqlite")
+    sessions = [(dt.date(2026, 6, 1) + dt.timedelta(days=i)).isoformat() for i in range(60)]
+    flows = [((-1) ** (i // 3)) * (10e6 + 1e6 * i) for i in range(60)]
+    rows = []
+
+    def put(key, d, v, inst=None, src="synthetic"):
+        rows.append(C.row(key, d, v, f"{d}T23:00:00+00:00", src, inst))
+    for d, v in zip(sessions, flows):
+        put("farside.btc_total", d, v)
+    days = [(dt.date(2026, 5, 1) + dt.timedelta(days=i)).isoformat() for i in range(140)]
+    for i, d in enumerate(days):
+        put("deribit.dvol_btc", d, 40.0 + (i % 17))
+        put("yfinance.mkt_btc_usd", d, 60000.0 * (1 + 0.01 * ((i * 7) % 5 - 2)))
+        put("gt.new_pools_24h", d, 100.0 + (i % 9), "solana", "geckoterminal")
+        put("gt.trending_vol_24h", d, 5e6 + 1e5 * (i % 11), "solana", "geckoterminal")
+    put("gt.trending_vol_24h", days[-1], 9e9, "base", "dexscreener:fallback")
+    with store(db) as st:
+        st.write_many(rows)
+        out = D.compute(st, now=NOW)
+    get = lambda k, inst, d: next((r["value"] for r in out if r["registry_key"] == k  # noqa: E731
+                                   and r["instrument"] == inst and r["observed_at"] == d), None)
+    # streak by hand: signs flip every three sessions
+    i = 40
+    run = 1
+    while i - run >= 0 and (flows[i - run] > 0) == (flows[i] > 0):
+        run += 1
+    check(get("calc.etf_streak", "btc", sessions[40]) == run * (1 if flows[40] > 0 else -1),
+          f"S-2: the streak on {sessions[40]} is {run} same-sign sessions, signed")
+    s5 = [sum(flows[j - 4:j + 1]) for j in range(4, 41)]
+    p = 100.0 * sum(1 for x in s5 if x <= s5[-1]) / len(s5)
+    check(near(get("calc.etf_5d_pct", "btc", sessions[40]), round(p, 4))
+          and get("calc.etf_5d_pct", "btc", sessions[10]) is None,
+          f"S-2: the five-session sum's percentile against every sum to the day "
+          f"({p:.1f}); none under 20 sums")
+    flag = get("calc.flag_etf_extreme", "btc", sessions[40])
+    check(flag == (1.0 if (p <= 5 or p >= 95) else 0.0),
+          "S-2's flag is stored at the 5th and 95th percentile")
+    dvs = [40.0 + (k % 17) for k in range(140)]
+    pf = 100.0 * sum(1 for x in dvs[:100] if x <= dvs[99]) / 100
+    check(near(get("calc.dvol_pct_full", "BTC", days[99]), round(pf, 4))
+          and get("calc.dvol_pct_full", "BTC", days[30]) is None,
+          f"S-4: DVOL's full-history percentile by hand ({pf:.1f}); none under 60 days")
+    cl = [60000.0 * (1 + 0.01 * ((k * 7) % 5 - 2)) for k in range(140)]
+    r = [math.log(cl[k] / cl[k - 1]) for k in range(70, 100)]
+    mu = sum(r) / len(r)
+    rv = 100 * math.sqrt(365) * math.sqrt(sum((x - mu) ** 2 for x in r) / (len(r) - 1))
+    check(near(get("calc.dvol_minus_rv30", "BTC", days[99]), round(dvs[99] - rv, 4), 1e-6),
+          f"S-4: DVOL less realised from the stored closes ({dvs[99] - rv:+.2f} pts)")
+    fz = {r_["observed_at"]: r_["value"] for r_ in out if r_["registry_key"] == "calc.froth_z"
+          and r_["instrument"] == "solana:new_pools"}
+    check(fz and min(fz) == days[89] and not any(
+        r_["registry_key"] == "calc.froth_z" and str(r_["instrument"]).startswith("base")
+        for r_ in out),
+          f"S-5: the froth z starts on the 90th day of GeckoTerminal store ({days[89]}); "
+          f"a DexScreener fallback row is never scored")
+    xs = [100.0 + (k % 9) for k in range(120, 140)]
+    m_ = sum(xs) / 20
+    sd = math.sqrt(sum((x - m_) ** 2 for x in xs) / 20)
+    check(near(fz[days[139]], round((xs[-1] - m_) / sd, 4), 1e-6),
+          "S-5: the z on a 20-day window by hand")
+    check({k for k in D.FLAG_KEYS} <= {r_["registry_key"] for r_ in out} | {"calc.flag_leverage_crowded"}
+          and D.GATE_STATUS == "not passed",
+          "the flags are computed into the store, gate status \"not passed\"")
+
+    head("L. THE BLOCKS: <= 12 LINES, DATA-AS-OF, STALE WITH ITS DATE, NO FLAG")
+    db2 = str(TD / "blocks.sqlite")
+    rows = []
+    for k_, d in enumerate(days):
+        put("llama.stable_total", d, 300e9 + 1e9 * k_)
+        put("calc.funding_agg", d, 8.0, "BTC")
+        put("calc.oi_usd", d, 50e9)
+        put("mempool.hashrate", d, 1e21)
+        put("mempool.fee_rate", d, 2.0, "fastest")
+        put("paprika.btc_dominance", d, 57.3)
+        put("paprika.total_mcap_usd", d, 2.9e12)
+        for fk in D.FLAG_KEYS:                         # EVERY FLAG TRUE
+            put(fk, d, 1.0, "BTC")
+            put(fk, d, 1.0, "btc")
+            put(fk, d, 1.0, "solana")
+    put("farside.btc_total", "2026-10-01", 5e7)        # stale: last good 1 Oct
+    put("mempool.difficulty", "2026-09-20", 1.40e14)
+    put("mempool.difficulty", "2026-10-04", 1.42e14)
+    with store(db2) as st:
+        st.write_many(rows)
+        wb = B.weekly_block(st, NOW, cfg)
+        mm = B.monthly_mechanics(st, NOW)
+        ms = B.monthly_slow(st, NOW, cfg)
+    text = json.dumps([wb, mm, ms]).lower()
+    lines = {r_[0]: r_ for r_ in wb["table"]["rows"]}
+    check(len(wb["table"]["rows"]) <= 12 and all(r_[2] for r_ in wb["table"]["rows"]),
+          f"the Weekly block: {len(wb['table']['rows'])} lines, at most 12, each with its "
+          f"data-as-of")
+    check(lines["BTC spot ETF flows, the week"][1] == "STALE: last good 1 Oct 2026",
+          "THE STALE RENDER: a stale Farside table prints STALE with its last good "
+          "date -- never an empty cell, never a zero")
+    check("flag" not in text and "crowded" not in text and "extreme" not in text,
+          "NO FLAG PRINTS: with every flag true in the store, no block prints one")
+    check("z-score from 15 Dec 2026" in lines["BTC perp funding, OI-weighted (annualised)"][1],
+          "ruling 5: the aggregate prints its level and \"z-score from 15 Dec 2026\"")
+    check(lines["Crypto market cap; BTC dominance"][1] == "$2.90tn; 57.3%",
+          "the dominance line reads CoinPaprika's stored figures (ruling 2)")
+    check("not sampled" in lines[next(k for k in lines if k.startswith("Froth gauge"))][1]
+          and "unscored until 15 Jan 2027" in next(k for k in lines if k.startswith("Froth")),
+          "the froth line prints unscored, and says why it has no sample")
+    check(any("ETHERSCAN_API_KEY" in x for x in mm["lines"])
+          and any("SR-29" in x for x in mm["lines"]),
+          "the Monthly's mechanics: the ETH supply-and-burn gap named, SR-29 as today")
+    fv = next(x for x in ms if x["title"].startswith("Factor V"))
+    check(fv["table"]["columns"][-2:] == ["Percentile, 5 years", "Percentile, full history"]
+          and fv["table"]["rows"][0][0] == "Stablecoin supply, total",
+          "Factor V rows (SR-20's amendment) in the triple form with dual percentiles")
+    ul = next(x for x in ms if x["title"].startswith("Token unlocks"))
+    vc = next(x for x in ms if x["title"].startswith("VC raises"))
+    check(ul["lines"][0].startswith("No schedules entered") and "402" in vc["lines"][0],
+          "unlocks print \"no schedules entered\"; VC raises \"not available: the "
+          "endpoint is paywalled\"")
+
+    head("M. ISOLATION, BACKFILLS, THE GREP GATE, AVAILABLE_AT")
+    calls2: list = []
+
+    def dv_get(url, params=None):
+        calls2.append(dict(params))
+        if params["currency"] == "ETH":
+            raise OSError("ETH down")
+        return L("deribit/dvol_btc.json")
+    rr, ss = deribit.collect(dv_get, first="2021-03-24", today=TODAY, now=NOW)
+    check(rr and all(r_["registry_key"] == "deribit.dvol_btc" for r_ in rr)
+          and ss["failed"][0][0] == "deribit.dvol_eth",
+          "DVOL: ETH failing leaves BTC's rows; the failure is named")
+    btc_calls = [c for c in calls2 if c["currency"] == "BTC"]
+    check(btc_calls[0]["start_timestamp"] == 1616544000000
+          and all(c["end_timestamp"] - c["start_timestamp"] <= 900 * 86_400_000
+                  for c in btc_calls) and len(btc_calls) <= 3,
+          f"the DVOL backfill is bounded: from 24 Mar 2021 in {len(btc_calls)} windows "
+          f"of at most 900 days")
+    fs_rows, fs_s = farside.collect(lambda u: (_ for _ in ()).throw(OSError("403")),
+                                    robots=lambda: (True, ""), today=TODAY, now=NOW)
+    check(not fs_rows and len(fs_s["failed"]) == 2,
+          "Farside refused: nothing parsed, both tables named")
+    with store(str(TD / "fs.sqlite")) as st:
+        st.write_many([C.row("farside.btc_total", "2026-10-01", 1.0, "2026-10-02T00:00:00+00:00",
+                             "farside")])
+        res = farside.pull(db=st, get=lambda u: (_ for _ in ()).throw(OSError("403")),
+                           robots=lambda: (True, ""), today=TODAY, now=NOW)
+    check(res["status"] == "STALE" and res["written"] == 0 and res["last_good"] == "2026-10-01",
+          "STALE-not-empty: a refused pull writes nothing and names the last good date")
+    fb_rows, _ = farside.collect(lambda u: (FX / "farside" / ("btc.html" if "bitcoin" in u
+                                                               or "/btc/" in u else "eth.html")
+                                            ).read_text(encoding="utf-8"),
+                                 pages="all_data", robots=lambda: (True, ""), today=TODAY,
+                                 now=NOW)
+    check(fb_rows and all(r_["available_at"] == NOW for r_ in fb_rows),
+          "the all-data backfill is point in time: the pull instant as available_at")
+    check(cfg["farside"]["backfill_from"] == dt.date(2024, 1, 11)
+          or str(cfg["farside"]["backfill_from"]) == "2024-01-11",
+          "and bounded: from the ETFs' first session, 11 Jan 2024")
+    check(set(fut.VENUES) == {"okx", "deribit"} and hasattr(fut, "bybit"),
+          "ruling 1: Bybit's reader stays in the tree with no call path")
+    # THE GREP GATE: no report module imports a crypto writer; nothing fetches at render.
+    import re as _re
+    writers = ("llama", "hl", "fut", "mempool", "fng", "blockscout", "deribit",
+               "farside", "gt", "paprika", "crypto_derived")
+    pat = _re.compile(r"(?:from\s+altdata\.sources\s+import[^\n]*\b(?:"
+                      + "|".join(writers) + r")\b|altdata\.sources\.(?:"
+                      + "|".join(writers) + r")\b)")
+    bad = []
+    for root in ("daily_cascade", "monthly_macro"):
+        for p_ in (REPO / root).rglob("*.py"):
+            if pat.search(p_.read_text(encoding="utf-8", errors="replace")):
+                bad.append(str(p_.relative_to(REPO)))
+    bsrc = (REPO / "altdata" / "crypto_blocks.py").read_text(encoding="utf-8")
+    check(not bad and "http_get" not in bsrc and "requests" not in bsrc
+          and '"calc.flag' not in bsrc and "FLAG_KEYS" not in bsrc,
+          f"THE GREP GATE: no report or renderer imports a crypto writer, the blocks "
+          f"fetch nothing and read no flag key ({bad or 'none'})")
+    # available_at on every crypto writer's rows
+    samples = (fr + rr + fb + out)
+    check(all(r_.get("available_at") for r_ in samples),
+          f"available_at present on every row the part 2 writers produce "
+          f"({len(samples)} checked)")
 
 
 if __name__ == "__main__":

@@ -248,8 +248,11 @@ def bybit(coin: str, inst: str, first: str, today: str, now: str, get, cfg: dict
     return rows
 
 
-VENUES: dict[str, Callable[..., list[dict]]] = {"okx": okx, "deribit": deribit,
-                                                "bybit": bybit}
+# BYBIT HAS NO CALL PATH (ruling 1 of 17 Oct 2026): it blocks the box's country
+# as well as the laptop's, so it is as untestable as Binance was under D-2. Its
+# reader stays in the tree, switched off in config, and is NOT in this table: a
+# config flipped to enabled still calls nothing (collect() reports it off).
+VENUES: dict[str, Callable[..., list[dict]]] = {"okx": okx, "deribit": deribit}
 
 
 def collect(get: Callable[..., Any] = _get, *, cfg: Optional[dict] = None,
@@ -266,9 +269,7 @@ def collect(get: Callable[..., Any] = _get, *, cfg: Optional[dict] = None,
     rows: list[dict] = []
     summary: dict = {"venues": {}, "failed": [], "off": {}}
     for venue, spec in (cfg.get("venues") or {}).items():
-        if venue not in VENUES:
-            continue
-        if not spec.get("enabled"):
+        if venue not in VENUES or not spec.get("enabled"):
             summary["off"][venue] = spec.get("off") or "switched off"
             continue
         for coin, inst in (spec.get("inst") or {}).items():

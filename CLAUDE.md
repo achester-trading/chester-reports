@@ -364,6 +364,22 @@ cap, 90-day z), which begin when two venues carry OI on the same day. Every row 
 point in time: the pull instant as available_at, complete UTC days for history.
 Config `config/crypto_sources.yaml`; `tools/validate_crypto_sources.py` holds it.
 
+**Part 2 (crypto-tranche-a-2, 17 Oct 2026)** adds four more writers:
+- Deribit's DVOL (`deribit.py`, from March 2021);
+- Farside's ETF flow tables (`farside.py`), with a column-change detector, STALE
+  with its last good date on any refusal, and a 06:45 read for the T-1 figure;
+- the froth gauge's sample (`gt.py`), which reads nothing while GeckoTerminal's
+  robots.txt disallows its API, with a DexScreener fallback marked in the row and
+  never scored;
+- CoinPaprika's total market cap and BTC dominance (`paprika.py`), in place of
+  CoinGecko.
+
+`crypto_derived.py` computes S-1 to S-5 and stores the three flags with gate status
+"not passed"; no block prints a flag. `altdata/crypto_blocks.py` prints the Weekly's
+crypto flows block (at most 12 lines, a table in Positioning & flows) and the
+Monthly's network-health and data-layer rows, every Monthly row in the triple form
+with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
+
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates
 and spreads, percent for prices, raw for counts), never from one formula. Do not

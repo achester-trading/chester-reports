@@ -133,8 +133,8 @@ def seed_store(path: str, *, tranche_a: bool = False, late: bool = False) -> Non
             put("calc.funding_agg", d, 0.01, inst="BTC")
             put("calc.funding_agg", d, 0.02, inst="ETH")
             put("calc.oi_usd", d, 40e9 + 1e9 * i)
-            put("farside.btc_total", d, 10.0 * (i - 4))
-            put("farside.eth_total", d, -5.0)
+            put("farside.btc_total", d, 1e7 * (i - 4))
+            put("farside.eth_total", d, -5e6)
             put("calc.froth_z", d, 1.2)
             put("btcdata.lth_supply_share", d, 74.25)
     for i, d in enumerate(DAYS[-15:]):
@@ -388,10 +388,11 @@ def main() -> int:
           and cb["ETH funding, OI-weighted (annualised)"]["text"] == "0.02%",
           "with Tranche A rows the cells print their figures: DVOL 59.0, OI $49.0bn, "
           "funding 0.01%")
-    want_etf = sum(10.0 * (i - 4) for i, d in enumerate(DAYS[-10:]) if SUN <= d <= SAT)
+    want_etf = sum(1e7 * (i - 4) for i, d in enumerate(DAYS[-10:]) if SUN <= d <= SAT)
     check(cb["BTC ETF net flow, the week"]["value"] == round(want_etf, 4)
-          and cb["BTC ETF net flow, the week"]["text"] == f"{want_etf:+,.1f} $m",
-          f"the BTC ETF row is the sum of the week's seven days ({want_etf:+.1f} $m)")
+          and cb["BTC ETF net flow, the week"]["text"] == f"${want_etf / 1e6:,.0f}m",
+          f"the BTC ETF row is the sum of the week's seven days, stored in dollars "
+          f"(${want_etf / 1e6:,.0f}m)")
     check(cb["BTC long-term-holder supply share (SR-29)"]["text"] == "74.25%"
           and cb["Froth gauge (memecoin launches, z)"]["text"] == "z +1.2",
           "SR-29's share and the froth gauge print where stored")

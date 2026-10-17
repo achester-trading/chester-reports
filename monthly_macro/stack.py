@@ -1914,6 +1914,25 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         for sid in ("plumbing", "narratives"):
             printed += [(k, sid) for k in built[sid].pop("_printed", None) or []]
         slow = slow_layers(p, cfg, st, now, db_path) if monthly else None
+        if monthly:
+            # THE CRYPTO DATA LAYER (Batch 4 Tranche A, CD-9; 17 Oct 2026): the
+            # network-health rows in mechanics, and the Factor V stablecoin rows,
+            # the watch names' fundamentals, VC raises and the unlock table in the
+            # slow layers after the digital family -- tables in the triple form,
+            # no paragraph, no chart (altdata/crypto_blocks.py).
+            try:
+                from altdata import crypto_blocks              # noqa: PLC0415
+                built["mechanics"].setdefault("subsections", []).append(
+                    crypto_blocks.monthly_mechanics(st, now))
+                subs = slow.setdefault("subsections", [])
+                at = next((i for i, x in enumerate(subs)
+                           if x.get("family") == "digital"), len(subs) - 1)
+                at = max((i for i, x in enumerate(subs)
+                          if str(x.get("title") or "").startswith("Themes: digital")),
+                         default=at)
+                subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
+            except Exception:                                   # noqa: BLE001
+                log.warning("crypto data layer unavailable", exc_info=True)
         lsec = labour_section(st, now, cfg, prior) if monthly else None
     if not monthly:
         built = {k: period_words(v, noun) for k, v in built.items()}

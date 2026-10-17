@@ -25,10 +25,38 @@ S-3, per coin (instrument BTC or ETH):
     calc.oi_mcap           calc.oi_usd over the coin's market cap
                            (llama.mcap_btc / _eth, the coin service, on the day or
                            within the three before), %
-    calc.funding_agg_z     z-score of calc.funding_agg on the trailing 90 days
+    calc.leverage_z        z-score of calc.funding_agg on the trailing 90 days
+                           (the order's name; part 1 called it funding_agg_z)
     calc.oi_mcap_z         z-score of calc.oi_mcap on the trailing 90 days
-                           (each needs 60 of the 90; the S-3 flag -- funding z > +2
-                           with OI/mcap at a 90-day high -- waits for its gate)
+                           (each needs 60 of the 90)
+
+PART 2 (crypto-tranche-a-2, 17 Oct 2026):
+
+S-2, per coin (instrument btc or eth), from farside.<coin>_total:
+    calc.etf_streak        consecutive same-sign sessions to the day, signed
+                           (+3: three inflow sessions; a zero session is 0)
+    calc.etf_5d_pct        the five-session sum's percentile against every five-
+                           session sum in the stored history to that day (from
+                           Jan 2024), with at least 20 of them
+S-4, per coin (instrument BTC or ETH), from deribit.dvol_<coin>:
+    calc.dvol_pct_5y       the day's DVOL percentile over the five years before it
+    calc.dvol_pct_full     ... over the full history (from Mar 2021); 60 days needed
+    calc.dvol_minus_rv30   DVOL less 30-day realised volatility, points: realised
+                           from the STORED daily closes (yfinance.mkt_btc_usd /
+                           _eth_usd), 30 log returns annualised over 365 days --
+                           never a second price series
+S-5, per network and measure (instrument "<network>:new_pools" or
+"<network>:trending_vol"), from GeckoTerminal's own rows only (a DexScreener
+fallback row is sampled, never scored):
+    calc.froth_z           z-score on a 20-day window, once 90 days of
+                           GeckoTerminal store exist
+
+THE FLAGS, computed and stored, NEVER RENDERED (no block reads a calc.flag_* key;
+tools/validate_crypto_sources.py holds that), gate status "not passed":
+    calc.flag_etf_extreme       S-2: the 5-day sum's percentile <= 5 or >= 95
+    calc.flag_leverage_crowded  S-3: leverage_z > +2 with OI/mcap at its 90-day high
+    calc.flag_froth             S-5: both of a network's measures at z >= +2
+    (1 the flag holds, 0 it does not; a day without its inputs is not written)
 
 THE AGGREGATE STARTS WITH THE FIRST PULL. The venues' funding is backfilled, but
 only OKX serves OI history (Hyperliquid and Deribit do not), and an OI weight
@@ -54,7 +82,12 @@ log = logging.getLogger(__name__)
 
 SOURCE = "derived_state"
 KEYS = ["calc.stable_share", "calc.funding_agg", "calc.oi_usd", "calc.oi_mcap",
-        "calc.funding_agg_z", "calc.oi_mcap_z"]
+        "calc.leverage_z", "calc.oi_mcap_z", "calc.etf_streak", "calc.etf_5d_pct",
+        "calc.dvol_pct_5y", "calc.dvol_pct_full", "calc.dvol_minus_rv30",
+        "calc.froth_z", "calc.flag_etf_extreme", "calc.flag_leverage_crowded",
+        "calc.flag_froth"]
+FLAG_KEYS = ["calc.flag_etf_extreme", "calc.flag_leverage_crowded", "calc.flag_froth"]
+GATE_STATUS = "not passed"
 STABLE_CHAINS = ("Ethereum", "Tron", "Solana", "Base")
 # venue -> (funding key, OI key); the enabled set comes from config.
 VENUE_KEYS = {"hyperliquid": ("hl.funding", "hl.oi"),
@@ -161,14 +194,158 @@ def compute(st: Any, as_of: Optional[str] = None, cfg: Optional[dict] = None,
                  for d, v in tot.items()]
         rows += [C.row("calc.oi_mcap", d, round(v, 6), now, SOURCE, coin)
                  for d, v in ratio.items()]
-        rows += [C.row("calc.funding_agg_z", d, round(v, 4), now, SOURCE, coin)
-                 for d, v in zscores(agg, win, min_obs).items()]
+        lz = zscores(agg, win, min_obs)
+        rows += [C.row("calc.leverage_z", d, round(v, 4), now, SOURCE, coin)
+                 for d, v in lz.items()]
         rows += [C.row("calc.oi_mcap_z", d, round(v, 4), now, SOURCE, coin)
                  for d, v in zscores(ratio, win, min_obs).items()]
+        # S-3's flag: stored, never rendered.
+        for d, z in lz.items():
+            if d in ratio:
+                hi = at_window_high(ratio, d, win)
+                rows.append(C.row("calc.flag_leverage_crowded", d,
+                                  1.0 if (z > 2.0 and hi) else 0.0, now, SOURCE, coin))
     if len(oi_by_coin) >= 2:
         both = set.intersection(*[set(v) for v in oi_by_coin.values()])
         rows += [C.row("calc.oi_usd", d, round(sum(v[d] for v in oi_by_coin.values()), 2),
                        now, SOURCE) for d in sorted(both)]
+    rows += s2_rows(st, as_of, cfg, now)
+    rows += s4_rows(st, as_of, cfg, now)
+    rows += s5_rows(st, as_of, cfg, now)
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# Part 2: S-2, S-4, S-5 and their flags
+# ---------------------------------------------------------------------------
+def at_window_high(series: dict[str, float], day: str, window: int = 90) -> bool:
+    lo = (dt.date.fromisoformat(day) - dt.timedelta(days=window - 1)).isoformat()
+    xs = [v for d, v in series.items() if lo <= d <= day]
+    return bool(xs) and series[day] >= max(xs)
+
+
+def streaks(series: dict[str, float]) -> dict[str, int]:
+    """Signed consecutive same-sign sessions to each day; a zero day is 0."""
+    out, run, sign = {}, 0, 0
+    for d in sorted(series):
+        v = series[d]
+        s = (v > 0) - (v < 0)
+        run = run + 1 if (s == sign and s != 0) else (1 if s != 0 else 0)
+        sign = s
+        out[d] = run * s
+    return out
+
+
+def rank_pct(history: list[float], x: float) -> float:
+    """The share of `history` (x included) at or below x, in percent."""
+    return 100.0 * sum(1 for h in history if h <= x) / len(history)
+
+
+def sums(series: dict[str, float], n: int = 5) -> dict[str, float]:
+    days = sorted(series)
+    return {days[i]: sum(series[d] for d in days[i - n + 1:i + 1])
+            for i in range(n - 1, len(days))}
+
+
+def s2_rows(st: Any, as_of: Optional[str], cfg: dict, now: str) -> list[dict]:
+    c = cfg.get("s2") or {}
+    n, lo, hi = int(c.get("window") or 5), float(c.get("flag_low") or 5), \
+        float(c.get("flag_high") or 95)
+    rows = []
+    for coin in ("btc", "eth"):
+        tot = _series(st, f"farside.{coin}_total", as_of)
+        if not tot:
+            continue
+        for d, v in streaks(tot).items():
+            rows.append(C.row("calc.etf_streak", d, float(v), now, SOURCE, coin))
+        s5 = sums(tot, n)
+        days = sorted(s5)
+        for i, d in enumerate(days):
+            hist = [s5[x] for x in days[:i + 1]]
+            if len(hist) < 20:
+                continue
+            p = rank_pct(hist, s5[d])
+            rows.append(C.row("calc.etf_5d_pct", d, round(p, 4), now, SOURCE, coin))
+            rows.append(C.row("calc.flag_etf_extreme", d,
+                              1.0 if (p <= lo or p >= hi) else 0.0, now, SOURCE, coin))
+    return rows
+
+
+def realised_vol(closes: dict[str, float], day: str, n: int = 30) -> Optional[float]:
+    days = [d for d in sorted(closes) if d <= day][-(n + 1):]
+    if len(days) < n + 1:
+        return None
+    r = [math.log(closes[b] / closes[a]) for a, b in zip(days, days[1:])
+         if closes[a] > 0 and closes[b] > 0]
+    if len(r) < n:
+        return None
+    mu = sum(r) / len(r)
+    return 100.0 * math.sqrt(365.0) * math.sqrt(sum((x - mu) ** 2 for x in r) / (len(r) - 1))
+
+
+def s4_rows(st: Any, as_of: Optional[str], cfg: dict, now: str) -> list[dict]:
+    c = cfg.get("s4") or {}
+    days5 = int(c.get("pct_5y_days") or 1826)
+    rv_n = int(c.get("rv_days") or 30)
+    rows = []
+    for coin, pkey in (c.get("price_keys") or {"BTC": "yfinance.mkt_btc_usd",
+                                               "ETH": "yfinance.mkt_eth_usd"}).items():
+        dv = _series(st, f"deribit.dvol_{coin.lower()}", as_of)
+        if not dv:
+            continue
+        closes = _series(st, pkey, as_of)
+        days = sorted(dv)
+        for i, d in enumerate(days):
+            hist = [dv[x] for x in days[:i + 1]]
+            if len(hist) >= 60:
+                rows.append(C.row("calc.dvol_pct_full", d, round(rank_pct(hist, dv[d]), 4),
+                                  now, SOURCE, coin))
+                lo = (dt.date.fromisoformat(d) - dt.timedelta(days=days5)).isoformat()
+                h5 = [dv[x] for x in days[:i + 1] if x > lo]
+                rows.append(C.row("calc.dvol_pct_5y", d, round(rank_pct(h5, dv[d]), 4),
+                                  now, SOURCE, coin))
+            rv = realised_vol(closes, d, rv_n)
+            if rv is not None:
+                rows.append(C.row("calc.dvol_minus_rv30", d, round(dv[d] - rv, 4), now,
+                                  SOURCE, coin))
+    return rows
+
+
+def _gt_series(st: Any, key: str, as_of: Optional[str], inst: str) -> dict[str, float]:
+    """GeckoTerminal's own rows only: a fallback row (source dexscreener:...) is
+    sampled, never scored."""
+    out = {}
+    for r in st.as_of(key, as_of, inst):
+        if r.get("value_num") is not None and str(r.get("source") or "") == "geckoterminal":
+            out[str(r["observed_at"])[:10]] = float(r["value_num"])
+    return out
+
+
+def s5_rows(st: Any, as_of: Optional[str], cfg: dict, now: str) -> list[dict]:
+    c = cfg.get("s5") or {}
+    win, need, fz = int(c.get("z_window") or 20), int(c.get("min_store_days") or 90), \
+        float(c.get("flag_z") or 2.0)
+    rows = []
+    for net in (cfg.get("gt") or {}).get("networks") or ["solana", "base"]:
+        zs = {}
+        for meas, key in (("new_pools", "gt.new_pools_24h"),
+                          ("trending_vol", "gt.trending_vol_24h")):
+            s = _gt_series(st, key, as_of, net)
+            if not s:
+                continue
+            first = min(s)
+            ok = {d: v for d, v in s.items()
+                  if (dt.date.fromisoformat(d) - dt.date.fromisoformat(first)).days >= need - 1}
+            z = {d: v for d, v in zscores(s, win, max(10, win // 2)).items() if d in ok}
+            zs[meas] = z
+            rows += [C.row("calc.froth_z", d, round(v, 4), now, SOURCE, f"{net}:{meas}")
+                     for d, v in z.items()]
+        if len(zs) == 2:
+            for d in sorted(set(zs["new_pools"]) & set(zs["trending_vol"])):
+                rows.append(C.row("calc.flag_froth", d,
+                                  1.0 if (zs["new_pools"][d] >= fz and
+                                          zs["trending_vol"][d] >= fz) else 0.0,
+                                  now, SOURCE, net))
     return rows
 
 

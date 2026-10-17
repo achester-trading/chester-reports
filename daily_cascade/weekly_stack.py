@@ -1927,6 +1927,16 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             if cb["line"]:
                 built["misfit"]["items"].append(
                     item("misfit:crypto_basket", cb["line"], 2, cb["line"]))
+        # THE CRYPTO FLOWS BLOCK (Batch 4 Tranche A, CD-9; 17 Oct 2026): at most
+        # 12 lines, a table of its own in Positioning & flows, read from the
+        # store with each line's data-as-of; no paragraph, no chart. The flags
+        # never print (altdata/crypto_blocks.py).
+        try:
+            from altdata import crypto_blocks                   # noqa: PLC0415
+            built["positioning"].setdefault("subsections", []).append(
+                crypto_blocks.weekly_block(st, now))
+        except Exception:                                       # noqa: BLE001
+            log.warning("crypto flows block unavailable", exc_info=True)
         em_week(built, screen, ending)
         # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
         # Ahead's top events, and the top event's playbook.

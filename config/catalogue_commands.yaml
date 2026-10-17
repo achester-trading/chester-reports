@@ -277,8 +277,24 @@ commands:
     sources: [blockscout]
   altdata.sources.crypto_derived:
     domain: crypto
-    line: The crypto data layer's derived series -- S-1's share by chain and S-3 (Tranche A)
+    line: The crypto data layer's derived series -- S-1 to S-5 and the three flags, stored never printed (Tranche A)
     sources: [derived_state]
+  altdata.sources.deribit:
+    domain: crypto
+    line: Deribit DVOL for BTC and ETH, history from Mar 2021 (Tranche A, CD-3)
+    sources: [deribit]
+  altdata.sources.farside:
+    domain: crypto
+    line: Farside's US spot BTC and ETH ETF daily flows, total and by issuer (Tranche A, CD-4)
+    sources: [farside]
+  altdata.sources.gt:
+    domain: crypto
+    line: The froth gauge's sample -- GeckoTerminal new and trending pools, DexScreener fallback (Tranche A, CD-7)
+    sources: [geckoterminal, dexscreener]
+  altdata.sources.paprika:
+    domain: crypto
+    line: CoinPaprika's global figures -- total crypto market cap and BTC dominance (ruling 2 of 17 Oct)
+    sources: [coinpaprika]
   altdata.sources.massive_chain:
     domain: options
     line: Option chain fetcher (Massive, ex-Polygon) -- the symbols yfinance cannot serve

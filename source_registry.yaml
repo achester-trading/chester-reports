@@ -1686,6 +1686,87 @@ sources:
     allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
     implemented_by: altdata/sources/blockscout.py
     status: live
+  deribit:
+    name: Deribit public API -- the DVOL volatility indices
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: daily candles; history from 24 Mar 2021
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The 1D candle's close, filed under its UTC day, complete days only;
+      available_at is the pull instant. No robots.txt (404). Strike-level OI is
+      EL-12's (D-4), not fetched.
+    license: public market-data API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/deribit.py
+    status: live
+  farside:
+    name: Farside Investors -- US spot bitcoin and ether ETF daily flows (HTML tables)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [US]
+    latency: US evening, the session's figures; issuers fill in over the evening
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each row is a session's date; available_at is the pull instant. robots.txt
+      names only Twitterbot (no rule for this agent). On 17 Oct 2026 the site
+      answered the laptop 403 through Cloudflare; the writer is STALE with its last
+      good date on any refusal and scrapes nothing around it.
+    license: public web page; cite Farside Investors
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/farside.py
+    status: live
+  geckoterminal:
+    name: GeckoTerminal public API -- new pools and trending pools (the froth gauge)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: live (sampled once a day)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A daily sample under the pull's UTC day, no history. api.geckoterminal.com's
+      robots.txt disallows / for every agent (only /docs/ allowed; read 17 Oct
+      2026): the writer checks robots first and reads nothing while it refuses.
+    license: public API, no key, 30 calls a minute
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/gt.py
+    status: built
+  dexscreener:
+    name: DexScreener public API -- pair search (the froth gauge's fallback)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: live
+    timestamp_reliability: low
+    timestamp_notes: >-
+      Used only when GeckoTerminal fails; its rows carry source dexscreener:fallback
+      and are never scored (a search, not a census). No robots.txt (404).
+    license: public API, no key, 300 calls a minute
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/gt.py
+    status: live
+  coinpaprika:
+    name: CoinPaprika API, free plan -- total crypto market cap and bitcoin dominance
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_aggregate]
+    geography: [global]
+    latency: live (read once a day)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A snapshot under the pull's UTC day, forward-only. No robots.txt (404).
+    license: >-
+      Free plan, keyless: personal and non-commercial use; attribution "Powered by
+      Coinpaprika" where displayed; no redistribution (API terms read 17 Oct 2026;
+      no clause on storage). Ruling 2 of 17 Oct 2026.
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/paprika.py
+    status: live
 
   clevfed_rules:
     name: Federal Reserve Bank of Cleveland -- simple monetary policy rules
