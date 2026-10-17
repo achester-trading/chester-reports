@@ -2186,7 +2186,8 @@ def _edition(p: dict, cfg: dict, sections: list, prior: Optional[dict],
           "budget": (cfg.get("budget") or {}).get(cadence),
           "reading_target_minutes": targets.get(cadence),
           "chart_count": 0, "charts": {}, "run_id": p.get("run_id"),
-          "dealer_computed_dir": p.get("computed_dir"),
+          # M12 (6b part 2) only when the month's last settled profile exists.
+          "dealer_computed_dir": _dealer_chart_dir(p.get("computed_dir"), last),
           # Which section's table prints each series' month: the gate holds
           # every series to one.
           "printed_metrics": printed}
@@ -2505,6 +2506,11 @@ def meter_month(p: dict) -> str:
 
 
 @model_meter.metered("monthly")
+def _dealer_chart_dir(computed_dir: Optional[str], last: Optional[str]) -> Optional[str]:
+    from daily_cascade import dealer_block                      # noqa: PLC0415
+    return dealer_block.chart_dir(computed_dir, last)
+
+
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
              model: Optional[str] = None, narrative: bool = True,
              db_path: Optional[str] = None, write=None,

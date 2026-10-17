@@ -684,10 +684,13 @@ def group_l() -> None:
           and not sp.dealer_flag_faults("The range was dampened on 14 Oct.", ed)
           and sp.dealer_flag_faults("SPY pinned on Thursday.", ed)
           and sp.dealer_flag_faults("The call wall held on Wednesday.", ed)
-          and sp.dealer_flag_faults("Dealers dampened the week.", ed),
+          and sp.dealer_flag_faults("Dealers dampened the week.", ed)
+          and not sp.dealer_flag_faults("The relationships that held on Monday held "
+                                        "at the week's end.", ed),
           "the Weekly: a flag word only beside a named session whose flag is True "
           "(Wednesday's pinned and dampened pass; Thursday's pinned, Wednesday's "
-          "held and an unnamed 'dampened' are withheld)")
+          "wall held and an unnamed 'dampened' are withheld; 'held' about no dealer "
+          "level is ordinary English and passes)")
     retro = {"sessions": [{"session": "2026-09-14", "flags": {"dampened": True}}],
              "counts": {"dampened": 1}}
     check(not mdealer.flag_word_faults("SPY dampened on 14 Sep.", retro)
