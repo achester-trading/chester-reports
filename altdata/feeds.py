@@ -122,7 +122,11 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # AQ-9a (11 Oct 2026): the EM scorecard's sources, then its
                     # derived lenses, which read what the four just wrote -- the
                     # order of this tuple is the order they run in
-                    "imf_weo", "imf_em", "bis_cbpol", "wb_qeds", "em_lenses")
+                    "imf_weo", "imf_em", "bis_cbpol", "wb_qeds", "em_lenses",
+                    # Signal-triage batch 3, Tranche A (13 Oct 2026): Treasury's
+                    # buyback operations (SR-33), Japan's reserves and the Fed's
+                    # FIMA repo line (SR-34, both in tic.*)
+                    "treasury_buybacks", "mof_reserves", "fedboard_h41")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that

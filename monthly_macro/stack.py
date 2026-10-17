@@ -582,7 +582,11 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
                                        f"{it.get('tag')}: {it.get('text')}", 2,
                                        (it.get("tag"), it.get("text"))))
                 b["items"][-1]["show"] = False
-    b["items"] = [i for i in b["items"] if i["key"] != "misfit:none" or not rows]
+    # SR-30's crisis tier earns one sentence here (batch 3, decision 2).
+    from daily_cascade import batch3_block                      # noqa: PLC0415
+    sr30 = batch3_block.misfit_items(st, now)
+    b["items"] = [i for i in b["items"]
+                  if i["key"] != "misfit:none" or not (rows or sr30)] + sr30
     # PARAGRAPHS WITH HEADERS AND BULLETS, NOT TABLES (T3.1 item 7): the gap
     # table and the dissent table stay the source -- in the section's data, and so
     # in its prose slice -- and print as points. Each gap row rides as a hidden
@@ -709,7 +713,10 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     keep = [ss for ss in b.get("subsections") or []
             if str(ss.get("title", "")).startswith(("The 10-year's anchors",
                                                     "The 10-year top"))]
-    b["subsections"] = subs + keep
+    # SIGNAL-TRIAGE BATCH 3, TRANCHE A: the Weekly's batch-3 sub-sections over
+    # the month, and the Rate and Liquidity Machine's lever table (SR-33).
+    from daily_cascade import batch3_block                      # noqa: PLC0415
+    b["subsections"] = subs + keep + batch3_block.monthly_subsections(st, now, then)
     b["claim_only"] = True
     return b
 

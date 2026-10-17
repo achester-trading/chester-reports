@@ -519,6 +519,10 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                                f"{rr['anchors'].get('tag') or ''}".rstrip() + "."],
                      "paragraph_wanted": False})
         pdata["rates_anchors"] = rates_data(rr)
+    # SIGNAL-TRIAGE BATCH 3, TRANCHE A (13 Oct 2026): the 30y JGB line, SR-30's
+    # narrow flag, SR-33's operations, SR-34's fast tells and SR-6 by tenor.
+    from . import batch3_block                                  # noqa: PLC0415
+    subs += batch3_block.weekly_subsections(st, now, then, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,

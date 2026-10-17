@@ -80,6 +80,7 @@ PY_VALIDATORS := \
 	tools/validate_edition_consistency.py \
 	tools/validate_audit_fixes.py \
 	tools/validate_weekly_integrity.py \
+	tools/validate_batch3_a.py \
 	tools/validate_monthly_frames.py \
 	tools/validate_weekly_storyline.py \
 	tools/validate_weekly_opener.py \

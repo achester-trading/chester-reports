@@ -192,13 +192,13 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 93, f"93 symbols declared (got {len(syms)}) -- the tape's "
+    check(len(syms) == 94, f"94 symbols declared (got {len(syms)}) -- the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
           f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), HG=F, "
           f"JPY=X and EURUSD=X (T2.3), RB=F and HO=F for the crack (AQ-3), VNQ VEA HEFA (AQ-3 part 2), DBC for AQ-4's returns quilt, AQ-5's DBA ETH-USD SOL-USD ZEC-USD "
           f"VNQI MCHI (the correlation universe), and the 28 earnings names "
-          f"(Book B scanner follow-up 4)")
+          f"(Book B scanner follow-up 4), and EURCHF=X (batch 3, SR-30)")
     check(yf_src.EARNINGS_SYMBOLS <= set(syms) and len(yf_src.EARNINGS_SYMBOLS) == 29,
           "the 29 earnings names are all in the basket (NVDA was already)")
     check("^VIX" in syms and "^VIX3M" in syms,
@@ -401,8 +401,8 @@ def group_h() -> None:
     # offshore yuan, whose US-holiday quotes are real. Anything else arriving here
     # is an exemption nobody reviewed.
     check(set(yf_src.CONTINUOUS_SYMBOLS) == {"BTC-USD", "CNY=X", "JPY=X", "EURUSD=X",
-                                             "ETH-USD", "SOL-USD", "ZEC-USD"},
-          f"the exemption is a declared set (the four coins and the three FX "
+                                             "EURCHF=X", "ETH-USD", "SOL-USD", "ZEC-USD"},
+          f"the exemption is a declared set (the four coins and the four FX "
           f"pairs), not "
           f"a guess about "
           f"tickers ({sorted(yf_src.CONTINUOUS_SYMBOLS)})")

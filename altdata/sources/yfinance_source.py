@@ -199,6 +199,10 @@ SYMBOLS: dict[str, str] = {
     # month only, like CL=F: the crack is a prompt refining margin, not a curve.
     "RB=F": "mkt_rb_front",
     "HO=F": "mkt_ho_front",
+    # Signal-triage batch 3, ST-B3-03 (SR-30, 13 Oct 2026): EUR/CHF, francs per
+    # euro, the transmission tell beside the OAT-Bund spread. yfinance is the
+    # operator-sanctioned exception to the robots rule (ruled 11 Oct 2026).
+    "EURCHF=X": "mkt_eurchf",
     "^VVIX": "mkt_vvix",
     "^SKEW": "mkt_skew",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
@@ -290,8 +294,8 @@ SPLIT_SUFFIX = "_split"
 # offshore quote, not an artefact, so it is declared here rather than filtered.
 # ETH, SOL and ZEC (AQ-5) trade every day for the same reason Bitcoin does.
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
-                                                "EURUSD=X", "ETH-USD", "SOL-USD",
-                                                "ZEC-USD"})
+                                                "EURUSD=X", "EURCHF=X", "ETH-USD",
+                                                "SOL-USD", "ZEC-USD"})
 
 # DAILY OHLC FOR THE TAPE SET (T2.1, 4 Oct 2026). The close is the basket's one
 # series for every symbol; for these nine the open, high and low are stored beside
