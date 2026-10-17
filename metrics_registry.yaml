@@ -752,6 +752,92 @@ metrics:
       Largest |GEX| strike. EX-0DTE at a settled capture -- with 0DTE in it was
       an artifact of the MIN_T floor and pinned at the money by construction.
 
+  # --- 6b part 1 (brief v2, ratified 16 Oct 2026) ---------------------------
+  exposure.call_gamma_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_1pct
+    added_date: "2026-10-17"
+    description: >-
+      The CALL-GAMMA MASS: sum of gamma x OI x 100 x spot over calls, x 0.01 x spot -- dollars of hedge per 1% move, unsigned. Printed first (brief v2 section 1): it holds under any symmetric convention. With put_gamma_per_1pct it sums to gross_gamma_per_1pct.
+  exposure.put_gamma_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_1pct
+    added_date: "2026-10-17"
+    description: >-
+      The PUT-GAMMA MASS, as call_gamma_per_1pct over puts: unsigned, dollars per 1% move.
+  exposure.oi_delta_balance_shares:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: shares
+    added_date: "2026-10-17"
+    description: >-
+      The raw-signed OI balance: sum of delta x OI x 100 with each contract's own delta (calls positive, puts negative), no dealer sign -- delta-weighted open interest, calls less puts, in shares. Printed with no directional word (brief v2 section 2).
+  exposure.peak_call_gex_strike:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The strike with the largest positive signed GEX over ALL strikes: a PEAK, never a wall (audit F5). The same value as the legacy exposure.call_wall; the renderer reads this name. The call wall is exposure.call_wall_otm.
+  exposure.peak_put_gex_strike:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The strike with the most negative signed GEX over ALL strikes: a PEAK, never a wall (audit F5). The same value as the legacy exposure.put_wall; the put gamma wall is exposure.put_wall_otm.
+  exposure.call_concentration_otm_2:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The secondary call concentration: the out-of-the-money strike above spot with the second-largest positive signed GEX (T2's row).
+  exposure.put_concentration_otm_2:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The secondary put concentration: the out-of-the-money strike below spot with the second most negative signed GEX (T2's row).
+
   # --- DEX family -----------------------------------------------------------
   exposure.dex_shares:
     source: yfinance
@@ -13785,6 +13871,10 @@ non_metrics:
     - greeks
     - expiries
     - usable_for_percentiles
+    # 6b part 1: a horizon window's or band's own bookkeeping (rows counted,
+    # whether a settled capture excluded it).
+    - rows
+    - excluded
     # Emitted by a DEFERRED profile -- the vendor symbols, whose Greeks are
     # gated behind the solver. The absence of a metric is itself a fact the
     # record has to carry, so these are declared rather than unregistered.
@@ -13799,6 +13889,10 @@ non_metrics:
     - quality
     - expiration_release
     - per_strike
+    # 6b part 1 (brief v2 section 2): the cumulative horizon windows and the
+    # exclusive bands, each a container of the figures registered above.
+    - horizons
+    - bands
     # The per-field mechanism_group map. Structure that says how to READ the
     # metrics, not a metric.
     - field_mechanism_groups
@@ -13811,6 +13905,14 @@ non_metrics:
     - max_pain_expiry_type
     - unwind_direction
     - cumulative_share_of_abs_dex
+    # 6b part 1: a window's or band's identity and its days-to-expiry edges,
+    # the listing buckets it draws on, and its "settled, excluded" status.
+    - id
+    - label
+    - min_dte
+    - max_dte
+    - listing_buckets
+    - status
 
 # -----------------------------------------------------------------------------
 # Reserved for a tier we do not have. Present in the pin log, written empty.

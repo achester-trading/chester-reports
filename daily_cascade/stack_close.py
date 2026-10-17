@@ -151,19 +151,33 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict],
            # (the prior session's close); the held flags read these.
            "call_wall_morning": morning.get("call_wall"),
            "put_wall_morning": morning.get("put_wall")}
-    # DEALER AUDIT F6, FIELDS ONLY (9 Oct 2026). Eligibility before outcome:
-    # whether each flag's hypothesis was even testable on this session. Stored
-    # here and read by nothing yet -- weekly_sections.flags_for keeps its
-    # semantics until the 6b pre-registration changes them.
+    # DEALER AUDIT F6, FIELDS ONLY (9 Oct 2026), NAMED AS THE BRIEF NAMES THEM
+    # (6b part 1, brief v2 sections 5 and 6, ratified 16 Oct 2026). Eligibility
+    # before outcome: whether each flag's hypothesis was even testable on this
+    # session; an ineligible session is None, never False. The walls are the
+    # morning's OTM walls -- THE walls (audit F5) -- not the all-strike peaks.
+    # Stored here and read by nothing yet: weekly_sections.flags_for keeps its
+    # semantics until part 2's pre-registration ledger changes them.
     wall_pct = float((bars_mod.load_config().get("dealer_flags") or {})
                      .get("wall_pct", 0.25))
     cp = close_profile or {}
+    ntg_min = float((stack_mod.config().get("dealer_block") or {})
+                    .get("net_to_gross_min", 0.10))
+    ntg_m = morning.get("net_to_gross")
     row.update({
         "is_expiry_session": _carried_0dte(cp),
-        "call_wall_approached": _within_pct(hi, morning.get("call_wall"), wall_pct),
-        "put_wall_approached": _within_pct(lo, morning.get("put_wall"), wall_pct),
+        "call_wall_otm_morning": morning.get("call_wall_otm"),
+        "put_wall_otm_morning": morning.get("put_wall_otm"),
+        "wall_approached_call": _within_pct(hi, morning.get("call_wall_otm"), wall_pct),
+        "wall_approached_put": _within_pct(lo, morning.get("put_wall_otm"), wall_pct),
+        # The session's range contained the morning flip: the flip-crossing
+        # hypothesis's eligibility (the same test as flip_crossed, named for it).
+        "flip_in_range": (bool(lo <= flip <= hi) if None not in (lo, hi, flip)
+                          else None),
+        # A regime session: the morning's net-to-gross at or above the gate.
+        "regime_eligible": (None if ntg_m is None else ntg_m >= ntg_min),
         "peak_gex_strike_morning": morning.get("peak_abs_gex_strike"),
-        "net_to_gross_morning": morning.get("net_to_gross"),
+        "net_to_gross_morning": ntg_m,
         "net_to_gross_close": (cp.get("overall") or {}).get("net_to_gross"),
     })
     return row

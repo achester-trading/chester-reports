@@ -258,6 +258,14 @@ FIELD_MECHANISM_GROUPS: dict[str, str] = {
     "call_wall_otm": "dealer_chain_derived",
     "put_wall_gamma": "dealer_chain_derived",
     "peak_abs_gex_strike": "dealer_chain_derived",
+    # 6b part 1 (brief v2 sections 1, 2 and 6): the convention-free masses, the
+    # peaks named as peaks, the secondary OTM concentrations.
+    "call_gamma_per_1pct": "dealer_chain_derived",
+    "put_gamma_per_1pct": "dealer_chain_derived",
+    "peak_call_gex_strike": "dealer_chain_derived",
+    "peak_put_gex_strike": "dealer_chain_derived",
+    "call_concentration_otm_2": "dealer_chain_derived",
+    "put_concentration_otm_2": "dealer_chain_derived",
     "gex": "dealer_chain_derived",
     "call_gex": "dealer_chain_derived",
     "put_gex": "dealer_chain_derived",
@@ -269,6 +277,10 @@ FIELD_MECHANISM_GROUPS: dict[str, str] = {
     "dex": "dealer_chain_derived",
     "share_of_total_abs_dex": "dealer_chain_derived",
     "share_of_abs_dex": "dealer_chain_derived",
+    # The raw-signed OI balance: sum of delta x OI x 100 with each contract's
+    # OWN delta (calls +, puts -), no dealer sign -- delta-weighted open
+    # interest, calls less puts. Convention-free, and given no directional word.
+    "oi_delta_balance_shares": "dealer_chain_derived",
     "vex_shares_per_volpt": "dealer_chain_derived",
     "vex_notional_per_volpt": "dealer_chain_derived",
     "vex": "dealer_chain_derived",
@@ -691,9 +703,11 @@ def _empty_greek_aggregates() -> dict:
 
 def _empty_gross_aggregates() -> dict:
     """The gross-against-net keys (audit F1), all None, for a profile with no
-    gamma -- the same key set as a populated one, for the same reason."""
+    gamma -- the same key set as a populated one, for the same reason. The two
+    masses (6b) ride with them: gross is their sum."""
     return {"gross_gex_abs": None, "gross_gamma_per_1pct": None,
-            "net_to_gross": None}
+            "net_to_gross": None, "call_gamma_per_1pct": None,
+            "put_gamma_per_1pct": None}
 
 
 def _profile(rows: list[dict], spot: float) -> dict:
@@ -711,6 +725,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
     dex_strike: dict[float, float] = defaultdict(float)
     vex_strike: dict[float, float] = defaultdict(float)
     chex_strike: dict[float, float] = defaultdict(float)
+    oi_delta = 0.0
 
     for r in rows:
         g, oi, k = r.get("gamma"), r.get("open_interest") or 0.0, r.get("strike")
@@ -734,6 +749,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
         d, v, c = r.get("delta"), r.get("vanna"), r.get("charm")
         if d is not None:
             dex_strike[k] += pos * d * contracts
+            oi_delta += d * contracts           # the contract's own delta
         if v is not None:
             vex_strike[k] += pos * v * VOL_POINT * contracts
         if c is not None:
@@ -745,6 +761,9 @@ def _profile(rows: list[dict], spot: float) -> dict:
                 "gamma_flip": None, "call_wall": None, "put_wall": None,
                 "put_wall_gamma": None, "put_wall_oi": None,
                 "put_wall_otm": None, "call_wall_otm": None,
+                "peak_call_gex_strike": None, "peak_put_gex_strike": None,
+                "call_concentration_otm_2": None, "put_concentration_otm_2": None,
+                "peak_abs_gex_strike": None, "oi_delta_balance_shares": None,
                 "strikes": 0, **_empty_greek_aggregates()}
 
     # Two competing put-wall definitions, reported side by side rather than
@@ -776,6 +795,12 @@ def _profile(rows: list[dict], spot: float) -> dict:
     otm_above = [(k, v) for k, v in _pairs_all if k > spot and v > 0]
     put_wall_otm = min(otm_below, key=lambda kv: kv[1])[0] if otm_below else None
     call_wall_otm = max(otm_above, key=lambda kv: kv[1])[0] if otm_above else None
+    # The SECONDARY concentrations (T2's rows): the next-largest OTM strike on
+    # each side, by the same signed GEX.
+    _below2 = sorted(otm_below, key=lambda kv: kv[1])
+    _above2 = sorted(otm_above, key=lambda kv: -kv[1])
+    put_conc_2 = _below2[1][0] if len(_below2) > 1 else None
+    call_conc_2 = _above2[1][0] if len(_above2) > 1 else None
 
     pairs = sorted(by_strike.items())
     net = sum(v for _, v in pairs)
@@ -801,6 +826,13 @@ def _profile(rows: list[dict], spot: float) -> dict:
         "gross_gex_abs": gross_abs,
         "gross_gamma_per_1pct": gross_abs * 0.01 * spot,
         "net_to_gross": abs(net) / gross_abs if gross_abs else None,
+        # THE TWO MASSES (6b; brief v2 section 1), printed first because they
+        # hold under any symmetric convention: call gamma and put gamma, each
+        # unsigned, $ per 1%. They sum to gross_gamma_per_1pct.
+        "call_gamma_per_1pct": sum(call_gex.values()) * 0.01 * spot,
+        "put_gamma_per_1pct": sum(put_gex.values()) * 0.01 * spot,
+        # Delta-weighted OI, each contract's own delta: calls less puts, shares.
+        "oi_delta_balance_shares": oi_delta,
         # DEX: what the dealer OPTION BOOK is long, in shares. The hedge is the
         # opposite sign; the unwind at expiry is this sign. See the docstring.
         "dex_shares": dex_sh,
@@ -816,8 +848,19 @@ def _profile(rows: list[dict], spot: float) -> dict:
         "abs_dex_shares": sum(abs(v) for v in dex_strike.values()),
         "gamma_flip_cum_strikes": gamma_flip(pairs, spot),
         "gamma_flip_cum_all": gamma_flip_all(pairs),
+        # LEGACY NAMES for the all-strike extremes, kept because the pin log,
+        # the cross-check and every stored profile carry them. They are PEAKS,
+        # not walls (audit F5): the renderer reads peak_call_gex_strike and
+        # peak_put_gex_strike below, and the walls are call_wall_otm and
+        # put_wall_otm.
         "call_wall": max(positives, key=lambda kv: kv[1])[0] if positives else None,
         "put_wall": min(negatives, key=lambda kv: kv[1])[0] if negatives else None,
+        "peak_call_gex_strike": (max(positives, key=lambda kv: kv[1])[0]
+                                 if positives else None),
+        "peak_put_gex_strike": (min(negatives, key=lambda kv: kv[1])[0]
+                                if negatives else None),
+        "call_concentration_otm_2": call_conc_2,
+        "put_concentration_otm_2": put_conc_2,
         "peak_abs_gex_strike": max(pairs, key=lambda kv: abs(kv[1]))[0],
         "put_wall_gamma": put_wall_gamma,
         "put_wall_oi": put_wall_oi,
@@ -916,6 +959,108 @@ def expiration_release(rows: list[dict], spot: float) -> list[dict]:
         a["unwind_direction"] = ("dealer_buys" if a["dex_shares"] > 0 else
                                  "dealer_sells" if a["dex_shares"] < 0 else "flat")
     return out
+
+
+# ---------------------------------------------------------------------------
+# Horizons (6b part 1; brief v2 section 2)
+# ---------------------------------------------------------------------------
+
+DEFAULT_HORIZON_WINDOWS = {
+    "windows": [{"id": "0dte", "label": "0DTE", "max_dte": 0},
+                {"id": "le7", "label": "≤ 7 days", "max_dte": 7},
+                {"id": "le45", "label": "≤ 45 days", "max_dte": 45},
+                {"id": "all", "label": "All", "max_dte": None}],
+    "bands": [{"id": "b0", "label": "0DTE", "min_dte": 0, "max_dte": 0},
+              {"id": "b1_7", "label": "1–7", "min_dte": 1, "max_dte": 7},
+              {"id": "b8_45", "label": "8–45", "min_dte": 8, "max_dte": 45},
+              {"id": "b46", "label": "> 45", "min_dte": 46, "max_dte": None}],
+}
+# The figures a window or band carries. Additive ones sum across the bands.
+WINDOW_FIGURES = ("call_gamma_per_1pct", "put_gamma_per_1pct",
+                  "dollar_gamma_per_1pct", "net_gex", "gross_gex_abs",
+                  "gross_gamma_per_1pct", "net_to_gross", "dex_shares",
+                  "dex_notional", "abs_dex_shares", "oi_delta_balance_shares")
+WINDOW_LEVELS = ("call_wall_otm", "put_wall_otm", "peak_abs_gex_strike")
+BAND_ADDITIVE = ("call_gamma_per_1pct", "put_gamma_per_1pct",
+                 "dollar_gamma_per_1pct", "gross_gamma_per_1pct", "dex_notional")
+
+
+def horizon_windows_config() -> dict:
+    """`horizon_windows` from config/reporting_stack.yaml; the defaults (the
+    brief's own) when the file or the block is absent."""
+    try:
+        import yaml                                             # noqa: PLC0415
+        path = Path(__file__).resolve().parent.parent / "config" / "reporting_stack.yaml"
+        cfg = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get(
+            "horizon_windows")
+        if cfg and cfg.get("windows") and cfg.get("bands"):
+            return cfg
+    except Exception:                                           # noqa: BLE001
+        pass
+    return DEFAULT_HORIZON_WINDOWS
+
+
+def _in_dte(row: dict, lo: Optional[int], hi: Optional[int]) -> bool:
+    d = max(row.get("dte") or 0, 0)
+    return (lo is None or d >= lo) and (hi is None or d <= hi)
+
+
+def _window(rows: list[dict], spot: float, spec: dict, levels: bool,
+            all_abs_dex: Optional[float]) -> dict:
+    p = _profile(rows, spot)
+    p.pop("per_strike", None)
+    out = {"id": spec["id"], "label": spec["label"],
+           "min_dte": spec.get("min_dte"), "max_dte": spec.get("max_dte"),
+           "rows": len(rows), "expiries": len({r.get("expiry") for r in rows}),
+           # The engine's listing buckets this window draws on (they stay as
+           # stored; a monthly or quarterly listing can fall in more than one
+           # window, by its days to expiry).
+           "listing_buckets": sorted({bucket_for(r["expiry"], r.get("dte") or 0)
+                                      for r in rows}),
+           "excluded": False}
+    out.update({k: p.get(k) for k in WINDOW_FIGURES})
+    out["share_of_abs_dex"] = (round((p.get("abs_dex_shares") or 0.0) / all_abs_dex, 4)
+                               if all_abs_dex else None)
+    if levels:
+        out.update({k: p.get(k) for k in WINDOW_LEVELS})
+        flip, why = (zero_gamma_level_with_reason(rows, spot, config.RISK_FREE_RATE)
+                     if rows else (None, "no_rows_in_window"))
+        out["gamma_flip"], out["flip_reason"] = flip, why
+    return out
+
+
+def horizon_profiles(usable: list[dict], exposure_rows: list[dict], spot: float,
+                     settled: bool, cfg: Optional[dict] = None) -> dict:
+    """{"windows": {id: window}, "bands": {id: band}}. A window or band that
+    holds only DTE 0 at a settled capture is EXCLUDED, with its OI structure
+    and no greek -- "settled, excluded" -- exactly as the 0DTE bucket."""
+    cfg = cfg or DEFAULT_HORIZON_WINDOWS
+    all_abs = _profile(exposure_rows, spot).get("abs_dex_shares") or None
+
+    def excluded(spec: dict) -> dict:
+        raw = [r for r in usable if _in_dte(r, spec.get("min_dte"), 0)]
+        return {"id": spec["id"], "label": spec["label"],
+                "min_dte": spec.get("min_dte"), "max_dte": spec.get("max_dte"),
+                "excluded": True, "status": "settled, excluded",
+                "rule": config.SETTLED_0DTE_RULE,
+                **{k: None for k in WINDOW_FIGURES}, **_oi_structure(raw)}
+
+    windows: dict[str, dict] = {}
+    for spec in cfg["windows"]:
+        if settled and spec.get("max_dte") == 0:
+            windows[spec["id"]] = excluded(spec)
+            continue
+        rows = [r for r in exposure_rows if _in_dte(r, None, spec.get("max_dte"))]
+        windows[spec["id"]] = _window(rows, spot, spec, True, all_abs)
+    bands: dict[str, dict] = {}
+    for spec in cfg["bands"]:
+        if settled and spec.get("max_dte") == 0:
+            bands[spec["id"]] = excluded(spec)
+            continue
+        rows = [r for r in exposure_rows
+                if _in_dte(r, spec.get("min_dte"), spec.get("max_dte"))]
+        bands[spec["id"]] = _window(rows, spot, spec, False, all_abs)
+    return {"windows": windows, "bands": bands}
 
 
 def compute_symbol(rows: list[dict], symbol: str) -> dict:
@@ -1078,6 +1223,13 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
         p["min_t_load_bearing"] = share > config.MIN_T_LOAD_BEARING_SHARE
         buckets[b] = p
 
+    # THE HORIZONS (6b part 1; brief v2 section 2): cumulative windows for the
+    # tables and exclusive bands for the bucket chart, by days to expiry, from
+    # the same rows -- so every table is a view of this profile and the
+    # renderer recomputes nothing.
+    hz_cfg = horizon_windows_config()
+    horizons = horizon_profiles(usable, exposure_rows, spot, settled, hz_cfg)
+
     mp = max_pain(usable)
     per_strike = overall.pop("per_strike", [])
     return {
@@ -1122,6 +1274,8 @@ def compute_symbol(rows: list[dict], symbol: str) -> dict:
             exposure_rows, spot, overall.get("peak_abs_gex_strike")),
         "max_pain_expiry_type": dominant_bucket_by_oi(usable, mp),
         "buckets": buckets,
+        "horizons": horizons["windows"],
+        "bands": horizons["bands"],
         "quality": quality,
         # Data-quality gates over the same chain. Carried on the profile so the
         # pin log can refuse to let a bad day into the base rate silently.

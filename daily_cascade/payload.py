@@ -150,6 +150,11 @@ def exposure_rows(sess: Optional[str] = None) -> tuple[list[dict], list[dict], O
             "peak_abs_gex_strike": overall.get("peak_abs_gex_strike"),
             "call_wall": overall.get("call_wall"),
             "put_wall": overall.get("put_wall"),
+            # 6b part 1: the OTM walls are THE walls (audit F5), and the regime
+            # word is gated on net-to-gross (brief v2, ratified 16 Oct 2026).
+            "call_wall_otm": overall.get("call_wall_otm"),
+            "put_wall_otm": overall.get("put_wall_otm"),
+            "net_to_gross": overall.get("net_to_gross"),
             "max_pain": rec.get("max_pain"),
             "dex_notional": overall.get("dex_notional"),
             "vex_per_volpt": overall.get("vex_shares_per_volpt"),
@@ -770,6 +775,9 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
                      "ingestion_only": config.massive_universe()},
         "exposure": exposure,
         "exposure_missing": missing,
+        # Where the computed profiles live: the stacked close's dealer block
+        # (daily_cascade/dealer_block.py) reads the session's captures there.
+        "computed_dir": str(config.COMPUTED_DIR),
         "pins": pins,
         "pin_hits": hits,
         # THE OBJECT, READ AND NOT RECOMPUTED. regime.latest() returns the

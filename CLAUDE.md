@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-eight code gates (eighty-five Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-nine code gates (eighty-six Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -368,6 +368,18 @@ absent with its reason; every read is as of. The settings are
 to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
 crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
 is `docs/volume-profile.md`.
+
+**The dealer block is a view of the exposure JSON (6b part 1, brief v2 ratified
+16 Oct 2026).** `daily_cascade/dealer_block.py` prints T1 with its quality panel,
+T4 (changes since the equivalent capture), T2 (key levels) and the decision
+summary inside the close's Mechanics, from one computed profile and the stored
+captures; it recomputes nothing. The engine (`tools/exposure_compute.py`) stores
+the call- and put-gamma masses, the horizon windows and exclusive bands
+(`horizon_windows` in `config/reporting_stack.yaml`), and names the all-strike
+extremes as peaks: the walls are `call_wall_otm` and `put_wall_otm`. The regime
+word prints only at net-to-gross of 0.10 or more, "inferred, not observed" heads
+every dealer table, and the block proposes setups from `config/setups.yaml`
+without writing the register. `tools/validate_dealer_block.py` holds it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

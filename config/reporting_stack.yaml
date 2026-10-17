@@ -595,6 +595,115 @@ dealer_flags:
   # vol points, print side by side and mark the row "check".
   iv_vix_check_points: 5.0
 
+# THE DEALER BLOCK'S HORIZONS (6b part 1; brief v2 section 2, ratified 16 Oct
+# 2026). CUMULATIVE windows for the tables -- 0DTE, 7 days or less, 45 days or
+# less, all -- and EXCLUSIVE bands for the bucket chart -- 0DTE, 1 to 7, 8 to
+# 45, over 45 -- which sum to "all". Cut by each expiry's days to expiry from the
+# same rows the engine's listing buckets (0dte, weekly, monthly, quarterly,
+# other) are built from; the buckets stay as stored, and each window records the
+# listing buckets it draws on. tools/exposure_compute.py reads this block and
+# stores the windows on the profile; the renderer prints them and the bands'
+# reconciliation, and recomputes nothing. At a settled capture the 0DTE window
+# and band print "settled, excluded" (config.SETTLED_0DTE_RULE).
+horizon_windows:
+  windows:
+    - {id: "0dte", label: "0DTE", max_dte: 0}
+    - {id: "le7",  label: "≤ 7 days", max_dte: 7}
+    - {id: "le45", label: "≤ 45 days", max_dte: 45}
+    - {id: "all",  label: "All", max_dte: null}
+  bands:
+    - {id: "b0",    label: "0DTE",    min_dte: 0,  max_dte: 0}
+    - {id: "b1_7",  label: "1–7",     min_dte: 1,  max_dte: 7}
+    - {id: "b8_45", label: "8–45",    min_dte: 8,  max_dte: 45}
+    - {id: "b46",   label: "> 45",    min_dte: 46, max_dte: null}
+
+# THE DEALER BLOCK (6b part 1; brief v2, ratified 16 Oct 2026). Views of the
+# engine's exposure JSON: T1 with its quality panel, T4, T2 and the decision
+# summary, inside the close's Mechanics section and its budgets. Ratified
+# values are marked RULED; every other number is SESSION-SET, with its reason,
+# and listed in docs/briefs/6b-dealer-1-notes.md.
+dealer_block:
+  # The symbols the close prints the block for. SESSION-SET: SPY only, the
+  # scorecard's symbol; QQQ and IWM keep their one Mechanics line each, inside
+  # the close's word and table budget.
+  symbols: [SPY]
+  # RULED: the regime word prints only at net-to-gross at or above this;
+  # below it "indeterminate (net is x% of gross)".
+  net_to_gross_min: 0.10
+  # RULED: on every dealer table, and the convention once per edition.
+  inferred_stamp: "inferred, not observed"
+  convention_line: >-
+    Sign convention (dealers-hand-v1): dealers are assumed long calls and short
+    puts, so call gamma counts positive and put gamma negative. An assumption
+    about who holds the options, not an observation; under the opposite reading
+    every net sign inverts. The call- and put-gamma masses and the zero-gamma
+    level hold under either.
+  # THE CAPTURE SLOTS for T4's equivalent capture. RULED: 16:10 against the
+  # prior 16:10, 09:45 against the prior 09:45. 12:30 is the brief's third
+  # capture (part 2 adds its unit). A settled capture is the 16:10 slot; an
+  # intraday one takes the nearest slot within `slot_tolerance_min` minutes,
+  # else it has no slot and T4 prints "no equivalent capture".
+  capture_slots: ["09:45", "12:30", "16:10"]
+  # SESSION-SET: 20 minutes, so a capture that ran late by a pacing retry still
+  # matches its slot, and 09:45 and 12:30 can never be confused.
+  slot_tolerance_min: 20
+  # SESSION-SET: look back this many trading sessions for the prior equivalent
+  # capture, so one missed capture still compares against the one before it
+  # (T4 names the date it compares against).
+  equivalent_lookback_sessions: 3
+  # WHAT COUNTS AS AN EXPIRY SESSION for the setups and T2's max-pain row.
+  # SESSION-SET: "friday" -- the target session is a Friday with a listed
+  # expiry (the weekly, monthly and quarterly cycles all expire on Fridays).
+  # SPY lists an expiry EVERY weekday, so "any" would make every session an
+  # expiry session and d_forced_flow fire at every close. A holiday-shifted
+  # Thursday monthly is missed under "friday" (noted). "any" is the alternative.
+  # The scorecard's is_expiry_session (any DTE 0 rows) is unchanged: part 2's
+  # pre-registration rules on it.
+  expiry_sessions: friday
+  # THE SETUP CONDITIONS (config/setups.yaml; Doctrine 4.3 and 4.4). The block
+  # proposes; the books decide; nothing writes the register.
+  setups:
+    c_pin_fade:
+      # SESSION-SET: "near the peak-gamma strike" is spot within this % of it.
+      # 0.5% is about two SPY strikes at $5 spacing near 680: close enough that
+      # the fade is toward the pin, not a trend trade.
+      near_peak_pct: 0.5
+      # Invalidation: the zero-gamma level (the regime boundary, DH 7.5) -- a
+      # pin fade has no premise below it. Time stop: the expiry session's close.
+      time_stop: "the expiry session's close"
+    c_negative_gamma_continuation:
+      # SESSION-SET: confirmation through a level is the capture's spot beyond
+      # the level by at least this %, having been on the other side at the
+      # equivalent capture. 0.10% is about 0.7 SPY points: past the strike's
+      # own noise without waiting for the move to be over.
+      confirm_pct: 0.10
+      # The levels that count: the zero-gamma level and the two OTM walls.
+      levels: [gamma_flip, put_wall_otm, call_wall_otm]
+      # Invalidation: back through the level. Time stop: two sessions (Book C
+      # is tactical, intraday to a few days; Doctrine 4.3).
+      time_stop: "two sessions"
+    d_forced_flow:
+      # On an expiry session (the capture carried DTE 0 rows) and on a day with
+      # a tier-1 release in the payload's events. Level: the peak-gamma strike
+      # with max pain as the control on expiry; the two OTM walls on a release
+      # day. Invalidation: spot beyond the level's far side. Time stop: the
+      # closing auction on expiry; the release session's close otherwise.
+      time_stop_expiry: "the closing auction"
+      time_stop_release: "the release session's close"
+  # T2's conditional readings, in the Dealer's Hand's words (Chapter 7). Never
+  # "support" or "resistance" as facts (brief section 1).
+  readings:
+    call_wall_otm: "if approached while gamma is positive, dealer long-call hedging sells into the rally; a decisive break can squeeze (DH 7.1)"
+    call_concentration_2: "the next call concentration above; the same reading, smaller (DH 7.1)"
+    gamma_flip: "the regime boundary: above it dealer hedging leans against moves, below it leans with them; crossing it changes the playbook, not the price (DH 7.5)"
+    spot: "the capture's spot"
+    put_concentration_2: "the next put concentration below; the same reading, smaller (DH 7.2)"
+    put_wall_otm: "holds only if holders monetize and vol falls; a break is regime information (DH 7.2)"
+    peak_abs_gex_strike: "where hedging flow is densest; the pin candidate on an expiry session (DH 7.4)"
+    peak_put_gamma_strike: "where put gamma peaks, near the money by construction; a peak, not a wall (audit F5)"
+    put_oi_shelf: "the largest out-of-the-money put open interest; an OI level, not a gamma one (DH 7.2)"
+    max_pain: "an OI construct; meaningful only where it coincides with the peak-gamma strike (DH 7.4)"
+
 # THE TECHNICAL APPENDIX (W-1.3a item 3.7): the reference tier's formulas, units
 # and sign conventions, printed after the Weekly's detail tables. The GEX/DEX
 # universe is the tape's `dealer` symbols, read from the tape set above, never

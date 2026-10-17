@@ -122,6 +122,10 @@ def emitted_fields() -> dict[str, set[str]]:
             fields.update(prof.get(key) or {})
         for bucket in (prof.get("buckets") or {}).values():
             fields.update(bucket)
+        # 6b part 1: the horizon windows and the bands carry fields too.
+        for key in ("horizons", "bands"):
+            for win in (prof.get(key) or {}).values():
+                fields.update(win)
         for rel in (prof.get("expiration_release") or [])[:1]:
             fields.update(rel)
         for strike in (prof.get("per_strike") or [])[:1]:
