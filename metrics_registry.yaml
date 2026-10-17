@@ -5046,7 +5046,8 @@ metrics:
     mechanism_group: external_position
     native_horizon: monthly
     freq: monthly
-    status_extra: not_yet_sourced
+    status_extra: superseded
+    superseded_by: imf.ifs.gold_net_purchases_oz.total
     information_half_life: until_next_release
     invalidated_by: none
     observation_type: observed
@@ -5055,11 +5056,13 @@ metrics:
     trigger_eligible: false
     added_date: "2026-10-10"
     description: >-
-      NOT YET SOURCED. Official gold holdings by country from the IMF's
-      International Financial Statistics -- the two-bid decomposition's official
-      leg beyond China (AQ-8a; change order 10 Oct 2026, section 5). A ruling on
-      the source is pending; declared, never written. China's own report
-      (safe.gold_reserves_oz) is read in the meantime.
+      SUPERSEDED (16 Oct 2026, post-Friday fix 2) by the IMF IFS writer's series:
+      the two-bid decomposition's official leg (AQ-8a) reads
+      imf.ifs.gold_net_purchases_oz.total, with the holdings by country under
+      imf.ifs.gold_reserves_oz.<iso3> (altdata/sources/imf_ifs.py). Kept as a
+      name so references resolve; never written. Was: official gold holdings by
+      country from the IMF's International Financial Statistics, declared
+      not_yet_sourced while China's own report (safe.gold_reserves_oz) was read.
   safe.gold_reserves_oz:
     source: safe_china
     mechanism_group: external_position
