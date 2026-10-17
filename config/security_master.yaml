@@ -3985,3 +3985,43 @@ instruments:
   - currency
   - exchange
   - multiplier
+- id: SM00195
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^VIX9D
+    store_key: yfinance.mkt_vix9d
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (Batch 9 item 52, 17 Oct 2026)
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00196
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^VIX6M
+    store_key: yfinance.mkt_vix6m
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (Batch 9 item 52, 17 Oct 2026)
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
