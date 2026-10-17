@@ -337,10 +337,15 @@ def exception_subsections(now_open: list, wis: dict, dates: Optional[dict],
 
 def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
+                screen: Optional[dict] = None,
                 dates: Optional[dict] = None, st=None,
                 now: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
+    # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
+    # session, whose 5-day change is the week; a single-country shock prints only
+    # once it has passed to the basket or EM spreads (SR-46(d)).
+    sitems, sdata = stack_mod.screen_items(screen, cadence)
     items = [i for i in base["items"] if i["key"] != "misfit:none"]
     from altdata import labels                                   # noqa: PLC0415
     opened = [c for c in wis.get("contradictions") or []
@@ -361,6 +366,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                           f"opened {w.this}.", 1, "none"))
     data = dict(base["data"])
     now_open = wis.get("exceptions_open_now") or []
+    data.update(sdata)
     # THE EXTREMES WITH THEIR PERCENTILE (W-1.1 item 1.0a): What doesn't fit's
     # frame ranks an extreme by its percentile's distance from the median.
     from altdata.numeral_audit import ordinal_suffix              # noqa: PLC0415
@@ -388,6 +394,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
+    items += sitems
     if not items:
         items.append(item("misfit:none", "No prediction-market disagreement and "
                           f"no exception opened {w.this}.", 1, "none"))
@@ -1866,11 +1873,13 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             log.warning("calendar unavailable", exc_info=True)
             cal = None
         watch = wsec.watching(st, now, opened, pmb, fed)
+        from altdata import move_screen                         # noqa: PLC0415
+        screen = move_screen.result_for(st, ending, now)
         built = {
             "read": read_week(pmb, wbd),
             "tape": tape,
             "mechanics": mechanics_week(st, sessions, now, wis, cfg),
-            "misfit": misfit_week(wis, pmb, hist,
+            "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
                                   st=st, now=now),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
@@ -1886,6 +1895,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),
         }
+        em_week(built, screen, ending)
         # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
         # Ahead's top events, and the top event's playbook.
         try:
@@ -1922,7 +1932,9 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                                  (built["narratives"].get("data") or {})
                                  and {"data": (built["narratives"].get("data") or {})
                                       .get("voices") or {}})
+    detail = stack_mod.move_screen_detail(screen, "weekly")
     ed = {"report": "weekly_stack", "session": ending, "week_ending": ending,
+          "detail": detail,
           "changed_since": changed,
           "config_version": cfg.get("version"), "as_of": now,
           "prior_session": (prior or {}).get("week_ending"),
@@ -1931,6 +1943,27 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
     return ed, extras
 
 
+def em_week(built: dict, screen: Optional[dict], ending: str) -> None:
+    """SR-46(c) and the EM calendar on the Weekly: the EM leg as a table under
+    Plumbing & rates (its items do not print), and the quarter's hand-seeded EM
+    events under Ahead."""
+    from altdata import move_screen                              # noqa: PLC0415
+    sp = [x for x in ((screen or {}).get("em") or {}).get("spreads") or []
+          if x.get("available")]
+    if sp and built.get("plumbing") is not None:
+        rows = [[x["label"], f"{x['level']:.2f}%",
+                 "—" if x.get("change5_bp") is None else _signed(round(x["change5_bp"]), "bp"),
+                 (f"{move_screen._ord(x['pct_full'])} since {x['first']}"
+                  + (f"; {move_screen._ord(x['pct_5y'])} of five years"
+                     if x.get("five_year_complete") else ""))] for x in sp]
+        built["plumbing"].setdefault("subsections", []).append(
+            {"title": "EM leg", "paragraph_wanted": False,
+             "table": {"columns": ["Series", "Level", "Week", "Percentile (window)"],
+                       "rows": rows}})
+    cal = move_screen.em_calendar(ending)
+    if cal and built.get("ahead") is not None:
+        built["ahead"].setdefault("subsections", []).append(
+            {"title": "EM calendar", "lines": [move_screen.calendar_line(e) for e in cal]})
 def tag_facts(sections: list[dict], tape_ids: list, oi_rows: list, wbd_rows: list,
               book: Optional[dict] = None) -> None:
     """THE FACTS PRINTED TWICE (W-1.1 item 1.1), tagged for the consistency gate

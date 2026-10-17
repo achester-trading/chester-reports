@@ -67,6 +67,7 @@ PY_VALIDATORS := \
 	tools/validate_weekly_stack.py \
 	tools/validate_monthly_stack.py \
 	tools/validate_quarterly_stack.py \
+	tools/validate_alt_asset_scan.py \
 	tools/validate_thesis_register.py \
 	tools/validate_attribution.py \
 	tools/validate_voices.py \
@@ -76,6 +77,7 @@ PY_VALIDATORS := \
 	tools/validate_readability.py \
 	tools/validate_stack_cadence.py \
 	tools/validate_figure_budget.py \
+	tools/validate_move_screen.py \
 	tools/validate_no_filler.py \
 	tools/validate_edition_consistency.py \
 	tools/validate_audit_fixes.py \

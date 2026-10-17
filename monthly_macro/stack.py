@@ -1221,17 +1221,32 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
         by_fam.setdefault(r["family"], []).append(r)
     for fam, rs in by_fam.items():
         r0 = rs[0]
-        subs.append({
-            "title": f"Sourced figures: {r0.get('edition') or r0['title']}",
-            "table": {"columns": ["Metric", "Figure", "Long-run comparison",
-                                  "Source"],
-                      "rows": [[r["metric"], r["value"], r.get("comparison") or "—",
-                                r["source_ref"]] for r in rs]},
-            "notes": [f"Source: {r0['source_url']}, from the scan's "
-                      f"{r0['section_ref']} reference table, data as of "
-                      f"{r0['as_of']}, read {r0['read_on']}. Figures as "
-                      f"published; the publisher's recommendations are not "
-                      f"printed."]})
+        if fam.startswith(scans.ALT_FAMILY_PREFIX):
+            # THE QUARTERLY SCAN'S AGENCY TABLES (AQ-7): one publisher per row,
+            # so each row carries its own source, vintage and date, and the
+            # comparison column is the revision against the prior vintage.
+            subs.append({
+                "title": f"Sourced figures: {r0['title']}",
+                "table": {"columns": ["Metric", "Figure", "Against the prior vintage",
+                                      "Source"],
+                          "rows": [[r["metric"], r["value"], r.get("comparison") or "—",
+                                    f"{r['source_url']} ({r.get('edition') or '—'}, "
+                                    f"{r['as_of']})"] for r in rs]},
+                "notes": [f"From the quarterly scan's agency tables "
+                          f"({r0['section_ref']}), read {r0['read_on']}. Figures as "
+                          f"published, each with its publisher's vintage."]})
+        else:
+            subs.append({
+                "title": f"Sourced figures: {r0.get('edition') or r0['title']}",
+                "table": {"columns": ["Metric", "Figure", "Long-run comparison",
+                                      "Source"],
+                          "rows": [[r["metric"], r["value"], r.get("comparison") or "—",
+                                    r["source_ref"]] for r in rs]},
+                "notes": [f"Source: {r0['source_url']}, from the scan's "
+                          f"{r0['section_ref']} reference table, data as of "
+                          f"{r0['as_of']}, read {r0['read_on']}. Figures as "
+                          f"published; the publisher's recommendations are not "
+                          f"printed."]})
         for r in rs:
             items.append(item(f"slow:scan:{fam}:{r['metric']}",
                               f"{r['metric']} {r['value']}", 3,

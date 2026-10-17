@@ -107,7 +107,8 @@ DELTA_UNITS: dict[str, str] = {
     "JPY": "percent",
     "CNY": "percent",
     "MXN": "percent",
-    # The H.10 scan tier's quoted currencies (AQ-3 part 1): an exchange rate
+    # The H.10 scan tier's quoted currencies (AQ-3 part 1), SR-46's EM six among
+    # them (one copy each; Friday stitching): an exchange rate
     # moves in percent of itself, whatever it is quoted in.
     "CAD": "percent", "CHF": "percent", "SEK": "percent", "NOK": "percent",
     "DKK": "percent", "BRL": "percent", "ZAR": "percent", "KRW": "percent",

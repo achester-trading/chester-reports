@@ -202,6 +202,15 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # Yield on U.S. Treasury Securities at 5-Year Constant Maturity, Quoted on
     # an Investment Basis, Inflation-Indexed").
     SeriesSpec("tips_5y",          "DFII5",      "5-year TIPS real yield",          "2",  "%",    "daily"),
+    # SR-46 (ruled 6 Oct 2026; Audit #4 Category 1 item 5): the EM screen's FRED
+    # currencies are AQ-3's H.10 keys (FRED_FX_SCAN_SERIES, FRED_THAILAND_SERIES:
+    # usd_brl, usd_zar, usd_inr, usd_krw, usd_twd, usd_thb), one copy each
+    # (Friday stitching, 13 Oct).
+    # SR-46(c): the EM spread family. Both PERCENT, daily, read off their FRED
+    # pages 11 Oct 2026. FRED notes that from April 2026 each serves only THREE
+    # YEARS of observations, so a five-year percentile is not computable from it.
+    SeriesSpec("em_corp_oas",      "BAMLEMCBPIOAS","ICE BofA EM Corporate Plus OAS",  "6", "%",    "daily"),
+    SeriesSpec("em_hy_oas",        "BAMLEMHBHYCRPIOAS","ICE BofA High Yield EM Corporate Plus OAS","6","%","daily"),
 ]
 
 # ---------------------------------------------------------------------------
