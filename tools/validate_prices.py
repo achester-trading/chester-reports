@@ -192,11 +192,11 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 88, f"88 symbols declared (got {len(syms)}) -- the tape's "
+    check(len(syms) == 90, f"90 symbols declared (got {len(syms)}) -- the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
           f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), HG=F, "
-          f"JPY=X and EURUSD=X (T2.3), DBC for AQ-4's returns quilt, AQ-5's DBA ETH-USD SOL-USD ZEC-USD "
+          f"JPY=X and EURUSD=X (T2.3), RB=F and HO=F for the crack (AQ-3), DBC for AQ-4's returns quilt, AQ-5's DBA ETH-USD SOL-USD ZEC-USD "
           f"VNQI MCHI (the correlation universe), and the 28 earnings names "
           f"(Book B scanner follow-up 4)")
     check(yf_src.EARNINGS_SYMBOLS <= set(syms) and len(yf_src.EARNINGS_SYMBOLS) == 29,
@@ -479,7 +479,7 @@ def group_volume() -> None:
           "the unit is declared per kind: shares, contracts (count), dollars")
     check(set(yf_src.VOLUME_SHARE_KEYS) | set(yf_src.VOLUME_CONTRACT_KEYS)
           | set(yf_src.VOLUME_USD_KEYS) == set(yf_src.VOLUME_UNITS)
-          and len(yf_src.VOLUME_UNITS) == 76,
+          and len(yf_src.VOLUME_UNITS) == 78,
           f"the three registry blocks cover the {len(yf_src.VOLUME_UNITS)} symbols "
           f"with volume, each once")
     spy = dict(yf_src.companion_series("SPY", parsed, ["2026-10-02"]))

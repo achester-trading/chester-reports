@@ -478,6 +478,14 @@ vocabularies:
     # COMMODITY PRICES (ST-2). The World Bank indices; the LBMA gold
     # benchmark is declared and not sourced (A-4, 9 Oct 2026).
     - commodity_prices
+    # PHYSICAL HOLDINGS (AQ-3 part 1). Metal held in ETF trusts and exchange
+    # warehouses, and the trusts' share counts: where the stock sits, not its
+    # price. One cluster: an ETF outflow and a warehouse draw are two reads of
+    # one question.
+    - commodity_holdings
+    # SUPPLY RESPONSE (AQ-3 part 1). Rigs in operation: the producers'
+    # answer to price, two to three quarters ahead of output.
+    - commodity_supply
     # LEVERAGE (ST-2). Margin debt and leveraged-ETF assets: how much of
     # the book is borrowed or daily-rebalanced (SR-8). One cluster.
     - leverage_positioning
@@ -9459,6 +9467,1013 @@ metrics:
     description: >-
       Whether China's state banks are seen selling dollars onshore -- the devaluation tell's third leg -- coded yes 1 / no 0 / unknown -1 (SR-4, G-21: no source yet, so by hand).
 
+
+  # -------------------------------------------------------------------------
+  # AQ-3 PART 1 (11 Oct 2026) -- the Quarterly's structure series. Writers:
+  # cftc.py (disaggregated, TFF), eia_rigs.py, spdr_gld.py, ishares_trusts.py,
+  # shfe.py, cnh.py; computed: altdata/market_features.py aq3_rows.
+  # -------------------------------------------------------------------------
+  cftc.dis_prod_merc_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): producer/merchant/processor/user, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_prod_merc_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): producer/merchant/processor/user, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_prod_merc_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): producer/merchant/processor/user, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_prod_merc_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): producer/merchant/processor/user, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_prod_merc_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): producer/merchant/processor/user, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_prod_merc_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): producer/merchant/processor/user, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_swap_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): swap dealer, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_swap_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): swap dealer, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_swap_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): swap dealer, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_swap_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): swap dealer, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_swap_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): swap dealer, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_swap_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): swap dealer, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_managed_money_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): managed money, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_managed_money_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): managed money, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_managed_money_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): managed money, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_managed_money_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): managed money, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): managed money, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): managed money, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_other_rept_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): other reportables, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_other_rept_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): other reportables, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_other_rept_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): other reportables, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_other_rept_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): other reportables, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_other_rept_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): other reportables, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.dis_other_rept_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): other reportables, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.dis_open_interest:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Disaggregated COT, futures only (GOLD, SILVER, COPPER, WTI, NATGAS; instrument = contract): open interest, all, contracts -- the denominator of the _oi shares.
+  cftc.tff_dealer_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_dealer_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_dealer_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_dealer_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_dealer_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_dealer_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): dealer/intermediary, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_asset_mgr_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_asset_mgr_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_asset_mgr_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_asset_mgr_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_asset_mgr_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_asset_mgr_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): asset manager/institutional, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_lev_money_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_lev_money_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_lev_money_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_lev_money_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_lev_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_lev_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): leveraged funds, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_other_rept_long:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_other_rept_long_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_other_rept_short:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, short positions, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_other_rept_short_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, short positions, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_other_rept_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long minus short, contracts. observed_at = the report Tuesday; available_at Friday 15:30 ET (reconstructed).
+  cftc.tff_other_rept_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent
+    delta_unit: pp
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): other reportables, long minus short, as a PERCENT of the same record's open interest (100 x position / open_interest_all) -- positions scaled to OI, the section 10A standard. Moves in percentage points.
+  cftc.tff_open_interest:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Traders in Financial Futures, futures only (EUR, JPY, GBP, CHF, CAD, AUD; instrument = contract): open interest, all, contracts -- the denominator of the _oi shares.
+  eia.rigs_oil:
+    source: eia_rigs
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US crude oil rotary rigs in operation, count -- Baker Hughes' monthly average as the EIA republishes it (E_ERTRRO_XR0_NUS_C), dated the 15th.
+  eia.rigs_gas:
+    source: eia_rigs
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US natural gas rotary rigs in operation, count (E_ERTRRG_XR0_NUS_C), monthly, dated the 15th.
+  eia.rigs_total:
+    source: eia_rigs
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US crude oil and natural gas rotary rigs in operation, count (E_ERTRR0_XR0_NUS_C) -- the EIA's own total, never the sum of the two legs.
+  etf.gld_oz:
+    source: spdr_gld
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      SPDR Gold Trust (GLD): troy ounces of gold held by the trust, as the issuer reports.
+  etf.gld_tonnes:
+    source: spdr_gld
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      SPDR Gold Trust (GLD): TONNES of gold held, the issuer's own figure (1 t = 32,150.7465 oz).
+  etf.gld_shares:
+    source: spdr_gld
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      SPDR Gold Trust (GLD): shares outstanding = total ounces / ounces per share, both the trust's own columns.
+  etf.gld_share_flow:
+    source: spdr_gld
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: shares
+    trigger_eligible: false
+    description: >-
+      SPDR Gold Trust (GLD): the change in shares outstanding since the previous stored count -- creations minus redemptions, a SHARE COUNT, never dollars (AUM moves with price; section 10A).
+  etf.iau_oz:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Gold Trust (IAU): troy ounces of gold held by the trust, as the issuer reports.
+  etf.iau_tonnes:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Gold Trust (IAU): TONNES of gold held, the issuer's own figure (1 t = 32,150.7465 oz).
+  etf.iau_shares:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      iShares Gold Trust (IAU): shares outstanding, as the issuer's page reports.
+  etf.iau_share_flow:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: shares
+    trigger_eligible: false
+    description: >-
+      iShares Gold Trust (IAU): the change in shares outstanding since the previous stored count -- creations minus redemptions, a SHARE COUNT, never dollars (AUM moves with price; section 10A).
+  etf.slv_oz:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Silver Trust (SLV): troy ounces of silver held by the trust, as the issuer reports.
+  etf.slv_tonnes:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Silver Trust (SLV): TONNES of silver held, the issuer's own figure (1 t = 32,150.7465 oz).
+  etf.slv_shares:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      iShares Silver Trust (SLV): shares outstanding, as the issuer's page reports.
+  etf.slv_share_flow:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: shares
+    trigger_eligible: false
+    description: >-
+      iShares Silver Trust (SLV): the change in shares outstanding since the previous stored count -- creations minus redemptions, a SHARE COUNT, never dollars (AUM moves with price; section 10A).
+  etf.ibit_shares:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: shares
+    trigger_eligible: false
+    description: >-
+      iShares Bitcoin Trust (IBIT): shares outstanding, as the issuer's page reports.
+  etf.ibit_share_flow:
+    source: ishares_trusts
+    mechanism_group: commodity_holdings
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: shares
+    trigger_eligible: false
+    description: >-
+      iShares Bitcoin Trust (IBIT): the change in shares outstanding since the previous stored count -- creations minus redemptions, a SHARE COUNT, never dollars (AUM moves with price; section 10A).
+  shfe.stocks_t:
+    source: shfe
+    mechanism_group: commodity_holdings
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      SHFE weekly warehouse stock, deliverable grade (小计), TONNES; instrument = COPPER | ALUMINIUM | ZINC; observed_at = the report date (a Friday).
+  shfe.warrants_t:
+    source: shfe
+    mechanism_group: commodity_holdings
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      SHFE weekly warranted stock (期货 -- registered against futures), TONNES; instrument = COPPER | ALUMINIUM | ZINC.
+  cnh.usdcnh:
+    source: yahoo_cnh
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    description: >-
+      USD/CNH, yuan per dollar: the New York close (the last hourly bar opening before 17:00 New York) built from Yahoo's CNH=X hourly bars, whose daily history Yahoo does not serve. Offshore; kept separate from the onshore yfinance.mkt_usdcny.
+  calc.crack_321:
+    source: derived_state
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: price
+    delta_unit: raw
+    trigger_eligible: false
+    description: >-
+      The 3-2-1 crack spread, DOLLARS PER BARREL: (2 x RB=F x 42 + 1 x HO=F x 42 - 3 x CL=F) / 3, front-month closes of the same session (RBOB and ULSD in dollars per gallon). Method: market_features.crack_321. A margin that can go negative, so it moves in dollars, not percent.
+  calc.cny_fix_gap_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Onshore USD/CNY (CNY=X close) against the day's PBoC central parity (cfets.cny_fix), basis points: + is spot weaker than the fix. Method: cfets.gap_bp.
+  calc.cny_band_position:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Onshore USD/CNY's position in the +/-2% trading band: 0 at the fix, +1 at the weak edge, -1 at the strong edge. Method: cfets.band_position.
+  calc.cnh_fix_gap_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Offshore USD/CNH (cnh.usdcnh) against the day's central parity, basis points. The band does not bind CNH.
+  calc.cnh_cny_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      USD/CNH less USD/CNY, basis points of USD/CNY: + is the offshore yuan weaker than the onshore.
+
   # ---------------------------------------------------------------------------
   # THE CORRELATION LAYER'S NAMED ROWS (AQ-5; change order 10 Oct 2026, sections
   # 5 and 9). Each carries its paper's reading rule in its description. Written by
@@ -9950,6 +10965,58 @@ bulk_imports:
       "7": macro_global_fx
       "HH": household_allocation
 
+  fred_fx_scan:
+    description: >-
+      The FX scan tier (AQ-3 part 1, 11 Oct 2026; the Quarterly's currency
+      chapter, change order section 4.4): every daily H.10 pair on FRED the store
+      did not already hold -- AUD, NZD, GBP (US dollars per unit), CAD, CHF, SEK,
+      NOK, DKK, BRL, ZAR, KRW, TWD, INR, SGD, HKD, MYR, LKR, VES (units per US
+      dollar). Each read off its FRED page on 11 Oct 2026, last print 2 Oct; the
+      quote convention is the member's units. Same FRED path and prefix as the
+      other two blocks; a separate list because nothing reads these yet but the
+      currency chapter. The baht is NOT here (fred_thailand).
+    source: fred
+    members_from: altdata.config.FRED_FX_SCAN_SERIES
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 18
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "7": macro_global_fx
+
+  fred_thailand:
+    description: >-
+      USD/THB, H.10 (DEXTHUS, baht per dollar; AQ-3 part 1). ISOLATED: the
+      Thailand chapter's series (change order section 4.10; the Thailand spec)
+      carry namespace thailand and are never trigger_eligible -- they inform a
+      private decision and nothing in the trading system. Its own block so the
+      isolation is declared once, on the block, and cannot be lost in a list.
+    source: fred
+    members_from: altdata.config.FRED_THAILAND_SERIES
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    namespace: thailand
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "7": macro_global_fx
+
   market_closes:
     description: >-
       Daily closes for the 40-symbol market basket, keyed yfinance.mkt_<sym>
@@ -9972,7 +11039,7 @@ bulk_imports:
     # resolver left to guess would register yfinance.SPY and never
     # yfinance.mkt_spy, and every price metric would read as unregistered.
     members_are: values
-    expected_members: 88   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026)
+    expected_members: 90   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -10036,7 +11103,7 @@ bulk_imports:
     members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 3
+    expected_members: 5
     key_prefix: yfinance.
     units: count
     native_horizon: daily
@@ -10079,7 +11146,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 88   # the market_closes basket: 60 (with AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4)
+    expected_members: 90   # the market_closes basket: 62 (with AQ-3's RB=F HO=F, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4)
     key_prefix: yfinance.
     units: price
     native_horizon: daily

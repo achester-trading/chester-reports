@@ -198,8 +198,52 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("iorb",             "IORB",       "Interest on reserve balances",     "3", "%",    "daily"),
 ]
 
+# ---------------------------------------------------------------------------
+# THE FX SCAN TIER (AQ-3 part 1, 11 Oct 2026; the Quarterly's currency chapter,
+# change order section 4.4): every daily pair of the Fed's H.10 release on FRED
+# that the store did not already hold (it held DEXUSEU, DEXJPUS, DEXCHUS,
+# DEXMXUS). Each was read off FRED on 11 Oct 2026 -- live, last print 2 Oct --
+# and its QUOTE CONVENTION with it: H.10 quotes most pairs as foreign currency
+# PER US DOLLAR, and four as US DOLLARS PER UNIT (AUD, NZD, GBP and the euro
+# already held). The units field is the quoted currency, so a USD-per pair is
+# "$" and USD/KRW is "KRW"; every one moves in percent (derived.DELTA_UNITS).
+# A separate list for the reason FRED_SIGNAL_SERIES is one: FRED_SERIES is the
+# Monthly's set, and nothing reads these yet but the currency chapter.
+#
+# THE BAHT IS NOT HERE. DEXTHUS is in FRED_THAILAND_SERIES below, registered
+# under namespace: thailand and trigger_eligible: false (the Thailand chapter's
+# isolation, section 4.10), so no trigger can reach it through this list.
+# ---------------------------------------------------------------------------
+FRED_FX_SCAN_SERIES: list[SeriesSpec] = [
+    SeriesSpec("usd_aud", "DEXUSAL", "USD per AUD (H.10)",                 "7", "$",   "daily"),
+    SeriesSpec("usd_nzd", "DEXUSNZ", "USD per NZD (H.10)",                 "7", "$",   "daily"),
+    SeriesSpec("usd_gbp", "DEXUSUK", "USD per GBP (H.10)",                 "7", "$",   "daily"),
+    SeriesSpec("usd_cad", "DEXCAUS", "CAD per USD (H.10)",                 "7", "CAD", "daily"),
+    SeriesSpec("usd_chf", "DEXSZUS", "CHF per USD (H.10)",                 "7", "CHF", "daily"),
+    SeriesSpec("usd_sek", "DEXSDUS", "SEK per USD (H.10)",                 "7", "SEK", "daily"),
+    SeriesSpec("usd_nok", "DEXNOUS", "NOK per USD (H.10)",                 "7", "NOK", "daily"),
+    SeriesSpec("usd_dkk", "DEXDNUS", "DKK per USD (H.10)",                 "7", "DKK", "daily"),
+    SeriesSpec("usd_brl", "DEXBZUS", "BRL per USD (H.10)",                 "7", "BRL", "daily"),
+    SeriesSpec("usd_zar", "DEXSFUS", "ZAR per USD (H.10)",                 "7", "ZAR", "daily"),
+    SeriesSpec("usd_krw", "DEXKOUS", "KRW per USD (H.10)",                 "7", "KRW", "daily"),
+    SeriesSpec("usd_twd", "DEXTAUS", "TWD per USD (H.10)",                 "7", "TWD", "daily"),
+    SeriesSpec("usd_inr", "DEXINUS", "INR per USD (H.10)",                 "7", "INR", "daily"),
+    SeriesSpec("usd_sgd", "DEXSIUS", "SGD per USD (H.10)",                 "7", "SGD", "daily"),
+    SeriesSpec("usd_hkd", "DEXHKUS", "HKD per USD (H.10)",                 "7", "HKD", "daily"),
+    SeriesSpec("usd_myr", "DEXMAUS", "MYR per USD (H.10)",                 "7", "MYR", "daily"),
+    SeriesSpec("usd_lkr", "DEXSLUS", "LKR per USD (H.10)",                 "7", "LKR", "daily"),
+    SeriesSpec("usd_ves", "DEXVZUS", "VES per USD (H.10; Venezuela, administered rate)", "7", "VES", "daily"),
+]
+
+# THE BAHT, ISOLATED (section 4.10; the Thailand spec). Pulled by the same FRED
+# path, registered in its own block under namespace: thailand.
+FRED_THAILAND_SERIES: list[SeriesSpec] = [
+    SeriesSpec("usd_thb", "DEXTHUS", "THB per USD (H.10)",                 "7", "THB", "daily"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
-FRED_PULL_SERIES: list[SeriesSpec] = FRED_SERIES + FRED_SIGNAL_SERIES
+FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
+                                      + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES)
 
 
 # Quick lookup by key

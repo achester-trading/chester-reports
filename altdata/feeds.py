@@ -107,6 +107,9 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     "tic", "safe", "mof", "cfets", "cftc",
                     # ST-2: oil stocks and the expectations surveys
                     "eia", "fedboard", "nyfed_sce",
+                    # AQ-3 part 1: Baker Hughes' monthly rig count, as the EIA
+                    # republishes it (the Quarterly's oil chapter)
+                    "eia_rigs",
                     # 10 Oct 2026: central-bank gold by country (IMF IL)
                     "imf_ifs",
                     # AQ-9a (11 Oct 2026): the EM scorecard's sources, then its
@@ -138,7 +141,12 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
-                    "aaii")
+                    "aaii",
+                    # AQ-3 part 1 (11 Oct 2026), the Quarterly's structure rows:
+                    # GLD's archive (inbox; its API host disallows robots), the
+                    # iShares gold, silver and bitcoin trusts' share counts, SHFE
+                    # weekly metal stocks, and USD/CNH's New York close
+                    "spdr_gld", "ishares_trusts", "shfe", "cnh")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

@@ -779,6 +779,89 @@ def compute_rows(db: observations.ObservationStore,
     # one whose inputs have just changed.
     rows += macro_rows(db, as_of=as_of, first_day=first_day)
     rows += rates_rows(db, as_of=as_of, first_day=first_day)
+    rows += aq3_rows(db, as_of=as_of, first_day=first_day)
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# AQ-3 PART 1 (11 Oct 2026): THE CRACK AND THE YUAN'S BAND. Computed, never
+# fetched, from closes and fixes the store already holds.
+# ---------------------------------------------------------------------------
+WTI_FRONT = "yfinance.mkt_wti_front"     # CL=F, dollars per barrel
+RBOB_FRONT = "yfinance.mkt_rb_front"     # RB=F, dollars per gallon
+ULSD_FRONT = "yfinance.mkt_ho_front"     # HO=F, dollars per gallon
+GALLONS_PER_BARREL = 42.0
+CNY_SPOT = "yfinance.mkt_usdcny"          # CNY=X, onshore
+CNH_SPOT = "cnh.usdcnh"                   # altdata/sources/cnh.py, offshore
+CNY_FIX = "cfets.cny_fix"
+
+AQ3_FEATURES = {
+    "calc.crack_321":
+        "The 3-2-1 crack, dollars per barrel: (2 x RBOB + 1 x ULSD, each x 42 "
+        "gallons, less 3 x WTI) / 3, from the same session's front-month closes",
+    "calc.cny_fix_gap_bp":
+        "Onshore USD/CNY against the day's PBoC central parity, basis points",
+    "calc.cny_band_position":
+        "Onshore USD/CNY's position in the +/-2% band: 0 at the fix, +1 at the "
+        "weak edge, -1 at the strong edge",
+    "calc.cnh_fix_gap_bp":
+        "Offshore USD/CNH against the day's central parity, basis points",
+    "calc.cnh_cny_bp":
+        "USD/CNH less USD/CNY, in basis points of USD/CNY: + is the offshore "
+        "yuan weaker than the onshore",
+}
+
+
+def crack_321(wti: float, rbob: float, ulsd: float) -> float:
+    """Dollars per barrel of crude: three barrels in, two of gasoline and one of
+    distillate out, the products converted from dollars per gallon."""
+    return (2.0 * rbob * GALLONS_PER_BARREL + ulsd * GALLONS_PER_BARREL
+            - 3.0 * wti) / 3.0
+
+
+def aq3_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
+             first_day: Optional[str] = None) -> list[dict]:
+    """The crack on every session all three legs closed, and the yuan's gap and
+    band on every day a fix and a spot share a date. Availability is the latest
+    input's, as everywhere in this module."""
+    from .sources import cfets  # noqa: PLC0415 -- the band rule lives with the fix
+    rows: list[dict] = []
+
+    def emit(key: str, day: str, value: float,
+             parts: list[tuple[str, Optional[str]]]) -> None:
+        if first_day and day < first_day:
+            return
+        if value is None or not math.isfinite(value):
+            return
+        avail, kind = _availability(parts)
+        rows.append({"registry_key": key, "instrument": None, "observed_at": day,
+                     "available_at": avail, "value": round(value, 6),
+                     "source": "calc", "availability_kind": kind})
+
+    cl, rb, ho = (_load(db, k, as_of) for k in (WTI_FRONT, RBOB_FRONT, ULSD_FRONT))
+    for day in sorted(set(cl) & set(rb) & set(ho)):
+        emit("calc.crack_321", day, crack_321(cl[day][0], rb[day][0], ho[day][0]),
+             [(cl[day][1], cl[day][2]), (rb[day][1], rb[day][2]),
+              (ho[day][1], ho[day][2])])
+
+    fix = _load(db, CNY_FIX, as_of)
+    cny, cnh = _load(db, CNY_SPOT, as_of), _load(db, CNH_SPOT, as_of)
+    for day in sorted(fix):
+        f = fix[day]
+        if not f[0]:
+            continue
+        if day in cny:
+            p = [(f[1], f[2]), (cny[day][1], cny[day][2])]
+            emit("calc.cny_fix_gap_bp", day, cfets.gap_bp(cny[day][0], f[0]), p)
+            emit("calc.cny_band_position", day,
+                 cfets.band_position(cny[day][0], f[0]), p)
+        if day in cnh:
+            emit("calc.cnh_fix_gap_bp", day, cfets.gap_bp(cnh[day][0], f[0]),
+                 [(f[1], f[2]), (cnh[day][1], cnh[day][2])])
+    for day in sorted(set(cny) & set(cnh)):
+        if cny[day][0]:
+            emit("calc.cnh_cny_bp", day, cfets.gap_bp(cnh[day][0], cny[day][0]),
+                 [(cny[day][1], cny[day][2]), (cnh[day][1], cnh[day][2])])
     return rows
 
 
