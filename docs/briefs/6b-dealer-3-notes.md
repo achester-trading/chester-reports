@@ -136,7 +136,7 @@ Run locally, one at a time, only those this branch writes or changes:
 
 `tools/validate_vendor_divergence.py` is a data gate: CI skips it, and it runs on the box. Every other gate, and those that render a PDF, are left to CI.
 
-## Box commands, for Ari
+## Box commands, for the operator
 
 Inside a window (weekdays 09:05–15:40 or 17:20–23:30 ET), **after Thursday's merge**. The self-deploy copies the unit files within 30 minutes of the merge reaching main, including the nine whose caps moved to percentages. Those are oneshots, so no restart should be pending; if the heartbeat names `restart_pending`, the restart is yours.
 
@@ -199,6 +199,9 @@ Trial merges (`git merge-tree`, nothing committed) against `6e-releases`, `6e-di
 
 | Branch | Commit | Run | Result |
 |---|---|---|---|
-| `6b-dealer-2` | `549619d` / `ebbe8fd` | recorded at the next read | |
-| `vol-event-52` | `1663521` | recorded at the next read | |
-| `6b-dealer-3` | this commit | recorded at the next read | |
+| `6b-dealer-2` | `549619d` / `ebbe8fd` | 39041206588 / 39041337734 | **green** |
+| `vol-event-52` | `1663521` | 39041321537 | **failed**, `validate_security_master`: `next_id` stayed at 195 under SM00195/SM00196. Fixed on `vol-event-52` (`5a67995`, `next_id: 197`) and merged here |
+| `6b-dealer-3` | `5b4b688` | 39041492194 | **failed**: the inherited `next_id`; `validate_numeral_audit` (T3's percentile wrote "th" by hand -- it now goes through `numeral_audit.ordinal()`, so 21 reads "21st"); `validate_exec_bits` (the vendor unit's ExecStart named the untracked `.venv/bin/python`; it now runs the tracked `scripts/run_flashalpha.sh`, mode 100755, which logs to `~/logs/flashalpha-YYYY-MM.log` behind a lock) |
+| `6b-dealer-3` | these fixes, merged with `vol-event-52` | recorded on `el-4-6` (its notes, step 0) | |
+
+**The email check (17 Oct, the next paste's step 0).** `git log -p origin/main..<branch>` for `6b-dealer-1`, `-2`, `vol-event-52` and `6b-dealer-3`: the operator's address appears in **no committed file, no commit message and no notes file**, and "mailto" in none of this line's changes. Every match is the commits' git **author** header (the checkout's `user.email`), which every one of main's 676 commits also carries; see `docs/briefs/el-4-6-notes.md`. The four notes files no longer name the operator.

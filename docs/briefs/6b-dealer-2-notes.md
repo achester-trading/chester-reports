@@ -11,7 +11,7 @@
    - the earlier `e9b7fc9`: run 39033119597, failed one check, the inherited `validate_secrets` refusal.
    - Both are recorded in its notes (`65fa5ef`).
 2. **`st-r5-audit` repaired.** The fix `d7c1593` is cherry-picked as `c60c458`, without the 6b notes it also touched. That branch's notes record the failed run and the repair. `validate_by_hand_audit` 17/0. CI: see the section at the end.
-3. **Batch 9 filed.** The file's SHA-256 over LF matched `07030e02…7fd1`. It is on branch `docs-batch-9` from `origin/main` (`e20df42`) as `docs/change-order-signal-triage-batch-9-2026-10-17.md`. The committed blob hashes to the same value. Docs only; Ari merges it with Monday's chain.
+3. **Batch 9 filed.** The file's SHA-256 over LF matched `07030e02…7fd1`. It is on branch `docs-batch-9` from `origin/main` (`e20df42`) as `docs/change-order-signal-triage-batch-9-2026-10-17.md`. The committed blob hashes to the same value. Docs only; The operator merges it with Monday's chain.
 
 ## The rulings of 17 Oct, as applied
 
@@ -122,7 +122,7 @@ For each it records the mechanism, eligibility, outcome, window, base rate and p
 - **The one gate here, `dealer_flip_cross`:** by 12:30 spot is at least 0.10% (the continuation setup's confirmation) through the morning zero-gamma level, and both captures' regimes pass the net-to-gross gate. That is a regime transition, which the cadence document's Alerts row names.
 - **When every gate is closed**, it writes nothing and calls nothing.
 - **When one opens**, it writes the alert: the open gates' code-written lines, as JSON, in `~/chester-data/outbox/midday/` or `$CHESTER_ALERT_DIR`.
-- **No model is called**, and how the alert reaches Ari is needs-you 4. Item 52's VIX gate is added to the registry on `vol-event-52`.
+- **No model is called**, and how the alert reaches the operator is needs-you 4. Item 52's VIX gate is added to the registry on `vol-event-52`.
 
 **The units**, in `deploy/systemd`:
 - `chester-dealer-0945.service`/`.timer` and `chester-dealer-1230.service`/`.timer`, via `scripts/run_dealer_capture.sh <slot>`. That wrapper does the pull, the calendar guard, its own lock, status and heartbeat files, and exits 0 on a non-session day.
@@ -132,7 +132,7 @@ For each it records the mechanism, eligibility, outcome, window, base rate and p
   - `MemoryHigh=0.8G`, `MemoryMax=1G`;
   - `OOMScoreAdjust=300`: a capture, like the EOD pass, cannot be fetched again;
   - `Persistent=false`, Mon–Fri at the minute in America/New_York.
-- **Their timers are not in `DEPLOY_TIMERS`.** The self-deploy copies the files but enabling them is Ari's.
+- **Their timers are not in `DEPLOY_TIMERS`.** The self-deploy copies the files but enabling them is the operator's.
 - **`tools/validate_systemd_units.py`** checks them as a capture set outside the 8 GB sum (they run when no heavy unit does), with self-tests for a missing cap, a score level with the reports, a catch-up timer and a wrong minute.
 
 **The SPY recompute every 5 to 15 minutes: listed, not built.** On 17 Oct the box stays at 4 GB, while aud-2's caps were written for 8 GB. A recompute loop beside the two captures, the close and the EOD pass would need its own cap inside a budget that has to be recomputed first (part 3's memory-cap item). It is part 3's to place, after the caps follow the machine.
@@ -159,7 +159,7 @@ Run locally, one at a time, only those this branch writes or changes:
 
 Left to CI: every other gate, and those that render a PDF (`validate_stack`, `validate_monthly_stack`). `validate_monthly_stack`'s retrospective now sees "held" as None on its cards (they carry no OTM walls) and a "dampened" row in its summary table. Its pinned and amplified counts are unchanged.
 
-## Box commands, for Ari
+## Box commands, for the operator
 
 Inside a window (weekdays 09:05–15:40 or 17:20–23:30 ET), **after Thursday's merge**. The self-deploy copies the four unit files within 30 minutes of the merge reaching main.
 

@@ -90,7 +90,7 @@ They join `altdata/sources/yfinance_source.py` **under the basket's existing exc
    | VVIX | one value | 6 Mar 2006 | 109.91 |
    | SKEW | one value | 2 Jan 1990 | 168.59 |
 
-   Every 16 Oct close matches the order's worked example. **A slip in that read:** the request's User-Agent carried Ari's email address, which it should not have. Nothing else was sent, and no repeat. Every writer in this repo identifies itself with the EDGAR contact as CLAUDE.md says, and none of this branch's code fetches from Cboe.
+   Every 16 Oct close matches the order's worked example. **A slip in that read:** the request's User-Agent carried the operator's email address, which it should not have. Nothing else was sent, and no repeat. Every writer in this repo identifies itself with the EDGAR contact as CLAUDE.md says, and none of this branch's code fetches from Cboe.
 2. **The 12:30 gate fits the cadence document unchanged:** answered by the filing (note 1). It is a threshold crossing, and the model is called only when it opens; here it is not called at all.
 3. **The 16 Oct catalyst.** The scan's stored attributions are on the box, not the laptop, so the seed command reads them. `python -m altdata.vol_event show --date 2026-10-16` prints the catalyst line before anything is written. The filing expects "not established", since the scan's rows for that day predate the block.
 
@@ -137,7 +137,7 @@ Run locally, one at a time, only those this branch writes or changes:
 
 Left to CI: every other gate, and those that render a PDF. `check_library` will see the Volatility paper's new subsection and appendix (consecutive: Appendix E after D) and its rebuilt HTML.
 
-## Box commands, for Ari
+## Box commands, for the operator
 
 Inside a window (weekdays 09:05–15:40 or 17:20–23:30 ET), **after Thursday's merge**:
 
@@ -189,7 +189,7 @@ Trial merges (`git merge-tree`, nothing committed) against `6e-releases`, `6e-di
 
 **The first run's failures, this branch's own, and the fixes:**
 - **`validate_prices`:** it pins the basket at 106 symbols; with ^VIX9D and ^VIX6M it is 108. The gate now pins 108 and names them.
-- **`validate_security_master`:** every basket identifier must resolve to one master entry. ^VIX9D and ^VIX6M are added as `SM00195` and `SM00196`, in ^VIX3M's pattern (index; name, currency, exchange and multiplier listed unverified). The master is reviewed by Ari: needs-you 6.
+- **`validate_security_master`:** every basket identifier must resolve to one master entry. ^VIX9D and ^VIX6M are added as `SM00195` and `SM00196`, in ^VIX3M's pattern (index; name, currency, exchange and multiplier listed unverified). The master is reviewed by the operator: needs-you 6.
 - **`validate_audit_3a`:**
   - CLAUDE.md's "106 market symbols" is now 108;
   - the four new block members (the two closes and their action series) are declared by name in `NEW_BLOCK_MEMBERS`;

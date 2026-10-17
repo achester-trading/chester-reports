@@ -228,7 +228,7 @@ Synthetic: the Black-Scholes fixture chain, spot 680, settled Friday 16 Oct at 1
 
 > Sign convention (dealers-hand-v1): dealers are assumed long calls and short puts, so call gamma counts positive and put gamma negative. An assumption about who holds the options, not an observation; under the opposite reading every net sign inverts. The call- and put-gamma masses and the zero-gamma level hold under either.
 
-## Box commands, for Ari
+## Box commands, for the operator
 
 Nothing here runs from a session. Each step is inside a window (weekdays 09:05–15:40 or 17:20–23:30 ET), after this branch reaches main with the second chain.
 
