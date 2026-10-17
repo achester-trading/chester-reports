@@ -315,7 +315,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
   Generated {esc(payload.get('generated_at'))} &middot;
   overnight fetched {esc(block.get('fetched_at') or 'n/a')} &middot;
   prior session {esc(payload.get('prior_session'))} &middot;
-  run <code>{esc(payload.get('run_id') or 'n/a')}</code>
+  run <code>{esc(payload.get('run_id') or 'n/a')}</code>{(' &middot; ' + esc(payload['meme_line'])) if payload.get('meme_line') else ''}
 </p>
 {warn}
 {narrative_scan_block(narrative)}
@@ -396,6 +396,8 @@ def text_fallback(payload: dict) -> str:
         lines.append(f"{r.get('symbol'):<10} tokyo {r.get('tokyo')}  "
                      f"europe {r.get('europe')}  other {r.get('other')}")
     lines.append("")
+    if payload.get("meme_line"):
+        lines.append(payload["meme_line"])
     for w in payload.get("warnings") or []:
         lines.append(f"WARNING: {w}")
     return "\n".join(lines)

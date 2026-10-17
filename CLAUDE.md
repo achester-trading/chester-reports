@@ -223,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-two code gates (eighty-nine Python,
+**`make validate` runs every gate** — ninety-three code gates (ninety Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -501,6 +501,27 @@ transaction, which the FRED compaction and the prediction-market backfill use.
 The gates are `tools/validate_backups.py`, `validate_audit_1.py` group E,
 `validate_secrets.py` group I and the data gate `validate_backup_crypt.py` (real
 rclone, the local backend).
+
+**chester-meme's packets come in as Book D drafts, never decisions
+(meme-ingest-ledgers-1, 17 Oct 2026).** `altdata/meme_ingest.py` runs at 21:45
+(`chester-meme-ingest.timer`, enabled by hand) and at the end of the 06:45 pass.
+It reads `$CHESTER_MEME_DROP` (else the meme checkout's drop directory in the
+same user's home) and never writes into it:
+
+- the manifest first: its schema must be the copy in `docs/interface/`, the same
+  version and SHA-256, or nothing is read;
+- a restricted packet, or a Brookfield-blocklisted name (by root or by name,
+  aliases included), is refused and logged, never stored;
+- a packet the schema rejects is logged and skipped, never repaired;
+- the rest become one row each in the register database's `meme_drafts`, keyed
+  by `packet_id`; a second sighting writes nothing.
+
+A trigger refuses a restricted instrument there too, the packet columns are
+immutable, and the decision tables are never written. The close and the anchor
+print one line, "meme drafts awaiting review: n (refused: m)". The operator
+confirms with `decide.py record --meme-packet <id>` and rejects with `decide.py
+meme-reject <id>`; both are on the deny list. `tools/validate_meme_ingest.py`
+holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store

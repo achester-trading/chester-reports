@@ -871,7 +871,8 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email",
     head = page_header(f"Close — {dow} {day}".strip(), rd.stamp_et(ed.get("as_of")),
                        rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
                        extra_html=f" &middot; {events}" + (
-                           f' &middot; {esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else ""))
+                           f' &middot; {esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else "")
+                       + (f' &middot; {esc(ed["meme_line"])}' if ed.get("meme_line") else ""))
     try:
         gl = labels.glossary()
     except Exception:                                           # noqa: BLE001

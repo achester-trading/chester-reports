@@ -254,5 +254,17 @@ SUR_EXIT=$?
 printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
 
+# ---- chester-meme's packets, as Book D drafts (meme-ingest-ledgers-1) -------
+#
+# After the pulls and before the 07:00 anchor, which prints the one line: the
+# 06:30 morning scan has written its packets by 06:45. Reads $CHESTER_MEME_DROP
+# (else ~/chester-meme/drop), writes drafts only, never a decision; a failure is
+# this step's and never the pass's.
+log "meme ingest: start"
+MI_OUT="$("$PY" -m altdata.meme_ingest 2>&1 | tail -12)"
+MI_EXIT=$?
+printf '%s\n' "$MI_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $MI_EXIT -ne 0 ]] && log "WARN meme ingest exited $MI_EXIT -- continuing"
+
 
 exit $RC

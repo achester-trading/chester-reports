@@ -1,0 +1,18 @@
+[Unit]
+Description=chester-meme packet ingest at 21:45 ET (Mon-Fri and Sun, after the 19:30 evening scan) -- PRINTED, NEVER ENABLED BY A DEPLOY
+Documentation=file:///%h/chester-reports/docs/interface/README-interface.md
+
+[Timer]
+# 21:45 ET on the evenings chester-meme scans (Mon-Fri and Sun, 19:30): after the
+# scan's packets are written (by about 19:45; the contract reads after 20:15), in
+# the evening window, clear of the 16:00-17:20 passes. The cadence's 21:45 slot
+# is a conditional report not yet built; this is only the ingest.
+OnCalendar=Mon..Fri,Sun *-*-* 21:45 America/New_York
+RandomizedDelaySec=120
+Persistent=true
+
+# NOT IN DEPLOY_TIMERS (scripts/deploy_remote.sh): the operator enables it after
+# reading one ingest by hand (docs/briefs/meme-ingest-ledgers-1-notes.md).
+
+[Install]
+WantedBy=timers.target

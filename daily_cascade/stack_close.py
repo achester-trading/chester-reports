@@ -299,6 +299,13 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     from alpha.lab_line import daily_line                       # noqa: PLC0415
     # 10.2 d: the lab's one line -- alpha.db, beside the store, read-only.
     ed["alpha_lab"] = daily_line(cutoff, db_path and Path(db_path).with_name("alpha.db"))
+    # chester-meme's drafts (meme-ingest-ledgers-1): one line, read-only, and
+    # nothing else about a draft until the operator confirms it with decide.py.
+    try:
+        from altdata import meme_ingest                         # noqa: PLC0415
+        ed["meme_line"] = meme_ingest.status_line(db_path)
+    except Exception:                                           # noqa: BLE001
+        log.warning("meme draft line unavailable", exc_info=True)
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()

@@ -88,6 +88,9 @@ commands:
   altdata.listings:
     domain: reference
     line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
+  altdata.meme_ingest:
+    domain: reference
+    line: 'chester-meme packets in as Book D drafts, never decisions; `status` prints the line the close and the anchor carry'
   altdata.market_features:
     domain: computed
     line: 'Calculated features: breadth, trend, realized volatility -- and the macro transforms the Monthly used to compute privately'
