@@ -316,3 +316,20 @@ failed job, `gates-passed`, only rolls them up.
 **The fix,** on this branch: the lines say "two exchanges report" and "every exchange
 reports it", and the gate's list carries "Crypto flows" as the eighth sub-section.
 Its CI run is recorded on `digital-49-51b`'s notes.
+
+| Run | Commit | Result |
+|---|---|---|
+| 39038665381 (Gates, push) | `7e55cda` | **passed: 86 of 86 gate jobs** (80 code, 6 data; `gates-passed` green) |
+
+Read once on 17 Oct. Nothing failed, so nothing to fix.
+
+**The first derive on the box (17 Oct).** The crypto basket's `derive` printed
+"stable impulse: computed 6368, written 0" after the llama pull had written
+85,887 rows. That is expected, not a skip: `llama.pull` (macro group) calls
+`crypto_basket.write_stable_impulse` itself, straight after its own write
+(`altdata/sources/llama.py`, "S-1's derived series, from what is now stored"), so
+the 30- and 90-day impulse was already stored by the pull. The basket's `derive`
+recomputes the same 6,368 rows (both windows over every stored day of
+`llama.stable_total`) and `drop_unchanged` removes all of them because each is
+already there with the same value. A non-zero "written" on a later derive means
+a new day or a revised input, which is the only case in which it should write.
