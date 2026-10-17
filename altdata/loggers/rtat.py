@@ -183,7 +183,7 @@ def pull(since: Optional[str] = None, run_id: Optional[str] = None,
         return {"skipped": "key not configured", "rows": 0, "written": 0}
 
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         cursor, pages, seen, written = None, 0, 0, 0
         first_day = last_day = None
@@ -230,7 +230,7 @@ def derived(as_of: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None) -> dict:
     """Concentration, persistence and new-entrant shock, for the latest day."""
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         def compute() -> dict:
             by_day = _by_day(db, as_of)

@@ -607,87 +607,144 @@ freshness on the dashboard.
 
 `data/chester.db` holds the observation history, the decision register and the
 immutable packets. It is gitignored, so git has never seen it, and before this
-it existed in exactly one place. The EOD zip now carries it; this copies
-everything off the box nightly.
+it existed in exactly one place. The sweep copies everything off the box nightly
+(`chester-backup.timer`, 02:30 ET), **encrypted, to a Google account used only for
+backups** (audit-leftovers-1, 17 Oct 2026; the 14 Oct audit found the backups
+unencrypted in a Drive the box's own token could wipe, and the fix ruled 15 Oct
+is rclone crypt under a separate account).
+
+### Where it goes, and how it is encrypted
+
+Three settings, **all in `.env` on the box** (Ari's write; their values never
+appear in this repo, in `rclone.conf`, or in a transcript):
+
+| Variable | What it is |
+|---|---|
+| `CHESTER_RCLONE_BACKUP_REMOTE` | the Drive remote on the **separate backup account**, and its folder, e.g. `chesterbak:chester-backups` |
+| `CHESTER_RCLONE_CRYPT_PASSWORD` | the crypt password (also in Ari's password manager, off the box) |
+| `CHESTER_RCLONE_CRYPT_SALT` | the crypt salt, rclone's "password2" (likewise) |
+| `CHESTER_RCLONE_INBOX_REMOTE` | the remote the inbound files are read from: Ari's **main** Drive, through a **read-only** token |
+
+`scripts/rclone_crypt_env.sh` builds the crypt remote, `chestercrypt:`, from
+those settings. It uses rclone's `RCLONE_CONFIG_<NAME>_<KEY>` environment
+variables, so the remote exists only in the environment of the processes the
+sweep starts and is written nowhere on disk. The password and salt reach
+`rclone obscure` on stdin, so they never appear in a process list. File
+contents, **file names and directory names** are all encrypted, so the backup
+account shows neither what is backed up nor when.
+
+The only thing in `rclone.conf` is the backup account's Drive OAuth token (as
+for any Drive remote), for an account that holds nothing but ciphertext.
+**There is no plaintext fallback:** without the three settings the sweep exits 1
+(`no_crypt`) and copies nothing.
+
+The old plaintext remote (`CHESTER_RCLONE_REMOTE`, `gdrive:chester-backups` on the
+main account) is **no longer written**. Its full-scope token is revoked after the
+first verified encrypted snapshot (the box steps are in
+`docs/briefs/audit-leftovers-1-notes.md`). The inbound files still come from the
+main Drive, where the chat-side tasks write them, through a separate remote
+with the `drive.readonly` scope. A read-only token cannot wipe anything.
 
 ```bash
-sudo apt install -y rclone
-rclone config                       # create a remote, e.g. `b2` or `drive`
-rclone lsd <remote>:                # prove it authenticates
-
-cp ~/chester-reports/deploy/systemd/chester-backup.{service,timer} ~/.config/systemd/user/
-mkdir -p ~/.config/systemd/user/chester-backup.service.d
-# the box-local drop-in, remote.conf -- exactly these two lines:
-cat > ~/.config/systemd/user/chester-backup.service.d/remote.conf <<'EOF'
-[Service]
-Environment=CHESTER_RCLONE_REMOTE=gdrive:chester-backups
-EOF
-systemctl --user daemon-reload
-
-cd ~/chester-reports && scripts/rclone_sync.sh; echo "exit=$?"   # prove it once, from the repo
-systemctl --user enable --now chester-backup.timer
+# one-time, on the box (the OAuth consent itself is a browser step, run with
+# `rclone authorize` on the laptop and pasted back):
+rclone config        # new Drive remote on the BACKUP account, your own client ID
+                     # (below), scope "drive"; e.g. chesterbak
+rclone config        # new Drive remote on the MAIN account, scope "drive.readonly",
+                     # your own client ID; e.g. gdrive_ro
+rclone lsd chesterbak: && rclone lsd gdrive_ro:     # prove both authenticate
+# then the four .env lines above, by name; then one sweep by hand:
+cd ~/chester-reports && scripts/rclone_sync.sh; echo "exit=$?"
 ```
 
-**Without `CHESTER_RCLONE_REMOTE` the script exits 1 and copies nothing** — it
-refuses to look like it ran. That is the failure mode a backup must not have.
-
 ### What it copies, and what it deliberately does not do
+
+All under the crypt remote's `chester/` folder:
 
 | Remote path | Source |
 |---|---|
 | `db/` | a dated, consistent snapshot of `chester.db`, integrity-checked and gzipped: `chester-YYYY-MM-DD.db.gz` |
 | `data/` | chains, computed profiles, the pin log — **not** `chester.db*` (excluded; `db/` is the only database copy) |
-| `backups/` | the EOD zips |
-| `state/` | heartbeat, status files, the brief's alert — **not** `backup_stage/` (excluded; it is what `db/` uploads) |
 | `chester-data/` | `~/chester-data`, the live CSV store since 30 Sep (section 11); skipped where absent |
+| `state/` | heartbeat, status files, the brief's alert — **not** `backup_stage/` (excluded; it is what `db/` uploads) |
+| `reports/` | the report archive (`CHESTER_REPORTS_DIR`, else `reports/` in the checkout; AUD-1 item 1e) |
+| `backups/` | the EOD zips, last, because they repeat what `data/` holds — **not** the compaction's raw safety copy, which stays on the box |
 
 **`rclone copy`, never `rclone sync`.** `sync` makes the remote match the
 source, so a local deletion — a bad restore, an `rm -rf` on the wrong path, a
 disk that comes back empty — is faithfully replicated and the backup is gone at
-the exact moment it was needed. `copy` only ever adds. Pruning the remote is a
-deliberate human act, never a side effect of the thing that protects you.
+the exact moment it was needed. `copy` only ever adds.
 
 **The database is snapshotted, not copied.** A live SQLite file read mid-write
 produces a database that opens cleanly and is missing rows — a backup that
 looks valid and is not, which is worse than none because it is trusted. Both
 the EOD zip and this sweep go through `altdata.observations.snapshot_sqlite`,
 so the two cannot drift. The staged copy is dated, so the remote accumulates
-history: a corruption found on Thursday needs Tuesday's file, and copy
-semantics only help if the names differ.
+history: a corruption found on Thursday needs Tuesday's file.
 
-**`db/` is the one tree anything is removed from.** A full dated snapshot a
-night grows without bound, so `db/` keeps every snapshot of the last 14 days,
-the newest of each of the last 8 ISO weeks, and the newest of every month
-forever (`scripts/backup_retention.py`). Removal is `rclone deletefile` on one
-named file at a time, each name matching `chester-YYYY-MM-DD.db[.gz]`, inside
-`db/` only, and only once tonight's snapshot is listed on the remote. A failed
-prune is logged and named in the status line; it does not fail the backup.
-Drive moves deleted files to its trash, where they stay 30 days.
+**The record for the restore test.** At snapshot time the sweep writes
+`~/.chester/backup_snapshot`: `name= observations= at=`, the snapshot's own row
+count.
 
-**Two files come back (AAII 10 Oct, S&P DJI 13 Oct 2026).** After the trees and
-the prune, the sweep copies exactly two named files the other way, each through
-`pull_inbox_file <folder> <name>`: `<remote>:chester-vendor-checks/<folder>/<name>`,
-where `<remote>` is `CHESTER_RCLONE_REMOTE`'s remote name with its path replaced,
-into `~/chester-data/inbox/<folder>/<name>`.
+**Retention, by exact name, one file at a time** (`scripts/backup_retention.py`).
+Removal is always `rclone deletefile` on one named file, never `delete`, `purge`
+or `sync`. A failed prune is logged and named in the status line; it does not
+fail the backup.
 
-| Folder | File | What it is |
-|---|---|---|
-| `aaii` | `aaii-weekly.csv` | the AAII weekly row the chat-side task appends each Thursday (`docs/scheduled-tasks.md`) |
-| `spdji` | `sp-500-eps-est.xlsx` | S&P DJI's EPS workbook, which Ari downloads in a browser and drops monthly (`altdata/sources/spdji.py`) |
+- **`db/`** keeps every snapshot of the last 14 days, the newest of each of the
+  last 8 ISO weeks, and the newest of every month forever. Nothing is deleted
+  unless tonight's snapshot is listed on the remote.
+- **The chain zips** keep **the newest 14 on each side**, the box's
+  `~/backups/chains` and the remote's `backups/chains/` by the same rule, so the
+  mirror no longer outgrows the box. The box goes first: an older zip is
+  deleted locally only when the remote holds that exact file (name and size).
+  Drive then deletes the same names. (Until audit-leftovers-1, Drive kept 30
+  days to the box's 14.)
 
-Each is an `rclone copyto` of that file and nothing else, so an inbox only gains
-or overwrites it; `copyto` carries Drive's modification time over, which the S&P
-DJI reader takes as the drop time. An absent remote file is a logged skip, and
-neither outcome touches the sweep's exit code. The unit lets the sweep write
-`~/chester-data/inbox/aaii` and `~/chester-data/inbox/spdji` and nothing else
-under `~/chester-data`; both directories must exist before the sweep starts
-(`mkdir -p` each once).
+**One file comes back (AAII, 10 Oct 2026).** After the trees and the prunes, the
+sweep copies one named file the other way, from the inbox remote:
+`<inbox remote>:chester-vendor-checks/aaii/aaii-weekly.csv`, the row the chat-side
+task appends each Thursday (`docs/scheduled-tasks.md`). It goes into
+`~/chester-data/inbox/aaii/`, along with GLD's archive and the X pilot's ledgers
+and digests (sections below). S&P DJI's workbook is no longer pulled; it was
+withdrawn 17 Oct 2026. Each is an `rclone copyto` of named files and nothing
+else. An absent file is a logged skip, and no inbox outcome touches the sweep's
+exit code.
 
-Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
-venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
+Exit codes: `0` all trees copied · `1` environment (no rclone, no crypt settings,
+no venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
 least one tree did not copy or hit its time cap · `4` terminated mid-sweep
-(TimeoutStartSec or a stop; the script traps it and writes `state=killed`). The
-unit declares no `SuccessExitStatus`, so anything but a completed sweep shows red.
+(TimeoutStartSec or a stop; the script traps it and writes `state=killed`) · `5`
+`disk_low`. The unit declares no `SuccessExitStatus`, so anything but a completed
+sweep shows red.
+
+### The restore test, and the heartbeat's backup field
+
+`chester-restore-test.timer` (Sundays 10:15 ET, after the 02:30 sweep; **not in
+`DEPLOY_TIMERS`**, enabled by hand after the first restore test) runs
+`scripts/run_restore_test.sh`. It:
+
+1. pulls the newest `db/` snapshot through the crypt remote into a private
+   temporary directory and decompresses it;
+2. runs `PRAGMA integrity_check`;
+3. compares the restored `observations` count with the count recorded at
+   snapshot time;
+4. writes `~/.chester/restore_test_status` (`state=restore_ok` or
+   `state=restore_failed`, with the reason).
+
+The monthly restore drill (`chester-restore-drill.timer`, aud-2) reads through the
+same crypt remote.
+
+The 08:30 heartbeat's `backup=` field reads three files:
+
+- `rclone_sync_status`, the latest sweep;
+- `rclone_sync_last_ok`, the latest success;
+- `restore_test_status`.
+
+A failed restore test reads `backup=failed:restore_test`, and one not passed
+within 8 days (`CHESTER_RESTORE_MAX_DAYS`) reads `backup=stale_restore:<d>d`.
+Either exits 12 (`backup_failed`). The alert JSON carries `restore_test` beside
+`backup`.
 
 ### The 29 Sep failure, and what changed
 

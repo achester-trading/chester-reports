@@ -125,7 +125,7 @@ def since(keys: Iterable[str], revision_days: int,
     keys = list(keys)
     own = db is None
     try:
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             held = newest_observed(store, keys)
         finally:
@@ -150,7 +150,7 @@ def stale(source: str, keys: Iterable[str], reason: str,
     held: dict[str, Optional[str]] = {}
     own = db is None
     try:
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             held = newest_observed(store, keys)
         finally:
@@ -193,7 +193,7 @@ def write_rows(source: str, rows: list[dict], keys: Iterable[str],
                      f"{future[0]['observed_at']}) -- a parse error, not data",
                      db=db, run_id=run_id)
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = newest_observed(store, keys)
         cutoff = (session.session_date_obj()

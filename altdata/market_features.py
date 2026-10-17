@@ -1019,7 +1019,7 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None,
             dry_run: bool = False, full: bool = False) -> dict:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         # AUD-1 4d: FROM A START DAY, NOT THE WHOLE HISTORY, EVERY RUN. Without
         # --from, the recompute starts RECOMPUTE_WINDOW_DAYS before the newest day

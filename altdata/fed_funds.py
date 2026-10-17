@@ -171,7 +171,7 @@ def stored_prices(st: observations.ObservationStore, as_of: Optional[str] = None
 
 def path_as_of(as_of: Optional[str] = None, store=None) -> dict:
     own = store is None
-    st = store or observations.ObservationStore()
+    st = store or observations.open_writer(__name__)
     try:
         prices, newest = stored_prices(st, as_of)
     finally:
@@ -216,7 +216,7 @@ def pull(store=None, fetcher: Optional[Callable] = None, dry_run: bool = False,
     out = {"served": served, "failed": failed, "dry_run": dry_run}
     if not dry_run and rows:
         own = store is None
-        st = store or observations.ObservationStore()
+        st = store or observations.open_writer(__name__)
         try:
             out["written"] = st.write_many(rows)
         finally:

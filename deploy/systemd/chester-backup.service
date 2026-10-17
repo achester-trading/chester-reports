@@ -5,6 +5,11 @@ Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 [Service]
 Type=oneshot
 ExecStart=%h/chester-reports/scripts/rclone_sync.sh
+# The crypt settings (audit-leftovers-1): CHESTER_RCLONE_BACKUP_REMOTE,
+# CHESTER_RCLONE_CRYPT_PASSWORD, CHESTER_RCLONE_CRYPT_SALT and
+# CHESTER_RCLONE_INBOX_REMOTE are .env's (scripts/rclone_crypt_env.sh). Optional,
+# as for every unit: without them the sweep exits 1, no_crypt, by name.
+EnvironmentFile=-%h/chester-reports/.env
 
 # NOT listed as success: 1 (no rclone, no remote, no venv), 2 (the database
 # snapshot, its integrity check or its compression failed), 3 (a tree did not

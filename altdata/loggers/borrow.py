@@ -276,7 +276,7 @@ def probe_stock_loan_file(store: Optional[observations.ObservationStore] = None,
             f"The parser is written and fixture-tested so the day it answers this is "
             f"a probe rather than a build.")
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(STOCK_LOAN_PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -290,7 +290,7 @@ def probe_stock_loan_file(store: Optional[observations.ObservationStore] = None,
 
 def stock_loan_state(store: Optional[observations.ObservationStore] = None) -> str:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         rows = db.as_of(STOCK_LOAN_PROBE_KEY)
         if not rows:
@@ -310,7 +310,7 @@ def pull_stock_loan(run_id: Optional[str] = None,
     looks healthier than one that says it cannot reach its source.
     """
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         state = stock_loan_state(store=db)
         if state != "available":
@@ -405,7 +405,7 @@ def probe_borrow(port: int = 4002,
             except Exception:                                  # noqa: BLE001
                 pass
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(BORROW_PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -419,7 +419,7 @@ def probe_borrow(port: int = 4002,
 
 def borrow_state(store: Optional[observations.ObservationStore] = None) -> str:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         rows = db.as_of(BORROW_PROBE_KEY)
         if not rows:
@@ -481,7 +481,7 @@ def pull_regsho_missing(run_id: Optional[str] = None,
     newest -- one missed night (a 404 before publication, a timeout) used to be
     a hole forever."""
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         missing = regsho_missing_sessions(db, last)
         sessions = {d: pull_regsho(day=d, run_id=run_id, store=db) for d in missing}
@@ -527,7 +527,7 @@ def pull_regsho(day: Optional[str] = None, run_id: Optional[str] = None,
     wanted = set(universe())
     rows = regsho_keep(parse_regsho(text), wanted)
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         now = session.utc_iso(timespec="microseconds")
         out = []
@@ -608,7 +608,7 @@ def due_settlements(as_of: Optional[dt.date] = None, months_back: int = 3,
     """
     today = as_of or dt.date.fromisoformat(session.session_date())
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         held = {str(r["observed_at"])[:10]
                 for inst in db.instruments(SHORT_INTEREST_KEY)
@@ -697,7 +697,7 @@ def pull_short_interest(run_id: Optional[str] = None,
                         force: bool = False) -> dict:
     """Short interest for the tracked universe, when the calendar says it is due."""
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         due = due_settlements(store=db)
         if not due and not force:
@@ -777,7 +777,7 @@ def pull_apewisdom(run_id: Optional[str] = None,
                    pause: float = APEWISDOM_PAGE_PAUSE) -> dict:
     day = session.session_date()
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         now = session.utc_iso(timespec="microseconds")
         rows, feeds_ok, feeds_failed = [], [], []
@@ -846,7 +846,7 @@ def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None) -> dict:
     out: dict[str, Any] = {}
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         api_state = borrow_state(store=db)
         file_state = stock_loan_state(store=db)

@@ -282,7 +282,7 @@ def _main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     from . import session                                        # noqa: PLC0415
     cutoff = a.as_of or session.utc_iso(timespec="microseconds")
-    with observations.ObservationStore() as st:
+    with observations.open_writer(__name__) as st:
         latest = {}
         for k in KEYS:
             r = st.as_of(k, cutoff)

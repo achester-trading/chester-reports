@@ -606,7 +606,7 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
     summary: dict = {"total": len(basket), "success": 0, "failed": [],
                      "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND}
 
-    db = obs.ObservationStore()
+    db = obs.open_writer(__name__)
     try:
         for symbol, key in basket.items():
             try:

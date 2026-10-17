@@ -34,10 +34,12 @@ TWO MORE MODES (AUD-1 items 1b and 1c, the audit of 14 Oct 2026: the EOD zips
 were never pruned, on the box or on Drive):
 
   --mode zips          Drive's backups/chains/ tree: `chains_YYYY-MM-DD.zip`
-                       dated more than ZIP_KEEP_DAYS (30) before --today goes,
-                       by exact name, as db/'s do; never one dated after
-                       --today, never the newest, and nothing unless --require
-                       (the newest local zip) is in the listing.
+                       beyond the newest LOCAL_KEEP (14) goes -- THE SAME RULE
+                       AS THE BOX'S (audit-leftovers-1: until then Drive kept 30
+                       days and the box 14, and the mirror grew past the box) --
+                       by exact name, as db/'s do; never one dated after --today,
+                       never the newest, and nothing unless --require (the newest
+                       local zip) is in the listing.
   --mode local-chains  the box's ~/backups/chains: stdin is the LOCAL listing as
                        `size;name` lines, --remote a file holding the remote's
                        `rclone lsf --format sp --separator ';'` listing. The
@@ -125,15 +127,15 @@ def _zips(names) -> list[tuple[date, str]]:
     return sorted(out)
 
 
-def plan_zips(names: list[str], today: date,
-              keep_days: int = ZIP_KEEP_DAYS) -> list[str]:
-    """Drive's zips older than `keep_days`, never the newest, never a future one."""
-    dated = _zips(names)
+def plan_zips(names: list[str], today: date, keep: int = LOCAL_KEEP) -> list[str]:
+    """Drive's zips beyond the newest `keep` -- the box's own rule, so both sides
+    hold the same set -- never the newest, never one dated after `today`."""
+    dated = [x for x in _zips(names) if x[0] <= today]
     if not dated:
         return []
-    oldest = today - timedelta(days=keep_days)
     newest = dated[-1][1]
-    return [n for d, n in dated if d < oldest and n != newest]
+    old = dated[:-keep] if len(dated) > keep else []
+    return [n for _, n in old if n != newest]
 
 
 def _sized(lines: list[str]) -> dict[str, int]:

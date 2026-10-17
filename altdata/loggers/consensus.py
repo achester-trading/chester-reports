@@ -139,7 +139,7 @@ def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None,
          symbols: Optional[list[str]] = None) -> dict:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         # THE OBSERVED DATE IS THE LAST COMPLETED SESSION, not the wall clock and
         # not the calendar's latest session. This runs at 06:45 and reports on the
@@ -189,7 +189,7 @@ def derived(as_of: Optional[str] = None,
     span both legs support.
     """
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         def compute() -> dict:
             from ..sources import yfinance_source as yf_src

@@ -627,6 +627,40 @@ else
     log "  backup: $BACKUP_STATE (latest=${b_latest:-none} last_ok=${b_ok_at:-none} allowance=${BACKUP_MAX_H}h)"
 fi
 
+# ---- the weekly restore test (audit-leftovers-1) ---------------------------
+# scripts/run_restore_test.sh writes restore_test_status (state=restore_ok|
+# restore_failed at= snapshot= detail=). A backup that does not restore is not a
+# backup, so a failed test is reported in the backup field as
+# failed:restore_test; a test that has stopped running (older than
+# CHESTER_RESTORE_MAX_DAYS, default 8: a weekly test and a day's grace) as
+# stale_restore:<d>d. No status file -- the test not yet enabled -- changes
+# nothing. Only an otherwise-ok backup is overridden: last night's failed sweep
+# is still the bigger news.
+RESTORE_STATE=none
+RESTORE_MAX_D="${CHESTER_RESTORE_MAX_DAYS:-8}"
+if [[ "$BACKUP_STATE" != "skipped" ]] && [[ -f "$STATE_DIR/restore_test_status" ]]; then
+    r_state="$(sed -n 's/^state=\([^ ]*\).*/\1/p' "$STATE_DIR/restore_test_status" | head -1)"
+    r_at="$(sed -n 's/.* at=\([^ ]*\).*/\1/p' "$STATE_DIR/restore_test_status" | head -1)"
+    r_s="$(date -d "$r_at" +%s 2>/dev/null || echo "")"
+    if [[ "$r_state" != "restore_ok" ]] || [[ -z "$r_s" ]]; then
+        RESTORE_STATE=failed
+    else
+        r_age_d=$(( ( $(date +%s) - r_s ) / 86400 ))
+        if (( r_age_d > RESTORE_MAX_D )); then
+            RESTORE_STATE="stale:${r_age_d}d"
+        else
+            RESTORE_STATE=ok
+        fi
+    fi
+    if [[ "$BACKUP_STATE" == "ok" ]]; then
+        case "$RESTORE_STATE" in
+            failed)  BACKUP_STATE="failed:restore_test" ;;
+            stale:*) BACKUP_STATE="stale_restore:${RESTORE_STATE#stale:}" ;;
+        esac
+    fi
+    log "  restore test: $RESTORE_STATE (state=${r_state:-none} at=${r_at:-none} allowance=${RESTORE_MAX_D}d)"
+fi
+
 # RANKED below the pipeline verdicts, drift and the state object -- each of those
 # is upstream of everything -- and ABOVE a stale feed: a store with no off-box
 # copy is worse than a late feed, because a late feed recovers on its own and a
@@ -1032,6 +1066,7 @@ python_json() {
     printf '  "unit_drift_days": %s,\n' "${DRIFT_DAYS:-0}"
     printf '  "restart_pending": "%s",\n' "$RESTART_PENDING"
     printf '  "backup": "%s",\n' "$BACKUP_STATE"
+    printf '  "restore_test": "%s",\n' "${RESTORE_STATE:-none}"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
 }

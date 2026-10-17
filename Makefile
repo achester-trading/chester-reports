@@ -108,6 +108,7 @@ PY_VALIDATORS := \
 	tools/validate_audit_3a.py \
 	tools/validate_audit_2.py \
 	tools/validate_audit_1.py \
+	tools/validate_backups.py \
 	tools/check_library.py \
 	tools/validate_gates.py
 
@@ -141,7 +142,8 @@ DATA_GATES := \
 	tools/validate_monthly_store.py \
 	tools/validate_regime_store.py \
 	tools/validate_weekly_store.py \
-	tools/validate_imf_china.py
+	tools/validate_imf_china.py \
+	tools/validate_backup_crypt.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \

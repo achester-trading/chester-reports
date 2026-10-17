@@ -149,7 +149,7 @@ class Store:
             # vintage stamped today -- about 33,000 rows a session, and every
             # series derived from them inherited the new stamps. An unchanged
             # re-read now writes nothing; a revised value writes one vintage.
-            with _obs.ObservationStore() as db:
+            with _obs.open_writer(__name__) as db:
                 db.write_many(_obs.drop_unchanged(db, [
                     {"registry_key": f"{source}.{key}", "instrument": None,
                      "observed_at": d, "available_at": as_of,

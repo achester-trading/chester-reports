@@ -115,7 +115,7 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
         pages = {t: http_get_text(url, timeout=60, headers=HEADERS)
                  for t, (url, _f) in TRUSTS.items()}
         own = db is None
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             rows: list[dict] = []
             for t, page in pages.items():

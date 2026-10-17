@@ -1,0 +1,49 @@
+[Unit]
+Description=Weekly restore test: the newest encrypted db/ snapshot restored, checked and counted against its record
+Documentation=file:///%h/chester-reports/docs/runbooks/restore.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# audit-leftovers-1 (the 14 Oct audit: the backups had never been restored).
+# Pulls the newest db/ snapshot through the crypt remote into a private temporary
+# directory, decompresses it, runs PRAGMA integrity_check, and compares its
+# observations count with the count the sweep recorded at snapshot time; writes
+# ~/.chester/restore_test_status (restore_ok / restore_failed with the reason),
+# which the heartbeat's backup field reads. Writes nothing else; removes the
+# directory.
+WorkingDirectory=%h/chester-reports
+ExecStart=%h/chester-reports/scripts/run_restore_test.sh
+
+# The crypt settings (CHESTER_RCLONE_BACKUP_REMOTE, CHESTER_RCLONE_CRYPT_PASSWORD,
+# CHESTER_RCLONE_CRYPT_SALT) are .env's; the backup account's Drive token is in
+# rclone.conf, read-only here.
+EnvironmentFile=-%h/chester-reports/.env
+
+TimeoutStartSec=45min
+SuccessExitStatus=0
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The status file is under ~/.chester. The live store is read only to print the
+# gap beside the restored counts (SQLite mode=ro, which may need the -shm file
+# beside a WAL database), so data/ is writable; nothing else is.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports/data
+ReadOnlyPaths=%h/chester-reports %h/.config/rclone
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026: the box stays at 4 GB):
+# percentages of physical memory, the restore drill's own.
+MemoryHigh=10%
+MemoryMax=12%
+# THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13): a test can be
+# run again, so it goes with the reports.
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=default.target

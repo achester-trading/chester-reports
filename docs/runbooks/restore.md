@@ -19,11 +19,26 @@ done it before, on the CX33 (8 GB) from 17 Oct 2026.
 | Drive, `backups/` | `~/backups`: the EOD zips | nightly at 02:30 ET (the zips themselves at 16:10) |
 | Drive, `state/` | the state directory without `backup_stage/`: heartbeats, status files | nightly at 02:30 ET |
 | Drive, `chester-data/` | `~/chester-data`: the live CSV store and the inboxes | nightly at 02:30 ET |
-| The operator's own keeping | `.env`, IBC's `config.ini`, the rclone Drive token, the ssh key | never on Drive, never in git |
+| Drive, `reports/` | the report archive | nightly at 02:30 ET |
+| The operator's own keeping | `.env` (with the crypt password and salt), IBC's `config.ini`, the rclone Drive tokens, the ssh key | never on Drive, never in git |
 
-The Drive remote is the backup unit's `CHESTER_RCLONE_REMOTE`, for example
-`gdrive:chester-backups`. It lives in the box-local drop-in
-`chester-backup.service.d/remote.conf`.
+**Since audit-leftovers-1 (17 Oct 2026) every Drive row above is ENCRYPTED, on a
+Google account used only for backups.** The trees sit under the rclone crypt
+remote's `chester/` folder, with their names encrypted too. Reading them needs
+three things:
+
+- the backup account's Drive remote;
+- **the crypt password**;
+- **the crypt salt**.
+
+The password and salt are `CHESTER_RCLONE_CRYPT_PASSWORD` and
+`CHESTER_RCLONE_CRYPT_SALT` in `.env`, and in Ari's password manager **off the
+box**. Lose both copies and the backup is unreadable: keep the password
+manager's copy current. The crypt remote is built from those settings by
+`scripts/rclone_crypt_env.sh`; nothing about it is in `rclone.conf`.
+
+(Before 17 Oct the remote was the plaintext `CHESTER_RCLONE_REMOTE`,
+`gdrive:chester-backups` on the main account. It is no longer written.)
 
 ## What the newest backups would lose
 
@@ -79,8 +94,11 @@ Total: about **2 h 30 min** of work, plus the Gateway's first supervised login.
 1. **`.env`.** Write `~/chester-reports/.env` from the operator's own copy,
    mode 600. It is never on Drive and never in git, and `.env.example` names
    every key.
-2. **Drive.** Run `rclone config` to re-authorise the Drive remote. Then prove
-   it with `rclone lsd <remote>:`.
+2. **Drive.** Run `rclone config` to re-authorise the **backup account's** Drive
+   remote (the name `CHESTER_RCLONE_BACKUP_REMOTE` gives, e.g. `chesterbak`), and
+   the main account's read-only inbox remote (`CHESTER_RCLONE_INBOX_REMOTE`).
+   Prove each with `rclone lsd <remote>:`. The crypt password and salt come back
+   with `.env` in step 1.
 3. **IBC.** IBC and its `config.ini` (mode 600) go under `~/ibc`, per
    `deploy/systemd/README.md` section 4.
 
@@ -89,7 +107,10 @@ Total: about **2 h 30 min** of work, plus the Gateway's first supervised login.
 Restore the newest snapshot first. It is the one thing that cannot be rebuilt,
 and the drill has already proved it opens.
 
-    REMOTE=gdrive:chester-backups                    # the backup's remote
+    set -a; . ~/chester-reports/.env; set +a         # the crypt settings
+    . ~/chester-reports/scripts/rclone_crypt_env.sh && crypt_env \
+        || echo "STOP: $CRYPT_ERR"
+    REMOTE="$CRYPT_REMOTE"                           # chestercrypt:chester
     mkdir -p ~/chester-reports/data && cd ~/chester-reports/data
     rclone lsf "$REMOTE/db" --files-only | sort | tail -1     # the newest
     rclone copy "$REMOTE/db/chester-YYYY-MM-DD.db.gz" .
@@ -100,6 +121,7 @@ and the drill has already proved it opens.
     rclone copy "$REMOTE/chester-data" ~/chester-data
     rclone copy "$REMOTE/backups"      ~/backups
     rclone copy "$REMOTE/state"        ~/state
+    rclone copy "$REMOTE/reports"      ~/chester-reports/reports
 
 These are copies from the remote, never `sync`, and never the other way. The
 nightly sweep must not run until this step is done. Otherwise it would back up

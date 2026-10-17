@@ -406,7 +406,7 @@ def pull(only: Optional[str] = None, dry_run: bool = False, store: Any = None,
         summary["written"] = 0
         return summary
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     try:
         fresh = obs.drop_unchanged(db, rows)
         summary["written"] = db.write_many(fresh)

@@ -347,7 +347,7 @@ def pull(store: Optional[observations.ObservationStore] = None,
     if dry_run:
         return out
     own = store is None
-    st = store or observations.ObservationStore()
+    st = store or observations.open_writer(__name__)
     try:
         # pm.market only when it changed: one description per market, not one a
         # pull, so its history is a list of real revisions.
@@ -421,7 +421,7 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
     """Daily history for every market already stored, flagged as backfill."""
     get = get or http_get
     own = store is None
-    st = store or observations.ObservationStore()
+    st = store or observations.open_writer(__name__)
     out: dict[str, Any] = {"markets": 0, "rows": 0, "errors": {}, "dry_run": dry_run}
     try:
         # NEVER ZERO SILENTLY (T2 ruling 5): with no market stored there is
@@ -470,12 +470,14 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
             # previous backfill wrote for these markets -- and only those, by
             # their `<venue>:backfill` source -- go before the new ones are
             # written. Live snapshots are never touched.
+            # Through the store's one exception path (audit-leftovers-1): the
+            # append-only triggers are lifted inside this transaction only.
             n_del = 0
-            for inst, src in replace:
-                n_del += st.conn.execute(
-                    "DELETE FROM observations WHERE registry_key = 'pm.probability'"
-                    " AND instrument = ? AND source = ?", (inst, src)).rowcount
-            st.conn.commit()
+            with observations.maintenance(st.conn, "prediction_markets.backfill"):
+                for inst, src in replace:
+                    n_del += st.conn.execute(
+                        "DELETE FROM observations WHERE registry_key = 'pm.probability'"
+                        " AND instrument = ? AND source = ?", (inst, src)).rowcount
             out["replaced"] = n_del
             out["written"] = st.write_many(obs)
     finally:

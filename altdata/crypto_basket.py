@@ -363,7 +363,7 @@ def write_dilution(store: Any = None, as_of: Optional[str] = None) -> dict:
     """calc.crypto_dilution_<sym> for every measurable name, at the latest day."""
     from . import observations as obs, session  # noqa: PLC0415
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     rows, out = [], {}
     try:
         now = session.utc_iso(timespec="microseconds")
@@ -388,7 +388,7 @@ def write_stable_impulse(store: Any = None) -> dict:
     input's own available_at."""
     from . import observations as obs  # noqa: PLC0415
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     try:
         raw = [r for r in db.as_of("llama.stable_total") if r.get("value_num")]
         pts = [(str(r["observed_at"])[:10], float(r["value_num"]),
@@ -468,7 +468,7 @@ def ingest_scan_items(path: Path, store: Any = None, dry_run: bool = False) -> d
     if dry_run:
         return {"written": 0, "would_write": len(rows)}
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     try:
         return {"written": db.write_many(rows)}
     finally:
@@ -1000,7 +1000,7 @@ def _main(argv: list[str]) -> int:
         r = ingest_scan_items(Path(a.file), dry_run=a.dry_run)
         print(r)
         return 1 if r.get("refused") else 0
-    with obs.ObservationStore() as st:
+    with obs.open_writer(__name__) as st:
         for sym, n in names().items():
             g = grade(sym, n, st)
             print(f"  {sym:<7} {g['status']:<13} {g['detail']}")

@@ -52,8 +52,11 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 import os
 import sqlite3
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
@@ -330,8 +333,103 @@ def integrity_check(path: Path) -> list[str]:
     return [] if rows == ["ok"] else rows
 
 
+# ---------------------------------------------------------------------------
+# THE APPEND-ONLY CONTRACT, ENFORCED (audit-leftovers-1, the 14 Oct audit's
+# security finding). The class has always said "never updates, never deletes";
+# nothing made it so, and a bug in any writer could rewrite history. Two SQLite
+# triggers refuse UPDATE and DELETE on observations, with ONE documented
+# exception path: a maintenance row, inserted and removed INSIDE the caller's own
+# transaction (`maintenance()`), so no other connection ever sees it and a crash
+# rolls it back with the deletes. aud-1's compaction tool (altdata/compact_fred.py)
+# is its user; the prediction-market backfill's replacement of its own earlier
+# backfill rows takes the same path. Every use is logged.
+#
+# The triggers are a MIGRATION, a box write the operator runs once:
+#     python -m altdata.observations install-triggers [db]
+# They are not in SCHEMA, so opening a store never installs them by surprise.
+# Measured on a fixture (tools/validate_backups.py group L): an INSERT does not
+# fire a BEFORE UPDATE/DELETE trigger, so write throughput is unchanged.
+# ---------------------------------------------------------------------------
+log = logging.getLogger(__name__)
+BUSY_TIMEOUT_MS = 5000
+MAINTENANCE_TABLE = "observations_maintenance"
+APPEND_ONLY_SQL = f"""
+CREATE TABLE IF NOT EXISTS {MAINTENANCE_TABLE} (
+    token TEXT PRIMARY KEY, tool TEXT NOT NULL, started_at TEXT NOT NULL);
+CREATE TRIGGER IF NOT EXISTS observations_no_update
+BEFORE UPDATE ON observations
+WHEN NOT EXISTS (SELECT 1 FROM {MAINTENANCE_TABLE})
+BEGIN SELECT RAISE(ABORT, 'observations is append-only: UPDATE refused'); END;
+CREATE TRIGGER IF NOT EXISTS observations_no_delete
+BEFORE DELETE ON observations
+WHEN NOT EXISTS (SELECT 1 FROM {MAINTENANCE_TABLE})
+BEGIN SELECT RAISE(ABORT, 'observations is append-only: DELETE refused'); END;
+"""
+
+
+def install_append_only(conn: sqlite3.Connection) -> None:
+    """The migration: the maintenance table and the two triggers. Idempotent."""
+    conn.executescript(APPEND_ONLY_SQL)
+    conn.commit()
+
+
+def append_only_installed(conn: sqlite3.Connection) -> bool:
+    names = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = "
+        "'observations'")}
+    return {"observations_no_update", "observations_no_delete"} <= names
+
+
+@contextmanager
+def maintenance(conn: sqlite3.Connection, tool: str):
+    """THE ONE EXCEPTION PATH. Opens a transaction, inserts the maintenance row,
+    yields for the tool's DELETEs, removes the row and commits -- all one
+    transaction, so the row is never visible to another connection and never
+    outlives it. Logged at start and end with the tool's name."""
+    token = uuid.uuid4().hex
+    # The table exists before the migration too (harmless without the triggers),
+    # so the path works on a store that has not been migrated yet.
+    conn.execute(f"CREATE TABLE IF NOT EXISTS {MAINTENANCE_TABLE} (token TEXT "
+                 f"PRIMARY KEY, tool TEXT NOT NULL, started_at TEXT NOT NULL)")
+    conn.commit()
+    log.warning("observations: maintenance by %s begins (append-only lifted inside "
+                "this transaction only)", tool)
+    with conn:
+        conn.execute(f"INSERT INTO {MAINTENANCE_TABLE} (token, tool, started_at) "
+                     f"VALUES (?, ?, ?)", (token, tool, session.utc_iso()))
+        yield conn
+        conn.execute(f"DELETE FROM {MAINTENANCE_TABLE} WHERE token = ?", (token,))
+    log.warning("observations: maintenance by %s committed", tool)
+
+
+def open_writer(writer: str, path: Optional[str] = None) -> "ObservationStore":
+    """THE ONE WAY A SCHEDULED WRITER OPENS THE STORE (audit-leftovers-1; D1c is
+    WAL and the busy timeout for append-only writers, and this makes that rule
+    one function). WAL, a busy timeout of BUSY_TIMEOUT_MS, the append-only
+    contract (write_many inserts; the triggers, once installed, refuse UPDATE and
+    DELETE), and the writer's name in the log. tools/validate_backups.py group K
+    fails any scheduled writer that opens the store another way."""
+    st = ObservationStore(path)
+    st.writer = writer
+    mode = st.conn.execute("PRAGMA journal_mode").fetchone()[0]
+    busy = st.conn.execute("PRAGMA busy_timeout").fetchone()[0]
+    stray = 0
+    try:
+        stray = st.conn.execute(f"SELECT COUNT(*) FROM {MAINTENANCE_TABLE}").fetchone()[0]
+    except sqlite3.OperationalError:
+        pass                                    # the migration has not run here
+    if stray:
+        log.error("observations: %d maintenance row(s) left committed -- the "
+                  "append-only triggers are lifted until they are removed", stray)
+    log.debug("observations opened for writing by %s (journal %s, busy %s ms)",
+              writer, mode, busy)
+    return st
+
+
 class ObservationStore:
-    """Append-only point-in-time store. Never updates, never deletes."""
+    """Append-only point-in-time store. Never updates, never deletes -- enforced
+    by triggers once `install-triggers` has run; scheduled writers open it
+    through open_writer()."""
 
     def __init__(self, path: Optional[str] = None) -> None:
         self.path = Path(path or DEFAULT_DB)
@@ -359,7 +457,7 @@ class ObservationStore:
         # this exception, so a lock collision there costs observations with no
         # trace anywhere.
         self.conn.execute("PRAGMA journal_mode = WAL")
-        self.conn.execute("PRAGMA busy_timeout = 5000")
+        self.conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
         self._migrate()
@@ -762,8 +860,34 @@ def _main(argv) -> int:
             return 2
         print(f"integrity ok {path}")
         return 0
+    if argv and argv[0] in ("install-triggers", "triggers"):
+        # install-triggers: the append-only migration (a box write: the
+        # operator's, printed in the notes). triggers: read-only, are they in.
+        path = Path(argv[1]) if len(argv) > 1 else Path(DEFAULT_DB)
+        if not path.exists():
+            print(f"no database at {path}")
+            return 1
+        if argv[0] == "triggers":
+            conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+            try:
+                ok = append_only_installed(conn)
+            finally:
+                conn.close()
+            print(f"append-only triggers {'installed' if ok else 'NOT installed'} on {path}")
+            return 0 if ok else 3
+        conn = sqlite3.connect(str(path))
+        try:
+            conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+            install_append_only(conn)
+            ok = append_only_installed(conn)
+        finally:
+            conn.close()
+        print(f"append-only triggers {'installed' if ok else 'FAILED'} on {path}")
+        return 0 if ok else 2
     print("usage: python -m altdata.observations snapshot <dest> [src]\n"
-          "       python -m altdata.observations integrity <staged copy>")
+          "       python -m altdata.observations integrity <staged copy>\n"
+          "       python -m altdata.observations install-triggers [db]   (a box write)\n"
+          "       python -m altdata.observations triggers [db]           (read-only)")
     return 2
 
 

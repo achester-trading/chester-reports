@@ -155,7 +155,7 @@ def rows_from_records(records: list[dict], available: str) -> list[dict]:
 
 def _start(db: Optional[observations.ObservationStore]) -> str:
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, [TOTAL_KEY])
     finally:

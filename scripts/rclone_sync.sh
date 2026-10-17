@@ -9,7 +9,20 @@
 # lived on one VPS. Losing that box would not have lost a night of chains -- it
 # would have lost the record that the system had ever decided anything.
 #
-# Five trees go off-box:
+# ENCRYPTED, TO A SEPARATE ACCOUNT (audit-leftovers-1; the 14 Oct audit found the
+# backups unencrypted in a Drive the box's token could wipe; ruled 15 Oct: rclone
+# crypt under a separate Google account used only for backups). Every tree, the
+# db/ snapshot and both prunes go through ONE crypt remote that
+# scripts/rclone_crypt_env.sh builds from the environment
+# (CHESTER_RCLONE_BACKUP_REMOTE, CHESTER_RCLONE_CRYPT_PASSWORD,
+# CHESTER_RCLONE_CRYPT_SALT -- .env on the box); contents, file names and
+# directory names are encrypted, and nothing secret is in rclone.conf. The old
+# plaintext remote is NO LONGER WRITTEN: without the crypt settings the sweep
+# exits 1 (no_crypt) rather than fall back to plaintext. The INBOUND pulls read
+# the operator's main Drive through CHESTER_RCLONE_INBOX_REMOTE (a read-only
+# token; deploy/systemd/README.md section 10), never through the backup remote.
+#
+# Six trees go off-box:
 #   db/        tonight's snapshot of chester.db, integrity-checked and gzipped
 #   data/      $REPO/data -- chains, computed profiles, the pin log -- WITHOUT
 #              chester.db*: the live file is never uploaded (see below)
@@ -18,6 +31,7 @@
 #              -- WITHOUT backup_stage/, which db/ already carries
 #   chester-data/  ~/chester-data -- the live CSV store (ALTDATA_STORE), moved
 #              out of the tracked data_store/ on 30 Sep 2026; skipped if absent
+#   reports/   the report archive (AUD-1 item 1e)
 #
 # COPY, NEVER SYNC, AND THAT IS THE WHOLE SAFETY ARGUMENT. `rclone sync` makes
 # the remote match the source, which means a local deletion -- a bad restore, a
@@ -96,9 +110,14 @@
 #   CHESTER_BACKUP_DIR  EOD zips             (~/backups)
 #   CHESTER_DATA_DIR    live CSV store root  (~/chester-data)
 #   CHESTER_PYTHON      interpreter          ($REPO/.venv/bin/python)
-#   CHESTER_RCLONE_REMOTE   rclone remote and path, e.g. gdrive:chester-backups
-#                           REQUIRED; without it the script exits 1 loudly
-#                           rather than pretending to have run.
+#   CHESTER_RCLONE_BACKUP_REMOTE, CHESTER_RCLONE_CRYPT_PASSWORD,
+#   CHESTER_RCLONE_CRYPT_SALT   the encrypted backup remote (rclone_crypt_env.sh);
+#                           REQUIRED; without them the script exits 1 (no_crypt)
+#                           rather than write plaintext anywhere
+#   CHESTER_RCLONE_INBOX_REMOTE  the remote the inbound files are read from (the
+#                           operator's main Drive, read-only); falls back to
+#                           CHESTER_RCLONE_REMOTE's remote name; unset, the inbox
+#                           pulls are skipped and logged
 #   CHESTER_RCLONE_FLAGS    parallelism (default: --transfers 4 --checkers 8).
 #                           The stall limits below are NOT overridable here, so
 #                           tuning parallelism cannot quietly drop them.
@@ -118,7 +137,12 @@ DATA_DIR="${CHESTER_DATA_DIR:-$HOME/chester-data}"
 # the reports' delivery step writes them -- CHESTER_REPORTS_DIR, else reports/ in
 # the checkout. The README said the sweep carried it; it did not, until now.
 REPORTS_DIR="${CHESTER_REPORTS_DIR:-$REPO/reports}"
-REMOTE="${CHESTER_RCLONE_REMOTE:-}"
+# The backup target is the crypt remote (set below, once rclone is known to be
+# there); the inbound files come from the main Drive, read-only.
+REMOTE=""
+INBOX_RNAME="${CHESTER_RCLONE_INBOX_REMOTE:-${CHESTER_RCLONE_REMOTE:-}}"
+INBOX_RNAME="${INBOX_RNAME%%:*}"
+SNAP_RECORD="$STATE_DIR/backup_snapshot"
 RCLONE_FLAGS="${CHESTER_RCLONE_FLAGS:---transfers 4 --checkers 8}"
 SWEEP_BUDGET_MIN="${CHESTER_SWEEP_BUDGET_MIN:-105}"
 SWEEP_CLOCK="${CHESTER_SWEEP_CLOCK:-}"
@@ -175,8 +199,11 @@ fi
 trap 'finish killed 4 "terminated mid-sweep (TimeoutStartSec or a stop); see $LOG"' TERM INT
 
 command -v rclone >/dev/null 2>&1 || finish no_rclone 1 "rclone is not installed"
-[[ -n "$REMOTE" ]] || finish no_remote 1 \
-    "CHESTER_RCLONE_REMOTE is unset -- nothing was copied anywhere"
+# shellcheck source=scripts/rclone_crypt_env.sh
+. "$(dirname "${BASH_SOURCE[0]}")/rclone_crypt_env.sh"
+crypt_env || finish no_crypt 1 \
+    "$CRYPT_ERR -- nothing was copied anywhere (the plaintext remote is no longer written)"
+REMOTE="$CRYPT_REMOTE"
 [[ -d "$REPO/.git" ]] || finish no_repo 1 "no checkout at $REPO"
 
 PY="${CHESTER_PYTHON:-$REPO/.venv/bin/python}"
@@ -204,9 +231,15 @@ fi
 SNAP="$STAGE/chester-$(date +%Y-%m-%d).db"
 UPLOAD="$SNAP.gz"
 rm -f "$STAGE"/chester-*             # only tonight's staged copy is kept locally
-if ! (cd "$REPO" && "$PY" -m altdata.observations snapshot "$SNAP") >>"$LOG" 2>&1; then
+if ! SNAP_OUT="$(cd "$REPO" && "$PY" -m altdata.observations snapshot "$SNAP" 2>&1)"; then
+    printf '%s\n' "$SNAP_OUT" >>"$LOG"
     finish snapshot_failed 2 "database snapshot failed; see $LOG"
 fi
+printf '%s\n' "$SNAP_OUT" >>"$LOG"
+# THE ROW COUNT AT SNAPSHOT TIME (audit-leftovers-1): the weekly restore test
+# compares the restored copy's observations against this, not against the live
+# store, which has moved on since.
+SNAP_ROWS="$(printf '%s\n' "$SNAP_OUT" | sed -n 's/.*, \([0-9,]*\) observations).*/\1/p' | tr -d ',' | tail -1)"
 if ! (cd "$REPO" && "$PY" -m altdata.observations integrity "$SNAP") >>"$LOG" 2>&1; then
     finish snapshot_failed 2 "staged snapshot failed PRAGMA integrity_check; see $LOG"
 fi
@@ -218,6 +251,8 @@ if ! gzip -dc "$UPLOAD" | cmp -s - "$SNAP"; then
     finish snapshot_failed 2 "gzip round trip does not reproduce the snapshot"
 fi
 log "staged $(basename "$UPLOAD") ($(stat -c %s "$SNAP") bytes -> $(stat -c %s "$UPLOAD"))"
+printf 'name=%s observations=%s at=%s\n' "$(basename "$UPLOAD")" "${SNAP_ROWS:-unknown}" \
+    "$(date --iso-8601=seconds)" >"$SNAP_RECORD"
 rm -f "$SNAP"                        # the verified .gz is what goes off-box
 
 # --- copy, tree by tree -----------------------------------------------------
@@ -320,7 +355,8 @@ copy_tree "$REPORTS_DIR" "reports" 15                             || RC=3
 copy_tree "$BACKUP_DIR" "backups" 30 --exclude "/chester-pre-compact-*.db" || RC=3
 log "  prune: $PRUNE"
 
-# --- the chain zips: Drive's to 30 days, the box's to 14 (AUD-1 1b, 1c) ------
+# --- the chain zips: the newest 14 on each side (AUD-1 1b, 1c; one rule since
+# audit-leftovers-1) ---------------------------------------------------------
 # Neither was ever pruned. Both by exact name, one file at a time, after the
 # copy above has run; neither touches RC -- a failed prune is a log line.
 #   DRIVE: backups/chains/chains_YYYY-MM-DD.zip dated more than 30 days back,
@@ -344,12 +380,26 @@ prune_zips() {
         return 1
     fi
     listing="$(cut -d';' -f2 "$remote_file")"
+    # THE SAME RULE ON BOTH SIDES (audit-leftovers-1): the newest 14 zips are kept
+    # on the box AND on Drive, so the mirror stops growing without bound. The box
+    # goes first -- an older zip is deleted there only when Drive holds the exact
+    # file -- then Drive deletes the same names by the same rule.
+    for name in $(find "$CHAINS_DIR" -maxdepth 1 -name 'chains_*.zip' -printf '%s;%f\n' \
+            | "$PY" "$REPO/scripts/backup_retention.py" --mode local-chains \
+                --remote "$remote_file" 2>>"$LOG"); do
+        [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
+        if (( $(mins_left) < 2 )); then
+            ZIPS="stopped (sweep budget spent; $m deleted locally)"
+            return 0
+        fi
+        rm -f -- "$CHAINS_DIR/$name" && m=$((m + 1))
+    done
     for name in $(printf '%s\n' "$listing" \
             | "$PY" "$REPO/scripts/backup_retention.py" --mode zips \
                 --today "$TODAY" --require "$newest" 2>>"$LOG"); do
         [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
         if (( $(mins_left) < 2 )); then
-            ZIPS="stopped (sweep budget spent; $n deleted on Drive)"
+            ZIPS="stopped (sweep budget spent; $m deleted locally, $n on Drive)"
             return 0
         fi
         if timeout 2m rclone deletefile "$REMOTE/backups/chains/$name" $RCLONE_LIMITS \
@@ -357,17 +407,7 @@ prune_zips() {
             n=$((n + 1))
         fi
     done
-    for name in $(find "$CHAINS_DIR" -maxdepth 1 -name 'chains_*.zip' -printf '%s;%f\n' \
-            | "$PY" "$REPO/scripts/backup_retention.py" --mode local-chains \
-                --remote "$remote_file" 2>>"$LOG"); do
-        [[ "$name" =~ ^chains_[0-9]{4}-[0-9]{2}-[0-9]{2}\.zip$ ]] || continue
-        if (( $(mins_left) < 2 )); then
-            ZIPS="stopped (sweep budget spent; $n deleted on Drive, $m locally)"
-            return 0
-        fi
-        rm -f -- "$CHAINS_DIR/$name" && m=$((m + 1))
-    done
-    ZIPS="ok ($n deleted on Drive, $m locally)"
+    ZIPS="ok ($m deleted locally, $n on Drive)"
     return 0
 }
 prune_zips || true
@@ -379,15 +419,14 @@ log "  zips: $ZIPS"
 # <folder>/, copied into ~/chester-data/inbox/<folder>/ for its reader:
 #   aaii   aaii-weekly.csv       the chat-side task "AAII weekly read -- Thursday"
 #                                appends a row a week (altdata/sources/aaii.py)
-#   spdji  sp-500-eps-est.xlsx   Ari's monthly browser download of S&P DJI's
-#                                workbook (altdata/sources/spdji.py)
-# Same remote, its path replaced. `copyto` of one file, never a sync: the inbox
+# Read from the main Drive (CHESTER_RCLONE_INBOX_REMOTE), never the backup remote. `copyto` of one file, never a sync: the inbox
 # only gains or overwrites that file, and copyto carries Drive's modification
 # time over, which the S&P DJI reader takes as the drop time. They run after the
 # trees and the prune and NEVER touch RC -- a missing or failed pull is a log
 # line, not a failed backup.
 pull_inbox_file() {
-    local folder="$1" name="$2" rname="${REMOTE%%:*}"
+    local folder="$1" name="$2" rname="$INBOX_RNAME"
+    [[ -n "$rname" ]] || { log "  $folder inbox: skip -- no inbox remote configured"; return 0; }
     local src="$rname:chester-vendor-checks/$folder/$name"
     local dest="$DATA_DIR/inbox/$folder/$name"
     can_housekeep "$folder inbox" || return 0
@@ -406,7 +445,8 @@ pull_inbox_file() {
     return 0
 }
 pull_inbox_file aaii aaii-weekly.csv || true
-pull_inbox_file spdji sp-500-eps-est.xlsx || true
+# spdji's sp-500-eps-est.xlsx is no longer pulled: S&P DJI withdrew the workbook
+# (item 40's forward leg, ruled 17 Oct 2026; weekly-fixes-7 took it off the roster).
 
 # --- the GLD archive: a one-time history load (12 Oct 2026) -----------------
 # The operator downloads the GLD historical archive once in a browser (its API
@@ -418,7 +458,8 @@ pull_inbox_file spdji sp-500-eps-est.xlsx || true
 # the same size is skipped by rclone itself. Runs after the trees and NEVER
 # touches RC.
 pull_etf_archive() {
-    local rname="${REMOTE%%:*}" dir="$DATA_DIR/inbox/etf"
+    local rname="$INBOX_RNAME" dir="$DATA_DIR/inbox/etf"
+    [[ -n "$rname" ]] || { log "  etf inbox: skip -- no inbox remote configured"; return 0; }
     local srcdir="$rname:chester-vendor-checks/etf" f n=0
     local files
     can_housekeep "etf archive" || return 0
@@ -460,7 +501,8 @@ pull_etf_archive || true
 # which is not when the box could read the file). A file whose bytes did not
 # change keeps its stamp. Runs after the trees and NEVER touches RC.
 pull_x_pilot() {
-    local rname="${REMOTE%%:*}" f n=0 files
+    local rname="$INBOX_RNAME" f n=0 files
+    [[ -n "$rname" ]] || { log "  x inbox: skip -- no inbox remote configured"; return 0; }
     x_copy() {    # x_copy <remote src> <local dest>
         local src="$1" dest="$2" before="" after=""
         [[ -f "$dest" ]] && before="$(sha256sum "$dest" | cut -d' ' -f1)"

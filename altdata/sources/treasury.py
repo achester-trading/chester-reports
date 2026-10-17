@@ -208,7 +208,7 @@ def show(db_path: Optional[str] = None, as_of: Optional[str] = None) -> dict:
     store, writes nothing."""
     from .. import observations as obs                          # noqa: PLC0415
     out: dict = {}
-    with obs.ObservationStore(db_path) as st:
+    with obs.open_writer(__name__, db_path) as st:
         for key, inst in (("calc.mnav", "MSTR"), ("treasury.mstr_spot", "MSTR"),
                           ("treasury.mstr_shares", None), ("treasury.btc_holdings", "MSTR"),
                           ("yfinance.mkt_btc_usd", None),

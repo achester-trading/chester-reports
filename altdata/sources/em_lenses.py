@@ -158,7 +158,7 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
     """One pass over the store. STALE when no input is stored at all."""
     def produce() -> list[dict]:
         own = db is None
-        st = db or observations.ObservationStore()
+        st = db or observations.open_writer(__name__)
         try:
             return compute(st)
         finally:

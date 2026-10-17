@@ -453,7 +453,7 @@ def pull(run_id: Optional[str] = None, db=None, as_of: Optional[str] = None) -> 
 
     def produce() -> list[dict]:
         own = db is None
-        st = db or obs.ObservationStore()
+        st = db or obs.open_writer(__name__)
         try:
             return compute(st, as_of)
         finally:

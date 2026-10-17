@@ -223,8 +223,8 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-four code gates (eighty-one Python,
-three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — eighty-five code gates (eighty-two Python,
+three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -460,6 +460,47 @@ report; tokens, never dollars. **A restore is drilled, not assumed:**
 directory, integrity-checks it and counts it against the live store, read-only;
 `docs/runbooks/restore.md` is the dead-box procedure. `tools/validate_audit_2.py`
 holds the auction sampler's stand-aside, the meter's client and the drill.
+
+**Backups are encrypted, go to a separate account, and are restored every week
+(audit-leftovers-1, 17 Oct 2026).**
+
+- `scripts/rclone_sync.sh` sends every tree to an rclone crypt remote that
+  `scripts/rclone_crypt_env.sh` builds from `.env`. The trees are `db/`,
+  `data/`, `chester-data/`, `state/`, `reports/` and `backups/`; the settings are
+  `CHESTER_RCLONE_BACKUP_REMOTE` (a Drive used only for backups),
+  `CHESTER_RCLONE_CRYPT_PASSWORD` and `CHESTER_RCLONE_CRYPT_SALT`. File names are
+  encrypted too, and nothing secret sits in `rclone.conf`.
+- Without those settings the sweep exits 1 (`no_crypt`); the old plaintext
+  remote is never written.
+- The inbound files come from the main Drive through
+  `CHESTER_RCLONE_INBOX_REMOTE`, a read-only token.
+- Retention: `db/` keeps 14 daily, 8 weekly and monthly forever; the chain zips
+  keep the newest 14 on the box and on Drive alike.
+- The sweep records the snapshot's row count in the state directory's
+  `backup_snapshot`.
+- `chester-restore-test.timer` (Sundays, enabled by hand) restores the newest
+  snapshot through the crypt remote, integrity-checks it, compares the count and
+  writes `restore_test_status`. The heartbeat's `backup=` field reads it:
+  `failed:restore_test`, `stale_restore:<d>d`, both exit 12.
+
+**Scheduled writers open the store through `observations.open_writer(name)`**
+(WAL, the busy timeout, the writer's name: D1c as one function). Once
+`python -m altdata.observations install-triggers` has run on the box, two
+triggers refuse UPDATE and DELETE on `observations`. The one exception is
+`observations.maintenance()`, a row inserted and removed inside the caller's own
+transaction, which the FRED compaction and the prediction-market backfill use.
+
+**Pulls are incremental:**
+
+- FRED asks from its newest stored day less a revision window by frequency
+  (daily 30 days, weekly 120, monthly and quarterly 400), or for the full
+  history when nothing is stored, and merges into the CSV copy.
+- `_publication.since()` gives other writers the same window.
+- `feeds.freshness` reads the whole roster in one grouped query.
+
+The gates are `tools/validate_backups.py`, `validate_audit_1.py` group E,
+`validate_secrets.py` group I and the data gate `validate_backup_crypt.py` (real
+rclone, the local backend).
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

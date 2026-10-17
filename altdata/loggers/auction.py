@@ -217,7 +217,7 @@ def probe(port: int = 4002, seconds: float = 12.0,
                 pass
 
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -232,7 +232,7 @@ def probe(port: int = 4002, seconds: float = 12.0,
 def last_probe(store: Optional[observations.ObservationStore] = None
                ) -> Optional[dict]:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         rows = db.as_of(PROBE_KEY)
         if not rows:
@@ -266,7 +266,7 @@ def sample(port: int = 4002, seconds: Optional[float] = None,
         return {"skipped": "not a session", "written": 0}
 
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     ib = None
     written = samples = 0
     try:

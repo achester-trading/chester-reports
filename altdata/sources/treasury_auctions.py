@@ -163,7 +163,7 @@ def rows_from_records(records: list[dict]) -> list[dict]:
 def _ranges(db: Optional[observations.ObservationStore]) -> list[tuple[str, str]]:
     today = session.session_date_obj()
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, ["auction.bid_to_cover"])
     finally:
