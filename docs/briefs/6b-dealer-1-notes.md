@@ -287,6 +287,13 @@ Trial merges (`git merge-tree`, nothing committed) of this branch's commit again
 
 ## CI
 
+**`st-r5-audit` underneath is red** (run 38992737390, one failure). `validate_secrets` refused `tools/validate_by_hand_audit.py`, because its Korea-gap check named the dotfile in a quoted string, which only `altdata/secrets.py` may do. The fault is mine, from the st-r5-audit paste. This paste names only `6b-dealer-1`, so the fix (the check stated positively: the gap "needs a registered key (ruled out") is committed here, where the file is inherited and would fail the same way. `validate_by_hand_audit` 17/0. `st-r5-audit` itself stays red until Tuesday's stitch takes this commit, or a paste names that branch: needs-you 7.
+
 | Commit | Run | Result |
 |---|---|---|
-| (first push) | recorded at the next read | |
+| `e9b7fc9` (notes) | 39033119597 | superseded by the fix below; inherits st-r5-audit's `validate_secrets` failure |
+| the fix commit | recorded at the next read | |
+
+## Needs you, added
+
+7. **`st-r5-audit` is red** on one gate text of mine (above). The fix is on this branch. Either let Tuesday's stitch carry it, or name `st-r5-audit` in a paste and I'll put the same commit there.

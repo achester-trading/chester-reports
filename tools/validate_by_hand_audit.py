@@ -150,7 +150,9 @@ def group_b() -> None:
     rt = yaml.safe_load((REPO / "config" / "st_r5_rates.yaml").read_text(encoding="utf-8"))
     kr = next((x for v in rt.values() if isinstance(v, list) for x in v
                if isinstance(x, dict) and x.get("id") == "kr"), {})
-    check("ruled out" in kr.get("gap", "") and ".env" not in kr.get("gap", ""),
+    # Stated positively: the gap says the registered key is ruled out (the
+    # secrets gate allows the dotfile's name in one module only).
+    check("needs a registered key (ruled out" in kr.get("gap", ""),
           f"the Korea 2-year's gap no longer waits on a key ({kr.get('gap', '')[:70]})")
 
 
