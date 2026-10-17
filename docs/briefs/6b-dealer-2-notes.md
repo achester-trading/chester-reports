@@ -229,4 +229,11 @@ All merge cleanly in the trials.
 | `6b-dealer-1` | `d7c1593` | 39033223933 | green (recorded in its notes) |
 | `st-r5-audit` | `c60c458` (the repair) | 39036555800 | **green**: every branch in the second chain is green on its own |
 | `docs-batch-9` | `e20df42` | 39036581128 | **green** |
-| `6b-dealer-2` | this commit | recorded at the next read | |
+| `6b-dealer-2` | `ada7cb2` | 39038449525 | **failed**, three gates, all this branch's own (below) |
+| `6b-dealer-2` | the fix commit | recorded at the next read | |
+
+**The first run's three failures, and the fix:**
+- **`validate_weekly_stack` and `validate_weekly_opener`:** the flag-word audit read "held" as the flag word in ordinary prose. The fixtures' generic paragraph says "the relationships that held at the start of the week held at its end". So the Weekly's Mechanics was withheld and retried, adding model calls (11 against 9) and spoiling the opener's retry count. **Fix:** "held" is the flag word only in a sentence about a dealer level (a wall, the flip, a strike, max pain). Pinned, amplified and dampened always count. `validate_dealer_block` group L gains the plain-English case.
+- **`validate_monthly_stack`:** the Monthly's real payload builder now sets `computed_dir`, so M12 entered the gate's plan with no profile to draw.
+  - **Fix:** a dealer chart enters a plan only when a settled SPY profile exists under the directory (`dealer_block.chart_dir`), for D2, W12 and M12 alike.
+  - **A bug the fix also caught:** the Weekly never set `dealer_computed_dir` on its edition, so W12 could not have printed. It now does, from the payload.

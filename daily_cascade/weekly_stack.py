@@ -2246,6 +2246,10 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if ta:
         ed.setdefault("detail", []).append(ta)
     ed["definitions_version"] = wsec.definitions_version()
+    # W12 (6b part 2) joins the plan only when the week's last settled dealer
+    # profile exists under the payload's computed_dir.
+    from . import dealer_block as _db                           # noqa: PLC0415
+    ed["dealer_computed_dir"] = _db.chart_dir(p.get("computed_dir"), ending)
     plan = chart_plan(ed)
     base = f"weekly_tactical_{ending}"
     out_dir = archive_dir

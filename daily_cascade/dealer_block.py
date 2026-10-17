@@ -614,6 +614,10 @@ def sentence_facts(p: dict, s: dict, cfg: dict) -> dict:
 
 FLAG_WORD = re.compile(r"\b(pinned|pinning|held|amplif(?:ied|ies|y|ying)"
                        r"|dampen(?:ed|s|ing)?)\b", re.I)
+# "held" is ordinary English ("the relationships that held"); it is the flag
+# word only about a dealer level -- a wall, the flip, a strike, max pain.
+_DEALER_LEVEL = re.compile(r"\b(walls?|flip|zero-gamma|strike|max pain|peak|"
+                           r"gamma level|shelf)\b", re.I)
 _MON = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
 _WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday")
 
@@ -640,12 +644,16 @@ def _named_sessions(sentence: str, sessions: list[dict]) -> list[dict]:
 def flag_word_faults(text: Optional[str], sessions: Optional[list[dict]]) -> list[str]:
     """THE FLAG-WORD AUDIT (brief v2 section 4, extended to 'dampened' in 6b
     part 2): 'pinned', 'held', 'amplified' and 'dampened' only in a sentence
-    that names a session whose flag for that word is True. `sessions` are the
+    that names a session whose flag for that word is True. 'held' is the flag
+    word only in a sentence about a dealer level (a wall, the flip, a strike,
+    max pain); elsewhere it is ordinary English. `sessions` are the
     scored rows ({"session", "flags"}); None or empty -- the close, whose
     session's flags are computed after its prose -- withholds every flag word."""
     out = []
     for s in re.split(r"(?<=[.!?])\s+", text or ""):
         kinds = {_flag_kind(m.group(1)) for m in FLAG_WORD.finditer(s)}
+        if "held" in kinds and not _DEALER_LEVEL.search(s):
+            kinds.discard("held")
         if not kinds:
             continue
         named = _named_sessions(s, sessions or [])
@@ -676,6 +684,20 @@ def captures_on(day: str, symbol: str, base_dir: Optional[str] = None) -> list[d
         if (rec.get("session_date") or day) == day:
             out.append(rec)
     return out
+
+
+def chart_dir(computed_dir: Optional[str], day: Optional[str],
+              lookback_days: int = 7) -> Optional[str]:
+    """`computed_dir` when it holds a settled SPY capture on or before `day`
+    (within `lookback_days`), else None: a dealer chart enters a plan only
+    when there is a profile to draw."""
+    if not computed_dir or not day:
+        return None
+    try:
+        return computed_dir if newest_settled(str(day)[:10], "SPY", computed_dir,
+                                              lookback_days) else None
+    except Exception:                                           # noqa: BLE001
+        return None
 
 
 def newest_settled(day: str, symbol: str = "SPY", base_dir: Optional[str] = None,

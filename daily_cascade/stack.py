@@ -434,6 +434,11 @@ def releases_on(day: str, st, cutoff: str, cfg: dict) -> list[str]:
     return out
 
 
+def _dealer_chart_dir(p: dict) -> Optional[str]:
+    from . import dealer_block                                  # noqa: PLC0415
+    return dealer_block.chart_dir(p.get("computed_dir"), p.get("session"), 0)
+
+
 def dealer_blocks(p: dict, st, cutoff: str, cfg: dict) -> Optional[list]:
     """The dealer block (6b part 1) for the close, read from the computed
     profiles under the payload's `computed_dir`. None when the payload names no
@@ -921,7 +926,7 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                 st, cutoff, p["session"])
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
-            "dealer_computed_dir": p.get("computed_dir"),
+            "dealer_computed_dir": _dealer_chart_dir(p),
             "config_version": cfg.get("version"), "as_of": cutoff,
             "prior_session": (prior or {}).get("session"),
             "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
