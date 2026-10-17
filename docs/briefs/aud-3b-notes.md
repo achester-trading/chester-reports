@@ -691,6 +691,10 @@ MEME_SM_EXPORT=/home/ari/chester-data/export/security_master.json
 9. **The new-listing start date.** If a morning's snapshot is missed, the start is
    late by those days, and chester-meme's guard would null them. keep the
    snapshot date / use the day after the previous snapshot
+   - **Ruled 15 Oct: the day after the previous snapshot, with `from_known:
+     false`. Built 17 Oct** (`altdata/ticker_history.py`, `_missed_morning`;
+     `tools/validate_security_master.py` group L, one-day and three-day gaps).
+     See `docs/briefs/stitching-week-19-notes.md`, "Monday's fold".
 10. **chester-meme has no Brookfield restriction.**
     - It needs one on its own side: a copy of the rule, or reading the export's
       `restricted` field into its packet path.
