@@ -131,6 +131,9 @@ DELTA_UNITS: dict[str, str] = {
     "N": "raw",          # a plain count (FRED "Number": IC4WSA, EXHOSLUSM495S)
     "B": "raw",
     "M": "raw",
+    # A EURO stock in millions (ECBASSETSW; 6e-releases, ruling (a)5 of 16 Oct
+    # 2026): "M" reads as dollars in the renderers, so the currency is the unit.
+    "EUR_M": "raw",
     "hrs": "raw",
     "count": "raw",
     "shares": "raw",
@@ -1074,7 +1077,8 @@ def series_as_of(metric_id: str, as_of: Optional[str] = None,
 #               and its percentile; the percentile of the 12-month return
 #   rate        bp changes 1m / 3m / 12m; level percentiles
 #   spread      level percentiles; bp changes 1m / 3m; the widening flag
-#   release     year over year and 3-month annualized; the surprise against
+#   release     year over year, 3- and 6-month annualized (6m: Batch 7 lens
+#               21); the surprise against
 #               consensus where one is held; a revision line when the latest
 #               vintage changed a prior print
 #   quantity    year-over-year change; the 3-month change in units; direction
@@ -1348,14 +1352,19 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
         kind = "pp" if pct_like else "pct"
         put("yoy", _change(level, back(12), kind, 1), need)
         F["yoy_unit"] = "pp" if pct_like else "%"
-        b3 = back(3)
+        b3, b6 = back(3), back(6)
         if pct_like:
             put("change_3m", _change(level, b3, "pp", 1), need)
             F["change_3m_unit"] = "pp"
+            # Batch 7 lens 21 (6e-releases): six months beside three, every release.
+            put("change_6m", _change(level, b6, "pp", 1), need)
         else:
             ann = (round(100.0 * ((level / b3) ** 4 - 1.0), 4)
                    if b3 and b3 > 0 and level > 0 else None)
             put("annualized_3m", ann, need)
+            ann6 = (round(100.0 * ((level / b6) ** 2 - 1.0), 4)
+                    if b6 and b6 > 0 and level > 0 else None)
+            put("annualized_6m", ann6, need)
         if UNEMPLOYMENT.search(metric_id):
             percentiles(lw, lw_why)            # 6e: a level percentile added
         cons = (consensus or {}).get(level_day)

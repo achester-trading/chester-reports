@@ -42,3 +42,12 @@ A fixture series per family producing the expected forms; a monthly series never
 ## For the Doctrine monthly (3–4 Oct)
 
 Ratify or change: the correction / bear thresholds (−10% / −20%), the spread-widening flag (+100 bp in 3 months), and the family assignment of any series that is ambiguous.
+
+## Amendment: the release decomposition lenses (Batch 7 item 48, ruled 16 Oct 2026)
+
+Item 48 of the Batch 7 order (`docs/change-order-signal-triage-batch-7-2026-10-16.md`) amends this brief. It adds 24 lenses for the main macro releases: employment 1-6, CPI 7-11, PPI 12-14, GDP 15-20, and four that cross every release, 21-24. Item 46's CPI decomposition is lenses 1-6 of the CPI group in effect.
+
+- **Rights:** flags in lenses 2, 3 and 4 only (and item 46's pass-through flag); every other lens is report-only.
+- **Group A** (employment, CPI and the cross-cutting lenses) is built on `6e-releases`: `altdata/releases.py`, `config/releases.yaml`, `daily_cascade/inflation_block.py` and `daily_cascade/labour_block.py`. Its notes are `docs/briefs/6e-releases-notes.md`.
+- **Lens 21** extends this brief's release family: six months annualised now prints beside three for every release (`derived.lens_forms`, the lens column "6m ann. / 6m chg").
+- **Group B** (PPI and GDP) is the next build on the same line.

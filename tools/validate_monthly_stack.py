@@ -2292,11 +2292,14 @@ def main() -> int:
     ten = list(stack_mod.SECTION_ORDER)
     order = ten[:ten.index("narratives") + 1] + ["reading"] \
         + ten[ten.index("narratives") + 1:] + ["slow"]
+    # The labour block (Batch 7 item 48, 6e-releases) follows Plumbing.
+    order.insert(order.index("plumbing") + 1, "labour")
     check([s["id"] for s in ed["sections"]] == order,
-          "the ten sections in the brief's order, Reading between Narratives and "
-          "Ahead (D1), Slow layers last")
+          "the ten sections in the brief's order, the labour block after Plumbing, "
+          "Reading between Narratives and Ahead (D1), Slow layers last")
     want = {"read": "deep", "tape": "light", "mechanics": "deep", "misfit": "deep",
-            "plumbing": "deep", "positioning": "medium", "priced": "deep",
+            "plumbing": "deep", "labour": "medium", "positioning": "medium",
+            "priced": "deep",
             "narratives": "deep", "reading": "deep", "ahead": "deep",
             "book": "medium", "slow": "deep"}
     got = {k: sec[k]["depth"] for k in want}

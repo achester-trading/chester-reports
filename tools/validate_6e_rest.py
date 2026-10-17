@@ -122,6 +122,10 @@ def build_rows() -> list[dict]:
     for i, m in enumerate(months(dt.date(2025, 1, 1), 21)):
         R.append(row("fred.import_prices_ex_fuel", m, 100.0 * 1.02 ** (i / 12)))
         R.append(row("fred.atl_wage_tracker", m, 4.5))
+    # The shelter lead (6e-releases, ruling (a)3): Zillow's rent rising exactly
+    # 4% a year, so its year over year is 4.00 from Jan 2025.
+    for i, m in enumerate(months(dt.date(2024, 1, 1), 33)):
+        R.append(row("zillow.zori_us", m, 2000.0 * 1.04 ** (i / 12)))
     return R
 
 
@@ -179,24 +183,35 @@ def group_b(rows: list[dict]) -> None:
     cfg = macro_6e.config()["cpi_lead"]
     w = {c["name"]: c["weight"] for c in cfg["components"]}
     assert abs(sum(w.values()) - 1.0) < 1e-9, w
-    cov = w["core goods"] + w["services ex shelter"]
-    want = (w["core goods"] * 2.0 + w["services ex shelter"] * (4.5 - 1.5)) / cov
+    cov = w["core goods"] + w["services ex shelter"] + w["shelter"]
+    want = (w["core goods"] * 2.0 + w["services ex shelter"] * (4.5 - 1.5)
+            + w["shelter"] * 4.0) / cov
     l3, l6 = last(rows, "calc.cpi_lead_3m"), last(rows, "calc.cpi_lead_6m")
+    l9 = last(rows, "calc.cpi_lead_9m")
     check(near(l6[1], want, 1e-3) and near(l3[1], want, 1e-3) and l6[0] == "2026-09-01"
-          and last(rows, "calc.cpi_lead_9m")[1] is None,
-          f"3 and 6 months: (core goods x 2.0 + services ex shelter x (4.5 - 1.5)) "
-          f"over their weights = {want:.3f}; "
-          f"9 months written for no month (no stated lag reaches it)")
+          and near(l9[1], 4.0, 1e-3) and l9[0] == "2026-09-01",
+          f"3 and 6 months: (core goods x 2.0 + services ex shelter x (4.5 - 1.5) + "
+          f"shelter x 4.0) over their weights = {want:.3f}; 9 months: shelter alone "
+          f"(its 12-month lag is the only one that reaches it), 4.00")
     with store("lead", rows) as st:
         r = cpi_lead.read(st, CUT, cfg)
     h = {x["horizon"]: x for x in r["horizons"]}
-    check(near(h[6]["covered_share"], 0.445) and h[9]["value"] is None
-          and "lag" in h[9]["reason"] and r["status"] == "unvalidated",
-          f"each horizon states its covered share (44.5%), the 9-month says why it has "
-          f"none; status unvalidated")
+    check(near(h[6]["covered_share"], 0.8) and near(h[9]["covered_share"], 0.355)
+          and r["status"] == "unvalidated",
+          f"each horizon states its covered share: 80% at 6 months now shelter's lead "
+          f"is stored (44.5% before, 6e-rest), 35.5% at 9; status unvalidated")
     miss = {m["name"] for m in h[6]["missing"]}
-    check(miss == {"shelter", "food", "energy"},
-          f"shelter, food and energy are named as not covered, with reasons ({sorted(miss)})")
+    check(miss == {"food", "energy"},
+          f"the shelter gap is closed (ruling (a)3): food and energy are named as not "
+          f"covered, with reasons ({sorted(miss)})")
+    with store("lead_no_zillow", [x for x in rows if not x["registry_key"].startswith(
+            ("zillow.", "calc.cpi_lead"))]) as st:
+        r0 = cpi_lead.read(st, CUT, cfg)
+    h0 = {x["horizon"]: x for x in r0["horizons"]}
+    check(h0[9]["value"] is None and "shelter" in h0[9]["reason"]
+          and "stated lag reaches" not in h0[9]["reason"],
+          f"without Zillow stored, the 9-month horizon names the unstored lead, not a "
+          f"lag ({h0[9]['reason']})")
     check(r["kill_test"]["state"] == "untested" and "needed" in r["kill_test"]["reason"],
           f"under 60 months the kill test says untested ({r['kill_test']['reason']})")
     # Kill test on its own fixture: a composite that tracks CPI six months on, and
@@ -255,27 +270,29 @@ def group_c() -> None:
 
 
 def group_d(rows: list[dict]) -> None:
-    head("D. THE INFLATION BLOCK, AND THE SLOTS FOR BATCH 7 ITEMS 46 AND 48")
+    head("D. THE INFLATION BLOCK: ITS PANELS, BATCH 7'S FILLED, GROUP B'S SLOT")
     from daily_cascade import inflation_block as ib
     names = [n for n, _ in ib.PANELS]
-    check(names == ["lead", "gap", "decomposition", "labour"]
-          and dict(ib.PANELS)["decomposition"] is None and dict(ib.PANELS)["labour"] is None,
-          "four panels in order; the decomposition (item 46) and labour (item 48) slots "
-          "are reserved and empty")
+    check(names == ["lead", "gap", "decomposition", "cpi_lenses", "ppi"]
+          and dict(ib.PANELS)["decomposition"] is not None
+          and dict(ib.PANELS)["ppi"] is None,
+          "five panels in order: item 46's decomposition and item 48's CPI lenses "
+          "filled (6e-releases); Group B's PPI slot reserved and empty; the labour "
+          "lenses left for their own section")
     feat = rows + [row("calc.core_cpi_pce_gap", m, 0.3 - 0.1 * i)
                    for i, m in enumerate(months(dt.date(2026, 1, 1), 9))]
     with store("infl", feat) as st:
         subs = ib.subsections(st, CUT)
     t = [s["title"] for s in subs]
-    check(t == [ib.TITLE_LEAD, ib.TITLE_GAP],
-          f"the block prints the lead table and the gap line, nothing for the empty "
-          f"slots ({t})")
+    check(t == [ib.TITLE_LEAD, ib.TITLE_GAP, ib.TITLE_DECOMP, ib.TITLE_LENSES],
+          f"the block prints the lead table, the gap line, the decomposition and the "
+          f"CPI lenses, nothing for the empty slot ({t})")
     lead = subs[0]
     nine = next(r for r in lead["table"]["rows"] if r[0] == "9 months")
-    check("unvalidated" in lead["table_note"] and nine[1] == "—"
+    check("unvalidated" in lead["table_note"] and nine[1] == "4.00%"
           and any("Kill test not yet run" in x for x in lead["lines"]),
-          "'stated lags, unvalidated'; the 9-month row a dash with its reason; the kill "
-          "test's state")
+          "'stated lags, unvalidated'; the 9-month row read from shelter's lead alone; "
+          "the kill test's state")
     check("sign has flipped" in subs[1]["lines"][0],
           "the gap's line says when the sign has flipped")
     body = " ".join(" ".join(s.get("lines") or []) + (s.get("table_note") or "") for s in subs)

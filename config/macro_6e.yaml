@@ -81,8 +81,16 @@ cpi_lead:
       offset: -1.5                  # session-set: wage growth less trend productivity (1.5%) is unit-labour-cost growth
     - name: shelter
       weight: 0.355
-      lead: null                    # the 9-12 month leads (Cleveland Fed new-tenant rent, Zillow, Apartment List) are not on FRED
-      absent_reason: "no free new-tenant rent series is stored (Cleveland Fed NTRR, Zillow ZORI and Apartment List are not on FRED)"
+      # 6e-releases (16 Oct 2026, ruling (a)3): the gap closes with lens 7's
+      # Zillow ZORI (altdata/sources/rent_indices.py). ONE lead, the correlation
+      # guard: Apartment List prints beside it in lens 7 but is not counted
+      # twice. Zillow, not Apartment List, because its history is longer (2015
+      # against 2017), so the kill test reaches its 60 months sooner.
+      lead: zillow.zori_us
+      transform: yoy                # percent year over year of the dollar rent
+      lag_months: 12                # the architecture's ~4 quarters (Part 17) and the order's lens 7: "~12-month lead"
+      scale: 1.0                    # stated: new-lease rent growth passes into shelter one for one, unvalidated
+      offset: 0.0
     - name: food
       weight: 0.136
       lead: null

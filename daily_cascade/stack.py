@@ -399,11 +399,25 @@ def plumbing_section(p: dict, st, cutoff: str, cfg: dict) -> dict:
     # one-session change. It displaces nothing.
     from . import lens_cells                                     # noqa: PLC0415
     lt = lens_cells.lens_table(st, cutoff, list(keys))
+    # BATCH 7 LENS 24 AND ITEM 46 (6e-releases, 16 Oct 2026): on a release's
+    # day, one "what moved the print" line, code-written from the release's own
+    # lens figures (altdata/releases.py), as a first-priority item -- the path
+    # the close's existing narrative step already reads, under its existing
+    # audits; no new model call. Any other day: nothing.
+    rel = []
+    try:
+        from altdata import releases                             # noqa: PLC0415
+        rel = releases.release_day_lines(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        rel = []              # report-only: a fault costs the line, never the section
+    for x in rel:
+        items.append(item(f"plumb:release:{x['release']}", x["line"], 1,
+                          (x["release"], x["month"], x["line"])))
     return {"items": items, "deep_reason": reason,
             "charts": ["C3"] if reason else [],
             "not_tracked": ["repo-market stress (SOFR, general collateral)"],
             "subsections": [lt] if lt else [],
-            "data": {"series": data}}
+            "data": {"series": data, "release_lines": rel}}
 
 
 def positioning_section(st, cutoff: str) -> dict:

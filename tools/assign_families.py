@@ -102,6 +102,26 @@ FRED_FAMILIES: dict[str, tuple[str, str | None]] = {
         "cpi_core_goods", "cpi_used_cars", "ppi_final_demand", "ppi_intermediate",
         "ppi_unprocessed", "import_prices", "import_prices_ex_fuel",
         "atl_wage_tracker")},
+    # 6e-releases (16 Oct 2026): FRED_RELEASES_SERIES by hand, as declared in its
+    # block -- every member a release but the Eurosystem's balance sheet.
+    **{k: ("release", None) for k in (
+        "cpi_energy", "cpi_food", "cpi_core_services", "cpi_commodities", "cpi_median",
+        "cpi_trimmed_mean", "cpi_airline_fares", "cpi_transport_services",
+        "ppi_truck_freight", "payrolls_private", "payrolls_edu_health",
+        "unemployed_level", "claims_initial", "claims_continuing",
+        "permanent_job_losers", "lfpr_prime_age", "temp_help", "agg_weekly_hours",
+        "eci_total", "eci_wages", "atl_wage_switchers", "atl_wage_stayers",
+        "cpi_c_food_home", "cpi_c_food_away", "cpi_c_alcohol", "cpi_c_gasoline",
+        "cpi_c_electricity", "cpi_c_utility_gas", "cpi_c_apparel", "cpi_c_new_vehicles",
+        "cpi_c_vehicle_parts", "cpi_c_medical_goods", "cpi_c_tobacco", "cpi_c_household",
+        "cpi_c_personal_care", "cpi_c_lodging", "cpi_c_water_trash",
+        "cpi_c_professional_med", "cpi_c_hospital", "cpi_c_vehicle_repair",
+        "cpi_c_tuition", "cpi_c_video_audio")},
+    **{k: ("release", "a diffusion index, a share of states adding jobs; "
+                      "alternative: conditions")
+       for k in ("diffusion_states_1m", "diffusion_states_3m")},
+    "ecb_assets": ("quantity", "a central-bank balance sheet, a stock; alternative: "
+                               "release"),
 }
 FX_PREFIX = "usd_"                        # every FRED FX pair: a price
 

@@ -1,0 +1,217 @@
+# config/releases.yaml -- Batch 7 items 46 and 48, Group A, and the cross-cutting
+# lenses (docs/change-order-signal-triage-batch-7-2026-10-16.md on docs-batch-7;
+# 6e-releases, 16 Oct 2026, session B). Read by altdata/releases.py.
+#
+# RIGHTS: flags only where the order names them -- lens 2 (diffusion below 50),
+# lens 3 (persistent negative revisions), lens 4 (permanent job losers rising) and
+# item 46's pass-through flag. Everything else here is report-only. No flag is a
+# state, a modifier or a rule of the market-state object (R28): item 46's flag
+# switches the PRINTED STATE of item 32's report-only classifier (ruling (d) of
+# 16 Oct 2026), nothing more.
+#
+# Every value below is the order's where it gives one and SESSION-SET otherwise,
+# with its reason beside it; the session-set ones are listed in
+# docs/briefs/6e-releases-notes.md for Ari.
+version: 1
+
+# ---------------------------------------------------------------------------
+# ITEM 46a -- THE CPI DECOMPOSITION
+# ---------------------------------------------------------------------------
+decomposition:
+  headline: fred.cpi
+  core: fred.core_cpi
+  # The five pieces and their weights in the CPI-U basket: BLS relative
+  # importance, December 2025, rounded to sum to one -- the same weights as the
+  # CPI lead composite (config/macro_6e.yaml cpi_lead), so the two never
+  # disagree on the basket. A contribution is weight x the piece's own month-on-
+  # month change, in percentage points of the headline. Relative importance
+  # drifts month to month with relative prices, so the pieces sum to the
+  # headline only approximately; the residual prints.
+  pieces:
+    - {name: energy, key: fred.cpi_energy, weight: 0.064}
+    - {name: food, key: fred.cpi_food, weight: 0.136}
+    - {name: core goods, key: fred.cpi_core_goods, weight: 0.19}
+    - {name: shelter, key: fred.cpi_shelter, weight: 0.355}
+    - {name: core services ex shelter, key: supercore, weight: 0.255}
+  # Core services ex shelter (supercore) has no published index. It is built
+  # from core services (services less energy services) less shelter at their
+  # relative importance: core services 0.61 (= shelter 0.355 + supercore 0.255),
+  # shelter 0.355. supercore m/m = (0.61 x core services m/m - 0.355 x shelter
+  # m/m) / 0.255.
+  supercore:
+    core_services: fred.cpi_core_services
+    shelter: fred.cpi_shelter
+    core_services_weight: 0.61
+    shelter_weight: 0.355
+  median: fred.cpi_median
+  trimmed_mean: fred.cpi_trimmed_mean
+
+# THE DIFFUSION (item 46a): the share of categories whose month-on-month change,
+# annualised, is above the threshold. Unweighted: each category counts once
+# (a count of how many parts of the basket run hot, the breadth the median
+# cannot show). The 24 categories are expenditure classes that do not overlap,
+# read from FRED's CPI component series (CUSR0000..., SA); together they cover
+# most of the basket by weight, each listed in altdata/config.py
+# FRED_RELEASES_SERIES. A category without the month's print is left out of the
+# count and the n says so.
+diffusion:
+  threshold_annualised_pct: 4.0       # the order's
+  categories:
+    - fred.cpi_c_food_home
+    - fred.cpi_c_food_away
+    - fred.cpi_c_alcohol
+    - fred.cpi_c_gasoline
+    - fred.cpi_c_electricity
+    - fred.cpi_c_utility_gas
+    - fred.cpi_c_apparel
+    - fred.cpi_c_new_vehicles
+    - fred.cpi_used_cars
+    - fred.cpi_c_vehicle_parts
+    - fred.cpi_c_medical_goods
+    - fred.cpi_c_tobacco
+    - fred.cpi_c_household
+    - fred.cpi_c_personal_care
+    - fred.cpi_rent
+    - fred.cpi_oer
+    - fred.cpi_c_lodging
+    - fred.cpi_c_water_trash
+    - fred.cpi_c_professional_med
+    - fred.cpi_c_hospital
+    - fred.cpi_c_vehicle_repair
+    - fred.cpi_airline_fares
+    - fred.cpi_c_tuition
+    - fred.cpi_c_video_audio
+  min_categories: 18                  # session-set: three quarters of the 24, or the share is not printed
+
+# ---------------------------------------------------------------------------
+# ITEM 46b -- THE PASS-THROUGH BASKET AND FLAG
+# ---------------------------------------------------------------------------
+# "The energy-sensitive basket accelerating within three months of an energy
+# spike switches item 32's sub-state from 'supply shock, contained' to 'supply
+# shock, propagating'." The basket is the order's three series, equally weighted
+# (no weight is given and none of the three is the basket's anchor).
+pass_through:
+  basket: [fred.cpi_airline_fares, fred.cpi_transport_services, fred.ppi_truck_freight]
+  energy: fred.cpi_energy
+  # SESSION-SET. An ENERGY SPIKE is a month in which CPI energy rose at least
+  # this much month on month: 9.1% of months since 2000 (29 of 319, CPIENGSL,
+  # read 16 Oct 2026; the 90th percentile is +3.85%), and the order's September
+  # 2026 print (CPI energy +5.2%, gasoline +9.1%) clears it.
+  energy_spike_mm_pct: 4.0
+  # SESSION-SET. The basket ACCELERATES when its 3-month annualised change, at a
+  # month one to three months after the spike, exceeds its 3-month annualised
+  # change at the spike month by at least this many points: the order's "usual
+  # one-to-three-month lag". The basket is noisy (airline fares above all): the
+  # three-month change in its 3-month annualised rate has a standard deviation of
+  # 10.4 points outside 2020-22 (Apr 2004 - Sep 2026, read 16 Oct 2026), and 10
+  # points or more is reached in about one month in six (15.6%). One standard
+  # deviation, so a fire is a move the basket's own noise rarely makes.
+  acceleration_pp: 10.0
+  window_months: [1, 3]               # the order's: within three months of the spike
+  # The printed states of item 32's classifier (ruling (d)): the flag switches
+  # "contained" to "propagating" while item 32 reads a supply shock.
+  states: {contained: "supply shock, contained", propagating: "supply shock, propagating"}
+
+# ---------------------------------------------------------------------------
+# ITEM 48, LENSES 1-6 -- EMPLOYMENT
+# ---------------------------------------------------------------------------
+employment:
+  payrolls: fred.nfp
+  private: fred.payrolls_private
+  edu_health: fred.payrolls_edu_health
+  # LENS 2. The order's flag: diffusion below 50 for three months. The CES
+  # industry diffusion indexes are on api.bls.gov and data.bls.gov only, both of
+  # which disallow every agent in robots.txt; the keyless stand-in is FRED's
+  # State and Metro diffusion index (the share of STATES adding jobs), printed
+  # under that name. SESSION-SET: the flag reads the 1-month index (three
+  # consecutive monthly readings under 50 are the persistence; the 3-month span
+  # already averages, so applying "three months" to it would count months twice).
+  diffusion_1m: fred.diffusion_states_1m
+  diffusion_3m: fred.diffusion_states_3m
+  diffusion_flag_below: 50            # the order's
+  diffusion_flag_months: 3            # the order's
+  # LENS 3. The two-month net revision of payrolls, read from the stored
+  # vintages: the level of the prior month in this release's vintage less the
+  # level the previous release printed for it (the change in the two prior
+  # months' combined gains). SESSION-SET: "persistent" is negative in each of the
+  # last three releases -- one quarter of releases, the persistence the order's
+  # other employment flag uses.
+  revision_flag_releases: 3
+  # LENS 4. Permanent job losers, flag on a year-over-year rise. SESSION-SET: the
+  # 3-month average against the same three months a year earlier, rising at
+  # least 20%. Measured on LNS13026638 (read 16 Oct 2026): its month-on-month
+  # change has a standard deviation of 4.7% outside recessions, so the three-month
+  # average carries the reading; outside recessions a 10% rise is reached in 18%
+  # of months, 20% in 8%. At 20% it fired in Dec 2007 (+24.2%), at the
+  # recession's start, and not in Sep 2007 (+13.9%).
+  permanent_losers: fred.permanent_job_losers
+  permanent_losers_yoy_rise_pct: 20.0
+  lfpr_prime_age: fred.lfpr_prime_age
+  sahm: calc.sahm_rule
+  claims_initial: fred.claims_initial
+  claims_continuing: fred.claims_continuing
+  # The order's read "rising continuing with flat initial = hiring freeze"
+  # (report-only). SESSION-SET: over 13 weeks, continuing up at least 5% while
+  # initial is within 5% either way -- a quarter of weekly prints; 5% is about
+  # one standard deviation of the 13-week change in the 4-week averages outside
+  # recessions since 2000 (5.6% continuing, 6.1% initial, read 16 Oct 2026), and
+  # continuing claims rise 5% or more in 8% of those weeks.
+  claims_weeks: 13
+  claims_rising_pct: 5.0
+  claims_flat_pct: 5.0
+  temp_help: fred.temp_help
+  agg_hours: fred.agg_weekly_hours
+  quits_rate: fred.quits_rate
+  openings: fred.job_openings
+  unemployed: fred.unemployed_level
+  eci: fred.eci_wages
+  atl_wage: fred.atl_wage_tracker
+  ahe: fred.ahe_yoy                   # the stored LEVEL of average hourly earnings, despite the key's name
+  switchers: fred.atl_wage_switchers
+  stayers: fred.atl_wage_stayers
+
+# ---------------------------------------------------------------------------
+# ITEM 48, LENSES 7-11 -- CPI, BEYOND ITEM 46
+# ---------------------------------------------------------------------------
+cpi_lenses:
+  # LENS 7: the shelter lead. The order: "~12-month lead on CPI shelter".
+  shelter_lead_months: 12
+  shelter_leads:
+    - {key: zillow.zori_us, name: "Zillow observed rent index (ZORI)"}
+    - {key: aptlist.rent_us, name: "Apartment List national rent"}
+  shelter_cpi: [fred.cpi_shelter, fred.cpi_rent, fred.cpi_oer]
+  # LENS 9
+  sticky: fred.sticky_cpi
+  flexible: fred.flex_cpi
+  goods: fred.cpi_commodities
+  services: fred.cpi_services
+  # LENS 10: the base-effect ladder. The path of year-over-year over the next
+  # three months, if month on month runs at the pace named, given the months
+  # that drop out of the window. SESSION-SET: the pace is the trailing three-
+  # month average of the series' own month-on-month change (the most recent
+  # run-rate, the one a desk would assume), and each 0.1 point a month above or
+  # below it moves each rung by about 0.1 point a month cumulated.
+  ladder_months: 3
+  ladder_series: [fred.cpi, fred.core_cpi]
+  # LENS 11: the CPI-PCE wedge, with the weight differences named. The gap is
+  # calc.core_cpi_pce_gap (6e-rest). The weights are the published shares, as a
+  # reader would cite them; refresh with each annual reweighting.
+  wedge: calc.core_cpi_pce_gap
+  wedge_weights:
+    - {component: "shelter (rent and owners' equivalent rent)", cpi: "about 35%", pce: "about 15%"}
+    - {component: "medical care (PCE counts employer and government payments)", cpi: "about 7%", pce: "about 17%"}
+    - {component: "financial services (portfolio fees; PCE only)", cpi: "under 1%", pce: "about 8%"}
+
+# ---------------------------------------------------------------------------
+# LENSES 21-24 -- CROSS-CUTTING; THE RELEASE-DAY LINES
+# ---------------------------------------------------------------------------
+# A release's day is the ET date its headline series' newest print became
+# available (available_at) -- the store's own stamp, so the close prints the line
+# the day the print arrived and on no other day. Lens 24's line is one per
+# release, code-written from the release's own lens figures in item 46's voice
+# (what moved the print, in figures; no adjective the figures do not carry).
+releases:
+  - {id: cpi, name: "CPI", headline: fred.cpi}
+  - {id: employment, name: "The employment report", headline: fred.nfp}
+  - {id: jolts, name: "JOLTS", headline: fred.job_openings}
+  - {id: eci, name: "The employment cost index", headline: fred.eci_wages}

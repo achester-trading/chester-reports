@@ -26,7 +26,8 @@ LENS_COLUMNS: dict[str, list[tuple[str, Any]]] = {
              ("Pctile 5y", "p5"), ("Pctile long", "pl")],
     "spread": [("1m", "change_1m_bp"), ("3m", "change_3m_bp"), ("Pctile 5y", "p5"),
                ("Pctile long", "pl")],
-    "release": [("YoY", "yoy"), ("3m ann. / 3m chg", "m3"), ("Surprise", "surprise"),
+    "release": [("YoY", "yoy"), ("3m ann. / 3m chg", "m3"),
+                ("6m ann. / 6m chg", "m6"), ("Surprise", "surprise"),
                 ("Revision", "revision"), ("Level pctile", "p5opt")],
     "quantity": [("YoY", "yoy_pct"), ("3m change", "change_3m_units"),
                  ("Direction", "direction")],
@@ -36,7 +37,7 @@ LENS_COLUMNS: dict[str, list[tuple[str, Any]]] = {
 }
 REASON_KEY = {"p5": "pctile_5y", "p5opt": "pctile_5y", "pl": "pctile_long",
               "vol": "realized_vol_20d", "r12p": "return_12m_pctile",
-              "m3": "annualized_3m"}
+              "m3": "annualized_3m", "m6": "annualized_6m"}
 # The compact cell's columns, per family: the forms that say most about the family
 # in one cell (the brief's lens table, first columns first).
 COMPACT = {"price": ("drawdown_52w", "r12p"), "rate": ("p5", "pl"),
@@ -91,6 +92,12 @@ def cell(lens: dict, col: str, short: bool = False) -> Optional[str]:
             return f"{_signed(f['annualized_3m'], 1)}% ann."
         if f.get("change_3m") is not None:
             return f"{_signed(f['change_3m'], 2)} pp"
+        return None
+    if col == "m6":                                # Batch 7 lens 21 (6e-releases)
+        if f.get("annualized_6m") is not None:
+            return f"{_signed(f['annualized_6m'], 1)}% ann."
+        if f.get("change_6m") is not None:
+            return f"{_signed(f['change_6m'], 2)} pp"
         return None
     if col == "surprise" and f.get("surprise") is None and f.get("surprise_state"):
         return str(f["surprise_state"])            # ruling (d)6: "no consensus"

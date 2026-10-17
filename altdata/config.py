@@ -379,6 +379,94 @@ FRED_6E_SERIES: list[SeriesSpec] = [
     SeriesSpec("atl_wage_tracker", "FRBATLWGT3MMAUMHWGO", "Atlanta Fed wage growth tracker, 3-month moving average of median wage growth, percent", "1", "%", "monthly"),
 ]
 
+# BATCH 7, GROUP A (items 46 and 48; 6e-releases, 16 Oct 2026, session B): the
+# release lenses' FRED legs. Every id, its first and latest observation and its
+# unit were read off FRED (fredgraph.csv and the series page) on 16 Oct 2026;
+# all monthly series run to Sep 2026 unless noted.
+#   CPIENGSL / CPIUFDSL   CPI energy, CPI food, index, SA (the decomposition)
+#   CUSR0000SASLE         CPI services less energy services (core services), SA
+#   CUSR0000SAC           CPI commodities (goods), SA -- goods against services
+#   MEDCPIM158SFRBCLE / TRMMEANCPIM158SFRBCLE  the Cleveland Fed median and 16%
+#                         trimmed-mean CPI, PERCENT CHANGE AT ANNUAL RATE, from
+#                         1983 (filing note 1: not pulled before)
+#   CUSR0000SETG01 / SAS4  airline fares; transportation services (the
+#                         pass-through basket), SA
+#   PCU484484             PPI, truck transportation (the basket's freight leg),
+#                         index Dec 2003 = 100, NSA
+#   USPRIV / USEHS        private payrolls; private education and health
+#                         services, THOUSANDS (cyclical core = the difference)
+#   UNEMPLOY              unemployed, THOUSANDS (openings per unemployed)
+#   ICSA / CCSA           initial and continuing claims, NUMBER, weekly (Sat)
+#   LNS13026638           unemployed, permanent job losers, THOUSANDS, from 1994
+#   LNS11300060           participation rate, 25-54, PERCENT
+#   TEMPHELPS             temporary help services, THOUSANDS, from 1990
+#   AWHI                  aggregate weekly hours index, production and
+#                         nonsupervisory, total private, 2002 = 100
+#   ECIALLCIV / ECIWAG    ECI total compensation (civilian); wages and salaries
+#                         (private), index, QUARTERLY (to Q2 2026)
+#   FRBATLWGT3MMAUMHWGJMJSW / ...JMJST  the Atlanta Fed tracker for job
+#                         switchers and stayers, PERCENT, 3-month moving average
+#   SMS00000000000000021 / ...22  diffusion indexes, 1- and 3-month span, TOTAL
+#                         NONFARM ACROSS STATES (State and Metro), to Aug 2026 --
+#                         the keyless stand-in for the CES industry indexes,
+#                         whose hosts (api.bls.gov, data.bls.gov) disallow every
+#                         agent in robots.txt (see docs/briefs/6e-releases-notes.md)
+#   ECBASSETSW            Eurosystem total assets, EURO millions, weekly (the
+#                         6e-rest gap; unit EUR_M, ruling (a)5 of 16 Oct)
+#   CUSR0000S... (20)     the CPI diffusion's categories, index, SA (below)
+FRED_RELEASES_SERIES: list[SeriesSpec] = [
+    # Item 46: the decomposition, the pass-through basket
+    SeriesSpec("cpi_energy", "CPIENGSL", "CPI: energy, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_food", "CPIUFDSL", "CPI: food, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_core_services", "CUSR0000SASLE", "CPI: services less energy services, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_commodities", "CUSR0000SAC", "CPI: commodities (all goods), SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_median", "MEDCPIM158SFRBCLE", "Cleveland Fed median CPI, percent change at annual rate, monthly", "4", "%", "monthly"),
+    SeriesSpec("cpi_trimmed_mean", "TRMMEANCPIM158SFRBCLE", "Cleveland Fed 16% trimmed-mean CPI, percent change at annual rate, monthly", "4", "%", "monthly"),
+    SeriesSpec("cpi_airline_fares", "CUSR0000SETG01", "CPI: airline fares, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_transport_services", "CUSR0000SAS4", "CPI: transportation services, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_truck_freight", "PCU484484", "PPI by industry: truck transportation, index Dec 2003 = 100, NSA", "4", "idx", "monthly"),
+    # Item 48, lenses 1-6: employment
+    SeriesSpec("payrolls_private", "USPRIV", "All employees, total private, thousands, SA", "1", "K", "monthly"),
+    SeriesSpec("payrolls_edu_health", "USEHS", "All employees, private education and health services, thousands, SA", "1", "K", "monthly"),
+    SeriesSpec("unemployed_level", "UNEMPLOY", "Unemployment level, thousands, SA", "1", "K", "monthly"),
+    SeriesSpec("claims_initial", "ICSA", "Initial claims, number, weekly, SA", "1", "N", "weekly"),
+    SeriesSpec("claims_continuing", "CCSA", "Continued claims (insured unemployment), number, weekly, SA", "1", "N", "weekly"),
+    SeriesSpec("permanent_job_losers", "LNS13026638", "Unemployed: permanent job losers, thousands, SA", "1", "K", "monthly"),
+    SeriesSpec("lfpr_prime_age", "LNS11300060", "Labor force participation rate, 25-54, percent, SA", "1", "%", "monthly"),
+    SeriesSpec("temp_help", "TEMPHELPS", "All employees, temporary help services, thousands, SA", "1", "K", "monthly"),
+    SeriesSpec("agg_weekly_hours", "AWHI", "Index of aggregate weekly hours, production and nonsupervisory, total private, 2002 = 100", "1", "idx", "monthly"),
+    SeriesSpec("eci_total", "ECIALLCIV", "Employment cost index: total compensation, civilian, index, quarterly", "1", "idx", "quarterly"),
+    SeriesSpec("eci_wages", "ECIWAG", "Employment cost index: wages and salaries, private industry, index, quarterly", "1", "idx", "quarterly"),
+    SeriesSpec("atl_wage_switchers", "FRBATLWGT3MMAUMHWGJMJSW", "Atlanta Fed wage growth tracker, job switchers, 3-month moving average, percent", "1", "%", "monthly"),
+    SeriesSpec("atl_wage_stayers", "FRBATLWGT3MMAUMHWGJMJST", "Atlanta Fed wage growth tracker, job stayers, 3-month moving average, percent", "1", "%", "monthly"),
+    SeriesSpec("diffusion_states_1m", "SMS00000000000000021", "Diffusion index, 1-month span, total nonfarm across states, SA", "1", "%", "monthly"),
+    SeriesSpec("diffusion_states_3m", "SMS00000000000000022", "Diffusion index, 3-month span, total nonfarm across states, SA", "1", "%", "monthly"),
+    # Ruling (a)5: the 6e-rest gap with a keyless path
+    SeriesSpec("ecb_assets", "ECBASSETSW", "Eurosystem central bank total assets, euro millions, weekly", "7", "EUR_M", "weekly"),
+    # Item 46a: the CPI diffusion's categories (with cpi_rent, cpi_oer,
+    # cpi_used_cars and cpi_airline_fares, 24 in all; config/releases.yaml)
+    SeriesSpec("cpi_c_food_home", "CUSR0000SAF11", "CPI: food at home, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_food_away", "CUSR0000SEFV", "CPI: food away from home, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_alcohol", "CUSR0000SAF116", "CPI: alcoholic beverages, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_gasoline", "CUSR0000SETB01", "CPI: gasoline (all types), SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_electricity", "CUSR0000SEHF01", "CPI: electricity, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_utility_gas", "CUSR0000SEHF02", "CPI: utility (piped) gas service, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_apparel", "CPIAPPSL", "CPI: apparel, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_new_vehicles", "CUSR0000SETA01", "CPI: new vehicles, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_vehicle_parts", "CUSR0000SETC", "CPI: motor vehicle parts and equipment, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_medical_goods", "CUSR0000SAM1", "CPI: medical care commodities, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_tobacco", "CUSR0000SEGA", "CPI: tobacco and smoking products, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_household", "CUSR0000SAH3", "CPI: household furnishings and operations, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_personal_care", "CUSR0000SAG1", "CPI: personal care, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_lodging", "CUSR0000SEHB", "CPI: lodging away from home, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_water_trash", "CUSR0000SEHG", "CPI: water and sewer and trash collection services, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_professional_med", "CUSR0000SEMC", "CPI: professional (medical) services, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_hospital", "CUSR0000SEMD", "CPI: hospital and related services, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_vehicle_repair", "CUSR0000SETD", "CPI: motor vehicle maintenance and repair, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_tuition", "CUSR0000SEEB", "CPI: tuition, other school fees, and childcare, SA", "4", "idx", "monthly"),
+    SeriesSpec("cpi_c_video_audio", "CUSR0000SERA", "CPI: video and audio, SA", "4", "idx", "monthly"),
+]
+
 # THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
 # ounces between two archives are shares x the last archive's ounces per share,
 # decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
@@ -396,7 +484,8 @@ GLD_EXPENSE_RATIO = {
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
-                                      + FRED_SR43_SERIES + FRED_6E_SERIES)
+                                      + FRED_SR43_SERIES + FRED_6E_SERIES
+                                      + FRED_RELEASES_SERIES)
 
 
 # Quick lookup by key

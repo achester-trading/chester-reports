@@ -126,7 +126,10 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # Signal-triage batch 3, Tranche A (13 Oct 2026): Treasury's
                     # buyback operations (SR-33), Japan's reserves and the Fed's
                     # FIMA repo line (SR-34, both in tic.*)
-                    "treasury_buybacks", "mof_reserves", "fedboard_h41")
+                    "treasury_buybacks", "mof_reserves", "fedboard_h41",
+                    # 6e-releases (16 Oct 2026, ruling (a)5): the Cleveland Fed's
+                    # simple-policy-rules path, keyless
+                    "clevfed_rules")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -162,7 +165,10 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # weekly metal stocks, and USD/CNH's New York close
                     "spdr_gld", "ishares_trusts", "shfe", "cnh",
                     # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
-                    "thai_set")
+                    "thai_set",
+                    # 6e-releases (16 Oct 2026, Batch 7 lens 7): Zillow's and
+                    # Apartment List's national rent indices, the shelter lead
+                    "rent_indices")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

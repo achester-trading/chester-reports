@@ -12379,7 +12379,92 @@ metrics:
     family: release
     trigger_eligible: false
     description: >-
-      The CPI lead composite, 9 months ahead; as calc.cpi_lead_3m. Written only when a component's stated lag reaches nine months (none does today). 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+      The CPI lead composite, 9 months ahead; as calc.cpi_lead_3m. Written only when a component's stated lag reaches nine months: shelter's, whose 12-month lead is Zillow's rent (6e-releases, 16 Oct 2026, ruling (a)3), so the 9-month composite is shelter alone, 35.5% of the basket. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+
+  zillow.zori_us:
+    source: rent_indices
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: release
+    trigger_eligible: false
+    description: >-
+      Zillow Observed Rent Index (ZORI), smoothed, all homes plus multifamily, the United States row of the metro file, DOLLARS a month, monthly from Jan 2015 (files.zillowstatic.com/research/public_csvs/zori/Metro_zori_uc_sfrcondomfr_sm_month.csv, checked 16 Oct 2026). Batch 7 lens 7, the shelter lead (new leases reach CPI shelter about 12 months later), and the CPI lead composite's shelter component (config/macro_6e.yaml, ruling (a)3 of 16 Oct 2026). observed_at the month's first day. Written by altdata/sources/rent_indices.py; the history carries the first pull's Last-Modified.
+  aptlist.rent_us:
+    source: rent_indices
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: release
+    trigger_eligible: false
+    description: >-
+      Apartment List national rent estimate, United States, all bedroom sizes ('overall'), DOLLARS a month, monthly from Jan 2017, from the month's Apartment_List_Rent_Estimates_<YYYY>_<MM>.csv linked on apartmentlist.com/research/category/data-rent-estimates (checked 16 Oct 2026). Batch 7 lens 7, printed beside Zillow's; not counted in the CPI lead composite (one lead a component). Written by altdata/sources/rent_indices.py.
+  clevfed.rules_start:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the starting quarter's federal funds rate in the rules' chart file (www.clevelandfed.org/-/media/files/webcharts/policyrules/chartdata.csv, checked 16 Oct 2026), PERCENT; observed_at the starting quarter. The rules' prescribed path, not market pricing. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+  clevfed.rules_median_4q:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the MEDIAN rule's prescribed federal funds rate four quarters after the starting quarter, PERCENT. A policy-rules path, not a market-implied one. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+  clevfed.rules_median_8q:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the median prescription eight quarters on, PERCENT. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+  clevfed.rules_iqr_4q:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: spread
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the 75th less the 25th percentile prescription four quarters on, PERCENT (its change in bp) -- the path's width across rules, the architecture's path dispersion (Session 3b) as the rules give it. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
 
 bulk_imports:
 
@@ -12717,6 +12802,97 @@ bulk_imports:
       "6": macro_valuation_credit
       "7": macro_global_fx
       "8": macro_sovereign
+
+  fred_releases:
+    description: >-
+      Batch 7, Group A (items 46 and 48; 6e-releases, 16 Oct 2026, session B): the
+      release lenses' FRED legs -- CPI energy, food, core services, commodities,
+      the Cleveland Fed median and 16% trimmed mean, airline fares, transportation
+      services, the truck-transportation PPI; private and education-and-health
+      payrolls, the unemployment level, initial and continuing claims, permanent
+      job losers, prime-age participation, temporary help, aggregate weekly hours,
+      the ECI (total and private wages), the Atlanta Fed tracker for switchers and
+      stayers, the State and Metro diffusion indexes (the keyless stand-in for the
+      CES industry indexes); the Eurosystem's total assets (EURO millions, ruling
+      (a)5); and the CPI diffusion's 20 new categories. Ids and units read off
+      FRED 16 Oct 2026; see altdata/config.py FRED_RELEASES_SERIES. Payroll,
+      unemployment, permanent-loser and temp-help levels are THOUSANDS; claims a
+      NUMBER; the medians, the tracker and the diffusion indexes percent.
+    source: fred
+    members_from: altdata.config.FRED_RELEASES_SERIES
+    member_families:
+      fred.agg_weekly_hours: release
+      fred.atl_wage_stayers: release
+      fred.atl_wage_switchers: release
+      fred.claims_continuing: release
+      fred.claims_initial: release
+      fred.cpi_airline_fares: release
+      fred.cpi_c_alcohol: release
+      fred.cpi_c_apparel: release
+      fred.cpi_c_electricity: release
+      fred.cpi_c_food_away: release
+      fred.cpi_c_food_home: release
+      fred.cpi_c_gasoline: release
+      fred.cpi_c_hospital: release
+      fred.cpi_c_household: release
+      fred.cpi_c_lodging: release
+      fred.cpi_c_medical_goods: release
+      fred.cpi_c_new_vehicles: release
+      fred.cpi_c_personal_care: release
+      fred.cpi_c_professional_med: release
+      fred.cpi_c_tobacco: release
+      fred.cpi_c_tuition: release
+      fred.cpi_c_utility_gas: release
+      fred.cpi_c_vehicle_parts: release
+      fred.cpi_c_vehicle_repair: release
+      fred.cpi_c_video_audio: release
+      fred.cpi_c_water_trash: release
+      fred.cpi_commodities: release
+      fred.cpi_core_services: release
+      fred.cpi_energy: release
+      fred.cpi_food: release
+      fred.cpi_median: release
+      fred.cpi_transport_services: release
+      fred.cpi_trimmed_mean: release
+      fred.diffusion_states_1m: release
+      fred.diffusion_states_3m: release
+      fred.ecb_assets: quantity
+      fred.eci_total: release
+      fred.eci_wages: release
+      fred.lfpr_prime_age: release
+      fred.payrolls_edu_health: release
+      fred.payrolls_private: release
+      fred.permanent_job_losers: release
+      fred.ppi_truck_freight: release
+      fred.temp_help: release
+      fred.unemployed_level: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 45
+    units: from_member
+    # Rates of change in pp and shares in pp (AUD-3a): the Cleveland medians and
+    # the Atlanta tracker are growth rates; participation and the diffusion
+    # indexes are shares of a whole.
+    member_units:
+      fred.atl_wage_stayers: percent_return
+      fred.atl_wage_switchers: percent_return
+      fred.cpi_median: percent_return
+      fred.cpi_trimmed_mean: percent_return
+      fred.diffusion_states_1m: percent_share
+      fred.diffusion_states_3m: percent_share
+      fred.lfpr_prime_age: percent_share
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "4": macro_inflation
+      "7": macro_global_fx
 
   fred_aq3:
     description: >-

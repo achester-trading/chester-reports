@@ -111,7 +111,9 @@ altdata/                  Shared ingestion package — used by every report
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
                           Thailand 1); 25 in FRED_6E_SERIES (6e, the rest:
                           Session 3b-3c and the CPI lead's components);
-                          FRED_PULL_SERIES, 154, is the union the
+                          45 in FRED_RELEASES_SERIES (Batch 7's release
+                          lenses, Group A);
+                          FRED_PULL_SERIES, 199, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -221,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — seventy-seven code gates (seventy-four Python,
+**`make validate` runs every gate** — seventy-eight code gates (seventy-five Python,
 three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -311,6 +313,22 @@ and the close's lens tables print the Monthly's forms; `daily_cascade/
 inflation_block.py` holds Plumbing's inflation panels, with slots for Batch 7
 items 46 and 48. `tools/validate_6e_rest.py` and `tools/validate_lenses.py` hold
 it.
+
+**The release lenses (Batch 7 items 46 and 48, Group A; 6e-releases, 16 Oct
+2026).** `altdata/releases.py` reads, as of the cutoff, the CPI decomposition (five
+contributions, the Cleveland Fed median and trimmed mean, the share of 24
+categories above 4% annualised), item 46's pass-through flag, employment lenses
+1-6 and CPI lenses 7-11; thresholds in `config/releases.yaml`. Flags only where
+the order names them (diffusion, revisions, permanent job losers, pass-through),
+each withheld when it needs a vintage not yet published. The inflation block
+prints the CPI panels; `daily_cascade/labour_block.py` is the Monthly's own section
+after Plumbing (Monthly only, no paragraph); the close carries one code-written
+"what moved the print" item on a release's day. New readers:
+`altdata/sources/rent_indices.py` (Zillow, Apartment List; the CPI lead's shelter
+lead) and `altdata/sources/clevfed_rules.py` (the Cleveland Fed's policy-rules
+path, not market pricing). The BLS API and data.bls.gov disallow every agent in
+robots.txt, so the CES industry diffusion indexes, birth-death and the new-tenant
+rent index are listed gaps. `tools/validate_releases.py` holds it.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates

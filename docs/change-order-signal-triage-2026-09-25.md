@@ -819,6 +819,9 @@ Each surface is edited once, in the session that owns it. Surfaces that do not y
 | Prediction-market spec | Disagreement-layer test case, Kalshi vs. FedWatch on the same FOMC (SR-21) | Tranche H (spec note); PM-1 (data) |
 | Signal Triage Register; intake template | SR-1…SR-27; §1.3–1.6 rules | ST-0 |
 | Base Rates dated appendix; `docs/ledgers/` | Every calibration ledger | ST-7, ST-8, ST-9, ST-L |
+| Stacked Monthly, Plumbing & rates: the inflation block (`daily_cascade/inflation_block.py`) | **Added 16 Oct 2026 (Batch 7 items 46 and 48, filing note 6).** The CPI decomposition panel with the pass-through flag and item 32's printed state; CPI lenses 7-11. Tables and code-written lines after the six buckets; no paragraph, no chart. A reserved `ppi` slot for Group B (lenses 12-14). The Weekly's Plumbing carries the same panels. | 6e-releases (session B) |
+| Stacked Monthly: **a new section, Labour** (`daily_cascade/labour_block.py`; `config/reporting_stack.yaml` `sections`, Monthly only) | **Added 16 Oct 2026 (Batch 7 item 48 lenses 1-6, filing note 6).** After Plumbing & rates; two tables (payrolls; flows, leading pieces and wages) with the flags of lenses 2-4. Budget: its code-written claim only (at most 40 words, inside the 10,000); no chart (the 12 unchanged); displaces nothing beyond the claim's words, which `trim_to_budget` takes from the lowest-priority paragraph. The close and the Weekly keep the ten sections. | 6e-releases (session B) |
+| Daily close, Plumbing (`daily_cascade/stack.py`) | **Added 16 Oct 2026 (Batch 7 lens 24, item 46).** On a release's day (CPI, the employment report, JOLTS, the ECI), one "what moved the print" item, code-written, first priority; no new model call. | 6e-releases (session B) |
 
 ---
 

@@ -185,8 +185,12 @@ def read(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         r = project(series, cfg, latest, int(h))
         r.pop("parts", None)
         if r["value"] is None:
+            reach = [c for c in cfg.get("components") or []
+                     if c.get("lead") and int(c.get("lag_months", 0)) >= int(h)]
             r["reason"] = ("no component's stated lag reaches this horizon"
-                           if not r["components"] else "no covering component stored")
+                           if not reach else
+                           "no covering component's lead is stored for the month "
+                           "its lag reads (" + ", ".join(c["name"] for c in reach) + ")")
         horizons.append(r)
     kt = kill_test(st, cutoff, cfg)
     cond = cfg.get("conditioner") or {}

@@ -100,6 +100,7 @@ PY_VALIDATORS := \
 	tools/validate_correlation_layer.py \
 	tools/validate_lenses.py \
 	tools/validate_6e_rest.py \
+	tools/validate_releases.py \
 	tools/validate_audit_3a.py \
 	tools/check_library.py \
 	tools/validate_gates.py

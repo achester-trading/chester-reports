@@ -103,6 +103,10 @@ commands:
   altdata.rates_shape:
     domain: rates
     line: THE SELLOFF-SHAPE AXIS AND THE SELLOFF'S COMPOSITION, and the four voices adjudicated by the measures
+  altdata.releases:
+    domain: computed
+    line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'
+    sources: [fred, rent_indices, calc]
   altdata.return_attribution:
     domain: equity
     line: SR-38 -- THE RETURN-ATTRIBUTION LENS, THE REVISION LINE, EY MINUS THE BILL (signal-triage batch 4, ST4-02)
@@ -149,6 +153,10 @@ commands:
     domain: positioning
     line: CFTC Commitments of Traders -- legacy, disaggregated and TFF futures-only reports, Socrata API
     sources: [cftc]
+  altdata.sources.clevfed_rules:
+    domain: macro
+    line: Cleveland Fed simple monetary policy rules -- the rules' prescribed funds-rate path, median and width (not market pricing)
+    sources: [clevfed_rules]
   altdata.sources.cnh:
     domain: fx
     line: USD/CNH -- the offshore yuan's daily New York close, from Yahoo's hourly bars
@@ -294,6 +302,10 @@ commands:
     domain: positioning
     line: Leveraged-ETF assets -- ProShares' daily NAV history files
     sources: [proshares]
+  altdata.sources.rent_indices:
+    domain: macro
+    line: Zillow ZORI and Apartment List national rent -- the shelter lead (Batch 7 lens 7)
+    sources: [rent_indices]
   altdata.sources.safe:
     domain: china
     line: China State Administration of Foreign Exchange (SAFE) -- reserves, BOP, IIP

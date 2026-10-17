@@ -141,7 +141,8 @@ UNCHANGED_RULED = ("fred.sloos_ci_large", "fred.sloos_ci_small",
 NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_columns",
                   "event_types", "pin_log_columns", "bars_prices",
                   "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd",
-                  "fred_6e"}   # 6e, the rest (16 Oct 2026): the FRED legs of Session 3 and the CPI lead
+                  "fred_6e",   # 6e, the rest (16 Oct 2026): the FRED legs of Session 3 and the CPI lead
+                  "fred_releases"}   # 6e-releases (16 Oct 2026): Batch 7 Group A's FRED legs
 
 
 def check(c, m: str) -> None:
@@ -258,9 +259,12 @@ def group_b() -> None:
           "and each declared one now reads its new rule")
     lost = sorted(k for k in base if k not in resolved)
     check(not lost, f"no key fb67bf3 resolved is lost ({lost[:5] or 'none'})")
-    # 6e, the rest (16 Oct 2026) registers its calc series one by one.
+    # 6e, the rest (16 Oct 2026) registers its calc series one by one, and
+    # 6e-releases its two readers' keys.
     from altdata import macro_6e
-    new = [k for k in resolved if k not in base and k not in macro_6e.KEYS]
+    from altdata.sources import clevfed_rules, rent_indices
+    one_by_one = set(macro_6e.KEYS) | set(rent_indices.KEYS) | set(clevfed_rules.KEYS)
+    new = [k for k in resolved if k not in base and k not in one_by_one]
     blocks = {derived.registry_entry(k).get("bulk_block") for k in new}
     check(blocks <= NEW_KEY_BLOCKS,
           f"the {len(new)} newly resolved keys all come from the resolver fix and "

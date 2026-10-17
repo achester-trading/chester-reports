@@ -1582,6 +1582,42 @@ sources:
     implemented_by: altdata/sources/nyfed_sce.py
     status: live
 
+  rent_indices:
+    name: Zillow Observed Rent Index and Apartment List national rent (published files)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [inflation, real_estate]
+    geography: [US]
+    latency: monthly, mid-month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each file's Last-Modified (observed) where sent, else the write instant.
+      Zillow's file is on files.zillowstatic.com (robots.txt carries no rule);
+      Apartment List's is linked from its research page (robots: Allow /) and
+      served from assets.ctfassets.net (robots.txt 404: no rules). Checked 16 Oct
+      2026. Batch 7 lens 7, the shelter lead.
+    license: public research files, no key; cite the publisher
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/rent_indices.py
+    status: live
+
+  clevfed_rules:
+    name: Federal Reserve Bank of Cleveland -- simple monetary policy rules
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [US]
+    latency: quarterly, after the SEP and the GDP release
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The chart file's Last-Modified (observed) where sent, else the write
+      instant. www.clevelandfed.org robots.txt disallows /errors/* only (checked
+      16 Oct 2026). The rules' prescribed path, never read as market pricing.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/clevfed_rules.py
+    status: live
+
   wgc:
     name: World Gold Council -- central bank gold statistics
     tier: C
