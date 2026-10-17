@@ -167,7 +167,8 @@ Every other gate is left to CI, including the blocklist gates (`validate_alpha_n
 
 | Run | Commit | Result |
 |---|---|---|
-| (first push) | — | recorded at the next read |
+| 38974652897 | `ce6cf33` | **Failed, 93 of 95 jobs green.** The one failing gate is `check_library`, failure [10]: the built HTML editions of Base Rates, Equities and Metals were built from the papers before this branch's appendices. The second failed job is `gates-passed`, which only reports that a gate failed. This branch caused it. |
+| (the fix's push) | the next commit | The three editions are rebuilt with `tools/build_paper_html.py`; no paper text changes. Its result is recorded in `docs/briefs/st-r5-audit-notes.md`, step 0, because the next branch's first push carries this commit too. |
 
 ## Box commands (Ari's, inside a window: weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20, clear of Sunday 05:00)
 
@@ -200,6 +201,13 @@ cd ~/chester-reports && git log -1 --oneline      # main carries st-r5-fixes
   - B's `config/narratives.yaml`, `altdata/narratives.py` and `tools/validate_narratives.py` are not touched here.
 - `6e-rest` is not on origin yet.
 - `docs-batch-7` and `sm-schema-1-1` share nothing with this branch.
+
+## The sm-schema-1-1 branch (recorded here, since no notes file names it otherwise in this line)
+
+- **What it is.** Chester-meme's change order for the Security Master export's schema 1.1, cut from `origin/aud-3b-security-master` (`2fb1048`), so it merges after AUD-3b. The export writes `schema_version` "1.1" and two new fields per security: `restricted` (boolean, from the Brookfield blocklist through `register/instruments.py`) and `restricted_reason` (the tier and root, or the name match). It also applies the 16 Oct ruling on the new-listing start date in `altdata/ticker_history.py`, and adds CLAUDE.md's rule that a session never writes into the chester-meme folder.
+- **Tip.** `6c8c666`.
+- **CI.** Run 38970887891, green.
+- **Its own notes.** `docs/briefs/sm-schema-1-1-notes.md`, on that branch, which predates the CI result and does not record it.
 
 ## Needs you
 
