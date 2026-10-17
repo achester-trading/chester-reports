@@ -739,9 +739,12 @@ def _main(argv: list[str]) -> int:
                 st.write_many(wrote)
         print(f"resolved rows written: {len(wrote)}")
         return 0
+    # Both read the store as of NOW and every lens stops at the day itself: the
+    # seed is a one-off written today from stored data (Batch 9, the placement
+    # block), so rows backfilled since -- ^VIX9D, ^VIX6M -- count, and the row is
+    # stamped available when written, never earlier.
     with observations.ObservationStore() as st:
-        cutoff = now if a.cmd == "show" else f"{day}T23:59:59+00:00"
-        ser = read_series(st, cutoff, cfg)
+        ser = read_series(st, now, cfg)
     ev = evaluate(ser, day, cfg, attributions=attributions_for(day, now))
     print(ev["trigger_line"])
     if ev.get("fired"):
