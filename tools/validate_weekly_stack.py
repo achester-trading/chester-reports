@@ -606,8 +606,9 @@ def main() -> int:
     check("z +3.0 against a threshold of 2.0" in c_line
           and c_line.startswith("Equities against high-yield credit"),
           f"7: z to one decimal, under its label ({c_line})")
-    check(_st._signed(4.4, "bp") == "+4 bp" and _st._signed(-0.4, "bp") == "−0 bp",
-          "7: basis points whole")
+    check(_st._signed(4.4, "bp") == "+4 bp" and _st._signed(-0.4, "bp") == "0 bp",
+          "7: basis points whole, and a move that rounds to zero carries no sign "
+          "(weekly-fixes-7 item 12)")
     check(scaled_display(-68522000000.0, "usd") == "−$68.52bn",
           "7: TIC in billions through the scaled display")
     sp = _sp.stack_system_prompt(__import__("daily_cascade.narrative",

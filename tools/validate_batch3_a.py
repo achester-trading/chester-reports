@@ -219,9 +219,12 @@ def group_b() -> None:
     db = store([])
     with open_store(db) as st:
         sub = blk.eu_subsection(st, cut)
-    check(sub["table"] is None and any("not yet stored" in x and "aq-3-series-2" in x
-                                       for x in sub["lines"]),
-          "without the legs, the block says they are not yet stored and names the writer")
+    check(sub["table"] is None
+          and any("not yet stored (the ECB's data portal, from " in x
+                  for x in sub["lines"])
+          and not any("aq-3-series-2" in x or ".py" in x for x in sub["lines"]),
+          "without the legs, the block says they are not yet stored, naming the "
+          "source and the date it starts -- no file or branch (weekly-fixes-7 item 11)")
 
 
 # ---------------------------------------------------------------------------
@@ -290,12 +293,14 @@ def group_c() -> None:
           f"the week of 26 Oct: the 27 Oct buyback, the BoJ, H.4.1, EIA, CFTC TFF "
           f"from config ({len(wk)} rows)")
     nov = calendar_config.rows(cal, "2026-11-02", "2026-11-07")
+    # weekly-fixes-7 item 12: a JST time prints in ET, so the release of Mon 9 Nov
+    # in Tokyo (08:50 JST) is Sun 8 Nov, 18:50 EST in New York, "the evening before".
     check(any(r["event"] == "Japan's international reserves (MoF)"
-              and r["date"] == "2026-11-09" for r in
-              calendar_config.rows(cal, "2026-11-09", "2026-11-14"))
+              and r["date"] == "2026-11-08" and r["time"] == "18:50 (08:50 JST)"
+              for r in calendar_config.rows(cal, "2026-11-09", "2026-11-14"))
           and any("1 month to 2 years" in r["event"] for r in nov),
-          "MoF reserves on the first weekday on or after the 7th (Mon 9 Nov); the "
-          "5 Nov operation")
+          "MoF reserves on the first weekday on or after the 7th (Mon 9 Nov in Tokyo, "
+          "Sun 8 Nov 18:50 EST); the 5 Nov operation")
     import inspect                                              # noqa: PLC0415
     check("calendar_config.rows(cal, mon, sat)" in
           inspect.getsource(weekly_sections.calendar_week),

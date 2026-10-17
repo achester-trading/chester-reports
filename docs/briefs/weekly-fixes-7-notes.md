@@ -343,4 +343,37 @@ already has with them.
 
 ## CI
 
-Read once after the push; recorded below.
+| Run | Commit | Result |
+|---|---|---|
+| 39071512524 (Gates, push) | `cf2b6d9` | **failed: 78 of 82 gate jobs passed** |
+
+**The four failures, all fixed on this branch:**
+
+1. `validate_readability.py`: TypeError. `readability.PRINT_CSS` is a
+   %-format string, and item 13's `max-width: 100%` needed `100%%`.
+2. `validate_batch3_a.py`, two checks that pinned the old text:
+   - the ECB legs' not-stored line named the branch (now the source and the
+     date, as item 11 rules);
+   - the MoF reserves row's date. Item 12 now prints it in ET: Mon 9 Nov 08:50
+     JST is **Sun 8 Nov, 18:50 EST** (US daylight time ends 1 Nov), "the evening
+     before in New York", as the config's own note says.
+3. `validate_weekly_stack.py`, two checks:
+   - "basis points whole" pinned `−0 bp`, the signed zero item 12 removes; it
+     now pins `0 bp`;
+   - "one audited call per section" counted 11 calls for 9, two retries. The
+     book's time-word audit (item 6) fired on the fake model's paragraph. It was
+     **too broad**: the book's tables carry week figures of their own (trades,
+     sitting time), so a "this week" about those needs nothing. The audit now
+     fires only on a sentence that states the book's *performance* (a return, a
+     benchmark, "excess") with a week word, when the book's data carries no
+     week window.
+4. `validate_audit_fixes.py`: run 5's real book paragraph, "The book held its
+   ground relative to cash on the week", over figures since 1 Oct, is exactly
+   dry run 7's fault, so the audit withheld it. The gate's fixture now carries
+   the week's window beside since-inception, as the pipeline prints it from
+   this branch, and the paragraph publishes for the reasons that gate tests.
+
+Locally after the fix: `validate_batch3_a` 60/0, `validate_audit_fixes` 73/0,
+`validate_weekly_stack` 70/0, group M 32/0. `validate_readability` renders PDFs,
+so it is left to CI. The re-run is recorded on `writer-fixes-1`'s notes, which
+carry this branch.
