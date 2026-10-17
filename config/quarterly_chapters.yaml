@@ -1,0 +1,1639 @@
+# THE QUARTERLY'S CHAPTERS, ITEM BY ITEM (AQ-2 parts 1 and 2; change order of 10
+# Oct 2026, sections 4.1-4.11, 5 and 10A). Part 1 filled metals, oil and energy,
+# and currency; part 2 the other eight. config/reporting_stack.yaml holds the
+# chapter list and the section 4.1 template (AQ-1); this file holds what each
+# FILLED chapter reads for each item. A chapter not here, or `filled: false`,
+# stays on the AQ-1 shell ("not yet built -- AQ-2").
+#
+# RULES THIS FILE KEEPS (the gate holds them, tools/validate_quarterly_stack.py):
+#   - Every series is an existing registry key (metrics_registry.yaml). A series
+#     the store lacks is listed with `absent: <reason>` and prints by name as
+#     "not tracked"; none is invented or proxied.
+#   - Falsification tests are the papers' OWN wording, from each paper's
+#     "Falsification Tests" section, verbatim. `measurable` is given only where
+#     the paper gives one and the store holds its series; otherwise null, with
+#     `not_measured` naming the reason. The thresholds a measurable needs and
+#     the paper does not state numerically (what "tight" means) are marked
+#     `session_set` with the reading chosen.
+#   - The ten questions are each paper's Appendix D, verbatim.
+#   - `figure_budget`: the most figures each item's written read may cite --
+#     T3.4's rule at the frame: the frame offers no more figures than this, the
+#     rest by name only. T3.4 (t3-4-figure-budget) is not merged under this
+#     branch, so the rule is applied here by the chapter's own frames.
+#
+# RULE KINDS for a measurable (evaluated by monthly_macro.quarterly_items):
+#   quarters_negative  {series, quarters}: the level fell in each of the last N
+#                      calendar quarters -> fails; the last quarter alone -> strained
+#   pace_below         {series, months, annualise, below}: the sum of the last
+#                      `months` monthly prints x annualise is below `below`
+#   change_below       {series, below}: the level's change over the quarter is
+#                      below `below` (in the series' own unit; a price in percent)
+#   level_above        {series, above}: the latest level is above `above`
+#   below_year_mean    {series, year}: the latest level is below that calendar
+#                      year's mean
+#   correlation_at_most {a, b, window, at_most, strained_at_most, transform}: the
+#                      correlation of the two series' daily changes over `window`
+#                      sessions is at or below `at_most` -> fails
+#   all / any          a list of the above: `all` fails when every leg fails and is
+#                      strained when some do; `any` fails when one fails
+version: aq2-chapters-2
+updated: 2026-10-11
+
+common:
+  # Item 9's structural-change line: its status is read from the tail watch's
+  # re-specification log and the signal-intake register, never declared. Neither
+  # is stored yet, so the line prints its default with that reason.
+  structural_default: "none confirmed"
+  structural_waits: "the tail watch's re-specification log and the signal-intake register are not stored yet"
+  # The five-year percentile column waits for the metric lenses (6e).
+  five_year_column: "until the lenses"
+  # The options-implied range: the expiry nearest a quarter out with at least a
+  # week to run; the at-the-money implied volatility (the call and put nearest
+  # spot, averaged); the one-standard-deviation range spot x exp(+/- iv x
+  # sqrt(days / 365)). Session-set (AQ-2).
+  implied_range: {target_days: 91, min_days: 7}
+  # The funds whose option chains the capture logs (AQ-8a). A chapter's fund
+  # not in this list prints its range as not captured, by name.
+  chains_captured: [GLD, SLV, USO]
+
+families:
+
+  # =========================================================================
+  # METALS -- gold, silver, copper (paper VIII, docs/whitepapers/metals-whitepaper.md)
+  # =========================================================================
+  metals:
+    filled: true
+    paper: "Metals"
+    paper_file: docs/whitepapers/metals-whitepaper.md
+    horizon_family: metals            # AQ-4's family in config/horizon_charts.yaml
+    voices_subjects: [gold]           # config/voices_sources.yaml subjects
+    five_lines:
+      - {key: yfinance.mkt_gold_front, label: "Gold (front-month future, GC=F)"}
+      - {key: yfinance.mkt_slv,        label: "Silver (SLV)"}
+      - {key: yfinance.mkt_copper_front, label: "Copper (front-month future, HG=F)"}
+      - {key: fred.tips_10y,           label: "The 10-year real yield (DFII10)"}
+      - {key: fred.dxy,                label: "The broad dollar (DTWEXBGS)"}
+    structure:
+      - {key: wgc.cb_gold_holdings_t,  label: "Official-sector gold holdings (WGC), tonnes"}
+      - {key: wgc.cb_net_purchases_t,  label: "Official-sector net purchases (WGC), tonnes"}
+      - {key: safe.gold_reserves_oz,   label: "China's reported gold reserves (SAFE), ounces"}
+      - {key: fred.tips_10y,           label: "The 10-year real yield (DFII10)"}
+      - {key: fred.dxy,                label: "The broad dollar (DTWEXBGS)"}
+      - {key: cftc.noncomm_net, instrument: GOLD, label: "Gold futures, non-commercial net (CFTC legacy)"}
+      - {hook_key: etf.gld_tonnes, branch: aq-3-series-1, label: "Gold ETF holdings: GLD, tonnes"}
+      - {hook_key: etf.iau_tonnes, branch: aq-3-series-1, label: "Gold ETF holdings: IAU, tonnes"}
+      - {hook_key: etf.slv_tonnes, branch: aq-3-series-1, label: "Silver ETF holdings: SLV, tonnes"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: GOLD, branch: aq-3-series-1, label: "Gold futures, managed money net, % of open interest (CFTC disaggregated)"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: SILVER, branch: aq-3-series-1, label: "Silver futures, managed money net, % of open interest (CFTC disaggregated)"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: COPPER, branch: aq-3-series-1, label: "Copper futures, managed money net, % of open interest (CFTC disaggregated)"}
+      - {label: "Copper TC/RCs", absent: "no free source stored (AQ-3)"}
+      - {hook_key: shfe.stocks_t, instrument: COPPER, branch: aq-3-series-1, label: "SHFE copper stocks, tonnes (weekly)"}
+      - {hook_key: shfe.warrants_t, instrument: COPPER, branch: aq-3-series-1, label: "SHFE copper on warrant, tonnes (weekly)"}
+      - {label: "LME and COMEX copper inventories", absent: "no free source (AQ-3 part 1: CME prohibits scripted access; LME is licensed)"}
+      - {label: "COMEX and LBMA silver inventories", absent: "exchange inventories are not stored (AQ-3)"}
+      - {label: "Lease rates and EFP", absent: "no free source stored (AQ-3)"}
+      - {label: "SGE and Yangshan premiums", absent: "no free source stored (AQ-3)"}
+      - {label: "Chilean copper output (Cochilco)", absent: "not stored (AQ-3)"}
+    structure_charts:
+      - {id: real_yield, title: "Gold against the 10-year real yield (DFII10, inverted)", kind: twin,
+         series: [{key: yfinance.mkt_gold_front, label: "Gold (GC=F)"},
+                  {key: fred.tips_10y, label: "10-year real yield, % (inverted)", invert: true}]}
+      - {id: official, title: "Official-sector gold holdings (WGC), tonnes", kind: line,
+         series: [{key: wgc.cb_gold_holdings_t, label: "Official-sector holdings, tonnes"}]}
+    implied_range_symbols: [GLD, SLV]
+    curve: {waits: "the futures curve and the roll arrive with 6b"}
+    analyses:
+      - {id: gold_residual, title: "The gold residual", module: altdata.attribution, reader: gold_block,
+         kill: "none ruled (section 5)"}
+      - {id: two_bid, title: "The two-bid decomposition", module: altdata.paper_bid, reader: two_bid,
+         kill: "drop call-put OI if its percentile shows no relationship to forward 20-day returns in either direction after twelve months"}
+      - {id: effective_float, title: "Effective-float elasticity", waits: "not built (AQ-8)",
+         kill: "only above a market-cap floor"}
+      - {id: sovereign_gap, title: "The sovereign gold-share gap", series: [manual.gold_share_total_reserves],
+         kill: "none ruled (section 5)"}
+      - {id: copper_gold_10y, title: "Copper/gold against the 10-year", module: altdata.correlation,
+         reader: corr_triple, key: corr.copper_gold__10y.60d, kill: "none ruled (section 5)"}
+    falsification:
+      - id: official_floor
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Official-sector demand provides a gold floor\" is falsified by two consecutive quarters of net central bank selling, or by purchases decelerating below roughly 500 tonnes annualised while price declines."
+        measurable:
+          any:
+            - {quarters_negative: {series: wgc.cb_gold_holdings_t, quarters: 2}}
+            - all:
+                - {pace_below: {series: wgc.cb_net_purchases_t, months: 3, annualise: 4, below: 500}}
+                - {change_below: {series: yfinance.mkt_gold_front, below: 0}}
+      - id: real_yield_broken
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Gold's real-yield relationship is permanently broken\" is falsified by gold resuming a tight inverse correlation to TIPS yields, which would indicate the marginal buyer has reverted to rate-sensitive Western investors."
+        measurable:
+          correlation_at_most: {a: yfinance.mkt_gold_front, b: fred.tips_10y, window: 63,
+                                at_most: -0.5, strained_at_most: -0.3}
+        session_set: "\"tight\" read as a 63-session correlation of daily changes at or below -0.5 (strained at or below -0.3)"
+      - id: silver_deficit
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Silver's deficit will force a re-rating\" is falsified by another two years of deficits without inventory reaching genuine constraint, or by COMEX and LBMA stocks stabilising or rebuilding. Six years have already passed without the predicted squeeze; specify how many more you will accept before concluding the mechanism does not work."
+        measurable: null
+        not_measured: "COMEX and LBMA silver inventories are not stored (AQ-3)"
+      - id: silver_industrial
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Silver's industrial demand is structurally growing\" is falsified if ex-solar industrial demand fails to offset the solar decline, indicating 2026 was a peak rather than a transition."
+        measurable: null
+        not_measured: "the Silver Institute's balance arrives with the quarterly scan (AQ-7)"
+      - id: copper_deficit
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Copper faces a structural deficit\" is falsified by TC/RCs recovering toward historical levels, by concurrent inventory rebuilding across LME, COMEX, and SHFE, or by Goldman's surplus forecast proving correct."
+        measurable: null
+        not_measured: "TC/RCs and the three exchanges' inventories are not stored (AQ-3)"
+      - id: electrification
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Electrification demand is price-insensitive\" is falsified by evidence of aluminium substitution at scale in grid applications or by thrifting reducing copper intensity per EV."
+        measurable: null
+        not_measured: "the paper names evidence, not a series"
+      - id: miners_leverage
+        paper: "Metals"
+        section: "Falsification Tests"
+        statement: "\"Mining equities offer leverage to the metal\" is falsified by continued underperformance during a sustained high-price period, which would indicate the leverage is being destroyed by cost inflation and capital allocation."
+        measurable: null
+        not_measured: "the miners (GDX, SIL) are not in the price feed"
+    ten_questions:
+      - {n: 1,  text: "Are central banks still buying gold at 200+ tonnes per quarter?", series: [wgc.cb_net_purchases_t, wgc.cb_gold_holdings_t]}
+      - {n: 2,  text: "Are Western gold ETF holdings accumulating or bleeding?", series: []}
+      - {n: 3,  text: "Has gold's inverse relationship to real yields shown any sign of restoration?", series: [yfinance.mkt_gold_front, fred.tips_10y]}
+      - {n: 4,  text: "Are COMEX and LBMA silver inventories still drawing down?", series: []}
+      - {n: 5,  text: "Where is the gold-silver ratio in its multi-year range?", series: []}
+      - {n: 6,  text: "Is ex-solar silver industrial demand growing enough to offset solar's decline?", series: []}
+      - {n: 7,  text: "Have copper TC/RCs recovered from zero?", series: []}
+      - {n: 8,  text: "Are LME, COMEX, and SHFE copper inventories falling together, or is metal simply relocating?", series: []}
+      - {n: 9,  text: "Is Chilean production stabilising?", series: []}
+      - {n: 10, text: "Which scenario in Part VII did this quarter's evidence support?", series: []}
+    # THE SCENARIO SETS TO REWRITE (section 4.2; AQ-2 choice 12, added in AQ-3
+    # part 1). The paper's per-metal ranges carry no weight -- they print as
+    # ranges -- and its ten-year families carry the paper's priors.
+    scenarios:
+      - name: "Gold, the paper's ranges (Metals, Part VII)"
+        horizon: "the paper's horizon"
+        source: "the Metals paper's rough ranges; bull, base and bear carry no probability"
+        rows:
+          - {name: "Bull", prior: "range $5,500–7,000"}
+          - {name: "Base", prior: "range $4,200–5,500"}
+          - {name: "Bear", prior: "range $3,200–4,200"}
+      - name: "Silver, the paper's ranges (Metals, Part VII)"
+        horizon: "the paper's horizon"
+        source: "the Metals paper's rough ranges; no probability"
+        rows:
+          - {name: "Bull", prior: "range $85–120"}
+          - {name: "Base", prior: "range $55–75"}
+          - {name: "Bear", prior: "range $35–55"}
+      - name: "Copper, the paper's ranges (Metals, Part VII)"
+        horizon: "the paper's horizon"
+        source: "the Metals paper's rough ranges, per tonne; no probability"
+        rows:
+          - {name: "Bull", prior: "range $14,000–17,000/t"}
+          - {name: "Base", prior: "range $11,000–13,500/t"}
+          - {name: "Bear", prior: "range $8,500–11,000/t"}
+      - name: "Gold, ten years"
+        horizon: "10 years"
+        source: "the Metals paper's ten-year view"
+        rows:
+          - {name: "Deepening", prior: "~30%"}
+          - {name: "Persisting at current intensity", prior: "~40%"}
+          - {name: "Exhausting", prior: "~30%"}
+      - name: "Silver, ten years"
+        horizon: "10 years"
+        source: "the Metals paper's ten-year view"
+        rows:
+          - {name: "The transition completes", prior: "~35%"}
+          - {name: "Industrial demand disappoints", prior: "~40%"}
+          - {name: "The deficit persists but never binds", prior: "~25%"}
+      - name: "Copper, ten years"
+        horizon: "10 years"
+        source: "the Metals paper's ten-year view"
+        rows:
+          - {name: "Structural deficit (the bull outcome)", prior: "~40%"}
+          - {name: "Substitution", prior: "~35%"}
+          - {name: "Demand disappointment", prior: "~25%"}
+    words:
+      permitted: ["official bid", "paper bid", "real yield", "stock-to-flow", "marginal buyer"]
+      banned: ["safe haven", "inflation hedge", "store of value"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # OIL AND ENERGY (paper VII, docs/whitepapers/energy-whitepaper.md)
+  # =========================================================================
+  oil_energy:
+    filled: true
+    paper: "Energy"
+    paper_file: docs/whitepapers/energy-whitepaper.md
+    horizon_family: energy
+    voices_subjects: [oil]
+    five_lines:
+      - {key: fred.brent,            label: "Brent (FRED DCOILBRENTEU), $ a barrel"}
+      - {key: fred.wti,              label: "WTI (FRED DCOILWTICO), $ a barrel"}
+      - {key: oil.prompt_spread,     label: "The WTI prompt spread"}
+      - {key: eia.crude_stocks,      label: "US commercial crude stocks (EIA)"}
+      - {key: fred.natgas,           label: "Henry Hub spot (FRED DHHNGSP)"}
+    structure:
+      - {key: eia.crude_stocks,      label: "US commercial crude stocks (EIA)"}
+      - {key: oil.prompt_spread,     label: "The WTI prompt spread"}
+      - {key: fred.brent,            label: "Brent, $ a barrel"}
+      - {key: fred.wti,              label: "WTI, $ a barrel"}
+      - {key: cftc.noncomm_net, instrument: WTI, label: "Crude futures, non-commercial net (CFTC legacy)"}
+      - {key: fred.breakeven_10y,    label: "The 10-year breakeven (oil against breakevens)"}
+      - {label: "The SPR beside commercial stocks", absent: "the SPR is not stored (AQ-3)"}
+      - {label: "Brent M1-M6 and M1-M12", absent: "the futures curve arrives with 6b"}
+      - {label: "Gulf exports and reachability-adjusted spare capacity", absent: "not stored (AQ-3; a named Gap)"}
+      - {hook_key: eia.rigs_oil, branch: aq-3-series-1, label: "Oil rigs (Baker Hughes via the EIA, monthly)"}
+      - {hook_key: eia.rigs_gas, branch: aq-3-series-1, label: "Gas rigs (Baker Hughes via the EIA, monthly)"}
+      - {hook_key: eia.rigs_total, branch: aq-3-series-1, label: "Total rigs (Baker Hughes via the EIA, monthly)"}
+      - {label: "Frac spreads, DUCs", absent: "frac spreads have no free source (AQ-3 part 1); DUCs not checked"}
+      - {label: "OPEC+ output against quota", absent: "arrives with the quarterly scan (AQ-7)"}
+      - {hook_key: calc.crack_321, branch: aq-3-series-1, label: "The 3-2-1 crack (CL, RB, HO), $/bbl"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: WTI, branch: aq-3-series-1, label: "WTI futures, managed money net, % of open interest"}
+      - {hook_key: cftc.dis_managed_money_net_oi, instrument: NATGAS, branch: aq-3-series-1, label: "Natural gas futures, managed money net, % of open interest"}
+      - {label: "Refinery utilisation", absent: "not stored (not in AQ-3 part 1)"}
+      - {label: "OVX and crude skew", absent: "OVXCLS is not in the FRED pull (AQ-3)"}
+    structure_charts:
+      - {id: brent_stocks, title: "Brent against US commercial crude stocks", kind: twin,
+         series: [{key: fred.brent, label: "Brent, $ a barrel"},
+                  {key: eia.crude_stocks, label: "US commercial crude stocks"}]}
+      - {id: oil_breakeven, title: "WTI against the 10-year breakeven", kind: twin,
+         series: [{key: fred.wti, label: "WTI, $ a barrel"},
+                  {key: fred.breakeven_10y, label: "10-year breakeven, %"}]}
+    implied_range_symbols: [USO]
+    curve: {waits: "the Brent and WTI curves and the roll arrive with 6b; the WTI prompt spread is the one curve point stored", key: oil.prompt_spread}
+    analyses:
+      - {id: disruption_divergence, title: "The disruption-price divergence", waits: "PortWatch transits are not stored (AQ-8)",
+         kill: "if the gap persists two more quarters, adaptation wins and the chokepoint's weight is cut, in writing"}
+      - {id: pass_through, title: "Commodity pass-through and its residual", waits: "not built (AQ-8)",
+         kill: "lead under 2 months, or a rolling five-year lead correlation under 0.3"}
+    falsification:
+      - id: buffer_market
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"Energy is a buffer market\" is falsified by a supply shock of 5 mb/d-plus producing a sub-$15 price move with inventories at the five-year low — pricing insensitive to the buffer."
+        measurable: null
+        not_measured: "a supply shock's size is an event, not a stored series; the five-year band is not stored"
+      - id: hormuz_spare
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"Spare capacity behind Hormuz is not spare capacity\" is falsified if OPEC+ demonstrably delivers 3 mb/d-plus of incremental supply to market during a constrained-strait period via bypass pipelines and alternative routing."
+        measurable: null
+        not_measured: "Gulf export tracking is not stored (AQ-3)"
+      - id: power_squeeze
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"The power squeeze is structural, not a two-auction phenomenon\" is falsified by two consecutive PJM auctions clearing below the cap with the shortfall closed while hyperscaler capex guidance is unchanged."
+        measurable: null
+        not_measured: "PJM auction results are not stored (AQ-3)"
+      - id: data_centre_load
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"Data-centre load growth is real\" is falsified by interconnection-agreement withdrawals exceeding energisations for four consecutive quarters, or by hyperscaler capex cuts of 30%-plus."
+        measurable: null
+        not_measured: "interconnection queues and hyperscaler capex are not stored"
+      - id: hh_bottleneck
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"Henry Hub is bottlenecked from world prices\" is falsified by the TTF–Henry Hub spread compressing below $5 while US export utilisation stays at capacity — meaning the link exists without the capacity."
+        measurable: null
+        not_measured: "TTF and US LNG export utilisation are not stored (AQ-3); Henry Hub is"
+      - id: lng_glut
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"The LNG supply wave produces a 2028–30 glut\" is falsified if TTF holds above $15 after Qatar's North Field expansion and the US trains are fully commissioned."
+        measurable: null
+        not_measured: "TTF is not stored (AQ-3)"
+      - id: enrichment
+        paper: "Energy"
+        section: "Falsification Tests"
+        statement: "\"Enrichment is the uranium constraint\" is falsified by SWU prices falling while term U3O8 rises — the bottleneck being mined supply after all."
+        measurable: null
+        not_measured: "SWU and term U3O8 prices are not stored (AQ-3)"
+    ten_questions:
+      - {n: 1,  text: "Are US commercial crude inventories still below the five-year low, and is the SPR refilling?", series: [eia.crude_stocks]}
+      - {n: 2,  text: "Is the Brent curve's backwardation deepening or flattening?", series: [oil.prompt_spread]}
+      - {n: 3,  text: "Where are Gulf exports against the 22–23 mb/d pre-war level?", series: []}
+      - {n: 4,  text: "Is US gas storage still above the five-year band, and is feedgas back to capacity?", series: []}
+      - {n: 5,  text: "Is EU storage above or below the five-year minimum entering winter?", series: []}
+      - {n: 6,  text: "Did the last PJM auction clear at the cap, and did the shortfall widen or close?", series: []}
+      - {n: 7,  text: "Did the hyperscalers raise or cut capex guidance this quarter?", series: []}
+      - {n: 8,  text: "Are interconnection agreements energising faster than they are being withdrawn?", series: []}
+      - {n: 9,  text: "Where is the uranium term price, and has the 2028 Russian-waiver deadline moved?", series: []}
+      - {n: 10, text: "Which Part VII scenario did this quarter's evidence support — and did the power column change?", series: []}
+    # THE SCENARIO SETS TO REWRITE (section 4.3; AQ-2 choice 12, added in AQ-3
+    # part 1): the twelve-month four with the paper's Brent, HH/TTF and PJM
+    # markers in their names, and the ten-year oil, gas and power families.
+    scenarios:
+      - name: "Twelve months (Energy, §37)"
+        horizon: "12 months"
+        source: "the Energy paper's scenario mapping; the AI-capex bust \"overlaps with any oil path\""
+        rows:
+          - {name: "Managed normalisation (Brent $70–85; HH $3–4, TTF $10–14; PJM at or near cap)", prior: "~40%"}
+          - {name: "Prolonged disruption (Brent $90–115; HH $3–5, TTF $22–35; PJM unchanged)", prior: "~30%"}
+          - {name: "Glut returns (Brent $55–70; HH $2–3, TTF $7–10; PJM unchanged near term)", prior: "~15%"}
+          - {name: "AI-capex bust (Brent neutral; gas bearish; PJM clears below cap)", prior: "~15%"}
+      - name: "Oil, peak demand and the buffer (Energy, §38)"
+        horizon: "10 years"
+        source: "the Energy paper's ten-year view"
+        rows:
+          - {name: "Plateau with a long tail", prior: "~50%"}
+          - {name: "Later peak", prior: "~30%"}
+          - {name: "Earlier peak", prior: "~20%"}
+      - name: "Gas, the Henry Hub linkage (Energy, §39)"
+        horizon: "10 years"
+        source: "the Energy paper's ten-year view"
+        rows:
+          - {name: "Partial convergence", prior: "~45%"}
+          - {name: "Full linkage", prior: "~30%"}
+          - {name: "Discount widens", prior: "~25%"}
+      - name: "Power, the firm-capacity settlement (Energy, §40)"
+        horizon: "10 years"
+        source: "the Energy paper's ten-year view; the nuclear case \"layers on the first scenario rather than replacing it\""
+        rows:
+          - {name: "Sustained scarcity, gas-resolved", prior: "~40%"}
+          - {name: "Nuclear renaissance, late", prior: "~25%"}
+          - {name: "Demand disappoints", prior: "~25%"}
+    words:
+      permitted: ["buffer", "spare capacity", "backwardation", "contango", "disruption premium"]
+      banned: ["peak oil", "energy independence"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3, second_half: 3}
+    # THE SECOND HALF (section 4.3): gas, power and uranium, a sub-chapter of its
+    # own -- their constraints differ in kind. Its tests are the paper's gas,
+    # power and uranium tests above (listed by id), printed here too.
+    second_half:
+      title: "The second half: gas, power and uranium"
+      structure:
+        - {key: fred.natgas, label: "Henry Hub spot (FRED DHHNGSP), $ per MMBtu"}
+        - {label: "US gas storage against the five-year band", absent: "EIA storage is not stored (AQ-3)"}
+        - {label: "LNG feedgas", absent: "not stored (AQ-3)"}
+        - {label: "TTF and EU storage", absent: "not stored (AQ-3)"}
+        - {label: "JKM", absent: "not stored (AQ-3)"}
+        - {label: "PJM's capacity auction against the cap, and the shortfall", absent: "not stored (AQ-3)"}
+        - {label: "The reserve margin, the interconnection queue, the turbine backlog", absent: "not stored (AQ-3)"}
+        - {label: "Uranium term, SWU and the Russian waivers", absent: "not stored (AQ-3)"}
+      tests: [hh_bottleneck, lng_glut, power_squeeze, data_centre_load, enrichment]
+
+  # =========================================================================
+  # CURRENCY (paper V, docs/whitepapers/currencies-whitepaper.md)
+  # =========================================================================
+  currency:
+    filled: true
+    paper: "Currencies"
+    paper_file: docs/whitepapers/currencies-whitepaper.md
+    horizon_family: currency
+    voices_subjects: [usd]
+    five_lines:
+      - {key: fred.dxy,              label: "The broad dollar (DTWEXBGS)"}
+      - {key: yfinance.mkt_eurusd,   label: "EUR/USD", dp: 4}
+      - {key: yfinance.mkt_usdjpy,   label: "USD/JPY"}
+      - {key: yfinance.mkt_usdcny,   label: "USD/CNY", dp: 4}
+      - {key: fred.yield_2y,         label: "The US 2-year yield"}
+    structure:
+      - {key: yfinance.mkt_dxy,      label: "DXY (ICE)"}
+      - {key: fred.dxy,              label: "The broad dollar (DTWEXBGS)"}
+      - {key: fred.real_dollar_broad, label: "The real broad dollar"}
+      - {key: cftc.noncomm_net, instrument: USD_INDEX, label: "Dollar index futures, non-commercial net (CFTC legacy)"}
+      - {key: cftc.noncomm_net, instrument: JPY, label: "Yen futures, non-commercial net (CFTC legacy)"}
+      - {key: tic.official_holdings, label: "Foreign official Treasury holdings (TIC)"}
+      - {key: manual.cofer_usd_share_constant_fx, label: "The dollar's COFER share, constant currency"}
+      - {key: cfets.cny_fix,         label: "The PBoC's CNY fixing"}
+      - {key: mof.jgb_10y,           label: "The 10-year JGB yield"}
+      - {label: "The EM dollar index", absent: "not stored (AQ-3)"}
+      - {label: "The DXY-weighted two-year spread", absent: "the five other two-year yields are not stored (AQ-3)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: GBP, branch: aq-3-series-1, label: "GBP futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: GBP, branch: aq-3-series-1, label: "GBP futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: CHF, branch: aq-3-series-1, label: "CHF futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: CHF, branch: aq-3-series-1, label: "CHF futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: AUD, branch: aq-3-series-1, label: "AUD futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: AUD, branch: aq-3-series-1, label: "AUD futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_lev_money_net_oi, instrument: CAD, branch: aq-3-series-1, label: "CAD futures, leveraged funds net, % of open interest (CFTC TFF)"}
+      - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: CAD, branch: aq-3-series-1, label: "CAD futures, asset managers net, % of open interest (CFTC TFF)"}
+      - {label: "The three-month cross-currency basis", absent: "not stored (AQ-3)"}
+      - {label: "Risk reversals", absent: "FXE and FXY chains are not captured"}
+      - {label: "Intervention footprints (MoF monthly, SNB sight deposits)", absent: "not stored (AQ-3)"}
+      - {hook_key: calc.cnh_cny_bp, branch: aq-3-series-1, label: "CNH-CNY, bp"}
+      - {label: "Stablecoin supply", absent: "not stored (AQ-3)"}
+    structure_charts:
+      - {id: dollar_pair, title: "DXY against the broad dollar", kind: twin,
+         series: [{key: yfinance.mkt_dxy, label: "DXY"},
+                  {key: fred.dxy, label: "Broad dollar (DTWEXBGS)"}]}
+      - {id: yen, title: "USD/JPY against the 10-year JGB yield", kind: twin,
+         series: [{key: yfinance.mkt_usdjpy, label: "USD/JPY"},
+                  {key: mof.jgb_10y, label: "10-year JGB yield, %"}]}
+    implied_range_symbols: [FXE, FXY]
+    curve: {waits: "forward points arrive with 6b"}
+    analyses:
+      - {id: yields_up_dollar_down, title: "Yields-up/dollar-down (the credibility fingerprint)", module: altdata.attribution,
+         reader: attr_triple, module_key: recurrence, kill: "none ruled (section 5)"}
+      - {id: two_year_gap, title: "The two-year-spread fair-value gap", waits: "the five other two-year yields are not stored (AQ-3)", kill: "none ruled"}
+      - {id: carry_to_vol, title: "Carry-to-vol per pair", waits: "not built (AQ-8)", kill: "none ruled"}
+      - {id: dollar_cycles, title: "The dollar-cycles table (GTM-22)", waits: "not built (AQ-8)", kill: "none ruled"}
+      - {id: yen_stack, title: "The yen stack and hedged-yield spreads", waits: "not built (AQ-8)", kill: "none ruled"}
+      - {id: stablecoin_dollarisation, title: "The stablecoin-dollarisation line", waits: "stablecoin supply is not stored (AQ-3)", kill: "none ruled"}
+    falsification:
+      - id: debasement
+        paper: "Currencies"
+        section: "Falsification Tests"
+        statement: "\"Dollar debasement against real assets is underway\" is falsified by gold falling and holding below its 2024 levels while central banks turn net sellers — indicating the reserve rotation has reversed."
+        measurable:
+          all:
+            - {below_year_mean: {series: yfinance.mkt_gold_front, year: 2024}}
+            - {quarters_negative: {series: wgc.cb_gold_holdings_t, quarters: 1}}
+        session_set: "\"its 2024 levels\" read as gold's 2024 mean; \"net sellers\" as official holdings down over the last quarter"
+      - id: fed_fighting
+        paper: "Currencies"
+        section: "Falsification Tests"
+        statement: "\"The Fed is fighting, not accommodating\" is falsified by the Fed easing while inflation remains above 3% without a clear growth deterioration to justify it. This is the single most important test in the paper."
+        measurable:
+          all:
+            - {change_below: {series: fred.fed_funds, below: 0}}
+            - {level_above: {series: calc.yoy_cpi, above: 3.0}}
+        session_set: "\"easing\" read as the effective funds rate lower over the quarter; \"without a clear growth deterioration\" is not measured and the line says so"
+      - id: disorderly_tail
+        paper: "Currencies"
+        section: "Falsification Tests"
+        statement: "\"A disorderly episode is a tail, not the base case\" is falsified by two consecutive quarters in which the yields-up/dollar-down signature dominates, auction metrics deteriorate, and term premium expands together."
+        measurable: null
+        not_measured: "waits for AQ-8a (the yields-up/dollar-down recurrence, its YUDD_KEYS[recurrence]); auction metrics are not a single stored series"
+      - id: yuan_reserve
+        paper: "Currencies"
+        section: "Falsification Tests"
+        statement: "\"The yuan cannot be a reserve currency this decade\" is falsified by material capital-account liberalisation — not digitisation, not bilateral settlement deals, but removal of controls on portfolio outflows."
+        measurable: null
+        not_measured: "a policy event, not a stored series"
+      - id: yen_undervalued
+        paper: "Currencies"
+        section: "Falsification Tests"
+        statement: "\"The yen is structurally undervalued and will appreciate\" is falsified by the BoJ abandoning normalisation and the PPP gap persisting beyond 2028 with no policy response — at which point the framework has to accept that Japan's fiscal position has permanently changed the equilibrium."
+        measurable: null
+        not_measured: "PPP is not stored (AQ-3); a policy decision"
+      - id: stablecoins_dollar
+        paper: "Currencies"
+        section: "Falsification Tests"
+        statement: "\"Stablecoins strengthen the dollar\" is falsified by stablecoin growth shifting materially toward non-dollar denominations, or by supply contracting during a period of dollar stability."
+        measurable: null
+        not_measured: "stablecoin supply is not stored (AQ-3)"
+    ten_questions:
+      - {n: 1,  text: "Is the Fed holding rates above inflation, or has it begun to accommodate?", series: [fred.fed_funds, calc.yoy_cpi]}
+      - {n: 2,  text: "Have long yields risen while the dollar fell this quarter?", series: [fred.yield_10y, fred.dxy]}
+      - {n: 3,  text: "Are central banks still net buyers of gold at 200-plus tonnes a quarter?", series: [wgc.cb_net_purchases_t]}
+      - {n: 4,  text: "Where is the DXY-weighted two-year spread, and has spot deviated from it?", series: []}
+      - {n: 5,  text: "Has foreign official Treasury demand stabilised or continued to fall?", series: [tic.official_holdings]}
+      - {n: 6,  text: "Did auctions clear cleanly?", series: []}
+      - {n: 7,  text: "Is the BoJ normalising, and where is USD/JPY relative to the last intervention level?", series: [yfinance.mkt_usdjpy, mof.jgb_10y]}
+      - {n: 8,  text: "Is the PBoC leaning with or against the yuan's direction?", series: [cfets.cny_fix, yfinance.mkt_usdcny]}
+      - {n: 9,  text: "Is stablecoin supply still growing?", series: []}
+      - {n: 10, text: "Which Part IV outcome did this quarter's evidence support?", series: []}
+    # THE SCENARIO SETS TO REWRITE (section 4.4; AQ-2 choice 12, added in AQ-3
+    # part 1): the five-to-ten-year outcomes with the paper's (overlapping)
+    # probabilities, and the per-pair bull / base / bear ranges, which carry none.
+    scenarios:
+      - name: "The dollar, five to ten years (Currencies, Part IV)"
+        horizon: "5–10 years"
+        source: "the Currencies paper's outcomes; Devaluation-1 overlaps the others"
+        rows:
+          - {name: "Devaluation-2: continued slow debasement", prior: "~65–70%"}
+          - {name: "Devaluation-1: material cyclical depreciation (DXY toward 85–90)", prior: "~40% (overlapping)"}
+          - {name: "Fiscal consolidation", prior: "~10–15%"}
+          - {name: "Disorderly episode", prior: "~10–15%"}
+          - {name: "Devaluation-3: loss of reserve status within ten years", prior: "<5%"}
+      - name: "The dollar index, the paper's cases (Currencies, §20)"
+        horizon: "three years"
+        source: "the Currencies paper's ranges; no probability"
+        rows:
+          - {name: "Bull (dollar strong)", prior: "range DXY 100–110"}
+          - {name: "Base", prior: "range DXY 92–100"}
+          - {name: "Bear", prior: "range DXY 80–90"}
+      - name: "EUR/USD, the paper's cases (Currencies, §21)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges; no probability"
+        rows:
+          - {name: "Bull", prior: "range 1.25–1.30"}
+          - {name: "Base", prior: "range 1.12–1.22"}
+          - {name: "Bear", prior: "range 1.02–1.10"}
+      - name: "USD/JPY, the paper's cases (Currencies, §22)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges, framed for the yen; no probability"
+        rows:
+          - {name: "Bull case for the yen", prior: "range 125–140"}
+          - {name: "Base", prior: "range 140–160"}
+          - {name: "Bear case for the yen", prior: "range 160–175"}
+      - name: "GBP/USD, the paper's cases (Currencies, §23)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges; no probability"
+        rows:
+          - {name: "Bull", prior: "range 1.42–1.50"}
+          - {name: "Base", prior: "range 1.28–1.40"}
+          - {name: "Bear", prior: "range 1.15–1.25"}
+      - name: "USD/CNY, the paper's cases (Currencies, §25)"
+        horizon: "the paper's horizon"
+        source: "the Currencies paper's ranges, framed for the yuan; no probability"
+        rows:
+          - {name: "Upside case for the yuan", prior: "range 6.20–6.40"}
+          - {name: "Base", prior: "range 6.40–6.80"}
+          - {name: "Downside case", prior: "range 7.00–7.40"}
+    words:
+      permitted: ["Dev-1", "Dev-2", "Dev-3", "the dollar smile", "debasement", "reserve currency"]
+      banned: ["dollar collapse", "de-dollarisation is complete"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3, pairs: 0}
+    # THE NAMED PAIR UNIVERSE (section 4.4): the deep basket, a page each; the scan
+    # tier, one table from FRED's H.10 set. A pair with no store key prints by
+    # name, with its reason. Priority is refreshed each quarter (operator).
+    pairs:
+      deep:
+        - {pair: "EUR/USD", key: yfinance.mkt_eurusd}
+        - {pair: "USD/JPY", key: yfinance.mkt_usdjpy}
+        - {pair: "GBP/USD", hook_key: fred.usd_gbp, branch: aq-3-series-1}
+        - {pair: "USD/CHF", hook_key: fred.usd_chf, branch: aq-3-series-1}
+        - {pair: "AUD/USD", hook_key: fred.usd_aud, branch: aq-3-series-1}
+        - {pair: "USD/CAD", hook_key: fred.usd_cad, branch: aq-3-series-1}
+        - {pair: "USD/CNY", key: yfinance.mkt_usdcny}
+        - {pair: "USD/CNH", hook_key: cnh.usdcnh, branch: aq-3-series-1}
+        - {pair: "USD/THB", absent: "stored as fred.usd_thb under namespace: thailand; read here only on the operator's ruling (AQ-3 part 1, Needs you 2)"}
+      scan:
+        - {pair: "USD/NZD", hook_key: fred.usd_nzd, branch: aq-3-series-1}
+        - {pair: "USD/SEK", hook_key: fred.usd_sek, branch: aq-3-series-1}
+        - {pair: "USD/NOK", hook_key: fred.usd_nok, branch: aq-3-series-1}
+        - {pair: "USD/MXN", key: fred.usd_mxn}
+        - {pair: "USD/BRL", hook_key: fred.usd_brl, branch: aq-3-series-1}
+        - {pair: "USD/ZAR", hook_key: fred.usd_zar, branch: aq-3-series-1}
+        - {pair: "USD/KRW", hook_key: fred.usd_krw, branch: aq-3-series-1}
+        - {pair: "USD/TWD", hook_key: fred.usd_twd, branch: aq-3-series-1}
+        - {pair: "USD/INR", hook_key: fred.usd_inr, branch: aq-3-series-1}
+        - {pair: "USD/SGD", hook_key: fred.usd_sgd, branch: aq-3-series-1}
+        - {pair: "USD/HKD", hook_key: fred.usd_hkd, branch: aq-3-series-1}
+        - {pair: "EUR/JPY", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+        - {pair: "AUD/JPY", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+        - {pair: "EUR/CHF", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+        - {pair: "EUR/GBP", absent: "both H.10 legs are pulled (AQ-3 part 1); the cross row kind is not built"}
+
+  # =========================================================================
+  # AQ-2 PART 2 -- the other eight chapters (sections 4.5-4.11).
+  #
+  # Keys beyond part 1's (the rules the gate holds are the same):
+  #   frame          the chapter's frame item (0): the owning paper's status,
+  #                  the change order's interim paragraph and its citations
+  #   scenarios      the sets the chapter rewrites (2a): the paper's priors as
+  #                  printed in the paper; this quarter's weights are AQ-6's,
+  #                  never typed here. `pending` names a set no paper supplies yet
+  #   falsification_note / questions_note
+  #                  where NO paper owns the chapter (EM, China, real estate,
+  #                  Thailand, agriculture): "no owning paper -- not stated".
+  #                  No test and no question is invented
+  #   related_tests  another paper's own words read beside the chapter, verbatim,
+  #                  never graded as the chapter's tests
+  #   panels         the chapter's own sub-sections, each placed `after` a
+  #                  template item: series | matrix | hook | calendar | lines |
+  #                  political | light_tier | return_decomp | coins
+  #   hook_key/branch, module/reader/branch
+  #                  another branch's key or block, NAMED and never imported at
+  #                  load: "not yet: <branch>" until that branch is merged
+  #   diff / share / ratio_pct / rel_return / corr
+  #                  rows computed from two registered keys (quarterly_items)
+  #   book_rule      `line` printed in item 10, or `no_draft` (an isolated
+  #                  chapter writes no register draft at all)
+  #   isolation      namespace, trigger_eligible, feeds (Thailand)
+  # =========================================================================
+
+  # =========================================================================
+  # EMERGING MARKETS (section 4.5) -- no owning paper; the EM paper (AQ-14) is
+  # commissioned and not yet filed
+  # =========================================================================
+  em:
+    filled: true
+    paper: null
+    horizon_family: em_china
+    voices_subjects: [em_equities]
+    frame:
+      status: "frame: Emerging Markets — A Structural Framework, Draft 1, not yet filed"
+      from: "(section 4.5)"
+      interim: >-
+        EM in aggregate is "a dollar-cycle instrument with a commodity overlay" and
+        "a poor vehicle for a country view and a reasonable vehicle for a dollar
+        view" (XXI); the dollar leads EM equity and credit by weeks and "a portfolio
+        long EM equity, long commodities and short dollars has one position, not
+        three" (III); contagion runs through funding channels, not trade, and the
+        cross-currency basis fires first (II S15); the EM loop — depreciation lifts
+        the local value of dollar debt, forced selling, further depreciation (V §3).
+      citations: ["International Equities, Chapters 10 and 12",
+                  "III, Chapter 7", "Tail Scenarios, S12 and S15",
+                  "Currencies, §3 and §25–26"]
+      not_tracked: ["the frame item reads the EM paper once it is filed (AQ-14)"]
+    five_lines:
+      - {key: yfinance.mkt_eem,  label: "EM equity (EEM)"}
+      - {key: yfinance.mkt_emxc, label: "EM ex-China equity (EMXC)"}
+      - {key: yfinance.mkt_efa,  label: "Developed ex-US equity (EFA), the DM leg"}
+      - {key: fred.dxy,          label: "The broad dollar (DTWEXBGS)"}
+      - {key: fred.usd_mxn,      label: "USD/MXN (FRED DEXMXUS)"}
+    structure:
+      - {key: manual.msci_em_usd,   label: "MSCI EM, USD (SR-14)"}
+      - {key: manual.msci_em_local, label: "MSCI EM, local currency (SR-14)"}
+      - {key: manual.msci_world_usd, label: "MSCI World, USD (SR-14's DM leg)"}
+      - {key: yfinance.mkt_eem,     label: "EM equity (EEM)"}
+      - {key: yfinance.mkt_emxc,    label: "EM ex-China equity (EMXC)"}
+      - {key: fred.usd_mxn,         label: "USD/MXN"}
+      - {hook_key: fred.em_corp_oas, branch: c1-move-screen, label: "EM corporate OAS (ICE BofA, BAMLEMCBPIOAS)"}
+      - {hook_key: fred.em_hy_oas, branch: c1-move-screen, label: "EM high-yield corporate OAS (ICE BofA, BAMLEMHBHYCRPIOAS)"}
+      - {label: "EM local-currency spreads", absent: "not stored (AQ-3)"}
+      - {hook_key: fred.usd_brl, branch: aq-3-series-1, label: "The EM FX basket: USD/BRL"}
+      - {hook_key: fred.usd_zar, branch: aq-3-series-1, label: "The EM FX basket: USD/ZAR"}
+      - {hook_key: fred.usd_krw, branch: aq-3-series-1, label: "The EM FX basket: USD/KRW"}
+      - {hook_key: fred.usd_twd, branch: aq-3-series-1, label: "The EM FX basket: USD/TWD"}
+      - {hook_key: fred.usd_inr, branch: aq-3-series-1, label: "The EM FX basket: USD/INR"}
+      - {hook_key: fred.usd_myr, branch: aq-3-series-1, label: "The EM FX basket: USD/MYR"}
+      - {label: "The EM dollar index", absent: "FRED's emerging-market dollar index is not in the pull (AQ-3)"}
+      - {label: "EM portfolio flows (the IIF Capital Flows Tracker, by region)", absent: "no writer (AQ-3)"}
+      - {label: "The funding channel (the three-month cross-currency basis)", absent: "not stored (AQ-3)"}
+    structure_charts:
+      - {id: em_dollar, title: "EM equity against the broad dollar (inverted)", kind: twin,
+         series: [{key: yfinance.mkt_eem, label: "EEM"},
+                  {key: fred.dxy, label: "Broad dollar (inverted)", invert: true}]}
+      - {id: em_dm, title: "EM against DM: EEM and EFA", kind: twin,
+         series: [{key: yfinance.mkt_eem, label: "EEM"},
+                  {key: yfinance.mkt_efa, label: "EFA"}]}
+    implied_range_symbols: [EEM]
+    curve: {waits: "EM forwards and the basis arrive with 6b and AQ-3"}
+    analyses:
+      - {id: em_dollar_corr, title: "EM equity against the dollar (the dollar-cycle instrument)",
+         corr: {a: yfinance.mkt_eem, b: fred.dxy, months: 36}, kill: "none ruled (section 5)"}
+      - {id: em_breaks, title: "The former report's break logic: em against SPY (30 days against 120, 0.30)",
+         module: altdata.correlation, reader: breaks_between, branch: aq-5-correlation-layer,
+         kill: "none ruled (section 5)"}
+      - {id: em_funding, title: "The funding channel: the cross-currency basis fires first (Tail Scenarios, S15)",
+         waits: "the basis is not stored (AQ-3)",
+         kill: "the scenario's re-specification rule: \"A cluster of three or more IMF programmes in a single quarter converts this from tail to current condition.\""}
+      - {id: em_copper_gold, title: "Copper-gold and the commodity complex (the S12 routing)",
+         waits: "the correlation layer's rows (aq-5-correlation-layer)", kill: "the scenario's own re-specification rule"}
+    falsification: []
+    falsification_note: "no owning paper — not stated (the EM paper, AQ-14, will carry its tests)"
+    ten_questions: []
+    questions_note: "no owning paper — not stated (the EM paper, AQ-14, will carry Appendix D)"
+    scenarios:
+      - {name: "The EM twelve-month set", horizon: "12 months",
+         pending: "the EM paper supplies it (AQ-14, not yet filed); none is written here"}
+    panels:
+      - {id: em_scorecard, n: "4d", title: "The EM vulnerability scorecard", kind: hook,
+         after: structure, module: altdata.em_scorecard, reader: quarterly_block,
+         branch: aq-9a-em-scorecard,
+         lines: ["Twelve largest EM plus Thailand: current account, reserves against short-term external debt and in months of imports, external debt, the real policy rate, inflation against target, the fiscal balance — a table of lenses, never a composite."]}
+      - {id: em_episodes, n: "4e", title: "The EM shock screen's quarter: the episode list (SR-46)", kind: hook,
+         after: structure, module: altdata.move_screen, reader: quarter_episodes,
+         branch: c1-move-screen}
+      - {id: em_imf_rule, n: "4f", title: "The three-IMF-programmes rule (Tail Scenarios, S15)", kind: lines,
+         after: structure,
+         lines: ["The rule, in the paper's words: \"A cluster of three or more IMF programmes in a single quarter converts this from tail to current condition.\""],
+         }
+    words:
+      permitted: ["dollar-cycle instrument", "commodity overlay", "funding channel", "the EM loop"]
+      banned: ["decoupling", "the EM story"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # CHINA (section 4.5's sub-chapter) -- no owning paper; the observables are
+  # International Equities 10.6's, the ten-year set 10.7's
+  # =========================================================================
+  china:
+    filled: true
+    paper: null
+    horizon_family: em_china
+    voices_subjects: []
+    frame:
+      status: "frame: no owning paper — the sub-chapter of the EM paper (AQ-14, not yet filed); its observables are International Equities 10.6's"
+      from: "(section 4.5, China sub-chapter)"
+      interim: >-
+        The three markets as three instruments and three risks (A-shares, Hong Kong,
+        ADR/VIE). The three-channel China event (II S12): a property/LGFV shock points
+        three ways at once — goods deflation, RMB pressure, metals demand —
+        "frequently misread as unambiguously deflationary".
+      citations: ["International Equities, 10.2, 10.6 and 10.7", "Tail Scenarios, S8 and S12",
+                  "the Metals paper (the sovereign gold-share gap)"]
+    five_lines:
+      - {key: yfinance.mkt_usdcny,      label: "USD/CNY", dp: 4}
+      - {key: cfets.cny_fix,            label: "The PBoC's CNY fixing", dp: 4}
+      - {key: cfets.cgb_10y,            label: "The 10-year CGB yield (CFETS)"}
+      - {key: safe.fx_reserves,         label: "China's foreign-currency reserves (SAFE)"}
+      - {key: yfinance.mkt_copper_front, label: "Copper (HG=F), the metals-demand channel"}
+    structure:
+      - {key: yfinance.mkt_usdcny, label: "USD/CNY", dp: 4}
+      - {key: cfets.cny_fix,       label: "The PBoC's CNY fixing", dp: 4}
+      - {ratio_pct: [yfinance.mkt_usdcny, cfets.cny_fix], label: "The fixing gap: spot against the fixing (the band is ±2%)"}
+      - {hook_key: cnh.usdcnh, branch: aq-3-series-1, label: "USD/CNH (the New York close; kept separate from USD/CNY)", dp: 4}
+      - {hook_key: calc.cnh_cny_bp, branch: aq-3-series-1, label: "CNH-CNY, bp"}
+      - {hook_key: calc.cny_band_position, branch: aq-3-series-1, label: "USD/CNY's position in the ±2% band (−1 to +1)", dp: 2}
+      - {key: cfets.cgb_10y,       label: "The 10-year CGB yield"}
+      - {diff: [fred.yield_10y, cfets.cgb_10y], label: "The UST-CGB 10-year spread"}
+      - {key: safe.official_reserves_total, label: "Official reserve assets, total (SAFE)"}
+      - {key: safe.fx_reserves,    label: "Foreign-currency reserves (SAFE)"}
+      - {key: safe.bop_current_account, label: "BoP current account, quarter (SAFE)"}
+      - {key: safe.bop_financial_ex_reserves, label: "BoP financial account ex reserves, quarter (SAFE)"}
+      - {key: safe.bop_errors_omissions, label: "BoP net errors and omissions, quarter (SAFE)"}
+      - {key: safe.gold_reserves_oz, label: "Official gold, troy ounces (SAFE)"}
+      - {share: [safe.gold_reserves_usd, safe.official_reserves_total], label: "Gold's share of official reserves (SAFE, market value)"}
+      - {hook_key: imf.ifs.gold_reserves_oz.chn, branch: imf-ifs-gold, label: "Official gold, troy ounces (IMF IFS, the cross-check)"}
+      - {key: manual.panda_bond_issuance, label: "Panda bond issuance"}
+    structure_charts:
+      - {id: fixing, title: "USD/CNY against the PBoC's fixing", kind: line,
+         series: [{key: yfinance.mkt_usdcny, label: "USD/CNY"},
+                  {key: cfets.cny_fix, label: "The fixing"}]}
+      - {id: cgb_ust, title: "The 10-year CGB against the 10-year Treasury", kind: line,
+         series: [{key: cfets.cgb_10y, label: "10-year CGB, %"},
+                  {key: fred.yield_10y, label: "10-year Treasury, %"}]}
+    implied_range_symbols: [FXI]
+    curve: {waits: "the CNH forward curve is not stored (6b, AQ-3)"}
+    analyses:
+      - {id: china_gold_gap, title: "The sovereign gold-share gap: China's share against the ~70% Western (the convergence gap sizes the official bid)",
+         share: [safe.gold_reserves_usd, safe.official_reserves_total], kill: "none ruled (section 5)"}
+      - {id: china_fix_band, title: "Spot against the fixing, read against the ±2% band",
+         ratio_pct: [yfinance.mkt_usdcny, cfets.cny_fix], kill: "none ruled"}
+      - {id: china_breaks, title: "The former report's break logic: china against SPY",
+         module: altdata.correlation, reader: breaks_between, branch: aq-5-correlation-layer,
+         kill: "none ruled (section 5)"}
+      - {id: china_imf_gold, title: "SAFE's gold against IMF IFS (the 1% cross-check)",
+         waits: "imf-ifs-gold (imf.ifs.gold_reserves_oz.chn)", kill: "none ruled"}
+    falsification: []
+    falsification_note: "no owning paper — not stated (International Equities 10.6 names observables, not tests)"
+    ten_questions: []
+    questions_note: "no owning paper — not stated"
+    scenarios:
+      - name: "Chinese equities, ten years (International Equities 10.7)"
+        horizon: "10 years"
+        source: "the paper's own construction, rewritten here each quarter; \"not a valuation risk, so it cannot be sized by valuation\" (of the fourth)"
+        rows:
+          - {name: "Reform and discipline", prior: "~20%"}
+          - {name: "Industrial win, shareholder muddle", prior: "~40%"}
+          - {name: "Balance-sheet recession", prior: "~25%"}
+          - {name: "Rupture", prior: "~15%"}
+      - {name: "The China twelve-month set", horizon: "12 months",
+         pending: "the EM paper supplies it (AQ-14, not yet filed)"}
+    panels:
+      - id: china_observables
+        n: "4d"
+        title: "The drivers of the next ten years, as observables (International Equities 10.6)"
+        kind: series
+        after: structure
+        rows:
+          - {label: "The credit impulse (total social financing against output)", absent: "TSF is not stored (AQ-3)"}
+          - {label: "Capacity discipline: utilisation in solar, batteries, EVs", absent: "not stored (AQ-3)"}
+          - {label: "Capacity discipline: module and cell prices", absent: "not stored (AQ-3)"}
+          - {label: "Capacity discipline: survival of subscale makers", absent: "not stored; a named Gap"}
+          - {label: "Property: starts", absent: "not stored (AQ-3, China property)"}
+          - {label: "Property: inventory months", absent: "not stored (AQ-3, China property)"}
+          - {label: "Property: developer credit spreads", absent: "not stored (AQ-3, China property)"}
+          - {label: "Shareholder return: net issuance, buybacks, dividends", absent: "not stored (AQ-3)"}
+          - {label: "Participation: index weight", absent: "not stored (AQ-3)"}
+          - {label: "Participation: connect flows", absent: "not stored (AQ-3)"}
+          - {label: "Participation: ADR audit status", absent: "an event, read through the scan (AQ-7)"}
+          - {label: "Deflation exit: CPI, PPI, the output deflator", absent: "not stored (AQ-3)"}
+      - id: china_reserve_behaviour
+        n: "4e"
+        title: "Reserve behaviour (Factor III's pre-positioning read)"
+        kind: series
+        after: structure
+        rows:
+          - {key: tic.holdings_by_country, instrument: "China, Mainland", label: "China's Treasury holdings (TIC Major Foreign Holders)"}
+          - {key: safe.gold_reserves_oz, label: "Official gold, troy ounces (SAFE)"}
+          - {key: manual.state_bank_dollar_selling, label: "State-bank dollar selling"}
+          - {label: "Grain reserve builds", absent: "not stored; a named Gap"}
+          - {label: "Crude reserve builds", absent: "not stored; a named Gap"}
+      - id: china_taiwan
+        n: "4f"
+        title: "The Taiwan ladder (the tail watch, S8)"
+        kind: series
+        after: structure
+        lines: ["Read quarterly, as the tail watch reads it; a tail scenario first, a market-structure event second."]
+        rows:
+          - {label: "Strait war-risk quotes", absent: "the tail watch's S8 ladder is not stored"}
+          - {label: "Taiwan export orders", absent: "not stored (AQ-3)"}
+          - {label: "Foundry monthly revenue", absent: "not stored (AQ-3)"}
+          - {label: "PLA sustainment indicators", absent: "the tail watch's S8 ladder is not stored"}
+          - {label: "Customs inspections", absent: "the tail watch's S8 ladder is not stored"}
+      - id: china_political
+        n: "9a"
+        title: "The local political environment"
+        reporting_n: "9b"
+        kind: political
+        after: stories
+        calendar: config/china_political_calendar.yaml
+        note_source_id: operator.china_political_note
+        reporting_prefix: "china."
+        authoritative: ["National Bureau of Statistics", "NBS", "People's Bank of China", "PBOC",
+                        "Ministry of Finance", "MOF", "State Administration of Foreign Exchange",
+                        "SAFE", "General Administration of Customs", "Customs", "State Council"]
+        rules:
+          - "QUOTE ONLY. This sub-section quotes the operator's political note and the stored reporting, attributed and dated, and writes no political judgment of its own; no model is asked for one."
+          - "Every policy measure is placed on the ladder announced → authorised → funded → implemented, and only the last two count as demand."
+          - "Authoritative releases (NBS, PBOC, MOF, SAFE, customs, the State Council) are distinguished from commentary and rumour, with the original-language text preserved where material."
+          - "The local-government and LGFV position and financial stability are read once a quarter from the IMF's Article IV and local-debt work, as the loss-bearer map behind the property series."
+        not_tracked:
+          - "the policy ladder's measures (announced, authorised, funded, implemented): no measure is staged yet — a field of the quarterly scan's China items (AQ-7)"
+          - "the LGFV and financial-stability read (explicit and off-budget debt, refinancing swaps, land-revenue dependence; banks, trusts and wealth products, deposit rates, household saving): absent until the scan stores the IMF Article IV (AQ-7)"
+    words:
+      permitted: ["credit impulse", "capacity discipline", "announced", "authorised", "funded", "implemented"]
+      banned: ["regime collapse", "Beijing intends", "the leadership wants"]
+      rules:
+        - "Write no political judgment of your own about China: quote the operator's political note and the stored reporting, attributed and dated; never characterise intent, stability, succession or what a personnel move means."
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # CRYPTO (paper IX, docs/whitepapers/digital-assets-whitepaper.md; section 4.6)
+  # =========================================================================
+  crypto:
+    filled: true
+    paper: "Digital Assets"
+    paper_file: docs/whitepapers/digital-assets-whitepaper.md
+    horizon_family: crypto
+    voices_subjects: [bitcoin]
+    five_lines:
+      - {key: yfinance.mkt_btc_usd,         label: "Bitcoin (BTC-USD)"}
+      - {key: zec.price_usd,                label: "Zcash (ZEC), USD"}
+      - {key: crypto.total_market_cap_usd,  label: "Total crypto market capitalisation (CoinGecko)"}
+      - {key: zec.btc_ratio,                label: "ZEC/BTC", dp: 6}
+      - {key: calc.net_liquidity,           label: "US net liquidity (the macro driver)"}
+    structure:
+      - {key: yfinance.mkt_btc_usd,   label: "Bitcoin (BTC-USD)"}
+      - {corr: {a: yfinance.mkt_btc_usd, b: yfinance.mkt_spy, months: 12, bands: [{name: "bear (persisting)", low: 0.4, high: 0.7}]},
+         label: "BTC's rolling correlation to SPY (monthly, twelve months)"}
+      - {corr: {a: yfinance.mkt_btc_usd, b: yfinance.mkt_qqq, months: 12, bands: [{name: "bear (persisting)", low: 0.4, high: 0.7}]},
+         label: "BTC's rolling correlation to QQQ (monthly, twelve months)"}
+      - {key: crypto.total_market_cap_usd, label: "Total crypto market capitalisation"}
+      - {key: zec.shielded_value_share, label: "ZEC: shielded share of supply"}
+      - {key: zec.shielded_tx_share,  label: "ZEC: shielded share of transactions"}
+      - {key: zec.crypto_cap_share,   label: "ZEC's share of crypto market cap"}
+      - {label: "Stablecoin total supply (S-1)", absent: "not stored (AQ-3)"}
+      - {label: "BTC long-term-holder supply (SR-29)", absent: "not stored"}
+      - {label: "ETH burn against issuance", absent: "not stored (AQ-3)"}
+      - {label: "RWA tokenised value and holder count", absent: "not stored (AQ-3)"}
+      - {hook_key: etf.ibit_shares, branch: aq-3-series-1, label: "IBIT shares outstanding (S-2's share count)"}
+      - {label: "ETF flows read against float (S-2)", absent: "the float is not stored; the share count is (IBIT, above)"}
+      - {label: "Exchange balances", absent: "not stored"}
+      - {label: "OI-weighted funding (S-3; crowded at z > +2 with OI/mcap at a 90-day high)", absent: "not stored"}
+      - {label: "The DVOL regime (S-4, DS-41)", absent: "not stored"}
+      - {label: "Hyperliquid whale positions", absent: "not stored"}
+      - {label: "Miner reserves and hashrate", absent: "not stored"}
+      - {label: "Treasury-company activity and premium to NAV", absent: "not stored; a named Gap"}
+      - {label: "Sovereign purchase announcements", absent: "events, read through the scan (AQ-7)"}
+      - {label: "The CLARITY and BIP-360/361 calendars", absent: "events, read through the scan (AQ-7)"}
+    structure_charts:
+      - {id: btc_liquidity, title: "Bitcoin against US net liquidity", kind: twin,
+         series: [{key: yfinance.mkt_btc_usd, label: "BTC-USD"},
+                  {key: calc.net_liquidity, label: "Net liquidity, $"}]}
+      - {id: btc_gold, title: "Bitcoin against gold (the speculative-bid rotation)", kind: twin,
+         series: [{key: yfinance.mkt_btc_usd, label: "BTC-USD"},
+                  {key: yfinance.mkt_gold_front, label: "Gold (GC=F)"}]}
+    implied_range_symbols: [IBIT]
+    curve: {waits: "the CME basis and the perpetual funding curve are not stored (6b)"}
+    analyses:
+      - {id: btc_m2, title: "BTC against M2 (the net-liquidity metric; \"a heuristic, not an identity\")",
+         corr: {a: yfinance.mkt_btc_usd, b: calc.net_liquidity, months: 24}, kill: "none ruled (section 5)"}
+      - {id: bid_rotation, title: "The speculative-bid rotation between gold and BTC: liquidity beta or debasement hedge this quarter",
+         waits: "not built (AQ-8)", kill: "none ruled (section 5)"}
+      - {id: crypto_float, title: "Effective-float elasticity (bitcoin minus LTH, lost coins, ETF and treasury holdings)",
+         waits: "not built (AQ-8); LTH supply and ETF holdings are not stored", kill: "only above a market-cap floor"}
+      - {id: ibit_two_bid, title: "The two-bid decomposition for the crypto ETFs (IBIT)",
+         waits: "the paper bid is built for GLD (aq-8a-gold-residual); IBIT's chain is not captured",
+         kill: "drop call-put OI if its percentile shows no relationship to forward 20-day returns in either direction after twelve months"}
+      - {id: factor_v, title: "Factor V's four standing quarterly questions (infrastructure against speculation; the gold-against-BTC split; leverage depth; the security budget), with the adoption ledger",
+         waits: "the adoption ledger is not stored; the four are answered at the quarterly review", kill: "none ruled"}
+      - {id: stable_bills, title: "Stablecoin supply against bill issuance",
+         waits: "stablecoin supply is not stored (AQ-3)", kill: "a two-quarter stall is the quiet falsifier"}
+      - {id: stable_issuers, title: "Issuer-level stablecoin surveillance and reserve composition (S4, S23)",
+         waits: "issuer attestations are not stored (AQ-3)", kill: "each scenario's own re-specification rule"}
+      - {id: pqc, title: "Post-quantum milestones against verified capability (S18)",
+         waits: "milestones arrive through the scan (AQ-7)", kill: "the scenario's own re-specification rule"}
+    falsification:
+      - id: btc_store_of_value
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Bitcoin is a store of value" is falsified if rolling correlation to equities
+          remains in the 0.4–0.7 range across another full cycle while the holder base
+          broadens. The excuse that it is "still early" has a shelf life; specify yours
+          in advance.
+        measurable:
+          correlation_in_band: {a: yfinance.mkt_btc_usd, b: yfinance.mkt_spy, window: 63,
+                                low: 0.4, high: 0.7, b_change: log}
+        session_set: "one quarter's 63-session correlation of daily log returns inside 0.4-0.7 reads strained; failing needs \"another full cycle\", which code does not declare, so code never fails it"
+      - id: btc_scarcity
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Bitcoin scarcity is credible" is falsified by a quantum event redistributing
+          dormant coins, or by a contentious fork over BIP-361 that splits the chain and
+          the supply guarantee.
+        measurable: null
+        not_measured: "a quantum event or a contentious fork is an event, read through the scan (AQ-7)"
+      - id: eth_value_capture
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Ethereum captures value from its ecosystem" is falsified if L2 activity and RWA
+          issuance continue growing while base-layer fee capture stays negative and
+          ETH/BTC continues declining. This test has been running against the thesis for
+          two years.
+        measurable: null
+        not_measured: "ETH, ETH/BTC, L2 activity and base-layer fee capture are not stored (AQ-3)"
+      - id: institutional_vol
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Institutional adoption reduces volatility" is falsified by another 70%-plus
+          drawdown. Partially falsified already: 2026's ~50% decline was shallower but not
+          transformative.
+        measurable:
+          drawdown_at_least: {series: yfinance.mkt_btc_usd, at_least: 70, strained_at_least: 50}
+        session_set: "the drawdown is BTC's from its stored all-time high to the quarter's end; strained at 50% or more"
+      - id: sol_pmf
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Solana has durable product-market fit" is falsified if application TVL fails to
+          recover when speculative conditions improve — indicating the prior activity was
+          purely cyclical.
+        measurable: null
+        not_measured: "Solana's application TVL is not stored (AQ-3)"
+      - id: privacy_path
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Privacy assets have a regulatory path" is falsified by US reversal of the 2026
+          administrative accommodations, or by EU-style listing bans spreading to major
+          jurisdictions.
+        measurable: null
+        not_measured: "a regulatory event, read through the scan (AQ-7)"
+      - id: stablecoin_infra
+        paper: "Digital Assets"
+        section: "Falsification Tests"
+        statement: >-
+          "Stablecoins are genuine infrastructure" is falsified by supply contracting during
+          a period of price stability — which would indicate the growth was speculative
+          positioning after all.
+        measurable: null
+        not_measured: "stablecoin supply is not stored (AQ-3)"
+    ten_questions:
+      - {n: 1,  text: "Is stablecoin supply growing or contracting?", series: []}
+      - {n: 2,  text: "Are ETF flows positive, and against what float?", series: []}
+      - {n: 3,  text: "Is Bitcoin long-term holder supply rising or falling?", series: []}
+      - {n: 4,  text: "Has Bitcoin's correlation to equities changed structurally?", series: [yfinance.mkt_btc_usd, yfinance.mkt_spy]}
+      - {n: 5,  text: "Is Ethereum's base-layer fee capture positive?", series: []}
+      - {n: 6,  text: "Is RWA tokenized value still compounding, and is secondary liquidity developing?", series: []}
+      - {n: 7,  text: "Has any sovereign actually purchased — not seized — Bitcoin?", series: []}
+      - {n: 8,  text: "Has statutory regulatory clarity arrived, or is the framework still administrative?", series: []}
+      - {n: 9,  text: "What is the current credible range on quantum timelines, and has migration progressed?", series: []}
+      - {n: 10, text: "Which ten-year scenario did this quarter's evidence support?", series: []}
+    scenarios:
+      - name: "Outlook 2026-29 (Part VI)"
+        horizon: "2026-29"
+        source: "the Digital Assets paper, Part VI; renewed expansion \"requires a new marginal buyer\""
+        rows:
+          - {name: "A: grinding base and gradual recovery", prior: "~45%"}
+          - {name: "B: renewed expansion", prior: "~30%"}
+          - {name: "C: extended bear and structural reassessment", prior: "~25%"}
+      - name: "The ten-year view (Part VII)"
+        horizon: "10 years"
+        source: "the Digital Assets paper, Part VII; the infrastructure layer is the modal case"
+        rows:
+          - {name: "1: monetary establishment", prior: "~20%"}
+          - {name: "2: financial infrastructure layer", prior: "~35%"}
+          - {name: "3: contained niche", prior: "~30%"}
+          - {name: "4: structural impairment", prior: "~15%"}
+    panels:
+      - id: coin_pages
+        kind: coins
+        after: analyses
+        coins:
+          - id: btc
+            name: "BTC"
+            cases_key: btc
+            fields:
+              definition: {paper: "the Digital Assets paper, §11, \"What it is\"", absent: "token rights are a field of the quarterly scan (AQ-7)"}
+              supply: {absent: "circulating against fully diluted, LTH supply (SR-29), lost coins and ETF/treasury holdings — the effective float — are not stored"}
+              economics: {paper: "§4, Theory 1 (monetary premium: the measurable is the holder base)", absent: "the holder base is not stored"}
+              usage: {absent: "on-chain activity and fees, organic against subsidised, are not stored"}
+              security: {absent: "hashrate, miner reserves, client concentration, proof-of-reserve cadence and custodian post-quantum roadmaps are not stored (the paper's §5-7 watches; AQ-7)"}
+              market: {keys: [yfinance.mkt_btc_usd, crypto.total_market_cap_usd], absent: "venue volumes and depth are not stored"}
+              derivatives: {absent: "funding, OI (S-3), CME positioning, DVOL (DS-41) and ETF flows are not stored"}
+              regulation: {absent: "the CLARITY and GENIUS calendars and custody by jurisdiction arrive through the scan (AQ-7)"}
+              catalysts: {absent: "the quarter's catalysts arrive through the scan (AQ-7)"}
+              falsifiers: {tests: [btc_store_of_value, btc_scarcity, institutional_vol]}
+          - id: eth
+            name: "ETH"
+            cases_key: eth
+            fields:
+              definition: {paper: "the Digital Assets paper, §12, \"What it is\"", absent: "token rights are a field of the quarterly scan (AQ-7)"}
+              supply: {absent: "ETH issuance, burn and staking ratio are not stored (AQ-3)"}
+              economics: {paper: "§4, Theory 2 (productive utility: fee revenue accruing to the token)", absent: "base-layer fee capture is not stored"}
+              usage: {absent: "L2 against mainnet activity is not stored"}
+              security: {absent: "validator and client concentration are not stored"}
+              market: {absent: "ETH is not in the price feed (AQ-3)"}
+              derivatives: {absent: "funding, OI and ETF flows are not stored"}
+              regulation: {absent: "arrives through the scan (AQ-7)"}
+              catalysts: {absent: "arrives through the scan (AQ-7)"}
+              falsifiers: {tests: [eth_value_capture]}
+          - id: sol
+            name: "SOL"
+            cases_key: sol
+            fields:
+              definition: {paper: "the Digital Assets paper, §13, \"What it is\"", absent: "token rights are a field of the quarterly scan (AQ-7)"}
+              supply: {absent: "emissions, unlocks and staking are not stored"}
+              economics: {paper: "§13, \"The 2026 lesson\"", absent: "application TVL and its composition are not stored"}
+              usage: {absent: "application TVL, DEX volume and the memecoin share are not stored"}
+              security: {absent: "validator concentration and outages are not stored"}
+              market: {absent: "SOL is not in the price feed (AQ-3)"}
+              derivatives: {absent: "funding, OI and ETF flows are not stored"}
+              regulation: {absent: "arrives through the scan (AQ-7)"}
+              catalysts: {absent: "arrives through the scan (AQ-7)"}
+              falsifiers: {tests: [sol_pmf]}
+          - id: zec
+            name: "ZEC"
+            cases_key: zec
+            fields:
+              definition: {paper: "the Digital Assets paper, §14, \"What it is\"", absent: "token rights are a field of the quarterly scan (AQ-7)"}
+              supply: {keys: [zec.market_cap_usd], absent: "circulating against fully diluted and holder concentration are not stored"}
+              economics: {paper: "§14, \"The 2026 divergence\""}
+              usage: {keys: [zec.shielded_value_share, zec.shielded_tx_share], absent: "shielded supply \"cannot be faked by exchange speculation\"; fee revenue is not stored"}
+              security: {absent: "not stored"}
+              market: {keys: [zec.price_usd, zec.btc_ratio, zec.crypto_cap_share], absent: "venue share is not stored"}
+              derivatives: {keys: [zec.realized_vol_20d, zec.beta_to_btc_60d], absent: "funding, OI and ETF flows are not stored"}
+              regulation: {absent: "the EU July 2027 headwind (MiCA) and US accommodations arrive through the scan (AQ-7); XMR stays as ZEC's delisted peer"}
+              catalysts: {absent: "arrives through the scan (AQ-7)"}
+              falsifiers: {tests: [privacy_path]}
+          - id: prl
+            name: "PRL (Pearl, coingecko pearl-2; never keyed by ticker)"
+            fields:
+              definition: {absent: "the crypto.watch entry and its MW-1 fields (ST-13) are not built"}
+              supply: {absent: "D1-D3 (code supply, week-one overhang, supply gap) are not stored (ST-13)"}
+              economics: {absent: "signposts S1-S2 (paid-compute partners, the PRL demand sink) are not stored (ST-13)"}
+              usage: {absent: "not stored (ST-13)"}
+              security: {absent: "signpost S7 (technical and chain integrity) is not stored (ST-13)"}
+              market: {absent: "S3 (exchange access) and D5 (venue concentration) are not stored (ST-13)"}
+              derivatives: {absent: "S6 and D4 (emission-to-volume) are not stored (ST-13)"}
+              regulation: {absent: "S8 (team, funding, regulatory) is not stored (ST-13)"}
+              catalysts: {absent: "arrives through the scan (AQ-7)"}
+              falsifiers:
+                lines:
+                  - "MW-7, in the signal-triage order's words: \"PROMOTE to core Digital Assets coverage when all three hold: ≥2 paid-compute partners live; a tier-1 listing; week-one overhang ratio (D2) < 25%. DEMOTE to a quarterly note when two consecutive quarterly reviews show no new partner, no listing progress and market cap < $50M. REMOVE when the chain stops producing blocks for 7 days, or the Together AI endpoint is withdrawn with no replacement partner within a quarter.\" [not measured — S1-S8 and D1-D6 are not stored (ST-13)]"
+      - id: light_tier
+        n: "6b"
+        title: "The light tier"
+        kind: light_tier
+        after: analyses
+        lines: ["Ruled 10 Oct (decision 2) as four MW-6 promotions into crypto.watch; each prints pending until the operator's register write."]
+        coins:
+          - {name: "HYPE (Hyperliquid)", why: "the venue the system already reads for funding and OI; fees via DS-29", light_tier_pending_promotion: true}
+          - {name: "TAO", why: "the AI-token bellwether", light_tier_pending_promotion: true}
+          - {name: "LINK", why: "oracles", light_tier_pending_promotion: true}
+          - {name: "AAVE", why: "on-chain credit", light_tier_pending_promotion: true}
+      - id: category_gauges
+        n: "6c"
+        title: "The category gauges (no names)"
+        kind: series
+        after: analyses
+        rows:
+          - {label: "Stablecoin supply by issuer and chain (S-1)", absent: "not stored (AQ-3)"}
+          - {label: "Tokenised treasuries and RWA", absent: "not stored (AQ-3)"}
+          - {label: "L2 value secured", absent: "not stored (AQ-3)"}
+          - {key: zec.crypto_cap_share, label: "Privacy coins as a group (ZEC's share; XMR, delisted, not stored)"}
+          - {label: "Memecoin froth (S-5)", absent: "not stored (AQ-3)"}
+      - id: stablecoin_plumbing
+        n: "6d"
+        title: "The stablecoin plumbing, by issuer (not directional theses)"
+        kind: matrix
+        after: analyses
+        row_head: "Issuer"
+        columns: ["Reserves and attestations", "Redemption terms", "Chain and venue share", "Peg", "The bill-demand link"]
+        rows: [{name: "USDT"}, {name: "USDC"}, {name: "DAI/USDS"}, {name: "USDe"}]
+        absent: "issuer attestations, on-chain supply by chain and peg history are not stored (S-1, S4, S23; AQ-3)"
+      - id: deck_items
+        n: "6e"
+        title: "The deck items (the Coin Metrics, Galaxy and Messari quarterlies)"
+        kind: series
+        after: analyses
+        rows:
+          - {label: "Sector returns: L1, L2, DeFi, RWA, memes, privacy", absent: "no sector index is stored (AQ-3)"}
+          - {label: "Venue share: CEX against DEX, and Hyperliquid's share", absent: "not stored (AQ-3)"}
+          - {label: "Crypto ETF AUM", absent: "share counts are not stored (AQ-3)"}
+          - {label: "VC raises (DS-29 /raises)", absent: "not stored (DS-29)"}
+          - {label: "Developer activity", absent: "a named gap"}
+      - id: crypto_scan
+        n: "9a"
+        title: "The scanning sub-chapter"
+        kind: lines
+        after: stories
+        lines:
+          - "The Saturday mechanism scan and the monthly signal scan's crypto items fold in here (the Saturday scan retires into the quarterly scan once this chapter has printed twice)."
+          - "Tokenised claims are read as a legal and custody question before a market one: does the token convey the claim, or only platform exposure?"
+          - "MW-7's criteria, applied to the light tier each quarter (written for PRL): \"PROMOTE to core Digital Assets coverage when all three hold: ≥2 paid-compute partners live; a tier-1 listing; week-one overhang ratio (D2) < 25%. DEMOTE to a quarterly note when two consecutive quarterly reviews show no new partner, no listing progress and market cap < $50M. REMOVE when the chain stops producing blocks for 7 days, or the Together AI endpoint is withdrawn with no replacement partner within a quarter.\""
+          - "The roster is refreshed on executable depth and turnover, never on market cap alone."
+          - "Scan-tier only — no series, no page — unless the operator promotes one (MW-6): XRP, BNB, TRX, DOGE, ADA, SUI, AVAX, UNI, and whatever qualifies."
+        not_tracked:
+          - "this quarter's MW-7 review of the light tier: not yet — the four are pending MW-6 promotion"
+          - "the emerging mechanisms, venues and protocol events of the quarter: the quarterly scan (AQ-7)"
+    words:
+      permitted: ["marginal buyer", "effective float", "monetary premium", "productive utility", "liquidity beta", "debasement hedge"]
+      banned: ["digital gold", "supercycle", "number go up"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # REAL ESTATE (light; section 4.7) -- no owning paper (Credit 18-21, 40;
+  # Equities 12; XXIX reserved)
+  # =========================================================================
+  real_estate:
+    filled: true
+    paper: null
+    horizon_family: real_estate
+    voices_subjects: []
+    five_lines:
+      - {key: yfinance.mkt_xlre,     label: "US REITs (XLRE)"}
+      - {key: fred.mortgage_30y,     label: "The 30-year mortgage rate"}
+      - {key: fred.housing_starts,   label: "Housing starts"}
+      - {key: fred.existing_homes,   label: "Existing home sales"}
+      - {key: fred.mortgage_delinq,  label: "Mortgage delinquency"}
+    structure:
+      - {label: "CMBS delinquency by property type", absent: "Trepp is paid; not stored"}
+      - {label: "The extension-versus-foreclosure share on maturing loans (\"rising foreclosure share = deferral has stopped\")", absent: "the special servicers' data is not stored"}
+      - {label: "The office / data-centre split, and data-centre ABS (S14)", absent: "not stored"}
+      - {rel_return: {a: yfinance.mkt_xlre, b: yfinance.mkt_spy, years: 1}, label: "REITs against the index (XLRE less SPY), one year"}
+      - {rel_return: {a: yfinance.mkt_xlu, b: yfinance.mkt_spy, years: 1}, label: "The rate-sensitive ratio: utilities against the market, one year"}
+      - {rel_return: {a: yfinance.mkt_iwm, b: yfinance.mkt_spy, years: 1}, label: "The rate-sensitive ratio: small caps against the market, one year"}
+      - {label: "CPPI (commercial property prices)", absent: "paid; not stored"}
+      - {label: "Real house prices, year on year", absent: "Case-Shiller is not in the FRED pull (AQ-3)"}
+      - {key: fred.mortgage_30y,     label: "The 30-year mortgage rate"}
+      - {diff: [fred.mortgage_30y, fred.yield_10y], label: "The mortgage spread over the 10-year"}
+      - {key: fred.mortgage_delinq,  label: "Mortgage delinquency"}
+      - {key: fred.housing_permits,  label: "Housing permits"}
+      - {key: fred.new_homes,        label: "New home sales"}
+    structure_charts:
+      - {id: reits_rates, title: "REITs against the 10-year yield (inverted)", kind: twin,
+         series: [{key: yfinance.mkt_xlre, label: "XLRE"},
+                  {key: fred.yield_10y, label: "10-year yield, % (inverted)", invert: true}]}
+      - {id: mortgage_starts, title: "The mortgage rate against housing starts", kind: twin,
+         series: [{key: fred.mortgage_30y, label: "30-year mortgage rate, %"},
+                  {key: fred.housing_starts, label: "Housing starts"}]}
+    implied_range_symbols: [XLRE]
+    curve: {waits: "no real-estate curve is stored"}
+    analyses: []
+    falsification: []
+    falsification_note: "no owning paper — not stated (the reserved XXIX will own the chapter)"
+    related_tests:
+      - paper: "Credit"
+        section: "§21, What would settle it"
+        statement: >-
+          For CRE: the share of maturing loans that resolve by extension versus by
+          foreclosure or discounted payoff — a rising foreclosure share means the
+          lenders have stopped deferring.
+    ten_questions: []
+    questions_note: "no owning paper — not stated"
+    scenarios:
+      - name: "The CRE reset, ten years (Credit §40)"
+        horizon: "10 years"
+        source: "the Credit paper, §40; the observable is the extension-versus-foreclosure share"
+        rows:
+          - {name: "Slow workout", prior: "~55%"}
+          - {name: "Acceleration", prior: "~30%"}
+          - {name: "Muddle-through", prior: "~15%"}
+    words:
+      permitted: ["extend-and-pretend", "maturity wall", "extension-versus-foreclosure"]
+      banned: ["housing crash", "bubble"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # CREDIT (light; paper VI, docs/whitepapers/credit-whitepaper.md; section 4.8)
+  # =========================================================================
+  credit:
+    filled: true
+    paper: "Credit"
+    paper_file: docs/whitepapers/credit-whitepaper.md
+    horizon_family: credit
+    voices_subjects: [credit]
+    five_lines:
+      - {key: fred.hy_oas,       label: "HY OAS (ICE BofA, BAMLH0A0HYM2)"}
+      - {key: fred.ig_oas,       label: "IG OAS (ICE BofA, BAMLC0A0CM)"}
+      - {key: fred.ccc_oas,      label: "CCC OAS (ICE BofA, BAMLH0A3HYC)"}
+      - {key: yfinance.mkt_hyg,  label: "High yield (HYG)"}
+      - {key: yfinance.mkt_lqd,  label: "Investment grade (LQD)"}
+    structure:
+      - {hook_key: fred.sloos_ci_large, branch: aq-3-series-2, label: "SLOOS: C&I net tightening, large and medium firms (DRTSCILM)"}
+      - {hook_key: fred.sloos_ci_small, branch: aq-3-series-2, label: "SLOOS: C&I net tightening, small firms (DRTSCIS)"}
+      - {hook_key: fred.sloos_cre_nonres, branch: aq-3-series-2, label: "SLOOS: CRE net tightening, nonfarm nonresidential (SUBLPDRCSN)"}
+      - {diff: [fred.ccc_oas, fred.bb_oas], label: "BB-CCC: the CCC OAS less the BB OAS"}
+      - {label: "The dual-track default rate and the LME count", absent: "PitchBook LCD is paid; not stored"}
+      - {label: "The loan distress ratio", absent: "PitchBook LCD is paid; not stored"}
+      - {label: "Private-credit non-accruals and PIK share", absent: "BDC filings and the Boston Fed series are not stored (AQ-3)"}
+      - {label: "The listed-BDC discount to NAV", absent: "not stored (AQ-3)"}
+      - {label: "Cross-sectional mark dispersion", absent: "filings analysis; not stored"}
+      - {label: "HY spread acceleration", absent: "the Top & Bottom overlay is not on this build"}
+      - {label: "Credit-equity divergence", absent: "not computed here; the HY OAS and SPY rows are printed beside each other"}
+      - {key: fred.hy_oas,       label: "HY OAS"}
+      - {key: fred.ig_oas,       label: "IG OAS"}
+      - {key: fred.bb_oas,       label: "BB OAS"}
+      - {key: fred.ccc_oas,      label: "CCC OAS"}
+      - {key: yfinance.mkt_spy,  label: "SPY (the equity leg)"}
+      - {key: fred.nfci,         label: "The Chicago Fed NFCI"}
+      - {key: fred.cc_delinq_30, label: "Card delinquency, 30 days"}
+      - {key: fred.auto_delinq,  label: "Auto delinquency"}
+    structure_charts:
+      - {id: hy_spy, title: "HY OAS against SPY (the credit-equity divergence)", kind: twin,
+         series: [{key: fred.hy_oas, label: "HY OAS, %"},
+                  {key: yfinance.mkt_spy, label: "SPY"}]}
+      - {id: bb_ccc, title: "BB and CCC OAS", kind: line,
+         series: [{key: fred.ccc_oas, label: "CCC OAS, %"},
+                  {key: fred.bb_oas, label: "BB OAS, %"}]}
+    implied_range_symbols: [HYG]
+    curve: {waits: "CDX and the spread curve are not stored"}
+    analyses: []
+    falsification:
+      - id: lending_standards
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "The credit cycle is a lending-standards cycle" is falsified if a spread widening
+          of more than 200 basis points occurs without SLOOS having tightened in the prior
+          four quarters and without dispersion having widened first — an exogenous shock
+          excepted.
+        measurable:
+          all:
+            - {change_above: {series: fred.hy_oas, above: 200, label: "proxy until SLOOS"}}
+            - {not_tightened: {hook_series: fred.sloos_ci_large, branch: aq-3-series-2, quarters: 4}}
+            - {unmeasured: {reason: "dispersion is not stored (AQ-3)"}}
+        session_set: "SLOOS is the lending-standards leg (operator's ruling, 11 Oct 2026): the C&I large-and-medium net tightening, tightened meaning a print above zero in the prior four quarters. The widening is the HY OAS change over the quarter, labelled a proxy until SLOOS is stored; with no widening of 200 bp the test holds whatever SLOOS did"
+      - id: dispersion_signal
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "Dispersion is the signal" is falsified if the BB-CCC spread and the listed-BDC
+          discount widen materially and no aggregate deterioration follows within four
+          quarters — in which case the tail was contained and the aggregate was right.
+        measurable: null
+        not_measured: "the listed-BDC discount is not stored (AQ-3); BB-CCC is, in item 4"
+      - id: credit_leads
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "Credit leads equities in endogenous downturns" is falsified by an endogenous
+          equity drawdown of more than 15% that credit did not precede on any of the
+          Section 9 signals.
+        measurable:
+          all:
+            - {drawdown_at_least: {series: yfinance.mkt_spy, at_least: 15, lookback_days: 365}}
+            - {unmeasured: {reason: "whether the drawdown was endogenous and whether credit preceded it on the Section 9 signals is a reading, not a stored series"}}
+        session_set: "the drawdown is SPY's from its high over the last year to the quarter's end; with none of 15% the test holds"
+      - id: default_suppressed
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "The headline default rate is structurally suppressed" is falsified if the LME
+          count falls toward zero with the distress ratio also falling — meaning the
+          rerouting has ended because the distress has.
+        measurable: null
+        not_measured: "the LME count and the distress ratio are PitchBook LCD's (paid); not stored"
+      - id: marks_unanchored
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "Private-credit marks are not anchored" is falsified if cross-sectional dispersion
+          falls to public-market levels without accompanying mark-downs — meaning managers
+          have converged on a common value that the market accepts.
+        measurable: null
+        not_measured: "mark dispersion is a filings analysis; not stored"
+      - id: vintage_cohort
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "The 2020–2021 vintage is the stress cohort" is falsified if it refinances
+          through 2028 at spreads within 100 basis points of origination.
+        measurable: null
+        not_measured: "refinancing spreads by vintage are not stored"
+      - id: split_90_10
+        paper: "Credit"
+        section: "Falsification Tests"
+        statement: >-
+          "The 90/10 split is real" is falsified if the 10% shrinks to 5% without realised
+          losses — the distressed cohort recovering — or grows to 20%, in which case it was
+          not a tail.
+        measurable: null
+        not_measured: "the distressed share is not stored"
+    # Appendix D, verbatim. A light chapter does not print item 11 (section 4.1's
+    # last paragraph); the questions are carried so the operator can move it.
+    ten_questions:
+      - {n: 1,  text: "Did the last two SLOOS readings show net C&I tightening?", series: []}
+      - {n: 2,  text: "Is the BB-CCC spread widening while the HY index holds?", series: [fred.ccc_oas, fred.bb_oas, yfinance.mkt_hyg]}
+      - {n: 3,  text: "Where is the dual-track default rate against the headline rate, and is the LME count rising?", series: []}
+      - {n: 4,  text: "Is the loan distress ratio above 8% and rising?", series: []}
+      - {n: 5,  text: "Are private-credit non-accruals and PIK rising across managers, or at one?", series: []}
+      - {n: 6,  text: "Where do listed BDCs trade relative to NAV, and is the discount widening?", series: []}
+      - {n: 7,  text: "Is cross-sectional mark dispersion rising, or falling with mark-downs?", series: []}
+      - {n: 8,  text: "Has the HY-acceleration overlay fired, and was it accompanied by an equity decline or a divergence?", series: []}
+      - {n: 9,  text: "Are maturing CRE loans being extended or foreclosed?", series: []}
+      - {n: 10, text: "Which of the four twelve-month scenarios did this quarter's evidence support?", series: []}
+    scenarios:
+      - name: "Twelve months (Credit §37)"
+        horizon: "12 months"
+        source: "the Credit paper, §37; the credit-led-turn weight \"is higher than a spread of 269 implies\""
+        rows:
+          - {name: "Extended late cycle", prior: "~45%"}
+          - {name: "Credit-led turn", prior: "~30%"}
+          - {name: "Recession", prior: "~15%"}
+          - {name: "Policy-truncated", prior: "~10%"}
+      - name: "Private credit through a full cycle (Credit §38)"
+        horizon: "10 years"
+        source: "the Credit paper, §38"
+        rows:
+          - {name: "Orderly resolution", prior: "~40%"}
+          - {name: "The disorderly episode", prior: "~35%"}
+          - {name: "The regulatory settlement", prior: "~25%"}
+    panels:
+      - id: credit_tier1
+        n: "4d"
+        title: "The Tier 1 rule"
+        kind: lines
+        after: structure
+        lines:
+          - "The Credit paper's Tier 1 cycle-critical set: \"any two firing warrants a written cycle reassessment.\" Of its nine indicators, BB-CCC is stored (item 4); the firing count is not computed while seven are not."
+          - "EM credit is the Credit paper's named gap and lives in the Emerging markets chapter."
+    words:
+      permitted: ["dispersion", "dual-track default rate", "lending standards", "extend-and-pretend"]
+      banned: ["credit is fine", "the all-clear"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # INTERNATIONAL EQUITIES (light; paper XXI,
+  # docs/whitepapers/international-equities-whitepaper.md; section 4.9)
+  # =========================================================================
+  intl_equities:
+    filled: true
+    paper: "International Equities"
+    paper_file: docs/whitepapers/international-equities-whitepaper.md
+    horizon_family: international
+    voices_subjects: [intl_equities]
+    five_lines:
+      - {key: yfinance.mkt_efa,  label: "Developed ex-US equity (EFA)"}
+      - {key: yfinance.mkt_acwx, label: "All-country ex-US equity (ACWX)"}
+      - {key: yfinance.mkt_eem,  label: "EM equity (EEM)"}
+      - {key: yfinance.mkt_spy,  label: "US equity (SPY), the comparator"}
+      - {key: fred.dxy,          label: "The broad dollar (the currency term)"}
+    structure:
+      - {rel_return: {a: yfinance.mkt_spy, b: yfinance.mkt_efa, years: 10}, label: "Trailing ten-year US minus DM-international (SPY less EFA, price)"}
+      - {corr: {a: yfinance.mkt_spy, b: yfinance.mkt_efa, months: 36,
+                bands: [{name: "calm, low dispersion", low: 0.65, high: 0.75},
+                        {name: "ordinary", low: 0.75, high: 0.85},
+                        {name: "stressed", low: 0.85, high: 0.92},
+                        {name: "crisis", low: 0.92, high: 0.97}]},
+         label: "The three-year rolling US-international correlation (SPY and EFA, monthly)"}
+      - {key: manual.msci_world_usd, label: "MSCI World, USD"}
+      - {key: manual.msci_acwi_exus_usd, label: "MSCI ACWI ex-US, USD"}
+      - {key: fred.usd_eur, label: "USD per EUR (FRED DEXUSEU)"}
+      - {key: fred.usd_jpy, label: "JPY per USD (FRED DEXJPUS)"}
+      - {label: "The valuation quad by region", absent: "regional forward P/E, P/B and dividend yield are not stored (AQ-3)"}
+      - {label: "Hedged against unhedged (\"two decisions wearing one ticker\")", absent: "the hedged funds are not in the price feed (AQ-3)"}
+      - {label: "Japan: the below-1x-book share", absent: "not stored (AQ-3)"}
+      - {label: "Japan: the buyback run-rate", absent: "not stored (AQ-3)"}
+      - {label: "Japan: the cross-holding unwind", absent: "not stored (AQ-3)"}
+      - {label: "Japan: the wage round", absent: "an event, read through the scan (AQ-7)"}
+      - {label: "The euro fragmentation spread", absent: "Italian and German 10-year yields are not stored (AQ-3)"}
+      - {label: "The leadership-regime clock", absent: "not built"}
+    structure_charts:
+      - {id: us_intl, title: "US against developed ex-US: SPY and EFA", kind: twin,
+         series: [{key: yfinance.mkt_spy, label: "SPY"},
+                  {key: yfinance.mkt_efa, label: "EFA"}]}
+      - {id: efa_dollar, title: "EFA against the broad dollar (inverted)", kind: twin,
+         series: [{key: yfinance.mkt_efa, label: "EFA"},
+                  {key: fred.dxy, label: "Broad dollar (inverted)", invert: true}]}
+    implied_range_symbols: [EFA]
+    curve: {waits: "no curve is stored for the chapter"}
+    analyses: []
+    falsification:
+      - id: exceptionalism
+        paper: "International Equities"
+        section: "15.7 What would falsify each scenario"
+        statement: >-
+          American exceptionalism is falsified by the earnings gap closing for four or
+          more consecutive quarters while the multiple gap stays wide — the combination
+          that says the premium is no longer earned.
+        measurable: null
+        not_measured: "the regional earnings and multiple gaps are not stored (AQ-3)"
+      - id: convergence
+        paper: "International Equities"
+        section: "15.7 What would falsify each scenario"
+        statement: >-
+          Convergence is falsified by a dollar breakout to new highs alongside a widening
+          earnings gap, or by international reform visibly stalling — Japanese buybacks
+          rolling over, European fiscal impulse failing to reach delivery.
+        measurable: null
+        not_measured: "the earnings gap and Japanese buybacks are not stored (AQ-3)"
+      - id: reversal
+        paper: "International Equities"
+        section: "15.7 What would falsify each scenario"
+        statement: >-
+          Reversal is falsified by U.S. relative earnings accelerating, which would make
+          the valuation gap a fair reflection rather than an anomaly.
+        measurable: null
+        not_measured: "relative earnings are not stored (AQ-3)"
+      - id: derating
+        paper: "International Equities"
+        section: "15.7 What would falsify each scenario"
+        statement: >-
+          De-rating is monitored by the debt-cycle observables of the architecture's Part
+          31.2, not by anything in this paper.
+        measurable: null
+        not_measured: "the paper defers it to the architecture's Part 31.2"
+    ten_questions: []
+    questions_note: "the International Equities paper carries no ten questions (its appendix is the one-page card)"
+    scenarios:
+      - name: "Relative returns over the next decade (International Equities 15.4)"
+        horizon: "10 years"
+        source: "the paper's 15.4; aggregated, P(DM international outperforms the US) roughly 55–60% — \"a prior, not a signal\""
+        rows:
+          - {name: "American exceptionalism persists", prior: "~30%"}
+          - {name: "Convergence", prior: "~35%"}
+          - {name: "Reversal", prior: "~20%"}
+          - {name: "Global de-rating", prior: "~15%"}
+    panels:
+      - id: return_decomp
+        n: "4d"
+        title: "The return decomposition (GTM-19): currency, multiple, earnings, dividends; local against USD"
+        kind: return_decomp
+        after: structure
+        lines: ["Built with what the store holds: ETF proxies where index data is not free, the quarter's USD return split into price and dividends (on their ex-dates, not reinvested)."]
+        proxies:
+          - {label: "Developed ex-US (EFA)", key: yfinance.mkt_efa}
+          - {label: "All-country ex-US (ACWX)", key: yfinance.mkt_acwx}
+          - {label: "EM (EEM)", key: yfinance.mkt_eem}
+          - {label: "EM (VWO)", key: yfinance.mkt_vwo}
+          - {label: "EM ex-China (EMXC)", key: yfinance.mkt_emxc}
+          - {label: "US (SPY), the comparator", key: yfinance.mkt_spy}
+        lacks:
+          - "the currency term: the proxies' currency weights and local-currency index levels are not stored (only MSCI EM local, monthly)"
+          - "the multiple and earnings terms: regional forward P/E and EPS are not stored (AQ-3)"
+          - "the local-currency return: MSCI local-currency indices are not free beyond EM (AQ-3)"
+    words:
+      permitted: ["the currency term", "hedged", "unhedged", "dollar-cycle"]
+      banned: ["cheap for a reason", "the end of American exceptionalism"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # THAILAND (country chapter; section 4.10; decision 11) -- ISOLATED
+  # =========================================================================
+  thailand:
+    filled: true
+    paper: null
+    horizon_family: null
+    horizon_absent: "Thailand is not in the quarterly horizon set"
+    voices_subjects: []
+    isolation:
+      namespace: thailand
+      trigger_eligible: false
+      feeds: []
+      note: "The chapter informs the private conversion decision and nothing in the trading system; THB is not in real-assets (Session 12.5). The personal-finance core does not print here and is not in the repo."
+    frame:
+      status: "frame: the operator's existing Thailand analysis migrates here by hand (decision 3) — not yet migrated"
+      citations: ["the Thailand spec (docs/thailand-monitor-spec.md), for its market sections and its isolation rule",
+                  "Currencies, §31 (the baht case)", "Portfolio Construction (the THB liability as a permanent EM-FX position)",
+                  "International Equities, Chapter 12"]
+    five_lines:
+      - {hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB (FRED DEXTHUS)", namespace: thailand}
+      - {key: fred.dxy,           label: "The broad dollar (the baht's broad direction)"}
+      - {key: yfinance.mkt_usdcny, label: "USD/CNY (a neighbour)", dp: 4}
+      - {key: yfinance.mkt_usdjpy, label: "USD/JPY (a neighbour)"}
+      - {label: "The BoT policy rate", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
+    structure:
+      - {hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB, with its percentile", namespace: thailand}
+      - {label: "The BoT policy rate and its stated path", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "Thai CPI", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "The current account", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "Tourist arrivals", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "The construction-materials price index", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "The construction labour cost index", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {key: fred.dxy,            label: "The broad dollar (shared; read, never fed)"}
+      - {key: yfinance.mkt_usdcny, label: "USD/CNY (shared; read, never fed)", dp: 4}
+      - {key: yfinance.mkt_usdjpy, label: "USD/JPY (shared; read, never fed)"}
+    structure_charts:
+      - {id: thb_dollar, title: "USD/THB against the broad dollar", kind: twin,
+         series: [{hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB"},
+                  {key: fred.dxy, label: "Broad dollar"}]}
+      - {id: neighbours, title: "The baht's neighbours: USD/CNY and USD/JPY", kind: twin,
+         series: [{key: yfinance.mkt_usdcny, label: "USD/CNY"},
+                  {key: yfinance.mkt_usdjpy, label: "USD/JPY"}]}
+    implied_range_symbols: []
+    curve: {waits: "no THB forward is stored (AQ-3, AQ-12)"}
+    analyses: []
+    falsification: []
+    falsification_note: "no owning paper — not stated"
+    ten_questions: []
+    questions_note: "no owning paper — not stated (and the country chapter carries no item 11)"
+    book_rule:
+      no_draft: "the Thailand chapter is isolated (namespace: thailand, trigger_eligible: false) — it informs the private conversion decision and nothing in the trading system, so it writes no register draft."
+    scenarios:
+      - name: "The scenario map (section 4.10), mapped to THB, local rates and the SET"
+        horizon: "the quarter ahead"
+        source: "the change order's map; no paper states a probability, so none is printed"
+        rows:
+          - {name: "Coalition disruption", prior: "not stated"}
+          - {name: "Border escalation", prior: "not stated"}
+          - {name: "Tourism shock", prior: "not stated"}
+          - {name: "Tariff shock", prior: "not stated"}
+          - {name: "Energy surge", prior: "not stated"}
+          - {name: "Stronger investment", prior: "not stated"}
+    panels:
+      - id: thai_calendar
+        n: "4d"
+        title: "The political calendar"
+        kind: calendar
+        after: structure
+        path: config/thailand_political_calendar.yaml
+      - id: thai_scan
+        n: "9a"
+        title: "The country chapter's scan structure"
+        kind: lines
+        after: stories
+        lines:
+          - "The Thai source hierarchy: the BoT, MoF, NESDC, Commerce and Customs, BOI, the Election Commission, Parliament, the Royal Thai Government and MFA; the IMF Article IV."
+          - "Government durability and policy delivery: cabinet, coalition arithmetic, budget passage and disbursement, separated from pledges."
+          - "The BoT's reaction function, and its independence as a scenario, not a presumption."
+          - "Growth engines: tourism and visitor mix; electronics and auto supply chains; EV and data-centre investment, BOI approvals against realised investment."
+          - "Sensitivities: arrivals, LNG and fuel imports, drought and flood."
+          - "The Cambodia border and maritime process and Myanmar spillovers: each side's official statements against independent corroboration."
+        not_tracked:
+          - "the quarter's sourced Thai reporting: the quarterly scan with the Thai source hierarchy (AQ-7, AQ-12)"
+    words:
+      permitted: ["the BoT's reaction function", "policy delivery"]
+      banned: ["convert now", "buy baht", "sell baht"]
+      rules:
+        - "This chapter informs a private decision and nothing in the trading system: write no recommendation, no conversion timing and no trade."
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}
+
+  # =========================================================================
+  # AGRICULTURE (light; section 4.11; decision 12) -- no owning paper; Factor
+  # III's nitrogen complex is the library's only agriculture
+  # =========================================================================
+  agriculture:
+    filled: true
+    paper: null
+    horizon_family: agriculture
+    voices_subjects: []
+    five_lines:
+      - {label: "Corn (front month)", absent: "not in the price feed (AQ-3, AQ-13)"}
+      - {label: "Wheat (front month)", absent: "not in the price feed (AQ-3, AQ-13)"}
+      - {label: "Soybeans (front month)", absent: "not in the price feed (AQ-3, AQ-13)"}
+      - {key: worldbank.cmo_nonenergy, label: "The World Bank non-energy commodity index"}
+      - {key: fred.natgas,            label: "Henry Hub (the nitrogen complex's input)"}
+    structure:
+      - {label: "WASDE corn: production, use, trade, ending stocks, stocks-to-use", absent: "waits for AQ-3's WASDE writer (AQ-13)"}
+      - {label: "WASDE wheat: production, use, trade, ending stocks, stocks-to-use", absent: "waits for AQ-3's WASDE writer (AQ-13)"}
+      - {label: "WASDE soybeans: production, use, trade, ending stocks, stocks-to-use", absent: "waits for AQ-3's WASDE writer (AQ-13)"}
+      - {label: "The quarter's WASDE revisions, diffed against the stored vintage (projections kept apart from observed)", absent: "waits for AQ-3's writer; no vintage is stored"}
+      - {label: "The crop-stage window", absent: "the crop calendar is not stored"}
+      - {label: "NOAA's ENSO state (context, never extrapolated to price)", absent: "not stored"}
+      - {label: "Export commitments, bans and corridor access", absent: "events, read through the scan (AQ-7)"}
+      - {label: "The nitrogen complex: Tampa ammonia, NOLA urea, DAP (Factor III; a 2-3-quarter lead on food CPI)", absent: "not stored; a named GAP"}
+      - {key: fred.natgas,            label: "Henry Hub (gas → ammonia → urea)"}
+      - {label: "Calendar spreads and the roll", absent: "the futures curve arrives with 6b"}
+      - {label: "Disaggregated COT, scaled to open interest", absent: "the CFTC writer stores legacy non-commercial only (AQ-3)"}
+      - {key: worldbank.cmo_nonenergy, label: "The World Bank non-energy index"}
+    structure_charts:
+      - {id: nonenergy_gas, title: "The non-energy index against Henry Hub", kind: twin,
+         series: [{key: worldbank.cmo_nonenergy, label: "WB non-energy index"},
+                  {key: fred.natgas, label: "Henry Hub, $ per MMBtu"}]}
+      - {id: energy_food, title: "The World Bank energy and non-energy indices", kind: twin,
+         series: [{key: worldbank.cmo_energy, label: "WB energy index"},
+                  {key: worldbank.cmo_nonenergy, label: "WB non-energy index"}]}
+    implied_range_symbols: []
+    curve: {waits: "the grain curves arrive with 6b"}
+    analyses: []
+    falsification: []
+    falsification_note: "no owning paper — not stated"
+    ten_questions: []
+    questions_note: "no owning paper — not stated"
+    book_rule:
+      line: "a liquid contract or fund is named only where one exists and is understood; \"thin or poorly understood contracts\" are a no draft by rule (section 4.11)."
+    scenarios:
+      - name: "The four (section 4.11), each mapped to food inflation and EM terms of trade"
+        horizon: "12 months"
+        source: "the change order's set; no paper states a probability or the mapping, so neither is printed"
+        rows:
+          - {name: "Weather shock", prior: "not stated"}
+          - {name: "Export restriction", prior: "not stated"}
+          - {name: "Bumper crop", prior: "not stated"}
+          - {name: "Energy and fertiliser shock", prior: "not stated"}
+    panels:
+      - id: softs
+        n: "4d"
+        title: "Sugar, coffee, cocoa and cotton"
+        kind: matrix
+        after: structure
+        row_head: "Contract"
+        columns: ["Price", "Curve and roll", "Positioning (COT, share of OI)", "Balance"]
+        rows: [{name: "Sugar"}, {name: "Coffee"}, {name: "Cocoa"}, {name: "Cotton"}]
+        absent: "the softs are not in the price feed, the curve or the CFTC writer (AQ-3, AQ-13)"
+    words:
+      permitted: ["stocks-to-use", "the nitrogen complex", "crop stage"]
+      banned: ["food crisis", "supercycle"]
+    figure_budget: {quarter: 5, supply: 4, questions: 2, summary: 3}

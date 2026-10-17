@@ -712,7 +712,11 @@ def block_plan(ed: dict) -> list[dict]:
             system = sp.stack_system_prompt(base) + BLOCK_RULES.format(
                 report=voice(ed)[0], title=ss["title"], section=s["title"],
                 scope=(spec.get("scope") or "").rstrip(".") + ".", words=words_,
-                period=voice(ed)[1], figure_cap=_cap_word(),
+                period=voice(ed)[1],
+                # A block may carry its own figure budget (AQ-2: the Quarterly's
+                # items), never above the cadence's cap.
+                figure_cap=_cap_word(min(int(spec.get("figures") or figure_cap()),
+                                         figure_cap())),
                 ordinals=ORDINAL_RULE) + tape
             sl = block_slice(s, ss, ed)
             system += ((spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")

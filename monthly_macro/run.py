@@ -87,7 +87,7 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
         # THE CHARTS TRAVEL BY CONTENT-ID, read back from the archive like the
         # HTML: every `cid:` the record references, from its archived PNG.
         from . import charts as charts_mod
-        images, missing = charts_mod.inline_images(html, stamp, out_dir)
+        images, missing = charts_mod.inline_images(html, stamp, out_dir, prefix)
         if missing:
             print(f"charts missing from the archive: {', '.join(missing)}", flush=True)
         state, detail = delivery.send_html(
@@ -177,6 +177,10 @@ def run_quarterly(args, log) -> int:
     delivery.archive(json.dumps(p, indent=2, default=str, sort_keys=True),
                      f"{q_mod.PREFIX}_{stamp}_payload.json", arch)
     q_mod.save_edition(ed, arch)
+    from . import charts as charts_mod
+    pngs = charts_mod.archive_pngs(out.get("charts") or {}, stamp, arch,
+                                   prefix=q_mod.PREFIX)
+    log.info("archived %d chart PNG(s)", len(pngs))
     log.info("quarterly %s: %d chapters; the read %s min, the whole edition %s min "
              "(target %s for the read)%s", ed.get("month"),
              len(q_mod.chapters(ed)), ed.get("read_minutes"),
