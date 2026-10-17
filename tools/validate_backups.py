@@ -270,8 +270,11 @@ def group_j() -> None:
         check(r is not None and r.stdout.strip() == "98765",
               f"the record's count is parsed from the snapshot line "
               f"({r.stdout.strip() if r else 'no SNAP_ROWS line'})")
-    check(sw.count('rname="$INBOX_RNAME"') == 3 and "${REMOTE%%:*}" not in sw,
-          "the three inbound pulls read the inbox remote, never the backup remote")
+    check(sw.count('rname="$INBOX_RNAME"') == 4 and 'rname="$OUTBOX_RNAME"' in sw
+          and "${REMOTE%%:*}" not in sw,
+          "the four inbound pulls (AAII, GLD, the X pilot, the lab) read the inbox "
+          "remote, the lab outbox writes through its own remote (ruling 1 of 17 Oct), "
+          "and none goes through the backup remote")
     unit = (REPO / "deploy" / "systemd" / "chester-backup.service").read_text(encoding="utf-8")
     check("EnvironmentFile=-%h/chester-reports/.env" in unit,
           "the backup unit reads the crypt settings from .env")

@@ -179,6 +179,12 @@ def candidate_line(n: int, c: dict) -> str:
         extra.append(f"parameters: {c['parameters']}")
     if c.get("counter_thesis") and c.get("parameters"):
         extra.append(f"counter-thesis: {c['counter_thesis']}")
+    vpr = c.get("volume_profile")
+    if vpr:
+        # VP-1 item 9: where volume traded, from daily bars, and nothing more.
+        extra.append(f"volume profile ({vpr.get('note')}): "
+                     f"{vpr.get('base_text') or 'base POC not computed'}; nearest "
+                     f"HVN toward +1R {vpr.get('hvn_text') or 'not computed'}")
     return (f"{n}. {c.get('instrument')} {c.get('direction')} — {c.get('thesis')}; "
             f"catalyst: {cat}; invalidation: {c.get('invalidation') or 'none named'}; "
             f"horizon: {c.get('horizon') or 'not stated'}; size band: "

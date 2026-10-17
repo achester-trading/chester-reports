@@ -262,26 +262,17 @@ def group_b() -> None:
           "and each declared one now reads its new rule")
     lost = sorted(k for k in base if k not in resolved)
     check(not lost, f"no key fb67bf3 resolved is lost ({lost[:5] or 'none'})")
-    # 6e, the rest (16 Oct 2026) registers its calc series one by one, and
-    # 6e-releases its two readers' keys.
-    from altdata import macro_6e
-    from altdata.sources import clevfed_rules, rent_indices
-    one_by_one = set(macro_6e.KEYS) | set(rent_indices.KEYS) | set(clevfed_rules.KEYS)
-    # 6e-digital (17 Oct 2026): Tranche A's derived keys the addendum names, declared
-    # not yet sourced until their writers land; calc.froth_z still is (part 2, CD-7).
-    one_by_one |= {"calc.funding_agg", "calc.oi_usd", "calc.froth_z"}
-    # Tranche A part 1 (17 Oct 2026) registers its writers' keys one by one.
-    from altdata.sources import blockscout, crypto_derived, fng, fut, hl, mempool
-    # ... and part 2 (17 Oct 2026) its four.
-    from altdata.sources import deribit, farside, gt, paprika, treasury
-    for mod in (hl, fut, mempool, fng, blockscout, crypto_derived,
-                deribit, farside, gt, paprika, treasury):
-        one_by_one |= set(mod.KEYS)
-    new = [k for k in resolved if k not in base and k not in one_by_one]
-    blocks = {derived.registry_entry(k).get("bulk_block") for k in new}
-    check(blocks <= NEW_KEY_BLOCKS,
-          f"the {len(new)} newly resolved keys all come from the resolver fix and "
-          f"the bars blocks ({sorted(b for b in blocks if b)})")
+    new = [k for k in resolved if k not in base]
+    # A metric registered one by one since fb67bf3 (another branch's new series:
+    # VP-1's calc.vp_*, stitched 15 Oct) is new by its own entry. A BLOCK key
+    # first resolved must come from the resolver fix and the bars blocks.
+    one_by_one = [k for k in new if k in (reg.get("metrics") or {})]
+    blocks = {derived.registry_entry(k).get("bulk_block") for k in new
+              if k not in one_by_one}
+    check(blocks <= NEW_KEY_BLOCKS and None not in blocks,
+          f"the {len(new) - len(one_by_one)} newly resolved block keys all come from "
+          f"the resolver fix and the bars blocks ({sorted(b for b in blocks if b)}); "
+          f"{len(one_by_one)} more are metrics registered one by one since")
     # One fixture delta before and after, for every declared change.
     bad = []
     for k, (unit, (a, b, before, after)) in CHANGED_RULES.items():
@@ -792,10 +783,15 @@ def group_f() -> None:
     check(any("FRED_SIGNAL_SERIES: CLAUDE.md prints 20" in f
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")
-    # The worded count CLAUDE.md prints today, replaced by a wrong one.
-    said = re.search(r"([a-z]+(?:-[a-z]+)?) code gates", text).group(1)
-    wrong = "seventy-four" if said != "seventy-four" else "seventy-three"
-    worded = text.replace(f"{said} code gates", f"{wrong} code gates")
+    # Plant a wrong count in words beside whatever count the file prints (every
+    # branch that adds a gate moves it; AUD-3c moved it to seventy-six). The
+    # printed word may be one word ("eighty", the post-Friday fold of 17 Oct) as
+    # well as two, so the plant matches either.
+    import re
+    worded = re.sub(r"(?<=runs every gate\*\* — )[a-z]+(?:-[a-z]+)?(?= code gates)",
+                    lambda m: ("seventy-four" if m.group(0) != "seventy-four"
+                               else "seventy-three"), text, count=1)
+    check(worded != text, "the plant found the printed count to replace")
     check(any("code gates" in f for f in printed_count_faults(worded, counts)),
           f"a count in words is read and caught too ('{wrong} code gates')")
     gone = text.replace("market symbols", "symbols in the basket")

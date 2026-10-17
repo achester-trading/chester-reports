@@ -146,6 +146,12 @@ MUST_DENY = {
         # register's one human gate, on the same argument as a decision write.
         "python -m altdata.narratives confirm dollar_funding_squeeze",
         "ssh vps '.venv/bin/python -m altdata.narratives reject some_story'",
+        # X-2.6: the operator retires an Alpha Lab engine BY RULING; the loop
+        # retires by the kill rule alone, and a session never does either.
+        "python -m alpha.promote retire HYP-0004 --ruling 'x'",
+        # Ruling 6: only the operator lifts the lab's -15% halt.
+        "python -m alpha.governor resume --reason 'reviewed'",
+        "ssh vps 'cd ~/chester-reports && .venv/bin/python -m alpha.governor resume --reason x'",
     ],
     "privilege escalation": [
         "sudo apt install x",

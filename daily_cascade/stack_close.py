@@ -287,6 +287,18 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             db_path, session.to_eastern().date().isoformat())
     except Exception:                                           # noqa: BLE001
         log.warning("model meter line unavailable", exc_info=True)
+    # THE DATA CHECK (AUD-3c, 15 Oct 2026): the day's outlier and cross-source
+    # flags, read-only, after the EOD capture, as Warnings lines -- at most five
+    # and a count, nothing on a clean day. A prompt to look: it never blocks the
+    # close or withholds a number, and a check that cannot run prints nothing.
+    from altdata import quality                                 # noqa: PLC0415
+    dq = quality.close_warnings(sess, db_path)
+    report["data_check"] = dq
+    if dq:
+        p = dict(p, warnings=list(p.get("warnings") or []) + dq)
+    from alpha.lab_line import daily_line                       # noqa: PLC0415
+    # 10.2 d: the lab's one line -- alpha.db, beside the store, read-only.
+    ed["alpha_lab"] = daily_line(cutoff, db_path and Path(db_path).with_name("alpha.db"))
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()

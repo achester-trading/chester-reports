@@ -67,6 +67,13 @@ commands:
     domain: infrastructure
     line: 'The scheduled feeds: one entry point, two timers'
     sources: [fred, yfinance]
+  altdata.figi:
+    domain: reference
+    line: 'FIGIs for the US listings, from OpenFIGI (AUD-3b)'
+  altdata.fred_history:
+    domain: macro
+    line: 'The FRED history writer (AUD-3d): each value at the moment FRED first published it'
+    sources: [fred]
   altdata.fx_charts:
     domain: fx
     line: FX long-history charts for the Currencies white paper (VIII)
@@ -78,6 +85,9 @@ commands:
     domain: computed
     line: '6e macro completeness: Session 3a-3c calc series, the core CPI-PCE gap and the CPI lead composite (stated lags, unvalidated)'
     sources: [calc]
+  altdata.listings:
+    domain: reference
+    line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
   altdata.market_features:
     domain: computed
     line: 'Calculated features: breadth, trend, realized volatility -- and the macro transforms the Monthly used to compute privately'
@@ -98,6 +108,9 @@ commands:
     domain: register
     line: The probability ledger -- every number this system states as a likelihood, scored
     sources: [derived_probability]
+  altdata.quality:
+    domain: reference
+    line: 'The data-quality check, read-only, after each pull: outliers, revisions and cross-source pairs (AUD-3c)'
   altdata.rates_anchors:
     domain: rates
     line: THE 10-YEAR ANCHORS LENS and the adjudication of the four voices on the 10-year top
@@ -120,12 +133,19 @@ commands:
   altdata.secrets:
     domain: infrastructure
     line: The one place a secret is read, and the one place one is redacted
+  altdata.security_master:
+    domain: reference
+    line: 'The Security Master, v1: instrument identity, the consistency check (AUD-3b)'
   altdata.session:
     domain: infrastructure
     line: One source of truth for "what time is it" and "what day is this"
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.volume_profile:
+    domain: equity
+    line: 'The volume profile: where volume traded by price over a window (VP-1)'
+    sources: [calc]
   altdata.voices:
     domain: narrative
     line: The voices register -- who said what about the market, where, and when

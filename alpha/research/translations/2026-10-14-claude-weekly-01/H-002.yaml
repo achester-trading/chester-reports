@@ -1,0 +1,33 @@
+# H-002, "Defensive leadership in an up week is a fragile advance", in grammar v1.
+batch_id: 2026-10-14-claude-weekly-01
+batch_sha256: 6fdc4dc7a32d659375e22e0dbe1293b480b4c0877c48174a8cc8272d14446626
+local_id: H-002
+translated_at: "2026-10-14"
+translator: "session B, alpha-lab-2"
+translation_note: >-
+  One substitution. The batch shorts SPY "at the Friday close", but the trigger
+  reads that same close, which is not knowable before it prints: the grammar fills
+  a close-decided rule at the next session's open (SPY has a stored open), so the
+  entry is Monday's open. The week is the last session of each ISO week (a Friday
+  holiday makes it Thursday), and a weekly return runs from the previous week's
+  last close. "The trigger week's high" is the highest stored daily high of the
+  week. The five-session time stop counts the entry session. "The sectors existing
+  at that date" needs nothing: a sector with no stored price is not ranked. The
+  conditioning variant "without the RSP/SPY condition" drops trigger[3].
+rule_dsl:
+  grammar: alpha-lab-rules/v1
+  universe: [SPY]
+  cadence: friday_close
+  trigger:
+    - {series: SPY, transform: pct_change, n: week, op: ">=", value: 1.0}
+    - {series: XLU, transform: rank, set: sectors, n: week, op: "<=", value: 3}
+    - {series: XLP, transform: rank, set: sectors, n: week, op: "<=", value: 3}
+    - {series: {ratio: [RSP, SPY]}, transform: percentile, w: 1260, op: "<=", value: 10}
+  direction: short
+  instrument: SPY
+  entry: next_open
+  exits:
+    stop: {series: SPY, field: high, transform: max, n: week}
+    time: 5
+  conditioning:
+    - {name: without_rsp_spy_condition, drop: 3}

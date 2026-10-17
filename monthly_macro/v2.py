@@ -403,12 +403,16 @@ def what_changed(p: dict, conn, window: tuple[str, str]) -> dict:
                 (start, cutoff)):
         rows.append({"what": "forecast emitted", "from": None,
                      "to": f"p {f['probability']}: {str(f['claim'])[:90]}",
+                     "probability": f.get("probability"),
                      "source": src("forecast", f["probability_id"], f["emitted_at"])})
-    for f in _q(conn, "SELECT probability_id, claim, outcome, resolved_at"
+    # T3.6 M6: a resolved forecast carries its probability and outcome, so the
+    # Monthly's header can say how many were right without re-reading the ledger.
+    for f in _q(conn, "SELECT probability_id, claim, probability, outcome, resolved_at"
                       " FROM probabilities WHERE resolved_at >= ? AND resolved_at <= ?",
                 (start, cutoff)):
         rows.append({"what": "forecast resolved", "from": "open",
                      "to": f"outcome {f['outcome']}: {str(f['claim'])[:90]}",
+                     "probability": f.get("probability"), "outcome": f.get("outcome"),
                      "source": src("forecast", f["probability_id"],
                                    f["resolved_at"])})
     for d in _q(conn, "SELECT id, instrument, direction, status, created_at"

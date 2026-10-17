@@ -1,0 +1,42 @@
+# alpha_rules.yaml -- the rule grammar's settings (X-2.10a; docs/alpha-lab-rules.md).
+# Session-set, not ruled: the constitution (config/alpha_constitution.yaml) is not
+# here and nothing here can loosen it. alpha/rules.py reads this file; nothing
+# writes it.
+version: 1
+grammar: alpha-lab-rules/v1
+
+# WHEN A RULE DECIDES. A rule on the daily or Friday close decides at the nightly
+# loop's hour, after the close's capture: every input it reads must have been
+# knowable (available_at) by then. A `this_close` entry decides at 15:50 ET instead,
+# before the close it fills at -- so it reads the previous session's closes.
+decision_time_et: "17:40"
+this_close_decision_time_et: "15:50"
+
+# NAMED SETS, for `rank` (a series' rank within a set). A member with no stored
+# price at a date is not in the set at that date: XLRE before October 2015 and XLC
+# before June 2018 drop out on their own, which is "the sectors existing at that
+# date".
+sets:
+  sectors: [XLK, XLF, XLE, XLV, XLI, XLP, XLY, XLU, XLB, XLRE, XLC]
+  styles: [IVW, IVE, IWF, IWD]
+  broad: [SPY, QQQ, IWM, DIA, RSP]
+  rates_credit: [TLT, IEF, SHY, HYG, LQD]
+
+# COST CLASSES (config/alpha_costs.yaml) by instrument; anything not named is an
+# ETF. A rule may name its own with `cost_class`.
+cost_classes:
+  default: etf
+  by_symbol:
+    BTC-USD: perp
+    GC=F: future
+    CL=F: future
+    HG=F: future
+
+# THE MINIMUM SIZE A BACKTEST TRADE IS COSTED AT, as a fraction of the lab's
+# notional: the size a new engine enters paper at, so the modelled slippage is
+# the one its first trades would pay.
+costed_size: 0.01
+
+# A SIGNAL'S ENTRY WAITS AT MOST THIS MANY SESSIONS for a stored price before it
+# is dropped (the paper module's own patience).
+max_wait_sessions: 5

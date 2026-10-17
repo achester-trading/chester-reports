@@ -18,6 +18,16 @@ from the dealer profile where one exists; the 40-week and the 10- and 20-month
 averages for the long frames. A level that cannot be computed is absent from the
 list with its reason, never zero.
 
+THE VOLUME PROFILE (VP-1, 14 Oct 2026). For the instruments in
+config/volume_profile.yaml (spy, qqq, iwm), the POC, VAH and VAL of six windows --
+the session, the prior session, the week to date, the prior week, the month to
+date and the prior month -- from altdata/volume_profile.py, appended after the
+types above so every existing line keeps its order. Only the PRIOR windows'
+levels carry a status, because they were known before the session; the current
+windows' carry none, like the session high and low. A window not computed is
+absent with its reason. The instrument also carries `volume_profile`, each
+window's summary, for the tables.
+
 THE FLAT ROW. `row` carries the same values under field names the label audit
 knows (gamma_flip, call_wall, ma_20d, week_high ...) beside the instrument's
 symbol, so "the 20-day at 640.30" in a sentence is checked against SPY's 20-day
@@ -30,6 +40,7 @@ import datetime as dt
 from typing import Any, Optional
 
 from . import bars as bars_mod, session
+from . import volume_profile as vp_mod
 
 # How a level type is labelled in prose and on a chart, in list order.
 LEVEL_TYPES = (
@@ -41,8 +52,15 @@ LEVEL_TYPES = (
     ("low_52w", "52-week low"), ("gamma_flip", "gamma flip"),
     ("call_wall", "call wall"), ("put_wall", "put wall"),
     ("max_pain", "max pain"), ("ma_40w", "40-week average"),
-    ("ma_10m", "10-month average"), ("ma_20m", "20-month average"))
+    ("ma_10m", "10-month average"), ("ma_20m", "20-month average"),
+    # VP-1: appended, never interleaved -- "prior week's value-area high".
+    *vp_mod.LEVEL_TYPES)
 LABEL = dict(LEVEL_TYPES)
+# Levels with no status: the session's own range and the current profile
+# windows, which were not known before the session they describe.
+NO_STATUS = ("prior_close", "session_high", "session_low") + tuple(
+    vp_mod.level_key(w, f) for w, _, prior in vp_mod.WINDOWS if not prior
+    for f, _ in vp_mod.FIELDS)
 DEALER_FIELDS = ("gamma_flip", "call_wall", "put_wall", "max_pain")
 
 
@@ -223,6 +241,18 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
             vals[k], src[k] = float(v), f"dealer profile {spec.get('dealer')}"
         elif spec.get("dealer"):
             out["absent"][k] = "not in the session's dealer profile"
+    # THE VOLUME PROFILE (VP-1): six windows from the 5-minute bars, as of the
+    # same cutoff, under the bars table's completeness share.
+    if iid in vp_mod.instrument_ids():
+        wins = vp_mod.windows(store, iid, day, as_of, share=complete_share)
+        out["volume_profile"] = {w: vp_mod.summary(p) for w, p in wins.items()}
+        for w, p in wins.items():
+            for f, _ in vp_mod.FIELDS:
+                key = vp_mod.level_key(w, f)
+                if p.get(f) is not None:
+                    vals[key], src[key] = float(p[f]), "volume profile 5m"
+                else:
+                    out["absent"][key] = p.get("absent") or "not computed"
     ohlc = out.get("ohlc") or ({"low": vals["session_low"], "high":
                                 vals["session_high"],
                                 "close": closes[-1] if today else None})
@@ -238,7 +268,7 @@ def instrument(spec: dict, day: str, store: bars_mod.BarStore,
         v = round(float(v), 4 if kind == "yield" else 2)
         lv = {"type": key, "label": label, "value": v, "source": src.get(key),
               "as_of": as_of_day}
-        if key not in ("prior_close", "session_high", "session_low"):
+        if key not in NO_STATUS:
             lv["status"] = status_of(v, prior, ohlc, tol_bps)
         out["levels"].append(lv)
         row[key] = v

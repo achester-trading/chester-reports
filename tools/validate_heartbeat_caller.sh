@@ -1161,6 +1161,57 @@ else
     bad "stale + swap + low memory -> rc=$RC (wanted 1)"
 fi
 
+# ---- THE LISTINGS SNAPSHOT (stitching, week of 19 Oct; meeting c) ----------
+printf '\n%s\nThe listings snapshot: counted in sessions, a warning only\n%s\n' "$LINE" "$LINE"
+listings_of() { sed -n 's/.* listings=\([a-z_]*\).*/\1/p' "$STATUS"; }
+LDIR="$SANDBOX/listings"
+mkdir -p "$LDIR"
+# listings_run <newest snapshot day or ""> <today> -> RC, and the status line
+listings_run() {
+    rm -f "$LDIR"/*.csv "$STATUS"
+    [[ -n "$1" ]] && printf 'symbol,name\nAAA,Fixture\n' >"$LDIR/$1.csv"
+    run 0 CHESTER_LISTINGS_DIR="$LDIR" CHESTER_LISTINGS_TODAY="$2"
+}
+listings_run 2026-10-16 2026-10-19      # Fri -> Mon: one session (the weekend is not a miss)
+if [[ "$(listings_of)" == "fresh" ]] && [[ "$RC" == "0" ]]; then
+    ok "a Friday snapshot read on Monday is one session old: fresh (a weekend is not a miss)"
+else
+    bad "Fri -> Mon reported listings=$(listings_of) exit=$RC"
+fi
+listings_run 2026-11-25 2026-11-27      # Wed -> Fri over Thanksgiving: one session
+if [[ "$(listings_of)" == "fresh" ]]; then
+    ok "a Wednesday snapshot read the Friday after Thanksgiving is one session old: fresh (a holiday is not a miss)"
+else
+    bad "over Thanksgiving reported listings=$(listings_of)"
+fi
+listings_run 2026-10-15 2026-10-19      # Thu -> Mon: Fri and Mon, two sessions
+if [[ "$(listings_of)" == "fresh" ]]; then
+    ok "two sessions old is still fresh (one failed 06:45 pull is not yet a warning)"
+else
+    bad "two sessions reported listings=$(listings_of)"
+fi
+listings_run 2026-10-13 2026-10-19      # Tue -> Mon: Wed, Thu, Fri, Mon
+if [[ "$(listings_of)" == "stale" ]] && [[ "$RC" == "0" ]] && [[ "$(state_of)" == "ok" ]] \
+        && grep -q 'WARNING listings: the snapshot is stale' $LOG_GLOB \
+        && grep -q 'newest snapshot 2026-10-13, 4 session(s) old (allowed 2)' $LOG_GLOB; then
+    ok "four sessions old warns -- logged with the date and the count -- and the verdict stays ok, exit 0"
+else
+    bad "four sessions reported listings=$(listings_of) state=$(state_of) exit=$RC"
+fi
+listings_run "" 2026-10-19
+if [[ "$(listings_of)" == "none" ]] && [[ "$RC" == "0" ]]; then
+    ok "no snapshot at all warns as none, and still never moves the exit code"
+else
+    bad "no snapshot reported listings=$(listings_of) exit=$RC"
+fi
+rm -f "$STATUS"
+run 0 CHESTER_SKIP_LISTINGS_CHECK=1
+if [[ "$(listings_of)" == "skipped" ]]; then
+    ok "CHESTER_SKIP_LISTINGS_CHECK records skipped rather than fresh"
+else
+    bad "skip switch reported listings=$(listings_of)"
+fi
+
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"
 if grep -q 'verdict=ok ' $LOG_GLOB && grep -q 'verdict=stale ' $LOG_GLOB; then
     ok "log carries verdict=<state> so a month greps into an uptime figure"

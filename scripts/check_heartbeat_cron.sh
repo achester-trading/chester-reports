@@ -1015,21 +1015,50 @@ if [[ -n "${STATE_PY:-}" ]]; then
     fi
 fi
 
+# ---- the listings snapshot (AUD-3b; stitching, week of 19 Oct) --------------
+#
+# A WARNING AND NEVER A VERDICT, like the events ingest: the 06:45 listings step
+# (altdata/listings.py) writes one snapshot a session under data/reference/
+# listings/, and the meme scan's identity reads the newest. `listings age` counts
+# the SESSIONS since it by the session calendar, so a weekend or a holiday is
+# not a miss; past two (MAX_AGE_SESSIONS) it warns. A missing snapshot is
+# reference data going stale, not a lost capture -- Nasdaq Trader republishes
+# the whole directory every day -- so the verdict and exit code are untouched.
+LISTINGS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_LISTINGS_CHECK:-}" ]]; then
+    LISTINGS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    LISTINGS_STATE=no_python
+else
+    LISTINGS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.listings age \
+                     ${CHESTER_LISTINGS_TODAY:+--today "$CHESTER_LISTINGS_TODAY"} 2>/dev/null)"
+    case $? in
+        0) LISTINGS_STATE=fresh ;;
+        1) LISTINGS_STATE=stale ;;
+        2) LISTINGS_STATE=none ;;
+        *) LISTINGS_STATE=error ;;
+    esac
+    [[ -n "$LISTINGS_LINE" ]] && log "  $LISTINGS_LINE"
+    if [[ "$LISTINGS_STATE" != "fresh" ]]; then
+        log "  WARNING listings: the snapshot is $LISTINGS_STATE -- the meme scan's identity reads an old directory. Re-run: python -m altdata.listings pull. The verdict and exit code are untouched"
+    fi
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

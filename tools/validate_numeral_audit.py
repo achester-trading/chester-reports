@@ -719,6 +719,26 @@ def group_h() -> None:
     check(na.audit("the put wall at 760", {"rows": [{"max_pain": 760.0}]}).passed,
           "a payload that carries no put wall at all leaves the label unchecked -- "
           "the plain match still applies")
+    # VP-1: the volume profile's three names, qualified by window or bare. The
+    # payload is a level list's flat rows (altdata/levels.py).
+    vp = {"levels": [{"symbol": "SPY", "vp_prior_week_vah": 664.25,
+                      "vp_week_vah": 667.0, "vp_prior_session_poc": 662.5},
+                     {"symbol": "QQQ", "vp_prior_week_vah": 667.0}]}
+    for text, want, why in (
+            ("SPY held the prior week's value-area high at 667.00", False,
+             "667 is SPY's week's VAH and QQQ's prior week's -- true under other "
+             "names, as the 30 Sep put wall was"),
+            ("SPY held the prior week's value-area high at 664.25", True,
+             "the prior week's own value"),
+            ("SPY's VAH at 667.00", True, "a bare VAH binds to any window"),
+            ("SPY reclaimed yesterday's POC at 662.50", True,
+             "yesterday's is the prior session's"),
+            ("QQQ held the prior week's VAH at 667.00", True,
+             "the symbol is the sentence's"),
+    ):
+        rr = na.audit(text, vp)
+        check(rr.passed is want, f"VP-1 {text!r}: {'passes' if want else 'fails'} "
+                                 f"-- {why}" + ("" if want else f" ({rr.reason()})"))
 
 
 def group_l() -> None:

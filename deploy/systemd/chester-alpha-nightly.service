@@ -1,0 +1,35 @@
+[Unit]
+Description=Alpha Lab nightly loop (17:40 ET weekdays, ledger-paper; X-1.9)
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+# After= the close, so on a boot that starts both this queues behind the pass
+# that writes the session's prices and market-state object. Ordering only: the
+# loop reads STORED data and must still run, and record what it found, when the
+# close did not.
+After=chester-daily-close.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_alpha_nightly.sh
+
+# NO EnvironmentFile. The lab reads no secret: it fetches nothing, emails
+# nothing and posts no state record (tools/validate_alpha_no_orders.py).
+
+# 0 every step ran; 1 a step failed and wrote its failure to loop_events. 1 is
+# a real failure and should show red.
+SuccessExitStatus=0
+
+# Generous for a loop over a local store and a small ledger.
+TimeoutStartSec=20min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The checkout for git pull; data/ holds alpha.db beside chester.db (the store is
+# opened mode=ro, but SQLite may keep its -shm there); ~/.chester for the status
+# file and the lock.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

@@ -1871,19 +1871,31 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         hist = {c["id"]: _contradiction_history(st, c["id"], now) for c in opened}
         rel = tier1_releases(st, now, then)
         wbd = wsec.week_by_day(st, sessions, ending, now, then, rel, str(st.path))
-        tape = stack_mod.tape_section(book)
+        tape = stack_mod.tape_section(book, vp_windows=None)
         tt = wsec.tape_table(book, ending)
         oi = wsec.overnight_intraday(st, sessions, ending, now)
+        # THE VOLUME PROFILE (VP-1 item 7): the week's value area against the
+        # prior week's, beside the levels; the close's session table is not the
+        # Weekly's. The storyline moves both into the detail tables, the value
+        # area directly after the named levels (storyline.move_daily_tables).
+        from altdata import volume_profile as vp                # noqa: PLC0415
+        vpt = vp.table(book.get("instruments") or [], "week", "prior_week",
+                       {t["id"]: t.get("unit") for t in bars_mod.tape()})
         tape.update({"table": tt["table"], "print_items": False,
                      "subsections": [
                          {"title": "Levels", "table": tt["levels_table"],
                           "paragraph_wanted": False},
+                         *([{"title": "Value area: the week against the prior week",
+                             "table": {k: vpt[k] for k in ("columns", "rows")},
+                             "not_tracked": vpt["not_tracked"],
+                             "paragraph_wanted": False}] if vpt["rows"] else []),
                          # OVERNIGHT AGAINST THE CASH SESSION (T2.3 item 1)
                          {"title": "SPY overnight against the cash session",
                           "table": oi["table"], "paragraph_wanted": False}]})
         tape["data"] = {**(tape.get("data") or {}),
                         "overnight_intraday": {"sessions": oi["rows"],
-                                               "week": oi["totals"]}}
+                                               "week": oi["totals"]},
+                        "volume_profile": vpt["data"]}
         try:
             cal = wsec.calendar_week(st, ending, now, pmb)
         except Exception:                                       # noqa: BLE001
@@ -2286,6 +2298,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed, "weekly")
     ed["run_id"] = p.get("run_id")
+    from alpha.lab_line import weekly_line                      # noqa: PLC0415
+    # X-1.11: the lab's one line -- alpha.db, beside the store, read-only.
+    ed["alpha_lab"] = weekly_line(now, db_path and Path(db_path).with_name("alpha.db"))
     ed["archive_path"] = (str(Path(archive_dir) / f"{base}.html")
                           if archive_dir else None)
     html_email = render(p, ed, charts, mode="email")
@@ -2353,7 +2368,8 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     head = stack_render.page_header(
         f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
-        ed.get("changed_since") or [], "Changed since last Weekly")
+        ed.get("changed_since") or [], "Changed since last Weekly",
+        extra_html=f' &middot; {stack_render.esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else "")
     # THE ADDENDUM'S ONE LINE (Batch 8 item 51): where the Digital Assets page is;
     # nothing when the run carries no addendum.
     from . import digital_addendum                              # noqa: PLC0415

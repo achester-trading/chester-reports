@@ -711,6 +711,34 @@ withdrawn 17 Oct 2026. Each is an `rclone copyto` of named files and nothing
 else. An absent file is a logged skip, and no inbox outcome touches the sweep's
 exit code.
 
+**The Alpha Lab's inbox and outbox (X-2.11, 14 Oct 2026).** After the AAII file,
+two more folder copies, neither touching the exit code. The inbox is read through `CHESTER_RCLONE_INBOX_REMOTE` (read-only); the outbox is written through `CHESTER_RCLONE_OUTBOX_REMOTE`, its own `drive.file` remote on the main account, which can write only the files it makes (ruling 1 of 17 Oct 2026). Neither goes near the crypt remote:
+
+| Direction | From | To |
+|---|---|---|
+| in | `<inbox remote>:chester-vendor-checks/lab-inbox` (the Saturday brief's batches) | `~/chester-data/inbox/lab/` |
+| out | `~/chester-data/outbox/lab/` (the weekly loop's `lab-verdicts-YYYY-MM-DD.md`) | `<outbox remote>:chester-vendor-checks/lab-outbox/` |
+
+- **The manifest is listed first.** `rclone lsjson --metadata --hash` of the Drive
+  folder is written to `inbox/lab/manifest-drive.json`. Each entry's
+  `Metadata.btime` is the file's Drive creation time, and `Metadata.mtime` its
+  last modification (rclone's Drive metadata, RFC 3339 to the millisecond);
+  `Hashes.md5` lets the ingestion check the bytes. The created time is the
+  batch's pre-registration instant.
+- **Then the copy**, of the `.yaml` and `.md` files only. It is `rclone copy`,
+  never `sync`, so the inbox only gains and the daily proposer's own files and
+  manifest are never touched.
+- The outbox goes up with `rclone copy` too, so the Drive folder only gains.
+- Each copy runs under its own 5-minute cap and the stall limits, and
+  under the sweep's 105-minute budget: with under 3 minutes left it is
+  skipped and named in the status line (`lab-inbox(budget)`,
+  `lab-outbox(budget)`), and its cap is cut to the minutes left less 2.
+  The alpha-* snapshot prune is deferred to the next night like the
+  other prunes when under 10 minutes are left.
+- The unit may write `~/chester-data/inbox/lab`; the outbox is only read.
+
+Both directories must exist before the sweep starts (section 14).
+
 Exit codes: `0` all trees copied · `1` environment (no rclone, no crypt settings,
 no venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
 least one tree did not copy or hit its time cap · `4` terminated mid-sweep
@@ -1033,6 +1061,84 @@ Sunday 05:00 Weekly.
 at 10:30 ET. It is not in `DEPLOY_TIMERS`, so the operator enables it. It needs
 the backup's remote in its own drop-in. The commands are in
 `docs/briefs/aud-2-notes.md`, and the procedure in `docs/runbooks/restore.md`.
+
+## 14. The Alpha Lab's loops (X-1.10, 13 Oct 2026)
+
+Two units, neither in `DEPLOY_TIMERS`: the deploy (or the self-deploy) copies
+them, and **enabling them is the operator's**. Neither reads a secret, so neither
+loads `.env`. Each writes `~/chester-reports/data/alpha.db` only and opens the
+observation store read-only (`docs/alpha-lab.md`).
+
+| Unit | When | What |
+|---|---|---|
+| `chester-alpha-nightly` | weekdays 17:40 ET | `scripts/run_alpha_nightly.sh` → `python -m alpha.loops.nightly`: fill, mark, grade, govern, learn |
+| `chester-alpha-weekly` | Sunday 06:00 ET | `scripts/run_alpha_weekly.sh` → `python -m alpha.loops.weekly`: walk-forward, the bounded re-fit, the rebalance, the agenda, the verdicts |
+
+**Why 17:40.** After the daily close's capture: `chester-daily-close` fires at
+16:45 (+60 s jitter) and finishes inside its 10-minute `TimeoutStartSec`,
+settling the prices and computing the market-state object the lab fills against
+and keys its attribution on. The Portfolio Truth sync's last slot is 17:30, and
+the self-deploy's next tick is 17:50.
+
+**Why Sunday 06:00.** After the Weekly (05:00, a 15-minute cap), which prints the
+lab's line from the week's ledger before the rebalance changes it.
+
+**Enable, once, after the merge, inside the windows:**
+
+```bash
+systemctl --user enable --now chester-alpha-nightly.timer chester-alpha-weekly.timer
+systemctl --user list-timers 'chester-alpha-*'
+```
+
+**The inbox and the outbox (Tranche 2, X-2.11).** The nightly loop ingests new
+batches from `~/chester-data/inbox/lab/`, and the weekly loop writes its verdicts
+to `~/chester-data/outbox/lab/`. Both directories are created once, by hand,
+before the sweep or either loop runs:
+
+```bash
+mkdir -p ~/chester-data/inbox/lab ~/chester-data/outbox/lab
+```
+
+The unit changes that let the units reach them come with the merge. The
+self-deploy copies them and reloads; no restart is needed, because all three
+are oneshot units that are not running between their timers:
+
+- `chester-backup.service` may write `~/chester-data/inbox/lab`;
+- `chester-alpha-weekly.service` may write `~/chester-data/outbox/lab`.
+
+**The daily proposer (X-2.10b).** `chester-alpha-proposer` fires at 18:10 ET on
+weekdays, after the nightly loop's whole budget:
+- it runs `scripts/run_alpha_proposer.sh`, which runs `python -m alpha_proposer`;
+- it makes one model call over a code-built observation packet;
+- it writes at most three hypotheses as one batch file, plus a manifest line, into
+  `~/chester-data/inbox/lab/`, and the next nightly loop ingests them.
+
+It is the one lab unit that loads `.env`, because the model call needs the key.
+It may write only its logs, its status file and the inbox. It is not in
+`DEPLOY_TIMERS`, and enabling it is yours:
+
+```bash
+systemctl --user enable --now chester-alpha-proposer.timer
+systemctl --user list-timers 'chester-alpha-*'
+```
+
+Its decision log is `~/logs/alpha_proposer-YYYY-MM.jsonl` and its status file
+`~/.chester/alpha_proposer_status`.
+
+**Check once that the box's rclone reports the Drive creation time.** The
+ingestion refuses a batch without it. Run this inside a window, as a read only:
+
+```bash
+rclone lsjson --metadata --files-only gdrive:chester-vendor-checks/lab-inbox | head -c 600
+```
+
+It should print `"btime"` inside each `"Metadata"` object.
+
+Status files: `~/.chester/alpha_nightly_status`, `~/.chester/alpha_weekly_status`.
+Logs: `~/logs/alpha_nightly-YYYY-MM.log`, `~/logs/alpha_weekly-YYYY-MM.log`. The
+loop's own record of every change, and of every failure, is alpha.db's
+`loop_events`. The nightly sweep snapshots alpha.db beside chester.db
+(section 10).
 
 ## Timezone note
 

@@ -1,0 +1,44 @@
+# config/volume_profile.yaml -- the volume profile's settings (VP-1, ruled 14 Oct
+# 2026). Read by altdata/volume_profile.py, the one module every reader calls.
+# The definition is docs/volume-profile.md.
+#
+# Every value below is SESSION-SET: chosen by the session that wrote VP-1 from
+# the paste of 14 Oct, not measured. The notes (docs/briefs/vp-1-notes.md) list
+# them for the operator. Completeness is not set here: it is the bars table's
+# own bars.complete_share in config/reporting_stack.yaml, so a profile and the
+# session's VWAP are absent under the same rule.
+
+version: 1
+
+# THE INSTRUMENTS (v1): the tape instruments whose 5-minute bars carry volume.
+# The rest of the tape set is out of v1, each for its own reason:
+#   - es, gold, oil: futures roll contracts, so a window spanning a roll mixes
+#     two contracts' volume at two price levels;
+#   - btc: Bitcoin's volume is an aggregate across venues, not one market's;
+#   - y10, y30, dxy and the indices: they carry no volume at all.
+instruments: [spy, qqq, iwm]          # session-set
+
+# 1. BINS. The width is bin_bps of the window's last close, rounded DOWN to the
+# nearest step of the ladder ("rounded to a round tick" in H-006 to H-008).
+bin_bps:
+  five_minute: 5                      # session-set
+  daily: 25                           # session-set
+tick_ladder: [0.01, 0.02, 0.05, 0.10, 0.25, 0.50, 1, 2, 5, 10]   # session-set
+
+# 4. THE VALUE AREA: this share of the window's volume, built outward from the POC.
+value_area_share: 0.70                # session-set
+
+# 5. NODES: a centred mean over this many bins, then the percentile cuts.
+node_smoothing_bins: 5                # session-set
+hvn_percentile: 80                    # session-set
+lvn_percentile: 20                    # session-set
+
+# THE STORED SERIES: the rolling composite, in sessions (calc.vp_<id>_20s_*).
+composite_sessions: 20                # session-set
+
+# THE SCANNER'S READINGS, from daily bars: the HVN lookback, in sessions.
+scanner_hvn_sessions: 252             # session-set
+
+# `compute` with no --from recomputes the sessions of the last this-many
+# calendar days, so a missed EOD run is caught up by the next one.
+compute_lookback_days: 7              # session-set

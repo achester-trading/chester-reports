@@ -416,6 +416,21 @@ def group_e() -> None:
         ok("prune runs only after the db/ upload succeeded, and names tonight's file")
     else:
         bad("a failed upload could still prune")
+    guard_a = code.find(r'^alpha-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db(\.gz)?$')
+    blk = code[code.find('if copy_tree "$STAGE" "db"'):]
+    # Stitching, week of 19 Oct (meeting b): the alpha prune also waits for the
+    # budget -- reached only past the "no alpha snapshot tonight" branch, and only
+    # through can_housekeep, like every other prune.
+    if (0 <= guard_a < code.find("rclone deletefile")
+            and (re.search(r'if \[\[ "\$ALPHA" == "ok" \]\]; then\s+prune_db alpha', blk)
+                 or re.search(r'if \[\[ "\$ALPHA" != "ok" \]\]; then\s+'
+                              r'ALPHA_PRUNE="not run[^"]*"\s+'
+                              r'elif can_housekeep "alpha prune"; then\s+prune_db alpha',
+                              blk))):
+        ok("ruling 8: the alpha-* snapshots prune by their own exact-name pattern, "
+           "and only on a night tonight's alpha snapshot was staged")
+    else:
+        bad("the alpha-* prune is missing, unguarded, or matches loosely")
 
     # -- the retention rule itself -------------------------------------------
     import importlib.util  # noqa: PLC0415
@@ -471,6 +486,35 @@ def group_e() -> None:
     else:
         bad(f"kept {len(keep_d)} (wanted {expected_keep}), deleting {len(delete)}")
 
+    # -- ruling 8: the lab ledger's alpha-* snapshots, the same rule apart ------
+    a_names = [f"alpha-{d.isoformat()}.db.gz" for d in days]
+    mixed = names + a_names + ["alpha-latest.db", "alpha-2026-09-30.db.bak"]
+    a_keep, a_del = br.plan(mixed, today, "alpha")
+    c_keep, c_del = br.plan(mixed, today)
+    if (sorted(n.replace("alpha-", "chester-") for n in a_keep if n.endswith(".gz"))
+            == sorted(keep_d - {"chester-2026-10-05.db.gz"})
+            and all(n.startswith("alpha-") for n in a_keep + a_del)):
+        ok(f"alpha-* snapshots keep by the same rule ({len(a_keep)} kept of "
+           f"{len(a_names)}), and an alpha plan names no chester file")
+    else:
+        bad("the alpha-* plan differs from chester's rule or crosses families")
+    if (not any(n.startswith("alpha-") for n in c_keep + c_del)
+            and set(c_del) == set(delete)):
+        ok("chester's plan is unchanged by alpha names beside it")
+    else:
+        bad("alpha names leak into chester's plan")
+    if not any(n in a_del for n in ("alpha-latest.db", "alpha-2026-09-30.db.bak")):
+        ok("alpha names outside the exact pattern are never planned")
+    else:
+        bad("the alpha plan would delete an unrecognised name")
+    lone = [f"alpha-{(today - timedelta(days=500)).isoformat()}.db.gz",
+            f"alpha-{(today - timedelta(days=499)).isoformat()}.db.gz"]
+    lk, _ld = br.plan(lone, today, "alpha")
+    if lone[1] in lk:
+        ok("the newest alpha snapshot is never pruned, however old")
+    else:
+        bad("the newest alpha snapshot would be pruned")
+
     import contextlib  # noqa: PLC0415
     import io  # noqa: PLC0415
     old_stdin = sys.stdin
@@ -500,12 +544,18 @@ def group_e() -> None:
         ok("the stall limits are not env-overridable (tuning cannot drop them)")
     else:
         bad("the stall limits can be overridden away")
-    copies = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copy\b", ln)]
-    prev = code.splitlines()
+    # Every rclone copy that RUNS (comments aside): under a coreutils timeout with
+    # a kill-after -- copy_tree's "${mins}m", the lab's "${LAB_CAP}m" (its 5m cut
+    # to the budget; stitching, week of 19 Oct), or a fixed cap on the copy's own
+    # line -- and with the stall limits.
+    lines = code.splitlines()
+    copies = [i for i, ln in enumerate(lines)
+              if re.search(r"\brclone\s+copy\b", ln) and not ln.lstrip().startswith("#")]
     capped = all(
-        re.search(r'timeout --kill-after=\S+ "\$\{mins\}m"',
-                  prev[prev.index(ln) - 1] + ln) for ln in copies)
-    if copies and capped and "$RCLONE_LIMITS" in copies[0]:
+        re.search(r'timeout --kill-after=\S+ (?:"\$\{mins\}m"|"\$\{LAB_CAP\}m"|\d+m)\s',
+                  lines[i - 1] + " " + lines[i]) for i in copies)
+    limited = all("$RCLONE_LIMITS" in lines[i] for i in copies)
+    if copies and capped and limited:
         ok("every rclone copy runs under its own timeout and the stall limits")
     else:
         bad("an rclone copy can run uncapped")
@@ -606,13 +656,14 @@ def group_e() -> None:
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
     rw = m.group(1).split() if m else []
+    # The Alpha Lab's inbox (X-2.11) joins w-1-3c's three at the merge of 14 Oct.
     inboxes = ("-%h/chester-data/inbox/aaii", "-%h/chester-data/inbox/spdji",
                "-%h/chester-data/inbox/etf", "-%h/chester-data/inbox/x-triage",
-               "-%h/chester-data/inbox/x-digest")
+               "-%h/chester-data/inbox/x-digest", "-%h/chester-data/inbox/lab")
     if all(x in rw for x in inboxes) and not [x for x in rw if "chester-data" in x
                                               and x not in inboxes]:
-        ok("the sweep's unit may write the five inboxes (AAII, S&P DJI, ETF, the X "
-           "pilot's two) and nothing else of ~/chester-data")
+        ok("the sweep's unit may write the six inboxes (AAII, S&P DJI, ETF, the X "
+           "pilot's two, the lab's) and nothing else of ~/chester-data")
     else:
         bad("under ProtectSystem=strict an inbox pull cannot write its inbox")
 
@@ -793,6 +844,7 @@ exit 0
 FAKE_PY = r"""#!/usr/bin/env bash
 case "$*" in
   *"altdata.observations snapshot"*) printf 'SQLite format 3 fake' > "${@: -1}" ;;
+  *"alpha.ledger snapshot"*) printf 'SQLite format 3 alpha' > "${@: -2:1}" ;;
   *"altdata.observations integrity"*) : ;;
   *backup_retention.py*) cat >/dev/null ;;
 esac
@@ -800,7 +852,8 @@ exit 0
 """
 
 
-def _sweep(td: Path, tree_min: str, budget: int = 105) -> tuple[int, str, str, str]:
+def _sweep(td: Path, tree_min: str, budget: int = 105,
+           lab: bool = False) -> tuple[int, str, str, str]:
     import os  # noqa: PLC0415
     import shutil  # noqa: PLC0415
     import subprocess  # noqa: PLC0415
@@ -816,6 +869,14 @@ def _sweep(td: Path, tree_min: str, budget: int = 105) -> tuple[int, str, str, s
                       ("backups/chester-pre-compact-2026-10-20.db", "raw"),
                       ("chester-data/store.csv", "d"), ("state/heartbeat", "hb")):
         (td / rel).write_text(body, encoding="utf-8")
+    if lab:
+        # The Alpha Lab's parts (alpha-lab-2): its ledger beside chester.db, and
+        # the inbox and outbox the sweep copies each way.
+        for d in ("chester-data/inbox/lab", "chester-data/outbox/lab"):
+            (td / d).mkdir(parents=True, exist_ok=True)
+        (td / "repo/data/alpha.db").write_text("alpha", encoding="utf-8")
+        (td / "chester-data/outbox/lab/lab-verdicts-2026-10-17.md").write_text(
+            "v", encoding="utf-8")
     for name, body in (("rclone", FAKE_RCLONE), ("flock", "#!/usr/bin/env bash\nexit 0\n"),
                        ("python", FAKE_PY)):
         f = td / "bin" / name
@@ -927,6 +988,55 @@ def group_budget() -> None:
             bad(f"the budget override: rc {rc}, status {st.strip()!r}")
 
 
+def group_lab_budget() -> None:
+    """Stitching, week of 19 Oct (meeting b): the Alpha Lab's inbox and outbox
+    copies and its alpha-* snapshot prune under the sweep's 105-minute budget."""
+    print(f"\n{LINE}\nLAB BUDGET. The Alpha Lab's sweep parts under the budget "
+          f"(stitching, week of 19 Oct)\n{LINE}")
+    import shutil  # noqa: PLC0415
+    if not shutil.which("bash"):
+        ok("no bash here; the fake-clock nights run where bash exists")
+        return
+    with tempfile.TemporaryDirectory() as d:
+        td = Path(d) / "night"
+        # 1. a normal night with the lab: both prunes, both copies, nothing named.
+        rc, log, st, _ = _sweep(td, "", lab=True)
+        if (rc == 0 and st.startswith("state=ok") and "alpha prune: ok" in log
+                and "start lab-inbox (cap 5m," in log and "lab inbox: ok" in log
+                and "start lab-outbox (cap 5m," in log and "lab outbox: ok" in log
+                and "lab skipped" not in st
+                and (td / "remote" / "db").exists()
+                and any(p.name.startswith("alpha-") for p in (td / "remote" / "db").iterdir())
+                and not (td / "remote" / "data" / "alpha.db").exists()):
+            ok("a normal night: the alpha snapshot goes to db/, its prune runs, the lab "
+               "inbox and outbox copy under their own 5-minute caps, nothing is named")
+        else:
+            bad(f"a normal night with the lab: rc {rc}, status {st.strip()!r}\n"
+                + log[-900:])
+        # 2. a short night: 3 minutes left at the inbox -- its cap is cut to 1m;
+        # the copy takes that minute and the outbox, at 2 left, is skipped, named.
+        rc, log, st, _ = _sweep(td, "db=97", lab=True)
+        if ("start lab-inbox (cap 1m, 3m of the budget left)" in log
+                and "SKIP lab-outbox -- sweep budget spent" in log
+                and "lab skipped: lab-outbox(budget)" in st and rc == 0):
+            ok("with 3 minutes left the lab inbox runs under a 1-minute cap (left less "
+               "2); the outbox, at 2, is skipped and named lab-outbox(budget) in the "
+               "status line, and the sweep still exits 0 -- the lab never touches RC")
+        else:
+            bad(f"a short night: rc {rc}, status {st.strip()!r}\n" + log[-900:])
+        # 3. a spent night: both copies skipped and named; both prunes deferred.
+        rc, log, st, _ = _sweep(td, "db=100", lab=True)
+        if ("SKIP lab-inbox -- sweep budget spent" in log
+                and "lab skipped: lab-inbox(budget) lab-outbox(budget)" in st
+                and "alpha prune: deferred to the next night" in log
+                and "prune: deferred to the next night" in log
+                and "rclone lsf fake:remote/db" not in (td / "rclone.log").read_text()):
+            ok("a spent night: the lab inbox and outbox are skipped and named, and the "
+               "chester and alpha prunes are both deferred to the next night, unlisted")
+        else:
+            bad(f"a spent night: rc {rc}, status {st.strip()!r}\n" + log[-900:])
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -939,6 +1049,7 @@ def main() -> int:
     group_f()
     group_aud1()
     group_budget()
+    group_lab_budget()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

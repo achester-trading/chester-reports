@@ -173,6 +173,24 @@ FS_RC=$?
 printf '%s\n' "$FS_OUT" | tail -20 | sed 's/^/  /' >>"$LOG"
 [[ $FS_RC -ne 0 ]] && log "WARN farside exited $FS_RC -- continuing"
 log "farside: T-1 read done"
+# ---- the Security Master export, for chester-meme (AUD-3b, 15 Oct 2026) ------
+#
+# After the loggers, because the listings logger writes the day's snapshot this
+# reads. First the morning FIGI mapping -- only the symbols new, renamed or not
+# yet mapped, capped so it fits this job -- then the export to chester-meme's
+# contract, validated before it is written ($CHESTER_SM_EXPORT, else under
+# ~/chester-data/export/). chester-meme reads it before its
+# 19:30 scan. Neither step's failure is this run's: each is logged and skipped.
+log "security master: figi + export start"
+SM_OUT="$("$PY" -m altdata.figi map 2>&1)"
+SM_RC=$?
+printf '%s\n' "$SM_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SM_RC -ne 0 ]] && log "WARN figi map exited $SM_RC -- continuing"
+SM_OUT="$("$PY" -m altdata.security_master export 2>&1)"
+SM_RC=$?
+printf '%s\n' "$SM_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SM_RC -ne 0 ]] && log "WARN security_master export exited $SM_RC -- the file was not rewritten"
+log "security master: figi + export done"
 
 # THE BASE-RATE TABLES, AND WHY THERE IS NO SECOND UNIT FOR THEM.
 #

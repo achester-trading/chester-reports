@@ -236,6 +236,10 @@ reports/daily_close_*.html
 # in the way of `git pull --ff-only` on the box.
 reports/dryrun/
 
+# The Alpha Lab's weekly agenda (X-2.4), written by the loop on the box.
+alpha/research/agenda.md
+alpha/research/agenda.json
+
 # AUD-1 item 2c (the data and architecture audit of 14 Oct 2026): secrets, the
 # databases, the archives, and the report outputs the box writes. Nothing here is
 # source; a file these match that is already committed stays committed (git keeps

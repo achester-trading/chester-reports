@@ -39,3 +39,8 @@ xlrd>=2.0,<3.0
 # (libpango-1.0-0, libpangoft2-1.0-0 on Debian/Ubuntu). Without it the report is
 # built, archived and sent exactly as before, and says the PDF was not built.
 weasyprint>=62,<67
+
+# AUD-3b (15 Oct 2026): the Security Master export is validated against
+# chester-meme's docs/interface/security_master.schema.json before it is written;
+# with no validator the export refuses to write.
+jsonschema>=4.18

@@ -120,7 +120,8 @@ def _change(x: dict) -> str:
 # ---------------------------------------------------------------------------
 # The sections
 # ---------------------------------------------------------------------------
-def tape_section(book: dict) -> dict:
+def tape_section(book: dict, vp_windows: Optional[tuple] = ("session",
+                                                          "prior_session")) -> dict:
     items, rows, gaps = [], [], []
     for i in book.get("instruments") or []:
         f = i.get("frame") or {}
@@ -132,7 +133,10 @@ def tape_section(book: dict) -> dict:
             gaps.append(f"{i['label']}: no daily bar for the session")
             continue
         last = f"{f['last']:,.3f}%" if unit == "bp" else f"{f['last']:,.2f}"
-        tested = [lv for lv in i["levels"] if lv.get("status") in ("held", "broke")]
+        # The profile's levels (VP-1) print in their own table below, so the
+        # line's tested levels stay the ones it named before them.
+        tested = [lv for lv in i["levels"] if lv.get("status") in ("held", "broke")
+                  and not lv["type"].startswith("vp_")]
         tail = "; " + ", ".join(f"{lv['label']} {lv['value']:,.2f} {lv['status']}"
                                 for lv in tested[:3]) if tested else ""
         pri = 1 if i["id"] in ("spy", "y10") else 2
@@ -150,10 +154,18 @@ def tape_section(book: dict) -> dict:
         items.insert(0, item("tape:overnight", ol, 1, ol))
         if not i["intraday"]["complete"]:
             gaps.append(f"{i['label']} intraday: {i['intraday']['reason']}")
+    # THE VOLUME PROFILE (VP-1 item 6): the session's value area against the
+    # prior session's, one row per configured instrument, by declared rule.
+    from altdata import bars as bars_mod, volume_profile as vp  # noqa: PLC0415
+    # The Weekly passes None and prints its own, the week against the prior week.
+    units = {t["id"]: t.get("unit") for t in bars_mod.tape()}
+    vpt = (vp.table(book.get("instruments") or [], *vp_windows, units) if vp_windows
+           else {"rows": [], "not_tracked": [], "data": []})
     return {"items": items,
             "table": {"columns": ["Market", "Last", "Session", "Week", "Month"],
                       "rows": rows},
-            "not_tracked": gaps, "charts": ["C1", "C2"],
+            "tables": [{k: vpt[k] for k in ("columns", "rows")}] if vpt["rows"] else [],
+            "not_tracked": gaps + vpt["not_tracked"], "charts": ["C1", "C2"],
             "data": {"levels": [i["row"] for i in book.get("instruments") or []],
                      "level_status": {i["id"]: [{"label": lv["label"],
                                                  "value": lv["value"],
@@ -161,7 +173,8 @@ def tape_section(book: dict) -> dict:
                                                 for lv in i["levels"]]
                                       for i in book.get("instruments") or []},
                      "intraday": {i["id"]: i["intraday"]
-                                  for i in book.get("instruments") or []}}}
+                                  for i in book.get("instruments") or []},
+                     "volume_profile": vpt["data"]}}
 
 
 def mechanics_section(p: dict) -> dict:
@@ -913,13 +926,16 @@ def assemble(built: dict, cfg: dict, prior: Optional[dict],
         for it in b["items"]:
             it["changed"] = bool(prior) and pmarks.get(it["key"]) != it["fingerprint"]
         fp = _fp([(i["key"], i["fingerprint"]) for i in b["items"]]
-                 + [b.get("table")])
+                 + [b.get("table")] + list(b.get("tables") or []))
         unchanged = bool(prior) and pr.get("fingerprint") == fp and sid != "read"
         out.append({"id": sid, "title": sp["title"],
                     "subtitle": sp.get("subtitle"), "depth": depth,
                     "depth_reason": (reason if depth == "deep" and sp.get(deep_key)
                                      else None),
                     "items": b["items"], "table": b.get("table"),
+                    # A section's further tables (VP-1: the close's value-area
+                    # table beside the returns), printed after its table.
+                    "tables": b.get("tables") or [],
                     "charts": b.get("charts") or [], "data": b.get("data") or {},
                     "not_tracked": b.get("not_tracked") or [],
                     "legend": b.get("legend"),
