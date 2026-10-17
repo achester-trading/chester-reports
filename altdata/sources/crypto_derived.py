@@ -51,6 +51,22 @@ fallback row is sampled, never scored):
     calc.froth_z           z-score on a 20-day window, once 90 days of
                            GeckoTerminal store exist
 
+ITEM 49 (digital-49-51b, 17 Oct 2026), from altdata/sources/treasury.py:
+    calc.mnav                    MSTR's market cap over the value of its BTC:
+                                 spot x shares / (BTC held x BTC close), the order's
+                                 definition (basic, not enterprise value); daily,
+                                 for each session with a captured MSTR spot, the
+                                 share count and holdings as of that day, the BTC
+                                 close on the day or within the three before.
+                                 Item 49's one flag reads it at render (at or below
+                                 1.0; the watch line 1.2); nothing else is derived
+    calc.treasury_net_purchases  the month's net BTC bought by the tracked
+                                 treasury companies: holdings at the month's end
+                                 less holdings at the prior month's end, over the
+                                 companies present at both (a snapshot within five
+                                 days of each end); complete months only, so the
+                                 first is November 2026
+
 THE FLAGS, computed and stored, NEVER RENDERED (no block reads a calc.flag_* key;
 tools/validate_crypto_sources.py holds that), gate status "not passed":
     calc.flag_etf_extreme       S-2: the 5-day sum's percentile <= 5 or >= 95
@@ -85,7 +101,7 @@ KEYS = ["calc.stable_share", "calc.funding_agg", "calc.oi_usd", "calc.oi_mcap",
         "calc.leverage_z", "calc.oi_mcap_z", "calc.etf_streak", "calc.etf_5d_pct",
         "calc.dvol_pct_5y", "calc.dvol_pct_full", "calc.dvol_minus_rv30",
         "calc.froth_z", "calc.flag_etf_extreme", "calc.flag_leverage_crowded",
-        "calc.flag_froth"]
+        "calc.flag_froth", "calc.mnav", "calc.treasury_net_purchases"]
 FLAG_KEYS = ["calc.flag_etf_extreme", "calc.flag_leverage_crowded", "calc.flag_froth"]
 GATE_STATUS = "not passed"
 STABLE_CHAINS = ("Ethereum", "Tron", "Solana", "Base")
@@ -212,6 +228,8 @@ def compute(st: Any, as_of: Optional[str] = None, cfg: Optional[dict] = None,
     rows += s2_rows(st, as_of, cfg, now)
     rows += s4_rows(st, as_of, cfg, now)
     rows += s5_rows(st, as_of, cfg, now)
+    rows += mnav_rows(st, as_of, now)
+    rows += net_purchase_rows(st, as_of, now)
     return rows
 
 
@@ -308,6 +326,87 @@ def s4_rows(st: Any, as_of: Optional[str], cfg: dict, now: str) -> list[dict]:
             if rv is not None:
                 rows.append(C.row("calc.dvol_minus_rv30", d, round(dv[d] - rv, 4), now,
                                   SOURCE, coin))
+    return rows
+
+
+def mnav(spot: float, shares: float, holdings: float, btc: float) -> Optional[float]:
+    """The order's mNAV: market cap over the value of the BTC held."""
+    if not (spot and shares and holdings and btc):
+        return None
+    return spot * shares / (holdings * btc)
+
+
+def _asof_value(series: dict[str, float], day: str, back: Optional[int] = None
+                ) -> Optional[float]:
+    ks = [d for d in series if d <= day and (back is None or d >= (
+        dt.date.fromisoformat(day) - dt.timedelta(days=back)).isoformat())]
+    return series[max(ks)] if ks else None
+
+
+def mnav_rows(st: Any, as_of: Optional[str], now: str) -> list[dict]:
+    spot = _series(st, "treasury.mstr_spot", as_of, "MSTR")
+    shares = _series(st, "treasury.mstr_shares", as_of)
+    hold = _series(st, "treasury.btc_holdings", as_of, "MSTR")
+    btc = _series(st, "yfinance.mkt_btc_usd", as_of)
+    rows = []
+    for d, sp in sorted(spot.items()):
+        v = mnav(sp, _asof_value(shares, d), _asof_value(hold, d), _asof_value(btc, d, 3))
+        if v is not None:
+            rows.append(C.row("calc.mnav", d, round(v, 6), now, SOURCE, "MSTR"))
+    return rows
+
+
+def month_end(day: str) -> str:
+    d = dt.date.fromisoformat(day)
+    nxt = (d.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+    return (nxt - dt.timedelta(days=1)).isoformat()
+
+
+def _every_instrument(st: Any, key: str, as_of: Optional[str]) -> list[dict]:
+    """Every instrument's rows as of the cutoff. The store's as_of() reads one
+    instrument (None is the NULL one), so the holdings -- one row per ticker --
+    are read instrument by instrument."""
+    insts = [r[0] for r in st.conn.execute(
+        "SELECT DISTINCT instrument FROM observations WHERE registry_key = ?", (key,))]
+    out: list[dict] = []
+    for inst in insts:
+        out += [dict(r, instrument=inst) for r in st.as_of(key, as_of, inst)]
+    return out
+
+
+def holdings_at(st: Any, as_of: Optional[str], end: str, window: int = 5
+                ) -> dict[str, float]:
+    """Each ticker's newest snapshot within `window` days before `end`."""
+    lo = (dt.date.fromisoformat(end) - dt.timedelta(days=window)).isoformat()
+    out: dict[str, tuple[str, float]] = {}
+    for r in _every_instrument(st, "treasury.btc_holdings", as_of):
+        d = str(r["observed_at"])[:10]
+        if r.get("value_num") is None or not (lo <= d <= end):
+            continue
+        t = r.get("instrument")
+        if t not in out or d > out[t][0]:
+            out[t] = (d, float(r["value_num"]))
+    return {t: v for t, (_, v) in out.items()}
+
+
+def net_purchase_rows(st: Any, as_of: Optional[str], now: str) -> list[dict]:
+    days = sorted({str(r["observed_at"])[:10]
+                   for r in _every_instrument(st, "treasury.btc_holdings", as_of)})
+    if not days:
+        return []
+    today = (as_of or now)[:10]
+    ends = sorted({month_end(d) for d in days})
+    rows = []
+    for e in ends:
+        if e >= today:
+            continue
+        prev = month_end((dt.date.fromisoformat(e).replace(day=1)
+                          - dt.timedelta(days=1)).isoformat())
+        a, b = holdings_at(st, as_of, prev), holdings_at(st, as_of, e)
+        both = set(a) & set(b)
+        if both:
+            rows.append(C.row("calc.treasury_net_purchases", e,
+                              round(sum(b[t] - a[t] for t in both), 4), now, SOURCE))
     return rows
 
 

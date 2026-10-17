@@ -13086,6 +13086,81 @@ metrics:
     description: >-
       S-5 FLAG: 1 when both of a network's froth measures are at z >= +2 the same day, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
 
+  # -------------------------------------------------------------------------
+  # ITEM 49 (digital-49-51b, 17 Oct 2026): the treasury companies (treasury.*),
+  # mNAV and the month's treasury net purchases (calc.*).
+  # -------------------------------------------------------------------------
+  treasury.btc_holdings:
+    source: treasury_companies
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      BTC held by one public treasury company (instrument = its ticker), from BitcoinTreasuries.com's public-companies table (treasuries.bitbo.io), the top 20 by holdings; a snapshot under the pull's UTC day.
+  treasury.mstr_shares:
+    source: treasury_companies
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Strategy's shares outstanding as its latest filing states them (EDGAR XBRL dei:EntityCommonStockSharesOutstanding), filed under the fact's end date. Needs CHESTER_SEC_CONTACT on the box; without it a listed gap.
+  treasury.mstr_spot:
+    source: treasury_companies
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: price
+    long_window: 365d
+    description: >-
+      MSTR's spot from the session's newest captured option chain (MSTR is a watched name): the capture's spot, not the official close; instrument MSTR.
+  calc.mnav:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      Item 49a: MSTR's market cap over the value of its BTC holdings (spot x shares / (BTC held x BTC close)), the order's definition, basic not enterprise value; instrument MSTR. Item 49's one flag reads it at render: at or below 1.0 on the latest capture; the watch line 1.2. No composite weight.
+  calc.treasury_net_purchases:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Item 49b: the month's net BTC bought by the tracked treasury companies, holdings at the month end less the prior month end, over companies present at both; complete months only.
+
 bulk_imports:
 
   fred_macro:

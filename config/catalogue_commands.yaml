@@ -291,6 +291,10 @@ commands:
     domain: crypto
     line: The froth gauge's sample -- GeckoTerminal new and trending pools, DexScreener fallback (Tranche A, CD-7)
     sources: [geckoterminal, dexscreener]
+  altdata.sources.treasury:
+    domain: crypto
+    line: The treasury companies -- holdings, Strategy's share count, MSTR's spot; `show` reads mNAV (item 49)
+    sources: [treasury_companies]
   altdata.sources.paprika:
     domain: crypto
     line: CoinPaprika's global figures -- total crypto market cap and BTC dominance (ruling 2 of 17 Oct)

@@ -210,3 +210,15 @@ blocks:
   z_from: 2026-12-15             # ruling 5: the aggregate's z prints from mid-December
   froth_from: 2027-01-15         # S-5: 90 days of store after a first sample
   watch_triple_window_days: 1825
+
+# ===========================================================================
+# ITEM 49 (digital-49-51b, 17 Oct 2026): the treasury companies.
+# ===========================================================================
+# Holdings from BitcoinTreasuries.com's public-companies table (treasuries.bitbo.io,
+# robots: allowed; no terms page), the top companies by BTC held. Strategy's share
+# count from EDGAR with the repo's contact (CHESTER_SEC_CONTACT); MSTR's spot from
+# the captured chains. www.strategy.com refuses this client (403); bitcointreasuries
+# .net's terms forbid automated extraction -- neither is read.
+treasury:
+  holdings_url: https://treasuries.bitbo.io/
+  top: 20

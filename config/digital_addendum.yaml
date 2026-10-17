@@ -14,14 +14,24 @@
 # phrase until Phase 2 (ST-R6.51b) names one. Never a guess.
 #
 # SESSION-SET values are marked; docs/briefs/6e-digital-notes.md lists them.
-version: 1
+version: 2
 title: "Digital Assets — the week"
 # THE FIRST EDITION is the Weekly of Sun 1 Nov 2026 (its Friday, 30 Oct; the
 # ruling). A Sunday run before it builds the page as a dry run only -- archived
 # under <reports>/dryrun/, not attached, no link line in the Weekly -- which is
 # the order's "the Weekly of 25 Oct renders the addendum as a dry-run page".
 first_edition_week_ending: 2026-10-30
-awaiting: "awaiting Tranche A"
+# PHASE 2 (ST-R6.51b, digital-49-51b, 17 Oct 2026): the panels read Tranche A's
+# series by key. A built series with no row yet prints "awaiting the first pull";
+# a series nobody writes prints "not tracked" with its reason; the dealer-engine
+# items print "awaiting EL-12". Never a blank, never a zero.
+awaiting: "awaiting the first pull"
+# THE LINE BUDGET (SESSION-SET, held by tools/validate_digital_addendum.py): the
+# page's table rows and lines may not grow past Phase 1's count on the full
+# fixture week (52, measured 17 Oct). The panels displace to fit: the tape's four weekly-range lines
+# fold into one, the two undated ahead lines into one, the mNAV cell carries its watch and flag lines, and the "who is
+# buying" table replaces the single treasury cell.
+max_lines: 52
 
 # THE BUDGETS (SESSION-SET). Reading target five minutes (the ruling). Words are
 # every word the page prints -- tables, lines and the read -- at the stack's 250 a
@@ -60,9 +70,9 @@ tape:
     # OI total's instrument NULL is BTC + ETH.
     - {label: "BTC funding, OI-weighted (annualised)", key: calc.funding_agg, instrument: BTC, unit: pct}
     - {label: "ETH funding, OI-weighted (annualised)", key: calc.funding_agg, instrument: ETH, unit: pct}
-    - {label: "Basis (futures over spot)", key: null, unit: pct}
+    - {label: "Basis (futures over spot)", key: null, unit: pct, absent: "not tracked (no basis series in Tranche A)"}
     - {label: "Open interest (BTC + ETH)", key: calc.oi_usd, unit: usd}
-    - {label: "Liquidations", key: null, unit: usd}
+    - {label: "Liquidations", key: null, unit: usd, absent: "not tracked (D-1: no CoinGlass)"}
 
 # SECTION 3, FLOWS. Farside's flows are stored in dollars (Tranche A part 2). The stablecoin supply is stored today (llama.stable_total,
 # CD-1 pulled forward by the crypto basket, 13 Oct); the rest is Tranche A
@@ -70,17 +80,33 @@ tape:
 flows:
   - {label: "BTC ETF net flow, the week", key: farside.btc_total, unit: usd, agg: sum_week}
   - {label: "ETH ETF net flow, the week", key: farside.eth_total, unit: usd, agg: sum_week}
-  - {label: "Exchange net flows", key: null, unit: usd}
+  - {label: "Exchange net flows", key: null, unit: usd, absent: "not tracked (no keyless series within robots)"}
   - {label: "Stablecoin supply, change on the week", key: llama.stable_total, unit: usd, agg: change_week}
-  - {label: "Treasury-company purchases (item 49b)", key: null, unit: btc}
+# THE "WHO IS BUYING" DECOMPOSITION (item 49b, printed beside the ETF flows): the
+# latest complete month, in BTC. ETF net flow is each session's Farside total over
+# that day's BTC close, summed; treasury-company net purchases are
+# calc.treasury_net_purchases; new supply is the blocks mined in the month (the
+# change in mempool.tip_height between the month-end snapshots) times the 3.125
+# BTC subsidy. SESSION-SET: the residual is ETF + treasury less new supply -- what
+# the two buyers took beyond the month's issuance, which came from other holders.
+# A leg with no reading prints "not tracked" and the residual is withheld.
+who_is_buying:
+  subsidy_btc: 3.125
+  min_sessions: 15
+  snapshot_window_days: 3
 
 # SECTION 4, MECHANICS. MSTR's option-implied move to each event date reads the
 # chain store (the watched name's captured chains; daily_cascade/ahead.implied_move).
 mechanics:
   cells:
-    - {label: "Deribit skew and term structure", key: null}
-    - {label: "MSTR mNAV (item 49a; lines 1.2 and 1.0)", key: null}
-    - {label: "Crypto GEX", key: null, absent: "not built (EL-12)"}
+    - {label: "Deribit skew and term structure", key: null, absent: "awaiting EL-12"}
+    - {label: "MSTR mNAV (item 49a; lines 1.2 and 1.0)", key: calc.mnav, instrument: MSTR, panel: mnav}
+    - {label: "Crypto GEX", key: null, absent: "awaiting EL-12"}
+  # ITEM 49's ONE FLAG (Batch 8): mNAV at or below 1.0 on the latest capture
+  # prints, with its date; the watch line 1.2 is printed beside the level. No
+  # composite weight; nothing else is derived from it. Dual percentiles once 60
+  # sessions are stored; before, "percentile from <date>".
+  mnav: {watch: 1.2, flag: 1.0, min_obs: 60}
   implied_moves:
     symbol: MSTR
     dates: [2026-11-11, 2026-11-30]
@@ -89,8 +115,9 @@ mechanics:
 # by hand until then. The froth gauge is CD-7 (Tranche A).
 onchain:
   - {label: "BTC long-term-holder supply share (SR-29)", key: btcdata.lth_supply_share, unit: pct, absent: "not stored: SR-29 is by hand until CD-12 (Tranche C)"}
-  - {label: "Froth gauge (memecoin launches, z)", key: calc.froth_z, unit: z}
-  - {label: "Exchange balances", key: null, unit: btc}
+  - {label: "Froth sample, Solana new pools 24h (unscored)", key: gt.new_pools_24h, instrument: solana, unit: count, absent: "not sampled (GeckoTerminal's robots.txt refuses its API)"}
+  - {label: "Froth sample, Base new pools 24h (unscored)", key: gt.new_pools_24h, instrument: base, unit: count, absent: "not sampled (GeckoTerminal's robots.txt refuses its API)"}
+  - {label: "Exchange balances", key: null, unit: btc, absent: "not tracked (no keyless series within robots)"}
 
 # SECTIONS 6 AND 7, THE X PILOT'S FILES (item 50, Tranche 0), read from the box's
 # inbox after the nightly sweep copies them from Drive (scripts/rclone_sync.sh):

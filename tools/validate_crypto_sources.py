@@ -548,6 +548,7 @@ def main() -> int:
           f"llama --only watch writes the twelve watch series ({len(lrows)} rows)")
 
     part2(cfg)
+    treasury_checks(cfg)
     check(not _SOCKETS, "no connection was attempted")
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
@@ -825,6 +826,47 @@ def part2(cfg: dict) -> None:
     check(all(r_.get("available_at") for r_ in samples),
           f"available_at present on every row the part 2 writers produce "
           f"({len(samples)} checked)")
+
+
+def treasury_checks(cfg: dict) -> None:
+    """Item 49's writer (digital-49-51b, 17 Oct 2026)."""
+    from altdata.sources import treasury as T
+    from altdata import feeds
+    head("N. ITEM 49: THE TREASURY WRITER")
+    html = (FX / "treasury" / "bitbo_public_companies.html").read_text(encoding="utf-8")
+    chains = TD / "chains" / "2026-10-16"
+    chains.mkdir(parents=True, exist_ok=True)
+    (chains / "MSTR_201500.csv").write_text(
+        "expiry,dte,right,strike,bid,ask,last_price,volume,last_trade_date,fetched_at,spot\n"
+        "2026-11-20,35,C,140,10,11,10.5,5,2026-10-16,2026-10-16T20:15:00+00:00,135.24\n",
+        encoding="utf-8")
+    rows, s = T.collect(lambda u: html, lambda u, h: (_ for _ in ()).throw(AssertionError("no UA")),
+                        robots=lambda: (True, ""), user_agent=lambda: None,
+                        chain_base=TD / "chains", today=TODAY, now=NOW)
+    keys = {r["registry_key"] for r in rows}
+    spot = [r for r in rows if r["registry_key"] == "treasury.mstr_spot"]
+    check("treasury.btc_holdings" in keys and spot and spot[0]["value"] == 135.24
+          and spot[0]["observed_at"] == "2026-10-16",
+          "holdings from the table; MSTR's spot from the session's captured chain "
+          "(local files, nothing fetched)")
+    check(any(g[0] == "treasury.mstr_shares" and "CHESTER_SEC_CONTACT" in g[1]
+              for g in s["gaps"]) and "treasury.mstr_shares" not in keys,
+          "without the EDGAR contact the share count is a listed gap, never typed in")
+    rows2, s2 = T.collect(lambda u: (_ for _ in ()).throw(AssertionError("fetched")),
+                          robots=lambda: T.robots_ok(lambda u: "User-agent: *\nDisallow: /\n"),
+                          user_agent=lambda: None, chain_base=TD / "chains",
+                          today=TODAY, now=NOW)
+    check(s2["failed"][0][0] == "holdings" and "refuses" in s2["failed"][0][1]
+          and any(r["registry_key"] == "treasury.mstr_spot" for r in rows2),
+          "a robots refusal stops the holdings read before any fetch; the spot still lands")
+    src = (REPO / "altdata" / "sources" / "treasury.py").read_text(encoding="utf-8")
+    code = src.split('"""', 2)[2]
+    check("strategy.com" not in code and "bitcointreasuries.net" not in code,
+          "strategy.com (403) and bitcointreasuries.net (terms forbid automated "
+          "extraction) are never read")
+    ew = feeds.EXTERNAL_WRITERS
+    check("treasury" in ew and ew.index("treasury") < ew.index("crypto_derived"),
+          "the treasury writer is on the roster, before the derived writer (mNAV)")
 
 
 if __name__ == "__main__":

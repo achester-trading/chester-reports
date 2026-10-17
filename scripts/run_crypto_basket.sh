@@ -61,6 +61,7 @@ step deribit "$PY" -m altdata.sources.deribit
 step farside "$PY" -m altdata.sources.farside
 step gt     "$PY" -m altdata.sources.gt
 step paprika "$PY" -m altdata.sources.paprika
+step treasury "$PY" -m altdata.sources.treasury
 step s1_s3  "$PY" -m altdata.sources.crypto_derived
 step derive "$PY" -m altdata.crypto_basket derive
 log "crypto basket: done"

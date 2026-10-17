@@ -1767,6 +1767,24 @@ sources:
     allowed_reports: [monthly_macro, weekly_tactical]
     implemented_by: altdata/sources/paprika.py
     status: live
+  treasury_companies:
+    name: Public bitcoin treasury companies -- holdings (BitcoinTreasuries.com), Strategy's share count (EDGAR), MSTR's captured spot
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: holdings as the aggregator updates them; the share count per quarterly filing; the spot per captured chain
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Holdings are snapshots under the pull's UTC day (treasuries.bitbo.io; robots
+      allows it; no terms page). The share count is filed under the XBRL fact's end
+      date, read with the repo's EDGAR contact (CHESTER_SEC_CONTACT). The spot is the
+      newest captured MSTR chain's. www.strategy.com refuses this client (403);
+      bitcointreasuries.net's terms forbid automated extraction -- neither is read.
+    license: public web page and SEC filings; cite BitcoinTreasuries.com
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/treasury.py
+    status: live
 
   clevfed_rules:
     name: Federal Reserve Bank of Cleveland -- simple monetary policy rules

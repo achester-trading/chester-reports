@@ -91,6 +91,10 @@ def check(c, m: str) -> None:
         print(f"  FAIL  {m}")
 
 
+def near(a, b, tol=1e-9) -> bool:
+    return a is not None and b is not None and abs(a - b) <= tol * max(1.0, abs(b))
+
+
 def head(t: str) -> None:
     print(f"\n{LINE}\n{t}\n{LINE}")
 
@@ -135,7 +139,7 @@ def seed_store(path: str, *, tranche_a: bool = False, late: bool = False) -> Non
             put("calc.oi_usd", d, 40e9 + 1e9 * i)
             put("farside.btc_total", d, 1e7 * (i - 4))
             put("farside.eth_total", d, -5e6)
-            put("calc.froth_z", d, 1.2)
+            put("gt.new_pools_24h", d, 140.0, inst="solana")
             put("btcdata.lth_supply_share", d, 74.25)
     for i, d in enumerate(DAYS[-15:]):
         put("llama.stable_total", d, 300e9 + 0.5e9 * i)
@@ -357,36 +361,47 @@ def main() -> int:
           "a BTC close revised after the cutoff is not read (point in time)")
 
     # --- C --------------------------------------------------------------------
-    head("C. TWO STATES: AWAITING TRANCHE A, AND THE DATA PRESENT")
-    aw = "awaiting Tranche A"
+    head("C. TWO STATES: ABSENT (AWAITING / NOT TRACKED), AND THE DATA PRESENT")
+    aw = "awaiting the first pull"
     ca = {**cells(ed_a, "tape"), **cells(ed_a, "flows"), **cells(ed_a, "mechanics"),
           **cells(ed_a, "onchain")}
-    tranche = ["BTC implied vol (DVOL)", "ETH implied vol (DVOL)",
-               "BTC funding, OI-weighted (annualised)",
-               "ETH funding, OI-weighted (annualised)",
-               "Basis (futures over spot)", "Open interest (BTC + ETH)", "Liquidations",
-               "BTC ETF net flow, the week", "ETH ETF net flow, the week",
-               "Exchange net flows", "Treasury-company purchases (item 49b)",
-               "Deribit skew and term structure", "MSTR mNAV (item 49a; lines 1.2 and 1.0)",
-               "Froth gauge (memecoin launches, z)", "Exchange balances"]
-    check(all(ca[k]["text"] == aw for k in tranche),
-          f"with no Tranche A rows, all {len(tranche)} Tranche A cells print "
-          f"\"{aw}\"")
+    built = ["BTC implied vol (DVOL)", "ETH implied vol (DVOL)",
+             "BTC funding, OI-weighted (annualised)",
+             "ETH funding, OI-weighted (annualised)",
+             "Open interest (BTC + ETH)", "BTC ETF net flow, the week",
+             "ETH ETF net flow, the week"]
+    check(all(ca[k]["text"] == aw for k in built),
+          f"with no rows, the {len(built)} built series' cells print \"{aw}\"")
+    check(ca["Basis (futures over spot)"]["text"].startswith("not tracked")
+          and ca["Liquidations"]["text"] == "not tracked (D-1: no CoinGlass)"
+          and ca["Exchange net flows"]["text"].startswith("not tracked")
+          and ca["Exchange balances"]["text"].startswith("not tracked"),
+          "a series nobody writes prints \"not tracked\" with its reason")
+    check(ca["Deribit skew and term structure"]["text"] == "awaiting EL-12"
+          and ca["Crypto GEX"]["text"] == "awaiting EL-12",
+          "skew, term structure and crypto GEX print \"awaiting EL-12\"")
+    check(ca["MSTR mNAV (item 49a; lines 1.2 and 1.0)"]["text"].startswith("not tracked (")
+          and "share count" in ca["MSTR mNAV (item 49a; lines 1.2 and 1.0)"]["text"],
+          "mNAV with no inputs prints \"not tracked\" and names what is missing")
+    check(ca["Froth sample, Solana new pools 24h (unscored)"]["text"].startswith("not sampled"),
+          "the froth sample says why it has no sample")
     check(ca["BTC long-term-holder supply share (SR-29)"]["text"].startswith(
         "not stored: SR-29 is by hand"),
-          "SR-29's row gives its own reason (CD-12, Tranche C), not Tranche A")
+          "SR-29's row prints as it does today (Tranche C computes it)")
     check(ca["Stablecoin supply, change on the week"]["text"] == "+$3.5bn",
-          f"the stablecoin supply is stored today and prints its week's change "
+          f"the stablecoin supply prints its week's change "
           f"({ca['Stablecoin supply, change on the week']['text']})")
     html_a = da.render(ed_a)
-    check(html_a.count(aw) >= len(tranche),
-          "the rendered page carries the phrase in every awaiting cell")
+    every = [c for c in ca.values()]
+    check(all(c["text"] not in ("", "—", "0", "$0") for c in every)
+          and html_a.count(aw) >= len(built),
+          "no panel cell is a blank or a zero; the rendered page carries each phrase")
     cb = {**cells(ed_late, "tape"), **cells(ed_late, "flows"), **cells(ed_late, "onchain")}
     check(cb["BTC implied vol (DVOL)"]["text"] == "59.0"
           and cb["Open interest (BTC + ETH)"]["text"] == "$49.0bn"
           and cb["BTC funding, OI-weighted (annualised)"]["text"] == "0.01%"
           and cb["ETH funding, OI-weighted (annualised)"]["text"] == "0.02%",
-          "with Tranche A rows the cells print their figures: DVOL 59.0, OI $49.0bn, "
+          "with the series stored the cells print their figures: DVOL 59.0, OI $49.0bn, "
           "funding 0.01%")
     want_etf = sum(1e7 * (i - 4) for i, d in enumerate(DAYS[-10:]) if SUN <= d <= SAT)
     check(cb["BTC ETF net flow, the week"]["value"] == round(want_etf, 4)
@@ -394,10 +409,8 @@ def main() -> int:
           f"the BTC ETF row is the sum of the week's seven days, stored in dollars "
           f"(${want_etf / 1e6:,.0f}m)")
     check(cb["BTC long-term-holder supply share (SR-29)"]["text"] == "74.25%"
-          and cb["Froth gauge (memecoin launches, z)"]["text"] == "z +1.2",
-          "SR-29's share and the froth gauge print where stored")
-    check(cb["Liquidations"]["text"] == aw and cb["Basis (futures over spot)"]["text"] == aw,
-          "a cell with no named key keeps the phrase until Phase 2 names one")
+          and cb["Froth sample, Solana new pools 24h (unscored)"]["text"] == "140",
+          "SR-29's share and the froth sample print where stored")
 
     # --- D --------------------------------------------------------------------
     head("D. NARRATIVES AND ATTENTION, FROM THE INBOX")
@@ -481,8 +494,10 @@ def main() -> int:
           "the FOMC date comes from the events store")
     check("11 Dec" not in txt,
           "the window is 45 days: 11 Dec is outside the 25 Oct page")
-    check(sum("date not published" in x for x in ah["lines"]) == 2,
-          "S&P DJI and Nasdaq print \"date not published\" with their reasons")
+    check(len(ah["lines"]) == 1 and ah["lines"][0].startswith("Date not published:")
+          and "S&P Dow Jones Indices" in ah["lines"][0] and "Nasdaq" in ah["lines"][0],
+          "S&P DJI and Nasdaq print \"date not published\" with their reasons, one line "
+          "(the Phase 2 line budget)")
     from daily_cascade import ahead
     acfg = ahead.load_config()
     check(acfg["classes"]["crypto_index_event"]["tier"] == 2
@@ -547,7 +562,7 @@ def main() -> int:
     prompt = json.dumps(seen[0]["messages"]) if seen else ""
     check("DIGITAL ASSETS ADDENDUM'S READ" in sysmsg and "at most 120 words" in sysmsg,
           "the existing narrative step, with the addendum's frame")
-    check("yfinance." not in prompt and "awaiting Tranche A" in prompt,
+    check("yfinance." not in prompt and "awaiting the first pull" in prompt,
           "the model sees the page's tables, not the store's keys")
     bad = good.replace(t_rows["BTC"][1], "$71,234")
     ed_b = da.build(ENDING, as_of=AS_OF, db_path=db_a, inbox=TD / "empty-inbox",
@@ -676,9 +691,131 @@ def main() -> int:
     check("mode=ro" in msrc and "INSERT" not in msrc and "write_many" not in msrc,
           "the module writes no store, ledger or register row")
 
+    ed_full = da.build(ENDING, as_of=AS_OF, db_path=db_b, inbox=inbox, narrative=False,
+                       cfg=cfg, **kw)
+    phase2(cfg, {"full": ed_full, "client": client})
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 0 if FAIL == 0 else 1
+
+
+def phase2(cfg: dict, kw: dict) -> None:
+    """ST-R6.51b and items 49a/49b (digital-49-51b, 17 Oct 2026)."""
+    from daily_cascade import digital_addendum as da
+    from altdata.sources import crypto_derived as D, treasury as T
+    from altdata.sources import _crypto as C
+    head("K. ITEM 49a: mNAV, THE WATCH LINE AND THE FLAG")
+    html = (REPO / "tests" / "fixtures" / "treasury" / "bitbo_public_companies.html"
+            ).read_text(encoding="utf-8")
+    hold = T.parse_holdings(html, 20)
+    check(hold[0]["ticker"] == "MSTR" and hold[0]["btc"] == 848250.0 and len(hold) <= 20,
+          f"BitcoinTreasuries.com's table (the real page, trimmed): Strategy holds "
+          f"{hold[0]['btc']:,.0f} BTC, the ticker read from Symbol:Exchange")
+    sh = T.parse_shares(json.loads((REPO / "tests" / "fixtures" / "treasury" /
+                                    "edgar_shares_mstr.json").read_text(encoding="utf-8")))
+    check(sh == ("2026-09-30", 420500000.0, "2026-10-30"),
+          "EDGAR companyconcept (the documented shape): the latest filing's stated "
+          "share count, filed under its end date")
+    spot, shares, held, btc = 135.24, 420.5e6, 848250.0, 81000.0
+    want = spot * shares / (held * btc)
+    check(near(D.mnav(spot, shares, held, btc), want, 1e-12) and abs(want - 0.8277) < 1e-3,
+          f"mNAV reconciles to the hand figure: {spot} x {shares:,.0f} / ({held:,.0f} x "
+          f"{btc:,.0f}) = {want:.4f}")
+    db = str(TD / "mnav.sqlite")
+    from altdata import observations
+    rows = []
+    days = [(dt.date(2026, 10, 12) + dt.timedelta(days=k)).isoformat() for k in range(5)]
+
+    def put(key, d, v, inst=None):
+        rows.append(C.row(key, d, v, f"{d}T22:00:00+00:00", "synthetic", inst))
+    put("treasury.mstr_shares", "2026-09-30", 420.5e6)
+    put("treasury.btc_holdings", days[0], 848250.0, "MSTR")
+    for k, d in enumerate(days):
+        put("yfinance.mkt_btc_usd", d, 81000.0)
+        # 1.01, 1.00, then below
+        target = (1.01, 1.0, 0.9, 0.85, 0.83)[k]
+        put("treasury.mstr_spot", d, target * 848250.0 * 81000.0 / 420.5e6, "MSTR")
+    with observations.ObservationStore(db) as st:
+        st.write_many(rows)
+        out = D.mnav_rows(st, None, AS_OF)
+        mn = {r["observed_at"]: r["value"] for r in out}
+        check(near(mn[days[0]], 1.01, 1e-6) and near(mn[days[1]], 1.0, 1e-6),
+              "calc.mnav per session from the spot, the share count and holdings as of "
+              "that day, and the day's BTC close")
+        # Each session's mNAV knowable that evening (the gate reads it day by day).
+        st.write_many([dict(r, available_at=f"{r['observed_at']}T22:30:00+00:00")
+                       for r in out])
+        c = {"label": "MSTR mNAV", "key": "calc.mnav", "instrument": "MSTR", "panel": "mnav"}
+        at101 = da.mnav_cell(st, c, f"{days[0]}T23:00:00+00:00", cfg)
+        at100 = da.mnav_cell(st, c, f"{days[1]}T23:00:00+00:00", cfg)
+        last = da.mnav_cell(st, c, AS_OF, cfg)
+    check("FLAG" not in at101["text"] and "at or below the 1.2 watch line" in at101["text"],
+          f"at 1.01 no flag prints; the watch line does (\"{at101['text']}\")")
+    check("FLAG: at or below 1 on 13 Oct" in at100["text"],
+          f"at 1.00 the flag prints with its date (\"{at100['text']}\")")
+    check("percentile from" in last["text"] and "0.83" in last["text"],
+          "before 60 sessions: the level and \"percentile from <date>\"")
+
+    head("L. ITEM 49b: WHO IS BUYING")
+    db2 = str(TD / "wib.sqlite")
+    rows = []
+    sept = [(dt.date(2026, 9, 1) + dt.timedelta(days=k)).isoformat() for k in range(30)]
+    for d in sept:
+        put("farside.btc_total", d, 81e6)                       # 1,000 BTC a session at 81,000
+        put("yfinance.mkt_btc_usd", d, 81000.0)
+    put("treasury.btc_holdings", "2026-08-31", 800000.0, "MSTR")
+    put("treasury.btc_holdings", "2026-09-30", 805000.0, "MSTR")
+    put("treasury.btc_holdings", "2026-09-30", 1000.0, "NEW")    # not at both ends
+    put("mempool.tip_height", "2026-08-31", 900000.0)
+    put("mempool.tip_height", "2026-09-30", 904320.0)           # 4,320 blocks
+    with observations.ObservationStore(db2) as st:
+        st.write_many(rows)
+        st.write_many(D.net_purchase_rows(st, "2026-10-17T00:00:00+00:00", "2026-10-16T23:00:00+00:00"))
+        w = da.who_is_buying(st, "2026-10-17T00:00:00+00:00", cfg)
+    d_ = w["data"]
+    check(near(d_["etf"], 30000.0) and near(d_["treasury"], 5000.0)
+          and near(d_["supply"], 4320 * 3.125)
+          and near(d_["residual"], 30000.0 + 5000.0 - 13500.0),
+          f"the decomposition sums: ETF {d_['etf']:,.0f} + treasury {d_['treasury']:,.0f} "
+          f"- new supply {d_['supply']:,.0f} = residual {d_['residual']:,.0f} BTC "
+          f"(a company not at both month ends is left out)")
+    db3 = str(TD / "wib2.sqlite")
+    with observations.ObservationStore(db3) as st:
+        st.write_many([r for r in rows if r["registry_key"] != "mempool.tip_height"])
+        st.write_many(D.net_purchase_rows(st, "2026-10-17T00:00:00+00:00", "2026-10-16T23:00:00+00:00"))
+        w2 = da.who_is_buying(st, "2026-10-17T00:00:00+00:00", cfg)
+    rr = {r[0].split(" (")[0]: r[1] for r in w2["table"]["rows"]}
+    check(w2["data"]["residual"] is None and rr["New supply mined"].startswith("not tracked")
+          and rr["Residual: the two buyers beyond new supply"].startswith("withheld"),
+          "a leg with no reading prints \"not tracked\" and the residual is withheld")
+
+    head("M. THE LINE BUDGET AND THE READ'S AUDITS")
+    full = kw["full"]
+    n = sum(len(t.get("rows") or []) for s_ in full["sections"] for t in s_.get("tables") or []) \
+        + sum(len(s_.get("lines") or []) + len(s_.get("paragraphs") or [])
+              for s_ in full["sections"])
+    check(cfg["max_lines"] == 52 and n <= cfg["max_lines"],
+          f"the panels hold Phase 1's line budget: {n} lines against 52 on the full "
+          f"fixture week")
+    check(full["words"] <= 1100 and full["minutes"] <= 5,
+          f"and the word budget: {full['words']} words, about {full['minutes']} minutes")
+    from daily_cascade import digital_addendum as da_
+    payload = da_.read_payload(full)
+    check(any("Who is buying" in (p.get("table") or "") for p in payload["page"]),
+          "the narrative step's payload carries the computed panels (the read's inputs)")
+    t_rows = {r[0]: r for r in next(s_ for s_ in full["sections"]
+                                    if s_["id"] == "tape")["tables"][0]["rows"]}
+    flagged = (f"Bitcoin closed the week at {t_rows['BTC'][1]}, {t_rows['BTC'][3]} on "
+               f"the week, alongside the mNAV flag for Strategy.")
+    r = da_.write_read(full, cfg, client=kw["client"](flagged, []))
+    check(not r["published"] and "flag" in str(r["reason"]).lower(),
+          f"THE FLAG-WORD AUDIT: a read naming a flag the page does not print is "
+          f"withheld ({str(r['reason'])[:80]})")
+    plain = (f"Bitcoin closed the week at {t_rows['BTC'][1]}, {t_rows['BTC'][3]} on the "
+             f"week and {t_rows['BTC'][4]} over 30 days, alongside ether at "
+             f"{t_rows['ETH'][1]}.")
+    r2 = da_.write_read(full, cfg, client=kw["client"](plain, []))
+    check(r2["published"], f"a read of the page's figures publishes ({r2.get('reason')})")
 
 
 if __name__ == "__main__":

@@ -181,6 +181,10 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # gauge's sample, CoinPaprika's global figures -- all before
                     # the derived writer, which reads them.
                     "deribit", "farside", "gt", "paprika",
+                    # Item 49 (digital-49-51b): treasury holdings, Strategy's
+                    # share count, MSTR's captured spot -- before the derived
+                    # writer, which computes mNAV and net purchases from them.
+                    "treasury",
                     "crypto_derived")
 
 

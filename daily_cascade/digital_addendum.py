@@ -179,6 +179,8 @@ def fmt_unit(v: Optional[float], unit: str) -> str:
         return f"z {v:+.1f}"
     if unit == "btc":
         return f"{v:,.0f} BTC"
+    if unit == "count":
+        return f"{v:,.0f}"
     return f"{v:,.1f}"
 
 
@@ -227,12 +229,14 @@ def tape_section(st, cutoff: str, week_end: str, cfg: dict) -> dict:
         rows.append([c["sym"], fmt_price(bar["close"]), fmt_pct(bar["day_pct"]),
                      fmt_pct(bar["week_pct"]), fmt_pct(bar["month_pct"]),
                      "—" if bar["vol_pct"] is None else f"{bar['vol_pct']:.0f}%"])
-        lines.append(f"{c['sym']}'s week ran {fmt_price(bar['week_low'])} to "
-                     f"{fmt_price(bar['week_high'])} on daily closes, to "
-                     f"{short_date(bar['as_of'])}.")
+        lines.append(f"{c['sym']} {fmt_price(bar['week_low'])} to "
+                     f"{fmt_price(bar['week_high'])} (to {short_date(bar['as_of'])})")
         data.append({"coin": c["sym"], **{k: (None if v is None else round(v, 2))
                                           if isinstance(v, float) else v
                                           for k, v in bar.items()}})
+    # PHASE 2: ONE LINE for the four weekly ranges (the line budget).
+    lines = (["The week's range on daily closes: " + "; ".join(lines) + "."]
+             if lines else [])
     deriv = cells_table(st, cutoff, tc.get("derivatives") or [], cfg, week_end)
     return {"tables": [{"columns": ["Coin", "Close", "Day", "Week", "30 days",
                                     "Realised vol (30d)"], "rows": rows},
@@ -272,14 +276,117 @@ def cell(st, c: dict, cutoff: str, week_end: str, awaiting: str) -> dict:
             "value": round(v, 4), "as_of": pts[-1][0], "key": key}
 
 
+def mnav_cell(st, c: dict, cutoff: str, cfg: dict) -> dict:
+    """ITEM 49's ONE FLAG (Batch 8, item 49): mNAV with the 1.2 watch line and
+    the 1.0 flag line. The flag prints when the latest capture is at or below 1.0,
+    with its date; nothing else is derived from it. Dual percentiles over the
+    series' own history once `min_obs` sessions exist; before, the level and
+    "percentile from <date>". Absent: "not tracked" with the missing input."""
+    m = (cfg.get("mechanics") or {}).get("mnav") or {}
+    watch, flag = float(m.get("watch", 1.2)), float(m.get("flag", 1.0))
+    pts = _pts(st, c.get("key") or "calc.mnav", cutoff, c.get("instrument") or "MSTR")
+    if not pts:
+        missing = [lab for k, inst, lab in (
+            ("treasury.mstr_shares", None, "the share count (EDGAR: CHESTER_SEC_CONTACT)"),
+            ("treasury.btc_holdings", "MSTR", "Strategy's BTC holdings"),
+            ("treasury.mstr_spot", "MSTR", "MSTR's captured spot"))
+            if not st.as_of(k, cutoff, inst)]
+        why = "; ".join(missing) or "no session with every input"
+        return {"label": c["label"], "text": f"not tracked ({why})", "value": None,
+                "as_of": None, "key": "calc.mnav"}
+    d, v = pts[-1]
+    parts = [f"{v:.2f}",
+             f"{'at or below' if v <= watch else 'above'} the {watch:g} watch line"]
+    if v <= flag:
+        parts.append(f"FLAG: at or below {flag:g} on {short_date(d)}")
+    n, need = len(pts), int(m.get("min_obs") or 60)
+    if n >= need:
+        from altdata import derived                              # noqa: PLC0415
+        p5 = derived._pct_in_window(pts, v, dt.date.fromisoformat(cutoff[:10]), 5)  # noqa: SLF001
+        pf = derived._pct_in_window(pts, v, dt.date.fromisoformat(cutoff[:10]), "full")  # noqa: SLF001
+        parts.append(f"{derived._ord(p5['pct'])} percentile over 5 years, "  # noqa: SLF001
+                     f"{derived._ord(pf['pct'])} over its history (n={n})")  # noqa: SLF001
+    else:
+        first = dt.date.fromisoformat(pts[0][0])
+        parts.append(f"percentile from {short_date((first + dt.timedelta(days=int(need * 7 / 5))).isoformat())}")
+    return {"label": c["label"], "text": "; ".join(parts), "value": round(v, 4),
+            "as_of": d, "key": "calc.mnav", "flag": v <= flag}
+
+
 def cells_table(st, cutoff: str, cells: list, cfg: dict, week_end: str) -> dict:
     aw = cfg.get("awaiting") or "awaiting Tranche A"
-    out = [cell(st, c, cutoff, week_end, aw) for c in cells]
+    out = [mnav_cell(st, c, cutoff, cfg) if c.get("panel") == "mnav"
+           else cell(st, c, cutoff, week_end, aw) for c in cells]
     return {"table": {"columns": ["Measure", "Reading", "As of"],
                       "rows": [[x["label"], x["text"],
                                 short_date(x["as_of"]) if x["as_of"] else "—"]
                                for x in out]},
             "data": out}
+
+
+def who_is_buying(st, cutoff: str, cfg: dict) -> dict:
+    """ITEM 49b: the latest complete month's BTC demand by leg -- ETF net flow
+    (each session's Farside total over that day's BTC close), treasury-company
+    net purchases (calc.treasury_net_purchases), new supply (blocks mined x the
+    subsidy) -- and the residual (ETF + treasury - new supply). A leg with no
+    reading prints "not tracked" and the residual is withheld."""
+    wc = cfg.get("who_is_buying") or {}
+    tnp = _pts(st, "calc.treasury_net_purchases", cutoff)
+    # The month: the treasury leg's newest month, else the last complete month.
+    if tnp:
+        end = tnp[-1][0]
+    else:
+        first = dt.date.fromisoformat(cutoff[:10]).replace(day=1)
+        end = (first - dt.timedelta(days=1)).isoformat()
+    start = dt.date.fromisoformat(end).replace(day=1).isoformat()
+    prev_end = (dt.date.fromisoformat(start) - dt.timedelta(days=1)).isoformat()
+    month = dt.date.fromisoformat(end).strftime("%B %Y")
+    legs: dict[str, Optional[float]] = {}
+    why: dict[str, str] = {}
+    flows = [p for p in _pts(st, "farside.btc_total", cutoff) if start <= p[0] <= end]
+    btc = dict(_pts(st, "yfinance.mkt_btc_usd", cutoff))
+    if len(flows) >= int(wc.get("min_sessions") or 15):
+        conv = [v / btc[d] for d, v in flows if btc.get(d)]
+        legs["etf"] = sum(conv) if len(conv) == len(flows) else None
+        if legs["etf"] is None:
+            why["etf"] = "a session without its BTC close"
+    else:
+        legs["etf"] = None
+        why["etf"] = f"{len(flows)} Farside sessions stored for the month"
+    t = next((v for d, v in tnp if d == end), None)
+    legs["treasury"] = t
+    if t is None:
+        why["treasury"] = "no treasury snapshots at both month ends"
+    tip = _pts(st, "mempool.tip_height", cutoff)
+    w = int(wc.get("snapshot_window_days") or 3)
+
+    def near(day):
+        ks = [(d, v) for d, v in tip if d <= day and d >= (
+            dt.date.fromisoformat(day) - dt.timedelta(days=w)).isoformat()]
+        return ks[-1][1] if ks else None
+    a, b = near(prev_end), near(end)
+    legs["supply"] = ((b - a) * float(wc.get("subsidy_btc") or 3.125)
+                      if a is not None and b is not None else None)
+    if legs["supply"] is None:
+        why["supply"] = "no chain-tip snapshots at both month ends"
+    fmt = lambda v: f"{v:+,.0f} BTC"                             # noqa: E731
+    rows = [[f"ETF net flow ({month})", fmt(legs["etf"]) if legs["etf"] is not None
+             else f"not tracked ({why['etf']})"],
+            [f"Treasury-company net purchases ({month})",
+             fmt(legs["treasury"]) if legs["treasury"] is not None
+             else f"not tracked ({why['treasury']})"],
+            [f"New supply mined ({month})", f"{legs['supply']:,.0f} BTC"
+             if legs["supply"] is not None else f"not tracked ({why['supply']})"]]
+    if all(v is not None for v in legs.values()):
+        res = legs["etf"] + legs["treasury"] - legs["supply"]
+        rows.append(["Residual: the two buyers beyond new supply", fmt(res)])
+    else:
+        res = None
+        rows.append(["Residual: the two buyers beyond new supply",
+                     "withheld (a leg is not tracked)"])
+    return {"table": {"title": "Who is buying (item 49b)",
+                      "columns": ["Leg", "BTC"], "rows": rows},
+            "data": {"month": end, **legs, "residual": res}}
 
 
 def plain_section(st, cutoff: str, week_end: str, cells: list, cfg: dict,
@@ -629,8 +736,9 @@ def ahead_section(cutoff: str, cfg: dict, cal: dict,
     for e in rows:
         status = "; ".join(x for x in (e.get("time"), e.get("marker")) if x) or "—"
         t_rows.append([short_date(e["date"]), f"{e['body']}: {e['event']}", status])
-    lines = [f"{w['body']}: {w['event']} — date not published ({w['reason']})."
-             for w in cal.get("watch_undated") or []]
+    und = cal.get("watch_undated") or []
+    lines = (["Date not published: " + "; ".join(
+        f"{w['body']}, {w['event']} ({w['reason']})" for w in und) + "."] if und else [])
     return {"tables": [{"columns": ["Date", "Event", "Time / status"], "rows": t_rows}],
             "lines": lines,
             "data": {"events": [{"date": e["date"], "event": e["event"],
@@ -779,6 +887,12 @@ def write_read(ed: dict, cfg: dict, *, client=None, model: Optional[str] = None
               + stack_prose.figure_faults(text, figs))
     if len(text.split()) > words:
         faults.append(f"{len(text.split())} words, over the read's {words}")
+    # THE FLAG-WORD AUDIT (Phase 2): the page prints one flag, item 49's mNAV,
+    # and only when it holds; a read may name a flag only when the page prints it.
+    flag_on = any(c.get("flag") for s in ed["sections"]
+                  for c in (s.get("data") or {}).get("cells") or [])
+    if re.search(r"\bflag", text, re.I) and not flag_on:
+        faults.append("the read names a flag the page does not print")
     if faults:
         return {"state": "audit", "published": False,
                 "reason": "withheld: " + "; ".join(faults[:4]), "rejected_text": text}
@@ -876,7 +990,11 @@ def build(ending: str, *, as_of: Optional[str] = None, db_path: Optional[str] = 
         secs["flows"] = plain_section(
             st, cutoff, sat, cfg.get("flows") or [], cfg,
             "ETF totals are Farside's (CD-4); the stablecoin supply is DefiLlama's "
-            "(llama.stable_total), stored since the crypto basket.")
+            "(llama.stable_total); treasury holdings are BitcoinTreasuries.com's "
+            "(treasuries.bitbo.io).")
+        wib = who_is_buying(st, cutoff, cfg)
+        secs["flows"]["tables"].append(wib["table"])
+        secs["flows"]["data"]["who_is_buying"] = wib["data"]
         secs["mechanics"] = mechanics_section(st, cutoff, sat, cfg, chain_base)
         secs["onchain"] = plain_section(
             st, cutoff, sat, cfg.get("onchain") or [], cfg,
