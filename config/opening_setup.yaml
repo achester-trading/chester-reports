@@ -51,3 +51,38 @@ earnings:
   # The reaction: the close before the report date to the close after it, the
   # Weekly's earnings block's own rule (it spans a before-the-open and an
   # after-the-close report alike).
+
+# OS-8 -- the setup profiles, in the Weekly's Mechanics (a45-opening-setup-2).
+profiles:
+  displaces: >-
+    nothing: one four-row table after the most-active names, no chart and no
+    paragraph
+
+# OS-9 -- "Largest OI builds, side unknown", in the 07:00 anchor's mechanics.
+oi_builds:
+  rows: 8
+  tags:
+    earnings_days: 14       # EARNINGS: a report within 14 days
+    extreme_sessions: 21    # 1M HIGH / 1M LOW: within extreme_pct of the 21-session close extreme
+    extreme_pct: 1.0
+    move_sessions: 5        # MOMENTUM / SELLOFF: an 8% move over 5 sessions
+    move_pct: 8.0
+    decile_n_min: 10        # HIGH SKEW, CHEAP VOL, VOL CRUSH: a decile needs 10 stored readings
+  displaces: >-
+    nothing: an eight-row table under the vol-regime lines; the dealer-surface
+    table, the gauge and the ST-10 block keep their budgets
+
+# OS-4 -- the index put-volume proxy, in the anchor (SPY and SPX, one line each).
+index_puts:
+  symbols: [SPY, SPX]
+  displaces: >-
+    nothing: two lines under the OI-build table, labelled "put volume and OI
+    build, no side"
+
+# OS-5 -- the single-name put-volume proxy, in the Weekly.
+single_name_puts:
+  n_min: 5                  # a name's z needs 5 stored sessions
+  displaces: >-
+    nothing: one line and a six-row table after the setup profiles; it feeds
+    nothing but its own rows (OS-5 reaches the overlay only through the intake
+    queue after a ledger)

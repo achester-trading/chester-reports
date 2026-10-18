@@ -2,7 +2,12 @@
 The opening setup, first half (decision D-3 of 18 Oct 2026; a44-opening-setup):
 the elements that need only the dealer engine, the captures and the earnings
 writer. OS-3, the volatility-regime lenses, lives in altdata/vol_event.py's lens
-table.
+table (and, by ruling 2 of 18 Oct, three daily lines here, vol_lines).
+
+THE SECOND HALF (a45-opening-setup-2): OS-8 profiles() the setup profiles (the
+Weekly); OS-9 oi_builds_from_store() "Largest OI builds, side unknown" (the
+anchor); OS-4 index_put_lines() for SPY and SPX (the anchor); OS-5
+single_name_puts() (the Weekly). No side is ever inferred.
 
     gauge(...) / gauge_from_store(prior, cutoff, db_path, computed_dir)
         OS-2, the expected-movement gauge, in the 07:00 anchor's dealer-surface
@@ -421,3 +426,366 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
     return {**r, "consensus": f"{r.get('consensus') or '—'}{txt}",
             "pricing": {"reactions": reacts, "word": word, "median": med,
                         "implied": implied}}
+
+
+# ===========================================================================
+# THE SECOND HALF (a45-opening-setup-2, 18 Oct 2026): OS-8, OS-9, OS-4, OS-5.
+# No score, no weight, NO SIDE: the OI-build table is "Largest OI builds, side
+# unknown" and never infers who bought; the put-volume measures are "put volume
+# and OI build, no side" and feed nothing but their own rows.
+# ===========================================================================
+NO_SIDE = "put volume and OI build, no side"
+OI_TITLE = "Largest OI builds, side unknown"
+
+
+def _hist_read(st, key: str, now: str, inst: str) -> tuple[Optional[tuple], list]:
+    s = _series(st, key, now, inst)
+    return (s[-1] if s else None), s
+
+
+def _rank_text(s: list[tuple[str, float]], x: float) -> str:
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
+    hist = [v for _, v in s]
+    win = f"{s[0][0]} to {s[-1][0]}, n={len(s)}"
+    r = iv_rank(hist, x) if len(hist) > 1 else None
+    if r is None:
+        return f"one reading ({win})"
+    return f"rank {r:.0f}, {ordinal(iv_pctile(hist, x))} percentile ({win})"
+
+
+def _latest_text(st, key: str, now: str, inst: str) -> Optional[str]:
+    rows = [r for r in st.as_of(key, now, inst) or [] if r.get("value_text")]
+    return rows[-1]["value_text"] if rows else None
+
+
+# ---------------------------------------------------------------------------
+# OS-8 -- the setup profiles
+# ---------------------------------------------------------------------------
+def profiles(st, now: str, names: Optional[list[str]] = None,
+             cfg: Optional[dict] = None) -> dict:
+    """The Weekly's four-row table: the flattest and the steepest 25-delta put
+    skew, the highest and the lowest IV against 20-day realised."""
+    from altdata import chain_metrics as cm, config as acfg     # noqa: PLC0415
+    syms = names or acfg.chain_universe()
+    reads: dict[str, dict] = {}
+    for key in (cm.SKEW_KEY, cm.IV_RV_KEY):
+        for s in syms:
+            last, hist = _hist_read(st, key, now, s)
+            if last:
+                reads.setdefault(key, {})[s] = (last, hist)
+    rows, data = [], []
+    spec = (("Flattest 25-delta put skew", cm.SKEW_KEY, min),
+            ("Steepest 25-delta put skew", cm.SKEW_KEY, max),
+            ("Highest IV against 20-day realised", cm.IV_RV_KEY, max),
+            ("Lowest IV against 20-day realised", cm.IV_RV_KEY, min))
+    for label, key, pick in spec:
+        got = reads.get(key) or {}
+        if not got:
+            rows.append([label, "—", "not stored", "—", "—"])
+            continue
+        s = pick(got, key=lambda n: got[n][0][1])
+        (d, v), hist = got[s]
+        rows.append([label, s, f"{v:+.1f} vol points", _rank_text(hist, v),
+                     _latest_text(st, cm.FRONT_EXP_KEY, now, s) or "not stored"])
+        data.append({"profile": label, "symbol": s, "value": v, "as_of": d, "n": len(hist)})
+    return {"title": "Setup profiles (front month)",
+            "table": {"columns": ["Profile", "Name", "Figure", "Rank and percentile "
+                                  "(window, n)", "Front-month expiry used"], "rows": rows},
+            "lines": [f"Across {len(syms)} captured names (our own captures; SPY, QQQ and "
+                      f"IWM among them): the 25-delta put skew is the solved put IV at -25 "
+                      f"delta less the ATM IV, and IV against realised is the front ATM IV "
+                      f"less 20-session realised, both in vol points. Each rank is over the "
+                      f"name's own stored history, its window and n printed. Report-only."],
+            "paragraph_wanted": False, "data": {"setup_profiles": data},
+            "table_note": "Read from the store; nothing fetched. No chart, no paragraph (OS-8)."}
+
+
+# ---------------------------------------------------------------------------
+# OS-9 -- the largest OI builds, side unknown
+# ---------------------------------------------------------------------------
+def bs_itm_prob(spot: float, strike: float, iv: float, t: float, r: float,
+                right: str) -> Optional[float]:
+    """The Black-Scholes probability of finishing in the money: N(d2) for a call,
+    N(-d2) for a put."""
+    if not (spot and strike and iv and t) or t <= 0 or iv <= 0:
+        return None
+    d2 = (math.log(spot / strike) + (r - 0.5 * iv * iv) * t) / (iv * math.sqrt(t))
+    n = 0.5 * (1.0 + math.erf((d2 if right == "C" else -d2) / math.sqrt(2.0)))
+    return n
+
+
+def _mid(r: dict) -> Optional[float]:
+    b, a = r.get("bid"), r.get("ask")
+    if b is not None and a is not None and a >= b and a > 0:
+        return (a + b) / 2.0
+    return r.get("last_price") or None
+
+
+def decile_tag(hist: list[float], x: float, n_min: int = 10) -> Optional[str]:
+    """"top" / "bottom" when x is in its history's top or bottom decile."""
+    if len(hist) < n_min:
+        return None
+    p = iv_pctile(hist, x)
+    return "top" if p >= 90.0 else "bottom" if p <= 10.0 else None
+
+
+def name_tags(sym: str, day: str, closes: list[float], skew: list[float],
+              ivrv: list[float], earnings_days: list[str], cfg: dict) -> list[str]:
+    """Context tags from our data only (config/opening_setup.yaml oi_builds.tags)."""
+    import datetime as dt                                       # noqa: PLC0415
+    t = cfg["oi_builds"]["tags"]
+    out = []
+    d0 = dt.date.fromisoformat(day)
+    if any(0 < (dt.date.fromisoformat(e) - d0).days <= int(t["earnings_days"])
+           for e in earnings_days):
+        out.append("EARNINGS")
+    c = closes[-int(t["extreme_sessions"]):]
+    if len(c) >= int(t["extreme_sessions"]) and c[-1]:
+        if c[-1] >= max(c) * (1 - t["extreme_pct"] / 100.0):
+            out.append("1M HIGH")
+        elif c[-1] <= min(c) * (1 + t["extreme_pct"] / 100.0):
+            out.append("1M LOW")
+    n = int(t["move_sessions"])
+    if len(closes) > n and closes[-1 - n]:
+        mv = 100.0 * (closes[-1] / closes[-1 - n] - 1.0)
+        if mv >= t["move_pct"]:
+            out.append("MOMENTUM")
+        elif mv <= -t["move_pct"]:
+            out.append("SELLOFF")
+    if skew and decile_tag(skew, skew[-1], int(t["decile_n_min"])) == "top":
+        out.append("HIGH SKEW")
+    if ivrv:
+        dtag = decile_tag(ivrv, ivrv[-1], int(t["decile_n_min"]))
+        if dtag == "bottom":
+            out.append("CHEAP VOL")
+        elif dtag == "top":
+            out.append("VOL CRUSH")
+    return out
+
+
+def builds_for(sym: str, prev: list[dict], cur: list[dict], r: float) -> list[dict]:
+    """Every positive OI change with its premium estimate and ITM probability."""
+    from altdata import chain_metrics as cm                     # noqa: PLC0415
+    ch = [c for c in cm.oi_changes(prev, cur) if c["oi_change"] > 0]
+    if not ch:
+        return []
+    try:
+        solved = cm._solver().solve_chain(cur, r)["rows"]       # noqa: SLF001
+        ivs = {(x["expiry"], x["strike"], x["right"]): x.get("solved_iv") for x in solved}
+    except Exception:                                           # noqa: BLE001
+        ivs = {}
+    out = []
+    for c in ch:
+        mid = _mid(c)
+        iv = ivs.get((c["expiry"], c["strike"], c["right"]))
+        t = (c.get("dte") or 0) / 365.0
+        out.append({"symbol": sym, "expiry": c["expiry"], "strike": c["strike"],
+                    "right": c["right"], "oi_change": c["oi_change"], "mid": mid,
+                    "premium": None if mid is None else mid * c["oi_change"] * 100.0,
+                    "iv": iv, "spot": c.get("spot"), "dte": c.get("dte"),
+                    "p_itm": bs_itm_prob(c.get("spot"), c["strike"], iv, t, r, c["right"])
+                    if iv else None})
+    return out
+
+
+def merge_spreads(builds: list[dict]) -> list[dict]:
+    """Two builds of equal size on one name and expiry print as one line, "spread
+    (legs equal)"; the rest stay single. Largest first."""
+    builds = sorted(builds, key=lambda b: -b["oi_change"])
+    used, out = set(), []
+    for i, b in enumerate(builds):
+        if i in used:
+            continue
+        mate = next((j for j in range(i + 1, len(builds)) if j not in used
+                     and builds[j]["symbol"] == b["symbol"]
+                     and builds[j]["expiry"] == b["expiry"]
+                     and builds[j]["oi_change"] == b["oi_change"]), None)
+        if mate is not None:
+            used.add(mate)
+            out.append({**b, "legs": [b, builds[mate]], "spread": True})
+        else:
+            out.append({**b, "legs": [b], "spread": False})
+    return out
+
+
+def oi_build_table(builds: list[dict], tags: dict[str, list[str]], cfg: dict) -> dict:
+    rows = []
+    for b in merge_spreads(builds)[:int(cfg["oi_builds"]["rows"])]:
+        legs = b["legs"]
+        strike = " / ".join(f"{x['strike']:g}" for x in legs)
+        typ = " / ".join("call" if x["right"] == "C" else "put" for x in legs)
+        prem = [x["premium"] for x in legs if x["premium"] is not None]
+        pit = [x["p_itm"] for x in legs if x["p_itm"] is not None]
+        rows.append([b["symbol"] + (" -- spread (legs equal)" if b["spread"] else ""),
+                     b["expiry"], strike, typ, f"{b['oi_change']:+,.0f}"
+                     + (" each" if b["spread"] else ""),
+                     f"${sum(prem) / 1e6:,.2f}m" if prem else "n/a",
+                     " / ".join(f"{p * 100:.0f}%" for p in pit) if pit else "n/a",
+                     str(b.get("dte")), ", ".join(tags.get(b["symbol"]) or []) or "—"])
+    return {"columns": ["Name", "Expiry", "Strike", "Type", "OI change",
+                        "Premium (est.)", "Chance in the money", "Days", "Context"],
+            "rows": rows}
+
+
+def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
+                         base: Optional[Path] = None, names: Optional[list[str]] = None,
+                         cfg: Optional[dict] = None) -> dict:
+    """OS-9 for the 07:00 anchor: our own two most recent captures per name."""
+    import datetime as dt                                       # noqa: PLC0415
+    from altdata import chain_metrics as cm, config as acfg, events as ev_mod, \
+        observations                                            # noqa: PLC0415
+    cfg = cfg or config()
+    syms = names or acfg.chain_universe()
+    root = Path(base) if base else cm.chain_dir()
+    builds, tags = [], {}
+    try:
+        with observations.ObservationStore(db_path) as st:
+            for s in syms:
+                day = next((d for d in sorted((x.name for x in root.iterdir() if x.is_dir()
+                                               and x.name <= prior), reverse=True)
+                            if cm.latest_capture(d, root, s)), None) if root.is_dir() else None
+                if not day:
+                    continue
+                cur_p, prev_p = cm.latest_capture(day, root, s), cm.previous_capture(day, s, root)
+                if not prev_p:
+                    continue
+                builds += builds_for(s, cm.load_rows(prev_p), cm.load_rows(cur_p),
+                                     acfg.RISK_FREE_RATE)
+                closes = [v for _, v in _series(st, f"yfinance.mkt_{s.lower()}", cutoff)]
+                skew = [v for _, v in _series(st, cm.SKEW_KEY, cutoff, s)]
+                ivrv = [v for _, v in _series(st, cm.IV_RV_KEY, cutoff, s)]
+                tags[s] = (closes, skew, ivrv, day)
+        earn: dict[str, list[str]] = {}
+        try:
+            d0 = dt.date.fromisoformat(prior)
+            with ev_mod.EventStore(db_path) as ev:
+                for r in ev.calendar(prior, (d0 + dt.timedelta(days=15)).isoformat(),
+                                     as_of=cutoff):
+                    if r.get("type") != "earnings":
+                        continue
+                    pl = r.get("payload") or {}
+                    if isinstance(pl, str):
+                        pl = json.loads(pl or "{}")
+                    earn.setdefault(str(pl.get("symbol") or "").upper(), []).append(
+                        str(r["observed_at"])[:10])
+        except Exception:                                       # noqa: BLE001
+            earn = {}
+        tg = {s: name_tags(s, v[3], v[0], v[1], v[2], earn.get(s, []), cfg)
+              for s, v in tags.items()}
+        tab = oi_build_table(builds, tg, cfg)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the OI-build table faulted", exc_info=True)
+        tab = {"columns": [], "rows": []}
+    return {"title": OI_TITLE, "table": tab,
+            "note": ("From our own two most recent captures per name; open interest is "
+                     "each capture's prior settlement, so a build is yesterday's. The "
+                     "premium is the later mid x the OI change x 100; the chance in the "
+                     "money is Black-Scholes on our solver's IV. Who opened the position "
+                     "is not known: side unknown.")}
+
+
+def oi_builds_html(b: Optional[dict]) -> str:
+    from html import escape                                     # noqa: PLC0415
+    if not b or not (b.get("table") or {}).get("rows"):
+        return ""
+    t = b["table"]
+    head = "".join(f"<th style=\"text-align:left;padding:2px 6px\">{escape(c)}</th>"
+                   for c in t["columns"])
+    body = "".join("<tr>" + "".join(f"<td style=\"padding:2px 6px\">{escape(str(c))}</td>"
+                                    for c in r) + "</tr>" for r in t["rows"])
+    return (f"<h3 style=\"font-size:13px;margin:10px 0 4px 0\">{escape(b['title'])}</h3>"
+            f"<table style=\"font-size:11px;border-collapse:collapse\"><thead><tr>{head}"
+            f"</tr></thead><tbody>{body}</tbody></table>"
+            f"<p style=\"font-size:11px;color:#64748b\">{escape(b['note'])}</p>")
+
+
+# ---------------------------------------------------------------------------
+# OS-4 -- the index put-volume proxy (the anchor)
+# ---------------------------------------------------------------------------
+def index_put_lines(st, cutoff: str, symbols=("SPY", "SPX")) -> list[dict]:
+    from altdata import chain_metrics as cm                     # noqa: PLC0415
+    from altdata.numeral_audit import with_ordinals             # noqa: PLC0415
+    out = []
+    for s in symbols:
+        v_last, v_hist = _hist_read(st, cm.PUT_VOL_KEY, cutoff, s)
+        o_last, o_hist = _hist_read(st, cm.PUT_OI_KEY, cutoff, s)
+        if not v_last:
+            out.append({"line": f"{s}: put share of volume not stored; {NO_SIDE}.",
+                        "values": {}, "constants": []})
+            continue
+        vals = {"put_share_volume": v_last[1], "as_of": v_last[0],
+                "volume_percentile": iv_pctile([x for _, x in v_hist], v_last[1]),
+                "volume_n": len(v_hist), "volume_from": v_hist[0][0]}
+        parts = [f"puts {v_last[1]:.1f}% of the session's volume "
+                 f"({_pct_window([x for _, x in v_hist], v_last[1], v_hist)})"]
+        if o_last:
+            vals.update(put_share_oi_build=o_last[1],
+                        build_percentile=iv_pctile([x for _, x in o_hist], o_last[1]),
+                        build_n=len(o_hist), build_from=o_hist[0][0])
+            parts.append(f"puts {o_last[1]:.1f}% of the day's OI build "
+                         f"({_pct_window([x for _, x in o_hist], o_last[1], o_hist)})")
+        else:
+            parts.append("the OI build not stored")
+        out.append({"line": f"{s}, {v_last[0]}: " + "; ".join(parts) + f"; {NO_SIDE}.",
+                    "values": with_ordinals(vals), "constants": []})
+    return out
+
+
+def _pct_window(hist: list[float], x: float, s: list[tuple]) -> str:
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
+    return (f"{ordinal(iv_pctile(hist, x))} percentile, {s[0][0]} to {s[-1][0]}, "
+            f"n={len(s)}")
+
+
+def index_put_lines_from_store(cutoff: str, db_path: Optional[str] = None) -> list[dict]:
+    from altdata import observations                            # noqa: PLC0415
+    try:
+        with observations.ObservationStore(db_path) as st:
+            return index_put_lines(st, cutoff)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the index put lines faulted", exc_info=True)
+        return []
+
+
+# ---------------------------------------------------------------------------
+# OS-5 -- the single-name put-volume proxy (the Weekly)
+# ---------------------------------------------------------------------------
+def single_name_puts(st, now: str, names: Optional[list[str]] = None,
+                     n_min: int = 5) -> dict:
+    """The equal-weighted z across the captured single names of each name's put
+    share of volume against its own history; the three highest and lowest."""
+    from altdata import chain_metrics as cm, config as acfg     # noqa: PLC0415
+    syms = names or list(acfg.SINGLE_NAMES)
+    zs = []
+    for s in syms:
+        last, hist = _hist_read(st, cm.PUT_VOL_KEY, now, s)
+        xs = [v for _, v in hist]
+        if not last or len(xs) < n_min:
+            continue
+        m = statistics.fmean(xs)
+        sd = statistics.stdev(xs)
+        if sd:
+            zs.append({"symbol": s, "share": last[1], "z": (last[1] - m) / sd, "n": len(xs),
+                       "from": hist[0][0], "to": hist[-1][0]})
+    if not zs:
+        return {"title": "Single-name put share of volume", "table": None,
+                "lines": [f"Single-name put share of volume: awaiting (no name has {n_min} "
+                          f"stored sessions); {NO_SIDE}."],
+                "paragraph_wanted": False, "data": {"single_name_puts": []}}
+    ew = statistics.fmean(z["z"] for z in zs)
+    lo, hi = min(z["from"] for z in zs), max(z["to"] for z in zs)
+    ns = sorted(z["n"] for z in zs)
+    srt = sorted(zs, key=lambda z: -z["z"])
+    pick = srt[:3] + [z for z in srt[-3:] if z not in srt[:3]]
+    rows = [[z["symbol"], f"{z['share']:.1f}%", f"{z['z']:+.2f}",
+             f"{z['from']} to {z['to']}, n={z['n']}"] for z in pick]
+    return {"title": "Single-name put share of volume",
+            "table": {"columns": ["Name", "Put share of volume", "z against its own history",
+                                  "Window, n"], "rows": rows},
+            "lines": [f"Equal-weighted z of the put share of volume across {len(zs)} captured "
+                      f"single names: {ew:+.2f} (each name against its own history, {lo} to "
+                      f"{hi}, n={ns[0]} to {ns[-1]} sessions); {NO_SIDE}."],
+            "paragraph_wanted": False,
+            "data": {"single_name_puts": zs, "equal_weighted_z": ew},
+            "table_note": ("The three highest and the three lowest names. Report-only: this "
+                           "feeds nothing but its own rows (OS-5).")}

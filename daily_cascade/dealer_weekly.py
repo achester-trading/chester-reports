@@ -119,6 +119,15 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
                                "paragraph_wanted": False})
     if most:
         out["subsections"].append(most)
+    # OS-8 and OS-5 (a45-opening-setup-2): the setup profiles and the single-name
+    # put share, no side; report-only, no chart, no paragraph.
+    for build, why in ((lambda: opening_setup.profiles(st, cutoff), "the setup profiles"),
+                       (lambda: opening_setup.single_name_puts(st, cutoff),
+                        "the single-name put share")):
+        try:
+            out["subsections"].append(build())
+        except Exception:                                       # noqa: BLE001
+            out["not_tracked"].append(f"{why}: its table faulted")
     # EL-5: THE STATE VECTOR, one row per session (the 16:10 capture's), read
     # from the store; numbers only.
     from altdata import state_vector as sv                      # noqa: PLC0415

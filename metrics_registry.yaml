@@ -6250,6 +6250,71 @@ metrics:
     added_date: "2026-10-18"
     description: >-
       One name's front-month at-the-money implied volatility, percent: the nearest third-Friday expiry at least 7 days out (else the first expiry that far out), solved from mid prices by tools/iv_solver.py as SPY's 30-day figure is. OS-10, report-only (a44-opening-setup).
+  chain.skew_25d_put:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's front-month 25-delta put skew, in vol points: the solved put IV at -25 delta (Black-Scholes delta on each put's solved IV) less the ATM IV, on the expiry chain.front_expiry names. OS-8 and OS-9's HIGH SKEW tag: report-only (a45-opening-setup-2).
+  chain.iv_minus_rv20:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's front-month ATM IV less its 20-session close-to-close realised vol, in vol points. OS-8 and OS-9's CHEAP VOL / VOL CRUSH tags: report-only (a45-opening-setup-2).
+  chain.front_expiry:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The front-month expiry the skew and IV readings used, with its method (third Friday, or nearest): the nearest third Friday at least 7 days out, session-set (a45-opening-setup-2).
+  chain.put_share_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's puts' share of the session's options volume, percent, from its last capture (SPY, SPX and every captured name). Put volume and OI build, no side: OS-4 and OS-5, feeding nothing but their own rows (a45-opening-setup-2).
+  chain.put_share_oi_build:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's puts' share of the day's positive open-interest build, percent, between its two most recent captures. Put volume and OI build, no side: OS-4, feeding nothing but its own row (a45-opening-setup-2).
   chain.spy_put_call_volume:
     source: spy_chain_capture
     mechanism_group: dealer_chain_derived
@@ -15206,6 +15271,8 @@ series_kinds:
   yfinance.mkt_move: volatility
   chain.spy_atm_iv_30d: volatility
   chain.atm_iv_front: volatility
+  chain.skew_25d_put: volatility
+  chain.iv_minus_rv20: volatility
   calc.vol_spy_realized_20d: volatility
   yfinance.mkt_spy: price
   yfinance.mkt_dxy: price

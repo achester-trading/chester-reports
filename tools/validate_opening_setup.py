@@ -25,6 +25,9 @@ group OS-3. On fixtures; no network, no model, no live store.
   E  THE RULINGS ON THE A44 REPORT: the three vol-regime lines every day (level,
      percentile, window, as-of; the numeral audit); "of 17 captured names"; no
      pre-market line while the ES conversion runs only SPY to ES.
+  F  THE SECOND HALF: OS-8 profiles, OS-9 OI builds (the premium and the chance
+     in the money by hand, the spread rule, each tag fired and silent), OS-4 and
+     OS-5 put shares by hand; the budgets; no score, weight or side word.
 
     python tools/validate_opening_setup.py
 """
@@ -355,9 +358,213 @@ def group_e() -> None:
           "(listed in the notes)")
 
 
+SIDE_WORDS = re.compile(r"\b(bought|sold|buyers?|sellers?|bullish|bearish|long|short|"
+                        r"opened by|bet|bets|hedger|speculator)\b", re.I)
+
+
+class _FakeSolver:
+    """The chain solver's shape, every contract at 20% (the hand figures' IV)."""
+    @staticmethod
+    def solve_chain(rows, r):
+        return {"rows": [{**x, "solved_iv": 0.20} for x in rows], "expiries": {}}
+
+
+def _csv(path: Path, rows: list[tuple]) -> None:
+    cols = ["expiry", "dte", "right", "strike", "bid", "ask", "last_price", "volume",
+            "open_interest", "fetched_at", "spot"]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(",".join(cols) + "\n")
+        for r in rows:
+            fh.write(",".join(str(x) for x in r) + "\n")
+
+
+def group_f() -> None:
+    head("F. THE SECOND HALF: OS-8, OS-9, OS-4, OS-5 (a45-opening-setup-2)")
+    from altdata import chain_metrics as cm, numeral_audit as NA, observations
+    from daily_cascade import opening_setup as OS, stack
+    cfg = OS.config()
+    # --- the arithmetic the four share -------------------------------------
+    t = 30 / 365
+    d2 = (math.log(100 / 105) + (0.04 - 0.5 * 0.2 * 0.2) * t) / (0.2 * math.sqrt(t))
+    hand = 0.5 * (1 + math.erf(d2 / math.sqrt(2)))
+    check(close(OS.bs_itm_prob(100, 105, 0.20, t, 0.04, "C"), hand, 1e-12)
+          and close(hand, 0.2056, 1e-3)
+          and close(OS.bs_itm_prob(100, 105, 0.20, t, 0.04, "P"), 1 - hand, 1e-12),
+          f"the chance in the money by hand: a 105 call on 100 at 20% IV, 30 days, 4%: "
+          f"N(d2) = {hand:.4f}; the put is 1 less it")
+    cur = [{"right": "P", "volume": 300.0}, {"right": "C", "volume": 200.0}]
+    chg = [{"right": "P", "oi_change": 200.0}, {"right": "C", "oi_change": 100.0},
+           {"right": "P", "oi_change": -50.0}]
+    ps = cm.put_shares(cur, chg)
+    check(close(ps["put_share_volume"], 60.0) and close(ps["put_share_oi_build"], 200 / 3),
+          "the put shares by hand: 300 of 500 in volume is 60.0%; 200 of a positive build "
+          "of 300 is 66.7% (a fall in OI is not a build)")
+    a = math.log(1.01)
+    cl = [100.0]
+    for i in range(20):
+        cl.append(cl[-1] * (1.01 if i % 2 == 0 else 1 / 1.01))
+    check(close(cm.realised_20(cl), 100 * a * math.sqrt(20 / 19) * math.sqrt(252), 1e-9)
+          and close(cm.iv_at_delta([(-0.3, 0.25), (-0.2, 0.21)], -0.25), 0.23, 1e-12),
+          "realised vol by hand (alternating 1% moves) and the IV at -25 delta interpolated "
+          "linearly in delta (0.25 and 0.21 either side: 0.23)")
+    # --- OS-9 -----------------------------------------------------------------
+    saved = cm._solver
+    cm._solver = lambda: _FakeSolver                            # noqa: SLF001
+    try:
+        prev = [{"expiry": "2026-11-20", "strike": 105.0, "right": "C", "open_interest": 4000.0}]
+        curr = [{"expiry": "2026-11-20", "strike": 105.0, "right": "C", "open_interest": 5000.0,
+                 "bid": 2.40, "ask": 2.60, "dte": 30, "spot": 100.0, "volume": 900.0}]
+        b = OS.builds_for("N00", prev, curr, 0.04)
+    finally:
+        cm._solver = saved                                      # noqa: SLF001
+    check(len(b) == 1 and close(b[0]["premium"], 250000.0) and close(b[0]["p_itm"], hand, 1e-12)
+          and b[0]["oi_change"] == 1000.0,
+          "a build by hand: OI 4,000 to 5,000 is +1,000; the premium is the 2.50 mid x "
+          "1,000 x 100 = $250,000; its chance in the money the 20.6% above")
+    base = TD / "oi_chains"
+    d_prev, d_cur = "2026-10-15", "2026-10-16"
+    rows_prev, rows_cur = [], []
+    for k in range(10):
+        st_k = 100.0 + 5 * k
+        rows_prev.append(("2026-11-20", 35, "C", st_k, 1.0, 1.2, 1.1, 10, 1000,
+                          "2026-10-15T20:10:00+00:00", 100.0))
+        add = 500 if k in (3, 4) else 100 * (k + 1)
+        rows_cur.append(("2026-11-20", 35, "C", st_k, 1.0, 1.2, 1.1, 10, 1000 + add,
+                         "2026-10-16T20:10:00+00:00", 100.0))
+    _csv(base / d_prev / "N00_201000Z.csv", rows_prev)
+    _csv(base / d_cur / "N00_201000Z.csv", rows_cur)
+    cm._solver = lambda: _FakeSolver                            # noqa: SLF001
+    try:
+        ob = OS.oi_builds_from_store(d_cur, "2026-10-17T11:00:00+00:00",
+                                     str(TD / "ob.db"), base, names=["N00"])
+    finally:
+        cm._solver = saved                                      # noqa: SLF001
+    rows = ob["table"]["rows"]
+    spread = [r for r in rows if "spread (legs equal)" in r[0]]
+    check(ob["title"] == "Largest OI builds, side unknown" and len(rows) == 8
+          and rows[0][4] == "+1,000" and len(spread) == 1
+          and spread[0][2] == "115 / 120" and spread[0][4] == "+500 each",
+          f"the table: 'Largest OI builds, side unknown', eight rows of ten builds, the "
+          f"largest first (+1,000); the two equal +500 builds on one expiry print as one "
+          f"line, 'spread (legs equal)' ({len(rows)} rows)")
+    txt = json.dumps({"c": ob["table"]["columns"], "r": rows}) + ob["note"]
+    check(not SIDE_WORDS.search(txt.replace("side unknown", "")),
+          f"no side word anywhere in the table or its note ({SIDE_WORDS.findall(txt)})")
+    tg = cfg["oi_builds"]["tags"]
+
+    def tags(**k):
+        z = {"closes": [100.0, 105.0, 95.0, 102.0, 98.0, 101.0, 99.0, 103.0, 97.0, 100.0] * 2
+             + [100.0], "skew": list(range(1, 11))[:4] + [5.0, 6.0, 7.0, 8.0, 9.0, 5.0],
+             "ivrv": [1.0, 2, 3, 4, 6, 7, 8, 9, 10, 5.0], "earn": []}
+        z.update(k)
+        return OS.name_tags("N00", "2026-10-16", z["closes"], z["skew"], z["ivrv"], z["earn"], cfg)
+    up = [100.0] * 15 + [100.0, 101.0, 103.0, 106.0, 108.0, 110.0]
+    down = [100.0] * 15 + [100.0, 99.0, 97.0, 94.0, 92.0, 90.0]
+    fires = {"EARNINGS": tags(earn=["2026-10-28"]),
+             "1M HIGH": tags(closes=up), "1M LOW": tags(closes=down),
+             "MOMENTUM": tags(closes=up), "SELLOFF": tags(closes=down),
+             "HIGH SKEW": tags(skew=list(range(1, 11))),
+             "CHEAP VOL": tags(ivrv=[5.0, 6, 7, 8, 9, 10, 11, 12, 13, 1.0]),
+             "VOL CRUSH": tags(ivrv=list(range(1, 11)))}
+    neutral = tags(earn=["2026-11-05"])
+    check(all(k in v for k, v in fires.items()) and neutral == [],
+          f"each tag fires on a fixture built to fire it (a report in 12 days; within 1% of "
+          f"the 21-session high or low; +10% or -10% in 5 sessions; the top or bottom decile "
+          f"of 10 readings) and none on the neutral fixture (a report in 20 days) "
+          f"({ {k: v for k, v in fires.items() if k not in v} or 'all fire'}, neutral {neutral})")
+    check(OS.decile_tag(list(range(1, 10)), 9.0) is None and tg["decile_n_min"] == 10,
+          "a decile needs ten stored readings: nine read nothing")
+    # --- OS-8 -----------------------------------------------------------------
+    hist = days(12)
+    srows = []
+    for s, sk, ir in (("N00", 2.0, 8.0), ("N01", 6.0, -3.0), ("N02", 4.0, 1.0)):
+        for j, d in enumerate(hist):
+            srows += [obs(cm.SKEW_KEY, d, sk + 0.1 * (j - 11), s),
+                      obs(cm.IV_RV_KEY, d, ir + 0.1 * (j - 11), s)]
+        srows.append({**obs(cm.FRONT_EXP_KEY, hist[-1], "2026-11-20 (third Friday)", s)})
+    with observations.ObservationStore(str(TD / "os8.db")) as st:
+        st.write_many(srows)
+        pr = OS.profiles(st, "2026-10-17T21:00:00+00:00", names=["N00", "N01", "N02"])
+    rr = {r[0]: r for r in pr["table"]["rows"]}
+    check(len(rr) == 4 and rr["Flattest 25-delta put skew"][1] == "N00"
+          and rr["Steepest 25-delta put skew"][1] == "N01"
+          and rr["Highest IV against 20-day realised"][1] == "N00"
+          and rr["Lowest IV against 20-day realised"][1] == "N01"
+          and rr["Flattest 25-delta put skew"][2] == "+2.0 vol points"
+          and rr["Flattest 25-delta put skew"][3] == f"rank 100, 100th percentile ({hist[0]} to {hist[-1]}, n=12)"
+          and rr["Steepest 25-delta put skew"][4] == "2026-11-20 (third Friday)",
+          "the four profiles by hand: the flattest skew N00 at +2.0 and the steepest N01; "
+          "the highest IV against realised N00, the lowest N01; each with its rank, "
+          "percentile, window and n, and the front-month expiry used")
+    # --- OS-4 -----------------------------------------------------------------
+    h10 = days(10)
+    prow = [obs(cm.PUT_VOL_KEY, d, 50.0 + j, "SPY") for j, d in enumerate(h10)]
+    prow += [obs(cm.PUT_OI_KEY, d, 40.0 + j, "SPY") for j, d in enumerate(h10)]
+    with observations.ObservationStore(str(TD / "os4.db")) as st:
+        st.write_many(prow)
+        il = OS.index_put_lines(st, "2026-10-17T21:00:00+00:00")
+    audits = [NA.audit(x["line"], x["values"], extra_values=x["constants"]) for x in il[:1]]
+    check(len(il) == 2
+          and il[0]["line"] == (f"SPY, {h10[-1]}: puts 59.0% of the session's volume (100th "
+                                f"percentile, {h10[0]} to {h10[-1]}, n=10); puts 49.0% of the "
+                                f"day's OI build (100th percentile, {h10[0]} to {h10[-1]}, "
+                                f"n=10); put volume and OI build, no side.")
+          and "SPX: put share of volume not stored; put volume and OI build, no side." == il[1]["line"]
+          and all(x.passed for x in audits),
+          f"the index lines by hand: SPY's put shares with their percentiles, windows and n; "
+          f"SPX absent says so; one line each, labelled no side; the numeral audit "
+          f"({[x.reason() for x in audits if not x.passed] or 'passes'})")
+    # --- OS-5 -----------------------------------------------------------------
+    h6 = days(6)
+    srs, hz = [], []
+    for s, last in (("A", 60.0), ("B", 30.0), ("C", 45.0), ("D", 52.0)):
+        xs = [40.0, 42.0, 44.0, 46.0, 48.0, last]
+        srs += [obs(cm.PUT_VOL_KEY, d, v, s) for d, v in zip(h6, xs)]
+        import statistics as _s
+        hz.append((last - _s.fmean(xs)) / _s.stdev(xs))
+    with observations.ObservationStore(str(TD / "os5.db")) as st:
+        st.write_many(srs)
+        sp = OS.single_name_puts(st, "2026-10-17T21:00:00+00:00", names=["A", "B", "C", "D"])
+    ew = sum(hz) / len(hz)
+    check(close(sp["data"]["equal_weighted_z"], ew, 1e-9)
+          and f"{ew:+.2f}" in sp["lines"][0] and f"{h6[0]} to {h6[-1]}, n=6 to 6" in sp["lines"][0]
+          and sp["lines"][0].endswith("put volume and OI build, no side.")
+          and [r[0] for r in sp["table"]["rows"]] == ["A", "D", "C", "B"],
+          f"the single-name z by hand: each name's last put share against its own six "
+          f"sessions, equal-weighted {ew:+.2f}; the three highest and lowest (four names: "
+          f"A, D, C, B), each with its window and n; labelled no side")
+    # --- the budgets and the rules -------------------------------------------
+    subs = [pr, sp]
+    check(all(x["paragraph_wanted"] is False and not x.get("charts")
+              and stack.section_words(x) == 0 for x in subs)
+          and len(rows) <= cfg["oi_builds"]["rows"] == 8
+          and all(cfg[k]["displaces"] for k in ("profiles", "oi_builds", "index_puts",
+                                                 "single_name_puts")),
+          "the budgets: the Weekly's two tables add no chart and no words; the anchor's "
+          "table holds at eight rows; each element declares what it displaces")
+    allx = json.dumps([pr["table"], sp["table"], [x["line"] for x in il]]).lower()
+    check(not any(w in allx for w in ('"score"', "weight", " score")) or "weighted z" in allx
+          and "weight" not in allx.replace("equal-weighted", ""),
+          "no table carries a score or a weight (the equal-weighted average is OS-5's "
+          "named statistic, not a weight on anything)")
+    check(not SIDE_WORDS.search(allx.replace("no side", "")),
+          "no side word in the profiles, the single-name table or the index lines")
+    pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
+    ren = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
+    dw = (REPO / "daily_cascade" / "dealer_weekly.py").read_text(encoding="utf-8")
+    check("opening_setup.oi_builds_from_store(prior, cutoff, db_path)" in pay
+          and "opening_setup.index_put_lines_from_store(cutoff, db_path)" in pay
+          and "oi_builds_html(payload.get(\"oi_builds\"))" in ren
+          and "opening_setup.profiles(st, cutoff)" in dw
+          and "opening_setup.single_name_puts(st, cutoff)" in dw,
+          "the hooks: the OI builds and the index lines in the anchor's mechanics block; "
+          "the profiles and the single-name table in the Weekly's Mechanics")
+
+
 def main() -> int:
     print(f"{LINE}\nthe opening setup, first half\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

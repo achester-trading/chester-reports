@@ -48,6 +48,12 @@ metrics:
   # OS-10 (a44-opening-setup): the most-active table's two stored series.
   chain.options_volume: "options volume (our own capture)"
   chain.atm_iv_front: "front-month at-the-money implied volatility (our own capture)"
+  # OS-8, OS-4, OS-5 (a45-opening-setup-2).
+  chain.skew_25d_put: "front-month 25-delta put skew (our own capture)"
+  chain.iv_minus_rv20: "front-month IV against 20-day realised (our own capture)"
+  chain.front_expiry: "the front-month expiry used"
+  chain.put_share_volume: "puts' share of options volume (put volume and OI build, no side)"
+  chain.put_share_oi_build: "puts' share of the day's OI build (put volume and OI build, no side)"
   fred.ig_oas: "investment-grade credit spreads (OAS)"
   fred.job_openings: "job openings"
   fred.mortgage_30y: "the 30-year mortgage rate"

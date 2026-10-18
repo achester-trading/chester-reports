@@ -278,6 +278,10 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     from . import opening_setup                                 # noqa: PLC0415
     gauge = opening_setup.gauge_from_store(prior, cutoff, db_path)
     vol_regime = opening_setup.vol_lines_from_store(prior, cutoff, db_path)
+    # OS-9 and OS-4 (a45-opening-setup-2): the OI builds, side unknown, and the
+    # index put lines, no side.
+    oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
+    index_puts = opening_setup.index_put_lines_from_store(cutoff, db_path)
 
     warnings: list[str] = []
     if state_obj is None:
@@ -338,5 +342,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "signal_lines": signals,
         "opening_gauge": gauge,
         "vol_regime_lines": vol_regime,
+        "oi_builds": oi_builds,
+        "index_put_lines": index_puts,
         "warnings": warnings,
     }

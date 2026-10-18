@@ -48,6 +48,12 @@ IV_KEY = "chain.spy_atm_iv_30d"
 # OS-10 (a44-opening-setup, 18 Oct 2026): per name, from each session's last capture.
 VOL_KEY = "chain.options_volume"
 FRONT_IV_KEY = "chain.atm_iv_front"
+# OS-8, OS-4, OS-5 (a45-opening-setup-2): per name, from the same captures.
+SKEW_KEY = "chain.skew_25d_put"          # front month: put IV at -25 delta less ATM, vol points
+IV_RV_KEY = "chain.iv_minus_rv20"        # front ATM IV less 20-session realised, vol points
+FRONT_EXP_KEY = "chain.front_expiry"     # the front-month expiry the two used (a label)
+PUT_VOL_KEY = "chain.put_share_volume"   # puts' share of the session's volume, percent
+PUT_OI_KEY = "chain.put_share_oi_build"  # puts' share of the day's positive OI build, percent
 NAMES_SOURCE = "chain_capture"
 PC_KEY = "chain.spy_put_call_volume"
 SOURCE = "spy_chain_capture"
@@ -87,6 +93,7 @@ def load_rows(path: Path) -> list[dict]:
                         "bid": _f(r.get("bid")), "ask": _f(r.get("ask")),
                         "last_price": _f(r.get("last_price")),
                         "volume": _f(r.get("volume")) or 0.0,
+                        "open_interest": _f(r.get("open_interest")),
                         "last_trade_date": r.get("last_trade_date"),
                         "fetched_at": r.get("fetched_at"), "spot": _f(r.get("spot"))})
     return out
@@ -181,6 +188,42 @@ def third_friday(d: dt.date) -> dt.date:
     return first + dt.timedelta(days=(4 - first.weekday()) % 7 + 14)
 
 
+def _ec():
+    tools = str(REPO / "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import exposure_compute                                     # noqa: PLC0415
+    return exposure_compute
+
+
+def iv_at_delta(points: list[tuple[float, float]], target: float) -> Optional[float]:
+    """IV at `target` delta, linear in delta between the points either side."""
+    pts = sorted(points)
+    for (d0, v0), (d1, v1) in zip(pts, pts[1:]):
+        if d0 <= target <= d1 and d1 > d0:
+            return v0 + (target - d0) / (d1 - d0) * (v1 - v0)
+    return None
+
+
+def put_skew_25d(solved: list[dict], spot: float, dte: float, atm_iv: float,
+                 r: float) -> Optional[float]:
+    """The 25-delta put skew, vol points: the solved put IV at -0.25 delta (Black-
+    Scholes delta from the engine's bs_greeks on each put's solved IV) less the
+    ATM IV, on one expiry."""
+    ec = _ec()
+    t = max(float(dte or 0), 0.0) / 365.0
+    pts = []
+    for x in solved:
+        iv, k = x.get("solved_iv"), x.get("strike")
+        if x.get("right") != "P" or not iv or not k:
+            continue
+        g = ec.bs_greeks(spot, k, iv, t, r, "P")
+        if g:
+            pts.append((g["delta"], iv))
+    v = iv_at_delta(pts, -0.25)
+    return None if v is None or not atm_iv else 100.0 * (v - atm_iv)
+
+
 def front_month_iv(rows: list[dict], min_dte: int = 7,
                    r: Optional[float] = None) -> Optional[dict]:
     """The front month's ATM IV, percent: the nearest third-Friday expiry at least
@@ -201,8 +244,52 @@ def front_month_iv(rows: list[dict], min_dte: int = 7,
         return None
     e, m = pick
     iv = expiry_atm_iv(by_exp.get(e) or [], m["forward"])
-    return None if not iv else {"iv_pct": round(100.0 * iv, 3), "expiry": e,
-                                "dte": m.get("dte"), "method": method}
+    if not iv:
+        return None
+    spot = next((x["spot"] for x in rows if x.get("spot")), None)
+    skew = (put_skew_25d(by_exp.get(e) or [], spot, m.get("dte"), iv, rate)
+            if spot else None)
+    return {"iv_pct": round(100.0 * iv, 3), "expiry": e, "dte": m.get("dte"),
+            "method": method, "skew_25d_put": None if skew is None else round(skew, 3)}
+
+
+def previous_capture(day: str, symbol: str, base: Optional[Path] = None) -> Optional[Path]:
+    """The last capture of `symbol` on the latest session directory before `day`."""
+    root = base or chain_dir()
+    if not root.is_dir():
+        return None
+    for d in sorted((x.name for x in root.iterdir() if x.is_dir() and x.name < day),
+                    reverse=True):
+        p = latest_capture(d, root, symbol)
+        if p:
+            return p
+    return None
+
+
+def oi_changes(prev: list[dict], cur: list[dict]) -> list[dict]:
+    """Per contract (expiry, strike, right) present in both captures: the later
+    row and its open-interest change."""
+    before = {(r["expiry"], r["strike"], r["right"]): r.get("open_interest")
+              for r in prev if r.get("open_interest") is not None}
+    out = []
+    for r in cur:
+        k = (r["expiry"], r["strike"], r["right"])
+        if k in before and r.get("open_interest") is not None:
+            out.append({**r, "oi_change": r["open_interest"] - before[k],
+                        "oi_before": before[k]})
+    return out
+
+
+def put_shares(cur: list[dict], changes: list[dict]) -> dict:
+    """OS-4/OS-5: puts' share of the session's volume, and of the day's positive
+    open-interest build, percent; None where a total is zero."""
+    pv = sum(r["volume"] for r in cur if r["right"] == "P")
+    tv = sum(r["volume"] for r in cur)
+    pb = sum(max(c["oi_change"], 0.0) for c in changes if c["right"] == "P")
+    tb = sum(max(c["oi_change"], 0.0) for c in changes)
+    return {"put_share_volume": 100.0 * pv / tv if tv else None,
+            "put_share_oi_build": 100.0 * pb / tb if tb else None,
+            "put_volume": pv, "volume": tv, "put_oi_build": pb, "oi_build": tb}
 
 
 def name_readings(day: str, symbol: str, base: Optional[Path] = None,
@@ -216,6 +303,16 @@ def name_readings(day: str, symbol: str, base: Optional[Path] = None,
     out: dict[str, Any] = {"session": day, "symbol": symbol, "capture": path.name,
                            "fetched_at": rows[0].get("fetched_at") if rows else None,
                            "volume": sum(r["volume"] for r in rows) if rows else None}
+    prev = previous_capture(day, symbol, base)
+    ch = oi_changes(load_rows(prev), rows) if prev else []
+    out["put_shares"] = put_shares(rows, ch) if rows else None
+    out["previous_capture"] = prev.name if prev else None
+    if symbol in config.massive_universe():
+        # SPX and SPCX: volume and put shares only -- their IV stays behind the
+        # solver gate (tools/validate_iv_solver.py), as every other reader's does.
+        out["front"] = None
+        out["iv_reason"] = "pending the solver gate (vendor-only symbol)"
+        return out
     try:
         out["front"] = front_month_iv(rows, min_dte) if rows else None
     except Exception as exc:                                    # noqa: BLE001
@@ -224,10 +321,34 @@ def name_readings(day: str, symbol: str, base: Optional[Path] = None,
     return out
 
 
-def name_rows(rd: dict) -> list[dict]:
+def realised_20(closes: list[float]) -> Optional[float]:
+    """Annualised close-to-close realised vol over the last 20 returns, percent."""
+    c = [x for x in closes if x][-21:]
+    if len(c) < 21:
+        return None
+    r = [math.log(b / a) for a, b in zip(c, c[1:])]
+    m = sum(r) / len(r)
+    return 100.0 * math.sqrt(sum((x - m) ** 2 for x in r) / (len(r) - 1)) * math.sqrt(252)
+
+
+def name_rows(rd: dict, rv20: Optional[float] = None) -> list[dict]:
     avail, out = rd.get("fetched_at"), []
     if not avail:
         return out
+    f = rd.get("front") or {}
+    base = {"instrument": rd["symbol"], "observed_at": rd["session"], "available_at": avail,
+            "source": NAMES_SOURCE}
+    if f.get("skew_25d_put") is not None:
+        out.append({**base, "registry_key": SKEW_KEY, "value": f["skew_25d_put"]})
+    if f.get("iv_pct") is not None and rv20 is not None:
+        out.append({**base, "registry_key": IV_RV_KEY, "value": round(f["iv_pct"] - rv20, 3)})
+    if f.get("expiry"):
+        out.append({**base, "registry_key": FRONT_EXP_KEY,
+                    "value": f"{f['expiry']} ({f.get('method')})"})
+    ps = rd.get("put_shares") or {}
+    for key, k in ((PUT_VOL_KEY, "put_share_volume"), (PUT_OI_KEY, "put_share_oi_build")):
+        if ps.get(k) is not None:
+            out.append({**base, "registry_key": key, "value": round(ps[k], 3)})
     if rd.get("volume") is not None:
         out.append({"registry_key": VOL_KEY, "instrument": rd["symbol"],
                     "observed_at": rd["session"], "available_at": avail,
@@ -242,25 +363,30 @@ def name_rows(rd: dict) -> list[dict]:
 def record_names(day: str, store=None, base: Optional[Path] = None,
                  symbols: Optional[list[str]] = None) -> dict:
     """OS-10: every captured name's two readings for the session. Never raises."""
-    syms = symbols or config.chain_universe()
+    syms = symbols or (config.chain_universe() + config.massive_universe())
     out: dict[str, Any] = {"session": day, "names": {}, "written": 0}
     rows: list[dict] = []
-    for sym in syms:
-        try:
-            rd = name_readings(day, sym, base)
-        except Exception as exc:                                # noqa: BLE001
-            rd = {"error": f"{type(exc).__name__}: {exc}"[:160]}
-        out["names"][sym] = {k: rd.get(k) for k in ("volume", "front", "reason", "error")}
-        if "error" not in rd:
-            rows += name_rows(rd)
-    if rows:
-        own = store is None
-        st = store or observations.ObservationStore()
-        try:
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        for sym in syms:
+            try:
+                rd = name_readings(day, sym, base)
+                cl = [float(r["value_num"]) for r in
+                      st.as_of(f"yfinance.mkt_{sym.lower()}", f"{day}T23:59:59+00:00") or []
+                      if r.get("value_num") is not None and str(r["observed_at"])[:10] <= day]
+                rv = realised_20(cl)
+            except Exception as exc:                            # noqa: BLE001
+                rd, rv = {"error": f"{type(exc).__name__}: {exc}"[:160]}, None
+            out["names"][sym] = {k: rd.get(k) for k in ("volume", "front", "put_shares",
+                                                         "reason", "error")}
+            if "error" not in rd:
+                rows += name_rows(rd, rv)
+        if rows:
             st.write_many(rows)
-        finally:
-            if own:
-                st.close()
+    finally:
+        if own:
+            st.close()
     out["written"] = len(rows)
     return out
 

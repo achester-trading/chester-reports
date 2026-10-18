@@ -350,6 +350,8 @@ def render(payload: dict, delivery: Optional[dict] = None,
 {exposure_block(payload)}
 {opening_setup.gauge_html(payload.get("opening_gauge"))}
 {opening_setup.vol_lines_html(payload.get("vol_regime_lines"))}
+{opening_setup.oi_builds_html(payload.get("oi_builds"))}
+{opening_setup.vol_lines_html(payload.get("index_put_lines"))}
 
 <h2 style="{H2}">Prior close &mdash; pin verdicts</h2>
 {pin_table(payload)}
