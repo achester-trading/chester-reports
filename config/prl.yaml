@@ -1,0 +1,76 @@
+# THE PRL DATA LAYER (ST-13, signal-triage Tranche 5; st-t5-prl, 18 Oct 2026).
+# Constants from the order (docs/change-order-signal-triage-2026-09-25.md 2.7 and
+# Appendix E), each with where it comes from. Read by altdata/prl.py,
+# altdata/sources/coingecko.py and altdata/sources/pearl_explorer.py. Watch-level
+# rights only (MW-2): nothing here feeds a composite, an overlay, a dial or a
+# trigger; D6 is the one narrow flag.
+version: prl-v1
+
+# The instrument, by its Security Master entry (G-24): resolved by its
+# CoinGecko id, never by a ticker (MW-1).
+instrument: {crypto_id: "coingecko:pearl-2", coingecko_id: "pearl-2"}
+
+# THE EMISSION (Appendix E). No halvings.
+emission:
+  max_supply: 2.1e9
+  K: 650226                    # 194 s blocks in four years; half the supply at block K
+  target_seconds: 194
+  genesis_utc: "2026-04-27T09:00:00+00:00"
+  week_one_minted: 121.70e6    # minted by 2026-05-03 06:31 UTC (D2's numerator)
+  # The height estimate's anchor (G-26's fallback): Appendix E's block 113,770 at
+  # 2026-09-15 23:53 UTC, after which block pace matched the target. Estimating
+  # from genesis at 194 s would sit ~50,000 blocks low: the first 40,000 blocks
+  # arrived in 5.9 days. A stored observed height, where one exists, is the
+  # anchor instead (the newest at the cutoff).
+  anchor: {height: 113770, at: "2026-09-15T23:53:00+00:00"}
+
+# THE DERIVED METRICS D1-D6 (2.7.4) and the thesis rule (2.7.5). Initial
+# thresholds; calibrate after 90 days of stored data (2.7.8: January 2027).
+derived:
+  emission_to_volume: {large: 0.5, not_absorbed: 1.0, weeks_above: 4}
+  venue_conc: {improved_below_pct: 60.0}
+  idle_gpu: {difficulty_up_pct: 25.0, price_down_pct: 20.0, window_days: 30}
+  review_days: 7              # the thesis rule's review period: one week
+  # D4/D5 inputs by preference: CoinGecko's (MW-4: the price source of record)
+  # where stored, else the basket's permitted series (config/crypto_basket.yaml),
+  # named in the trace. Circulating supply and the venues are CoinGecko's only.
+  price: [coingecko.prl_price, yfinance.crypto_prl]
+  market_cap: [coingecko.prl_market_cap, llama.mcap_prl]
+  volume: [coingecko.prl_volume_24h]
+  circulating: [coingecko.prl_circulating]
+
+# COINGECKO (MW-4; G-25). Keyless first, through the public endpoints, inside
+# their published rate limit; the Demo key (header x-cg-demo-api-key) is
+# optional and read from the environment only if present -- its NAME is
+# COINGECKO_DEMO_API_KEY; .env is Ari's and is never written by a session.
+coingecko:
+  base: "https://api.coingecko.com/api/v3"
+  demo_base: "https://api.coingecko.com/api/v3"   # the Demo plan's root is the same host
+  key_env: COINGECKO_DEMO_API_KEY
+  key_header: x-cg-demo-api-key
+  endpoints:
+    coin: "/coins/pearl-2"     # market_data: price, cap, 24h volume, circulating
+    tickers: "/coins/pearl-2/tickers"
+  # THE BUDGET: two calls a pull, at least `spacing_seconds` apart; a weekly
+  # pull plus one daily close (MW-4) is 2 x 8 = 16 calls a week. The public
+  # (keyless) endpoints' published limit is of the order of 5-15 calls a minute
+  # and the Demo plan's 30 a minute and 10,000 a month; this budget is three
+  # orders of magnitude inside either.
+  spacing_seconds: 6
+  calls_per_pull: 2
+  user_agent: "chester-reports/1.0 (research logging)"
+
+# THE EXPLORER (MW-4; G-26). explorer.pearlresearch.ai. The JSON endpoint is NOT
+# YET DISCOVERED: on 18 Oct 2026 neither the explorer nor pearlresearch.ai
+# answered from the session's machine (TLS closed on /robots.txt; connections
+# refused), so its robots and terms could not be read and nothing is declared.
+# When an endpoint is found where robots.txt and the site's terms allow it, it
+# is declared here -- the URL and the JSON paths of each field -- with the robots
+# and terms line in the fetcher's docstring. Until then the fetcher reads
+# nothing and the derived layer prints ESTIMATED from the emission formula.
+explorer:
+  host: "https://explorer.pearlresearch.ai"
+  robots: "https://explorer.pearlresearch.ai/robots.txt"
+  json_endpoint: null          # e.g. {url: ".../api/...", height: "path.to.height", difficulty: "...", supply: "...", time: "..."}
+  block_page: null             # the block-page fallback: {url, height_regex, difficulty_regex}
+  user_agent: "chester-reports/1.0 (research logging)"

@@ -104,6 +104,7 @@ PY_VALIDATORS := \
 	tools/validate_6e_rest.py \
 	tools/validate_releases.py \
 	tools/validate_releases_b.py \
+	tools/validate_st_t5_prl.py \
 	tools/validate_digital_addendum.py \
 	tools/validate_crypto_sources.py \
 	tools/validate_audit_3a.py \

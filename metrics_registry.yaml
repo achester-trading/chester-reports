@@ -12966,6 +12966,259 @@ metrics:
     long_window: full
     description: >-
       alternative.me's Crypto Fear & Greed Index, 0 (extreme fear) to 100 (extreme greed), the UTC day's value; full history from 1 Feb 2018 in one call. The publisher's classification is its banding of the value and is not stored.
+  # THE PRL DATA LAYER (ST-13, st-t5-prl, 18 Oct 2026; config/prl.yaml): CoinGecko's
+  # pearl-2 series (switch-gated), the explorer's chain series, and D1-D6 with
+  # the thesis status (altdata/prl.py).
+  coingecko.prl_price:
+    source: coingecko
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: price
+    long_window: full
+    description: >-
+      PRL (pearl-2) in USD, CoinGecko's current price (/coins/pearl-2 market_data), filed under the UTC day of last_updated; MW-4's price source of record. Written only while ENABLED_SOURCES['coingecko'] is on (CoinGecko's terms and the 13 Oct 2026 ruling; Ari's to rule). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  coingecko.prl_market_cap:
+    source: coingecko
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      PRL's market capitalisation in USD, CoinGecko's (/coins/pearl-2). Switch-gated as coingecko.prl_price. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  coingecko.prl_volume_24h:
+    source: coingecko
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      PRL's 24-hour volume in USD across CoinGecko's venues: D4's denominator. Switch-gated as coingecko.prl_price. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  coingecko.prl_circulating:
+    source: coingecko
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      PRL's circulating supply as CoinGecko reports it, in PRL: D3's subtrahend. Switch-gated as coingecko.prl_price. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  coingecko.prl_venue_volume:
+    source: coingecko
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      One venue's converted USD volume for PRL (/coins/pearl-2/tickers); instrument = the venue's market name. D5's input (S3). Switch-gated as coingecko.prl_price. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  coingecko.prl_venues:
+    source: coingecko
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The number of venues CoinGecko's tickers list for PRL (S3). Switch-gated as coingecko.prl_price. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  pearl.chain_height:
+    source: pearl_explorer
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Pearl's chain-tip height from explorer.pearlresearch.ai (MW-4; G-26: the JSON endpoint where declared, else the block page; neither yet discovered). Observed values only; the estimate is calc.prl_height_estimated. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  pearl.chain_difficulty:
+    source: pearl_explorer
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    family: conditions
+    long_window: 365d
+    description: >-
+      The chain tip's difficulty from the explorer (S4; D6's 30-day leg). Unitless. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  pearl.chain_supply:
+    source: pearl_explorer
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The supply the explorer reports, in PRL, where it reports one. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_reward:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The block reward at the height (Appendix E: 2.1e9 x K / ((h + K)(h - 1 + K)), K = 650,226), in PRL (altdata/prl.py). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_height_estimated:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Pearl's height ESTIMATED where the explorer stored none at the cutoff: the newest observed height (else Appendix E's block 113,770 at 2026-09-15 23:53 UTC) stepped at the 194 s target (G-26). Every figure computed from it carries ESTIMATED in its trace. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_supply_code:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      D1, the code supply: 2.1e9 x H / (H + K) at the height H, in PRL (altdata/prl.py). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_overhang:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      D2, the week-one overhang ratio: the 121.70M PRL minted by 2026-05-03 over D1, percent; 38.9% at the 19 Sep baseline. MW-7's promotion test (< 25%). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_supply_gap:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      D3, the supply gap: D1 less CoinGecko's circulating supply, in PRL; 57.7M at baseline. Absent while no circulating supply is stored. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_emission_to_volume:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      D4, emission-to-volume: the day's issuance at the target pace (reward x 86400/194) times price, over 24h volume; above 0.5 issuance is a large share of turnover, above 1.0 the market is not absorbing miner selling. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_venue_conc:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      D5, venue concentration: the top venue's share of the volume CoinGecko's tickers report, percent; ~91% at baseline. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_idle_gpu_flag:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    rights_ceiling: narrow_flag
+    description: >-
+      D6, the idle-GPU flag: 1 when the explorer's difficulty is up more than 25% over 30 days while price is down more than 20% over the same 30 days, else 0. MW-2's ONE narrow flag (Factor I attention, no scoring effect). Initial thresholds; calibrate after 90 days (January 2027).
+  calc.prl_thesis_status:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    rights_ceiling: none
+    description: >-
+      PRL's thesis status by the rule of 2.7.5 -- UNCHANGED / IMPROVED / DETERIORATED -- stored as JSON {status, trace} with the rule's inputs beside its word. An informational label with no decision rights, not a state of the market-state object; overridable by hand.
   blockscout.gas_gwei:
     source: blockscout
     mechanism_group: crypto_network
@@ -16236,6 +16489,8 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  calc.prl_idle_gpu_flag: "units 'boolean': a flag, not a level series (ST-13 D6)"
+  calc.prl_thesis_status: "units 'label': the thesis word and its trace, not a level series (ST-13)"
   fred.mts_deficit: "a monthly flow of either sign: read through calc.deficit_ttm_pct_gdp (6e, the rest)"
   auction.cusip: "units 'label': not a level series"
   base_rate_tables: "tables, not series"

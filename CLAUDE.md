@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-seven code gates (ninety-four Python,
+**`make validate` runs every gate** — ninety-eight code gates (ninety-five Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -362,6 +362,24 @@ clause carries its percentile and z once a consensus is stored; the edition's
 first z says "against the release's own surprise history". Engine 4 reads the
 consensus surprise by name ahead of the naive one (for FOMC, the market-implied
 key). `tools/validate_releases_b.py` holds it.
+
+**The PRL data layer (signal-triage ST-13, Tranche 5; st-t5-prl, 18 Oct 2026).**
+PRL is the Security Master's first `crypto.watch` instrument (SM00118,
+reclassified in place). It is keyed by its CoinGecko id (`crypto_id
+coingecko:pearl-2`, `Master.by_coingecko`) and carries MW-1's fields under
+`watch`. A watch entry keyed by a ticker is refused by `structural()`, and it
+has no FIGI, so the chester-meme export never carries it.
+- `altdata/prl.py` holds Appendix E's emission (`reward`, `supply_code`) and
+  D1-D6 as `calc.prl_*`, with the thesis status and its trace. A height with no
+  explorer read is ESTIMATED, stepped at the 194 s target, never blank.
+- `altdata/sources/coingecko.py` writes NOTHING while
+  `ENABLED_SOURCES["coingecko"]` is off: CoinGecko's terms and the 13 Oct ruling
+  stand until Ari rules. Its optional key is `COINGECKO_DEMO_API_KEY`.
+- `altdata/sources/pearl_explorer.py` reads only a declared endpoint that
+  robots allows (G-26: none discovered yet).
+
+Config is `config/prl.yaml`. Watch-level rights only; nothing renders (ST-14
+renders), and no Daily module names PRL. `tools/validate_st_t5_prl.py` holds it.
 
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a

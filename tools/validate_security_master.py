@@ -768,9 +768,11 @@ def group_m(m: Master) -> None:
           f"EARNINGS_SYMBOLS is exactly the basket's equities by the master "
           f"({len(eq)}; differ {sorted(eq ^ set(yf.EARNINGS_SYMBOLS))})")
     cont = {s: m.resolve(s, "yahoo")["asset_class"] for s in yf.CONTINUOUS_SYMBOLS}
-    check(all(c in ("crypto", "fx") for c in cont.values()),
-          "every CONTINUOUS symbol is crypto or fx by the master (the rule itself "
-          "stays the module's: IDR=X and TRY=X are fx and not continuous)")
+    # ST-13: a crypto.watch coin (PRL) trades round the clock like any coin.
+    check(all(c in ("crypto", "crypto.watch", "fx") for c in cont.values()),
+          "every CONTINUOUS symbol is crypto (a watch coin included) or fx by the "
+          "master (the rule itself stays the module's: IDR=X and TRY=X are fx and "
+          "not continuous)")
     i = yf.instrument("SPY")
     check(i["store_key"] == "yfinance.mkt_spy" and i["asset_class"] == "etf"
           and i["currency"] == "USD" and i["exchange"] == "ARCX" and i["id"] == "SM00001",

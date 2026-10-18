@@ -376,6 +376,14 @@ sources:
     status: retired
     caveats:
       - >-
+        ST-13 (18 Oct 2026): altdata/sources/coingecko.py is built for PRL (pearl-2:
+        price, cap, 24h volume, circulating, tickers), keyless first with the
+        optional Demo key COINGECKO_DEMO_API_KEY, and WRITES NOTHING while
+        altdata.config.ENABLED_SOURCES['coingecko'] is off. The terms read again
+        18 Oct 2026 say "We do not encourage caching or storage of Data" (6.1)
+        and "you are not allowed to duplicate, reproduce, copy, store, derive from
+        or translate any Data" (6.2); the status stays retired until Ari rules.
+      - >-
         RETIRED 13 OCT 2026. Nothing reads CoinGecko now: ZEC's cap moved to
         defillama, and the total crypto cap and ZEC's share of it stopped at their
         last stored values (rows 6-12 Oct 2026 keep this source), because no free
@@ -1653,6 +1661,24 @@ sources:
     allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
     implemented_by: altdata/sources/mempool.py
     status: live
+  pearl_explorer:
+    name: Pearl's block explorer (explorer.pearlresearch.ai)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [crypto_network]
+    geography: [global]
+    latency: the chain tip, read weekly (MW-4)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The tip's own time where the endpoint gives it, else the read's UTC day;
+      available_at is the pull instant. G-26: the JSON endpoint is not yet
+      discovered (unreachable from the session's machine 18 Oct 2026), so robots.txt
+      and the terms are not yet read and nothing is declared; until then the
+      derived layer prints the height ESTIMATED from the emission formula.
+    license: "not yet read (G-26): an endpoint is declared only where robots.txt and the site's terms allow it"
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/pearl_explorer.py
+    status: built
   alternative_me:
     name: alternative.me Crypto Fear & Greed Index
     tier: C
