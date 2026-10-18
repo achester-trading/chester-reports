@@ -88,8 +88,12 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
         vend = fa.stored(st, cutoff, "SPY")
     except Exception:                                           # noqa: BLE001
         vend = {}
-    out["subsections"].append({"title": "Vendor line (FlashAlpha)", "table": None,
-                               "lines": fa.vendor_line(vend, prof),
+    # F-4 (18 Oct 2026): the mechanics table's one vendor row beside the line; from
+    # the day after the plan ends, "vendor: plan ended".
+    day = str(cutoff)[:10]
+    out["subsections"].append({"title": "Vendor line (FlashAlpha)",
+                               "table": fa.mechanics_row(vend, day),
+                               "lines": fa.vendor_line(vend, prof, day=day),
                                "paragraph_wanted": False})
     # EL-5: THE STATE VECTOR, one row per session (the 16:10 capture's), read
     # from the store; numbers only.

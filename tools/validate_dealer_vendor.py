@@ -160,26 +160,33 @@ def group_c() -> None:
           and {r["registry_key"] for r in rows} == set(fa.KEYS.values()),
           "seven dealer.vendor_* rows, observed on the session, available at capture")
     calls = []
+    summ = json.loads((FIX / "flashalpha_summary_SPY_2026-10-16.json").read_text(encoding="utf-8"))
 
     def fake_get(url, key):
+        # F-1 (a43-render): the writer's v2 plan; each endpoint answers its own shape.
         calls.append((url, key == FAKE_KEY))
+        if "/summary" in url:
+            return {"status": 200, "body": summ}
         return {"status": 200, "body": levels if "levels" in url else gex}
     db_path = str(TD / "vendor.db")
     cfg = fa.config()
     with observations.ObservationStore(db_path) as st:
         out = fa.pull(db=st, get=fake_get, cfg=cfg, day="2026-10-16",
-                      quota_path=TD / "q.json")
+                      quota_path=TD / "q.json", blob_dir=TD / "blobs")
         from altdata import session as _s  # noqa: PLC0415
         stored = fa.stored(st, _s.utc_iso(), "SPY")
-    check(out["status"] == "OK" and out["calls"] == 8 and out["written"] == 28
-          and all(k for _, k in calls) and stored["gex"] == 4.1e8,
-          "a run: two calls a symbol for SPY, QQQ, IWM and MSTR, 28 rows, read back")
+    check(out["status"] == "OK" and out["calls"] == 37 and out["written"] > 0
+          and all(k for _, k in calls) and stored["gex"] == -6608741134.0
+          and stored["regime"] == "negative_gamma",
+          "a 16:25 run (writer v2): seven requests a symbol for SPY, QQQ, IWM, SPX and "
+          "MSTR and the two surfaces (no expiry listed, so no GEX by expiry), the "
+          "summary's exposure block read back")
     tight = dict(cfg, daily_call_budget=3)
     with observations.ObservationStore(str(TD / "v2.db")) as st:
         out2 = fa.pull(db=st, get=fake_get, cfg=tight, day="2026-10-16",
-                       quota_path=TD / "q2.json")
+                       quota_path=TD / "q2.json", blob_dir=TD / "blobs")
     check(out2["status"] == "BUDGET" and out2["calls"] == 3
-          and "daily budget of 3 calls is spent" in str(out2["symbols"]),
+          and "daily budget of 3 requests is spent" in str(out2.get("budget_note")),
           "the daily budget refuses the call past it, and says so")
     text = json.dumps([out, out2], default=str)
     check(FAKE_KEY not in text and out["key_configured"] is True,
@@ -188,7 +195,8 @@ def group_c() -> None:
     def boom(url, key):
         raise RuntimeError(f"connection refused for {url}?apikey={key}")
     with observations.ObservationStore(str(TD / "v3.db")) as st:
-        out3 = fa.pull(db=st, get=boom, cfg=cfg, day="2026-10-16", quota_path=TD / "q3.json")
+        out3 = fa.pull(db=st, get=boom, cfg=cfg, day="2026-10-16", quota_path=TD / "q3.json",
+                       blob_dir=TD / "blobs")
     check(FAKE_KEY not in json.dumps(out3, default=str) and out3["written"] == 0,
           "an error carrying the key is redacted before it reaches the summary")
     saved = os.environ.pop("FLASHALPHA_API_KEY")
@@ -207,7 +215,7 @@ def group_d() -> None:
     p = prof()
     o = p["overall"]
     ours_g, ours_d = o["dollar_gamma_per_1pct"], o["dex_raw_notional"]
-    near = {"gex": ours_g * 1.3, "dex": ours_d * 1.10, "flip": o["gamma_flip"] * 1.005,
+    near = {"gex": ours_g * 1.3, "dex": ours_d * 1.10, "flip": o["gamma_flip"] * 1.002,
             "call_wall": o["call_wall_otm"], "put_wall": o["put_wall_otm"], "vex": -1e9,
             "day": "2026-10-16"}
     far = dict(near, gex=ours_g * 2.2, dex=ours_d * 1.25, flip=o["gamma_flip"] * 1.02)
@@ -219,7 +227,7 @@ def group_d() -> None:
     check(cn["DEX, raw-signed ($)"]["flag"] is False and cf["DEX, raw-signed ($)"]["flag"] is True,
           "raw DEX against dex_raw_notional: 10% clears 0.15; 25% flags")
     check(cn["Zero-gamma level"]["flag"] is False and cf["Zero-gamma level"]["flag"] is True,
-          "the flip in percent of spot: 0.5% clears the 1.0 threshold; 2% flags")
+          "the flip in percent of spot: 0.2% clears the 0.5 threshold (F-4); 2% flags")
     check(cn["VEX"]["flag"] is None and "unreconciled" in cn["VEX"]["note"],
           "VEX is never compared and carries its flag")
     line = fa.vendor_line(far, p)

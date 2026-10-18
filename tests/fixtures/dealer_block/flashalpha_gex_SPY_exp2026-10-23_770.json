@@ -1,0 +1,7 @@
+{"symbol": "SPY", "underlying_price": 761.1, "as_of": "2026-10-18T19:21:32.7961248Z",
+ "gamma_flip": 770.250084776463, "net_gex": -746649993.8352712, "net_gex_label": "negative",
+ "strikes": [{"strike": 770, "call_gex": 27595446.138869405, "put_gex": -60029934.6428268,
+              "net_gex": -32434488.5039574, "call_oi": 7165, "put_oi": 3652}],
+ "endpoint_version": "2026.09.30",
+ "data_as_of": {"oi_feed": "2026-10-16T00:00:00Z", "equity_options_feed": "2026-10-17T17:56:04Z"},
+ "_fixture_note": "the 770 strike of the vendor's SPY GEX for the 23 Oct expiry, served 18 Oct 2026 (settled OI of 16 Oct); the rest of the response is not kept; a43-render"}

@@ -1,48 +1,95 @@
-# THE FLASHALPHA VENDOR WRITER (6b part 3; brief v2 sections 5.6 and 8, ruled 16
-# Oct 2026: "the vendor writer is part 3"). Read by altdata/sources/flashalpha.py.
-# Every number is SESSION-SET, with its reason; docs/briefs/6b-dealer-3-notes.md
-# lists them.
-version: flashalpha-writer-v1
+# THE FLASHALPHA VENDOR WRITER (6b part 3; reconfigured by F-1, F-2 and F-4, ruled
+# 18 Oct 2026; a43-render). Read by altdata/sources/flashalpha.py. Every number
+# is SESSION-SET or RULED, with its reason; docs/briefs/a43-render-notes.md lists
+# them. EVERY VALUE IS THE VENDOR'S, stored under source flashalpha, read by no
+# engine, flag, tell, dial or decision: the Weekly's vendor row and the
+# divergence data gate print it beside our own figures, and nothing else reads it.
+version: flashalpha-writer-v2
 
-# The symbols the engine covers and the vendor is asked about. SESSION-SET: the
-# three the close's Mechanics prints (SPY in full, QQQ and IWM one line each), and
-# MSTR, which the MSTR/MSCI event watch (Batch 8 section 5; filing note 7) reads
-# from the store from this writer's first run.
-symbols: [SPY, QQQ, IWM, MSTR]
+# F-4: the plan's end. From the day after it the writer makes no call and the
+# Weekly's vendor row prints "vendor: plan ended".
+plan_ends: "2027-03-31"
 
-# The endpoints. The levels path is the one tools/cross_check.py has read since 4
-# Sep (Basic tier). The GEX path is tools/probe_flashalpha.py's registered path;
-# its response's field names are UNVERIFIED -- the summary endpoint
-# (/v1/exposure/summary) answered 403 "requires the Growth plan" on 17 Oct 2026 --
-# so the parser reads the names below and stores only what it finds, listing the
-# rest as absent.
+# F-1: the symbols. SPX joins (the vendor serves its GEX; ours is pending the
+# solver gate), MSTR stays for the event watch.
+symbols: [SPY, QQQ, IWM, SPX, MSTR]
+
+# F-1: the budget, 60 requests a day (the plan below is 57).
+daily_call_budget: 60
+
+# The endpoints, from the vendor's API documentation (read 18 Oct 2026; auth by
+# the X-Api-Key header). expected_move's path is NOT in the documentation's
+# endpoint list: UNVERIFIED, so the first box run's summary says whether it
+# answered, and an absent response stores nothing.
 endpoints:
+  summary: /v1/stock/{symbol}/summary
   levels: /v1/exposure/levels/{symbol}
+  max_pain: /v1/maxpain/{symbol}
+  expected_move: /v1/exposure/expected-move/{symbol}
+  dex: /v1/exposure/dex/{symbol}
+  vex: /v1/exposure/vex/{symbol}
+  chex: /v1/exposure/chex/{symbol}
+  surface: /v1/surface/{symbol}
   gex: /v1/exposure/gex/{symbol}
+
+# THE PLAN, by slot (ET). 16:25: the full set; 09:45 and 12:30: the summary and
+# levels for three symbols. Blobs are whole responses, one file a request, never
+# store rows.
+slots:
+  "1625":
+    symbols: [SPY, QQQ, IWM, SPX, MSTR]
+    per_symbol: [summary, levels, max_pain, expected_move, dex, vex, chex]
+    blobs: [max_pain, expected_move, dex, vex, chex, surface, gex]
+    surface: [SPY, QQQ]
+    # GEX by single expiry, the nearest N listed expiries (read from the
+    # expected-move or the max-pain response, never guessed).
+    gex_by_expiry: {SPY: 5, SPX: 3}
+  "0945":
+    symbols: [SPY, QQQ, SPX]
+    per_symbol: [summary, levels]
+    blobs: []
+  "1230":
+    symbols: [SPY, QQQ, SPX]
+    per_symbol: [summary, levels]
+    blobs: []
+
+# The blobs' directory, under the checkout's data/ (gitignored, in the units'
+# ReadWritePaths, swept by the backup with the chains).
+blob_dir: data/vendor/flashalpha
+
+# F-2: the ATM IV comparison. ONLY the first listed expiry of 20 DTE or more, and
+# ONLY from the 16:25 capture. Front-expiry vendor IVs are stored (in the blobs)
+# and never compared: on 16 Oct the summary's ATM IV read 33.9% against a 20-day
+# realized 10.5%, and a 1-DTE value read 120%.
+iv_compare:
+  min_dte: 20
+  slot: "1625"
+
+# Field names the parser reads where a response's shape is not fixed by a
+# documented example (the summary's and the levels' are, from the 16 Oct
+# responses); the first box run lists what was absent.
 field_names:
   net_gex: [net_gex, netGex, gex_total, total_gex, gex]
   net_dex: [net_dex, netDex, dex_total, total_dex, dex]
   net_vex: [net_vex, netVex, vex_total, total_vex, vex]
   net_chex: [net_chex, netChex, chex_total, total_chex, chex]
+  max_pain_strike: [max_pain_strike, max_pain, maxPain]
+  pin_probability: [pin_probability, pinProbability, pin_prob]
+  alignment: [dealer_alignment, alignment, alignment_word]
+  pc_oi_ratio: [put_call_oi_ratio, pc_ratio_oi, pcr_oi]
 
-# THE QUOTA. SESSION-SET: 30 calls a day for the box. The Basic plan allows 250
-# a day, shared with the chat-side audits; two calls a symbol is eight a day, so 30
-# leaves room for a rerun and never crowds the chat.
-daily_call_budget: 30
-
-# THE DIVERGENCE GATE (a data gate, tools/validate_vendor_divergence.py). SESSION-
-# SET thresholds, each with its reason. The vendor's capture is fifteen minutes
-# after ours on one OI vintage, so a gap past these is a question, never a
-# correction (cross_check.py's rule).
+# THE DIVERGENCE GATE (a data gate, tools/validate_vendor_divergence.py). F-4:
+# a flip more than 0.5% of spot from ours, or a regime that disagrees, is
+# flagged. A flag is a question, never a correction (cross_check.py's rule).
 divergence:
-  # GEX against our dollar_gamma_per_1pct: the profile is steepest near the flip,
-  # where 15 minutes of spot moves the headline by tens of percent (ledger
-  # gex-scale-flashalpha-2026-10-09), so only a gap past half is flagged.
+  # GEX against our dollar_gamma_per_1pct (ledger gex-scale-flashalpha-2026-10-09).
   gex_rel: 0.50
-  # DEX against our raw-signed dex_raw_notional: the 9 Oct ledger reconciled the
-  # two to 1% on the same inputs; 15% leaves room for the 15-minute gap.
+  # DEX against our raw-signed dex_raw_notional (the 9 Oct ledger reconciled the
+  # two to 1% on the same inputs).
   dex_rel: 0.15
-  # The flip and the walls, in percent of spot: two SPY strikes at $5 near 680 is
-  # about 1.5%.
-  flip_pct: 1.0
+  # F-4 (ruled): the flip, in percent of spot.
+  flip_pct: 0.5
+  # The walls, in percent of spot.
   wall_pct: 1.5
+  # F-4 (ruled): the regime word compared with the sign of our net GEX.
+  regime: true

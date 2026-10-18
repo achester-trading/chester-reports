@@ -76,6 +76,13 @@ else
     "$VENV_PY" -m altdata.dealer_capture run --slot "$SLOT" >>"$LOG" 2>&1
 fi
 RC=$?
+if [[ "$SLOT" == "0945" || "$SLOT" == "1230" ]]; then
+    # F-1 (18 Oct 2026): the vendor's summary and levels for SPY, QQQ and SPX at
+    # this slot, inside its 60-a-day budget. Never fatal: its exit code is logged
+    # and the capture's stands.
+    "$VENV_PY" -m altdata.sources.flashalpha pull --slot "$SLOT" >>"$LOG" 2>&1 \
+        || log "vendor pull at $SLOT returned rc=$? (never fatal)"
+fi
 ELAPSED=$(( $(date +%s) - START_EPOCH ))
 log "run end rc=$RC elapsed=${ELAPSED}s sha=$SHA pull=$PULL_STATUS"
 printf 'rc=%s sha=%s pull=%s elapsed=%s at=%s\n' \

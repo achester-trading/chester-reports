@@ -1131,6 +1131,253 @@ metrics:
     added_date: "2026-10-17"
     description: >-
       FlashAlpha's underlying price at its capture.
+  dealer.vendor_chex:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's net CHEX (stock summary's exposure block). Stored, never compared: its convention is the vendor's. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_max_pain:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's max-pain strike (the summary's exposure block, else the max-pain endpoint). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_regime:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's gamma regime word (negative_gamma / positive_gamma); compared as a word with the sign of our net GEX by the divergence gate (F-4). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_pin_probability:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's max-pain pin probability, as the vendor states it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_mp_alignment:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's max-pain dealer-alignment word. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_pc_oi_ratio:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's put/call open-interest ratio (max pain). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.atm_iv:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's summary ATM IV. Stored, NEVER compared (F-2): a front-expiry figure (33.9% against a 20-day realized 10.5% on 16 Oct). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.hv_20:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's 20-day realized vol (summary). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.atm_iv_20dte:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's ATM IV on the first listed expiry of 20 DTE or more, from the 16:25 expected-move response only: the one vendor IV compared (F-2). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix9d:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX9D as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix3m:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX3M as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix6m:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX6M as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vx_front:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The VIX futures front month as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vx_basis_pct:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The VIX futures front month's basis to spot VIX, percent, as the vendor states it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vvix:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VVIX as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.skew:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      Cboe SKEW as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.move:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The MOVE index as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.fear_greed:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The vendor's Fear & Greed score (0-100), as vendor.fear_greed (F-1). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
   exposure.oi_delta_balance_shares:
     source: yfinance
     mechanism_group: dealer_chain_derived

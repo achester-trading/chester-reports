@@ -17,6 +17,12 @@ no live store.
      the 09:45 capture and every vendor row carry their stamp; the unit's time,
      wrapper branch and absence from DEPLOY_TIMERS; the close's reader says
      "pending" before 16:31 and reads the record after.
+  C  F-1, F-2, F-4, F-3: the budget (60) and the plan (57) with SPX; the budget
+     holds at 60 on a fixture day; GEX by single expiry from the listed expiries;
+     the IV rule (20 DTE, 16:25 only); the blocks stored, the by-strike responses
+     blobs; plan_ends; the vendor row in both units; the 0.5% flip and the regime;
+     the conventions in the appendix and the writer's notes; the one-strike
+     reconciliation by hand; no engine reads a vendor key.
 
     python tools/validate_a43_render.py
 """
@@ -260,8 +266,148 @@ def group_b() -> None:
           "after, a complete record prints nothing and a short one names the gap")
 
 
+def group_c() -> None:
+    head("C. F-1, F-2, F-4 AND F-3: THE VENDOR WRITER, ITS RULES AND CONVENTIONS")
+    import datetime as dt
+    import json
+    import os
+    from altdata import observations
+    from altdata.sources import flashalpha as fa
+    cfg = fa.config()
+    pl = fa.planned(cfg)
+    check(cfg["daily_call_budget"] == 60 and "SPX" in cfg["symbols"]
+          and "SPX" in cfg["slots"]["1625"]["symbols"]
+          and pl == {"1625": 45, "0945": 6, "1230": 6} and sum(pl.values()) <= 60,
+          f"the budget is 60 a day, the symbol list carries SPX, the plan is "
+          f"{sum(pl.values())} requests ({pl})")
+    fix = REPO / "tests" / "fixtures" / "dealer_block"
+    summ = json.loads((fix / "flashalpha_summary_SPY_2026-10-16.json").read_text(encoding="utf-8"))
+    levels = json.loads((fix / "flashalpha_levels.json").read_text(encoding="utf-8"))
+    day = "2026-10-19"
+    d0 = dt.date.fromisoformat(day)
+    em = {"expiries": [{"expiry": (d0 + dt.timedelta(days=k)).isoformat(), "dte": k,
+                        "atm_iv": 120.0 if k == 1 else (15.2 if k == 32 else 40.0)}
+                       for k in (1, 2, 4, 9, 11, 32, 60, 95)]}
+    urls = []
+
+    def get(url, key):
+        urls.append(url)
+        if "/summary" in url:
+            return {"status": 200, "body": summ}
+        if "/exposure/levels/" in url:
+            return {"status": 200, "body": levels}
+        if "expected-move" in url:
+            return {"status": 200, "body": em}
+        if "/maxpain/" in url:
+            return {"status": 200, "body": {"max_pain_strike": 765, "pin_probability": 0.31,
+                                            "dealer_alignment": "aligned",
+                                            "put_call_oi_ratio": 2.17}}
+        return {"status": 200, "body": {"fixture": True}}
+    os.environ.setdefault("FLASHALPHA_API_KEY", "fixture-key-0123456789abcdef")
+    os.environ.setdefault("FLASHALPHA_BASE_URL", "https://example.invalid")
+    q = TD / "fa_quota.json"
+    db = str(TD / "fa.db")
+    runs = []
+    with observations.ObservationStore(db) as st:
+        for slot in ("0945", "1230", "1625", "1625"):
+            runs.append(fa.pull(db=st, get=get, cfg=cfg, day=day, quota_path=q,
+                                slot=slot, blob_dir=TD / "fa_blobs"))
+        cut = "2026-10-20T00:00:00+00:00"
+        v = fa.stored(st, cut, "SPY")
+        iv20 = st.as_of("vendor.atm_iv_20dte", cut, "SPY")
+        iv20_intraday = st.as_of("vendor.atm_iv_20dte", cut, "SPY@1230")
+        fg = st.as_of("vendor.fear_greed", cut, None)
+    gex_calls = [u for u in urls if "/exposure/gex/" in u]
+    check([r["calls"] for r in runs] == [6, 6, 45, 3] and fa.calls_today(day, q) == 60
+          and runs[-1]["status"] == "BUDGET" and runs[-1]["refused"]
+          and "daily budget of 60 requests is spent" in runs[-1]["budget_note"],
+          f"the budget holds at 60 on a fixture day: 09:45 6, 12:30 6, 16:25 45, a "
+          f"16:25 rerun stopped after 3 ({[r['calls'] for r in runs]})")
+    check(len(gex_calls) == 5 + 3 and all("?expiration=" in u for u in gex_calls)
+          and any("/SPX?expiration=" in u for u in gex_calls)
+          and sum(1 for u in urls if "/v1/surface/" in u) == 2,
+          "GEX by single expiry for the nearest five SPY and three SPX expiries (from "
+          "the listed expiries, never guessed), and the surface for SPY and QQQ")
+    check(fa.iv_comparable("1625", 20) and not fa.iv_comparable("1625", 19)
+          and not fa.iv_comparable("1230", 33)
+          and iv20 and float(iv20[-1]["value_num"]) == 15.2 and not iv20_intraday,
+          "F-2: the ATM IV compared is the first expiry of 20 DTE or more (15.2, not the "
+          "1-DTE 120), from the 16:25 capture only")
+    check(v.get("gex") == -6608741134.0 and v.get("regime") == "negative_gamma"
+          and v.get("max_pain") == 765.0 and fg and float(fg[-1]["value_num"]) == 18.0,
+          "the summary's exposure and macro blocks are stored under the vendor source "
+          "(net GEX, the regime word, max pain; Fear & Greed as vendor.fear_greed)")
+    blobs = sorted(p.name for p in (TD / "fa_blobs" / day).glob("*.json"))
+    check(any(b.startswith("1625_SPY_gex_") for b in blobs)
+          and "1625_SPY_surface.json" in blobs and "1625_SPY_dex.json" in blobs
+          and not any(b.startswith("0945_") for b in blobs),
+          f"the by-strike responses are blobs, one file each ({len(blobs)}), none at 09:45")
+    ended = fa.pull(db=None, get=get, cfg=cfg, day="2027-04-01", quota_path=q)
+    check(cfg["plan_ends"] == "2027-03-31" and ended["status"] == "PLAN_ENDED"
+          and ended["calls"] == 0 and not fa.plan_ended("2027-03-31", cfg)
+          and fa.vendor_line(v, None, cfg, day="2027-04-01")[0].startswith("vendor: plan ended")
+          and fa.mechanics_row(v, "2027-04-01", cfg)["rows"][0][0] == "vendor: plan ended",
+          "F-4: from 1 April 2027 the writer makes no call and the Weekly's vendor row "
+          "prints 'vendor: plan ended'")
+    row = fa.mechanics_row({"gex": -6608741134.0, "spot": 761.1, "flip": 768.1,
+                            "call_wall": 800.0, "put_wall": 760.0, "max_pain": 765.0,
+                            "regime": "negative_gamma", "day": "2026-10-16"}, "2026-10-16", cfg)
+    check(row["columns"][-2:] == ["Net GEX ($ per 1%)", "Net GEX ($ per point)"]
+          and row["rows"][0][-2:] == ["-6.61bn", "-0.87bn"],
+          "the mechanics table's vendor row: flip, walls, max pain, regime, net GEX in "
+          "both units (-6.61bn per 1%, -0.87bn per point at 761.10)")
+    prof = {"spot": 761.1, "overall": {"dollar_gamma_per_1pct": 1.0e9, "gamma_flip": 765.0,
+                                       "dex_raw_notional": 1.0, "call_wall_otm": 800.0,
+                                       "put_wall_otm": 740.0}}
+    c1 = {r["name"]: r for r in fa.compare({"flip": 765.0 + 0.004 * 761.1,
+                                            "regime": "positive_gamma"}, prof, cfg)}
+    c2 = {r["name"]: r for r in fa.compare({"flip": 765.0 + 0.006 * 761.1,
+                                            "regime": "negative_gamma"}, prof, cfg)}
+    check(c1["Zero-gamma level"]["flag"] is False and c2["Zero-gamma level"]["flag"] is True
+          and c1["Regime"]["flag"] is False and c2["Regime"]["flag"] is True,
+          "the divergence gate flags a flip more than 0.5% of spot from ours (0.4% clears, "
+          "0.6% flags) and a regime that disagrees")
+    rs = (REPO / "config" / "reporting_stack.yaml").read_text(encoding="utf-8")
+    src = (REPO / "altdata" / "sources" / "flashalpha.py").read_text(encoding="utf-8")
+    notes = (REPO / "docs" / "ledgers" / "vendor-divergence-notes.md").read_text(encoding="utf-8")
+    check(all(x in rs for x in ('"Vendor GEX (FlashAlpha)"', '"Our GEX in the vendor\'s terms"',
+                                '"Vendor DEX (FlashAlpha)"', '"Walls, vendor and ours"',
+                                "spot squared x 0.01", "the customer book"))
+          and "spot^2 x 0.01" in src and "customer" in src and "OTM walls" in src
+          and "## Entry 1, 18 Oct 2026" in notes,
+          "F-3: the conventions are in the technical appendix and the writer's notes, "
+          "and the reconciliation is the divergence notes' first entry")
+    sys.path.insert(0, str(REPO / "tools"))
+    import vendor_reconcile as VR
+    fx = json.loads(VR.FIXTURE.read_text(encoding="utf-8"))
+    r = VR.strike_reconciliation(fx["strikes"][0], fx["underlying_price"], 0.16)
+    check(close(r["gamma_ratio_put_over_call"], 4.2679, 1e-3)
+          and close(r["vendor_call_iv_roots"][1], 0.6696, 2e-3)
+          and r["vendor_put_iv_roots"][1] is None
+          and r["vendor_put_gamma"] > r["gamma_peak"]
+          and close(r["one_iv_net_gex"] / 1e6, 47.2, 0.1) and r["vendor_net_gex"] < 0,
+          f"the one-strike reconciliation by hand: SPY 770 (23 Oct): put gamma "
+          f"{r['vendor_put_gamma']:.5f} against call {r['vendor_call_gamma']:.5f}, 4.27x, "
+          f"the call leg at ~67% IV; one IV (16%) nets +47.2m against the vendor's -32.4m")
+    allowed = {"altdata/sources/flashalpha.py", "daily_cascade/dealer_weekly.py"}
+    readers = []
+    for p in REPO.rglob("*.py"):
+        rel = p.relative_to(REPO).as_posix()
+        if rel.startswith(("tools/", ".venv/", "tests/", "build/")) or rel in allowed:
+            continue
+        t = p.read_text(encoding="utf-8", errors="replace")
+        if any(k in t for k in fa.ALL_KEYS):
+            readers.append(rel)
+    yml = [p.name for p in (REPO / "config").glob("*.yaml")
+           if any(k in p.read_text(encoding="utf-8", errors="replace") for k in fa.ALL_KEYS)
+           and p.name != "flashalpha.yaml"]
+    check(not readers and not yml,
+          f"no vendor value reaches an engine, flag, tell, dial or decision: nothing but "
+          f"the writer and the Weekly's row names a vendor key ({readers + yml or 'none'})")
+
+
 # ---------------------------------------------------------------------------
-GROUPS = [group_a, group_b]
+GROUPS = [group_a, group_b, group_c]
 
 
 def main() -> int:
