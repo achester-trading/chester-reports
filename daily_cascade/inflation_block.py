@@ -303,12 +303,15 @@ PANELS: list[tuple[str, Optional[Callable]]] = [
     ("cpi_lenses", cpi_lenses_panel),         # Batch 7 item 48, lenses 7-11
     ("ppi", ppi_panel),                       # Batch 7 Group B, lenses 12-14
 ]
+# Panels the Monthly prints and the Weekly does not (ruling 5 of 18 Oct 2026: the
+# PPI panel is Monthly-only; the close keeps its release-day read line).
+MONTHLY_ONLY = frozenset({"ppi"})
 
 
-def subsections(st, cutoff: str) -> list[dict]:
+def subsections(st, cutoff: str, cadence: str = "monthly") -> list[dict]:
     out = []
     for name, build in PANELS:
-        if build is None:
+        if build is None or (name in MONTHLY_ONLY and cadence != "monthly"):
             continue
         try:
             sub = build(st, cutoff)

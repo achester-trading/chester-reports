@@ -316,6 +316,19 @@ surprise_index:
     - {id: gdp, name: "Real GDP", actual: fred.gdp_real_growth, transform: level, units: "% SAAR", consensus: consensus.gdp}
     - {id: fomc, name: "FOMC decision", actual: null, transform: level, units: "% (target midpoint)", consensus: consensus.fomc}
   gap: "no consensus: the consensus logger's source (yfinance, pinned below 1.0) serves no macro consensus; listed under ruling 5 of 18 Oct 2026"
+  # THE FOMC SURPRISE, MARKET-IMPLIED (ruling 1 of 18 Oct 2026): the decision (the
+  # change in the target range's midpoint, bp) less the change the stored fed funds
+  # futures implied for the meeting at the prior session's close, standardised as
+  # above, under its own keys (calc.market_implied_surprise.fomc, _z.fomc) so no
+  # survey consensus is ever mixed with it. Labelled "market-implied, not a survey
+  # consensus" wherever it prints. The range moves the day after a decision, so
+  # the post-decision midpoint is the newest one within `effective_within_days`.
+  market_implied:
+    id: fomc
+    name: "FOMC decision"
+    target: [fred.fed_target_upper, fred.fed_target_lower]
+    decision_time: "14:00"          # ET; the futures read are those available before it
+    effective_within_days: 5
   # Earnings: per name, the reported EPS less the analyst mean the same row
   # carries (the events table's `earnings` rows, the earnings writer's), in
   # dollars of EPS, standardised by the name's own earlier surprises.

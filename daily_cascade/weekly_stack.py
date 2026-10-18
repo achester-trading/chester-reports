@@ -546,7 +546,7 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
         lt = lens_cells.lens_table(st, now, list(PLUMB) + WEEKLY_LENS_EXTRA)
         if lt:
             subs.append(lt)
-        subs += inflation_block.subsections(st, now)
+        subs += inflation_block.subsections(st, now, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,

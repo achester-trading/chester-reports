@@ -344,7 +344,7 @@ def group_f() -> None:
     ws = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
     pl = (REPO / "monthly_macro" / "payload.py").read_text(encoding="utf-8")
     check("macro_6e.rows(db, as_of=as_of, first_day=first_day)" in mf
-          and "inflation_block.subsections(st, now)" in ws
+          and "inflation_block.subsections(st, now, cadence)" in ws
           and "lens_cells.lens_table(" in ws and 'out["completeness"]' in pl,
           "the hooks: the features pass, the Weekly's Plumbing, the Monthly v2 appendix")
     cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")

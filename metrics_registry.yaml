@@ -3449,6 +3449,40 @@ metrics:
       calc.consensus_surprise.fomc over the standard deviation of the
       release's own earlier surprises (the latest 40, at least 8): a
       standardised surprise, unitless. No rows until a consensus source writes.
+  calc.market_implied_surprise.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      MARKET-IMPLIED, NOT A SURVEY CONSENSUS (ruling 1 of 18 Oct 2026). On each
+      FOMC decision day, the decision (the change in the target range's
+      midpoint, fred.fed_target_upper and fred.fed_target_lower) less the change
+      the stored fed funds futures (fedfunds.futures_price) implied for that
+      meeting at the prior session's close, in basis points
+      (altdata/surprise_index.py market_implied_series). Kept apart from
+      calc.consensus_surprise.fomc so no survey consensus is mixed with it.
+  calc.market_implied_surprise_z.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.market_implied_surprise.fomc over the standard deviation of its own
+      earlier surprises (the latest 40, at least 8; not demeaned): a
+      standardised surprise, unitless, market-implied.
   calc.consensus_surprise_z.earnings:
     source: calc
     mechanism_group: macro_momentum
@@ -15329,6 +15363,8 @@ families:
   calc.consensus_surprise.fomc: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
   calc.consensus_surprise_z.fomc: conditions   # ambiguous: a standardised surprise; alternative: ratio
   calc.consensus_surprise_z.earnings: conditions   # ambiguous: a standardised surprise per name; alternative: ratio
+  calc.market_implied_surprise.fomc: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.market_implied_surprise_z.fomc: conditions   # ambiguous: a standardised surprise; alternative: ratio
   calc.efa_spy: ratio
   calc.hefa_efa: ratio
   calc.infl_vol: conditions

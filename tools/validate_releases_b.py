@@ -26,6 +26,12 @@ is real.
      release-day lines for PPI and GDP, and CPI's with the surprise's percentile
   F. The registry, the config, the counts; no by-hand key; no composite touched;
      no fetch and no model call in the new modules
+  G. The rulings of 18 Oct on the report: the FOMC surprise, market-implied
+     (25 bp against 20 bp implied is +5; a hold against 24 bp is -24), under its
+     own keys and labelled so; payrolls a gap with its key named; the edition's
+     first z says "against the release's own surprise history" and the next does
+     not; the PPI panel in the Monthly and not in the Weekly; the PPI keys' full
+     FRED history with the release family's 20-year long window
 """
 
 from __future__ import annotations
@@ -357,8 +363,10 @@ def group_d() -> None:
           f"the newest: +0.3 pp, z {0.3 / sd:.4f} against its own eight earlier "
           f"surprises, the 100th percentile ({last['z']})")
     check(pay["state"] == "no consensus" and "ruling 5" in pay["reason"]
+          and "consensus.payrolls" in pay["reason"]
           and fomc["state"] == "no consensus",
-          "payrolls and FOMC: no consensus stored, listed gaps under ruling 5")
+          "payrolls and FOMC: no survey consensus stored, listed gaps under ruling 5, "
+          "the payroll key named")
     check(idx["composite"] is None and "defines no composite" in idx["composite_reason"],
           "no composite: the order defines none")
     keys = {r["registry_key"] for r in stored}
@@ -397,6 +405,9 @@ def group_d() -> None:
           {"cpi": "calc.consensus_surprise.cpi", "payrolls": "calc.consensus_surprise.payrolls",
            "fomc": "calc.consensus_surprise.fomc"},
           "engine 4's three events name their consensus keys")
+    check(acfg["events"]["fomc"]["surprise"] == "calc.market_implied_surprise.fomc"
+          and acfg["events"]["fomc"]["surprise_kind"].startswith(surprise_index.MARKET_IMPLIED),
+          "engine 4's FOMC fallback is the market-implied key, under its own label")
 
 
 # ---------------------------------------------------------------------------
@@ -533,6 +544,113 @@ def group_f() -> None:
     check("tools/validate_releases_b.py" in mk, "the Makefile runs this gate")
 
 
+# ---------------------------------------------------------------------------
+# Two fixture meetings, each month around them free of a meeting so the path
+# steps forward: the month before is the pre rate, the month after the post.
+M1, M2 = dt.date(2026, 3, 18), dt.date(2026, 6, 17)
+FF = "fedfunds.futures_price"
+
+
+def fomc_rows() -> list[dict]:
+    R = []
+    # 17 Mar settlements (available at the 16:10 pull): Feb 4.00, Mar 4.10, Apr 4.20
+    for c, px in (("2026-02", 96.00), ("2026-03", 95.90), ("2026-04", 95.80)):
+        R.append(row(FF, "2026-03-17", px, "2026-03-17T20:10:00+00:00", instrument=c))
+    # a settlement ON the decision day, pulled after it: never read for M1
+    R.append(row(FF, "2026-03-18", 95.00, "2026-03-18T20:10:00+00:00", instrument="2026-04"))
+    # 16 Jun: May 4.25, Jun 4.37, Jul 4.49 -- +24 bp implied
+    for c, px in (("2026-05", 95.75), ("2026-06", 95.63), ("2026-07", 95.51)):
+        R.append(row(FF, "2026-06-16", px, "2026-06-16T20:10:00+00:00", instrument=c))
+    # the target range: 3.75-4.00 to 4.00-4.25 effective 19 Mar (+25), held in June
+    for day, lo, hi in (("2026-03-17", 3.75, 4.00), ("2026-03-19", 4.00, 4.25),
+                        ("2026-06-16", 4.00, 4.25), ("2026-06-18", 4.00, 4.25)):
+        nxt = (dt.date.fromisoformat(day) + dt.timedelta(days=1)).isoformat()
+        R.append(row("fred.fed_target_lower", day, lo, f"{nxt}T14:00:00+00:00"))
+        R.append(row("fred.fed_target_upper", day, hi, f"{nxt}T14:00:00+00:00"))
+    return R
+
+
+def group_g() -> None:
+    head("G. THE RULINGS OF 18 OCT ON THE REPORT")
+    mi = CFG["surprise_index"]["market_implied"]
+    check(mi["id"] == "fomc" and mi["target"] == ["fred.fed_target_upper",
+                                                  "fred.fed_target_lower"],
+          "ruling 1: the market-implied FOMC leg reads the target range's two limits")
+    with store(fomc_rows()) as st:
+        s = surprise_index.market_implied_series(st, CUT, CFG, [M1, M2])
+        early = surprise_index.market_implied_series(st, "2026-03-19T12:00:00+00:00",
+                                                     CFG, [M1, M2])
+        stored = surprise_index.rows(st, CUT, CFG, [M1, M2])
+        last = surprise_index.latest_market_implied(st, CUT, CFG, [M1, M2])
+        cons = surprise_index.latest(st, "fomc", CUT, CFG)
+    r = s["rows"]
+    check(len(r) == 2 and near(r[0]["decision_bp"], 25.0) and near(r[0]["implied_bp"], 20.0)
+          and near(r[0]["surprise"], 5.0),
+          f"a decision of 25 bp against 20 bp implied at the prior session's close is "
+          f"+5 bp ({[(x['decision_bp'], x['implied_bp'], x['surprise']) for x in r[:1]]})")
+    check(len(r) == 2 and near(r[1]["decision_bp"], 0.0) and near(r[1]["implied_bp"], 24.0)
+          and near(r[1]["surprise"], -24.0),
+          f"a hold against 24 bp implied is -24 bp "
+          f"({[(x['decision_bp'], x['implied_bp'], x['surprise']) for x in r[1:]]})")
+    check(len(r) == 2 and r[0]["settled"] == "2026-03-17",
+          "the implied rate is the prior session's settlement: the decision day's own "
+          "settlement (pulled after 14:00) is never read")
+    check(not early["rows"] and "not stored on both sides" in str(early["reason"]),
+          f"point in time: before the new range is published nothing is scored "
+          f"({early['reason']})")
+    check(len(r) == 2 and r[1]["z"] is None and "8 needed" in r[1]["reason"],
+          "standardised as the rest: the second decision has one earlier surprise, "
+          "8 needed, so no z")
+    keys = {x["registry_key"] for x in stored}
+    check(keys == {"calc.market_implied_surprise.fomc"}
+          and all(derived.registry_entry(k) for k in
+                  ("calc.market_implied_surprise.fomc", "calc.market_implied_surprise_z.fomc"))
+          and derived.registry_entry("calc.market_implied_surprise.fomc")["units"] == "bps",
+          f"its own keys (bps), registered; no consensus key is written from it "
+          f"({sorted(keys)})")
+    check(cons["state"] == "no consensus",
+          "the survey consensus for FOMC stays a gap beside it: never mixed")
+    mn = surprise_index.market_note(last)
+    check(mn.startswith("surprise: -24 bp, market-implied, not a survey consensus")
+          and "+0 bp less the +24 bp" in mn,
+          f"labelled 'market-implied, not a survey consensus' where it prints ({mn})")
+    with store(fomc_rows()) as st:
+        none = surprise_index.market_implied_series(st, CUT, CFG, [dt.date(2026, 9, 16)])
+    check(not none["rows"] and bool(none["reason"]),
+          f"a meeting the store cannot see gives no row, with the reason ({none['reason']})")
+    # ruling 3: the edition's first z carries the phrase, a later one does not
+    sur = {"state": "read", "surprise": 0.3, "units": "% m/m", "pctile": 100.0,
+           "n_prior": 8, "z": 2.9}
+    a, b = surprise_index.note(sur, first_z=True), surprise_index.note(sur, first_z=False)
+    check(a.endswith("z +2.90 against the release's own surprise history")
+          and b.endswith("z +2.90") and surprise_index.Z_AGAINST not in b,
+          f"ruling 3: the first z says what it is against, the next does not ({a} | {b})")
+    with store(cpi_consensus_rows()) as st:
+        cl = releases.release_day_lines(st, "2026-09-01T22:00:00+00:00", CFG)
+    c = next((x for x in cl if x["release"] == "cpi"), None)
+    check(c is not None and c["line"].count(surprise_index.Z_AGAINST) == 1,
+          f"the close's first release-day z carries the phrase once ({c['line'] if c else None})")
+    # ruling 5: the PPI panel is Monthly-only
+    from daily_cascade import inflation_block as ib
+    with store(ppi_rows()) as st:
+        mon = [x["title"] for x in ib.subsections(st, CUT, "monthly")]
+        wk = [x["title"] for x in ib.subsections(st, CUT, "weekly")]
+    check(ib.TITLE_PPI in mon and ib.TITLE_PPI not in wk,
+          "ruling 5: the PPI panel prints in the Monthly and not in the Weekly")
+    wsrc = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
+    check("inflation_block.subsections(st, now, cadence)" in wsrc,
+          "the Weekly asks for its own cadence's panels")
+    # ruling 7: full FRED history, the long window the family's 20 years
+    from altdata import config
+    from altdata.sources import fred as fred_src
+    ppi = [s for s in config.FRED_PULL_SERIES if s.key.startswith("ppi_")]
+    check(len(ppi) >= 14 and all(fred_src.fetch_start(s, None) is None for s in ppi),
+          f"ruling 7: every PPI key ({len(ppi)}) new to a store takes its full FRED "
+          f"history (no observation_start)")
+    lws = {derived.long_window_of(f"fred.{s.key}", "release")[0] for s in ppi}
+    check(lws == {20}, f"and its lens long window stays the release family's 20 years ({lws})")
+
+
 def main() -> int:
     group_a()
     group_b()
@@ -540,6 +658,7 @@ def main() -> int:
     group_d()
     group_e()
     group_f()
+    group_g()
     print(f"\n{PASSED} passed, {FAILED} failed")
     print("VALIDATION PASSED" if not FAILED else "VALIDATION FAILED")
     return 1 if FAILED else 0

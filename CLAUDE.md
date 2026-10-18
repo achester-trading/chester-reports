@@ -335,7 +335,8 @@ rent index are listed gaps. `tools/validate_releases.py` holds it.
 lenses-group-b, 18 Oct 2026).** `altdata/releases_b.py` reads, as of the cutoff:
 - the PPI lenses: the four intermediate-demand stages against final demand, the
   PCE-relevant lines (NSA, read on the year) and trade services beside the core
-  less trade, in the inflation block's `ppi` panel;
+  less trade, in the inflation block's `ppi` panel, which is Monthly-only
+  (ruling 5 of 18 Oct; the close keeps the release-day line);
 - the GDP lenses: final sales to private domestic purchasers and BEA's
   contributions, the investment split (structures less the Census's data
   centers, read by name), GDI less GDP, NIPA profits against S&P EPS, income and
@@ -351,10 +352,16 @@ standardised by the release's own surprises, with no composite (the order
 defines none). Its rows ride `altdata.surprise compute`
 (`calc.consensus_surprise.<id>`, `_z.<id>`, `_z.earnings` per name). The
 consensus logger's yfinance serves no macro consensus, so every macro release,
-payrolls and FOMC among them, prints "no consensus" (ruling 5 of 18 Oct). Lens
-24 gains the PPI and GDP lines, and every line's surprise clause carries its
-percentile once a consensus is stored. Engine 4 reads the consensus surprise by
-name ahead of the naive one. `tools/validate_releases_b.py` holds it.
+payrolls among them, prints "no consensus" (ruling 5 of 18 Oct). The FOMC
+surprise is **market-implied, not a survey consensus** (ruling 1 of 18 Oct): the
+decision less the change the stored fed funds futures implied at the prior
+session's close, in bp, standardised the same way, under its own keys
+(`calc.market_implied_surprise.fomc`, `_z.fomc`) so no survey consensus is
+mixed with it. Lens 24 gains the PPI and GDP lines, and every line's surprise
+clause carries its percentile and z once a consensus is stored; the edition's
+first z says "against the release's own surprise history". Engine 4 reads the
+consensus surprise by name ahead of the naive one (for FOMC, the market-implied
+key). `tools/validate_releases_b.py` holds it.
 
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a

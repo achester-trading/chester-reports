@@ -39,8 +39,8 @@ events:
     time: "14:00"
     claims_kind: fomc
     consensus_surprise: calc.consensus_surprise.fomc
-    surprise: null
-    surprise_kind: "none stored: no consensus or futures-implied policy surprise series is stored for FOMC decisions; the fed funds futures rows could build one (needs-you)"
+    surprise: calc.market_implied_surprise.fomc
+    surprise_kind: "market-implied, not a survey consensus: the decision less the change fed funds futures implied at the prior session's close, bp (ruling 1 of 18 Oct 2026)"
 
 # THE CONSENSUS SURPRISE FIRST (lenses-group-b, 18 Oct 2026): each release reads
 # `consensus_surprise` (the surprise index, ST-R6.48f; altdata/surprise_index.py)

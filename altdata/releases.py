@@ -638,14 +638,22 @@ def consensus_note(note: Optional[str] = None) -> str:
 SURPRISE_IDS = {"cpi": "cpi", "employment": "payrolls", "ppi": "ppi", "gdp": "gdp"}
 
 
-def surprise_note(st, rid: str, cutoff: str, cfg: Optional[dict] = None) -> str:
-    """ST-R6.48f: the release's newest consensus surprise with its percentile
-    among its own earlier surprises, or "surprise: no consensus"."""
+def surprise_of(st, rid: str, cutoff: str, cfg: Optional[dict] = None) -> Optional[dict]:
+    """The release's newest consensus surprise, or None for a release the
+    surprise index does not carry."""
     from . import surprise_index                                # noqa: PLC0415
     sid = SURPRISE_IDS.get(rid)
-    if not sid:
-        return consensus_note()
-    return surprise_index.note(surprise_index.latest(st, sid, cutoff, cfg))
+    return surprise_index.latest(st, sid, cutoff, cfg) if sid else None
+
+
+def surprise_note(st, rid: str, cutoff: str, cfg: Optional[dict] = None,
+                  first_z: bool = True) -> str:
+    """ST-R6.48f: the release's newest consensus surprise with its percentile
+    among its own earlier surprises and its z, or "surprise: no consensus".
+    `first_z`: the edition prints no z before this one (ruling 3 of 18 Oct)."""
+    from . import surprise_index                                # noqa: PLC0415
+    sur = surprise_of(st, rid, cutoff, cfg)
+    return consensus_note() if sur is None else surprise_index.note(sur, first_z)
 
 
 def cpi_line(dc: dict, pt: dict, surprise: Optional[str] = None) -> str:
@@ -689,13 +697,17 @@ def employment_line(em: dict, month: str, surprise: Optional[str] = None) -> str
 def release_day_lines(st, cutoff: str, cfg: Optional[dict] = None) -> list[dict]:
     """Lens 24: one line per release whose print arrived on the cutoff's ET day,
     code-written from the release's own lens figures (no model call)."""
+    from . import surprise_index                                # noqa: PLC0415
     cfg = cfg or config()
     out = []
+    z_printed = False         # ruling 3: the edition's first z says what it is against
     for rel in cfg.get("releases") or []:
         month = released_today(st, rel["headline"], cutoff)
         if not month:
             continue
-        sur = surprise_note(st, rel["id"], cutoff, cfg)
+        sd = surprise_of(st, rel["id"], cutoff, cfg)
+        sur = (consensus_note() if sd is None
+               else surprise_index.note(sd, first_z=not z_printed))
         if rel["id"] in ("ppi", "gdp"):
             # Group B (lenses-group-b, 18 Oct 2026): ST-R6.48d and 48e
             from . import releases_b                            # noqa: PLC0415
@@ -724,6 +736,7 @@ def release_day_lines(st, cutoff: str, cfg: Optional[dict] = None) -> list[dict]
                     f"the year ({consensus_note()}).")
         out.append({"release": rel["id"], "name": rel["name"], "month": month,
                     "line": line})
+        z_printed = z_printed or bool(sd and sd.get("z") is not None)
     return out
 
 

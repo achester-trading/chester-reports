@@ -403,9 +403,14 @@ Each run was read once, with `gh run list --branch lenses-group-b --limit 5`.
 |---|---|---|
 | 39112365516 | `186b5a7` (Part 0) | **success, 105 of 105 jobs** |
 | 39114094511 | `f94072d` (Part 1) | **failed**: 104 of 106 jobs; `validate_lenses` 48 passed, 1 failed, and the `gates-passed` roll-up |
-| 39114929397 | `cef6e8a` (Part 2) | queued when read (it carries Part 1's failure) |
-| 39115072458 | `73f08eb` (these notes) | queued when read (the same) |
-| 39115166631 | `adf8e31` (the fix) | queued when read; reported in the session's closing message |
+| 39114929397 | `cef6e8a` (Part 2) | **failed**: 104 of 106 jobs; `validate_lenses` and the roll-up (Part 1's failure, carried) |
+| 39115072458 | `73f08eb` (these notes) | **failed**: 104 of 106 jobs, the same |
+| 39115166631 | `adf8e31` (the fix) | **success, 106 of 106 jobs** |
+| 39115210663 | `eb17d0d` (the CI notes) | **success, 106 of 106 jobs** |
+
+106 jobs are the enumerate job, 97 code gates, 7 data gates and the
+`gates-passed` roll-up. The three later runs were read once each, on 18 Oct,
+in the second paste's Part 0 below.
 
 **The cause was mine.** `validate_lenses` holds every resolved series to a
 family, or to a reason it has none. The surprise index's 15 `calc.` keys had
@@ -413,3 +418,105 @@ neither. They now carry `conditions`, marked ambiguous (alternative: ratio), in
 the registry's `families` map, as the naive surprises' block does. Locally that
 is 49 passed, 0 failed, and `check_registry`, `validate_audit_3a` and
 `validate_releases_b` still pass. The fix is `adf8e31`.
+
+## The second paste's Part 0 (18 Oct): the CI and the rulings of 18 Oct on this report
+
+**The CI, read once.** The fix (`adf8e31`, run 39115166631) and the CI notes
+(`eb17d0d`, run 39115210663) are **106 of 106 jobs green**. The two runs that
+were queued when last read (`cef6e8a`, `73f08eb`) failed `validate_lenses` and
+the roll-up: Part 1's failure, carried, which `adf8e31` fixed. Nothing of mine
+was left failing. The table above has the numbers.
+
+**The rulings, as applied.**
+
+1. **The macro consensus.**
+   - The yfinance pin stays. The read of the 1.x changelog, read-only, with no
+     install, in one line: **yfinance 1.0 adds `Calendars.get_economic_events_calendar()`
+     (PR 2615), whose columns include a `consensus_estimate` ("Market Expectation")
+     from Yahoo's own calendar, the same source and terms as the earnings read.**
+     The upgrade is a dependency change of its own and is not pursued here.
+   - **The FOMC surprise is market-implied** (`altdata/surprise_index.py`
+     `market_implied_series`). For each decision day the store can see, the
+     decision is the change in the target range's midpoint (`fred.fed_target_upper`
+     and `_lower`, the newest midpoint within five days after the decision, since
+     the range moves the next day). It is set against the change the fed funds
+     futures implied for that meeting at the prior session's close: each
+     contract's newest settlement observed before the decision day and available
+     before 14:00 ET, through `fed_funds.implied_path`. The surprise is in bp,
+     standardised like the rest.
+   - Its keys are `calc.market_implied_surprise.fomc` and
+     `calc.market_implied_surprise_z.fomc` (units bps and ratio, family
+     conditions, ambiguous, as the others). No consensus key is written from it,
+     and `consensus.fomc` stays a gap beside it.
+   - Wherever it prints it reads "surprise: -24 bp, market-implied, not a survey
+     consensus (the decision +0 bp less the +24 bp fed funds futures implied at
+     the prior session's close) ...".
+   - Engine 4's FOMC fallback (`config/alpha_events.yaml`) is now this key, under
+     the label "market-implied, not a survey consensus". The consensus key still
+     comes first, so the two are never mixed in one series.
+   - **Payrolls stay a gap.** The reason now names the key: "... (key
+     consensus.payrolls)".
+   - The rows ride `altdata.surprise compute`, as the rest do. No writer is added.
+2. **The NY Fed nowcast stays a gap.** No endpoint was traced. The page is
+   https://www.newyorkfed.org/research/policy/nowcast, the one the 18 Oct check
+   read; it was not fetched again here. Ari looks once in a browser for a
+   published file.
+3. **The standardisation stands** (not demeaned, the latest 40, at least 8). The
+   release-day clause now prints the z after the percentile. The edition's first
+   z reads "z +2.90 against the release's own surprise history", and a later one
+   in the same edition reads "z +2.90" (`surprise_index.note(first_z=...)`,
+   tracked in `releases.release_day_lines`).
+4. **Structures less data centers** stands, labelled an approximation, and fills
+   at the stitch. No change.
+5. **The PPI panel is Monthly-only.** `inflation_block.subsections` takes the
+   cadence, and `MONTHLY_ONLY = {"ppi"}`; the Weekly passes its own. The close's
+   PPI release-day read line is unchanged.
+6. **The meta-loop's settings and scope stand** as the pre-registered constants
+   in `config/alpha.yaml`. No change.
+7. **The PPI keys get their full FRED history.** The live pull already asks a
+   series new to a store for its whole history, and the gate now proves it for
+   all 14 PPI keys. The ALFRED backfill below takes no `--from`, so it is full
+   history too. The lens long window stays the release family's 20 years, and the
+   gate pins that: the CPI family's "full" stays CPI's alone.
+
+**The gates, locally, one at a time.**
+
+| Gate | Result |
+|---|---|
+| `tools/validate_releases_b.py` (group G added; D extended) | **76 passed, 0 failed.** G: +5 bp and -24 bp by hand; the decision day's own settlement never read; nothing scored before the new range is published; one earlier surprise so no z; its own keys; the label; the first z's phrase once; the PPI panel in the Monthly, not the Weekly; 14 PPI keys at full history with the 20-year window. D: the payroll key named, engine 4's FOMC fallback |
+| `tools/validate_6e_rest.py` (its source check re-pinned to the Weekly's new call) | **34 passed, 0 failed** |
+| `tools/validate_releases.py` | **61 passed, 0 failed** |
+| `tools/validate_lenses.py` | **49 passed, 0 failed** |
+| `tools/validate_alpha_lab_3.py` | **65 passed, 0 failed** |
+| `tools/validate_audit_3a.py` | **86 passed, 0 failed** |
+| `tools/check_registry.py` | OK |
+
+Everything else is left to CI. The CI run on this commit is read in the second
+paste's closing report and in `weekly-fixes-8`'s notes.
+
+**Box commands, for Ari (after the merge, inside a window; nothing here was run).**
+
+1. The PPI keys at full history, from their first publication. Dry run first:
+   `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.fred_history backfill --series ppi_final_demand,ppi_intermediate,ppi_unprocessed,ppi_truck_freight,ppi_fd_core_ex_trade,ppi_trade_services,ppi_stage1,ppi_stage2,ppi_stage3,ppi_stage4,ppi_portfolio_mgmt,ppi_airline_passenger,ppi_hospitals,ppi_physicians --dry-run | tail -40'`
+   then the same without `--dry-run`. It overlaps the Group B command above
+   (ten of these keys are in it); a second run writes nothing it already holds.
+2. What the FOMC leg reads, read-only:
+   `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.surprise_index show | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin)[\"market_implied\"], indent=1))" | head -60'`
+   The futures rows begin on 2 Oct 2026, so the first meeting it can score is
+   the first decision after that with a stored settlement the session before.
+
+**Needs you, now.**
+- 1 and 2 above are answered. Still open from the list: whether to pursue the
+  yfinance 1.x upgrade for a survey consensus (its own change, its own ruling).
+- New: the FOMC leg reads the decision days from the claims registry
+  (`cal.fomc_*`), as the futures path does. An intermeeting move is not on that
+  list, so it is not scored.
+
+**Files this part touched:** `altdata/surprise_index.py`, `altdata/releases.py`,
+`daily_cascade/inflation_block.py`, `daily_cascade/weekly_stack.py` (one
+argument), `config/releases.yaml`, `config/alpha_events.yaml`,
+`metrics_registry.yaml` (two metrics and two `families` lines beside the
+surprise index's), `CLAUDE.md` (the Group B paragraph),
+`tools/validate_releases_b.py`, `tools/validate_6e_rest.py`.
+`daily_cascade/weekly_stack.py` is also `weekly-fixes-8`'s; that change is one
+argument on one line.
