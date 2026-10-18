@@ -146,6 +146,6 @@ SERIES_PUBLIC = {"redfin_mos": ("redfin", "MONTHS OF SUPPLY"),
                  "census_mos": ("fred", "MSACSR"),
                  "mortgage": ("fred", "MORTGAGE30US"),
                  "hpi": ("fred", "CSUSHPINSA"), "cpi": ("fred", "CPIAUCSL")}
-SERIES_STORE = {"redfin_mos": "redfin.months_of_supply", "census_mos": None,
+SERIES_STORE = {"redfin_mos": None, "census_mos": None,   # not stored in this line
                 "mortgage": "fred.mortgage_30y", "hpi": "fred.case_shiller_national",
                 "cpi": "fred.cpi"}

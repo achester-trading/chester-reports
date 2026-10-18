@@ -17,6 +17,9 @@ network, no live store, no model -- the laptop's public-source runs are not gate
   G  THE LEDGER: required fields, the order's verdict, the file and its CSV.
   H  NO WRITES: the package never opens the register, and reads the store only
      through its one reader.
+  I  BATCH 5's 17b (audit-leftovers-2): 17a's legs (+$215bn = Fed +10, TGA +200,
+     RRP +5), the RRP rule, the H.4.1's Thursday release lag, the correlations.
+  J  BATCH 5's 19b: 19a's tiers and z, non-overlapping episodes, the outcomes.
 
     python tools/validate_ledgers_b6.py
 """
@@ -42,6 +45,7 @@ TD = Path(gate_tmp.mkdtemp("validate_ledgers_b6_"))
 from altdata import ledgers as L  # noqa: E402
 from altdata.ledgers import (st_r5_30b as s30, st_r5_32b as s32,  # noqa: E402
                              st_r5_35b as s35, st_r5_36b as s36, st_r5_43b as s43)
+from altdata.ledgers import st_r4_17b as s17, st_r4_19b as s19  # noqa: E402
 
 PASS = FAIL = 0
 LINE = "=" * 78
@@ -256,7 +260,7 @@ def group_g() -> None:
           and "NO GATE IN THE ORDER" in text and "| Pass rule (as the order states it) | none stated |" in text,
           "the dated file prints its as-of, window, n, the pass rule as stated and the "
           "verdict, with its CSV beside it")
-    mods = (s30, s32, s35, s36, s43)
+    mods = (s30, s32, s35, s36, s43, s17, s19)
     check(all("NO_GATE" in Path(m.__file__).read_text(encoding="utf-8")
               and re.search(r'"pass_rule": "none stated', Path(m.__file__).read_text(encoding="utf-8"))
               for m in mods),
@@ -278,8 +282,67 @@ def group_h() -> None:
           "the store is read in one place (sources.store), for a box run")
 
 
+def group_i() -> None:
+    head("I. 17b (BATCH 5): NET LIQUIDITY'S LEGS, THE RELEASE LAG, THE CORRELATION")
+    # 17a's own fixture: 13 weeks, +$215bn = Fed assets +$10bn, the TGA's fall
+    # +$200bn, the RRP's fall +$5bn. WALCL and WTREGEN in millions, RRP in billions.
+    days = [(dt.date(2026, 7, 1) + dt.timedelta(weeks=k)).isoformat() for k in range(14)]
+    walcl = [(d, 7_000_000.0 + (10_000.0 if k == 13 else 0.0)) for k, d in enumerate(days)]
+    tga = [(d, 900_000.0 - (200_000.0 if k == 13 else 0.0)) for k, d in enumerate(days)]
+    rrp = [(d, 10.0 - (5.0 if k == 13 else 0.0)) for k, d in enumerate(days)]
+    wk = s17.weekly(walcl, tga, rrp)
+    c = s17.change(wk, 13, 13)
+    check(close(c["total"], 215e9, 1e-3) and close(c["fed"], 10e9, 1e-3)
+          and close(c["tga"], 200e9, 1e-3) and close(c["rrp"], 5e9, 1e-3)
+          and close(c["fed"] + c["tga"] + c["rrp"], c["total"], 1e-3) and c["lead"] == "tga",
+          "17a's figure: +$215bn = Fed +$10bn, TGA's fall +$200bn, RRP's fall +$5bn; the "
+          "legs sum to the change and the TGA leads")
+    check(s17.rrp_on([("2026-07-01", 3.0)], "2026-07-08") == 3.0
+          and s17.rrp_on([("2026-07-01", 3.0)], "2026-07-09") == 0.0,
+          "RRP: its last print within seven days, else 0")
+    spx = [("2026-10-14", 100.0), ("2026-10-15", 101.0), ("2026-10-16", 102.0)]
+    check(spx[s17.first_close_after(spx, "2026-10-14")][0] == "2026-10-16",
+          "point in time: Wednesday's H.4.1 is published Thursday at 16:30, so the "
+          "S&P is read from Friday's close, never Wednesday's or Thursday's")
+    rows = [{"date": f"2022-{m:02d}-01", "chg13_bn": float(m),
+             "spx_next13w_pct": 2.0 * m + 1.0, "spx_same13w_pct": -float(m),
+             "lead13": "fed"} for m in range(1, 13)]
+    st = s17.stats(rows)
+    check(close(st["next_all"][0], 1.0) and st["next_all"][1] == 12
+          and close(st["same_all"][0], -1.0) and close(st["next_2022_23"][0], 1.0),
+          "the correlations: +1 with a next-13-weeks return of 2x + 1, -1 with a "
+          "same-weeks return of -x; the 2022-2023 row reads the same rows")
+
+
+def group_j() -> None:
+    head("J. 19b (BATCH 5): 19a'S TIERS, THE Z, NON-OVERLAPPING EPISODES")
+    check(s19.tier(0.51, 0.0) == "watch" and s19.tier(0.50, 0.0) is None
+          and s19.tier(1.01, 0.0) == "strong" and s19.tier(1.00, 0.0) == "watch"
+          and s19.tier(2.0, 0.40) is None and s19.tier(2.0, 0.39) == "strong",
+          "the tiers as written: watch at MOVE z +0.51 not +0.50; strong at +1.01, "
+          "+1.00 is watch; no tier with the VIX's z at +0.40")
+    from altdata import derived
+    check(close(derived.z_of([1, 2, 3, 4, 5], 5), 1.2649, 1e-4),
+          "the z is 19a's: (5 - 3) / the sample sd of 1..5 = +1.2649")
+    days = [{"i": i, "tier": "watch" if i in (0, 10, 63, 70, 140) else None,
+             "date": f"d{i:03d}"} for i in range(200)]
+    eps = s19.episodes(days, strong_only=False)
+    check([e["i"] for e in eps] == [0, 63, 140],
+          "non-overlapping: a new episode only 63 sessions after the last one's start "
+          "(days 0, 63 and 140; 10 and 70 fall inside)")
+    rows = [(f"d{i:03d}", 100.0, 20.0 + (1.0 if i == 42 else 0.0) - (5 if i > 42 else 0),
+             100.0 - (1.0 if i == 63 else 0.0)) for i in range(70)]
+    o = s19.outcome(rows, 0)
+    check(o["vix_higher"] is True and o["spx_lower"] is True and close(o["spx_63_pct"], -1.0),
+          "the outcomes: the VIX above its start at 42 sessions counts as higher within "
+          "1-3 months; the S&P 1% lower at 63 sessions counts as lower at 3 months")
+    check(s19.outcome(rows, 10)["vix_higher"] is None,
+          "an episode without 63 sessions after it is incomplete, never counted")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
+              group_i, group_j):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

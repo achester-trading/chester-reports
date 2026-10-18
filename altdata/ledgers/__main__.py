@@ -18,7 +18,8 @@ from . import write_ledger
 from . import sources as src
 
 ITEMS = {"30b": "st_r5_30b", "32b": "st_r5_32b", "35b": "st_r5_35b",
-         "36b": "st_r5_36b", "43b": "st_r5_43b"}
+         "36b": "st_r5_36b", "43b": "st_r5_43b",
+         "17b": "st_r4_17b", "19b": "st_r4_19b"}
 MODE = {"public": "laptop run, public sources",
         "store": "box run, the observation store's newest vintages"}
 

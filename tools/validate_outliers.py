@@ -1,5 +1,5 @@
 """
-The audit's leftovers, part 2 (audit-leftovers-2, 18 Oct 2026; the data and
+The audit's leftovers, part 2 (audit-leftovers-2, 17 Oct 2026; the data and
 architecture audit of 14 Oct, items 12, 14 and 15). On fixture stores of its own --
 no network, no live store, no model:
 
@@ -279,8 +279,12 @@ def group_c() -> None:
               if "open_writer(" in p.read_text(encoding="utf-8")]
     for p in files:
         t = p.read_text(encoding="utf-8")
-        for s in re.findall(r'"source":\s*"([^"]+)"', t) + re.findall(
-                r'^SOURCE\s*=\s*"([^"]+)"', t, re.M):
+        found = re.findall(r'"source":\s*"([^"]+)"', t) + re.findall(
+            r'^SOURCE\s*=\s*"([^"]+)"', t, re.M)
+        # ObservationStore.write(..., source="...") -- the loggers' probe rows.
+        for call in re.findall(r"\bdb\.write\((?:[^()]|\([^()]*\))*\)", t, re.S):
+            found += re.findall(r'\bsource="([^"]+)"', call)
+        for s in found:
             lits.setdefault(s, []).append(p.name)
     off = {s: f for s, f in lits.items() if source_ids.writable(s) is None}
     check(not off, f"every writer's literal source is a registered id "

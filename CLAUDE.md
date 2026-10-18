@@ -523,13 +523,14 @@ confirms with `decide.py record --meme-packet <id>` and rejects with `decide.py
 meme-reject <id>`; both are on the deny list. `tools/validate_meme_ingest.py`
 holds it.
 
-**Batch 6's ledgers are studies, not rights (Tranche 2 part 1, 17 Oct 2026).**
-`altdata/ledgers/` holds ST-R5.30b, 32b, 35b, 36b and 43b; `python -m
+**The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
+Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,
+36b and 43b, and ST-R4.17b and 19b; `python -m
 altdata.ledgers run <item|all> --source public|store` writes
 `docs/ledgers/<item>-ledger-<date>.md` and its episodes CSV, dated and never
 edited. Each prints its as-of, window, n, statistic, the pass rule as the order
-states it and that rule's verdict. The order states no pass rule for any of the
-five, so each says so and none is invented. Each states its rights consequence
+states it and that rule's verdict. Neither order states a pass rule for any of
+the seven, so each says so and none is invented. Each states its rights consequence
 and grants nothing; the package never opens the register. A ledger without its
 as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
 
@@ -545,7 +546,7 @@ and a count, nothing on a clean day; a flag never blocks a report or changes a
 value. The numbers live in `config/data_quality.yaml`, each with its reason.
 
 **A bad print is marked, a source is registered, and the tier decides a tie
-(audit-leftovers-2, 18 Oct 2026; the 14 Oct audit's items 12, 14 and 15).**
+(audit-leftovers-2, 17 Oct 2026; the 14 Oct audit's items 12, 14 and 15).**
 
 - `python -m altdata.quality record` runs after the EOD pass's price pull and the
   06:45 FRED pull, over the closes and every FRED block. Each flag becomes a row

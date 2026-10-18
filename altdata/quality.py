@@ -7,7 +7,7 @@ data and architecture audit of 14 Oct, recommendation 14.)
     python -m altdata.quality record  [--date D] [--db PATH]   # after a pull: mark
     python -m altdata.quality outliers [--date D] [--db PATH]  # "n outliers"
 
-THE MARK (audit-leftovers-2, 18 Oct 2026; the audit's item 14). `record` runs the
+THE MARK (audit-leftovers-2, 17 Oct 2026; the audit's item 14). `record` runs the
 check and writes each flag as one row in data_quality_flags -- after the EOD
 pass's price pull and the 06:45 FRED pull -- and lists them in the run log; the
 freshness check and the heartbeat print the count, "n outliers". A flag is

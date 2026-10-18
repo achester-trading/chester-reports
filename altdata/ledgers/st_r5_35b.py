@@ -139,5 +139,5 @@ def study(series: dict) -> dict:
 SERIES_PUBLIC = {"ppi": ("fred", "WPSFD49116"), "ppi_long": ("fred", "WPSFD4131"),
                  "ulc": ("fred", "ULCNFB"), "profits": ("fred", "NFCPATAX"),
                  "gva": ("fred", "A455RC1Q027SBEA")}
-SERIES_STORE = {"ppi": "fred.ppi_fd_core_ex_trade", "ppi_long": None,
-                "ulc": "fred.ulc_nfb", "profits": None, "gva": None}
+SERIES_STORE = {"ppi": None, "ppi_long": None,   # not stored in this line
+                "ulc": None, "profits": None, "gva": None}

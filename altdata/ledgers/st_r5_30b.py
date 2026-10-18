@@ -157,7 +157,7 @@ def study(series: dict) -> dict:
 SERIES_PUBLIC = {**{k: ("fred", k) for k in EQUITY + DEBT + (HOUSEHOLD,)},
                  "shiller.sp_price": ("shiller", "shiller.sp_price"),
                  "shiller.sp_dividend": ("shiller", "shiller.sp_dividend")}
-SERIES_STORE = {HOUSEHOLD: "fred.z1_household_equity_share",
+SERIES_STORE = {HOUSEHOLD: None,   # not stored in this line (st-r5-index adds it)
                 "shiller.sp_price": "shiller.sp_price",
                 "shiller.sp_dividend": "shiller.sp_dividend",
                 **{k: None for k in EQUITY + DEBT}}

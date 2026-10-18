@@ -33,14 +33,14 @@ outliers:
   blocks: [market_closes, fred_macro, fred_signal_triage, fred_fx_scan, fred_sloos,
            fred_aq3, fred_sr43, fred_thailand, fred_6e, fred_releases]
   blocks_reason: >-
-    audit-leftovers-2 (18 Oct 2026): the audit asked for every FRED series, and
+    audit-leftovers-2 (17 Oct 2026): the audit asked for every FRED series, and
     the 6e and release blocks (25 and 45 series) had joined the pull after AUD-3c
     listed its blocks. The check now covers the whole FRED pull and the closes.
   # THE MULTIPLE AND THE WINDOW PER FAMILY (audit-leftovers-2; the audit's item 14
   # asks for them listed per family where families differ). A key takes its
   # metric-lens family's line (metrics_registry.yaml's `families`, a block's
   # `family`); a key with no family takes sigma and window above. SESSION-SET,
-  # 18 Oct 2026: no family differs today. The delta rule already differs by
+  # 17 Oct 2026: no family differs today. The delta rule already differs by
   # family -- log for a price, a difference for a rate or a spread, the move
   # screen's pinned log basis for the volatility indexes -- so a standard
   # deviation of the key's own changes is comparable across them, and sixty
