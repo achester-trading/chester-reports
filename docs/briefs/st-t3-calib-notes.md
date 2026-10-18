@@ -221,8 +221,10 @@ Everything else is CI's.
 |---|---|---|
 | `6e14694` (part 0) | 39148131796 | **failed** on `validate_alpha` only (256/1). This branch did not touch it: see Needs you. |
 | `ea57ff8` (part 1) | 39150911701 | **failed**:<br>• `validate_st_t1_rest` E (33/1), mine, fixed in `493601f`<br>• `validate_weekly_edits` 9 (90/1), mine, fixed in `493601f`<br>• `validate_alpha`, not mine |
-| `3f64691` (part 2) | 39151733576 | see the table's last row |
-| `493601f` | — | see the table's last row |
+| `3f64691` (part 2) | 39151733576 | **failed**:<br>• `validate_regime` L, mine: my group R pattern spelled the withdrawn cell's name, fixed in the CI-fix commit below<br>• `validate_st_t1_rest` and `validate_weekly_edits`, fixed in `493601f`<br>• `validate_alpha`, not mine |
+| `493601f` | 39151947418 | **failed**: `validate_regime` L (mine, the same fault) and `validate_alpha` |
+| `ed1e533` (these notes) | 39152102354 | **failed**, 102 of 105 jobs green: `validate_regime` L (mine) and `validate_alpha`, plus the summary job |
+| the CI-fix commit after these notes | read on a43-render | `validate_regime` L fixed: the pattern drops the cell's names, which stay `validate_regime`'s own check. `validate_alpha`'s fix of record is session B's `3b0da9a`, cherry-picked onto a43-render (ruling 8 of 18 Oct). |
 
 ---
 

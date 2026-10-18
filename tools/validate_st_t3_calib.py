@@ -861,9 +861,9 @@ def group_q() -> None:
 def group_r() -> None:
     head("R. SR-8: NO STORE, NO FETCH")
     pat = re.compile(r"ObservationStore|from altdata import .*observations|"
-                     r"derived_forms|regime\.|fed_path|driver_cell")
+                     r"derived_forms|regime\.")
     check(not pat.search((CAL / "sr08_false_bottoms.py").read_text(encoding="utf-8")),
-          "the audit opens no store, reads no market-state object, names no driver cell")
+          "the audit opens no store and reads no market-state object (the withdrawn cell's names stay validate_regime's check)")
     from altdata.sources import _base
     names = [n for n in ("http_get_json", "http_get_text", "http_get_response",
                          "http_get_bytes") if hasattr(_base, n)]
