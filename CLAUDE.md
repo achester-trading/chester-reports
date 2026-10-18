@@ -481,6 +481,25 @@ Batch 6's constituent ledgers, `altdata/ledgers/st_r5_31b.py` and `st_r5_44b.py`
 sit in session B's package and pre-register their pass rules in their first
 editions. `tools/validate_st_t1_rest.py` holds all of it.
 
+**The funding currencies are computed, never a flag that decides (ST-5;
+st-t2-rates, 18 Oct 2026).** `altdata/funding_currency.py` rides the features pass
+after ST-4. It computes the yen stack: the front differential and its 60-session
+velocity, CFTC positioning as a z, the hedged carry, realized vol and the unwind
+tell. It also computes the yuan: the fix against the previous close, the US-China
+10-year spread, and the devaluation tell's two tracked legs. The third leg (state
+banks selling dollars) is not tracked under rule 30. The order's `calc.cnh_cny_gap`
+is the existing `calc.cnh_cny_bp`, not a second series. The candidate contradiction
+rows `carry_vs_vol` and `fix_vs_offshore` (G-10) are declared in
+`config/funding_currency.yaml` in the table's own form, outside the table: the
+Monthly's Factor IV lines print their `contradictions.gap_z`, and no row opens.
+Moving them into `config/market_state.yaml` is a rules change (v1.13).
+
+**ST-7's calibration studies** are `tools/calibration/sr12_bond_alloc.py`,
+`sr15_valuation.py`, `sr21_divergence.py`, `sr22_auctions.py` and
+`sr23_net_supply.py`, over `st7_common.py`. Each pulls public sources and writes
+`docs/ledgers/sr-NN-ledger-<date>.md` with its CSV. Each register entry carries
+its A-3 gate status as a rule-31 draft. `tools/validate_st_t2_rates.py` holds both.
+
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX
 change of 15% or 3 points, a five-day change past its own 95th percentile over 20

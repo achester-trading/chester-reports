@@ -38,6 +38,24 @@ fixtures; no network, no model, no live store.
   I  NO STORE, NO FETCH. No calibration script opens the store or reads the
      market-state object (validate_regime's own test, run here on the new
      scripts); every study runs on its fixture with every HTTP helper raising.
+  J  ST-5, BY HAND. On one fixture store: the yen front differential +369 bp and
+     +60 bp over 60 sessions; the positioning z 1.6826 (1 to 52) and 1.7006 (1 to
+     82); the hedged carry 1.00%; USDJPY's calm realized vol 8.1435%; the unwind
+     tell on after five 2% falls and off the session before; the fix -14.2857 bp
+     against the close, then 0; the US-China spread +270 bp; the devaluation
+     tell's two legs on at the end and off while the fix leaned; the candidate
+     fix_vs_offshore z -1.2486 over 39 dates through the gap machinery.
+  K  ABSENT IS SAID, NEVER BLANK OR ZERO. An empty store writes no row, and every
+     Factor IV line names its key and source; a missing JGB leg writes no front
+     differential rather than a zero; the third leg reads NOT TRACKED with its
+     by-hand key named.
+  L  NOTHING ENTERS A COMPOSITE. No ST-5 key or candidate row is in the
+     market-state config or any other config but its own; regime and
+     contradictions import nothing of ST-5; every key is trigger_eligible false.
+  M  THE REGISTRY. Each of the nine keys is registered with its unit, family and
+     long window, and the catalogue resolves it with its command line; the
+     order's calc.cnh_cny_gap is no second series; no manual.* key but the PMI;
+     funding_currency.py imports no network library.
 
     python tools/validate_st_t2_rates.py
 """
@@ -403,10 +421,203 @@ def group_i() -> None:
                      "every HTTP helper raising, fetches nothing")
 
 
+# ---------------------------------------------------------------------------
+# ST-5
+# ---------------------------------------------------------------------------
+def obs(key, day, value, inst=None):
+    return {"registry_key": key, "instrument": inst, "observed_at": day,
+            "available_at": f"{day}T21:00:00+00:00", "value": value,
+            "source": "fixture"}
+
+
+def days(n: int, start: str) -> list[str]:
+    import datetime as dt
+    d0 = dt.date.fromisoformat(start)
+    return [(d0 + dt.timedelta(days=i)).isoformat() for i in range(n)]
+
+
+def funding_fixture() -> list[dict]:
+    """The hand figures of group J (and validate_monthly group J)."""
+    import math
+    rows = []
+    d70 = days(70, "2025-01-01")
+    for i, d in enumerate(d70):
+        rows += [obs("fred.yield_2y", d, 4.00 + 0.01 * i), obs("mof.jgb_2y", d, 1.00),
+                 obs("fred.yield_10y", d, 4.50), obs("fred.tbill_3m", d, 4.00),
+                 obs("cfets.cgb_10y", d, 1.80)]
+    rows += [obs("fred.jp_3m", m, 0.50) for m in ("2025-01-01", "2025-02-01", "2025-03-01")]
+    for i, d in enumerate(days(82 * 7, "2023-01-03")[::7]):
+        rows.append(obs("cftc.noncomm_net", d, float(i + 1), "JPY"))
+    px, lp = [], math.log(150.0)
+    for i in range(300):
+        if i:
+            lp += (-0.02 if i >= 295 else (0.005 if i % 2 else -0.005))
+        px.append(math.exp(lp))
+    rows += [obs("yfinance.mkt_usdjpy", d, v) for d, v in zip(days(300, "2024-01-01"), px)]
+    for i, d in enumerate(days(40, "2025-06-01")):
+        late = i >= 25
+        rows += [obs("yfinance.mkt_usdcny", d, 7.0),
+                 obs("cfets.cny_fix", d, 7.00 if late else 6.99),
+                 obs("cnh.usdcnh", d, 7.035 if late else 7.007),
+                 obs("calc.cnh_cny_bp", d, 50.0 if late else 10.0)]
+    return rows
+
+
+def funding_store(rows, name):
+    from altdata import observations
+    p = str(TD / f"{name}.db")
+    with observations.ObservationStore(p) as st:
+        st.write_many(rows)
+    return p
+
+
+def group_j() -> None:
+    head("J. ST-5, BY HAND")
+    import math
+    from altdata import funding_currency as F, observations
+    db = funding_store(funding_fixture(), "st5")
+    with observations.ObservationStore(db) as st:
+        rows = F.compute_rows(st, "2026-10-17T21:00:00+00:00")
+        st.write_many(rows)
+        cands = {c["id"]: c for c in F.candidate_rows(st, "2026-10-17T21:00:00+00:00")}
+    by: dict = {}
+    for r in rows:
+        by.setdefault(r["registry_key"], {})[r["observed_at"]] = r["value"]
+    fd, f60 = by.get("calc.jp_front_diff", {}), by.get("calc.jp_front_diff_60d", {})
+    check(close(fd.get("2025-03-11"), 369.0) and close(f60.get("2025-03-11"), 60.0)
+          and "2025-03-01" not in f60 and close(f60.get("2025-03-02"), 60.0),
+          f"the front differential: 4.69% less 1.00% is +369 bp, +60 bp over 60 "
+          f"sessions, none before the 61st ({fd.get('2025-03-11')}, {f60.get('2025-03-11')})")
+    z = by.get("calc.jpy_pos_z", {})
+    zs = sorted(z.items())
+    check(len(zs) == 31 and close(zs[0][1], 25.5 / math.sqrt(52 * 53 / 12))
+          and close(zs[-1][1], 40.5 / math.sqrt(82 * 83 / 12)),
+          f"positioning z: the 52nd report of 1..52 is {zs[0][1]:.4f} (25.5 over "
+          f"sqrt(52 x 53 / 12)), the 82nd {zs[-1][1]:.4f}; none before 52 weeks")
+    hc = by.get("calc.jp_hedged_carry", {})
+    check(len(hc) == 70 and all(close(v, 1.00) for v in hc.values()),
+          "the hedged carry: 4.50% less (4.00% less 0.50%) is +1.00% on all 70 days "
+          "(the monthly yen leg carried)")
+    rv = by.get("calc.usdjpy_rvol_20d", {})
+    calm = 100 * 0.005 * math.sqrt(20 / 19) * math.sqrt(252)
+    check(close(rv.get("2024-06-01"), calm, 1e-6) and close(calm, 8.1435, 1e-4),
+          f"realized vol of alternating 0.5% days: 0.5% x sqrt(20/19) x sqrt(252) = "
+          f"{calm:.4f}% ({rv.get('2024-06-01')})")
+    uw = by.get("calc.jpy_unwind", {})
+    check(uw.get("2024-10-26") == 1.0 and uw.get("2024-10-21") == 0.0
+          and not any(v for d, v in uw.items() if d < "2024-10-22"),
+          f"the unwind tell: on after five 2% falls (USDJPY -9.5% in 5 sessions, vol "
+          f"{rv.get('2024-10-26', 0):.1f}% against a {calm:.1f}% median), off the "
+          f"session before, and never in the calm before it")
+    dev = by.get("calc.cny_fix_dev", {})
+    check(close(dev.get("2025-06-02"), 1e4 * (6.99 / 7.0 - 1)) and close(dev.get("2025-07-10"), 0.0)
+          and "2025-06-01" not in dev,
+          f"the fix against the previous close: 6.99 on 7.00 is {dev.get('2025-06-02'):.4f} bp "
+          f"(leaning), 7.00 on 7.00 is 0; no previous close, no row")
+    us = by.get("calc.uscn_10y_spread", {})
+    check(close(us.get("2025-01-01"), 270.0), "the US-China spread: 4.50% less 1.80% is +270 bp")
+    dt_ = by.get("calc.deval_tell", {})
+    check(dt_.get("2025-07-10") == 1.0 and dt_.get("2025-06-25") == 0.0
+          and min(dt_) == "2025-06-25",
+          "the devaluation tell's two legs: on at the end (no lean, the gap +50 bp and "
+          "40 bp wider), off while the fix leaned; first read at the 25th observation")
+    c = cands.get("fix_vs_offshore", {})
+    check(close(c.get("magnitude"), -1.2486, 1e-4) and c.get("n") == 39,
+          f"the candidate fix_vs_offshore through contradictions.gap_z: z "
+          f"{c.get('magnitude')} over {c.get('n')} dates (hand: -(15/39 high) "
+          f"standardised = -1.2486)")
+    c2 = cands.get("carry_vs_vol", {})
+    check(c2.get("magnitude") is not None and (c2.get("n") or 0) >= 30,
+          f"the candidate carry_vs_vol computes ({c2.get('magnitude')}, n {c2.get('n')})")
+
+
+def group_k() -> None:
+    head("K. ABSENT IS SAID, NEVER BLANK OR ZERO")
+    from altdata import funding_currency as F, observations
+    from daily_cascade import absorption_block as B
+    db = funding_store([], "st5-empty")
+    with observations.ObservationStore(db) as st:
+        rows = F.compute_rows(st, "2026-10-17T21:00:00+00:00")
+        ls = B.funding_lines(st, "2026-10-17T21:00:00+00:00")
+        cs = B.china_status(st, "2026-10-17T21:00:00+00:00")
+    keys = ("calc.jp_front_diff", "calc.jpy_pos_z", "calc.jp_hedged_carry",
+            "calc.jpy_unwind", "calc.cny_fix_dev", "calc.deval_tell")
+    check(not rows and all(any(f"NOT AVAILABLE ({k}" in x for x in ls) for k in keys)
+          and all(x.strip() and "(" in x for x in ls)
+          and not any(": 0" in x or ": +0" in x for x in ls),
+          f"an empty store writes no row; every Factor IV line names its key and "
+          f"source, none blank, none zero ({len(ls)} lines)")
+    check(any("NOT TRACKED (rule 30; by-hand key state_bank_dollar_selling" in x for x in ls),
+          "the third leg reads NOT TRACKED with its by-hand key named")
+    check(any("NOT AVAILABLE (calc.uscn_10y_spread" in x for x in cs)
+          and any("NOT AVAILABLE (calc.cnh_cny_bp" in x for x in cs),
+          "the China panel's spread and gap lines name their keys when absent")
+    one = [r for r in funding_fixture() if r["registry_key"] == "fred.yield_2y"]
+    db = funding_store(one, "st5-half")
+    with observations.ObservationStore(db) as st:
+        rows = F.compute_rows(st, "2026-10-17T21:00:00+00:00")
+    check(not [r for r in rows if r["registry_key"].startswith("calc.jp_front")],
+          "with the JGB leg missing no front differential is written (not a zero)")
+
+
+def group_l() -> None:
+    head("L. NOTHING ENTERS A COMPOSITE")
+    from altdata import derived, funding_currency as F
+    keys = list(F.FEATURES) + ["carry_vs_vol", "fix_vs_offshore"]
+    hits = []
+    for p in list((REPO / "config").rglob("*.yaml")) + [REPO / "regime.py",
+                                                       REPO / "contradictions.py"]:
+        if p.name in ("funding_currency.yaml", "catalogue_commands.yaml"):
+            continue
+        t = p.read_text(encoding="utf-8", errors="replace")
+        hits += [f"{p.name}:{k}" for k in keys if k in t]
+    check(not hits, f"no ST-5 key or candidate row is in the market-state config or "
+                    f"any other config but its own ({hits or 'none'})")
+    src = "".join((REPO / f).read_text(encoding="utf-8") for f in ("regime.py", "contradictions.py"))
+    check("funding_currency" not in src, "regime and contradictions import nothing of ST-5")
+    te = [k for k in F.FEATURES if (derived.registry_entry(k) or {}).get("trigger_eligible")]
+    check(not te, f"every ST-5 key is trigger_eligible false ({te or 'all false'})")
+
+
+def group_m() -> None:
+    head("M. THE REGISTRY")
+    import ast
+    import yaml
+    from altdata import catalogue, funding_currency as F
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    met, fam, lw = reg.get("metrics") or {}, reg.get("families") or {}, reg.get("long_windows") or {}
+    want = {"calc.jp_front_diff": "bps", "calc.jp_front_diff_60d": "bps",
+            "calc.jpy_pos_z": "ratio", "calc.jp_hedged_carry": "percent_rate",
+            "calc.usdjpy_rvol_20d": "vol_pct", "calc.jpy_unwind": "boolean",
+            "calc.cny_fix_dev": "bps", "calc.uscn_10y_spread": "bps",
+            "calc.deval_tell": "boolean"}
+    bad = [k for k, u in want.items() if (met.get(k) or {}).get("units") != u
+           or k not in fam or k not in lw]
+    res = catalogue.resolved()
+    check(set(want) == set(F.FEATURES) and not bad and all(k in res for k in want),
+          f"the nine keys are registered with their units, families and long windows, "
+          f"and the catalogue resolves them ({bad or 'all'})")
+    cmds = yaml.safe_load((REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8"))
+    check("altdata.funding_currency" in str(cmds), "the catalogue's command line names "
+                                                  "altdata.funding_currency")
+    check("calc.cnh_cny_gap" not in met
+          and "calc.cnh_cny_gap" in str((met.get("calc.cnh_cny_bp") or {}).get("description")),
+          "the order's calc.cnh_cny_gap is no second series: calc.cnh_cny_bp says it is the one")
+    manual = sorted(k for k in met if k.startswith("manual."))
+    check(manual in ([], ["manual.global_pmi"]),
+          f"no new by-hand key: the registry's manual.* metrics are the PMI alone ({manual})")
+    banned = {"requests", "urllib", "httpx", "socket", "anthropic", "subprocess"}
+    tree = ast.parse((REPO / "altdata" / "funding_currency.py").read_text(encoding="utf-8"))
+    names = [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
+    names += [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
+    check(not [x for x in names if any(x == b or x.startswith(b + ".") for b in banned)],
+          "altdata/funding_currency.py imports no network library")
+
+
 def main() -> int:
     print(f"{LINE}\nst-t2-rates\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_i):
+              group_h, group_i, group_j, group_k, group_l, group_m):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

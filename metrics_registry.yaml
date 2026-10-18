@@ -11423,7 +11423,7 @@ metrics:
     units: bps
     trigger_eligible: false
     description: >-
-      USD/CNH less USD/CNY, basis points of USD/CNY: + is the offshore yuan weaker than the onshore.
+      USD/CNH less USD/CNY, basis points of USD/CNY: + is the offshore yuan weaker than the onshore. The signal-triage order's calc.cnh_cny_gap (ST-5) is this series, not a second one.
 
 
   # -------------------------------------------------------------------------
@@ -12994,6 +12994,114 @@ metrics:
     trigger_eligible: false
     description: >-
       Twelve months of central-bank net gold purchases, tonnes (ST-4; altdata/absorption.py). Tonnes (troy ounces / 32,150.7466).
+  calc.jp_front_diff:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      US 2-year (DGS2) less the JGB 2-year (MoF), bp (ST-5, SR-2 metric 1; altdata/funding_currency.py).
+  calc.jp_front_diff_60d:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The yen front differential's change over 60 sessions, bp: the velocity that mattered in Aug 2024 (ST-5, SR-2 metric 1; altdata/funding_currency.py).
+  calc.jpy_pos_z:
+    source: calc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      CFTC yen net non-commercial position (instrument JPY, at the Friday release) as a z against its trailing 156 weekly reports, 52 before the first; negative is crowded short yen (ST-5, SR-2 metric 2; altdata/funding_currency.py).
+  calc.jp_hedged_carry:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      What a hedged Japanese buyer of 10-year Treasuries earns: DGS10 less (DTB3 less OECD Japan 3-month interbank, monthly carried 70 days), percent; negative means hedged buying stops (ST-5, SR-2 metric 3; altdata/funding_currency.py).
+  calc.usdjpy_rvol_20d:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: vol_pct
+    trigger_eligible: false
+    description: >-
+      USDJPY's 20-session realized vol of log returns, annualised, percent: the unwind tell's vol leg and carry_vs_vol's second leg (ST-5; altdata/funding_currency.py).
+  calc.jpy_unwind:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      The yen unwind tell, 1 or 0: USDJPY down 3% or more over 5 sessions while its 20-session realized vol is at least 1.5x its 250-session median; session-set in config/funding_currency.yaml until ST-8 (ST-5, SR-2 metric 4; altdata/funding_currency.py). Display only.
+  calc.cny_fix_dev:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The PBoC's CNY fix against the previous session's onshore close (CNY=X), bp: negative is a fix leaning against weakness (ST-5, SR-4; altdata/funding_currency.py).
+  calc.uscn_10y_spread:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      10-year Treasury (DGS10) less the CGB 10-year (CFETS), bp (ST-5, SR-4; altdata/funding_currency.py).
+  calc.deval_tell:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      SR-4's deliberate-devaluation tell, its two tracked legs, 1 or 0: the fix's lean gone (5-observation mean of calc.cny_fix_dev at or above -10 bp) and the CNH-CNY gap wide and widening (calc.cnh_cny_bp's 5-observation mean at or above +30 bp and 20 bp wider than 20 observations earlier). The third leg, state banks selling dollars, is NOT TRACKED (rule 30; the by-hand key state_bank_dollar_selling was dropped 16 Oct), so a 1 is two of three legs, never the full tell (ST-5; altdata/funding_currency.py). Display only.
   calc.net_supply_proj_12m:
     source: calc
     mechanism_group: treasury_supply
@@ -14611,6 +14719,15 @@ families:
   calc.hs_netdebt_12m: quantity
   calc.mu_inv_days: quantity
   calc.cb_gold_12m: quantity
+  calc.jp_front_diff: spread
+  calc.jp_front_diff_60d: spread
+  calc.jpy_pos_z: ratio
+  calc.jp_hedged_carry: spread
+  calc.usdjpy_rvol_20d: conditions
+  calc.jpy_unwind: conditions
+  calc.cny_fix_dev: spread
+  calc.uscn_10y_spread: spread
+  calc.deval_tell: conditions
   edgar.xbrl_long_term_debt: quantity
   edgar.xbrl_cash: quantity
   edgar.xbrl_mu_inventory: quantity
@@ -14682,6 +14799,15 @@ long_windows:
   calc.hs_netdebt_12m: full
   calc.mu_inv_days: full
   calc.cb_gold_12m: full
+  calc.jp_front_diff: full
+  calc.jp_front_diff_60d: full
+  calc.jpy_pos_z: full
+  calc.jp_hedged_carry: full
+  calc.usdjpy_rvol_20d: full
+  calc.jpy_unwind: full
+  calc.cny_fix_dev: full
+  calc.uscn_10y_spread: full
+  calc.deval_tell: full
   edgar.xbrl_long_term_debt: full
   edgar.xbrl_cash: full
   edgar.xbrl_mu_inventory: full

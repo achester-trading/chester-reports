@@ -1109,8 +1109,17 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("absorption features failed", exc_info=True)
             absr = {"error": f"{type(exc).__name__}: {exc}"}
+        # ST-5'S FUNDING-CURRENCY FEATURES (st-t2-rates), after ST-4's. Never fatal.
+        try:
+            from . import funding_currency                       # noqa: PLC0415
+            fcr = funding_currency.compute(as_of=as_of, first_day=first_day,
+                                           store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("funding-currency features failed", exc_info=True)
+            fcr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
-                "dry_run": dry_run, "correlation": corr, "absorption": absr}
+                "dry_run": dry_run, "correlation": corr, "absorption": absr,
+                "funding_currency": fcr}
     finally:
         if own:
             db.close()

@@ -242,6 +242,9 @@ commands:
   altdata.absorption:
     domain: rates
     line: "Signal-triage ST-4: Duration Absorption and the rates flags (net supply, the TIC absorber shares, ABS_STRESS, ABS_FRAGILITY, the fed-market gap and CRED_STRESS, DEANCHOR, the AI capex loop, central-bank gold); compute rides the features pass, show prints the block"
+  altdata.funding_currency:
+    domain: rates
+    line: "Signal-triage ST-5: the funding-currency features (the yen front differential and its velocity, CFTC yen positioning, the hedged carry, the unwind tell, the yuan fix against the close, the US-China 10-year spread, the devaluation tell's two tracked legs); compute rides the features pass, show prints the Factor IV and China lines"
   altdata.gtm_equities:
     domain: equity
     line: "The J.P. Morgan Guide batch, part 2's equity items (GTM-3 the concentration twin, GTM-4 the AI buckets and the hyperscaler bridge, GTM-10 the sector rows): show prints them as of a cutoff -- read-only"

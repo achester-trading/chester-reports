@@ -168,6 +168,10 @@ def duration_absorption(st, now: str) -> list[str]:
     out.append(f"  China (TIC row, an upper bound: Euroclear custody, G-9): {bn(ch[1])} "
                f"(as of {ch[0]})" if ch else
                "  " + na("China", "tic.holdings_by_country", "TIC Major Foreign Holders"))
+    out.append("  " + line(st, now, "Japan's holdings, read through the hedged carry a "
+                           "Japanese buyer earns on 10-year Treasuries",
+                           "calc.jp_hedged_carry", lambda v: f"{v:+.2f}%",
+                           "calc; FRED DGS10, DTB3, OECD Japan 3-month (ST-5)"))
     out.append("  " + line(st, now, "Domestic price-sensitive residual, 12 months",
                            "calc.priv_residual_12m", bn, "MSPD, TREAST, TIC"))
     out.append("Price:")
@@ -230,7 +234,7 @@ def factor_lines(st, now: str) -> list[str]:
         "Factor III: " + na("the oil buffer", "calc.oil_buffer_state",
                             "EIA weekly stocks; not built"),
         "Factor IV:",
-        "  " + na("Yen stack", "calc.jp_hedged_carry", "ST-5"),
+        *funding_lines(st, now),
         "  " + na("US against the rest of the world", "calc.em_rel",
                   "ST-8, display only until its gate"),
         "  " + line(st, now, "External financing: Treasuries' share of net foreign "
@@ -240,6 +244,51 @@ def factor_lines(st, now: str) -> list[str]:
         + "; " + line(st, now, "foreign official Treasuries, 12 months",
                       "calc.tic_official_12m", bn, "TIC"),
     ]
+
+
+def funding_lines(st, now: str) -> list[str]:
+    """ST-5's Factor IV lines: the yen stack, the yuan, the two tells and the two
+    candidate contradiction rows (G-10). Each line is populated with its as-of or
+    marked NOT AVAILABLE / NOT TRACKED with its key and source."""
+    from altdata import funding_currency as fc                  # noqa: PLC0415
+    fd, f60 = latest(st, "calc.jp_front_diff", now), latest(st, "calc.jp_front_diff_60d", now)
+    rv = latest(st, "calc.usdjpy_rvol_20d", now)
+    uw = latest(st, "calc.jpy_unwind", now)
+    out = [
+        "  " + (f"Yen front differential (US 2-year less the JGB 2-year): {bp(fd[1])}, "
+                f"{bp(f60[1])} over 60 sessions (as of {fd[0]})" if fd and f60 else
+                na("Yen front differential", "calc.jp_front_diff",
+                   "calc; FRED DGS2 and MoF JGB 2-year")),
+        "  " + line(st, now, "Yen positioning (CFTC net non-commercial, z over three "
+                    "years)", "calc.jpy_pos_z", lambda v: f"{v:+.2f}", "calc; CFTC COT"),
+        "  " + line(st, now, "Hedged carry for a Japanese buyer of 10-year Treasuries",
+                    "calc.jp_hedged_carry", lambda v: f"{v:+.2f}%",
+                    "calc; FRED DGS10, DTB3, OECD Japan 3-month"),
+        "  " + (f"Yen unwind tell: {flag(uw[1])} (as of {uw[0]}; USDJPY 20-session vol "
+                f"{rv[1]:.1f}%)" if uw and rv else
+                na("Yen unwind tell", "calc.jpy_unwind", "calc; USDJPY closes")),
+        "  " + line(st, now, "Yuan fix against the previous onshore close",
+                    "calc.cny_fix_dev", bp, "calc; CFETS fix and CNY=X"),
+    ]
+    dv = latest(st, "calc.deval_tell", now)
+    third = (f"the third leg (state banks selling dollars) {NT} (rule 30; by-hand key "
+             f"{fc.THIRD_LEG_KEY}, dropped 16 Oct)")
+    out.append("  " + (f"Devaluation tell, its two tracked legs: {flag(dv[1])} (as of "
+                       f"{dv[0]}); {third}" if dv else
+                       na("Devaluation tell", "calc.deval_tell",
+                          "calc; CFETS fix, CNH and CNY=X") + f"; {third}"))
+    try:
+        cands = fc.candidate_rows(st, now) if st is not None else []
+    except Exception:                                           # noqa: BLE001
+        log.warning("candidate contradiction rows faulted", exc_info=True)
+        cands = []
+    for c in cands or [{"id": p["id"], "legs": p["legs"], "magnitude": None}
+                       for p in fc.config()["candidate_contradictions"]["pairs"]]:
+        lab = f"Candidate row {c['id']} (G-10: declared, not in the table)"
+        out.append("  " + (f"{lab}: gap z {c['magnitude']:+.2f} over {c['n']} dates "
+                           f"(as of {c['last']})" if c.get("magnitude") is not None else
+                           na(lab, " and ".join(c["legs"]), "contradictions.gap_z")))
+    return out
 
 
 def china_status(st, now: str) -> list[str]:
@@ -252,9 +301,11 @@ def china_status(st, now: str) -> list[str]:
             st_line("TIC China row", "tic.holdings_by_country", "TIC", "China, Mainland"),
             st_line("CNY fix", "cfets.cny_fix", "CFETS"),
             st_line("CGB 10-year", "cfets.cgb_10y", "CFETS"),
-            na("US-China 10-year spread", "calc.uscn_10y_spread", "ST-5"),
+            st_line("US-China 10-year spread", "calc.uscn_10y_spread",
+                    "calc; FRED DGS10 and CFETS (ST-5)"),
             st_line("Offshore yuan", "cnh.usdcnh", "CNH close"),
-            na("CNH-CNY gap", "calc.cnh_cny_gap", "ST-5")]
+            st_line("CNH-CNY gap (the order's calc.cnh_cny_gap)", "calc.cnh_cny_bp",
+                    "calc; CNH and CNY=X closes")]
 
 
 def _sub(title: str, lines: list[str], note: str) -> dict:

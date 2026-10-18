@@ -20,6 +20,12 @@ I. THE SIGNAL-TRIAGE BLOCKS (ST-6; st-t1-rest, 18 Oct 2026): the Rate machine
    HTTP helper raises during the build and none is called); every line is
    populated or prints NOT AVAILABLE / NOT TRACKED with its key and source; the
    line caps hold (18, 10); each is lines only, zero words in the budget.
+J. THE FACTOR IV LINES POPULATED (ST-5; st-t2-rates, 18 Oct 2026): on a fixture
+   store holding the funding-currency inputs, every ST-5 line of Factor IV (the
+   yen stack, the unwind tell, the fix, the devaluation tell's two legs, the two
+   candidate contradiction rows), Duration Absorption's Japan line and the China
+   panel's spread and gap print a value with its as-of; none prints NOT
+   AVAILABLE; the third leg prints NOT TRACKED with its key; the caps hold.
 
 Groups B, D and F BUILD THE PAYLOAD, which is why this gate is slower than its
 neighbours and worth the seconds: a completeness rule asserted against the code that
@@ -1250,6 +1256,45 @@ def group_i() -> None:
           "the Monthly places them: Plumbing & rates and Slow layers")
 
 
+def group_j() -> None:
+    print(f"\n{LINE}\nJ. THE FACTOR IV LINES POPULATED (ST-5)\n{LINE}")
+    import importlib
+    from altdata import funding_currency, observations
+    from daily_cascade import absorption_block as B, stack
+    spec = importlib.util.spec_from_file_location(
+        "st_t2_gate", REPO / "tools" / "validate_st_t2_rates.py")
+    g = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(g)
+    db = str(Path(gate_mkdtemp("monthly-st5-")) / "st5.db")
+    now = "2026-10-17T21:00:00+00:00"
+    with observations.ObservationStore(db) as st:
+        st.write_many(g.funding_fixture())
+        st.write_many(funding_currency.compute_rows(st, now))
+        subs = {x["title"]: x for x in B.subsections(st, now, "plumbing")
+                + B.subsections(st, now, "slow")}
+    fac = subs.get(B.FACTOR_TITLE, {}).get("lines", [])
+    i0 = next((i for i, x in enumerate(fac) if x.startswith("Factor IV")), None)
+    st5 = [x for x in fac[i0 + 1:i0 + 9]] if i0 is not None else []
+    check(len(st5) == 8 and all("(as of " in x for x in st5)
+          and not any("NOT AVAILABLE" in x for x in st5),
+          f"the eight ST-5 Factor IV lines print a value with its as-of, none NOT "
+          f"AVAILABLE ({sum('(as of ' in x for x in st5)} of {len(st5)})")
+    check(any("NOT TRACKED (rule 30; by-hand key state_bank_dollar_selling" in x
+              for x in st5),
+          "the devaluation tell's third leg prints NOT TRACKED with its key")
+    da = subs.get(B.DA_TITLE, {}).get("lines", [])
+    ch = subs.get(B.CHINA_TITLE, {}).get("lines", [])
+    check(any(x.strip().startswith("Japan's holdings") and "+1.00% (as of" in x for x in da)
+          and len(da) <= 18
+          and any(x.startswith("US-China 10-year spread: stored, as of") for x in ch)
+          and any(x.startswith("CNH-CNY gap") and "stored, as of" in x for x in ch),
+          "Duration Absorption's Japan line reads the hedged carry (+1.00%) within "
+          "its cap of 18, and the China panel's spread and gap are stored")
+    check(all(stack.section_words(t) == 0 and t.get("paragraph_wanted") is False
+              for t in subs.values()),
+          "still lines only: zero words in the Monthly's budget")
+
+
 def isolate_and_seed() -> str:
     """Point every store the payload reads at a temporary database, and seed it.
 
@@ -1331,6 +1376,7 @@ def main() -> int:
     group_g()
     group_h()
     group_i()
+    group_j()
     built = None
     try:
         from monthly_macro import payload
