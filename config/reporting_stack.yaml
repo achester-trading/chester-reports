@@ -787,7 +787,7 @@ technical_appendix:
     # F-3 (ruled 18 Oct 2026): the vendor's conventions beside ours, in the same
     # terms, printed before the first vendor row.
     - {quantity: "Vendor GEX (FlashAlpha)", formula: "sum over strikes and expiries of dealer position x gamma x open interest x 100 x spot squared x 0.01, on prior-night settled open interest and the vendor's own implied vol per contract", units: "$ per 1% move", sign: "calls +, puts - (the convention polarity: dealers long calls, short puts)"}
-    - {quantity: "Our GEX in the vendor's terms", formula: "the same sum on our capture's open interest (the prior settlement's) and our own implied vol per contract; the report's Net GEX row is this over spot", units: "$ per 1% move", sign: "calls +, puts - (the same convention)"}
+    - {quantity: "Our GEX in the vendor's terms", formula: "the same sum on our capture's open interest (the prior settlement's) and our own implied vol per contract; the report's Net GEX per $1 move times 0.01 x spot", units: "$ per 1% move", sign: "calls +, puts - (the same convention)"}
     - {quantity: "Vendor DEX (FlashAlpha)", formula: "sum of delta x open interest x 100 x spot, raw option deltas", units: "$", sign: "the customer book: calls +, puts -; ours is the dealer position, so a put's sign is opposite"}
     - {quantity: "Walls, vendor and ours", formula: "the vendor's call and put walls are the peaks across all strikes; ours, from 22 Oct 2026, are the out-of-the-money walls (above spot for calls, below for puts)", units: "index points", sign: "—"}
   expiry_coverage: "every listed expiry the captured chain holds (the capture takes no cap unless one is passed), bucketed 0DTE / weekly / monthly / quarterly / other"

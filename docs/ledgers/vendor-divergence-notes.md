@@ -11,7 +11,7 @@ They print in the Weekly's technical appendix and in the writer's notes
 
 | Quantity | The vendor | Ours |
 |---|---|---|
-| GEX | Σ dealer position × gamma × OI × 100 × spot² × 0.01, in dollars per 1% move. Calls +, puts − (the convention polarity), on prior-night settled OI, with **their own IV per contract**. | The same sum, on our capture's OI (the prior settlement's) and **our own IV per contract**. The report's net GEX row is this over spot. The two are the same definition: the 9 Oct ledger (gex-scale-flashalpha-2026-10-09) found a median per-strike ratio of 1.01 on the same inputs. |
+| GEX | Σ dealer position × gamma × OI × 100 × spot² × 0.01, in dollars per 1% move. Calls +, puts − (the convention polarity), on prior-night settled OI, with **their own IV per contract**. | The same sum, on our capture's OI (the prior settlement's) and **our own IV per contract**. It is the report's net GEX per $1 move, times 0.01 × spot. The two are the same definition: the 9 Oct ledger (gex-scale-flashalpha-2026-10-09) found a median per-strike ratio of 1.01 on the same inputs. |
 | DEX | Σ delta × OI × 100 × spot, raw option deltas: **the customer book**, calls +, puts −. | **The dealer position**, so a put's sign is opposite. Ours re-signed to theirs reconciled to 1% on 9 Oct. |
 | Walls | The peaks across all strikes. | From 22 Oct 2026, the out-of-the-money walls: above spot for calls, below for puts. |
 
