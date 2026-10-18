@@ -23,7 +23,7 @@ produced identical output.
      traceback.
   F  A PLACEHOLDER IS NOT A SECRET. Committed files carry PLACEHOLDER, and treating
      it as configured would make `present()` lie in exactly the case that matters.
-  I  THE USER-AGENT RULE (17 Oct 2026): every request but the SEC's carries
+  J  THE USER-AGENT RULE (17 Oct 2026): every request but the SEC's carries
      the generic project string from altdata/sources/user_agent.py; no
      User-Agent carries an address; no non-SEC caller imports edgar's.
 
@@ -363,7 +363,8 @@ def group_h() -> None:
 
 
 # ---------------------------------------------------------------------------
-# I. THE USER-AGENT RULE (ruled 17 Oct 2026)
+# J. THE USER-AGENT RULE (ruled 17 Oct 2026). Lettered J, not I: session B's
+# audit-leftovers-1 adds its own group I (rclone's variables) to this file.
 # ---------------------------------------------------------------------------
 # The two modules allowed to write a User-Agent: the generic one and the SEC's.
 UA_HOMES = {"altdata/sources/user_agent.py", "altdata/sources/edgar.py"}
@@ -432,10 +433,10 @@ def ua_faults(rel: str, src: str) -> list:
     return faults
 
 
-def group_i() -> None:
+def group_j() -> None:
     """Ruled 17 Oct 2026: every request but the SEC's carries the generic project
     User-Agent; the SEC alone gets CHESTER_SEC_CONTACT."""
-    print(f"\n{LINE}\nI. THE USER-AGENT RULE: GENERIC EVERYWHERE BUT SEC.GOV "
+    print(f"\n{LINE}\nJ. THE USER-AGENT RULE: GENERIC EVERYWHERE BUT SEC.GOV "
           f"(17 OCT 2026)\n{LINE}")
     import subprocess  # noqa: PLC0415
     from unittest import mock  # noqa: PLC0415
@@ -530,7 +531,7 @@ def group_i() -> None:
 def main() -> int:
     print(f"{LINE}\nThe one secrets loader\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_i):
+              group_h, group_j):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

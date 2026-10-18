@@ -12,7 +12,7 @@ shape, for the hosts that answer a bare product token with a 403 (the voices
 scan's desks, CFETS, iShares, SAFE). It still names the project and the
 repository; it does not pass for a browser.
 
-tools/validate_secrets.py group I holds it: no User-Agent string in the tree
+tools/validate_secrets.py group J holds it: no User-Agent string in the tree
 carries an "@" or a person's name, and no non-SEC caller imports edgar's.
 """
 
