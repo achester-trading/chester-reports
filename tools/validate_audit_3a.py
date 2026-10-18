@@ -164,6 +164,17 @@ NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",
                      "yfinance.mkt_vix9d_dividend", "yfinance.mkt_vix9d_split",
                      "yfinance.mkt_vix6m_dividend", "yfinance.mkt_vix6m_split",
+                     # The GTM batch, part 2 (17 Oct 2026): GTM-12's six FRED
+                     # series and GTM-13's three proxies with their actions.
+                     "fred.fed_interest_payments", "fred.fed_defense",
+                     "fred.fy_net_interest", "fred.fy_net_outlays",
+                     "fred.fy_deficit", "fred.fy_deficit_gdp",
+                     "yfinance.mkt_tip", "yfinance.mkt_mub", "yfinance.mkt_mbb",
+                     "yfinance.mkt_tip_dividend", "yfinance.mkt_tip_split",
+                     "yfinance.mkt_mub_dividend", "yfinance.mkt_mub_split",
+                     "yfinance.mkt_mbb_dividend", "yfinance.mkt_mbb_split",
+                     "yfinance.mkt_tip_volume", "yfinance.mkt_mub_volume",
+                     "yfinance.mkt_mbb_volume",
                      # The GTM batch, part 1 (17 Oct 2026): five FRED series
                      # and the three base-rate tables.
                      "fred.customs_duties", "fred.goods_imports",
@@ -830,7 +841,7 @@ def group_f() -> None:
     faults = printed_count_faults(text, counts)
     check(not faults, f"each of the {len(PRINTED_COUNTS)} counts CLAUDE.md prints "
           f"equals the code's ({faults or counts})")
-    stale = text.replace("57 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
+    stale = text.replace("63 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
     check(any("FRED_SIGNAL_SERIES: CLAUDE.md prints 20" in f
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")

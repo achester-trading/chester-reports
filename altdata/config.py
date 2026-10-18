@@ -279,6 +279,20 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("dsr_household",  "TDSP",     "Household debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
     SeriesSpec("dsr_consumer",   "CDSP",     "Consumer debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
     SeriesSpec("dsr_mortgage",   "MDSP",     "Mortgage debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
+    # THE GTM BATCH, PART 2 (17 Oct 2026). GTM-12, what the Factor IV panel
+    # lacks. National accounts, "Billions of Dollars, Seasonally Adjusted Annual
+    # Rate", quarterly: federal interest payments (A091RC1Q027SBEA) and national
+    # defense consumption and gross investment (FDEFX). The budget, by fiscal
+    # year, "Millions of Dollars, Not Seasonally Adjusted": net interest outlays
+    # (FYOINT), net outlays (FYONET) and the surplus or deficit (FYFSD); and the
+    # surplus or deficit as "Percent of GDP" (FYFSGDA188S), annual. Each read off
+    # its FRED page 17 Oct 2026 -- the millions are not the billions above.
+    SeriesSpec("fed_interest_payments", "A091RC1Q027SBEA", "Federal government current expenditures: interest payments, SAAR", "8", "B", "quarterly"),
+    SeriesSpec("fed_defense",    "FDEFX",    "Federal national defense consumption expenditures and gross investment, SAAR", "8", "B", "quarterly"),
+    SeriesSpec("fy_net_interest", "FYOINT",  "Federal outlays: interest, fiscal year", "8", "M", "annual"),
+    SeriesSpec("fy_net_outlays", "FYONET",   "Federal net outlays, fiscal year", "8", "M", "annual"),
+    SeriesSpec("fy_deficit",     "FYFSD",    "Federal surplus or deficit (-), fiscal year", "8", "M", "annual"),
+    SeriesSpec("fy_deficit_gdp", "FYFSGDA188S", "Federal surplus or deficit (-) as % of GDP, fiscal year", "8", "%", "annual"),
 ]
 
 # ---------------------------------------------------------------------------

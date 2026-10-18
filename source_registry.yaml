@@ -1026,7 +1026,7 @@ sources:
       - Not the ibkr.auction_* family, which is the equity closing auction.
 
   fiscaldata:
-    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I)
+    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I) and the Monthly Treasury Statement (Table 4, customs duties)
     tier: A0
     epistemic_role: primary_fact
     domain: [treasury_supply, sovereign]
@@ -1046,6 +1046,11 @@ sources:
         G-14: net marketable issuance is the month-end change in Total Marketable
         held by the public. It includes SOMA add-ons and TIPS accrual and is not
         the refunding's privately-held figure; see the module docstring.
+      - >-
+        The MTS customs lines (the GTM batch, part 2, ruling 3 of 17 Oct 2026) are
+        in dollars as served, gross, refunds and net; the effective tariff rate
+        reads the gross, since refunds of IEEPA duties turned net receipts
+        negative from mid-2026.
 
   manual_input:
     name: Operator-entered figures (tools/manual_input.py)
@@ -2165,6 +2170,31 @@ sources:
     caveats:
       - >-
         Tier C mirror of A0 filings. Where EDGAR XBRL is ingested later, it wins.
+
+  edgar_xbrl:
+    name: SEC EDGAR XBRL frames -- annual operating cash flow and capex for the five hyperscalers
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [fundamentals]
+    geography: [US]
+    latency: after each 10-K; the annual frame aggregates each filer's latest filed fact
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The frames carry no publication instant per fact; available_at is the write
+      instant (ingest_instant), an upper bound. observed_at is the fiscal year's
+      end as filed.
+    license: >-
+      public, no key; EDGAR's fair-access rule asks for a User-Agent with a contact,
+      which edgar.user_agent() supplies from CHESTER_SEC_CONTACT and nowhere else
+    allowed_reports: [monthly_macro]
+    implemented_by: altdata/sources/edgar_xbrl.py
+    status: live
+    caveats:
+      - >-
+        The GTM batch, part 2 (17 Oct 2026; GTM-4). A calendar frame takes the
+        fiscal year whose larger part falls in that year, so Microsoft's (June)
+        and Oracle's (May) years sit in the frame before the one their year-end
+        names. Dormant, PENDING, until CHESTER_SEC_CONTACT is set.
 
   # --- AUD-3a item 4 (14 Oct 2026): the string the computed rows carry -------
   calc:

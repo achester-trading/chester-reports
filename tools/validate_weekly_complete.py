@@ -303,9 +303,13 @@ def main() -> int:
     print(f"\n{LINE}\nE. LEADERSHIP AND BREADTH\n{LINE}")
     srt = sec["positioning"]["subsections"][0]
     check(srt["table"]["columns"] == ["Sector or pair", "Week", "One month",
-                                      "Three months"]
-          and any(" (XL" in r[0] for r in srt["table"]["rows"]),
-          "the sector table: the week, one month, three months; names from the labels")
+                                      "Three months",
+                                      "Correlation to the 10-year, 1 year"]
+          and any(" (XL" in r[0] for r in srt["table"]["rows"])
+          and all(len(r) == 5 for r in srt["table"]["rows"]),
+          "the sector table: the week, one month, three months, and GTM-10's "
+          "one-year correlation to the 10-year (the GTM batch, part 2); names from "
+          "the labels")
     check(not srt.get("lines") or re.match(
         r"Sectors above their 50-day average: \d+ of \d+; above their 200-day: \d+ of "
         r"\d+\.", srt["lines"][0]), f"the 50/200-day count ({srt.get('lines')})")

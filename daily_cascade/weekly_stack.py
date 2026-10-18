@@ -217,6 +217,12 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     # report-only, with no paragraph of their own.
     from . import t1_rest_block                                 # noqa: PLC0415
     subs += t1_rest_block.mechanics_subsections(st, cutoff, "weekly")
+    # THE GTM BATCH, PART 2 (17 Oct 2026): the concentration twin (GTM-3,
+    # report-only) beside item 31's table, then the AI buckets (GTM-4) -- tables
+    # only, no paragraph, so the Weekly's budgets hold.
+    from . import gtm_block                                     # noqa: PLC0415
+    subs = gtm_block.place_mechanics(subs, gtm_block.mechanics_subsections(
+        st, cutoff, "weekly"))
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}
@@ -869,8 +875,26 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
     sec = wsec.sector_table(st, now, then, lead, cadence)
     data["sectors_above_50d"] = sec["above_50d"]
     data["sectors_above_200d"] = sec["above_200d"]
+    # THE GTM BATCH, PART 2 (GTM-10, 17 Oct 2026): the Weekly's leadership table
+    # gains the one-year correlation to the 10-year as a column (a table cell,
+    # within the budget); the Monthly's keeps its columns and carries the full
+    # sector rows -- ours over one and five years, the Guide's beside -- as a
+    # second table.
+    from . import gtm_block                                     # noqa: PLC0415
+    gtm10 = []
+    if cadence == "weekly" and sec["table"]["rows"]:
+        sec["table"] = {"columns": [*sec["table"]["columns"],
+                                    gtm_block.SECTOR_CORR_COLUMN],
+                        "rows": gtm_block.sector_corr_column(st, now,
+                                                             sec["table"]["rows"])}
+    elif cadence == "monthly":
+        t10 = gtm_block.sector_table(st, now)
+        if t10:
+            gtm10 = [{"columns": t10["columns"], "rows": t10["rows"]}]
+            note10 = t10["note"]
     out.append({"title": "Sector rotation and leadership", "table": sec["table"],
                 "lines": [sec["line"]] if sec["line"] else [],
+                **({"tables": gtm10, "table_note": note10} if gtm10 else {}),
                 "not_tracked": [] if sec["table"]["rows"] else
                 [f"{w.poss} sector returns"]})
     cf = []

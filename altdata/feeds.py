@@ -152,6 +152,10 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "finra", "proshares",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
+                    # The GTM batch, part 2 (17 Oct 2026): the hyperscalers'
+                    # annual cash flow and capex from EDGAR's XBRL frames
+                    # (GTM-4's bridge); PENDING until the SEC contact is set
+                    "edgar_xbrl",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
                     "aaii",
                     # SR-38 (13 Oct 2026): S&P DJI's EPS workbook, from the

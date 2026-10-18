@@ -693,6 +693,96 @@ def tariff(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
             ["B235RC1Q027SBEA", "BOPGIMP"], **dual_percentiles(s)}
 
 
+def monthly_tariff_series(gross: list[tuple[str, float]],
+                          imports: list[tuple[str, float]],
+                          smooth: int = 3) -> list[dict]:
+    """[{month, rate, rate_smooth}], percent: the month's customs duties collected
+    (MTS, dollars, gross) over the month's goods imports (BOPGIMP, millions); the
+    smoothed rate is the last `smooth` months' duties over their imports."""
+    g = {d[:7]: v for d, v in gross}
+    imp = by_month(imports)
+    months = sorted(m for m in g if m in imp and imp[m] > 0)
+    out = []
+    for i, m in enumerate(months):
+        r = {"month": m, "rate": 100 * g[m] / (imp[m] * 1e6), "rate_smooth": None}
+        win = [_month_add(m, -k) for k in range(smooth)]
+        if all(x in g and x in imp for x in win):
+            r["rate_smooth"] = 100 * sum(g[x] for x in win) / (sum(imp[x] for x in win) * 1e6)
+        out.append(r)
+    return out
+
+
+def tariff_monthly(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
+    """GTM-15 monthly (ruling 3 of 17 Oct 2026): the MTS's gross customs duties
+    over the month's goods imports, with the month's refunds beside it."""
+    cfg = cfg or config()
+    t = cfg["tariff_monthly"]
+    s = monthly_tariff_series(points(st, t["gross_key"], cutoff),
+                              points(st, t["imports_key"], cutoff),
+                              int(t["smooth_months"]))
+    if not s:
+        return {"state": "absent", "absent_reason":
+                f"{t['gross_key']} and {t['imports_key']} are not stored for a "
+                f"common month"}
+    pts = [(f"{r['month']}-01", r["rate"]) for r in s]
+    ref = {d[:7]: v for d, v in points(st, t["refunds_key"], cutoff)}
+    last = s[-1]
+    return {"state": "ok", "frequency": "monthly", "month": last["month"],
+            "rate_smooth": last["rate_smooth"], "smooth_months": int(t["smooth_months"]),
+            "refunds": ref.get(last["month"]),
+            "series_ids": ["MTS Table 4 (Customs Duties, gross)", "BOPGIMP"],
+            **dual_percentiles(pts)}
+
+
+# ---------------------------------------------------------------------------
+# GTM-12: what the Factor IV panel lacks
+# ---------------------------------------------------------------------------
+def share_series(num: list[tuple[str, float]], den: list[tuple[str, float]],
+                 sign: int = 1) -> list[tuple[str, float]]:
+    """[(period, percent)]: the numerator over the denominator for each period
+    both carry (the same observed_at)."""
+    dd = dict(den)
+    return [(d, 100 * sign * v / dd[d]) for d, v in num if dd.get(d)]
+
+
+def federal(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
+    """Each row's latest level, its period and its share -- of federal current
+    expenditures on the national-accounts basis, of net outlays on the budget's
+    -- with the share's percentile over `short_years` and the full history. The
+    deficit is printed positive (sign -1 on FRED's surplus-or-deficit)."""
+    cfg = cfg or config()
+    f = cfg["federal"]
+    short = int(round(365.25 * int(f["short_years"])))
+    den = {"nipa": points(st, f["nipa_denominator"], cutoff),
+           "budget": points(st, f["budget_denominator"], cutoff)}
+    rows = []
+    for r in f["rows"]:
+        sign = int(r.get("sign", 1))
+        p = points(st, r["key"], cutoff)
+        row = {"id": r["id"], "label": r["label"], "series": r["series"],
+               "key": r["key"], "basis": r["basis"], "latest": None}
+        if not p:
+            row["reason"] = f"{r['key']} ({r['series']}) is not stored"
+            rows.append(row)
+            continue
+        row["latest"], row["day"] = sign * p[-1][1], p[-1][0]
+        if r["basis"] == "gdp":
+            shares = [(d, sign * v) for d, v in p]
+            row["share_of"] = "GDP"
+        else:
+            shares = share_series(p, den[r["basis"]], sign)
+            row["share_of"] = ("current expenditures" if r["basis"] == "nipa"
+                               else "net outlays")
+        sh = dual_percentiles(shares, short) if shares else {"latest": None}
+        row["share"] = sh.get("latest") if shares and shares[-1][0] == row["day"] else None
+        row.update({k: sh.get(k) for k in ("pctile_5y", "n_5y", "pctile_full",
+                                           "n_full", "since")})
+        rows.append(row)
+    return {"state": "ok" if any(r["latest"] is not None for r in rows) else "absent",
+            "rows": rows, "short_years": int(f["short_years"]),
+            "cbo_path": list(f["cbo_path"])}
+
+
 # ---------------------------------------------------------------------------
 # GTM-21: the debt-service ratio
 # ---------------------------------------------------------------------------
@@ -737,7 +827,9 @@ def build(st, cutoff: str, db_path: Optional[str] = None,
                 "ytd": ath_year_to_date(gspc, cutoff[:10], cfg)},
         "fixed_income": fixed_income(st, cutoff, cfg, guide=src.get("gtm13.ytd")),
         "tariff": tariff(st, cutoff, cfg),
+        "tariff_monthly": tariff_monthly(st, cutoff, cfg),
         "dsr": dsr(st, cutoff, cfg),
+        "federal": federal(st, cutoff, cfg),
     }
 
 

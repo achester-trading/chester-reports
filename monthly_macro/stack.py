@@ -529,6 +529,14 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     # oil-shock signature (32), report-only.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     subs += t1_rest_block.mechanics_subsections(st, now, "monthly")
+    # THE GTM BATCH, PART 2 (17 Oct 2026): GTM-4's buckets and the hyperscaler
+    # cash-flow bridge -- the Factor I exhibit -- after the SR-37 panel, and the
+    # concentration twin (GTM-3, report-only) beside item 31's table. Tables
+    # only: they displace no word and no chart.
+    from daily_cascade import gtm_block                         # noqa: PLC0415
+    subs = gtm_block.place_mechanics(
+        subs, gtm_block.mechanics_subsections(st, now, "monthly"),
+        after_panel=fcf["title"] if fcf else None)
     extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
              **({"ai_revisions": rv_data} if rv_data else {})}
     return {"items": items, "print_items": False,

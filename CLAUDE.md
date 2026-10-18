@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 57 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 63 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 159, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 165, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -125,7 +125,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    108 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    111 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -416,19 +416,42 @@ paragraphs are logged at archive time (`altdata/withheld_log.py`), by every
 edition: the anchor, the close, the Weekly, the Monthly, the Quarterly and the
 12:30 slot (ruling 4 of 17 Oct 2026).
 
-**The J.P. Morgan Guide batch, part 1 (17 Oct 2026; GTM-1, 7, 8, 9, 13, 15,
-21).** `altdata/gtm.py` computes, `daily_cascade/gtm_block.py` lays out,
-`config/gtm.yaml` declares the settings and the Guide's figures. A figure only
-the Guide has is a sourced figure: declared with the scan's words quoted, its
-section and as-of, stored by `altdata.scans ingest` under `GTM-n · <label>`, and
-printed from the store, never recomputed. The Monthly's Slow layers carry the
-inflection-points exhibit (GTM-1), the stock-bond regime table (GTM-7, amending
-SR-9; Shiller's sheet), the sentiment turning points (GTM-8) and the all-time
-highs (GTM-9); Plumbing carries the fixed-income scenario table (GTM-13, the
-Weekly too), the effective tariff rate (GTM-15, quarterly: FRED has no monthly
-customs series) and the debt-service ratio (GTM-21, SR-5's modifier). GTM-7, 8
-and 9 are also `baserate.*` tables. Register numbers SR-48 and SR-50 to SR-59 (SR-49 is the shape axis's); tables
-and lines only, so no budget moves. `tools/validate_gtm.py` holds it.
+**The J.P. Morgan Guide batch (17 Oct 2026; part 1 GTM-1, 7, 8, 9, 13, 15, 21;
+part 2 GTM-3, 4, 10, 12).** `altdata/gtm.py` and `altdata/gtm_equities.py`
+compute, `daily_cascade/gtm_block.py` lays out, and `config/gtm.yaml` declares
+the settings and the Guide's figures. `config/ai_buckets.yaml` holds GTM-4's
+buckets, reference data refreshed each quarter from the scan.
+
+A figure only the Guide has is a **sourced figure**:
+- declared with the scan's words quoted, its section, the Guide's **slide** (now
+  required) and the as-of;
+- stored by `altdata.scans ingest` under `GTM-n · <label>`;
+- printed from the store, never recomputed.
+
+The scan's section 7 transcribes slides 4, 8, 11, 15, 22 and 27 once, read off
+the public PDF.
+
+Where the batch prints:
+- **The Monthly's Slow layers:** GTM-1, 7 (amending SR-9), 8 and 9, which are
+  also `baserate.*` tables.
+- **Plumbing:** GTM-13's scenario table (also in the Weekly; TIP, MUB and MBB now
+  its proxies), GTM-15's tariff rate (monthly from the MTS through the
+  fiscaldata writer, FRED's quarterly as the cross-check), GTM-21 (SR-5's
+  modifier) and GTM-12's federal rows (the Factor IV rows: two bases, never
+  mixed, and the CBO path as a sourced figure).
+- **Mechanics, both cadences:** GTM-3's concentration twin, report-only, beside
+  item 31; its Top & Bottom intake-queue entry is a draft in
+  `config/tb_intake_queue.yaml` and grants nothing. GTM-4's AI buckets; the
+  Monthly adds the hyperscaler cash-flow bridge from EDGAR's XBRL frames
+  (`altdata/sources/edgar_xbrl.py`, after the SR-37 panel).
+- **The sector tables:** GTM-10's one-year correlation to the 10-year is a column
+  in the Weekly's leadership table; the Monthly's sector sub-section carries
+  the full rows.
+
+A measure missing an input prints the Guide's figure, labelled, never a partial
+computation. Register numbers are SR-48 and SR-50 to SR-59 (SR-49 is the shape
+axis's). Everything is tables and lines, so no budget moves.
+`tools/validate_gtm.py` holds it.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

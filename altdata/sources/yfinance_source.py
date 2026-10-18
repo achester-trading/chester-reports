@@ -238,6 +238,12 @@ SYMBOLS: dict[str, str] = {
     # and a ledger marked from the store needs AGG's closes in it. Like NVDA, a
     # name added here needs tools/backfill_prices.py before its history reads.
     "AGG": "mkt_agg",
+    # THE GTM BATCH, PART 2 (ruling 2 of 17 Oct 2026): the fixed-income scenario
+    # table's TIPS, municipal and MBS proxies (GTM-13). Like AGG, each needs
+    # tools/backfill_prices.py before its history reads.
+    "TIP": "mkt_tip",
+    "MUB": "mkt_mub",
+    "MBB": "mkt_mbb",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #

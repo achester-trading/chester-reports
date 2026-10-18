@@ -322,16 +322,17 @@ narratives:
         claims_cited: [cal.midterm_election_2026]
 
 # -----------------------------------------------------------------------------
-# DISAGREEMENTS -- DRAFTS (rule 31; the GTM change order of 3 Oct 2026)
+# DISAGREEMENTS (rule 31; the GTM change order of 3 Oct 2026)
 # -----------------------------------------------------------------------------
 # A disagreement is logged against a base rate's APPLICABILITY, never as a
-# signal. These are drafts committed as drafted for the operator's accept-all;
-# no code reads this block, and nothing here enters the register, the ledger or
-# a report until the operator accepts it.
+# signal. Each is drafted under rule 31 and carries the operator's ruling when it
+# has one (`status: accepted`). No code reads this block, and an accepted entry
+# reaches the narrative register only by the operator's own confirm.
 disagreements:
   gtm8_sentiment_trough_at_high:
-    status: draft
+    status: accepted
     drafted: "2026-10-17"
+    accepted: "2026-10-17"   # accepted as drafted (the rulings of 17 Oct 2026)
     base_rate: baserate.sentiment_turning_points
     source: "J.P. Morgan Guide to the Markets 4Q 2026, scan section 4 (GTM-8)"
     statement: >-

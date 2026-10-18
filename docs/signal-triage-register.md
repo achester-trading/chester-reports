@@ -149,7 +149,7 @@
 
 **Validation gate.** Replicate at 5- and 10-year z windows; count non-overlapping episodes; run the revolving-only variant; rerun everything on first prints. Bull side passes if first-print six-month expectancy stays ≥2× unconditional across ≥8 episodes. Offline (ST-8).
 
-*Draft (rule 31, 17 Oct 2026), the GTM-21 amendment — committed as drafted, for the operator's accept-all.* **Modifier: the household debt-service ratio.** FRED's TDSP (household debt service as a percent of disposable income), with its consumer and mortgage splits (CDSP, MDSP), quarterly from Q1 2005, is printed with its five-year and full-history percentiles in Plumbing & rates (the Monthly; `daily_cascade/gtm_block.py`, "Household debt service (SR-5's modifier)"). It modifies how the impulse is read and grants nothing. A high ratio makes a borrowing spike read as strain; a low one makes it read as capacity. The Guide's delinquency flows into 30+ days are stored as sourced figures by quarter and printed labelled: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%, and the DSR at 11.1% against 15.8% at 4Q07, all as of 30 Sep 2026, scan §6. The key stays SR-5. *Lives in:* `fred.dsr_household`, `fred.dsr_consumer`, `fred.dsr_mortgage`. The impulse row itself (`calc.cc_z`) is still not built.
+*Accepted as drafted (rule 31), 17 Oct 2026: the GTM-21 amendment.* **Modifier: the household debt-service ratio.** FRED's TDSP (household debt service as a percent of disposable income), with its consumer and mortgage splits (CDSP, MDSP), quarterly from Q1 2005, is printed with its five-year and full-history percentiles in Plumbing & rates (the Monthly; `daily_cascade/gtm_block.py`, "Household debt service (SR-5's modifier)"). It modifies how the impulse is read and grants nothing. A high ratio makes a borrowing spike read as strain; a low one makes it read as capacity. The Guide's delinquency flows into 30+ days are stored as sourced figures by quarter and printed labelled: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%, and the DSR at 11.1% against 15.8% at 4Q07, all as of 30 Sep 2026, scan §6. The key stays SR-5. *Lives in:* `fred.dsr_household`, `fred.dsr_consumer`, `fred.dsr_mortgage`. The impulse row itself (`calc.cc_z`) is still not built.
 
 ### SR-6 Yield move attribution (Runkevicius, SF Fed decomposition, 10y at 5%, 15 Sep 2026) — Thread R
 
@@ -221,7 +221,7 @@
 
 **Validation gate (backlog).** Reproduce the scatter (2-year rolling correlation of weekly changes vs. 10y level). Regress next-6-month correlation on yield level and inflation volatility. If level adds nothing, inflation vol is the lever and 5.25% stays a heuristic.
 
-*Draft (rule 31, 17 Oct 2026), the GTM-7 amendment — committed as drafted, for the operator's accept-all.* **The frame SR-9 was missing: the regime table.** There are three eras of the 24-month rolling stock-bond correlation, each beside its average inflation: 1964 to 1999, 2000 to 2020, and 2021 to now. They are computed from monthly total returns: Shiller's S&P Composite with its dividend, and a 10-year par bond priced off GS10. The Guide's own figures are printed beside them as sourced figures: +0.28 / 4.86%, −0.31 / 2.13% and +0.33 / 4.52% (2021–25), as of 30 Sep 2026, scan §6. The current 24-month correlation prints with a regime word: positive at or above +0.10, negative at or below −0.10, near zero between. **Book A's rule table reads the regime word only** (Base Rates, Appendix C, row A-6), and nothing automated reads it. This makes the yield-level prior's "persistent" concrete: a positive word in an era whose inflation runs above the 2000–20 average is the persistent case. The key stays SR-9. *Lives in:* `baserate.stock_bond_eras` (annual), recomputed at render from the store (`altdata/gtm.py`).
+*Accepted as drafted (rule 31), 17 Oct 2026: the GTM-7 amendment.* **The frame SR-9 was missing: the regime table.** There are three eras of the 24-month rolling stock-bond correlation, each beside its average inflation: 1964 to 1999, 2000 to 2020, and 2021 to now. They are computed from monthly total returns: Shiller's S&P Composite with its dividend, and a 10-year par bond priced off GS10. The Guide's own figures are printed beside them as sourced figures: +0.28 / 4.86%, −0.31 / 2.13% and +0.33 / 4.52% (2021–25), as of 30 Sep 2026, scan §6. The current 24-month correlation prints with a regime word: positive at or above +0.10, negative at or below −0.10, near zero between. **Book A's rule table reads the regime word only** (Base Rates, Appendix C, row A-6), and nothing automated reads it. This makes the yield-level prior's "persistent" concrete: a positive word in an era whose inflation runs above the 2000–20 average is the persistent case. The key stays SR-9. *Lives in:* `baserate.stock_bond_eras` (annual), recomputed at render from the store (`altdata/gtm.py`).
 
 ### SR-10 Digital Asset Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan (change order of 19 Sep 2026; integrated 26 Sep) — Thread D
 
@@ -608,9 +608,57 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Rights.** Base-rate row. *Lives in:* config/gtm.yaml (`sourced`), `altdata/gtm.py`, `daily_cascade/gtm_block.py`.
 
-### SR-50 … SR-51, SR-54 … SR-56, SR-58 (numbers reserved)
+### SR-50 Concentration twin (Guide to the Markets 4Q 2026, slide 8) — GTM-3
 
-GTM-3 (SR-50), GTM-4 (SR-51), GTM-10 (SR-54), GTM-11 (SR-55), GTM-12 (SR-56) and GTM-14 (SR-58) take these numbers when they are built. GTM-3, 4, 10 and 12 come in the GTM batch's part 2; GTM-11 comes with Amendment #3 workstream B; GTM-14 was pulled into T3. *Ruled 17 Oct 2026 (ruling 4):* the working numbers the other branches use stand (SR-55 the OECD-yields fetcher, SR-57 constituent breadth, SR-58 the EM rules), and so does SR-49, the selloff-shape axis, which is why the GTM run skips it.
+**Register status.** ADOPTED via the Top & Bottom overlay's intake queue (change order of 3 Oct 2026), one candidate at a time — built as a report-only exhibit, branch gtm-core-2 (17 Oct 2026). Its queue entry is filed as a draft.
+
+**Built.** Beside item 31's peak-concentration table, in the Mechanics of the Weekly and the Monthly (`altdata/gtm_equities.py`, `daily_cascade/gtm_block.py`):
+- **The top 10's cap share:** the ten largest issuers in SPY's daily holdings, with a second share class counted with its issuer. These are item 31's ten.
+- **The top 10's earnings share:** each name's weight over its trailing P/E (Yahoo, `yf.trailing_pe`), times the index's trailing P/E. The index's is the S&P 500's close over Shiller's trailing twelve-month earnings, and the window prints.
+- **The forward P/E of three groups:**
+  - the top 10's, from Yahoo's forward P/E (the next fiscal year);
+  - the index's, the close over S&P DJI's forward operating EPS;
+  - the other 490's, backed out of the index (the Guide's method).
+- **The own averages:** each P/E against the average of every stored holdings day, with the window and n. The history starts with the holdings (16 Oct 2026), so it prints as short.
+- **The Guide's figures:** printed beside ours as sourced figures. The cap share is 40.6% against an earnings share of 36.1%. The P/Es are 20.9x, 17.9x and 19.0x, which are 100%, 112% and 113% of their own averages since 1996.
+
+A name without its multiple leaves its cell "not stored", naming the name, never a partial sum. The consensus log reads the top 10 and the hyperscalers beside its own universe (`gtm_equities.consensus_names`), so the multiples accumulate.
+
+**Intake-queue entry.** Filed as a draft under rule 31 in `config/tb_intake_queue.yaml`:
+- **Status:** draft, no right, no position.
+- **Its order** among the top-side candidates (Batch 6's items 30, 31 and 44, and GTM-3) is the operator's ruling at the 25 Oct dry run.
+- **The ledger it would need:** a pre-registered monthly calibration ledger. It records the cap-less-earnings gap and the top 10's P/E against its own average, beside the overlay's five-input state, resolved against the next twelve months' equal-weight less cap-weight return.
+
+`tools/validate_gtm.py` (group Q) diffs the overlay's five declared inputs and fails if filing changed them.
+
+**Rights.** None: a report-only exhibit until the queue rules it.
+
+### SR-51 AI five-bucket decomposition and the hyperscaler cash-flow bridge (Guide to the Markets 4Q 2026, slides 11 and 22) — GTM-4
+
+**Register status.** ADOPTED — built, branch gtm-core-2 (17 Oct 2026)
+
+**Built.** Two exhibits.
+
+**The buckets** (`config/ai_buckets.yaml`): the Guide's five as slide 11 defines them, dated 30 Sep 2026, refreshed each quarter from the scan as reference data.
+- **Members:** the hyperscalers are named (AMZN, GOOGL/GOOG, META, MSFT, ORCL). The other four are GICS industries, and the store holds no GICS industry classification.
+- **Per bucket, ours where every member is stored:**
+  - the weight in SPY;
+  - the market-weighted year-to-date price return;
+  - the NTM P/E from Yahoo's forward P/E.
+- **Otherwise** the Guide's figure prints, labelled: semis +44%, hardware +37%, power +22%, hyperscalers +7%, software +4% year to date; 53.2% of the index together.
+
+**The bridge:** the five hyperscalers' operating cash flow less capex.
+- **Years:** 2019 to the latest filed year, by calendar frame.
+- **Source:** SEC EDGAR's XBRL frames (`altdata/sources/edgar_xbrl.py`, keyless, with the SEC contact). A filer without a tag prints "not stored".
+- **Beside it,** as sourced figures (slide 22): the Guide's capex path, $416bn in 2025, and the forecast $799bn for 2026, $1,093bn for 2027 and $1,200bn for 2028.
+
+**Where it prints:**
+- **The Monthly:** the Mechanics, as the Factor I exhibit after the SR-37 panel.
+- **The Weekly:** the bucket table only, in the Mechanics. A table spends no words, so the Weekly's budget allows it.
+
+Neither displaces a word or a chart.
+
+**Rights.** Modifier on Factor I, read by a human.
 
 ### SR-52 Sentiment turning-point base rate (Guide to the Markets 4Q 2026) — GTM-8
 
@@ -634,11 +682,52 @@ A floor uses the scan's definition (§4): never afterwards closed 5% or more bel
 
 **Rights.** Base-rate row.
 
+### SR-54 Sector rows (Guide to the Markets 4Q 2026, slide 15) — GTM-10
+
+**Register status.** ADOPTED — built, branch gtm-core-2 (17 Oct 2026)
+
+**Built.** The correlation row is computed: each sector ETF's daily price return against the 10-year's daily change in basis points (FRED DGS10), over 252 and 1,260 sessions. A window the store does not cover prints "not reached".
+- **The Weekly:** the one-year correlation is a column in the leadership table ("Sector rotation and leadership"), a table cell inside its budget.
+- **The Monthly:** the sector sub-section carries the full rows as a second table, ours beside the Guide's slide-15 figures as sourced figures dated 30 Sep 2026:
+  - forward P/E against its 20-year average;
+  - NTM EPS growth against its 20-year median;
+  - the foreign share of sales;
+  - the Guide's own correlation, two years of monthly returns, a different window and frequency from ours.
+
+**Rights.** Modifier.
+
+### SR-55, SR-58 (numbers reserved)
+
+GTM-11 (SR-55) comes with Amendment #3 workstream B; GTM-14 (SR-58) was pulled into T3. *Ruled 17 Oct 2026 (ruling 4):* the working numbers the other branches use stand (SR-43 the OECD-yields fetcher, SR-45 constituent breadth, SR-46 the EM rules), and so does SR-49, the selloff-shape axis, which is why the GTM run skips it.
+
+### SR-56 Federal finances (Guide to the Markets 4Q 2026, slide 27) — GTM-12
+
+**Register status.** ADOPTED — built, branch gtm-core-2 (17 Oct 2026)
+
+**Built.** What the Factor IV rows lacked (they carry debt to GDP and r minus g), from FRED, each with its ten-year and full-history percentile, family and long window. Two bases, never mixed:
+- **The national accounts,** quarterly SAAR, as shares of federal current expenditures (FGEXPND):
+  - interest payments (A091RC1Q027SBEA);
+  - defense consumption and gross investment (FDEFX);
+  - customs duties (B235RC1Q027SBEA).
+- **The budget by fiscal year,** as shares of net outlays (FYONET):
+  - net interest outlays (FYOINT);
+  - the deficit (FYFSD);
+  - and the deficit as a share of GDP (FYFSGDA188S).
+- **The CBO debt path:** 99.4% of GDP at the end of FY2025, rising to 120.2% in 2036. A sourced figure from the scan (slide 27, CBO's February 2026 update), dated, replaced at each update.
+- **Where it prints:** a table in the Monthly's Plumbing & rates. It displaces nothing.
+
+**Rights.** Modifier.
+
 ### SR-57 Fixed-income scenario table (Guide to the Markets 4Q 2026) — GTM-13
 
-**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026); amended by ruling 2 of 17 Oct, branch gtm-core-2
 
-**Built.** Per sector with a stored proxy:
+**Amended (ruling 2, 17 Oct 2026).** The rows the store could not fill now have proxies:
+- **TIP, MUB and MBB** join the price basket (Yahoo, keyless, registered in the Security Master as SM00197 to SM00199).
+- **Durations:** theirs and AGG's are the issuer's own effective durations, read off the iShares product pages on 17 Oct 2026 (as of 15 Oct). They are recorded in `config/instrument_reference.yaml` as reference data with the date read: AGG 5.70, TIP 6.19, MUB 7.13, MBB 5.75 years.
+- **History:** each needs the price backfill on the box before its rows read.
+
+**Built (part 1).** Per sector with a stored proxy:
 - **Proxies:** SHY, IEF and TLT against the 2-, 10- and 30-year CMT; AGG; LQD; HYG.
 - **Columns:** yield where the store holds one; year-to-date total return; duration from config/instrument_reference.yaml; the correlations to the 10-year's change and to SPY over 252 sessions; and the price return under −100 / +100 bp from the duration. The reference carries no convexity, so none is applied.
 - **Rows the store cannot fill:**
@@ -653,9 +742,14 @@ Book A's rule table reads it as a modifier (Appendix C, row A-7); nothing automa
 
 ### SR-59 Effective tariff rate (Guide to the Markets 4Q 2026) — GTM-15
 
-**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026); amended by ruling 3 of 17 Oct, branch gtm-core-2
 
-**Built.** Customs-duties receipts (FRED B235RC1Q027SBEA, billions, SAAR) over four times the quarter's goods imports (FRED BOPGIMP, millions, monthly), with its five-year and full-history percentiles. The rate is **quarterly**, because FRED has no monthly customs-receipts series. The Guide's 10.6% and the statutory peaks are the sourced comparison: 30.0% on 8 Apr 2025, and 15.9% including IEEPA on 20 Feb 2026, scan §6. National-accounts receipts are not the Census imports-for-consumption basis, so the two differ by construction. Printed in the Monthly's Plumbing & rates as the inflation modifier. Family `quantity` (both legs), long window `full`.
+**Amended (ruling 3, 17 Oct 2026).** The rate is now **monthly**:
+- **The rate:** the Monthly Treasury Statement's customs duties collected in the month (Table 4, gross of refunds) over the month's goods imports (BOPGIMP). Read keyless through the fiscaldata writer (`fiscaldata.mts_customs_*`).
+- **Beside it:** the same rate over three months, and the month's refunds. Refunds of IEEPA duties turned net receipts negative from mid-2026, so the rate reads the gross.
+- **The cross-check:** the quarterly FRED rate below. Both print with their as-of.
+
+**Built (part 1).** Customs-duties receipts (FRED B235RC1Q027SBEA, billions, SAAR) over four times the quarter's goods imports (FRED BOPGIMP, millions, monthly), with its five-year and full-history percentiles. The rate is **quarterly**, because FRED has no monthly customs-receipts series. The Guide's 10.6% and the statutory peaks are the sourced comparison: 30.0% on 8 Apr 2025, and 15.9% including IEEPA on 20 Feb 2026, scan §6. National-accounts receipts are not the Census imports-for-consumption basis, so the two differ by construction. Printed in the Monthly's Plumbing & rates as the inflation modifier. Family `quantity` (both legs), long window `full`.
 
 **Rights.** Modifier.
 

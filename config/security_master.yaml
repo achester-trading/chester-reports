@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 197
+next_id: 200
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -4025,3 +4025,63 @@ instruments:
   - exchange
   - multiplier
   - name
+- id: SM00197
+  name: iShares TIPS Bond ETF
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: TIP
+    store_key: yfinance.mkt_tip
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (the GTM batch, part 2, ruling 2 of 17 Oct 2026)
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    name: the issuer's product page (iShares), read 2026-10-17
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+- id: SM00198
+  name: iShares National Muni Bond ETF
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: MUB
+    store_key: yfinance.mkt_mub
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (the GTM batch, part 2, ruling 2 of 17 Oct 2026)
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    name: the issuer's product page (iShares), read 2026-10-17
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+- id: SM00199
+  name: iShares MBS ETF
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: MBB
+    store_key: yfinance.mkt_mbb
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (the GTM batch, part 2, ruling 2 of 17 Oct 2026)
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+    name: the issuer's product page (iShares), read 2026-10-17
+  unverified:
+  - currency
+  - exchange
+  - multiplier

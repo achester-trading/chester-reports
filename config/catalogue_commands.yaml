@@ -207,6 +207,10 @@ commands:
     domain: events
     line: 'SEC EDGAR: filings for the universe'
     sources: [sec_edgar]
+  altdata.sources.edgar_xbrl:
+    domain: equity
+    line: "SEC EDGAR XBRL frames: the five hyperscalers' annual operating cash flow and capex (GTM-4's bridge; needs the SEC contact)"
+    sources: [edgar_xbrl]
   altdata.sources.eia:
     domain: commodities
     line: EIA Weekly Petroleum Status Report -- US crude and product stocks
@@ -234,7 +238,10 @@ commands:
     line: "The system-metrics block (EL-6): uptime, feed completeness, incidents, model cost, withheld drafts for a month -- show --month YYYY-MM; read-only"
   altdata.gtm:
     domain: reference
-    line: "The J.P. Morgan Guide batch, part 1 (GTM-1, 7, 8, 9, 13, 15, 21): show prints every table as of a cutoff; check holds the declared sourced figures to the scan's words -- read-only"
+    line: "The J.P. Morgan Guide batch (part 1: GTM-1, 7, 8, 9, 13, 15, 21; part 2: GTM-12 and GTM-15 monthly): show prints every table as of a cutoff; check holds the declared sourced figures to the scan's words and slides -- read-only"
+  altdata.gtm_equities:
+    domain: equity
+    line: "The J.P. Morgan Guide batch, part 2's equity items (GTM-3 the concentration twin, GTM-4 the AI buckets and the hyperscaler bridge, GTM-10 the sector rows): show prints them as of a cutoff -- read-only"
   altdata.state_vector:
     domain: options
     line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"
@@ -247,7 +254,7 @@ commands:
     sources: [finra_margin]
   altdata.sources.fiscaldata:
     domain: rates
-    line: Monthly Statement of the Public Debt -- US Treasury Fiscal Data API
+    line: Monthly Statement of the Public Debt and the MTS customs duties (GTM-15 monthly) -- US Treasury Fiscal Data API
     sources: [fiscaldata]
   altdata.sources.fred_releases:
     domain: events

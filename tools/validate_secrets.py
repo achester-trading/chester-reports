@@ -374,6 +374,7 @@ SEC_UA_CALLERS = {
     "altdata/sources/user_agent.py",     # for_url, an SEC host only
     "altdata/sources/fundamentals.py",   # EDGAR submissions (data.sec.gov)
     "altdata/sources/voices_scan.py",    # sec_user_agent: 13F and the CIK lookup
+    "altdata/sources/edgar_xbrl.py",     # the XBRL frames (data.sec.gov; GTM-4)
 }
 UA_NAME = re.compile(r"(^|_)(UA|USER_AGENT|HEADERS)($|_)", re.I)
 

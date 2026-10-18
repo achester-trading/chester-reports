@@ -12619,6 +12619,74 @@ metrics:
     description: >-
       MBA purchase index, unadjusted, percent change on the same survey a year earlier, whole percent, from the weekly press release's headline. ST-R5.37a. Forward-only.
 
+  # THE GTM BATCH, PART 2 (17 Oct 2026). GTM-15 monthly (ruling 3): the Monthly
+  # Treasury Statement's customs duties, Table 4, through the fiscaldata writer.
+  fiscaldata.mts_customs_gross:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Customs duties collected in the month, GROSS of refunds, dollars (Monthly Treasury Statement Table 4, line "Customs Duties", current_month_gross_rcpt_amt), observed at the month-end. Not seasonally adjusted. GTM-15's monthly effective tariff rate divides it by the month's goods imports.
+  fiscaldata.mts_customs_refunds:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Customs duties refunded in the month, dollars (MTS Table 4, current_month_refund_amt). Large since mid-2026, when refunds of IEEPA duties began; printed beside the gross rate.
+  fiscaldata.mts_customs_net:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Customs duties net of refunds in the month, dollars (MTS Table 4, current_month_net_rcpt_amt); negative in a month whose refunds exceed its collections.
+  # GTM-4's hyperscaler cash-flow bridge: SEC EDGAR's XBRL frames, annual, per filer.
+  edgar.xbrl_operating_cash_flow:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's net cash provided by operating activities for its fiscal year, dollars, as filed (XBRL us-gaap NetCashProvidedByUsedInOperatingActivities, read from EDGAR's annual calendar frames), instrument = the filer's ticker (Alphabet as GOOGL), observed_at = the fiscal year's end. GTM-4's bridge.
+  edgar.xbrl_capex:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's payments for property, plant and equipment for its fiscal year, dollars, a positive outflow as filed (XBRL PaymentsToAcquirePropertyPlantAndEquipment, else PaymentsToAcquireProductiveAssets -- Amazon's tag), from EDGAR's annual frames, instrument = the ticker, observed_at = the fiscal year's end. GTM-4's bridge.
   sp500.member_weight:
     source: sp500_members
     mechanism_group: equity_tape
@@ -12893,12 +12961,13 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 57   # + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 63   # + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
       fred.dsr_household: percent_share
       fred.dsr_consumer: percent_share
       fred.dsr_mortgage: percent_share
+      fred.fy_deficit_gdp: percent_share
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -13114,7 +13183,7 @@ bulk_imports:
       yfinance.mkt_vvix: vol_index
       yfinance.mkt_move: vol_index
       yfinance.mkt_skew: index_points
-    expected_members: 108   # + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 111   # + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -13167,7 +13236,7 @@ bulk_imports:
     members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 82
+    expected_members: 85   # + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -13302,7 +13371,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 108   # + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 111   # + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -14091,6 +14160,22 @@ families:
   fred.dsr_household: ratio
   fred.dsr_consumer: ratio
   fred.dsr_mortgage: ratio
+  # The GTM batch, part 2 (17 Oct 2026): GTM-12's federal series, GTM-15's
+  # monthly customs, GTM-4's filings and GTM-13's three proxies.
+  fred.fed_interest_payments: quantity
+  fred.fed_defense: quantity
+  fred.fy_net_interest: quantity
+  fred.fy_net_outlays: quantity
+  fred.fy_deficit: quantity
+  fred.fy_deficit_gdp: ratio
+  fiscaldata.mts_customs_gross: quantity
+  fiscaldata.mts_customs_refunds: quantity
+  fiscaldata.mts_customs_net: quantity
+  edgar.xbrl_operating_cash_flow: quantity
+  edgar.xbrl_capex: quantity
+  yfinance.mkt_tip: price
+  yfinance.mkt_mub: price
+  yfinance.mkt_mbb: price
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -14117,6 +14202,23 @@ long_windows:
   fred.dsr_household: full
   fred.dsr_consumer: full
   fred.dsr_mortgage: full
+  # The GTM batch, part 2: each its whole stored history (the budget series
+  # from FY1901 or 1929 on FRED; the MTS from Fiscal Data's first month; the
+  # frames from 2019, the bridge's first year).
+  fred.fed_interest_payments: full
+  fred.fed_defense: full
+  fred.fy_net_interest: full
+  fred.fy_net_outlays: full
+  fred.fy_deficit: full
+  fred.fy_deficit_gdp: full
+  fiscaldata.mts_customs_gross: full
+  fiscaldata.mts_customs_refunds: full
+  fiscaldata.mts_customs_net: full
+  edgar.xbrl_operating_cash_flow: full
+  edgar.xbrl_capex: full
+  yfinance.mkt_tip: full
+  yfinance.mkt_mub: full
+  yfinance.mkt_mbb: full
   ca.cpi_yoy: full
   ca.cpi_core_yoy: full
   bdf.oat_tec10: full
