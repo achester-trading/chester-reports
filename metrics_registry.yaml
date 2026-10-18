@@ -2990,6 +2990,46 @@ metrics:
   # their rows are daily and dated on DKW's own last observation, about a month
   # behind the cutoff, and a daily allowance would call every one of them stale.
   # -------------------------------------------------------------------------
+  # ST-3's third cut, since the last FOMC decision (st-t1-rest, 18 Oct 2026).
+  calc.attr_d10y_since_fomc:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury yield's change since the close before the last FOMC decision day (the claims registry's cal.fomc_<year>), in basis points; the decision day's reaction is in it.
+  calc.attr_real_share_since_fomc:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      SR-6's real/breakeven cut since the last FOMC decision: the 10-year TIPS real yield's change as a share of the nominal 10-year's. Written only when the 10-year moved 5bp.
+  calc.attr_curve_share_since_fomc:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      SR-6's curve cut since the last FOMC decision: the 2-year yield's change as a share of the 10-year's.
   calc.attr_d10y_5d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -12687,6 +12727,377 @@ metrics:
     trigger_eligible: false
     description: >-
       A hyperscaler's payments for property, plant and equipment for its fiscal year, dollars, a positive outflow as filed (XBRL PaymentsToAcquirePropertyPlantAndEquipment, else PaymentsToAcquireProductiveAssets -- Amazon's tag), from EDGAR's annual frames, instrument = the ticker, observed_at = the fiscal year's end. GTM-4's bridge.
+  # SIGNAL-TRIAGE ST-4 (st-t1-rest, 18 Oct 2026): Duration Absorption and the
+  # rates flags, altdata/absorption.py, written by the features pass. Display
+  # and modifier only; none is trigger-eligible or enters a composite.
+  calc.net_supply_1m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Net marketable issuance less the Fed's Treasury change, month (ST-4; altdata/absorption.py).
+  calc.net_supply_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The same over twelve consecutive months (ST-4; altdata/absorption.py).
+  calc.net_supply_12m_gdp:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      Twelve months' net supply over nominal GDP, percent (ST-4; altdata/absorption.py).
+  calc.priv_residual_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Twelve months' net supply less foreign holders' change (ST-4; altdata/absorption.py).
+  calc.tic_official_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign official holdings' twelve-month change (ST-4; altdata/absorption.py).
+  calc.tic_private_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign private holdings' twelve-month change (ST-4; altdata/absorption.py).
+  calc.tic_official_share:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      Official over all foreign holdings, percent (ST-4; altdata/absorption.py).
+  calc.tic_custodial_share:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      The custodial centres' share of foreign holdings, percent (ST-4; altdata/absorption.py).
+  calc.foreign_ust_share_lt:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      Treasuries' share of net foreign long-term purchases, 12m (ST-4; altdata/absorption.py).
+  calc.abs_fragility:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      SR-27's candidate rule, 1 or 0; display only (ST-4; altdata/absorption.py).
+  calc.abs_stress:
+    source: calc
+    mechanism_group: auction_flow
+    native_horizon: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      G-32's absorption-stress rule per coupon auction, 1 or 0 (ST-4; altdata/absorption.py).
+  calc.fed_mkt_gap_12m:
+    source: calc
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The futures-implied rate 12m ahead less the SEP median dot, bp (ST-4; altdata/absorption.py).
+  calc.cred_stress:
+    source: calc
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      |12m gap| > 50 bp, 1 or 0 (the signalled-direction leg not tracked) (ST-4; altdata/absorption.py).
+  calc.pm_disagree_fed:
+    source: calc
+    mechanism_group: prediction_market
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    description: >-
+      Venue less futures-implied probability, next meeting, points (ST-4; altdata/absorption.py). Probability points (0-100 scale differences).
+  calc.deanchor:
+    source: calc
+    mechanism_group: inflation_expectations
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      SR-24's de-anchoring rule, 1 or 0 (ST-4; altdata/absorption.py).
+  calc.be5y5y_range_pos:
+    source: calc
+    mechanism_group: inflation_expectations
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    description: >-
+      The 5y5y breakeven's percentile within 2010 to the day (ST-4; altdata/absorption.py).
+  calc.producers_spot_ratio:
+    source: calc
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      GUNR over DBC (ST-4; altdata/absorption.py).
+  calc.aa_bbb_oas_diff:
+    source: calc
+    mechanism_group: credit_supply
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      BBB less AA OAS, bp (ST-4; altdata/absorption.py).
+  calc.self_fund_ratio:
+    source: calc
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Hyperscalers' operating cash flow over capex, by frame (ST-4; altdata/absorption.py).
+  calc.hs_netdebt_12m:
+    source: calc
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Hyperscalers' long-term debt less cash, year on year (ST-4; altdata/absorption.py).
+  calc.mu_inv_days:
+    source: calc
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: days
+    trigger_eligible: false
+    description: >-
+      Micron's inventory over the quarter's cost of goods x 91 (ST-4; altdata/absorption.py). Days.
+  calc.cb_gold_12m:
+    source: calc
+    mechanism_group: commodity_holdings
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      Twelve months of central-bank net gold purchases, tonnes (ST-4; altdata/absorption.py). Tonnes (troy ounces / 32,150.7466).
+  calc.net_supply_proj_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from manual.cbo_deficit_path, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  calc.fed_mkt_gap_m1:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from manual.fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  calc.fed_mkt_gap_m2:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from manual.fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  calc.ai_long_share:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from manual.ig_issuance_10y_plus_share, manual.ai_ig_issuance_share, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  edgar.xbrl_long_term_debt:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's long-term debt at a calendar year-end (XBRL LongTermDebt, else LongTermDebtNoncurrent; EDGAR's annual instant frames), dollars, instrument = ticker. calc.hs_netdebt_12m's input (ST-4).
+  edgar.xbrl_cash:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's cash and equivalents at a calendar year-end (XBRL CashAndCashEquivalentsAtCarryingValue, else the restricted-cash total; annual instant frames), dollars, instrument = ticker (ST-4).
+  edgar.xbrl_mu_inventory:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Micron's inventory at its quarter-end (XBRL InventoryNet, Micron's company-concept file), dollars, instrument MU (ST-4; calc.mu_inv_days).
+  edgar.xbrl_mu_cogs_q:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Micron's cost of goods for the quarter (XBRL CostOfGoodsAndServicesSold, else CostOfRevenue; quarter-length durations), dollars, instrument MU (ST-4; calc.mu_inv_days).
   sp500.member_weight:
     source: sp500_members
     mechanism_group: equity_tape
@@ -12961,7 +13372,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 63   # + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 64   # + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
       fred.dsr_household: percent_share
@@ -14176,6 +14587,34 @@ families:
   yfinance.mkt_tip: price
   yfinance.mkt_mub: price
   yfinance.mkt_mbb: price
+  # Signal-triage ST-4 (st-t1-rest, 18 Oct 2026).
+  fred.sep_median_ff: rate
+  calc.net_supply_1m: quantity
+  calc.net_supply_12m: quantity
+  calc.net_supply_12m_gdp: ratio
+  calc.priv_residual_12m: quantity
+  calc.tic_official_12m: quantity
+  calc.tic_private_12m: quantity
+  calc.tic_official_share: ratio
+  calc.tic_custodial_share: ratio
+  calc.foreign_ust_share_lt: ratio
+  calc.abs_fragility: conditions
+  calc.abs_stress: conditions
+  calc.fed_mkt_gap_12m: spread
+  calc.cred_stress: conditions
+  calc.pm_disagree_fed: ratio
+  calc.deanchor: conditions
+  calc.be5y5y_range_pos: ratio
+  calc.producers_spot_ratio: ratio
+  calc.aa_bbb_oas_diff: spread
+  calc.self_fund_ratio: ratio
+  calc.hs_netdebt_12m: quantity
+  calc.mu_inv_days: quantity
+  calc.cb_gold_12m: quantity
+  edgar.xbrl_long_term_debt: quantity
+  edgar.xbrl_cash: quantity
+  edgar.xbrl_mu_inventory: quantity
+  edgar.xbrl_mu_cogs_q: quantity
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -14219,6 +14658,34 @@ long_windows:
   yfinance.mkt_tip: full
   yfinance.mkt_mub: full
   yfinance.mkt_mbb: full
+  # Signal-triage ST-4 (st-t1-rest): each its whole stored history.
+  fred.sep_median_ff: full
+  calc.net_supply_1m: full
+  calc.net_supply_12m: full
+  calc.net_supply_12m_gdp: full
+  calc.priv_residual_12m: full
+  calc.tic_official_12m: full
+  calc.tic_private_12m: full
+  calc.tic_official_share: full
+  calc.tic_custodial_share: full
+  calc.foreign_ust_share_lt: full
+  calc.abs_fragility: full
+  calc.abs_stress: full
+  calc.fed_mkt_gap_12m: full
+  calc.cred_stress: full
+  calc.pm_disagree_fed: full
+  calc.deanchor: full
+  calc.be5y5y_range_pos: full
+  calc.producers_spot_ratio: full
+  calc.aa_bbb_oas_diff: full
+  calc.self_fund_ratio: full
+  calc.hs_netdebt_12m: full
+  calc.mu_inv_days: full
+  calc.cb_gold_12m: full
+  edgar.xbrl_long_term_debt: full
+  edgar.xbrl_cash: full
+  edgar.xbrl_mu_inventory: full
+  edgar.xbrl_mu_cogs_q: full
   ca.cpi_yoy: full
   ca.cpi_core_yoy: full
   bdf.oat_tec10: full

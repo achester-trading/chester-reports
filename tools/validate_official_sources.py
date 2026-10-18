@@ -536,9 +536,28 @@ def group_h() -> None:
           "high_yield on coupons only")
     edt = treasury_auctions.available_at("2020-09-24")
     est = treasury_auctions.available_at("2020-01-13")
-    check(edt == "2020-09-24T17:00:00.000000+00:00"
-          and est == "2020-01-13T18:00:00.000000+00:00",
-          f"available_at = 13:00 ET in EDT ({edt}) and EST ({est})")
+    check(edt == "2020-09-24T17:05:00.000000+00:00"
+          and est == "2020-01-13T18:05:00.000000+00:00",
+          f"G-30's fallback: available_at = 13:05 ET in EDT ({edt}) and EST ({est})")
+    rt = treasury_auctions.result_time({"auctionDate": "2026-09-24T00:00:00",
+                                        "updatedTimestamp": "2026-09-24T13:03:20"})
+    late = treasury_auctions.result_time({"auctionDate": "2026-09-24T00:00:00",
+                                          "updatedTimestamp": "2026-09-28T09:00:00"})
+    rows_t = treasury_auctions.apply_result_times(
+        [{"registry_key": "auction.cusip", "instrument": "Note:7-Year",
+          "observed_at": "2026-09-24", "value": "91282CXX0", "available_at": "x",
+          "availability_kind": "reconstructed"},
+         {"registry_key": "auction.bid_to_cover", "instrument": "Note:7-Year",
+          "observed_at": "2026-09-24", "value": 2.5, "available_at": "x",
+          "availability_kind": "reconstructed"}],
+        [{"auctionDate": "2026-09-24T00:00:00", "cusip": "91282CXX0",
+          "updatedTimestamp": "2026-09-24T13:03:20"}])
+    check(rt == "2026-09-24T17:03:20.000000+00:00" and late is None
+          and all(r["available_at"] == rt and r["availability_kind"] == "observed"
+                  for r in rows_t),
+          "G-30: the API's own result time (13:03:20 ET on the 24 Sep 7-year) is "
+          "the row's available_at, marked observed; a timestamp on a later day is "
+          "an edit and is not used")
     check({r["availability_kind"] for r in rows} == {"reconstructed"},
           "marked reconstructed")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(

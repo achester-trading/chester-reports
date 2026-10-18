@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 63 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 64 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 165, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 166, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -452,6 +452,34 @@ A measure missing an input prints the Guide's figure, labelled, never a partial
 computation. Register numbers are SR-48 and SR-50 to SR-59 (SR-49 is the shape
 axis's). Everything is tables and lines, so no budget moves.
 `tools/validate_gtm.py` holds it.
+
+**Duration Absorption and the rates flags are computed, never a regime
+(signal-triage ST-4 and ST-6; st-t1-rest, 18 Oct 2026).** `altdata/absorption.py`
+computes the `calc.*` features from the store and rides the features pass after
+the correlation layer. They are:
+- net supply (MSPD less the Fed's Treasuries, G-14) and the private residual;
+- the TIC absorber shares and `ABS_FRAGILITY`;
+- `ABS_STRESS` on cover and dealer share (G-32);
+- the 12-month fed-market gap against FRED's SEP dot (FEDTARMD), `CRED_STRESS`
+  and the venues-against-futures disagreement;
+- `DEANCHOR` and the 5y5y's range position;
+- the AI capex loop from EDGAR's XBRL (`edgar.xbrl_*`);
+- central-bank gold from the IMF IFS.
+
+Four features the order fed from manual keys print "not tracked", naming the key
+(rule 30). Every flag is display and modifier only. `daily_cascade/absorption_block.py`
+lays out the Monthly's Rate machine summary and Duration Absorption block (18
+lines at most) in Plumbing & rates, and Cheap-and-Unloved (10 at most), the Factor
+lines and the China status lines in Slow layers. They are lines only and fetch
+nothing; an absent input prints NOT AVAILABLE with its source.
+
+**The rates driver cell stays withdrawn.** ST-3 adds only its third attribution
+cut, since the last FOMC decision (`calc.attr_*_since_fomc`). Auction results are
+available at TreasuryDirect's own result time, else 13:05 ET (G-30).
+
+Batch 6's constituent ledgers, `altdata/ledgers/st_r5_31b.py` and `st_r5_44b.py`,
+sit in session B's package and pre-register their pass rules in their first
+editions. `tools/validate_st_t1_rest.py` holds all of it.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

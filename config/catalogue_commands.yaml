@@ -239,6 +239,9 @@ commands:
   altdata.gtm:
     domain: reference
     line: "The J.P. Morgan Guide batch (part 1: GTM-1, 7, 8, 9, 13, 15, 21; part 2: GTM-12 and GTM-15 monthly): show prints every table as of a cutoff; check holds the declared sourced figures to the scan's words and slides -- read-only"
+  altdata.absorption:
+    domain: rates
+    line: "Signal-triage ST-4: Duration Absorption and the rates flags (net supply, the TIC absorber shares, ABS_STRESS, ABS_FRAGILITY, the fed-market gap and CRED_STRESS, DEANCHOR, the AI capex loop, central-bank gold); compute rides the features pass, show prints the block"
   altdata.gtm_equities:
     domain: equity
     line: "The J.P. Morgan Guide batch, part 2's equity items (GTM-3 the concentration twin, GTM-4 the AI buckets and the hyperscaler bridge, GTM-10 the sector rows): show prints them as of a cutoff -- read-only"

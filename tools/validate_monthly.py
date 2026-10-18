@@ -14,6 +14,12 @@ D. A PAST MONTH REPLAYS AS-OF ITS CUTOFF: nothing observed after the cutoff reac
 E. The no-recompute guard: the Monthly READS the object and computes no regime.
 F. The model boundary: the narrative payload is a projection of the document, the
    placeholders are gone, and the long form is a parameter rather than a rewrite.
+I. THE SIGNAL-TRIAGE BLOCKS (ST-6; st-t1-rest, 18 Oct 2026): the Rate machine
+   summary and Duration Absorption in Plumbing & rates, Cheap-and-Unloved, the
+   Factor lines and the China status lines in Slow layers. No block fetches (every
+   HTTP helper raises during the build and none is called); every line is
+   populated or prints NOT AVAILABLE / NOT TRACKED with its key and source; the
+   line caps hold (18, 10); each is lines only, zero words in the budget.
 
 Groups B, D and F BUILD THE PAYLOAD, which is why this gate is slower than its
 neighbours and worth the seconds: a completeness rule asserted against the code that
@@ -1179,6 +1185,71 @@ def group_h() -> None:
          payload.previous_monthly) = saved
 
 
+def group_i() -> None:
+    print(f"\n{LINE}\nI. THE SIGNAL-TRIAGE BLOCKS (ST-6)\n{LINE}")
+    import importlib
+    from altdata import observations
+    from altdata.sources import _base
+    from daily_cascade import absorption_block as B, stack
+    spec = importlib.util.spec_from_file_location(
+        "st_t1_gate", REPO / "tools" / "validate_st_t1_rest.py")
+    g = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(g)
+    db = str(Path(gate_mkdtemp("monthly-st6-")) / "st6.db")
+    with observations.ObservationStore(db) as st:
+        st.write_many(g.absorption_fixture())
+        from altdata import absorption
+        st.write_many(absorption.compute_rows(st, "2026-10-17T21:00:00+00:00"))
+    calls = []
+    saved = {n: getattr(_base, n) for n in ("http_get_json", "http_get_text",
+                                           "http_get_response", "http_get_bytes")
+             if hasattr(_base, n)}
+
+    def boom(*a, **k):
+        calls.append(a[:1])
+        raise RuntimeError("a Monthly block fetched")
+    for n in saved:
+        setattr(_base, n, boom)
+    try:
+        with observations.ObservationStore(db) as st:
+            now = "2026-10-17T21:00:00+00:00"
+            subs = B.subsections(st, now, "plumbing") + B.subsections(st, now, "slow")
+    finally:
+        for n, f in saved.items():
+            setattr(_base, n, f)
+    titles = [x["title"] for x in subs]
+    check(titles == [B.RATE_TITLE, B.DA_TITLE, B.CU_TITLE, B.FACTOR_TITLE,
+                     B.CHINA_TITLE] and not calls,
+          f"the five blocks build from the store with every HTTP helper raising, and "
+          f"none is called ({len(calls)} calls)")
+    lines = [x for t in subs for x in t["lines"]]
+    data = [x for x in lines if ":" in x and not x.rstrip().endswith(":")]
+    marked = [x for x in data if "NOT AVAILABLE (" in x or "NOT TRACKED (" in x]
+    filled = [x for x in data if "(as of " in x or "as of" in x]
+    other = [x for x in data if x not in marked and x not in filled]
+    check(all(x.strip() for x in lines) and filled and marked
+          and all(("withdrawn" in x or "not determinable" in x or "deferred" in x
+                   or "zero rebalancing" in x or "Attribution" in x or "ON" in x
+                   or "off" in x) for x in other),
+          f"every line is populated with its as-of ({len(filled)}) or marked NOT "
+          f"AVAILABLE / NOT TRACKED with its source ({len(marked)}); the rest say why "
+          f"they are not read ({len(other)})")
+    da = next(t for t in subs if t["title"] == B.DA_TITLE)
+    cu = next(t for t in subs if t["title"] == B.CU_TITLE)
+    check(len(da["lines"]) <= 18 and len(cu["lines"]) <= 10
+          and any("4.40% of GDP" in x for x in da["lines"]),
+          f"the caps hold: Duration Absorption {len(da['lines'])} of 18, "
+          f"Cheap-and-Unloved {len(cu['lines'])} of 10; the supply line reads 4.40%")
+    check(all(t.get("paragraph_wanted") is False and stack.section_words(t) == 0
+              and not t.get("charts") for t in subs),
+          "each block is lines only: no paragraph asked, no chart, zero words in the "
+          "Monthly's budget (it displaces nothing)")
+    src = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
+    check('absorption_block.subsections(st, now, "plumbing")' in src
+          and 'absorption_block.subsections(st, now, "slow")' in src,
+          "the Monthly places them: Plumbing & rates and Slow layers")
+
+
 def isolate_and_seed() -> str:
     """Point every store the payload reads at a temporary database, and seed it.
 
@@ -1259,6 +1330,7 @@ def main() -> int:
     group_a()
     group_g()
     group_h()
+    group_i()
     built = None
     try:
         from monthly_macro import payload

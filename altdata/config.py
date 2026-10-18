@@ -293,6 +293,11 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("fy_net_outlays", "FYONET",   "Federal net outlays, fiscal year", "8", "M", "annual"),
     SeriesSpec("fy_deficit",     "FYFSD",    "Federal surplus or deficit (-), fiscal year", "8", "M", "annual"),
     SeriesSpec("fy_deficit_gdp", "FYFSGDA188S", "Federal surplus or deficit (-) as % of GDP, fiscal year", "8", "%", "annual"),
+    # SIGNAL-TRIAGE ST-4 (st-t1-rest, 18 Oct 2026): the SEP median fed funds dot by
+    # year-end (FEDTARMD, "Percent", annual, each year's dot dated 1 Jan of that
+    # year; read off its FRED page 18 Oct 2026). G-31's manual SEP keys are gone
+    # under rule 30, and this is the keyless source for calc.fed_mkt_gap_12m.
+    SeriesSpec("sep_median_ff",  "FEDTARMD", "FOMC SEP median fed funds rate projection, by year-end", "3", "%", "annual"),
 ]
 
 # ---------------------------------------------------------------------------

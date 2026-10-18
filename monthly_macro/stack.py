@@ -862,6 +862,10 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     # THE GTM BATCH, PART 1: GTM-13's scenario table, GTM-15 and GTM-21.
     from daily_cascade import gtm_block                         # noqa: PLC0415
     b["subsections"] += gtm_block.plumbing_subsections(st, now, "monthly")
+    # SIGNAL-TRIAGE ST-6 (st-t1-rest, 18 Oct 2026): the Rate machine summary and the
+    # Duration Absorption block (<= 18 lines), lines only: no word, no chart.
+    from daily_cascade import absorption_block                  # noqa: PLC0415
+    b["subsections"] += absorption_block.subsections(st, now, "plumbing")
     cur = t1_rest_block.currencies_lines(st, now)
     if cur and glob is not None:
         glob["lines"] = list(glob.get("lines") or []) + cur
@@ -1716,6 +1720,11 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         # After the base rates' own seed table, which stays next to them.
         at = next((i + 1 for i, s in enumerate(subs) if s is seed_sub), len(subs))
         subs[at:at] = gtm_block.slow_subsections(st, now, db_path)
+        # SIGNAL-TRIAGE ST-6: Cheap-and-Unloved (<= 10 lines), the Factor I, III, IV
+        # and V lines and the China panel's status lines, after the GTM tables.
+        from daily_cascade import absorption_block              # noqa: PLC0415
+        gtm_n = len(gtm_block.slow_subsections(st, now, db_path))
+        subs[at + gtm_n:at + gtm_n] = absorption_block.subsections(st, now, "slow")
     if fam_subs:
         fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])
                                       + ["Disruptive Themes (quarterly; folded into "
