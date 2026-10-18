@@ -2332,8 +2332,9 @@ def storyline_pass(ed: dict, prior: Optional[dict], ending: str, *, client=None,
             base_close = precis.spy_close(st, ending, ed.get("as_of"))
     except Exception:                                           # noqa: BLE001
         log.warning("stance grading unavailable", exc_info=True)
-    res = precis.write(ed, prior, client=client, model=model)
-    precis.apply(ed, res, precis.graded_n(db_path, dry_run))
+    n = precis.graded_n(db_path, dry_run)
+    res = precis.write(ed, prior, client=client, model=model, stance_n=n)
+    precis.apply(ed, res, n)
     try:
         ed["precis"]["stance_id"] = precis.record_stance(
             res, ending, ed.get("as_of"), db_path, dry_run, base_close)

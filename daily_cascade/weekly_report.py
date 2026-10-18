@@ -272,6 +272,10 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
     print(f"  stack      : {len(ed['sections'])} sections, {ed.get('words')} words "
           f"(budget {(ed.get('budget') or {}).get('words')}), "
           f"{ed.get('chart_count')} chart(s)")
+    from daily_cascade import precis as _precis  # noqa: PLC0415
+    prow = _precis.summary_row(ed)          # W8-1c: the précis's own row
+    if prow:
+        print(prow)
     for s in ed["sections"]:
         flag = ("collapsed" if s.get("collapsed") else
                 "withheld: " + str(s.get("withheld"))[:90] if s.get("withheld")

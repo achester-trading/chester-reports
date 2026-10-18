@@ -1407,7 +1407,7 @@ def label_bindings(text: str, figures: list["Figure"]) -> list[tuple["Figure", s
 _ROW_LABEL_KEYS = ("label", "name", "series", "title", "contract", "symbol",
                    "ticker", "instrument", "underlying", "fund", "sector")
 _BRACKET = re.compile(r"\(([^()]{1,24})\)")
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(])")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(])|;\s*")
 _OF_OI = re.compile(r"\s*(?:percentage\s+)?(?:%|points?|pts|percent)?\s*of\s+"
                     r"(?:the\s+)?open\s+interest", re.I)
 _Z_KEY = re.compile(r"(^|_)z($|_)|z_?score")
@@ -1566,7 +1566,9 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
                 taken.append((m.start(), m.end()))
                 d = (f.position - m.end() if m.end() <= f.position
                      else m.start() - (f.position + len(f.text)))
-                hits.append((d, 0 if m.end() <= f.position else 1, m.group(0), a))
+                # THE SUBJECT COMES FIRST: a series named before the figure in
+                # its clause wins over one named after it, however close.
+                hits.append((0 if m.end() <= f.position else 1, d, m.group(0), a))
         if not hits:
             continue
         _, _, _, alias = min(hits)

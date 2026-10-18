@@ -99,6 +99,47 @@ with a fake client: 1.5% is withheld and 1.2% published; both calls' messages
 are identical, and only the system prompt grows. Twice wrong prints the second
 reason. No model is called anywhere.
 
+### W8-1b: the précis's data block (the addendum)
+
+**Where:** the run log's précis reason, "numeral audit failed on 1 figure(s):
+17". The 17 is the grader's count of resolved base-rate outlooks: Ahead's data
+carried it, and the précis's frame (the ten commentaries only) did not.
+
+**What changed:** `precis.frame` hands the writer four blocks, by name:
+- the commentaries;
+- `graded_calls`: the grader's table (resolved counts and mean Brier by source,
+  against a coin, the totals), read from Ahead's `graded_calls` as it prints;
+- `stance_ledger`: the stance ledger's n (graded stances) and the previous p;
+- `changed_since_last_weekly`: the box's lines.
+
+`figures_you_may_cite`, the audit's allowed set, is the figures of those four
+and nothing else. The fault now reads "figures in no block of the précis's
+data", and opener's numeral rule matches it. `storyline_pass` reads the ledger's
+n before the précis is written, so the block and the stance line agree.
+
+**Fixtures** (J):
+- the block's figure set is exactly the commentary's, the grader's, the
+  ledger's and the box's;
+- a précis citing the grader's 17 passes, and one citing 19 (in no block)
+  fails;
+- `validate_weekly_storyline`'s fault text is re-pinned (left to CI: it
+  renders).
+
+### W8-1c: the précis's withheld line (the addendum)
+
+**Where:** `precis_html` printed "(précis withheld — audit)" with no reason,
+while every section prints its own.
+
+**What changed:**
+- `precis.withheld_line` prints "Précis withheld by the audit: <reason>", the
+  section's form. The old constant stays only for a withhold with no reason
+  kept.
+- `precis.summary_row` makes the précis its own row in the run's stack listing
+  (`weekly_report.py`, before the sections): `precis - withheld: <reason> (2
+  attempt(s))`, or `ok`.
+
+**Fixtures:** J.
+
 ### W8-2: numeral binding
 
 **Where:** `altdata/numeral_audit.audit()`. The plain match passed any figure
@@ -119,6 +160,11 @@ that exists anywhere in the payload.
   JPY futures but is its four_week_change_z (a z), not a share of open
   interest". "Points of open interest" now asserts a share (a percent), so the
   true sentence "23.4 points of open interest" passes.
+- **The clause (after the first CI run, below):** a clause ends at a sentence
+  end or a semicolon, and a series named BEFORE the figure wins over one named
+  after it, however close; the subject comes first. With nearest-either-side,
+  "SPY sat near its 20-day average at 515.06; the 10-year yield held under ..."
+  bound 515.06 to the 10-year.
 - **Left alone:**
   - a figure in no row (a spread between two series, say) goes to the plain
     audit;
@@ -250,7 +296,8 @@ session, so the newest operation printed "not yet stored".
 
 | Gate | Result |
 |---|---|
-| `tools/validate_weekly_fixes_8.py` (new, in the Makefile) | **57 passed, 0 failed** (groups A to I above; I: no model client built, no network import in the retry module) |
+| `tools/validate_weekly_fixes_8.py` (new, in the Makefile) | **67 passed, 0 failed** (groups A to J above, the clause case in B; I: no model client built, no network import in the retry module) |
+| `tools/validate_stack.py` (the clause fix) | **66 passed, 0 failed** |
 | `tools/validate_audit_fixes.py` (the writer's gate, re-pinned: withheld after its one revision, "attempt 1 of 2" and "YOUR DRAFT:", two attempts at every cadence) | **73 passed, 0 failed** |
 | `tools/validate_weekly_opener.py` (the précis: two attempts, "attempt 1 of 2") | **46 passed, 0 failed** |
 | `tools/validate_numeral_audit.py` (the audit changed) | **167 passed, 0 failed** |
@@ -270,9 +317,23 @@ Python).
 
 ## CI
 
-Read once, with `gh run list --branch weekly-fixes-8 --limit 3`. The numbers are
-in the session's closing report, and in the commit after these notes if a fix is
-needed.
+Each run read once, with `gh run list --branch weekly-fixes-8 --limit 3`.
+
+| Run | Commit | Result |
+|---|---|---|
+| 39150701005 | `7af5b0e` (the fixes) | **failed**: 82 of 85 jobs |
+| 39150787428 | `b939516` (these notes) | **failed**, the same: 82/85 |
+
+The failures were `validate_readability` (69/1), `validate_stack` (65/1) and the
+roll-up. **Both causes were mine:**
+- `validate_readability` pinned the Weekly Read's three attempts; it is now two,
+  by the ruling.
+- `validate_stack`'s alias case exposed the binding's nearest-either-side rule.
+  The fix is the clause rule above: 66/0 locally, and the case is now also in
+  B.
+
+The fixes and the addendum are the commit after `b939516`. Its CI is reported
+in the session's closing message.
 
 ## The weekly-fixes-9 queue (chain #2, Tuesday; not built here)
 

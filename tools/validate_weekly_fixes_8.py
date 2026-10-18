@@ -255,6 +255,12 @@ def group_b() -> None:
              "the z called a z")):
         r = na.audit(t, p)
         check(r.passed, f"the right figure passes: {what} ({r.reason()})")
+    lv = {"levels": [{"symbol": "SPY", "ma_20d": 515.06},
+                     {"symbol": "Y10", "aliases": ["10-year yield"], "week_high": 4.30}]}
+    e = na.audit("SPY sat near its 20-day average at 515.06; the 10-year yield held "
+                 "under its week high of 4.30.", lv)
+    check(e.passed, "a clause ends at a semicolon, and the series named BEFORE a "
+                    f"figure wins over one named just after it ({e.reason()[:90]})")
     c = na.audit("Stocks fell 5.52% on the week.", READ)
     check(c.passed and not any(f.bind_conflict for f in c.figures),
           "a sentence with a figure and no series named is left to the plain audit")
@@ -440,6 +446,66 @@ def group_h() -> None:
 
 
 # ---------------------------------------------------------------------------
+def group_j() -> None:
+    head("J. W8-1b AND W8-1c: THE PRÉCIS'S BLOCK AND ITS WITHHELD LINE")
+    from daily_cascade import precis
+    ed = {"week_ending": "2026-10-16",
+          "changed_since": ["The book's net beta moved to 0.42 from 0.35."],
+          "sections": [
+              {"id": "tape", "title": "The tape", "claim": "Stocks fell 2.10% on the week.",
+               "paragraphs": []},
+              {"id": "ahead", "title": "Ahead", "claim": None, "paragraphs": [],
+               "data": {"graded_calls": {"since": "2026-09-18", "resolved": 17,
+                                         "unresolved": 5, "coin_brier": 0.25,
+                                         "rows": [{"source": "daily_close_outlook",
+                                                   "n": 17, "mean_brier": 0.2314,
+                                                   "vs_coin": -0.0186,
+                                                   "base_rate": True}]}}}]}
+    prior = {"precis": {"parsed": {"stance_p": 0.55}}}
+    fr = precis.frame(ed, prior, stance_n=3)
+    cite = {precis._norm(f) for f in fr["figures_you_may_cite"]}
+    check(cite == {"17", "5", "0.25", "0.231", "-0.019", "0.55", "3", "0.42", "0.35",
+                   "2.10%"},
+          f"the block carries the grader's table, the stance ledger's n and p and "
+          f"the changed-since box beside the commentaries ({sorted(cite)[:14]})")
+    check(fr["graded_calls"]["by_source"][0]["resolved"] == 17
+          and fr["stance_ledger"] == {"graded_n": 3, "previous_p": "0.55"}
+          and fr["changed_since_last_weekly"] == ed["changed_since"],
+          "each block by name, as the frame hands it to the writer")
+
+    def fig_faults(week: str) -> list[str]:
+        p = precis.parse("WEEK: " + week)
+        return [f for f in precis.audit(p, fr) if f.startswith("figures in no block")]
+    ok = fig_faults("Base-rate outlooks resolved 17 times in four weeks.")
+    bad = fig_faults("Base-rate outlooks resolved 19 times in four weeks.")
+    check(not ok and bad and "19" in bad[0],
+          f"a précis citing the grader's 17 passes; one citing a figure in no block "
+          f"fails ({bad[:1]})")
+    check(not fig_faults("Stocks fell 2.10% while the book's beta moved to 0.42."),
+          "a commentary's figure and the box's still pass")
+    pr = {"state": "audit_failed", "published": False, "attempts": 2,
+          "reason": "withheld: figures in no block of the précis's data: 19"}
+    line = precis.withheld_line(pr)
+    check(line == "Précis withheld by the audit: figures in no block of the précis's "
+                  "data: 19",
+          f"the withheld line carries its reason, as a section's does ({line})")
+    html = precis.precis_html({"precis": pr})
+    check("Précis withheld by the audit: figures in no block" in html
+          and precis.WITHHELD not in html, "and it is the line the edition prints")
+    row_ = precis.summary_row({"precis": pr})
+    check(row_ and row_.split()[0] == "precis" and "withheld: withheld: figures in no "
+          "block" in row_ and "(2 attempt(s))" in row_,
+          f"the précis is its own row of the run's stack listing ({row_})")
+    check(precis.summary_row({"precis": {"state": "published", "published": True,
+                                         "attempts": 1}}).endswith("ok  (1 attempt(s))"),
+          "a published précis's row reads ok")
+    src = (REPO / "daily_cascade" / "weekly_report.py").read_text(encoding="utf-8")
+    check("_precis.summary_row(ed)" in src
+          and src.index("_precis.summary_row(ed)") < src.index('for s in ed["sections"]:'),
+          "the Weekly's run prints it first in the listing, before the sections")
+
+
+# ---------------------------------------------------------------------------
 def group_i() -> None:
     head("I. NOTHING ELSE")
     check("anthropic" not in sys.modules,
@@ -454,7 +520,7 @@ def group_i() -> None:
 
 def main() -> int:
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_i):
+              group_j, group_i):
         g()
     print(f"\n{PASS} passed, {FAIL} failed")
     print("VALIDATION PASSED" if not FAIL else "VALIDATION FAILED")

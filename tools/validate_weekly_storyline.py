@@ -157,10 +157,12 @@ def main() -> int:
     fr = precis.frame(ed, None)
     allowed = {precis._norm(f) for f in fr["figures_you_may_cite"]}
     used = {precis._norm(f) for t in precis.prose_fields(pp) for f in precis._figs(t)}
-    check(pr.get("attempts") == 2 and "figures no commentary cites"
+    # W8-1b: the allowed set is the précis's whole block (commentaries, grader,
+    # stance ledger, the changed-since box), and the fault says so.
+    check(pr.get("attempts") == 2 and "figures in no block of the précis's data"
           in str(pr.get("first_reason")) and used <= allowed,
-          f"a draft citing a figure no commentary cites is withheld and the retry "
-          f"publishes; its figures {sorted(used)} are within the commentaries' set")
+          f"a draft citing a figure in no block is withheld and the retry "
+          f"publishes; its figures {sorted(used)} are within the block's set")
     check(set(pp.get("verdicts") or {}) == {a for a, _, _ in precis.VERDICT_ASSETS}
           and all(v in precis.VERDICTS for v in pp["verdicts"].values()),
           f"six verdicts in the fixed vocabulary: {pp.get('verdicts')}")

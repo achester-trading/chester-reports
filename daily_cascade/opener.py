@@ -334,7 +334,7 @@ RULES = (
      "series' own figure, from its own row, in the unit its column states -- "
      "never another series' figure and never another column's (a z is not points "
      "of open interest)."),
-    (r"numeral audit|figures no commentary cites",
+    (r"numeral audit|figures no commentary cites|figures in no block",
      "THE NUMERAL RULE: every figure you print is one your data carries, copied "
      "exactly as printed there -- its sign, decimals and unit. Never derive, "
      "round, convert or recall a figure."),

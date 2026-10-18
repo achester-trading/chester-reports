@@ -371,9 +371,10 @@ def main() -> int:
     claim = "The tape view held steady over the week."
     _, dcalls, _ = weekly_fixture(dup_td, {"READ": claim + " " + DEFAULT.format(p="week")})
     reads = [c for c in dcalls if "Write THE READ" in c]
-    # Three attempts on the Weekly since W-1.3c item 6 (this fixture's Read is
-    # out of the opener's band, so every attempt is withheld).
-    check(len(reads) == 3 and "repeats a section's sentence" in reads[1]
+    # One draft and one revision (W8-1, weekly-fixes-8; three attempts under
+    # W-1.3c item 6 before). This fixture's Read is out of the opener's band, so
+    # both attempts are withheld.
+    check(len(reads) == 2 and "repeats a section's sentence" in reads[1]
           and "NEVER copy a section's claim" in reads[0],
           "The read is told never to copy a section's sentence, and a draft that "
           "does is sent back with the reason")
