@@ -30,6 +30,9 @@ no live store.
      a closed slot writing nothing and calling no model; the Sunday line and the
      Books; the Daily grep gate for PRL and Pearl; nothing enters a composite; no
      by-hand key; neither Weekly builder session B is fixing is touched.
+  E  Ruling 2 (a44-opening-setup): the ruled expected-move path and shape; served,
+     the 20-day IV stored; a 403 or 404 stores nothing and says "expected move:
+     not served".
 
     python tools/validate_a43_render.py
 """
@@ -583,8 +586,55 @@ def group_d() -> None:
                            f"fixing (weekly_stack.py, weekly_sections.py; {touched or 'none'})")
 
 
+def group_e() -> None:
+    head("E. RULING 2 OF 18 OCT: THE EXPECTED-MOVE PATH AND ITS FALLBACK")
+    import json
+    import os
+    from altdata import observations
+    from altdata.sources import flashalpha as fa
+    cfg = fa.config()
+    fix = REPO / "tests" / "fixtures" / "dealer_block"
+    em = json.loads((fix / "flashalpha_expected_move_SPY.json").read_text(encoding="utf-8"))
+    summ = json.loads((fix / "flashalpha_summary_SPY_2026-10-16.json").read_text(encoding="utf-8"))
+    ex = fa.expiries_of(em)
+    e20 = fa.first_20dte(ex, "2026-10-19", cfg)
+    check(cfg["endpoints"]["expected_move"] == "/v1/expected-move/{symbol}"
+          and [e["expiry"] for e in ex] == ["2026-10-20", "2026-10-23", "2026-11-06", "2026-11-20"]
+          and e20 and e20["expiry"] == "2026-11-20" and e20["atm_iv"] == 16.8,
+          "the ruled path, and the ruled shape (expected_moves[] with daysToExpiry and "
+          "atmIv) parsed: the first expiry of 20 DTE or more is 20 Nov at 16.8, not the "
+          "1-DTE 120.4")
+    os.environ.setdefault("FLASHALPHA_API_KEY", "fixture-key-0123456789abcdef")
+    os.environ.setdefault("FLASHALPHA_BASE_URL", "https://example.invalid")
+
+    def get(status):
+        def g(url, key):
+            if "/v1/expected-move/" in url:
+                return {"status": status, "body": em if status == 200 else {}}
+            if "/summary" in url:
+                return {"status": 200, "body": summ}
+            return {"status": 200, "body": {"fixture": True}}
+        return g
+    runs = {}
+    for status in (200, 403, 404):
+        with observations.ObservationStore(str(TD / f"em{status}.db")) as st:
+            out = fa.pull(db=st, get=get(status), cfg=cfg, day="2026-10-19",
+                          quota_path=TD / f"emq{status}.json", blob_dir=TD / f"emb{status}")
+            iv = st.as_of("vendor.atm_iv_20dte", "2026-10-20T00:00:00+00:00", "SPY")
+        runs[status] = (out, iv)
+    ok200 = runs[200][1] and float(runs[200][1][-1]["value_num"]) == 16.8 \
+        and not runs[200][0].get("expected_move")
+    gone = all(runs[s][0].get("expected_move") == "expected move: not served"
+               and runs[s][0]["symbols"]["SPY"].get("expected_move") == "expected move: not served"
+               and not runs[s][1] and not runs[s][0]["symbols"]["SPY"].get("errors")
+               for s in (403, 404))
+    check(ok200 and gone,
+          "served, the 20-day IV is stored (16.8); a 403 or 404 stores nothing for it, "
+          "says 'expected move: not served', and the 20-day comparison waits")
+
+
 # ---------------------------------------------------------------------------
-GROUPS = [group_a, group_b, group_c, group_d]
+GROUPS = [group_a, group_b, group_c, group_d, group_e]
 
 
 def main() -> int:

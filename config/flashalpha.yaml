@@ -18,14 +18,16 @@ symbols: [SPY, QQQ, IWM, SPX, MSTR]
 daily_call_budget: 60
 
 # The endpoints, from the vendor's API documentation (read 18 Oct 2026; auth by
-# the X-Api-Key header). expected_move's path is NOT in the documentation's
-# endpoint list: UNVERIFIED, so the first box run's summary says whether it
-# answered, and an absent response stores nothing.
+# the X-Api-Key header). expected_move's path is RULED (ruling 2 of 18 Oct 2026:
+# it served this account that day): GET /v1/expected-move/{symbol}, optional
+# ?expiry=YYYY-MM-DD, answering expected_moves[] with expiry, daysToExpiry, atmIv,
+# expectedMove, expectedMovePct, lowerBound and upperBound. A 403 or 404 stores
+# nothing, prints "expected move: not served", and the 20-day IV comparison waits.
 endpoints:
   summary: /v1/stock/{symbol}/summary
   levels: /v1/exposure/levels/{symbol}
   max_pain: /v1/maxpain/{symbol}
-  expected_move: /v1/exposure/expected-move/{symbol}
+  expected_move: /v1/expected-move/{symbol}
   dex: /v1/exposure/dex/{symbol}
   vex: /v1/exposure/vex/{symbol}
   chex: /v1/exposure/chex/{symbol}

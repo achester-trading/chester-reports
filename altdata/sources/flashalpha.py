@@ -88,6 +88,9 @@ ALL_KEYS = list(KEYS.values()) + list(EXTRA_KEYS.values()) + list(MACRO_KEYS.val
 # THE FRESHNESS ROSTER (ruling 3 of 17 Oct 2026): the levels endpoint's fields.
 ROSTER_KEYS = [KEYS["flip"], KEYS["call_wall"], KEYS["put_wall"], KEYS["spot"]]
 VEX_FLAG = "unreconciled: sign and scale differ from the engine's (ledger 9 Oct)"
+# Ruling 2 of 18 Oct 2026: a 403 or 404 on the expected-move path stores nothing and
+# says so; the 20-day IV comparison waits for it.
+EM_NOT_SERVED = "expected move: not served"
 PLAN_ENDED = "vendor: plan ended"
 TIMEOUT = 30
 
@@ -203,10 +206,10 @@ def expiries_of(*bodies: dict) -> list[dict]:
             e = x.get("expiry") or x.get("expiration") or x.get("expiration_date")
             if isinstance(e, str) and len(e) >= 10 and e[:4].isdigit():
                 d = out.setdefault(e[:10], {"expiry": e[:10]})
-                for k in ("dte", "days_to_expiry"):
+                for k in ("dte", "days_to_expiry", "daysToExpiry"):
                     if _num(x.get(k)) is not None:
                         d["dte"] = _num(x.get(k))
-                for k in ("atm_iv", "iv"):
+                for k in ("atm_iv", "atmIv", "iv"):
                     if _num(x.get(k)) is not None:
                         d["atm_iv"] = _num(x.get(k))
             for v in x.values():
@@ -361,6 +364,10 @@ def pull(db=None, get: Optional[Callable[[str, str], dict]] = None,
                    "error": secrets.redact(f"{type(exc).__name__}: {exc}")}
         _count_call(day, quota_path)
         out["calls"] += 1
+        if name == "expected_move" and res.get("status") in (403, 404):
+            out["symbols"].setdefault(sym, {})["expected_move"] = EM_NOT_SERVED
+            out["expected_move"] = EM_NOT_SERVED
+            return None
         if res.get("status") != 200:
             out["symbols"].setdefault(sym, {}).setdefault("errors", []).append(
                 secrets.redact(f"{name}: status {res.get('status')} "
@@ -578,6 +585,8 @@ def _main(argv: list[str]) -> int:
     if res.get("status") in ("OK", "BUDGET") and a.slot == "1625":
         from .. import feeds                                    # noqa: PLC0415
         feeds.record_attempted("vendor", ROSTER_KEYS)
+    if res.get("expected_move"):
+        print(res["expected_move"])
     print(json.dumps(res, indent=2, default=str))
     return 0 if res.get("status") in ("OK", "SKIPPED", "BUDGET", "PLAN_ENDED") else 1
 
