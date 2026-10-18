@@ -123,6 +123,22 @@ def _d(day: str) -> dt.date:
 # ---------------------------------------------------------------------------
 # The conditioners
 # ---------------------------------------------------------------------------
+def surprise_series(store, ev: dict) -> tuple[Optional[pit.Series], str]:
+    """The release's surprise series and what it is. The CONSENSUS surprise
+    (ST-R6.48f, calc.consensus_surprise.<id>, read by key name) where a row is
+    stored; else the declared fallback (the naive surprise, labelled so); else
+    none."""
+    ck = ev.get("consensus_surprise")
+    if ck:
+        cs = pit.Series(store, ck)
+        if cs:
+            return cs, (f"consensus: actual less the stored consensus ({ck}, the "
+                        f"surprise index, ST-R6.48f)")
+    if ev.get("surprise"):
+        return pit.Series(store, ev["surprise"]), str(ev.get("surprise_kind") or "")
+    return None, str(ev.get("surprise_kind") or "")
+
+
 def surprise_for(sur: pit.Series, day: str) -> Optional[dict]:
     """The surprise first published on the release day or within four days
     after it (a live pull lands the next morning), with its size against the
@@ -220,7 +236,7 @@ def macro_rows(store, cfg: dict, cutoff: str, prices: Optional[Prices] = None) -
         ev = (cfg.get("events") or {}).get(name)
         if not ev:
             continue
-        sur = pit.Series(store, ev["surprise"]) if ev.get("surprise") else None
+        sur, sur_kind = surprise_series(store, ev)
         rows = []
         for e in release_days(store, ev, cutoff):
             day = e["day"]
@@ -244,6 +260,7 @@ def macro_rows(store, cfg: dict, cutoff: str, prices: Optional[Prices] = None) -
                 "first_session": first, "trade_day": trade, "decided_at": decided,
                 "available_at": max(avail), "stale": bool(stale),
                 "surprise": s["value"] if s else None, "surprise_bucket": sb,
+                "surprise_kind": sur_kind,
                 "positioning_bucket": positioning_bucket(cot, decided, cfg),
                 "dealer_bucket": dealer_bucket(gex, ntg, decided, cfg),
                 "first_session_drift_pct": px.oc(first),
@@ -337,7 +354,8 @@ def base_rates(store, cfg: dict, cutoff: str) -> list[dict]:
             for kind in ("surprise", "positioning", "dealer"):
                 col = f"{kind}_bucket"
                 buckets = sorted({r[col] for r in rs})
-                note = ev.get("surprise_kind", "") if kind == "surprise" else ""
+                note = ((rs[0].get("surprise_kind") if rs else None)
+                        or ev.get("surprise_kind", "")) if kind == "surprise" else ""
                 if not rs or buckets == [AWAITING]:
                     why = {"surprise": ev.get("surprise_kind"),
                            "positioning": "no CFTC speculative net with two years of rows",

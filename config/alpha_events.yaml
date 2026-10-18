@@ -23,6 +23,7 @@ events:
     time: "08:30"
     entity: fred.cpi
     series: fred.cpi
+    consensus_surprise: calc.consensus_surprise.cpi
     surprise: calc.surprise_vs_naive.cpi
     surprise_kind: "naive: actual less the declared naive expectation (config/naive_expectations.yaml), NOT a consensus surprise -- no free macro consensus is stored"
   payrolls:
@@ -30,15 +31,22 @@ events:
     time: "08:30"
     entity: fred.nfp
     series: fred.nfp
+    consensus_surprise: calc.consensus_surprise.payrolls
     surprise: calc.surprise_vs_naive.nfp
     surprise_kind: "none stored: config/naive_expectations.yaml declares no expectation for nfp, so the payroll buckets by surprise print awaiting (needs-you)"
   fomc:
     label: FOMC
     time: "14:00"
     claims_kind: fomc
+    consensus_surprise: calc.consensus_surprise.fomc
     surprise: null
     surprise_kind: "none stored: no consensus or futures-implied policy surprise series is stored for FOMC decisions; the fed funds futures rows could build one (needs-you)"
 
+# THE CONSENSUS SURPRISE FIRST (lenses-group-b, 18 Oct 2026): each release reads
+# `consensus_surprise` (the surprise index, ST-R6.48f; altdata/surprise_index.py)
+# by key name where a row is stored, and only then the `surprise` fallback, which
+# keeps its own label. No macro consensus is stored today (ruling 5 of 18 Oct:
+# the payroll and FOMC surprises are listed gaps), so the fallbacks stand.
 # A surprise's size: |surprise| over the standard deviation of the same series'
 # previous `window` surprises, large at or above `large_sd`; fewer than
 # `min_prior` previous surprises leaves the size unknown.

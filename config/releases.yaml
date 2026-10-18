@@ -203,6 +203,125 @@ cpi_lenses:
     - {component: "financial services (portfolio fees; PCE only)", cpi: "under 1%", pce: "about 8%"}
 
 # ---------------------------------------------------------------------------
+# GROUP B (item 48 lenses 12-20; lenses-group-b, 18 Oct 2026). REPORT-ONLY: the
+# order names flags in lenses 2-4 only (Group A's), so no lens here carries a
+# flag but the 30-point disagreement between its two percentiles, which every
+# lens figure carries (the metric-lenses brief). Each figure's percentiles are
+# over its OWN history (the figure computed at every period knowable at the
+# cutoff): five years, and the family's long window (derived.long_window_of on
+# the figure's source key -- release: 20 years). Nothing enters a composite.
+# ---------------------------------------------------------------------------
+ppi_lenses:
+  # Lens 12: intermediate demand stages 1-4 as pipeline pressure leading final
+  # demand. Stage 1 is furthest from final demand, stage 4 nearest (BLS's
+  # production-flow model). Read on the year (the percentile's figure) and
+  # three months annualised; the gap of each stage to final demand prints.
+  final_demand: {key: fred.ppi_final_demand, name: "Final demand"}
+  stages:
+    - {key: fred.ppi_stage1, name: "Stage 1 intermediate demand"}
+    - {key: fred.ppi_stage2, name: "Stage 2 intermediate demand"}
+    - {key: fred.ppi_stage3, name: "Stage 3 intermediate demand"}
+    - {key: fred.ppi_stage4, name: "Stage 4 intermediate demand"}
+  # Lens 13: the PCE-relevant components -- the PPI lines that enter PCE where
+  # CPI has none or a different measure. NOT seasonally adjusted: read on the
+  # year (the month's change prints, labelled NSA, never annualised).
+  pce_relevant:
+    - {key: fred.ppi_portfolio_mgmt, name: "Portfolio management and investment advice"}
+    - {key: fred.ppi_airline_passenger, name: "Scheduled passenger air transport"}
+    - {key: fred.ppi_hospitals, name: "Hospitals"}
+    - {key: fred.ppi_physicians, name: "Offices of physicians"}
+  # Lens 14: trade services separately (the margin proxy item 35 strips out),
+  # beside final demand less foods, energy and trade services.
+  trade_services: {key: fred.ppi_trade_services, name: "Trade services (margins)"}
+  core_ex_trade: {key: fred.ppi_fd_core_ex_trade, name: "Final demand less foods, energy and trade services"}
+
+gdp_lenses:
+  # Lens 15: final sales to private domestic purchasers as the core; the pieces
+  # outside it shown separately, government as the fiscal impulse. Contributions
+  # are BEA's own (pp of real growth at an annual rate); their sum against real
+  # GDP's growth prints with its residual (rounding and the chain's
+  # non-additivity).
+  real_growth: fred.gdp_real_growth
+  final_sales_pdp: fred.final_sales_pdp
+  contributions:
+    - {key: fred.gdp_contrib_pce, name: "Consumption"}
+    - {key: fred.gdp_contrib_nonres, name: "Nonresidential investment"}
+    - {key: fred.gdp_contrib_residential, name: "Residential investment"}
+    - {key: fred.gdp_contrib_inventories, name: "Inventories"}
+    - {key: fred.gdp_contrib_net_exports, name: "Net exports"}
+    - {key: fred.gdp_contrib_government, name: "Government (the fiscal impulse)"}
+  deflator: fred.gdp_deflator
+  # Lens 16: the investment split. AI-related (item 22) is information
+  # processing equipment plus software, nominal; structures ex data centers
+  # (item 23) is nonresidential structures less the Census's private data-center
+  # construction, read BY NAME (census.vip_data_center, st-r4-tranche-1b's
+  # writer, not on this line: "not stored" until the stitch); residential
+  # (item 36) is real residential investment.
+  ai_related: [fred.inv_info_equipment, fred.inv_software]
+  structures: fred.inv_nonres_structures
+  data_center: census.vip_data_center
+  # Census VIP is millions of dollars at a seasonally adjusted annual rate; the
+  # quarter's figure is the mean of its three months, in billions. A
+  # construction-spending series is not NIPA's structures concept, so the
+  # difference is an approximation, and the line says so.
+  data_center_to_billions: 0.001
+  residential: fred.inv_residential_real
+  # Lens 17: GDI less GDP, as a percent of GDP (the statistical discrepancy's
+  # sign flipped). A downturn tell in the order's words; report-only here.
+  gdi: fred.gdi_nominal
+  gdp_nominal: fred.gdp_nominal
+  # Lens 18: NIPA after-tax profits on the year against the S&P 500's trailing
+  # EPS on the year (Shiller's monthly series, read at the quarter's last month).
+  profits: fred.corp_profits_after_tax
+  sp_eps: shiller.sp_earnings
+  # Lens 19: real disposable income, real income ex transfers, the saving rate.
+  disp_income: fred.real_disp_income
+  income_ex_transfers: fred.real_income_ex_transfers
+  saving_rate: fred.saving_rate
+  k_shape_gap: "the consumption-by-income panel (the GTM K-shape): no consumption-by-income series is stored on this line"
+  # Lens 20: the nowcast path. GDPNow's updates are the vintages of fred.gdpnow
+  # (ALFRED's backfill and each later pull); the print is read against the last
+  # nowcast knowable before it.
+  gdpnow: fred.gdpnow
+  nyfed_gap: "the New York Fed Staff Nowcast: a listed gap. Its page (newyorkfed.org/research/policy/nowcast; robots allows it) serves the figures through a JavaScript application with no documented file, and FRED does not carry it (checked 18 Oct 2026)"
+
+# ---------------------------------------------------------------------------
+# ST-R6.48f -- THE SURPRISE INDEX (lens 23). Actual less consensus, in the
+# release's own units, standardised by the release's OWN history of surprises
+# (the surprise over the standard deviation of its previous surprises, and its
+# percentile among them). The order defines no composite, so none is built:
+# each release prints its own surprise. A release with no consensus stored
+# prints "no consensus" and the reason; nothing is guessed and no naive
+# expectation stands in (that is altdata/surprise.py's, labelled naive).
+#
+# THE SOURCE (ruled 18 Oct 2026: the consensus logger is the settled source).
+# altdata/loggers/consensus.py reads yfinance (Yahoo's .info, one read per name,
+# 0.6 s apart, nightly; 24 names, up to 39 with the GTM names) and the earnings
+# writer reads the same library's calendar: the ANALYST MEAN before each print.
+# yfinance as pinned (>=0.2.40,<1.0; 0.2.66 installed) has no economic-calendar
+# route, so the source carries no consensus for a macro release. Under ruling 5
+# of 18 Oct the payroll and FOMC surprises are therefore LISTED GAPS, as is
+# every other macro release; the machinery reads `consensus.<id>` by key name,
+# so a source that later writes one fills its row with no code change.
+# ---------------------------------------------------------------------------
+surprise_index:
+  min_prior: 8          # session-set: standardise only on 8 or more earlier surprises (two years of quarters)
+  window: 40            # the earlier surprises the standard deviation and percentile read (the latest 40)
+  macro:
+    - {id: cpi, name: "CPI", actual: fred.cpi, transform: mm_pct, units: "% m/m", consensus: consensus.cpi}
+    - {id: core_cpi, name: "Core CPI", actual: fred.core_cpi, transform: mm_pct, units: "% m/m", consensus: consensus.core_cpi}
+    - {id: payrolls, name: "Payrolls", actual: fred.nfp, transform: change, units: "thousands", consensus: consensus.payrolls}
+    - {id: unemployment, name: "Unemployment rate", actual: fred.u3_rate, transform: level, units: "%", consensus: consensus.unemployment}
+    - {id: ppi, name: "PPI final demand", actual: fred.ppi_final_demand, transform: mm_pct, units: "% m/m", consensus: consensus.ppi}
+    - {id: gdp, name: "Real GDP", actual: fred.gdp_real_growth, transform: level, units: "% SAAR", consensus: consensus.gdp}
+    - {id: fomc, name: "FOMC decision", actual: null, transform: level, units: "% (target midpoint)", consensus: consensus.fomc}
+  gap: "no consensus: the consensus logger's source (yfinance, pinned below 1.0) serves no macro consensus; listed under ruling 5 of 18 Oct 2026"
+  # Earnings: per name, the reported EPS less the analyst mean the same row
+  # carries (the events table's `earnings` rows, the earnings writer's), in
+  # dollars of EPS, standardised by the name's own earlier surprises.
+  earnings: {universe_from: events}
+
+# ---------------------------------------------------------------------------
 # LENSES 21-24 -- CROSS-CUTTING; THE RELEASE-DAY LINES
 # ---------------------------------------------------------------------------
 # A release's day is the ET date its headline series' newest print became
@@ -215,3 +334,5 @@ releases:
   - {id: employment, name: "The employment report", headline: fred.nfp}
   - {id: jolts, name: "JOLTS", headline: fred.job_openings}
   - {id: eci, name: "The employment cost index", headline: fred.eci_wages}
+  - {id: ppi, name: "PPI", headline: fred.ppi_final_demand}
+  - {id: gdp, name: "GDP", headline: fred.gdp_real_growth}

@@ -275,10 +275,11 @@ def group_d(rows: list[dict]) -> None:
     names = [n for n, _ in ib.PANELS]
     check(names == ["lead", "gap", "decomposition", "cpi_lenses", "ppi"]
           and dict(ib.PANELS)["decomposition"] is not None
-          and dict(ib.PANELS)["ppi"] is None,
+          and dict(ib.PANELS)["ppi"] is ib.ppi_panel,
           "five panels in order: item 46's decomposition and item 48's CPI lenses "
-          "filled (6e-releases); Group B's PPI slot reserved and empty; the labour "
-          "lenses left for their own section")
+          "filled (6e-releases); Group B's PPI slot filled (lenses-group-b), "
+          "printing nothing while no PPI series is stored; the labour lenses left "
+          "for their own section")
     feat = rows + [row("calc.core_cpi_pce_gap", m, 0.3 - 0.1 * i)
                    for i, m in enumerate(months(dt.date(2026, 1, 1), 9))]
     with store("infl", feat) as st:

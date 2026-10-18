@@ -143,6 +143,7 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd",
                   "fred_6e",   # 6e, the rest (16 Oct 2026): the FRED legs of Session 3 and the CPI lead
                   "fred_releases",   # 6e-releases (16 Oct 2026): Batch 7 Group A's FRED legs
+                  "fred_group_b",    # lenses-group-b (18 Oct 2026): Batch 7 Group B's FRED legs
                   # Tranche A part 1 (17 Oct 2026): the watch names' DefiLlama
                   # fees, and BTC's and ETH's caps and supply in the coin blocks
                   "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply"}
@@ -723,6 +724,7 @@ def code_counts() -> dict:
         "fred_pull": len(config.FRED_PULL_SERIES),
         "fred_6e": len(config.FRED_6E_SERIES),
         "fred_releases": len(config.FRED_RELEASES_SERIES),
+        "fred_group_b": len(config.FRED_GROUP_B_SERIES),
         "official_writers": len(feeds.OFFICIAL_WRITERS),
         "external_writers": len(feeds.EXTERNAL_WRITERS),
         "loggers": len(loggers.load_all()),
@@ -749,6 +751,7 @@ PRINTED_COUNTS = [
     ("FRED_PULL_SERIES", rf"FRED_PULL_SERIES, {NUM}, is the union", "fred_pull"),
     ("FRED_6E_SERIES", rf"{NUM} in FRED_6E_SERIES", "fred_6e"),
     ("FRED_RELEASES_SERIES", rf"{NUM} in FRED_RELEASES_SERIES", "fred_releases"),
+    ("FRED_GROUP_B_SERIES", rf"{NUM} in FRED_GROUP_B_SERIES", "fred_group_b"),
     ("official writers", rf"roster is {NUM} official writers", "official_writers"),
     ("external writers", rf"official writers, {NUM} external writers", "external_writers"),
     ("loggers", rf"external writers and {NUM}\s+loggers", "loggers"),

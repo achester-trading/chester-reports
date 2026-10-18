@@ -3223,6 +3223,248 @@ metrics:
         reported -- a GAAP figure against an adjusted estimate, or a one-off gain.
         The payload keeps both numbers so a reader can see what produced it, and a
         percentile over this metric's own history is the only honest way to read it.
+  # -------------------------------------------------------------------------
+  # THE SURPRISE INDEX (Batch 7 item 48 lens 23, ST-R6.48f; lenses-group-b,
+  # 18 Oct 2026; altdata/surprise_index.py). Written by altdata.surprise's
+  # compute step. A macro release's rows exist only once a `consensus.<id>`
+  # source writes; none does (the consensus logger's yfinance serves no macro
+  # consensus, ruling 5 of 18 Oct 2026), so those keys are registered with no
+  # rows. No composite is built: the order defines none.
+  # -------------------------------------------------------------------------
+  calc.consensus_surprise.cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The cpi release's actual (its first print) less the stored consensus
+      (consensus.cpi), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.cpi over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.core_cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The core_cpi release's actual (its first print) less the stored consensus
+      (consensus.core_cpi), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.core_cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.core_cpi over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.payrolls:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      In THOUSANDS of jobs (a count).
+      The payrolls release's actual (its first print) less the stored consensus
+      (consensus.payrolls), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.payrolls:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.payrolls over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.unemployment:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      The unemployment release's actual (its first print) less the stored consensus
+      (consensus.unemployment), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.unemployment:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.unemployment over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.ppi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The ppi release's actual (its first print) less the stored consensus
+      (consensus.ppi), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.ppi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.ppi over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.gdp:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The gdp release's actual (its first print) less the stored consensus
+      (consensus.gdp), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.gdp:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.gdp over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      The fomc release's actual (its first print) less the stored consensus
+      (consensus.fomc), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.fomc over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise_z.earnings:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Per name (the instrument): calc.earnings_surprise_pct, the reported EPS
+      against the analyst mean (yfinance, the consensus logger's library), over
+      the standard deviation of the same name's earlier surprises (the latest 40,
+      at least 8). Standardised and unitless; each name against its own history.
   events.release:
     source: fred
     mechanism_group: macro_momentum
@@ -13808,6 +14050,81 @@ bulk_imports:
       "1": macro_labor
       "4": macro_inflation
       "7": macro_global_fx
+
+  fred_group_b:
+    description: >-
+      Batch 7, Group B (item 48 lenses 12-20; lenses-group-b, 18 Oct 2026, session
+      B): the PPI and GDP lenses' FRED legs -- PPI final demand less foods,
+      energy and trade services, trade services, the four intermediate-demand
+      stages, and the PCE-relevant industries (portfolio management, scheduled
+      air passenger transport, hospitals, physicians); real GDP's growth, real
+      final sales to private domestic purchasers, six contributions to growth,
+      the deflator, GDI, the investment split (information processing
+      equipment, software, nonresidential structures, real residential), after-
+      tax corporate profits, real disposable income, real income ex transfers,
+      the saving rate, and the Atlanta Fed's GDPNow. Ids and titles read off FRED
+      18 Oct 2026; see altdata/config.py FRED_GROUP_B_SERIES. The levels are
+      BILLIONS (chained where real); growth, contributions and GDPNow are
+      percent at an annual rate (contributions in pp); the saving rate a share.
+    source: fred
+    members_from: altdata.config.FRED_GROUP_B_SERIES
+    member_families:
+      fred.corp_profits_after_tax: release
+      fred.final_sales_pdp: release
+      fred.gdi_nominal: release
+      fred.gdp_contrib_government: release
+      fred.gdp_contrib_inventories: release
+      fred.gdp_contrib_net_exports: release
+      fred.gdp_contrib_nonres: release
+      fred.gdp_contrib_pce: release
+      fred.gdp_contrib_residential: release
+      fred.gdp_deflator: release
+      fred.gdp_real_growth: release
+      fred.gdpnow: release
+      fred.inv_info_equipment: release
+      fred.inv_nonres_structures: release
+      fred.inv_residential_real: release
+      fred.inv_software: release
+      fred.ppi_airline_passenger: release
+      fred.ppi_fd_core_ex_trade: release
+      fred.ppi_hospitals: release
+      fred.ppi_physicians: release
+      fred.ppi_portfolio_mgmt: release
+      fred.ppi_stage1: release
+      fred.ppi_stage2: release
+      fred.ppi_stage3: release
+      fred.ppi_stage4: release
+      fred.ppi_trade_services: release
+      fred.real_disp_income: release
+      fred.real_income_ex_transfers: release
+      fred.saving_rate: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 29
+    units: from_member
+    # Growth rates, contributions and the nowcast in pp; the saving rate a share
+    # of income in pp (AUD-3a).
+    member_units:
+      fred.gdp_contrib_government: percent_return
+      fred.gdp_contrib_inventories: percent_return
+      fred.gdp_contrib_net_exports: percent_return
+      fred.gdp_contrib_nonres: percent_return
+      fred.gdp_contrib_pce: percent_return
+      fred.gdp_contrib_residential: percent_return
+      fred.gdp_real_growth: percent_return
+      fred.gdpnow: percent_return
+      fred.saving_rate: percent_share
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+      "4": macro_inflation
 
   fred_aq3:
     description: >-

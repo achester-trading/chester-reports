@@ -127,6 +127,10 @@ commands:
     domain: computed
     line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'
     sources: [fred, rent_indices, calc]
+  altdata.releases_b:
+    domain: computed
+    line: 'Batch 7 release lenses, Group B (item 48 lenses 12-20): the PPI pipeline, PCE-relevant and trade lines, the GDP core, investment split, GDI gap, profits, income and the GDPNow path, read as of a cutoff; writes nothing'
+    sources: [fred, shiller]
   altdata.return_attribution:
     domain: equity
     line: SR-38 -- THE RETURN-ATTRIBUTION LENS, THE REVISION LINE, EY MINUS THE BILL (signal-triage batch 4, ST4-02)
@@ -145,6 +149,10 @@ commands:
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.surprise_index:
+    domain: events
+    line: 'The surprise index (ST-R6.48f): actual less consensus, standardised by each release''s own surprises; no composite; its rows ride altdata.surprise compute'
+    sources: [calc, yfinance]
   altdata.volume_profile:
     domain: equity
     line: 'The volume profile: where volume traded by price over a window (VP-1)'

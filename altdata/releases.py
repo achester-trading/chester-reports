@@ -624,13 +624,31 @@ def _s(x: Optional[float], dp: int = 1, unit: str = "") -> str:
     return "n/a" if x is None else f"{x:+.{dp}f}{unit}"
 
 
-def consensus_note() -> str:
+def consensus_note(note: Optional[str] = None) -> str:
+    """The line's surprise clause: the surprise index's (ST-R6.48f) when the
+    caller passes it, else the lens config's "no consensus"."""
+    if note:
+        return note
     from . import derived                                       # noqa: PLC0415
     sc = derived.lens_config().get("surprise") or {}
     return f"surprise: {sc.get('state', 'no consensus')}"
 
 
-def cpi_line(dc: dict, pt: dict) -> str:
+# Lens 24's releases -> the surprise index's ids (config surprise_index.macro).
+SURPRISE_IDS = {"cpi": "cpi", "employment": "payrolls", "ppi": "ppi", "gdp": "gdp"}
+
+
+def surprise_note(st, rid: str, cutoff: str, cfg: Optional[dict] = None) -> str:
+    """ST-R6.48f: the release's newest consensus surprise with its percentile
+    among its own earlier surprises, or "surprise: no consensus"."""
+    from . import surprise_index                                # noqa: PLC0415
+    sid = SURPRISE_IDS.get(rid)
+    if not sid:
+        return consensus_note()
+    return surprise_index.note(surprise_index.latest(st, sid, cutoff, cfg))
+
+
+def cpi_line(dc: dict, pt: dict, surprise: Optional[str] = None) -> str:
     p = {x["name"]: x for x in dc["pieces"]}
     parts = "; ".join(f"{n} {_s(p[n]['contribution_pp'], 2)} pp" for n in
                       ("energy", "food", "core goods", "shelter", "core services ex shelter")
@@ -651,10 +669,10 @@ def cpi_line(dc: dict, pt: dict) -> str:
     t = f". {t[0].upper()}{t[1:]}" if t else ""
     return (f"CPI for {month_name(dc['month'])}: {_s(dc['headline_mm_pct'], 1, '%')} on the "
             f"month ({_s(dc['headline_yoy_pct'], 1, '%')} on the year); what moved it: "
-            f"{parts}{t} ({consensus_note()}).")
+            f"{parts}{t} ({consensus_note(surprise)}).")
 
 
-def employment_line(em: dict, month: str) -> str:
+def employment_line(em: dict, month: str, surprise: Optional[str] = None) -> str:
     cy, rv, dif = em.get("cyclical") or {}, em.get("revisions") or {}, em.get("diffusion") or {}
     bits = [f"payrolls {_s(cy.get('headline_change_k'), 0, 'k')}",
             f"cyclical core {_s(cy.get('core_change_k'), 0, 'k')}"]
@@ -665,7 +683,7 @@ def employment_line(em: dict, month: str) -> str:
     flags = [n for n, v in (em.get("flags") or {}).items() if v is True]
     tail = f"; flag{'s' if len(flags) > 1 else ''}: {', '.join(flags)}" if flags else ""
     return (f"The employment report for {month_name(month)}: {'; '.join(bits)}{tail} "
-            f"({consensus_note()}).")
+            f"({consensus_note(surprise)}).")
 
 
 def release_day_lines(st, cutoff: str, cfg: Optional[dict] = None) -> list[dict]:
@@ -677,13 +695,20 @@ def release_day_lines(st, cutoff: str, cfg: Optional[dict] = None) -> list[dict]
         month = released_today(st, rel["headline"], cutoff)
         if not month:
             continue
-        if rel["id"] == "cpi":
+        sur = surprise_note(st, rel["id"], cutoff, cfg)
+        if rel["id"] in ("ppi", "gdp"):
+            # Group B (lenses-group-b, 18 Oct 2026): ST-R6.48d and 48e
+            from . import releases_b                            # noqa: PLC0415
+            line = (releases_b.ppi_line(releases_b.ppi_lenses(st, cutoff, cfg), sur)
+                    if rel["id"] == "ppi" else
+                    releases_b.gdp_line(releases_b.gdp_lenses(st, cutoff, cfg), sur))
+        elif rel["id"] == "cpi":
             dc = decomposition(st, cutoff, cfg)
             if dc.get("state") != "read":
                 continue
-            line = cpi_line(dc, pass_through(st, cutoff, cfg))
+            line = cpi_line(dc, pass_through(st, cutoff, cfg), sur)
         elif rel["id"] == "employment":
-            line = employment_line(employment(st, cutoff, cfg), month)
+            line = employment_line(employment(st, cutoff, cfg), month, sur)
         elif rel["id"] == "jolts":
             le = employment(st, cutoff, cfg)["leading"]
             q, o = le.get("quits_rate") or {}, le.get("openings_per_unemployed") or {}

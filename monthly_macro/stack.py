@@ -2117,6 +2117,15 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
             except Exception:                                   # noqa: BLE001
                 log.warning("crypto data layer unavailable", exc_info=True)
+            # THE GDP LENSES (Batch 7 item 48, lenses 15-20; lenses-group-b, 18
+            # Oct 2026): two tables at the end of the slow layers, the order's
+            # placement; no paragraph, no chart (daily_cascade/gdp_block.py).
+            try:
+                from daily_cascade import gdp_block              # noqa: PLC0415
+                slow.setdefault("subsections", []).extend(
+                    gdp_block.subsections(st, now))
+            except Exception:                                   # noqa: BLE001
+                log.warning("GDP lenses unavailable", exc_info=True)
         lsec = labour_section(st, now, cfg, prior) if monthly else None
     if not monthly:
         built = {k: period_words(v, noun) for k, v in built.items()}

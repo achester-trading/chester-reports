@@ -14,8 +14,11 @@ THE BLOCK IS A LIST OF PANELS, so a later paste attaches without rearranging it.
   "cpi_lenses"     Batch 7 item 48 lenses 7-11: the shelter lead, supercore,
                    sticky against flexible and goods against services, the base-
                    effect ladder, the CPI-PCE wedge with its weights.
-  "ppi"            Batch 7 Group B (lenses 12-14), the next paste on this line: a
-                   reserved slot, printing nothing until filled.
+  "ppi"            Batch 7 Group B, lenses 12-14 (ST-R6.48d; lenses-group-b, 18
+                   Oct 2026): the intermediate-demand pipeline against final
+                   demand, the PCE-relevant components, trade services apart --
+                   one table, each row in the lens form (two percentiles with
+                   their n, the disagreement). altdata/releases_b.py's figures.
 
 Item 48's employment lenses (1-6) are NOT a panel here: they are the labour block,
 daily_cascade/labour_block.py, the Monthly's own section after Plumbing.
@@ -248,6 +251,46 @@ def cpi_lenses_panel(st, cutoff: str) -> Optional[dict]:
     return sub
 
 
+TITLE_PPI = "PPI: the pipeline, the PCE-relevant lines and trade margins"
+
+
+def ppi_panel(st, cutoff: str) -> Optional[dict]:
+    """Item 48 lenses 12-14 as one table and two lines."""
+    from altdata import releases, releases_b                     # noqa: PLC0415
+    pp = releases_b.ppi_lenses(st, cutoff)
+    rows, missing = [], []
+    groups = ([("Final demand", pp["final_demand"])]
+              + [("12 pipeline", x) for x in pp["pipeline"]]
+              + [("13 PCE-relevant (NSA)", x) for x in pp["pce_relevant"]]
+              + [("14 margins", pp["trade_services"]), ("14 margins", pp["core_ex_trade"])])
+    for lens_no, x in groups:
+        if not x.get("month"):
+            missing.append(f"{x['name']}: {releases_b.printable(x['reason'])}")
+            continue
+        three = _pp(x.get("ann_3m_pct"), 1) if x.get("sa") else "NSA"
+        rows.append([lens_no, x["name"], releases.month_name(x["month"]),
+                     _pp(x.get("mm_pct"), 1), three, _pp(x.get("yoy_pct"), 1)]
+                    + releases_b.lens_cells(x["lens"]))
+    if not rows:
+        return None                     # no PPI series stored: the slot prints nothing
+    lines = []
+    gaps = [f"{x['name'].split(' intermediate')[0].lower()} {_pp(x['gap_to_final_pp'], 1)} pp"
+            for x in pp["pipeline"] if x.get("gap_to_final_pp") is not None]
+    if gaps:
+        lines.append("The pipeline against final demand, on the year: "
+                     + "; ".join(gaps) + ".")
+    if missing:
+        lines.append("Not read: " + "; ".join(missing) + ".")
+    return {"title": TITLE_PPI, "paragraph_wanted": False, "lines": lines,
+            "table": {"columns": ["Lens", "Series", "Month", "Month, %",
+                                  "3m annualised, %", "On the year, %"]
+                      + releases_b.LENS_COLUMNS, "rows": rows},
+            "table_note": ("Report-only (the order's flags are lenses 2-4). Each "
+                           "percentile ranks the year-on-year change against its own "
+                           "history; the long window is the release family's."),
+            "data": {"ppi_lenses": pp}}
+
+
 SHELTER_NAMES = {"fred.cpi_shelter": "shelter", "fred.cpi_rent": "rent",
                  "fred.cpi_oer": "owners' equivalent rent"}
 
@@ -258,7 +301,7 @@ PANELS: list[tuple[str, Optional[Callable]]] = [
     ("gap", gap_panel),
     ("decomposition", decomposition_panel),   # Batch 7 item 46
     ("cpi_lenses", cpi_lenses_panel),         # Batch 7 item 48, lenses 7-11
-    ("ppi", None),                            # Batch 7 Group B attaches here
+    ("ppi", ppi_panel),                       # Batch 7 Group B, lenses 12-14
 ]
 
 

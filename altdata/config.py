@@ -467,6 +467,81 @@ FRED_RELEASES_SERIES: list[SeriesSpec] = [
     SeriesSpec("cpi_c_video_audio", "CUSR0000SERA", "CPI: video and audio, SA", "4", "idx", "monthly"),
 ]
 
+# BATCH 7, GROUP B (item 48 lenses 12-20; lenses-group-b, 18 Oct 2026, session B):
+# the PPI and GDP lenses' FRED legs. Every id, its first and latest observation
+# and its title were read off FRED (fredgraph.csv and the series page) on 18 Oct
+# 2026; monthly series run to Sep 2026, quarterly to Q2 2026, unless noted.
+#   WPSFD49116            PPI final demand less foods, energy and trade services,
+#                         SA, from Aug 2013 (lens 14's core)
+#   PPITSS                PPI final demand: trade services, SA, from Nov 2009 --
+#                         the margin proxy (lens 14)
+#   WPSID51..WPSID54      PPI intermediate demand by production flow, stages 1-4,
+#                         SA, from Nov 2009 (lens 12's pipeline; stage 4 is the
+#                         nearest final demand)
+#   PCU523940523940       PPI portfolio management and investment advice, NSA,
+#                         from Dec 2022 (PCU523920523920, the older industry code,
+#                         stops in Dec 2022; lens 13)
+#   PCU481111481111       PPI scheduled passenger air transportation, NSA (13)
+#   PCU622622 / PCU621111621111  PPI hospitals; offices of physicians, NSA (13)
+#   A191RL1Q225SBEA       real GDP, percent change at an annual rate (15)
+#   LB0000031Q020SBEA     real final sales to private domestic purchasers,
+#                         BILLIONS of chained dollars, SAAR (15's core)
+#   DPCERY2Q224SBEA, A008RY2Q224SBEA, A011RY2Q224SBEA, A014RY2Q224SBEA,
+#   A019RY2Q224SBEA, A822RY2Q224SBEA  contributions to real GDP's percent change,
+#                         PERCENTAGE POINTS at an annual rate: consumption,
+#                         nonresidential and residential fixed investment,
+#                         inventories, net exports, government (15)
+#   GDPDEF                the GDP implicit price deflator, index 2017 = 100
+#   GDI                   gross domestic income, BILLIONS, SAAR (17; the gap is
+#                         computed against GDP, stored as gdp_nominal)
+#   Y034RC1Q027SBEA / B985RC1Q027SBEA  information processing equipment;
+#                         software, BILLIONS, SAAR (16's AI-related split)
+#   B009RC1Q027SBEA       nonresidential structures, BILLIONS, SAAR (16)
+#   PRFIC1                real private residential fixed investment, BILLIONS of
+#                         chained dollars, SAAR, from 2007 (16)
+#   CP                    corporate profits after tax (without IVA and CCAdj),
+#                         BILLIONS, SAAR (18)
+#   DSPIC96 / W875RX1     real disposable personal income; real personal income
+#                         excluding current transfer receipts, BILLIONS of chained
+#                         dollars, SAAR, monthly to Aug 2026 (19)
+#   PSAVERT               the personal saving rate, PERCENT, monthly (19)
+#   GDPNOW                the Atlanta Fed's GDPNow, percent change at an annual
+#                         rate, quarterly; each update is a vintage, so its path
+#                         through the quarter is ALFRED's and the live pull's (20)
+FRED_GROUP_B_SERIES: list[SeriesSpec] = [
+    # Lenses 12-14: PPI
+    SeriesSpec("ppi_fd_core_ex_trade", "WPSFD49116", "PPI: final demand less foods, energy and trade services, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_trade_services", "PPITSS", "PPI: final demand trade services, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_stage1", "WPSID51", "PPI: intermediate demand by production flow, stage 1, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_stage2", "WPSID52", "PPI: intermediate demand by production flow, stage 2, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_stage3", "WPSID53", "PPI: intermediate demand by production flow, stage 3, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_stage4", "WPSID54", "PPI: intermediate demand by production flow, stage 4, SA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_portfolio_mgmt", "PCU523940523940", "PPI by industry: portfolio management and investment advice, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_airline_passenger", "PCU481111481111", "PPI by industry: scheduled passenger air transportation, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_hospitals", "PCU622622", "PPI by industry: hospitals, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_physicians", "PCU621111621111", "PPI by industry: offices of physicians, NSA", "4", "idx", "monthly"),
+    # Lenses 15-20: GDP
+    SeriesSpec("gdp_real_growth", "A191RL1Q225SBEA", "Real GDP, percent change at an annual rate, SA", "2", "%", "quarterly"),
+    SeriesSpec("final_sales_pdp", "LB0000031Q020SBEA", "Real final sales to private domestic purchasers, billions of chained dollars, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("gdp_contrib_pce", "DPCERY2Q224SBEA", "Contribution to real GDP growth: personal consumption, pp at an annual rate", "2", "%", "quarterly"),
+    SeriesSpec("gdp_contrib_nonres", "A008RY2Q224SBEA", "Contribution to real GDP growth: nonresidential fixed investment, pp", "2", "%", "quarterly"),
+    SeriesSpec("gdp_contrib_residential", "A011RY2Q224SBEA", "Contribution to real GDP growth: residential fixed investment, pp", "2", "%", "quarterly"),
+    SeriesSpec("gdp_contrib_inventories", "A014RY2Q224SBEA", "Contribution to real GDP growth: change in private inventories, pp", "2", "%", "quarterly"),
+    SeriesSpec("gdp_contrib_net_exports", "A019RY2Q224SBEA", "Contribution to real GDP growth: net exports, pp", "2", "%", "quarterly"),
+    SeriesSpec("gdp_contrib_government", "A822RY2Q224SBEA", "Contribution to real GDP growth: government consumption and investment, pp", "2", "%", "quarterly"),
+    SeriesSpec("gdp_deflator", "GDPDEF", "GDP implicit price deflator, index 2017 = 100, SA", "4", "idx", "quarterly"),
+    SeriesSpec("gdi_nominal", "GDI", "Gross domestic income, billions, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("inv_info_equipment", "Y034RC1Q027SBEA", "Private fixed investment: information processing equipment, billions, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("inv_software", "B985RC1Q027SBEA", "Private fixed investment: software, billions, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("inv_nonres_structures", "B009RC1Q027SBEA", "Private fixed investment: nonresidential structures, billions, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("inv_residential_real", "PRFIC1", "Real private residential fixed investment, billions of chained dollars, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("corp_profits_after_tax", "CP", "Corporate profits after tax (without IVA and CCAdj), billions, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("real_disp_income", "DSPIC96", "Real disposable personal income, billions of chained dollars, SAAR", "2", "B", "monthly"),
+    SeriesSpec("real_income_ex_transfers", "W875RX1", "Real personal income excluding current transfer receipts, billions of chained dollars, SAAR", "2", "B", "monthly"),
+    SeriesSpec("saving_rate", "PSAVERT", "Personal saving rate, percent", "2", "%", "monthly"),
+    SeriesSpec("gdpnow", "GDPNOW", "Atlanta Fed GDPNow, percent change at an annual rate (each update a vintage)", "2", "%", "quarterly"),
+]
+
 # THE GLD TRUST'S EXPENSE RATIO (AQ-3 part 1 follow-up, 12 Oct 2026). The forward
 # ounces between two archives are shares x the last archive's ounces per share,
 # decayed by this ratio day by day: the Sponsor's fee is paid in gold, so each
@@ -485,7 +560,7 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
-                                      + FRED_RELEASES_SERIES)
+                                      + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES)
 
 
 # Quick lookup by key

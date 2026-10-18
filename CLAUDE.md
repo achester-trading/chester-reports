@@ -112,8 +112,9 @@ altdata/                  Shared ingestion package — used by every report
                           Thailand 1); 25 in FRED_6E_SERIES (6e, the rest:
                           Session 3b-3c and the CPI lead's components);
                           45 in FRED_RELEASES_SERIES (Batch 7's release
-                          lenses, Group A);
-                          FRED_PULL_SERIES, 199, is the union the
+                          lenses, Group A); 29 in FRED_GROUP_B_SERIES
+                          (Group B, the PPI and GDP lenses);
+                          FRED_PULL_SERIES, 228, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -223,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-six code gates (ninety-three Python,
+**`make validate` runs every gate** — ninety-seven code gates (ninety-four Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -329,6 +330,31 @@ lead) and `altdata/sources/clevfed_rules.py` (the Cleveland Fed's policy-rules
 path, not market pricing). The BLS API and data.bls.gov disallow every agent in
 robots.txt, so the CES industry diffusion indexes, birth-death and the new-tenant
 rent index are listed gaps. `tools/validate_releases.py` holds it.
+
+**Group B and the surprise index (Batch 7 item 48 lenses 12-20 and 48f;
+lenses-group-b, 18 Oct 2026).** `altdata/releases_b.py` reads, as of the cutoff:
+- the PPI lenses: the four intermediate-demand stages against final demand, the
+  PCE-relevant lines (NSA, read on the year) and trade services beside the core
+  less trade, in the inflation block's `ppi` panel;
+- the GDP lenses: final sales to private domestic purchasers and BEA's
+  contributions, the investment split (structures less the Census's data
+  centers, read by name), GDI less GDP, NIPA profits against S&P EPS, income and
+  saving, and GDPNow's path from its FRED vintages with the first print read
+  against it. They are two tables at the end of the Monthly's Slow layers
+  (`daily_cascade/gdp_block.py`).
+
+Every lens figure carries its family, its long window, two percentiles over its
+own history with their n, and the 30-point disagreement. Report-only, no
+composite. The NY Fed nowcast and the K-shape panel are listed gaps.
+`altdata/surprise_index.py` is actual less consensus in the release's own units,
+standardised by the release's own surprises, with no composite (the order
+defines none). Its rows ride `altdata.surprise compute`
+(`calc.consensus_surprise.<id>`, `_z.<id>`, `_z.earnings` per name). The
+consensus logger's yfinance serves no macro consensus, so every macro release,
+payrolls and FOMC among them, prints "no consensus" (ruling 5 of 18 Oct). Lens
+24 gains the PPI and GDP lines, and every line's surprise clause carries its
+percentile once a consensus is stored. Engine 4 reads the consensus surprise by
+name ahead of the naive one. `tools/validate_releases_b.py` holds it.
 
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a
