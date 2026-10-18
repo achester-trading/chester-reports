@@ -803,12 +803,17 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
     tr = trend(inst, E, cfg)
     against = (tr["state"] == "down" and d > 0) or (tr["state"] == "up" and d < 0)
     target = pv["level"] + d * pv["move"]
-    # W8-7: no R off an invalidation nearer than the floor.
-    floor = max(float(pcfg.get("r_floor_atr") or 0.5) * (a or 0.0),
-                float(pcfg.get("r_floor_pct") or 0.5) / 100.0 * abs(entry))
+    # W8-7: no R off an invalidation nearer than the floor. Ruling 1 of 18 Oct:
+    # a pair the scanner reads (the free floats, EURUSD among them) takes half
+    # an ATR alone; equities and ETFs the larger of that and 0.5% of price.
+    fx = is_fx(inst["symbol"])
+    floor_atr = float(pcfg.get("r_floor_atr") or 0.5) * (a or 0.0)
+    floor = floor_atr if fx else max(
+        floor_atr, float(pcfg.get("r_floor_pct") or 0.5) / 100.0 * abs(entry))
     r_note = (None if risk >= floor else
               "R not computed: invalidation too near (within "
-              f"{_f(floor)}, the larger of half an ATR and 0.5% of price)")
+              f"{_f(floor)}, " + ("half an ATR, a currency pair's floor)" if fx
+                                  else "the larger of half an ATR and 0.5% of price)"))
     r_mult = (target - entry) * d / risk if risk > 0 and r_note is None else None
     dc = cfg.get("draft") or {}
     mult, mwhy = multiplier(ctx["regime"], cfg)
@@ -1069,9 +1074,9 @@ def parameters_line(cfg: dict) -> str:
             f"{cfg.get('version')}). Changed {pv.get('changed') or 'n/a'}: the "
             f"breakout template scans no instrument without volume and no =X "
             f"currency pair, and a pair takes no RS against SPY; R is computed only "
-            f"beyond an invalidation floor of the larger of "
+            f"beyond an invalidation floor: for equities and ETFs the larger of "
             f"{pv.get('r_floor_atr', 0.5):g} ATR and {pv.get('r_floor_pct', 0.5):g}% "
-            f"of price.")
+            f"of price, for a currency pair {pv.get('r_floor_atr', 0.5):g} ATR alone.")
 
 
 # ---------------------------------------------------------------------------

@@ -90,7 +90,7 @@ pivots:
   # of price) from the entry -- EURUSD printed "7.9R" off an invalidation a few
   # pips away. Session-set; `changed` is the date the Pivots line prints.
   r_floor_atr: 0.5
-  r_floor_pct: 0.5
+  r_floor_pct: 0.5          # equities and ETFs only; a pair takes the ATR leg alone (ruling 1 of 18 Oct)
   changed: "18 Oct 2026"
 
 # The setup each pivot is graded under (EL-1's config/setups.yaml). A short is

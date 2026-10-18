@@ -241,11 +241,9 @@ def edition_session(now: str) -> Optional[str]:
 
 def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
     # W8-3 (weekly-fixes-9): the Tape's flip is the session's CLOSE capture (the
-    # computed profile from the end-of-day chain); Mechanics prints each
-    # MORNING's. Two captures, so each is labelled with its own.
-    cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
-            "52-week high (distance)", "vs 20 / 50 / 200-day",
-            "Gamma flip (close capture)"]
+    # computed profile from the end-of-day chain), the NEXT session's level;
+    # Mechanics prints each MORNING's, which the session's level words and flags
+    # read (ruling 2 of 18 Oct). Two captures, each printed with its time.
     rows, gaps, ids = [], [], []
     # The edition's day: the latest bar among the session-traded instruments (a
     # continuous one, Bitcoin, trades on the weekend and would set it a day late).
@@ -253,6 +251,10 @@ def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
         days = [str((i.get("frame") or {}).get("as_of") or "")
                 for i in book.get("instruments") or [] if not i.get("continuous")]
         edition_day = max([d for d in days if d], default=None)
+    cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
+            "52-week high (distance)", "vs 20 / 50 / 200-day",
+            "Gamma flip (close capture" + (f", {_day(edition_day)}" if edition_day
+                                           else "") + ")"]
     # EVERY ROW CARRIES ITS UNIT (W-1.2 item 2.8): a price prints with the tape
     # config's `unit` -- "$668.40", "98.10 index"; a yield with its %.
     from altdata import bars as bars_mod                        # noqa: PLC0415

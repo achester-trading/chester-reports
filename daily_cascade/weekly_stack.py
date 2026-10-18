@@ -1933,7 +1933,9 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         if fw:
             tape["subsections"][0]["table_note"] = (
                 f"SPY's gamma flip over the week: {fw['words']} (each session's "
-                f"close against that morning's flip, as Mechanics prints it).")
+                f"close against that morning's flip, as Mechanics prints it; the "
+                f"named level is the last session's close capture, the next "
+                f"session's level).")
         built = {
             "read": read_week(pmb, wbd),
             "tape": tape,

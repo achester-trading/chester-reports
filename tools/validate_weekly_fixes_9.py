@@ -128,6 +128,13 @@ def group_a() -> None:
     src = (REPO / "daily_cascade" / "weekly_sections.py").read_text(encoding="utf-8")
     check("Gamma flip (close capture)" in cols and '"Flip (morning capture)"' in src,
           "two captures, both labelled: the Tape's close capture, Mechanics' morning")
+    book = {"instruments": [{"id": "spy", "label": "SPY", "kind": "price",
+                             "frame": {"as_of": "2026-10-16", "last": 660.0},
+                             "levels": []}]}
+    cols2 = wsec.tape_table(book)["levels_table"]["columns"]
+    check(cols2[-1] == "Gamma flip (close capture, Fri 16 Oct)",
+          f"ruling 2: the close capture prints with its time -- the next session's "
+          f"level; the words read the morning's ({cols2[-1]})")
     ws = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
     check("wsec.apply_flip_words(tape, mech)" in ws, "the Weekly applies it")
 
@@ -173,8 +180,8 @@ def group_b() -> None:
     eu = inst("EURUSD=X", ec)
     E = len(ec) - 1
     entry = ec[E]
-    pv = {"setup": "reclaim", "d": 1, "t": E, "level": entry - 0.0003,
-          "level_label": "the 50-day", "inv_level": entry - 0.0003, "move": 0.0080,
+    pv = {"setup": "reclaim", "d": 1, "t": E, "level": entry - 0.0001,
+          "level_label": "the 50-day", "inv_level": entry - 0.0001, "move": 0.0080,
           "base": None, "lost_sessions": 3, "volume_ratio": 2.0,
           "volume_unconfirmed": False}
     ctx = {"regime": {"macro": "Expansion", "gamma": None, "vol": None},
@@ -186,10 +193,23 @@ def group_b() -> None:
     old_r = (pv["level"] + pv["move"] - entry) / c["risk"]
     check(c["expected_r"] is None and str(c["r_note"]).startswith(
               "R not computed: invalidation too near")
-          and c["risk"] < max(0.5 * a, 0.005 * entry) and old_r > 5,
-          f"EURUSD: the invalidation {c['risk']:.4f} from the entry is inside the floor "
-          f"(half an ATR {0.5 * a:.4f}, 0.5% {0.005 * entry:.4f}); no R where "
+          and "a currency pair's floor" in str(c["r_note"])
+          and c["risk"] < 0.5 * a and old_r > 5,
+          f"EURUSD: the invalidation {c['risk']:.4f} from the entry is inside a pair's "
+          f"floor, half an ATR alone ({0.5 * a:.4f}; ruling 1); no R where "
           f"{old_r:.1f}R printed before")
+    # RULING 1: the same distance, between half an ATR and 0.5% of price, is
+    # R for a pair and no R for a stock.
+    mid = dict(pv, level=entry - 0.0010, inv_level=entry - 0.0010)
+    cm = bbs.draft(eu, mid, ctx, cfg, "2026-10-16")
+    st_ = inst("ABCD", ec)
+    cs = bbs.draft(st_, mid, ctx, cfg, "2026-10-16")
+    check(0.5 * a < cm["risk"] < 0.005 * entry
+          and isinstance(cm["expected_r"], float) and cs["expected_r"] is None
+          and "the larger of half an ATR and 0.5% of price" in str(cs["r_note"]),
+          f"an invalidation {cm['risk']:.4f} away, past half an ATR ({0.5 * a:.4f}) and "
+          f"inside 0.5% ({0.005 * entry:.4f}): a pair prints {cm['expected_r']}R, a "
+          f"stock no R (ruling 1)")
     from daily_cascade import book_b
     line = book_b.candidate_line(1, {**c, "score": 0.5, "rank": 1})
     check("R not computed: invalidation too near" in line and "R (the measured" not in line,
@@ -200,8 +220,9 @@ def group_b() -> None:
           f"beyond the floor R prints as before ({cf['expected_r']}R)")
     p = bbs.parameters_line(cfg)
     check("Changed 18 Oct 2026" in p and "no =X currency pair" in p
-          and "invalidation floor of the larger of 0.5 ATR and 0.5% of price" in p,
-          "the Pivots line prints both changes with the date")
+          and "for equities and ETFs the larger of 0.5 ATR and 0.5% of price, for a "
+              "currency pair 0.5 ATR alone" in p,
+          "the Pivots line prints both changes with the date, and both floors")
     flow = {"fired": 0, "reviewed": 0, "drafted": 0, "approved": 0,
             "decisions_open": 0, "passed_over": 0, "passed_candidates": []}
     note = book_b.subsections([], flow, {"skipped": {"breakout_not_scanned": [

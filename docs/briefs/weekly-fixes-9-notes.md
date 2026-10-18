@@ -246,9 +246,36 @@ six data gates.
 
 ## CI
 
-Read once, with `gh run list --branch weekly-fixes-9 --limit 3`. The numbers are
-in the session's closing report, and in a commit after these notes if a fix is
-needed.
+Each run read once, with `gh run list --branch weekly-fixes-9 --limit 3`.
+
+| Run | Commit | Result |
+|---|---|---|
+| 39158278549 | `459cdb6` (the fixes) | **success, 96 of 96 jobs** (88 code gates, 6 data, enumerate and the roll-up) |
+| 39158393033 | `e88a94e` (these notes) | **success, 96 of 96 jobs** |
+| (the rulings) | the commit after | in the session's closing report |
+
+## The rulings of 18 Oct on this report, as applied
+
+1. **The FX floor.** A pair the scanner still reads (the free floats, EURUSD
+   among them) takes half an ATR alone, with no percent leg. Equities and ETFs
+   keep the larger of half an ATR and 0.5% of price.
+   - The note says which: "half an ATR, a currency pair's floor".
+   - The "Pivots as set" line says both floors.
+   - **Fixture** (B): one invalidation distance, past half an ATR and inside
+     0.5%, prints R for EURUSD and no R for a stock. EURUSD inside half an ATR
+     prints no R.
+2. **The two labelled flips stand.**
+   - The session's level words and flags read the morning capture, as built.
+   - The named level is the close capture, the next session's level. Its head
+     now prints its time, "Gamma flip (close capture, Fri 16 Oct)".
+   - The Tape's flip note says which is which.
+   - **Fixture** (A): the dated head. `validate_weekly_edits`' pin accepts it
+     (left to CI).
+3. **The Monthly v2 fallback's retry** is listed for the Monthly's post-dry-run
+   fixes, as above.
+
+Locally: `validate_weekly_fixes_9` **39 passed, 0 failed**,
+`validate_book_b_scanner` **63 passed, 0 failed**.
 
 ## Files shared with chain #2's open branches, for Tuesday's stitch
 
