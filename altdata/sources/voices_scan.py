@@ -76,18 +76,21 @@ MAX_BYTES = 3_000_000
 # ---------------------------------------------------------------------------
 # Identity and politeness
 # ---------------------------------------------------------------------------
-UA_FORMAT = "Mozilla/5.0 (compatible; chester-reports/1.0; +mailto:{contact})"
+def user_agent() -> str:
+    """The browser-like project User-Agent (PB-1, 5 Oct 2026: several desks
+    answer a bare `chester-reports/1.0` with 403), naming the project and its
+    repository and never a person or an address (ruled 17 Oct 2026). robots.txt
+    is matched on the `chester-reports` token. The SEC's hosts get edgar's
+    contact form instead, through `Fetcher`'s sec_ua."""
+    from .user_agent import browser_like  # noqa: PLC0415
+    return browser_like()
 
 
-def user_agent() -> Optional[str]:
-    """A browser-like User-Agent carrying the project's contact string (PB-1, 5 Oct
-    2026): several desks answer a bare `chester-reports/1.0` with 403. Still
-    identifies the project and how to reach it; robots.txt is matched on the
-    `chester-reports` token. None when the contact is unset -- no anonymous
-    fallback."""
+def sec_user_agent() -> Optional[str]:
+    """The SEC's contact form (CHESTER_SEC_CONTACT), for sec.gov only; None
+    when unset -- EDGAR refuses an anonymous one."""
     from . import edgar  # noqa: PLC0415
-    c = edgar.contact()
-    return UA_FORMAT.format(contact=c) if c else None
+    return edgar.user_agent()
 
 
 class Fetcher:
@@ -95,8 +98,10 @@ class Fetcher:
     `pause` seconds. `get` raises urllib errors; `allowed` never raises."""
 
     def __init__(self, ua: str, pause: float = 2.0,
-                 opener: Optional[Callable[[str, dict], bytes]] = None) -> None:
+                 opener: Optional[Callable[[str, dict], bytes]] = None,
+                 sec_ua: Optional[str] = None) -> None:
         self.ua = ua
+        self.sec_ua = sec_ua
         self.pause = pause
         self._last: dict[str, float] = {}
         self._robots: dict[str, Any] = {}
@@ -117,8 +122,15 @@ class Fetcher:
 
     def get(self, url: str) -> bytes:
         host = urllib.parse.urlsplit(url).netloc
+        from .user_agent import is_sec_host  # noqa: PLC0415
+        ua = self.ua
+        if is_sec_host(url):
+            if not self.sec_ua:
+                raise PermissionError("an SEC host needs CHESTER_SEC_CONTACT; the "
+                                      "generic User-Agent is not sent to it")
+            ua = self.sec_ua
         self._wait(host)
-        return self._open(url, {"User-Agent": self.ua,
+        return self._open(url, {"User-Agent": ua,
                                 "Accept-Language": "en-US,en;q=0.8"})
 
     def robots(self, url: str):
@@ -486,14 +498,8 @@ def _run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                       if not only or s["id"] in only),
                      key=lambda s: order.get(s.get("group"), 3))
     with vmod.VoicesStore(db_path) as vs:
-        if not ua:
-            for s in sources:
-                vs.record_run(run_id, s["id"], s["name"], "not_configured",
-                              "CHESTER_SEC_CONTACT is unset: the scan identifies "
-                              "itself as EDGAR does and has no other identity")
-            report["state"] = "not_configured"
-            return report
-        f = fetcher or Fetcher(ua, float(cfg.get("politeness_seconds") or 2))
+        f = fetcher or Fetcher(ua, float(cfg.get("politeness_seconds") or 2),
+                               sec_ua=sec_user_agent())
         model = cfg.get("model") or "claude-sonnet-5"
         if use_model and client is None:
             client, why = _client()
@@ -761,12 +767,12 @@ def pull_13f(db_path: Optional[str] = None, *, ua: Optional[str] = None,
 
     Needs the EDGAR contact; dormant without it, as edgar.py is."""
     cfg = cfg or vmod.load_config()
-    ua = ua or user_agent()
+    ua = ua or sec_user_agent()
     if not ua:
         return {"state": "not_configured",
                 "reason": "CHESTER_SEC_CONTACT is unset (EDGAR refuses an "
                           "anonymous User-Agent)"}
-    get = getter or Fetcher(ua, 0.2).get
+    get = getter or Fetcher(user_agent(), 0.2, sec_ua=ua).get
     out: dict[str, Any] = {"state": "ok", "filers": {}, "mismatches": []}
     now = session.utc_iso()
     retry_before = (dt.datetime.fromisoformat(now.replace("Z", "+00:00"))

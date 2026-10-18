@@ -161,7 +161,8 @@ CAP_SHARE_NOT_SOURCED = (
     "no free source of total crypto market cap permits stored vintages "
     "(CoinGecko's terms discourage storage and bar keyless use; ruled 13 Oct 2026)")
 
-UA = {"User-Agent": "chester-reports/1.0 (research logging)"}
+from ..sources.user_agent import generic as _generic_ua       # noqa: E402
+UA = {"User-Agent": _generic_ua()}
 TIMEOUT = 25
 VOL_WINDOW = 20
 BETA_WINDOW = 60

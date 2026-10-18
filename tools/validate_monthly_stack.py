@@ -2350,9 +2350,9 @@ def main() -> int:
           and (cfg.get("monthly_slow_layers") or {}).get("monthly") == "deep",
           "and the depths are read from config/reporting_stack.yaml's Monthly column")
     check([d["id"] for d in ed["detail"]] == ["regime", "scenarios", "register",
-                                              "appendix"],
+                                              "appendix", "system_metrics"],
           "the old record follows as the detail tables, in order: regime, scenario "
-          "record, the register's month, the appendix")
+          "record, the register's month, the appendix, then EL-6's system metrics")
     check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
           and cfg.get("reading_targets_minutes") == {"daily": 5, "weekly": 20,
                                                      "monthly": 55, "quarterly": 90},

@@ -48,7 +48,15 @@ class FetchError(RuntimeError):
 #
 # So: the default agent identifies the software and nothing else. A source that
 # needs more says so in its own module.
-USER_AGENT = "chester-reports/1.0"
+#
+# Ruled 17 Oct 2026: the default is the generic project string, which names the
+# repository too (altdata/sources/user_agent.py). Re-probed that day from the
+# laptop: api.bls.gov 200 for both the bare token and the string with the URL;
+# www.bls.gov/feed 403 for every form, the bare token included, so the 25 Sep
+# finding about a URL could not be re-tested from here.
+from .user_agent import generic as _generic_ua                 # noqa: E402
+# The project and its repository, never a person (ruled 17 Oct 2026).
+USER_AGENT = _generic_ua()
 
 
 def http_get_json(

@@ -47,7 +47,8 @@ log = logging.getLogger(__name__)
 REPO = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = REPO / "config" / "prediction_markets.yaml"
 KEYS = ("pm.probability", "pm.volume", "pm.market")
-USER_AGENT = "chester-reports/1.0 (read-only research; no trading)"
+from .user_agent import generic as _generic_ua                 # noqa: E402
+USER_AGENT = _generic_ua()
 PACING_SECONDS = 0.25
 
 # EACH VENUE'S PRICE RANGE (AUD-3a item 7, 14 Oct 2026). Both quote a YES price as

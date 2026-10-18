@@ -63,7 +63,8 @@ DEFAULT_DIR = REPO / "data" / "reference" / "listings"
 BASE = "https://www.nasdaqtrader.com/dynamic/SymDir/"
 FILES = ("nasdaqlisted.txt", "otherlisted.txt")
 ROBOTS_URL = "https://www.nasdaqtrader.com/robots.txt"
-USER_AGENT = "chester-reports/1.0 (reference data; no trading)"
+from altdata.sources.user_agent import generic as _generic_ua    # noqa: E402
+USER_AGENT = _generic_ua()
 FOOTER = "File Creation Time:"
 COLUMNS = ("symbol", "name", "exchange", "market_category", "etf", "source",
            "file_created")

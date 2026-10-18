@@ -298,9 +298,13 @@ than substituting a proxy; the count varies by session. Full schema, rules and t
 `altdata/sources/voices_scan.py` runs once a day on its own timer
 (`chester-voices.timer`, 06:15 ET, a fifteen-minute budget) over the public
 sources declared in `config/voices_sources.yaml`, officials first, then desks,
-then news. It obeys robots.txt, identifies itself with the EDGAR contact in a
-browser-like User-Agent, and makes one model call per new item under a daily
-cap. A source the box cannot read is declared unreachable with its reason. `altdata/voices.py` refuses any row without a URL, a published
+then news. It obeys robots.txt, identifies itself with the generic project User-Agent in
+a browser-like shape, and makes one model call per new item under a daily
+cap. **Every request but the SEC's carries that generic string, naming the
+project and its repository and never a person or an address** (ruled 17 Oct
+2026, `altdata/sources/user_agent.py`); sec.gov alone gets
+`CHESTER_SEC_CONTACT` through `edgar.user_agent()`, and `tools/validate_secrets.py`
+group I holds both halves. A source the box cannot read is declared unreachable with its reason. `altdata/voices.py` refuses any row without a URL, a published
 date, a retrieval instant or a tier, and never stores the article body. Status
 (NEW / REITERATED / INFLECTED / SILENT) is computed from the stored directions;
 the model never declares it. `daily_cascade/voices_block.py` is the only renderer,
