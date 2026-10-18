@@ -338,10 +338,11 @@ def group_e() -> None:
     lines = [x for s in subs for x in s["lines"]]
     check(not rows, "on an empty store no feature is written: never a blank, never a zero")
     data_lines = [x for x in lines if ":" in x and not x.rstrip().endswith(":")]
-    check(len(subs) == 5 and lines and all(x.strip() for x in lines)
+    # Six: SR-1's style-regime panel joined the Slow layers (ST-8, st-t3-calib).
+    check(len(subs) == 6 and lines and all(x.strip() for x in lines)
           and all(("NOT AVAILABLE (" in x or "NOT TRACKED (" in x or "not determinable"
                    in x or "withdrawn" in x or "deferred" in x or "zero rebalancing" in x
-                   or "not assessable" in x)
+                   or "not assessable" in x or "not rendered" in x)
                   for x in data_lines),
           f"every one of the {len(data_lines)} block lines on an empty store names its "
           f"key and source (NOT AVAILABLE / NOT TRACKED), or says why it is not read")

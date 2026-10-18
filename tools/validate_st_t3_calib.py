@@ -669,8 +669,7 @@ def group_m() -> None:
           and "techdef" not in (REPO / "config" / "style_regime.yaml").read_text(encoding="utf-8"),
           "SR-13 did not pass: no threshold of its in config")
     try:
-        import tempfile                                         # noqa: PLC0415
-        tmp = Path(tempfile.mkdtemp(dir=TD))
+        tmp = TD
         (tmp / "x.yaml").write_text("admitted_by: docs/ledgers/sr-2-ledger-2026-10-18.md\n"
                                     "admitted_verdict: PASS\n", encoding="utf-8")
         y = yaml.safe_load((tmp / "x.yaml").read_text(encoding="utf-8"))

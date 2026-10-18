@@ -196,12 +196,13 @@ Everything else is CI's, including `validate_regime` (whose group L reads `tools
 |---|---|---|
 | `40b52f2` | 39112468313 | **green** |
 | `76fc704` (part 1) | 39113766486 | **failed** |
-| `8b40125` (part 2) | not yet read | |
-| `e1a6083` | not yet read | |
+| `8b40125` (part 2) | 39114598627 | **failed**: `validate_regime` L, 406 passed and 1 failed (the same pattern fault as part 1's run) |
+| `e1a6083` | 39114669648 | **green**, 104 of 104 jobs |
+| `254a225` (these notes) | 39114912209 | **green**, 104 of 104 jobs |
 
 Part 1's failure was `validate_regime` L: my new gate's search pattern spelled the withdrawn cell's name, which that check forbids in any module. Fixed in `e1a6083`: the pattern drops that half, which stays `validate_regime`'s.
 
-I read the later runs once at the end of the session; the final report carries them.
+The later runs were read once on 18 Oct by st-t3-calib's step 0, which added them here (on st-t3-calib, so st-t2-rates' tip did not move). The branch is green at its tip.
 
 ---
 
