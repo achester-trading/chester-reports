@@ -388,6 +388,9 @@ REPORT_UNITS = [u for u, v in OOM_SCORES.items()
 CAPTURE_UNITS = {
     "chester-dealer-0945.service": (("10%", "12%"), "Mon-Fri 09:45 America/New_York"),
     "chester-dealer-1230.service": (("10%", "12%"), "Mon-Fri 12:30 America/New_York"),
+    # M-3 (18 Oct 2026): the vendor chains at 16:31, after SPX's 16:15 close with
+    # Massive's 15-minute delay, before the 16:45 close.
+    "chester-vendor-chains.service": (("10%", "12%"), "Mon-Fri 16:31 America/New_York"),
 }
 # THE VENDOR WRITER (6b part 3): 16:25 ET, a report's OOM score, not deployed.
 VENDOR_UNIT = ("chester-flashalpha.service", ("4%", "5%"), "Mon-Fri 16:25 America/New_York")

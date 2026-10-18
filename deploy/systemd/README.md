@@ -964,6 +964,7 @@ equal on 8 GB to AUD-2's absolute figure (kept in each unit's comment), so on th
 | chester-restore-drill | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one snapshot, gunzipped |
 | chester-dealer-0945, -1230 (6b part 2) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one capture and one compute |
 | chester-flashalpha (6b part 3) | 4% | 5% | 0.16G / 0.2G | 0.32G / 0.4G | six REST calls and a store write |
+| chester-vendor-chains (M-3, 16:31) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | the two vendor chains, no compute |
 
 `MemoryHigh` throttles and reclaims, so a report over it slows down rather than
 dies. `MemoryMax` is the hard ceiling, where the kernel kills inside the unit's

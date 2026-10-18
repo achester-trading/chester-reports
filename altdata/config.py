@@ -517,6 +517,21 @@ def massive_universe() -> list[str]:
     """Symbols the Massive chain fetcher pulls. Ingestion only."""
     return list(MASSIVE_SYMBOLS)
 
+
+# THE MASSIVE CAPTURE CLOCK (M-3, ruled 18 Oct 2026). Options Starter is 15-minute
+# delayed, so a capture at HH:MM reads HH:MM less 15. SPX options trade to 16:15
+# ET, so the vendor chains are captured at 16:31 (16:16 data) by their own unit,
+# chester-vendor-chains (altdata/vendor_chains.py), not by the 16:10 EOD pass.
+VENDOR_DELAY_MINUTES = 15
+VENDOR_CHAINS_SLOT = "1631"
+
+
+def vendor_as_of(slot: str) -> str:
+    """The data's as-of for a capture at `slot` (HHMM, ET): "09:30 ET (15-minute
+    delay)" for 0945."""
+    t = int(slot[:2]) * 60 + int(slot[2:]) - VENDOR_DELAY_MINUTES
+    return f"{t // 60:02d}:{t % 60:02d} ET ({VENDOR_DELAY_MINUTES}-minute delay)"
+
 def full_universe() -> list[str]:
     """Everything captured nightly, from either vendor. 15 symbols: 13 with
     full Greeks, 2 stored pending the solver gate."""

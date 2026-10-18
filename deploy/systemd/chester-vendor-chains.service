@@ -1,0 +1,38 @@
+[Unit]
+Description=chester-reports vendor chains, 16:31 ET (Massive SPX and SPCX, the 16:16 data)
+Documentation=https://github.com/achester-trading/chester-reports
+# M-3 (ruled 18 Oct 2026): Massive Options Starter is 15-minute delayed and SPX
+# options trade to 16:15 ET, so the vendor leg moved out of the 16:10 EOD pass
+# (which read 15:55 data) to this unit at 16:31: after the SPX close, before the
+# 16:45 close report. The same chain files to the same directory
+# (altdata/vendor_chains.py). Ingestion only, as before.
+# NOT in scripts/deploy_remote.sh DEPLOY_TIMERS: enabling its timer is the
+# operator's (docs/briefs/a43-render-notes.md, box commands).
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_dealer_capture.sh chains
+# Massive's key reaches this run through the environment (altdata.secrets).
+EnvironmentFile=-%h/chester-reports/.env
+TimeoutStartSec=12min
+# No retry: a later chain is a different capture.
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# MEMORY CAPS: a capture's, as the 09:45 and 12:30 units (percentages of the
+# machine). README.md section 13.
+MemoryHigh=10%
+MemoryMax=12%
+# THE OOM ORDER: a capture cannot be fetched again -- 300, as the EOD pass.
+OOMScoreAdjust=300
+
+[Install]
+WantedBy=default.target

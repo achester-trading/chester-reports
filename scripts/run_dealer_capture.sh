@@ -5,6 +5,7 @@
 #
 #   scripts/run_dealer_capture.sh 0945
 #   scripts/run_dealer_capture.sh 1230     # the capture, then the 12:30 gates
+#   scripts/run_dealer_capture.sh chains   # 16:31: the vendor chains only (M-3)
 #
 #   git pull --ff-only -> calendar guard -> python -m altdata.dealer_capture
 #     run --slot <slot> -> status and heartbeat
@@ -23,8 +24,8 @@ set -uo pipefail
 
 SLOT="${1:-}"
 case "$SLOT" in
-    0945|1230) ;;
-    *) echo "usage: $0 0945|1230" >&2; exit 2 ;;
+    0945|1230|chains) ;;
+    *) echo "usage: $0 0945|1230|chains" >&2; exit 2 ;;
 esac
 
 REPO="${CHESTER_REPO:-$HOME/chester-reports}"
@@ -68,7 +69,12 @@ fi
 log "calendar rc=$GUARD_RC -- $GUARD_LINE"
 
 START_EPOCH=$(date +%s)
-"$VENV_PY" -m altdata.dealer_capture run --slot "$SLOT" >>"$LOG" 2>&1
+if [[ "$SLOT" == "chains" ]]; then
+    # M-3 (18 Oct 2026): SPX and SPCX at 16:31 ET, the 16:16 data.
+    "$VENV_PY" -m altdata.vendor_chains run >>"$LOG" 2>&1
+else
+    "$VENV_PY" -m altdata.dealer_capture run --slot "$SLOT" >>"$LOG" 2>&1
+fi
 RC=$?
 ELAPSED=$(( $(date +%s) - START_EPOCH ))
 log "run end rc=$RC elapsed=${ELAPSED}s sha=$SHA pull=$PULL_STATUS"

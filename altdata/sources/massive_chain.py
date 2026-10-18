@@ -109,6 +109,8 @@ GREEKS_STATUS = "pending_solver_gate"
 # only those columns still parses these files.
 MASSIVE_CHAIN_COLUMNS = CHAIN_COLUMNS + [
     "greeks_status", "spot_source", "underlying_verified_from", "vendor",
+    # M-3 (18 Oct 2026): the delayed data's as-of, "16:16 ET (15-minute delay)".
+    "vendor_data_as_of",
 ]
 
 # THE REDACTOR AND THE .env READER BOTH MOVED. altdata/secrets.py is the one copy
@@ -417,8 +419,10 @@ from ._base import retry_call                                     # noqa: E402
 
 def pull(symbols: Optional[list[str]] = None,
          base_dir: Optional[str] = None,
-         max_pages: int = MAX_PAGES) -> dict:
-    """Snapshot the vendor-only symbols. Returns a run summary."""
+         max_pages: int = MAX_PAGES, data_as_of: Optional[str] = None) -> dict:
+    """Snapshot the vendor-only symbols. Returns a run summary. `data_as_of` is
+    the delayed data's as-of (config.vendor_as_of), stamped on every row and the
+    manifest."""
     universe = symbols or config.massive_universe()
     summary: dict = {"total": len(universe), "success": 0, "failed": [],
                      "symbols": {}}
@@ -445,6 +449,10 @@ def pull(symbols: Optional[list[str]] = None,
             lambda: fetch_symbol(sym, key, base, max_pages),
             empty=(None if expected_empty else (lambda rm: not rm[0])),
             label=sym)
+        if data_as_of:
+            for r in rows:
+                r["vendor_data_as_of"] = data_as_of
+            manifest["vendor_data_as_of"] = data_as_of
         csv_path, json_path = write_snapshot(sym, rows, manifest, base_dir)
         summary["symbols"][sym] = {
             "rows": len(rows),
@@ -478,6 +486,7 @@ def main() -> int:
     ap.add_argument("--symbols", nargs="*")
     ap.add_argument("--base-dir", default=None)
     ap.add_argument("--max-pages", type=int, default=MAX_PAGES)
+    ap.add_argument("--slot", help="the capture's ET clock, HHMM, for the as-of stamp")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -489,7 +498,8 @@ def main() -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
 
     s = pull(symbols=args.symbols, base_dir=args.base_dir,
-             max_pages=args.max_pages)
+             max_pages=args.max_pages,
+             data_as_of=config.vendor_as_of(args.slot) if args.slot else None)
     print(f"\nVendor chains captured: {s['success']}/{s['total']} symbols "
           f"(greeks_status={GREEKS_STATUS})")
     for sym, e in s["symbols"].items():

@@ -94,7 +94,8 @@ def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=N
             from .sources import massive_chain                 # noqa: PLC0415
             vendor_pull = massive_chain.pull
         try:
-            vendor_summary = vendor_pull(symbols=vendor)
+            vendor_summary = vendor_pull(symbols=vendor,
+                                         data_as_of=config.vendor_as_of(slot))
         except Exception as exc:                                # noqa: BLE001
             log.exception("vendor capture failed; the Yahoo chains are safe")
             vendor_summary = {"error": f"{type(exc).__name__}: {exc}"}
