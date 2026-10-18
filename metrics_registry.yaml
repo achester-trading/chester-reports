@@ -15312,6 +15312,23 @@ families:
   calc.crack_321: price
   calc.cyclical_over_defensive: ratio
   calc.earnings_surprise_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  # The surprise index (ST-R6.48f; lenses-group-b, 18 Oct 2026): as the naive
+  # surprises' block -- a surprise read as a standardised level.
+  calc.consensus_surprise.cpi: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.cpi: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.core_cpi: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.core_cpi: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.payrolls: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.payrolls: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.unemployment: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.unemployment: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.ppi: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.ppi: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.gdp: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.gdp: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.fomc: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.fomc: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise_z.earnings: conditions   # ambiguous: a standardised surprise per name; alternative: ratio
   calc.efa_spy: ratio
   calc.hefa_efa: ratio
   calc.infl_vol: conditions
