@@ -427,7 +427,7 @@ SR-9; Shiller's sheet), the sentiment turning points (GTM-8) and the all-time
 highs (GTM-9); Plumbing carries the fixed-income scenario table (GTM-13, the
 Weekly too), the effective tariff rate (GTM-15, quarterly: FRED has no monthly
 customs series) and the debt-service ratio (GTM-21, SR-5's modifier). GTM-7, 8
-and 9 are also `baserate.*` tables. Register numbers SR-37 to SR-47; tables
+and 9 are also `baserate.*` tables. Register numbers SR-48 and SR-50 to SR-59 (SR-49 is the shape axis's); tables
 and lines only, so no budget moves. `tools/validate_gtm.py` holds it.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9

@@ -11,6 +11,85 @@ The work is the GTM change order (`docs/change-order-jpm-gtm-2026-10-03.md`, rul
 
 ---
 
+## After the rulings of 17 Oct (part 2's step 0, committed on this branch)
+
+`gtm-core-2` is cut from this branch's tip after these commits.
+
+### This branch's CI
+
+| Run | Commit | Result |
+|---|---|---|
+| 39089207209 | `2672e4e` (the build) | **failed**, two checks of mine |
+| 39089519115 | `552374f` (the notes) | **failed**, the same two |
+
+The two failures:
+- **`validate_weekly_edits` 9:** "every gate removes its temporary store on exit". `validate_gtm.py` used a bare `tempfile.mkdtemp`, and now uses `gate_tmp.mkdtemp`.
+- **`validate_thesis_register`:** "the Monthly's slow layers carry the seed table after the base rates". The GTM tables were spliced in directly after the base-rates table, which pushed the theses seed table one place down. They now go in after the seed table, so the base rates and their seed stay adjacent.
+
+Everything else passed in both runs. The fix commit's run is read in `gtm-core-2`'s notes.
+
+### Register numbers (ruling 4)
+
+The GTM items take fresh numbers from **SR-48** upward, in the change order's table order. The working numbers the other branches use stand: SR-43, SR-45 and SR-46, as ruled. **SR-49 is skipped as well.** It is the selloff-shape axis's working number in main's own code (`altdata/rates_shape.py`, `config/rates_anchors.yaml`, `tools/validate_rates_anchors.py`, signal-triage batch 4). That makes it a working number in exactly the ruling's sense, so the conservative reading leaves it alone.
+
+The final map:
+
+| Item | Part 1 | Now | Status |
+|---|---|---|---|
+| GTM-1 | SR-37 | **SR-48** | built |
+| GTM-3 | SR-38 | **SR-50** | part 2 |
+| GTM-4 | SR-39 | **SR-51** | part 2 |
+| GTM-8 | SR-40 | **SR-52** | built |
+| GTM-9 | SR-41 | **SR-53** | built |
+| GTM-10 | SR-42 | **SR-54** | part 2 |
+| GTM-11 | SR-43 | **SR-55** | Amendment #3 workstream B |
+| GTM-12 | SR-44 | **SR-56** | part 2 |
+| GTM-13 | SR-45 | **SR-57** | built |
+| GTM-14 | SR-46 | **SR-58** | pulled into T3 |
+| GTM-15 | SR-47 | **SR-59** | built |
+
+GTM-7 (SR-9) and GTM-21 (SR-5) keep their keys.
+
+These changed together:
+- the register's entries and the reserved-numbers entry, which now records the ruling;
+- `config/gtm.yaml` `register_numbers`;
+- the table notes in `daily_cascade/gtm_block.py`;
+- Base Rates Appendix C, row A-7, and its built HTML edition;
+- the CLAUDE.md line;
+- `validate_gtm` group H, which now holds the run from SR-48 with SR-49 skipped.
+
+Batch 4's own SR-37, SR-38, SR-43 and SR-46 references in code are theirs and were not touched. The table further down is part 1's original assignment and is kept for the record.
+
+### The incidents line (ruling 6)
+
+The Audit #4 baseline column prints **"INC-1 to INC-9, one open (by hand, Audit #4, 14 Oct)"** again, labelled like the rest (`config/reporting_stack.yaml`). `validate_system_metrics` group C holds it against the agenda's own words.
+
+### GTM-1's historical cells (ruling 1)
+
+My tools reached the public PDF: the 4Q 2026 edition, 71 slides, "Data are as of September 30, 2026". I transcribed slide 4 once into the scan as a new **§7, "Slide transcriptions"**, with the date read (17 Oct 2026).
+- **24 of the 32 cells** are now stored as sourced figures, each with slide 4 and the as-of.
+- **The slide prints the dividend yield and the 10-year at the four tops only.** The four bottoms' cells for those two fields print "not on the slide".
+- **Two corrections against part 1:** the 2000 multiple is the slide's 25.2x, not the scan's rounded "25x"; and the rows carry the slide's exact dates (24 Mar 2000, 9 Oct 2007, 19 Feb 2020, 3 Jan 2022; 9 Oct 2002, 9 Mar 2009, 23 Mar 2020, 12 Oct 2022).
+
+§7 also carries slides 8, 11, 15, 22 and 27, the reference data part 2 prints. The parser stops at §7's heading, so none of it reaches the reference table.
+
+**Every sourced figure now carries its slide.** I read each of part 1's figures against the PDF:
+- GTM-7: slide 65;
+- GTM-8: slide 30;
+- GTM-9: slide 62;
+- GTM-13: slide 34;
+- GTM-15: slide 24;
+- GTM-21: slide 26;
+- the Guide's 30 Sep row: slide 4 (its 5.29% 10-year: slide 34).
+
+`gtm.sourced_refusal` now refuses a figure with no slide, and `validate_gtm` group A has the fixture.
+
+### The stock–bond window (step 0.5)
+
+GTM-7's table gains a row for the **latest 24-month window**, printed with its own months, beside the Guide's 2021–25 era figure (+0.33). Its line now says that the regime word is read on the latest 24-month window, and that the Guide's figure is an era average over a different window. No regime word changed.
+
+---
+
 ## Step 0
 
 ### el-4-6's CI
@@ -242,7 +321,7 @@ Each was run once, locally. Every other gate is CI's.
 
 ---
 
-## The register numbers used
+## The register numbers used (part 1's; superseded, see the rulings section above)
 
 The order says the adopted items take new numbers continuing from the register's last. The Audit #4 agenda (item 5) proposed **SR-37 … SR-47** for the GTM batch, in the order the change order's table lists the adopted items, and did not write them. The register's last heading was SR-34, with SR-35 and SR-36 assigned elsewhere. So I assigned them mechanically in that order:
 
@@ -341,7 +420,7 @@ Files both sides edit, where git merges cleanly:
 
 ## Needs you
 
-1. **GTM-1's historical rows are mostly empty.** The scan states 6 of 32 cells, and every other cell prints "not in the scan". Two ways to fill them:
+1. **(Ruled 17 Oct: transcribed, see above.)** **GTM-1's historical rows are mostly empty.** The scan states 6 of 32 cells, and every other cell prints "not in the scan". Two ways to fill them:
    - amend the quarterly task's prompt so the 6 Jan read copies the inflection-points slide into its reference table;
    - give a one-time yes to transcribe slide 4 from the public PDF into a dated scan addendum. That is a by-hand figure, so rule 30 makes it yours.
 2. **Forward P/E today** is "not stored": no writer has forward earnings. That stays a listed gap unless you name a public source (rule 30; ruled 16 Oct on sources).
@@ -349,7 +428,7 @@ Files both sides edit, where git merges cleanly:
    - AGG has no duration in `config/instrument_reference.yaml`; add one at the next Quarterly Structural refresh, as the file's rule says.
    - TIPS, munis and MBS have no proxy in the yfinance basket. Adding TIP, MUB and MBB is a writer change (no by-hand line). Say yes and it goes in part 2.
 4. **GTM-15 is quarterly.** FRED has no monthly customs series. Treasury's Fiscal Data API (the Monthly Treasury Statement, keyless and public) has monthly customs receipts. Shall part 2 add it?
-5. **A register-number collision.** SR-37 to SR-47 go to the GTM batch, as the agenda proposed. But the Round 4 draft's working numbers are still in code and notes (SR-43 for the OECD-yields fetcher, SR-45 constituent breadth, SR-46 the EM rules). The agenda's move of those to SR-52 … SR-64 is not written. Rule which set renumbers; until then, the reserved-numbers entry names the clash.
+5. **(Ruled 17 Oct: renumbered from SR-48, see above.)** **A register-number collision.** SR-37 to SR-47 go to the GTM batch, as the agenda proposed. But the Round 4 draft's working numbers are still in code and notes (SR-43 for the OECD-yields fetcher, SR-45 constituent breadth, SR-46 the EM rules). The agenda's move of those to SR-52 … SR-64 is not written. Rule which set renumbers; until then, the reserved-numbers entry names the clash.
 6. **The BLS feeds after the merge.** The new default User-Agent contains the repository URL, and BLS refused such strings on 25 Sep. Check that the first box run's news pull still reads bls.gov's feeds. If not, the fix is a host override in `user_agent.for_url`, not a person's address.
 7. **Drafts for your accept-all (rule 31):**
    - SR-5's GTM-21 amendment and SR-9's GTM-7 amendment;
@@ -357,4 +436,4 @@ Files both sides edit, where git merges cleanly:
    - Book A rows A-6 (the regime word) and A-7 (the duration modifier) in Base Rates Appendix C;
    - the GTM-8 disagreement entry in `config/narratives.yaml`.
 8. **A finding, not an ask.** Our 24-month stock–bond correlation reads **−0.29 (negative) to Jun 2026**, while the Guide's 2021–25 era is +0.33. A-6 would read "negative" today. I flag it because SR-9's rule A-1 and the Guide's framing both assume the positive regime persists.
-9. **Ruling 5 and the incidents line.** I read "nothing else" literally, so the Audit #4 baseline no longer prints "INC-1 to INC-9, one open", which the agenda did record. Restore it if you meant it kept.
+9. **(Ruled 17 Oct: restored, see above.)** **Ruling 5 and the incidents line.** I read "nothing else" literally, so the Audit #4 baseline no longer prints "INC-1 to INC-9, one open", which the agenda did record. Restore it if you meant it kept.

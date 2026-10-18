@@ -133,7 +133,7 @@ def fi_subsection(b: dict) -> dict:
             f"sessions, against the 10-year's change in basis points and against "
             f"SPY. The Guide's column is its own figure, as of 30 Sep, never "
             f"recomputed. A modifier for Book A's rule table, read by a human; "
-            f"nothing automated (GTM-13, SR-45).")
+            f"nothing automated (GTM-13, SR-57).")
     return {"title": FI_TITLE, "table": {"columns": FI_COLUMNS, "rows": rows},
             "tables": [{"columns": FI_CORR_COLUMNS, "rows": crow}],
             "lines": [], "paragraph_wanted": False, "not_tracked": absent,
@@ -163,7 +163,7 @@ def tariff_subsection(b: dict) -> dict:
             "customs-receipts series, so the rate is quarterly; and the national-"
             "accounts receipts are not the Census imports-for-consumption basis the "
             "Guide divides by, so the two differ by construction. An inflation "
-            "modifier, read by a human (GTM-15, SR-47).")
+            "modifier, read by a human (GTM-15, SR-59).")
     return {"title": TARIFF_TITLE, "table": {"columns": TARIFF_COLUMNS, "rows": rows},
             "lines": [], "paragraph_wanted": False,
             "not_tracked": [] if t["state"] == "ok" else [f"the effective tariff rate: "
@@ -224,11 +224,17 @@ def inflection_subsection(b: dict) -> dict:
     s, today = b["sourced"], b["inflection"]["today"]
     cfg = gtm.config()
     rows = []
+    # Slide 4's cells, transcribed once (config `sourced`): a declared cell the
+    # store does not hold is "not stored"; a cell the slide does not print (the
+    # bottoms' dividend yield and 10-year) is "not on the slide".
+    declared = {e["id"] for e in cfg.get("sourced") or []}
     for p in cfg["inflection_points"]:
-        cells = [_scan_cell(s, f"gtm1.{p['id']}.{f}") for f in cfg["inflection_fields"]]
+        ids = [f"gtm1.{p['id']}.{f}" for f in cfg["inflection_fields"]]
+        cells = [s[i]["value"] if i in s else
+                 gtm.NOT_STORED if i in declared else gtm.NOT_ON_SLIDE for i in ids]
         rows.append([f"{p['label']} ({p['kind']})", *cells,
-                     "the Guide, as of 30 Sep 2026" if any(
-                         c != gtm.NOT_IN_SCAN for c in cells) else "—"])
+                     "the Guide, slide 4, as of 30 Sep 2026" if any(
+                         i in s for i in ids) else "—"])
     rows.append(["30 Sep 2026 (the Guide)",
                  *[_scan_cell(s, f"gtm1.guide.{f}") for f in cfg["inflection_fields"]],
                  "the Guide, §6"])
@@ -239,18 +245,19 @@ def inflection_subsection(b: dict) -> dict:
                  f"{dy['value']:.1f}%" if dy else gtm.NOT_STORED,
                  f"{y['value']:.2f}%" if y else gtm.NOT_STORED,
                  "the store" + (f"; dividend yield: {dy['source']}" if dy else "")])
-    missing = sum(1 for r in rows[:8] for c in r[1:5] if c == gtm.NOT_IN_SCAN)
-    note = ("The prior tops and bottoms are the Guide's (its inflection-points "
-            "slide), stored as sourced figures where the scan states them; the scan "
-            f"states {32 - missing} of the 32 cells, and the rest print \"not in the "
-            "scan\". Today: the S&P 500's close and the 10-year from the store; no "
+    off = sum(1 for r in rows[:8] for c in r[1:5] if c == gtm.NOT_ON_SLIDE)
+    note = ("The prior tops and bottoms are the Guide's (slide 4, as of 30 Sep "
+            "2026), transcribed once and stored as sourced figures, never "
+            f"recomputed; the slide prints {32 - off} of the 32 cells (dividend "
+            "yield and the 10-year at the tops only), and the rest print \"not on "
+            "the slide\". Today: the S&P 500's close and the 10-year from the store; no "
             "writer stores forward earnings, so the forward P/E is not stored. A "
-            "base-rate row for the Top & Bottom report (GTM-1, SR-37).")
+            "base-rate row for the Top & Bottom report (GTM-1, SR-48).")
     return {"title": INFLECTION_TITLE,
             "table": {"columns": INFLECTION_COLUMNS, "rows": rows},
             "lines": [], "paragraph_wanted": False, "not_tracked": [],
             "table_note": note, "data": {"inflection": today,
-                                         "cells_not_in_scan": missing}}
+                                         "cells_not_on_slide": off}}
 
 
 def stock_bond_subsection(b: dict) -> dict:
@@ -278,8 +285,18 @@ def stock_bond_subsection(b: dict) -> dict:
                              guide + " (the Guide, labelled)"])
         cur = sb["current"]
         if cur["correlation"] is not None:
-            lines.append(f"The latest 24-month correlation, to {cur['month']}: "
-                         f"{cur['correlation']:+.2f}, {cur['word']}. Book A's rule "
+            # The current window and the Guide's 2021 to 2025 era are different
+            # windows; both print, each with its own, and the table says which
+            # one the regime word is read on.
+            win = f"{cur.get('from') or '?'} to {cur['month']}"
+            rows.append([f"Latest 24-month window ({win})", _c(cur["correlation"]),
+                         "—", "1 window",
+                         f"era 2021 to 2025: {_scan_cell(s, 'gtm7.2021-now.corr')}"])
+            lines.append(f"The latest 24-month correlation, {win}: "
+                         f"{cur['correlation']:+.2f}, {cur['word']}; the Guide's "
+                         f"{_scan_cell(s, 'gtm7.2021-now.corr')} is its 2021 to 2025 "
+                         f"era average, a different window. The regime word is read "
+                         f"on the latest 24-month window. Book A's rule "
                          f"table reads this word only (A-1 as amended), and nothing "
                          f"automated does.")
     note = ("Monthly total returns from Shiller's sheet: the S&P Composite with its "
@@ -325,7 +342,7 @@ def sentiment_subsection(b: dict) -> dict:
             "12 months from month-end closes. The Guide's figures are its own (as "
             "of 30 Sep 2026), never recomputed. A base-rate row; the disagreement "
             "with its applicability is a draft in the narrative register (GTM-8, "
-            "SR-40).")
+            "SR-52).")
     return {"title": SENT_TITLE, "table": {"columns": SENT_COLUMNS, "rows": rows},
             "lines": lines, "paragraph_wanted": False, "not_tracked": [],
             "table_note": note, "data": {"sentiment": se}}
@@ -354,7 +371,7 @@ def ath_subsection(b: dict) -> dict:
             f"high in the next five sessions. n: {sm.get('ath_count', 0)} all-time "
             f"highs in {sm.get('sessions', 0)} sessions. The Guide's figures are its "
             "own. A base-rate row the Bull Rebuttal reads as the order places it, "
-            "with no new right (GTM-9, SR-41).")
+            "with no new right (GTM-9, SR-53).")
     return {"title": ATH_TITLE, "table": {"columns": ATH_COLUMNS, "rows": rows},
             "lines": [], "paragraph_wanted": False, "not_tracked": [],
             "table_note": note, "data": {"ath": a}}

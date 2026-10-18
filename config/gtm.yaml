@@ -19,35 +19,36 @@ version: gtm-v1
 updated: 2026-10-17
 scan_id: jpm-gtm-2026q4
 
-# Register numbers (the change order's Register paragraph: new numbers for the
-# adopted items continue from the register's last; Audit #4 proposed them and did
-# not write them, so they are assigned here mechanically in the order the
-# order's table lists the adopted items -- the agenda's own proposal, item 5).
+# Register numbers (ruling 4 of 17 Oct 2026): the adopted items take fresh
+# numbers from SR-48 upward in the order's table order. SR-49 is skipped: it is
+# the selloff-shape axis's working number in code (signal-triage batch 4), and
+# the working numbers the other branches use stand, as SR-43, 45 and 46 do.
+# Part 1 had used SR-37 ... SR-47; renumbered on gtm-core-1 before part 2.
 register_numbers:
-  GTM-1: SR-37
-  GTM-3: SR-38
-  GTM-4: SR-39
-  GTM-8: SR-40
-  GTM-9: SR-41
-  GTM-10: SR-42
-  GTM-11: SR-43
-  GTM-12: SR-44
-  GTM-13: SR-45
-  GTM-14: SR-46
-  GTM-15: SR-47
+  GTM-1: SR-48
+  GTM-3: SR-50
+  GTM-4: SR-51
+  GTM-8: SR-52
+  GTM-9: SR-53
+  GTM-10: SR-54
+  GTM-11: SR-55
+  GTM-12: SR-56
+  GTM-13: SR-57
+  GTM-14: SR-58
+  GTM-15: SR-59
   GTM-7: SR-9    # amended, keeps its key
   GTM-21: SR-5   # amended, keeps its key
 
 # GTM-1: the eight prior tops and bottoms, as the scan names them (month only;
 # the scan gives a day for 12 Oct 2022 alone, and no day is invented).
 inflection_points:
-  - {id: top_2000, kind: top, label: "Mar 2000"}
-  - {id: top_2007, kind: top, label: "Oct 2007"}
-  - {id: top_2020, kind: top, label: "Feb 2020"}
-  - {id: top_2022, kind: top, label: "Jan 2022"}
-  - {id: bottom_2002, kind: bottom, label: "Oct 2002"}
-  - {id: bottom_2009, kind: bottom, label: "Mar 2009"}
-  - {id: bottom_2020, kind: bottom, label: "Mar 2020"}
+  - {id: top_2000, kind: top, label: "24 Mar 2000"}
+  - {id: top_2007, kind: top, label: "9 Oct 2007"}
+  - {id: top_2020, kind: top, label: "19 Feb 2020"}
+  - {id: top_2022, kind: top, label: "3 Jan 2022"}
+  - {id: bottom_2002, kind: bottom, label: "9 Oct 2002"}
+  - {id: bottom_2009, kind: bottom, label: "9 Mar 2009"}
+  - {id: bottom_2020, kind: bottom, label: "23 Mar 2020"}
   - {id: bottom_2022, kind: bottom, label: "12 Oct 2022"}
 inflection_fields: [level, forward_pe, dividend_yield, yield_10y]
 
@@ -144,117 +145,174 @@ dsr:
   short_window_days: 1826
 
 # THE SOURCED FIGURES. Each: the item, a label, the figure as printed, its number
-# where one is compared, the section (and slide, null where the scan recorded
-# none), and the scan's words it was read from, quoted exactly.
+# where one is compared, the section and the Guide's slide (required since part 2:
+# each read against the 4Q 2026 PDF on 17 Oct 2026), and the scan's words it was
+# read from, quoted exactly.
 sourced:
-  # GTM-1, the prior tops and bottoms (only what the scan states).
-  - {id: gtm1.top_2000.forward_pe, item: GTM-1, label: "Mar 2000 top, forward P/E",
-     value: "25x", number: 25.0, section: "§1", slide: null,
-     quote: "The 2000 top had a 25x multiple on a 6.2% 10-year"}
-  - {id: gtm1.top_2000.yield_10y, item: GTM-1, label: "Mar 2000 top, 10-year",
-     value: "6.2%", number: 6.2, section: "§3", slide: null,
-     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
-  - {id: gtm1.top_2007.yield_10y, item: GTM-1, label: "Oct 2007 top, 10-year",
-     value: "4.7%", number: 4.7, section: "§3", slide: null,
-     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
-  - {id: gtm1.top_2020.yield_10y, item: GTM-1, label: "Feb 2020 top, 10-year",
-     value: "1.6%", number: 1.6, section: "§3", slide: null,
-     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
-  - {id: gtm1.top_2022.yield_10y, item: GTM-1, label: "Jan 2022 top, 10-year",
-     value: "1.6%", number: 1.6, section: "§3", slide: null,
-     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
+  # GTM-1, the prior tops and bottoms: slide 4, transcribed once (step 0.4 of
+  # the part 2 paste, ruling 1 of 17 Oct 2026) into the scan's section 7. The
+  # slide prints dividend yield and the 10-year at the tops only.
+  - {id: gtm1.top_2000.level, item: GTM-1, label: "24 Mar 2000 top, S&P 500",
+     value: "1,527", number: 1527.0, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2000.forward_pe, item: GTM-1, label: "24 Mar 2000 top, forward P/E",
+     value: "25.2x", number: 25.2, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2000.dividend_yield, item: GTM-1, label: "24 Mar 2000 top, dividend yield",
+     value: "1.4%", number: 1.4, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2000.yield_10y, item: GTM-1, label: "24 Mar 2000 top, 10-year",
+     value: "6.2%", number: 6.2, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2007.level, item: GTM-1, label: "9 Oct 2007 top, S&P 500",
+     value: "1,565", number: 1565.0, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2007.forward_pe, item: GTM-1, label: "9 Oct 2007 top, forward P/E",
+     value: "15.1x", number: 15.1, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2007.dividend_yield, item: GTM-1, label: "9 Oct 2007 top, dividend yield",
+     value: "1.9%", number: 1.9, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2007.yield_10y, item: GTM-1, label: "9 Oct 2007 top, 10-year",
+     value: "4.7%", number: 4.7, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2020.level, item: GTM-1, label: "19 Feb 2020 top, S&P 500",
+     value: "3,386", number: 3386.0, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2020.forward_pe, item: GTM-1, label: "19 Feb 2020 top, forward P/E",
+     value: "19.2x", number: 19.2, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2020.dividend_yield, item: GTM-1, label: "19 Feb 2020 top, dividend yield",
+     value: "1.9%", number: 1.9, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2020.yield_10y, item: GTM-1, label: "19 Feb 2020 top, 10-year",
+     value: "1.6%", number: 1.6, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2022.level, item: GTM-1, label: "3 Jan 2022 top, S&P 500",
+     value: "4,797", number: 4797.0, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.top_2022.forward_pe, item: GTM-1, label: "3 Jan 2022 top, forward P/E",
+     value: "21.4x", number: 21.4, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.top_2022.dividend_yield, item: GTM-1, label: "3 Jan 2022 top, dividend yield",
+     value: "1.8%", number: 1.8, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.top_2022.yield_10y, item: GTM-1, label: "3 Jan 2022 top, 10-year",
+     value: "1.6%", number: 1.6, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.bottom_2002.level, item: GTM-1, label: "9 Oct 2002 low, S&P 500",
+     value: "777", number: 777.0, section: "§7", slide: 4,
+     quote: "| 9 Oct 2002 | bottom | 777 | 14.1x | — | — |"}
+  - {id: gtm1.bottom_2002.forward_pe, item: GTM-1, label: "9 Oct 2002 low, forward P/E",
+     value: "14.1x", number: 14.1, section: "§7", slide: 4,
+     quote: "| 9 Oct 2002 | bottom | 777 | 14.1x | — | — |"}
+  - {id: gtm1.bottom_2009.level, item: GTM-1, label: "9 Mar 2009 low, S&P 500",
+     value: "677", number: 677.0, section: "§7", slide: 4,
+     quote: "| 9 Mar 2009 | bottom | 677 | 10.4x | — | — |"}
+  - {id: gtm1.bottom_2009.forward_pe, item: GTM-1, label: "9 Mar 2009 low, forward P/E",
+     value: "10.4x", number: 10.4, section: "§7", slide: 4,
+     quote: "| 9 Mar 2009 | bottom | 677 | 10.4x | — | — |"}
+  - {id: gtm1.bottom_2020.level, item: GTM-1, label: "23 Mar 2020 low, S&P 500",
+     value: "2,237", number: 2237.0, section: "§7", slide: 4,
+     quote: "| 23 Mar 2020 | bottom | 2,237 | 13.3x | — | — |"}
+  - {id: gtm1.bottom_2020.forward_pe, item: GTM-1, label: "23 Mar 2020 low, forward P/E",
+     value: "13.3x", number: 13.3, section: "§7", slide: 4,
+     quote: "| 23 Mar 2020 | bottom | 2,237 | 13.3x | — | — |"}
   - {id: gtm1.bottom_2022.level, item: GTM-1, label: "12 Oct 2022 low, S&P 500",
-     value: "3,577", number: 3577.0, section: "§6", slide: null,
-     quote: "+114% from 12 Oct 2022 low (3,577)"}
+     value: "3,577", number: 3577.0, section: "§7", slide: 4,
+     quote: "| 12 Oct 2022 | bottom | 3,577 | 15.7x | — | — |"}
+  - {id: gtm1.bottom_2022.forward_pe, item: GTM-1, label: "12 Oct 2022 low, forward P/E",
+     value: "15.7x", number: 15.7, section: "§7", slide: 4,
+     quote: "| 12 Oct 2022 | bottom | 3,577 | 15.7x | — | — |"}
   # GTM-1, the Guide's own 30 Sep row (the "today" row's reconciliation).
   - {id: gtm1.guide.level, item: GTM-1, label: "30 Sep 2026, S&P 500 (the Guide)",
-     value: "7,652", number: 7652.0, section: "§6", slide: null,
+     value: "7,652", number: 7652.0, section: "§6", slide: 4,
      quote: "| S&P 500 level | 7,652 |"}
   - {id: gtm1.guide.forward_pe, item: GTM-1, label: "30 Sep 2026, forward P/E (the Guide)",
-     value: "19.0x", number: 19.0, section: "§6", slide: null,
+     value: "19.0x", number: 19.0, section: "§6", slide: 4,
      quote: "| Forward P/E | 19.0x |"}
   - {id: gtm1.guide.dividend_yield, item: GTM-1, label: "30 Sep 2026, dividend yield (the Guide)",
-     value: "1.4%", number: 1.4, section: "§6", slide: null,
+     value: "1.4%", number: 1.4, section: "§6", slide: 4,
      quote: "| Dividend yield | 1.4% |"}
   - {id: gtm1.guide.yield_10y, item: GTM-1, label: "30 Sep 2026, 10-year (the Guide)",
-     value: "5.29%", number: 5.29, section: "§6", slide: null,
+     value: "5.29%", number: 5.29, section: "§6", slide: 34,
      quote: "10y 5.29"}
   # GTM-7, the Guide's three eras.
   - {id: gtm7.1964-1999.corr, item: GTM-7, label: "1964 to 1999, average 24-month correlation",
-     value: "+0.28", number: 0.28, section: "§6", slide: null,
+     value: "+0.28", number: 0.28, section: "§6", slide: 65,
      quote: "1964–99 +0.28 (4.86%)"}
   - {id: gtm7.1964-1999.inflation, item: GTM-7, label: "1964 to 1999, average inflation",
-     value: "4.86%", number: 4.86, section: "§6", slide: null,
+     value: "4.86%", number: 4.86, section: "§6", slide: 65,
      quote: "1964–99 +0.28 (4.86%)"}
   - {id: gtm7.2000-2020.corr, item: GTM-7, label: "2000 to 2020, average 24-month correlation",
-     value: "−0.31", number: -0.31, section: "§6", slide: null,
+     value: "−0.31", number: -0.31, section: "§6", slide: 65,
      quote: "2000–20 −0.31 (2.13%)"}
   - {id: gtm7.2000-2020.inflation, item: GTM-7, label: "2000 to 2020, average inflation",
-     value: "2.13%", number: 2.13, section: "§6", slide: null,
+     value: "2.13%", number: 2.13, section: "§6", slide: 65,
      quote: "2000–20 −0.31 (2.13%)"}
   - {id: gtm7.2021-now.corr, item: GTM-7, label: "2021 to 2025, average 24-month correlation",
-     value: "+0.33", number: 0.33, section: "§6", slide: null,
+     value: "+0.33", number: 0.33, section: "§6", slide: 65,
      quote: "2021–25 avg +0.33 (inflation 4.52%)"}
   - {id: gtm7.2021-now.inflation, item: GTM-7, label: "2021 to 2025, average inflation",
-     value: "4.52%", number: 4.52, section: "§6", slide: null,
+     value: "4.52%", number: 4.52, section: "§6", slide: 65,
      quote: "2021–25 avg +0.33 (inflation 4.52%)"}
   # GTM-8, the Guide's base rate and the current reading.
   - {id: gtm8.peaks, item: GTM-8, label: "After 10 sentiment peaks, next 12 months",
-     value: "+4.8%", number: 4.8, n: 10, section: "§4", slide: null,
+     value: "+4.8%", number: 4.8, n: 10, section: "§4", slide: 30,
      quote: "10 peaks +4.8%, 9 troughs +24.1%"}
   - {id: gtm8.troughs, item: GTM-8, label: "After 9 sentiment troughs, next 12 months",
-     value: "+24.1%", number: 24.1, n: 9, section: "§4", slide: null,
+     value: "+24.1%", number: 24.1, n: 9, section: "§4", slide: 30,
      quote: "10 peaks +4.8%, 9 troughs +24.1%"}
   - {id: gtm8.current, item: GTM-8, label: "Michigan sentiment, Sep 2026 (the Guide)",
-     value: "48.1", number: 48.1, section: "§6", slide: null,
+     value: "48.1", number: 48.1, section: "§6", slide: 30,
      quote: "Michigan 48.1 (Sep)"}
   # GTM-9, the Guide's 1988 to 2025 sample and its year to date.
   - {id: gtm9.ytd_count, item: GTM-9, label: "All-time highs, 2026 to 30 Sep (the Guide)",
-     value: "27", number: 27.0, section: "§6", slide: null,
+     value: "27", number: 27.0, section: "§6", slide: 62,
      quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
   - {id: gtm9.share_days, item: GTM-9, label: "Share of days at an all-time high, 1988 to 2025",
-     value: "7%", number: 7.0, section: "§6", slide: null,
+     value: "7%", number: 7.0, section: "§6", slide: 62,
      quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
   - {id: gtm9.share_floors, item: GTM-9, label: "Share that became floors, 1988 to 2025",
-     value: "31%", number: 31.0, section: "§6", slide: null,
+     value: "31%", number: 31.0, section: "§6", slide: 62,
      quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
   - {id: gtm9.share_week, item: GTM-9, label: "Share followed by another within a week, 1988 to 2025",
-     value: "80%", number: 80.0, section: "§6", slide: null,
+     value: "80%", number: 80.0, section: "§6", slide: 62,
      quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
   # GTM-13, the Guide's year-to-date returns by sector.
   - {id: gtm13.ytd, item: GTM-13, label: "Fixed-income returns, 2026 to 30 Sep (the Guide)",
      value: "2y +0.3%, 10y −5.3%, 30y −8.1%, TIPS −2.1%, Agg −2.9%, IG −3.1%, munis −4.2%, MBS −3.3%, HY +0.1%",
-     number: null, section: "§6", slide: null,
+     number: null, section: "§6", slide: 34,
      quote: "2y +0.3%, 10y −5.3%, 30y −8.1%, TIPS −2.1%, Agg −2.9%, IG −3.1%, munis −4.2%, MBS −3.3%, HY +0.1%"}
   # GTM-15, the Guide's rate and the statutory peaks with their dates.
   - {id: gtm15.effective, item: GTM-15, label: "Effective tariff rate, 30 Sep 2026 (the Guide)",
-     value: "10.6%", number: 10.6, section: "§6", slide: null,
+     value: "10.6%", number: 10.6, section: "§6", slide: 24,
      quote: "effective 10.6%"}
   - {id: gtm15.statutory_peak, item: GTM-15, label: "Statutory peak, 8 Apr 2025",
-     value: "30.0%", number: 30.0, section: "§6", slide: null,
+     value: "30.0%", number: 30.0, section: "§6", slide: 24,
      quote: "statutory peak 30.0% (8 Apr 2025)"}
   - {id: gtm15.ieepa, item: GTM-15, label: "Including IEEPA, 20 Feb 2026",
-     value: "15.9%", number: 15.9, section: "§6", slide: null,
+     value: "15.9%", number: 15.9, section: "§6", slide: 24,
      quote: "15.9% incl. IEEPA (20 Feb 2026)"}
   # GTM-21, the Guide's debt-service ratio and the delinquency flows (the scan
   # does not name the quarter; the Guide's data date is printed).
   - {id: gtm21.dsr, item: GTM-21, label: "Debt-service ratio (the Guide)",
-     value: "11.1%", number: 11.1, section: "§6", slide: null,
+     value: "11.1%", number: 11.1, section: "§6", slide: 26,
      quote: "DSR 11.1%"}
   - {id: gtm21.dsr_4q07, item: GTM-21, label: "Debt-service ratio, 4Q07 (the Guide)",
-     value: "15.8%", number: 15.8, section: "§6", slide: null,
+     value: "15.8%", number: 15.8, section: "§6", slide: 26,
      quote: "DSR 15.8% at 4Q07"}
   - {id: gtm21.flow_cards, item: GTM-21, label: "Into 30+ days delinquent: credit cards",
-     value: "8.7%", number: 8.7, section: "§6", slide: null,
+     value: "8.7%", number: 8.7, section: "§6", slide: 26,
      quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
   - {id: gtm21.flow_auto, item: GTM-21, label: "Into 30+ days delinquent: auto",
-     value: "7.9%", number: 7.9, section: "§6", slide: null,
+     value: "7.9%", number: 7.9, section: "§6", slide: 26,
      quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
   - {id: gtm21.flow_student, item: GTM-21, label: "Into 30+ days delinquent: student",
-     value: "7.8%", number: 7.8, section: "§6", slide: null,
+     value: "7.8%", number: 7.8, section: "§6", slide: 26,
      quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
   - {id: gtm21.flow_mortgage, item: GTM-21, label: "Into 30+ days delinquent: mortgage",
-     value: "4.0%", number: 4.0, section: "§6", slide: null,
+     value: "4.0%", number: 4.0, section: "§6", slide: 26,
      quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
 
 # The reference-table rows the GTM tables now print, kept out of the Monthly's

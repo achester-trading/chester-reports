@@ -613,7 +613,8 @@ system_metrics:
     label: "by hand, Audit #4, 14 Oct"
     uptime: "not recorded"
     feeds: "official 96/96; external 52 of 5x, one stale (AAII, the operator's drop); the 9 Oct line"
-    incidents: "not recorded"
+    # Ruling 6 of 17 Oct 2026: the agenda recorded INC-1 to INC-9 with one open.
+    incidents: "INC-1 to INC-9, one open"
     model_cost: "not recorded"
     withheld: "not recorded"
     measured:

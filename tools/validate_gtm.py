@@ -43,13 +43,14 @@ import json
 import re
 import sqlite3
 import sys
-import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
+sys.path.insert(0, str(REPO / "tools"))
 
 from altdata import gtm, observations, scans                    # noqa: E402
+from gate_tmp import mkdtemp                                    # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -58,7 +59,10 @@ FIX = REPO / "tests" / "fixtures" / "gtm"
 SCAN = REPO / "docs" / "scans" / "jpm-gtm-2026q4.md"
 LINE = "=" * 78
 PASS = FAIL = 0
-TD = Path(tempfile.mkdtemp(prefix="gtm-gate-"))
+TD = Path(mkdtemp("gtm-gate-"))
+# The declared sourced figures: part 1's 9 non-GTM-1 groups plus GTM-1's 24
+# slide-4 cells and the Guide's 30 Sep row, then part 2's (GTM-3, 4, 10, 12).
+N_SOURCED = 51
 
 
 def check(c: bool, m: str) -> bool:
@@ -107,18 +111,20 @@ def group_a() -> None:
     cfg = gtm.config()
     text = SCAN.read_text(encoding="utf-8")
     figs, refused = gtm.sourced_figures(cfg, SCAN)
-    check(len(figs) == len(cfg["sourced"]) == 33 and not refused
-          and all(f["section_ref"] and f["as_of"] == "2026-09-30"
+    check(len(figs) == len(cfg["sourced"]) == N_SOURCED and not refused
+          and all(f["section_ref"] and f["slide"] and f["as_of"] == "2026-09-30"
                   and f["read_on"] == "2026-10-03"
                   and f["source_url"].startswith("https://am.jpmorgan.com/")
                   for f in figs),
           f"all {len(figs)} declared figures pass: each quote in the scan, its value "
-          f"inside its quote, a section, the scan's as-of (30 Sep 2026) and URL")
+          f"inside its quote, a section, a slide, the scan's as-of (30 Sep 2026) "
+          f"and URL")
     good = dict(cfg["sourced"][0])
     bad = {"no section": {**good, "section": ""},
            "no quote": {**good, "quote": ""},
            "a quote the scan does not contain": {**good, "quote": "a sentence not in it"},
-           "a value outside its quote": {**good, "value": "99x"}}
+           "a value outside its quote": {**good, "value": "99x"},
+           "no slide": {**good, "slide": None}}
     why = {k: gtm.sourced_refusal(v, text) for k, v in bad.items()}
     check(all(why.values()) and gtm.sourced_refusal(good, text) is None,
           f"a fixture figure is refused for each fault ({why})")
@@ -126,25 +132,25 @@ def group_a() -> None:
     nodate.write_text(re.sub(r"data as of 30 September 2026", "data undated",
                              text.replace("(as of 30 Sep 2026)", "")), encoding="utf-8")
     f2, r2 = gtm.sourced_figures(cfg, nodate)
-    check(not f2 and len(r2) == 33 and all(r["reason"] == "no as-of date" for r in r2),
+    check(not f2 and len(r2) == N_SOURCED and all(r["reason"] == "no as-of date" for r in r2),
           "a scan whose header and table carry no as-of: every figure refused, "
           "\"no as-of date\"")
     db = str(TD / "scans.db")
     first = scans.ingest([SCAN], db_path=db)
     again = scans.ingest([SCAN], db_path=db)
     by = {s["scan_id"]: s for s in first["scans"]}
-    check(by.get("jpm-gtm-2026q4:gtm", {}).get("added") == 33
+    check(by.get("jpm-gtm-2026q4:gtm", {}).get("added") == N_SOURCED
           and by["jpm-gtm-2026q4"]["added"] == 44 and again["added"] == 0,
-          "the ingest stores the 33 beside the 44 reference-table rows, and a "
+          f"the ingest stores the {N_SOURCED} beside the 44 reference-table rows, and a "
           "re-ingest adds none")
     src = gtm.sourced(CUT, db)
     con = sqlite3.connect(db)
     secs = {r[0] for r in con.execute("SELECT section_ref FROM scan_figures WHERE "
                                       "metric LIKE 'GTM-%'")}
     con.close()
-    check(len(src) == 33 and secs == {"§1", "§3", "§4", "§6"}
+    check(len(src) == N_SOURCED and secs == {"§4", "§6", "§7"}
           and src["gtm7.2000-2020.corr"]["value"] == "−0.31"
-          and gtm.cite(src["gtm8.troughs"]) == "+24.1% (the Guide, §4, as of 2026-09-30)",
+          and gtm.cite(src["gtm8.troughs"]) == "+24.1% (the Guide, §4, slide 30, as of 2026-09-30)",
           "read back by id with the scan's own section; a cell prints the stored "
           "text verbatim (−0.31, +24.1%), never a recomputed number")
     check(not gtm.sourced("2026-10-02", db),
@@ -186,6 +192,19 @@ def group_b() -> None:
     check("not reached" in sub["table"]["rows"][0][1]
           and "(the Guide, labelled)" in sub["table"]["rows"][0][4],
           "and prints \"not reached\" beside the Guide's figure, labelled")
+    cur = sb["current"]
+    sub = gtm_block.stock_bond_subsection({"stock_bond": sb, "sourced": {
+        "gtm7.2021-now.corr": {"value": "+0.33"}}})
+    last = sub["table"]["rows"][-1]
+    y, m = map(int, cur["month"].split("-"))
+    k = y * 12 + m - 1 - 23
+    check(cur["from"] == f"{k // 12:04d}-{k % 12 + 1:02d}"
+          and last[0] == f"Latest 24-month window ({cur['from']} to {cur['month']})"
+          and "era 2021 to 2025: +0.33" in last[4]
+          and "read on the latest 24-month window" in sub["lines"][0],
+          "step 0.5: the latest 24-month window prints with its own window beside "
+          "the Guide's 2021 to 2025 era, and the table says which window the word "
+          f"is read on ({last[:2]})")
     bands = cfg["stock_bond"]["regime_bands"]
     check([gtm.regime_word(x, bands) for x in (0.3, 0.05, -0.2, None)]
           == ["positive", "near zero", "negative", None],
@@ -322,8 +341,22 @@ def group_g() -> None:
     today = next(s for s in subs if s["title"] == gtm_block.INFLECTION_TITLE)["table"]["rows"][-1]
     check(today[1:5] == ["not stored"] * 4,
           "GTM-1's today row prints \"not stored\" for each absent input")
-    check(any("not in the scan" in c for c in cells),
-          "a historical cell the scan does not state prints \"not in the scan\"")
+    inf = next(s for s in subs if s["title"] == gtm_block.INFLECTION_TITLE)["table"]
+    bottom = next(r for r in inf["rows"] if r[0].startswith("9 Mar 2009"))
+    top = next(r for r in inf["rows"] if r[0].startswith("24 Mar 2000"))
+    check(top[1:6] == ["1,527", "25.2x", "1.4%", "6.2%",
+                       "the Guide, slide 4, as of 30 Sep 2026"]
+          and bottom[1:5] == ["677", "10.4x", "not on the slide", "not on the slide"],
+          "GTM-1 (step 0.4): slide 4's cells print verbatim with the slide and "
+          "as-of; a cell the slide does not print prints \"not on the slide\"")
+    with observations.ObservationStore(store([], "bare")) as st0:
+        gtm_block._CACHE.clear()
+        inf0 = gtm_block.slow_subsections(st0, CUT)[0]["table"]
+    b0 = next(r for r in inf0["rows"] if r[0].startswith("9 Mar 2009"))
+    check(b0[1:5] == ["not stored", "not stored", "not on the slide",
+                      "not on the slide"],
+          "with nothing ingested, a declared cell prints \"not stored\", never "
+          "blank")
     db2 = fi_store()
     rows = [obs("yfinance.mkt_gspc", r["day"], float(r["close"]))
             for r in rows_of("ath_closes.csv")]
@@ -348,10 +381,13 @@ def group_h() -> None:
           "SR-5 and SR-9 keep their keys and headings; GTM-21 and GTM-7 amend them")
     adopted = ["GTM-1", "GTM-3", "GTM-4", "GTM-8", "GTM-9", "GTM-10", "GTM-11",
                "GTM-12", "GTM-13", "GTM-14", "GTM-15"]
-    check([nums[g] for g in adopted] == [f"SR-{n}" for n in range(37, 48)],
-          "the eleven new numbers continue from SR-36 in the order the change "
-          "order's table lists the adopted items (SR-37 to SR-47)")
-    check(all(f"### SR-{n} " in reg for n in (37, 40, 41, 45, 47))
+    fresh = [48, *range(50, 60)]
+    check([nums[g] for g in adopted] == [f"SR-{n}" for n in fresh]
+          and "SR-49" not in nums.values(),
+          "the eleven numbers run from SR-48 in the order's table order, SR-49 "
+          "skipped as the shape axis's working number (ruling 4, 17 Oct)")
+    check(all(f"### SR-{n} " in reg for n in (48, 52, 53, 57, 59))
+          and not any(f"### SR-{n} " in reg for n in (37, 40, 41, 45, 47))
           and reg.count("*Draft (rule 31") >= 2,
           "the five built here have entries; the SR-5 and SR-9 amendments are "
           "committed as drafts under rule 31")

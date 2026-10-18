@@ -10,7 +10,8 @@ THE SYSTEM-METRICS BLOCK (EL-6) AND THE DATED APPENDICES (EL-4), on fixtures.
   B  NOT RECORDED. Each source absent prints "not recorded", never zero: no
      heartbeat log, no roster, no incidents file, no model_calls table (usage
      not recorded), no withheld log.
-  C  THE BASELINE (ruling 5, 17 Oct 2026). The agenda's feeds line and the
+  C  THE BASELINE (rulings 5 and 6, 17 Oct 2026). The agenda's feeds line, its
+     incidents (INC-1 to INC-9, one open) and the
      audit's measured figures of 14 Oct, each labelled "by hand, Audit #4,
      14 Oct"; days up, session hours and model cost "not recorded".
   D  THE READERS. gather() reads a fixture log directory, a temporary
@@ -158,11 +159,14 @@ def group_c() -> None:
     check(col["Feed completeness"] == ("official 96/96; external 52 of 5x, one stale "
                                        "(AAII, the operator's drop); the 9 Oct line "
                                        f"({lab})")
-          and col["Uptime"] == col["Model cost"] == col["Incidents"]
+          and col["Incidents"] == f"INC-1 to INC-9, one open ({lab})"
+          and "incidents INC-1…INC-9 with the one open" in agenda
+          and col["Uptime"] == col["Model cost"]
           == col["Withheld drafts"] == "not recorded"
           and "official 96/96, external 52/5x, one stale" in agenda,
-          "ruling 5: the agenda's feeds line prints, labelled; uptime, model cost, "
-          "incidents and withheld drafts print 'not recorded' for the baseline")
+          "rulings 5 and 6: the agenda's feeds line and its incidents (INC-1 to "
+          "INC-9, one open) print, labelled; uptime, model cost and withheld "
+          "drafts print 'not recorded' for the baseline")
     mt = [t for t in b["tables"] if t["columns"][0] == "Audit #4 baseline"]
     rows = {r[0]: (r[1], r[2]) for r in (mt[0]["rows"] if mt else [])}
     want = {"Store rows": "2.33 million, 688,000 of them FRED",

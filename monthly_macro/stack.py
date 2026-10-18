@@ -1705,8 +1705,8 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
     if now:
         from daily_cascade import gtm_block                     # noqa: PLC0415
         base_rows += gtm_block.base_rate_rows(st, now, db_path)
-        at = next((i + 1 for i, s in enumerate(subs)
-                   if s.get("title") == "Base rates: Top & Bottom"), len(subs))
+        # After the base rates' own seed table, which stays next to them.
+        at = next((i + 1 for i, s in enumerate(subs) if s is seed_sub), len(subs))
         subs[at:at] = gtm_block.slow_subsections(st, now, db_path)
     if fam_subs:
         fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])

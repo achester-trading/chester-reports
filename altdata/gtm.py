@@ -48,6 +48,7 @@ CONFIG_PATH = REPO / "config" / "gtm.yaml"
 REFERENCE_PATH = REPO / "config" / "instrument_reference.yaml"
 NOT_STORED = "not stored"
 NOT_IN_SCAN = "not in the scan"
+NOT_ON_SLIDE = "not on the slide"
 NO_PROXY = "no proxy"
 METRIC_PREFIX = "GTM-"
 
@@ -75,9 +76,9 @@ def metric_name(entry: dict) -> str:
 
 def sourced_refusal(entry: dict, scan_text: str) -> Optional[str]:
     """Why a declared figure cannot be stored, or None. A figure needs its item,
-    label and value; a section reference; the scan's words quoted exactly; and
-    its value inside that quote (a trailing % aside, where the scan writes the
-    figure without one)."""
+    label and value; a section reference and the Guide's slide; the scan's words
+    quoted exactly; and its value inside that quote (a trailing % aside, where the
+    scan writes the figure without one)."""
     for f in ("item", "label", "value"):
         if not str(entry.get(f) or "").strip():
             return f"no {f}"
@@ -91,8 +92,10 @@ def sourced_refusal(entry: dict, scan_text: str) -> Optional[str]:
     if str(entry["value"]).rstrip("%") not in q:
         return f"the value {entry['value']!r} is not in its quote"
     slide = entry.get("slide")
-    if slide is not None and not (isinstance(slide, int) and slide > 0):
-        return "a slide must be a positive number or null"
+    if slide is None:
+        return "no slide reference"
+    if not (isinstance(slide, int) and slide > 0):
+        return "a slide must be a positive number"
     return None
 
 
@@ -321,9 +324,14 @@ def stock_bond_eras(price: dict[str, float], dividend: dict[str, float],
                      "inflation": round(mean(inf), 4) if ok and inf else None,
                      "computed": ok})
     cur = roll.get(last) if last else None
+    # The latest reading's own window, printed beside the eras' (step 0.5 of the
+    # GTM part 2 paste): a 24-month window is not an era's average.
+    trm = sorted(tr)
+    start = (trm[trm.index(last) - n + 1] if last in trm and trm.index(last) >= n - 1
+             else None)
     return {"state": "ok", "window_months": n,
             "first_month": min(tr), "last_month": max(tr),
-            "eras": eras, "current": {"month": last,
+            "eras": eras, "current": {"month": last, "from": start,
                                       "correlation": round(cur, 4) if cur is not None else None,
                                       "word": regime_word(cur, sb["regime_bands"])},
             "method": ("monthly total returns from Shiller's sheet: the S&P "

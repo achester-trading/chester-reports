@@ -594,25 +594,25 @@ Register entry points to the Part C specification and its backlog status (Append
 
 ---
 
-### SR-37 Inflection-points table (J.P. Morgan Guide to the Markets 4Q 2026, slide 4) — GTM-1
+### SR-48 Inflection-points table (J.P. Morgan Guide to the Markets 4Q 2026, slide 4) — GTM-1
 
-**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026) · *Number assigned 17 Oct 2026, mechanically: the change order's Register paragraph continues from the last number; Audit #4 proposed SR-37 … SR-47 for the GTM batch in its table order (agenda item 5) and did not write them.*
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026) · *Number assigned 17 Oct 2026 by ruling 4: the GTM items take fresh numbers from SR-48 upward in the order's table order, SR-49 skipped as the selloff-shape axis's working number; part 1 had used SR-48 … SR-59.*
 
 **Ruling.** ADOPT (change order of 3 Oct 2026). The eight historical rows are stored from the scan as sourced figures; the "today" row is computed.
 
 **Built.** The prior tops (Mar 2000, Oct 2007, Feb 2020, Jan 2022) and bottoms (Oct 2002, Mar 2009, Mar 2020, 12 Oct 2022), each with level, forward P/E, dividend yield and 10-year.
-- **The historical rows:** each cell is the Guide's figure where the scan states it. That is 6 of 32 cells: the 10-year at the four tops, the 2000 multiple and the 2022 low. Every other cell prints "not in the scan".
+- **The historical rows:** each cell is the Guide's figure from slide 4 (as of 30 Sep 2026), transcribed once on 17 Oct 2026 into the scan's §7 under ruling 1 and stored as a sourced figure with its slide. The slide prints 24 of 32 cells: all four fields at the tops, level and forward P/E at the bottoms. The bottoms' dividend yield and 10-year print "not on the slide". No recurring line.
 - **The Guide's own 30 Sep row** is beside them.
 - **Today:** the S&P 500's close and the 10-year from the store; the dividend yield from Shiller's trailing dividend over price; the forward P/E "not stored".
 - **Where it prints:** the Monthly's Slow layers, as the Top & Bottom standing exhibit and a base-rate row.
 
 **Rights.** Base-rate row. *Lives in:* config/gtm.yaml (`sourced`), `altdata/gtm.py`, `daily_cascade/gtm_block.py`.
 
-### SR-38 … SR-39, SR-42 … SR-44, SR-46 (numbers reserved)
+### SR-50 … SR-51, SR-54 … SR-56, SR-58 (numbers reserved)
 
-GTM-3 (SR-38), GTM-4 (SR-39), GTM-10 (SR-42), GTM-11 (SR-43), GTM-12 (SR-44) and GTM-14 (SR-46) take these numbers when they are built. GTM-3, 4, 10 and 12 come in the GTM batch's part 2; GTM-11 comes with Amendment #3 workstream B; GTM-14 was pulled into T3. *Collision to rule:* the Round 4 draft's own working numbers (SR-43 for the OECD-yields fetcher, SR-45 constituent breadth, SR-46 the EM rules) are still used in code and notes. The Audit #4 agenda moves them to SR-52 … SR-64, and that move is not yet written.
+GTM-3 (SR-50), GTM-4 (SR-51), GTM-10 (SR-54), GTM-11 (SR-55), GTM-12 (SR-56) and GTM-14 (SR-58) take these numbers when they are built. GTM-3, 4, 10 and 12 come in the GTM batch's part 2; GTM-11 comes with Amendment #3 workstream B; GTM-14 was pulled into T3. *Ruled 17 Oct 2026 (ruling 4):* the working numbers the other branches use stand (SR-55 the OECD-yields fetcher, SR-57 constituent breadth, SR-58 the EM rules), and so does SR-49, the selloff-shape axis, which is why the GTM run skips it.
 
-### SR-40 Sentiment turning-point base rate (Guide to the Markets 4Q 2026) — GTM-8
+### SR-52 Sentiment turning-point base rate (Guide to the Markets 4Q 2026) — GTM-8
 
 **Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
 
@@ -622,7 +622,7 @@ GTM-3 (SR-38), GTM-4 (SR-39), GTM-10 (SR-42), GTM-11 (SR-43), GTM-12 (SR-44) and
 
 **Rights.** Base-rate row; the disagreement entry. Nothing in a composite.
 
-### SR-41 All-time-high base rates (Guide to the Markets 4Q 2026) — GTM-9
+### SR-53 All-time-high base rates (Guide to the Markets 4Q 2026) — GTM-9
 
 **Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
 
@@ -634,7 +634,7 @@ A floor uses the scan's definition (§4): never afterwards closed 5% or more bel
 
 **Rights.** Base-rate row.
 
-### SR-45 Fixed-income scenario table (Guide to the Markets 4Q 2026) — GTM-13
+### SR-57 Fixed-income scenario table (Guide to the Markets 4Q 2026) — GTM-13
 
 **Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
 
@@ -651,7 +651,7 @@ Book A's rule table reads it as a modifier (Appendix C, row A-7); nothing automa
 
 **Rights.** Modifier.
 
-### SR-47 Effective tariff rate (Guide to the Markets 4Q 2026) — GTM-15
+### SR-59 Effective tariff rate (Guide to the Markets 4Q 2026) — GTM-15
 
 **Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
 

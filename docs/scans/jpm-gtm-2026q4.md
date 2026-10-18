@@ -147,3 +147,95 @@ JPM publishes the U.S. GTM at the same URL within the first business days of Jan
 | AI buildout funding 2026–30 | $5.5tn (JPM Global Research) | — |
 
 Sources: Guide to the Markets U.S. 4Q 2026 (slides 4–66), URL above. All figures as of 30 September 2026 unless the slide states otherwise.
+## 7. Slide transcriptions (read 17 Oct 2026, the same 4Q 2026 edition)
+
+Transcribed once from the public PDF at the URL above (the 4Q 2026 edition, "Data are as of September 30, 2026" on every slide), by the GTM batch's part 2 under the ruling of 17 Oct 2026: GTM-1's historical cells, and the reference data GTM-3, 4, 10 and 12 print as sourced figures. Reference data, not a recurring line; each figure is the slide's own and is never recomputed. A cell the slide does not print is "—". This section is not the reference table: nothing here reaches the Monthly's sourced-figures table except through `config/gtm.yaml`.
+
+### Slide 4 — S&P 500 index at inflection points
+
+| Date | Kind | Index level | Forward P/E | Dividend yield | 10yr Treasury |
+|---|---|---|---|---|---|
+| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |
+| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |
+| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |
+| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |
+| 9 Oct 2002 | bottom | 777 | 14.1x | — | — |
+| 9 Mar 2009 | bottom | 677 | 10.4x | — | — |
+| 23 Mar 2020 | bottom | 2,237 | 13.3x | — | — |
+| 12 Oct 2022 | bottom | 3,577 | 15.7x | — | — |
+| 30 Sep 2026 | today | 7,652 | 19.0x | 1.4% | 5.3% |
+
+The bottoms carry level and forward P/E only; the slide prints dividend yield and the 10-year at the tops and today.
+
+### Slide 8 — S&P 500: Index concentration
+
+| Group | NTM P/E latest | Average | % of average |
+|---|---|---|---|
+| Top 10 | 20.9x | 20.8x | 100% |
+| Remaining companies | 17.9x | 16.0x | 112% |
+| S&P 500 | 19.0x | 16.9x | 113% |
+
+Top 10 share of market capitalization, 30 Sep 2026: 40.6%. Top 10 share of last-12-months earnings, 30 Sep 2026: 36.1%. Averages since 1996 (IBES since January 1996, FactSet since January 2022); the remaining companies' P/E backs the top 10's earnings and cap out of the index's.
+
+### Slide 11 — AI-related industries: performance and earnings growth
+
+| Bucket | % of S&P 500 | 2026 price return YTD | NTM P/E | Definition |
+|---|---|---|---|---|
+| Hyperscalers | 17.8% | 7% | 22.2x | AMZN, GOOGL/GOOG, META, MSFT, ORCL, market-weighted |
+| Semiconductors | 18.6% | 44% | 18.2x | GICS industry Semiconductors & Semiconductor Equipment |
+| Hardware | 11.2% | 37% | 27.1x | GICS industries Communications Equipment; Electronic Equipment, Instruments & Components; Technology Hardware, Storage & Peripherals, market-weighted |
+| Power | 2.5% | 22% | 20.6x | GICS industries Electrical Equipment and Electric Utilities, market-weighted |
+| Software | 9.3% | 4% | 25.9x | GICS industry Software |
+| Total | 53.2% | — | — | does not double count hyperscalers that fall in another bucket |
+
+Hyperscalers that fall in a bucket's industries are in both.
+
+### Slide 15 — Returns and valuations by sector
+
+| Sector | S&P 500 weight | Correl. to Treas. yields | Foreign % of sales | NTM earnings growth | 20yr med. | Forward P/E | 20yr avg. |
+|---|---|---|---|---|---|---|---|
+| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |
+| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |
+| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |
+| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |
+| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |
+| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |
+| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |
+| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |
+| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |
+| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |
+| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |
+| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |
+
+The slide's correlation is the trailing 2-year monthly correlation of sector price returns with 10-year Treasury yield movements; NTM earnings growth is next-12-months consensus over last-12-months earnings (FactSet).
+
+### Slide 22 — Artificial intelligence: hyperscaler investment
+
+| Year | Capex, USD bn | Annual growth |
+|---|---|---|
+| 2019 | 71 | 4% |
+| 2020 | 97 | 37% |
+| 2021 | 131 | 35% |
+| 2022 | 159 | 21% |
+| 2023 | 154 | −3% |
+| 2024 | 241 | 56% |
+| 2025 | 416 | 73% |
+| 2026F | 799 | 92% |
+| 2027F | 1,093 | 37% |
+| 2028F | 1,200 | 10% |
+
+Alphabet, Amazon, Meta, Microsoft and Oracle; company total capex; 2026 to 2028 are consensus estimates (Bloomberg).
+
+### Slide 27 — Federal finances
+
+| Line | Figure |
+|---|---|
+| 2026 total spending | $7.4tn |
+| 2026 net interest | $1,039bn (14%) |
+| 2026 defense | $885bn (12%) |
+| 2026 customs duties | $418bn (6%) |
+| 2026 deficit | $1,853bn (25%) |
+| Federal net debt, end of FY2025 | 99.4% of GDP |
+| Federal net debt, end of FY2036 (CBO baseline) | 120.2% of GDP |
+
+Estimates from CBO's February 2026 "An Update to the Budget Outlook: 2026 to 2036"; fiscal years. The percentages beside the 2026 lines are shares of total spending (the deficit's, of total spending too).
