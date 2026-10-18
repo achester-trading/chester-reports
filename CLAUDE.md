@@ -527,6 +527,37 @@ element scored on the false bottoms against the four true ones, the gate
 specification and a Doctrine rule proposal for the monthly. Its T&B config stub,
 `config/tb_false_bottom_gate.yaml`, is inert: no module reads it until T&B full.
 
+**The vendor chains are captured at 16:31, not 16:10 (M-3, ruled 18 Oct 2026).**
+Massive Options Starter is 15-minute delayed and SPX options trade to 16:15, so
+`run_eod.py` skips the vendor universe and says so, and
+`chester-vendor-chains.service`/`.timer` (Mon-Fri 16:31 ET, `run_dealer_capture.sh
+chains`, `altdata/vendor_chains.py`) writes the same chain files and its own
+`_vendor_completeness.json`, which the close's reader merges and reads as pending
+before it lands. Every vendor row carries `vendor_data_as_of` (09:30, 12:15,
+16:16 ET, `config.vendor_as_of`).
+
+**The FlashAlpha writer is v2 (F-1 to F-4, ruled 18 Oct 2026).**
+`config/flashalpha.yaml` plans 57 requests a day under a budget of 60 for SPY, QQQ,
+IWM, SPX and MSTR (16:25 in full; 09:45 and 12:30 the summary and levels), stores
+the summary's exposure, volatility and macro blocks under source `flashalpha` and
+keeps the by-strike responses as blobs under `data/vendor/flashalpha/`. A vendor
+ATM IV is compared only on the first 20-DTE expiry from 16:25 (F-2); the writer
+stops after `plan_ends` and the Weekly prints "vendor: plan ended" (F-4). The
+conventions (F-3) are in the Weekly's technical appendix, and
+`docs/ledgers/vendor-divergence-notes.md` holds the reconciliations
+(`tools/vendor_reconcile.py`). No vendor value reaches any flag, tell, dial or
+decision.
+
+**ST-10's rendering rows for ST-4, ST-5 and ST-9 (a43-render).** The 07:00 anchor's
+signal lines (`daily_cascade/signal_lines.py`, `config/st10_lines.yaml`: the
+auction line, the FOMC-week gap, the yen flag, the rally inside a bear; at most
+four lines of 60 words, nothing on a quiet day), the 12:30 hooks for the yen unwind
+and the devaluation tell (`daily_cascade/funding_hooks.py`, in `midday_gate.GATES`,
+alert-only, no verdict word for the tell) and the Weekly's Sunday line with Book A's
+rules and Book B's tells (through `dealer_weekly.mechanics`). The Mechanism Watch
+block and the PRL line wait for Tranche 5. `tools/validate_a43_render.py` holds
+these and Part 0.
+
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX
 change of 15% or 3 points, a five-day change past its own 95th percentile over 20

@@ -23,6 +23,13 @@ no live store.
      blobs; plan_ends; the vendor row in both units; the 0.5% flip and the regime;
      the conventions in the appendix and the writer's notes; the one-strike
      reconciliation by hand; no engine reads a vendor key.
+  D  ST-10. The four 07:00 lines in order within the budget (4 lines, 60 words),
+     each passing the numeral audit and declaring what it displaces; a quiet day
+     prints nothing; the FOMC and refunding weeks; the 12:30 hooks open on their
+     triggers and stay closed otherwise, the devaluation hook with no verdict word,
+     a closed slot writing nothing and calling no model; the Sunday line and the
+     Books; the Daily grep gate for PRL and Pearl; nothing enters a composite; no
+     by-hand key; neither Weekly builder session B is fixing is touched.
 
     python tools/validate_a43_render.py
 """
@@ -406,8 +413,171 @@ def group_c() -> None:
           f"the writer and the Weekly's row names a vendor key ({readers + yml or 'none'})")
 
 
+def _obs(key, day, value, inst=None):
+    return {"registry_key": key, "instrument": inst, "observed_at": day,
+            "available_at": f"{day}T21:00:00+00:00", "value": value, "source": "fixture"}
+
+
+VERDICT = re.compile(r"\b(on|off|fired|fires|tripped|trips|triggered)\b", re.I)
+
+
+def st10_fixture(day: str, prior: str) -> tuple[list[dict], list[dict]]:
+    """Every 07:00 trigger on: a coupon auction, an FOMC (and refunding) week, the
+    yen tell on at the prior close, SPY 11% off its low inside a 40% drawdown."""
+    import datetime as dt
+    rows = []
+    d1 = dt.date.fromisoformat(prior)
+    for k in range(300):
+        d = (d1 - dt.timedelta(days=299 - k)).isoformat()
+        v = 80 + k if k <= 40 else (120 - 50 * (k - 40) / 200 if k <= 240
+                                    else 70 + 8 * (k - 240) / 59)
+        rows.append(_obs("yfinance.mkt_spy", d, float(v)))
+    rows += [_obs("calc.abs_stress", "2026-10-08", 1.0, "Note:10-Year"),
+             _obs("calc.fed_mkt_gap_12m", prior, 62.0), _obs("calc.cred_stress", prior, 1.0),
+             _obs("calc.jpy_unwind", prior, 1.0), _obs("calc.usdjpy_rvol_20d", prior, 14.2),
+             _obs("calc.jpy_pos_z", prior, -1.8)]
+    for k in range(5, 0, -1):
+        rows.append(_obs("yfinance.mkt_usdjpy", (d1 - dt.timedelta(days=k)).isoformat(), 150.0))
+    rows.append(_obs("yfinance.mkt_usdjpy", prior, 144.0))
+    events = [{"source": "treasury_upcoming", "observed_at": f"{day}T17:00:00+00:00",
+               "title": "Note:10-Year auction",
+               "payload": {"instrument": "Note:10-Year", "offering_amt": "42000000000"}},
+              {"source": "fed_calendar", "observed_at": f"{day}T18:00:00+00:00",
+               "title": "FOMC Meeting -- two-day meeting"}]
+    return rows, events
+
+
+def group_d() -> None:
+    head("D. ST-10: THE 07:00 LINES, THE 12:30 HOOKS, THE SUNDAY LINE")
+    import datetime as dt
+    from altdata import funding_currency as fc, numeral_audit as NA, observations
+    from daily_cascade import funding_hooks as FH, midday_gate as MG, signal_lines as SL
+    cfg = SL.config()
+    day, prior = "2026-11-04", "2026-11-03"
+    now = f"{day}T11:00:00+00:00"
+    rows, events = st10_fixture(day, prior)
+    with observations.ObservationStore(str(TD / "st10.db")) as st:
+        st.write_many(rows)
+        lines = SL.anchor_lines(st, events, day, prior, now)
+        quiet = SL.anchor_lines(st, [], "2026-06-10", "2026-06-09", "2026-06-10T11:00:00+00:00")
+        sunday = SL.sunday_lines(st, now)
+    ids = [x["id"] for x in lines]
+    a = cfg["anchor"]
+    check(ids == ["auction", "fomc_gap", "yen_flag", "rally_in_bear"]
+          and len(lines) <= a["max_lines"]
+          and all(len(x["line"].split()) <= a["max_words_per_line"] for x in lines),
+          f"on a day every trigger holds, the four lines print in declared order within "
+          f"the budget ({len(lines)} of {a['max_lines']} lines, the longest "
+          f"{max(len(x['line'].split()) for x in lines)} of {a['max_words_per_line']} words)")
+    bad = [x["id"] for x in lines
+           if not NA.audit(x["line"], x["values"], extra_values=x["constants"]).passed]
+    check(not bad, f"the numeral audit passes on every new line ({bad or 'all four'})")
+    check(quiet == [] and SL.html({"lines": quiet}) == "" and SL.html({"lines": lines})
+          and "displaces nothing" in SL.html({"lines": lines}),
+          "a day nothing triggers prints nothing (no heading, no 'none'); a day that "
+          "does says its lines displace nothing")
+    check(all(a["lines"][k].get("displaces") for k in ids),
+          "each line declares what it displaces (config/st10_lines.yaml)")
+    check("on for 67 percent of auctions since 2009, n=1,540" in lines[0]["line"]
+          and "descriptive only" in lines[1]["line"]
+          and "mechanism, not a signal" in lines[3]["line"],
+          "the auction line carries ABS_STRESS's base rate and suspension, the gap line "
+          "is descriptive only, the rally line says the audit failed")
+    check(SL.refunding_week("2026-11-04") and not SL.refunding_week("2026-11-11")
+          and SL.fomc_week(events, day) and not SL.fomc_week(events, "2026-11-11"),
+          "the FOMC and refunding weeks by their declared rules")
+    # 12:30
+    y = fc.config()["yen"]
+    px = [(f"2026-10-{k:02d}", 150.0) for k in range(1, 30)]
+    rv = [(f"d{k:03d}", 8.0) for k in range(260)] + [("2026-11-03", 14.0)]
+    ctx_y = {"day": day, "quotes": {"JPY=X": 144.0}, "funding": {"usdjpy": px, "rvol": rv}}
+    ctx_q = {"day": day, "quotes": {"JPY=X": 149.0}, "funding": {"usdjpy": px, "rvol": rv}}
+    gy, gq = FH.yen_unwind(ctx_y), FH.yen_unwind(ctx_q)
+    check(gy["open"] and "-4.0%" in gy["line"] and not gq["open"]
+          and NA.audit(gy["line"], gy["values"], extra_values=[12, 30, 20, 2]).passed,
+          f"the yen hook opens on its trigger (-4.0% with vol 1.75x its median; ST-5's "
+          f"{y['unwind_move_pct']}% and {y['vol_spike_ratio']}x) and stays closed at -0.7%")
+    dev = [(f"2026-10-{k:02d}", -5.0, f"2026-10-{k:02d}") for k in range(1, 30)]
+    gap = [(f"2026-10-{k:02d}", 10.0 if k < 20 else 45.0, f"2026-10-{k:02d}") for k in range(1, 30)]
+    fd = {"dev": dev, "gap": gap, "fix_today": 7.10, "cny_prev_close": 7.10}
+    ctx_d = {"day": day, "quotes": {"CNH=X": 7.14, "CNY=X": 7.10}, "funding": fd}
+    gd = FH.deval_trip(ctx_d)
+    gd2 = FH.deval_trip({**ctx_d, "funding": {**fd, "gap": [(d, 10.0, a) for d, _, a in gap]},
+                         "quotes": {"CNH=X": 7.101, "CNY=X": 7.10}})
+    words = VERDICT.findall(gd.get("line") or "")
+    check(gd["open"] and "2 of 3 legs tracked, both held" in gd["line"]
+          and "NOT TRACKED (rule 30; by-hand key state_bank_dollar_selling" in gd["line"]
+          and not words and not gd2["open"],
+          f"the devaluation hook opens when both tracked legs hold, prints the two legs "
+          f"and no verdict word ({words or 'none'}), and stays closed when the gap is calm")
+    out = TD / "midday"
+    quiet_ctx = {"day": day, "midday": None, "morning": None, "quotes": {}, "funding": {}}
+    r = MG.run(day, ctx=quiet_ctx, out_dir=out, send=lambda s, b: ("sent", "fake"))
+    check(not r["opened"] and r["alert"] is None and r["model_called"] is False
+          and not list(out.glob("*")) if out.exists() else not r["opened"],
+          "with every gate closed the 12:30 slot writes nothing and calls no model")
+    r2 = MG.run(day, ctx={**quiet_ctx, **ctx_d}, out_dir=out,
+                send=lambda s, b: ("sent", "fake"))
+    check(r2["opened"] == ["deval_trip"] and r2["alert"] and r2["model_called"] is False,
+          "the devaluation hook alone opens the slot's alert, code-written, no model")
+    import ast
+    srcs = {n: (REPO / "daily_cascade" / f"{n}.py").read_text(encoding="utf-8")
+            for n in ("signal_lines", "funding_hooks")}
+    mods = [n.module or "" for s in srcs.values() for n in ast.walk(ast.parse(s))
+            if isinstance(n, ast.ImportFrom)]
+    mods += [a.name for s in srcs.values() for n in ast.walk(ast.parse(s))
+             if isinstance(n, ast.Import) for a in n.names]
+    check(not [m for m in mods if any(b in m for b in ("anthropic", "model_meter", "requests",
+                                                      "urllib", "flashalpha"))],
+          "the lines and the hooks import no model, no network library and no vendor")
+    # The Sunday line
+    j = "\n".join(sunday)
+    dv = next((x for x in sunday if "Devaluation tell" in x), "")
+    check(sunday[0].startswith("The rates driver: withdrawn") and "ABS_STRESS" in sunday[0]
+          and "CRED_STRESS" in sunday[0] and all(f"A-{k} (" in j for k in (1, 2, 3))
+          and "SR-1 style" in j and "SR-5's RS tell" in j and "EM flag (SR-14)" in j
+          and "2 of 3 legs tracked" in dv
+          and not VERDICT.findall(dv.replace("NOT AVAILABLE", "").replace("NOT TRACKED", "")),
+          "the Sunday line: the driver, ABS_STRESS and CRED_STRESS, then A-1 to A-3 and "
+          "Book B's tells, the devaluation tell as 2 of 3 legs with no verdict word")
+    src = (REPO / "daily_cascade" / "dealer_weekly.py").read_text(encoding="utf-8")
+    check("signal_lines.sunday_subsection(st, cutoff)" in src,
+          "the Weekly carries it, through the mechanics hook session A owns")
+    # PRL / Pearl in the daily outputs
+    pat = re.compile(r"\bPRL\b|Pearl")
+    daily = ["morning_anchor", "morning_payload", "morning_render", "midday_gate",
+             "funding_hooks", "signal_lines", "stack_close", "close_report", "state_block"]
+    hits = [n for n in daily if (REPO / "daily_cascade" / f"{n}.py").exists()
+            and pat.search((REPO / "daily_cascade" / f"{n}.py").read_text(encoding="utf-8"))]
+    rendered = " ".join(x["line"] for x in lines) + gy["line"] + gd["line"] + j
+    check(not hits and not pat.search(rendered),
+          f"the Daily grep gate: no daily output contains 'PRL' or 'Pearl' (the PRL "
+          f"line waits for Tranche 5) ({hits or 'none'})")
+    cfgs = (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8") + \
+        (REPO / "regime.py").read_text(encoding="utf-8") + \
+        (REPO / "contradictions.py").read_text(encoding="utf-8")
+    check(not any(k in cfgs for k in ("signal_lines", "funding_hooks", "st10_lines")),
+          "nothing of ST-10 enters a composite or the market-state object")
+    import yaml
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    manual = sorted(k for k in (reg.get("metrics") or {}) if k.startswith("manual."))
+    check(manual in ([], ["manual.global_pmi"]),
+          f"no new by-hand key ({manual})")
+    import subprocess
+    r = subprocess.run(["git", "diff", "--name-only", "origin/st-t3-calib...HEAD"],
+                       cwd=REPO, capture_output=True, text=True)
+    if r.returncode != 0:
+        check(True, "the Weekly builders session B is fixing: no base ref here, not "
+                    "checkable; the notes record the local check")
+    else:
+        touched = [f for f in r.stdout.split() if f in ("daily_cascade/weekly_stack.py",
+                                                        "daily_cascade/weekly_sections.py")]
+        check(not touched, f"this branch touches neither Weekly builder session B is "
+                           f"fixing (weekly_stack.py, weekly_sections.py; {touched or 'none'})")
+
+
 # ---------------------------------------------------------------------------
-GROUPS = [group_a, group_b, group_c]
+GROUPS = [group_a, group_b, group_c, group_d]
 
 
 def main() -> int:

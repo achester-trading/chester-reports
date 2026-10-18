@@ -270,6 +270,11 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     stories = story_block.build(prior, cutoff, market_state=state_obj,
                                 what_changed=changed, db_path=db_path)
 
+    # ST-10 (a43-render, 18 Oct 2026): the signal lines -- the auction, the FOMC-week
+    # gap, the yen flag and the rally inside a bear -- each only on its trigger.
+    from . import signal_lines                                  # noqa: PLC0415
+    signals = signal_lines.build(this_session, prior, cutoff, db_path)
+
     warnings: list[str] = []
     if state_obj is None:
         warnings.append(
@@ -326,5 +331,6 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "market_state": state_obj,
         "what_changed": changed,
         "vol_event": vol_event,
+        "signal_lines": signals,
         "warnings": warnings,
     }

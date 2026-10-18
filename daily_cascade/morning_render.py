@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from . import events_block, state_block
+from . import events_block, signal_lines, state_block
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -331,6 +331,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 <h2 style="{H2}">Exceptions</h2>
 {state_block.exceptions_block(payload)}
 {vol_event_html(payload)}
+{signal_lines.html(payload.get("signal_lines"))}
 
 <h2 style="{H2}">Stories</h2>
 {stories_block(payload)}

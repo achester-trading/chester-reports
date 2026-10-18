@@ -105,12 +105,16 @@ def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=N
                       vendor_summary.get("error") or vendor_summary.get("success"))}
     if slot == "1230":
         from daily_cascade import midday_gate                   # noqa: PLC0415
-        out["gates"] = midday_gate.run(session.session_date(), out_dir,
-                                       extra=vol_context(quotes))
+        from daily_cascade import funding_hooks                 # noqa: PLC0415
+        day = session.session_date()
+        out["gates"] = midday_gate.run(day, out_dir,
+                                       extra={**vol_context(quotes),
+                                              **funding_hooks.context(day, session.utc_iso())})
     return out
 
 
-QUOTE_SYMBOLS = ("^VIX", "^VIX9D", "^VIX3M", "^VIX6M", "^GSPC")
+# ST-10 (18 Oct 2026): JPY=X, CNH=X and CNY=X for the 12:30 funding hooks.
+QUOTE_SYMBOLS = ("^VIX", "^VIX9D", "^VIX3M", "^VIX6M", "^GSPC", "JPY=X", "CNH=X", "CNY=X")
 
 
 def fetch_quotes(symbols=QUOTE_SYMBOLS) -> dict:

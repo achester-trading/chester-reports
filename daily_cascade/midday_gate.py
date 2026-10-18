@@ -21,6 +21,10 @@ beside the outbox copy), the outbox copy kept whatever the send does. No other
 channel. A send failure is recorded in the alert file, never raised.
 
 THE GATES (registered in GATES; a later order adds its own):
+  yen_unwind, deval_trip  ST-10: SR-2's unwind tell on the 12:30 USDJPY quote,
+                     and SR-4's tell's two tracked legs on today's fix and the
+                     12:30 CNH and CNY quotes (no verdict word while a leg is
+                     not tracked); daily_cascade/funding_hooks.py
   dealer_flip_cross  by 12:30 spot is at least `confirm_pct` (0.10%, the
                      continuation setup's confirmation) through the morning
                      zero-gamma level, and both captures' regimes pass the
@@ -83,8 +87,20 @@ def _vol_gate(ctx: dict) -> dict:
     return vol_event.vol_gate(ctx)
 
 
-# The registry. Batch 9 item 52 adds the VIX gate (upward only).
-GATES: list[Callable[[dict], dict]] = [dealer_flip_cross, _vol_gate]
+def _yen_unwind(ctx: dict) -> dict:
+    from . import funding_hooks                                 # noqa: PLC0415
+    return funding_hooks.yen_unwind(ctx)
+
+
+def _deval_trip(ctx: dict) -> dict:
+    from . import funding_hooks                                 # noqa: PLC0415
+    return funding_hooks.deval_trip(ctx)
+
+
+# The registry. Batch 9 item 52 adds the VIX gate (upward only); ST-10 (a43-render,
+# 18 Oct 2026) adds ST-5's two tells, alert-only (daily_cascade/funding_hooks.py).
+GATES: list[Callable[[dict], dict]] = [dealer_flip_cross, _vol_gate, _yen_unwind,
+                                       _deval_trip]
 
 
 def context(day: str, base_dir: Optional[str] = None, symbol: str = "SPY") -> dict:

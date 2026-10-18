@@ -1,0 +1,77 @@
+# ST-10's rendering rows for the features session A's line built (ST-4, ST-5, ST-9)
+# -- the signal-triage order's section 7 (docs/change-order-signal-triage-2026-09-25.md);
+# a43-render, 18 Oct 2026. Read by daily_cascade/signal_lines.py (the 07:00 lines and
+# the Weekly's Sunday line) and daily_cascade/funding_hooks.py (the 12:30 hooks).
+#
+# EVERY LINE IS DISPLAY AND MODIFIER ONLY, as the order grants: nothing here enters
+# a composite, a flag the object reads, or a decision. No vendor value is read.
+# Every number is SESSION-SET with its reason. NOT here (Tranche 5): the Sunday
+# Mechanism Watch block (MW-10) and the PRL information line.
+version: st10-lines-v1
+
+# THE 07:00 ANCHOR'S BLOCK. The anchor has no word budget of its own, so this block
+# carries one: at most four lines, each at most 60 words, and on a day none of
+# the four triggers the block prints NOTHING (not a heading, not "none").
+anchor:
+  max_lines: 4
+  max_words_per_line: 60
+  lines:
+    auction:
+      # SR-22: on a coupon-auction day (a Note, Bond or TIPS in the upcoming-
+      # auctions calendar for the session).
+      trigger: a coupon auction is scheduled for the session
+      displaces: >-
+        nothing: it prints in the block only on auction days (eight or so a
+        month) and ABS_STRESS's status line is not otherwise in the anchor
+    fomc_gap:
+      # SR-21 and SR-23: in an FOMC week (the Fed's calendar) or a refunding week
+      # (the week holding the first Wednesday of February, May, August or
+      # November -- the quarterly refunding announcement).
+      trigger: an FOMC or quarterly-refunding week
+      refunding_months: [2, 5, 8, 11]
+      displaces: >-
+        nothing: eight FOMC weeks and four refunding weeks a year; the gap is
+        otherwise printed only in the Monthly's Rate machine
+    yen_flag:
+      # SR-2: the unwind tell on at the prior close (calc.jpy_unwind = 1).
+      trigger: calc.jpy_unwind is 1 at the prior session's close
+      displaces: >-
+        nothing: the tell is off most sessions (ST-5's thresholds), and the yen
+        stack is otherwise only in the Monthly's Factor IV
+    rally_in_bear:
+      # SR-8, after the audit: SPY at least 20% below its 252-session closing high
+      # at some point in the last 252 sessions, below a falling 200-day (the
+      # 200-session mean under its value 20 sessions earlier), and at least 10%
+      # above the lowest close since that high -- the audit's candidate bottom,
+      # read live.
+      trigger: a 10% rally from the low inside a 20% drawdown, below a falling 200-day
+      drawdown_pct: 20
+      rally_pct: 10
+      high_sessions: 252
+      sma_sessions: 200
+      slope_sessions: 20
+      displaces: >-
+        nothing: it prints only inside a bear (none since 2022) and no other
+        anchor line reads the bear state
+
+# THE 12:30 HOOKS (daily_cascade/midday_gate.py's registry): alert-only, opening on
+# their declared triggers and writing nothing otherwise; no model is called.
+midday:
+  yen_unwind:
+    # SR-2's tell on the 12:30 USDJPY quote: the move against the close five
+    # sessions back at or below ST-5's unwind_move_pct, with the prior close's
+    # 20-session realized vol at or above vol_spike_ratio x its 250-session median
+    # (config/funding_currency.yaml; the thresholds are ST-5's, session-set).
+    quote: JPY=X
+  deval_trip:
+    # SR-4's tell's two tracked legs on today's CFETS fix and the 12:30 CNH and CNY
+    # quotes; opens when both hold. Prints the two legs and NO verdict word while
+    # the third leg is not tracked (ruling 6 of 18 Oct 2026).
+    quotes: [CNH=X, CNY=X]
+
+# THE SUNDAY LINE (the Weekly, 05:00 Sunday; section 7's Sunday row): one line of
+# the rates driver, ABS_STRESS and CRED_STRESS, then Book A's rules (A-1, A-2, A-3:
+# conditions met, unmet or not determinable) and Book B's tells (SR-1 style, SR-5
+# RS, the devaluation tell, the EM flag), each as its status stands.
+sunday:
+  title: "The Sunday line: signal-triage status"

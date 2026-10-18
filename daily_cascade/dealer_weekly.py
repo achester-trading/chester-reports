@@ -58,6 +58,13 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
     """{"subsections", "data", "not_tracked"} to add to the Weekly's Mechanics."""
     cfg = cfg if cfg is not None else db.config()
     out: dict = {"subsections": [], "data": {}, "not_tracked": []}
+    # ST-10 (a43-render, 18 Oct 2026): the Sunday line and the Books' status, where
+    # the order's section 7 places them (the Sunday 05:00 edition).
+    from . import signal_lines                                  # noqa: PLC0415
+    try:
+        out["subsections"].append(signal_lines.sunday_subsection(st, cutoff))
+    except Exception:                                           # noqa: BLE001
+        out["not_tracked"].append("the Sunday line: its block faulted")
     prof = db.newest_settled(ending, "SPY", computed_dir) if computed_dir else None
     if prof and prof.get("horizons"):
         m = db.t3(prof, cfg, db.window_history(st, cutoff, prof), db.implied_vol(st, cutoff))
