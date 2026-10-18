@@ -327,4 +327,4 @@ Trial merges (`git merge-tree`, nothing committed) against `digital-49-51b`, `st
 | `6b-dealer-3` | `e02aefd` | 39068814694 | **green** |
 | `el-4-6` | `6501795` | 39070454969 | **failed**, one check (265 passed, 1 failed in `validate_monthly_stack`): the Monthly's detail tables gained EL-6's `system_metrics` after the appendix and the gate still listed four |
 | `el-4-6` | `a629f1d` (notes) | 39070524418 | **failed**, the same one check; every other gate green |
-| `el-4-6` | step 0 of the GTM paste | (below) | the gate fixed in `a573e47`; read at the next push |
+| `el-4-6` | `8f82653` (step 0 of the GTM paste: the gate fix, the User-Agent rule, rulings 4 and 5) | 39086764981 | **green** |
