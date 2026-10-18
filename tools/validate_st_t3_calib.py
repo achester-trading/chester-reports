@@ -49,6 +49,18 @@ PART 1, ST-8 (each study reproduces a hand figure on a fixture)
      SR-4's thresholds stay session-set; nothing of SR-13's.
   N  No new by-hand key; the Weekly's builders untouched by this branch.
 
+PART 2, ST-9 (the SR-8 false-bottom audit)
+  O  The replay reproduces a hand count on one fixture episode (a false bottom at
+     80, no candidate at 70, the true one at 60); the read date and the state; the
+     committed replay holds 12 false and the register's four true bottoms.
+  P  Each element's score is computed by code (75% and one third discriminate,
+     5 of 12 does not, one testable is not testable; the audit's word), a retest,
+     the margin and the time prior by hand; every printed score is its CSV's count.
+  Q  The ledger carries the gate specification and the Doctrine proposal, labelled;
+     the config stub is read by no module (grepped), carries the ledger's words and
+     parameters only beside a discriminating element; the SR-8 entry is untouched.
+  R  No store, no fetch.
+
     python tools/validate_st_t3_calib.py
 """
 
@@ -689,6 +701,193 @@ def group_n() -> None:
 
 
 # ---------------------------------------------------------------------------
+# PART 2: ST-9
+# ---------------------------------------------------------------------------
+AUDIT = LEDGERS / "false-bottom-audit-2026.md"
+STUB = REPO / "config" / "tb_false_bottom_gate.yaml"
+# The register's SR-8 entry at the branch point: this branch writes no draft there.
+SR8_ENTRY_SHA = "2b219d3773fbfc77ec3ba156fed63e4150007a3430c55dc5762f6c2e64817e5e"
+
+
+def _path(levels: list[float], start: str = "2000-01-03") -> list[tuple[str, float]]:
+    """Daily closes walking linearly between the given levels, ten steps a leg."""
+    import datetime as dt
+    d0 = dt.date.fromisoformat(start)
+    out, k = [], 0
+    for a, b in zip(levels, levels[1:]):
+        for s in range(10):
+            out.append(((d0 + dt.timedelta(days=k)).isoformat(), a + (b - a) * s / 10))
+            k += 1
+    out.append(((d0 + dt.timedelta(days=k)).isoformat(), levels[-1]))
+    return out
+
+
+def group_o() -> None:
+    head("O. SR-8: THE REPLAY REPRODUCES A HAND COUNT")
+    S = mod("sr08_false_bottoms")
+    # Peak 100; down to 80; a 12.5% rally to 90; down to 70; a 7% bounce to 75 (no
+    # rally); down to 60, the final low; up to 80. By hand: one false bottom (80),
+    # 70 is no candidate, 60 is the true one.
+    px = _path([100, 80, 90, 70, 75, 60, 80])
+    cs = S.candidates(px, px[0][0], px[50][0])
+    check([(round(c["close"]), c["kind"]) for c in cs] == [(80, "false"), (60, "true")]
+          and cs[0]["undercut"] is not None and cs[1]["undercut"] is None
+          and close(cs[0]["rally_pct"], 0.125),
+          f"one episode by hand: a false bottom at 80 (a 12.5% rally, later undercut), "
+          f"no candidate at 70 (a 7% bounce), the true bottom at 60 "
+          f"({[(round(c['close']), c['kind']) for c in cs]})")
+    c = dict(cs[0])
+    check(S.read_index(c) == min(c["i"] + 30, c["undercut_i"] - 1),
+          "each element is read at the trough plus 30 sessions or the session before the "
+          "undercut, whichever comes first")
+    fall = [(f"d{i:04d}", 1000.0 - i) for i in range(260)]
+    check(S.below_falling_200(fall, 250) is True and S.below_falling_200(fall, 100) is None,
+          "the state: a steadily falling index is below a falling 200-day; before 220 "
+          "sessions it is not read")
+    rows = list(csv.DictReader((LEDGERS / "false-bottom-audit-2026-episodes.csv")
+                               .open(encoding="utf-8")))
+    sp = [r for r in rows if r["index"] == "S&P 500"]
+    named = {"2008-03-10", "2022-03-08", "2022-06-16"}
+    check(sum(r["kind"] == "false" for r in sp) == 12 and sum(r["kind"] == "true" for r in sp) == 4
+          and {r["trough"] for r in sp if r["kind"] == "true"}
+          == {"1974-10-03", "2002-10-09", "2009-03-09", "2022-10-12"}
+          and named <= {r["trough"] for r in sp if r["kind"] == "false"},
+          "the committed replay: 12 false bottoms and the register's four true ones, Mar "
+          "2008 and 2022's March and June-August among the false")
+
+
+def group_p() -> None:
+    head("P. SR-8: EACH ELEMENT'S SCORE IS COMPUTED, AND PRINTED WITH ITS INPUTS")
+    S = mod("sr08_false_bottoms")
+
+    def rows(tf, ff, tn=4, fn=12):
+        return ([{"kind": "true", "trough": f"t{i}", "x": (i < tf, 0, "")} for i in range(tn)]
+                + [{"kind": "false", "trough": f"f{i}", "x": (i < ff, 0, "")} for i in range(fn)])
+    a, b = S.judge_element(rows(3, 4), "x"), S.judge_element(rows(3, 5), "x")
+    c = S.judge_element(rows(1, 0, tn=1), "x")
+    check(a["word"] == "DISCRIMINATES" and close(a["tpr"], 0.75) and close(a["fpr"], 1 / 3)
+          and b["word"] == "DOES NOT DISCRIMINATE" and c["word"] == "NOT TESTABLE",
+          "3 of 4 true and 4 of 12 false discriminate (75%, one third); 5 of 12 false do "
+          "not; one testable true bottom is not testable")
+    disc = {"word": "DISCRIMINATES"}
+    nod = {"word": "DOES NOT DISCRIMINATE"}
+    nt = {"word": "NOT TESTABLE"}
+    check(S.audit_word({"a": disc, "b": disc}) == "PASS"
+          and S.audit_word({"a": disc, "b": nod}) == "FAIL"
+          and S.audit_word({"a": disc, "b": nt, "c": nt}) == "INSUFFICIENT",
+          "two discriminating elements PASS the audit; one FAILs; under two testable is "
+          "INSUFFICIENT")
+    px = [("d0", 100.0), ("d1", 110.0), ("d2", 104.0), ("d3", 109.3)]
+    r = S.el_retest(px, {"i": 0, "close": 100.0, "undercut_i": None})
+    r2 = S.el_retest(px[:3] + [("d3", 109.0)], {"i": 0, "close": 100.0, "undercut_i": None})
+    check(r[0] is True and r[1] == 3 and r2[0] is False,
+          "a retest by hand: 100 to 110, a 5.5% pullback to 104 holding above 100, then "
+          "109.3 (past 5% off 104, 109.2) confirms; 109.0 does not")
+    m = [(f"{2000 + (i + 12) // 12 - 1}-{(i % 12) + 1:02d}-28", 100.0 if i == 0 else 75.0)
+         for i in range(13)]
+    e = S.el_margin({"margin": m}, "2001-03-01")
+    check(e and e[0] is True and close(e[1], -0.25),
+          "margin spent by hand: 75 against 100 a year earlier is -25%, at or below -20%")
+    check(S.el_time("2000-03-24", "2001-09-21")[:2] == (True, 18)
+          and S.el_time("2022-01-03", "2022-10-12")[:2] == (False, 9),
+          "the time prior: 18 months from Mar 2000 to Sep 2001 meets it; 2022's 9 does not")
+    t = AUDIT.read_text(encoding="utf-8")
+    rows_csv = list(csv.DictReader((LEDGERS / "false-bottom-audit-2026-episodes.csv")
+                                   .open(encoding="utf-8")))
+    bad = []
+    for k in S.ELEMENTS:
+        tr = [x[f"{k}_fires"] for x in rows_csv if x["kind"] == "true" and x[f"{k}_fires"] != ""]
+        fa = [x[f"{k}_fires"] for x in rows_csv if x["kind"] == "false" and x[f"{k}_fires"] != ""]
+        want = (f"| {k} | ", f" | {tr.count('True')} of {len(tr)} | "
+                f"{fa.count('True')} of {len(fa)} | ")
+        line = next((ln for ln in t.splitlines() if ln.startswith(want[0])), "")
+        if want[1] not in line or "**" not in line:
+            bad.append(k)
+    check(not bad, f"every element's printed score is its CSV's own count, true and false "
+                   f"bottoms with their n, and its word ({bad or 'all ten'})")
+    check("LISTED GAP" in t and "leveraged-ETF AUM" in t and "not testable" in t.lower(),
+          "leveraged-ETF AUM is a listed gap, and untestable reads say so with their date")
+
+
+def group_q() -> None:
+    head("Q. SR-8: THE LEDGER, THE PROPOSAL AND THE INERT STUB")
+    import yaml
+    t = AUDIT.read_text(encoding="utf-8")
+    check(ledger_ok(AUDIT),
+          "docs/ledgers/false-bottom-audit-2026.md: as-of, window, n, pass rule, label, CSV")
+    check("## The gate specification" in t and "## The Doctrine rule proposal" in t
+          and "proposal for the Doctrine monthly" in t and "drafted under rule 31" in t
+          and "grants nothing" in t,
+          "the ledger carries the gate specification and the Doctrine proposal, labelled "
+          "a proposal for the monthly under rule 31, granting nothing")
+    users, named = [], []
+    reads = ("open(", "read_text", "read_bytes", "safe_load", "yaml.", "Path(", "glob(")
+    for p in REPO.rglob("*.py"):
+        rel = p.relative_to(REPO).as_posix()
+        if rel.startswith((".venv/", "build/")) or rel == "tools/validate_st_t3_calib.py":
+            continue
+        src = p.read_text(encoding="utf-8", errors="replace")
+        if "tb_false_bottom_gate" not in src:
+            continue
+        named.append(rel)
+        if any(r in ln for ln in src.splitlines() if "tb_false_bottom_gate" in ln
+               for r in reads) or "config_dir" in src:
+            users.append(rel)
+    check(not users and named == ["tools/calibration/sr08_false_bottoms.py"],
+          f"the T&B stub is read by no module: only the audit names it, in its ledger "
+          f"text, and no line naming it opens or loads a file (readers {users or 'none'})")
+    y = yaml.safe_load(STUB.read_text(encoding="utf-8"))
+    words = dict(re.findall(r"^\| (\w+) \| [^|]+ \| [^|]+ \| [^|]+ \| [^|]+ \| [^|]+ \| "
+                            r"\*\*([A-Z ]+)\*\* \|$", t, re.M))
+    el = y.get("elements") or {}
+    mism = [k for k, v in el.items() if words.get(k) != v.get("word")]
+    params_without = [k for k, v in el.items() if ("rule" in v or "key" in v)
+                      and (v.get("word") != "DISCRIMINATES"
+                           or v.get("admitted_by") != "docs/ledgers/false-bottom-audit-2026.md")]
+    check(y.get("status") == "inert" and y.get("ledger") == "docs/ledgers/false-bottom-audit-2026.md"
+          and y.get("audit_verdict") == verdict_word(AUDIT) and "admitted_by" not in y
+          and not mism and not params_without
+          and (y.get("then") or {}).get("confirmations_required") is None,
+          f"the stub is inert, names its ledger and verdict, carries each element's word "
+          f"as the ledger prints it, and parameters only for an element that discriminates "
+          f"with the ledger beside them (mismatched {mism or 'none'}; parameters without "
+          f"a passing element {params_without or 'none'})")
+    reg = (REPO / "docs" / "signal-triage-register.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+    e = re.search(r"^### SR-8 .*?(?=^### )", reg, re.M | re.S).group(0)
+    check(hashlib.sha256(e.encode()).hexdigest() == SR8_ENTRY_SHA,
+          "the register's SR-8 entry is untouched (the audit drafts nothing there; its "
+          "proposal is the ledger's)")
+
+
+def group_r() -> None:
+    head("R. SR-8: NO STORE, NO FETCH")
+    pat = re.compile(r"ObservationStore|from altdata import .*observations|"
+                     r"derived_forms|regime\.|fed_path|driver_cell")
+    check(not pat.search((CAL / "sr08_false_bottoms.py").read_text(encoding="utf-8")),
+          "the audit opens no store, reads no market-state object, names no driver cell")
+    from altdata.sources import _base
+    names = [n for n in ("http_get_json", "http_get_text", "http_get_response",
+                         "http_get_bytes") if hasattr(_base, n)]
+    saved = {n: getattr(_base, n) for n in names}
+    calls = []
+
+    def boom(*a, **k):
+        calls.append(a[:1])
+        raise RuntimeError("the audit fetched")
+    for n in names:
+        setattr(_base, n, boom)
+    try:
+        S = mod("sr08_false_bottoms")
+        px = _path([100, 80, 90, 70, 75, 60, 80])
+        S.candidates(px, px[0][0], px[50][0])
+    finally:
+        for n, f in saved.items():
+            setattr(_base, n, f)
+    check(not calls, "importing the audit and replaying its fixture, every HTTP helper "
+                     "raising, fetches nothing")
+
+
+# ---------------------------------------------------------------------------
 def main() -> int:
     print(f"{LINE}\nst-t3-calib\n{LINE}")
     for g in GROUPS:
@@ -704,7 +903,8 @@ def main() -> int:
 
 
 GROUPS = [group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-          group_h, group_i, group_j, group_k, group_l, group_m, group_n]
+          group_h, group_i, group_j, group_k, group_l, group_m, group_n,
+          group_o, group_p, group_q, group_r]
 
 if __name__ == "__main__":
     sys.exit(main())

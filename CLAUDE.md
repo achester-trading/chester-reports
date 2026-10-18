@@ -520,6 +520,13 @@ no flag word until the gate status is accepted), over `altdata/style_regime.py`,
 the rule's one definition. SR-2's and SR-4's thresholds stay session-set in
 `config/funding_currency.yaml`.
 
+**ST-9's false-bottom audit** is `tools/calibration/sr08_false_bottoms.py`,
+writing `docs/ledgers/false-bottom-audit-2026.md`: the bottom side replayed
+rally by rally through 1973-74, 2000-02, 2007-09 and 2022, each confirmation
+element scored on the false bottoms against the four true ones, the gate
+specification and a Doctrine rule proposal for the monthly. Its T&B config stub,
+`config/tb_false_bottom_gate.yaml`, is inert: no module reads it until T&B full.
+
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX
 change of 15% or 3 points, a five-day change past its own 95th percentile over 20

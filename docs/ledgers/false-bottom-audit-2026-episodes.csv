@@ -1,0 +1,17 @@
+bear,index,trough,kind,close,rally_pct,rally_peak,undercut,read_at,below_falling_200d,breadth_industries_fires,breadth_industries_value,breadth_sectors_fires,breadth_sectors_value,breadth_rsp_spy_fires,breadth_rsp_spy_value,new_leadership_fires,new_leadership_value,credit_tightening_fires,credit_tightening_value,vix_contango_fires,vix_contango_value,retest_fires,retest_value,margin_spent_fires,margin_spent_value,short_fuel_fires,short_fuel_value,time_prior_fires,time_prior_value
+1973-74,S&P 500,1973-08-22,false,100.53,0.1085,1973-10-12,1973-11-20,1973-10-04,True,True,0.649,,,,,True,2.0,False,49.0,,,False,,,,,,False,7.0
+1973-74,S&P 500,1974-02-11,false,90.66,0.1002,1974-03-13,1974-04-24,1974-03-26,True,True,0.6306,,,,,False,4.0,True,-16.0,,,False,,,,,,False,13.0
+1973-74,S&P 500,1974-10-03,true,62.28,0.5352,1975-07-15,,1974-11-14,True,True,0.702,,,,,True,2.0,False,34.0,,,True,61.0,,,,,True,21.0
+2000-02,S&P 500,2000-04-14,false,1356.56,0.121,2000-09-01,2000-10-12,2000-05-30,False,False,0.6041,False,0.5556,,,True,1.0,True,-4.0,,,True,20.0,False,0.7446,,,False,1.0
+2000-02,S&P 500,2001-04-04,false,1103.25,0.19,2001-05-21,2001-09-07,2001-05-17,True,False,0.6592,True,1.0,,,False,6.0,True,-43.0,,,False,,True,-0.3002,,,False,13.0
+2000-02,S&P 500,2001-09-21,false,965.8,0.214,2002-01-04,2002-07-02,2001-11-02,True,True,0.6653,False,0.4444,,,False,6.0,True,-16.0,,,True,111.0,True,-0.3414,,,True,18.0
+2000-02,S&P 500,2002-07-23,false,797.7,0.2068,2002-08-22,2002-10-07,2002-09-04,True,False,0.6898,False,0.1111,,,True,1.0,False,7.0,,,True,11.0,False,-0.1379,,,True,28.0
+2000-02,S&P 500,2002-10-09,true,776.76,0.3384,2003-09-18,,2002-11-20,True,True,0.6224,True,0.8889,,,False,6.0,True,-42.0,,,True,31.0,False,-0.1782,,,True,31.0
+2007-09,S&P 500,2008-03-10,false,1273.37,0.1204,2008-05-19,2008-07-02,2008-04-22,True,False,0.5816,False,0.7778,False,-0.0044,False,6.0,True,-22.0,True,1.0446,False,,False,0.1736,,,False,5.0
+2007-09,S&P 500,2008-10-10,false,899.22,0.1158,2008-10-13,2008-10-22,2008-10-21,True,False,0.4082,False,0.0,False,-0.0377,False,3.0,False,74.0,False,0.8245,True,6.0,False,-0.1039,,,False,12.0
+2007-09,S&P 500,2008-10-27,false,848.92,0.1847,2008-11-04,2008-11-19,2008-11-18,True,False,0.5959,False,0.0,False,-0.0318,False,3.0,False,11.0,False,0.9076,True,13.0,False,-0.0372,,,False,12.0
+2007-09,S&P 500,2008-11-20,false,752.44,0.2422,2009-01-06,2009-02-23,2009-01-06,True,True,0.6469,True,0.8889,True,0.0694,False,3.0,True,-15.0,True,1.0454,True,8.0,False,-0.0372,,,False,13.0
+2007-09,S&P 500,2009-03-09,true,676.53,0.7002,2010-01-19,,2009-04-21,True,True,0.6469,False,0.7778,True,0.087,True,2.0,True,-10.0,True,1.0172,True,18.0,True,-0.4392,,,False,17.0
+2022,S&P 500,2022-03-08,false,4170.7,0.1105,2022-03-29,2022-04-29,2022-04-20,False,True,0.649,False,0.7273,True,0.0036,False,3.0,True,-44.0,True,1.1885,False,,False,0.0389,False,1.26,False,2.0
+2022,S&P 500,2022-06-16,false,3666.77,0.1741,2022-08-16,2022-09-26,2022-08-01,True,False,0.6898,False,0.7273,False,-0.007,False,5.0,False,25.0,True,1.0884,True,59.0,False,-0.0876,False,1.75,False,5.0
+2022,S&P 500,2022-10-12,true,3577.03,0.2829,2023-07-31,,2022-11-23,True,True,0.649,True,0.9091,True,0.0174,False,3.0,True,-25.0,True,1.1489,True,63.0,True,-0.2455,False,1.57,False,9.0

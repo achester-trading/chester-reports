@@ -39,6 +39,9 @@ are run by hand when their register entry's study is due.
   box edition), `sr14_em_dollar.py`, `sr02_yen_unwind.py`, `sr04_cny_fix.py`,
   over `st8_common.py`. SR-1's rule arithmetic is `altdata/style_regime.py`, the
   one definition its Monthly panel reads too.
+- **ST-9** (st-t3-calib): `sr08_false_bottoms.py`, the SR-8 false-bottom audit,
+  writing `docs/ledgers/false-bottom-audit-2026.md` (a box edition writes
+  `false-bottom-audit-2026-box-<date>.md`).
 
 A threshold a passing ledger admits goes to config with the ledger named beside
 it (`admitted_by:`), by the session that adopts it; `tools/validate_st_t3_calib.py`
