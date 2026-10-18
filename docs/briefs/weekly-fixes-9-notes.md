@@ -252,7 +252,7 @@ Each run read once, with `gh run list --branch weekly-fixes-9 --limit 3`.
 |---|---|---|
 | 39158278549 | `459cdb6` (the fixes) | **success, 96 of 96 jobs** (88 code gates, 6 data, enumerate and the roll-up) |
 | 39158393033 | `e88a94e` (these notes) | **success, 96 of 96 jobs** |
-| (the rulings) | the commit after | in the session's closing report |
+| 39175743738 | `4c5de89` (the rulings of 18 Oct) | **success, 96 of 96 jobs** |
 
 ## The rulings of 18 Oct on this report, as applied
 
