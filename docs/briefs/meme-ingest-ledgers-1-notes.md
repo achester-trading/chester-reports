@@ -228,4 +228,9 @@ So `public` is the re-run to use until those writers exist.
 
 ## CI
 
-See the next section once the run completes.
+- 39079623175 (`333831a`, the fold's second pass) and 39080195144 (`f3d5bf4`,
+  Part 0) failed one gate each, validate_lenses: the vp-1 series without a
+  family, the fold interaction above.
+- **39081299646 on `1231cc4`: passed, 103 of 103 jobs** (94 code gates, 7 data
+  gates, the setup and summary jobs). Read 18 Oct 2026, on audit-leftovers-2's
+  Step 0.
