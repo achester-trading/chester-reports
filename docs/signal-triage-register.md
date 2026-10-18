@@ -426,6 +426,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 *Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-21-ledger-2026-10-18.md, FAIL (laptop run, public sources): 46 completed divergence episodes (DGS1 less the target, the keyless pair): refused median aligned 10-year change -17.5 bp, conceded +45.5 bp, the opposite of the pre-registered direction. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
+*Dated note under rule 31, 18 Oct 2026 (ruling 2 of 18 Oct; st-t3-calib):* **the sign reversal.** On the keyless legs (DGS1 less the target), which stand, the split separates in the opposite direction to this entry's mechanism: the median aligned 10-year change over the next three months was +45.5 bp after the Fed conceded and -17.5 bp after it refused, n=46 completed episodes (22 conceded, 24 refused; docs/ledgers/sr-21-ledger-2026-10-18.md). The verdict FAIL stands. The mechanism text above is not amended by a session: an amendment is a proposal for the Doctrine monthly of 7-8 Nov, which the operator drafts. Until then SR-21's features (CRED_STRESS, the fed-market gap, the venues' disagreement) print descriptive only.
+
 ### SR-22 5-year auction at 5.033%, TLT record low, "meltdown" (Padley, 24 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-1, ST-4, ST-7
@@ -443,6 +445,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Validation gate.** ~1,000 coupon auctions 2009–2026; forward 1m and 3m 10y change conditional on top-decile tails. Pass for the contrarian read: median forward 3m change negative with ≥60% hit rate. Otherwise stress flag only. Offline (ST-7).
 
 *Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-22-ledger-2026-10-18.md, FAIL (laptop run, public sources): ABS_STRESS as G-32 defines it fired on 1,034 of 1,540 coupon auctions with 63 sessions forward (the dealers-above-20% leg on 1,031); median 3m 10-year change -2.0 bp, a fall in 51.8%, against the rule's median < 0 and 60%: stress flag only. The pseudo-tail candidate also fails (40.8%). The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
+*Dated note under rule 31, 18 Oct 2026 (ruling 3 of 18 Oct; st-t3-calib):* **the dealer leg is not a flag.** G-32's 20% dealer leg fires on 1,031 of 1,540 auctions since 2009. The definition stays as pre-registered and the ledger fails it honestly. Wherever ABS_STRESS prints, its firing base rate prints beside it (on for 67 percent of auctions since 2009, n=1,540), and any modifier effect the order granted it is suspended, display only, until the Doctrine monthly rules. The ledger's second edition (docs/ledgers/sr-22-ledger-2026-10-18-r2.md) adds a labelled variant, the dealer share above its rolling two-year 80th percentile per tenor, as a candidate re-specification for that monthly: on for 11 percent of auctions (175 of 1,540), median 3m change -1.0 bp, a fall in 51.4%, FAIL under the same rule. It replaces nothing.
 
 **Doctrine note (by hand).** Drawdown of a constant-duration fund is yield arithmetic; a "record low" in price is not a level that means anything. Candidate rule, not a rule.
 

@@ -125,6 +125,21 @@ NOT_TRACKED: dict[str, str] = {
     "calc.ai_long_share": "by-hand keys ig_issuance_10y_plus_share and ai_ig_issuance_share, dropped 16 Oct",
 }
 HYPERSCALERS = ("AMZN", "GOOGL", "META", "MSFT", "ORCL")
+# ABS_STRESS's firing base rate, printed beside it wherever it prints (ruling 3 of
+# 18 Oct 2026): the dealer leg makes it fire on most auctions since 2009, so it is
+# not a flag. The figures are the SR-22 ledger's, and tools/validate_st_t3_calib.py
+# recomputes them from that ledger's CSV. Any modifier effect the order granted it
+# is suspended, display only, until the Doctrine monthly rules.
+ABS_STRESS_BASE = {"on": 1034, "n": 1540, "since": 2009,
+                   "ledger": "docs/ledgers/sr-22-ledger-2026-10-18.md"}
+ABS_STRESS_SUSPENDED = ("display only: any modifier effect suspended by the ruling of "
+                        "18 Oct until the Doctrine monthly rules")
+
+
+def abs_stress_base_rate() -> str:
+    b = ABS_STRESS_BASE
+    return (f"on for {round(100 * b['on'] / b['n'])} percent of auctions since "
+            f"{b['since']}, n={b['n']:,}")
 
 
 # ---------------------------------------------------------------------------

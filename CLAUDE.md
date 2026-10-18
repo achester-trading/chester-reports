@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-five code gates (ninety-two Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety-six code gates (ninety-three Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -499,6 +499,15 @@ Moving them into `config/market_state.yaml` is a rules change (v1.13).
 `sr23_net_supply.py`, over `st7_common.py`. Each pulls public sources and writes
 `docs/ledgers/sr-NN-ledger-<date>.md` with its CSV. Each register entry carries
 its A-3 gate status as a rule-31 draft. `tools/validate_st_t2_rates.py` holds both.
+
+**The rulings of 18 Oct on ST-7 and ST-5 print where the flags print
+(st-t3-calib).** ABS_STRESS carries its firing base rate beside it wherever it
+prints (`absorption.ABS_STRESS_BASE`, the SR-22 ledger's 1,034 of 1,540) and its
+modifier effect is suspended, display only, until the Doctrine monthly; SR-21's
+features print descriptive only; the devaluation tell prints "2 of 3 legs
+tracked" with each leg's state and never a verdict word while a leg is not
+tracked (`funding_currency.verdict_allowed()`). `tools/validate_st_t3_calib.py`
+holds these.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

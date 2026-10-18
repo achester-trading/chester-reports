@@ -35,6 +35,18 @@ sessions forward. Every flagged auction is an observation (the register counts
 auctions), and the number of distinct months they fall in is printed beside it,
 because auctions of one week share one forward window.
 
+THE SECOND EDITION (ruling 3 of 18 Oct 2026). G-32's dealer leg fires on most
+auctions since 2009, so it is not a flag. The definition stays as pre-registered
+and the verdict above is the one this ledger reports; the ledger gains a second,
+LABELLED variant study beside it, a candidate re-specification for the Doctrine
+monthly of 7-8 Nov that replaces nothing:
+  * VARIANT: the dealer share above its own rolling two-year 80th percentile --
+    per tenor, the shares of that tenor's auctions in the 730 days strictly
+    before this one (at least 8 of them), the 80th percentile linear between
+    order statistics (altdata.ledgers.quantile). Evaluated under the same rule.
+Each set's firing base rate (flagged over every auction with 63 sessions
+forward) prints beside it, as ABS_STRESS's does wherever it prints.
+
 Point in time: auction results are never revised (the writer's own docstring),
 and the constant-maturity yields are not revised. TreasuryDirect's API serves
 the whole history from 2009, so the laptop's edition reads the same records the
@@ -59,6 +71,11 @@ FLOOR = 30
 HIT = 0.60
 DECILE = 90.0
 MIN_TAIL_HISTORY = 20
+VARIANT_DAYS = 730
+VARIANT_Q = 0.80
+VARIANT_MIN = 8
+VARIANT = ("Variant (ruling 3, 18 Oct): dealer share above its rolling two-year "
+           "80th percentile -- candidate re-specification, grants nothing")
 NOMINAL = ("Note", "Bond")
 CMT = {"2-Year": "DGS2", "3-Year": "DGS3", "5-Year": "DGS5", "7-Year": "DGS7",
        "10-Year": "DGS10", "20-Year": "DGS20", "30-Year": "DGS30"}
@@ -155,6 +172,31 @@ def pseudo_tails(auctions: list[dict], cmt: dict) -> dict[tuple, tuple]:
     return out
 
 
+def dealer_variant(auctions: list[dict]) -> dict[tuple, bool]:
+    """{(day, instrument): dealer share above the 80th percentile of the same
+    tenor's shares over the 730 days strictly before}, where 8 are held."""
+    from altdata import ledgers
+    hist: dict[str, list[tuple[str, float]]] = {}
+    out = {}
+    for a in auctions:
+        if a["dealer"] is None:
+            continue
+        inst = f"{a['type']}:{a['term']}"
+        lo = (dt.date.fromisoformat(a["day"]) - dt.timedelta(days=VARIANT_DAYS)).isoformat()
+        prior = [v for d, v in hist.get(inst, []) if lo <= d < a["day"]]
+        if len(prior) >= VARIANT_MIN:
+            out[(a["day"], inst)] = a["dealer"] > ledgers.quantile(prior, VARIANT_Q)
+        hist.setdefault(inst, []).append((a["day"], a["dealer"]))
+    return out
+
+
+def base_rate(flagged: int, of: int) -> str:
+    """'on for 67 percent of auctions since 2009, n=1,540' -- the form the
+    ruling of 18 Oct prints beside ABS_STRESS."""
+    return (f"on for {round(100 * flagged / of)} percent of auctions since {START}, "
+            f"n={of:,}" if of else "no auctions")
+
+
 def evaluate(events: list[dict]) -> dict:
     done = [e for e in events if e["d10_3m_bp"] is not None]
     m3 = C.median([e["d10_3m_bp"] for e in done])
@@ -174,6 +216,7 @@ def study(d: dict, mode: str) -> dict:
     ten = d["cmt"]["10-Year"]
     fl = flags(auc)
     pt = pseudo_tails(auc, d["cmt"])
+    vr = dealer_variant(auc)
     rows = []
     for a in auc:
         key = (a["day"], f"{a['type']}:{a['term']}")
@@ -188,6 +231,7 @@ def study(d: dict, mode: str) -> dict:
                      "abs_stress": bool(f.get("abs_stress")),
                      "leg_two_low_covers": bool(f.get("two_low")),
                      "leg_dealers_over_20": bool(f.get("dealer")),
+                     "variant_dealer_over_2y_p80": bool(vr.get(key)),
                      "d10_1m_bp": None if i is None or C.fwd_change(ten, i, H1) is None
                      else round(100 * C.fwd_change(ten, i, H1), 1),
                      "d10_3m_bp": None if i is None or C.fwd_change(ten, i, H3) is None
@@ -199,6 +243,7 @@ def study(d: dict, mode: str) -> dict:
             "  leg: dealer takedown above 20%": [r for r in rows if r["leg_dealers_over_20"]],
             "Pseudo-tail, top decile (candidate only)":
                 [r for r in rows if r["pseudo_tail_top_decile"]],
+            VARIANT: [r for r in rows if r["variant_dealer_over_2y_p80"]],
             "Every coupon auction (unconditional)": rows}
     ev = {k: evaluate(v) for k, v in sets.items()}
     main = ev["ABS_STRESS (the live flag; the verdict)"]
@@ -215,15 +260,31 @@ def study(d: dict, mode: str) -> dict:
             f"{auc[-1]['day'] if auc else 'n/a'}: {len(rows)} (nominal {len(nominal)}, "
             f"TIPS {len(rows) - len(nominal)}).",
             "",
-            "| Set | Flagged with 3m forward | Distinct months | Median 1m (bp) | Median 3m (bp) | Falls, 3m | Rule |",
-            "|---|---|---|---|---|---|---|"]
+            "| Set | Flagged with 3m forward | Base rate | Distinct months | Median 1m (bp) | Median 3m (bp) | Falls, 3m | Rule |",
+            "|---|---|---|---|---|---|---|---|"]
+    every = ev["Every coupon auction (unconditional)"]["n"]
     for k, e in ev.items():
         rule = ("n/a" if k.startswith("Every") else e["word"])
-        body.append(f"| {k} | {e['n']} | {e['months']} | {C.f2(e['m1'], 1)} | "
-                    f"{C.f2(e['m3'], 1)} | {C.sh(e['hit'])} | {rule} |")
+        br = "the base" if k.startswith("Every") else base_rate(e["n"], every)
+        body.append(f"| {k} | {e['n']} | {br} | {e['months']} | "
+                    f"{C.f2(e['m1'], 1)} | {C.f2(e['m3'], 1)} | {C.sh(e['hit'])} | {rule} |")
+    var = ev[VARIANT]
     body += ["", f"The pseudo-tail candidate reads **{cand['word']}** under the same "
              "rule; as a candidate it grants nothing, and a real tail needs a "
-             "when-issued source (G-32)."]
+             "when-issued source (G-32).",
+             "",
+             f"**ABS_STRESS's base rate (ruling 3, 18 Oct): {base_rate(main['n'], every)}.** "
+             "It prints beside ABS_STRESS wherever ABS_STRESS prints, and any modifier "
+             "effect the order granted the flag is suspended, display only, until the "
+             "Doctrine monthly rules.",
+             "",
+             f"**The labelled variant** (dealer share above its rolling two-year 80th "
+             f"percentile, per tenor, at least {VARIANT_MIN} prior auctions): "
+             f"{base_rate(var['n'], every)}; under the register's rule it reads "
+             f"**{var['word']}** (median 3m {C.f2(var['m3'], 1, ' bp')}, falls in "
+             f"{C.sh(var['hit'])}). A candidate re-specification for the Doctrine "
+             "monthly of 7-8 Nov, not a replacement: the verdict above is G-32's "
+             "definition as pre-registered, and this row grants nothing."]
     last = max((r["day"] for r in rows if r["d10_3m_bp"] is not None), default=None)
     return {
         "item": ITEM, "title": "coupon auction absorption against the 10-year's next three months",
@@ -249,6 +310,9 @@ def study(d: dict, mode: str) -> dict:
         "source_mode": mode, "body": body, "episodes": rows,
         "caveats": ["The box re-run reads the same public sources (the calibration "
                     "rule), not the store.",
+                    "The variant row is labelled, not the gate: it was specified "
+                    "after the first edition's result (ruling 3), so its reading is "
+                    "a candidate for re-registration, never a pass of this gate.",
                     "Auctions of one week share most of a 63-session window, so the "
                     "flagged auctions are not independent; the distinct-month count "
                     "is beside each set."]}

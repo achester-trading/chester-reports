@@ -38,6 +38,9 @@ CHINA_TITLE = "China panel: input status"
 DRIVER_WITHDRAWN = ("the rates driver cell: withdrawn by the ruling of 30 Sep 2026 "
                     "(its gate failed twice; docs/ledgers/rates-driver-2026-09*.md), "
                     "so no cell prints; the attribution block reads the models instead")
+# SR-21's gate FAILed (docs/ledgers/sr-21-ledger-2026-10-18.md) and the ruling of
+# 18 Oct holds its features to descriptive: they print, and modify nothing.
+SR21_DESCRIPTIVE = "descriptive only (SR-21's gate failed; ruling of 18 Oct)"
 
 
 def latest(st, key: str, now: str, inst: Optional[str] = None
@@ -127,14 +130,15 @@ def rate_machine(st, now: str) -> list[str]:
                na("DEANCHOR", "calc.deanchor", "FRED T5YIFR, Fed Board CIE, UMich"))
     g = latest(st, "calc.fed_mkt_gap_12m", now)
     c = latest(st, "calc.cred_stress", now)
-    out.append(f"CRED_STRESS: {flag(c[1])} on the 12-month leg (gap {bp(g[1])}, as of "
-               f"{g[0]}); the next-meeting leg {NT} (rule 30; "
-               f"by-hand key fed_signalled_direction, dropped 16 Oct)" if g and c else
-               na("CRED_STRESS", "calc.fed_mkt_gap_12m",
-                  "fed funds futures (fedfunds.futures_price) and FRED FEDTARMD"))
+    out.append((f"CRED_STRESS: {flag(c[1])} on the 12-month leg (gap {bp(g[1])}, as of "
+                f"{g[0]}); the next-meeting leg {NT} (rule 30; "
+                f"by-hand key fed_signalled_direction, dropped 16 Oct)" if g and c else
+                na("CRED_STRESS", "calc.fed_mkt_gap_12m",
+                   "fed funds futures (fedfunds.futures_price) and FRED FEDTARMD"))
+               + f"; {SR21_DESCRIPTIVE}")
     out.append(line(st, now, "Venues against the futures, next meeting",
                     "calc.pm_disagree_fed", lambda v: f"{v:+.0f} points",
-                    "prediction markets and fed funds futures"))
+                    "prediction markets and fed funds futures") + f"; {SR21_DESCRIPTIVE}")
     return out
 
 
@@ -192,17 +196,23 @@ def duration_absorption(st, now: str) -> list[str]:
 
 
 def abs_stress_line(st, now: str) -> str:
-    """ABS_STRESS over the coupon tenors' newest auctions: ON if any is."""
+    """ABS_STRESS over the coupon tenors' newest auctions: ON if any is, with its
+    firing base rate beside it and its modifier effect suspended (ruling 3 of
+    18 Oct 2026)."""
+    from altdata import absorption                              # noqa: PLC0415
+    tail = (f"; {absorption.abs_stress_base_rate()} (SR-22 ledger); "
+            f"{absorption.ABS_STRESS_SUSPENDED}")
     try:
         insts = st.instruments("calc.abs_stress")
     except Exception:                                           # noqa: BLE001
         insts = []
     xs = [x for x in (latest(st, "calc.abs_stress", now, i) for i in insts) if x]
     if not xs:
-        return na("ABS_STRESS", "calc.abs_stress", "TreasuryDirect auctions")
+        return na("ABS_STRESS", "calc.abs_stress", "TreasuryDirect auctions") + tail
     newest = max(d for d, _ in xs)
     return (f"ABS_STRESS: {'ON' if any(v >= 0.5 for _, v in xs) else 'off'} across "
-            f"{len(xs)} coupon tenors (newest {newest}; candidate, its gate is ST-7's)")
+            f"{len(xs)} coupon tenors (newest {newest}; ST-7's gate FAILed: stress flag "
+            f"only){tail}")
 
 
 def cheap_unloved(st, now: str) -> list[str]:
@@ -270,13 +280,7 @@ def funding_lines(st, now: str) -> list[str]:
         "  " + line(st, now, "Yuan fix against the previous onshore close",
                     "calc.cny_fix_dev", bp, "calc; CFETS fix and CNY=X"),
     ]
-    dv = latest(st, "calc.deval_tell", now)
-    third = (f"the third leg (state banks selling dollars) {NT} (rule 30; by-hand key "
-             f"{fc.THIRD_LEG_KEY}, dropped 16 Oct)")
-    out.append("  " + (f"Devaluation tell, its two tracked legs: {flag(dv[1])} (as of "
-                       f"{dv[0]}); {third}" if dv else
-                       na("Devaluation tell", "calc.deval_tell",
-                          "calc; CFETS fix, CNH and CNY=X") + f"; {third}"))
+    out.append("  " + deval_line(st, now))
     try:
         cands = fc.candidate_rows(st, now) if st is not None else []
     except Exception:                                           # noqa: BLE001
@@ -289,6 +293,39 @@ def funding_lines(st, now: str) -> list[str]:
                            f"(as of {c['last']})" if c.get("magnitude") is not None else
                            na(lab, " and ".join(c["legs"]), "contradictions.gap_z")))
     return out
+
+
+def deval_line(st, now: str) -> str:
+    """SR-4's tell as ruling 6 of 18 Oct prints it: "2 of 3 legs tracked", each
+    leg's state, the untracked leg's key named, and no verdict word while a leg is
+    not tracked (funding_currency.verdict_allowed)."""
+    from altdata import funding_currency as fc                  # noqa: PLC0415
+    cfg = fc.config()
+    n, total = fc.legs_tracked(cfg), fc.LEGS_TOTAL
+    try:
+        lg = fc.deval_legs(st, now, cfg) if st is not None else None
+    except Exception:                                           # noqa: BLE001
+        log.warning("devaluation tell legs faulted", exc_info=True)
+        lg = None
+    third = (f"leg 3, state banks selling dollars: {NT} (rule 30; by-hand key "
+             f"{fc.THIRD_LEG_KEY}, dropped 16 Oct)")
+    head = f"Devaluation tell: {n} of {total} legs tracked"
+    if lg is None:
+        return (na(head, "calc.deval_tell",
+                   "calc; its legs from the CFETS fix, CNH and CNY=X") + f"; {third}")
+    y = cfg["yuan"]
+
+    def held(v: bool) -> str:
+        return "held" if v else "not held"
+    body = (f"{head} (as of {lg['day']}): leg 1, the fix's lean gone: "
+            f"{held(lg['leg1'])} (5-observation mean {bp(lg['lean_bp'])}, held at or "
+            f"above {bp(y['lean_gone_bp'])}); leg 2, the CNH-CNY gap wide and widening: "
+            f"{held(lg['leg2'])} ({bp(lg['gap_bp'])}, {bp(lg['widen_bp'])} over "
+            f"{y['gap_widen_obs']} observations; held at {bp(y['gap_weak_bp'])} and "
+            f"{bp(y['gap_widen_bp'])}); {third}")
+    if not fc.verdict_allowed(cfg):
+        return body + "; no verdict prints while a leg is not tracked (ruling of 18 Oct)"
+    return body + f"; the tell: {flag(1.0 if lg['leg1'] and lg['leg2'] else 0.0)}"
 
 
 def china_status(st, now: str) -> list[str]:

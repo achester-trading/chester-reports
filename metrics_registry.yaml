@@ -13101,7 +13101,7 @@ metrics:
     units: boolean
     trigger_eligible: false
     description: >-
-      SR-4's deliberate-devaluation tell, its two tracked legs, 1 or 0: the fix's lean gone (5-observation mean of calc.cny_fix_dev at or above -10 bp) and the CNH-CNY gap wide and widening (calc.cnh_cny_bp's 5-observation mean at or above +30 bp and 20 bp wider than 20 observations earlier). The third leg, state banks selling dollars, is NOT TRACKED (rule 30; the by-hand key state_bank_dollar_selling was dropped 16 Oct), so a 1 is two of three legs, never the full tell (ST-5; altdata/funding_currency.py). Display only.
+      SR-4's deliberate-devaluation tell, its two tracked legs, 1 or 0 (stored; printed as "2 of 3 legs tracked" with each leg's state and never as a verdict while a leg is not tracked, ruling of 18 Oct 2026): the fix's lean gone (5-observation mean of calc.cny_fix_dev at or above -10 bp) and the CNH-CNY gap wide and widening (calc.cnh_cny_bp's 5-observation mean at or above +30 bp and 20 bp wider than 20 observations earlier). The third leg, state banks selling dollars, is NOT TRACKED (rule 30; the by-hand key state_bank_dollar_selling was dropped 16 Oct), so a 1 is two of three legs, never the full tell (ST-5; altdata/funding_currency.py). Display only.
   calc.net_supply_proj_12m:
     source: calc
     mechanism_group: treasury_supply

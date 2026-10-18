@@ -36,6 +36,10 @@ THE YUAN (SR-4)
                            (5-observation mean at or above +30 bp, and 20 bp
                            wider than 20 observations earlier)
 
+  THE NO-VERDICT RULE (ruling 6, 18 Oct): the tell prints "2 of 3 legs tracked"
+  with each leg's state, and never a verdict word while a leg is not tracked
+  (verdict_allowed()); deval_legs() is what the Monthly's line reads.
+
   THE THIRD LEG IS NOT TRACKED (rule 30). "State banks stop selling dollars" was a
   by-hand input (G-21; the by-hand key state_bank_dollar_selling, dropped 16 Oct)
   and no keyless source within terms reports state-bank FX flows. So a 1 here is
@@ -222,13 +226,28 @@ def compute_rows(db, as_of: Optional[str] = None, first_day: Optional[str] = Non
         if d in cgb:
             emit("calc.uscn_10y_spread", d, spread_bp(v, cgb[d][0]),
                  latest_avail(a, cgb[d][1]))
+    for t in tell_legs(dev, offshore_gap(cny, series(db, CNH, as_of)), yuan):
+        emit("calc.deval_tell", t["day"], 1.0 if t["leg1"] and t["leg2"] else 0.0,
+             t["available"])
+    return rows
+
+
+def offshore_gap(cny: list[tuple], cnh: list[tuple]) -> list[tuple[str, float, str]]:
+    """[(day, CNH-CNY gap bp, available_at)]: calc.cnh_cny_bp's own arithmetic."""
     from .sources import cfets                                  # noqa: PLC0415
     cnyd = {d: (v, a) for d, v, a in cny}
-    gap = [(d, cfets.gap_bp(v, cnyd[d][0]), latest_avail(a, cnyd[d][1]))
-           for d, v, a in series(db, CNH, as_of) if d in cnyd and cnyd[d][0]]
+    return [(d, cfets.gap_bp(v, cnyd[d][0]), latest_avail(a, cnyd[d][1]))
+            for d, v, a in cnh if d in cnyd and cnyd[d][0]]
+
+
+def tell_legs(dev: list[tuple], gap: list[tuple], yuan: dict) -> list[dict]:
+    """The devaluation tell's two TRACKED legs on each gap date they are readable:
+    [{day, leg1, lean_bp, leg2, gap_bp, widen_bp, available}]. The one place the
+    legs are computed: calc.deval_tell stores their conjunction and the Monthly's
+    line prints each one (deval_legs)."""
     lo_n, g_n, w_n = int(yuan["lean_obs"]), int(yuan["gap_obs"]), int(yuan["gap_widen_obs"])
     gav = [a for _, _, a in gap]
-    j = 0
+    out, j = [], 0
     for i in range(g_n + w_n - 1, len(gap)):
         d = gap[i][0]
         while j < len(dev) and dev[j][0] <= d:
@@ -241,12 +260,47 @@ def compute_rows(db, as_of: Optional[str] = None, first_day: Optional[str] = Non
             if i - w_n - g_n + 1 >= 0 else None
         if then_m is None:
             continue
-        leg1 = statistics.fmean(x[1] for x in lean) >= float(yuan["lean_gone_bp"])
-        leg2 = now_m >= float(yuan["gap_weak_bp"]) and \
-            now_m - then_m >= float(yuan["gap_widen_bp"])
-        emit("calc.deval_tell", d, 1.0 if leg1 and leg2 else 0.0,
-             latest_avail(wmax(gav, i, w_n + g_n), *(x[2] for x in lean)))
-    return rows
+        lean_m = statistics.fmean(x[1] for x in lean)
+        out.append({"day": d, "leg1": lean_m >= float(yuan["lean_gone_bp"]),
+                    "lean_bp": lean_m,
+                    "leg2": now_m >= float(yuan["gap_weak_bp"])
+                    and now_m - then_m >= float(yuan["gap_widen_bp"]),
+                    "gap_bp": now_m, "widen_bp": now_m - then_m,
+                    "available": latest_avail(wmax(gav, i, w_n + g_n),
+                                              *(x[2] for x in lean))})
+    return out
+
+
+# THE NO-VERDICT RULE (ruling 6 of 18 Oct 2026). The tell prints as "2 of 3 legs
+# tracked", each leg's state and the untracked leg's key named, and NEVER a verdict
+# word (ON, off, fired, tripped) until every leg has a source or the order is
+# amended. LEGS_TOTAL is the order's three; the tracked count is read from the
+# config's third_leg, so giving the third leg a source is a config change the
+# gate sees.
+LEGS_TOTAL = 3
+
+
+def legs_tracked(cfg: Optional[dict] = None) -> int:
+    third = str(((cfg or config()).get("yuan") or {}).get("third_leg") or "")
+    return 2 if third.strip().lower().startswith("not tracked") else 3
+
+
+def verdict_allowed(cfg: Optional[dict] = None) -> bool:
+    return legs_tracked(cfg) == LEGS_TOTAL
+
+
+def deval_legs(db, as_of: Optional[str], cfg: Optional[dict] = None) -> Optional[dict]:
+    """The newest readable state of each tracked leg, knowable at as_of, or None."""
+    cfg = cfg or config()
+    cny = series(db, CNY, as_of)
+    dev, k = [], -1
+    for d, f, a in series(db, FIX, as_of):
+        while k + 1 < len(cny) and cny[k + 1][0] < d:
+            k += 1
+        if k >= 0 and f and cny[k][1]:
+            dev.append((d, fix_dev_bp(f, cny[k][1]), latest_avail(a, cny[k][2])))
+    legs = tell_legs(dev, offshore_gap(cny, series(db, CNH, as_of)), cfg["yuan"])
+    return legs[-1] if legs else None
 
 
 def candidate_rows(db, as_of: Optional[str], cfg: Optional[dict] = None) -> list[dict]:
