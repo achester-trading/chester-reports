@@ -32,8 +32,8 @@ commands:
     line: 'The catalogue: one place to list, search and read what the system holds'
   altdata.chain_metrics:
     domain: options
-    line: Per-session readings from SPY's own captured option chain
-    sources: [spy_chain_capture]
+    line: "Per-session readings from SPY's own captured option chain, and (OS-10) every captured name's options volume and front-month ATM IV; backfill-names rebuilds the latter from the captures on disk"
+    sources: [spy_chain_capture, chain_capture]
   altdata.claims:
     domain: reference
     line: 'The claims registry: cited figures the system may print and cannot compute'

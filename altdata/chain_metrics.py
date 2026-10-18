@@ -45,6 +45,10 @@ log = logging.getLogger(__name__)
 
 REPO = Path(__file__).resolve().parent.parent
 IV_KEY = "chain.spy_atm_iv_30d"
+# OS-10 (a44-opening-setup, 18 Oct 2026): per name, from each session's last capture.
+VOL_KEY = "chain.options_volume"
+FRONT_IV_KEY = "chain.atm_iv_front"
+NAMES_SOURCE = "chain_capture"
 PC_KEY = "chain.spy_put_call_volume"
 SOURCE = "spy_chain_capture"
 TARGET_DAYS = 30.0
@@ -56,10 +60,12 @@ def chain_dir() -> Path:
     return p if p.is_absolute() else REPO / p
 
 
-def latest_capture(day: str, base: Optional[Path] = None) -> Optional[Path]:
-    """The session's last SPY capture (the file names carry the UTC time)."""
+def latest_capture(day: str, base: Optional[Path] = None,
+                   symbol: str = "SPY") -> Optional[Path]:
+    """The session's last capture of `symbol` (the file names carry the UTC
+    time)."""
     d = (base or chain_dir()) / day
-    files = sorted(p for p in d.glob("SPY_*.csv") if "_quality" not in p.name) \
+    files = sorted(p for p in d.glob(f"{symbol}_*.csv") if "_quality" not in p.name) \
         if d.is_dir() else []
     return files[-1] if files else None
 
@@ -170,6 +176,95 @@ def readings(day: str, base: Optional[Path] = None) -> dict:
     return out
 
 
+def third_friday(d: dt.date) -> dt.date:
+    first = d.replace(day=1)
+    return first + dt.timedelta(days=(4 - first.weekday()) % 7 + 14)
+
+
+def front_month_iv(rows: list[dict], min_dte: int = 7,
+                   r: Optional[float] = None) -> Optional[dict]:
+    """The front month's ATM IV, percent: the nearest third-Friday expiry at least
+    `min_dte` days out, else the first expiry that far out (method "nearest"),
+    solved and interpolated as the 30-day figure's legs are."""
+    ivs = _solver()
+    rate = config.RISK_FREE_RATE if r is None else r
+    out = ivs.solve_chain(rows, rate)
+    by_exp: dict[str, list] = {}
+    for x in out["rows"]:
+        by_exp.setdefault(x["expiry"], []).append(x)
+    ok = sorted((e, m) for e, m in out["expiries"].items()
+                if m.get("forward") and (m.get("dte") or 0) >= min_dte)
+    monthly = [(e, m) for e, m in ok
+               if dt.date.fromisoformat(str(e)[:10]) == third_friday(dt.date.fromisoformat(str(e)[:10]))]
+    pick, method = (monthly[0], "third Friday") if monthly else ((ok[0], "nearest") if ok else (None, None))
+    if not pick:
+        return None
+    e, m = pick
+    iv = expiry_atm_iv(by_exp.get(e) or [], m["forward"])
+    return None if not iv else {"iv_pct": round(100.0 * iv, 3), "expiry": e,
+                                "dte": m.get("dte"), "method": method}
+
+
+def name_readings(day: str, symbol: str, base: Optional[Path] = None,
+                  min_dte: int = 7) -> dict:
+    """OS-10: one name's session options volume (calls and puts, the last
+    capture) and front-month ATM IV."""
+    path = latest_capture(day, base, symbol)
+    if not path:
+        return {"session": day, "symbol": symbol, "reason": "no capture"}
+    rows = load_rows(path)
+    out: dict[str, Any] = {"session": day, "symbol": symbol, "capture": path.name,
+                           "fetched_at": rows[0].get("fetched_at") if rows else None,
+                           "volume": sum(r["volume"] for r in rows) if rows else None}
+    try:
+        out["front"] = front_month_iv(rows, min_dte) if rows else None
+    except Exception as exc:                                    # noqa: BLE001
+        out["front"] = None
+        out["iv_reason"] = f"{type(exc).__name__}: {exc}"[:160]
+    return out
+
+
+def name_rows(rd: dict) -> list[dict]:
+    avail, out = rd.get("fetched_at"), []
+    if not avail:
+        return out
+    if rd.get("volume") is not None:
+        out.append({"registry_key": VOL_KEY, "instrument": rd["symbol"],
+                    "observed_at": rd["session"], "available_at": avail,
+                    "value": float(rd["volume"]), "source": NAMES_SOURCE})
+    if rd.get("front"):
+        out.append({"registry_key": FRONT_IV_KEY, "instrument": rd["symbol"],
+                    "observed_at": rd["session"], "available_at": avail,
+                    "value": rd["front"]["iv_pct"], "source": NAMES_SOURCE})
+    return out
+
+
+def record_names(day: str, store=None, base: Optional[Path] = None,
+                 symbols: Optional[list[str]] = None) -> dict:
+    """OS-10: every captured name's two readings for the session. Never raises."""
+    syms = symbols or config.chain_universe()
+    out: dict[str, Any] = {"session": day, "names": {}, "written": 0}
+    rows: list[dict] = []
+    for sym in syms:
+        try:
+            rd = name_readings(day, sym, base)
+        except Exception as exc:                                # noqa: BLE001
+            rd = {"error": f"{type(exc).__name__}: {exc}"[:160]}
+        out["names"][sym] = {k: rd.get(k) for k in ("volume", "front", "reason", "error")}
+        if "error" not in rd:
+            rows += name_rows(rd)
+    if rows:
+        own = store is None
+        st = store or observations.ObservationStore()
+        try:
+            st.write_many(rows)
+        finally:
+            if own:
+                st.close()
+    out["written"] = len(rows)
+    return out
+
+
 def observation_rows(rd: dict) -> list[dict]:
     rows = []
     avail = rd.get("fetched_at")
@@ -202,6 +297,9 @@ def record_session(day: str, store=None, base: Optional[Path] = None) -> dict:
                 if own:
                     st.close()
         rd["written"] = len(rows)
+        # OS-10 (a44-opening-setup): every captured name's volume and front IV,
+        # recorded where the close already records SPY's, never fatal.
+        rd["names"] = record_names(day, store, base)
         return rd
     except Exception as exc:                                    # noqa: BLE001
         return {"session": day, "error": f"{type(exc).__name__}: {exc}"[:200]}
@@ -241,9 +339,24 @@ def _main(argv: list[str]) -> int:
     b = sub.add_parser("backfill")
     b.add_argument("--days", type=int, default=60)
     b.add_argument("--dry-run", action="store_true")
+    bn = sub.add_parser("backfill-names", help="OS-10: every name's volume and front IV")
+    bn.add_argument("--days", type=int, default=60)
+    bn.add_argument("--dry-run", action="store_true")
     a = p.parse_args(argv)
     if a.cmd == "show":
         print(json.dumps(readings(a.session), indent=2, default=str))
+    elif a.cmd == "backfill-names":
+        root = chain_dir()
+        since = (dt.date.today() - dt.timedelta(days=a.days)).isoformat()
+        days = sorted(x.name for x in root.iterdir() if x.is_dir() and x.name >= since) \
+            if root.is_dir() else []
+        res = {}
+        for d in days:
+            if a.dry_run:
+                res[d] = {s: name_readings(d, s).get("volume") for s in config.chain_universe()}
+            else:
+                res[d] = record_names(d)["written"]
+        print(json.dumps(res, indent=2, default=str))
     else:
         print(json.dumps(backfill(a.days, a.dry_run), indent=2, default=str))
     return 0

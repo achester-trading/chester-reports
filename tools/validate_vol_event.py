@@ -265,8 +265,10 @@ def group_c() -> None:
     s = series_16oct()
     ev = ve.evaluate(s, DAY, CFG, profile(), [], BANDS)
     check(ev["fired"] and ev["table"]["rows"][0][0] == "Spot-vol"
-          and len(ev["table"]["rows"]) == 9 and len(ev["table"]["columns"]) == 2,
-          "a fired event: nine lenses, one line each, two columns")
+          and len(ev["table"]["rows"]) == len(ve.LENS_ORDER) == 10
+          and ev["table"]["columns"][-1] == "As of",
+          "a fired event: ten lenses (OS-3 adds the short-term spike), one line each, "
+          "each with its as-of")
     check("XIII band is normal" in ev["consequence"]
           and "condition holds (VIX 19.98, +21.5%)" in ev["consequence"]
           and "halved" in ev["consequence"]
@@ -365,7 +367,7 @@ def group_e() -> None:
           and all(r["observed_at"] == DAY and r["available_at"] == "2026-10-16T21:00:00+00:00"
                   for r in rows)
           and led["instrument"] == DAY and body["outcomes"] is None
-          and len(body["attribution"]) == 9,
+          and len(body["attribution"]) == len(ve.LENS_ORDER),
           "a fired event writes the event day, the compression flag and a ledger row: "
           "observed on the session, available when written, its attribution and no "
           "outcome yet")
@@ -421,9 +423,45 @@ def group_g() -> None:
         check(not hits, f"no {what} ({hits[:1]})")
 
 
+def group_os3() -> None:
+    head("OS-3. THE VOLATILITY-REGIME LENSES (a44-opening-setup)")
+    days = weekdays(DAY, 4)
+    s = {"vix": [(d, 20.0) for d in days],
+         "vix9d": list(zip(days, (18.0, 19.0, 20.0, 22.0))),
+         "vix3m": list(zip(days, (21.0, 21.0, 22.0, 24.0))),
+         "vix6m": list(zip(days, (22.0, 23.0, 21.0, 22.0)))}
+    sp = ve.lens_spike(s, DAY, CFG)
+    check(close(sp["ratio_9d"], 1.1) and sp["percentiles"][0] == ("1-year", 100.0, 4)
+          and "VIX9D/VIX 1.100: 1-year 100th percentile (n=4)" in sp["line"]
+          and sp["as_of"] == DAY,
+          f"the short-term spike by hand: VIX9D 22 over VIX 20 is 1.100, the highest of "
+          f"four (the 1-year window holds n=4) -- {sp['line']}")
+    tm = ve.lens_term(s, DAY, CFG)
+    check(close(tm["ratio_6m"], 1.1) and tm["percentiles_6m"][0] == ("1-year", 75.0, 4)
+          and tm["percentiles_3m"][0] == ("1-year", 100.0, 4)
+          and "VIX6M/VIX 1.100 (1-year 75th percentile (n=4)" in tm["line"],
+          "term-structure stress by hand: VIX3M/VIX 1.200, the top of four; VIX6M/VIX "
+          "1.100, at or above three of four (75th)")
+    ev = ve.evaluate(series_16oct(), DAY, CFG, profile(), [], BANDS)
+    rl = ev["lenses"]["realised"]
+    ps = rl.get("vrp_percentiles") or []
+    check(ps and ps[0][0] == "1-year" and ps[0][2] == 252 and ps[1][2] == 1260
+          and "percentile (n=252)" in rl["line"] and "percentile (n=1,260)" in rl["line"],
+          "the VIX against 20-day realised: the spread's 1-year and 5-year percentiles, "
+          "each with its n (252, 1,260)")
+    rows = {r[0]: r for r in ev["table"]["rows"]}
+    s2 = {k: v for k, v in series_16oct().items() if k != "vix9d"}
+    aw = {r[0]: r for r in ve.lens_table(ve.lenses(s2, DAY, CFG, profile(), []))["rows"]}
+    check(rows["Short-term spike"][2] == DAY and rows["Term structure"][2] == DAY
+          and rows["Realised against implied"][2] == DAY and aw["Short-term spike"][2] == "—",
+          "the table prints each lens's as-of ('—' where a lens awaits its input)")
+    check(not any(w in json.dumps(ev["table"]).lower() for w in ("composite", "score", "weight")),
+          "three lenses, no composite, no score, no weight")
+
+
 def main() -> int:
     print(f"{LINE}\nBATCH 9 ITEM 52: THE VOLATILITY EVENT FLAG AND ATTRIBUTION\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_os3):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

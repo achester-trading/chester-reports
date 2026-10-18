@@ -6224,6 +6224,32 @@ metrics:
     trigger_eligible: false
     description: >-
       SPY at-the-money implied volatility at 30 days, solved from mid prices by tools/iv_solver.py and interpolated in total variance between the bracketing expiries, in percent.
+  chain.options_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's session options volume, calls and puts, summed over the session's last captured chain (instrument = the symbol; the captured universe and SPY, QQQ, IWM). OS-10, the Weekly's most-active table: report-only (a44-opening-setup).
+  chain.atm_iv_front:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's front-month at-the-money implied volatility, percent: the nearest third-Friday expiry at least 7 days out (else the first expiry that far out), solved from mid prices by tools/iv_solver.py as SPY's 30-day figure is. OS-10, report-only (a44-opening-setup).
   chain.spy_put_call_volume:
     source: spy_chain_capture
     mechanism_group: dealer_chain_derived
@@ -15179,6 +15205,7 @@ series_kinds:
   yfinance.mkt_vix6m: volatility
   yfinance.mkt_move: volatility
   chain.spy_atm_iv_30d: volatility
+  chain.atm_iv_front: volatility
   calc.vol_spy_realized_20d: volatility
   yfinance.mkt_spy: price
   yfinance.mkt_dxy: price

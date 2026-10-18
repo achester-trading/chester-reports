@@ -45,6 +45,9 @@ metrics:
   fred.fed_balance: "the Fed's balance sheet"
   fred.housing_permits: "housing permits"
   fred.hy_oas: "high-yield credit spreads (OAS)"
+  # OS-10 (a44-opening-setup): the most-active table's two stored series.
+  chain.options_volume: "options volume (our own capture)"
+  chain.atm_iv_front: "front-month at-the-money implied volatility (our own capture)"
   fred.ig_oas: "investment-grade credit spreads (OAS)"
   fred.job_openings: "job openings"
   fred.mortgage_30y: "the 30-year mortgage rate"

@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-seven code gates (ninety-four Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety-eight code gates (ninety-five Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -557,6 +557,18 @@ alert-only, no verdict word for the tell) and the Weekly's Sunday line with Book
 rules and Book B's tells (through `dealer_weekly.mechanics`). The Mechanism Watch
 block and the PRL line wait for Tranche 5. `tools/validate_a43_render.py` holds
 these and Part 0.
+
+**The opening setup's first half (D-3 of 18 Oct 2026; a44-opening-setup) is
+report-only: no score, no weights.** `daily_cascade/opening_setup.py` builds the
+07:00 anchor's expected-movement gauge (OS-2: the engine's regime word, our own
+one-sigma range, and the scorecard's typical realised range by regime, "awaiting"
+below n=20), the Weekly's most-active names (OS-10, from `chain.options_volume` and
+`chain.atm_iv_front`, which `altdata/chain_metrics.py` records per captured name),
+and the Ahead matrix's earnings pricing (OS-11: the last three reactions and
+elevated / muted / in line against the matrix's own implied move). OS-3's three
+volatility-regime lenses extend item 52's lens table (`altdata/vol_event.py`), each
+with its percentiles, windows and as-of. Settings: `config/opening_setup.yaml`. The
+vendor is never read; `tools/validate_opening_setup.py` holds it.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

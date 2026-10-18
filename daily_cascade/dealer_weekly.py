@@ -65,6 +65,21 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
         out["subsections"].append(signal_lines.sunday_subsection(st, cutoff))
     except Exception:                                           # noqa: BLE001
         out["not_tracked"].append("the Sunday line: its block faulted")
+    # OS-10 (a44-opening-setup): the week's most active names by options volume,
+    # after the vendor line below; report-only, no chart, no paragraph.
+    from . import opening_setup                                 # noqa: PLC0415
+    try:
+        week = sorted({str(c.get("session"))[:10] for c in cards or [] if c.get("session")})
+        if not week:
+            from altdata import session as _s                   # noqa: PLC0415
+            d, week = _s.previous_trading_session(ending), [ending]
+            while len(week) < 5:
+                week.insert(0, d.isoformat())
+                d = _s.previous_trading_session(d.isoformat())
+        most = opening_setup.most_active(st, week, cutoff)
+    except Exception:                                           # noqa: BLE001
+        most = None
+        out["not_tracked"].append("the most-active names: their table faulted")
     prof = db.newest_settled(ending, "SPY", computed_dir) if computed_dir else None
     if prof and prof.get("horizons"):
         m = db.t3(prof, cfg, db.window_history(st, cutoff, prof), db.implied_vol(st, cutoff))
@@ -102,6 +117,8 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
                                "table": fa.mechanics_row(vend, day),
                                "lines": fa.vendor_line(vend, prof, day=day),
                                "paragraph_wanted": False})
+    if most:
+        out["subsections"].append(most)
     # EL-5: THE STATE VECTOR, one row per session (the 16:10 capture's), read
     # from the store; numbers only.
     from altdata import state_vector as sv                      # noqa: PLC0415

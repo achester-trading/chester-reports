@@ -1,0 +1,45 @@
+# THE OPENING SETUP, first half (decision D-3 of 18 Oct 2026; a44-opening-setup):
+# OS-2, OS-3, OS-10 and OS-11, read by daily_cascade/opening_setup.py (and OS-3 by
+# altdata/vol_event.py's lens table). REPORT-ONLY: no 0-100 score and no weights
+# (D-4); every rank prints its window and n until a year of captures exists; the
+# vendor is never read by these builders. Every number is SESSION-SET with its
+# reason. The second half (OS-8, OS-9, OS-4, OS-5) is a later paste.
+version: opening-setup-v1
+
+# OS-2 -- the expected-movement gauge, in the 07:00 anchor's dealer-surface block.
+gauge:
+  symbol: SPY
+  # The typical realised range: over the 5 sessions from each stored scorecard
+  # session of the same gated regime, (the highest high less the lowest low) over
+  # the prior close; the median, printed once n is 20 (the scorecard's own floor
+  # for a count), else "awaiting (n=k of 20)".
+  sessions: 5
+  n_min: 20
+  displaces: >-
+    nothing: one line under the dealer-surface table, which keeps its rows; the
+    ST-10 signal-lines block and its budget are unchanged
+
+# OS-10 -- the most-active names, in the Weekly's Mechanics.
+most_active:
+  top: 10
+  # Front-month ATM IV: the nearest third-Friday expiry at least 7 days out,
+  # else the first expiry 7 or more days out (labelled "nearest"), from each
+  # session's last capture, solved by the chain solver as SPY's 30-day IV is.
+  front_min_dte: 7
+  # The implied one-week move: spot x front IV x sqrt(5/252); the realised week:
+  # the week's highest close less its lowest, over the first close.
+  week_sessions: 5
+  displaces: >-
+    nothing: one table in Mechanics after the vendor line, no chart and no
+    paragraph, so the Weekly's chart cap and word budget are unchanged
+
+# OS-11 -- the earnings rows' pricing, in the Ahead matrix.
+earnings:
+  reactions: 3
+  # "elevated" when the implied move exceeds the median of the last three
+  # absolute reactions by a fifth or more; "muted" a fifth or more below; else
+  # "in line". Never a recommendation.
+  band: 0.20
+  # The reaction: the close before the report date to the close after it, the
+  # Weekly's earnings block's own rule (it spans a before-the-open and an
+  # after-the-close report alike).

@@ -274,6 +274,9 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     # gap, the yen flag and the rally inside a bear -- each only on its trigger.
     from . import signal_lines                                  # noqa: PLC0415
     signals = signal_lines.build(this_session, prior, cutoff, db_path)
+    # OS-2 (a44-opening-setup): the expected-movement gauge, under the dealer surface.
+    from . import opening_setup                                 # noqa: PLC0415
+    gauge = opening_setup.gauge_from_store(prior, cutoff, db_path)
 
     warnings: list[str] = []
     if state_obj is None:
@@ -332,5 +335,6 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "what_changed": changed,
         "vol_event": vol_event,
         "signal_lines": signals,
+        "opening_gauge": gauge,
         "warnings": warnings,
     }

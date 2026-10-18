@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from . import events_block, signal_lines, state_block
+from . import events_block, opening_setup, signal_lines, state_block
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -348,6 +348,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Prior close &mdash; dealer surface</h2>
 {exposure_block(payload)}
+{opening_setup.gauge_html(payload.get("opening_gauge"))}
 
 <h2 style="{H2}">Prior close &mdash; pin verdicts</h2>
 {pin_table(payload)}

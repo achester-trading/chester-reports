@@ -14,7 +14,8 @@ level bands, config/market_state.yaml); or compression to within 5% of the
 trailing six-month low, held three sessions. Level and change are SEPARATE
 fields, each with its five- and 20-year percentile.
 
-ST-R6.52b THE NINE LENSES, one line each, eight computed: spot-vol, term
+ST-R6.52b THE NINE LENSES (ten with OS-3's short-term spike, a44-opening-setup;
+each row with its as-of), one line each, eight computed: spot-vol, term
 structure, tail and vol-of-vol, cross-asset, dealer positioning, realised
 against implied, breadth, positioning; the ninth, the catalyst, from the Phase B
 scan's stored press attributions -- "not established" is a permitted value. A
@@ -53,9 +54,13 @@ REPO = Path(__file__).resolve().parent.parent
 EVENT_KEY = "vol.event_day"
 LEDGER_KEY = "vol.event_ledger"
 COMPRESSION_KEY = "calc.vol_compression"
-LENS_ORDER = ("spot_vol", "term_structure", "tail", "cross_asset", "dealer",
+LENS_ORDER = ("spot_vol", "term_structure", "spike", "tail", "cross_asset", "dealer",
               "realised", "breadth", "positioning", "catalyst")
+# OS-3 (a44-opening-setup, 18 Oct 2026): the volatility-regime lenses' windows --
+# one year and five years of sessions, each percentile printed with its n.
+PCT_WINDOWS = ((252, "1-year"), (1260, "5-year"))
 LENS_TITLES = {"spot_vol": "Spot-vol", "term_structure": "Term structure",
+               "spike": "Short-term spike",
                "tail": "Tail and vol-of-vol", "cross_asset": "Cross-asset",
                "dealer": "Dealer positioning", "realised": "Realised against implied",
                "breadth": "Breadth", "positioning": "Positioning",
@@ -252,6 +257,40 @@ def lens_spot_vol(vix, spx, day, cfg) -> dict:
                      f"{fmt_signed(resid)} points is the vol bid beyond spot")}
 
 
+def ratio_series(series: dict, num: str, den: str, day: str) -> list[tuple[str, float]]:
+    """num over den on the dates both carry, to `day`."""
+    a = dict(_upto(series.get(num) or [], day))
+    b = dict(_upto(series.get(den) or [], day))
+    return [(d, a[d] / b[d]) for d in sorted(set(a) & set(b)) if b[d]]
+
+
+def window_pcts(values: list[float], x: float) -> list[tuple[str, Optional[float], int]]:
+    """[(window label, percentile of x in the last n values, n used)] (OS-3)."""
+    out = []
+    for n, lab in PCT_WINDOWS:
+        w = values[-n:]
+        out.append((lab, pctile(w, x) if w else None, len(w)))
+    return out
+
+
+def pct_text(ps: list[tuple[str, Optional[float], int]]) -> str:
+    from altdata.numeral_audit import ordinal               # noqa: PLC0415
+    return ", ".join(f"{lab} {ordinal(p)} percentile (n={n:,})" for lab, p, n in ps
+                     if p is not None)
+
+
+def lens_spike(series, day, cfg) -> dict:
+    """OS-3: the short-term spike -- VIX9D over VIX with its percentiles."""
+    rs = ratio_series(series, "vix9d", "vix", day)
+    if not rs or rs[-1][0] != day:
+        return {"line": "awaiting: VIX9D or VIX not stored for the session",
+                "state": "awaiting", "as_of": rs[-1][0] if rs else None}
+    x = rs[-1][1]
+    ps = window_pcts([v for _, v in rs], x)
+    return {"ratio_9d": x, "percentiles": ps, "state": "computed", "as_of": rs[-1][0],
+            "line": f"VIX9D/VIX {x:.3f}: {pct_text(ps)}"}
+
+
 def lens_term(series, day, cfg) -> dict:
     names = (("vix9d", "VIX9D"), ("vix", "VIX"), ("vix3m", "VIX3M"), ("vix6m", "VIX6M"))
     vals = {k: _val(series.get(k) or [], day) for k, _ in names}
@@ -274,10 +313,19 @@ def lens_term(series, day, cfg) -> dict:
     shape = ("front-led" if front and not whole else "whole-curve" if whole else
              "mixed")
     curve = ", ".join(f"{lab} {vals[k][0]:.2f} ({fmt_signed(ch[k])})" for k, lab in names)
+    # OS-3: term-structure stress -- VIX3M over VIX and VIX6M over VIX, each with
+    # its one- and five-year percentile.
+    r3, r6 = ratio_series(series, "vix3m", "vix", day), ratio_series(series, "vix6m", "vix", day)
+    p3 = window_pcts([v for _, v in r3], ratio) if r3 else []
+    ratio6 = vals["vix6m"][0] / vals["vix"][0]
+    p6 = window_pcts([v for _, v in r6], ratio6) if r6 else []
     return {"levels": {k: v[0] for k, v in vals.items()}, "changes": ch, "shape": shape,
             "ratio_3m": ratio, "ratio_3m_prior": pr, "contango": state, "state": "computed",
+            "ratio_6m": ratio6, "percentiles_3m": p3, "percentiles_6m": p6, "as_of": day,
             "line": (f"{curve}: {shape}; VIX3M/VIX {ratio:.3f}"
-                     + (f" from {pr:.3f}" if pr else "") + f", {state}")}
+                     + (f" from {pr:.3f}" if pr else "") + f", {state}"
+                     + (f" ({pct_text(p3)})" if p3 else "")
+                     + f"; VIX6M/VIX {ratio6:.3f}" + (f" ({pct_text(p6)})" if p6 else ""))}
 
 
 def lens_tail(series, day, cfg) -> dict:
@@ -364,9 +412,22 @@ def lens_realised(vix, spx, day, cfg) -> dict:
     dv = (vrp - vrp0) if None not in (vrp, vrp0) else None
     read = ("implied running ahead of realised (a fear premium)" if dv is not None and dv > 0
             else "realised catching up with implied" if dv is not None and dv < 0 else "")
-    out.update(vrp=vrp, vrp_change=dv,
+    # OS-3: the spread's own percentiles -- the VIX less 20-day realised on every
+    # session both reach, its one- and five-year windows.
+    vd = dict(_upto(vix, day))
+    hist = []
+    need = int(cfg["lenses"]["realized_windows"][-1]) if cfg["lenses"].get("realized_windows") else 20
+    for i in range(need, len(sd)):
+        d = sd[i][0]
+        if d in vd:
+            r = realised(closes[i - need:i + 1])
+            if r is not None:
+                hist.append(vd[d] - r)
+    ps = window_pcts(hist, vrp) if vrp is not None and hist else []
+    out.update(vrp=vrp, vrp_change=dv, vrp_percentiles=ps, as_of=day,
                line=(", ".join(parts) + f" against the VIX {v:.2f}" if v else ", ".join(parts))
                + (f"; VRP {vrp:.1f} points ({fmt_signed(dv, 1)})" if vrp is not None else "")
+               + (f", {pct_text(ps)}" if ps else "")
                + (f": {read}" if read else ""))
     return out
 
@@ -409,8 +470,9 @@ def lens_catalyst(attributions: list[dict], cfg) -> dict:
 def lenses(series: dict, day: str, cfg: dict, profile: Optional[dict] = None,
            attributions: Optional[list[dict]] = None) -> dict:
     vix, spx = series.get("vix") or [], series.get("spx") or []
-    return {"spot_vol": lens_spot_vol(vix, spx, day, cfg),
+    out = {"spot_vol": lens_spot_vol(vix, spx, day, cfg),
             "term_structure": lens_term(series, day, cfg),
+            "spike": lens_spike(series, day, cfg),
             "tail": lens_tail(series, day, cfg),
             "cross_asset": lens_cross(series, day, cfg),
             "dealer": lens_dealer(profile),
@@ -418,11 +480,19 @@ def lenses(series: dict, day: str, cfg: dict, profile: Optional[dict] = None,
             "breadth": lens_breadth(series, day),
             "positioning": lens_positioning(series, day, cfg),
             "catalyst": lens_catalyst(attributions or [], cfg)}
+    # OS-3: every lens carries its as-of -- the session for a computed lens unless
+    # it set its own; none for a lens awaiting its input.
+    for v in out.values():
+        if "as_of" not in v:
+            v["as_of"] = day if v.get("state") == "computed" else None
+    return out
 
 
 def lens_table(ls: dict) -> dict:
-    return {"columns": ["Lens (inferred where dealer)", "Reading"],
-            "rows": [[LENS_TITLES[k], ls[k]["line"]] for k in LENS_ORDER]}
+    """The lenses, one row each with its as-of (OS-3); no composite."""
+    return {"columns": ["Lens (inferred where dealer)", "Reading", "As of"],
+            "rows": [[LENS_TITLES[k], ls[k]["line"], ls[k].get("as_of") or "—"]
+                     for k in LENS_ORDER]}
 
 
 # ---------------------------------------------------------------------------
