@@ -152,6 +152,98 @@ def gauge_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
                 "values": {}, "constants": []}
 
 
+# ---------------------------------------------------------------------------
+# OS-3 every day (ruling 2 of 18 Oct on the a44 report): the three vol-regime
+# lenses as three short lines beside the gauge -- level, percentile, window --
+# from item 52's own lens functions; item 52's full table stays event-day only.
+# ---------------------------------------------------------------------------
+def _pv(ps) -> dict:
+    """The percentiles by NAME (so the numeral audit's _ordinal siblings attach)
+    and their n."""
+    out = {}
+    for i, (lab, p, n) in enumerate(ps or []):
+        if p is not None:
+            out[f"window{i}_percentile"], out[f"window{i}_n"] = p, n
+    return out
+
+
+def _audited(values: dict, day: str) -> dict:
+    from altdata.numeral_audit import with_ordinals              # noqa: PLC0415
+    return with_ordinals({**values, "as_of": day})
+
+
+def vol_lines(series: dict, day: Optional[str]) -> list[dict]:
+    """[{line, values, constants}] x 3: the VIX against 20-day realised, term-
+    structure stress, the short-term spike. An absent input says so."""
+    from altdata import vol_event as ve                         # noqa: PLC0415
+    if not day:
+        return [{"line": "Volatility regime: no VIX stored for the session.",
+                 "values": {}, "constants": []}]
+    cfg = ve.config()
+    rl = ve.lens_realised(series.get("vix") or [], series.get("spx") or [], day, cfg)
+    tm = ve.lens_term(series, day, cfg)
+    sp = ve.lens_spike(series, day, cfg)
+    out = []
+    if rl.get("vrp") is not None:
+        ps = rl.get("vrp_percentiles") or []
+        out.append({"line": f"VIX against 20-day realised: {rl['vrp']:+.1f} points ("
+                            f"{ve.pct_text(ps)}), as of {day}.",
+                    "values": _audited({"vrp": rl["vrp"], **_pv(ps)}, day),
+                    "constants": [20, 1, 5]})
+    else:
+        out.append({"line": f"VIX against 20-day realised: {rl.get('line', 'awaiting')}.",
+                    "values": {}, "constants": [20]})
+    if tm.get("state") == "computed":
+        p3, p6 = tm.get("percentiles_3m") or [], tm.get("percentiles_6m") or []
+        out.append({"line": f"Term-structure stress: VIX3M/VIX {tm['ratio_3m']:.3f} ("
+                            f"{ve.pct_text(p3)}); VIX6M/VIX {tm['ratio_6m']:.3f} ("
+                            f"{ve.pct_text(p6)}), as of {day}.",
+                    "values": _audited({"r3": tm["ratio_3m"], "r6": tm["ratio_6m"],
+                                        "vix3m": _pv(p3), "vix6m": _pv(p6)}, day),
+                    "constants": [3, 6, 1, 5]})
+    else:
+        out.append({"line": f"Term-structure stress: {tm.get('line', 'awaiting')}.",
+                    "values": {}, "constants": [3, 6, 9]})
+    if sp.get("state") == "computed":
+        ps = sp.get("percentiles") or []
+        out.append({"line": f"Short-term spike: VIX9D/VIX {sp['ratio_9d']:.3f} ("
+                            f"{ve.pct_text(ps)}), as of {day}.",
+                    "values": _audited({"r9": sp["ratio_9d"], **_pv(ps)}, day),
+                    "constants": [9, 1, 5]})
+    else:
+        out.append({"line": f"Short-term spike: {sp.get('line', 'awaiting')}.",
+                    "values": {}, "constants": [9]})
+    return out
+
+
+def vol_lines_from_store(prior: str, cutoff: str, db_path: Optional[str] = None) -> list[dict]:
+    from altdata import observations, vol_event as ve           # noqa: PLC0415
+    try:
+        with observations.ObservationStore(db_path) as st:
+            series = ve.read_series(st, cutoff)
+        days = [d for d, _ in series.get("vix") or [] if d <= prior]
+        return vol_lines(series, days[-1] if days else None)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the vol-regime lines faulted", exc_info=True)
+        return [{"line": "Volatility regime: not read (its inputs faulted).",
+                 "values": {}, "constants": []}]
+
+
+def vol_lines_html(lines: Optional[list]) -> str:
+    from html import escape                                     # noqa: PLC0415
+    if not lines:
+        return ""
+    return "".join(f'<p style="font-size:12px;margin:2px 0">{escape(x["line"])}</p>'
+                   for x in lines)
+
+
+# Ruling 3 of 18 Oct: the pre-market line ("ES pre-market implies SPY about x")
+# prints only if 6b part 3's ES conversion already ran from ES to SPY without new
+# code. It does not -- altdata/dealer_es.py carries SPY's levels TO ES -- so the
+# line prints nothing, and the notes list it.
+PREMARKET_LINE = None
+
+
 def gauge_html(g: Optional[dict]) -> str:
     from html import escape                                     # noqa: PLC0415
     if not g or not g.get("line"):
@@ -218,8 +310,8 @@ def most_active(st, sessions: list[str], now: str, cfg: Optional[dict] = None,
                      "rank": rank, "percentile": pctl, "n": len(iv), "iv_change": chg,
                      "implied_week_pct": imp, "realised_week_pct": real})
     first = min((d for s in syms for d, _ in _series(st, cm.FRONT_IV_KEY, now, s)), default=None)
-    lines = ([f"The week's most active names by options volume, from our own captures "
-              f"(the universe's names and SPY, QQQ, IWM). Ranks and percentiles are over "
+    lines = ([f"The week's most active names by options volume, of {len(syms)} captured "
+              f"names (our own captures; the universe's names and SPY, QQQ, IWM). Ranks and percentiles are over "
               f"our stored history only, which starts {first}: each prints its window and "
               f"n. Report-only: no score, no weight."]
              if top else ["No options volume stored for the week's sessions."])

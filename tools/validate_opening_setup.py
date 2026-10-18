@@ -22,6 +22,9 @@ group OS-3. On fixtures; no network, no model, no live store.
   D  THE RULES. No new module reads a vendor key or the vendor's source id; no
      table carries a score or a weight; no by-hand key; no model or network
      import; neither Weekly builder session B is fixing is touched.
+  E  THE RULINGS ON THE A44 REPORT: the three vol-regime lines every day (level,
+     percentile, window, as-of; the numeral audit); "of 17 captured names"; no
+     pre-market line while the ES conversion runs only SPY to ES.
 
     python tools/validate_opening_setup.py
 """
@@ -299,9 +302,62 @@ def group_d() -> None:
                            f"fixing ({touched or 'none'})")
 
 
+def group_e() -> None:
+    head("E. THE RULINGS OF 18 OCT ON THE A44 REPORT (a45, Part 0)")
+    import math as _m
+    from altdata import dealer_es, numeral_audit as NA
+    from daily_cascade import opening_setup as OS
+    ds = days(300)
+    vix = [(d, 18.0 + 2.0 * _m.sin(i / 9.0)) for i, d in enumerate(ds)]
+    spx = []
+    px = 5000.0
+    for i, d in enumerate(ds):
+        px *= 1 + 0.004 * _m.sin(i / 3.0)
+        spx.append((d, px))
+    series = {"vix": vix, "spx": spx,
+              "vix9d": [(d, v * (0.95 + 0.001 * (i % 40))) for i, (d, v) in enumerate(vix)],
+              "vix3m": [(d, v * 1.05) for d, v in vix],
+              "vix6m": [(d, v * (1.08 + 0.0005 * (i % 30))) for i, (d, v) in enumerate(vix)]}
+    ls = OS.vol_lines(series, ds[-1])
+    audits = [NA.audit(x["line"], x["values"], extra_values=x["constants"]) for x in ls]
+    check(len(ls) == 3 and ls[0]["line"].startswith("VIX against 20-day realised:")
+          and ls[1]["line"].startswith("Term-structure stress: VIX3M/VIX")
+          and "VIX6M/VIX" in ls[1]["line"] and ls[2]["line"].startswith("Short-term spike: VIX9D/VIX")
+          and all("percentile (n=" in x["line"] and f"as of {ds[-1]}" in x["line"] for x in ls)
+          and all(a.passed for a in audits),
+          f"ruling 2: the three vol-regime lines print every day, each with its level, "
+          f"percentile and window (n), as of the session, passing the numeral audit "
+          f"({[a.reason() for a in audits if not a.passed] or 'all three'})")
+    aw = OS.vol_lines({"vix": vix}, ds[-1])
+    check(len(aw) == 3 and all("awaiting" in x["line"] or "n/a" in x["line"] for x in aw[1:]),
+          "an absent input says so, line by line")
+    pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
+    ren = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
+    cfg = OS.config()
+    check("opening_setup.vol_lines_from_store(prior, cutoff, db_path)" in pay
+          and "{opening_setup.gauge_html(payload.get(\"opening_gauge\"))}\n"
+              "{opening_setup.vol_lines_html(payload.get(\"vol_regime_lines\"))}" in ren
+          and cfg["vol_lines"]["displaces"],
+          "the three lines sit beside the gauge in the anchor, their displacement declared; "
+          "item 52's full lens table stays event-day only")
+    names = [f"N{k:02d}" for k in range(17)]
+    from altdata import observations, chain_metrics as cm
+    with observations.ObservationStore(str(TD / "r1.db")) as st:
+        st.write_many([obs(cm.VOL_KEY, d, 10.0, "N00") for d in days(5)])
+        sub = OS.most_active(st, days(5), "2026-10-17T21:00:00+00:00", names=names)
+    check("of 17 captured names" in sub["lines"][0],
+          "ruling 1: the most-active table says 'of 17 captured names'")
+    src = (REPO / "altdata" / "dealer_es.py").read_text(encoding="utf-8")
+    check(OS.PREMARKET_LINE is None
+          and not re.search(r"def\s+\w*(es_to_spy|to_spy|spy_from)", src)
+          and "pre-market implies SPY" not in pay + ren,
+          "ruling 3: the ES conversion runs SPY to ES only, so no pre-market line prints "
+          "(listed in the notes)")
+
+
 def main() -> int:
     print(f"{LINE}\nthe opening setup, first half\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d):
+    for g in (group_a, group_b, group_c, group_d, group_e):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001
