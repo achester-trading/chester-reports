@@ -540,6 +540,13 @@ def group_d() -> None:
           and not VERDICT.findall(dv.replace("NOT AVAILABLE", "").replace("NOT TRACKED", "")),
           "the Sunday line: the driver, ABS_STRESS and CRED_STRESS, then A-1 to A-3 and "
           "Book B's tells, the devaluation tell as 2 of 3 legs with no verdict word")
+    with observations.ObservationStore(str(TD / "st10-empty.db")) as st0:
+        sub = SL.sunday_subsection(st0, now)
+    leaked = [x for x in sub["lines"]
+              if re.search(r"\b(?:fred|calc|cftc|pm|dial|ndl|yfinance)\.[a-z0-9_]+\b", x)]
+    check(not leaked and any("its stored series" in x for x in sub["lines"]),
+          "the Weekly's id rule: on an empty store the Sunday line names no internal id "
+          "(a NOT AVAILABLE clause reads 'its stored series')")
     src = (REPO / "daily_cascade" / "dealer_weekly.py").read_text(encoding="utf-8")
     check("signal_lines.sunday_subsection(st, cutoff)" in src,
           "the Weekly carries it, through the mechanics hook session A owns")

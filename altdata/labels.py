@@ -27,7 +27,8 @@ PATH = REPO / "config" / "display_labels.yaml"
 # WHICH HY SERIES, AND FROM WHEN (ruled 18 Oct 2026; the register's SR-8 dated
 # note). FRED serves ICE BofA's high-yield OAS from 2023-10-17 only, so a chart or
 # lens printing HY names its series and the first day the store holds.
-HY_SERIES = "fred.hy_oas, ICE BofA US High Yield OAS (FRED BAMLH0A0HYM2)"
+# No internal id prints (the Weekly's id rule); the FRED code is the public name.
+HY_SERIES = "ICE BofA US High Yield OAS (FRED BAMLH0A0HYM2)"
 FRED_HY_FROM = "2023-10-17"
 
 

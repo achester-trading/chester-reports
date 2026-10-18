@@ -29,6 +29,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -342,8 +343,19 @@ def sunday_lines(st, now: str) -> list[str]:
             "Book B's tells:", "  " + b1, "  " + b2, "  " + b3, "  " + b4]
 
 
+# THE WEEKLY'S ID RULE: no internal id reaches the rendered edition, so a key the
+# shared line builders name in a NOT AVAILABLE clause prints as "its stored series".
+ID_RE = re.compile(r"\b(?:fred|calc|cftc|pm|dial|ndl|yfinance|cfets|cnh|mof|dealer)"
+                   r"\.[a-z0-9_]+\b")
+
+
+def no_ids(line: str) -> str:
+    out = ID_RE.sub("its stored series", line)
+    return re.sub(r"(its stored series)( and its stored series)+", r"\1", out)
+
+
 def sunday_subsection(st, now: str) -> dict:
     return {"title": config()["sunday"]["title"], "table": None,
-            "lines": sunday_lines(st, now), "paragraph_wanted": False,
+            "lines": [no_ids(x) for x in sunday_lines(st, now)], "paragraph_wanted": False,
             "table_note": ("Read from the store as of the cutoff; nothing fetched. "
                            "Display and modifier only (signal-triage ST-10).")}

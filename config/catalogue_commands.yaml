@@ -51,6 +51,9 @@ commands:
   altdata.dealer_capture:
     domain: options
     line: 'The intraday dealer captures, 09:45 and 12:30 ET: chains, the exposure JSON per capture, and the 12:30 gates'
+  altdata.vendor_chains:
+    domain: options
+    line: 'The vendor chains at 16:31 ET (M-3): Massive SPX and SPCX, the 16:16 data (a 15-minute delay), the same chain files as before and their own completeness record'
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report
@@ -253,7 +256,7 @@ commands:
     line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"
   altdata.sources.flashalpha:
     domain: options
-    line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, labelled vendor, never in place of its figures; a daily budget of 30 calls (config/flashalpha.yaml); on the freshness roster as family vendor; the key never printed'
+    line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, labelled vendor, never in place of its figures; a daily budget of 60 requests, 57 planned across 16:25, 09:45 and 12:30 (config/flashalpha.yaml; writer v2, F-1 to F-4); on the freshness roster as family vendor; the key never printed'
   altdata.sources.finra:
     domain: positioning
     line: FINRA margin statistics -- customer debit balances in margin accounts, monthly
