@@ -175,6 +175,8 @@ def candidate_line(n: int, c: dict) -> str:
     if isinstance(c.get("expected_r"), (int, float)):
         extra.append(f"expected {c['expected_r']:.1f}R (the measured move against "
                      f"the invalidation distance)")
+    elif c.get("r_note"):
+        extra.append(c["r_note"])               # W8-7: the EURUSD "7.9R" case
     if c.get("parameters"):
         extra.append(f"parameters: {c['parameters']}")
     if c.get("counter_thesis") and c.get("parameters"):
@@ -376,6 +378,11 @@ def subsections(scan: Optional[list[dict]], flow: dict,
             why[k] = why.get(k, 0) + 1
         notes.append(f"{len(refused)} pivot(s) refused at the gates: "
                      + "; ".join(f"{v} — {k}" for k, v in sorted(why.items())) + ".")
+    ns = ((run or {}).get("skipped") or {}).get("breakout_not_scanned") or []
+    if ns:
+        # W8-7: who the breakout template did not scan, and why.
+        notes.append("Not scanned for breakouts: " + "; ".join(x["reason"] for x in ns)
+                     + ".")
     if (run or {}).get("parameters"):
         notes.append(run["parameters"])
     notes.append("Paper candidates for the sitting: nothing here is an order.")

@@ -308,6 +308,21 @@ def _volume_ok(inst: dict, i: int, cfg: dict) -> tuple[bool, Optional[float], bo
     return ratio >= float(v.get("multiple") or 1.5), ratio, False
 
 
+def is_fx(symbol: str) -> bool:
+    """A currency pair, as the store names it (yfinance's =X)."""
+    return str(symbol or "").upper().endswith("=X")
+
+
+def breakout_skip(inst: dict) -> Optional[str]:
+    """Why the breakout template does not scan this instrument, or None (W8-7)."""
+    if is_fx(inst.get("symbol")):
+        return (f"{inst.get('symbol')}: a currency pair -- the breakout template "
+                f"scans no =X pair (managed currencies among them)")
+    if not any(v for v in (inst.get("volume") or {}).values()):
+        return f"{inst.get('symbol')}: no stored volume -- the breakout template needs it"
+    return None
+
+
 def _crossed(c, t, lvl, d) -> bool:
     """The close at t crossed the level in direction d (+1 up, -1 down)."""
     return (c[t] - lvl(t)) * d > 0 and (c[t - 1] - lvl(t - 1)) * d <= 0
@@ -324,9 +339,12 @@ def detect(inst: dict, cfg: dict, walls: Optional[list] = None) -> list[dict]:
     held = int((pv.get("reclaim") or {}).get("held_sessions") or 5)
     fast = int((cfg.get("trend") or {}).get("fast_ma") or 50)
     out: list[dict] = []
+    skip = breakout_skip(inst)
+    if skip:
+        inst["breakout_skipped"] = skip
     for t in range(E, max(E - fire, 1), -1):
         # BREAKOUT (long) / BREAKDOWN (short) from the base the close cleared.
-        for d in (1, -1):
+        for d in (() if skip else (1, -1)):
             b = base_before(inst, t, cfg, cap_high=c[t] if d > 0 else None,
                             floor_low=c[t] if d < 0 else None)
             if not b:
@@ -408,8 +426,8 @@ def _ratio_series(a: dict, b: dict) -> list[tuple[str, float]]:
 
 
 def rs_percentile(inst: dict, bench: Optional[dict], n: int) -> Optional[float]:
-    if not bench or inst["symbol"] == bench["symbol"]:
-        return None
+    if not bench or inst["symbol"] == bench["symbol"] or is_fx(inst["symbol"]):
+        return None              # W8-7: an FX pair takes no RS against SPY
     r = _ratio_series(inst, bench)
     if len(r) < n:
         return None
@@ -575,7 +593,9 @@ def confirm(c: dict, ctx: dict, cfg: dict) -> list[dict]:
     r = cc.get("relative_strength") or {}
     if rs is None:
         out.append({"family": "relative strength", "met": None,
-                    "text": "relative strength not read (the benchmark itself)"})
+                    "text": ("relative strength not read (a currency pair: no RS "
+                             "against SPY)" if is_fx(sym) else
+                             "relative strength not read (the benchmark itself)")})
     else:
         met = rs >= float(r.get("long_min_pct") or 80) if d > 0 \
             else rs <= float(r.get("short_max_pct") or 20)
@@ -783,7 +803,13 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
     tr = trend(inst, E, cfg)
     against = (tr["state"] == "down" and d > 0) or (tr["state"] == "up" and d < 0)
     target = pv["level"] + d * pv["move"]
-    r_mult = (target - entry) * d / risk if risk > 0 else None
+    # W8-7: no R off an invalidation nearer than the floor.
+    floor = max(float(pcfg.get("r_floor_atr") or 0.5) * (a or 0.0),
+                float(pcfg.get("r_floor_pct") or 0.5) / 100.0 * abs(entry))
+    r_note = (None if risk >= floor else
+              "R not computed: invalidation too near (within "
+              f"{_f(floor)}, the larger of half an ATR and 0.5% of price)")
+    r_mult = (target - entry) * d / risk if risk > 0 and r_note is None else None
     dc = cfg.get("draft") or {}
     mult, mwhy = multiplier(ctx["regime"], cfg)
     risk_pct = float(dc.get("risk_pct") or 0.75) * mult
@@ -888,6 +914,7 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
         # Printed beside the candidate; not the register's fields.
         "pivot": setup, "entry": entry, "invalidation_level": inv,
         "expected_r": None if r_mult is None else round(r_mult, 2),
+        "r_note": r_note,
         "against_tape": against, "time_stop": ts, "no_add": against,
         "trend": tr["state"], "warnings": warns, "entry_timing": timing,
         "entry_timing_state": gamma or None,
@@ -984,6 +1011,9 @@ def scan(ending: str, db_path: Optional[str] = None, *, cutoff: Optional[str] = 
     cands, refused, undeclared = [], [], 0
     for inst in insts:
         pvs = detect(inst, cfg, (walls or {}).get(inst["symbol"]))
+        if inst.get("breakout_skipped"):
+            skipped.setdefault("breakout_not_scanned", []).append(
+                {"symbol": inst["symbol"], "reason": inst["breakout_skipped"]})
         best: dict[int, dict] = {}
         # One pivot per direction: the latest; on the same session the more
         # specific -- a base cleared, then a base's edge failed, then a level.
@@ -1036,7 +1066,12 @@ def parameters_line(cfg: dict) -> str:
             f"{(pv.get('failed_breakdown') or {}).get('window_sessions')}; "
             f"invalidation a quarter of the average true range beyond its level "
             f"(session-set from the Technical Indicators paper; "
-            f"{cfg.get('version')}).")
+            f"{cfg.get('version')}). Changed {pv.get('changed') or 'n/a'}: the "
+            f"breakout template scans no instrument without volume and no =X "
+            f"currency pair, and a pair takes no RS against SPY; R is computed only "
+            f"beyond an invalidation floor of the larger of "
+            f"{pv.get('r_floor_atr', 0.5):g} ATR and {pv.get('r_floor_pct', 0.5):g}% "
+            f"of price.")
 
 
 # ---------------------------------------------------------------------------

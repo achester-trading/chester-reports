@@ -535,6 +535,21 @@ def weekly_line(events: list[dict]) -> Optional[str]:
     return "Crypto basket: " + "; ".join(e["text"] for e in events) + "."
 
 
+MCAP_NOT_STORED = ("Market cap: not stored for any name yet (DefiLlama's coin "
+                   "service, written by the 17:25 ET basket run); the column "
+                   "prints once a cap is stored.")
+
+
+def drop_column(table: dict, name: str) -> None:
+    """Remove one column, by its head, from a table and every row."""
+    cols = table.get("columns") or []
+    if name not in cols:
+        return
+    i = cols.index(name)
+    table["columns"] = cols[:i] + cols[i + 1:]
+    table["rows"] = [r[:i] + r[i + 1:] for r in table.get("rows") or []]
+
+
 def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
                  cfg: Optional[dict] = None) -> dict:
     """{detail, line, events, data}: the reference tier's two tables (each at
@@ -573,6 +588,12 @@ def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
                         "the Quarterly."]}
     tag_moves(detail["table"], data, 2, "week_pct", "week")
     tag_moves(detail["table"], data, 3, "d30_pct", "30d")
+    # W8-11 (weekly-fixes-9): the market-cap column printed "—" for all twelve.
+    # No column of dashes: until a cap is stored the column is dropped, with one
+    # line saying so.
+    if not any(x.get("market_cap") is not None for x in data):
+        drop_column(detail["tables"][0], "Market cap")
+        detail["notes"].insert(0, MCAP_NOT_STORED)
     # weekly-fixes-7 item 14: every row of both tables "not stored" -> one line,
     # with the date of the first pull (the basket's writers run daily, 17:25 ET).
     if not any(x.get("price") is not None or x.get("market_cap") is not None
@@ -620,13 +641,17 @@ def monthly_block(st: Any, now: str, cfg: Optional[dict] = None) -> dict:
     table = {"columns": ["Name", "Price", "Month", "Market cap", "From its high",
                          "Dilution"], "rows": prows}
     tag_moves(table, data, 2, "month_pct", "30d")
+    mcap_note = []
+    if not any(r[3] != "—" for r in prows):            # W8-11
+        drop_column(table, "Market cap")
+        mcap_note = [MCAP_NOT_STORED]
     return {"title": "Themes: digital — the crypto basket",
             "phase": "block:slow:crypto_basket",
             "table": table,
             "tables": [{"columns": ["Name", "What pays the token", "Latest (30 days)",
                                     "Change", "As of"], "rows": mrows}],
             "lines": lines, "not_tracked": [],
-            "notes": ["Dilution is a year's issuance (the change in stored "
+            "notes": mcap_note + ["Dilution is a year's issuance (the change in stored "
                       "circulating supply, at today's price) over the value "
                       "returned to holders (DefiLlama's holders revenue: buybacks, "
                       "burns and distributions); not measured where a leg is "

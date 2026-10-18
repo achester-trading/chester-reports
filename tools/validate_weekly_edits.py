@@ -303,7 +303,8 @@ def main() -> int:
     check(tt["columns"] == ["Market", "Last", "Session", "Week", "Month", "YTD"]
           and lv["table"]["columns"] == ["Market", "Week high / low",
                                          "52-week high (distance)",
-                                         "vs 20 / 50 / 200-day", "Gamma flip"],
+                                         "vs 20 / 50 / 200-day",
+                                         "Gamma flip (close capture)"],
           "the tape: a returns table (last, session, week, month, YTD) and a levels "
           "table (week range, 52-week high and distance, the averages, the flip) -- "
           "split for the six-column rule (T2.3)")

@@ -903,6 +903,23 @@ def main() -> int:
     check(not bare, "every import of yfinance goes through altdata.import_yfinance()"
           + (f"; bare imports at {bare}" if bare else ""))
 
+    # --- N. W8-12 (weekly-fixes-9): NO REGISTRY KEY IN A DETAIL TABLE ------------
+    print(f"\n{LINE}\nN. W8-12: THE DETAIL TABLES PRINT DISPLAY NAMES, NEVER KEYS\n{LINE}")
+    key_rx = re.compile(r"\b(?:yfinance|fred|mof|levetf|calc|cftc|finra|llama)\."
+                        r"[a-z0-9_]+|\bmkt [a-z0-9]+\b|\bjgb 10y\b")
+
+    def cells(t):
+        for r in (t or {}).get("rows") or []:
+            for c in r:
+                if isinstance(c, str):
+                    yield c
+    hits = []
+    for d in ed.get("detail") or []:
+        for t in [d.get("table")] + list(d.get("tables") or []):
+            hits += [f"{d.get('title')}: {c}" for c in cells(t) if key_rx.search(c)]
+    check(not hits, "no registry key, and no key made plain ('mkt eido volume', "
+          "'jgb 10y'), in any detail table's cells" + (f": {hits[:4]}" if hits else ""))
+
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 1 if FAIL else 0

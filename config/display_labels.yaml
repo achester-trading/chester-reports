@@ -18,6 +18,11 @@ contradictions:
   narrative_vs_data: "a story against the data"
 
 metrics:
+  # W8-12 (weekly-fixes-9): keys the detail tables printed as "jgb 10y", "mkt
+  # vvix" and "shares outstanding (SQQQ)", with no name elsewhere in the repo.
+  mof.jgb_10y: "Japan 10-year (JGB)"
+  yfinance.mkt_vvix: "the VVIX (the VIX's own volatility)"
+  levetf.shares_outstanding: "leveraged-ETF shares outstanding"
   calc.breadth_rsp_over_spy: "equal-weight over cap-weight S&P (RSP/SPY)"
   calc.breadth_sector_above_200d: "sectors above their 200-day average"
   calc.breadth_sector_above_50d: "sectors above their 50-day average"

@@ -240,8 +240,12 @@ def edition_session(now: str) -> Optional[str]:
 
 
 def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
+    # W8-3 (weekly-fixes-9): the Tape's flip is the session's CLOSE capture (the
+    # computed profile from the end-of-day chain); Mechanics prints each
+    # MORNING's. Two captures, so each is labelled with its own.
     cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
-            "52-week high (distance)", "vs 20 / 50 / 200-day", "Gamma flip"]
+            "52-week high (distance)", "vs 20 / 50 / 200-day",
+            "Gamma flip (close capture)"]
     rows, gaps, ids = [], [], []
     # The edition's day: the latest bar among the session-traded instruments (a
     # continuous one, Bitcoin, trades on the weekend and would set it a day late).
@@ -358,6 +362,64 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     return out
 
 
+def flip_words(sessions: list[dict], tol_bps: float = 25.0) -> Optional[dict]:
+    """THE WEEK'S FLIP WORDS (W8-3, weekly-fixes-9), from the close-vs-flip column
+    and never from the model. The Weekly of 18 Oct said "the gamma flip at
+    774.67 held" while Wednesday, Thursday and Friday closed below it: the Tape's
+    status was the last session's alone (its high touched, its close stayed
+    below), read as the week's.
+
+      crossed   a session closed on the other side of the flip from the first
+                session's close: "crossed on Wed 14 Oct, below since" (the last
+                crossing, and the side every close since has kept);
+      held      no close on the other side, and a session's range came within
+                the tolerance of that morning's flip: touched, not crossed;
+      untested  neither.
+
+    None when no session carries a close-vs-flip."""
+    rows = [s for s in sessions if s.get("close_vs_flip") in ("above", "below")]
+    if not rows:
+        return None
+    sides = [s["close_vs_flip"] for s in rows]
+    changes = [i for i in range(1, len(sides)) if sides[i] != sides[i - 1]]
+    if changes:
+        j = changes[-1]
+        words = f"crossed on {_day(rows[j]['session'])}, {sides[-1]} since"
+        if len(changes) > 1:
+            words = (f"crossed {len(changes)} times in the week; last on "
+                     f"{_day(rows[j]['session'])}, {sides[-1]} since")
+        return {"status": "crossed", "words": words, "side": sides[-1],
+                "sessions": [(s["session"], s["close_vs_flip"]) for s in rows]}
+
+    def touched(s: dict) -> bool:
+        f, hi, lo = s.get("flip"), s.get("high"), s.get("low")
+        if None in (f, hi, lo):
+            return False
+        t = abs(f) * tol_bps / 1e4
+        return lo <= f + t and hi >= f - t
+    held = any(touched(s) for s in rows)
+    return {"status": "held" if held else "untested",
+            "words": (f"held: touched, and every close {sides[-1]} it" if held
+                      else f"untested: every close {sides[-1]} it"),
+            "side": sides[-1],
+            "sessions": [(s["session"], s["close_vs_flip"]) for s in rows]}
+
+
+def apply_flip_words(tape: dict, mech: dict, symbol: str = "spy") -> Optional[dict]:
+    """The week's flip words onto the Tape's level status for `symbol`, so the
+    writer's level audit holds "held" and "broke" to the column (W8-3). A
+    crossing is neither: the prose may say "crossed", not "held"."""
+    fw = flip_words(((mech or {}).get("data") or {}).get("sessions") or [])
+    if not fw:
+        return None
+    for lv in ((tape.get("data") or {}).get("level_status") or {}).get(symbol) or []:
+        if lv.get("label") == "gamma flip":
+            lv["status"] = fw["status"]
+            lv["week_words"] = fw["words"]
+    tape.setdefault("data", {})["flip_week"] = fw
+    return fw
+
+
 def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
     cards = []
     for s in sessions:
@@ -413,10 +475,13 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                        "implied_range": f["implied_range"],
                        "actual_range": f["actual_range"],
                        "close_vs_flip": f["close_vs_flip"],
-                       "gamma_regime": c.get("gamma_regime")})
+                       "gamma_regime": c.get("gamma_regime"),
+                       # W8-3: what the week's flip words are read from.
+                       "flip": c.get("flip_morning"), "close": c.get("close"),
+                       "high": c.get("session_high"), "low": c.get("session_low")})
     # TWO TABLES OF SIX (T2.3 mobile rule): the profile, then the ranges.
     return {"table": {"columns": ["Session", "Gamma regime", "Net GEX", "DEX",
-                                  "Flip", "Call / put wall"],
+                                  "Flip (morning capture)", "Call / put wall"],
                       "rows": [r[:6] for r in rows]},
             "ranges_table": {"columns": ["Session", "Max pain", "Implied range",
                                          "Actual range", "Close vs flip", "Flags"],

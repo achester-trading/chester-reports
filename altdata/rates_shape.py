@@ -176,10 +176,19 @@ def selloffs(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
 # ---------------------------------------------------------------------------
 # The four voices, adjudicated
 # ---------------------------------------------------------------------------
-def adjudicate(sh: dict, so: dict, anchors: dict, cfg: Optional[dict] = None
-               ) -> list[dict]:
+def adjudicate(sh: dict, so: dict, anchors: dict, cfg: Optional[dict] = None,
+               ten_level: Optional[dict] = None) -> list[dict]:
+    """`ten_level` ({value, as_of, source}) is the 10-year's latest close where the
+    inflation anchor is absent (W8-10): the chop-range test needs the level
+    alone, and the anchor goes absent for want of ten years of CPI, not of the
+    10-year -- "10-year: not stored" printed while the tape carried it."""
     cfg = cfg if cfg is not None else load_config()
-    ten = (anchors.get("inflation") or {}).get("ten_year_pct")
+    ia = anchors.get("inflation") or {}
+    ten = ia.get("ten_year_pct")
+    ten_src = None
+    if ten is None and ten_level:
+        ten, ten_src = ten_level["value"], (f"{ten_level['source']}, "
+                                            f"{ten_level['as_of']}")
     fis = anchors.get("fiscal") or {}
     out = []
     for v in cfg.get("voices") or []:
@@ -202,10 +211,13 @@ def adjudicate(sh: dict, so: dict, anchors: dict, cfg: Optional[dict] = None
             lo, hi = v.get("band") or [5.0, 5.5]
             led = ((so.get("current") or {}).get("label"))
             if ten is None:
-                m, verdict = "10-year: not stored", "not testable yet"
+                m = (f"the 10-year's latest close, for the {lo:g}-{hi:g}% chop-range "
+                     f"test: no 10-year (FRED's or the tape's) at the cutoff")
+                verdict = "not testable yet"
             else:
-                m = f"10-year {ten:.2f}%" + (f"; the current selloff {led}" if led else
-                                             "; no selloff under way")
+                m = (f"10-year {ten:.2f}%" + (f" ({ten_src})" if ten_src else "")
+                     + (f"; the current selloff {led}" if led else
+                        "; no selloff under way"))
                 verdict = ("consistent" if lo <= ten <= hi else
                            "consistent" if ten > float(v.get("spiral_above") or hi)
                            and led == "term-premium-led" else
@@ -226,8 +238,26 @@ def read(st, cutoff: str, anchors: Optional[dict] = None,
         anchors = rates_anchors.read(st, cutoff, cfg)
     sh = shape(st, cutoff, cfg)
     so = selloffs(st, cutoff, cfg)
-    return {"shape": sh, "selloffs": so, "voices": adjudicate(sh, so, anchors, cfg),
+    return {"shape": sh, "selloffs": so,
+            "voices": adjudicate(sh, so, anchors, cfg, ten_year_level(st, cutoff)),
             "tag": cfg.get("tag")}
+
+
+TEN_YEAR_LEGS = (("fred.yield_10y", "FRED"), ("yfinance.mkt_tnx", "Yahoo Finance"))
+
+
+def ten_year_level(st, cutoff: str) -> Optional[dict]:
+    """The 10-year's newest close at the cutoff, FRED's or else the tape's,
+    with its source and date (W8-10)."""
+    best = None
+    for key, src in TEN_YEAR_LEGS:
+        rows = [r for r in st.as_of(key, cutoff) if r.get("value_num") is not None]
+        if rows:
+            r = max(rows, key=lambda x: str(x["observed_at"]))
+            d = str(r["observed_at"])[:10]
+            if best is None or d > best["as_of"]:
+                best = {"value": float(r["value_num"]), "as_of": d, "source": src}
+    return best
 
 
 def shape_line(r: dict) -> str:

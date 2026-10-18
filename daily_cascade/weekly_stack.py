@@ -1927,10 +1927,17 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               dates=wsec.state_dates(stored_objects(st, now)))
         from altdata import move_screen                         # noqa: PLC0415
         screen = move_screen.result_for(st, ending, now)
+        mech = mechanics_week(st, sessions, now, wis, cfg)
+        # W8-3: the Tape's flip words from Mechanics' close-vs-flip column.
+        fw = wsec.apply_flip_words(tape, mech)
+        if fw:
+            tape["subsections"][0]["table_note"] = (
+                f"SPY's gamma flip over the week: {fw['words']} (each session's "
+                f"close against that morning's flip, as Mechanics prints it).")
         built = {
             "read": read_week(pmb, wbd),
             "tape": tape,
-            "mechanics": mechanics_week(st, sessions, now, wis, cfg),
+            "mechanics": mech,
             "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
                                   st=st, now=now),

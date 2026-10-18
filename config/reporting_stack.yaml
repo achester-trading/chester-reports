@@ -609,6 +609,8 @@ technical_appendix:
     - {quantity: "CFTC net position", formula: "non-commercial longs - shorts", units: "contracts", sign: "+ speculators net long"}
     - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, to the first expiry strictly after the event date (the event date's own expiry only when the release is before the open)", units: "% of spot", sign: "either direction"}
     - {quantity: "Brier score", formula: "the mean of (probability - outcome) squared", units: "0 to 1", sign: "lower is better; 0.25 is a coin"}
+    # Ruling 2 of 18 Oct 2026: the binding is conservative on purpose, and the note says so.
+    - {quantity: "Numeral audit", formula: "every figure in the commentary is one the section's data carries, as printed; in a sentence that names a series, each figure binds to the series named nearest before it in its clause and must be that series' own, in the unit its column states. Deliberately conservative: a figure in no series' row (a spread between two series, say) is left to the plain check", units: "-", sign: "a draft that fails is revised once, then withheld with its reason"}
   expiry_coverage: "every listed expiry the captured chain holds (the capture takes no cap unless one is passed), bucketed 0DTE / weekly / monthly / quarterly / other"
 
 # W-1.2 -- THE WEEKLY'S STORYLINE (change order of 11 Oct 2026, section 3).
