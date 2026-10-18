@@ -33,7 +33,9 @@ book_horizons:
   A: {sessions: 126, from: "4.1 Book A -- Allocation (one to six months)"}
   B: {sessions: 30, from: "4.2 Book B -- Swing (one to six weeks)"}
   C: {sessions: 5, from: "4.3: held for one to five sessions"}
-  D: {sessions: 21, from: "NONE STATED: 4.4 'the horizon is whatever the catalyst dictates'; 21 sessions is the import's declared default (needs-you)"}
+  # Ruled 18 Oct 2026 (ruling 2): 21 sessions stands as the registration's
+  # declared horizon, stated in the manifest as session B's own.
+  D: {sessions: 21, from: "DECLARED BY SESSION B at registration (ruled 18 Oct 2026): 4.4 states none ('the horizon is whatever the catalyst dictates'); 21 sessions is this registration's declared horizon"}
 
 doctrine_file: docs/whitepapers/operating-doctrine-whitepaper.md
 signal_register_file: docs/signal-triage-register.md
@@ -59,6 +61,9 @@ weekly:
     why_not: "no paper states the move screen's mechanism: the 2.5-sigma print is descriptive, and what it predicts is engine 6's question, which waits for the screen's base rates to reach n >= 30 a bucket (X-3.3)"
 
 # --- the Doctrine's tells (section 5.3, the trust matrix) ---------------------
+# Ruled 18 Oct 2026 (ruling 1): a "Doctrine tell" is an entry of the section 5.3
+# trust matrix and nothing else; the dated appendix's lessons (Rule 9 among
+# them) are not tells, and no extra is declared here.
 # One per row of the table, parsed from the paper. The quote is the row itself
 # and the section's own question, both in 5.3. Horizons from 5.3's half-life
 # paragraph where it names one, else the book the row's source feeds.
@@ -73,16 +78,9 @@ doctrine:
     trend-and-momentum: {sessions: 30, from: "Book B, which harvests trend and momentum (4.2)"}
     mean-reversion-and-levels: {sessions: 1, from: "5.3: \"A gamma reading is good for a session\""}
     event-reaction: {sessions: 1, from: "4.3: \"an event-reaction trade in the session after a scheduled release\""}
-    sentiment-and-social-velocity: {sessions: 21, from: "Book D (the matrix's own cells), its declared default"}
-    prediction-market-divergence: {sessions: 21, from: "Book D (the matrix's own cells), its declared default"}
+    sentiment-and-social-velocity: {sessions: 21, from: "Book D (the matrix's own cells), its horizon declared by session B at registration"}
+    prediction-market-divergence: {sessions: 21, from: "Book D (the matrix's own cells), its horizon declared by session B at registration"}
     tail-scan: {sessions: 21, from: "the Monthly's tail scan: a month"}
-  extra:
-    - id: rule-9-price-reaction
-      title: "Price reaction outranks the headline"
-      cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "Edge",
-             quote: "Platt, explicitly, in *Hedge Fund Market Wizards*: if the market cannot go down on bad news, it is telling you about positioning."}
-      horizon: {sessions: 1, from: "Rule 9 and 4.3: the session after the release, once the reaction is seen"}
-      exit: "the session's close (Book C's bracket and time stop)"
 
 # --- the setups (config/setups.yaml): the Doctrine passage each one cites -----
 # A setup's `doctrine:` field names its section; the quote is the sentence there.

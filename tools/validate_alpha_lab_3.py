@@ -431,9 +431,10 @@ def group_b() -> None:
     try:
         r1 = tells.import_tells(lg, st, "2026-10-18T03:00:00+00:00", setups_path=sp)
         c = tells.counts(lg)
-        check(c == {"weekly": 4, "doctrine": 11, "setup": 15, "forecast": 1},
-              f"one import registers the fixture set: Weekly 4, Doctrine 11 (ten matrix "
-              f"rows and Rule 9), setups 15, forecasts 1 -- got {c}")
+        check(c == {"weekly": 4, "doctrine": 10, "setup": 15, "forecast": 1},
+              f"one import registers the fixture set: Weekly 4, Doctrine 10 (the ten "
+              f"matrix rows and nothing else, ruling 1 of 18 Oct), setups 15, "
+              f"forecasts 1 -- got {c}")
         refused = {x["id"]: x["why"] for x in r1["refused"]}
         check("weekly:move-screen" in refused and "no paper states" in
               refused["weekly:move-screen"],
@@ -445,7 +446,7 @@ def group_b() -> None:
         reg = hyp.Register(lg)
         hs = [h for h in reg.all() if h["source"] == "tell"]
         check(all(h["status"] == "needs_code" and h["channel"] == "importer"
-                  and h["title"].endswith("after costs?") for h in hs) and len(hs) == 31,
+                  and h["title"].endswith("after costs?") for h in hs) and len(hs) == 30,
               "every tell is registered as a question, needs_code, through the importer "
               "-- nothing is tested")
         h0 = next(h for h in hs if h["spec"]["tell"]["id"] == "setup:b_breakout")
@@ -457,6 +458,12 @@ def group_b() -> None:
         m = manifest.manifest_of(lg, h0)
         check(m and m["kind"] == "manifest_file" and m["instant"] <= h0["pre_registered_at"],
               "the import's manifest is on file, dated at the registration")
+        mdoc = json.loads(Path(r1["manifest"]["path"]).read_text(encoding="utf-8"))["batch"]
+        check("declared by session B" in str(mdoc.get("notes")) and
+              "Book D's 21 sessions" in str(mdoc.get("notes")) and
+              "setup:d_forced_flow" in str(mdoc.get("notes")),
+              "the manifest states Book D's 21 sessions as session B's declared horizon "
+              "(ruling 2 of 18 Oct)")
         n_rows = lg.one("SELECT COUNT(*) AS n FROM hypotheses")["n"]
         n_batches = lg.one("SELECT COUNT(*) AS n FROM hypothesis_batches")["n"]
         r2 = tells.import_tells(lg, st, "2026-10-19T03:00:00+00:00", setups_path=sp)
@@ -479,7 +486,7 @@ def group_b() -> None:
               "a quote that is not in its section is refused")
         lg.close()
         line = lab_line.weekly_line("2026-10-20T22:00:00+00:00", lp)
-        check(line.startswith(lab_line.NOT_LIVE) and "tells 31 (Weekly 4, Doctrine 11, "
+        check(line.startswith(lab_line.NOT_LIVE) and "tells 30 (Weekly 4, Doctrine 10, "
               "setups 15, forecasts 1)" in line,
               f"the Weekly's lab line counts the tells by source: {line!r}")
         lr = Ledger(lp, read_only=True)
@@ -589,6 +596,14 @@ def group_d() -> None:
               f"once the window is met it runs through the walk-forward, the costs and "
               f"the deflated Sharpe: {r5['status']}, n {m5.get('n_signals')}, DSR "
               f"{m5.get('deflated_sharpe', 0):.2f}")
+        vcfg = yaml.safe_load(carry_mod.CONFIG.read_text(encoding="utf-8"))
+        fees = [*vcfg["perp_venues"].values(), vcfg["spot_leg"]]
+        check(all(f.get("fee_basis") in ("venue_schedule", "third_party") for f in fees)
+              and all("THIRD-PARTY, dated" in f["source"] for f in fees
+                      if f["fee_basis"] == "third_party")
+              and vcfg["spot_leg"]["taker_bps"] == 60.0,
+              "every venue fee states its basis, the venue's schedule or a dated, "
+              "labelled third-party figure; Coinbase's 60 bp stands (ruling 3 of 18 Oct)")
         eng5 = carry_mod.CarryEngine()
         rows5 = eng5.refit_rows(st, late)
         on = [x for x in rows5 if x["on"]]

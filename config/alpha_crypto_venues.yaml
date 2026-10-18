@@ -7,6 +7,13 @@
 # Taker, not maker, on every leg: the cost model is conservative by construction
 # (X-1.4: never the mid), and a delta-neutral pair is entered and left in one
 # motion. Where two published figures disagree the higher is used.
+#
+# THE BASIS OF EACH FEE (ruled 18 Oct 2026, ruling 3): the venue's own published
+# schedule where it reads keyless within the venue's terms (fee_basis:
+# venue_schedule), else the dated third-party figure, labelled (fee_basis:
+# third_party). Coinbase's 0.60% spot taker stands as the dated constant. Whether
+# the carry clears these costs is the cost framework's decision (X-1.4, the
+# walk-forward net of costs), never the engine's.
 version: 1
 read_on: "2026-10-17"
 
@@ -15,23 +22,27 @@ perp_venues:
     funding_key: hl.funding
     oi_key: hl.oi
     taker_bps: 4.5
+    fee_basis: venue_schedule
     source: "Hyperliquid docs, Trading > Fees: tier 0 (< $5M 14-day weighted volume) perps 0.045% taker, 0.015% maker (hyperliquid.gitbook.io/hyperliquid-docs/trading/fees), read 17 Oct 2026"
   okx:
     funding_key: fut.funding_okx
     oi_key: fut.oi_okx
     taker_bps: 5.0
-    source: "OKX regular-user USDT-margined perpetuals 0.05% taker, 0.02% maker -- from third-party fee summaries; OKX's own fee page was not reached on 17 Oct 2026 (UNVERIFIED at the primary source; needs-you)"
+    fee_basis: third_party
+    source: "THIRD-PARTY, dated 17 Oct 2026: OKX regular-user USDT-margined perpetuals 0.05% taker, 0.02% maker, from third-party fee summaries; OKX's own fee page did not read keyless on 17 Oct 2026"
   deribit:
     funding_key: fut.funding_deribit
     oi_key: fut.oi_deribit
     taker_bps: 5.0
+    fee_basis: venue_schedule
     source: "Deribit support centre, BTC/ETH futures and perpetuals 0.05% taker, 0.00% maker (support.deribit.com, article 25944746248989); the same centre's 'upcoming' tier table shows 3.5 bp taker -- the higher is used; read 17 Oct 2026"
 
 spot_leg:
   venue: coinbase_advanced
   price_keys: {BTC: yfinance.mkt_btc_usd, ETH: yfinance.mkt_eth_usd}
   taker_bps: 60.0
-  source: "Coinbase Advanced, lowest tier (< $10k 30-day volume) 0.60% taker, 0.40% maker -- from several 2026 reviews; Coinbase's own fee table was not reached on 17 Oct 2026 (UNVERIFIED at the primary source; needs-you)"
+  fee_basis: third_party
+  source: "THIRD-PARTY, dated 17 Oct 2026, standing as the dated constant (ruled 18 Oct 2026): Coinbase Advanced, lowest tier (< $10k 30-day volume) 0.60% taker, 0.40% maker, from several 2026 reviews; Coinbase's own fee table did not read keyless on 17 Oct 2026"
 
 # The spread and slippage on each leg come from config/alpha_costs.yaml's `perp`
 # class (spread_estimate, min_slippage_bps) on top of the fees above.

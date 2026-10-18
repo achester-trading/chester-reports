@@ -324,7 +324,7 @@ way. The box registers the roster with
 **X-3.6, tells as hypotheses** (`alpha/tells.py`, `config/alpha_tells.yaml`). The
 importer reads four sources:
 - the Weekly's tells (the Book B scanner's `tells:`);
-- the Doctrine's section 5.3 trust matrix and Rule 9;
+- the Doctrine's section 5.3 trust matrix, its entries and nothing else (ruled 18 Oct 2026: the dated appendix's lessons are not tells);
 - the setups in `config/setups.yaml`;
 - the probability ledger's graded sources, read by SQL over the read-only store.
 

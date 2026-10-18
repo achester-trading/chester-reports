@@ -714,8 +714,8 @@ research directory first, and the register takes that instant; the harness
 refuses a hypothesis whose batch carries no manifest, one dated after the run,
 or one edited since. Three things now register this way:
 - **The tells (X-3.6).** `python -m alpha.tells import` reads the Weekly's tells
-  (`config/book_b_scanner.yaml`), the Doctrine's section 5.3 trust matrix and
-  Rule 9, the setups in `config/setups.yaml` and the probability ledger's graded
+  (`config/book_b_scanner.yaml`), the Doctrine's section 5.3 trust matrix (its
+  entries only, ruled 18 Oct 2026), the setups in `config/setups.yaml` and the probability ledger's graded
   sources (by SQL over the read-only store). It registers each as "predicts at h
   sessions after costs?", needs_code, with its mechanism quoted from the cited
   section. Every quote is checked word for word (`config/alpha_tells.yaml`). An

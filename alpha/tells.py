@@ -16,8 +16,8 @@ THE FOUR SOURCES, READ, NEVER WRITTEN:
             consumer ratios (SR-5) and the move screen's print -- the tells the
             Weekly's scanner prints
   doctrine  the Operating Doctrine's section 5.3 trust matrix, one tell per row,
-            parsed from the paper's table, and the extra Doctrine tells declared
-            in config/alpha_tells.yaml (Rule 9)
+            parsed from the paper's table, and nothing else (ruled 18 Oct 2026:
+            the dated appendix's lessons are not tells)
   setup     every setup in config/setups.yaml (unclassified and retired ones
             aside)
   forecast  every source in the probability ledger with at least one graded row
@@ -197,7 +197,8 @@ def _slug(s: str) -> str:
 
 
 def doctrine_tells(cfg: dict, root: Optional[Path] = None) -> list[dict]:
-    """The section 5.3 trust matrix's rows, from the paper, and the extras."""
+    """The section 5.3 trust matrix's rows, from the paper, and nothing else
+    (ruling 1 of 18 Oct 2026)."""
     d = cfg.get("doctrine") or {}
     f = cfg.get("doctrine_file")
     body = section_text(Path(root or REPO) / f, d.get("section", "")) or ""
@@ -221,10 +222,6 @@ def doctrine_tells(cfg: dict, root: Optional[Path] = None) -> list[dict]:
                       f"Calm/Positive {_norm(cells[2])}; Rising/Flip-zone "
                       f"{_norm(cells[3])}; Stressed or Crisis/Negative "
                       f"{_norm(cells[4])}; Transition {_norm(cells[5])}")}))
-    for x in d.get("extra") or []:
-        out.append(_tell("doctrine", x["id"], x["title"], {"extra": x["id"]},
-                         x.get("cite"), x.get("horizon"), "index instruments (Book C)",
-                         x.get("exit") or "", {"rule": x["title"]}))
     return out
 
 
@@ -353,6 +350,17 @@ def to_hypothesis(t: dict, local_id: str, con: Optional[dict] = None) -> dict:
     }
 
 
+def declared_horizons(todo: list[dict]) -> Optional[str]:
+    """The horizons no source states and this registration declares (Book D's 21
+    sessions, ruling 2 of 18 Oct 2026), named in the manifest as session B's own."""
+    ids = sorted(t["id"] for t in todo
+                 if "DECLARED BY SESSION B" in str((t.get("horizon") or {}).get("from")))
+    if not ids:
+        return None
+    return ("Horizons declared by session B at registration, not stated by the "
+            "source (ruled 18 Oct 2026): Book D's 21 sessions, for " + ", ".join(ids))
+
+
 def registered_tells(ledger) -> dict[str, dict]:
     """The newest registration of each tell id (source tell), superseded ones
     aside."""
@@ -429,6 +437,9 @@ def import_tells(ledger, store, as_of: Optional[str] = None,
                         "config/setups.yaml", "the probability ledger's graded sources",
                         "config/alpha_tells.yaml"],
              "hypotheses": hyps}
+    declared = declared_horizons(todo)
+    if declared:
+        batch["notes"] = declared
     errs = hyp.validate_batch(batch)
     if errs:
         raise ValueError("the import batch fails the v1 schema: " + "; ".join(errs[:6]))
