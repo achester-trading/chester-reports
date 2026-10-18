@@ -160,9 +160,11 @@ Everything else is CI's.
 
 | Commit | Run | Result |
 |---|---|---|
-| `5594468` (part 0) | 39175949352 | in progress at my one read |
-| `e62c828` (part 1) | | not read yet |
-| these notes | | not read yet |
+| `5594468` (part 0) | 39175949352 | **success** (read on a45) |
+| `e62c828` (part 1) | 39176741863 | **success** (read on a45) |
+| `9f0ee8e` (these notes) | 39176831103 | queued at a45's one read |
+
+These rows were filled in on a45-opening-setup-2, which merges after this branch, so a44's tip did not move.
 
 ---
 
