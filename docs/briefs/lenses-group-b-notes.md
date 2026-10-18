@@ -397,4 +397,19 @@ the units, the registers and the trade ledgers.
 
 ## CI
 
-The run on this branch's push is read once and recorded here.
+Each run was read once, with `gh run list --branch lenses-group-b --limit 5`.
+
+| Run | Commit | Result |
+|---|---|---|
+| 39112365516 | `186b5a7` (Part 0) | **success, 105 of 105 jobs** |
+| 39114094511 | `f94072d` (Part 1) | **failed**: 104 of 106 jobs; `validate_lenses` 48 passed, 1 failed, and the `gates-passed` roll-up |
+| 39114929397 | `cef6e8a` (Part 2) | queued when read (it carries Part 1's failure) |
+| 39115072458 | `73f08eb` (these notes) | queued when read (the same) |
+| 39115166631 | `adf8e31` (the fix) | queued when read; reported in the session's closing message |
+
+**The cause was mine.** `validate_lenses` holds every resolved series to a
+family, or to a reason it has none. The surprise index's 15 `calc.` keys had
+neither. They now carry `conditions`, marked ambiguous (alternative: ratio), in
+the registry's `families` map, as the naive surprises' block does. Locally that
+is 49 passed, 0 failed, and `check_registry`, `validate_audit_3a` and
+`validate_releases_b` still pass. The fix is `adf8e31`.
