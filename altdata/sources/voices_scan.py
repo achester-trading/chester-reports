@@ -304,19 +304,10 @@ def listing_links(html: str, base: str, pattern: str, limit: int) -> list[str]:
 # Extraction -- one model call per new item
 # ---------------------------------------------------------------------------
 def _client():
-    """The Anthropic client through the one secrets loader, or (None, reason)."""
-    from .. import secrets  # noqa: PLC0415
-    key_name = "ANTHROPIC" + "_API_KEY"
-    if not secrets.present(key_name):
-        return None, f"{key_name} is not set (checked environment, then .env)"
-    try:
-        import anthropic  # noqa: PLC0415
-    except ImportError:
-        return None, "the anthropic package is not installed"
-    try:
-        return anthropic.Anthropic(), ""
-    except Exception as exc:                                    # noqa: BLE001
-        return None, f"client construction failed: {type(exc).__name__}: {exc}"
+    """The one shared client (AUD-2 item 4: altdata/model_meter.py, a 90-second
+    timeout and one retry), through the one secrets loader, or (None, reason)."""
+    from .. import model_meter  # noqa: PLC0415
+    return model_meter.client()
 
 
 def extraction_prompt(cfg: dict, stories: dict[str, dict]) -> str:
@@ -359,8 +350,9 @@ def _json_from(text: str) -> dict:
 def extract(client, model: str, system: str, title: str, url: str,
             published: str, text: str, max_tokens: int = 1800) -> list[dict]:
     """One call; the voices the article carries, unvalidated."""
-    msg = client.messages.create(
-        model=model, max_tokens=max_tokens, system=system,
+    from .. import model_meter  # noqa: PLC0415
+    msg = model_meter.create(
+        client, model=model, max_tokens=max_tokens, system=system,
         messages=[{"role": "user", "content":
                    f"TITLE: {title}\nURL: {url}\nPUBLISHED: {published}\n\n"
                    f"ARTICLE TEXT:\n{text}"}])
@@ -465,16 +457,26 @@ def _story_defs(db_path: Optional[str]) -> dict[str, dict]:
     return defs
 
 
-def run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
-        use_model: bool = True, client=None, fetcher: Optional[Fetcher] = None,
-        only: Optional[list[str]] = None, today: Optional[str] = None,
-        cfg: Optional[dict] = None) -> dict:
+def run(db_path: Optional[str] = None, **kw) -> dict:
+    """One pass over every declared source, its model calls metered as the
+    voices report's (AUD-2 item 4)."""
+    from .. import model_meter  # noqa: PLC0415
+    with model_meter.scope(report="voices", db_path=db_path):
+        return _run(db_path, **kw)
+
+
+def _run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
+         use_model: bool = True, client=None, fetcher: Optional[Fetcher] = None,
+         only: Optional[list[str]] = None, today: Optional[str] = None,
+         cfg: Optional[dict] = None) -> dict:
     """One pass over every declared source. Never raises for a source's failure:
     that source records its state and the pass moves on."""
+    from .. import model_meter  # noqa: PLC0415
     cfg = cfg or vmod.load_config()
     now = session.utc_iso()
     today = today or now[:10]
     run_id = f"voices-{now.replace(':', '').replace('-', '')[:15]}"
+    model_meter.annotate(run_id=run_id, section="extract")
     ua = ua or user_agent()
     report: dict[str, Any] = {"run_id": run_id, "sources": {}, "model": None}
     # OFFICIALS, THEN DESKS, THEN NEWS (PB-1): the day's model calls are spent

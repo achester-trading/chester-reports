@@ -15,5 +15,5 @@ To generate the Monthly Macro report, set `FRED_API_KEY` (and optionally
 pipeline against a synthetic store with no network access. See
 [CLAUDE.md](CLAUDE.md) for the repo layout, the standing rules, and the data
 gotchas that bite in practice, and `docs/` for the architecture and planning
-documents — `docs/architecture-v3.md` is the canonical planning document once it
-is committed.
+documents — `docs/chester-reports-architecture-v3.md` is the canonical planning
+document. `python -m altdata.catalogue` lists and searches what the system holds.

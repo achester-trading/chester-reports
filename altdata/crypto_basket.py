@@ -836,10 +836,13 @@ def model_proposer(model: Optional[str] = None) -> Callable[..., dict]:
             f"only on one of those changes. Answer JSON only: "
             f'{{"10x": "a-b%", "100x": "a-b%", "change": "<one of the changes, '
             f'verbatim>", "reason": "<one clause>"}}.')
-        resp = client.messages.create(
-            model=model or os.environ.get("CRYPTO_BASKET_MODEL",
-                                          narrative.DEFAULT_MODEL),
-            max_tokens=300, messages=[{"role": "user", "content": prompt}])
+        from . import model_meter                                # noqa: PLC0415
+        with model_meter.scope(section="crypto_basket"):
+            resp = model_meter.create(
+                client,
+                model=model or os.environ.get("CRYPTO_BASKET_MODEL",
+                                              narrative.DEFAULT_MODEL),
+                max_tokens=300, messages=[{"role": "user", "content": prompt}])
         text = "".join(b.text for b in resp.content
                        if getattr(b, "type", None) == "text")
         m = re.search(r"\{.*\}", text, re.S)

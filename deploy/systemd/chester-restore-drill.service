@@ -1,0 +1,51 @@
+[Unit]
+Description=Restore drill: last night's db/ snapshot restored, checked and counted (monthly)
+Documentation=file:///%h/chester-reports/docs/runbooks/restore.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# AUD-2 item 5 (ruled 14 Oct 2026). Copies the newest db/ snapshot from the backup
+# remote into a private temporary directory (rclone copy, remote -> local only),
+# gunzips it, runs integrity_check, and prints each table's rows beside the live
+# store's. It writes nothing outside that directory and removes it. The output is
+# the journal: `journalctl --user -u chester-restore-drill`.
+WorkingDirectory=%h/chester-reports
+ExecStart=%h/chester-reports/scripts/run_restore_drill.sh
+
+# CHESTER_RCLONE_REMOTE comes from a box-local drop-in, exactly as the backup's
+# does (chester-restore-drill.service.d/remote.conf, declared in box-config.allow);
+# .env is read for anything else the code resolves through altdata.secrets.
+EnvironmentFile=-%h/chester-reports/.env
+
+# A full-size snapshot over Drive takes minutes, not hours.
+TimeoutStartSec=45min
+SuccessExitStatus=0
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The temporary directory is under the unit's private /tmp. The live store is
+# opened read-only (SQLite mode=ro), but SQLite may need its -shm file beside a
+# WAL database even to read, so data/ is writable, with the log directory, and
+# nothing else is. rclone's config is read-only, exactly as the backup unit
+# holds it.
+ReadWritePaths=%h/logs %h/chester-reports/data
+ReadOnlyPaths=%h/chester-reports %h/.config/rclone
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+MemoryHigh=0.8G
+MemoryMax=1G
+# THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13). If the caps are
+# not enough, the kernel kills the highest score first: a report can be rendered
+# again; a day's chains cannot be fetched again; the Gateway needs Ari's supervised
+# login. So the reports 500, the EOD capture 300, the Gateway -500. Raising a score
+# needs no privilege, so this order holds on a --user unit without root.
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=default.target

@@ -83,6 +83,7 @@ from typing import Any, Optional
 
 from .. import config
 from .. import session
+from ..ibkr_clients import CLIENT_IDS
 from . import ibkr_portfolio as ibkr
 
 log = logging.getLogger(__name__)
@@ -317,7 +318,7 @@ def estimate(instrument: str, direction: str, quantity: float,
 
 
 def read_baseline(host: str = ibkr.DEFAULT_HOST, port: int = ibkr.DEFAULT_PORT,
-                  client_id: int = 19, allow_live: bool = False,
+                  client_id: int = CLIENT_IDS["costs"], allow_live: bool = False,
                   ib_factory=None) -> dict:
     """Account values for the margin side. A READ -- Read-Only API permits it.
 

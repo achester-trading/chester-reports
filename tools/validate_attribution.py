@@ -291,7 +291,11 @@ def group_a() -> None:
           "run_eod captures the four and records the paper bid; stages 2 and 3 "
           "stay on the 13")
     cron = (REPO / "scripts" / "run_eod_cron.sh").read_text(encoding="utf-8")
-    check(cron.index("altdata.attribution compute") > cron.index("run_eod.py --close-source"),
+    # AUD-1 5a split run_eod.py into a capture pass and a compute pass
+    # (--skip-fetch); the attribution follows the LAST of them.
+    check(cron.find("altdata.attribution compute")
+          > max(cron.rfind('"$VENV_PY" run_eod.py --close-source'),
+                cron.rfind('"$VENV_PY" run_eod.py --skip-fetch')) > 0,
           "the EOD wrapper computes the attribution after the chains")
     tree = ast.parse((REPO / "altdata" / "attribution.py").read_text(encoding="utf-8"))
     fns = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}

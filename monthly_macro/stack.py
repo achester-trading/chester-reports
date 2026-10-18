@@ -59,6 +59,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import labels, observations, session
+from altdata import model_meter
 
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
@@ -336,6 +337,14 @@ LONG_FRAME_LABELS = {"ma_40w": "40-week (≈200-day)", "ma_10m": "10-month (≈2
                      "ma_20m": "20-month (≈400-day)"}
 
 
+LONG_FRAME_ROLES = {
+    "close": "the month-end close: where the market ended the month",
+    "ma_40w": "an AVERAGE of the last 40 weekly closes -- never a close",
+    "ma_10m": "an AVERAGE of the last 10 monthly closes -- never a close",
+    "ma_20m": "an AVERAGE of the last 20 monthly closes -- never a close",
+    "drawdown_52w_pct": "a percentage distance below the 52-week high"}
+
+
 def year_end_close(st, key: str, year: int, now: str) -> Optional[tuple[str, float]]:
     """The last close on or before 31 December of `year`, as knowable at `now`;
     None when that close is more than a week before the year's end -- an old
@@ -419,6 +428,15 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                                    f"{LONG_FRAME_LABELS['ma_20m']} average",
                                    "From the 52-week high"], "rows": lf_rows},
              "not_tracked": nt}]
+    # THE VOLUME PROFILE (VP-1 item 8): the month's value area against the prior
+    # month's, for the instruments in config/volume_profile.yaml.
+    from altdata import bars as bars_mod, volume_profile as vp  # noqa: PLC0415
+    vpt = vp.table((book or {}).get("instruments") or [], "month", "prior_month",
+                   {t["id"]: t.get("unit") for t in bars_mod.tape()})
+    if vpt["rows"]:
+        subs.append({"title": "Value area: the month against the prior month",
+                     "table": {k: vpt[k] for k in ("columns", "rows")},
+                     "not_tracked": vpt["not_tracked"]})
     ytd = None
     if st is not None and last and now:
         try:
@@ -454,7 +472,12 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                                     None if r.get("percentile") is None
                                     else _ord(r.get("percentile"))}
                                for r in rows],
-                     "long_frame": lf_data, "levels": levels,
+                     "long_frame": lf_data,
+                     # T3.6 M1: each column's ROLE, so a writer cannot cite an
+                     # average as a close (the role audit holds it to this).
+                     "long_frame_columns": LONG_FRAME_ROLES,
+                     "levels": levels,
+                     "volume_profile": vpt["data"],
                      "cross_asset_ytd": (ytd or {}).get("data") or []}}
 
 
@@ -564,7 +587,24 @@ def dev_point(theme: str, it: dict) -> dict:
             "bullets": [f"Source: {_cite(s)}" for s in (it.get("sources") or [])[:2]]}
 
 
-def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
+def month_direction(h: list, then: Optional[str]) -> Optional[tuple[str, float]]:
+    """(rising | falling, the |z| at the month's start): a gap's direction over the
+    MONTH -- its |z| at the latest point against its |z| at the month's start --
+    where the Weekly's reads its last two sessions (T3.6 M5)."""
+    pts = [(str(d)[:10], v) for d, v in h or [] if v is not None]
+    if not pts or not then:
+        return None
+    start = [v for d, v in pts if d <= then[:10]]
+    if not start:
+        return None
+    a, b = abs(float(start[-1])), abs(float(pts[-1][1]))
+    if a == b:
+        return None
+    return ("rising" if b > a else "falling"), float(start[-1])
+
+
+def misfit_section(p: dict, st, now: str, pmb: Optional[dict],
+                   then: Optional[str] = None) -> dict:
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     from daily_cascade.stack_close import _contradiction_history  # noqa: PLC0415
     mis = month_in_state(p)
@@ -594,6 +634,21 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict]) -> dict:
     for r in (b.get("table") or {}).get("rows") or []:
         b["items"].append(item(f"misfit:gap:{r[0]}", str(r[0]), 1, r))
         b["items"][-1]["show"] = False
+    # T3.6 M5: THE MONTH'S DIRECTION, not the last session's -- the summary called
+    # two gaps "falling" while their z rose over the month. The table and the data
+    # carry it, and the direction audit holds the prose to it (prose.gap_faults).
+    gaps = (b.get("data") or {}).get("gaps") or []
+    by_name = {labels.contradiction(c["id"]): hist.get(c["id"])
+               for c in mis["contradictions"]}
+    for g in gaps:
+        md = month_direction(by_name.get(g.get("gap")), then)
+        if md:
+            g["direction"], g["z_month_start"] = md[0], round(md[1], 1)
+            g["direction_window"] = "the month"
+    for r in (b.get("table") or {}).get("rows") or []:
+        g = next((x for x in gaps if str(x.get("gap") or "").capitalize() == r[0]), None)
+        if g and len(r) > 3:
+            r[3] = g["direction"]
     b["data"]["gap_table"] = b.get("table")
     b["data"]["dissent"] = [{"theme": r[0], "development": r[1], "tag": r[2],
                              "source": r[3]} for r in rows]
@@ -650,6 +705,60 @@ def buckets(rows: list[list], keys: dict, bcfg: dict, columns: list) -> tuple:
     return subs, by.get("other") or []
 
 
+# THE MONTHLY'S DERIVED SERIES (T3.6 M4, W-1.1a item 6 ported): the dry run
+# printed 2s10s "+83 bp to 47 bp" while the 2-year and the 10-year each moved
+# +54 bp -- the stored spread's prior sat on a date its legs did not share. A
+# derived series now takes both legs on the latest date both have, now and at the
+# month's start, and its change must equal its legs' changes within DERIVED_TOL;
+# otherwise it is withheld, and the row prints the legs instead.
+DERIVED = {"2s10s": ("fred.yield_10y", "fred.yield_2y", "10-year", "2-year")}
+DERIVED_TOL_BP = 2.0
+
+
+def derived_check(now_level: float, then_level: float, leg_changes: dict,
+                  tol: float = DERIVED_TOL_BP) -> tuple[bool, float, float]:
+    """(consistent, the derived change in bp, the legs' difference in bp): a
+    spread's change is its first leg's change less its second's."""
+    ch = round((now_level - then_level) * 100.0, 1)
+    a, b = list(leg_changes.values())
+    legs = round(a - b, 1)
+    return abs(ch - legs) <= tol, ch, legs
+
+
+def derived_rows(b: dict, st, now: str, then: str) -> None:
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
+    rows = (b.get("table") or {}).get("rows") or []
+    for name, (k1, k2, n1, n2) in DERIVED.items():
+        row = next((r for r in rows if r[0] == name), None)
+        if row is None:
+            continue
+        cur, prior, day = wsec.aligned_legs(st, k1, k2, now, then)
+        x1, x2 = ws.change_over(st, k1, now, then), ws.change_over(st, k2, now, then)
+        legs = {n1: (x1 or {}).get("change"), n2: (x2 or {}).get("change")}
+        if None in cur or None in prior or None in legs.values():
+            continue
+        ok, ch, diff = derived_check(cur[0] - cur[1], prior[0] - prior[1], legs)
+        series = (b.get("data") or {}).get("series") or {}
+        if ok:
+            row[1] = f"{(cur[0] - cur[1]) * 100:.0f} bp"
+            row[2] = stack_mod._signed(ch, "bp")
+            row[3] = day
+            series[name] = {"level_bp": round((cur[0] - cur[1]) * 100.0, 1),
+                            "change_bp": ch, "as_of": day,
+                            "legs": {n1: legs[n1], n2: legs[n2]}}
+            continue
+        legs_txt = ", ".join(f"{n} {stack_mod._signed(v, 'bp')}" for n, v in legs.items())
+        row[1] = "withheld"
+        row[2] = f"withheld: its change ({stack_mod._signed(ch, 'bp')}) is not its legs' ({legs_txt})"
+        series.pop(name, None)
+        b["items"] = [i for i in b.get("items") or [] if i.get("key") != f"plumb:{k1}-{k2}"
+                      and not str(i.get("text") or "").startswith(f"{name} ")]
+        b.setdefault("notes", []).append(
+            f"{name} is withheld: its change does not equal its legs' changes "
+            f"({legs_txt}).")
+
+
 def plumbing_section(st, now: str, then: str, on_tape: set,
                      cfg: Optional[dict] = None) -> dict:
     """The Weekly's Plumbing over the month. A rate or spread the tape's
@@ -674,6 +783,7 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
         b["table"]["rows"] = [r for r in rows if names.get(r[0]) not in on_tape]
         b.setdefault("notes", []).append(
             f"In The tape's table: {', '.join(moved)}.")
+    derived_rows(b, st, now, then)
     b["_printed"] = [names[r[0]] for r in b["table"]["rows"] if r[0] in names]
     bcfg = (cfg or {}).get("monthly_plumbing_buckets")
     if not bcfg:
@@ -1833,13 +1943,70 @@ def driver_attribution_block(st, now: str) -> dict:
 # ---------------------------------------------------------------------------
 # Changed since last Monthly: Phase A's "what changed", in the header
 # ---------------------------------------------------------------------------
+# T3.6 M6: the dry run listed 22 forecast lines and 5 decision lines. Forecasts
+# and decisions are SUMMARISED -- "11 forecasts emitted, 9 resolved: 6 right, 3
+# wrong" and "5 decisions closed" -- and every dial, dimension, exception, story
+# and claim line is kept as it was.
+_TRUE = {"1", "1.0", "true", "yes", "y", "hit", "right"}
+
+
+def _right(r: dict) -> Optional[bool]:
+    """Was a resolved forecast right: its probability on the side of the outcome
+    (p >= 0.5 with the event, p < 0.5 without it)? None where either is unknown."""
+    p_, o = r.get("probability"), r.get("outcome")
+    if p_ is None or o is None:
+        return None
+    try:
+        return (float(p_) >= 0.5) == (str(o).strip().lower() in _TRUE)
+    except (TypeError, ValueError):
+        return None
+
+
 def changed_since(p: dict) -> tuple[list[str], list[str]]:
     wc = (p.get("looking_back") or {}).get("what_changed") or {}
     lines, ids = [], []
+    emitted, resolved, decisions = [], [], []
     for n, r in enumerate(wc.get("rows") or []):
+        what = str(r.get("what") or "")
+        if what == "forecast emitted":
+            emitted.append(n)
+            continue
+        if what == "forecast resolved":
+            resolved.append((n, r))
+            continue
+        if what.startswith("decision "):
+            decisions.append((n, r))
+            continue
         lines.append(f"{r.get('what')}: {r.get('from') or '—'} to {r.get('to') or '—'}"
                      f" ({_cite(r.get('source'))}).")
         ids.append(f"looking_back:what_changed:{n}")
+    if emitted or resolved:
+        judged = [_right(r) for _, r in resolved]
+        right = sum(1 for j in judged if j is True)
+        wrong = sum(1 for j in judged if j is False)
+        tail = ""
+        if resolved:
+            tail = f", {len(resolved)} resolved"
+            if right or wrong:
+                tail += f": {right} right, {wrong} wrong"
+            if right + wrong < len(resolved):
+                tail += f" ({len(resolved) - right - wrong} not yet graded)"
+        lines.append(f"{len(emitted)} forecast{'' if len(emitted) == 1 else 's'} "
+                     f"emitted{tail}.")
+        ids += [f"looking_back:what_changed:{n}" for n in emitted] + \
+            [f"looking_back:what_changed:{n}" for n, _ in resolved]
+    if decisions:
+        by: dict[str, int] = {}
+        for _, r in decisions:
+            status = str(r.get("to") or "open")
+            by[status] = by.get(status, 0) + 1
+        if len(by) == 1:
+            status, k = next(iter(by.items()))
+            lines.append(f"{k} decision{'' if k == 1 else 's'} {status}.")
+        else:
+            lines.append(f"{len(decisions)} decisions: " + ", ".join(
+                f"{v} {k}" for k, v in sorted(by.items())) + ".")
+        ids += [f"looking_back:what_changed:{n}" for n, _ in decisions]
     return lines, ids
 
 
@@ -1880,7 +2047,7 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
             "read": lambda: read_section(p),
             "tape": lambda: tape_section(p, book, st, last, now, cfg),
             "mechanics": lambda: mechanics_section(st, first, last, now, cfg),
-            "misfit": lambda: misfit_section(p, st, now, pmb),
+            "misfit": lambda: misfit_section(p, st, now, pmb, then),
             "plumbing": lambda: plumbing_section(st, now, then, on_tape, cfg),
             "positioning": lambda: positioning_section(st, now, then),
             "priced": lambda: priced_section(st, now, then, cfg, pmb, fed, fed_then),
@@ -2172,6 +2339,55 @@ def apply_summary(ed: dict, written: dict, narrative: bool = True) -> dict:
     return ed
 
 
+# ---------------------------------------------------------------------------
+# T3.6 M3: the one page, de-duplicated and capped
+# ---------------------------------------------------------------------------
+ONE_PAGE_MAX = 5
+
+
+def dedup_one_page(ed: dict) -> dict:
+    """Section 1's one page against the executive summary and against itself:
+    a sentence similar to one the summary prints, or to an earlier sentence of the
+    one page, is withheld (readability.similar_sentence); then the page is capped
+    at ONE_PAGE_MAX paragraphs. The section's notes say what went."""
+    read = next((x for x in ed.get("sections") or [] if x.get("id") == "read"), None)
+    page = next((ss for ss in (read or {}).get("subsections") or []
+                 if ss.get("phase") == "month_in_one_page"), None)
+    if not page or not page.get("paragraphs"):
+        return ed
+    summ = [x for e in ed.get("summary") or [] for x in rd.sentences(e.get("text"))]
+    seen: list[str] = []
+    kept, dropped = [], {"summary": 0, "itself": 0}
+    for para in page["paragraphs"]:
+        keep = []
+        for x in rd.sentences(para):
+            if any(rd.similar_sentence(x, o) for o in summ):
+                dropped["summary"] += 1
+            elif any(rd.similar_sentence(x, o) for o in seen):
+                dropped["itself"] += 1
+            else:
+                keep.append(x)
+            # Said once is said: a sentence withheld as the summary's repeat still
+            # makes a later restatement of it a repeat of the page.
+            seen.append(x)
+        if keep:
+            kept.append(" ".join(keep))
+    cut = max(0, len(kept) - ONE_PAGE_MAX)
+    page["paragraphs"] = kept[:ONE_PAGE_MAX]
+    notes = page.setdefault("notes", [])
+    if dropped["summary"]:
+        notes.append(f"{rd.plural(dropped['summary'], 'sentence')} repeated the "
+                     f"executive summary and {'was' if dropped['summary'] == 1 else 'were'} "
+                     f"withheld.")
+    if dropped["itself"]:
+        notes.append(f"{rd.plural(dropped['itself'], 'sentence')} repeated the page "
+                     f"itself and {'was' if dropped['itself'] == 1 else 'were'} withheld.")
+    if cut:
+        notes.append(f"Cut to {ONE_PAGE_MAX} paragraphs ({cut} more withheld).")
+    ed["one_page_dedup"] = {**dropped, "cut": cut}
+    return ed
+
+
 def summary_minutes(ed: dict) -> int:
     """The short path's reading time (T3.1 item 22): the executive summary and
     section 1, at the shared rate."""
@@ -2252,10 +2468,22 @@ def markdown(ed: dict) -> str:
     return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
 
 
+def meter_month(p: dict) -> str:
+    """The month the Monthly covers, YYYY-MM: the month in markets' last day,
+    else the month before the report date."""
+    end = str(((p.get("month_in_markets") or {}).get("end")) or "")
+    if len(end) >= 7 and end[4] == "-":
+        return end[:7]
+    import datetime as _dt                                      # noqa: PLC0415
+    d = _dt.date.fromisoformat(str(p.get("report_date"))[:10]).replace(day=1)
+    return (d - _dt.timedelta(days=1)).isoformat()[:7]
+
+
+@model_meter.metered("monthly")
 def produce(p: dict, *, archive_dir: Optional[str], client=None,
-            model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, write=None,
-            prior_dir: Optional[str] = None) -> dict:
+             model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, write=None,
+             prior_dir: Optional[str] = None) -> dict:
     """Build, write, polish, budget and render the stacked Monthly. Archives
     nothing -- run.py does, through deliver.archive, as for every report.
     `write(ed) -> {key: result}` replaces the default prose step (run.py passes
@@ -2301,13 +2529,31 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
         except Exception:                                       # noqa: BLE001
             log.exception("the executive summary faulted; each paragraph prints "
                           "as withheld")
+        # T3.6 M2: ONE DIRECTION PER INSTRUMENT ACROSS THE SUMMARY'S PARAGRAPHS
+        # -- gold cannot be "pulling back" in one and "holding its level" in
+        # another; the paragraph against the month's sign is rewritten once,
+        # then withheld.
+        try:
+            sw = prose_mod.reconcile_summary(p, sw, ed, model=model, client=client)
+        except Exception:                                       # noqa: BLE001
+            log.exception("the summary's consistency pass faulted")
     apply_summary(ed, sw, narrative)
+    # T3.6 M3: the one page says each thing once -- not what the executive
+    # summary already says, not twice in itself -- in at most five paragraphs
+    # (five takeaways, ruled 14 Oct 2026, decision 8).
+    dedup_one_page(ed)
     # THE GUARD LAST (A-4): finalize pops each sub-section's paragraph, and the
     # formatting pass, run after it, wrote the key back -- so nothing after
     # the budget may rewrite the edition's prose.
     enforce_budget(ed)
     ed["archive_path"] = (str(Path(archive_dir) / f"monthly_macro_{stamp}.html")
                           if archive_dir else None)
+    # THE MODEL METER (AUD-2 item 4): the month's calls and tokens, by report.
+    try:
+        from altdata import model_meter                         # noqa: PLC0415
+        ed["model_lines"] = model_meter.month_lines(db_path, meter_month(p))
+    except Exception:                                           # noqa: BLE001
+        log.warning("model meter lines unavailable", exc_info=True)
     return {"edition": public(ed), "written": written, "summary_written": sw,
             "charts": charts,
             "inline_images": [(sr.cid(k), c["png"])

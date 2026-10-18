@@ -322,6 +322,26 @@ def main() -> int:
     check(not any(ss.get("title") == "Levels" for ss in sec["tape"].get("subsections") or [])
           and any(d["title"] == "The tape: named levels" for d in ed.get("detail") or []),
           "the tape's named levels are in the reference tables")
+    # VP-1 (ruled 14 Oct 2026, 14:04 ET): the value-area table follows them,
+    # directly after; its gaps stay in the tape's own not-yet-tracked.
+    va_ed = {"sections": [
+        {"id": "read"},
+        {"id": "tape", "not_tracked": ["x"], "subsections": [
+            {"title": "Levels", "table": {"columns": ["a"], "rows": [["SPY"]]}},
+            {"title": "Value area: the week against the prior week",
+             "table": {"columns": ["Market"], "rows": [["SPY"]]},
+             "not_tracked": ["IWM prior week: not stored whole"]},
+            {"title": "Something else", "table": None}]},
+        {"id": "mechanics", "subsections": []}]}
+    storyline.move_daily_tables(va_ed)
+    va_tape = va_ed["sections"][1]
+    check([d["title"] for d in va_ed.get("detail") or []]
+          == ["The tape: named levels",
+              "The tape: value area, the week against the prior week"]
+          and [ss["title"] for ss in va_tape["subsections"]] == ["Something else"]
+          and va_tape["not_tracked"] == ["x", "IWM prior week: not stored whole"],
+          "the value-area table follows the named levels into the reference "
+          "tables, directly after them; its gaps stay in the tape's foot")
 
     # --- H ------------------------------------------------------------------
     print(f"\n{LINE}\nH. PRESENTATION\n{LINE}")

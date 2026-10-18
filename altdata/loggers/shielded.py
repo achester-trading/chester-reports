@@ -337,12 +337,19 @@ def read_value_pools() -> dict:
     return out
 
 
-def _zec_closes() -> list[tuple[str, float]]:
+def _zec_closes(now=None) -> list[tuple[str, float]]:
     from ..sources import yfinance_source as yf_src
     parsed = yf_src._fetch_symbol(ZEC_SYMBOL, period="2y")     # noqa: SLF001
     # ZEC trades every day, so the session filter must not touch it -- the same
     # declaration BTC gets in the price basket.
-    return parsed["closes"]
+    # AUD-1 5d (the audit of 14 Oct 2026): but the UNFINISHED-BAR filter must.
+    # Yahoo's newest ZEC bar is today's UTC day still trading, and stored as a
+    # close it was a partial price written as final -- PB-1's fault, which the
+    # basket had been cured of and this logger had not.
+    kept, held = yf_src.drop_incomplete_bars(ZEC_SYMBOL, parsed["closes"], now)
+    if held:
+        log.info("  ZEC: held back unfinished bar(s) %s", ", ".join(held))
+    return kept
 
 
 def pull(run_id: Optional[str] = None,

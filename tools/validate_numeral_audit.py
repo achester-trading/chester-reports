@@ -529,7 +529,7 @@ def group_i() -> None:
     kw = dict(system_prompt=nv.SYSTEM_PROMPT, max_chars=5000, one_paragraph=False,
               citable_ids=[])
     bad_ = nv.generate(raw, client=Client("Credit is at the 51st percentile."), **kw)
-    check('"percentile_ordinal": "52nd"' in seen.get("prompt", ""),
+    check('"percentile_ordinal":"52nd"' in seen.get("prompt", ""),
           "generate() hands the model the payload WITH the ordinal field")
     check(not bad_.published and "51st" in (bad_.reason or ""),
           f"a truncated 51st is withheld ({bad_.state})")
@@ -592,7 +592,7 @@ def group_j() -> None:
               citable_ids=[])
     good = nv.generate(raw, client=Client(f"Gold fell {M}6.75% over September."),
                        **kw)
-    check('"change_pct_signed": "' in seen.get("prompt", "")
+    check('"change_pct_signed":"' in seen.get("prompt", "")
           and f"{M}6.75%" in seen.get("prompt", ""),
           "generate() hands the model the signed form beside the move")
     check(good.published, f"gold's {M}6.75%, copied, publishes ({good.state})")
@@ -719,6 +719,26 @@ def group_h() -> None:
     check(na.audit("the put wall at 760", {"rows": [{"max_pain": 760.0}]}).passed,
           "a payload that carries no put wall at all leaves the label unchecked -- "
           "the plain match still applies")
+    # VP-1: the volume profile's three names, qualified by window or bare. The
+    # payload is a level list's flat rows (altdata/levels.py).
+    vp = {"levels": [{"symbol": "SPY", "vp_prior_week_vah": 664.25,
+                      "vp_week_vah": 667.0, "vp_prior_session_poc": 662.5},
+                     {"symbol": "QQQ", "vp_prior_week_vah": 667.0}]}
+    for text, want, why in (
+            ("SPY held the prior week's value-area high at 667.00", False,
+             "667 is SPY's week's VAH and QQQ's prior week's -- true under other "
+             "names, as the 30 Sep put wall was"),
+            ("SPY held the prior week's value-area high at 664.25", True,
+             "the prior week's own value"),
+            ("SPY's VAH at 667.00", True, "a bare VAH binds to any window"),
+            ("SPY reclaimed yesterday's POC at 662.50", True,
+             "yesterday's is the prior session's"),
+            ("QQQ held the prior week's VAH at 667.00", True,
+             "the symbol is the sentence's"),
+    ):
+        rr = na.audit(text, vp)
+        check(rr.passed is want, f"VP-1 {text!r}: {'passes' if want else 'fails'} "
+                                 f"-- {why}" + ("" if want else f" ({rr.reason()})"))
 
 
 def group_l() -> None:

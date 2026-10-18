@@ -62,6 +62,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 from altdata import session                       # noqa: E402
+from altdata.ibkr_clients import CLIENT_IDS       # noqa: E402
 from register import instruments, manifest        # noqa: E402
 from register.store import (                      # noqa: E402
     BOOKS, CURRENCY_EXPOSURES, DIRECTIONS, EXPRESSION_FAMILIES, HORIZONS,
@@ -1379,7 +1380,7 @@ def main() -> int:
     r.add_argument("--preview-port", type=int, default=4002,
                    help="4002 Gateway paper (default), 4001 live. The port is "
                         "the mode.")
-    r.add_argument("--preview-client-id", type=int, default=18)
+    r.add_argument("--preview-client-id", type=int, default=CLIENT_IDS["whatif"])
     r.add_argument("--allow-live", action="store_true",
                    help="Permit a preview against a LIVE port.")
     r.set_defaults(func=cmd_record)

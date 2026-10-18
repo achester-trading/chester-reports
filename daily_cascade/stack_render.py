@@ -574,6 +574,11 @@ def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
             f"as-of cutoff {esc(rd.stamp_et(ed.get('as_of')))} &middot; run "
             f"{esc(run_id_display(run_id))}")
     lines = [meta, esc(marks)]
+    # AUD-2 item 4: the model meter -- the close's one line, the Monthly's month
+    # by report. Tokens, never dollars.
+    for x in ([ed["model_line"]] if ed.get("model_line") else []) + list(
+            ed.get("model_lines") or []):
+        lines.append(esc(x) + ("" if str(x).endswith(".") else "."))
     if archive_path:
         lines.append(f"Archived to {esc(archive_path)}.")
     if pdf_note:
@@ -901,7 +906,8 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email",
     events = state_block.session_events_line(p)
     head = page_header(f"Close — {dow} {day}".strip(), rd.stamp_et(ed.get("as_of")),
                        rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
-                       extra_html=f" &middot; {events}")
+                       extra_html=f" &middot; {events}" + (
+                           f' &middot; {esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else ""))
     try:
         gl = labels.glossary()
     except Exception:                                           # noqa: BLE001

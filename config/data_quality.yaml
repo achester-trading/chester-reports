@@ -1,0 +1,134 @@
+# data_quality.yaml -- the read-only data-quality check after each pull.
+# (AUD-3c, 15 Oct 2026; the data and architecture audit of 14 Oct,
+# recommendation 14: no outlier or cross-source check stood between a bad print
+# and the reports.) Read by altdata/quality.py; held by tools/validate_quality.py.
+#
+# SESSION-SET, NOT RULED: every number below is the brief's or the session's,
+# each with its reason, listed in docs/briefs/aud-3c-notes.md for the operator to
+# overrule. A ruling is a one-line change here. A flag is a prompt to look: it
+# never blocks a report, withholds a number or changes a stored value.
+version: data-quality-v1
+status: session-set
+
+# OUTLIERS. A key's change on the date, against the standard deviation of its
+# own last `window` changes; flagged past `sigma` of them. Changes are measured
+# by the key's own delta rule through the move screen's unit_rule: log for a
+# price, a difference for a yield, a rate or a spread, and the move screen's
+# pinned log basis (config/move_screen.yaml basis_pins) for the volatility
+# indexes and SKEW.
+outliers:
+  sigma: 6
+  sigma_reason: >-
+    The brief's. Six standard deviations of a key's own recent changes is far
+    past anything the move screen flags (2.5): what remains is a print to look
+    at before it is read as a market move -- a decimal slip, a stale close, a
+    unit change at the vendor.
+  window: 60
+  window_reason: >-
+    The brief's. Sixty changes is three months of a daily series and five years
+    of a monthly one: long enough for a stable spread, short enough to follow a
+    change of regime in the series' own volatility. A key with fewer is skipped
+    and named, never judged on a shorter window.
+  # Which keys: the closes block (yfinance.mkt_<sym>) and every FRED bulk block.
+  blocks: [market_closes, fred_macro, fred_signal_triage, fred_fx_scan, fred_sloos,
+           fred_aq3, fred_sr43, fred_thailand]
+
+# CROSS-SOURCE PAIRS. Two sources' prints of one fact, on the latest date both
+# hold. A gap beyond the pair's tolerance flags. The tolerance is the
+# `percentile`th percentile of the pair's absolute gap over its own history,
+# measured read-only on a copy of the store (`python -m altdata.quality measure`)
+# and recorded here with the date it was measured and the window it covered --
+# floored at the coarser of the two series' quote precision, because a
+# percentile below the precision of the print measures floating-point rounding,
+# not a gap between sources.
+pairs:
+  percentile: 99
+  percentile_reason: >-
+    The brief's. The 99th percentile of a pair's own gaps leaves the ordinary
+    disagreements -- a close taken at a different minute, a vendor's rounding --
+    inside, and flags a gap the pair has shown on fewer than one day in a hundred.
+  floor_reason: >-
+    RULED 15 Oct 2026 (Ari, AUD-3c answer 1): the floor is the quote's
+    precision. ^VIX and VIXCLS agree to the float on 1,028 of 1,029 shared
+    days, so their 99th percentile is 0.0000012 points; flagging any gap above
+    that would flag a one-cent rounding difference. The floor is the quote's own
+    precision: 0.01 points for the VIX, 0.01 (one basis point) for a yield.
+  list:
+    - id: tnx_dgs10
+      a: yfinance.mkt_tnx
+      a_label: "^TNX"
+      b: fred.yield_10y
+      b_label: "DGS10"
+      unit: bp            # both are yields in percent; the gap prints in bp
+      scale: 100
+      floor: 0.01
+      tolerance: null
+      measured_on: null
+      measured_window: null
+      unmeasured_reason: >-
+        Ruled 15 Oct 2026: measured on the box after the price backfill and the
+        FRED history have run (week of 19 Oct), when the pair shares hundreds of
+        days, not on the two weeks it shares now (the tape's yields joined the
+        closes on 4 Oct). The command is in docs/briefs/aud-3c-notes.md. Until
+        then the pair prints "not measured" and never flags.
+    - id: tyx_dgs30
+      a: yfinance.mkt_tyx
+      a_label: "^TYX"
+      b: fred.yield_30y
+      b_label: "DGS30"
+      unit: bp
+      scale: 100
+      floor: 0.01
+      tolerance: null
+      measured_on: null
+      measured_window: null
+      unmeasured_reason: >-
+        As ^TNX (ruled 15 Oct 2026): measured on the box after the price backfill
+        and the FRED history have run. Until then "not measured", never a flag.
+    - id: vix_vixcls
+      a: yfinance.mkt_vix
+      a_label: "^VIX"
+      b: fred.vix
+      b_label: "VIXCLS"
+      unit: point
+      scale: 1
+      floor: 0.01
+      # Measured 15 Oct 2026 on the laptop's copy of the store: 1,029 shared
+      # days, 21 Apr 2022 to 28 May 2026; p99 0.0000012 points (one day's gap
+      # of 2.61 points, 6 Feb 2026, is the whole tail); floored at 0.01.
+      tolerance: 0.01
+      measured_p99: 0.0000012
+      measured_on: "2026-10-15"
+      measured_window: "2022-04-21 to 2026-05-28 (1,029 shared days)"
+
+# BACKFILL (ruled 15 Oct 2026, AUD-3c answer 3). Rows written under these
+# source strings are the FRED-history writer's (aud-3d-fred-history, session B):
+# a restated value is labelled "backfill", never a revision, and an observation
+# it writes first is never a new print for the outlier rule.
+backfill_sources: ["fred:backfill"]
+
+# STEP SERIES (ruled 15 Oct 2026, AUD-3c answer 4). A policy rate moves in steps:
+# flat for months, then 25 bp. Its last 60 changes are mostly zero, so the
+# standard-deviation rule would flag every decision. A step series' change
+# prints as an informational "step" line in the check's table and never flags
+# (the close's Warnings table prints flags only).
+steps:
+  reason: >-
+    Ruled: IORB, the ECB deposit rate and Japan's call rate, "and any other
+    policy rate". The session added the effective fed funds rate, daily (DFF)
+    and as a monthly average (FEDFUNDS): each moves with the target range, a
+    step a decision at a time.
+  series:
+    - {key: fred.iorb,         why: "interest on reserve balances, set by the Fed"}
+    - {key: fred.ecb_dfr,      why: "the ECB deposit facility rate, set by the ECB"}
+    - {key: fred.jp_call_rate, why: "Japan's call rate, held at the BoJ's target"}
+    - {key: fred.effr_daily,   why: "effective fed funds, daily: moves with the target range"}
+    - {key: fred.fed_funds,    why: "effective fed funds, monthly average: steps with the target"}
+
+# THE CLOSE. The day's flags print in the close's Warnings table, one line each,
+# at most `close_lines` of them and then a count; nothing on a clean day.
+close_lines: 5
+close_lines_reason: >-
+  The brief's. Five lines keep the Warnings table readable on a bad-feed day
+  when a whole family misprints; the rest are counted, and the full table is
+  one command away (python -m altdata.quality check).

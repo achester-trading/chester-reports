@@ -520,7 +520,7 @@ def group_g() -> None:
         def __exit__(self, *a):
             return False
 
-        def starttls(self):
+        def starttls(self, context=None):
             pass
 
         def login(self, user, password):

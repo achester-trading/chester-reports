@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, derived, levels as levels_mod, observations, session
+from altdata import model_meter
 
 from . import charts as charts_mod
 from .cadence import Period
@@ -132,7 +133,7 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
         return None
     lv = a["value_num"]
     pv = b.get("value_num") if b else None
-    units = str(derived.registry_entry(key).get("units") or "")
+    units = derived.level_units_of(key)
     du = derived.delta_unit_for(key)[0]
     if pv is None or str(b.get("observed_at")) == str(a.get("observed_at")):
         ch = None
@@ -696,14 +697,14 @@ def form_text(v: Optional[float], form: str, key: str) -> str:
         # T3.4a: one change form for every report, numeral_audit.change_display
         # -- "+29,000" for payrolls' +29 thousand, "+12,500" for a plain count,
         # each accepted by the audit as the payload's own display.
-        units = str(derived.registry_entry(key).get("units") or "")
+        units = derived.level_units_of(key)
         from altdata import numeral_audit as na                  # noqa: PLC0415
         return na.change_display(v, units, key) or f"{v:+,.0f}"
     if form in ("mom",):
         return f"{v:+.1f}%"
     if form in ("yoy", "annualised"):
         return f"{v:.1f}%"
-    units = str(derived.registry_entry(key).get("units") or "")
+    units = derived.level_units_of(key)
     return f"{v:,.1f}%" if units in ("%", "percent") else f"{v:,.0f}"
 
 
@@ -1843,7 +1844,7 @@ def annotate_moves(built: dict, st, now: str, days: int = 7,
                 unit = unit if unit in ("%", "bp") else ""
                 if (key, inst) not in cache:
                     cache[(key, inst)] = series(st, key, now, inst, since)
-                lu = str(derived.registry_entry(key).get("units") or "")
+                lu = derived.level_units_of(key)
                 zmap[name.strip().lower()] = derived.period_change_z(
                     cache[(key, inst)], now[:10], unit, lu, days)
         b.setdefault("data", {})["_move_z"] = zmap
@@ -1890,19 +1891,31 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         hist = {c["id"]: _contradiction_history(st, c["id"], now) for c in opened}
         rel = tier1_releases(st, now, then)
         wbd = wsec.week_by_day(st, sessions, ending, now, then, rel, str(st.path))
-        tape = stack_mod.tape_section(book)
+        tape = stack_mod.tape_section(book, vp_windows=None)
         tt = wsec.tape_table(book, ending)
         oi = wsec.overnight_intraday(st, sessions, ending, now)
+        # THE VOLUME PROFILE (VP-1 item 7): the week's value area against the
+        # prior week's, beside the levels; the close's session table is not the
+        # Weekly's. The storyline moves both into the detail tables, the value
+        # area directly after the named levels (storyline.move_daily_tables).
+        from altdata import volume_profile as vp                # noqa: PLC0415
+        vpt = vp.table(book.get("instruments") or [], "week", "prior_week",
+                       {t["id"]: t.get("unit") for t in bars_mod.tape()})
         tape.update({"table": tt["table"], "print_items": False,
                      "subsections": [
                          {"title": "Levels", "table": tt["levels_table"],
                           "paragraph_wanted": False},
+                         *([{"title": "Value area: the week against the prior week",
+                             "table": {k: vpt[k] for k in ("columns", "rows")},
+                             "not_tracked": vpt["not_tracked"],
+                             "paragraph_wanted": False}] if vpt["rows"] else []),
                          # OVERNIGHT AGAINST THE CASH SESSION (T2.3 item 1)
                          {"title": "SPY overnight against the cash session",
                           "table": oi["table"], "paragraph_wanted": False}]})
         tape["data"] = {**(tape.get("data") or {}),
                         "overnight_intraday": {"sessions": oi["rows"],
-                                               "week": oi["totals"]}}
+                                               "week": oi["totals"]},
+                        "volume_profile": vpt["data"]}
         try:
             cal = wsec.calendar_week(st, ending, now, pmb)
         except Exception:                                       # noqa: BLE001
@@ -2176,10 +2189,11 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     return out
 
 
+@model_meter.metered("weekly")
 def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
-            client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None, log_path: Optional[Path] = None,
-            prior_dir: Optional[str] = None) -> dict:
+             client=None, model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None, log_path: Optional[Path] = None,
+             prior_dir: Optional[str] = None) -> dict:
     ending = p["week_ending"]
     with bars_mod.BarStore(db_path) as bst:
         try:
@@ -2305,6 +2319,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed, "weekly")
     ed["run_id"] = p.get("run_id")
+    from alpha.lab_line import weekly_line                      # noqa: PLC0415
+    # X-1.11: the lab's one line -- alpha.db, beside the store, read-only.
+    ed["alpha_lab"] = weekly_line(now, db_path and Path(db_path).with_name("alpha.db"))
     ed["archive_path"] = (str(Path(archive_dir) / f"{base}.html")
                           if archive_dir else None)
     html_email = render(p, ed, charts, mode="email")
@@ -2373,7 +2390,8 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
     head = stack_render.page_header(
         f"Weekly — week ending {week}", rd.stamp_et(ed.get("as_of")),
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
-        ed.get("changed_since") or [], "Changed since last Weekly")
+        ed.get("changed_since") or [], "Changed since last Weekly",
+        extra_html=f' &middot; {stack_render.esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else "")
     # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
     # then the ten sections; the reference tables after the last section.
     from . import precis                                        # noqa: PLC0415

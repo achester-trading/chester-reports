@@ -202,11 +202,14 @@ def main() -> int:
             log.info("prior session unavailable, deltas omitted: %s", exc)
 
         np_ = payload_mod.narrative_payload(p, prior)
-        # W8-1: one revision when the audit withholds the draft.
+        from altdata import model_meter  # noqa: PLC0415
+        # W8-1: one revision when the audit withholds the draft; inside the
+        # meter's scope, so the revision is counted too.
         from daily_cascade import audit_retry                  # noqa: PLC0415
-        narr = audit_retry.generate(
-            np_, report="close", model=args.narrative_model,
-            unit_constants=payload_mod.NARRATIVE_UNIT_CONSTANTS)
+        with model_meter.scope(report="close_classic", run_id=run_id):
+            narr = audit_retry.generate(
+                np_, report="close", model=args.narrative_model,
+                unit_constants=payload_mod.NARRATIVE_UNIT_CONSTANTS)
 
         # LOGGED EITHER WAY, and the failure is logged loudly. A withheld
         # paragraph is a fact about the model's output, and the only place it can

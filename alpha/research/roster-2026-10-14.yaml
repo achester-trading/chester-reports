@@ -1,0 +1,125 @@
+# The Alpha Lab's first engines as hypotheses (X-2.1 to X-2.3), for the
+# register. The brief's roster (docs/briefs/alpha-lab-brief-2026-10-12.md
+# section 5, ruled 12 Oct 2026, decision 5) names them; the change order's
+# Tranche 2 builds them (alpha/engines/). Each names its registered engine
+# (`engine:`), so the workbench runs the engine's own harness hooks.
+#
+# NOT YET PRE-REGISTERED. A file in the repository is not a registration: the
+# register's pre_registered_at is the instant `python -m alpha.research new`
+# writes it on the box, BEFORE any run, by the operator:
+#
+#   python -m alpha.research new alpha/research/roster-2026-10-14.yaml --source operator
+#
+# then `python -m alpha.research run <id>` for each, in the order below (the
+# coverage check first: a data gap is registered as one and says so).
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-14-roster-tranche-2
+source: operator
+proposer: "the change order's roster (brief of 12 Oct, decision 5), built by session B"
+channel: workbench
+written_at: "2026-10-14T12:00:00-04:00"
+model_idea_rule: false
+inputs:
+  - "docs/briefs/alpha-lab-brief-2026-10-12.md section 5 (ruled 12 Oct 2026)"
+  - "docs/change-order-alpha-lab-2026-10-12.md X-2.1 to X-2.3"
+hypotheses:
+  - local_id: E-2a
+    title: "Time-series momentum across the stored basket earns after costs"
+    horizon_class: medium
+    horizon_sessions: 5
+    family: trend
+    mechanism: >-
+      Under-reaction to information and the slow movement of capital make
+      returns autocorrelated at one to twelve months across asset classes; the
+      most replicated anomaly in the literature, and one that dies under
+      discretion, which the lab does not have.
+    universe: "the stored price basket, tradables only (alpha/engines/trend.py)"
+    rule_text: >-
+      Weekly, at the last session of the ISO week: each tradable name's blended
+      sign of its 12-1, 6-1 and 3-1 month returns; the strongest max_names by
+      |score|; long or short, each weighted to its share of a 10% annual
+      volatility target on its realised volatility over vol_window sessions
+      (floored at 2%), a name capped at 25%, the gross at 1; filled at the next
+      session's close, rolled close to close. vol_window and max_names fitted on
+      a declared grid inside the walk-forward.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 40}
+    data: {in_store: ["yfinance.* closes"], gaps: []}
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 14 Oct 2026; not run on the box's store before registration."
+    engine: trend_ts
+  - local_id: E-2b
+    title: "Ranked by momentum, the basket's winners keep beating its losers"
+    horizon_class: medium
+    horizon_sessions: 5
+    family: trend
+    mechanism: >-
+      The same under-reaction, ranked: the names that have risen most against the
+      basket keep doing so for weeks, and the ones that fell most keep falling.
+    universe: "the stored price basket, tradables only (alpha/engines/trend.py)"
+    rule_text: >-
+      Weekly: the blended 12-1, 6-1 and 3-1 month return ranked across the
+      tradable basket; long the top top_frac, short the bottom, equal risk at a
+      10% annual volatility target, the same floors and caps; filled at the
+      next session's close. vol_window and top_frac fitted on a declared grid.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 40}
+    data: {in_store: ["yfinance.* closes"], gaps: []}
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 14 Oct 2026; not run on the box's store before registration."
+    engine: trend_xs
+  - local_id: E-3
+    title: "Prediction-market odds converge on the fed funds futures path"
+    horizon_class: short
+    horizon_sessions: 10
+    family: pm-futures
+    mechanism: >-
+      Two markets price the same FOMC outcome; the venue with the thinner, more
+      retail book drifts from the futures-implied probability and is pulled back
+      as the meeting nears. Close to an arbitrage and capacity-limited.
+    universe: "the contracts mapped in config/alpha_pm_map.yaml"
+    rule_text: >-
+      When a mapped contract's stored mid differs from the futures-implied
+      probability of its outcome by more than its threshold (the 90th percentile
+      of its own stored gap, never below 10 points), with its volume above the
+      floor: buy YES at the ask if the venue is cheap, sell YES at the bid if
+      rich; exit inside 3 points of convergence, else hold to the meeting.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      in_store: ["pm.bid", "pm.ask", "pm.volume", "fedfunds.futures_price"]
+      gaps: ["contracts are mapped by hand in config/alpha_pm_map.yaml (none yet)"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 14 Oct 2026; no contract mapped; coverage to be checked on the box."
+    engine: pm_futures
+  - local_id: E-1
+    title: "Defined-risk short volatility earns more when dealers are long gamma"
+    horizon_class: short
+    horizon_sessions: 5
+    family: vrp
+    mechanism: >-
+      Implied volatility exceeds realised on average because option buyers pay
+      for insurance; with dealers long gamma their hedging damps realised moves,
+      so the premium is earned more reliably in that regime.
+    universe: [SPY, QQQ]
+    rule_text: >-
+      Iron condors, put spreads and call spreads on SPY and QQQ at daily and
+      weekly expiries, entered when the stored dealer regime is long gamma and
+      implied exceeds realised, exited at a fraction or multiple of the credit or
+      at expiry, filled at the stored bid and ask.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      in_store: ["exposure.* (the dealer series)"]
+      gaps: ["stored option quotes per strike and expiry: 6b's chain history or FlashAlpha's historical quotes"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 14 Oct 2026 as a coverage check only (alpha/engines/vrp.py)."
+    engine: vrp_dealer

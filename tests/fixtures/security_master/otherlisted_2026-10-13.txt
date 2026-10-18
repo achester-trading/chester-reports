@@ -1,0 +1,8 @@
+ACT Symbol|Security Name|Exchange|CQS Symbol|ETF|Round Lot Size|Test Issue|NASDAQ Symbol
+BN|Brookfield Corporation Class A Limited Voting Shares|N|BN|N|100|N|BN
+GME|GameStop Corporation Common Stock|N|GME|N|100|N|GME
+SPY|SPDR S&P 500 ETF Trust|P|SPY|Y|100|N|SPY
+BRK.B|Berkshire Hathaway Inc. Class B|N|BRK.B|N|100|N|BRK=B
+OLDCO|Oldco Industries Inc. Common Stock|A|OLDCO|N|100|N|OLDCO
+ZXZZT|NYSE TEST STOCK|N|ZXZZT|N|100|Y|ZXZZT
+File Creation Time: 1013202618:01|||||||

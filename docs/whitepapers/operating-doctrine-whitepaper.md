@@ -905,7 +905,7 @@ The three dials are read from: the Macro dial from the *Monthly Macro Working Ma
 
 The library guide is the canonical source of series numbering. This paper's masthead is to be relabelled on commit.
 
-## Appendix D — Dated: Rulings and Lessons (October 2026 entry, as of 9 October 2026)
+## Appendix D — Dated: Rulings and Lessons (October 2026 entry, as of 12 October 2026)
 
 *The body of this paper is timeless; this appendix is not. It records the sittings that ruled on the doctrine and the incidents that taught it something, each with its date, so that a reader can see not only what the rules are but when they were set and what set them. Entries are added at each sitting and are never rewritten; a later ruling that changes an earlier one is a new entry. The values here are as ruled. Where the configuration carries them, it is the operating copy, and the Reporting System paper's dated appendix prints it.*
 
@@ -971,6 +971,12 @@ Incidents are logged by the system with what happened, the fix and the gate that
 | INC-9 | 6 Oct 2026 | For six sessions the point-in-time loggers ran nowhere, each schedule saying the other ran them; the captures cannot be recovered | **A feed is not scheduled until a gate says so.** A thing that does not run looks exactly like a quiet one |
 
 **The first graded decisions** *(ruled 2 October, item 8).* Decisions entered before the enforcement gate existed are graded like any other, recorded as pre-gate. From that date, a packet without a time stop and an invalidation level at entry is a rule break. The short side's extra confirmation stands as written.
+
+### D.3 Layer X — the Alpha Lab (ruled 12 October 2026)
+
+Ruled on 12 October 2026: decisions 1 to 8 of the Alpha Lab brief were accepted as a list at 20:28 ET, and decision 9, the learning loop, at 20:40 ET. The change order of the same date records them. Decision 8 amends this paper with the one paragraph below. It is quoted as ruled, and nothing else in the body moved. "Part VIII" in it is the Enterprise Layer change order's part on engines, not this paper's Part VIII.
+
+> **Layer X — the Alpha Lab.** Beside the four books and the five reports there is one independent layer: a machine's book in ledger-paper that reads the observation store and writes nothing back to it, to the register, to the narrative ledger or to any report. It has four restraints and no others — the Brookfield blocklist; ledger entries against stored prices, with no order path of any kind before the Gate 3 ruling; a risk governor; an evidence gate — and inside them it searches, trades, learns and innovates on its own authority, without the sitting and outside the attention budget. Part VIII's limits on engines do not apply inside it and are unchanged outside it. Its results are tabled at sittings as evidence; each rung of the gate ladder is the operator's ruling. Its constitution — the four restraints, the governor's numbers, the validation standard, the kill criterion, the hold-out and the variant count — changes only by ruling.
 
 ---
 
