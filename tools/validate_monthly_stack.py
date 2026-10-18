@@ -454,7 +454,8 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     conn = sqlite3.connect(db)
     conn.row_factory = sqlite3.Row
     rows = [dict(r) for r in conn.execute(
-        "SELECT * FROM scan_figures WHERE scan_id = 'jpm-gtm-2026q4'")]
+        "SELECT * FROM scan_figures WHERE scan_id = 'jpm-gtm-2026q4' "
+        "AND metric NOT LIKE 'GTM-%'")]
     check(rows and all(r["source_url"].startswith("https://am.jpmorgan.com/")
                        and r["section_ref"] == "§6" and r["as_of"] == "2026-09-30"
                        and r["read_on"] == "2026-10-03" for r in rows),
@@ -505,7 +506,8 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     check(not [r for r in scans.latest("2026-10-02", db) if r["family"] == "jpm-gtm"]
           and [r["family"] for r in scans.latest("2026-10-02", db)] == ["fixture-guide"] * 2
           and len([r for r in scans.latest("2026-10-31", db)
-                   if r["family"] == "jpm-gtm"]) == 44,
+                   if r["family"] == "jpm-gtm"
+                   and not r["metric"].startswith("GTM-")]) == 44,
           "point in time: a cutoff before the read (2 Oct) sees no JPM figure; the "
           "1 Nov Monthly's (31 Oct) sees all 44")
     sl = next(s for s in ed["sections"] if s["id"] == "slow")
@@ -517,18 +519,23 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     subs = [ss for ss in slow["subsections"]
             if ss["title"] == "Sourced figures: Guide to the Markets, U.S., 4Q 2026"]
     printed = {tuple(r[:2]) for r in (subs[0]["table"]["rows"] if subs else [])}
+    from altdata import gtm as gtm_mod
+    gskip = set(gtm_mod.config()["printed_scan_rows"])
     stored = {(r["metric"], r["value"]) for r in scans.latest("2026-10-31", db)
-              if r["family"] == "jpm-gtm"}
-    check(subs and printed == stored and len(printed) == 44,
-          "in Slow layers, the JPM figures print in their own sub-section, every "
-          "printed row exactly a stored row")
+              if r["family"] == "jpm-gtm" and not r["metric"].startswith("GTM-")
+              and r["metric"] not in gskip}
+    check(subs and printed == stored and len(printed) == 44 - len(gskip),
+          f"in Slow layers, the JPM figures print in their own sub-section, every "
+          f"printed row exactly a stored row ({len(printed)}: the {len(gskip)} rows "
+          f"the GTM tables print, and the GTM batch's declared figures, print "
+          f"there instead)")
     page = (sr.subsection_html(subs[0], "month", cadence_mod.get("monthly"))
             if subs else "")
     check("am.jpmorgan.com" in page and "data as of 2026-09-30" in page
           and "recommendations are not printed" in page and "CAPE" in page,
           "with its source line: the URL, §6, the as-of and read dates")
     # Phrases from the scan's own read and borrow list, outside its §6.
-    ours = ["a sector trade wearing a regional label", "Bull Rebuttal gate",
+    ours = ["a sector trade wearing a regional label", "the standing rebuttal is now",
             "Tier 1 — build into the pipeline"]
     scan_text = jpm.read_text(encoding="utf-8")
     check(all(x in scan_text for x in ours)

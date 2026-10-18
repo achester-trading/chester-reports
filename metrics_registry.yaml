@@ -12893,9 +12893,12 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 52   # + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 57   # + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
+      fred.dsr_household: percent_share
+      fred.dsr_consumer: percent_share
+      fred.dsr_mortgage: percent_share
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -13353,8 +13356,10 @@ bulk_imports:
     members_are: values
     # 7 since 6c-3: baserate.midterm_from_election, the presidential-cycle
     # conditional measured from election day (ex ante) rather than from the
-    # midterm-year low, with its unconditional comparators.
-    expected_members: 7
+    # midterm-year low, with its unconditional comparators. 10 since the GTM
+    # batch, part 1 (17 Oct 2026): baserate.stock_bond_eras (GTM-7),
+    # baserate.sentiment_turning_points (GTM-8), baserate.all_time_highs (GTM-9).
+    expected_members: 10
     key_prefix: ""
     units: label
     native_horizon: structural
@@ -14080,6 +14085,12 @@ families:
   chain.spy_atm_iv_30d: conditions
   auction.bid_to_cover: ratio
   auction.dealer_share: ratio
+  # The GTM batch, part 1 (17 Oct 2026): GTM-15's legs and GTM-21's ratios.
+  fred.customs_duties: quantity
+  fred.goods_imports: quantity
+  fred.dsr_household: ratio
+  fred.dsr_consumer: ratio
+  fred.dsr_mortgage: ratio
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -14100,6 +14111,12 @@ long_windows:
   jp.cpi_less_fresh_yoy: full
   uk.cpi_yoy: full
   uk.cpi_core_yoy: full
+  # The GTM batch, part 1: each its whole stored history (TDSP from Q1 2005).
+  fred.customs_duties: full
+  fred.goods_imports: full
+  fred.dsr_household: full
+  fred.dsr_consumer: full
+  fred.dsr_mortgage: full
   ca.cpi_yoy: full
   ca.cpi_core_yoy: full
   bdf.oat_tec10: full

@@ -149,6 +149,8 @@
 
 **Validation gate.** Replicate at 5- and 10-year z windows; count non-overlapping episodes; run the revolving-only variant; rerun everything on first prints. Bull side passes if first-print six-month expectancy stays ≥2× unconditional across ≥8 episodes. Offline (ST-8).
 
+*Draft (rule 31, 17 Oct 2026), the GTM-21 amendment — committed as drafted, for the operator's accept-all.* **Modifier: the household debt-service ratio.** FRED's TDSP (household debt service as a percent of disposable income), with its consumer and mortgage splits (CDSP, MDSP), quarterly from Q1 2005, is printed with its five-year and full-history percentiles in Plumbing & rates (the Monthly; `daily_cascade/gtm_block.py`, "Household debt service (SR-5's modifier)"). It modifies how the impulse is read and grants nothing. A high ratio makes a borrowing spike read as strain; a low one makes it read as capacity. The Guide's delinquency flows into 30+ days are stored as sourced figures by quarter and printed labelled: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%, and the DSR at 11.1% against 15.8% at 4Q07, all as of 30 Sep 2026, scan §6. The key stays SR-5. *Lives in:* `fred.dsr_household`, `fred.dsr_consumer`, `fred.dsr_mortgage`. The impulse row itself (`calc.cc_z`) is still not built.
+
 ### SR-6 Yield move attribution (Runkevicius, SF Fed decomposition, 10y at 5%, 15 Sep 2026) — Thread R
 
 **Register status.** DEFERRED — gate failed (rerun 2: 2 of 5 episodes under the pre-registered rule, agree 0/2, disagree 2/3; [ledger 2026-09-30 r2](ledgers/rates-driver-2026-09-30-r2.md); rerun 1: 0 of 5, [ledger 2026-09](ledgers/rates-driver-2026-09.md)) · **Built in.** ST-3 · *Set 30 Sep 2026 by the operator's ruling; a passing rerun restores it. At config v1.11 every episode's modal cell was `mixed`: the DKW shares divided by a real move that includes the TIPS liquidity premium, and 2022 / Aug–Oct 2023 did not read as the sets label them. The confidence-modifier right is not live. **Re-scoped the same day (option A):** the attribution block ships descriptive (`altdata/rates_attribution.py`: per-model path/premium shares at 20 and 60 sessions, dated, a models-agree flag); the cell stays deferred, and its redesign — label only when two or more models agree, on a fresh pre-registration — is in the order's Appendix C.*
@@ -218,6 +220,8 @@
 **Data.** ^GSPC daily; constant-maturity 10y return proxy built from DGS10 (1962–); SPY, IEF/TLT for the live reading; core CPI (held) and its rolling volatility as the regime variable. *Lives in:* `calc.corr_spy_tlt_60d`, `calc.infl_vol`.
 
 **Validation gate (backlog).** Reproduce the scatter (2-year rolling correlation of weekly changes vs. 10y level). Regress next-6-month correlation on yield level and inflation volatility. If level adds nothing, inflation vol is the lever and 5.25% stays a heuristic.
+
+*Draft (rule 31, 17 Oct 2026), the GTM-7 amendment — committed as drafted, for the operator's accept-all.* **The frame SR-9 was missing: the regime table.** There are three eras of the 24-month rolling stock-bond correlation, each beside its average inflation: 1964 to 1999, 2000 to 2020, and 2021 to now. They are computed from monthly total returns: Shiller's S&P Composite with its dividend, and a 10-year par bond priced off GS10. The Guide's own figures are printed beside them as sourced figures: +0.28 / 4.86%, −0.31 / 2.13% and +0.33 / 4.52% (2021–25), as of 30 Sep 2026, scan §6. The current 24-month correlation prints with a regime word: positive at or above +0.10, negative at or below −0.10, near zero between. **Book A's rule table reads the regime word only** (Base Rates, Appendix C, row A-6), and nothing automated reads it. This makes the yield-level prior's "persistent" concrete: a positive word in an era whose inflation runs above the 2000–20 average is the persistent case. The key stays SR-9. *Lives in:* `baserate.stock_bond_eras` (annual), recomputed at render from the store (`altdata/gtm.py`).
 
 ### SR-10 Digital Asset Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan (change order of 19 Sep 2026; integrated 26 Sep) — Thread D
 
@@ -587,6 +591,73 @@ Register entry points to the Part C specification and its backlog status (Append
 - **Rights:** narrow flag in plumbing & rates; the policy change itself is filed under Factor V (§4.1).
 
 *Built: ST-B3-05, branch b3-tranche-a (13 Oct 2026).* `tic.jp_reserves_total` and `tic.jp_reserves_fx_securities` from the ministry's `historical.csv` (monthly from April 2000; August 2026: total −$79.6bn to $1,207.5bn, securities −$87.8bn); `tic.fima_repo` and `tic.fima_repo_weekavg` from the H.4.1 package through `altdata/sources/fedboard.py`. Printed: a narrow flag in Plumbing & rates, each figure with its as-of; the TIC rows' lag line unchanged.
+
+---
+
+### SR-37 Inflection-points table (J.P. Morgan Guide to the Markets 4Q 2026, slide 4) — GTM-1
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026) · *Number assigned 17 Oct 2026, mechanically: the change order's Register paragraph continues from the last number; Audit #4 proposed SR-37 … SR-47 for the GTM batch in its table order (agenda item 5) and did not write them.*
+
+**Ruling.** ADOPT (change order of 3 Oct 2026). The eight historical rows are stored from the scan as sourced figures; the "today" row is computed.
+
+**Built.** The prior tops (Mar 2000, Oct 2007, Feb 2020, Jan 2022) and bottoms (Oct 2002, Mar 2009, Mar 2020, 12 Oct 2022), each with level, forward P/E, dividend yield and 10-year.
+- **The historical rows:** each cell is the Guide's figure where the scan states it. That is 6 of 32 cells: the 10-year at the four tops, the 2000 multiple and the 2022 low. Every other cell prints "not in the scan".
+- **The Guide's own 30 Sep row** is beside them.
+- **Today:** the S&P 500's close and the 10-year from the store; the dividend yield from Shiller's trailing dividend over price; the forward P/E "not stored".
+- **Where it prints:** the Monthly's Slow layers, as the Top & Bottom standing exhibit and a base-rate row.
+
+**Rights.** Base-rate row. *Lives in:* config/gtm.yaml (`sourced`), `altdata/gtm.py`, `daily_cascade/gtm_block.py`.
+
+### SR-38 … SR-39, SR-42 … SR-44, SR-46 (numbers reserved)
+
+GTM-3 (SR-38), GTM-4 (SR-39), GTM-10 (SR-42), GTM-11 (SR-43), GTM-12 (SR-44) and GTM-14 (SR-46) take these numbers when they are built. GTM-3, 4, 10 and 12 come in the GTM batch's part 2; GTM-11 comes with Amendment #3 workstream B; GTM-14 was pulled into T3. *Collision to rule:* the Round 4 draft's own working numbers (SR-43 for the OECD-yields fetcher, SR-45 constituent breadth, SR-46 the EM rules) are still used in code and notes. The Audit #4 agenda moves them to SR-52 … SR-64, and that move is not yet written.
+
+### SR-40 Sentiment turning-point base rate (Guide to the Markets 4Q 2026) — GTM-8
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+
+**Ruling.** ADOPT, with the applicability caveat printed in the row: "every sampled trough coincided with a price low; this one is at a high". The disagreement entry is drafted in config/narratives.yaml (`disagreements`).
+
+**Built.** Our own peaks and troughs of FRED's Michigan sentiment, by a declared rule: strictly the extreme within 12 months either side, alternating, a swing of 15 points. Each is followed by the S&P 500's next-12-month price return from month-end closes, with n, mean and median. The Guide's figures print beside them as sourced figures: 10 peaks +4.8%, 9 troughs +24.1%, scan §4. The row also prints the share of our troughs taken at a price low, the test of the caveat. *Lives in:* `baserate.sentiment_turning_points`, recomputed at render.
+
+**Rights.** Base-rate row; the disagreement entry. Nothing in a composite.
+
+### SR-41 All-time-high base rates (Guide to the Markets 4Q 2026) — GTM-9
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+
+**Built.** From ^GSPC's daily closes:
+- **This year:** the count of all-time highs and their share of sessions.
+- **1988 to 2025, the scan's sample:** the share of sessions; the share that became floors; the share followed by another within five sessions.
+
+A floor uses the scan's definition (§4): never afterwards closed 5% or more below. The Guide's figures (27; 7%; 31%; 80%) print as the sourced comparison. The Bull Rebuttal reads the row as the order places it, with no new right. *Lives in:* `baserate.all_time_highs`, recomputed at render.
+
+**Rights.** Base-rate row.
+
+### SR-45 Fixed-income scenario table (Guide to the Markets 4Q 2026) — GTM-13
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+
+**Built.** Per sector with a stored proxy:
+- **Proxies:** SHY, IEF and TLT against the 2-, 10- and 30-year CMT; AGG; LQD; HYG.
+- **Columns:** yield where the store holds one; year-to-date total return; duration from config/instrument_reference.yaml; the correlations to the 10-year's change and to SPY over 252 sessions; and the price return under −100 / +100 bp from the duration. The reference carries no convexity, so none is applied.
+- **Rows the store cannot fill:**
+  - TIPS has only the 10-year real yield and no fund proxy;
+  - munis and MBS print "no proxy";
+  - AGG prints "no duration in the reference" until the reference carries one.
+- **Where it prints:** Plumbing & rates, in the Weekly and the Monthly.
+
+Book A's rule table reads it as a modifier (Appendix C, row A-7); nothing automated reads it.
+
+**Rights.** Modifier.
+
+### SR-47 Effective tariff rate (Guide to the Markets 4Q 2026) — GTM-15
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+
+**Built.** Customs-duties receipts (FRED B235RC1Q027SBEA, billions, SAAR) over four times the quarter's goods imports (FRED BOPGIMP, millions, monthly), with its five-year and full-history percentiles. The rate is **quarterly**, because FRED has no monthly customs-receipts series. The Guide's 10.6% and the statutory peaks are the sourced comparison: 30.0% on 8 Apr 2025, and 15.9% including IEEPA on 20 Feb 2026, scan §6. National-accounts receipts are not the Census imports-for-consumption basis, so the two differ by construction. Printed in the Monthly's Plumbing & rates as the inflation modifier. Family `quantity` (both legs), long window `full`.
+
+**Rights.** Modifier.
 
 ---
 

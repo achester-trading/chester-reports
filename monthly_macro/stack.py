@@ -851,6 +851,9 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     # Items 42 and 39 after it; the real differentials in the global bucket.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     b["subsections"] += t1_rest_block.plumbing_subsections(st, now, "monthly")
+    # THE GTM BATCH, PART 1: GTM-13's scenario table, GTM-15 and GTM-21.
+    from daily_cascade import gtm_block                         # noqa: PLC0415
+    b["subsections"] += gtm_block.plumbing_subsections(st, now, "monthly")
     cur = t1_rest_block.currencies_lines(st, now)
     if cur and glob is not None:
         glob["lines"] = list(glob.get("lines") or []) + cur
@@ -1361,8 +1364,13 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     beside it: the URL, the scan's own section (and slide, when the scan recorded
     one), the as-of date. Only reference-table rows were ever stored, so none of
     the publisher's recommendations can reach this table."""
-    from altdata import scans                                    # noqa: PLC0415
+    from altdata import gtm, scans                               # noqa: PLC0415
     rows = scans.latest(now, db_path)
+    # THE GTM BATCH (17 Oct 2026): its declared figures, and the reference-table
+    # rows its tables print, appear in those tables, so each fact prints once.
+    skip = set(gtm.config().get("printed_scan_rows") or [])
+    rows = [r for r in rows if not str(r["metric"]).startswith(gtm.METRIC_PREFIX)
+            and r["metric"] not in skip]
     subs, items, data = [], [], []
     by_fam: dict[str, list] = {}
     for r in rows:
@@ -1691,6 +1699,15 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             corr = {"title": "Correlations",
                     "not_tracked": [f"the correlation layer: FAULT {exc}"]}
         subs.insert(2, corr)
+    # THE GTM BATCH, PART 1 (17 Oct 2026): its base-rate rows join the table,
+    # and its four tables follow it -- GTM-1 the Top & Bottom standing exhibit,
+    # GTM-7, 8 and 9. Tables and lines only: no words, no chart.
+    if now:
+        from daily_cascade import gtm_block                     # noqa: PLC0415
+        base_rows += gtm_block.base_rate_rows(st, now, db_path)
+        at = next((i + 1 for i, s in enumerate(subs)
+                   if s.get("title") == "Base rates: Top & Bottom"), len(subs))
+        subs[at:at] = gtm_block.slow_subsections(st, now, db_path)
     if fam_subs:
         fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])
                                       + ["Disruptive Themes (quarterly; folded into "

@@ -320,3 +320,22 @@ narratives:
           k: 10
         statement_cited: Base Rates, Chapter 3.1 (the presidential cycle)
         claims_cited: [cal.midterm_election_2026]
+
+# -----------------------------------------------------------------------------
+# DISAGREEMENTS -- DRAFTS (rule 31; the GTM change order of 3 Oct 2026)
+# -----------------------------------------------------------------------------
+# A disagreement is logged against a base rate's APPLICABILITY, never as a
+# signal. These are drafts committed as drafted for the operator's accept-all;
+# no code reads this block, and nothing here enters the register, the ledger or
+# a report until the operator accepts it.
+disagreements:
+  gtm8_sentiment_trough_at_high:
+    status: draft
+    drafted: "2026-10-17"
+    base_rate: baserate.sentiment_turning_points
+    source: "J.P. Morgan Guide to the Markets 4Q 2026, scan section 4 (GTM-8)"
+    statement: >-
+      Michigan sentiment at 48.1 (Sep 2026) with the S&P 500 at an all-time high
+      has no precedent in the base rate's sample: every sampled trough coincided
+      with a price low; this one is at a high. Logged against the base rate's
+      applicability, not as a signal.

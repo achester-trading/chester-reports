@@ -1,0 +1,263 @@
+# The J.P. Morgan Guide to the Markets batch, part 1 (GTM-1, 7, 8, 9, 13, 15, 21).
+# Change order docs/change-order-jpm-gtm-2026-10-03.md (ruled 3 Oct 2026); built
+# on branch gtm-core-1, 17 Oct 2026. altdata/gtm.py computes; daily_cascade/
+# gtm_block.py lays out; tools/base_rates.py stores the three base-rate tables;
+# tools/validate_gtm.py holds it.
+#
+# TWO KINDS OF NUMBER, NEVER MIXED. A figure the store can compute is computed
+# (the eras, the episodes, the all-time-high shares, the duration returns, the
+# tariff and debt-service ratios). A figure only the Guide has is a SOURCED
+# FIGURE: it is declared under `sourced` below with the scan's own words quoted,
+# its section reference (and slide where the scan recorded one -- the 8 Oct
+# narrowing of the scans ingest), and its as-of date; `altdata.scans ingest`
+# stores it beside the reference table, and it prints only from the store,
+# labelled, and never recomputed. A sourced figure without a section reference,
+# an as-of date, or a quote the scan contains is refused.
+#
+# Everything here is session-set unless a line names a ruling.
+version: gtm-v1
+updated: 2026-10-17
+scan_id: jpm-gtm-2026q4
+
+# Register numbers (the change order's Register paragraph: new numbers for the
+# adopted items continue from the register's last; Audit #4 proposed them and did
+# not write them, so they are assigned here mechanically in the order the
+# order's table lists the adopted items -- the agenda's own proposal, item 5).
+register_numbers:
+  GTM-1: SR-37
+  GTM-3: SR-38
+  GTM-4: SR-39
+  GTM-8: SR-40
+  GTM-9: SR-41
+  GTM-10: SR-42
+  GTM-11: SR-43
+  GTM-12: SR-44
+  GTM-13: SR-45
+  GTM-14: SR-46
+  GTM-15: SR-47
+  GTM-7: SR-9    # amended, keeps its key
+  GTM-21: SR-5   # amended, keeps its key
+
+# GTM-1: the eight prior tops and bottoms, as the scan names them (month only;
+# the scan gives a day for 12 Oct 2022 alone, and no day is invented).
+inflection_points:
+  - {id: top_2000, kind: top, label: "Mar 2000"}
+  - {id: top_2007, kind: top, label: "Oct 2007"}
+  - {id: top_2020, kind: top, label: "Feb 2020"}
+  - {id: top_2022, kind: top, label: "Jan 2022"}
+  - {id: bottom_2002, kind: bottom, label: "Oct 2002"}
+  - {id: bottom_2009, kind: bottom, label: "Mar 2009"}
+  - {id: bottom_2020, kind: bottom, label: "Mar 2020"}
+  - {id: bottom_2022, kind: bottom, label: "12 Oct 2022"}
+inflection_fields: [level, forward_pe, dividend_yield, yield_10y]
+
+# GTM-7: the three eras (the Guide's), monthly total returns from Shiller's sheet
+# (the S&P Composite's price and dividend; a 10-year par bond priced off GS10),
+# the average of the 24-month rolling correlation whose window ends in the era,
+# and the era's average CPI inflation on the year. An era our history does not
+# cover to `min_coverage` prints the Guide's figure, labelled.
+stock_bond:
+  rolling_months: 24
+  bond_maturity_years: 10
+  min_coverage: 0.9
+  eras:
+    - {id: "1964-1999", label: "1964 to 1999", start: "1964-01", end: "1999-12"}
+    - {id: "2000-2020", label: "2000 to 2020", start: "2000-01", end: "2020-12"}
+    - {id: "2021-now", label: "2021 to now", start: "2021-01", end: null}
+  # The regime word Book A's rule table reads (and nothing automated does): the
+  # current 24-month correlation at or above +0.10 is "positive", at or below
+  # -0.10 "negative", between them "near zero".
+  regime_bands: {positive: 0.10, negative: -0.10}
+
+# GTM-8: Michigan sentiment's turning points. A peak (trough) is a month whose
+# reading is strictly the highest (lowest) within `window_months` either side (a
+# tie is neither, so a flat stretch marks nothing);
+# turning points then alternate (two peaks in a row keep the higher), and a
+# peak-trough pair less than `min_swing_points` apart is dropped. The forward
+# return is the S&P 500's month-end close 12 months on, price only. A trough "at
+# a price low" is one where the S&P 500 sat at least `price_low_drawdown_pct`
+# below its prior 12-month closing high -- the test of the order's caveat.
+sentiment:
+  window_months: 12
+  min_swing_points: 15.0
+  forward_months: 12
+  price_low_drawdown_pct: 10.0
+  # The order's words, printed in the row (change order, GTM-8's ruling).
+  caveat: "every sampled trough coincided with a price low; this one is at a high"
+
+# GTM-9: all-time highs from the S&P 500's daily closes (^GSPC). An all-time high
+# is a close above every prior close. A FLOOR is the scan's definition (section 4,
+# GTM-9): an all-time high the market never afterwards closed 5% or more below,
+# measured to the end of the stored data. "Followed by another within a week":
+# another all-time high in the next five sessions. The comparison sample is the
+# scan's, 1988 to 2025.
+all_time_highs:
+  floor_drawdown_pct: 5.0
+  within_sessions: 5
+  sample: {start: "1988-01-01", end: "2025-12-31"}
+  definition_source: "the scan's (section 4, GTM-9): never fell 5% below"
+
+# GTM-13: the fixed-income scenario table. A sector prints only through a proxy
+# the store holds; a sector without one prints "no proxy". Yields are the store's
+# own series for the tenor (the CMT nearest the fund's maturity band, labelled);
+# a sector whose yield is not stored prints "not stored". Duration only from
+# config/instrument_reference.yaml; the +/-100 bp price return is -duration x
+# change (no convexity: the reference carries none).
+fixed_income:
+  window_sessions: 252
+  shift_bp: 100
+  rate_key: fred.yield_10y
+  equity_key: yfinance.mkt_spy
+  sectors:
+    - {sector: "Treasury 2-year", yield_key: fred.yield_2y, yield_label: "2-year CMT",
+       proxy: SHY, proxy_key: yfinance.mkt_shy, guide: "2y"}
+    - {sector: "Treasury 10-year", yield_key: fred.yield_10y, yield_label: "10-year CMT",
+       proxy: IEF, proxy_key: yfinance.mkt_ief, guide: "10y"}
+    - {sector: "Treasury 30-year", yield_key: fred.yield_30y, yield_label: "30-year CMT",
+       proxy: TLT, proxy_key: yfinance.mkt_tlt, guide: "30y"}
+    - {sector: "TIPS", yield_key: fred.tips_10y, yield_label: "10-year real",
+       proxy: null, guide: "TIPS"}
+    - {sector: "Aggregate", yield_key: null, proxy: AGG, proxy_key: yfinance.mkt_agg,
+       guide: "Agg"}
+    - {sector: "Investment grade", yield_key: null, proxy: LQD,
+       proxy_key: yfinance.mkt_lqd, guide: "IG"}
+    - {sector: "High yield", yield_key: null, proxy: HYG, proxy_key: yfinance.mkt_hyg,
+       guide: "HY"}
+    - {sector: "Municipals", yield_key: null, proxy: null, guide: "munis"}
+    - {sector: "MBS", yield_key: null, proxy: null, guide: "MBS"}
+
+# GTM-15: customs duties over goods imports. FRED serves the receipts QUARTERLY
+# (B235RC1Q027SBEA, billions, SAAR) and goods imports MONTHLY (BOPGIMP, millions,
+# SA); the rate is the quarter's receipts over four times the quarter's three
+# months of imports. No monthly customs-receipts series is on FRED, so the
+# order's "monthly" is quarterly here and is printed so.
+tariff:
+  customs_key: fred.customs_duties
+  imports_key: fred.goods_imports
+
+# GTM-21: the household debt-service ratio and its two splits (FRED, quarterly).
+dsr:
+  keys:
+    - {key: fred.dsr_household, label: "Household debt service, % of disposable income (TDSP)"}
+    - {key: fred.dsr_consumer, label: "Consumer debt service (CDSP)"}
+    - {key: fred.dsr_mortgage, label: "Mortgage debt service (MDSP)"}
+  short_window_days: 1826
+
+# THE SOURCED FIGURES. Each: the item, a label, the figure as printed, its number
+# where one is compared, the section (and slide, null where the scan recorded
+# none), and the scan's words it was read from, quoted exactly.
+sourced:
+  # GTM-1, the prior tops and bottoms (only what the scan states).
+  - {id: gtm1.top_2000.forward_pe, item: GTM-1, label: "Mar 2000 top, forward P/E",
+     value: "25x", number: 25.0, section: "§1", slide: null,
+     quote: "The 2000 top had a 25x multiple on a 6.2% 10-year"}
+  - {id: gtm1.top_2000.yield_10y, item: GTM-1, label: "Mar 2000 top, 10-year",
+     value: "6.2%", number: 6.2, section: "§3", slide: null,
+     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
+  - {id: gtm1.top_2007.yield_10y, item: GTM-1, label: "Oct 2007 top, 10-year",
+     value: "4.7%", number: 4.7, section: "§3", slide: null,
+     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
+  - {id: gtm1.top_2020.yield_10y, item: GTM-1, label: "Feb 2020 top, 10-year",
+     value: "1.6%", number: 1.6, section: "§3", slide: null,
+     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
+  - {id: gtm1.top_2022.yield_10y, item: GTM-1, label: "Jan 2022 top, 10-year",
+     value: "1.6%", number: 1.6, section: "§3", slide: null,
+     quote: "at prior tops the 10-year was 6.2% in 2000, 4.7% in 2007, 1.6% in 2020 and 2022"}
+  - {id: gtm1.bottom_2022.level, item: GTM-1, label: "12 Oct 2022 low, S&P 500",
+     value: "3,577", number: 3577.0, section: "§6", slide: null,
+     quote: "+114% from 12 Oct 2022 low (3,577)"}
+  # GTM-1, the Guide's own 30 Sep row (the "today" row's reconciliation).
+  - {id: gtm1.guide.level, item: GTM-1, label: "30 Sep 2026, S&P 500 (the Guide)",
+     value: "7,652", number: 7652.0, section: "§6", slide: null,
+     quote: "| S&P 500 level | 7,652 |"}
+  - {id: gtm1.guide.forward_pe, item: GTM-1, label: "30 Sep 2026, forward P/E (the Guide)",
+     value: "19.0x", number: 19.0, section: "§6", slide: null,
+     quote: "| Forward P/E | 19.0x |"}
+  - {id: gtm1.guide.dividend_yield, item: GTM-1, label: "30 Sep 2026, dividend yield (the Guide)",
+     value: "1.4%", number: 1.4, section: "§6", slide: null,
+     quote: "| Dividend yield | 1.4% |"}
+  - {id: gtm1.guide.yield_10y, item: GTM-1, label: "30 Sep 2026, 10-year (the Guide)",
+     value: "5.29%", number: 5.29, section: "§6", slide: null,
+     quote: "10y 5.29"}
+  # GTM-7, the Guide's three eras.
+  - {id: gtm7.1964-1999.corr, item: GTM-7, label: "1964 to 1999, average 24-month correlation",
+     value: "+0.28", number: 0.28, section: "§6", slide: null,
+     quote: "1964–99 +0.28 (4.86%)"}
+  - {id: gtm7.1964-1999.inflation, item: GTM-7, label: "1964 to 1999, average inflation",
+     value: "4.86%", number: 4.86, section: "§6", slide: null,
+     quote: "1964–99 +0.28 (4.86%)"}
+  - {id: gtm7.2000-2020.corr, item: GTM-7, label: "2000 to 2020, average 24-month correlation",
+     value: "−0.31", number: -0.31, section: "§6", slide: null,
+     quote: "2000–20 −0.31 (2.13%)"}
+  - {id: gtm7.2000-2020.inflation, item: GTM-7, label: "2000 to 2020, average inflation",
+     value: "2.13%", number: 2.13, section: "§6", slide: null,
+     quote: "2000–20 −0.31 (2.13%)"}
+  - {id: gtm7.2021-now.corr, item: GTM-7, label: "2021 to 2025, average 24-month correlation",
+     value: "+0.33", number: 0.33, section: "§6", slide: null,
+     quote: "2021–25 avg +0.33 (inflation 4.52%)"}
+  - {id: gtm7.2021-now.inflation, item: GTM-7, label: "2021 to 2025, average inflation",
+     value: "4.52%", number: 4.52, section: "§6", slide: null,
+     quote: "2021–25 avg +0.33 (inflation 4.52%)"}
+  # GTM-8, the Guide's base rate and the current reading.
+  - {id: gtm8.peaks, item: GTM-8, label: "After 10 sentiment peaks, next 12 months",
+     value: "+4.8%", number: 4.8, n: 10, section: "§4", slide: null,
+     quote: "10 peaks +4.8%, 9 troughs +24.1%"}
+  - {id: gtm8.troughs, item: GTM-8, label: "After 9 sentiment troughs, next 12 months",
+     value: "+24.1%", number: 24.1, n: 9, section: "§4", slide: null,
+     quote: "10 peaks +4.8%, 9 troughs +24.1%"}
+  - {id: gtm8.current, item: GTM-8, label: "Michigan sentiment, Sep 2026 (the Guide)",
+     value: "48.1", number: 48.1, section: "§6", slide: null,
+     quote: "Michigan 48.1 (Sep)"}
+  # GTM-9, the Guide's 1988 to 2025 sample and its year to date.
+  - {id: gtm9.ytd_count, item: GTM-9, label: "All-time highs, 2026 to 30 Sep (the Guide)",
+     value: "27", number: 27.0, section: "§6", slide: null,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  - {id: gtm9.share_days, item: GTM-9, label: "Share of days at an all-time high, 1988 to 2025",
+     value: "7%", number: 7.0, section: "§6", slide: null,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  - {id: gtm9.share_floors, item: GTM-9, label: "Share that became floors, 1988 to 2025",
+     value: "31%", number: 31.0, section: "§6", slide: null,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  - {id: gtm9.share_week, item: GTM-9, label: "Share followed by another within a week, 1988 to 2025",
+     value: "80%", number: 80.0, section: "§6", slide: null,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  # GTM-13, the Guide's year-to-date returns by sector.
+  - {id: gtm13.ytd, item: GTM-13, label: "Fixed-income returns, 2026 to 30 Sep (the Guide)",
+     value: "2y +0.3%, 10y −5.3%, 30y −8.1%, TIPS −2.1%, Agg −2.9%, IG −3.1%, munis −4.2%, MBS −3.3%, HY +0.1%",
+     number: null, section: "§6", slide: null,
+     quote: "2y +0.3%, 10y −5.3%, 30y −8.1%, TIPS −2.1%, Agg −2.9%, IG −3.1%, munis −4.2%, MBS −3.3%, HY +0.1%"}
+  # GTM-15, the Guide's rate and the statutory peaks with their dates.
+  - {id: gtm15.effective, item: GTM-15, label: "Effective tariff rate, 30 Sep 2026 (the Guide)",
+     value: "10.6%", number: 10.6, section: "§6", slide: null,
+     quote: "effective 10.6%"}
+  - {id: gtm15.statutory_peak, item: GTM-15, label: "Statutory peak, 8 Apr 2025",
+     value: "30.0%", number: 30.0, section: "§6", slide: null,
+     quote: "statutory peak 30.0% (8 Apr 2025)"}
+  - {id: gtm15.ieepa, item: GTM-15, label: "Including IEEPA, 20 Feb 2026",
+     value: "15.9%", number: 15.9, section: "§6", slide: null,
+     quote: "15.9% incl. IEEPA (20 Feb 2026)"}
+  # GTM-21, the Guide's debt-service ratio and the delinquency flows (the scan
+  # does not name the quarter; the Guide's data date is printed).
+  - {id: gtm21.dsr, item: GTM-21, label: "Debt-service ratio (the Guide)",
+     value: "11.1%", number: 11.1, section: "§6", slide: null,
+     quote: "DSR 11.1%"}
+  - {id: gtm21.dsr_4q07, item: GTM-21, label: "Debt-service ratio, 4Q07 (the Guide)",
+     value: "15.8%", number: 15.8, section: "§6", slide: null,
+     quote: "DSR 15.8% at 4Q07"}
+  - {id: gtm21.flow_cards, item: GTM-21, label: "Into 30+ days delinquent: credit cards",
+     value: "8.7%", number: 8.7, section: "§6", slide: null,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+  - {id: gtm21.flow_auto, item: GTM-21, label: "Into 30+ days delinquent: auto",
+     value: "7.9%", number: 7.9, section: "§6", slide: null,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+  - {id: gtm21.flow_student, item: GTM-21, label: "Into 30+ days delinquent: student",
+     value: "7.8%", number: 7.8, section: "§6", slide: null,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+  - {id: gtm21.flow_mortgage, item: GTM-21, label: "Into 30+ days delinquent: mortgage",
+     value: "4.0%", number: 4.0, section: "§6", slide: null,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+
+# The reference-table rows the GTM tables now print, kept out of the Monthly's
+# "Sourced figures" table so each fact prints once (each still stored).
+printed_scan_rows: ["Stock–bond correlation", "ATHs", "Tariffs", "Consumer",
+                    "FI returns YTD"]

@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 52 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 57 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 154, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 159, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-two code gates (eighty-nine Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety-three code gates (ninety Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -412,7 +412,23 @@ it until EL-12. EL-6 is the system-metrics block (`altdata/system_metrics.py`):
 uptime, feed completeness, incidents, model cost and withheld drafts, each with
 its window and source, "not recorded" where a source does not exist; the
 Monthly's last detail table and the Quarterly's opening table. The withheld
-paragraphs are logged at archive time (`altdata/withheld_log.py`).
+paragraphs are logged at archive time (`altdata/withheld_log.py`), by every
+edition: the anchor, the close, the Weekly, the Monthly, the Quarterly and the
+12:30 slot (ruling 4 of 17 Oct 2026).
+
+**The J.P. Morgan Guide batch, part 1 (17 Oct 2026; GTM-1, 7, 8, 9, 13, 15,
+21).** `altdata/gtm.py` computes, `daily_cascade/gtm_block.py` lays out,
+`config/gtm.yaml` declares the settings and the Guide's figures. A figure only
+the Guide has is a sourced figure: declared with the scan's words quoted, its
+section and as-of, stored by `altdata.scans ingest` under `GTM-n · <label>`, and
+printed from the store, never recomputed. The Monthly's Slow layers carry the
+inflection-points exhibit (GTM-1), the stock-bond regime table (GTM-7, amending
+SR-9; Shiller's sheet), the sentiment turning points (GTM-8) and the all-time
+highs (GTM-9); Plumbing carries the fixed-income scenario table (GTM-13, the
+Weekly too), the effective tariff rate (GTM-15, quarterly: FRED has no monthly
+customs series) and the debt-service ratio (GTM-21, SR-5's modifier). GTM-7, 8
+and 9 are also `baserate.*` tables. Register numbers SR-37 to SR-47; tables
+and lines only, so no budget moves. `tools/validate_gtm.py` holds it.
 
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX

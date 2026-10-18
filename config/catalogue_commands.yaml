@@ -232,6 +232,9 @@ commands:
   altdata.system_metrics:
     domain: reference
     line: "The system-metrics block (EL-6): uptime, feed completeness, incidents, model cost, withheld drafts for a month -- show --month YYYY-MM; read-only"
+  altdata.gtm:
+    domain: reference
+    line: "The J.P. Morgan Guide batch, part 1 (GTM-1, 7, 8, 9, 13, 15, 21): show prints every table as of a cutoff; check holds the declared sourced figures to the scan's words -- read-only"
   altdata.state_vector:
     domain: options
     line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"

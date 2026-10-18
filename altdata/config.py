@@ -267,6 +267,18 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("oecd_10y_mx",  "IRLTLT01MXM156N", "Mexico 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
     SeriesSpec("oecd_10y_za",  "IRLTLT01ZAM156N", "South Africa 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
     SeriesSpec("oecd_10y_kr",  "IRLTLT01KRM156N", "Korea 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    # THE GTM BATCH, PART 1 (17 Oct 2026). GTM-15's two legs: customs-duties
+    # receipts, B235RC1Q027SBEA, "Billions of Dollars, Seasonally Adjusted Annual
+    # Rate", quarterly (FRED has no monthly customs-receipts series); goods
+    # imports, BOPGIMP, "Millions of Dollars, Seasonally Adjusted", monthly.
+    # GTM-21: the household debt-service ratio and its two splits, TDSP, CDSP and
+    # MDSP, "Percent of Disposable Personal Income", quarterly from Q1 2005. Each
+    # read off its FRED page 17 Oct 2026.
+    SeriesSpec("customs_duties", "B235RC1Q027SBEA", "Federal current tax receipts: customs duties, SAAR", "4", "B", "quarterly"),
+    SeriesSpec("goods_imports",  "BOPGIMP",  "Imports of goods, balance-of-payments basis", "8", "M", "monthly"),
+    SeriesSpec("dsr_household",  "TDSP",     "Household debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
+    SeriesSpec("dsr_consumer",   "CDSP",     "Consumer debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
+    SeriesSpec("dsr_mortgage",   "MDSP",     "Mortgage debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
 ]
 
 # ---------------------------------------------------------------------------

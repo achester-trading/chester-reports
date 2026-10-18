@@ -557,6 +557,10 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # the Currencies read, "Global rates and FX".
     from . import t1_rest_block                                 # noqa: PLC0415
     subs += t1_rest_block.plumbing_subsections(st, now, cadence)
+    # THE GTM BATCH, PART 1 (17 Oct 2026): GTM-13's fixed-income scenario table
+    # (the Monthly rebuilds its own sub-sections and adds GTM-15 and GTM-21).
+    from . import gtm_block                                     # noqa: PLC0415
+    subs += gtm_block.plumbing_subsections(st, now, "weekly")
     cur = t1_rest_block.currencies_lines(st, now)
     if cur:
         subs[0]["lines"] = list(subs[0].get("lines") or []) + cur

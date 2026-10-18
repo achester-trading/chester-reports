@@ -137,9 +137,10 @@ def group_c(tables: dict) -> None:
         check(e.get("trigger_eligible") is False,
               f"{key} is NOT trigger_eligible -- a base rate is a denominator "
               f"and can never say that something is happening now")
-    check(len(br.TABLE_KEYS) == 7,
-          f"seven tables are declared (got {len(br.TABLE_KEYS)}) -- the six of "
-          f"Part I and the midterm conditional (6c-3)")
+    check(len(br.TABLE_KEYS) == 10,
+          f"ten tables are declared (got {len(br.TABLE_KEYS)}) -- the six of "
+          f"Part I, the midterm conditional (6c-3) and the GTM batch's three "
+          f"(GTM-7, 8, 9; 17 Oct 2026)")
 
 
 def group_d(tables: dict) -> None:
@@ -338,6 +339,29 @@ def synthetic_rows() -> list[dict]:
                              "value": round(100 * vol * math.sqrt(252), 2),
                              "source": "synthetic"})
         d += dt.timedelta(days=1)
+    # THE GTM TABLES' INPUTS (17 Oct 2026): a monthly Shiller sheet from 1950 and
+    # a monthly sentiment series from 1978, synthetic, so the three new tables
+    # compute here; tools/validate_gtm.py holds their figures by hand.
+    m, px, cpi = dt.date(1950, 1, 1), 17.0, 23.5
+    i = 0
+    while m <= dt.date(2026, 8, 1):
+        day = m.isoformat()
+        seen = f"{day}T12:00:00+00:00"
+        px *= math.exp(rng.gauss(0.006, 0.04))
+        cpi *= 1.003
+        y10 = 4.0 + 2.5 * math.sin(i / 90.0)
+        for key, v in (("shiller.sp_price", px), ("shiller.sp_dividend", px * 0.03),
+                       ("shiller.cpi", cpi), ("shiller.gs10", y10)):
+            rows.append({"registry_key": key, "instrument": None, "observed_at": day,
+                         "available_at": seen, "value": round(v, 6),
+                         "source": "synthetic"})
+        if m.year >= 1978:
+            rows.append({"registry_key": "fred.uoM_sent", "instrument": None,
+                         "observed_at": day, "available_at": seen,
+                         "value": round(85 + 20 * math.sin(i / 20.0), 2),
+                         "source": "synthetic"})
+        m = (m + dt.timedelta(days=32)).replace(day=1)
+        i += 1
     return rows
 
 
