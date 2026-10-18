@@ -390,8 +390,8 @@ def group_f() -> None:
         r = ve.vol_gate(dict(ctx, quotes={"^VIX": q}))
         check(not r["open"], f"{why} keeps it closed (upward only)")
     check(not ve.vol_gate(dict(ctx, quotes={}))["open"], "no 12:30 quote: closed")
-    check([g.__name__ for g in mg.GATES] == ["dealer_flip_cross", "_vol_gate"],
-          "registered beside the dealer gate")
+    check([g.__name__ for g in mg.GATES][:2] == ["dealer_flip_cross", "_vol_gate"],
+          "registered beside the dealer gate (ST-10's funding hooks follow it)")
     res = mg.run(DAY, out_dir=Path(REPO / "build" / "vol_gate_test"),
                  ctx={"cfg": None, "midday": None, "morning": None},
                  extra={"vol_cfg": CFG, "vol_series": hist, "day": DAY,

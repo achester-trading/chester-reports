@@ -194,7 +194,11 @@ Everything else is CI's.
 |---|---|---|
 | `9a23d5e` | 39157969571 | **failed**: `validate_weekly_edits`, the id rule (my HY caption printed `fred.hy_oas`); fixed in `869663b` |
 | `3bb18df` | 39158359122 | **failed**: the same, and `validate_audit_3a` (the catalogue lacked `altdata.vendor_chains`); fixed in `869663b` |
-| `0388608`, `f6bfc9a`, `869663b`, these notes | | read once at the end of the session, in the final report |
+| `0388608` (F-1 to F-4) | 39159386065 | **failed**: the same two, already fixed in `869663b` |
+| `f6bfc9a` (Part 1) | 39160062209 | **failed**, mine: `validate_official_sources` (funding_hooks imported a writer, cfets), `validate_vol_event` and `validate_dealer_block` (both pinned the two-gate 12:30 registry), `validate_st_t2_rates` L (st10_lines.yaml named an ST-5 key), `validate_st_t3_calib` A (signal_lines reads calc.abs_stress); plus the two `869663b` fixed |
+| `869663b` | 39160241459 | **failed**: the five above |
+| `f165f12` (these notes) | 39160398717 | **failed**: the five above |
+| the CI-fix commit after these notes | read on a44-opening-setup | All five fixed: funding_hooks reads the gap through `funding_currency.offshore_gap_bp`; the two registry checks read the four gates; the yaml names no key; signal_lines is a listed display reader of ABS_STRESS. Both branches' Weekly-builder checks are scoped to their own ranges. Locally: vol_event 45/0, dealer_block 133/0, st_t2_rates 71/0, st_t3_calib 88/0, a43_render 44/0. |
 
 ---
 

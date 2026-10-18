@@ -175,7 +175,10 @@ def group_a() -> None:
         rel = p.relative_to(REPO).as_posix()
         if rel.startswith(("tools/", ".venv/", "build/")) or "/.git/" in rel:
             continue
-        if rel in ("altdata/absorption.py", "daily_cascade/absorption_block.py"):
+        # The readers that print ABS_STRESS with its base rate and its suspension:
+        # the block, and ST-10's auction line (a43-render; group A's line checks).
+        if rel in ("altdata/absorption.py", "daily_cascade/absorption_block.py",
+                   "daily_cascade/signal_lines.py"):
             continue
         if "calc.abs_stress" in p.read_text(encoding="utf-8", errors="replace"):
             readers.append(rel)
@@ -687,7 +690,7 @@ def group_n() -> None:
     manual = sorted(k for k in (reg.get("metrics") or {}) if k.startswith("manual."))
     check(manual in ([], ["manual.global_pmi"]),
           f"no new by-hand key: the registry's manual.* metrics are the PMI alone ({manual})")
-    r = subprocess.run(["git", "diff", "--name-only", "origin/st-t2-rates...HEAD"],
+    r = subprocess.run(["git", "diff", "--name-only", "origin/st-t2-rates...origin/st-t3-calib"],
                        cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
         check(True, "the Weekly builders: no base ref here (a shallow checkout), so the "
@@ -696,7 +699,7 @@ def group_n() -> None:
     touched = [f for f in r.stdout.split() if f.startswith("daily_cascade/weekly")
                or f == "daily_cascade/dealer_weekly.py"]
     check(not touched, f"this branch touches none of the Weekly's builders "
-                       f"(daily_cascade/weekly_*.py, dealer_weekly.py; {touched or 'none'})")
+                       f"(daily_cascade/weekly_*.py, dealer_weekly.py; its own range, origin/st-t2-rates...origin/st-t3-calib; {touched or 'none'})")
 
 
 # ---------------------------------------------------------------------------

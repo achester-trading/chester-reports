@@ -139,6 +139,12 @@ def fix_dev_bp(fix: float, prev_close: float) -> float:
     return cfets.gap_bp(fix, prev_close)
 
 
+def offshore_gap_bp(cnh: float, cny: float) -> float:
+    """CNH against CNY, bp (+ is CNH weaker): calc.cnh_cny_bp's arithmetic, for a
+    reader that must not import a writer (the 12:30 hooks)."""
+    return fix_dev_bp(cnh, cny)
+
+
 def wmax(av: list[str], i: int, n: int) -> str:
     return max(av[max(0, i - n + 1):i + 1])
 

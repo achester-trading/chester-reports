@@ -571,7 +571,7 @@ def group_d() -> None:
     check(manual in ([], ["manual.global_pmi"]),
           f"no new by-hand key ({manual})")
     import subprocess
-    r = subprocess.run(["git", "diff", "--name-only", "origin/st-t3-calib...HEAD"],
+    r = subprocess.run(["git", "diff", "--name-only", "origin/st-t3-calib...origin/a43-render"],
                        cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
         check(True, "the Weekly builders session B is fixing: no base ref here, not "

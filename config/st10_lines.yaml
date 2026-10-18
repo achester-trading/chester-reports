@@ -33,8 +33,8 @@ anchor:
         nothing: eight FOMC weeks and four refunding weeks a year; the gap is
         otherwise printed only in the Monthly's Rate machine
     yen_flag:
-      # SR-2: the unwind tell on at the prior close (calc.jpy_unwind = 1).
-      trigger: calc.jpy_unwind is 1 at the prior session's close
+      # SR-2: the unwind tell on at the prior session's close.
+      trigger: the yen unwind tell is on at the prior session's close
       displaces: >-
         nothing: the tell is off most sessions (ST-5's thresholds), and the yen
         stack is otherwise only in the Monthly's Factor IV

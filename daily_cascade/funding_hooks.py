@@ -65,7 +65,6 @@ def yen_unwind(ctx: dict) -> dict:
 
 def deval_trip(ctx: dict) -> dict:
     from altdata import funding_currency as fc                  # noqa: PLC0415
-    from altdata.sources import cfets                           # noqa: PLC0415
     gid = "deval_trip"
     f = ctx.get("funding") or {}
     day = ctx.get("day")
@@ -77,8 +76,8 @@ def deval_trip(ctx: dict) -> dict:
     if not fix or not prev_cny:
         return {"id": gid, "open": False, "line": None,
                 "why": "no fix stored for the session, or no previous onshore close"}
-    dev.append((day, cfets.gap_bp(fix, prev_cny), day))
-    gap.append((day, cfets.gap_bp(cnh, cny), day))
+    dev.append((day, fc.fix_dev_bp(fix, prev_cny), day))
+    gap.append((day, fc.offshore_gap_bp(cnh, cny), day))
     cfg = fc.config()
     legs = fc.tell_legs(dev, gap, cfg["yuan"])
     lg = legs[-1] if legs else None
