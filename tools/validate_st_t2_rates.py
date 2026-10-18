@@ -391,12 +391,14 @@ def group_h() -> None:
 
 def group_i() -> None:
     head("I. NO STORE, NO FETCH")
+    # validate_regime's own pattern; its group L also holds every module to not
+    # naming the withdrawn cell, so that half is not repeated here.
     pat = re.compile(r"ObservationStore|from altdata import .*observations|"
-                     r"derived_forms|regime\.|['\"]fed_path['\"]|driver_cell")
+                     r"derived_forms|regime\.")
     bad = [p.name for p in CAL.glob("*.py")
            if pat.search(p.read_text(encoding="utf-8"))]
-    check(not bad, f"no calibration script opens the store, reads the market-state "
-                   f"object or names the withdrawn cell ({bad or 'none'})")
+    check(not bad, f"no calibration script opens the store or reads the market-state "
+                   f"object ({bad or 'none'})")
     from altdata.sources import _base
     names = [n for n in ("http_get_json", "http_get_text", "http_get_response",
                          "http_get_bytes") if hasattr(_base, n)]
