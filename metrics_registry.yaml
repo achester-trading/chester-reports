@@ -12967,6 +12967,15 @@ families:
 # number of years is a fixed window where the entry names one (SR-30: twenty).
 # Declared for the series batch 3's Tranche A adds and reads; the gate
 # (tools/validate_batch3_a.py) holds each new key to a line here.
+#
+# FORWARD-DATED SERIES (W8-9, weekly-fixes-8, 18 Oct 2026): a series whose
+# observation date may lie AFTER the instant it is published -- an announced
+# change dated by when it takes effect. Only these may print a date later than
+# the edition's session, and they print it as "effective 19 Oct"; any other
+# series' observation dated after the session is not read (altdata/derived.py
+# forward_dated; daily_cascade/weekly_stack.py change_over).
+forward_dated:
+  fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:
   fred.tips_5y: full
   acm.risk_neutral_yield_2y: full

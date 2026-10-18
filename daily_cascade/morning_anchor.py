@@ -193,8 +193,10 @@ def _narrative_scan(p: dict, args, run_id: str):
         from daily_cascade import story_block                 # noqa: PLC0415
         block = p.get("stories") or {}
         np_ = story_block.narrative_payload(block, p.get("what_changed"))
-        narr = narrative_mod.generate(
-            np_, model=args.narrative_model or narrative_mod.MORNING_MODEL,
+        # W8-1: one revision when the audit withholds the draft.
+        from daily_cascade import audit_retry                  # noqa: PLC0415
+        narr = audit_retry.generate(
+            np_, report="anchor", model=args.narrative_model or narrative_mod.MORNING_MODEL,
             system_prompt=narrative_mod.morning_system_prompt(),
             guide_path=narrative_mod.MORNING_TEMPLATE_PATH,
             max_chars=narrative_mod.MORNING_MAX_CHARS, one_paragraph=False,

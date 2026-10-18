@@ -234,12 +234,28 @@ def _sector(instrument: str) -> str:
 def buyback_operations(st, cutoff: str, since: str, until: Optional[str] = None,
                        cfg: Optional[dict] = None) -> list[dict]:
     """Every stored operation dated in (since, until]: bought, maximum, the
-    ratio, and the stored 30-year's change to the next session it carries."""
+    ratio, and the 30-year's change to the next session it carries -- the tape's
+    30-year first (W8-13: FRED's DGS30 lags a session), DGS30 where the tape has
+    no point, each with its source named (`y30_source`)."""
     cfg = cfg or config()
     c = cfg.get("buybacks") or {}
     until = until or cutoff[:10]
     long_end = set(c.get("long_end_buckets") or [])
-    y30 = _pts(st, c.get("thirty_year_key", "fred.yield_30y"), cutoff)
+    legs = [(_pts(st, k, cutoff), name) for k, name in (
+        (c.get("thirty_year_tape"), "Yahoo Finance"),
+        (c.get("thirty_year_key", "fred.yield_30y"), "FRED"))
+        if k]
+
+    def leg(d: str):
+        """(next (day, value), on (day, value), source) from the first leg that
+        holds both the operation's day and a session after it."""
+        for pts, name in legs:
+            nxt = next(((dd, v) for dd, v in pts if dd > d), None)
+            on = _on_or_before(pts, d)
+            if nxt and on and on[0] == d:
+                return nxt, on, name
+        pts = legs[-1][0] if legs else []
+        return next(((dd, v) for dd, v in pts if dd > d), None), None, None
     ops = []
     for inst in st.instruments(BUYBACK_KEYS[0]):
         mx = dict(_pts(st, BUYBACK_KEYS[0], cutoff, inst))
@@ -247,8 +263,7 @@ def buyback_operations(st, cutoff: str, since: str, until: Optional[str] = None,
         for d in sorted(set(mx) & set(acc)):
             if not (since < d <= until):
                 continue
-            nxt = next(((dd, v) for dd, v in y30 if dd > d), None)
-            on = _on_or_before(y30, d)
+            nxt, on, src = leg(d)
             ops.append({"date": d, "instrument": inst, "sector": _sector(inst),
                         "type": inst.split(" | ")[0],
                         "long_end": _sector(inst) in long_end,
@@ -256,7 +271,8 @@ def buyback_operations(st, cutoff: str, since: str, until: Optional[str] = None,
                         "ratio": round(acc[d] / mx[d], 4) if mx[d] else None,
                         "y30_next_bp": (_bp(nxt[1], on[1]) if nxt and on and on[0] == d
                                         else None),
-                        "y30_next_day": nxt[0] if nxt else None})
+                        "y30_next_day": nxt[0] if nxt else None,
+                        "y30_source": src})
     return sorted(ops, key=lambda o: (o["date"], o["sector"]))
 
 

@@ -149,7 +149,8 @@ def buyback_subsection(st, now: str, then: str, cfg: Optional[dict] = None) -> d
              f"{_usd_bn(o['bought'], 2)} of {_usd_bn(o['max'], 2)}",
              "—" if o["ratio"] is None else f"{o['ratio']:.0%}",
              "not yet stored" if o["y30_next_bp"] is None
-             else f"{_bp(o['y30_next_bp'])} ({o['y30_next_day']})"]
+             else f"{_bp(o['y30_next_bp'])} ({o.get('y30_source') or 'FRED'}, "
+                  f"{_day_month(o['y30_next_day'])})"]
             for o in ops]
     lines = [] if rows else ["No buyback operation in the window."]
     if t:
@@ -160,8 +161,10 @@ def buyback_subsection(st, now: str, then: str, cfg: Optional[dict] = None) -> d
                       "rows": rows} if rows else None,
             "lines": lines, "paragraph_wanted": False,
             "table_note": ("Treasury's buyback operations (Fiscal Data); the 30-year's "
-                           "next-session change is the stored 30-year (DGS30) from the "
-                           "operation's date to the next session it carries. "
+                           "next-session change is the tape's 30-year (Yahoo Finance) "
+                           "from the operation's date to the next session, or FRED's "
+                           "DGS30 where the tape has no point; each cell names its "
+                           "source and the session it reads to. "
                            "Descriptive; unvalidated, n=0."),
             "data": {"buybacks": ops, "tga": t}}
 

@@ -95,11 +95,39 @@ CFTC_CONTRACTS = (("SP500", "S&P 500 futures"), ("NDX100", "Nasdaq-100 futures")
                   ("WTI", "crude oil futures"))
 
 
+def edition_session(cut: str) -> str:
+    """The session a cutoff's edition is of: the last trading session on or
+    before the cutoff's Eastern date."""
+    from altdata import session as _session                     # noqa: PLC0415
+    return _session.last_trading_session(_session.session_date_obj(cut)).isoformat()
+
+
+def asof_cell(x: dict) -> str:
+    """A row's as-of cell: its observation date, or "effective 19 Oct" for a
+    declared forward-dated series dated after the edition (W8-9)."""
+    if x.get("effective"):
+        from . import readability                               # noqa: PLC0415
+        return "effective " + readability.prose_date(x["observed_at"])
+    return x["observed_at"]
+
+
 def change_over(st, key: str, now_cut: str, then_cut: str,
                 instrument: Optional[str] = None) -> Optional[dict]:
-    """{level, prior, change, unit, observed_at} between two cutoffs."""
-    a = st.latest_as_of(key, now_cut, instrument)
-    b = st.latest_as_of(key, then_cut, instrument)
+    """{level, prior, change, unit, observed_at} between two cutoffs.
+
+    NO DATE AFTER THE EDITION'S SESSION (W8-9): an observation dated after the
+    session a cutoff closes is read only for a series the registry declares
+    forward-dated (IORB's effective day), and it then carries `effective`; any
+    other series is read at its newest observation on or before the session."""
+    def at(cut: str):
+        r = st.latest_as_of(key, cut, instrument)
+        day = edition_session(cut)
+        if r and str(r.get("observed_at"))[:10] > day and not derived.forward_dated(key):
+            rows = [x for x in st.as_of(key, cut, instrument)
+                    if str(x.get("observed_at"))[:10] <= day]
+            r = max(rows, key=lambda x: str(x["observed_at"])) if rows else None
+        return r
+    a, b = at(now_cut), at(then_cut)
     if not a or a.get("value_num") is None:
         return None
     lv = a["value_num"]
@@ -119,6 +147,8 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
            "level_units": units, "observed_at": str(a["observed_at"])[:10],
            "available_at": str(a.get("available_at") or "")[:10] or None,
            "prior_observed_at": str(b["observed_at"])[:10] if b else None}
+    if out["observed_at"] > edition_session(now_cut):
+        out["effective"] = True          # W8-9: a declared forward-dated series
     # A RAW change carries its display form (T3.4a): "+42,984" for CFTC
     # contracts, "+29,000" for payrolls -- what the table prints and the audit
     # accepts.
@@ -459,7 +489,7 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                           f"({window(x)}).",
                           1 if k in ("fred.yield_10y", "fred.hy_oas") else 2,
                           (x["level"], x["change"])))
-        rows.append([name, _lvl(x), _change(x), x["observed_at"]])
+        rows.append([name, _lvl(x), _change(x), asof_cell(x)])
     rel = tier1_releases(st, now, then)
     for r in rel:
         items.append(item(f"plumb:rel:{r['release']}:{r['series']}",
@@ -732,6 +762,7 @@ def positioning_week(st, now: str, then: str, cadence: str = "weekly") -> dict:
     for sym in ("SPY", "QQQ", "IWM"):
         x = change_over(st, "finra.short_interest_days_to_cover", now, then, sym)
         if x:
+            x["dp"] = 2          # W8-8: the change to the level's two decimals
             data[f"finra:{sym}"] = x
             items.append(item(f"pos:si:{sym}", f"{sym} short interest: {x['level']:,.2f} "
                               f"days to cover ({_change(x)}, settlement "
@@ -1034,6 +1065,8 @@ def window(x: dict) -> str:
     (T2.1 item 14) -- a FRED series lags, so 'on the week' alone would hide
     which week."""
     a, b = x.get("prior_observed_at"), x.get("observed_at")
+    if x.get("effective"):                  # W8-9: an announced, later-dated rate
+        return asof_cell(x)
     return f"{a} to {b}" if a and a != b else f"as of {b}"
 
 
@@ -2116,7 +2149,11 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
                           if str(r.get("close_at") or "")[:10] in nxt
                           and classify_fomc(r.get("question") or "",
                                             r.get("outcome") or "") == "hold"}
-                label = f"hold at the {nxt[0] if nxt else ''} meeting"
+                # W8-3: one template, "the 9 December meeting".
+                from . import readability                       # noqa: PLC0415
+                label = ("hold at the " + readability.meeting_name(
+                    nxt[0], dt.date.fromisoformat(now[:10]).year) + " meeting"
+                    if nxt else "hold at the next meeting")
             else:
                 picked = stack_mod.side_rows(rows, w)
                 label = str(w.get("subject") or w.get("label") or wid).replace(

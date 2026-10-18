@@ -85,6 +85,44 @@ def earnings_class(symbol: str, cfg: dict) -> str:
     return "earnings_tracked"
 
 
+def ai_names(cfg: dict, repo: Optional[Path] = None) -> set[str]:
+    """The names the AI-capex clause applies to (W8-6): config/ai_buckets.yaml's
+    when it exists (every symbol listed under any bucket), else the Weekly's own
+    `earnings.ai_names`."""
+    p = (repo or REPO) / "config" / "ai_buckets.yaml"
+    if p.exists():
+        try:
+            doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+            out: set[str] = set()
+
+            def walk(x):
+                if isinstance(x, dict):
+                    for v in x.values():
+                        walk(v)
+                elif isinstance(x, list):
+                    for v in x:
+                        walk(v)
+                elif isinstance(x, str) and re.fullmatch(r"[A-Z][A-Z.\-]{0,5}", x):
+                    out.add(x)
+            walk(doc.get("buckets", doc))
+            if out:
+                return out
+        except (OSError, yaml.YAMLError):
+            log.warning("config/ai_buckets.yaml unreadable; the Weekly's AI names stand")
+    return {str(s).upper() for s in (cfg.get("earnings") or {}).get("ai_names") or []}
+
+
+def why_of(r: dict, c: dict, ai: set[str]) -> str:
+    """A row's "why it matters": its class's channel, with the class's AI clause
+    only for an AI name (W8-6: "its capital spending is the AI trade's" printed
+    for TSLA)."""
+    why = c.get("channel") or "—"
+    sym = str(r.get("symbol") or str(r.get("event") or "").split(" ")[0]).upper()
+    if c.get("ai_clause") and r.get("cls", "").startswith("earnings") and sym in ai:
+        why += c["ai_clause"]
+    return why
+
+
 def _mid(r: dict) -> Optional[float]:
     b, a = r.get("bid"), r.get("ask")
     if b is not None and a is not None and a >= b > 0:
@@ -92,12 +130,40 @@ def _mid(r: dict) -> Optional[float]:
     return None
 
 
+_BEFORE_OPEN = re.compile(r"before\s+(?:the\s+)?(?:open|bell)|pre-?market|\bbmo\b", re.I)
+
+
+def before_open(time: Optional[str]) -> bool:
+    """Is the release stated to land before the open (09:30 ET)? An unknown
+    time is not."""
+    t = str(time or "")
+    if _BEFORE_OPEN.search(t):
+        return True
+    m = re.match(r"\s*(\d{1,2}):(\d{2})", t)
+    return bool(m) and (int(m.group(1)), int(m.group(2))) < (9, 30)
+
+
+def straddle_expiry(expiries, event_date: str,
+                    time: Optional[str] = None) -> Optional[str]:
+    """The expiry an event's straddle is read to (W8-5, weekly-fixes-8): the first
+    expiry STRICTLY AFTER the event date whenever the release time is unknown or
+    after the close -- an expiry on the event day itself settles before an
+    after-close report (META, Wed 21 Oct, was read to the 21 Oct expiry) -- and
+    the event date's own expiry only for a release before the open."""
+    d = str(event_date)[:10]
+    ok = sorted(str(e) for e in expiries
+                if (str(e) >= d if before_open(time) else str(e) > d))
+    return ok[0] if ok else None
+
+
 def implied_move(symbol: str, report_date: str, now: str,
-                 base: Optional[Path] = None, days_back: int = 5) -> Optional[str]:
-    """The option-implied move into a report: the at-the-money straddle's mid on
-    the first expiry on or after the report date, over spot, from the newest
-    captured chain of `symbol` at or before `now` (looking back `days_back`
-    days). None when no chain is captured."""
+                 base: Optional[Path] = None, days_back: int = 5,
+                 time: Optional[str] = None) -> Optional[str]:
+    """The option-implied move into a report: the at-the-money straddle's mid to
+    the event's expiry (`straddle_expiry`: strictly after the report date unless
+    the release is before the open), over spot, from the newest captured chain
+    of `symbol` at or before `now` (looking back `days_back` days). None when no
+    chain is captured."""
     try:
         from altdata import chain_metrics                       # noqa: PLC0415
         root = Path(base) if base else chain_metrics.chain_dir()
@@ -109,11 +175,10 @@ def implied_move(symbol: str, report_date: str, now: str,
             if not files:
                 continue
             rows = chain_metrics.load_rows(files[-1])
-            exps = sorted({r["expiry"] for r in rows if r.get("expiry")
-                           and str(r["expiry"]) >= report_date[:10]})
-            if not exps:
+            ex = straddle_expiry({str(r["expiry"]) for r in rows if r.get("expiry")},
+                                 report_date, time)
+            if not ex:
                 return None
-            ex = exps[0]
             leg = [r for r in rows if r["expiry"] == ex]
             spot = next((r["spot"] for r in leg if r.get("spot")), None)
             if not spot:
@@ -138,7 +203,7 @@ def earnings_row(r: dict, cfg: dict, now: str, chain_base: Optional[Path]) -> di
     eps = r.get("eps_estimate")
     cons = (f"EPS {eps:.2f} (analyst mean)" if isinstance(eps, (int, float))
             else "no consensus EPS carried")
-    mv = implied_move(sym, r["date"], now, chain_base) or NOT_CAPTURED
+    mv = implied_move(sym, r["date"], now, chain_base, time=r.get("time")) or NOT_CAPTURED
     return {**r, "cls": earnings_class(sym, cfg), "consensus": f"{cons}; {mv}",
             "implied_move": None if mv == NOT_CAPTURED else mv}
 
@@ -300,10 +365,11 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
     rows += hrows + register_rows(cfg, mon, sat) + rebalance_rows(p, mon, sat)
     rows, full, lines = collapse_families(rows, min_outcomes)
     z_min = float(cfg.get("amplifier_z") or 1.5)
+    ai = ai_names(cfg, repo)
     for r in rows:
         c = classes.get(r.get("cls") or "") or {}
         r["tier"] = int(c.get("tier") or r.get("tier") or 3)
-        r["why"] = c.get("channel") or "—"
+        r["why"] = why_of(r, c, ai)
         r["amplify"] = amplifier(c, pos, z_min)
     rows.sort(key=lambda r: (r["tier"], r["date"], str(r.get("time")), r["event"]))
     for i, r in enumerate(rows, start=1):

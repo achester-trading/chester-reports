@@ -53,8 +53,12 @@ eu_stress:
 buybacks:
   # The long-end sectors (the entry: 10-20y and 20-30y, and the TIPS 10-30y).
   long_end_buckets: ["10Y to 20Y", "20Y to 30Y", "10Y to 30Y"]
-  thirty_year_key: fred.yield_30y # the stored 30-year (DGS30), for the next
-                                  # session's change after each operation
+  thirty_year_key: fred.yield_30y # the stored 30-year (DGS30): the FALLBACK for
+                                  # the next session's change after each operation
+  # W8-13 (weekly-fixes-8): the tape's 30-year first -- FRED's leg lags a session,
+  # so the newest operation read "not yet stored" -- as weekly-fixes-7's rule for
+  # the 10-year; each cell names its source and date.
+  thirty_year_tape: yfinance.mkt_tyx
   tga_key: fred.tga               # MILLIONS (CLAUDE.md, the net-liquidity trap)
   # The modifier on the long-end supply read, in the Monthly's lever table:
   # a bought/max ratio below `soft_ratio` reads as soft take-up.

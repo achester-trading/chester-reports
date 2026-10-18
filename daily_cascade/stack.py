@@ -121,7 +121,11 @@ def _change(x: dict) -> str:
     # weekly-fixes-7 item 12: a raw change below one keeps two places (short
     # interest's days to cover moved −0.12, which printed "−0"); one that rounds
     # to zero there too is "unch", never a signed zero.
-    dp = 0 if abs(c) >= 1 else 2
+    # W8-8 (weekly-fixes-8): a series that declares its level's decimals (`dp`)
+    # prints its change to them -- days to cover's −1.27 printed "−1".
+    dp = x.get("dp")
+    if dp is None:
+        dp = 0 if abs(c) >= 1 else 2
     if round(c, dp) == 0:
         return "unch"
     return f"{'+' if c > 0 else '−'}{abs(c):,.{dp}f}"
@@ -421,6 +425,8 @@ def positioning_section(st, cutoff: str) -> dict:
         x = last_two(st, k, cutoff, inst)
         if not x:
             continue
+        if k == "finra.short_interest_days_to_cover":
+            x["dp"] = 2          # W8-8: the change to the level's two decimals
         data[name] = x
         items.append(item(f"pos:{k}:{inst}", f"{name}: {x['level']:,.2f} "
                           f"({_change(x)}, as of {x['observed_at']}).", 3,
@@ -660,7 +666,11 @@ def market_subject(m: dict) -> str:
     day = str(m.get("decision_date") or m.get("close_at") or "")[:10]
     try:
         d = dt.date.fromisoformat(day)
-        meeting, year = d.strftime("%B"), str(d.year)
+        # W8-3: one template, "the 9 December meeting" (the year when not this one).
+        from . import readability                               # noqa: PLC0415
+        from altdata import session as _session                 # noqa: PLC0415
+        meeting = readability.meeting_name(day, _session.session_date_obj().year)
+        year = str(d.year)
     except ValueError:
         meeting = year = ""
     side = classify_fomc(m.get("question") or "", m.get("outcome") or "") or "move"

@@ -297,6 +297,10 @@ class NarrativeResult:
     citation_checked: bool = False
     misstated: list[str] = field(default_factory=list)
     states_checked: bool = False
+    # THE AUDIT RETRY (W8-1): how many drafts this result took (one, or the
+    # draft and its one revision) and, after a revision, the first one's reason.
+    attempts: int = 1
+    first_reason: Optional[str] = None
 
     @property
     def published(self) -> bool:

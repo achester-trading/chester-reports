@@ -1032,6 +1032,9 @@ class Figure:
     # Filled when a large figure matches nothing but is near a `_display` form
     # the payload carries: names the field the writer should have copied.
     scale_error: str = ""
+    # Filled when the figure sits in a sentence that names a series and is not
+    # that series' own figure (W8-2): "5.52% is bound to XLK but belongs to QQQ".
+    bind_conflict: str = ""
     # The series kind whose unit let a price-typed value be written as a
     # percent, bp or pts (W-1.1a item 1); empty when no equivalence was used.
     series_kind: str = ""
@@ -1065,7 +1068,7 @@ class AuditResult:
         # wrong kind of thing, which is a different fix.
         def label(f) -> str:
             why = (f.type_conflict or f.ordinal_error or f.sign_error
-                   or f.scale_error or f.label_conflict)
+                   or f.scale_error or f.label_conflict or f.bind_conflict)
             return f"{f.text} ({why})" if why else f.text
 
         bad = ", ".join(label(f) for f in self.unmatched[:6])
@@ -1077,6 +1080,10 @@ class AuditResult:
         if labels:
             tail += (f"; {labels} of them a level printed under the wrong name "
                      f"rather than a missing figure")
+        binds = sum(1 for f in self.unmatched if f.bind_conflict)
+        if binds:
+            tail += (f"; {binds} of them bound to the wrong series' row rather than "
+                     f"a missing figure")
         return (f"numeral audit failed on {self.n_unmatched} figure(s): "
                 f"{bad}{more}{tail}")
 
@@ -1380,6 +1387,217 @@ def label_bindings(text: str, figures: list["Figure"]) -> list[tuple["Figure", s
     return out
 
 
+# ---------------------------------------------------------------------------
+# THE SERIES BINDING (W8-2, weekly-fixes-8, 18 Oct 2026). A FIGURE IN A SENTENCE
+# THAT NAMES A SERIES MUST BE THAT SERIES' OWN.
+# ---------------------------------------------------------------------------
+# The Weekly of 18 Oct wrote "Technology (XLK) falling 5.52%": 5.52 was QQQ's
+# week, XLK fell 7.70. And "JPY futures positioning slipped 1.6 points of open
+# interest": -1.6 was the leveraged funds' four-week-change z, not a share of
+# open interest. Both figures exist in the payload, so the plain match passed
+# them. The binding reads the section's data block for its series -- every row
+# with a label (a table's first cell, or a dict's label, name, series, contract,
+# symbol...) and the names it goes by (the label, a ticker in its brackets, the
+# name before them, its symbol, its declared aliases) -- and binds each figure to
+# the alias nearest it in its sentence. The figure must then be one that row
+# holds, under a field whose kind agrees with the unit written beside it. A
+# figure that belongs to another series' row fails, naming both; a figure the
+# bound row lacks and no other row holds is left to the plain match (a spread
+# between two series, say), and a sentence that names no series is untouched.
+_ROW_LABEL_KEYS = ("label", "name", "series", "title", "contract", "symbol",
+                   "ticker", "instrument", "underlying", "fund", "sector")
+_BRACKET = re.compile(r"\(([^()]{1,24})\)")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(])")
+_OF_OI = re.compile(r"\s*(?:percentage\s+)?(?:%|points?|pts|percent)?\s*of\s+"
+                    r"(?:the\s+)?open\s+interest", re.I)
+_Z_KEY = re.compile(r"(^|_)z($|_)|z_?score")
+
+
+def _bound_type(key: str) -> str:
+    """A field's kind for the binding: the audit's own, and a z where the name
+    carries one (`change_z_4w`, `level_z`), which the plain audit leaves untyped."""
+    t = type_of_key(key)
+    if t == TYPE_ANY and _Z_KEY.search((key or "").lower()):
+        return TYPE_Z
+    return t
+
+
+def _aliases_of(label: str) -> list[str]:
+    """The names a row's label goes by: the label, each ticker in its brackets,
+    and the name before them ("Technology (XLK)" -> itself, XLK, Technology)."""
+    lab = re.sub(r"\s+", " ", str(label or "")).strip()
+    if not lab or len(lab) < 2 or re.fullmatch(r"[\d\s.,:%+\-−/]+", lab):
+        return []
+    out = [lab]
+    out += [m.strip() for m in _BRACKET.findall(lab) if len(m.strip()) >= 2]
+    head = _BRACKET.sub("", lab).strip()
+    if head and head != lab and len(head) >= 2:
+        out.append(head)
+    # "JPY futures" and "CFTC JPY": the row's own symbol is found by its key.
+    return out
+
+
+def _col_key(name: str) -> str:
+    """A column head as a field name: "Four-week change z" -> four_week_change_z."""
+    return re.sub(r"[^a-z0-9]+", "_", str(name or "").lower()).strip("_")
+
+
+def _typed(v: Any, key: str) -> list[tuple[float, str, str]]:
+    """(value, field, kind) for one scalar: a number by its field, a string's
+    figures by the unit written beside them, else by its field."""
+    if isinstance(v, bool) or v is None:
+        return []
+    if isinstance(v, (int, float)):
+        return [(float(v), key, _bound_type(key))]
+    if isinstance(v, str):
+        base = _bound_type(key)
+        return [(x, key, base if t in (TYPE_ANY, TYPE_COUNT) and base != TYPE_ANY else t)
+                for x, t in string_types(v, key)]
+    return []
+
+
+def _dict_values(d: dict) -> list[tuple[float, str, str]]:
+    """A labelled dict's own figures: its scalars, and one nested dict's."""
+    out: list[tuple[float, str, str]] = []
+    for k, v in d.items():
+        k = str(k)
+        if k in _ROW_LABEL_KEYS or k == "aliases":
+            continue
+        if isinstance(v, dict):
+            for kk, vv in v.items():
+                out += _typed(vv, f"{k}.{kk}")
+        else:
+            out += _typed(v, k)
+    return out
+
+
+def series_rows(payload: Any, _out: Optional[list] = None) -> list[dict]:
+    """[{"aliases": [...], "name": short name, "values": [(value, field, kind)]}]
+    for every labelled row in a data block: a dict with a label field, or a
+    table's row (its first cell the label, each cell typed by its column)."""
+    out = [] if _out is None else _out
+    if isinstance(payload, dict):
+        cols, trows = payload.get("columns"), payload.get("rows")
+        if isinstance(cols, list) and isinstance(trows, list):
+            keys = [_col_key(c) for c in cols]
+            for r in trows:
+                if not (isinstance(r, (list, tuple)) and r and isinstance(r[0], str)):
+                    continue
+                names = _aliases_of(r[0])
+                vals = [t for i, c in enumerate(r[1:], 1)
+                        for t in _typed(c, keys[i] if i < len(keys) else "cell")]
+                if names and vals:
+                    short = next((m.strip() for m in _BRACKET.findall(r[0])), None)
+                    out.append({"aliases": names, "values": vals,
+                                "name": short or names[-1]})
+        names: list[str] = []
+        for k in _ROW_LABEL_KEYS:
+            v = payload.get(k)
+            if isinstance(v, str):
+                names += _aliases_of(v)
+        sym = _row_symbol(payload)
+        if sym:
+            names.append(sym)
+        names += [str(a) for a in (payload.get("aliases") or [])
+                  if isinstance(a, str) and len(a) >= 2]
+        vals = _dict_values(payload)
+        if names and vals:
+            short = next((m.strip() for n in names for m in _BRACKET.findall(n)), None)
+            out.append({"aliases": list(dict.fromkeys(names)), "values": vals,
+                        "name": sym or short or names[0]})
+        for v in payload.values():
+            if isinstance(v, (dict, list, tuple)):
+                series_rows(v, out)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            if isinstance(v, (dict, list, tuple)):
+                series_rows(v, out)
+    return out
+
+
+def _holds(values: list[tuple[float, str]], f: "Figure") -> list[str]:
+    """(field, kind) of each of `values` that holds the figure, either sign, or
+    its percent form for a percent figure."""
+    out = []
+    for v, k, t in values:
+        for c in (v, -v) + ((v * 100.0, -v * 100.0) if f.is_percent else ()):
+            if f.low <= c < f.high or abs(c - f.value) <= 1e-9:
+                out.append((k, t))
+                break
+    return out
+
+
+def _bindable(f: "Figure") -> bool:
+    """A measured figure -- a percent, a decimal, or one with a unit word --
+    rather than a count, a year or a day."""
+    return bool(f.is_percent or "." in f.text or f.unit_type in
+                (TYPE_BP, TYPE_PRICE, TYPE_PERCENT, TYPE_Z, TYPE_DOLLARS))
+
+
+def series_bindings(text: str, figures: list["Figure"], payload: Any
+                    ) -> list[tuple["Figure", str]]:
+    """(figure, why) for each figure bound to a series whose row does not hold
+    it: "5.52% is bound to XLK but belongs to QQQ"."""
+    rows = series_rows(payload)
+    if not rows or not figures:
+        return []
+    alias_rx: list[tuple["re.Pattern", str]] = []
+    for a in sorted({a for r in rows for a in r["aliases"]}, key=len, reverse=True):
+        flags = 0 if re.fullmatch(r"[A-Z0-9.=^\-]{2,8}", a) else re.I
+        alias_rx.append((re.compile(r"(?<![\w-])" + re.escape(a) + r"(?![\w-])", flags), a))
+    by_alias: dict[str, list[dict]] = {}
+    for r in rows:
+        for a in r["aliases"]:
+            by_alias.setdefault(a, []).append(r)
+    bounds = [0] + [m.end() for m in _SENTENCE_END.finditer(text)] + [len(text) + 1]
+    out = []
+    for f in figures:
+        if not _bindable(f):
+            continue
+        lo = max(b for b in bounds if b <= f.position)
+        hi = min(b for b in bounds if b > f.position)
+        hits, taken = [], []
+        for rx, a in alias_rx:
+            for m in rx.finditer(text, lo, hi):
+                if any(m.start() < e and s < m.end() for s, e in taken):
+                    continue       # inside a longer alias already found
+                if m.start() <= f.position < m.end():
+                    continue       # the figure is part of the name ("S&P 500")
+                taken.append((m.start(), m.end()))
+                d = (f.position - m.end() if m.end() <= f.position
+                     else m.start() - (f.position + len(f.text)))
+                hits.append((d, 0 if m.end() <= f.position else 1, m.group(0), a))
+        if not hits:
+            continue
+        _, _, _, alias = min(hits)
+        mine = by_alias[alias]
+        mine_ids = {id(r) for r in mine}
+        said = mine[0]["name"]
+        fields = [k for r in mine for k in _holds(r["values"], f)]
+        want = (TYPE_PERCENT if _OF_OI.match(text, f.position + len(f.text))
+                else f.unit_type)
+        if fields:
+            if want == TYPE_ANY:
+                continue
+            allowed = {want, TYPE_ANY}
+            if not _OF_OI.match(text, f.position + len(f.text)):
+                allowed |= set(COMPATIBLE.get(want, ()))
+            if any(t in allowed for _, t in fields):
+                continue
+            k0, t0 = fields[0]
+            unit = ("a share of open interest"
+                    if _OF_OI.match(text, f.position + len(f.text)) else want)
+            out.append((f, f"{f.text.strip()} is bound to {said} but is its {k0} "
+                           f"(a {t0}), not {unit}"))
+            continue
+        others = [r for r in rows if id(r) not in mine_ids and _holds(r["values"], f)]
+        if others:
+            names = list(dict.fromkeys(r["name"] for r in others))
+            out.append((f, f"{f.text.strip()} is bound to {said} but belongs to "
+                           f"{' and '.join(names[:2])}"))
+    return out
+
+
 _DOWN: Optional[set] = None
 
 
@@ -1450,6 +1668,10 @@ def audit(text: str, payload: Any, *,
     signed = signed_fields(payload)
     displays = display_fields(payload)
     for f in figures:
+        # "23.4 POINTS OF OPEN INTEREST" IS A SHARE (W8-2): the unit is the
+        # phrase, not its first word, so it asserts a percent and not a price.
+        if _OF_OI.match(masked, f.position + len(f.text)):
+            f.unit_type = TYPE_PERCENT
         # A WRONGLY WRITTEN ORDINAL FAILS WHATEVER IT MATCHES (H-1 item 3).
         f.ordinal_error = ordinal_error(f)
         if f.ordinal_error:
@@ -1583,6 +1805,16 @@ def audit(text: str, payload: Any, *,
             f"printed as the {name}{' of ' + sym if sym else ''}, which the payload "
             f"holds as {vals}"
             + (f"; {f.text.strip()} is {', '.join(others)}" if others else ""))
+        matched = [(g, h) for g, h in matched if g is not f]
+        unmatched.append(f)
+
+    # THE SERIES BINDING (W8-2): in a sentence that names a series, a figure
+    # must be that series' own. Only matched figures: an unmatched one fails
+    # already.
+    ok_ids = {id(f) for f, _ in matched}
+    for f, why in series_bindings(text or "", [f for f in figures if id(f) in ok_ids],
+                                  payload):
+        f.bind_conflict = why
         matched = [(g, h) for g, h in matched if g is not f]
         unmatched.append(f)
 

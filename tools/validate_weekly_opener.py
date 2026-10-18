@@ -409,11 +409,11 @@ def group_f(ed: dict, html: str, calls: list, segs: dict) -> None:
              f for f in precis._figs(R6["precis"]["week"]))]}]}
     res = precis.write(edp, None, client=cl)
     check(res.get("published") and res.get("attempts") == 2
-          and "THE TENSION FIRST" in prompts[1] and "attempt 1 of 3" in prompts[1],
+          and "THE TENSION FIRST" in prompts[1] and "attempt 1 of 2" in prompts[1],
           f"(6) the précis retries with the reason and the rule; a model that "
           f"obeys on attempt 2 publishes ({res.get('attempts')}; "
           f"{str(res.get('first_reason'))[:80]})")
-    check(precis.ATTEMPTS == 3, "(6) the précis has three attempts")
+    check(precis.ATTEMPTS == 2, "(6) the précis has one draft and one revision (W8-1)")
 
     # --- item 10 (structure; the PDF check is validate_readability's) ----------
     i_p, i_t = html.find('id="precis"'), html.find('id="terms"')

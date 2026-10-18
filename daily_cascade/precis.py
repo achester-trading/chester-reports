@@ -336,14 +336,15 @@ def _call(fr: dict, system: str, client, model: Optional[str]) -> str:
                    if getattr(b, "type", "") == "text").strip()
 
 
-ATTEMPTS = 3
+from .audit_retry import ATTEMPTS                               # noqa: E402  (W8-1: one revision)
 
 
 def write(ed: dict, prior: Optional[dict] = None, *, client=None,
           model: Optional[str] = None) -> dict:
-    """The précis over the finished edition: up to three audited attempts, each
-    retry told the whole withhold message and the rule behind each fault
-    (W-1.3c item 6). Never raises."""
+    """The précis over the finished edition: one draft and, when the audit
+    withholds it, ONE revision told the withhold message, the rule behind each
+    fault, the failing span and the draft (W8-1; three attempts before). Both
+    attempts are logged. Never raises."""
     fr = frame(ed, prior)
     if client is None:
         from . import narrative as base                         # noqa: PLC0415
@@ -351,6 +352,7 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
         if client is None:
             return {"state": "unavailable", "published": False, "reason": why,
                     "frame": fr}
+    from . import audit_retry                                   # noqa: PLC0415
     system = system_prompt(fr)
     reasons = []
     for attempt in range(1, ATTEMPTS + 1):
@@ -361,6 +363,9 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
                     "reason": f"FAULT {type(exc).__name__}: {exc}", "attempts": attempt}
         p = parse(text)
         faults = audit(p, fr)
+        audit_retry.log_attempt("weekly", "precis", attempt, not faults,
+                                None if not faults else "withheld: " + "; ".join(faults),
+                                None if not faults else text)
         if not faults:
             if not fr.get("previous_precis"):
                 p["outlook"] = FIRST_EDITION
@@ -368,9 +373,7 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
                     "text": text, "frame": fr, "attempts": attempt,
                     "first_reason": reasons[0] if reasons else None}
         reasons.append("withheld: " + "; ".join(faults))
-        from . import opener                                    # noqa: PLC0415
-        system = system_prompt(fr) + opener.retry_note(reasons[-1], attempt + 1,
-                                                       ATTEMPTS)
+        system = system_prompt(fr) + audit_retry.revision_note(reasons[-1], text)
     return {"state": "audit_failed", "published": False, "frame": fr,
             "reason": reasons[-1], "first_reason": reasons[0], "attempts": ATTEMPTS,
             "rejected_text": text, "reasons": reasons}

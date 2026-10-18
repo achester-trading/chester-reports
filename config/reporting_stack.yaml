@@ -263,10 +263,10 @@ cadences:
     frames: "the days of the week first, then the week as a whole, then where the week sits in the month."
     chars_scale: 2.5
     read_chars: 2400
-    # THREE AUDITED ATTEMPTS (W-1.3c item 6): a withheld draft is retried twice,
-    # each retry told the whole withhold message and the rule behind each fault;
-    # then withheld. A cadence without the key keeps one draft and one retry.
-    prose_attempts: 3
+    # ONE REVISION (W8-1, 18 Oct 2026; W-1.3c item 6's three attempts withdrawn):
+    # a withheld draft goes back once with the draft, the failing rule and span,
+    # to fix that and change nothing else; a second failure withholds. Every
+    # cadence alike (daily_cascade/audit_retry.py ATTEMPTS), so no key here.
     # THE SECTION OPENER (W-1.3a item 3.0, change order amended 12 Oct 2026):
     # every section's commentary prints FIRST, before any table or chart, as one
     # paragraph -- the précis's relevance sentence, then the writer's claim and
@@ -607,7 +607,7 @@ technical_appendix:
     - {quantity: "Flip", formula: "the spot level at which net GEX changes sign", units: "index points", sign: "above it, dealer hedging damps; below it, amplifies"}
     - {quantity: "Net liquidity", formula: "Fed balance sheet - reverse repo - Treasury General Account, each leg in dollars (WALCL x 1e6, RRPONTSYD x 1e9, WTREGEN x 1e6)", units: "$", sign: "+ is more liquidity"}
     - {quantity: "CFTC net position", formula: "non-commercial longs - shorts", units: "contracts", sign: "+ speculators net long"}
-    - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, first expiry on or after the event", units: "% of spot", sign: "either direction"}
+    - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, to the first expiry strictly after the event date (the event date's own expiry only when the release is before the open)", units: "% of spot", sign: "either direction"}
     - {quantity: "Brier score", formula: "the mean of (probability - outcome) squared", units: "0 to 1", sign: "lower is better; 0.25 is a coin"}
   expiry_coverage: "every listed expiry the captured chain holds (the capture takes no cap unless one is passed), bucketed 0DTE / weekly / monthly / quarterly / other"
 

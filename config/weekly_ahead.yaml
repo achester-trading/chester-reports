@@ -31,7 +31,9 @@ classes:
   growth_print:       {tier: 1, playbook: true, channel: "growth for the quarter: cyclical equities and the curve's slope", amplifiers: [SP500, RUSSELL2000, UST10Y]}
   refunding:          {tier: 1, channel: "coupon supply, and so the term premium and the long end", amplifiers: [UST30Y, UST10Y]}
   opex_quarterly:     {tier: 1, channel: "a quarterly expiry: dealers' hedges roll off at once, so the index's damping can change overnight", amplifiers: [VIX, SP500]}
-  earnings_mega:      {tier: 1, channel: "an index-weight leader: its move is the index's move, and its capital spending is the AI trade's", amplifiers: [NDX100, SP500]}
+  # W8-6 (weekly-fixes-8): the AI-capex clause is the AI names' only (`ai_clause`
+  # below); TSLA and every other leader gets the plain channel.
+  earnings_mega:      {tier: 1, channel: "an index-weight leader: its move is the index's move", ai_clause: ", and its capital spending is the AI trade's", amplifiers: [NDX100, SP500]}
   fomc_minutes:       {tier: 2, channel: "how the committee argued its last decision: the rate path beyond the next meeting", amplifiers: [UST10Y, USD_INDEX]}
   fed_chair:          {tier: 2, channel: "the Chair's words move the rate path between meetings", amplifiers: [UST10Y, USD_INDEX]}
   inflation_data:     {tier: 2, channel: "an inflation input the CPI and PCE prints will echo", amplifiers: [UST10Y]}
@@ -90,6 +92,10 @@ earnings:
                       JPM, LLY, V, NFLX, XOM, MA, COST, WMT, ORCL, JNJ, HD, PG, ABBV,
                       BAC, UNH]
   hyperscalers: [MSFT, AMZN, GOOGL, GOOG, META, ORCL]
+  # THE AI NAMES (W8-6): the AI-capex clause applies to these only. Read from
+  # config/ai_buckets.yaml when that file exists; else this list, which is the
+  # forward-EPS block's own (config/ai_fcf.yaml `names`), GOOG beside GOOGL.
+  ai_names: [AMZN, GOOGL, GOOG, META, MSFT, ORCL, NVDA, MU, AVGO, AMAT]
   banks: [JPM, BAC, C, WFC, GS, MS]
 
 # THE HAND-SEEDED CALENDARS (by hand; no session writes an entry). A file not

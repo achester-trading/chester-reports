@@ -252,8 +252,9 @@ def group_c() -> None:
           f"{o['y30_next_bp']:+.1f} bp ({o['y30_next_day']})")
     r = sub["table"]["rows"][0]
     check(r == ["2026-09-10", "10Y to 20Y", "$5.19bn of $6.00bn", "86%",
-                "+5.0 bp (2026-09-11)"],
-          f"the events block's row: {r}")
+                "+5.0 bp (FRED, 11 Sep)"],
+          f"the events block's row, its source named (W8-13; no tape on this "
+          f"fixture, so FRED's): {r}")
     check("TGA $950.0bn (FRED, 2026-09-10)." in sub["lines"],
           "the TGA from the stored series, millions read as millions ($950.0bn)")
     m = lev["data"]["modifier"]

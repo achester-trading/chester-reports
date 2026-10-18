@@ -595,7 +595,7 @@ def group_h() -> None:
         return real, fake, seen2
 
     from daily_cascade import narrative as base
-    for after, want in ((2, (True, 2)), (99, (False, 3))):
+    for after, want in ((2, (True, 2)), (99, (False, 2))):
         real, fake, seen2 = obeying(after)
         base.generate = fake
         try:
@@ -615,10 +615,12 @@ def group_h() -> None:
                   f"a model that obeys the reason on attempt 2 publishes "
                   f"({pr.get('attempts')} attempts)")
         else:
-            check(not pr.get("published") and pr.get("attempts") == 3
-                  and len(seen2) == 3 and "attempt 2 of 3" in seen2[2]
+            # W8-1: one revision, told the draft, then withheld.
+            check(not pr.get("published") and pr.get("attempts") == 2
+                  and len(seen2) == 2 and "attempt 1 of 2" in seen2[1]
+                  and "YOUR DRAFT:" in seen2[1]
                   and ed["sections"][2].get("withheld"),
-                  f"one that never does is withheld after three attempts "
+                  f"one that never does is withheld after its one revision "
                   f"({pr.get('attempts')})")
     late = ("withheld: filler sentence: 'a'; filler sentence: 'b'; the paragraph "
             "cites 9 figures; at most 6 -- the tables carry the rest; direction "
@@ -633,9 +635,10 @@ def group_h() -> None:
                                    "on 1 figure (9.9%)") for k in ("THE NUMERAL RULE",)),
           "a numeral-audit withhold carries the numeral rule")
     from daily_cascade import cadence as cad_mod
-    check(sp.attempts_of(cad_mod.get("weekly")) == 3
+    check(sp.attempts_of(cad_mod.get("weekly")) == 2
           and sp.attempts_of(cad_mod.get("daily")) == 2,
-          "three attempts on the Weekly (config prose_attempts); the close keeps two")
+          "one draft and one revision at every cadence (W8-1; the Weekly's three "
+          "withdrawn)")
 
 
 def main() -> int:

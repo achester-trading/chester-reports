@@ -509,7 +509,7 @@ def main() -> int:
     check(sec["priced"]["depth"] == "deep" and "pts" in (sec["priced"]["depth_reason"] or ""),
           f"a 12-point move takes What's priced deep ({sec['priced']['depth_reason']})")
     rt = [i["text"] for i in sec["read"]["items"]]
-    check(any(t.startswith("Kalshi's odds of a hold at the October meeting moved")
+    check(any(re.match(r"Kalshi's odds of a hold at the \d{1,2} October meeting moved", t)
               and "(confirmed by the other venue or by volume)" in t for t in rt)
           and not any("Will the Federal Reserve" in t for t in rt),
           f"The read carries the attention shock as one template sentence, not the "

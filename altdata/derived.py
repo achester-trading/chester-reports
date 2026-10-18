@@ -261,6 +261,23 @@ def registry_entry(metric_id: str) -> dict:
     return _load_registry().get(metric_id, {})
 
 
+_FORWARD: Optional[dict] = None
+
+
+def forward_dated(metric_id: str) -> Optional[str]:
+    """The registry's reason a series may be dated after its publication (an
+    effective date; W8-9), or None: metrics_registry.yaml `forward_dated`."""
+    global _FORWARD
+    if _FORWARD is None:
+        try:
+            import yaml  # noqa: PLC0415
+            with (REPO / "metrics_registry.yaml").open(encoding="utf-8") as fp:
+                _FORWARD = dict((yaml.safe_load(fp) or {}).get("forward_dated") or {})
+        except Exception:                                       # noqa: BLE001
+            _FORWARD = {}
+    return _FORWARD.get(metric_id)
+
+
 def delta_unit_for(metric_id: str) -> tuple[str, str]:
     """(delta_unit, why). Rule 2."""
     e = registry_entry(metric_id)

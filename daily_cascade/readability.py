@@ -87,6 +87,49 @@ def prose_date(iso: str, year: Optional[int] = None) -> str:
     return f"{d.day} {d:%b}" + ("" if year in (None, d.year) else f" {d.year}")
 
 
+def meeting_name(iso: str, year: Optional[int] = None) -> str:
+    """A meeting as prose names it (W8-3's template, weekly-fixes-8): '2026-12-09'
+    -> '9 December', '2027-03-17' -> '17 March 2027' when the edition's year is
+    another; printed as "the 9 December meeting"."""
+    d = dt.date.fromisoformat(str(iso)[:10])
+    return f"{d.day} {d:%B}" + ("" if year in (None, d.year) else f" {d.year}")
+
+
+# THE ONE MEETING TEMPLATE (W8-3, weekly-fixes-8): the Weekly of 18 Oct printed
+# "the December 9 Dec meeting" and "the March 17 Mar 2027 meeting" -- a month name
+# and the polished date side by side. Every form of a dated meeting in prose
+# becomes "the 9 December meeting", "the 17 March 2027 meeting".
+_MONTHS = ("January", "February", "March", "April", "May", "June", "July",
+           "August", "September", "October", "November", "December")
+_MON = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?"
+_MEETING_DMY = re.compile(
+    r"\bthe\s+(?:(?:" + "|".join(_MONTHS) + r")\s+)?(\d{1,2})\s+(" + _MON + r")"
+    r"(?:\s+(\d{4}))?\s+(FOMC\s+)?meeting\b")
+_MEETING_MDY = re.compile(
+    r"\bthe\s+(" + "|".join(_MONTHS) + r")\s+(\d{1,2})(?:,?\s+(\d{4}))?\s+(FOMC\s+)?"
+    r"meeting\b")
+
+
+def _month_of(word: str) -> Optional[str]:
+    w = word.rstrip(".")[:3].lower()
+    return next((m for m in _MONTHS if m[:3].lower() == w), None)
+
+
+def meeting_phrases(text: str) -> str:
+    """Every dated meeting in `text` in the one template."""
+    def dmy(m: re.Match) -> str:
+        mon = _month_of(m.group(2))
+        if not mon:
+            return m.group(0)
+        return (f"the {int(m.group(1))} {mon}" + (f" {m.group(3)}" if m.group(3) else "")
+                + f" {m.group(4) or ''}meeting")
+
+    def mdy(m: re.Match) -> str:
+        return (f"the {int(m.group(2))} {m.group(1)}"
+                + (f" {m.group(3)}" if m.group(3) else "") + f" {m.group(4) or ''}meeting")
+    return _MEETING_MDY.sub(mdy, _MEETING_DMY.sub(dmy, text))
+
+
 def stamp_et(iso: Optional[str]) -> str:
     """An instant as the header prints it: 'Sun 4 Oct, 05:04 ET'."""
     if not iso:
@@ -136,6 +179,7 @@ def polish(text: Optional[str], year: Optional[int] = None,
     out = _ASCII_MINUS.sub("−", out)
     if dates:
         out = _ISO.sub(lambda m: prose_date(m.group(0), year), out)
+        out = meeting_phrases(out)
     return out
 
 

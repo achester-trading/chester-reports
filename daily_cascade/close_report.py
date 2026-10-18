@@ -202,8 +202,10 @@ def main() -> int:
             log.info("prior session unavailable, deltas omitted: %s", exc)
 
         np_ = payload_mod.narrative_payload(p, prior)
-        narr = narrative_mod.generate(
-            np_, model=args.narrative_model,
+        # W8-1: one revision when the audit withholds the draft.
+        from daily_cascade import audit_retry                  # noqa: PLC0415
+        narr = audit_retry.generate(
+            np_, report="close", model=args.narrative_model,
             unit_constants=payload_mod.NARRATIVE_UNIT_CONSTANTS)
 
         # LOGGED EITHER WAY, and the failure is logged loudly. A withheld
