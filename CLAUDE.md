@@ -761,6 +761,24 @@ or one edited since. Three things now register this way:
 The lab line and the Lab report gain the tells' counts and these rows.
 `tools/validate_alpha_lab_3.py` holds all of it.
 
+**The quarterly meta-loop (X-3.7; lenses-group-b, 18 Oct 2026).**
+`alpha/loops/quarterly.py` reviews a closed quarter the lab ran through whole.
+The weekly loop asks for the review inside 21 days of the quarter's end; there
+is no new timer. For each of the loop's own changes it computes what the lab
+would have earned without the change, from the same stored prices:
+- an accepted re-fit, re-run at the old parameters;
+- a rebalance, the engines' recorded returns at the old weights.
+
+The governor's moves are the constitution's, listed and not counted. When the
+net contribution is negative, ONE `meta_tighten` loop event narrows each
+re-fitted engine's ranges toward its current parameters and slows the re-fit
+cadence (`config/alpha.yaml` `meta_loop:`) for the next quarter only. The weekly
+loop obeys it through `refit_due()` and `effective_ranges()`. A positive quarter
+changes nothing. The Quarterly mails the lab's page
+(`alpha/report.py` `quarter_page`, through `quarterly_attachment` in
+`monthly_macro/run.py`), which prints "no quarter closed yet" until a whole
+quarter exists.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
 crypto_carry, all candidates until they pass); a promoted grammar rule is named by

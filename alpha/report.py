@@ -23,6 +23,15 @@ The Monthly attaches it through ONE hook in monthly_macro/run.py
 (monthly_attachment), which never raises: a lab that cannot be read costs the
 Monthly nothing. Re-sending an archived Monthly rebuilds this page from the
 ledger as it stands then, dated with its as-of.
+
+THE QUARTERLY'S LAB PAGE (X-3.7; lenses-group-b, 18 Oct 2026), quarter_page():
+the lab's quarter, the engines, the loop's contribution (alpha/loops/quarterly.py's
+counterfactuals and the adjustment it made, if any), the failures register and
+the gate-ladder standing. It prints "no quarter closed yet" until the lab has run
+through a whole calendar quarter. The Quarterly attaches it through the same
+hook (quarterly_attachment), which never raises. Its prose lines are held to the
+Quarterly's medium depth (config/reporting_stack.yaml depth_words_quarterly);
+tables count no words, and it draws no chart.
 """
 
 from __future__ import annotations
@@ -219,6 +228,162 @@ def tranche_3(ledger, last: str) -> list[str]:
                        f"{r['funding_accrued']:,.2f} | {r['status']} | {net} |")
         out += ["", f"The basis: {rows[-1]['basis_note']}", ""]
     return out
+
+
+# ---------------------------------------------------------------------------
+# THE QUARTERLY'S LAB PAGE (X-3.7)
+# ---------------------------------------------------------------------------
+NO_QUARTER = "No quarter closed yet"
+LADDER = (("ledger-paper", "where the lab lives now"),
+          ("broker-paper", "through the order gate, after Gate 1.5"),
+          ("live", "after Gate 3, not before 2027"))
+
+
+def _money(x: Optional[float]) -> str:
+    return "–" if x is None else f"{x:+,.0f}"
+
+
+def ladder_lines(ledger, last: str) -> list[str]:
+    """The gate-ladder standing: the rung, and how many engines have reached
+    their minimum sample (the evidence the Gate 1.5 question waits on)."""
+    eng = [e for e in ledger.engines() if e["status"] in ("live", "halved")]
+    at_min = 0
+    for e in eng:
+        n = ledger.one("SELECT COUNT(*) AS n FROM grades WHERE engine_id=? AND day<=?",
+                       (e["id"], last))["n"]
+        if n >= acfg.min_signals(e["horizon"]):
+            at_min += 1
+    return [f"- Rung: {LADDER[0][0]}, {LADDER[0][1]}. Next: {LADDER[1][0]}, "
+            f"{LADDER[1][1]}; then {LADDER[2][0]}, {LADDER[2][1]}. Each rung is the "
+            f"operator's ruling, never the lab's.",
+            f"- Engines in paper at their minimum sample: {at_min} of {len(eng)}."]
+
+
+def quarter_page(ledger, as_of: str, quarter: Optional[str] = None, store=None,
+                 engines: Optional[dict] = None) -> str:
+    """The Quarterly's lab page, from alpha.db read-only (and the store, read-only,
+    for the re-fit counterfactuals)."""
+    from altdata import session                                 # noqa: PLC0415
+    from .ledger import LAB                                     # noqa: PLC0415
+    from .loops import quarterly as ql                          # noqa: PLC0415
+    q = quarter or ql.last_closed(ledger, as_of)
+    if not q:
+        first = ledger.one("SELECT MIN(as_of) AS a FROM loop_events")["a"]
+        return "\n".join([
+            "# Alpha Lab, the quarter", "",
+            f"{NO_QUARTER}: the lab has not yet run through a whole calendar quarter "
+            f"(its first loop event: {str(first)[:10] if first else 'none'}).", "",
+            "## The gate-ladder standing", "",
+            *ladder_lines(ledger, session.session_date(as_of)), ""])
+    first, last = ql.bounds(q)
+    out = [f"# Alpha Lab, the quarter ({q[-2:]} {q[:4]})", "",
+           f"From alpha.db, read-only, as of {as_of[:10]}. A machine's book in "
+           f"ledger-paper: evidence for the sitting, never an instruction to it.", ""]
+    # 1. the lab's quarter
+    out += ["## 1. The lab's quarter", ""]
+    rows = ledger.q("SELECT * FROM equity WHERE engine_id=? AND day>=? AND day<=? "
+                    "ORDER BY day", (LAB, first, last))
+    before = ledger.one("SELECT equity FROM equity WHERE engine_id=? AND day<? ORDER BY "
+                        "day DESC LIMIT 1", (LAB, first))
+    if rows:
+        start = float(before["equity"]) if before else float(rows[0]["equity"])
+        end = float(rows[-1]["equity"])
+        worst = min(float(r["drawdown"]) for r in rows)
+        out += [f"- Lab equity {start:,.0f} -> {end:,.0f} lab dollars "
+                f"({_pct(end / start - 1 if start else None)} on the quarter); deepest "
+                f"drawdown {worst * 100:.1f}%.", ""]
+    else:
+        out += ["- No equity recorded this quarter.", ""]
+    # 2. the engines
+    from . import book                                          # noqa: PLC0415
+    out += ["## 2. The engines", "", "| Engine | Family | Status | P&L on the quarter |",
+            "|---|---|---|---:|"]
+    prev = (dt.date.fromisoformat(first) - dt.timedelta(days=1)).isoformat()
+    for e in ledger.engines():
+        pnl = book.cum_pnl(ledger, e["id"], last) - book.cum_pnl(ledger, e["id"], prev)
+        out.append(f"| {e['id']} | {e['family']} | {e['status']} | {_money(pnl)} |")
+    out.append("")
+    # 3. the loop's contribution
+    rv = ql.review(ledger, store, q, engines if engines is not None else {})
+    out += ["## 3. The loop's contribution", ""]
+    counted = [c for c in rv["changes"] if c.get("computable")]
+    if counted:
+        out += ["| When | Change | Engine | Against the counterfactual |",
+                "|---|---|---|---:|"]
+        for c in counted:
+            out.append(f"| {c['day']} | {c['kind']} | {c['engine'] or 'all'} | "
+                       f"{_money(c['contribution'])} |")
+        out.append("")
+    out.append(f"- Net: {_money(rv['net_contribution'])} lab dollars from "
+               f"{len(counted)} change(s), each against what the lab would have "
+               f"earned without it, from the same stored prices.")
+    if rv["uncounted"]:
+        out.append(f"- Not computable, not counted: {len(rv['uncounted'])}.")
+    adj = ledger.q("SELECT after FROM loop_events WHERE kind=? ORDER BY id",
+                   (ql.KIND,))
+    mine = [json.loads(a["after"]) for a in adj if json.loads(a["after"]).get("reviewed") == q]
+    if mine:
+        out.append(f"- Negative, so for {mine[-1]['applies_to']} the re-fit bounds "
+                   f"were narrowed and the cadence slowed to every "
+                   f"{mine[-1]['refit_every_weeks']} weeks (a loop event of its own).")
+    elif rv["net_contribution"] < 0:
+        out.append("- Negative: the weekly loop narrows the bounds and slows the "
+                   "cadence at its next run.")
+    else:
+        out.append("- Not negative: nothing changes.")
+    out.append("")
+    # 4. the failures register
+    out += ["## 4. The failures register", ""]
+    t0, t1 = f"{first}T00:00:00", f"{last}T23:59:59.999999"
+    failed = ledger.q("SELECT * FROM hypotheses WHERE status='failed' AND written_at>=? "
+                      "AND written_at<=? ORDER BY id", (t0, t1))
+    total = ledger.one("SELECT COUNT(*) AS n FROM hypotheses WHERE status='failed' AND "
+                       "written_at<=?", (t1,))["n"]
+    out.append(f"- {len(failed)} failed this quarter; {total} on the register in all.")
+    if failed:
+        out += ["", "| Id | Title | Family | Why it failed |", "|---|---|---|---|"]
+        for h in failed:
+            out.append(f"| {h['id']} | {h['title']} | {h['family']} | "
+                       f"{(h['status_reason'] or '').replace('|', '/')} |")
+    out.append("")
+    # 5. the gate ladder
+    out += ["## 5. The gate-ladder standing", "", *ladder_lines(ledger, last), ""]
+    return "\n".join(out)
+
+
+def page_prose_words(md: str) -> int:
+    """The page's prose: every line that is not a heading or a table row."""
+    return sum(len(ln.split()) for ln in md.splitlines()
+               if ln.strip() and not ln.startswith(("#", "|")))
+
+
+def quarterly_attachment(stamp: str, path: Optional[str | Path] = None
+                         ) -> Optional[tuple[str, str, str]]:
+    """(filename, markdown, "markdown") for the Quarterly's email, or None. Never
+    raises: the Quarterly is never the lab's casualty."""
+    try:
+        p = Path(path or acfg.ledger_path())
+        if not p.is_file():
+            return None
+        from altdata import session                             # noqa: PLC0415
+        from .ledger import Ledger                              # noqa: PLC0415
+        from .loops.weekly import _loaded                       # noqa: PLC0415
+        from .store import ReadOnlyStore                        # noqa: PLC0415
+        lg = Ledger(p, read_only=True)
+        try:
+            st = None
+            try:
+                st = ReadOnlyStore()
+            except Exception:                                   # noqa: BLE001
+                pass
+            md = quarter_page(lg, session.utc_iso(), store=st, engines=_loaded(lg))
+            if st is not None:
+                st.close()
+            return (f"alpha_lab_quarter_{str(stamp)[:10]}.md", md, "markdown")
+        finally:
+            lg.close()
+    except Exception:                                         # noqa: BLE001
+        return None
 
 
 def monthly_attachment(stamp: str, path: Optional[str | Path] = None

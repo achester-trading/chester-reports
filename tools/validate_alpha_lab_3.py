@@ -29,6 +29,15 @@ live store, fetches or calls a model.
      full nightly run, the store's sha256 is unchanged and the candidate, packet,
      dial, band, tell and narrative tables diff empty; no SQL in alpha/ writes any
      of them; the 29 names match the price feed's EARNINGS_SYMBOLS.
+  F  THE QUARTERLY META-LOOP (X-3.7; lenses-group-b, 18 Oct 2026). On a fixture
+     of loop events and the fixture store's prices: the re-fit's and the
+     rebalance's counterfactuals reproduce hand figures; a negative quarter
+     narrows the bounds (by hand) and slows the cadence, written as one
+     meta_tighten loop event, once; the weekly loop reads it (cadence, ranges);
+     a positive quarter changes nothing; the Quarterly's lab page renders from
+     the fixture within the Quarterly's medium depth, with no chart, and prints
+     "no quarter closed yet" before a whole quarter exists; the meta-loop writes
+     loop_events only, and nothing outside alpha.db.
 
     python tools/validate_alpha_lab_3.py
 """
@@ -721,11 +730,182 @@ def group_e() -> None:
           "config/alpha_events.yaml's 29 names are the price feed's EARNINGS_SYMBOLS")
 
 
+class StubEngine:
+    """A re-fittable engine on the fixture store's SPY closes: its rows are the
+    daily close-to-close returns, its strategy returns k x each."""
+    engine_id = "stub"
+
+    def refit_rows(self, store, as_of):
+        rows = [(str(r["observed_at"])[:10], float(r["value_num"]))
+                for r in store.as_of("yfinance.mkt_spy", as_of)]
+        return [{"day": d, "ret": c / p - 1.0}
+                for (_, p), (d, c) in zip(rows, rows[1:])]
+
+    def strategy(self):
+        from types import SimpleNamespace
+        return SimpleNamespace(returns=lambda rows, prm: [prm["k"] * r["ret"] for r in rows])
+
+
+def _meta_ledger(path: str, k_new: float, eq_step: float) -> Ledger:
+    """A ledger with one quarter (2024Q3) of loop events: a re-fit of `stub`
+    from k=1 to k_new on 12 Jul, a rebalance 0.2 -> 0.3 on 2 Aug, and a governor
+    halve (not a loop choice); the equity index moving by eq_step a day."""
+    lg = Ledger(path)
+    lg.upsert_engine("stub", "stub", "daily", "live", 0.1, "2024-06-01T22:00:00+00:00",
+                     validated_ranges={"k": [0.0, 4.0]})
+    lg.put("allocations", {"engine_id": "stub", "day": "2024-06-28", "kind": "applied",
+                           "weight": 0.2, "cluster": None, "detail": "fixture",
+                           "as_of": "2024-06-28T22:00:00+00:00"})
+    lg.event("weekly", "run", "2024-06-28T22:00:00+00:00", None, after={"fixture": 1})
+    lg.event("weekly", "refit_accepted", "2024-07-12T22:00:00+00:00", "stub",
+             before={"params": {"k": 1.0}},
+             after={"params": {"k": k_new}, "current": {"k": 1.0}},
+             counterfactual={"params": {"k": 1.0}})
+    lg.event("weekly", "rebalance", "2024-08-02T22:00:00+00:00", None,
+             before={"stub": 0.2}, after={"weights": {"stub": 0.3}},
+             counterfactual={"weights": {"stub": 0.2}})
+    lg.event("governor", "halve", "2024-08-20T22:00:00+00:00", "stub",
+             after={"status": "halved"}, counterfactual={"status": "live"})
+    eq = 1.0
+    for d in sessions("2024-08-01", "2024-09-30"):
+        lg.put("equity", {"engine_id": "stub", "day": d, "equity": eq, "hwm": max(eq, 1.0),
+                          "drawdown": min(0.0, eq - 1.0), "as_of": f"{d}T22:00:00+00:00"})
+        eq *= 1.0 + eq_step
+    return lg
+
+
+def group_f() -> None:
+    head("F. THE QUARTERLY META-LOOP (X-3.7)")
+    from alpha.loops import quarterly as ql
+    from alpha.loops import weekly
+    st = ReadOnlyStore(STORE)
+    before_sha = sha(STORE)
+    closes = [(str(r["observed_at"])[:10], float(r["value_num"]))
+              for r in st.as_of("yfinance.mkt_spy", "2024-09-30T23:59:59+00:00")]
+    rets = {d: c / p - 1.0 for (_, p), (d, c) in zip(closes, closes[1:])}
+    sum_ret = sum(r for d, r in rets.items() if "2024-07-12" < d <= "2024-09-30")
+    k_new = 0.5 if sum_ret > 0 else 1.5         # so the re-fit lost: (k_new-1) x sum < 0
+    eq_days = sessions("2024-08-01", "2024-09-30")
+    lp = os.path.join(_TMP, "alpha_f.db")
+    lg = _meta_ledger(lp, k_new, -0.001)
+    try:
+        rv = ql.review(lg, st, "2024Q3", {"stub": StubEngine()})
+        rf = next(c for c in rv["changes"] if c["kind"] == "refit_accepted")
+        hand_rf = sum_ret * (k_new - 1.0) * 100000 * 0.2
+        check(rf["computable"] and close(rf["contribution"], hand_rf, 1e-6)
+              and rf["window"] == ["2024-07-12", "2024-09-30"],
+              f"the re-fit's counterfactual from the same stored prices: sum of SPY's "
+              f"returns after 12 Jul ({sum_ret:+.5f}) x (k {k_new} less 1) x capital "
+              f"20,000 = {hand_rf:+.2f} ({rf['contribution']:+.2f})")
+        rb = next(c for c in rv["changes"] if c["kind"] == "rebalance")
+        r_after = [(1 - 0.001) - 1.0 for d in eq_days[1:] if d > "2024-08-02"]
+        hand_rb = sum(r_after) * 100000 * (0.3 - 0.2)
+        check(close(rb["contribution"], hand_rb, 1e-6),
+              f"the rebalance's: {len(r_after)} days of -0.1% x notional 100,000 x "
+              f"(0.3 less 0.2) = {hand_rb:+.2f} ({rb['contribution']:+.2f})")
+        check(close(rv["net_contribution"], hand_rf + hand_rb, 1e-6)
+              and rv["not_loop_choices"].get("halve") == 1 and rv["counted"] == 2,
+              f"the loop's net contribution {hand_rf + hand_rb:+.2f}; the governor's "
+              f"halve is the constitution's, listed and not counted")
+        n_before = {t: lg.one(f"SELECT COUNT(*) AS n FROM {t}")["n"] for t in
+                    ("loop_events", "engines", "allocations", "equity", "hypotheses",
+                     "signals", "positions", "grades")}
+        adj = ql.adjust(lg, rv, "2024-10-06T10:00:00+00:00")
+        n_after = {t: lg.one(f"SELECT COUNT(*) AS n FROM {t}")["n"] for t in n_before}
+        lo, hi = k_new - (k_new - 0.0) * 0.5, k_new + (4.0 - k_new) * 0.5
+        ev = lg.one("SELECT * FROM loop_events WHERE kind='meta_tighten'")
+        a = json.loads(ev["after"]) if ev else {}
+        check(adj is not None and a.get("applies_to") == "2024Q4"
+              and a.get("refit_every_weeks") == 2
+              and all(close(x, y) for x, y in zip(a["bounds"]["stub"]["k"], (lo, hi))),
+              f"negative: one meta_tighten event for 2024Q4 -- the re-fit every 2 weeks, "
+              f"k's range [0, 4] narrowed toward {k_new} to [{lo}, {hi}] by hand")
+        check({t: n_after[t] - n_before[t] for t in n_before} ==
+              {**{t: 0 for t in n_before}, "loop_events": 1},
+              "and that event is the only row it writes")
+        again = ql.adjust(lg, rv, "2024-10-13T10:00:00+00:00")
+        check(again is None and lg.one("SELECT COUNT(*) AS n FROM loop_events WHERE "
+                                       "kind='meta_tighten'")["n"] == 1,
+              "a quarter is adjusted once")
+        sti = ql.state(lg, "2024-10-15T22:00:00+00:00")
+        eng = lg.engine("stub")
+        check(sti["refit_every_weeks"] == 2
+              and ql.effective_ranges(lg, eng, "2024-10-15T22:00:00+00:00") ==
+              a["bounds"]["stub"]
+              and ql.state(lg, "2025-01-15T22:00:00+00:00")["refit_every_weeks"] == 1,
+              "the weekly loop reads it for 2024Q4 only: the cadence and the narrowed "
+              "range in force, the defaults after")
+        lg.event("weekly", "refit_rejected", "2024-10-11T22:00:00+00:00", "stub",
+                 after={"current": {"k": k_new}})
+        d1, why = ql.refit_due(lg, "stub", "2024-10-18T22:00:00+00:00")
+        d2, _ = ql.refit_due(lg, "stub", "2024-10-25T22:00:00+00:00")
+        check(not d1 and "every 2 weeks" in why and d2,
+              "a week after a re-fit it is not due; two weeks after, it is")
+        src = (REPO / "alpha" / "loops" / "weekly.py").read_text(encoding="utf-8")
+        check("quarterly.refit_due(" in src and "quarterly.effective_ranges(" in src
+              and "quarterly.due_quarter(" in src,
+              "the weekly loop asks for the review, the cadence and the ranges")
+        page = report.quarter_page(lg, "2024-10-15T22:00:00+00:00", "2024Q3", st,
+                                   {"stub": StubEngine()})
+        rs = yaml.safe_load((REPO / "config" / "reporting_stack.yaml").read_text(
+            encoding="utf-8"))
+        medium = int(rs["depth_words_quarterly"]["medium"])
+        words = report.page_prose_words(page)
+        check(all(h in page for h in ("## 1. The lab's quarter", "## 2. The engines",
+                                      "## 3. The loop's contribution",
+                                      "## 4. The failures register",
+                                      "## 5. The gate-ladder standing"))
+              and f"Net: {hand_rf + hand_rb:+,.0f} lab dollars" in page
+              and "every 2 weeks" in page and "Rung: ledger-paper" in page,
+              "the Quarterly's lab page renders from the fixture: the quarter, the "
+              "engines, the loop's contribution and the adjustment, the failures "
+              "register, the gate-ladder standing")
+        check(words <= medium and "![" not in page,
+              f"within the Quarterly's budget: {words} prose words against its medium "
+              f"depth of {medium}, tables uncounted, no chart")
+    finally:
+        lg.close()
+    lp2 = os.path.join(_TMP, "alpha_f2.db")
+    lg2 = _meta_ledger(lp2, 1.5 if sum_ret > 0 else 0.5, 0.001)
+    try:
+        rv2 = ql.review(lg2, st, "2024Q3", {"stub": StubEngine()})
+        n0 = lg2.one("SELECT COUNT(*) AS n FROM loop_events")["n"]
+        adj2 = ql.adjust(lg2, rv2, "2024-10-06T10:00:00+00:00")
+        check(rv2["net_contribution"] > 0 and adj2 is None
+              and lg2.one("SELECT COUNT(*) AS n FROM loop_events")["n"] == n0
+              and ql.state(lg2, "2024-10-15T22:00:00+00:00")["refit_every_weeks"] == 1,
+              f"positive ({rv2['net_contribution']:+.2f}): nothing changes and nothing "
+              f"is written")
+    finally:
+        lg2.close()
+    lp3 = os.path.join(_TMP, "alpha_f3.db")
+    lg3 = Ledger(lp3)
+    try:
+        lg3.event("weekly", "run", "2024-08-09T22:00:00+00:00", None, after={})
+        page3 = report.quarter_page(lg3, "2024-10-15T22:00:00+00:00")
+        check(report.NO_QUARTER in page3 and "2024-08-09" in page3
+              and ql.last_closed(lg3, "2024-10-15T22:00:00+00:00") is None,
+              "a lab that began mid-quarter: 'no quarter closed yet' on the page")
+    finally:
+        lg3.close()
+    st.close()
+    check(sha(STORE) == before_sha, "the store's sha256 is unchanged by the meta-loop")
+    import ast
+    tree = ast.parse((REPO / "alpha" / "loops" / "quarterly.py").read_text(encoding="utf-8"))
+    mods = {n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
+    mods |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    bad = [m for m in mods if m.split(".")[0] in ("requests", "urllib", "http", "socket",
+                                                  "anthropic", "subprocess", "register")
+           or m.startswith("altdata.sources")]
+    check(not bad, "alpha/loops/quarterly.py imports no network, model, order or source "
+          "module" + (f": {bad}" if bad else ""))
+
+
 def main() -> int:
     print(f"{LINE}\nLAYER X, THE ALPHA LAB -- TRANCHE 3 PART 1 (SYNTHETIC STORES)\n{LINE}")
     info = build_engine_store(STORE)
     print(f"  fixture store: {info}")
-    for g in (group_a, group_b, group_c, group_d, group_e):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:

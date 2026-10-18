@@ -373,3 +373,40 @@ loop's carry step books the paper book's crypto rows in `carry_book` and
 The gate is `tools/validate_alpha_lab_3.py`. Part 2 takes X-3.5 (the grammar
 search) and X-3.7 (the quarterly meta-loop). Engines 6 and 7 wait for their
 preconditions.
+
+## 10. The quarterly meta-loop (X-3.7; lenses-group-b, 18 Oct 2026)
+
+`alpha/loops/quarterly.py` asks one question: did the loop's learning earn its
+keep? The weekly loop runs it once, inside `review_window_days` (21) of a
+quarter's end, and only for a quarter the lab ran through whole.
+
+| The loop's change | The counterfactual, from the same stored prices |
+|---|---|
+| `refit_accepted` | the engine's strategy over its rows from the change to the next re-fit (or the quarter's end), at the old parameters; the difference in summed returns times the engine's capital |
+| `rebalance` | each engine's recorded daily returns over the days the weights held, times the notional, times the change in weight; an engine weighted to zero is listed as not computable |
+
+Every other kind is not counted. The governor's moves are the constitution's
+rules, and the register's and the harness's are bookkeeping. A reversed change
+counts nothing.
+
+**A negative net contribution** writes one `meta_tighten` loop event for the next
+quarter (`config/alpha.yaml` `meta_loop:`, session-set):
+- each re-fitted engine's numeric ranges narrowed toward its current parameters
+  (each side keeps half its distance);
+- the re-fit cadence doubled (weekly to fortnightly), never beyond every 8 weeks.
+
+The weekly loop reads it through `refit_due()` and `effective_ranges()`. A
+positive or zero quarter changes nothing and writes nothing, and a quarter is
+adjusted once.
+
+**The Quarterly's page** (`alpha/report.py` `quarter_page`) has five sections:
+1. the lab's quarter;
+2. the engines;
+3. the loop's contribution and any adjustment;
+4. the failures register;
+5. the gate-ladder standing.
+
+It is mailed with the Quarterly through `quarterly_attachment`, which never
+raises. Its prose stays within the Quarterly's medium depth and it draws no
+chart. It prints "no quarter closed yet" until a whole quarter exists.
+`tools/validate_alpha_lab_3.py` group F holds it.

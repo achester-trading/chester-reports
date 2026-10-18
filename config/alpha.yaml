@@ -76,3 +76,19 @@ files:
 # the rest wait for the next night (a `harness_queue` event says how many).
 research:
   max_runs_per_night: 10
+
+# THE QUARTERLY META-LOOP (X-3.7; alpha/loops/quarterly.py; lenses-group-b, 18
+# Oct 2026). Session-set. When a quarter's net loop contribution is negative,
+# for the NEXT quarter: every re-fitted engine's numeric ranges are narrowed
+# toward its current parameters by `narrow_factor` (each side keeps that share
+# of its distance from the current value), and the re-fit cadence is slowed by
+# `cadence_multiplier` (weekly -> every two weeks), never beyond
+# `max_refit_every_weeks`. A positive or zero contribution changes nothing. A
+# quarter is reviewed only once the lab has run through all of it (its first
+# loop event on or before the quarter's first day), and within
+# `review_window_days` after it ends (the weekly loop asks; idempotent).
+meta_loop:
+  narrow_factor: 0.5
+  cadence_multiplier: 2
+  max_refit_every_weeks: 8
+  review_window_days: 21
