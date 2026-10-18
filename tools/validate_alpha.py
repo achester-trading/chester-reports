@@ -1401,6 +1401,25 @@ def _drive_entry(name: str, raw: bytes, created: str, modified: Optional[str] = 
 
 
 def group_q() -> None:
+    """THE LAB'S CLOCK IS THE FIXTURE'S (18 Oct 2026): the outbox lists what the
+    lab wrote (`written_at`) in the seven days to the weekly run, which is pinned
+    at 18 Oct 10:00Z; stamped by the wall clock, every run after that instant
+    found nothing of the week (CI 39148508391, 256/1). A ticking clock from
+    17 Oct keeps the rows inside the week and in their order."""
+    import itertools
+    from alpha import ledger as ledger_mod                      # noqa: PLC0415
+    real = ledger_mod.utc_now
+    tick = itertools.count()
+    t0 = dt.datetime(2026, 10, 17, tzinfo=dt.timezone.utc)
+    ledger_mod.utc_now = lambda: (t0 + dt.timedelta(milliseconds=next(tick))).isoformat(
+        timespec="microseconds")
+    try:
+        _group_q()
+    finally:
+        ledger_mod.utc_now = real
+
+
+def _group_q() -> None:
     head("Q. THE DRIVE INBOX AND THE VERDICTS OUTBOX (X-2.11)")
     from alpha import inbox, outbox                             # noqa: PLC0415
     from alpha.research import workbench                         # noqa: PLC0415
