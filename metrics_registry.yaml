@@ -14887,6 +14887,26 @@ bulk_imports:
     long_window: 365d
 
 families:
+  # VP-1 (folded from Monday's chain, 17 Oct 2026): POC, VAH and VAL are price
+  # levels -- the chain carried no lens gate, so they arrived without a family.
+  calc.vp_spy_session_poc: price
+  calc.vp_spy_session_vah: price
+  calc.vp_spy_session_val: price
+  calc.vp_spy_20s_poc: price
+  calc.vp_spy_20s_vah: price
+  calc.vp_spy_20s_val: price
+  calc.vp_qqq_session_poc: price
+  calc.vp_qqq_session_vah: price
+  calc.vp_qqq_session_val: price
+  calc.vp_qqq_20s_poc: price
+  calc.vp_qqq_20s_vah: price
+  calc.vp_qqq_20s_val: price
+  calc.vp_iwm_session_poc: price
+  calc.vp_iwm_session_vah: price
+  calc.vp_iwm_session_val: price
+  calc.vp_iwm_20s_poc: price
+  calc.vp_iwm_20s_vah: price
+  calc.vp_iwm_20s_val: price
   # Batch 3, Tranche A (13 Oct 2026).
   fred.tips_5y: rate
   acm.risk_neutral_yield_2y: rate

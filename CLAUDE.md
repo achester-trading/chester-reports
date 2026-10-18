@@ -223,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-three code gates (ninety Python,
+**`make validate` runs every gate** — ninety-four code gates (ninety-one Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -522,6 +522,16 @@ print one line, "meme drafts awaiting review: n (refused: m)". The operator
 confirms with `decide.py record --meme-packet <id>` and rejects with `decide.py
 meme-reject <id>`; both are on the deny list. `tools/validate_meme_ingest.py`
 holds it.
+
+**Batch 6's ledgers are studies, not rights (Tranche 2 part 1, 17 Oct 2026).**
+`altdata/ledgers/` holds ST-R5.30b, 32b, 35b, 36b and 43b; `python -m
+altdata.ledgers run <item|all> --source public|store` writes
+`docs/ledgers/<item>-ledger-<date>.md` and its episodes CSV, dated and never
+edited. Each prints its as-of, window, n, statistic, the pass rule as the order
+states it and that rule's verdict. The order states no pass rule for any of the
+five, so each says so and none is invented. Each states its rights consequence
+and grants nothing; the package never opens the register. A ledger without its
+as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
