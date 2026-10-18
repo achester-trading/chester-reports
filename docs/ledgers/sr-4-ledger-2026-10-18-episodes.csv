@@ -1,0 +1,1346 @@
+series,day,leg1,lean_bp,leg2,gap_bp,widen_bp
+spot,2024-02-02,True,21.91,True,142.17,47.24
+spot,2024-02-05,True,19.05,True,143.97,44.47
+spot,2024-02-06,True,12.48,True,140.83,37.72
+spot,2024-02-07,True,5.99,True,146.64,41.69
+spot,2024-02-08,True,4.69,True,154.14,69.49
+spot,2024-02-09,True,5.42,True,149.26,56.59
+spot,2024-02-12,True,5.42,True,128.97,33.27
+spot,2024-02-13,True,5.42,False,113.72,10.15
+spot,2024-02-14,True,5.42,False,91.36,-18.36
+spot,2024-02-15,True,5.42,False,70.82,-66.04
+spot,2024-02-16,True,5.42,False,53.01,-84.35
+spot,2024-02-19,False,-16.75,False,68.87,-70.2
+spot,2024-02-20,False,-18.82,False,59.03,-38.2
+spot,2024-02-21,False,-43.99,False,52.43,-39.38
+spot,2024-02-22,False,-70.19,False,44.47,-46.47
+spot,2024-02-23,False,-93.62,False,34.3,-61.43
+spot,2024-02-26,False,-100.39,False,13.1,-86.59
+spot,2024-02-27,False,-121.73,False,17.13,-119.16
+spot,2024-02-28,False,-120.24,False,19.0,-119.32
+spot,2024-02-29,False,-121.85,False,18.71,-116.66
+spot,2024-03-01,False,-124.16,False,21.87,-120.3
+spot,2024-03-04,False,-124.15,False,21.26,-122.71
+spot,2024-03-05,False,-125.37,False,19.91,-120.92
+spot,2024-03-06,False,-127.72,False,19.16,-127.48
+spot,2024-03-07,False,-128.28,False,16.99,-137.15
+spot,2024-03-08,False,-130.51,False,12.8,-136.47
+spot,2024-03-11,False,-133.33,False,7.21,-121.75
+spot,2024-03-12,False,-132.2,False,4.57,-109.15
+spot,2024-03-13,False,-130.44,False,4.36,-87.0
+spot,2024-03-14,False,-127.1,False,7.56,-63.25
+spot,2024-03-15,False,-124.63,False,9.34,-43.68
+spot,2024-03-18,False,-125.33,False,13.98,-54.89
+spot,2024-03-19,False,-127.41,False,17.18,-41.85
+spot,2024-03-20,False,-130.03,False,17.37,-35.06
+spot,2024-03-21,False,-135.59,False,19.82,-24.64
+spot,2024-03-22,False,-137.8,False,37.03,2.73
+spot,2024-03-25,False,-137.97,True,40.88,27.78
+spot,2024-03-26,False,-148.17,True,47.91,30.78
+spot,2024-03-27,False,-151.84,True,54.31,35.32
+spot,2024-03-28,False,-157.06,True,57.67,38.95
+spot,2024-03-29,False,-166.25,True,45.0,23.13
+spot,2024-04-01,False,-175.58,True,48.89,27.63
+spot,2024-04-02,False,-173.07,True,44.58,24.67
+spot,2024-04-03,False,-178.79,False,38.94,19.79
+spot,2024-04-04,False,-178.79,False,32.85,15.86
+spot,2024-04-05,False,-178.79,False,28.07,15.27
+spot,2024-04-08,False,-183.22,False,20.13,12.92
+spot,2024-04-09,False,-184.57,False,15.59,11.02
+spot,2024-04-10,False,-184.86,False,19.75,15.39
+spot,2024-04-11,False,-187.39,False,22.22,14.65
+spot,2024-04-12,False,-187.38,False,27.13,17.8
+spot,2024-04-15,False,-187.03,False,30.82,16.84
+spot,2024-04-16,False,-186.18,False,35.64,18.46
+spot,2024-04-17,False,-186.34,False,29.03,11.66
+spot,2024-04-18,False,-186.39,False,25.67,5.84
+spot,2024-04-19,False,-185.81,False,20.63,-16.4
+spot,2024-04-22,False,-184.26,False,17.09,-23.79
+spot,2024-04-23,False,-184.43,False,14.84,-33.08
+spot,2024-04-24,False,-185.29,False,20.61,-33.7
+spot,2024-04-25,False,-186.49,False,20.29,-37.38
+spot,2024-04-26,False,-188.05,False,25.06,-19.93
+spot,2024-04-29,False,-187.93,False,21.97,-26.92
+spot,2024-04-30,False,-189.23,False,21.85,-22.73
+spot,2024-05-01,False,-189.23,False,11.92,-27.02
+spot,2024-05-02,False,-189.23,False,-0.46,-33.31
+spot,2024-05-03,False,-189.23,False,-21.91,-49.98
+spot,2024-05-06,False,-189.61,False,-27.96,-48.09
+spot,2024-05-07,False,-188.91,False,-28.09,-43.69
+spot,2024-05-08,False,-180.17,False,-22.91,-42.66
+spot,2024-05-09,False,-175.73,False,-13.77,-35.99
+spot,2024-05-10,False,-171.52,False,3.6,-23.53
+spot,2024-05-13,False,-165.17,False,13.55,-17.27
+spot,2024-05-14,False,-160.93,False,10.92,-24.72
+spot,2024-05-15,False,-166.64,False,3.73,-25.3
+spot,2024-05-16,False,-170.64,False,5.54,-20.13
+spot,2024-05-17,False,-168.04,False,5.77,-14.86
+spot,2024-05-20,False,-167.24,False,8.72,-8.37
+spot,2024-05-21,False,-165.96,False,10.72,-4.12
+spot,2024-05-22,False,-165.02,False,19.6,-1.01
+spot,2024-05-23,False,-164.3,False,22.97,2.68
+spot,2024-05-24,False,-168.87,False,24.18,-0.88
+spot,2024-05-27,False,-174.18,False,22.29,0.33
+spot,2024-05-28,False,-178.4,False,24.25,2.4
+spot,2024-05-29,False,-180.26,False,27.28,15.36
+spot,2024-05-30,False,-181.91,False,23.59,24.05
+spot,2024-05-31,False,-184.76,False,25.79,47.69
+spot,2024-06-03,False,-182.73,False,23.93,51.89
+spot,2024-06-04,False,-183.09,False,19.22,47.31
+spot,2024-06-05,False,-183.48,False,16.21,39.12
+spot,2024-06-06,False,-182.75,False,18.56,32.34
+spot,2024-06-07,False,-181.52,False,15.9,12.3
+spot,2024-06-10,False,-181.52,False,18.17,4.62
+spot,2024-06-11,False,-183.77,False,23.89,12.97
+spot,2024-06-12,False,-183.96,False,23.61,19.87
+spot,2024-06-13,False,-184.55,False,29.13,23.6
+spot,2024-06-14,False,-182.3,False,29.29,23.52
+spot,2024-06-17,False,-182.44,False,28.26,19.54
+spot,2024-06-18,False,-184.11,False,25.74,15.03
+spot,2024-06-19,False,-185.62,False,29.09,9.49
+spot,2024-06-20,False,-185.31,False,29.77,6.8
+spot,2024-06-21,False,-189.0,False,32.92,8.73
+spot,2024-06-24,False,-189.59,False,35.02,12.73
+spot,2024-06-25,False,-188.8,False,38.98,14.73
+spot,2024-06-26,False,-187.07,False,42.01,14.73
+spot,2024-06-27,False,-187.28,False,43.42,19.83
+spot,2024-06-28,False,-187.24,False,43.89,18.1
+spot,2024-07-01,False,-187.67,True,48.41,24.48
+spot,2024-07-02,False,-187.63,True,50.88,31.66
+spot,2024-07-03,False,-188.36,True,49.17,32.96
+spot,2024-07-04,False,-189.55,True,44.63,26.07
+spot,2024-07-05,False,-190.35,True,41.88,25.97
+spot,2024-07-08,False,-189.4,False,35.86,17.69
+spot,2024-07-09,False,-189.41,False,30.89,7.0
+spot,2024-07-10,False,-188.64,False,27.38,3.78
+spot,2024-07-11,False,-188.33,False,18.94,-10.19
+spot,2024-07-12,False,-189.2,False,17.14,-12.15
+spot,2024-07-15,False,-185.48,False,19.14,-9.13
+spot,2024-07-16,False,-180.01,False,21.22,-4.53
+spot,2024-07-17,False,-178.45,False,18.68,-10.41
+spot,2024-07-18,False,-176.94,False,25.51,-4.26
+spot,2024-07-19,False,-172.86,False,28.07,-4.85
+spot,2024-07-22,False,-173.36,False,28.63,-6.4
+spot,2024-07-23,False,-178.5,False,25.01,-13.97
+spot,2024-07-24,False,-181.13,False,19.42,-22.59
+spot,2024-07-25,False,-183.84,False,8.85,-34.57
+spot,2024-07-26,False,-185.57,False,10.98,-32.9
+spot,2024-07-29,False,-178.26,False,9.59,-38.82
+spot,2024-07-30,False,-172.32,False,1.07,-49.8
+spot,2024-07-31,False,-168.76,False,-2.88,-52.05
+spot,2024-08-01,False,-162.32,False,12.11,-32.51
+spot,2024-08-02,False,-147.41,False,-19.4,-61.28
+spot,2024-08-05,False,-150.07,False,-31.37,-67.23
+spot,2024-08-06,False,-125.81,False,-16.24,-47.12
+spot,2024-08-07,False,-86.55,False,-4.99,-32.37
+spot,2024-08-08,False,-56.77,False,-13.0,-31.94
+spot,2024-08-09,False,-44.57,False,9.03,-8.12
+spot,2024-08-12,False,-22.45,False,18.24,-0.89
+spot,2024-08-13,False,-20.48,False,0.06,-21.15
+spot,2024-08-14,False,-34.71,False,-6.29,-24.97
+spot,2024-08-15,False,-35.47,False,4.03,-21.48
+spot,2024-08-16,False,-23.06,False,1.32,-26.75
+spot,2024-08-19,False,-24.17,False,-10.57,-39.2
+spot,2024-08-20,False,-27.83,False,-10.06,-35.07
+spot,2024-08-21,False,-21.52,False,-8.36,-27.77
+spot,2024-08-22,False,-20.46,False,-15.8,-24.64
+spot,2024-08-23,False,-21.89,False,-20.91,-31.9
+spot,2024-08-26,False,-21.54,False,-12.55,-22.14
+spot,2024-08-27,False,-12.49,False,-4.77,-5.85
+spot,2024-08-28,True,-8.76,False,-2.15,0.73
+spot,2024-08-29,True,-4.27,False,-14.83,-26.94
+spot,2024-08-30,True,-8.73,False,-8.09,11.31
+spot,2024-09-02,True,1.83,False,-1.07,30.3
+spot,2024-09-03,True,6.97,False,-0.98,15.25
+spot,2024-09-04,True,5.48,False,-5.98,-0.99
+spot,2024-09-05,True,-2.47,False,-3.66,9.34
+spot,2024-09-06,True,-4.58,False,-2.38,-11.41
+spot,2024-09-09,True,-4.47,False,-0.22,-18.47
+spot,2024-09-10,True,-2.61,False,4.76,4.7
+spot,2024-09-11,True,-0.81,False,9.34,15.63
+spot,2024-09-12,True,5.4,False,15.09,11.05
+spot,2024-09-13,True,6.17,False,9.88,8.55
+spot,2024-09-16,True,6.17,False,2.06,12.63
+spot,2024-09-17,True,6.17,False,0.96,11.02
+spot,2024-09-18,True,2.47,False,-0.6,7.76
+spot,2024-09-19,True,-3.14,False,-3.04,12.76
+spot,2024-09-20,True,-9.13,False,-4.94,15.97
+spot,2024-09-23,False,-13.23,False,-3.01,9.54
+spot,2024-09-24,True,-8.51,False,-19.63,-14.85
+spot,2024-09-25,False,-15.78,False,-19.72,-17.57
+spot,2024-09-26,False,-15.94,False,-33.89,-19.06
+spot,2024-09-27,False,-17.56,False,-34.64,-26.55
+spot,2024-09-30,False,-14.08,False,-38.5,-37.43
+spot,2024-10-01,False,-14.08,False,-23.49,-22.51
+spot,2024-10-02,False,-14.08,False,-22.59,-16.62
+spot,2024-10-03,False,-14.08,False,-1.51,2.15
+spot,2024-10-04,False,-14.08,False,20.91,23.29
+spot,2024-10-07,False,-14.08,True,37.15,37.37
+spot,2024-10-08,True,1.11,True,49.35,44.59
+spot,2024-10-09,True,20.67,True,57.52,48.18
+spot,2024-10-10,True,23.84,True,54.26,39.18
+spot,2024-10-11,True,28.17,True,36.26,26.39
+spot,2024-10-14,True,26.43,False,29.39,27.33
+spot,2024-10-15,True,16.25,False,27.66,26.69
+spot,2024-10-16,True,14.51,False,23.14,23.74
+spot,2024-10-17,True,11.04,False,27.47,30.51
+spot,2024-10-18,True,15.55,False,29.43,34.37
+spot,2024-10-21,True,10.79,True,30.21,33.23
+spot,2024-10-22,True,11.8,False,21.32,40.95
+spot,2024-10-23,True,4.63,False,20.06,39.78
+spot,2024-10-24,True,5.39,False,14.67,48.56
+spot,2024-10-25,True,-1.72,False,20.88,55.52
+spot,2024-10-28,True,8.62,False,18.48,56.98
+spot,2024-10-29,True,4.86,False,17.81,41.3
+spot,2024-10-30,True,6.26,False,12.4,35.0
+spot,2024-10-31,True,2.9,False,14.57,16.08
+spot,2024-11-01,True,7.11,False,15.59,-5.32
+spot,2024-11-04,True,4.24,False,5.33,-31.82
+spot,2024-11-05,True,-3.71,False,2.02,-47.33
+spot,2024-11-06,True,-6.51,False,32.14,-25.38
+spot,2024-11-07,True,12.86,False,22.28,-31.98
+spot,2024-11-08,True,3.86,False,32.92,-3.34
+spot,2024-11-11,True,13.83,True,49.41,20.02
+spot,2024-11-12,True,23.51,True,56.53,28.87
+spot,2024-11-13,True,19.76,False,30.93,7.78
+spot,2024-11-14,True,-7.86,False,46.87,19.4
+spot,2024-11-15,True,-5.22,False,32.55,3.12
+spot,2024-11-18,False,-26.35,False,17.93,-12.28
+spot,2024-11-19,False,-41.42,False,9.3,-12.02
+spot,2024-11-20,False,-49.68,False,9.46,-10.6
+spot,2024-11-21,False,-52.35,False,4.63,-10.04
+spot,2024-11-22,False,-59.37,False,9.61,-11.27
+spot,2024-11-25,False,-60.3,False,12.3,-6.19
+spot,2024-11-26,False,-63.35,False,17.89,0.08
+spot,2024-11-27,False,-63.18,False,12.65,0.25
+spot,2024-11-28,False,-68.09,False,10.33,-4.24
+spot,2024-11-29,False,-70.49,False,4.52,-11.06
+spot,2024-12-02,False,-74.48,False,15.78,10.45
+spot,2024-12-03,False,-71.75,False,18.75,16.72
+spot,2024-12-04,False,-81.65,False,19.01,-13.13
+spot,2024-12-05,False,-90.72,False,18.19,-4.09
+spot,2024-12-06,False,-96.11,False,23.66,-9.26
+spot,2024-12-09,False,-100.43,False,10.49,-38.93
+spot,2024-12-10,False,-111.0,False,1.85,-54.67
+spot,2024-12-11,False,-110.4,False,12.15,-18.77
+spot,2024-12-12,False,-101.54,False,16.1,-30.77
+spot,2024-12-13,False,-100.25,False,12.7,-19.85
+spot,2024-12-16,False,-102.21,False,18.11,0.18
+spot,2024-12-17,False,-103.92,False,20.14,10.84
+spot,2024-12-18,False,-109.13,False,22.43,12.97
+spot,2024-12-19,False,-117.33,False,24.89,20.25
+spot,2024-12-20,False,-123.25,False,20.94,11.33
+spot,2024-12-23,False,-131.12,False,19.5,7.2
+spot,2024-12-24,False,-137.03,False,19.92,2.02
+spot,2024-12-25,False,-141.31,False,11.36,-1.29
+spot,2024-12-26,False,-144.4,False,6.26,-4.07
+spot,2024-12-27,False,-147.81,False,7.82,3.3
+spot,2024-12-30,False,-147.8,False,9.04,-6.73
+spot,2024-12-31,False,-148.23,False,17.25,-1.5
+spot,2025-01-02,False,-148.22,False,26.42,7.41
+spot,2025-01-03,False,-149.69,True,41.41,23.22
+spot,2025-01-06,False,-150.53,True,47.77,24.11
+spot,2025-01-07,False,-156.81,True,48.09,37.61
+spot,2025-01-08,False,-163.32,True,45.23,43.38
+spot,2025-01-09,False,-170.74,True,40.23,28.07
+spot,2025-01-10,False,-179.36,False,32.13,16.03
+spot,2025-01-13,False,-188.11,False,29.25,16.54
+spot,2025-01-14,False,-191.38,False,28.07,9.97
+spot,2025-01-15,False,-193.5,False,25.58,5.44
+spot,2025-01-16,False,-194.84,False,23.55,1.13
+spot,2025-01-17,False,-194.52,False,18.08,-6.81
+spot,2025-01-20,False,-194.2,False,-3.34,-24.28
+spot,2025-01-21,False,-196.91,False,-19.93,-39.43
+spot,2025-01-22,False,-197.6,False,-21.73,-41.65
+spot,2025-01-23,False,-186.26,False,-21.82,-33.18
+spot,2025-01-24,False,-175.43,False,-36.38,-42.65
+spot,2025-01-27,False,-168.53,False,-17.17,-24.99
+spot,2025-01-28,False,-168.53,False,1.66,-7.38
+spot,2025-01-29,False,-168.53,False,2.29,-14.96
+spot,2025-01-30,False,-168.53,False,32.4,5.98
+spot,2025-01-31,False,-168.53,True,82.92,41.51
+spot,2025-02-03,False,-168.53,True,115.47,67.7
+spot,2025-02-04,False,-168.53,True,134.92,86.83
+spot,2025-02-05,False,-133.71,True,159.3,114.07
+spot,2025-02-06,False,-97.97,True,129.81,89.58
+spot,2025-02-07,False,-98.03,True,94.99,62.86
+spot,2025-02-10,False,-102.47,True,66.47,37.23
+spot,2025-02-11,False,-102.14,False,42.48,14.4
+spot,2025-02-12,False,-131.55,False,14.8,-10.78
+spot,2025-02-13,False,-165.01,False,-0.93,-24.49
+spot,2025-02-14,False,-175.16,False,-13.05,-31.13
+spot,2025-02-17,False,-175.56,False,-15.85,-12.5
+spot,2025-02-18,False,-166.92,False,-10.93,8.99
+spot,2025-02-19,False,-153.11,False,-9.99,11.75
+spot,2025-02-20,False,-145.59,False,-12.18,9.64
+spot,2025-02-21,False,-139.0,False,-5.17,31.21
+spot,2025-02-24,False,-129.55,False,-7.79,9.37
+spot,2025-02-25,False,-127.93,False,-12.56,-14.22
+spot,2025-02-26,False,-125.72,False,-8.56,-10.85
+spot,2025-02-27,False,-116.51,False,16.05,-16.36
+spot,2025-02-28,False,-108.49,False,19.63,-63.29
+spot,2025-03-03,False,-115.81,False,24.22,-91.25
+spot,2025-03-04,False,-124.37,False,14.29,-120.63
+spot,2025-03-05,False,-134.83,False,0.91,-158.39
+spot,2025-03-06,False,-140.92,False,-13.12,-142.93
+spot,2025-03-07,False,-139.82,False,-17.76,-112.74
+spot,2025-03-10,False,-130.72,False,-14.94,-81.42
+spot,2025-03-11,False,-117.38,False,-15.41,-57.89
+spot,2025-03-12,False,-111.04,False,-12.56,-27.37
+spot,2025-03-13,False,-108.41,False,-7.24,-6.3
+spot,2025-03-14,False,-103.81,False,-4.71,8.34
+spot,2025-03-17,False,-101.36,False,-15.77,0.08
+spot,2025-03-18,False,-102.44,False,-8.26,2.68
+spot,2025-03-19,False,-95.2,False,-2.4,7.59
+spot,2025-03-20,False,-85.78,False,0.72,12.89
+spot,2025-03-21,False,-83.23,False,3.1,8.27
+spot,2025-03-24,False,-83.59,False,10.07,17.87
+spot,2025-03-25,False,-85.19,False,15.0,27.55
+spot,2025-03-26,False,-89.16,False,20.68,29.23
+spot,2025-03-27,False,-97.01,False,17.49,1.44
+spot,2025-03-28,False,-104.59,False,16.57,-3.07
+spot,2025-03-31,False,-108.79,False,13.38,-10.84
+spot,2025-04-01,False,-113.05,False,16.42,2.13
+spot,2025-04-02,False,-112.98,False,17.33,16.42
+spot,2025-04-03,False,-113.0,False,17.9,31.02
+spot,2025-04-04,False,-113.0,False,23.22,40.98
+spot,2025-04-07,False,-109.61,True,39.91,54.86
+spot,2025-04-08,False,-107.46,True,65.48,80.89
+spot,2025-04-09,False,-111.75,True,59.41,71.97
+spot,2025-04-10,False,-125.74,True,45.47,52.71
+spot,2025-04-11,False,-141.96,False,29.17,33.88
+spot,2025-04-14,False,-151.0,False,17.22,32.99
+spot,2025-04-15,False,-152.2,False,-10.41,-2.15
+spot,2025-04-16,False,-151.39,False,-15.22,-12.82
+spot,2025-04-17,False,-144.36,False,-7.73,-8.44
+spot,2025-04-22,False,-141.66,False,4.94,1.84
+spot,2025-04-23,False,-138.64,False,-8.22,-18.29
+spot,2025-04-24,False,-138.26,False,-12.3,-27.29
+spot,2025-04-25,False,-131.33,False,-7.72,-28.39
+spot,2025-04-28,False,-124.65,False,-5.3,-22.79
+spot,2025-04-29,False,-118.99,False,-15.88,-32.44
+spot,2025-04-30,False,-120.43,False,-8.37,-21.75
+spot,2025-05-01,False,-120.43,False,-6.88,-23.29
+spot,2025-05-02,False,-120.43,False,-23.97,-41.3
+spot,2025-05-05,False,-120.43,False,-42.75,-60.66
+spot,2025-05-06,False,-111.73,False,-52.07,-75.29
+spot,2025-05-07,False,-109.06,False,-48.83,-88.75
+spot,2025-05-08,False,-89.12,False,-45.78,-111.26
+spot,2025-05-09,False,-70.55,False,-25.73,-85.15
+spot,2025-05-12,False,-50.31,False,-16.72,-62.19
+spot,2025-05-13,False,-41.39,False,-1.87,-31.04
+spot,2025-05-14,False,-23.99,False,-3.62,-20.84
+spot,2025-05-15,False,-24.11,False,-8.81,1.6
+spot,2025-05-16,False,-23.06,False,-11.87,3.35
+spot,2025-05-19,False,-22.05,False,-0.05,7.68
+spot,2025-05-20,False,-16.18,False,2.82,-2.12
+spot,2025-05-21,False,-18.7,False,-3.08,5.14
+spot,2025-05-22,False,-24.16,False,-2.08,10.21
+spot,2025-05-23,False,-23.63,False,-11.45,-3.73
+spot,2025-05-26,False,-25.16,False,-20.4,-15.1
+spot,2025-05-27,False,-25.22,False,-25.51,-9.64
+spot,2025-05-28,False,-24.94,False,-24.22,-15.85
+spot,2025-05-29,False,-20.49,False,-29.21,-22.33
+spot,2025-05-30,False,-22.96,False,-19.82,4.15
+spot,2025-06-02,False,-22.96,False,-10.82,31.93
+spot,2025-06-03,False,-21.96,False,-10.4,41.67
+spot,2025-06-04,False,-21.68,False,-16.11,32.73
+spot,2025-06-05,False,-22.49,False,-19.81,25.98
+spot,2025-06-06,False,-24.21,False,-16.87,8.86
+spot,2025-06-09,False,-16.04,False,-20.26,-3.54
+spot,2025-06-10,False,-12.65,False,-14.44,-12.57
+spot,2025-06-11,True,-8.1,False,-0.39,3.23
+spot,2025-06-12,True,-3.29,False,1.97,10.78
+spot,2025-06-13,True,-2.3,False,-2.95,8.92
+spot,2025-06-16,True,-9.09,False,-0.54,-0.5
+spot,2025-06-17,True,-9.6,False,0.5,-2.32
+spot,2025-06-18,False,-10.77,False,-1.8,1.28
+spot,2025-06-19,False,-14.02,False,2.96,5.04
+spot,2025-06-20,False,-15.05,False,1.15,12.6
+spot,2025-06-23,False,-15.92,False,-2.88,17.52
+spot,2025-06-24,False,-20.37,False,-10.64,14.87
+spot,2025-06-25,False,-22.96,False,-13.26,10.96
+spot,2025-06-26,False,-22.32,False,-16.02,13.19
+spot,2025-06-27,False,-20.77,False,-11.63,8.18
+spot,2025-06-30,False,-18.53,False,-12.33,-1.51
+spot,2025-07-01,False,-17.51,False,-8.89,1.51
+spot,2025-07-02,False,-16.62,False,-9.96,6.15
+spot,2025-07-03,False,-17.43,False,-4.94,14.87
+spot,2025-07-04,False,-16.8,False,-6.63,10.25
+spot,2025-07-07,False,-18.31,False,1.63,21.89
+spot,2025-07-08,False,-16.3,False,4.34,18.78
+spot,2025-07-09,False,-19.45,False,7.69,8.07
+spot,2025-07-10,False,-22.4,False,5.64,3.68
+spot,2025-07-11,False,-28.27,False,5.73,8.69
+spot,2025-07-14,False,-31.44,False,2.89,3.43
+spot,2025-07-15,False,-33.34,False,5.58,5.07
+spot,2025-07-16,False,-31.7,False,4.93,6.73
+spot,2025-07-17,False,-32.81,False,7.19,4.24
+spot,2025-07-18,False,-31.76,False,6.94,5.79
+spot,2025-07-21,False,-33.22,False,3.89,6.77
+spot,2025-07-22,False,-36.95,False,-2.36,8.28
+spot,2025-07-23,False,-42.44,False,-10.44,2.82
+spot,2025-07-24,False,-44.94,False,-13.9,2.12
+spot,2025-07-25,False,-41.87,False,-9.49,2.15
+spot,2025-07-28,False,-35.14,False,0.23,12.56
+spot,2025-07-29,False,-26.97,False,2.77,11.66
+spot,2025-07-30,False,-26.86,False,18.81,28.77
+spot,2025-07-31,False,-24.4,False,29.58,34.52
+spot,2025-08-01,False,-26.96,False,23.69,30.31
+spot,2025-08-04,False,-41.92,False,8.02,6.38
+spot,2025-08-05,False,-62.04,False,10.19,5.85
+spot,2025-08-06,False,-62.99,False,0.8,-6.88
+spot,2025-08-07,False,-69.08,False,-8.98,-14.62
+spot,2025-08-08,False,-74.03,False,-4.76,-10.5
+spot,2025-08-11,False,-68.45,False,7.28,4.4
+spot,2025-08-12,False,-58.57,False,3.43,-2.15
+spot,2025-08-13,False,-62.89,False,3.87,-1.06
+spot,2025-08-14,False,-61.76,False,6.8,-0.39
+spot,2025-08-15,False,-59.71,False,7.01,0.07
+spot,2025-08-18,False,-61.61,False,4.51,0.62
+spot,2025-08-19,False,-63.45,False,6.03,8.38
+spot,2025-08-20,False,-61.64,False,5.16,15.6
+spot,2025-08-21,False,-63.98,False,5.05,18.95
+spot,2025-08-22,False,-65.76,False,0.08,9.57
+spot,2025-08-25,False,-70.35,False,-4.28,-4.51
+spot,2025-08-26,False,-71.19,False,-4.23,-7.0
+spot,2025-08-27,False,-69.57,False,-4.15,-22.97
+spot,2025-08-28,False,-67.54,False,-15.41,-44.99
+spot,2025-08-29,False,-69.36,False,-21.5,-45.18
+spot,2025-09-01,False,-64.4,False,-17.97,-25.99
+spot,2025-09-02,False,-56.84,False,-16.45,-26.64
+spot,2025-09-03,False,-51.09,False,-16.63,-17.43
+spot,2025-09-04,False,-47.78,False,-8.76,0.22
+spot,2025-09-05,False,-43.61,False,-4.42,0.34
+spot,2025-09-08,False,-41.58,False,-8.3,-15.59
+spot,2025-09-09,False,-44.44,False,-12.01,-15.43
+spot,2025-09-10,False,-45.42,False,-12.43,-16.3
+spot,2025-09-11,False,-40.87,False,-13.21,-20.01
+spot,2025-09-12,False,-36.35,False,-7.35,-14.36
+spot,2025-09-15,False,-29.16,False,-5.94,-10.44
+spot,2025-09-16,False,-26.31,False,-8.59,-14.62
+spot,2025-09-17,False,-24.66,False,-11.45,-16.61
+spot,2025-09-18,False,-21.35,False,-7.81,-12.86
+spot,2025-09-19,False,-13.39,False,-7.5,-7.57
+spot,2025-09-22,False,-10.44,False,-5.15,-0.87
+spot,2025-09-23,True,-6.43,False,-1.27,2.95
+spot,2025-09-24,True,-3.37,False,9.42,13.58
+spot,2025-09-25,True,-1.71,False,11.83,27.24
+spot,2025-09-26,True,-8.96,False,12.03,33.52
+spot,2025-09-29,False,-15.29,False,10.3,28.27
+spot,2025-09-30,False,-20.92,False,13.17,29.61
+spot,2025-10-01,False,-20.92,False,8.37,25.0
+spot,2025-10-02,False,-20.92,False,8.21,16.97
+spot,2025-10-03,False,-20.92,False,10.86,15.28
+spot,2025-10-06,False,-20.92,False,18.28,26.58
+spot,2025-10-07,False,-20.92,False,23.15,35.15
+spot,2025-10-08,False,-20.92,False,29.34,41.77
+spot,2025-10-09,False,-21.62,True,31.06,44.27
+spot,2025-10-10,False,-25.53,True,31.52,38.87
+spot,2025-10-13,False,-28.48,True,35.87,41.81
+spot,2025-10-14,False,-20.9,True,39.59,48.18
+spot,2025-10-15,False,-13.39,False,28.46,39.91
+spot,2025-10-16,False,-22.57,False,22.5,30.31
+spot,2025-10-17,False,-27.51,False,17.75,25.24
+spot,2025-10-20,False,-27.21,False,6.27,11.42
+spot,2025-10-21,False,-37.17,False,-2.89,-1.62
+spot,2025-10-22,False,-43.8,False,0.6,-8.82
+spot,2025-10-23,False,-40.57,False,0.82,-11.0
+spot,2025-10-24,False,-41.02,False,0.07,-11.96
+spot,2025-10-27,False,-44.36,False,-2.61,-12.91
+spot,2025-10-28,False,-44.95,False,-8.75,-21.92
+spot,2025-10-29,False,-45.47,False,-10.42,-18.79
+spot,2025-10-30,False,-40.54,False,-6.88,-15.09
+spot,2025-10-31,False,-34.4,False,-3.14,-13.99
+spot,2025-11-03,False,-30.35,False,2.86,-15.42
+spot,2025-11-04,False,-28.36,False,-3.43,-26.58
+spot,2025-11-05,False,-43.86,False,-2.39,-31.72
+spot,2025-11-06,False,-52.42,False,-6.93,-37.99
+spot,2025-11-07,False,-61.23,False,-8.57,-40.09
+spot,2025-11-10,False,-64.0,False,-10.47,-46.34
+spot,2025-11-11,False,-65.01,False,0.82,-38.77
+spot,2025-11-12,False,-52.34,False,-1.56,-30.02
+spot,2025-11-13,False,-49.49,False,-6.93,-29.43
+spot,2025-11-14,False,-47.93,False,-12.29,-30.04
+spot,2025-11-17,False,-47.21,False,-10.63,-16.9
+spot,2025-11-18,False,-42.05,False,-10.72,-7.83
+spot,2025-11-19,False,-37.65,False,-6.01,-6.61
+spot,2025-11-20,False,-33.21,False,3.42,2.59
+spot,2025-11-21,False,-28.5,False,6.27,6.2
+spot,2025-11-24,False,-26.37,False,3.32,5.93
+spot,2025-11-25,False,-29.29,False,-3.1,5.65
+spot,2025-11-26,False,-29.95,False,-10.2,0.22
+spot,2025-11-27,False,-27.03,False,-13.45,-6.58
+spot,2025-11-28,False,-20.52,False,-14.48,-11.34
+spot,2025-12-01,False,-14.08,False,-15.03,-17.89
+spot,2025-12-02,True,-6.11,False,-10.72,-7.29
+spot,2025-12-03,True,1.3,False,-9.89,-7.5
+spot,2025-12-04,True,4.1,False,-7.04,-0.12
+spot,2025-12-05,True,6.42,False,-5.98,2.58
+spot,2025-12-08,True,7.81,False,-4.33,6.14
+spot,2025-12-09,True,8.77,False,-6.19,-7.01
+spot,2025-12-10,True,8.94,False,-3.43,-1.87
+spot,2025-12-11,True,9.51,False,-9.37,-2.44
+spot,2025-12-12,True,6.25,False,-9.99,2.3
+spot,2025-12-15,True,7.02,False,-13.57,-2.94
+spot,2025-12-16,True,6.6,False,-13.55,-2.83
+spot,2025-12-17,True,8.31,False,-13.3,-7.29
+spot,2025-12-18,True,11.52,False,-12.76,-16.18
+spot,2025-12-19,True,14.99,False,-13.51,-19.78
+spot,2025-12-22,True,17.55,False,-13.22,-16.54
+spot,2025-12-23,True,19.03,False,-16.18,-13.08
+spot,2025-12-24,True,17.87,False,-22.19,-11.99
+spot,2025-12-26,True,15.15,False,-26.09,-12.64
+spot,2025-12-29,True,11.86,False,-32.53,-18.05
+spot,2025-12-30,True,10.55,False,-33.68,-18.65
+spot,2025-12-31,True,15.42,False,-33.36,-22.64
+spot,2026-01-02,True,15.42,False,-34.64,-24.75
+spot,2026-01-05,True,19.92,False,-30.66,-23.61
+spot,2026-01-06,True,24.62,False,-24.36,-18.38
+spot,2026-01-07,True,31.96,False,-17.41,-13.08
+spot,2026-01-08,True,40.42,False,-15.53,-9.34
+spot,2026-01-09,True,38.45,False,-9.85,-6.42
+spot,2026-01-12,True,38.58,False,-9.19,0.18
+spot,2026-01-13,True,41.15,False,-7.06,2.93
+spot,2026-01-14,True,43.52,False,-11.79,1.78
+spot,2026-01-15,True,41.41,False,-10.76,2.79
+spot,2026-01-16,True,46.73,False,-8.3,5.0
+spot,2026-01-19,True,50.14,False,-9.2,3.56
+spot,2026-01-20,True,49.98,False,-12.93,0.57
+spot,2026-01-21,True,48.38,False,-11.33,1.89
+spot,2026-01-22,True,52.16,False,-8.32,7.86
+spot,2026-01-23,True,50.57,False,-15.54,6.65
+spot,2026-01-26,True,42.7,False,-19.09,7.0
+spot,2026-01-27,True,37.16,False,-21.36,11.17
+spot,2026-01-28,True,33.72,False,-24.26,9.42
+spot,2026-01-29,True,28.15,False,-27.13,6.24
+spot,2026-01-30,True,23.59,False,-18.7,15.94
+spot,2026-02-02,True,26.43,False,-14.43,16.23
+spot,2026-02-03,True,25.46,False,-11.77,12.6
+spot,2026-02-04,True,21.35,False,-7.82,9.59
+spot,2026-02-05,True,20.41,False,-4.09,11.44
+spot,2026-02-06,True,22.73,False,-7.83,2.02
+spot,2026-02-09,True,20.72,False,-12.03,-2.84
+spot,2026-02-10,True,19.92,False,-11.27,-4.21
+spot,2026-02-11,True,24.2,False,-12.67,-0.88
+spot,2026-02-12,True,28.8,False,-17.55,-6.78
+spot,2026-02-13,True,30.55,False,-15.56,-7.26
+spot,2026-02-16,True,30.55,False,-16.2,-7.0
+spot,2026-02-17,True,30.55,False,-20.77,-7.83
+spot,2026-02-18,True,30.55,False,-25.07,-13.74
+spot,2026-02-19,True,30.55,False,-23.82,-15.5
+spot,2026-02-20,True,30.55,False,-26.59,-11.05
+spot,2026-02-23,True,30.55,False,-25.45,-6.36
+spot,2026-02-24,True,36.04,False,-26.61,-5.26
+spot,2026-02-25,True,41.0,False,-30.32,-6.06
+spot,2026-02-26,True,46.24,False,-35.26,-8.14
+spot,2026-02-27,True,51.69,False,-26.13,-7.43
+spot,2026-03-02,True,67.97,False,-7.67,6.75
+spot,2026-03-03,True,73.14,False,10.26,22.02
+spot,2026-03-04,True,75.0,False,16.22,24.04
+spot,2026-03-05,True,63.75,False,29.77,33.86
+spot,2026-03-06,True,49.74,False,25.73,33.56
+spot,2026-03-09,True,31.02,False,9.97,22.0
+spot,2026-03-10,True,16.66,False,-9.26,2.01
+spot,2026-03-11,True,2.24,False,-6.79,5.88
+spot,2026-03-12,True,7.6,False,-8.3,9.24
+spot,2026-03-13,True,16.26,False,0.85,16.41
+spot,2026-03-16,True,21.52,False,2.14,18.34
+spot,2026-03-17,True,21.03,False,-9.5,11.26
+spot,2026-03-18,True,8.04,False,-5.69,19.39
+spot,2026-03-19,True,5.65,False,-9.09,14.73
+spot,2026-03-20,True,0.4,False,-18.59,8.0
+spot,2026-03-23,True,-9.07,False,-17.36,8.09
+spot,2026-03-24,True,-6.57,False,7.39,34.0
+spot,2026-03-25,True,15.23,False,6.1,36.42
+spot,2026-03-26,True,15.98,False,10.33,45.59
+spot,2026-03-27,True,14.77,False,10.83,36.95
+spot,2026-03-30,True,16.88,False,13.03,20.7
+spot,2026-03-31,True,16.64,False,2.49,-7.77
+spot,2026-04-01,True,10.78,False,-5.38,-21.6
+spot,2026-04-02,True,4.98,False,-5.21,-34.98
+spot,2026-04-03,True,7.7,False,-7.62,-33.34
+spot,2026-04-06,True,7.7,False,-11.02,-21.0
+spot,2026-04-07,True,5.22,False,-11.72,-2.45
+spot,2026-04-08,True,-1.2,False,-13.28,-6.49
+spot,2026-04-09,True,3.83,False,-18.94,-10.64
+spot,2026-04-10,True,16.38,False,-21.22,-22.07
+spot,2026-04-13,True,19.9,False,-21.59,-23.73
+spot,2026-04-14,True,28.25,False,-19.69,-10.19
+spot,2026-04-15,True,40.58,False,-12.15,-6.46
+spot,2026-04-16,True,51.66,False,-10.64,-1.55
+spot,2026-04-17,True,53.87,False,-10.11,8.48
+spot,2026-04-20,True,56.64,False,-7.91,9.44
+spot,2026-04-21,True,59.86,False,1.1,-6.29
+spot,2026-04-22,True,65.21,False,3.71,-2.39
+spot,2026-04-23,True,64.7,False,5.62,-4.7
+spot,2026-04-24,True,64.4,False,9.54,-1.29
+spot,2026-04-27,True,60.93,False,7.01,-6.02
+spot,2026-04-28,True,55.22,False,9.0,6.52
+spot,2026-04-29,True,52.84,False,8.69,14.06
+spot,2026-04-30,True,47.31,False,3.86,9.07
+spot,2026-05-01,True,47.31,False,2.31,9.93
+spot,2026-05-04,True,47.31,False,6.06,17.08
+spot,2026-05-05,True,47.31,False,0.23,11.94
+spot,2026-05-06,True,42.32,False,-7.38,5.9
+spot,2026-05-07,True,38.42,False,-6.46,12.49
+spot,2026-05-08,True,43.2,False,-8.26,12.96
+spot,2026-05-11,True,45.38,False,-11.61,9.98
+spot,2026-05-12,True,50.33,False,-12.05,7.64
+spot,2026-05-13,True,56.88,False,-8.63,3.52
+spot,2026-05-14,True,65.59,False,-9.19,1.44
+spot,2026-05-15,True,69.01,False,0.27,10.39
+spot,2026-05-18,True,72.91,False,-0.05,7.87
+spot,2026-05-19,True,68.84,False,5.93,4.83
+spot,2026-05-20,True,66.3,False,3.64,-0.07
+spot,2026-05-21,True,58.12,False,4.84,-0.79
+spot,2026-05-22,True,54.01,False,-4.78,-14.31
+spot,2026-05-25,True,45.41,False,-4.91,-11.92
+spot,2026-05-26,True,47.2,False,-12.38,-21.39
+spot,2026-05-27,True,45.71,False,-10.82,-19.51
+spot,2026-05-28,True,50.92,False,-12.52,-16.38
+spot,2026-05-29,True,51.54,False,-15.61,-17.92
+spot,2026-06-01,True,53.9,False,-12.94,-18.99
+spot,2026-06-02,True,59.32,False,-11.22,-11.45
+spot,2026-06-03,True,64.93,False,-3.8,3.58
+spot,2026-06-04,True,70.91,False,0.33,6.78
+spot,2026-06-05,True,73.2,False,9.78,18.04
+spot,2026-06-08,True,75.9,False,15.79,27.4
+spot,2026-06-09,True,74.93,False,20.66,32.71
+spot,2026-06-10,True,73.18,False,18.12,26.75
+spot,2026-06-11,True,68.55,False,13.04,22.23
+spot,2026-06-12,True,66.15,False,3.95,3.68
+spot,2026-06-15,True,62.31,False,-3.75,-3.71
+spot,2026-06-16,True,61.0,False,-7.83,-13.75
+spot,2026-06-17,True,62.53,False,-5.07,-8.71
+spot,2026-06-18,True,66.5,False,3.99,-0.84
+spot,2026-06-19,True,66.5,False,12.27,17.05
+spot,2026-06-22,True,68.87,False,17.08,21.99
+spot,2026-06-23,True,73.37,False,23.25,35.63
+spot,2026-06-24,True,73.41,False,24.42,35.24
+spot,2026-06-25,True,66.94,False,21.51,34.03
+spot,2026-06-26,True,58.26,False,21.63,37.24
+spot,2026-06-29,True,52.65,False,19.42,32.36
+spot,2026-06-30,True,42.12,False,12.84,24.06
+spot,2026-07-01,True,32.69,False,6.22,10.02
+spot,2026-07-02,True,28.06,False,1.26,0.93
+spot,2026-07-03,True,23.32,False,-4.03,-13.81
+spot,2026-07-06,True,20.52,False,-2.89,-18.68
+spot,2026-07-07,True,21.67,False,-0.0,-20.66
+spot,2026-07-08,True,21.32,False,3.69,-14.42
+spot,2026-07-09,True,19.85,False,3.3,-9.74
+spot,2026-07-10,True,15.7,False,1.48,-2.47
+spot,2026-07-13,True,11.9,False,2.26,6.01
+spot,2026-07-14,True,13.56,False,-1.65,6.18
+spot,2026-07-15,True,13.45,False,-5.91,-0.84
+spot,2026-07-16,True,16.62,False,-2.42,-6.41
+spot,2026-07-17,True,25.13,False,2.17,-10.11
+spot,2026-07-20,True,30.21,False,-1.27,-18.35
+spot,2026-07-21,True,29.27,False,-0.74,-23.99
+spot,2026-07-22,True,32.02,False,2.46,-21.96
+spot,2026-07-23,True,33.23,False,2.4,-19.11
+spot,2026-07-24,True,32.11,False,0.48,-21.15
+spot,2026-07-27,True,31.02,False,-0.34,-19.76
+spot,2026-07-28,True,31.55,False,2.28,-10.56
+spot,2026-07-29,True,32.56,False,-3.58,-9.8
+spot,2026-07-30,True,30.54,False,-10.31,-11.56
+spot,2026-07-31,True,31.11,False,-10.48,-6.45
+spot,2026-08-03,True,35.92,False,-6.6,-3.7
+spot,2026-08-04,True,41.81,False,-9.37,-9.36
+spot,2026-08-05,True,45.49,False,-7.74,-11.43
+spot,2026-08-06,True,50.87,False,-3.19,-6.49
+spot,2026-08-07,True,56.04,False,-4.3,-5.78
+spot,2026-08-10,True,57.47,False,-7.13,-9.39
+spot,2026-08-11,True,58.01,False,-6.18,-4.53
+spot,2026-08-12,True,59.27,False,-4.61,1.3
+spot,2026-08-13,True,61.5,False,-3.38,-0.97
+spot,2026-08-14,True,62.64,False,-1.33,-3.5
+spot,2026-08-17,True,64.11,False,-0.56,0.71
+spot,2026-08-18,True,65.63,False,1.64,2.38
+spot,2026-08-19,True,67.03,False,-1.78,-4.24
+spot,2026-08-20,True,65.38,False,-3.53,-5.93
+spot,2026-08-21,True,67.69,False,-4.42,-4.9
+spot,2026-08-24,True,72.82,False,-4.21,-3.87
+spot,2026-08-25,True,77.78,False,-7.57,-9.85
+spot,2026-08-26,True,82.43,False,-3.56,0.03
+spot,2026-08-27,True,90.05,False,-3.2,7.11
+spot,2026-08-28,True,91.97,False,-0.43,10.05
+spot,2026-08-31,True,91.59,False,-3.09,3.51
+spot,2026-09-01,True,88.81,False,-2.81,6.56
+spot,2026-09-02,True,87.58,False,-4.16,3.57
+spot,2026-09-03,True,86.62,False,-3.71,-0.51
+spot,2026-09-04,True,86.96,False,-9.34,-5.04
+spot,2026-09-07,True,87.03,False,-7.39,-0.25
+spot,2026-09-08,True,91.45,False,-7.46,-1.28
+spot,2026-09-09,True,94.23,False,-8.0,-3.39
+spot,2026-09-10,True,95.92,False,-6.46,-3.08
+spot,2026-09-11,True,97.17,False,-2.61,-1.28
+spot,2026-09-14,True,98.16,False,-1.65,-1.09
+spot,2026-09-15,True,95.0,False,0.71,-0.93
+spot,2026-09-16,True,91.58,False,2.26,4.04
+spot,2026-09-17,True,85.83,False,0.56,4.1
+spot,2026-09-18,True,80.56,False,-3.55,0.87
+spot,2026-09-21,True,73.88,False,-5.39,-1.18
+spot,2026-09-22,True,70.74,False,-5.52,2.04
+spot,2026-09-23,True,69.85,False,-2.28,1.28
+spot,2026-09-24,True,70.62,False,-0.3,2.91
+spot,2026-09-25,True,70.62,False,6.88,7.31
+spot,2026-09-28,True,65.45,False,8.23,11.32
+spot,2026-09-29,True,61.57,False,6.57,9.38
+spot,2026-09-30,True,54.51,False,4.73,8.89
+spot,2026-10-01,True,54.51,False,6.22,9.93
+spot,2026-10-02,True,54.51,False,2.85,12.18
+spot,2026-10-05,True,54.51,False,2.63,10.02
+spot,2026-10-06,True,54.51,False,2.41,9.86
+spot,2026-10-07,True,54.51,False,0.1,8.1
+spot,2026-10-08,True,48.73,False,-3.08,3.38
+spot,2026-10-09,True,42.51,False,-6.07,-3.46
+spot,2026-10-12,True,42.64,False,-5.01,-3.35
+spot,2026-10-13,True,45.51,False,-3.96,-4.67
+spot,2026-10-14,True,47.95,False,-2.2,-4.46
+spot,2026-10-15,True,48.3,False,-2.83,-3.39
+spot,2026-10-16,True,48.58,False,-1.49,2.06
+CNH=F proxy,2015-08-03,False,-134.27,False,42.49,15.98
+CNH=F proxy,2015-08-04,False,-133.59,False,42.55,12.37
+CNH=F proxy,2015-08-05,False,-132.49,False,41.1,8.27
+CNH=F proxy,2015-08-06,False,-132.04,False,38.26,5.5
+CNH=F proxy,2015-08-07,False,-132.2,False,35.55,2.09
+CNH=F proxy,2015-08-10,False,-132.43,False,33.42,0.9
+CNH=F proxy,2015-08-11,False,-96.23,True,97.91,64.55
+CNH=F proxy,2015-08-12,False,-27.84,True,147.44,111.24
+CNH=F proxy,2015-08-13,True,25.72,True,167.25,128.79
+CNH=F proxy,2015-08-14,True,58.7,True,181.13,140.7
+CNH=F proxy,2015-08-17,True,88.14,True,191.56,147.59
+CNH=F proxy,2015-08-18,True,83.07,True,142.48,101.06
+CNH=F proxy,2015-08-19,True,44.47,True,114.59,75.62
+CNH=F proxy,2015-08-20,True,19.62,True,112.45,75.0
+CNH=F proxy,2015-08-21,True,13.38,True,121.54,80.57
+CNH=F proxy,2015-08-24,True,13.13,True,150.05,108.18
+CNH=F proxy,2015-08-25,True,14.7,True,169.72,126.88
+CNH=F proxy,2015-08-26,True,14.16,True,172.82,128.72
+CNH=F proxy,2015-08-27,True,13.5,True,177.2,130.29
+CNH=F proxy,2015-08-28,True,12.56,True,171.71,127.58
+CNH=F proxy,2015-08-31,True,8.43,True,150.21,107.72
+CNH=F proxy,2015-09-01,True,1.18,True,126.36,83.81
+CNH=F proxy,2015-09-02,True,-3.33,True,125.82,84.72
+CNH=F proxy,2015-09-03,True,-3.33,True,131.37,93.11
+CNH=F proxy,2015-09-04,True,-3.33,True,147.4,111.85
+CNH=F proxy,2015-09-08,True,5.29,True,156.17,122.75
+CNH=F proxy,2015-09-09,True,9.46,True,172.24,74.33
+CNH=F proxy,2015-09-10,True,16.79,False,148.62,1.18
+CNH=F proxy,2015-09-11,True,19.49,False,127.77,-39.48
+CNH=F proxy,2015-09-14,True,16.71,False,100.6,-80.53
+CNH=F proxy,2015-09-16,True,13.4,False,88.75,-102.81
+CNH=F proxy,2015-09-17,True,9.31,False,71.82,-70.67
+CNH=F proxy,2015-09-18,True,7.96,False,79.07,-35.52
+CNH=F proxy,2015-09-21,True,10.44,False,85.24,-27.22
+CNH=F proxy,2015-09-22,True,15.57,False,97.48,-24.06
+CNH=F proxy,2015-09-23,True,17.12,False,105.88,-44.17
+CNH=F proxy,2015-09-24,True,19.03,False,107.1,-62.62
+CNH=F proxy,2015-09-25,True,20.6,False,105.08,-67.74
+CNH=F proxy,2015-09-28,True,16.82,False,90.16,-87.04
+CNH=F proxy,2015-09-29,True,11.82,False,65.09,-106.62
+CNH=F proxy,2015-09-30,True,6.88,False,42.48,-107.73
+CNH=F proxy,2015-10-01,True,6.88,False,32.76,-93.6
+CNH=F proxy,2015-10-02,True,6.88,False,26.45,-99.37
+CNH=F proxy,2015-10-05,True,6.88,False,24.13,-107.23
+CNH=F proxy,2015-10-06,True,6.88,False,27.88,-119.52
+CNH=F proxy,2015-10-07,True,6.88,False,24.45,-131.71
+CNH=F proxy,2015-10-08,True,4.15,False,16.39,-155.85
+CNH=F proxy,2015-10-09,True,3.65,False,9.39,-139.23
+CNH=F proxy,2015-10-12,True,2.86,False,3.21,-124.56
+CNH=F proxy,2015-10-13,True,-1.58,False,8.61,-91.99
+CNH=F proxy,2015-10-14,True,6.44,False,8.96,-79.79
+CNH=F proxy,2015-10-15,True,7.54,False,12.25,-59.57
+CNH=F proxy,2015-10-16,True,8.4,False,21.56,-57.51
+CNH=F proxy,2015-10-19,True,14.52,False,33.77,-51.47
+CNH=F proxy,2015-10-20,True,24.3,False,35.01,-62.47
+CNH=F proxy,2015-10-21,True,14.61,False,45.2,-60.69
+CNH=F proxy,2015-10-22,True,15.68,False,58.45,-48.66
+CNH=F proxy,2015-10-23,True,20.19,False,67.53,-37.55
+CNH=F proxy,2015-10-26,True,17.16,False,76.78,-13.37
+CNH=F proxy,2015-10-27,True,14.48,False,84.8,19.71
+CNH=F proxy,2015-10-28,True,18.64,True,92.04,49.56
+CNH=F proxy,2015-10-29,True,20.25,True,76.64,43.88
+CNH=F proxy,2015-10-30,True,13.94,True,53.96,27.51
+CNH=F proxy,2015-11-02,True,1.9,True,49.77,25.63
+CNH=F proxy,2015-11-03,True,5.91,False,39.44,11.56
+CNH=F proxy,2015-11-04,True,4.81,False,29.6,5.15
+CNH=F proxy,2015-11-05,True,3.43,True,42.7,26.31
+CNH=F proxy,2015-11-06,True,9.69,True,66.21,56.82
+CNH=F proxy,2015-11-09,True,26.38,True,67.62,64.41
+CNH=F proxy,2015-11-10,True,24.51,True,73.76,65.15
+CNH=F proxy,2015-11-11,True,25.22,True,76.3,67.33
+CNH=F proxy,2015-11-12,True,24.89,True,72.07,59.82
+CNH=F proxy,2015-11-13,True,21.09,True,67.85,46.29
+CNH=F proxy,2015-11-16,True,19.21,True,69.05,35.29
+CNH=F proxy,2015-11-17,True,17.02,True,75.48,40.47
+CNH=F proxy,2015-11-18,True,19.91,True,84.11,38.92
+CNH=F proxy,2015-11-19,True,19.74,True,86.15,27.71
+CNH=F proxy,2015-11-20,True,18.2,True,90.83,23.3
+CNH=F proxy,2015-11-23,True,17.56,False,95.44,18.66
+CNH=F proxy,2015-11-24,True,18.68,False,93.63,8.83
+CNH=F proxy,2015-11-25,True,15.53,False,89.8,-2.24
+CNH=F proxy,2015-11-27,True,18.19,True,102.17,25.53
+CNH=F proxy,2015-11-30,True,19.1,True,98.25,44.29
+CNH=F proxy,2015-12-01,True,18.62,True,99.02,49.26
+CNH=F proxy,2015-12-02,True,18.36,True,101.53,62.09
+CNH=F proxy,2015-12-03,True,18.24,True,96.81,67.21
+CNH=F proxy,2015-12-04,True,13.22,True,90.8,48.1
+CNH=F proxy,2015-12-07,True,11.46,True,100.86,34.65
+CNH=F proxy,2015-12-08,True,12.83,True,108.83,41.21
+CNH=F proxy,2015-12-09,True,15.39,True,117.67,43.91
+CNH=F proxy,2015-12-10,True,17.57,True,130.01,53.71
+CNH=F proxy,2015-12-11,True,24.28,True,142.14,70.08
+CNH=F proxy,2015-12-14,True,27.58,True,149.78,81.93
+CNH=F proxy,2015-12-16,True,24.92,True,148.45,79.4
+CNH=F proxy,2015-12-17,True,27.46,True,158.0,82.52
+CNH=F proxy,2015-12-18,True,27.52,True,165.14,81.02
+CNH=F proxy,2015-12-21,True,21.26,True,164.74,78.58
+CNH=F proxy,2015-12-22,True,18.93,True,158.33,67.5
+CNH=F proxy,2015-12-23,True,15.42,True,161.04,65.59
+CNH=F proxy,2015-12-24,True,9.84,True,150.56,56.93
+CNH=F proxy,2015-12-28,True,7.2,True,153.13,63.33
+CNH=F proxy,2015-12-29,True,12.15,True,156.92,54.75
+CNH=F proxy,2015-12-30,True,14.78,True,162.06,63.81
+CNH=F proxy,2015-12-31,True,18.51,True,161.35,62.33
+CNH=F proxy,2016-01-04,True,23.44,True,180.41,78.88
+CNH=F proxy,2016-01-05,True,31.3,True,184.08,87.27
+CNH=F proxy,2016-01-06,True,27.24,True,206.99,116.19
+CNH=F proxy,2016-01-07,True,39.9,True,220.42,119.56
+CNH=F proxy,2016-01-08,True,39.26,True,222.62,113.79
+CNH=F proxy,2016-01-11,True,27.08,True,180.31,62.64
+CNH=F proxy,2016-01-12,True,9.64,False,149.49,19.48
+CNH=F proxy,2016-01-13,True,8.87,False,94.44,-47.71
+CNH=F proxy,2016-01-14,True,-7.41,False,60.25,-89.53
+CNH=F proxy,2016-01-15,False,-13.09,False,38.8,-109.65
+CNH=F proxy,2016-01-19,False,-10.82,False,46.8,-111.21
+CNH=F proxy,2016-01-20,False,-15.27,False,57.05,-108.09
+CNH=F proxy,2016-01-21,False,-18.07,False,70.78,-93.96
+CNH=F proxy,2016-01-22,False,-20.96,False,75.97,-82.36
+CNH=F proxy,2016-01-25,False,-18.87,False,79.4,-81.63
+CNH=F proxy,2016-01-26,False,-18.57,False,81.29,-69.27
+CNH=F proxy,2016-01-27,False,-20.09,False,79.3,-73.83
+CNH=F proxy,2016-01-28,False,-23.01,False,77.96,-78.96
+CNH=F proxy,2016-01-29,False,-24.54,False,73.01,-89.05
+CNH=F proxy,2016-02-01,False,-23.63,False,76.67,-84.68
+CNH=F proxy,2016-02-02,False,-23.87,False,80.54,-99.87
+CNH=F proxy,2016-02-03,False,-23.93,False,74.55,-109.53
+CNH=F proxy,2016-02-04,False,-26.43,False,62.61,-144.38
+CNH=F proxy,2016-02-05,False,-32.34,False,55.98,-164.44
+CNH=F proxy,2016-02-08,False,-32.34,False,40.75,-181.87
+CNH=F proxy,2016-02-09,False,-32.34,False,22.27,-158.04
+CNH=F proxy,2016-02-10,False,-32.34,False,6.89,-142.6
+CNH=F proxy,2016-02-11,False,-32.34,False,-7.28,-101.71
+CNH=F proxy,2016-02-12,False,-32.34,False,-16.73,-76.98
+CNH=F proxy,2016-02-16,False,-55.68,False,-2.51,-41.31
+CNH=F proxy,2016-02-17,False,-39.16,False,9.49,-37.31
+CNH=F proxy,2016-02-18,False,-28.11,False,23.87,-33.18
+CNH=F proxy,2016-02-19,False,-17.18,False,46.24,-24.53
+CNH=F proxy,2016-02-22,True,1.06,False,61.1,-14.87
+CNH=F proxy,2016-02-23,True,21.15,False,54.71,-24.7
+CNH=F proxy,2016-02-24,True,15.24,False,50.7,-30.59
+CNH=F proxy,2016-02-25,True,17.2,False,48.64,-30.66
+CNH=F proxy,2016-02-26,True,20.82,False,44.96,-33.0
+CNH=F proxy,2016-02-29,True,25.1,False,43.28,-29.73
+CNH=F proxy,2016-03-01,True,23.01,False,35.71,-40.96
+CNH=F proxy,2016-03-02,True,18.88,False,31.18,-49.36
+CNH=F proxy,2016-03-03,True,14.1,False,20.4,-54.15
+CNH=F proxy,2016-03-04,True,6.53,False,6.35,-56.26
+CNH=F proxy,2016-03-07,True,-3.25,False,-1.79,-57.77
+CNH=F proxy,2016-03-08,True,-3.88,False,-6.84,-47.6
+CNH=F proxy,2016-03-09,True,-4.24,False,-7.61,-29.88
+CNH=F proxy,2016-03-10,True,1.58,False,-5.97,-12.87
+CNH=F proxy,2016-03-11,True,1.59,False,-9.6,-2.32
+CNH=F proxy,2016-03-14,True,2.47,False,-9.16,7.56
+CNH=F proxy,2016-03-16,True,14.8,False,-7.57,-5.06
+CNH=F proxy,2016-03-17,True,6.68,False,-26.22,-35.71
+CNH=F proxy,2016-03-18,True,-4.59,False,-24.19,-48.06
+CNH=F proxy,2016-03-21,True,3.04,False,-5.55,-51.79
+CNH=F proxy,2016-03-22,True,7.06,False,0.35,-60.75
+CNH=F proxy,2016-03-23,True,4.55,False,10.82,-43.89
+CNH=F proxy,2016-03-24,True,17.9,False,34.67,-16.03
+CNH=F proxy,2016-03-28,True,41.32,False,33.05,-15.59
+CNH=F proxy,2016-03-29,True,24.05,False,23.7,-21.26
+CNH=F proxy,2016-03-30,True,12.98,False,9.34,-33.94
+CNH=F proxy,2016-03-31,False,-11.22,False,3.19,-32.52
+CNH=F proxy,2016-04-01,False,-18.18,False,5.62,-25.56
+CNH=F proxy,2016-04-04,False,-18.18,False,8.79,-11.6
+CNH=F proxy,2016-04-05,False,-24.57,False,14.94,8.59
+CNH=F proxy,2016-04-06,False,-16.19,False,29.31,31.1
+CNH=F proxy,2016-04-07,True,-9.94,True,30.85,37.69
+CNH=F proxy,2016-04-08,True,4.24,False,28.81,36.42
+CNH=F proxy,2016-04-11,True,6.87,True,31.75,37.73
+CNH=F proxy,2016-04-12,True,9.38,True,34.0,43.6
+CNH=F proxy,2016-04-13,True,10.26,True,36.71,45.87
+CNH=F proxy,2016-04-14,True,19.58,True,38.75,46.32
+CNH=F proxy,2016-04-15,True,25.77,True,34.03,60.25
+CNH=F proxy,2016-04-18,True,23.96,True,37.55,61.74
+CNH=F proxy,2016-04-19,True,23.53,True,32.08,37.63
+CNH=F proxy,2016-04-20,True,18.29,True,34.92,34.56
+CNH=F proxy,2016-04-21,True,17.9,True,36.91,26.09
+CNH=F proxy,2016-04-22,True,19.95,False,44.63,9.96
+CNH=F proxy,2016-04-25,True,30.46,False,44.36,11.31
+CNH=F proxy,2016-04-26,True,28.24,True,49.16,25.46
+CNH=F proxy,2016-04-27,True,30.71,True,45.76,36.42
+CNH=F proxy,2016-04-28,True,24.39,True,35.83,32.64
+CNH=F proxy,2016-04-29,True,7.37,True,31.23,25.61
+CNH=F proxy,2016-05-02,True,7.37,False,29.53,20.74
+CNH=F proxy,2016-05-03,True,-7.38,False,33.17,18.23
+CNH=F proxy,2016-05-04,True,2.83,False,35.77,6.46
+CNH=F proxy,2016-05-05,True,12.18,False,47.15,16.3
+CNH=F proxy,2016-05-06,True,19.43,False,47.21,18.4
+CNH=F proxy,2016-05-09,True,32.71,True,56.8,25.04
+CNH=F proxy,2016-05-10,True,45.26,True,55.12,21.12
+CNH=F proxy,2016-05-11,True,40.22,False,49.98,13.27
+CNH=F proxy,2016-05-12,True,26.85,True,59.08,20.33
+CNH=F proxy,2016-05-13,True,29.07,True,65.52,31.5
+CNH=F proxy,2016-05-16,True,32.29,True,58.92,21.37
+CNH=F proxy,2016-05-17,True,21.48,True,59.39,27.3
+CNH=F proxy,2016-05-18,True,17.27,True,73.92,39.0
+CNH=F proxy,2016-05-19,True,31.66,True,66.61,29.7
+CNH=F proxy,2016-05-20,True,25.32,False,62.01,17.38
+CNH=F proxy,2016-05-23,True,19.47,False,62.24,17.88
+CNH=F proxy,2016-05-24,True,23.17,False,60.18,11.02
+CNH=F proxy,2016-05-25,True,30.29,False,46.44,0.67
+CNH=F proxy,2016-05-26,True,22.15,False,40.14,4.32
+CNH=F proxy,2016-05-27,True,16.84,False,38.78,7.55
+CNH=F proxy,2016-05-31,True,28.59,False,34.26,4.73
+CNH=F proxy,2016-06-01,True,26.12,False,31.09,-2.08
+CNH=F proxy,2016-06-02,True,22.43,False,30.86,-4.9
+CNH=F proxy,2016-06-03,True,25.26,False,15.5,-31.65
+CNH=F proxy,2016-06-06,True,8.12,False,6.64,-40.57
+CNH=F proxy,2016-06-07,True,2.42,False,5.62,-51.18
+CNH=F proxy,2016-06-08,True,-0.65,False,2.7,-52.43
+CNH=F proxy,2016-06-09,True,-0.65,False,4.54,-45.43
+CNH=F proxy,2016-06-10,True,-0.65,False,29.51,-29.57
+CNH=F proxy,2016-06-13,True,9.3,False,43.86,-21.66
+CNH=F proxy,2016-06-14,True,13.24,False,50.63,-8.29
+CNH=F proxy,2016-06-15,True,28.21,False,53.54,-5.85
+CNH=F proxy,2016-06-16,True,22.25,False,54.85,-19.07
+CNH=F proxy,2016-06-17,True,22.91,False,45.02,-21.58
+CNH=F proxy,2016-06-20,True,10.81,False,36.76,-25.25
+CNH=F proxy,2016-06-21,True,-1.36,False,35.68,-26.56
+CNH=F proxy,2016-06-22,True,-0.74,False,33.1,-27.08
+CNH=F proxy,2016-06-23,True,-1.32,False,29.39,-17.05
+CNH=F proxy,2016-06-24,True,-0.59,False,45.09,4.95
+CNH=F proxy,2016-06-27,True,24.2,True,62.06,23.28
+CNH=F proxy,2016-06-28,True,40.49,True,66.81,32.55
+CNH=F proxy,2016-06-29,True,29.68,True,70.25,39.16
+CNH=F proxy,2016-06-30,True,32.01,True,79.31,48.45
+CNH=F proxy,2016-07-01,True,35.81,True,68.32,52.82
+CNH=F proxy,2016-07-05,True,8.9,True,57.32,50.68
+CNH=F proxy,2016-07-06,True,20.8,True,52.29,46.67
+CNH=F proxy,2016-07-07,True,26.57,True,53.0,50.3
+CNH=F proxy,2016-07-08,True,20.38,True,47.17,42.63
+CNH=F proxy,2016-07-11,True,21.59,False,44.89,15.37
+CNH=F proxy,2016-07-12,True,22.53,False,37.48,-6.38
+CNH=F proxy,2016-07-13,True,14.95,False,31.63,-19.0
+CNH=F proxy,2016-07-14,True,13.06,False,29.75,-23.79
+CNH=F proxy,2016-07-15,True,13.63,False,30.31,-24.54
+CNH=F proxy,2016-07-18,True,16.42,False,32.59,-12.43
+CNH=F proxy,2016-07-19,True,17.65,False,31.74,-5.02
+CNH=F proxy,2016-07-20,True,13.11,False,26.09,-9.59
+CNH=F proxy,2016-07-21,True,8.86,False,23.57,-9.52
+CNH=F proxy,2016-07-22,True,4.7,False,18.69,-10.7
+CNH=F proxy,2016-07-25,True,1.43,False,7.16,-37.93
+CNH=F proxy,2016-07-26,True,-9.67,False,5.46,-56.6
+CNH=F proxy,2016-07-27,False,-10.34,False,10.37,-56.44
+CNH=F proxy,2016-07-28,False,-10.89,False,8.18,-62.07
+CNH=F proxy,2016-07-29,False,-12.7,False,-3.67,-82.98
+CNH=F proxy,2016-08-01,False,-24.71,False,-1.96,-70.28
+CNH=F proxy,2016-08-02,False,-19.05,False,-6.2,-63.52
+CNH=F proxy,2016-08-03,False,-22.02,False,-3.56,-55.85
+CNH=F proxy,2016-08-04,False,-14.29,False,1.84,-51.16
+CNH=F proxy,2016-08-05,True,-6.62,False,16.95,-30.23
+CNH=F proxy,2016-08-08,True,8.78,False,14.27,-30.62
+CNH=F proxy,2016-08-09,True,3.65,False,17.37,-20.11
+CNH=F proxy,2016-08-10,True,8.05,False,8.55,-23.08
+CNH=F proxy,2016-08-11,True,-5.61,False,4.99,-24.76
+CNH=F proxy,2016-08-12,True,-4.02,False,4.73,-25.58
+CNH=F proxy,2016-08-15,True,-5.75,False,8.61,-23.98
+CNH=F proxy,2016-08-16,True,-5.8,False,8.04,-23.71
+CNH=F proxy,2016-08-17,False,-12.56,False,16.86,-9.23
+CNH=F proxy,2016-08-18,True,-2.88,False,16.68,-6.89
+CNH=F proxy,2016-08-19,False,-11.32,False,23.6,4.91
+CNH=F proxy,2016-08-22,True,-0.36,True,30.02,22.87
+CNH=F proxy,2016-08-23,True,11.27,True,34.93,29.47
+CNH=F proxy,2016-08-24,True,18.6,True,40.61,30.24
+CNH=F proxy,2016-08-25,True,23.69,True,43.64,35.45
+CNH=F proxy,2016-08-26,True,24.69,True,40.8,44.47
+CNH=F proxy,2016-08-29,True,16.47,True,36.31,38.27
+CNH=F proxy,2016-08-30,True,9.86,True,38.35,44.55
+CNH=F proxy,2016-08-31,True,16.19,True,31.7,35.26
+CNH=F proxy,2016-09-01,True,9.75,True,30.4,28.56
+CNH=F proxy,2016-09-02,True,11.17,False,28.23,11.28
+CNH=F proxy,2016-09-06,True,4.68,False,23.98,9.7
+CNH=F proxy,2016-09-07,True,-6.1,False,17.62,0.25
+CNH=F proxy,2016-09-08,True,-9.19,False,19.86,11.31
+CNH=F proxy,2016-09-09,True,-5.98,False,28.63,23.64
+CNH=F proxy,2016-09-12,True,-3.3,False,21.04,16.3
+CNH=F proxy,2016-09-13,True,-1.84,False,26.4,17.79
+CNH=F proxy,2016-09-14,True,7.51,False,26.22,18.18
+CNH=F proxy,2016-09-15,True,7.51,False,14.1,-2.77
+CNH=F proxy,2016-09-16,True,7.51,False,-2.32,-19.0
+CNH=F proxy,2016-09-19,True,13.41,False,-6.69,-30.29
+CNH=F proxy,2016-09-20,True,8.31,False,-1.28,-31.3
+CNH=F proxy,2016-09-21,True,2.19,False,3.85,-31.08
+CNH=F proxy,2016-09-22,True,-1.08,False,14.91,-25.7
+CNH=F proxy,2016-09-23,True,-6.29,False,28.29,-15.35
+CNH=F proxy,2016-09-26,True,-5.33,False,39.76,-1.04
+CNH=F proxy,2016-09-27,True,0.25,False,34.69,-1.62
+CNH=F proxy,2016-09-28,True,-1.91,False,35.05,-3.31
+CNH=F proxy,2016-09-29,True,3.61,False,29.41,-2.29
+CNH=F proxy,2016-09-30,True,6.36,False,22.75,-7.65
+CNH=F proxy,2016-10-03,True,6.36,False,25.76,-2.47
+CNH=F proxy,2016-10-04,True,6.36,False,27.01,3.04
+CNH=F proxy,2016-10-05,True,6.36,False,29.83,12.21
+CNH=F proxy,2016-10-06,True,6.36,True,42.39,22.53
+CNH=F proxy,2016-10-07,True,6.36,True,51.26,22.63
+CNH=F proxy,2016-10-11,True,18.94,True,45.34,24.31
+CNH=F proxy,2016-10-12,True,24.21,False,39.79,13.39
+CNH=F proxy,2016-10-13,True,25.97,False,36.04,9.82
+CNH=F proxy,2016-10-14,True,24.27,False,26.13,12.03
+CNH=F proxy,2016-10-17,True,18.7,False,18.55,20.86
+CNH=F proxy,2016-10-18,True,8.64,False,18.85,25.54
+CNH=F proxy,2016-10-19,True,3.57,False,19.53,20.81
+CNH=F proxy,2016-10-20,True,-1.78,False,21.89,18.04
+CNH=F proxy,2016-10-21,True,5.2,False,31.5,16.59
+CNH=F proxy,2016-10-24,True,10.36,False,35.62,7.33
+CNH=F proxy,2016-10-25,True,12.96,False,30.52,-9.24
+CNH=F proxy,2016-10-26,True,10.95,False,31.96,-2.73
+CNH=F proxy,2016-10-27,True,12.42,False,35.05,0.0
+CNH=F proxy,2016-10-28,True,11.12,False,24.72,-4.69
+CNH=F proxy,2016-10-31,True,-2.7,False,17.95,-4.8
+CNH=F proxy,2016-11-01,True,-8.04,False,17.3,-8.46
+CNH=F proxy,2016-11-02,False,-11.79,False,15.36,-11.66
+CNH=F proxy,2016-11-03,False,-14.81,False,13.67,-16.16
+CNH=F proxy,2016-11-04,False,-18.29,False,14.24,-28.15
+CNH=F proxy,2016-11-07,False,-10.33,False,25.31,-25.94
+CNH=F proxy,2016-11-08,True,0.38,False,31.43,-13.92
+CNH=F proxy,2016-11-09,True,8.5,False,44.54,4.75
+CNH=F proxy,2016-11-10,True,14.67,False,50.08,14.04
+CNH=F proxy,2016-11-14,True,29.27,True,55.56,29.43
+CNH=F proxy,2016-11-15,True,34.56,True,58.73,40.19
+CNH=F proxy,2016-11-16,True,35.82,True,65.82,46.97
+CNH=F proxy,2016-11-17,True,37.96,True,88.11,68.58
+CNH=F proxy,2016-11-18,True,54.92,True,87.12,65.23
+CNH=F proxy,2016-11-21,True,53.23,True,88.04,56.55
+CNH=F proxy,2016-11-22,True,35.94,True,82.61,46.99
+CNH=F proxy,2016-11-23,True,32.44,True,89.98,59.45
+CNH=F proxy,2016-11-25,True,10.05,True,64.45,32.49
+CNH=F proxy,2016-11-28,True,-0.36,True,56.56,21.51
+CNH=F proxy,2016-11-29,True,-5.61,True,53.51,28.78
+CNH=F proxy,2016-11-30,False,-11.77,True,52.51,34.56
+CNH=F proxy,2016-12-01,False,-17.78,False,30.82,13.52
+CNH=F proxy,2016-12-02,False,-23.0,False,23.74,8.38
+CNH=F proxy,2016-12-05,False,-15.9,False,15.08,1.41
+CNH=F proxy,2016-12-06,False,-14.56,False,16.71,2.47
+CNH=F proxy,2016-12-07,True,-5.97,False,18.17,-7.15
+CNH=F proxy,2016-12-08,True,-5.22,False,31.96,0.54
+CNH=F proxy,2016-12-09,True,5.87,False,45.85,1.32
+CNH=F proxy,2016-12-12,True,14.08,False,56.58,6.5
+CNH=F proxy,2016-12-13,True,18.36,False,57.66,2.1
+CNH=F proxy,2016-12-14,True,17.22,False,57.16,-1.57
+CNH=F proxy,2016-12-15,True,27.69,False,52.0,-13.82
+CNH=F proxy,2016-12-16,True,33.54,False,43.26,-44.85
+CNH=F proxy,2016-12-19,True,21.38,False,31.85,-55.27
+CNH=F proxy,2016-12-20,True,21.92,False,29.54,-58.5
+CNH=F proxy,2016-12-21,True,19.03,False,21.69,-60.91
+CNH=F proxy,2016-12-22,True,6.42,False,22.34,-67.64
+CNH=F proxy,2016-12-23,True,-5.78,False,24.66,-39.79
+CNH=F proxy,2016-12-27,True,0.26,False,41.56,-15.0
+CNH=F proxy,2016-12-28,True,2.83,False,52.95,-0.56
+CNH=F proxy,2016-12-29,True,6.71,False,58.84,6.33
+CNH=F proxy,2016-12-30,True,-0.76,True,62.2,31.38
+CNH=F proxy,2017-01-03,True,-0.62,True,60.38,36.64
+CNH=F proxy,2017-01-04,True,1.6,False,28.89,13.81
+CNH=F proxy,2017-01-05,True,-8.15,False,-20.25,-36.96
+CNH=F proxy,2017-01-06,False,-27.06,False,-36.17,-54.34
+CNH=F proxy,2017-01-09,True,-9.87,False,-60.15,-92.11
+CNH=F proxy,2017-01-10,True,-9.9,False,-77.9,-123.75
+CNH=F proxy,2017-01-11,False,-16.18,False,-68.9,-125.48
+CNH=F proxy,2017-01-12,True,-9.87,False,-59.65,-117.31
+CNH=F proxy,2017-01-13,True,-6.06,False,-59.41,-116.57
+CNH=F proxy,2017-01-17,False,-20.95,False,-68.19,-120.19
+CNH=F proxy,2017-01-18,False,-28.32,False,-53.83,-97.09
+CNH=F proxy,2017-01-19,False,-22.7,False,-34.7,-66.56
+CNH=F proxy,2017-01-20,True,-0.51,False,-13.06,-42.6
+CNH=F proxy,2017-01-23,True,0.47,False,-18.06,-39.75
+CNH=F proxy,2017-01-24,False,-11.98,False,1.62,-20.72
+CNH=F proxy,2017-01-25,True,3.75,False,-8.37,-33.04
+CNH=F proxy,2017-01-26,True,3.05,False,-24.31,-65.87
+CNH=F proxy,2017-01-27,True,3.05,False,-24.16,-77.11
+CNH=F proxy,2017-01-30,True,3.05,False,-16.91,-75.75
+CNH=F proxy,2017-01-31,True,3.05,False,-30.63,-92.83
+CNH=F proxy,2022-09-01,True,-6.93,True,36.92,28.07
+CNH=F proxy,2022-09-02,True,-3.23,False,26.9,15.03
+CNH=F proxy,2022-09-06,False,-10.82,False,23.73,22.48
+CNH=F proxy,2022-09-07,False,-11.0,False,21.82,17.38
+CNH=F proxy,2022-09-08,False,-13.71,False,23.02,28.56
+CNH=F proxy,2022-09-09,False,-30.46,False,10.41,7.93
+CNH=F proxy,2022-09-12,False,-30.46,False,4.83,8.81
+CNH=F proxy,2022-09-13,False,-38.26,False,11.08,-5.95
+CNH=F proxy,2022-09-14,False,-45.2,False,21.75,0.06
+CNH=F proxy,2022-09-15,False,-44.31,False,37.84,7.27
+CNH=F proxy,2022-09-16,False,-42.06,False,45.67,13.97
+CNH=F proxy,2022-09-19,False,-41.39,False,54.66,4.81
+CNH=F proxy,2022-09-20,False,-41.18,False,44.03,-0.9
+CNH=F proxy,2022-09-21,False,-52.15,False,37.94,-2.8
+CNH=F proxy,2022-09-22,False,-58.77,False,31.46,-21.98
+CNH=F proxy,2022-09-23,False,-65.87,False,45.75,1.81
+CNH=F proxy,2022-09-26,False,-63.82,False,51.39,9.69
+CNH=F proxy,2022-09-27,False,-70.08,False,53.01,14.24
+CNH=F proxy,2022-09-28,False,-65.68,False,37.01,-5.4
+CNH=F proxy,2022-09-29,False,-73.58,False,0.22,-26.38
+CNH=F proxy,2022-09-30,False,-85.27,False,-13.59,-50.52
+CNH=F proxy,2022-10-03,False,-85.27,False,-30.02,-56.92
+CNH=F proxy,2022-10-04,False,-85.27,False,-60.73,-84.46
+CNH=F proxy,2022-10-05,False,-85.27,False,-67.38,-89.2
+CNH=F proxy,2022-10-06,False,-85.27,False,-47.99,-71.01
+CNH=F proxy,2022-10-07,False,-85.27,False,-46.07,-56.48
+CNH=F proxy,2022-10-10,False,-76.49,False,-32.05,-36.87
+CNH=F proxy,2022-10-11,False,-63.1,False,-4.04,-15.12
+CNH=F proxy,2022-10-12,False,-64.77,False,13.36,-8.39
+CNH=F proxy,2022-10-13,False,-61.37,False,21.3,-16.54
+CNH=F proxy,2022-10-14,False,-52.02,False,28.01,-17.66
+CNH=F proxy,2022-10-17,False,-64.31,False,19.09,-35.57
+CNH=F proxy,2022-10-18,False,-84.85,False,21.12,-22.9
+CNH=F proxy,2022-10-19,False,-96.37,False,35.38,-2.55
+CNH=F proxy,2022-10-20,False,-103.93,False,42.2,10.74
+CNH=F proxy,2022-10-21,False,-115.81,False,32.89,-12.86
+CNH=F proxy,2022-10-24,False,-124.79,False,51.28,-0.11
+CNH=F proxy,2022-10-25,False,-123.13,False,58.74,5.72
+CNH=F proxy,2022-10-26,False,-126.53,False,10.77,-26.24
+CNH=F proxy,2022-10-27,False,-144.0,False,25.75,25.53
+CNH=F proxy,2022-10-28,False,-114.51,True,34.58,48.17
+CNH=F proxy,2022-10-31,False,-102.93,True,37.15,67.16
+CNH=F proxy,2022-11-01,False,-93.88,False,22.01,82.74
+CNH=F proxy,2022-11-02,False,-89.35,True,59.38,126.76
+CNH=F proxy,2022-11-03,False,-57.24,True,48.02,96.01
+CNH=F proxy,2022-11-04,False,-65.76,False,2.65,48.72
+CNH=F proxy,2022-11-07,False,-71.23,False,-3.19,28.86
+CNH=F proxy,2022-11-08,False,-48.17,False,-1.51,2.53
+CNH=F proxy,2022-11-09,False,-28.42,False,-0.77,-14.13
+CNH=F proxy,2022-11-10,False,-22.0,False,-31.62,-52.92
+CNH=F proxy,2022-11-11,False,-26.73,False,-25.56,-53.58
+CNH=F proxy,2022-11-14,False,-33.83,False,-65.56,-84.65
+CNH=F proxy,2022-11-15,False,-63.24,False,-77.88,-99.0
+CNH=F proxy,2022-11-16,False,-70.85,False,-72.39,-107.77
+CNH=F proxy,2022-11-17,False,-62.81,False,-36.01,-78.21
+CNH=F proxy,2022-11-18,False,-42.79,False,-20.67,-53.56
+CNH=F proxy,2022-11-21,False,-24.62,False,16.06,-35.21
+CNH=F proxy,2022-11-22,True,7.1,False,17.89,-40.85
+CNH=F proxy,2022-11-23,True,7.37,False,5.2,-5.57
+CNH=F proxy,2022-11-25,False,-19.48,False,1.85,-23.9
+CNH=F proxy,2022-11-28,True,-7.74,False,32.36,-2.22
+CNH=F proxy,2022-11-29,False,-13.25,False,-1.74,-38.89
+CNH=F proxy,2022-11-30,False,-11.55,False,-24.04,-46.04
+CNH=F proxy,2022-12-01,False,-16.48,False,-35.51,-94.89
+CNH=F proxy,2022-12-02,False,-13.8,False,-55.62,-103.64
+CNH=F proxy,2022-12-05,False,-18.49,False,-89.87,-92.52
+CNH=F proxy,2022-12-06,False,-40.45,False,-64.03,-60.84
+CNH=F proxy,2022-12-07,False,-21.55,False,-41.95,-40.43
+CNH=F proxy,2022-12-08,False,-21.05,False,-34.86,-34.09
+CNH=F proxy,2022-12-09,False,-18.79,False,-25.86,5.76
+CNH=F proxy,2022-12-12,False,-20.1,False,-0.08,25.48
+CNH=F proxy,2022-12-13,True,-0.89,False,-9.98,55.58
+CNH=F proxy,2022-12-14,False,-18.0,False,2.41,80.3
+CNH=F proxy,2022-12-15,False,-10.81,False,17.77,90.16
+CNH=F proxy,2022-12-16,True,1.55,False,18.48,54.49
+CNH=F proxy,2022-12-19,True,5.05,False,9.97,30.64
+CNH=F proxy,2022-12-20,True,3.89,False,6.31,-9.76
+CNH=F proxy,2022-12-21,True,6.59,False,8.63,-9.26
+CNH=F proxy,2022-12-22,True,12.23,False,4.08,-1.11
+CNH=F proxy,2022-12-23,True,3.94,False,6.89,5.04
+CNH=F proxy,2022-12-27,False,-10.67,False,4.59,-27.77
+CNH=F proxy,2022-12-28,True,-4.79,False,22.64,24.38
+CNH=F proxy,2022-12-29,True,-1.97,False,16.3,40.33
+CNH=F proxy,2022-12-30,True,-5.81,False,-4.97,30.54
+CNH=F proxy,2023-01-03,True,9.0,False,-3.53,52.08
+CNH=F proxy,2023-01-04,True,23.4,False,-7.22,82.65
+CNH=F proxy,2023-01-05,True,15.2,False,-18.7,45.33
+CNH=F proxy,2023-01-06,True,10.35,False,-32.97,8.97
+CNH=F proxy,2023-01-09,True,-1.9,False,-36.87,-2.01
+CNH=F proxy,2023-01-10,False,-38.9,False,-37.93,-12.07
+CNH=F proxy,2023-01-11,False,-42.18,False,-37.03,-36.94
+CNH=F proxy,2023-01-12,False,-38.73,False,-44.04,-34.05
+CNH=F proxy,2023-01-13,False,-51.48,False,-35.83,-38.25
+CNH=F proxy,2023-01-17,False,-14.3,False,-8.29,-26.06
+CNH=F proxy,2023-01-18,True,-7.43,False,-15.97,-34.45
+CNH=F proxy,2023-01-19,True,-6.13,False,-5.46,-15.43
+CNH=F proxy,2023-01-20,True,12.47,False,4.17,-2.14
+CNH=F proxy,2023-01-23,True,12.47,False,10.44,1.82
+CNH=F proxy,2023-01-24,True,12.47,False,0.29,-3.79
+CNH=F proxy,2023-01-25,True,12.47,False,-1.0,-7.88
+CNH=F proxy,2023-01-26,True,12.47,False,-22.38,-26.97
+CNH=F proxy,2023-01-27,True,12.47,False,-29.78,-52.42
+CNH=F proxy,2023-01-30,True,13.82,False,-37.3,-53.6
+CNH=F proxy,2023-01-31,True,1.24,False,-34.94,-29.97
+CNH=F proxy,2023-02-01,True,-6.57,False,-39.55,-36.01
+CNH=F proxy,2023-02-02,False,-17.12,False,-26.32,-19.1
+CNH=F proxy,2023-02-03,False,-24.74,False,1.91,20.62
+CNH=F proxy,2023-02-06,True,-6.33,False,18.55,51.52
+CNH=F proxy,2023-02-07,True,6.8,False,14.72,51.59
+CNH=F proxy,2023-02-08,True,0.85,False,25.23,63.15
+CNH=F proxy,2023-02-09,True,12.67,False,29.19,66.21
+CNH=F proxy,2023-02-10,True,13.5,False,21.42,65.46
+CNH=F proxy,2023-02-13,True,11.4,False,15.69,51.52
+CNH=F proxy,2023-02-14,True,6.32,False,19.04,27.33
+CNH=F proxy,2023-02-15,True,10.8,False,26.54,42.5
+CNH=F proxy,2023-02-16,True,18.62,False,24.68,30.14
+CNH=F proxy,2023-02-17,True,22.65,False,12.6,8.43
+CNH=F proxy,2023-02-21,True,11.44,False,20.2,9.76
+CNH=F proxy,2023-02-22,True,18.85,False,27.12,26.83
+CNH=F proxy,2023-02-23,True,20.05,False,24.4,25.4
+CNH=F proxy,2023-02-24,True,16.81,True,43.07,65.45
+CNH=F proxy,2023-02-27,True,30.0,True,41.56,71.34
+CNH=F proxy,2023-02-28,True,29.66,True,33.49,70.79
+CNH=F proxy,2023-03-01,True,22.18,False,9.42,44.36
+CNH=F proxy,2023-03-02,True,-1.5,False,19.22,58.77
+CNH=F proxy,2023-03-03,True,10.39,False,-6.25,20.07
+CNH=F proxy,2023-03-06,True,-9.56,False,5.91,4.0
+CNH=F proxy,2023-03-07,True,-6.12,False,22.48,3.93
+CNH=F proxy,2023-03-08,True,1.67,True,39.73,25.01
+CNH=F proxy,2023-03-09,True,18.03,False,32.32,7.1
+CNH=F proxy,2023-03-10,True,9.67,False,28.0,-1.18
+CNH=F proxy,2023-03-13,True,7.59,False,-4.78,-26.2
+CNH=F proxy,2023-03-14,True,2.06,False,-18.61,-34.3
+CNH=F proxy,2023-03-15,True,2.23,False,-17.38,-36.42
+CNH=F proxy,2023-03-16,True,13.66,False,-31.35,-57.89
+CNH=F proxy,2023-03-17,True,9.08,False,-28.23,-52.91
+CNH=F proxy,2023-03-20,True,8.43,False,-15.19,-27.79
+CNH=F proxy,2023-03-21,True,8.57,False,-22.54,-42.74
+CNH=F proxy,2023-03-22,True,-0.07,False,-36.4,-63.52
+CNH=F proxy,2023-03-23,False,-16.52,False,-49.36,-73.76
+CNH=F proxy,2023-03-24,False,-28.47,False,-29.86,-72.93
+CNH=F proxy,2023-03-27,True,-4.77,False,-21.52,-63.08
+CNH=F proxy,2023-03-28,True,0.38,False,-21.69,-55.18
+CNH=F proxy,2023-03-29,True,0.06,False,-5.44,-14.86
+CNH=F proxy,2023-03-30,True,8.03,False,7.94,-11.29
+CNH=F proxy,2023-03-31,True,16.14,False,-4.7,1.55
+CNH=F proxy,2023-04-03,True,3.53,False,-4.38,-10.29
+CNH=F proxy,2023-04-04,True,1.79,False,-0.66,-23.14
+CNH=F proxy,2023-04-05,True,1.79,False,-5.69,-45.42
+CNH=F proxy,2023-04-06,True,2.72,False,-0.14,-32.47
+CNH=F proxy,2023-04-10,True,4.28,False,6.84,-21.16
+CNH=F proxy,2023-04-11,True,6.84,False,9.05,13.83
+CNH=F proxy,2023-04-12,True,7.54,False,6.99,25.6
+CNH=F proxy,2023-04-13,True,3.01,False,7.19,24.57
+CNH=F proxy,2023-04-14,True,-2.34,False,7.69,39.03
+CNH=F proxy,2023-04-17,True,-2.75,False,0.64,28.87
+CNH=F proxy,2023-04-18,True,-5.05,False,-5.29,9.9
+CNH=F proxy,2023-04-19,True,-7.96,False,-2.12,20.42
+CNH=F proxy,2023-04-20,True,4.69,False,-5.11,31.29
+CNH=F proxy,2023-04-21,True,5.62,False,-0.08,49.28
+CNH=F proxy,2023-04-24,True,8.91,False,0.88,30.74
+CNH=F proxy,2023-04-25,True,3.45,False,14.49,36.01
+CNH=F proxy,2023-04-26,True,13.46,False,13.21,34.9
+CNH=F proxy,2023-04-27,True,3.39,False,15.92,21.36
+CNH=F proxy,2023-04-28,True,5.74,False,10.45,2.51
+CNH=F proxy,2023-05-01,True,5.74,False,23.21,27.91
+CNH=F proxy,2023-05-02,True,5.74,False,17.1,21.48
+CNH=F proxy,2023-05-03,True,5.74,False,18.93,19.59
+CNH=F proxy,2023-05-04,True,0.92,False,20.63,26.33
+CNH=F proxy,2023-05-05,True,3.42,False,23.85,23.99
+CNH=F proxy,2023-05-08,True,-2.01,False,13.46,6.62
+CNH=F proxy,2023-05-09,True,5.76,False,11.84,2.79
+CNH=F proxy,2023-05-10,True,11.61,False,14.93,7.94
+CNH=F proxy,2023-05-11,True,10.42,False,23.01,15.81
+CNH=F proxy,2023-05-12,True,14.78,False,26.61,18.93
+CNH=F proxy,2023-05-15,True,16.95,False,20.38,19.75
+CNH=F proxy,2023-05-16,True,10.39,False,25.83,31.12
+CNH=F proxy,2023-05-17,True,11.74,False,25.13,27.26
+CNH=F proxy,2023-05-18,True,20.19,False,27.99,33.11
+CNH=F proxy,2023-05-19,True,26.61,False,14.72,14.79
+CNH=F proxy,2023-05-22,True,16.0,False,25.9,25.02
+CNH=F proxy,2023-05-23,True,25.26,False,22.9,8.41
+CNH=F proxy,2023-05-24,True,25.73,False,18.55,5.34
+CNH=F proxy,2023-05-25,True,18.97,False,13.0,-2.91
+CNH=F proxy,2023-05-26,True,12.56,False,15.36,4.91
+CNH=F proxy,2023-05-30,True,12.77,False,10.43,-12.78
+CNH=F proxy,2023-05-31,True,8.4,False,13.13,-3.98
+CNH=F proxy,2023-06-01,True,14.34,False,9.44,-9.48
+CNH=F proxy,2023-06-02,True,4.99,False,4.68,-15.96
+CNH=F proxy,2023-06-05,True,9.88,False,15.72,-8.13
+CNH=F proxy,2023-06-06,True,8.92,False,18.1,4.64
+CNH=F proxy,2023-06-07,True,10.26,False,15.92,4.08
+CNH=F proxy,2023-06-08,True,7.9,False,16.66,1.73
+CNH=F proxy,2023-06-09,True,7.8,False,23.01,0.01
+CNH=F proxy,2023-06-12,True,11.34,False,23.56,-3.06
+CNH=F proxy,2023-06-13,True,10.88,False,26.97,6.59
+CNH=F proxy,2023-06-14,True,10.13,False,20.79,-5.04
+CNH=F proxy,2023-06-15,True,2.64,False,12.74,-12.4
+CNH=F proxy,2023-06-16,True,-1.92,False,8.23,-19.76
+CNH=F proxy,2023-06-20,True,-1.36,False,3.76,-10.96
+CNH=F proxy,2023-06-21,True,0.61,False,-8.57,-34.47
+CNH=F proxy,2023-06-22,True,0.61,False,-6.54,-29.44
+CNH=F proxy,2023-06-23,True,0.61,False,12.52,-6.03
+CNH=F proxy,2023-06-26,True,13.07,False,24.67,11.66
+CNH=F proxy,2023-06-27,True,31.2,False,15.43,0.07
+CNH=F proxy,2023-06-28,True,23.85,False,23.12,12.7
+CNH=F proxy,2023-06-29,True,14.89,False,25.81,12.69
+CNH=F proxy,2023-06-30,True,4.7,False,20.33,10.88
+CNH=F proxy,2023-07-03,False,-12.81,False,6.47,1.79
+CNH=F proxy,2023-07-05,False,-36.55,False,24.27,8.55
+CNH=F proxy,2023-07-06,False,-38.16,False,22.33,4.23
+CNH=F proxy,2023-07-07,False,-44.62,False,10.98,-4.93
+CNH=F proxy,2023-07-10,False,-50.27,False,12.47,-4.19
+CNH=F proxy,2023-07-11,False,-46.13,False,5.64,-17.37
+CNH=F proxy,2023-07-12,False,-49.22,False,-18.46,-42.02
+CNH=F proxy,2023-07-13,False,-63.87,False,-24.36,-51.33
+CNH=F proxy,2023-07-14,False,-61.9,False,-14.97,-35.76
+CNH=F proxy,2023-07-17,False,-51.15,False,-13.33,-26.07
+CNH=F proxy,2023-07-18,False,-43.46,False,-5.85,-14.08
+CNH=F proxy,2023-07-19,False,-34.63,False,16.83,13.08
+CNH=F proxy,2023-07-20,False,-28.06,False,3.58,12.15
+CNH=F proxy,2023-07-21,False,-40.94,False,1.18,7.71
+CNH=F proxy,2023-07-24,False,-44.82,False,-4.93,-17.44
+CNH=F proxy,2023-07-25,False,-56.61,False,-22.86,-47.52
+CNH=F proxy,2023-07-26,False,-66.01,False,-35.15,-50.58
+CNH=F proxy,2023-07-27,False,-59.4,False,-15.23,-38.35
+CNH=F proxy,2023-07-28,False,-41.7,False,-24.46,-50.27
+CNH=F proxy,2023-07-31,False,-44.83,False,-14.66,-34.99
+CNH=F proxy,2023-08-01,False,-27.26,False,24.46,17.99
+CNH=F proxy,2023-08-02,True,-0.14,False,32.36,8.08
+CNH=F proxy,2023-08-03,True,-5.17,False,25.84,3.51
+CNH=F proxy,2023-08-04,False,-14.16,True,40.03,29.05
+CNH=F proxy,2023-08-07,True,-9.2,True,49.76,37.29
+CNH=F proxy,2023-08-08,True,-9.29,True,37.49,31.85
+CNH=F proxy,2023-08-09,False,-30.19,True,33.88,52.34
+CNH=F proxy,2023-08-10,False,-38.77,True,47.48,71.84
+CNH=F proxy,2023-08-11,False,-39.09,True,54.98,69.95
+CNH=F proxy,2023-08-14,False,-44.95,True,55.63,68.96
+CNH=F proxy,2023-08-15,False,-56.35,True,59.19,65.04
+CNH=F proxy,2023-08-16,False,-63.21,True,68.9,52.06
+CNH=F proxy,2023-08-17,False,-67.41,True,59.41,55.82
+CNH=F proxy,2023-08-18,False,-79.99,True,49.81,48.64
+CNH=F proxy,2023-08-21,False,-89.65,True,31.39,36.32
+CNH=F proxy,2023-08-22,False,-107.73,True,44.24,67.09
+CNH=F proxy,2023-08-23,False,-91.33,False,27.68,62.83
+CNH=F proxy,2023-08-24,False,-99.5,True,56.3,71.53
+CNH=F proxy,2023-08-25,False,-68.11,True,56.16,80.62
+CNH=F proxy,2023-08-28,False,-70.65,True,54.98,69.65
+CNH=F proxy,2023-08-29,False,-76.77,False,23.66,-0.8
+CNH=F proxy,2023-08-30,False,-106.49,False,31.92,-0.44
+CNH=F proxy,2023-08-31,False,-105.03,False,0.34,-25.5
+CNH=F proxy,2023-09-01,False,-138.77,False,-0.37,-40.41
+CNH=F proxy,2023-09-05,False,-96.16,False,7.14,-42.62
+CNH=F proxy,2023-09-06,False,-87.29,False,14.57,-22.92
+CNH=F proxy,2023-09-07,False,-88.98,False,17.14,-16.73
+CNH=F proxy,2023-09-08,False,-87.79,False,30.21,-17.27
+CNH=F proxy,2023-09-11,False,-97.05,False,47.61,-7.37
+CNH=F proxy,2023-09-12,False,-117.1,False,44.19,-11.44
+CNH=F proxy,2023-09-13,False,-123.53,False,35.45,-23.75
+CNH=F proxy,2023-09-14,False,-123.22,False,35.13,-33.77
+CNH=F proxy,2023-09-15,False,-120.46,False,25.88,-33.52
+CNH=F proxy,2023-09-18,False,-117.74,False,10.51,-39.3
+CNH=F proxy,2023-09-19,False,-136.05,False,8.45,-22.94
+CNH=F proxy,2023-09-20,False,-141.2,False,13.31,-30.93
+CNH=F proxy,2023-09-21,False,-146.41,False,13.38,-14.31
+CNH=F proxy,2023-09-22,False,-152.64,False,9.18,-47.12
+CNH=F proxy,2023-09-25,False,-161.15,False,8.81,-47.35
+CNH=F proxy,2023-09-26,False,-167.69,False,6.7,-48.28
+CNH=F proxy,2023-09-27,False,-173.3,False,10.59,-13.07
+CNH=F proxy,2023-09-28,False,-175.5,False,0.91,-31.02
+CNH=F proxy,2023-09-29,False,-175.5,False,2.36,2.02

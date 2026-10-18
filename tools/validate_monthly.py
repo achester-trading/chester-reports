@@ -1224,9 +1224,11 @@ def group_i() -> None:
         for n, f in saved.items():
             setattr(_base, n, f)
     titles = [x["title"] for x in subs]
+    from daily_cascade import style_block
+    # SR-1's style-regime panel sits after the Factor lines (ST-8: its gate passed).
     check(titles == [B.RATE_TITLE, B.DA_TITLE, B.CU_TITLE, B.FACTOR_TITLE,
-                     B.CHINA_TITLE] and not calls,
-          f"the five blocks build from the store with every HTTP helper raising, and "
+                     style_block.TITLE, B.CHINA_TITLE] and not calls,
+          f"the six blocks build from the store with every HTTP helper raising, and "
           f"none is called ({len(calls)} calls)")
     lines = [x for t in subs for x in t["lines"]]
     data = [x for x in lines if ":" in x and not x.rstrip().endswith(":")]
@@ -1236,7 +1238,7 @@ def group_i() -> None:
     check(all(x.strip() for x in lines) and filled and marked
           and all(("withdrawn" in x or "not determinable" in x or "deferred" in x
                    or "zero rebalancing" in x or "Attribution" in x or "ON" in x
-                   or "off" in x) for x in other),
+                   or "off" in x or "not rendered" in x) for x in other),
           f"every line is populated with its as-of ({len(filled)}) or marked NOT "
           f"AVAILABLE / NOT TRACKED with its source ({len(marked)}); the rest say why "
           f"they are not read ({len(other)})")

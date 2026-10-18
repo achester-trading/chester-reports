@@ -1,0 +1,33 @@
+# SR-1's style regime rule (signal-triage ST-8; st-t3-calib, 18 Oct 2026), read by
+# altdata/style_regime.py for the Monthly's style-regime panel
+# (daily_cascade/style_block.py). DISPLAY ONLY: nothing here enters a composite, a
+# trigger or the market-state object, and no flag word prints until the operator
+# accepts the gate status (rule 31).
+#
+# THESE THRESHOLDS ARE ADMITTED BY A PASSING LEDGER, named beside them. A threshold
+# enters config only for an item whose ledger passes (the paste of 18 Oct);
+# tools/validate_st_t3_calib.py refuses this file if `admitted_by` names no ledger,
+# or one whose verdict is not PASS, or if a value here differs from the study's.
+# The box edition after Thursday's merge supersedes the laptop first edition; if
+# it does not pass, this file goes with it.
+admitted_by: docs/ledgers/sr-1-ledger-2026-10-18.md
+admitted_verdict: PASS
+edition: laptop run, public sources (the box re-run supersedes)
+
+rule:
+  # z of the log growth/value total-return ratio against its 10-year trend
+  z_arm: 2.0
+  trend_weeks: 520
+  trend_weeks_min: 260
+  # the break: below the 40-week mean, or more than 8% off the 52-week high
+  ma_weeks: 40
+  high_weeks: 52
+  off_high_pct: 8.0
+  # a setup stays armed for 52 weeks
+  arm_weeks: 52
+
+# (growth, value), the register's two expressions, total return from the store's
+# closes and the distributions stored beside them.
+pairs:
+  - [IVW, IVE]
+  - [IWF, IWD]

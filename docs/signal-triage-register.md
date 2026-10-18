@@ -87,6 +87,8 @@
 
 **Validation gate.** Forward 3/6/12-month value-minus-growth after each trigger, HML from 1963 and ETFs from 2000; hit rate and asymmetry; check the late 1990s for early fires and 2023 for the reversal. Ledger in Base Rates. Pass: positive expectancy after costs at 6 and 12 months across ≥6 non-overlapping episodes. Offline (ST-8).
 
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): PASS.** ledger: docs/ledgers/sr-1-ledger-2026-10-18.md, PASS (laptop run, public sources): on HML from 1963, mean value-minus-growth after 0.50% round-trip costs +4.2% at 6 months and +17.9% at 12 across 6 non-overlapping episodes (1981, 1992, 2000, 2009, 2019, 2021), exactly the floor of 6; no late-1990s early fire. The ETF pairs from 2000 read the other way (3 episodes each, 5 of 6 negative at 52 weeks), under their floor, so they do not block under the pre-registered rule. Thresholds admitted into config/style_regime.yaml with this ledger named; the Monthly's style-regime panel renders, display only, with no flag word until this status is accepted. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-2 Yen carry stack (chat question, 10 Sep 2026) — Thread X
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-5, ST-10
@@ -102,6 +104,8 @@
 **Data.** FRED Japan 10y and 3m (monthly); Japan MoF daily JGB yield CSV; CFTC COT weekly (Tuesday positions, Friday release — `available_at` = release); USDJPY held (`fred.usd_jpy`, plus yfinance daily). JPY implied vol and risk reversals are not free; use realized. *Lives in:* `altdata/sources/cftc.py`, `mof_jgb.py`; `calc.jp_front_diff`, `calc.jpy_pos_z`, `calc.jp_hedged_carry`, `calc.jpy_unwind`; candidate contradiction row `carry_vs_vol`.
 
 **Validation gate.** Anatomy check on Oct 1998, 2007–08, Jan–Feb 2016, Aug 2024 (narrowing differential + crowded shorts + vol spike). Pass: all four flagged with ≤2 false positives 1998–2026 at the chosen thresholds. Offline (ST-8); thresholds then set in `config/market_state.yaml`.
+
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): FAIL.** ledger: docs/ledgers/sr-2-ledger-2026-10-18.md, FAIL (laptop run, public sources): at ST-5's thresholds (crowding pre-registered at z <= -1.0 over 91 days), 3 of the 4 windows flag (Oct 1998, 2007-08, Aug 2024; Jan-Feb 2016 misses on crowding, z -0.15) with 3 false positives against the rule's all four and at most 2; no single threshold on the grid reaches all four within 2. The thresholds stay session-set in config/funding_currency.yaml. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 ### SR-3 China external position (shadow-reserves post, 11 Sep 2026) — Thread X
 
@@ -133,6 +137,8 @@
 
 **Validation gate.** Calibrate fix-deviation and CNH–CNY thresholds on Aug 2015–Jan 2017 and Sep 2022–Sep 2023. Base rate for spread persistence from Japan–US 1998–2022. Offline (ST-8).
 
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-4-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): spot CNH has no keyless history before 2024 (Yahoo's hourly bars), so the gap leg cannot be calibrated on either window; the CNH=F futures proxy, labelled, reads FAIL and admits nothing. Japan-US 1998-2022: US above Japan in every month, the sign held at 12, 24 and 60 months every time. The thresholds stay session-set. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-5 Consumer credit impulse (deGraaf / RenMac, G.19 July print, 8 Sep 2026) — Thread E
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-8; wired ST-11
@@ -148,6 +154,8 @@
 **Data.** TOTALSL, REVOLSL, NONREVSL (FRED) with ALFRED first-print vintages. G.19 lag ≈5 weeks; heavily revised. *Lives in:* `fred.consumer_credit*` (new, with vintages once O.16 lands; the calibration script pulls ALFRED directly meanwhile); `calc.cc_z`, `calc.cons_rs`.
 
 **Validation gate.** Replicate at 5- and 10-year z windows; count non-overlapping episodes; run the revolving-only variant; rerun everything on first prints. Bull side passes if first-print six-month expectancy stays ≥2× unconditional across ≥8 episodes. Offline (ST-8).
+
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-5-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): the rule is on first prints and this edition reads FRED's latest vintages; on those, the bull side's six-month expectancy is 1.49x unconditional (10-year window, 19 episodes) and 1.57x (5-year, 20), under the 2x rule. The box edition on ALFRED first prints (--alfred, with the key) is the gate's. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 *Accepted as drafted (rule 31), 17 Oct 2026: the GTM-21 amendment.* **Modifier: the household debt-service ratio.** FRED's TDSP (household debt service as a percent of disposable income), with its consumer and mortgage splits (CDSP, MDSP), quarterly from Q1 2005, is printed with its five-year and full-history percentiles in Plumbing & rates (the Monthly; `daily_cascade/gtm_block.py`, "Household debt service (SR-5's modifier)"). It modifies how the impulse is read and grants nothing. A high ratio makes a borrowing spike read as strain; a low one makes it read as capacity. The Guide's delinquency flows into 30+ days are stored as sourced figures by quarter and printed labelled: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%, and the DSR at 11.1% against 15.8% at 4Q07, all as of 30 Sep 2026, scan §6. The key stays SR-5. *Lives in:* `fred.dsr_household`, `fred.dsr_consumer`, `fred.dsr_mortgage`. The impulse row itself (`calc.cc_z`) is still not built.
 
@@ -285,6 +293,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes: top-decile spread (1929, 1968–72, 1983, 1999–2000, 2020–21, 2024–26). Statistic: forward 12/36/60m relative return of defensives vs. tech, (a) on spread alone, (b) on spread plus negative 12m tech relative momentum. Pass for the tilt modifier: defensives' 36m relative return positive in ≥4 of 5 completed episodes in cell (b). Falsifier: reversion via earnings with flat relative prices. Runs in SR-1's session (ST-8).
 
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-13-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): 4 completed top-decile spread episodes in cell (b) (French's 49 industries, 1985, 1996, 2000, 2020-26), below the floor of 5; no rate prints. The spread line does not ride on SR-1's panel. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-14 EM equities, absolute and relative to DM (Topdown Charts / LSEG; MSCI EM from 1987, 24 Sep 2026) — Thread X
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-8
@@ -300,6 +310,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Narrow flag (relative trend break: 12m EM/World relative return > 0 and ratio above its 24m average); Book A tilt modifier conditioned on the dollar regime tag; SR-4 tell as exit.
 
 **Validation gate.** Episodes: 1988, 2001, 2016 (false), 2024. Statistic: forward 36m EM/World relative return after the flag fires, split by real-dollar 12m change sign. Pass: the dollar cell discriminates (2016 in the dollar-up failure cell). If not, flag only. Falsifier for the current instance: the turn proceeds with a flat or strong dollar — then it is the AI trade and the tilt earns no credit. Offline (ST-8).
+
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-14-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): on EEM/ACWI from 2008 the dollar cell cannot be tested: 3 completed episodes, 1 in the dollar-up cell (2016-10, -12.5% over 36 months) and 2 in the dollar-down cell, against a floor of 2 a cell; 1988 and 2001 are the register's chart's, sourced comparisons. The flag stays display only. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 ### SR-15 Cross-asset valuation z-scores — gold, S&P 500, Treasuries, commodities (Topdown Charts / LSEG, 1994–, 24 Sep 2026) — Thread A
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-6, ST-7

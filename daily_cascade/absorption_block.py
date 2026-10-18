@@ -361,12 +361,20 @@ def subsections(st, now: str, where: str) -> list[dict]:
         if where == "plumbing":
             return [_sub(RATE_TITLE, rate_machine(st, now), note),
                     _sub(DA_TITLE, duration_absorption(st, now), note)]
-        return [_sub(CU_TITLE, cheap_unloved(st, now), note),
-                _sub(FACTOR_TITLE, factor_lines(st, now), note),
-                _sub(CHINA_TITLE, china_status(st, now), note)]
+        out = [_sub(CU_TITLE, cheap_unloved(st, now), note),
+               _sub(FACTOR_TITLE, factor_lines(st, now), note),
+               _sub(CHINA_TITLE, china_status(st, now), note)]
     except Exception:                                           # noqa: BLE001
         log.warning("the ST-6 blocks faulted", exc_info=True)
         return []
+    # SR-1's style-regime panel, rendered because its gate passed (ST-8); a fault
+    # costs its lines only.
+    try:
+        from daily_cascade import style_block                   # noqa: PLC0415
+        out.insert(2, style_block.subsection(st, now))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the style-regime panel faulted", exc_info=True)
+    return out
 
 
 def lines(st, now: Optional[str]) -> list[str]:

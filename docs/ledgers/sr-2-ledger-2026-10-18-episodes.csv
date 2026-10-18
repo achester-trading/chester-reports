@@ -1,0 +1,27 @@
+start,end,sessions,window,threshold,value,windows,false_positives,rule
+1998-09-03,1998-11-02,10,Oct 1998,,,,,
+2004-03-18,2004-03-18,1,,,,,,
+2007-08-16,2007-08-21,4,2007-08,,,,,
+2013-06-06,2013-06-17,6,,,,,,
+2023-01-13,2023-01-19,2,,,,,,
+2024-08-02,2024-08-06,3,Aug 2024,,,,,
+,,,,narrow_bp,0.0,3,3,FAIL
+,,,,narrow_bp,10.0,3,3,FAIL
+,,,,narrow_bp,25.0,3,3,FAIL
+,,,,narrow_bp,50.0,3,4,FAIL
+,,,,narrow_bp,100.0,3,4,FAIL
+,,,,crowd_z,-1.0,3,3,FAIL
+,,,,crowd_z,-0.5,3,3,FAIL
+,,,,crowd_z,0.0,4,4,FAIL
+,,,,crowd_z,0.5,4,5,FAIL
+,,,,crowd_z,1.0,4,5,FAIL
+,,,,move_pct,-3.0,3,3,FAIL
+,,,,move_pct,-2.5,3,3,FAIL
+,,,,move_pct,-2.0,3,5,FAIL
+,,,,move_pct,-1.5,3,7,FAIL
+,,,,move_pct,-1.0,3,7,FAIL
+,,,,vol_ratio,1.5,3,3,FAIL
+,,,,vol_ratio,1.3,3,4,FAIL
+,,,,vol_ratio,1.2,3,7,FAIL
+,,,,vol_ratio,1.1,3,8,FAIL
+,,,,vol_ratio,1.0,3,8,FAIL

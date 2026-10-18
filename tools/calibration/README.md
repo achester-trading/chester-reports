@@ -28,3 +28,18 @@ Offline calibration studies — one script per gate in the Signal Triage Registe
 
 Scripts here are not gates in `make validate` and nothing schedules them; they
 are run by hand when their register entry's study is due.
+
+## The studies
+
+- **ST-7** (st-t2-rates): `sr12_bond_alloc.py`, `sr15_valuation.py`,
+  `sr21_divergence.py`, `sr22_auctions.py`, `sr23_net_supply.py`, over
+  `st7_common.py`.
+- **ST-8** (st-t3-calib): `sr01_sr13_style.py` (two ledgers),
+  `sr05_consumer_credit.py` (`--alfred` reads first prints with the key, the
+  box edition), `sr14_em_dollar.py`, `sr02_yen_unwind.py`, `sr04_cny_fix.py`,
+  over `st8_common.py`. SR-1's rule arithmetic is `altdata/style_regime.py`, the
+  one definition its Monthly panel reads too.
+
+A threshold a passing ledger admits goes to config with the ledger named beside
+it (`admitted_by:`), by the session that adopts it; `tools/validate_st_t3_calib.py`
+refuses a config that names no ledger or one that did not pass.

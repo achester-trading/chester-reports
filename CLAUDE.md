@@ -509,6 +509,17 @@ tracked" with each leg's state and never a verdict word while a leg is not
 tracked (`funding_currency.verdict_allowed()`). `tools/validate_st_t3_calib.py`
 holds these.
 
+**ST-8's calibration studies** are `tools/calibration/sr01_sr13_style.py`,
+`sr05_consumer_credit.py`, `sr14_em_dollar.py`, `sr02_yen_unwind.py` and
+`sr04_cny_fix.py`, over `st8_common.py`; each register entry carries its gate
+status as a rule-31 draft. Only SR-1 passed on the laptop's first edition, so
+only its thresholds are in config (`config/style_regime.yaml`, the admitting
+ledger named beside them as `admitted_by:`) and only its panel renders: the
+Monthly's style-regime sub-section (`daily_cascade/style_block.py`, lines only,
+no flag word until the gate status is accepted), over `altdata/style_regime.py`,
+the rule's one definition. SR-2's and SR-4's thresholds stay session-set in
+`config/funding_currency.yaml`.
+
 **A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
 item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX
 change of 15% or 3 points, a five-day change past its own 95th percentile over 20
