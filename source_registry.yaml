@@ -376,13 +376,17 @@ sources:
     status: retired
     caveats:
       - >-
-        ST-13 (18 Oct 2026): altdata/sources/coingecko.py is built for PRL (pearl-2:
-        price, cap, 24h volume, circulating, tickers), keyless first with the
-        optional Demo key COINGECKO_DEMO_API_KEY, and WRITES NOTHING while
-        altdata.config.ENABLED_SOURCES['coingecko'] is off. The terms read again
-        18 Oct 2026 say "We do not encourage caching or storage of Data" (6.1)
-        and "you are not allowed to duplicate, reproduce, copy, store, derive from
-        or translate any Data" (6.2); the status stays retired until Ari rules.
+        STAYS RETIRED (ruled 18 Oct 2026, on the ST-13 report). The terms as read
+        18 Oct 2026 (coingecko.com/en/api_terms): "We do not encourage caching or
+        storage of Data" (6.1); a cache refreshed "at least every 24 hours"
+        (6.1.1); "you are not allowed to duplicate, reproduce, copy, store, derive
+        from or translate any Data" (6.2). They forbid the point-in-time store the
+        signal-triage order's MW-4 asked for, so MW-4's CoinGecko clause is
+        superseded (the order's rulings addendum of 18 Oct 2026). The ST-13
+        fetcher and the ENABLED_SOURCES switch were removed rather than kept a
+        flag away from a breach. PRL reads Yahoo (price, 24h volume) and
+        DefiLlama's coin service (cap, circulating supply) at the crypto basket's
+        keys; its venue concentration (D5) is not tracked.
       - >-
         RETIRED 13 OCT 2026. Nothing reads CoinGecko now: ZEC's cap moved to
         defillama, and the total crypto cap and ZEC's share of it stopped at their

@@ -1141,3 +1141,13 @@ Ruled by the operator, 28 Sep 2026; docs only.
 - **SR-29 added (28 Sep, evening).** Bitcoin long-term-holder supply, Thread D, `ADOPTED — scorecard, no rights`: monthly by hand (≈5 min; ≈0 h build) from paid sources as `manual_input` (`manual.btc_lth_supply`, `manual.btc_lth_share`, `calc.btc_lth_3m_chg`). The post's supply-crunch reading is rejected; R30 added to §12.
 - **`fred.tips_30y` added (28 Sep, evening).** DFII30 (30-year TIPS real yield; percent, daily, confirmed on its FRED page 28 Sep) joins `FRED_SIGNAL_SERIES` in `altdata/config.py`; `metrics_registry.yaml`'s `fred_signal_triage` block now expects 20 members. Cited in SR-17's Data field and beside DFII10 in the §4 feeds table.
 - **Status vocabulary.** `ADOPTED — scorecard, no rights` added to the §1.2 table (SR-20, SR-29).
+
+## Rulings addendum — 18 Oct 2026
+
+Ruled by the operator, 18 Oct 2026, on the ST-13 report; docs only.
+
+- **MW-4's CoinGecko clause is superseded.** CoinGecko stays retired (the 13 Oct 2026 ruling stands): its terms as read on 18 Oct (6.1, 6.1.1, 6.2) forbid the point-in-time store MW-4 asked for. No CoinGecko fetcher or switch is kept. PRL's inputs are what the crypto basket already reads within terms: price and 24-hour volume from Yahoo at the symbol the basket config resolved (D4 from that volume); market cap and circulating supply from DefiLlama's coin service where it serves them; chain height and supply from the explorer once declared (G-26).
+- **D5 (venue concentration) is not tracked (source retired);** it prints so, with its key named.
+- **D3 (the supply gap) is the formula against the explorer's supply,** ESTIMATED until the explorer reads.
+- **Scheduling:** no new timer. The explorer read is a weekly step of the crypto runs; the D-series compute one line in the crypto basket's daily 17:25 run, after the basket's own writes; both on the roster.
+- **SM00118** stays reclassified in place as `crypto.watch` (one coin, one id).

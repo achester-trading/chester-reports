@@ -717,6 +717,11 @@ def freshness(as_of: Optional[str] = None,
         from . import fed_funds as _ff                         # noqa: PLC0415
         rosters += [("prediction_markets", list(PREDICTION_KEYS)),
                     ("fed_funds", [_ff.KEY])]
+        # ST-13 (ruling 3 of 18 Oct 2026): the PRL steps of the crypto basket's
+        # run -- the daily D-series compute and the weekly explorer read -- so the
+        # heartbeat sees them; the explorer's keys are PENDING until it reads.
+        from . import prl as _prl                              # noqa: PLC0415
+        rosters += [(_prl.ROSTER, list(_prl.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None

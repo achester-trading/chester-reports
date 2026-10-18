@@ -302,17 +302,13 @@ commands:
     domain: crypto
     line: mempool.space -- Bitcoin hashrate, difficulty, fees, mempool, pools (Tranche A, CD-5)
     sources: [mempool_space]
-  altdata.sources.coingecko:
-    domain: crypto
-    line: CoinGecko for PRL (pearl-2) -- price, cap, volume, circulating, tickers; keyless first, optional key COINGECKO_DEMO_API_KEY; writes nothing while the switch is off (ST-13)
-    sources: [coingecko]
   altdata.sources.pearl_explorer:
     domain: crypto
     line: Pearl's explorer -- chain height, difficulty, supply; JSON endpoint or block page where robots allow, else ESTIMATED downstream (ST-13, G-26)
     sources: [pearl_explorer]
   altdata.prl:
     domain: crypto
-    line: PRL's emission calculator, D1-D6 and the thesis status with its trace; compute | show (ST-13)
+    line: PRL's emission calculator, D1-D6 and the thesis status with its trace; daily | weekly | compute | show, each with --dry-run (ST-13)
     sources: [calc]
   altdata.sources.fng:
     domain: crypto

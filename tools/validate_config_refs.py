@@ -83,12 +83,17 @@ def id_pattern(reg: dict) -> re.Pattern:
 # `hook_series`) beside the `branch` that registers it; the reader prints "not
 # yet: <branch>" until the registry holds it, so it is not this build's id.
 HOOK_FIELDS = ("hook_key", "hook_series")
+# A field whose value is a CLASS of the Security Master's instrument model, not a
+# metric: `crypto.watch` (ST-13) is shaped like an id in the `crypto` namespace.
+VOCAB_FIELDS = ("asset_class",)
 
 
 def strings(o):
     if isinstance(o, dict):
         for k, v in o.items():
             if k in HOOK_FIELDS and o.get("branch"):
+                continue
+            if k in VOCAB_FIELDS:
                 continue
             yield from strings(k)
             yield from strings(v)
@@ -133,6 +138,10 @@ def main() -> int:
                                      {"hook_key": "fred.nor_here"}]}, reg, pat)
     check(hooked == ["fred.nor_here"], "a hook naming its branch is another "
           "branch's key; a hook with no branch is still checked")
+    _, cls = unresolved({"asset_class": "crypto.watch", "store_key": "crypto.not_here"},
+                        reg, pat)
+    check(cls == ["crypto.not_here"], "an asset class is vocabulary, not an id; the "
+          "entry's metric keys beside it are still checked")
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if not FAIL else "VALIDATION FAILED")

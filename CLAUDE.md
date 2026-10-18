@@ -116,8 +116,8 @@ altdata/                  Shared ingestion package — used by every report
                           (Group B, the PPI and GDP lenses);
                           FRED_PULL_SERIES, 228, is the union the
                           pull walks.
-                          + ENABLED_SOURCES switches (fred on; eia/cftc/
-                          coingecko off)
+                          + ENABLED_SOURCES switches (fred, eia and cftc on;
+                          CoinGecko is no source and has no switch)
   store.py                Store — one CSV per series, columns date/value/source/
                           as_of. $ALTDATA_STORE from the environment, else from
                           .env, else ./data_store. On the VPS it is set in .env
@@ -372,11 +372,19 @@ has no FIGI, so the chester-meme export never carries it.
 - `altdata/prl.py` holds Appendix E's emission (`reward`, `supply_code`) and
   D1-D6 as `calc.prl_*`, with the thesis status and its trace. A height with no
   explorer read is ESTIMATED, stepped at the 194 s target, never blank.
-- `altdata/sources/coingecko.py` writes NOTHING while
-  `ENABLED_SOURCES["coingecko"]` is off: CoinGecko's terms and the 13 Oct ruling
-  stand until Ari rules. Its optional key is `COINGECKO_DEMO_API_KEY`.
+- **CoinGecko stays retired** (13 and 18 Oct 2026: its terms forbid the
+  point-in-time store; MW-4's clause is superseded). No fetcher and no switch are
+  kept.
+  - PRL's price and 24h volume are Yahoo's at the basket's symbol; its cap and
+    circulating supply are DefiLlama's coin service's.
+  - D5 is "not tracked (source retired)".
+  - D3 is the formula against the explorer's supply, ESTIMATED until the
+    explorer reads.
 - `altdata/sources/pearl_explorer.py` reads only a declared endpoint that
   robots allows (G-26: none discovered yet).
+- Both steps run in the crypto basket's 17:25 run (`altdata.prl weekly` on
+  Saturdays, `altdata.prl daily` after the basket's writes; no new timer). They
+  are on the freshness roster (`prl`).
 
 Config is `config/prl.yaml`. Watch-level rights only; nothing renders (ST-14
 renders), and no Daily module names PRL. `tools/validate_st_t5_prl.py` holds it.

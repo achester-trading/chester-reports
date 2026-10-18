@@ -292,8 +292,80 @@ model, and nothing rendered.
 
 ## CI
 
-Read once, with `gh run list --branch st-t5-prl --limit 3`; the numbers are in
-the session's closing report.
+Each run read once, with `gh run list --branch st-t5-prl --limit 3`.
+
+| Run | Commit | Result when read |
+|---|---|---|
+| 39177151583 | `7c81ed1` (the build) | **in progress**: 105 of 107 jobs green, 1 failed (`validate_config_refs`) |
+| 39177294541 | `dd10f77` (these notes) | **in progress**: the same failure |
+| (the rulings) | the commit after | in the session's closing report |
+
+**The cause was mine.** `validate_config_refs` reads any `<namespace>.<name>`
+string in a config file as a metric id. `crypto` is a registered namespace
+(`crypto.total_market_cap_usd`), so the class `crypto.watch` in
+`config/security_master.yaml` read as an unregistered key.
+- The gate now treats an `asset_class` field's value as vocabulary, not an id
+  (`VOCAB_FIELDS`).
+- A new check shows the entry's metric keys beside it are still caught.
+- Locally: 79 passed, 0 failed.
+
+## The rulings of 18 Oct on this report, as applied (the second paste's Part 0)
+
+1. **CoinGecko stays retired.**
+   - `altdata/sources/coingecko.py` is removed, and so is its
+     `ENABLED_SOURCES` entry, so no flag can turn it on. The six
+     `coingecko.prl_*` registry entries and its catalogue line are gone.
+   - `source_registry.yaml` `coingecko` stays retired and keeps the terms line
+     (6.1, 6.1.1, 6.2), with the ruling.
+   - The order's register gains a "Rulings addendum — 18 Oct 2026": MW-4's
+     CoinGecko clause is superseded.
+   - **PRL's inputs** (`config/prl.yaml` `derived`) are now the basket's own keys:
+     price `yfinance.crypto_prl` and 24h volume `yfinance.crypto_prl_volume`
+     (Yahoo, PRL41876-USD; D4 reads that volume); cap `llama.mcap_prl` and
+     circulating supply `llama.supply_prl` (DefiLlama's coin service).
+   - **D5** prints "not tracked (source retired): calc.prl_venue_conc's only
+     input was CoinGecko's tickers". The registry entry carries `tracked: false`,
+     and the thesis rule lists D5's leg as not read.
+   - **D3** is the formula at the explorer's height less the explorer's supply.
+     It is ESTIMATED, with no row written, until the explorer reads.
+   - **Fixtures** (`validate_st_t5_prl` C and E):
+     - the removal, the terms line, the register line, the inputs;
+     - D4 from Yahoo's volume;
+     - D5 not tracked;
+     - D3's ESTIMATED path and its explorer path.
+2. **The explorer:** no robots or terms line had been pasted when this ran, so
+   the endpoint stays undeclared and the height ESTIMATED.
+3. **Scheduling: no new timer.**
+   - `python -m altdata.prl weekly [--dry-run] [--force]` is the explorer read.
+     It runs on Saturdays and skips itself otherwise. With no endpoint declared
+     it returns PENDING, so the heartbeat lists its keys pending with no
+     allowance running.
+   - `python -m altdata.prl daily [--dry-run]` is the D-series compute.
+   - Both are one line each in `scripts/run_crypto_basket.sh`, the basket's
+     daily 17:25 run, after the basket's own writes. There is no separate
+     Saturday run on the box: the "Saturday crypto scan" is the chat-side
+     interim task, so its weekly step lives in the Saturday run of the basket's
+     timer.
+   - Both are on the freshness roster (`feeds.freshness`, roster `prl`). Each
+     records its attempt.
+   - **Fixtures** (H): the daily dry run writes nothing, then the real run
+     writes; the weekly skips off-Saturday and is PENDING on Saturday; the two
+     lines sit after `derive`; no PRL unit; the roster.
+4. **SM00118 reclassified in place stands.** Gate H proves the basket still
+   resolves `PRL41876-USD` to `yfinance.crypto_prl` through it.
+
+**Locally after the rulings:**
+- `validate_st_t5_prl` **61/0**, `validate_config_refs` **79/0**;
+- `validate_crypto_basket` **93/0**, `validate_crypto_sources` **105/0**;
+- `validate_backups` **28/0**, `validate_audit_3a` **86/0**, `validate_lenses`
+  **49/0**;
+- `check_registry` and `check_library` OK.
+
+**This supersedes, above:** the CoinGecko fetcher (item 2), the "switch stays
+off" finding, needs-you items 1 and 3 (both ruled), and the box command for
+CoinGecko. The box commands that stand are the explorer's dry run (now
+`python -m altdata.prl weekly --dry-run --force`) and the compute's
+(`python -m altdata.prl daily --dry-run`).
 
 ## Box commands, for Ari
 

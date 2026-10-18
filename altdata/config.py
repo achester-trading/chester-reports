@@ -574,7 +574,9 @@ ENABLED_SOURCES = {
     "eia":       True,
     # ON in ST-2: altdata/sources/cftc.py reads it and reports STALE when off.
     "cftc":      True,
-    "coingecko": False,
+    # CoinGecko is not a source (ruled 13 Oct and 18 Oct 2026: its terms forbid a
+    # point-in-time store); no switch is kept that one flag could turn into a
+    # terms breach. See source_registry.yaml `coingecko` (retired).
 }
 
 

@@ -1,7 +1,7 @@
 # THE PRL DATA LAYER (ST-13, signal-triage Tranche 5; st-t5-prl, 18 Oct 2026).
 # Constants from the order (docs/change-order-signal-triage-2026-09-25.md 2.7 and
-# Appendix E), each with where it comes from. Read by altdata/prl.py,
-# altdata/sources/coingecko.py and altdata/sources/pearl_explorer.py. Watch-level
+# Appendix E), each with where it comes from. Read by altdata/prl.py and
+# altdata/sources/pearl_explorer.py. Watch-level
 # rights only (MW-2): nothing here feeds a composite, an overlay, a dial or a
 # trigger; D6 is the one narrow flag.
 version: prl-v1
@@ -31,34 +31,22 @@ derived:
   venue_conc: {improved_below_pct: 60.0}
   idle_gpu: {difficulty_up_pct: 25.0, price_down_pct: 20.0, window_days: 30}
   review_days: 7              # the thesis rule's review period: one week
-  # D4/D5 inputs by preference: CoinGecko's (MW-4: the price source of record)
-  # where stored, else the basket's permitted series (config/crypto_basket.yaml),
-  # named in the trace. Circulating supply and the venues are CoinGecko's only.
-  price: [coingecko.prl_price, yfinance.crypto_prl]
-  market_cap: [coingecko.prl_market_cap, llama.mcap_prl]
-  volume: [coingecko.prl_volume_24h]
-  circulating: [coingecko.prl_circulating]
+  # THE INPUTS (ruling 1 of 18 Oct 2026): what the crypto basket already reads
+  # within terms -- price and 24-hour volume from Yahoo at the symbol the basket
+  # config resolved (PRL41876-USD), market cap and circulating supply from
+  # DefiLlama's coin service where it serves them. CoinGecko is retired (the 13 Oct
+  # ruling stands; MW-4's CoinGecko clause superseded), so D5's venues are not
+  # tracked, and D3 is the formula against the explorer's supply.
+  price: [yfinance.crypto_prl]
+  volume: [yfinance.crypto_prl_volume]
+  market_cap: [llama.mcap_prl]
+  circulating: [llama.supply_prl]
+  not_tracked:
+    venue_conc: "not tracked (source retired): calc.prl_venue_conc's only input was CoinGecko's tickers"
 
-# COINGECKO (MW-4; G-25). Keyless first, through the public endpoints, inside
-# their published rate limit; the Demo key (header x-cg-demo-api-key) is
-# optional and read from the environment only if present -- its NAME is
-# COINGECKO_DEMO_API_KEY; .env is Ari's and is never written by a session.
-coingecko:
-  base: "https://api.coingecko.com/api/v3"
-  demo_base: "https://api.coingecko.com/api/v3"   # the Demo plan's root is the same host
-  key_env: COINGECKO_DEMO_API_KEY
-  key_header: x-cg-demo-api-key
-  endpoints:
-    coin: "/coins/pearl-2"     # market_data: price, cap, 24h volume, circulating
-    tickers: "/coins/pearl-2/tickers"
-  # THE BUDGET: two calls a pull, at least `spacing_seconds` apart; a weekly
-  # pull plus one daily close (MW-4) is 2 x 8 = 16 calls a week. The public
-  # (keyless) endpoints' published limit is of the order of 5-15 calls a minute
-  # and the Demo plan's 30 a minute and 10,000 a month; this budget is three
-  # orders of magnitude inside either.
-  spacing_seconds: 6
-  calls_per_pull: 2
-  user_agent: "chester-reports/1.0 (research logging)"
+# COINGECKO: NOT A SOURCE. Retired 13 Oct 2026, and the retirement stands (ruling
+# 1 of 18 Oct 2026): its terms forbid the point-in-time store MW-4 asked for. The
+# ST-13 fetcher was removed; source_registry.yaml `coingecko` keeps the terms line.
 
 # THE EXPLORER (MW-4; G-26). explorer.pearlresearch.ai. The JSON endpoint is NOT
 # YET DISCOVERED: on 18 Oct 2026 neither the explorer nor pearlresearch.ai
