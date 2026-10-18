@@ -172,12 +172,35 @@ def ledger_faults(r: dict) -> list[str]:
     return out
 
 
+PRE_REGISTERED = (
+    "**The pass rule is pre-registered** (ruled 17 Oct 2026): the rule the order "
+    "states; where it states none, the rule the first (laptop) edition wrote is the "
+    "registration. A box re-run may not change it, only apply it.")
+PASS_ROW = "| Pass rule (as the order states it) | "
+
+
+def registered_rule(item: str, out_dir: Optional[Path] = None) -> Optional[str]:
+    """The pass rule as the item's FIRST dated edition wrote it, or None when no
+    edition is on file. A re-run applies it and may not change it (ruling 2 of
+    17 Oct 2026)."""
+    d = Path(out_dir or LEDGER_DIR)
+    eds = sorted(d.glob(f"{item.lower()}-ledger-????-??-??.md"))
+    if not eds:
+        return None
+    for ln in eds[0].read_text(encoding="utf-8").splitlines():
+        if ln.startswith(PASS_ROW):
+            return ln[len(PASS_ROW):].rstrip().rstrip("|").rstrip()
+    return None
+
+
 def render(r: dict, run_date: str) -> str:
     lines = [f"# {r['item']} ledger -- {r['title']}",
              "",
              f"**Edition:** {run_date}, {r['source_mode']}. "
              + ("A re-run against the box's store supersedes it (a new dated file)."
                 if r["source_mode"].startswith("laptop") else ""),
+             "",
+             PRE_REGISTERED,
              "",
              "| | |", "|---|---|",
              f"| As of | {r['as_of']} |",
@@ -206,6 +229,10 @@ def write_ledger(r: dict, out_dir: Optional[Path] = None,
         raise ValueError(f"{r.get('item')}: not a ledger: {faults}")
     run_date = run_date or dt.date.today().isoformat()
     out_dir = Path(out_dir or LEDGER_DIR)
+    reg = registered_rule(r["item"], out_dir)
+    if reg is not None and reg != str(r["pass_rule"]).strip():
+        raise ValueError(f"{r['item']}: the pass rule is pre-registered by the first "
+                         f"edition ({reg!r}); a re-run may not change it, only apply it")
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = f"{r['item'].lower()}-ledger-{run_date}"
     csv_path = None

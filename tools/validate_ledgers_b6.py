@@ -340,9 +340,35 @@ def group_j() -> None:
           "an episode without 63 sessions after it is incomplete, never counted")
 
 
+def group_k() -> None:
+    head("K. THE PASS RULE IS PRE-REGISTERED (ruling 2 of 17 Oct 2026)")
+    items = ("ST-R5.30b", "ST-R5.32b", "ST-R5.35b", "ST-R5.36b", "ST-R5.43b",
+             "ST-R4.17b", "ST-R4.19b")
+    regs = {i: L.registered_rule(i) for i in items}
+    check(all(v and v.startswith("none stated") for v in regs.values()),
+          "each of the seven first editions on file registers its pass rule: the order "
+          "states none, and 'none stated' -- no gate -- is the registration")
+    r = {"item": "ST-R5.98b", "title": "fixture", "as_of": "2026-09", "window": "2000 to 2026",
+         "n": 12, "statistic": "s", "pass_rule": "none stated", "verdict": L.NO_GATE,
+         "rights": "none", "sources": ["fixture"], "source_mode": "laptop run, public sources",
+         "body": ["x"]}
+    md, _ = L.write_ledger(r, TD, "2026-10-17")
+    check(L.PRE_REGISTERED in md.read_text(encoding="utf-8"),
+          "every edition says so at its head")
+    try:
+        L.write_ledger(dict(r, pass_rule="a rule chosen after the first edition",
+                            source_mode="box run, store"), TD, "2026-10-24")
+        refused = False
+    except ValueError as exc:
+        refused = "pre-registered" in str(exc)
+    check(refused, "a box re-run that changes the pass rule is refused")
+    md2, _ = L.write_ledger(dict(r, source_mode="box run, store"), TD, "2026-10-24")
+    check(md2.exists(), "a box re-run that applies the registered rule is written")
+
+
 def main() -> int:
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_i, group_j):
+              group_i, group_j, group_k):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

@@ -1,0 +1,154 @@
+# alpha_tells.yaml -- the tells the Alpha Lab imports as hypotheses (X-3.6;
+# docs/change-order-alpha-lab-2026-10-12.md section 5; alpha/tells.py).
+#
+# "Every Weekly tell, Doctrine tell, scanner setup (config/setups.yaml) and
+# graded forecast source in the probability ledger is imported as a
+# pre-registered hypothesis -- 'predicts at horizon h after costs?' -- with its
+# mechanism text quoted from the paper that states it. This is how the reports'
+# intelligence reaches the lab; the reports never drive it."
+#
+# WHAT THE IMPORTER READS, AND WHAT THIS FILE ONLY DECLARES. The importer reads
+# the four sources themselves: the Weekly's tells from config/book_b_scanner.yaml
+# `tells:`, the Doctrine's trust matrix from the paper's section 5.3 table, the
+# setups from config/setups.yaml and the graded sources from the probability
+# ledger (read-only, through the lab's store connection). This file declares only
+# what those sources do not say in a form code can read: where each one's
+# mechanism is quoted from (file, section heading, the quote), its horizon in
+# sessions with the passage that sets it, its instrument and its exit rule.
+#
+# EVERY QUOTE IS CHECKED. The importer finds the cited section by its heading and
+# refuses a tell whose quote is not in it, word for word (whitespace and the
+# Markdown emphasis markers aside); tools/validate_alpha_lab_3.py checks every
+# quote below against the files as committed. A tell with no paper that states
+# its mechanism is not imported, and the import report says so.
+#
+# HORIZONS. "Its horizon from the tell's own window": the window the source names
+# (a ratio's change window, a book's holding period, a half-life), in sessions;
+# where the source names none, the value here says so and is a needs-you item.
+version: 1
+
+# The Doctrine's book horizons (Part IV headings and 4.3's own sentence), the
+# upper end of each range, in sessions: the time stop the book applies.
+book_horizons:
+  A: {sessions: 126, from: "4.1 Book A -- Allocation (one to six months)"}
+  B: {sessions: 30, from: "4.2 Book B -- Swing (one to six weeks)"}
+  C: {sessions: 5, from: "4.3: held for one to five sessions"}
+  D: {sessions: 21, from: "NONE STATED: 4.4 'the horizon is whatever the catalyst dictates'; 21 sessions is the import's declared default (needs-you)"}
+
+doctrine_file: docs/whitepapers/operating-doctrine-whitepaper.md
+signal_register_file: docs/signal-triage-register.md
+
+# --- the Weekly's tells (config/book_b_scanner.yaml `tells:`) ------------------
+# Keyed by the scanner's own entries: a style pair by its growth leg, a consumer
+# ratio by its label, the move screen by its module.
+weekly:
+  style_pairs:
+    cite: {file: docs/signal-triage-register.md,
+           section: "SR-1 Growth vs. Value relative performance",
+           quote: "Log Growth/Value total-return ratio, z-score vs. its 10-year trend > +2 (via `derived_forms`), followed by a break: ratio below its 40-week MA, or >8% off its 52-week high. Expression: long IVE / short IVW (or IWD/IWF), sized as a pair, hard stop on a new ratio high (2023 is the reason for the stop)."}
+    horizon: {sessions: 126, from: "SR-1's validation gate: positive expectancy after costs at 6 and 12 months; the first of the two"}
+    exit: "a hard stop on a new growth/value ratio high, else the time stop at the horizon"
+  consumer_ratios:
+    cite: {file: docs/signal-triage-register.md,
+           section: "SR-5 Consumer credit impulse",
+           quote: "weekly Book B tell (XLY/XLP — the held `calc.cyclical_over_defensive` where its definition matches; equal-weight discretionary vs. SPY; homebuilders)"}
+    horizon: {sessions: 20, from: "the scanner's ratio_change_sessions (20): the tell reads the ratio against 20 sessions ago"}
+    exit: "the ratio back through its 50-session average (the tell's own mirror), else the time stop at the horizon"
+  move_screen:
+    cite: null
+    why_not: "no paper states the move screen's mechanism: the 2.5-sigma print is descriptive, and what it predicts is engine 6's question, which waits for the screen's base rates to reach n >= 30 a bucket (X-3.3)"
+
+# --- the Doctrine's tells (section 5.3, the trust matrix) ---------------------
+# One per row of the table, parsed from the paper. The quote is the row itself
+# and the section's own question, both in 5.3. Horizons from 5.3's half-life
+# paragraph where it names one, else the book the row's source feeds.
+doctrine:
+  section: "5.3 The meta-model: which signals to trust now"
+  framing_quote: "not \"what does the signal say?\" but \"should this signal be trusted right now?\""
+  horizons:
+    macro-composite-and-pillars: {sessions: 21, from: "5.3: \"A Monthly composite reading is good for a month\""}
+    turn-detection-bottoms: {sessions: 126, from: "Book A, which the Top & Bottom override moves (4.1)"}
+    turn-detection-tops: {sessions: 126, from: "Book A, which the Top & Bottom override moves (4.1)"}
+    positioning-extremes: {sessions: 30, from: "Book B, the book positioning confirms (the scanner's decision 3)"}
+    trend-and-momentum: {sessions: 30, from: "Book B, which harvests trend and momentum (4.2)"}
+    mean-reversion-and-levels: {sessions: 1, from: "5.3: \"A gamma reading is good for a session\""}
+    event-reaction: {sessions: 1, from: "4.3: \"an event-reaction trade in the session after a scheduled release\""}
+    sentiment-and-social-velocity: {sessions: 21, from: "Book D (the matrix's own cells), its declared default"}
+    prediction-market-divergence: {sessions: 21, from: "Book D (the matrix's own cells), its declared default"}
+    tail-scan: {sessions: 21, from: "the Monthly's tail scan: a month"}
+  extra:
+    - id: rule-9-price-reaction
+      title: "Price reaction outranks the headline"
+      cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "Edge",
+             quote: "Platt, explicitly, in *Hedge Fund Market Wizards*: if the market cannot go down on bad news, it is telling you about positioning."}
+      horizon: {sessions: 1, from: "Rule 9 and 4.3: the session after the release, once the reaction is seen"}
+      exit: "the session's close (Book C's bracket and time stop)"
+
+# --- the setups (config/setups.yaml): the Doctrine passage each one cites -----
+# A setup's `doctrine:` field names its section; the quote is the sentence there.
+# A setup drawn from the signal-triage register cites the register's entry.
+setups:
+  a_stance_rebalance:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.1 Book A",
+           quote: "It holds a stance, expressed as exposure bands, and it rebalances to the stance at the monthly session."}
+  a_tb_override:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.1 Book A",
+           quote: "Between monthly sessions the book does nothing unless the Top & Bottom report fires an override, in which case the stance moves to the override band at the next session or, for a bottom signal, immediately."}
+  b_breakout: &swing
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.2 Book B",
+           quote: "entered at or immediately after a pivotal point — a breakout from a defined base, a reclaim of a lost level with volume, a failed breakdown — and held for the duration of the move or until the plan's exit, whichever comes first."}
+  b_reclaim: *swing
+  b_failed_breakdown: *swing
+  b_style_regime_pair:
+    cite: {file: docs/signal-triage-register.md,
+           section: "SR-1 Growth vs. Value relative performance",
+           quote: "Expression: long IVE / short IVW (or IWD/IWF), sized as a pair, hard stop on a new ratio high (2023 is the reason for the stop)."}
+  b_consumer_rs_tell:
+    cite: {file: docs/signal-triage-register.md,
+           section: "SR-5 Consumer credit impulse",
+           quote: "Adopt the consumer-dependent relative-strength tell."}
+  c_pin_fade: &tactical
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.3 Book C",
+           quote: "The setups are of three kinds: a fade toward a gamma-implied pin in a Positive-gamma regime; a continuation through a level in a Negative-gamma regime after confirmation; and an event-reaction trade in the session after a scheduled release, taken in the direction of the reaction when it contradicts the positioning-implied expectation."}
+  c_negative_gamma_continuation: *tactical
+  c_event_reaction: *tactical
+  d_behavioral_alert:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.4 Book D",
+           quote: "that behavioral change is visible in social velocity, search, and positioning data before it is visible in price"}
+  d_forced_flow:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.4 Book D",
+           quote: "that forced flows — index inclusion, the unlock and lock-up mechanics of a mega-IPO, closing-auction imbalances, expiry pins — create predictable pressure that a small book can trade at sizes that do not matter to anyone else"}
+  d_prediction_market_divergence:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.4 Book D",
+           quote: "that prediction markets, read for divergence from the price of the corresponding financial instrument rather than for their own forecasts, occasionally reveal a mispricing worth a small, convex position"}
+  d_squeeze_exhaustion:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.4 Book D",
+           quote: "occasionally a short with a defined wing when a squeeze has exhausted"}
+  d_tail_hedge:
+    cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.4 Book D",
+           quote: "far-out-of-the-money puts, a small long-volatility structure, or an increment to the gold sleeve, sized so that the entire budget can expire worthless every month for a year at a cost of 5% of capital"}
+# Never imported: no setup family is claimed, so there is nothing to predict.
+setups_skipped: [unclassified]
+
+# --- the probability ledger's graded sources ---------------------------------
+# A source is imported once it has at least one graded row (brier not null).
+# Its horizon is the median of its rows' horizon_date less emitted_at, in
+# sessions. A source with no entry here, and no prefix entry, is not imported:
+# no paper is declared that states it.
+forecast_sources:
+  monthly_macro:
+    cite: {file: docs/whitepapers/monthly-macro-whitepaper.md,
+           section: "Preamble: What This Document Is For",
+           quote: "resolves the whole thing into a probability-weighted scenario matrix"}
+  daily_close_outlook:
+    cite: {file: docs/whitepapers/reporting-system-whitepaper.md,
+           section: "4.3 The three reading rules",
+           quote: "A probability may print only if it was first written to the probability ledger (Part IX), and only in the form \"the base rate for … is X% (n = …)\"."}
+  weekly_stance: &ledger_rule
+    cite: {file: docs/whitepapers/reporting-system-whitepaper.md,
+           section: "4.3 The three reading rules",
+           quote: "A probability may print only if it was first written to the probability ledger (Part IX), and only in the form \"the base rate for … is X% (n = …)\"."}
+  narrative_register: *ledger_rule
+forecast_source_prefixes:
+  "alt_asset:": *ledger_rule
+  "book_b": *ledger_rule

@@ -223,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-five code gates (ninety-two Python,
+**`make validate` runs every gate** — ninety-six code gates (ninety-three Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -530,7 +530,9 @@ altdata.ledgers run <item|all> --source public|store` writes
 `docs/ledgers/<item>-ledger-<date>.md` and its episodes CSV, dated and never
 edited. Each prints its as-of, window, n, statistic, the pass rule as the order
 states it and that rule's verdict. Neither order states a pass rule for any of
-the seven, so each says so and none is invented. Each states its rights consequence
+the seven, so each says so and none is invented. The pass rule is pre-registered
+(ruled 17 Oct 2026): the order's, else the first edition's, and every edition
+says so at its head; `write_ledger` refuses a re-run that changes it. Each states its rights consequence
 and grants nothing; the package never opens the register. A ledger without its
 as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
 
@@ -705,9 +707,38 @@ and duplicates of them screened out. A rule in the grammar
 is registered and is promoted on the loop's authority if it passes. A model's
 idea must also pass the model-idea rule (`alpha/promote.py`).
 
+**A manifest is written before the register (Tranche 3 part 1, alpha-lab-3, 17 Oct
+2026).** Outside Drive and the proposer, whose manifests are their own,
+`alpha/manifest.py` writes the batch, its sha256 and its instant under the
+research directory first, and the register takes that instant; the harness
+refuses a hypothesis whose batch carries no manifest, one dated after the run,
+or one edited since. Three things now register this way:
+- **The tells (X-3.6).** `python -m alpha.tells import` reads the Weekly's tells
+  (`config/book_b_scanner.yaml`), the Doctrine's section 5.3 trust matrix and
+  Rule 9, the setups in `config/setups.yaml` and the probability ledger's graded
+  sources (by SQL over the read-only store). It registers each as "predicts at h
+  sessions after costs?", needs_code, with its mechanism quoted from the cited
+  section. Every quote is checked word for word (`config/alpha_tells.yaml`). An
+  unchanged tell writes nothing; a changed one supersedes its old registration.
+- **The event base rates (X-3.1).** `python -m alpha.event_rates compute` writes
+  the system's own CPI, payroll, FOMC and earnings base rates, each row with its n
+  and window, to alpha.db's `event_base_rates` (`config/alpha_events.yaml`).
+  Macro surprises are the naive ones; the dealer regime is read from 6b's keys by
+  name and prints "awaiting" where absent.
+- **The X-3 engines.** Engine 4 is `alpha/engines/events.py`; engine 5 is
+  `alpha/engines/carry.py`, crypto carry. Engine 5 runs nothing until S-3 holds
+  its 92-week window, uses venue fees as dated constants
+  (`config/alpha_crypto_venues.yaml`) and books the paper book's two-leg crypto
+  rows in `carry_book`. Their roster, `alpha/research/roster-2026-10-17-x3.yaml`,
+  is registered on the box by `python -m alpha.manifest register`.
+
+The lab line and the Lab report gain the tells' counts and these rows.
+`tools/validate_alpha_lab_3.py` holds all of it.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
-pm_futures, vrp_dealer, all candidates until they pass); a promoted grammar rule
-is named by its register id in `alpha.db`. No gate reads the live store.
+pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
+crypto_carry, all candidates until they pass); a promoted grammar rule is named by
+its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 

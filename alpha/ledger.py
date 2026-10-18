@@ -42,6 +42,14 @@ needed somewhere to live:
   equity          per engine and for the lab ('__lab__') per day: equity, the
                   high-water mark and the drawdown the governor reads
 
+and three of Tranche 3's (X-3.1, X-3.2):
+
+  event_base_rates  the system's own event base rates, per event, bucket and
+                  measure, with n and the window (alpha/event_rates.py)
+  carry_book      the paper book's crypto rows: a delta-neutral carry's venue,
+                  leg sizes and funding accrued (alpha/engines/carry.py)
+  carry_accruals  each day's funding received or paid on an open carry
+
 THE BLOCKLIST, A SECOND TIME, IN SQLITE. alpha/blocklist.py refuses a restricted
 instrument before any write; the triggers below refuse it again for any insert
 that bypasses that module, against `restricted_instruments`, which every open of
@@ -358,6 +366,67 @@ CREATE TABLE IF NOT EXISTS equity (
     as_of       TEXT NOT NULL,
     written_at  TEXT NOT NULL,
     PRIMARY KEY (engine_id, day)
+);
+
+-- X-3.1: THE SYSTEM'S OWN EVENT BASE RATES (alpha/event_rates.py), one row per
+-- event, bucket and measure, with its n and its window; a re-run on the same day
+-- replaces that day's rows, an earlier day's are kept.
+CREATE TABLE IF NOT EXISTS event_base_rates (
+    computed_on TEXT NOT NULL,
+    event       TEXT NOT NULL,
+    bucket_kind TEXT NOT NULL,
+    bucket      TEXT NOT NULL,
+    measure     TEXT NOT NULL,
+    n           INTEGER NOT NULL,
+    first_day   TEXT,
+    last_day    TEXT,
+    mean        REAL,
+    hit_rate    REAL,
+    hit_means   TEXT,
+    unit        TEXT NOT NULL,
+    note        TEXT,
+    as_of       TEXT NOT NULL,
+    written_at  TEXT NOT NULL,
+    PRIMARY KEY (computed_on, event, bucket_kind, bucket, measure)
+);
+
+-- X-3.2: THE PAPER BOOK'S CRYPTO ROWS (alpha/engines/carry.py). A delta-neutral
+-- carry is two legs at one notional -- spot long, the perp short on one venue --
+-- so it is booked here with the venue, the leg sizes and the funding accrued, not
+-- in `positions`, whose one-instrument fill needs a stored perp price the store
+-- does not hold. Paper only; book.cum_pnl() adds it to the engine's P&L.
+CREATE TABLE IF NOT EXISTS carry_book (
+    id              INTEGER PRIMARY KEY,
+    engine_id       TEXT NOT NULL,
+    coin            TEXT NOT NULL,
+    venue           TEXT NOT NULL,
+    opened_day      TEXT NOT NULL,
+    spot_qty        REAL NOT NULL,
+    perp_qty        REAL NOT NULL,
+    notional        REAL NOT NULL,
+    entry_price     REAL NOT NULL,
+    entry_costs     REAL NOT NULL,
+    funding_accrued REAL NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL CHECK (status IN ('open','closed')),
+    closed_day      TEXT,
+    exit_price      REAL,
+    exit_costs      REAL,
+    net_pnl         REAL,
+    basis_note      TEXT,
+    as_of           TEXT NOT NULL,
+    written_at      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS carry_accruals (
+    carry_id     INTEGER NOT NULL REFERENCES carry_book(id),
+    engine_id    TEXT NOT NULL,
+    day          TEXT NOT NULL,
+    venue        TEXT NOT NULL,
+    funding_pct  REAL NOT NULL,
+    accrued      REAL NOT NULL,
+    as_of        TEXT NOT NULL,
+    written_at   TEXT NOT NULL,
+    PRIMARY KEY (carry_id, day)
 );
 
 CREATE INDEX IF NOT EXISTS positions_open ON positions (status, engine_id);

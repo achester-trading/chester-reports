@@ -1,0 +1,77 @@
+# alpha_events.yaml -- engine 4's events, their base rates and its setups (X-3.1;
+# alpha/event_rates.py, alpha/engines/events.py). Session-set: every number here
+# is the session's, with its reason; nothing is a ruling.
+#
+# "The system's own event base rates first; the engine second." The base rates
+# are computed from the store (read-only) and written to alpha.db's
+# event_base_rates table, one row per event, bucket and measure with its n and
+# its window; the monthly Lab report prints them.
+version: 1
+
+price: {key: yfinance.mkt_spy, symbol: SPY}
+vix: {key: yfinance.mkt_vix}
+
+# The macro events. `time` is the release's ET time: a print before the open
+# (08:30) makes the release day the first session; a print inside the session
+# (FOMC, 14:00) makes the next session the first. Release days come from the
+# events table (type release or scheduled, the series' entity, observed) and,
+# for the history before the events table, from the first vintage of the series'
+# ALFRED rows (availability_kind observed: the first publication's instant).
+events:
+  cpi:
+    label: CPI
+    time: "08:30"
+    entity: fred.cpi
+    series: fred.cpi
+    surprise: calc.surprise_vs_naive.cpi
+    surprise_kind: "naive: actual less the declared naive expectation (config/naive_expectations.yaml), NOT a consensus surprise -- no free macro consensus is stored"
+  payrolls:
+    label: Payrolls
+    time: "08:30"
+    entity: fred.nfp
+    series: fred.nfp
+    surprise: calc.surprise_vs_naive.nfp
+    surprise_kind: "none stored: config/naive_expectations.yaml declares no expectation for nfp, so the payroll buckets by surprise print awaiting (needs-you)"
+  fomc:
+    label: FOMC
+    time: "14:00"
+    claims_kind: fomc
+    surprise: null
+    surprise_kind: "none stored: no consensus or futures-implied policy surprise series is stored for FOMC decisions; the fed funds futures rows could build one (needs-you)"
+
+# A surprise's size: |surprise| over the standard deviation of the same series'
+# previous `window` surprises, large at or above `large_sd`; fewer than
+# `min_prior` previous surprises leaves the size unknown.
+surprise_size: {window: 24, large_sd: 1.0, min_prior: 8}
+
+# Positioning (the section 10A rows, as the Book B scanner reads them): the
+# speculative net's z over two years, crowded at |z| >= 1.5.
+positioning: {key: cftc.noncomm_net, instrument: SP500, window_days: 730,
+              crowded_z: 1.5, min_rows: 52}
+
+# The dealer regime, read BY NAME from 6b's keys (session A's 6b-dealer-1: net
+# GEX's sign, gated on net-to-gross >= 0.10). Where a key has no row the bucket
+# prints "awaiting".
+dealer: {net_gex: exposure.net_gex, net_to_gross: exposure.net_to_gross,
+         instrument: SPY, min_net_to_gross: 0.10, max_age_days: 3}
+
+# Earnings in the 29-name universe (altdata/sources/yfinance_source.py
+# EARNINGS_SYMBOLS): the post-announcement drift by the sign of the real
+# (vs consensus) surprise, from the events table's earnings rows. The report day
+# is the row's observed_at; a report before the open or after the close is not
+# told apart there, so the drift starts at the close of the session AFTER the
+# report day, by which both are public.
+earnings:
+  # The 29 names (tools/validate_alpha_lab_3.py holds this list to
+  # EARNINGS_SYMBOLS; alpha/ may not import altdata.sources).
+  universe: [AAPL, ABBV, AMZN, AVGO, BAC, BRK-B, C, COST, GOOG, GOOGL, GS, HD, JNJ,
+             JPM, LLY, MA, META, MS, MSFT, NFLX, NVDA, ORCL, PG, TSLA, UNH, V, WFC,
+             WMT, XOM]
+  drift_sessions: [1, 20]
+  implied_move: "awaiting: implied moves are not stored -- daily_cascade/ahead.implied_move reads the captured chain files at render, and the observation store holds no implied-move series"
+
+# The engine's setups. A bucket needs `min_bucket` prior events in its fit window
+# before its sign is traded; otherwise no position.
+engine:
+  min_bucket: 6
+  hold_sessions: {macro: 1, fomc: 1, pead: 20}

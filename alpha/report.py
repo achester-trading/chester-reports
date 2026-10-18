@@ -14,7 +14,10 @@ One Markdown page from alpha.db, read-only, for the month:
   5. the cost calibration: modelled against stored spreads, per engine and
      class, at the month's last record;
   6. the lab's P&L and drawdown against the governor (the lab's -15% halt; each
-     engine's -10% halve and -20% stop).
+     engine's -10% halve and -20% stop);
+  7. the tells imported as hypotheses, counted by source (X-3.6);
+  8. the system's own event base rates, each row with n and its window (X-3.1);
+  9. the paper book's crypto rows: venue, leg sizes, funding accrued (X-3.2).
 
 The Monthly attaches it through ONE hook in monthly_macro/run.py
 (monthly_attachment), which never raises: a lab that cannot be read costs the
@@ -167,7 +170,55 @@ def render(ledger, month: str, as_of: Optional[str] = None) -> str:
                            f"{'reached' if dd <= g['engine']['halve_at'] else 'clear'} | "
                            f"{'reached' if dd <= g['engine']['stop_at'] else 'clear'} |")
         out.append("")
+    out += tranche_3(ledger, last)
     return "\n".join(out)
+
+
+def _has(ledger, table: str) -> bool:
+    return bool(ledger.one("SELECT 1 AS x FROM sqlite_master WHERE type='table' AND "
+                           "name=?", (table,)))
+
+
+def tranche_3(ledger, last: str) -> list[str]:
+    """X-3's rows: the tells imported by source (X-3.6), the system's own event
+    base rates with n and the window (X-3.1), and the paper book's crypto rows
+    (X-3.2). Each section prints only what alpha.db holds."""
+    from . import event_rates, tells                            # noqa: PLC0415
+    out = ["## 7. The tells imported as hypotheses", ""]
+    c = tells.counts(ledger) if _has(ledger, "hypotheses") else {}
+    if not sum(c.values() or [0]):
+        out += ["None imported yet (python -m alpha.tells import).", ""]
+    else:
+        out += ["| Source | Hypotheses |", "|---|---:|"] + \
+            [f"| {k} | {c[k]} |" for k in tells.KINDS] + \
+            [f"| all | {sum(c.values())} |", "",
+             "Each is a question -- does the tell predict at its horizon after costs? -- "
+             "registered needs_code; the fortnightly loop tests them on its own cadence.",
+             ""]
+    out += ["## 8. The system's own event base rates", ""]
+    rates = event_rates.latest(ledger) if _has(ledger, "event_base_rates") else []
+    if not rates:
+        out += ["Not yet computed (python -m alpha.event_rates compute).", ""]
+    else:
+        out += [f"Computed {rates[0]['computed_on']}, from the store, read-only. A naive "
+                f"surprise is actual less a declared naive expectation, not a consensus "
+                f"surprise.", ""] + event_rates.table(rates) + [""]
+    out += ["## 9. The paper book's crypto rows", ""]
+    rows = ledger.q("SELECT * FROM carry_book WHERE opened_day<=? ORDER BY id",
+                    (last,)) if _has(ledger, "carry_book") else []
+    if not rows:
+        out += ["None: engine 5 has not traded (it waits for its history window and the "
+                "gate).", ""]
+    else:
+        out += ["| Coin | Venue | Opened | Spot qty | Perp qty | Funding accrued | "
+                "Status | Net P&L |", "|---|---|---|---:|---:|---:|---|---:|"]
+        for r in rows:
+            net = "–" if r["net_pnl"] is None else f"{r['net_pnl']:,.2f}"
+            out.append(f"| {r['coin']} | {r['venue']} | {r['opened_day']} | "
+                       f"{r['spot_qty']:.6f} | {r['perp_qty']:.6f} | "
+                       f"{r['funding_accrued']:,.2f} | {r['status']} | {net} |")
+        out += ["", f"The basis: {rows[-1]['basis_note']}", ""]
+    return out
 
 
 def monthly_attachment(stamp: str, path: Optional[str | Path] = None

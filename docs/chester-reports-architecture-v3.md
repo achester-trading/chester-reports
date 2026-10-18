@@ -207,7 +207,9 @@ analysis should almost never require touching an engine.
 > through `observations.open_writer()`; the append-only triggers refuse UPDATE
 > and DELETE once installed, and a row whose source is not a registered id (or
 > `<id>:<variant>`) is refused. Where two sources hold one period at one instant,
-> the as-of join keeps the higher tier of `source_registry.yaml`. After each
+> the as-of join keeps the higher tier of `source_registry.yaml`; its reach is
+> that one instant only, and since the store is append-only a lower tier never
+> overwrites anything (ruled 17 Oct 2026). After each
 > price and FRED pull, `altdata/quality.py` marks outliers and cross-source gaps
 > as rows in `data_quality_flags`, never altering a value. The backups go to an
 > encrypted rclone remote and are restored weekly (`docs/runbooks/restore.md`).

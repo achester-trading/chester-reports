@@ -53,3 +53,44 @@ engines:
     cost_class: index_option
     min_size: 0.01
     params: {}
+  # X-3.1 engine 4, scheduled events (alpha/engines/events.py). The base rates
+  # first (alpha/event_rates.py); each setup its own engine and hypothesis
+  # (alpha/research/roster-2026-10-17-x3.yaml, registered by manifest).
+  - id: events_macro
+    class: alpha.engines.events:EventEngine
+    family: events
+    horizon: daily
+    cost_class: etf
+    min_size: 0.02
+    params: {kind: macro}
+  - id: events_fomc
+    class: alpha.engines.events:EventEngine
+    family: events
+    horizon: daily
+    cost_class: etf
+    min_size: 0.02
+    params: {kind: fomc}
+  - id: events_pead
+    class: alpha.engines.events:EventEngine
+    family: events
+    horizon: daily
+    cost_class: single_name
+    min_size: 0.02
+    params: {kind: pead}
+  # the crush: a data gap until a tradable volatility instrument is stored
+  - id: events_crush
+    class: alpha.engines.events:EventEngine
+    family: events
+    horizon: daily
+    cost_class: etf
+    min_size: 0.02
+    params: {kind: crush}
+  # X-3.2 engine 5, crypto carry and basis (alpha/engines/carry.py): waits for
+  # the manifest's history window of S-3's series
+  - id: crypto_carry
+    class: alpha.engines.carry:CarryEngine
+    family: carry
+    horizon: weekly
+    cost_class: perp
+    min_size: 0.05
+    params: {perp_margin_frac: 0.25}

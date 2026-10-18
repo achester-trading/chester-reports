@@ -12,7 +12,9 @@ ET), in order, each step its own try so one failure costs that step only:
      then THE HARNESS (X-2.9): each registered hypothesis through X-1.6, capped
      a night, and each model idea waiting on its post-cutoff screen again;
   2. PAPER: pending signals filled at the next stored bar's open (or a stored
-     quote), open positions' exits walked bar by bar, closed ones graded;
+     quote), open positions' exits walked bar by bar, closed ones graded; then
+     the CARRY rows (X-3.2): each live carry engine's two-leg positions opened,
+     accrued and closed in carry_book;
   3. MARK every open position at the latest stored close;
   4. the GOVERNOR: each engine's equity and the lab's, the three thresholds;
   5. the POSTERIORS: Beta-binomial on the win rate, normal-normal on the
@@ -178,6 +180,20 @@ class Run:
         if opened or closed:
             self.ledger.event(LOOP, "paper", self.as_of, None,
                               after={"opened": opened, "closed": closed})
+
+    def carry_step(self) -> None:
+        """X-3.2: the paper book's crypto rows -- each live carry engine opens,
+        accrues and closes its carry_book rows (paper only)."""
+        if governor.lab_status(self.ledger) == "halted":
+            return
+        done = {}
+        for e in self.trading():
+            eng = self.engines.get(e["id"])
+            if eng is not None and hasattr(eng, "carry"):
+                done[e["id"]] = eng.carry(self.ledger, self.store, self.as_of,
+                                          self.capital_for(e["id"]))
+        if done:
+            self.summary["carry"] = done
 
     def mark_step(self) -> None:
         self.summary["marked"] = self.paper.mark(self.as_of)
@@ -375,7 +391,7 @@ class Run:
     def run(self) -> dict:
         for name, fn in (("setup", self.setup), ("inbox", self.inbox_step),
                          ("harness", self.harness_step),
-                         ("paper", self.paper_step),
+                         ("paper", self.paper_step), ("carry", self.carry_step),
                          ("mark", self.mark_step), ("governor", self.governor_step),
                          ("posterior", self.posterior_step), ("kill", self.kill_step),
                          ("cost_calibration", self.cost_step),
