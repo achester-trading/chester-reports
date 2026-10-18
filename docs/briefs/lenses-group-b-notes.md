@@ -520,3 +520,21 @@ surprise index's), `CLAUDE.md` (the Group B paragraph),
 `tools/validate_releases_b.py`, `tools/validate_6e_rest.py`.
 `daily_cascade/weekly_stack.py` is also `weekly-fixes-8`'s; that change is one
 argument on one line.
+
+**The CI on the Part 0 commit (`821fcf2`, run 39148508391): failed, 104 of 106
+jobs.** The failures were `validate_alpha` (256 passed, 1 failed) and the
+roll-up. **The cause is the clock, not Part 0.** The check reproduces at the
+parent commit `eb17d0d`, which was green at 09:24Z this morning and fails now.
+- Group Q's weekly run is pinned at 18 Oct 10:00Z. The outbox lists what the lab
+  wrote (`written_at`) in the seven days to that instant, but the fixture's rows
+  were stamped by the wall clock.
+- So every run after 10:00Z on 18 Oct found no hypothesis of the week.
+
+**The fix is in the gate, not the product:** group Q now runs under a ticking
+fixture clock from 17 Oct (`alpha.ledger.utc_now` patched and restored). Locally
+`validate_alpha` is 257 passed, 0 failed; the fix is the commit after `821fcf2`.
+
+**For Ari: the same pinned check is on `alpha-lab-3`, `gtm-core-2` and session
+A's `st-t3-calib`**, so their CI fails it from now on too. I did not touch those
+branches. The fix reaches chain #2 with this branch at the stitch: take this
+branch's `group_q` wrapper.
