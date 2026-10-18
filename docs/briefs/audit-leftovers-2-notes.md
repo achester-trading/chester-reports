@@ -385,5 +385,7 @@ command without `--source store`) for the full window.
 
 ## CI
 
-- Part 0, run 39087884402 on `c0d5559`: in progress at the time of writing; read
-  below once it completes.
+- Part 0, run 39087884402 on `c0d5559`: passed, 104/104.
+- Part 1, run 39088326882 on `961106b`: passed, 104/104.
+
+Both green; nothing to fix. Not merged.
