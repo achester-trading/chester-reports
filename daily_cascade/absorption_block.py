@@ -23,6 +23,8 @@ from __future__ import annotations
 import logging
 from typing import Callable, Optional
 
+from altdata.numeral_audit import ordinal
+
 log = logging.getLogger(__name__)
 
 NA = "NOT AVAILABLE"
@@ -121,13 +123,13 @@ def rate_machine(st, now: str) -> list[str]:
     d = latest(st, "calc.deanchor", now)
     rp = latest(st, "calc.be5y5y_range_pos", now)
     out.append(f"DEANCHOR: {flag(d[1])} (as of {d[0]}); the 5y5y at its "
-               f"{rp[1]:.0f}th percentile since 2010" if d and rp else
+               f"{ordinal(rp[1])} percentile since 2010" if d and rp else
                na("DEANCHOR", "calc.deanchor", "FRED T5YIFR, Fed Board CIE, UMich"))
     g = latest(st, "calc.fed_mkt_gap_12m", now)
     c = latest(st, "calc.cred_stress", now)
     out.append(f"CRED_STRESS: {flag(c[1])} on the 12-month leg (gap {bp(g[1])}, as of "
                f"{g[0]}); the next-meeting leg {NT} (rule 30; "
-               f"manual.fed_signalled_direction)" if g and c else
+               f"by-hand key fed_signalled_direction, dropped 16 Oct)" if g and c else
                na("CRED_STRESS", "calc.fed_mkt_gap_12m",
                   "fed funds futures (fedfunds.futures_price) and FRED FEDTARMD"))
     out.append(line(st, now, "Venues against the futures, next meeting",

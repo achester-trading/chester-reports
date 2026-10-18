@@ -194,7 +194,10 @@ In Slow layers, after the GTM tables:
 
 **CI for this branch:**
 - part 0 (`cd0bcd2`): **green**, 39095548260;
-- part 1 (`18ec03d`) and these notes: read at the next request (not waited on).
+- part 1 (`18ec03d`): **failed**, 39096586909; these notes (`ac676f0`): **failed**, 39096734904. In both runs the same two checks of mine failed:
+  - `validate_numeral_audit`: the 5y5y's percentile wrote "th" by hand (`absorption_block.py:124`). It now goes through `numeral_audit.ordinal()`.
+  - `validate_by_hand_audit` A: dropped keys' literal ids appeared in code and config (`manual.cbo_deficit_path` in `absorption.py` and the registry). The not-tracked lines still name each key, by its bare id ("by-hand key cbo_deficit_path, dropped 16 Oct"), which no reader resolves. The other three keys got the same form.
+- The fix commit follows these notes on this branch (18 Oct, read in st-t2-rates' step 0, whose notes carry its CI number). It also fixes `validate_stack` M's midnight fault. No other gate failed.
 
 ---
 

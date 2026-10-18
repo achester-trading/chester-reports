@@ -13006,7 +13006,7 @@ metrics:
     trigger_eligible: false
     status_extra: not_yet_sourced
     description: >-
-      NOT TRACKED (rule 30): the order fed it from manual.cbo_deficit_path, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+      NOT TRACKED (rule 30): the order fed it from the by-hand key cbo_deficit_path, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
   calc.fed_mkt_gap_m1:
     source: calc
     mechanism_group: treasury_supply
@@ -13019,7 +13019,7 @@ metrics:
     trigger_eligible: false
     status_extra: not_yet_sourced
     description: >-
-      NOT TRACKED (rule 30): the order fed it from manual.fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+      NOT TRACKED (rule 30): the order fed it from the by-hand key fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
   calc.fed_mkt_gap_m2:
     source: calc
     mechanism_group: treasury_supply
@@ -13032,7 +13032,7 @@ metrics:
     trigger_eligible: false
     status_extra: not_yet_sourced
     description: >-
-      NOT TRACKED (rule 30): the order fed it from manual.fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+      NOT TRACKED (rule 30): the order fed it from the by-hand key fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
   calc.ai_long_share:
     source: calc
     mechanism_group: treasury_supply
@@ -13045,7 +13045,7 @@ metrics:
     trigger_eligible: false
     status_extra: not_yet_sourced
     description: >-
-      NOT TRACKED (rule 30): the order fed it from manual.ig_issuance_10y_plus_share, manual.ai_ig_issuance_share, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+      NOT TRACKED (rule 30): the order fed it from the by-hand key ig_issuance_10y_plus_share and ai_ig_issuance_share, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
   edgar.xbrl_long_term_debt:
     source: edgar_xbrl
     mechanism_group: corporate_fundamentals

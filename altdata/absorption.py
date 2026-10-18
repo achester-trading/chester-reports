@@ -66,9 +66,9 @@ GOLD (SR-20, G-34)
 
 NOT TRACKED (rule 30: the by-hand audit of 16 Oct removed every recurring manual key
 but the global PMI; no keyless source within terms reads them):
-  calc.net_supply_proj_12m (manual.cbo_deficit_path), calc.fed_mkt_gap_m1 and _m2
-  (manual.fed_signalled_direction), calc.ai_long_share
-  (manual.ig_issuance_10y_plus_share, manual.ai_ig_issuance_share).
+  calc.net_supply_proj_12m (by-hand key cbo_deficit_path), calc.fed_mkt_gap_m1 and
+  _m2 (fed_signalled_direction), calc.ai_long_share (ig_issuance_10y_plus_share,
+  ai_ig_issuance_share). Each is named by its bare id, so no reader resolves it.
 """
 
 from __future__ import annotations
@@ -119,10 +119,10 @@ FEATURES: dict[str, str] = {
     "calc.cb_gold_12m": "twelve months of central-bank net gold purchases, tonnes",
 }
 NOT_TRACKED: dict[str, str] = {
-    "calc.net_supply_proj_12m": "manual.cbo_deficit_path",
-    "calc.fed_mkt_gap_m1": "manual.fed_signalled_direction",
-    "calc.fed_mkt_gap_m2": "manual.fed_signalled_direction",
-    "calc.ai_long_share": "manual.ig_issuance_10y_plus_share, manual.ai_ig_issuance_share",
+    "calc.net_supply_proj_12m": "by-hand key cbo_deficit_path, dropped 16 Oct",
+    "calc.fed_mkt_gap_m1": "by-hand key fed_signalled_direction, dropped 16 Oct",
+    "calc.fed_mkt_gap_m2": "by-hand key fed_signalled_direction, dropped 16 Oct",
+    "calc.ai_long_share": "by-hand keys ig_issuance_10y_plus_share and ai_ig_issuance_share, dropped 16 Oct",
 }
 HYPERSCALERS = ("AMZN", "GOOGL", "META", "MSFT", "ORCL")
 

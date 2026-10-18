@@ -331,8 +331,10 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # THE MODEL METER'S LINE (AUD-2 item 4): every report's calls today, ET.
     from altdata import model_meter                             # noqa: PLC0415
     try:
-        ed["model_line"] = model_meter.daily_line(
-            db_path, session.to_eastern().date().isoformat())
+        # The day is read once and kept with the edition, so a check of the line
+        # sums the same ET day the footer did, even across midnight.
+        ed["model_day"] = session.to_eastern().date().isoformat()
+        ed["model_line"] = model_meter.daily_line(db_path, ed["model_day"])
     except Exception:                                           # noqa: BLE001
         log.warning("model meter line unavailable", exc_info=True)
     # THE DATA CHECK (AUD-3c, 15 Oct 2026): the day's outlier and cross-source
