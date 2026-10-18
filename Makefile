@@ -102,6 +102,7 @@ PY_VALIDATORS := \
 	tools/validate_system_metrics.py \
 	tools/validate_gtm.py \
 	tools/validate_st_t1_rest.py \
+	tools/validate_st_t2_rates.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \

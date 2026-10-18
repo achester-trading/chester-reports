@@ -267,6 +267,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes: bottom-decile readings (AAII 2000, 2007, 2024–26; Z.1 adds late 1960s/1972). Statistic: forward 12m and 36m 10y Treasury total return, nominal and real, vs. cash, split by trailing CPI ≥4% / <4% and by 1y stock-bond correlation sign. Pass for the modifier: in the growth/term-premium cell, median real return beats unconditional with ≥2/3 hit rate. If the split does not separate, table only. Falsifier: bonds lose to cash over 12m from a bottom-decile print in an inflation regime. Offline (ST-7).
 
+*Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: INSUFFICIENT.** ledger: docs/ledgers/sr-12-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): 3 completed bottom-decile episodes in the cell (CPI < 4%, negative stock-bond correlation, read for the withdrawn driver's growth cell), below the floor of 5; no rate prints. The Z.1 allocation reads the 34th percentile now, not a bottom decile. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-13 Tech (TMT) vs. defensives relative valuation (Topdown Charts / LSEG, 24 Sep 2026) — Thread E
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-8
@@ -313,6 +315,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Book A rebalancing modifier (tilt toward the lowest-z diversifier, sized by |z|, gated by `rates.driver`); confidence modifier on the Valuation pillar.
 
 **Validation gate.** Cross-asset rank test — forward 3y real return of the cheapest-tercile asset vs. the richest, paired by date; per-asset forward 3y/5y real returns conditional on z > +1.5 and z < −1. Pass: cheap beats rich in ≥2/3 of paired observations. Window-fragility test on gold: if its conclusion flips between 1971-start and 1994-start windows, gold drops to base-rate rights only. Falsifier: an anchor-shift regime in which "expensive" persists for a decade. Offline (ST-7).
+
+*Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-15-ledger-2026-10-18.md, FAIL (laptop run, public sources): cheap beat rich in 55.8% of 570 paired months against the rule's two thirds (43.8% of 16 non-overlapping); the gold window test FLIPS (the 1971 window reverts, the 1994 window does not), so under the register gold drops to base-rate rights only. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 ### SR-16 Hyperscaler debt supply and AI credit absorption (Bloomberg chart via Lemand, 24 Sep 2026) — Thread E (supply side of Thread R)
 
@@ -420,6 +424,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes of ≥50 bp divergence within 3 months (1994, 1998, 2007, 2013, 2018, 2022, 2024). Statistic: forward 3m 10y change and equity return split by conceded / refused. Pass: the split separates the long-end outcome. First live test: 28 Oct 2026. Offline (ST-7).
 
+*Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-21-ledger-2026-10-18.md, FAIL (laptop run, public sources): 46 completed divergence episodes (DGS1 less the target, the keyless pair): refused median aligned 10-year change -17.5 bp, conceded +45.5 bp, the opposite of the pre-registered direction. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-22 5-year auction at 5.033%, TLT record low, "meltdown" (Padley, 24 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-1, ST-4, ST-7
@@ -435,6 +441,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Narrow flag "absorption stress" (tail ≥2 bp on two consecutive coupon auctions, or dealer takedown >20%) → overlay queue #2 after gate; A-3 input after gate.
 
 **Validation gate.** ~1,000 coupon auctions 2009–2026; forward 1m and 3m 10y change conditional on top-decile tails. Pass for the contrarian read: median forward 3m change negative with ≥60% hit rate. Otherwise stress flag only. Offline (ST-7).
+
+*Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-22-ledger-2026-10-18.md, FAIL (laptop run, public sources): ABS_STRESS as G-32 defines it fired on 1,034 of 1,540 coupon auctions with 63 sessions forward (the dealers-above-20% leg on 1,031); median 3m 10-year change -2.0 bp, a fall in 51.8%, against the rule's median < 0 and 60%: stress flag only. The pseudo-tail candidate also fails (40.8%). The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 **Doctrine note (by hand).** Drawdown of a constant-duration fund is yield arithmetic; a "record low" in price is not a level that means anything. Candidate rule, not a rule.
 
@@ -455,6 +463,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Confidence modifier on the `rates.driver` cell assignment; Factor IV panel input; Book A duration-timing modifier via the projection, with refunding announcements as Daily events (`events.scheduled` already exists in the registry).
 
 **Validation gate.** 2003–2026 monthly; regress the 12m change in ACM term premium (and `fred.tips_10y`) on the 12m change in net supply/GDP with a funds-rate-path control. Pass: positive, significant coefficient in both pre- and post-2008 subsamples. If only post-2008 → descriptive, no modifier. Falsifier: 2010–13 consistent; 2018–19 inconsistent without the Fed control. Offline (ST-7).
+
+*Drafted under rule 31, 18 Oct 2026 (ST-7, for the accept-all; the register status above is unchanged):* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-23-ledger-2026-10-18.md, FAIL (laptop run, public sources): the supply coefficient on the ACM 10-year term premium is +5.1 bp per pp of GDP post-2008 (Newey-West t 1.29) and -34.1 pre-2008 (t -3.47), with the funds-rate control: not significant post-2008, so descriptive, no modifier. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 ### SR-24 5y5y forward breakeven vs. MSCI World Commodity Producers (Costa / Azuria Capital, chart as of 12 Sep 2026) — Thread R
 

@@ -1,0 +1,8 @@
+first_quarter,last_quarter,entry_month,reading_pct,percentile,cpi_yoy,sb_corr_12m,cell,in_cell,bond_12m,bond_36m,real_12m,real_36m,excess_12m,excess_36m,completed
+1964-10,1965-10,1965-03,3.415,8.5,0.97,-0.117,"CPI < 4%, correlation negative",True,-0.0089,0.0252,-0.0336,-0.0644,-0.0504,-0.1168,True
+1967-04,1967-04,1967-09,3.334,7.2,2.45,-0.082,"CPI < 4%, correlation negative",True,0.0443,0.0379,-0.0003,-0.1104,-0.0076,-0.16,True
+1968-10,1968-10,1969-03,3.193,2.7,4.68,0.05,"CPI >= 4%, correlation positive",False,0.0128,0.2401,-0.0428,0.0814,-0.0583,0.0563,True
+1972-04,1973-04,1972-09,3.342,9.0,2.94,-0.385,"CPI < 4%, correlation negative",True,0.0284,0.09,-0.0421,-0.1596,-0.034,-0.1344,True
+1975-04,1975-04,1975-09,3.2,4.0,8.6,0.168,"CPI >= 4%, correlation positive",False,0.1447,0.2605,0.0851,0.035,0.0901,0.0807,True
+1977-04,1978-10,1977-09,3.267,8.3,6.62,0.438,"CPI >= 4%, correlation positive",False,0.0064,0.0066,-0.0708,-0.2642,-0.0596,-0.2947,True
+2021-01,2022-07,2021-06,2.788,0.4,4.99,0.181,"CPI >= 4%, correlation positive",False,-0.1192,-0.1381,-0.1923,-0.2546,-0.1217,-0.2354,True
