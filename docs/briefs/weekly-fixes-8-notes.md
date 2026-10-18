@@ -76,8 +76,8 @@ Locally after the merge:
 | Run | Commit | Result |
 |---|---|---|
 | 39152644006 | `066c62d` (the CI fixes and the addendum) | **success, 85 of 85 jobs** |
-| (Part 0's) | `110fb31` on `aud-3b-security-master` | in the closing report |
-| (Part 0's) | `81b865a` here | in the closing report |
+| 39156745325 | `110fb31` on `aud-3b-security-master` (the cherry-pick) | **success, 94 of 94 jobs** (86 code gates, 6 data, enumerate and the roll-up): validate_alpha's group Q is green past 10:00 UTC |
+| 39156980683 | `e202312` here (the stitch and these notes) | **success, 95 of 95 jobs** (87 code gates, 6 data, enumerate and the roll-up) |
 
 ## What I read first
 
