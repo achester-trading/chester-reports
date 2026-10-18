@@ -17,6 +17,10 @@ draft text: the rejected draft stays where it always was, in the run log.
 WHERE. `withheld_drafts.jsonl` in the archive directory beside the editions
 (daily_cascade/deliver.archive_path). A write that fails is logged and never
 fails the run that archived the edition.
+
+WHO WRITES IT (ruling 4 of 17 Oct 2026): every edition -- the 07:00 anchor, the
+16:45 close, the Weekly, the Monthly, the Quarterly, and the 12:30 alert slot
+when it opens (`REPORTS`). The run logs stay as they are.
 """
 
 from __future__ import annotations
@@ -28,6 +32,9 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 NAME = "withheld_drafts.jsonl"
+# Every edition that writes the log, by its report name (ruling 4, 17 Oct 2026).
+REPORTS = ("morning_anchor", "daily_close", "weekly_tactical", "monthly_macro",
+           "alt_asset_quarterly", "midday_alert")
 
 
 def path(archive_dir: Optional[str] = None) -> Path:
@@ -52,7 +59,13 @@ def withheld_in(ed: dict) -> list[tuple[str, str]]:
 def record_edition(report: str, edition: str, ed: dict,
                    archive_dir: Optional[str] = None, now: Optional[str] = None) -> int:
     """Append one line per withheld paragraph; the number written. Never raises."""
-    rows = withheld_in(ed)
+    return record(report, edition, withheld_in(ed), archive_dir, now)
+
+
+def record(report: str, edition: str, rows: list,
+           archive_dir: Optional[str] = None, now: Optional[str] = None) -> int:
+    """Append one line per (section, reason) pair, for an edition that is not a
+    stacked edition (the anchor, the 12:30 alert). Never raises."""
     if not rows:
         return 0
     try:

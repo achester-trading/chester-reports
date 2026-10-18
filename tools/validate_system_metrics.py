@@ -10,9 +10,9 @@ THE SYSTEM-METRICS BLOCK (EL-6) AND THE DATED APPENDICES (EL-4), on fixtures.
   B  NOT RECORDED. Each source absent prints "not recorded", never zero: no
      heartbeat log, no roster, no incidents file, no model_calls table (usage
      not recorded), no withheld log.
-  C  THE BASELINE. The Audit #4 row prints beside the figures the agenda
-     recorded (feeds, incidents) as "baseline, by hand, Audit #4", and nothing
-     beside the others.
+  C  THE BASELINE (ruling 5, 17 Oct 2026). The agenda's feeds line and the
+     audit's measured figures of 14 Oct, each labelled "by hand, Audit #4,
+     14 Oct"; days up, session hours and model cost "not recorded".
   D  THE READERS. gather() reads a fixture log directory, a temporary
      model_calls table and a fixture incidents file -- never the live store, no
      fetch, no model; the withheld-drafts log is written and read back.
@@ -30,6 +30,7 @@ THE SYSTEM-METRICS BLOCK (EL-6) AND THE DATED APPENDICES (EL-4), on fixtures.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -153,12 +154,28 @@ def group_c() -> None:
     b = sm.block(*OCT, _src(), bl, title="October 2026")
     col = {r[0]: r[4] for r in b["tables"][0]["rows"]}
     agenda = (REPO / "docs" / "briefs" / "audit-4-agenda.md").read_text(encoding="utf-8")
-    check(col["Feed completeness"] == "official 96/96 (9 Oct)"
-          and col["Incidents"] == "INC-1 to INC-9, one open"
-          and col["Uptime"] == col["Model cost"] == col["Withheld drafts"] == "—"
-          and "official 96/96" in agenda and "INC-1…INC-9" in agenda,
-          "the baseline prints beside feeds and incidents, the two figures the agenda's "
-          "I.3 recorded; nothing beside the three it did not")
+    lab = "by hand, Audit #4, 14 Oct"
+    check(col["Feed completeness"] == ("official 96/96; external 52 of 5x, one stale "
+                                       "(AAII, the operator's drop); the 9 Oct line "
+                                       f"({lab})")
+          and col["Uptime"] == col["Model cost"] == col["Incidents"]
+          == col["Withheld drafts"] == "not recorded"
+          and "official 96/96, external 52/5x, one stale" in agenda,
+          "ruling 5: the agenda's feeds line prints, labelled; uptime, model cost, "
+          "incidents and withheld drafts print 'not recorded' for the baseline")
+    mt = [t for t in b["tables"] if t["columns"][0] == "Audit #4 baseline"]
+    rows = {r[0]: (r[1], r[2]) for r in (mt[0]["rows"] if mt else [])}
+    want = {"Store rows": "2.33 million, 688,000 of them FRED",
+            "Store growth": "about 86,000 rows a weekday",
+            "Disk free": "14 GB of 38 GB", "Backup zip": "about 115 MB",
+            "Drive backup folder": "7.6 GB"}
+    check(all(rows.get(k) == (v, lab) for k, v in want.items())
+          and all(rows.get(k) == ("not recorded", "")
+                  for k in ("Days up", "Session hours", "Model cost"))
+          and len(rows) == 8,
+          f"ruling 5: the audit's five measured figures of 14 Oct, each labelled "
+          f"'{lab}'; days up, session hours and model cost 'not recorded' "
+          f"({len(rows)} rows)")
 
 
 def group_d() -> None:
@@ -199,6 +216,29 @@ def group_d() -> None:
     check(withheld_log.read(str(TD / "none")) is None
           and withheld_log.record_edition("x", "y", {"sections": [{"id": "a"}]}, str(arch)) == 0,
           "no log is None; an edition with nothing withheld writes nothing")
+    # RULING 4 OF 17 OCT 2026: every edition writes the log.
+    writers = {"morning_anchor": "daily_cascade/morning_anchor.py",
+               "daily_close": "daily_cascade/stack_close.py",
+               "weekly_tactical": "daily_cascade/weekly_stack.py",
+               "monthly_macro": "monthly_macro/stack.py",
+               "alt_asset_quarterly": "monthly_macro/quarterly.py",
+               "midday_alert": "daily_cascade/midday_gate.py"}
+    missing = [r for r, f in writers.items()
+               if not re.search(r"withheld_log\.record(_edition)?\(\s*\"" + r + "\"",
+                                (REPO / f).read_text(encoding="utf-8"))]
+    check(set(writers) == set(withheld_log.REPORTS) and not missing,
+          f"ruling 4: the anchor, the close, the Weekly, the Monthly, the Quarterly "
+          f"and the 12:30 slot each write the withheld-drafts log (missing: {missing})")
+    arch2 = TD / "archive_anchor"
+    k = withheld_log.record("morning_anchor", "morning_anchor_2026-10-19.html",
+                            [("narrative", "audit_failed: numeral audit")], str(arch2),
+                            now="2026-10-19T11:00:00+00:00")
+    w = sm.withheld(withheld_log.read(str(arch2)), *OCT)
+    check(k == 1 and w == {"recorded": True, "count": 1, "first": "2026-10-19"}
+          and withheld_log.record("midday_alert", "midday_2026-10-19_1230.json", [],
+                                  str(arch2)) == 0,
+          "an anchor's withheld draft is one line the block counts; an unnarrated "
+          "12:30 alert writes nothing")
 
 
 def group_e() -> None:

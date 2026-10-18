@@ -204,11 +204,13 @@ Both clear 1.2. **No flag on 16 Oct turns on which figure is used.**
 
 **Model cost:** the pipeline already records usage. AUD-2's meter writes each response's usage per call, with no prompt text, from 14 Oct, and the block says "recorded from 14 Oct 2026" for October. Nothing was added.
 
-**Withheld drafts:** there was no such log; a withheld paragraph lived only on its section in the archived edition and as a line in a run log. `altdata/withheld_log.py` now appends one JSON line per withheld section or sub-section when the close, the Weekly, the Monthly or the Quarterly archives its edition. It records the reason, never the draft, at `<archive dir>/withheld_drafts.jsonl`. Before it exists the block prints "not recorded". The 07:00 anchor's withheld draft is still only in its run log (needs-you 4).
+**Withheld drafts** (ruling 4 of 17 Oct applied in the GTM paste's step 0: every edition writes the log -- the anchor, the close, the Weekly, the Monthly, the Quarterly and the 12:30 slot when it opens; the run logs unchanged; `withheld_log.REPORTS`, gated in `validate_system_metrics` group D). Before that: there was no such log; a withheld paragraph lived only on its section in the archived edition and as a line in a run log. `altdata/withheld_log.py` now appends one JSON line per withheld section or sub-section when the close, the Weekly, the Monthly or the Quarterly archives its edition. It records the reason, never the draft, at `<archive dir>/withheld_drafts.jsonl`. Before it exists the block prints "not recorded". The 07:00 anchor's withheld draft is still only in its run log (needs-you 4).
 
 **"Not recorded"** prints wherever a source does not exist, never zero.
 
-**The Audit #4 baseline** prints in its own column as "Baseline, by hand, Audit #4", only where the agenda's I.3 recorded a figure:
+**The Audit #4 baseline, as ruled (ruling 5 of 17 Oct, applied in the GTM paste's step 0).** The main table's baseline column prints the agenda's feeds line (official 96/96; external 52 of 5x, one stale -- AAII, the operator's drop; the 9 Oct line), labelled "by hand, Audit #4, 14 Oct", and "not recorded" beside uptime, model cost, incidents and withheld drafts (the ruling names no incident figure, so the incident list no longer prints). A second table lists the audit's measured figures of 14 Oct, each labelled: the store at 2.33 million rows, 688,000 of them FRED; growth about 86,000 a weekday; 14 GB of 38 GB free; a backup zip about 115 MB; the Drive backup folder 7.6 GB; days up, session hours and model cost "not recorded".
+
+Superseded: the baseline first printed in its own column as "Baseline, by hand, Audit #4", only where the agenda's I.3 recorded a figure:
 - feeds: "official 96/96 (9 Oct)" (its external figure is written "52/5x" and is not transcribed);
 - incidents: "INC-1 to INC-9, one open".
 
@@ -323,4 +325,6 @@ Trial merges (`git merge-tree`, nothing committed) against `digital-49-51b`, `st
 | `vol-event-52` | `986c67a` (notes) | 39067993434 | **green** |
 | `6b-dealer-3` | `4cd0e9f` (step 0's fixes, before the vendor gate's) | 39068044387 | **failed**, one check: `validate_dealer_vendor` still expected the hand-written "2th" -- fixed in `e02aefd` |
 | `6b-dealer-3` | `e02aefd` | 39068814694 | **green** |
-| `el-4-6` | `6501795` | 39070454969 | in progress at the read; recorded at the next |
+| `el-4-6` | `6501795` | 39070454969 | **failed**, one check (265 passed, 1 failed in `validate_monthly_stack`): the Monthly's detail tables gained EL-6's `system_metrics` after the appendix and the gate still listed four |
+| `el-4-6` | `a629f1d` (notes) | 39070524418 | **failed**, the same one check; every other gate green |
+| `el-4-6` | step 0 of the GTM paste | (below) | the gate fixed in `a573e47`; read at the next push |

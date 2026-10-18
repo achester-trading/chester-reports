@@ -601,17 +601,30 @@ dealer_flags:
   # retrospective counts from this date.
   definitions_from: "2026-10-17"
 
-# THE SYSTEM-METRICS BLOCK (EL-6, 17 Oct 2026; altdata/system_metrics.py). The
-# Audit #4 baseline is the row taken by hand for the agenda's item I.3
-# (docs/briefs/audit-4-agenda.md), transcribed only where the agenda recorded a
-# figure: the feeds line of 9 Oct (official 96/96; its external figure is
-# written "52/5x" and is not transcribed) and the incidents INC-1 to INC-9 with
-# one open. Uptime, model cost and withheld drafts were not recorded there, so
-# nothing prints beside them.
+# THE SYSTEM-METRICS BLOCK (EL-6, 17 Oct 2026; altdata/system_metrics.py).
+# RULING 5 OF 17 OCT 2026: the Audit #4 baseline prints what was recorded and
+# nothing else -- the agenda's feeds line (docs/briefs/audit-4-agenda.md I.3,
+# the 9 Oct line) and the data-and-architecture audit's measured figures of
+# 14 Oct, each labelled `label`. Days up, session hours and model cost were not
+# recorded for that baseline and print "not recorded"; so do incidents and
+# withheld drafts, which the ruling did not name.
 system_metrics:
   baseline_audit_4:
-    feeds: "official 96/96 (9 Oct)"
-    incidents: "INC-1 to INC-9, one open"
+    label: "by hand, Audit #4, 14 Oct"
+    uptime: "not recorded"
+    feeds: "official 96/96; external 52 of 5x, one stale (AAII, the operator's drop); the 9 Oct line"
+    incidents: "not recorded"
+    model_cost: "not recorded"
+    withheld: "not recorded"
+    measured:
+      - ["Store rows", "2.33 million, 688,000 of them FRED"]
+      - ["Store growth", "about 86,000 rows a weekday"]
+      - ["Disk free", "14 GB of 38 GB"]
+      - ["Backup zip", "about 115 MB"]
+      - ["Drive backup folder", "7.6 GB"]
+      - ["Days up", "not recorded"]
+      - ["Session hours", "not recorded"]
+      - ["Model cost", "not recorded"]
 
 # 6b'S STATE VECTOR (EL-5, 17 Oct 2026; altdata/state_vector.py). SESSION-SET:
 # the opening range is the first 30 minutes (six 5-minute bars), the classic

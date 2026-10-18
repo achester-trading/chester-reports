@@ -268,8 +268,19 @@ def block(first: str, last: str, src: dict, baseline: Optional[dict] = None,
     else:
         rows.append(["Withheld drafts", NOT_RECORDED, win, "the withheld-drafts log",
                      bl.get("withheld") or "—"])
+    lab = bl.get("label")
+    if lab:
+        for r in rows:
+            if r[4] not in ("—", NOT_RECORDED):
+                r[4] = f"{r[4]} ({lab})"
     tables = [{"columns": ["Metric", title or "The period", "Window", "Source",
                            "Baseline, by hand, Audit #4"], "rows": rows}]
+    # RULING 5 OF 17 OCT 2026: the audit's measured figures, each with its label;
+    # what was not recorded says so.
+    if bl.get("measured"):
+        tables.append({"columns": ["Audit #4 baseline", "Figure", "Label"],
+                       "rows": [[m, f, "" if f == NOT_RECORDED else (lab or "by hand")]
+                                for m, f in bl["measured"]]})
     if fd.get("recorded"):
         tables.append({"columns": ["Feed family", "Fresh", "Expected", "Stale", "Pending"],
                        "rows": [[n, v["fresh"], v["expected"], v["stale"], v["pending"]]

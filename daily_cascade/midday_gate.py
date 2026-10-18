@@ -142,7 +142,8 @@ def mail_alert(day: str, lines: list[str], d: Path,
 def run(day: str, base_dir: Optional[str] = None, gates: Optional[list] = None,
         out_dir: Optional[Path] = None, ctx: Optional[dict] = None,
         extra: Optional[dict] = None,
-        send: Optional[Callable[[str, str], tuple[str, str]]] = None) -> dict:
+        send: Optional[Callable[[str, str], tuple[str, str]]] = None,
+        archive_dir: Optional[str] = None) -> dict:
     """Evaluate; write the alert only when a gate opens, then mail it once.
     Never calls a model. `extra` joins the stored context (the 12:30 quotes, the
     vol history); `send` replaces the SMTP send (the gate's fake)."""
@@ -163,4 +164,10 @@ def run(day: str, base_dir: Optional[str] = None, gates: Optional[list] = None,
         out["mail"] = mail_alert(day, lines, d, send)
         rec["mail"] = {k: v for k, v in out["mail"].items() if k != "detail"}
         path.write_text(json.dumps(rec, indent=2, default=str), encoding="utf-8")
+        # RULING 4 OF 17 OCT 2026: the slot writes the withheld-drafts log when it
+        # opens. The alert is unnarrated today, so `withheld` is empty and nothing
+        # is written; a narrated alert's audit fills it.
+        from altdata import withheld_log  # noqa: PLC0415
+        withheld_log.record("midday_alert", path.name, rec.get("withheld") or [],
+                            archive_dir)
     return out

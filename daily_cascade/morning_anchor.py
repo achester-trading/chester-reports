@@ -119,6 +119,13 @@ def main() -> int:
 
     name = f"morning_anchor_{sess}.html"
     subject = f"[chester] Morning anchor {sess}"
+    # RULING 4 OF 17 OCT 2026: the anchor's withheld draft joins the log every
+    # edition writes; the draft text stays in the run log only.
+    if narr is not None and not narr.published and narr.rejected_text:
+        from altdata import withheld_log  # noqa: PLC0415
+        withheld_log.record("morning_anchor", name,
+                            [("narrative", f"{narr.state}: {narr.reason}")],
+                            args.archive_dir)
     html = render_mod.render(p, {"archive_path":
                                  delivery.archive_path(name, args.archive_dir)},
                              narrative=narr)
