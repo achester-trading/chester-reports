@@ -87,7 +87,7 @@
 
 **Validation gate.** Forward 3/6/12-month value-minus-growth after each trigger, HML from 1963 and ETFs from 2000; hit rate and asymmetry; check the late 1990s for early fires and 2023 for the reversal. Ledger in Base Rates. Pass: positive expectancy after costs at 6 and 12 months across ≥6 non-overlapping episodes. Offline (ST-8).
 
-*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): PASS.** ledger: docs/ledgers/sr-1-ledger-2026-10-18.md, PASS (laptop run, public sources): on HML from 1963, mean value-minus-growth after 0.50% round-trip costs +4.2% at 6 months and +17.9% at 12 across 6 non-overlapping episodes (1981, 1992, 2000, 2009, 2019, 2021), exactly the floor of 6; no late-1990s early fire. The ETF pairs from 2000 read the other way (3 episodes each, 5 of 6 negative at 52 weeks), under their floor, so they do not block under the pre-registered rule. Thresholds admitted into config/style_regime.yaml with this ledger named; the Monthly's style-regime panel renders, display only, with no flag word until this status is accepted. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+*Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): PASS.** ledger: docs/ledgers/sr-1-ledger-2026-10-18.md, PASS (laptop run, public sources): on HML from 1963, mean value-minus-growth after 0.50% round-trip costs +4.2% at 6 months and +17.9% at 12 across 6 non-overlapping episodes (1981, 1992, 2000, 2009, 2019, 2021), exactly the floor of 6; no late-1990s early fire. The ETF pairs from 2000 read the other way (3 episodes each, 5 of 6 negative at 52 weeks), under their floor, so they do not block under the pre-registered rule. Thresholds admitted into config/style_regime.yaml with this ledger named; the Monthly's style-regime panel renders, display only, with no flag word until this status is accepted. Ruled 18 Oct (ruling 1): the pre-registered pass stands, a rule not being changed after its result is seen; the panel prints the ETF pairs' reading beside the HML result, each pair's n (3) and "under its floor of six"; the flag stays display only; and the rights question, whether a modifier needs the pairs at their floor and agreeing with HML, goes to the Doctrine monthly of 7-8 Nov. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 ### SR-2 Yen carry stack (chat question, 10 Sep 2026) — Thread X
 
@@ -138,6 +138,8 @@
 **Validation gate.** Calibrate fix-deviation and CNH–CNY thresholds on Aug 2015–Jan 2017 and Sep 2022–Sep 2023. Base rate for spread persistence from Japan–US 1998–2022. Offline (ST-8).
 
 *Drafted under rule 31, 18 Oct 2026 (ST-8, for the accept-all; the register status above is unchanged):* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-4-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): spot CNH has no keyless history before 2024 (Yahoo's hourly bars), so the gap leg cannot be calibrated on either window; the CNH=F futures proxy, labelled, reads FAIL and admits nothing. Japan-US 1998-2022: US above Japan in every month, the sign held at 12, 24 and 60 months every time. The thresholds stay session-set. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
+*Dated note under rule 31, 18 Oct 2026 (a register fact, ruled 18 Oct):* **FRED's China 10-year is gone.** IRLTLT01CNM156N, the monthly series this entry's Data names, returns 404 from FRED's graph CSV as of 18 Oct 2026, and so do IRLTLT01CNA156N and INTGSBCNM193N. The live US-China spread reads the CFETS curve (calc.uscn_10y_spread from cfets.cgb_10y); a laptop study has no long China 10-year and says so (docs/ledgers/sr-4-ledger-2026-10-18.md). A listed gap under the standing rule of 16 Oct; no key pursued.
 
 ### SR-5 Consumer credit impulse (deGraaf / RenMac, G.19 July print, 8 Sep 2026) — Thread E
 
@@ -212,6 +214,8 @@
 **Fuel metrics.** FINRA margin debt (monthly, new); leveraged-ETF AUM from issuer daily files (new); FINRA short interest (**already registered**: `finra.short_interest`, `finra.short_interest_days_to_cover`); breadth (**already registered**: `calc.breadth_*`); VIX term structure (**already registered**: `calc.vix3m_over_vix`, `cfe.vx1/2/3`).
 
 **Validation gate.** Replay the bottom side rally-by-rally through 2000–02, 2007–09 (Mar 2008), 1973–74 and 2022 (Mar; Jun–Aug); count false bottoms. Score each confirmation element on whether it separates those from Oct 2002, Mar 2009, Oct 1974 and Oct 2022. Elements that discriminate enter the gate; elements that don't are dropped.
+
+*Dated note under rule 31, 18 Oct 2026 (a register fact, ruled 18 Oct):* **FRED's ICE BofA HY OAS starts in Oct 2023.** BAMLH0A0HYM2, and its effective-yield twin, are served by FRED's graph CSV from 2023-10-17 only. Wherever a study needs HY before then, Moody's Baa less the 10-year Treasury (DBAA less DGS10, daily from 1986; BAA less GS10, monthly before) is the labelled long-history proxy, as the false-bottom audit reads it (docs/ledgers/false-bottom-audit-2026.md). A chart or lens that prints HY says which series it reads and from when.
 
 ### SR-9 5.25% and stock-bond correlation (Simon White, Sep 2026) — Threads R and A
 

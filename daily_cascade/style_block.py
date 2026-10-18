@@ -66,12 +66,29 @@ def pair_line(st, now: str, growth: str, value: str, cfg: dict) -> str:
             + (f"; last trigger {s['last_trigger']}" if s["last_trigger"] else ""))
 
 
+def gate_line(cfg: dict) -> str:
+    """The gate's reading, HML beside the ETF pairs (ruling 1 of 18 Oct 2026)."""
+    g = cfg["gate_reading"]
+    h, fl = g["hml"], g["floor"]
+    pairs = "; ".join(
+        f"{k} n {v['n']}" + (f", under its floor of {_word(fl)}" if v["n"] < fl else "")
+        + f", {v['mean_52w_pct']:+.1f}% at 52 weeks" for k, v in g["pairs"].items())
+    return (f"The gate (as of the ledger): HML PASS, n {h['n']}, {h['mean_6m_pct']:+.1f}% "
+            f"at 6 months and {h['mean_12m_pct']:+.1f}% at 12 after costs; the ETF pairs: "
+            f"{pairs}; {g['rights']}")
+
+
+def _word(n: int) -> str:
+    return {6: "six", 8: "eight", 5: "five"}.get(n, str(n))
+
+
 def lines(st, now: str) -> list[str]:
     from altdata import style_regime as SR                      # noqa: PLC0415
     cfg = SR.config()
     out = [f"Thresholds admitted by {cfg['admitted_by']} ({cfg['admitted_verdict']}, "
            f"{cfg['edition']}); display only, no flag word until the operator accepts "
            f"the gate status (rule 31)."]
+    out.append("  " + gate_line(cfg))
     out += ["  " + pair_line(st, now, g, v, cfg) for g, v in cfg["pairs"]]
     out.append("  " + SR13_LINE)
     return out

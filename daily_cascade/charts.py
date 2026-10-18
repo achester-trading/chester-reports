@@ -509,6 +509,7 @@ def pct_band(vals: list, lo: float = 10, hi: float = 90) -> Optional[tuple]:
 
 def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
              asof: str) -> dict:
+    from altdata import labels                                  # noqa: PLC0415
     """Item 12: 2x2 -- yields (2, 10, 30) over one year and over ten; HY OAS over
     one year and over ten with the 5- and 20-year 10th-90th percentile bands."""
     try:
@@ -565,7 +566,8 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
         last = "; ".join(f"{k} {v[-1][1]:.2f}% (FRED, {v[-1][0]})"
                          for k, v in yields.items() if v)
         cap = ("Treasury yields and high-yield OAS, one year and ten years; " + last
-               + (f"; HY OAS {hy[-1][1]:.2f}% (FRED, {hy[-1][0]})" if hy else "")
+               + (f"; HY OAS {hy[-1][1]:.2f}% (FRED, {hy[-1][0]}; "
+                  f"{labels.hy_source(hy[0][0])})" if hy else "")
                + ("; spans: " + "; ".join(spans) if spans else ""))
         return {"id": "W3", "drawn": [], "caption": cap, **out, "panels": drawn,
                 "titles": titles}

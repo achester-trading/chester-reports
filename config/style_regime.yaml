@@ -26,6 +26,19 @@ rule:
   # a setup stays armed for 52 weeks
   arm_weeks: 52
 
+# The gate's reading as the ledger prints it (ruling 1 of 18 Oct): the panel
+# prints the ETF pairs beside HML, each with its n and "under its floor of six".
+# tools/validate_a43_render.py recomputes every figure from the ledger's CSV.
+gate_reading:
+  floor: 6
+  hml: {n: 6, mean_6m_pct: 4.2, mean_12m_pct: 17.9}
+  pairs:
+    IVE-IVW: {n: 3, mean_52w_pct: -4.6}
+    IWD-IWF: {n: 3, mean_52w_pct: -4.3}
+  rights: >-
+    the flag stays display only; whether a modifier needs the pairs at their floor
+    and agreeing with HML is the Doctrine monthly's (7-8 Nov)
+
 # (growth, value), the register's two expressions, total return from the store's
 # closes and the distributions stored beside them.
 pairs:

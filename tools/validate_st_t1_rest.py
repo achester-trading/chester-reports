@@ -342,7 +342,8 @@ def group_e() -> None:
     check(len(subs) == 6 and lines and all(x.strip() for x in lines)
           and all(("NOT AVAILABLE (" in x or "NOT TRACKED (" in x or "not determinable"
                    in x or "withdrawn" in x or "deferred" in x or "zero rebalancing" in x
-                   or "not assessable" in x or "not rendered" in x)
+                   or "not assessable" in x or "not rendered" in x
+                   or "(as of the ledger)" in x)
                   for x in data_lines),
           f"every one of the {len(data_lines)} block lines on an empty store names its "
           f"key and source (NOT AVAILABLE / NOT TRACKED), or says why it is not read")

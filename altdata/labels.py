@@ -24,6 +24,18 @@ import yaml
 REPO = Path(__file__).resolve().parent.parent
 PATH = REPO / "config" / "display_labels.yaml"
 
+# WHICH HY SERIES, AND FROM WHEN (ruled 18 Oct 2026; the register's SR-8 dated
+# note). FRED serves ICE BofA's high-yield OAS from 2023-10-17 only, so a chart or
+# lens printing HY names its series and the first day the store holds.
+HY_SERIES = "fred.hy_oas, ICE BofA US High Yield OAS (FRED BAMLH0A0HYM2)"
+FRED_HY_FROM = "2023-10-17"
+
+
+def hy_source(first_day: Optional[str]) -> str:
+    held = f"stored from {first_day}" if first_day else "not stored"
+    return (f"series {HY_SERIES}, {held}; FRED's own history now starts "
+            f"{FRED_HY_FROM}")
+
 
 @functools.lru_cache(maxsize=1)
 def _cfg() -> dict:

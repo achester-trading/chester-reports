@@ -483,6 +483,7 @@ def quality_tail(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
 
 
 def quality_tail_lines(q: dict) -> list[str]:
+    from . import labels                                        # noqa: PLC0415
     if q.get("absent"):
         return [f"Quality tail: not read — {q['reason']}."]
     lines = [f"Quality tail (ICE BofA via FRED, {q['as_of']}): CCC less BB "
@@ -507,7 +508,7 @@ def quality_tail_lines(q: dict) -> list[str]:
     if eu and us:
         lines.append(f"Europe against the US: euro HY OAS {eu['oas_bp']:,.0f} bp "
                      f"({q.get('euro_leg') or 'the proxy for euro CCC'}) at the "
-                     f"{lens_text(eu['lens'])}; US HY {us['oas_bp']:,.0f} bp at the "
+                     f"{lens_text(eu['lens'])}; US HY ({labels.HY_SERIES}) {us['oas_bp']:,.0f} bp at the "
                      f"{lens_text(us['lens'])} ({eu['as_of']}).")
     elif not eu:
         lines.append("Euro HY OAS: not stored yet.")

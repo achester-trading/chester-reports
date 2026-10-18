@@ -704,8 +704,9 @@ def group_n() -> None:
 # ---------------------------------------------------------------------------
 AUDIT = LEDGERS / "false-bottom-audit-2026.md"
 STUB = REPO / "config" / "tb_false_bottom_gate.yaml"
-# The register's SR-8 entry at the branch point: this branch writes no draft there.
-SR8_ENTRY_SHA = "2b219d3773fbfc77ec3ba156fed63e4150007a3430c55dc5762f6c2e64817e5e"
+# The register's SR-8 entry with its one dated source note (HY OAS, ruled 18 Oct;
+# a43-render): no draft of the audit's is written there.
+SR8_ENTRY_SHA = "6338399418ec3d14cef1b482d118e5de4dbc9ea22ac2975497e61d3729da3db6"
 
 
 def _path(levels: list[float], start: str = "2000-01-03") -> list[tuple[str, float]]:
@@ -854,8 +855,8 @@ def group_q() -> None:
     reg = (REPO / "docs" / "signal-triage-register.md").read_text(encoding="utf-8").replace("\r\n", "\n")
     e = re.search(r"^### SR-8 .*?(?=^### )", reg, re.M | re.S).group(0)
     check(hashlib.sha256(e.encode()).hexdigest() == SR8_ENTRY_SHA,
-          "the register's SR-8 entry is untouched (the audit drafts nothing there; its "
-          "proposal is the ledger's)")
+          "the register's SR-8 entry is as pinned, its one dated source note aside (the audit "
+          "drafts nothing there; its proposal is the ledger's)")
 
 
 def group_r() -> None:

@@ -359,7 +359,7 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
     if len(hy) < 60:
         return {"id": "M5", "unavailable": f"{len(hy)} observations stored, 60 needed"}
     try:
-        from altdata import derived                             # noqa: PLC0415
+        from altdata import derived, labels                     # noqa: PLC0415
         vals = [v for _, v in hy]
         pct = derived.percentile_of(vals, vals[-1])
         yrs = (dt.date.fromisoformat(hy[-1][0]) - dt.date.fromisoformat(hy[0][0])).days
@@ -385,7 +385,7 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
         out = ch._finish(fig, name, out_dir)
         cap = (f"{title}; latest {vals[-1]:.2f} on {hy[-1][0]}, at the "
                f"{ordinal(pct)} percentile of the span; 10th {marks[10]:.2f}, median "
-               f"{marks[50]:.2f}, 90th {marks[90]:.2f}")
+               f"{marks[50]:.2f}, 90th {marks[90]:.2f}; {labels.hy_source(hy[0][0])}")
         return {"id": "M5", "title": title, "drawn": [], "caption": cap, **out,
                 "percentile": pct, "marks": marks,
                 "series": [{"date": d, "value": v} for d, v in hy]}
