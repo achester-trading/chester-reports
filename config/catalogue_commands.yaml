@@ -451,7 +451,7 @@ commands:
     sources: [finra, apewisdom, ibkr_stock_loan]
   altdata.loggers.consensus:
     domain: equity
-    line: Nightly consensus and revision log
+    line: "Nightly consensus and revision log. Budget: one Yahoo .info read per name, 0.6 s apart, nightly -- 24 names (13 options names, 11 sector ETFs), at most 39 with the GTM batch's (the newest top 12 issuers' lines and ORCL, GOOG; ruling 5 of 17 Oct 2026)"
   altdata.loggers.rtat:
     domain: sentiment
     line: RTAT10 -- Nasdaq's Retail Trading Activity Tracker, top ten

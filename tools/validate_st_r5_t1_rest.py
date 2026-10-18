@@ -237,10 +237,11 @@ def group_a() -> None:
     check(len(want) == 19 and not bad,
           f"nineteen FRED series join the pull with their ids, units and cadence "
           f"(bad: {bad or 'none'})")
-    # 57 / 159 since the GTM batch, part 1 (17 Oct 2026) added five.
-    check(len(acfg.FRED_SIGNAL_SERIES) == 57 and len(acfg.FRED_PULL_SERIES) == 159
-          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 159,
-          f"FRED_SIGNAL_SERIES 57, FRED_PULL_SERIES 159, no key twice "
+    # 57 / 159 since the GTM batch, part 1 (17 Oct 2026) added five; 63 / 165
+    # since part 2 added GTM-12's six.
+    check(len(acfg.FRED_SIGNAL_SERIES) == 63 and len(acfg.FRED_PULL_SERIES) == 165
+          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 165,
+          f"FRED_SIGNAL_SERIES 63, FRED_PULL_SERIES 165, no key twice "
           f"({len(acfg.FRED_SIGNAL_SERIES)}, {len(acfg.FRED_PULL_SERIES)})")
     s = bis_cbpol.parse_all(ALL_CSV)
     check(set(s) == {"US", "XM", "DE"} and s["US"] == {"2026-08-31": 4.25, "2026-09-30": 4.0},

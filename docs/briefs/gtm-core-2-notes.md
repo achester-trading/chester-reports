@@ -9,6 +9,28 @@ The work is the GTM change order (`docs/change-order-jpm-gtm-2026-10-03.md`, rul
 
 ---
 
+## This branch's CI, and the rulings of 17 Oct on this report
+
+| Run | Commit | Result |
+|---|---|---|
+| 39093948685 | `ae09e15` (the build) | **failed**, two checks of mine |
+| 39094111332 | `38276bf` (these notes) | **failed**, the same two |
+
+Both failures were gates pinning what this branch changed, and both are fixed in the next commit:
+1. **`validate_official_sources`, "edgar_xbrl: an outage is STALE and writes nothing".** CI has no SEC contact, so the new reader was correctly PENDING and never reached its fetch. The outage loop now gives it a placeholder contact (no address), so the outage path is the one tested. 290/0 locally.
+2. **`validate_st_r5_t1_rest`,** which pins the FRED counts. It now pins 63 / 165 (GTM-12's six). 103/0 locally.
+
+Everything else passed in both runs. The fix commit's run is read in `st-t1-rest`'s notes, the next branch on this line.
+
+**The rulings of 17 Oct on this report, applied:**
+1. **The queue order:** the operator rules it at the 25 Oct dry run. GTM-3's entry stays a draft with no position.
+2. **SR-49:** confirmed skipped. SR-48 and SR-50 to SR-59 stand.
+3. **Slides 8, 11, 15, 22 and 27:** they stand as one-time sourced figures, each with its slide and as-of. They are reference data, not a recurring line.
+4. **The four GICS buckets:** no membership by hand (rule 30). They print the Guide's figures, labelled; no keyless membership source is pursued.
+5. **The consensus log** may read the top 10 plus ORCL and GOOG. The budget it uses is now stated in its catalogue line: one Yahoo `.info` read per name, 0.6 s apart, nightly. That is 24 names before (13 options names, 11 sector ETFs) and at most 39 with the GTM names. GTM-3 and the hyperscaler bucket print the Guide's figures until the names are logged.
+
+---
+
 ## Step 0 (committed on `gtm-core-1`, `faded6c`)
 
 ### `gtm-core-1`'s CI

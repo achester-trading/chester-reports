@@ -924,6 +924,12 @@ def group_n() -> None:
                 setattr(mod, attr, boom)
     saved_find = pub.find_link
     pub.find_link = boom
+    # The XBRL reader is PENDING without the SEC contact and fetches nothing; a
+    # placeholder contact here makes it reach its (failing) fetch, so the outage
+    # path is the one tested (the GTM batch, part 2).
+    from altdata.sources import edgar as _edgar
+    saved_contact = _edgar.contact
+    _edgar.contact = lambda: "placeholder-contact"
     db = temp_store()
     try:
         for name, mod in mods:
@@ -937,6 +943,7 @@ def group_n() -> None:
                   and count(db) == before,
                   f"{name}: an outage is {want} and writes nothing")
     finally:
+        _edgar.contact = saved_contact
         for (mod, attr), fn in saved.items():
             setattr(mod, attr, fn)
         pub.find_link = saved_find
