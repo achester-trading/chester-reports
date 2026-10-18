@@ -1,9 +1,29 @@
 # weekly-fixes-8: the fixes from the first live Weekly (session notes, 18 Oct 2026)
 
-**This branch, `weekly-fixes-8`, is cut from the tip of `writer-fixes-1`
-(`4cad29b`), which is Monday's chain. It merges on Monday 19 Oct, after
-`writer-fixes-1`, and before anything on chain #2.** Tuesday's stitch carries it
-into chain #2 (the shared files are listed below).
+**After the stitch (Part 0 of 18 Oct's second paste), this branch holds, in
+order:**
+1. the chain of nine (`aud-3b-security-master`, `110fb31`, with the
+   validate_alpha cherry-pick);
+2. `weekly-fixes-7`;
+3. `writer-fixes-1`;
+4. `weekly-fixes-8`.
+
+It was cut from `writer-fixes-1`'s tip (`4cad29b`), and the chain was merged
+in at `81b865a`. It merges on Monday 19 Oct, second, and before anything on
+chain #2; Tuesday's stitch carries it into chain #2 (the shared files are listed
+below).
+
+**Monday's merge order (ruling 4 of 18 Oct), for Ari:**
+
+| # | Branch | What it carries | PR title Ari will see |
+|---|---|---|---|
+| 1 | `aud-3b-security-master` | the chain of nine, with the cherry-pick | "aud-3b-security-master: Monday's chain of nine (the 17 Oct fold), with validate_alpha's fixture clock" |
+| 2 | `weekly-fixes-8` | after the stitch; carries `weekly-fixes-7` and `writer-fixes-1` | "weekly-fixes-8: the first live Weekly's fixes (with weekly-fixes-7 and writer-fixes-1)" |
+| 3 | `weekly-fixes-9` | if green by Monday afternoon, else Tuesday's stitch | "weekly-fixes-9: the rest of the first live Weekly's faults" |
+| 4-6 | `docs-batch-7`, `docs-batch-8`, `docs-batch-9` | one file each, no conflicts | their own |
+
+After #1 merges, #2's diff against main is the Weekly line alone. No PR was
+opened by me; the titles are the ones to give them.
 
 Branch only: pushed, not merged, not deployed, nothing run on the box. No unit
 was enabled, started or reconfigured. Session A's `st-t3-calib` and its branches
@@ -12,7 +32,52 @@ were not touched, and chester-meme was not touched at all.
 | Part | Commit |
 |---|---|
 | The fixes and their gate | `7af5b0e` |
-| These notes | the commit after |
+| These notes | `b939516` |
+| The CI fixes and the addendum (W8-1b, W8-1c) | `066c62d` |
+| Part 0: the stitch of the chain | `81b865a` |
+
+## Part 0 (18 Oct, second paste): the chain's fix and the stitch
+
+**1. The chain's fix.** `aud-3b-security-master` (`8f53e6b`) carries
+`alpha/ledger.py` and `tools/validate_alpha.py`. So every CI run of it after
+10:00 UTC on 18 Oct fails validate_alpha's group Q, and main would too after
+the merge.
+- I cherry-picked `3b0da9a`, the gate's hunk only. The notes hunk is for
+  `lenses-group-b-notes.md`, which is not on that chain, so it was dropped.
+- The result is `110fb31`. validate_alpha is 257 passed, 0 failed locally.
+- Nothing else on that branch changed: no recount, no other file.
+- The branch is checked out in another worktree (`chester-chain`), so I built
+  the commit on a local name and pushed it as a fast-forward to
+  `origin/aud-3b-security-master`. That worktree's local branch is one commit
+  behind until it pulls.
+
+**2. The stitch.** `origin/aud-3b-security-master` was merged into this branch:
+a merge commit, no rebase, no squash. There were three conflicts, as the trial
+merge predicted:
+
+| File | Resolution |
+|---|---|
+| `daily_cascade/close_report.py`, `daily_cascade/morning_anchor.py` | The chain's `with model_meter.scope(...)` kept, with `audit_retry.generate(...)` inside it, so the one revision is metered too |
+| `CLAUDE.md` | The count line, recounted from the merged Makefile: eighty-seven code gates (eighty-four Python, three shell) and six data gates |
+
+Of the files touched on both sides:
+- `altdata/numeral_audit.py` merged clean. The chain adds the volume-profile
+  labels and `role_faults`, with names apart from the series binding's.
+- `config/reporting_stack.yaml` and `daily_cascade/ahead.py` are unchanged on
+  the chain's side.
+
+Locally after the merge:
+- validate_audit_3a (which reads the count line): **84 passed, 0 failed**;
+- validate_numeral_audit: **172 passed, 0 failed**;
+- validate_weekly_fixes_8: **67 passed, 0 failed**.
+
+**The CI reads:**
+
+| Run | Commit | Result |
+|---|---|---|
+| 39152644006 | `066c62d` (the CI fixes and the addendum) | **success, 85 of 85 jobs** |
+| (Part 0's) | `110fb31` on `aud-3b-security-master` | in the closing report |
+| (Part 0's) | `81b865a` here | in the closing report |
 
 ## What I read first
 
