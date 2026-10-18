@@ -290,4 +290,8 @@ cd ~/chester-reports
 
 ## CI
 
-- Run on `395483f` (the build): in progress at the time of writing; read below once it completes.
+Read once each on 18 Oct 2026 (lenses-group-b's step 0):
+
+- Run 39097051684 on `395483f` (the build): **failed**, 103 of 105 jobs passed. The two failures were `validate_alpha` (254 passed, 3 failed) and the `gates-passed` roll-up that follows from it.
+- Run 39097161999 on `71ae80d` (these notes): **failed**, the same: 103/105, `validate_alpha` 254/3.
+- **The cause was mine.** Three checks in `validate_alpha` pinned the engine registry to Tranche 2's four engines: the registry's list, `load_all()`'s length, and the nightly loop's candidate map. This branch adds five more to `config/alpha_engines.yaml`, so all three checks failed. The checks now hold Tranche 2's four first, then Tranche 3's five, all of them candidates that trade nothing (`ENGINE_IDS`). Locally that is 257 passed, 0 failed. The fix is the commit after these notes. Its run is read in lenses-group-b's notes, which carry the result forward.

@@ -454,6 +454,12 @@ def group_c_static() -> None:
         check(not (Path(_TMP) / "absent.sqlite").exists(), "a missing store is not created")
 
 
+# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026).
+ENGINE_IDS = ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer",
+              "events_macro", "events_fomc", "events_pead", "events_crush",
+              "crypto_carry"]
+
+
 # ---------------------------------------------------------------------------
 def group_d() -> None:
     head("D. THE ENGINE INTERFACE (X-1.3)")
@@ -464,12 +470,12 @@ def group_d() -> None:
               "kill_rule"):
         check(hasattr(engine_mod.Engine, a), f"and declares {a}")
     reg = engine_mod.registered()
-    check([e["id"] for e in reg] == ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer"]
+    check([e["id"] for e in reg] == ENGINE_IDS
           and all(str(e["class"]).startswith("alpha.engines.") for e in reg),
-          "config/alpha_engines.yaml registers Tranche 2's engines (X-2.1 to X-2.3), "
-          "each in alpha/engines/")
+          "config/alpha_engines.yaml registers Tranche 2's engines (X-2.1 to X-2.3) and "
+          "Tranche 3's (X-3.1, X-3.2), each in alpha/engines/")
     loaded = engine_mod.load_all()
-    check(len(loaded) == 4 and all(hasattr(e, "coverage") for e in loaded),
+    check(len(loaded) == len(ENGINE_IDS) and all(hasattr(e, "coverage") for e in loaded),
           "and each loads, with its coverage check")
     entry = {"id": "fx", "class": "tests.fixtures.alpha.fixture_engine:FixtureEngine"}
     try:
@@ -1851,9 +1857,8 @@ def group_t() -> None:
     with Ledger(Path(_TMP) / "t_nightly.db") as lg:
         es = {e["id"]: e["status"] for e in lg.engines()}
         sigs = lg.one("SELECT COUNT(*) AS n FROM signals")["n"]
-    check(not out["failures"] and es == {"trend_ts": "candidate", "trend_xs": "candidate",
-                                         "pm_futures": "candidate",
-                                         "vrp_dealer": "candidate"} and sigs == 0,
+    check(not out["failures"] and es == {e: "candidate" for e in ENGINE_IDS}
+          and sigs == 0,
           "the registry's engines enter the nightly loop as candidates and trade "
           "nothing before they pass")
 
