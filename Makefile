@@ -111,6 +111,7 @@ PY_VALIDATORS := \
 	tools/validate_backups.py \
 	tools/validate_meme_ingest.py \
 	tools/validate_ledgers_b6.py \
+	tools/validate_outliers.py \
 	tools/validate_quality.py \
 	tools/validate_fred_history.py \
 	tools/validate_alpha.py \

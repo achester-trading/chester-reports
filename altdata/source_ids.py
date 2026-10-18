@@ -86,3 +86,46 @@ def canonical(stored: Optional[str], known: Optional[frozenset] = None,
     if ":" in s and head in k:
         return head
     return None
+
+
+def writable(source: Optional[str], known: Optional[frozenset] = None) -> Optional[str]:
+    """The id a NEW row may be stamped with (audit-leftovers-2, the 14 Oct audit's
+    item 12): a registered id, or `<id>:<variant>`. A declared alias is not
+    writable -- the aliases read the history; a writer writes the id itself."""
+    if source is None:
+        return None
+    s = str(source).strip()
+    k = known if known is not None else ids()
+    if s in k:
+        return s
+    head = s.split(":", 1)[0]
+    return head if ":" in s and head in k else None
+
+
+# THE TIER ORDER (audit-leftovers-2; the 14 Oct audit's item 15). source_registry
+# .yaml's own vocabulary, highest first: A0 machine-readable primary, A1
+# redistributed primary, B global wires, C specialist and local (the scrapes and
+# unofficial mirrors), D desks, E, then `derived` (our own computations, which
+# inherit their inputs' authority and never outrank them). A string on no list
+# ranks last of all.
+TIER_ORDER = ("A0", "A1", "B", "C", "D", "E", "derived")
+_TIERS: Optional[dict] = None
+
+
+def tier_of(stored: Optional[str], key: Optional[str] = None) -> Optional[str]:
+    """The catalogue tier of the source a stored string means, or None."""
+    global _TIERS
+    if _TIERS is None:
+        import yaml                                             # noqa: PLC0415
+        reg = yaml.safe_load((REPO / "source_registry.yaml").read_text(
+            encoding="utf-8")) or {}
+        _TIERS = {str(k): (v or {}).get("tier")
+                  for k, v in (reg.get("sources") or {}).items()}
+    sid = canonical(stored, key=key)
+    return _TIERS.get(sid) if sid else None
+
+
+def tier_rank(stored: Optional[str], key: Optional[str] = None) -> int:
+    """0 for A0 .. 6 for derived; 7 for a string on no list."""
+    t = tier_of(stored, key)
+    return TIER_ORDER.index(t) if t in TIER_ORDER else len(TIER_ORDER)

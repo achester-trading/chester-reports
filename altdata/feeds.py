@@ -932,6 +932,10 @@ def _main(argv: list[str]) -> int:
         print(format_freshness(r))
         for ln in named_keys(r):
             print(f"  {ln}")
+        # THE DATA CHECK'S COUNT (audit-leftovers-2): "n outliers" from the marks
+        # the pulls' `quality record` wrote. Information, never the exit code.
+        from . import quality                                   # noqa: PLC0415
+        print(f"  {quality.outliers_line(quality.outliers_count(quality.default_db()))}")
     return 0 if r["ok"] else 1
 
 

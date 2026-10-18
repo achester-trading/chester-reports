@@ -749,6 +749,11 @@ fi
 FEEDS_STATE=unknown
 FEEDS_LINE=""
 FEEDS_STALE_NAMES=""
+# THE DATA CHECK'S COUNT (audit-leftovers-2): `feeds check` ends on "data check: n
+# outliers on D", from the marks the pulls' `quality record` wrote. Logged, and
+# carried as quality=<n> (none before the first record). A WARNING AND NEVER A
+# VERDICT: a marked print is a prompt to look, and the value stands as stored.
+QUALITY_STATE=unknown
 if [[ -n "${CHESTER_SKIP_FEED_CHECK:-}" ]]; then
     FEEDS_STATE=skipped
 elif [[ -z "${STATE_PY:-}" ]]; then
@@ -766,6 +771,10 @@ else
     [[ -n "$FEEDS_LINE" ]] && log "  feeds: $FEEDS_LINE"
     printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(stale\|pending\) /\1 /p' \
         | while IFS= read -r ln; do log "    $ln"; done
+    DQ_LINE="$(printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(data check: .*\)/\1/p' | head -n 1)"
+    QUALITY_STATE="$(printf '%s\n' "$DQ_LINE" | sed -n 's/^data check: \([0-9][0-9]*\) outlier.*/\1/p')"
+    [[ -z "$QUALITY_STATE" ]] && QUALITY_STATE=none
+    [[ -n "$DQ_LINE" ]] && log "  $DQ_LINE"
 fi
 
 # Ranked below the pipeline verdicts, below drift, and below the state object, on
@@ -1050,15 +1059,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE quality=$QUALITY_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s quality=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$QUALITY_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"

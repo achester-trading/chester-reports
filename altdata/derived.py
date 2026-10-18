@@ -655,7 +655,9 @@ class RowCache:
         out: list[dict] = []
         for day in days:
             out.extend(by_day[day])
-        return out
+        # The source tier between rows at one instant (audit-leftovers-2), the
+        # same rule as_of() applies, so the cache still answers what the query does.
+        return observations.prefer_tier(out, metric_id)
 
 
 _CACHE: Optional[RowCache] = None

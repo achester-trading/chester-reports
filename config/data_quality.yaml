@@ -31,7 +31,30 @@ outliers:
     and named, never judged on a shorter window.
   # Which keys: the closes block (yfinance.mkt_<sym>) and every FRED bulk block.
   blocks: [market_closes, fred_macro, fred_signal_triage, fred_fx_scan, fred_sloos,
-           fred_aq3, fred_sr43, fred_thailand]
+           fred_aq3, fred_sr43, fred_thailand, fred_6e, fred_releases]
+  blocks_reason: >-
+    audit-leftovers-2 (18 Oct 2026): the audit asked for every FRED series, and
+    the 6e and release blocks (25 and 45 series) had joined the pull after AUD-3c
+    listed its blocks. The check now covers the whole FRED pull and the closes.
+  # THE MULTIPLE AND THE WINDOW PER FAMILY (audit-leftovers-2; the audit's item 14
+  # asks for them listed per family where families differ). A key takes its
+  # metric-lens family's line (metrics_registry.yaml's `families`, a block's
+  # `family`); a key with no family takes sigma and window above. SESSION-SET,
+  # 18 Oct 2026: no family differs today. The delta rule already differs by
+  # family -- log for a price, a difference for a rate or a spread, the move
+  # screen's pinned log basis for the volatility indexes -- so a standard
+  # deviation of the key's own changes is comparable across them, and sixty
+  # changes is three months of a daily series and five years of a monthly
+  # release. A family that needs its own number gets it on this line, with its
+  # reason; none is invented here.
+  families:
+    price:      {sigma: 6, window: 60}
+    rate:       {sigma: 6, window: 60}
+    spread:     {sigma: 6, window: 60}
+    release:    {sigma: 6, window: 60}
+    quantity:   {sigma: 6, window: 60}
+    conditions: {sigma: 6, window: 60}
+    ratio:      {sigma: 6, window: 60}
 
 # CROSS-SOURCE PAIRS. Two sources' prints of one fact, on the latest date both
 # hold. A gap beyond the pair's tolerance flags. The tolerance is the

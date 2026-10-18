@@ -198,6 +198,20 @@ analysis should almost never require touching an engine.
 > half-lives, bulk blocks resolved to code) and `source_registry.yaml`; what the
 > store holds is listed by `python -m altdata.catalogue` and checked against the
 > registry by `python -m tools.check_store_registry`.
+>
+> **Refreshed 18 Oct 2026 (audit-leftovers-2).** The pull walks 199 FRED series
+> (`config.FRED_PULL_SERIES`) and 106 market symbols
+> (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
+> Master (`config/security_master.yaml`). The scheduled roster is 31 official
+> writers, 27 external writers and 7 loggers. A scheduled writer opens the store
+> through `observations.open_writer()`; the append-only triggers refuse UPDATE
+> and DELETE once installed, and a row whose source is not a registered id (or
+> `<id>:<variant>`) is refused. Where two sources hold one period at one instant,
+> the as-of join keeps the higher tier of `source_registry.yaml`. After each
+> price and FRED pull, `altdata/quality.py` marks outliers and cross-source gaps
+> as rows in `data_quality_flags`, never altering a value. The backups go to an
+> encrypted rclone remote and are restored weekly (`docs/runbooks/restore.md`).
+> `tools/validate_audit_3a.py` holds these counts against the code.
 
 ## The provenance chain — how hallucination is actually prevented
 

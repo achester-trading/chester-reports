@@ -296,9 +296,17 @@ def group_e(td: str, db: str) -> None:
         rc0 = quality.main(["check", "--date", DAY, "--db", clean])
     check(rc0 == 0, f"a clean store exits 0 (exit {rc0})")
     src = (REPO / "altdata" / "quality.py").read_text(encoding="utf-8")
-    check("mode=ro" in src and not any(w in src for w in (
-        "INSERT ", "UPDATE ", "DELETE ", "write_many", ".write(")),
-          "the module opens the store mode=ro and holds no write statement")
+    # audit-leftovers-2: `record` writes its marks to its own two tables; the
+    # observations are never written, and check/outliers stay read-only.
+    import re as _re
+    inserts = _re.findall(r"INSERT OR IGNORE INTO \{(\w+)\}", src)
+    check("mode=ro" in src and not _re.search(r"\bUPDATE\s+\S+\s+SET\b", src)
+          and not any(w in src for w in (
+              "DELETE FROM", "write_many", ".write(", "INTO observations"))
+          and sorted(set(inserts)) == ["FLAGS_TABLE", "RUNS_TABLE"]
+          and src.count("INSERT ") == len(inserts),
+          "the module opens the store mode=ro to check, never writes an observation, "
+          "and inserts only into its own marks tables")
 
 
 def group_f(td: str, db: str) -> None:

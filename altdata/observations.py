@@ -402,6 +402,60 @@ def maintenance(conn: sqlite3.Connection, tool: str):
     log.warning("observations: maintenance by %s committed", tool)
 
 
+def prefer_tier(rows: list[dict], registry_key: Optional[str] = None) -> list[dict]:
+    """THE SOURCE TIER IN THE AS-OF JOIN (audit-leftovers-2; the 14 Oct audit's
+    item 15). The join keeps, per period, the rows at the newest instant
+    knowable; two SOURCES can share that instant (the uniqueness key includes
+    the source), and the join returned both. Here the higher catalogue tier wins
+    (source_ids.TIER_ORDER: A0 over A1 over B, C, D, E, derived, then a string on
+    no list); rows of equal tier are all kept, as before. The kept row carries
+    `tier` and, where it beat another, `tier_over` -- which source it chose and
+    over what. A newer vintage still wins over an older one of any tier: this
+    rule decides only between sources at one as-of."""
+    from . import source_ids                                    # noqa: PLC0415
+    by: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for r in rows:
+        d = str(r["observed_at"])
+        if d not in by:
+            by[d] = []
+            order.append(d)
+        by[d].append(r)
+    out: list[dict] = []
+    for d in order:
+        group = by[d]
+        if len(group) == 1 or len({str(r.get("source")) for r in group}) == 1:
+            out.extend(group)
+            continue
+        ranked = [(source_ids.tier_rank(r.get("source"), registry_key), r) for r in group]
+        best = min(k for k, _ in ranked)
+        kept = [dict(r, tier=source_ids.tier_of(r.get("source"), registry_key))
+                for k, r in ranked if k == best]
+        lost = [f"{r.get('source')} ({source_ids.tier_of(r.get('source'), registry_key) or 'no tier'})"
+                for k, r in ranked if k != best]
+        if lost:
+            for r in kept:
+                r["tier_over"] = lost
+            log.info("as-of tier: %s %s chose %s (%s) over %s", registry_key, d,
+                     kept[0].get("source"), kept[0].get("tier"), ", ".join(lost))
+        out.extend(kept)
+    return out
+
+
+class UnregisteredSource(ValueError):
+    """A scheduled writer stamped a row with a source the catalogue does not
+    know (audit-leftovers-2; the 14 Oct audit's item 12)."""
+
+
+def unregistered_sources(payload: Iterable[tuple]) -> list[str]:
+    """The source strings in write_many's payload (column 8) that are neither a
+    registered id nor `<id>:<variant>` -- source_registry.yaml's `sources`."""
+    from . import source_ids                                    # noqa: PLC0415
+    known = source_ids.ids()
+    return sorted({str(p[7]) for p in payload
+                   if source_ids.writable(p[7], known) is None})
+
+
 def open_writer(writer: str, path: Optional[str] = None) -> "ObservationStore":
     """THE ONE WAY A SCHEDULED WRITER OPENS THE STORE (audit-leftovers-1; D1c is
     WAL and the busy timeout for append-only writers, and this makes that rule
@@ -526,6 +580,19 @@ class ObservationStore:
                             r["source"], r.get("run_id"), kind))
         if not payload:
             return 0
+        # A REGISTERED SOURCE ID ON EVERY ROW A SCHEDULED WRITER WRITES
+        # (audit-leftovers-2; the 14 Oct audit's item 12). A store opened through
+        # open_writer() refuses the whole write when any row's source is free
+        # text: the writer's own error path reports it and freshness names the
+        # key stale, where a silently stored string would sit under no source the
+        # tier rule or the store check can read. The history is never rewritten:
+        # old strings read through source_ids.canonical()'s declared aliases.
+        if getattr(self, "writer", None):
+            bad = unregistered_sources(payload)
+            if bad:
+                raise UnregisteredSource(
+                    f"{self.writer}: source {', '.join(map(repr, bad))} is not in "
+                    f"source_registry.yaml -- register it, or stamp <id>:<variant>")
         cur = self.conn.executemany(
             "INSERT OR IGNORE INTO observations "
             "(registry_key, instrument, observed_at, available_at, ingested_at,"
@@ -560,7 +627,7 @@ class ObservationStore:
             cur = self.conn.execute(AS_OF_SQL, {"key": registry_key,
                                                 "instrument": instrument,
                                                 "as_of": cutoff})
-        return [dict(r) for r in cur.fetchall()]
+        return prefer_tier([dict(r) for r in cur.fetchall()], registry_key)
 
     def last_observed(self, keys=(), prefixes=()) -> Optional[str]:
         """The newest observed_at day stored under any of `keys`, or under any key
@@ -626,7 +693,17 @@ class ObservationStore:
         r = self.conn.execute(LATEST_AS_OF_SQL, {"key": registry_key,
                                                  "instrument": instrument,
                                                  "as_of": cutoff}).fetchone()
-        return dict(r) if r else None
+        if not r:
+            return None
+        # Every source at that period's newest instant, then the tier rule.
+        ties = self.conn.execute(
+            "SELECT observed_at, value_num, value_text, source, available_at, run_id,"
+            " availability_kind FROM observations WHERE registry_key = ? AND "
+            "instrument IS ? AND observed_at = ? AND available_at = ? ORDER BY source",
+            (registry_key, instrument, r["observed_at"], r["available_at"])).fetchall()
+        if len(ties) <= 1:
+            return dict(r)
+        return prefer_tier([dict(t) for t in ties], registry_key)[0]
 
     def all_vintages(self, registry_key: str,
                      instrument: Optional[str] = None) -> list[dict]:
@@ -884,7 +961,38 @@ def _main(argv) -> int:
             conn.close()
         print(f"append-only triggers {'installed' if ok else 'FAILED'} on {path}")
         return 0 if ok else 2
+    if argv and argv[0] == "as-of" and len(argv) >= 2:
+        # Read-only: the newest period's row as the join returns it, and which
+        # source the tier rule chose where two shared the instant.
+        import argparse                                         # noqa: PLC0415
+        ap = argparse.ArgumentParser(prog="python -m altdata.observations as-of")
+        ap.add_argument("key")
+        ap.add_argument("--instrument", default=None)
+        ap.add_argument("--as-of", dest="cutoff", default=None)
+        ap.add_argument("--db", default=None)
+        ap.add_argument("--last", type=int, default=5)
+        a = ap.parse_args(argv[1:])
+        path = Path(a.db or DEFAULT_DB)
+        if not path.exists():
+            print(f"no database at {path}")
+            return 1
+        conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        try:
+            cutoff = canonical_instant(a.cutoff or session.utc_iso(timespec="microseconds"))
+            rows = prefer_tier([dict(r) for r in conn.execute(AS_OF_SQL, {
+                "key": a.key, "instrument": a.instrument, "as_of": cutoff})], a.key)
+        finally:
+            conn.close()
+        from . import source_ids                                # noqa: PLC0415
+        for r in rows[-a.last:]:
+            print(f"{r['observed_at']}  {r['value_num'] if r['value_num'] is not None else r['value_text']}"
+                  f"  source={r['source']} ({source_ids.tier_of(r['source'], a.key) or 'no tier'})"
+                  + (f"  chosen over {', '.join(r['tier_over'])}" if r.get("tier_over") else ""))
+        return 0 if rows else 1
     print("usage: python -m altdata.observations snapshot <dest> [src]\n"
+          "       python -m altdata.observations as-of KEY [--instrument I] [--as-of T]"
+          " [--db PATH]\n"
           "       python -m altdata.observations integrity <staged copy>\n"
           "       python -m altdata.observations install-triggers [db]   (a box write)\n"
           "       python -m altdata.observations triggers [db]           (read-only)")

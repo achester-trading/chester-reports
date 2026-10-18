@@ -223,7 +223,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-four code gates (ninety-one Python,
+**`make validate` runs every gate** — ninety-five code gates (ninety-two Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -544,6 +544,32 @@ tolerance). The close prints the day's flags in its Warnings table, at most five
 and a count, nothing on a clean day; a flag never blocks a report or changes a
 value. The numbers live in `config/data_quality.yaml`, each with its reason.
 
+**A bad print is marked, a source is registered, and the tier decides a tie
+(audit-leftovers-2, 18 Oct 2026; the 14 Oct audit's items 12, 14 and 15).**
+
+- `python -m altdata.quality record` runs after the EOD pass's price pull and the
+  06:45 FRED pull, over the closes and every FRED block. Each flag becomes a row
+  in `data_quality_flags`, a table of its own that refuses UPDATE and DELETE, and
+  is listed in the run log. The freshness check and the heartbeat print the
+  day's count, "n outliers" (`quality=<n>`). A flagged value is marked, never
+  corrected: nothing is altered, dropped or withheld. The sigma and the window
+  are listed per family under `outliers.families`.
+- A store opened through `open_writer()` refuses a write whose source is not a
+  registered id or `<id>:<variant>` (`observations.UnregisteredSource`). The
+  history is never rewritten; old strings read through `source_ids.canonical()`'s
+  declared aliases.
+- When two sources hold one period at the same newest instant, the as-of join,
+  `latest_as_of()` and the row cache keep the higher tier (A0, A1, B, C, D, E,
+  derived, then a string on no list) and say which they chose (`tier`,
+  `tier_over`; `python -m altdata.observations as-of KEY`). A newer vintage still
+  wins over an older one.
+- The yfinance basket and the crypto basket resolve their store keys through the
+  Security Master (`yfinance_source.resolve_basket()`, `instrument()`); the
+  module's maps are its seed.
+
+`tools/validate_outliers.py` holds the marks, the source refusal and the tier
+rule; `tools/validate_security_master.py` group M holds the basket.
+
 **The volume profile is data, never a claim (VP-1, 14 Oct 2026).**
 `altdata/volume_profile.py` is the one module that bins volume by price, and every
 reader calls it: the level list (POC, VAH and VAL of six windows for spy, qqq and
@@ -559,6 +585,11 @@ absent with its reason; every read is as of. The settings are
 to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
 crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
 is `docs/volume-profile.md`.
+
+**The scheduled roster is 31 official writers, 27 external writers and 7
+loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
+`altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
+and fed-funds feeds.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

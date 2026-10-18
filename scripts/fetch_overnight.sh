@@ -161,6 +161,16 @@ printf '%s\n' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
 log "feeds: loggers done"
 
+# THE DATA CHECK'S MARKS (audit-leftovers-2; the 14 Oct audit's item 14): the
+# correction pull above is the 06:45 FRED pull, so its new prints are checked
+# here, marked as rows in data_quality_flags and listed in this log. A mark never
+# alters a value; its failure is not this run's.
+log "data check: record"
+DQ_OUT="$("$PY" -m altdata.quality record 2>&1)"
+DQ_RC=$?
+printf '%s\n' "$DQ_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $DQ_RC -ne 0 ]] && log "WARN quality record exited $DQ_RC -- continuing"
+
 # ---- Farside's T-1 figure (Batch 4 Tranche A part 2, 17 Oct 2026) ------------
 #
 # Farside posts a session's ETF flows in the US evening, and issuers fill in late;

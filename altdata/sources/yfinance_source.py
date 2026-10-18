@@ -549,6 +549,50 @@ def parse_rows(rows: Iterable[dict]) -> dict:
             **{k: sorted(v) for k, v in ohlc.items()}}
 
 
+# THE BASKET THROUGH THE SECURITY MASTER (audit-leftovers-2; the 14 Oct audit's
+# item 15, aud-3b answer 9: the yfinance basket first). SYMBOLS, CRYPTO_BASKET and
+# CONTINUOUS_SYMBOLS above are the master's SEED now, not the source of truth:
+# pull() asks config/security_master.yaml's resolver for each Yahoo symbol's store
+# key, and instrument() for its asset class, currency and exchange.
+# tools/validate_security_master.py holds the seed and the master to agreement.
+# A symbol the master cannot resolve keeps its seed key and logs an error -- a
+# capture is never lost to a reference-data gap -- and the gate fails it first.
+# CONTINUOUS_SYMBOLS stays this module's rule: "trades every day" is not an asset
+# class (IDR=X and TRY=X are fx and are not continuous).
+def _master(on=None):
+    from .. import security_master as smm                       # noqa: PLC0415
+    return smm.Master()
+
+
+def resolve_basket(seed: dict[str, str], on=None) -> dict[str, str]:
+    """{Yahoo symbol: bare store key ('mkt_spy')} through the master's resolver."""
+    try:
+        m = _master()
+    except Exception as exc:                                    # noqa: BLE001
+        log.error("security master unavailable (%s: %s) -- the basket's seed keys "
+                  "are used", type(exc).__name__, exc)
+        return dict(seed)
+    out = {}
+    for sym, seed_key in seed.items():
+        try:
+            sk = m.resolve(sym, "yahoo", on)["identifiers"]["store_key"]
+            out[sym] = sk.split(".", 1)[1] if sk.startswith("yfinance.") else sk
+        except Exception as exc:                                # noqa: BLE001
+            log.error("security master: %s does not resolve (%s) -- seed key %s used",
+                      sym, type(exc).__name__, seed_key)
+            out[sym] = seed_key
+    return out
+
+
+def instrument(symbol: str, on=None) -> dict:
+    """The master's facts for a Yahoo symbol: id, store key, asset class,
+    currency and exchange (None where the master marks it unverified)."""
+    e = _master().resolve(symbol, "yahoo", on)
+    return {"id": e["id"], "store_key": e["identifiers"].get("store_key"),
+            "asset_class": e.get("asset_class"), "currency": e.get("currency"),
+            "exchange": e.get("exchange"), "continuous": symbol in CONTINUOUS_SYMBOLS}
+
+
 def pull_crypto_basket(period: Optional[str] = None,
                        run_id: Optional[str] = None) -> dict:
     """The crypto basket's daily closes (CRYPTO_BASKET) into the observation
@@ -602,7 +646,7 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
     from .. import observations as obs
     from .. import session as sess
 
-    basket = symbols or SYMBOLS
+    basket = resolve_basket(symbols or SYMBOLS)
     summary: dict = {"total": len(basket), "success": 0, "failed": [],
                      "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND}
 

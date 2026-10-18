@@ -702,7 +702,7 @@ def code_counts() -> dict:
     import re
 
     import yaml
-    from altdata import config
+    from altdata import config, feeds, loggers
     from altdata.sources import yfinance_source as yf
     mk = (REPO / "Makefile").read_text(encoding="utf-8")
 
@@ -721,6 +721,11 @@ def code_counts() -> dict:
         "fred_signal": len(config.FRED_SIGNAL_SERIES),
         "fred_small": sum(len(x) for x in small),
         "fred_pull": len(config.FRED_PULL_SERIES),
+        "fred_6e": len(config.FRED_6E_SERIES),
+        "fred_releases": len(config.FRED_RELEASES_SERIES),
+        "official_writers": len(feeds.OFFICIAL_WRITERS),
+        "external_writers": len(feeds.EXTERNAL_WRITERS),
+        "loggers": len(loggers.load_all()),
         "symbols": len(yf.SYMBOLS),
         "data_store_csv": len(list((REPO / "data_store").glob("*.csv"))),
         "code_gates": len(py) + extra + len(sh),
@@ -742,6 +747,11 @@ PRINTED_COUNTS = [
     ("the five smaller FRED lists", rf"freshness-watched; {NUM} in five smaller",
      "fred_small"),
     ("FRED_PULL_SERIES", rf"FRED_PULL_SERIES, {NUM}, is the union", "fred_pull"),
+    ("FRED_6E_SERIES", rf"{NUM} in FRED_6E_SERIES", "fred_6e"),
+    ("FRED_RELEASES_SERIES", rf"{NUM} in FRED_RELEASES_SERIES", "fred_releases"),
+    ("official writers", rf"roster is {NUM} official writers", "official_writers"),
+    ("external writers", rf"official writers, {NUM} external writers", "external_writers"),
+    ("loggers", rf"external writers and {NUM}\s+loggers", "loggers"),
     ("yfinance symbols", rf"yfinance_source\.py\s+{NUM} market symbols", "symbols"),
     ("data_store CSVs", rf"Committed CSV store \({NUM} FRED series\)", "data_store_csv"),
     ("code gates", rf"runs every gate\*\* — {NUM} code gates", "code_gates"),
@@ -754,10 +764,22 @@ PRINTED_COUNTS = [
 ]
 
 
-def printed_count_faults(text: str, counts: dict) -> list[str]:
+# THE ARCHITECTURE DOCUMENT'S STORE BOX (audit-leftovers-2): the counts its
+# refreshed note prints, held to the code by the same rule.
+ARCH_COUNTS = [
+    ("arch: FRED pull", rf"pull walks {NUM} FRED series", "fred_pull"),
+    ("arch: symbols", rf"FRED series\s+\(`config\.FRED_PULL_SERIES`\) and {NUM} market symbols",
+     "symbols"),
+    ("arch: official writers", rf"roster is {NUM} official\s+writers", "official_writers"),
+    ("arch: external writers", rf"official\s+writers, {NUM} external writers", "external_writers"),
+    ("arch: loggers", rf"external writers and {NUM} loggers", "loggers"),
+]
+
+
+def printed_count_faults(text: str, counts: dict, table=None) -> list[str]:
     import re
     out = []
-    for what, rx, key in PRINTED_COUNTS:
+    for what, rx, key in (table or PRINTED_COUNTS):
         m = re.search(rx, text)
         if not m:
             out.append(f"{what}: the sentence is gone (pattern {rx!r})")
@@ -805,6 +827,13 @@ def group_f() -> None:
           "the README names the architecture document by its real path")
     arch = (REPO / "docs" / "chester-reports-architecture-v3.md").read_text(
         encoding="utf-8")
+    flat = re.sub(r"\n> ?", " ", arch)          # the box is a blockquote
+    af = printed_count_faults(flat, counts, ARCH_COUNTS)
+    check(not af, f"each of the {len(ARCH_COUNTS)} counts the architecture document's "
+          f"store box prints equals the code's ({af or 'all equal'})")
+    check(any("arch: symbols" in f for f in printed_count_faults(
+        flat.replace("and 106 market symbols", "and 27 market symbols"), counts, ARCH_COUNTS)),
+          "and a stale count there is caught: the audit's '27 symbols'")
     check("The store as built (AUD-3a, 14 Oct 2026)" in arch
           and arch.count("As built (14 Oct 2026)") >= 2,
           "the architecture document's store sections say what was built")
