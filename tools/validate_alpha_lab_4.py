@@ -255,6 +255,20 @@ def group_a() -> None:
         check(ups.get("line") == f"awaiting (n={AFTER} of 30)",
               f"the up-print bucket is its own: \"GLD:+ {ups.get('line')}\"")
 
+        import contextlib                                       # noqa: PLC0415
+        import hashlib                                          # noqa: PLC0415
+        import io                                               # noqa: PLC0415
+        before = hashlib.sha256(Path(sp).read_bytes()).hexdigest()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = rev._main(["lines", "--store", sp, "--as-of", late])
+        out_l = buf.getvalue()
+        check(rc == 0 and "GLD:- open: horizon 5 sessions" in out_l
+              and "GLD:+ awaiting (n=5 of 30)" in out_l
+              and hashlib.sha256(Path(sp).read_bytes()).hexdigest() == before,
+              "`python -m alpha.engines.reversion lines` prints each bucket's state and "
+              "leaves the store as it was (the box's dry run)")
+
         bad = Path(_TMP) / "alpha_reversion_changed.yaml"
         c2 = yaml.safe_load(rev.CONFIG.read_text(encoding="utf-8"))
         c2["spec"]["reversal"]["horizons_sessions"] = [1, 5, 10]

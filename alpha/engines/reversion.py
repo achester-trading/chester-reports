@@ -389,6 +389,34 @@ class ReversionEngine(Engine):
                 "lines": lines,
                 "why": ("history window met" if ok else
                         f"insufficient history: {len(rows)} traded prints in "
-                        f"{len(opened)} open buckets; the harness needs {need} "
+                        f"{len(opened)} open bucket(s); the harness needs {need} "
                         f"out-of-sample after a {FIT_ROWS}-trade fit; every other "
                         f"bucket is awaiting its 30 formation prints")}
+
+
+def _main(argv: list[str]) -> int:
+    """python -m alpha.engines.reversion lines [--store PATH] [--as-of ISO]:
+    each bucket's state, read-only (awaiting, or open at its frozen horizon)."""
+    import argparse                                             # noqa: PLC0415
+    import sys                                                  # noqa: PLC0415
+    from ..store import ReadOnlyStore                           # noqa: PLC0415
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    ap = argparse.ArgumentParser(prog="python -m alpha.engines.reversion")
+    ap.add_argument("cmd", choices=["lines"])
+    ap.add_argument("--store")
+    ap.add_argument("--as-of")
+    a = ap.parse_args(argv)
+    st = ReadOnlyStore(a.store)
+    try:
+        eng = ReversionEngine()
+        lines = eng.lines(st, a.as_of or session.utc_iso(timespec="microseconds"))
+    finally:
+        st.close()
+    print("\n".join(lines) if lines else "no 2.5-sigma prints identified yet")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys as _sys
+    _sys.exit(_main(_sys.argv[1:]))
