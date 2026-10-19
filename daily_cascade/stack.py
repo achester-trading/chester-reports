@@ -1047,6 +1047,13 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         if built.get("plumbing") is not None:
             built["plumbing"]["items"] += rates_transmission_block.close_items(
                 st, cutoff, p["session"])
+        # CD-9's daily part (the a47 chain, 19 Oct 2026): the crypto paragraph as
+        # a Positioning & flows sub-section of data lines, which the word budget
+        # does not count -- only while its switch is on.
+        from altdata import crypto_blocks                       # noqa: PLC0415
+        if built.get("positioning") is not None and crypto_blocks.daily_enabled():
+            built["positioning"].setdefault("subsections", []).append(
+                crypto_blocks.daily_paragraph(st, cutoff))
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
             "dealer_computed_dir": _dealer_chart_dir(p),

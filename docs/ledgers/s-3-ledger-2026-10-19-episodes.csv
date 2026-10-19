@@ -1,0 +1,7 @@
+kind,window,largest_day,largest_day_return,evaluable,caught,fire_days,first,last,ret_5d,mdd_5d,ret_20d,mdd_20d,false_positive
+window,Aug 2024 unwind,2024-08-05,-0.071,True,False,,,,,,,,
+window,Feb 2025 unwind,2025-02-24,-0.0504,True,False,,,,,,,,
+window,Oct 2025 unwind,2025-10-10,-0.0698,True,False,,,,,,,,
+window,May 2026 rush,2026-05-22,-0.0265,True,False,,,,,,,,
+firing,,,,,,,2024-11-13,2024-11-18,-0.0005,-0.0368,0.0598,-0.0708,True
+firing,,,,,,,2024-12-05,2024-12-05,0.0008,-0.045,0.028,-0.1079,True

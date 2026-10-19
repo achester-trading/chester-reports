@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
+from altdata import crypto_blocks
+
 from . import es_read, events_block, opening_setup, signal_lines, state_block
 
 REPO = Path(__file__).resolve().parent.parent
@@ -349,6 +351,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Overnight</h2>
 {overnight_table(payload)}
+{crypto_blocks.daily_html(payload.get("crypto_paragraph"))}
 
 <h2 style="{H2}">Where it happened</h2>
 {dominant_line(payload)}

@@ -26,7 +26,21 @@ altdata/sources/crypto_derived.py with gate status "not passed"; no block here
 reads a calc.flag_* key (tools/validate_crypto_sources.py holds that). Scorecards
 and lenses print from day one: the DVOL band is a lens.
 
-THE DAILY PARAGRAPH AND THE 12:30 LINE ARE TRANCHE B (after D4/D6): not wired.
+    daily_paragraph(st, now)    CD-9's daily part (the a47 chain, 19 Oct 2026): the
+                                07:00 anchor's and the 16:45 close's crypto
+                                paragraph under positioning and flows, at most six
+                                computed lines -- the T-1 ETF flows with streak and
+                                percentile (S-2), aggregate funding and the open
+                                interest's change (S-3), the DVOL band (S-4), Fear &
+                                Greed as one word. BEHIND A SWITCH, OFF
+                                (`blocks.daily.enabled`): the order wires it only
+                                after Track D's D4/D6, which nothing records as done.
+                                BTC dominance is left out (it came from CoinGecko's
+                                /global, retired), and the order's 21:45 ETF refresh
+                                has no unit (no 21:45 report run exists)
+
+The 12:30 line is daily_cascade/crypto_gate.py, registered in midday_gate's GATES
+and closed until the S-3 ledger passes.
 
 THE WEEKLY'S VOCABULARY: "venue" is banned in a rendered Weekly
 (tools/validate_weekly_edits.py); the lines say "exchange".
@@ -240,6 +254,134 @@ def weekly_block(st, now: str, cfg: Optional[dict] = None) -> dict:
                       "offline gates. CoinPaprika's figures: Powered by Coinpaprika."],
             "data": {"crypto_flows": [{"measure": r[0], "value": r[1], "as_of": r[2]}
                                       for r in rows]}}
+
+
+# ---------------------------------------------------------------------------
+# The daily paragraph (CD-9's daily part)
+# ---------------------------------------------------------------------------
+TITLE_DAILY = "Crypto (positioning and flows)"
+
+
+def daily_enabled(cfg: Optional[dict] = None) -> bool:
+    cfg = cfg or _cfg()
+    return bool(((cfg.get("blocks") or {}).get("daily") or {}).get("enabled"))
+
+
+def fng_word(v: Optional[float], cfg: dict) -> Optional[str]:
+    """Fear & Greed as ONE word, by the session-set bands (`blocks.daily.fng_words`:
+    [upper bound, word], ascending)."""
+    if v is None:
+        return None
+    for hi, w in ((cfg.get("blocks") or {}).get("daily") or {}).get("fng_words") or []:
+        if v <= float(hi):
+            return str(w)
+    return None
+
+
+def _etf_daily(st, coin: str, now: str, today: str, stale_days: int) -> str:
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
+    lab = f"{coin.upper()} spot ETF flows (T-1)"
+    pts = _pts(st, f"farside.{coin}_total", now)
+    if not pts:
+        return f"{lab}: not stored (Farside refuses the laptop; the box is untested)."
+    d, v = pts[-1]
+    if d < _minus(today, stale_days):
+        return f"{lab}: STALE, last good {short(d)}."
+    stk = _at(_pts(st, "calc.etf_streak", now, coin), d)
+    sv = int(stk[1]) if stk and stk[0] == d else None
+    streak = ("" if sv is None else "; streak 0" if sv == 0 else
+              f"; streak {abs(sv)} {'inflow' if sv > 0 else 'outflow'} "
+              f"session{'s' if abs(sv) != 1 else ''}")
+    pc = _at(_pts(st, "calc.etf_5d_pct", now, coin), d)
+    pct = (f"; the 5-day sum at the {ordinal(pc[1])} percentile since January 2024"
+           if pc and pc[0] == d else "; the 5-day sum's percentile needs 20 sums")
+    return f"{lab}: {bn(v, True)} on {short(d)}{streak}{pct}."
+
+
+def daily_paragraph(st, now: str, cfg: Optional[dict] = None) -> dict:
+    """The six lines, read from the store by key at `now`; computed, no model
+    words. Never reads a flag (the flags wait for their ledgers)."""
+    cfg = cfg or _cfg()
+    bc = cfg.get("blocks") or {}
+    dc = bc.get("daily") or {}
+    today = now[:10]
+    z_from = str(bc.get("z_from") or "2026-12-15")
+    lines: list[str] = []
+    # 1-2. S-2: the T-1 ETF flows, with the streak and the 5-day sum's percentile
+    for coin in ("btc", "eth"):
+        lines.append(_etf_daily(st, coin, now, today, int(dc.get("stale_days") or 4)))
+    # 3. S-3: aggregate funding, OI-weighted, annualised
+    parts, d0 = [], None
+    for coin in ("BTC", "ETH"):
+        f = _pts(st, "calc.funding_agg", now, coin)
+        if f:
+            parts.append(f"{coin} {f[-1][1]:.2f}%"
+                         + z_note(st, "calc.leverage_z", coin, now, z_from))
+            d0 = max(d0 or "", f[-1][0])
+    lines.append("Perp funding, OI-weighted across exchanges (annualised): "
+                 + ("; ".join(parts) + f" ({short(d0)})." if parts else
+                    "from the first day two exchanges report open interest."))
+    # 4. S-3: the open interest's change on the day
+    oi = _pts(st, "calc.oi_usd", now)
+    if len(oi) >= 2 and oi[-2][1]:
+        (d1, v1), (_, v0) = oi[-1], oi[-2]
+        lines.append(f"Perp open interest, BTC + ETH: {bn(v1)}, "
+                     f"{100 * (v1 / v0 - 1):+.1f}% on the day ({short(d1)}).")
+    elif oi:
+        lines.append(f"Perp open interest, BTC + ETH: {bn(oi[-1][1])} ({short(oi[-1][0])}); "
+                     f"the change needs a second day.")
+    else:
+        lines.append("Perp open interest, BTC + ETH: from the first day every exchange "
+                     "reports it.")
+    # 5. S-4: the DVOL band, a lens
+    parts, d0 = [], None
+    for coin in ("BTC", "ETH"):
+        dv = _pts(st, f"deribit.dvol_{coin.lower()}", now)
+        if dv:
+            d, v = dv[-1]
+            pf = _at(_pts(st, "calc.dvol_pct_full", now, coin), d)
+            parts.append(f"{coin} {v:.1f}, {band(pf[1] if pf and pf[0] == d else None, cfg)}")
+            d0 = max(d0 or "", d)
+    lines.append("Implied vol (DVOL): " + ("; ".join(parts) + f" ({short(d0)})."
+                                          if parts else f"{NOT_TRACKED}."))
+    # 6. Fear & Greed, one word
+    fg = _pts(st, "fng.value", now)
+    w = fng_word(fg[-1][1], cfg) if fg else None
+    lines.append(f"Fear & Greed: {w} ({short(fg[-1][0])})." if w else
+                 f"Fear & Greed: {NOT_TRACKED}.")
+    lines = lines[:int(dc.get("max_lines") or 6)]
+    return {"title": TITLE_DAILY, "lines": lines, "paragraph_wanted": False,
+            "notes": ["Computed from the store; scorecards and lenses only. The S-2 "
+                      "and S-3 flags wait for their ledgers. BTC dominance is left out: "
+                      "it came from CoinGecko's /global, which is retired. Fear & "
+                      "Greed's word bands are session-set."],
+            "data": {"crypto_daily": lines}}
+
+
+def daily_paragraph_from_store(now: str, db_path: Optional[str] = None,
+                               cfg: Optional[dict] = None) -> Optional[dict]:
+    """The paragraph for the anchor, or None while the switch is off. Never
+    raises."""
+    from altdata import observations                            # noqa: PLC0415
+    cfg = cfg or _cfg()
+    if not daily_enabled(cfg):
+        return None
+    try:
+        with observations.ObservationStore(db_path) as st:
+            return daily_paragraph(st, now, cfg)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the crypto paragraph faulted", exc_info=True)
+        return {"title": TITLE_DAILY, "lines": ["Crypto: not read (its inputs faulted)."],
+                "paragraph_wanted": False}
+
+
+def daily_html(b: Optional[dict]) -> str:
+    from html import escape                                     # noqa: PLC0415
+    if not b or not b.get("lines"):
+        return ""
+    return (f"<h3 style=\"font-size:13px;margin:10px 0 4px 0\">{escape(b['title'])}</h3>"
+            + "".join(f'<p style="font-size:12px;margin:2px 0">{escape(x)}</p>'
+                      for x in b["lines"]))
 
 
 # ---------------------------------------------------------------------------

@@ -296,6 +296,10 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     # index put lines, no side.
     oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
     index_puts = opening_setup.index_put_lines_from_store(cutoff, db_path)
+    # CD-9's daily part (the a47 chain): the crypto paragraph, None while its
+    # switch is off (config/crypto_sources.yaml blocks.daily.enabled).
+    from altdata import crypto_blocks                           # noqa: PLC0415
+    crypto = crypto_blocks.daily_paragraph_from_store(cutoff, db_path)
 
     # THE ES BLOCK (ST-R6.45): the overnight session so far, the prior full
     # session's value area and POC as reference, the day's levels -- from the
@@ -369,6 +373,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "vol_regime_lines": vol_regime,
         "oi_builds": oi_builds,
         "index_put_lines": index_puts,
+        "crypto_paragraph": crypto,
         "warnings": warnings,
         "meme_line": _meme_line(db_path),
     }
