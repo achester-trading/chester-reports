@@ -412,7 +412,10 @@ def group_f() -> Path:
 
 
 PINNED = {
-    "security_master.schema.json": "5288446f9dd164b91fea6e28d3c2919de975d65fd938f5e8a4aa3484a5e78fb2",
+    # 1.1 (16 Oct 2026, docs/change-order-sm-schema-1-1-2026-10-16.md): authored
+    # here first; chester-meme copies these bytes when it bumps its own file. 1.0
+    # was 5288446f9dd164b91fea6e28d3c2919de975d65fd938f5e8a4aa3484a5e78fb2.
+    "security_master.schema.json": "e90e55fecf83a88d0039e3a8206ced48ec38ba135409cee5a13947c5eb14b712",
     "decision_packet.schema.json": "e3e97e0e1fdb0439610e86ecea0d878a402a15bf1ed3b3b65420e32b0d569522",
     "README-interface.md": "bfe8ec7c1f86dd06735295afc139f91bafad380428d9993682189bdf1b87a421",
 }
@@ -420,7 +423,7 @@ EXF = FIX / "export"
 
 
 def group_g() -> None:
-    head("G. THE CONTRACT: CHESTER-MEME'S FILES, BYTE FOR BYTE")
+    head("G. THE CONTRACT: THE INTERFACE FILES, BYTE FOR BYTE")
     for name, want in PINNED.items():
         b = (REPO / "docs" / "interface" / name).read_bytes()
         got = hashlib.sha256(b.replace(b"\r\n", b"\n")).hexdigest()
@@ -562,6 +565,24 @@ def group_i(m: Master, ld: Path, fd: Path) -> None:
     check(sec["BBG000FXBN01"]["restricted"] and sec["BBG000FXBM01"]["restricted"]
           and not sec["BBG000FXAA01"]["restricted"],
           "a restricted name exports with restricted: true (BN, BAM), AAPL false")
+    check(all(isinstance(x.get("restricted"), bool) for x in doc["securities"])
+          and all(("restricted_reason" in x) == x["restricted"] for x in doc["securities"])
+          and sec["BBG000FXBN01"]["restricted_reason"].startswith("Brookfield complex: tier 1, root "),
+          "1.1: restricted on every security, false included; restricted_reason only "
+          f"where it is true ({sec['BBG000FXBN01']['restricted_reason']!r})")
+    from altdata.sm_export import reason_of  # noqa: PLC0415
+    from register.instruments import restrictions  # noqa: PLC0415
+    rr = [reason_of(restrictions().check(x)) for x in ("OCSL", "Brookfield Business Holdings")]
+    check(rr[0].startswith("Brookfield complex: tier 4, root OCSL")
+          and "name match on 'brookfield'" in rr[1],
+          f"the reason names the tier and root, or the name pattern: {rr}")
+    old = json.loads(json.dumps(doc))
+    old["schema_version"] = "1.0"
+    for x in old["securities"]:
+        x.pop("restricted", None)
+        x.pop("restricted_reason", None)
+    check(not sm_export.validate(old),
+          "backward-compatible: a 1.0 document without the two fields validates against 1.1")
     check(sec["BBG000FXSP01"]["type"] == "ETF" and sec["BBG000FXAA01"]["type"] == "CS"
           and sec["BBG000FXBN01"]["venue"] == "NYSE" and sec["BBG000FXAA01"]["venue"] == "Nasdaq"
           and sec["BBG000FXSP01"]["venue"] == "NYSE Arca" and sec["BBG000FXBK01"]["cik"] is None,
@@ -570,10 +591,27 @@ def group_i(m: Master, ld: Path, fd: Path) -> None:
     check(any(r["ticker"] == "BRK.B" for r in sec["BBG000FXBK01"]["ticker_history"])
           and not any(x["name"] and "Unmappable" in x["name"] for x in doc["securities"]),
           "tickers in ACT form (BRK.B); a listing with no FIGI is not exported")
-    check(doc["schema_version"] == "1.0" and doc["source"] == "chester-reports"
+    check(doc["schema_version"] == "1.1" and doc["source"] == "chester-reports"
           and doc["exported_at"].endswith("Z") and set(doc) == {
               "schema_version", "exported_at", "source", "securities"},
-          "schema_version 1.0, exported_at in UTC with a Z, source chester-reports")
+          "schema_version 1.1, exported_at in UTC with a Z, source chester-reports")
+    from altdata import ticker_history as th  # noqa: PLC0415
+    snaps = [("2026-10-13", [{"symbol": "AAA"}, {"symbol": "OLD"}]),
+             ("2026-10-16", [{"symbol": "AAA"}, {"symbol": "NEWL"}, {"symbol": "OLD"}]),
+             ("2026-10-19", [{"symbol": "AAA"}, {"symbol": "NEWL"}, {"symbol": "OLD"}])]
+    asg = th.Assignments([{"symbol": "AAA", "figi": "F1", "date": "2026-10-13"},
+                          {"symbol": "OLD", "figi": "F2", "date": "2026-10-13"},
+                          {"symbol": "OLD", "figi": "F4", "date": "2026-10-19"},
+                          {"symbol": "NEWL", "figi": "F3", "date": "2026-10-16"}])
+    h = th.build(iter(snaps), asg)
+    check([(r["ticker"], r["effective_from"], r["from_known"]) for r in h["F3"]]
+          == [("NEWL", "2026-10-14", True)],
+          "a new listing starts the day after the previous snapshot: NEWL, first seen on "
+          "16 Oct after the 13th (two mornings missed), from 2026-10-14 (ruled 16 Oct)")
+    check([(r["effective_to"]) for r in h["F2"]] == ["2026-10-19"]
+          and [(r["ticker"], r["effective_from"]) for r in h["F4"]] == [("OLD", "2026-10-19")],
+          "a reused ticker's new holder still opens on the snapshot date, where the old "
+          "holder closes: no overlap")
     out = TMP / "sm_out" / "security_master.json"
     import os  # noqa: PLC0415
     os.environ[sm_export.VAR] = str(out)

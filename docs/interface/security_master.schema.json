@@ -6,7 +6,7 @@
   "type": "object",
   "required": ["schema_version", "exported_at", "securities"],
   "properties": {
-    "schema_version": {"type": "string", "const": "1.0"},
+    "schema_version": {"type": "string", "enum": ["1.0", "1.1"], "description": "1.1 (16 Oct 2026) adds the optional restricted and restricted_reason; a 1.0 document is a valid 1.1 document."},
     "exported_at": {"type": "string", "format": "date-time", "description": "UTC, ISO-8601 with Z. Used as available_at for the import."},
     "source": {"type": "string", "examples": ["chester-reports"]},
     "securities": {
@@ -22,6 +22,8 @@
           "type": {"enum": ["CS", "ADRC", "ETF", "ETN", "PFD", "WARRANT", "UNIT", "RIGHT", "FUND", "NOTE", "GDR", "NYRS", "OTHER"]},
           "venue": {"enum": ["NYSE", "Nasdaq", "NYSE American", "Cboe BZX", "NYSE Arca", "IEX", "TXSE", "NYSE Texas", "OTC", "OTHER", null], "description": "Primary listing venue."},
           "active": {"type": "boolean", "description": "Defaults to true when any ticker_history row is open."},
+          "restricted": {"type": "boolean", "description": "Since 1.1. true = a standing trading restriction applies (Brookfield-related securities). Written on every security, false included: where present it decides the security in chester-meme; absent = no statement, and chester-meme's own list decides."},
+          "restricted_reason": {"type": ["string", "null"], "description": "Since 1.1. Free text kept with the restriction, e.g. 'Brookfield complex: tier 3 preferred'. Present only when restricted is true."},
           "ticker_history": {
             "type": "array",
             "minItems": 1,
@@ -40,12 +42,12 @@
     }
   },
   "examples": [{
-    "schema_version": "1.0",
+    "schema_version": "1.1",
     "exported_at": "2026-10-11T02:00:00Z",
     "source": "chester-reports",
     "securities": [{
       "figi": "BBG000B9XRY4", "share_class_figi": "BBG001S5N8V8", "cik": 320193, "name": "Apple Inc.",
-      "type": "CS", "venue": "Nasdaq", "active": true,
+      "type": "CS", "venue": "Nasdaq", "active": true, "restricted": false,
       "ticker_history": [{"ticker": "AAPL", "effective_from": "1980-12-12", "effective_to": null}]
     }]
   }]

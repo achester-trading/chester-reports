@@ -675,14 +675,27 @@ identifier in those maps to exactly one entry today. The listings layer
 (`altdata/listings.py`, a logger in the 06:45 step) keeps Nasdaq Trader's daily
 symbol directories as reference data under data/reference/listings/ with a
 change file per day. The export is chester-meme's contract,
-`docs/interface/security_master.schema.json` (copied byte for byte, pinned by
-SHA-256, kept LF): one security per composite FIGI from OpenFIGI
-(`altdata/figi.py`), with the ticker history `altdata/ticker_history.py` rebuilds
-each morning (unknown starts 1900-01-01, from_known false). The 06:45 job maps and
+`docs/interface/security_master.schema.json` (pinned by SHA-256, kept LF; at 1.1
+since 16 Oct 2026, authored here, and chester-meme copies the bytes): one security
+per composite FIGI from OpenFIGI (`altdata/figi.py`), each carrying `restricted`,
+false included, and `restricted_reason` when true, which decide the security in
+chester-meme; with the ticker history `altdata/ticker_history.py` rebuilds each
+morning (unknown starts 1900-01-01, from_known false; a new listing starts the day
+after the previous snapshot, ruled 16 Oct 2026). The 06:45 job maps and
 exports after the listings step; `altdata/sm_export.py` validates the file before
 it writes it. Nothing here reads it back. A listing in Nasdaq Trader's files trades
 on a US exchange in USD (ruled 15 Oct 2026); `config/listing_exchanges.yaml` maps
 its exchange codes to MICs and to the contract's venues.
+
+**No session writes into the chester-meme folder (16 Oct 2026).** The interface
+is files only: chester-reports writes exports/security_master.json (through
+`altdata/sm_export.py`, outside both checkouts), and chester-meme reads it and
+writes drop/. No code, migration, stash or commit of ours goes into
+../chester-meme, and reading it is the most a session here does. A change
+chester-meme needs from this side goes through the contract and a change order
+here. A change on its side is printed for Ari to hand to the chester-meme
+session. This rule was added after uncommitted restriction code and an applied
+migration were left there on 15 Oct.
 
 ### Layer X — the Alpha Lab (`alpha/`)
 

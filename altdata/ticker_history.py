@@ -15,9 +15,15 @@ THE RULES, one composite FIGI at a time, walking the snapshots in date order:
                  closes with an EXACT, EXCLUSIVE effective_to on the snapshot date,
                  and the new holder's row opens from it
   delisting      the ticker gone                              -> its row closes
-  new listing    a FIGI first seen after the first snapshot   -> a row from that date,
-                 or, after a missed morning, from the day after the previous
-                 snapshot with from_known: false (below)
+  new listing    a FIGI first seen after the first snapshot   -> a row from the day
+                 after the PREVIOUS snapshot (ruled 16 Oct 2026, aud-3b Needs-you 9),
+                 so a missed morning makes the start early, never late. Exact on
+                 consecutive trading days but for the weekend's calendar days, on
+                 which nothing trades. A reused ticker's new holder still opens on
+                 the snapshot date, where the old holder's row closes, so the two
+                 never overlap
+                 (from_known false only after a missed morning, ruled 15 Oct;
+                 the start date is the 16 Oct ruling's)
 
 Where a boundary falls between two snapshots and the master knows its real date
 (BAM in 2022, SPCX in 2026, the ETF's SPCX -> SPCK in April 2026), the master's
@@ -131,23 +137,29 @@ def build(snapshots, assignments: Assignments, master=None) -> dict[str, list[di
             if f:
                 holder[r["symbol"]] = f
         # close every open row whose ticker no longer belongs to its FIGI
+        closed = set()
         for f, rs in hist.items():
             for row in rs:
                 if row["effective_to"] is None and holder.get(row["ticker"]) != f:
                     w = _master_at(windows, row["ticker"], prev)
                     row["effective_to"] = (w["to_x"] if w and w["to_x"]
                                            and prev < w["to_x"] <= day else day)
+                    closed.add(row["ticker"])
         # open a row for every holding not already open
         for s, f in holder.items():
-            new = f not in hist
+            new_listing = f not in hist and s not in closed
             rs = hist.setdefault(f, [])
             if any(x["ticker"] == s and x["effective_to"] is None for x in rs):
                 continue
             w = _master_at(windows, s, day)
+            # The start is the 16 Oct ruling's (aud-3b Needs-you 9): a new listing
+            # opens the day after the previous snapshot; a reused ticker's new
+            # holder on the snapshot day. from_known is false only after a
+            # missed morning (ruled 15 Oct), where the start is a bound.
             if w and w["from"] and prev < w["from"] <= day:
                 start, known = w["from"], True
-            elif new and missed:
-                start, known = _next(prev), False
+            elif new_listing:
+                start, known = _next(prev), not missed
             else:
                 start, known = day, True
             rs.append({"ticker": s, "effective_from": start, "effective_to": None,
