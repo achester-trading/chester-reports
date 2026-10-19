@@ -256,6 +256,11 @@ def group_c() -> None:
           "matrix's own (its expiry rule arrives with weekly-fixes-8's merge)")
 
 
+# The branch-scope checks read this line's own commits (a44 and a45 over a43),
+# never HEAD: on a stitch such as chain-2, HEAD also carries session B's work.
+OWN_RANGE = "origin/a43-render...origin/a45-opening-setup-2"
+
+
 def group_d() -> None:
     head("D. THE RULES")
     import yaml
@@ -265,7 +270,7 @@ def group_d() -> None:
     for rel in NEW:
         t = (REPO / rel).read_text(encoding="utf-8")
         bad += [f"{rel}:{v}" for v in vendor if v in t]
-    added = subprocess.run(["git", "diff", "-U0", "origin/a43-render...HEAD", "--",
+    added = subprocess.run(["git", "diff", "-U0", OWN_RANGE, "--",
                             "altdata/chain_metrics.py", "altdata/vol_event.py"],
                            cwd=REPO, capture_output=True, text=True)
     if added.returncode == 0:
@@ -294,7 +299,7 @@ def group_d() -> None:
         check(not [m for m in mods if any(b in m for b in ("anthropic", "model_meter",
                                                           "requests", "urllib"))],
               f"{rel} imports no model and no network library")
-    r = subprocess.run(["git", "diff", "--name-only", "origin/a43-render...HEAD"],
+    r = subprocess.run(["git", "diff", "--name-only", OWN_RANGE],
                        cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
         check(True, "the Weekly builders session B is fixing: no base ref here, not checkable")
