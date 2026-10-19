@@ -301,6 +301,11 @@ def group_b_daily() -> None:
                   and brow[0] == "BTP-Bund, ECB monthly average"
                   and brow[5] == "untiered (monthly)",
                   "BTP-Bund stays the ECB's monthly average, labelled and untiered")
+            grow = next((r for r in sub["table"]["rows"] if r[0].startswith("Greece")), None)
+            check(grow is None or grow[5].startswith("untiered"),
+                  f"Greece-Bund stays untiered beside the daily OAT-Bund: the tier is "
+                  f"OAT-Bund's (ST-R4.21a; moved here from the monthly live-tier block "
+                  f"at the chain-2 stitch) ({grow and grow[5]})")
             note = sub["table_note"]
             check("OAT–Bund is daily" in note and "no keyless daily Italian" in note
                   and "crisis 208.1 bp" in note and "latest weekly close" in note
