@@ -103,4 +103,7 @@ None of these is a claim the paper prints. Each row is a place where the paper f
 
 ## CI
 
-CI-TABLE
+| Run | Commit | Result |
+|---|---|---|
+| 39293378764 | `508550d` (Draft 3, the figure, the guide's rows, the notes) | **success: 128 of 128 jobs** |
+
