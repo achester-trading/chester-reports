@@ -310,6 +310,14 @@ commands:
     domain: crypto
     line: PRL's emission calculator, D1-D6 and the thesis status with its trace; daily | weekly | compute | show, each with --dry-run (ST-13)
     sources: [calc]
+  altdata.mechanism_scan:
+    domain: crypto
+    line: The emerging-mechanism scan -- feeds, DefiLlama's recently added, dedupe, the rule pre-filter, the gated model step; drafts only; run --dry-run (ST-15)
+    sources: [defillama, news_rss]
+  altdata.mechanism_watch:
+    domain: crypto
+    line: The mechanism-watch register -- review | render; promote | reject write only with the operator's --confirm (ST-15)
+    sources: [calc]
   altdata.sources.fng:
     domain: crypto
     line: alternative.me's Crypto Fear & Greed Index, full history (Tranche A, CD-5)

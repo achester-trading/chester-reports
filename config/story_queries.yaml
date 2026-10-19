@@ -84,3 +84,70 @@ queries:
       debt ceiling calendar. The midterm date itself is a claim, not a headline:
       see `cal.midterm_election_2026` in the claims registry.
     entities: []
+
+# -----------------------------------------------------------------------------
+# THE MECHANISM-WATCH GROUP (ST-15, signal-triage Tranche 5; st-t5-render, 18 Oct
+# 2026). G-28: this loader is a plain YAML read and every existing reader takes
+# `queries` only, so the second group lives here, with its own cadence and cap.
+# The search engines stay retired (Phase B, above), so the group's terms are not
+# sent to any search: they FILTER the items of the declared public feeds below,
+# each read only where its robots.txt allows the path. A feed item matches a
+# query when any of its terms appears in the item's title. Only the title, the
+# link and the date are kept -- never the body -- as the voices scan does.
+# -----------------------------------------------------------------------------
+mechanism_watch:
+  version: mechanism-watch-queries-v1
+  updated: 2026-10-18
+  cadence: weekly          # the Saturday run of the crypto basket's timer; no new timer
+  window_days: 14          # 2.7.7: the past 14 days
+  cap_per_run: 60          # items kept per run across the feeds
+  max_candidates: 20       # the most the gate's one model call is handed
+  # The order's 2.7.7 query set, as terms.
+  queries:
+    proof_of_useful_work: {terms: ["proof of useful work", "proof-of-useful-work", "PoUW"]}
+    ai_compute_mainnet: {terms: ["AI compute", "AI-compute"], also: ["mainnet", "cryptocurrency", "token", "blockchain"]}
+    fair_launch_gpu_l1: {terms: ["fair launch"], also: ["layer 1", "L1", "GPU", "mining"]}
+    verifiable_compute: {terms: ["verifiable compute", "verifiable computation"], also: ["consensus", "blockchain"]}
+    new_proof_of_work: {terms: ["new proof-of-work", "new proof of work", "proof-of-work algorithm"]}
+    post_quantum_mainnet: {terms: ["post-quantum", "post quantum", "quantum-resistant"], also: ["mainnet", "blockchain", "chain"]}
+  # THE FEEDS. robots read 18 Oct 2026 by the session; each URL served RSS.
+  # Terms: each is the publisher's own RSS syndication; nothing beyond the title,
+  # the link and the date is stored, and nothing is republished.
+  feeds:
+    - {id: iacr_eprint, url: "https://eprint.iacr.org/rss/rss.xml", robots: "https://eprint.iacr.org/robots.txt",
+       robots_line: "no rule matches /rss/ (read 18 Oct 2026)"}
+    - {id: arxiv_cs_cr, url: "https://rss.arxiv.org/rss/cs.CR", robots: "https://rss.arxiv.org/robots.txt",
+       robots_line: "no robots.txt (404: no rules; read 18 Oct 2026). export.arxiv.org's robots.txt disallows everything, so its API is not used"}
+    - {id: coindesk, url: "https://www.coindesk.com/arc/outboundfeeds/rss/", robots: "https://www.coindesk.com/robots.txt",
+       robots_line: "no rule matches /arc/outboundfeeds/rss/ (read 18 Oct 2026)"}
+    - {id: theblock, url: "https://www.theblock.co/rss.xml", robots: "https://www.theblock.co/robots.txt",
+       robots_line: "no rule matches /rss.xml (read 18 Oct 2026)"}
+    - {id: blockworks, url: "https://blockworks.co/feed", robots: "https://blockworks.co/robots.txt",
+       robots_line: "Allow: / (read 18 Oct 2026)"}
+    - {id: tomshardware, url: "https://www.tomshardware.com/feeds/all", robots: "https://www.tomshardware.com/robots.txt",
+       robots_line: "no rule matches /feeds/all (read 18 Oct 2026)"}
+    - {id: hashrateindex, url: "https://hashrateindex.com/blog/rss/", robots: "https://hashrateindex.com/robots.txt",
+       robots_line: "no rule matches /blog/rss/ (read 18 Oct 2026)"}
+  # THE TWO NON-RSS LEGS (MW-5).
+  legs:
+    recently_added:
+      source: defillama
+      url: "https://api.llama.fi/protocols"
+      robots_line: "api.llama.fi publishes no robots.txt (404: no rules; read 18 Oct 2026)"
+      terms_line: "DefiLlama's open API, keyless, as the crypto basket already reads it (source_registry.yaml defillama)"
+      # CoinGecko's recently-added list is not read: CoinGecko is retired (13 and 18 Oct 2026).
+      categories: ["Chain", "Decentralized AI", "Mining Pools", "Gamified Mining"]
+      window_days: 14
+    hashrate_trackers:
+      gap: "not read: hashrate.no's coin list is an HTML page with no feed or API, and Kryptex's listing path returned 404 (18 Oct 2026); under the standing rule of 16 Oct on sources, a listed gap. Hashrate Index's blog is read as a feed, above."
+  # THE RULE PRE-FILTER (2.7.7): drop the known, the excluded classes, and anything
+  # with no materiality-bar (iii) hit detectable by rule.
+  prefilter:
+    exclusions: ["memecoin", "meme coin", "fork of", "rebrand", "restaking", "liquid staking",
+                 "yield farm", "layer 2", "rollup", "GPU marketplace", "compute marketplace"]
+    override: []           # names kept despite an exclusion keyword, by hand, with the reason
+    tier1_exchanges: ["Coinbase", "Binance", "Kraken", "OKX", "Bybit", "Upbit"]
+    serious_outlets: ["coindesk.com", "theblock.co", "blockworks.co", "tomshardware.com",
+                      "ft.com", "bloomberg.com", "wsj.com"]
+    hashrate_trackers: ["hashrate.no", "kryptex.com", "hashrateindex.com"]
+    mcap_min_usd: 50000000

@@ -755,14 +755,16 @@ def charts_group(cfg: dict) -> None:
           "the cap is the budget's, and a fired trigger lifts it by one")
     many = {k: {"id": k, "png": b"x"} for k in mch.ORDER}
     aside = mch.hold_cap(many, 10)
-    check(aside == ["M8"] and "cap of 10" in many["M8"]["unavailable"]
+    check(aside == ["M11", "M8"] and "cap of 10" in many["M8"]["unavailable"]
+          and "cap of 10" in many["M11"]["unavailable"]
           and sum(1 for c in many.values() if not c.get("unavailable")) == 10,
-          "the fallback: over a cap (here 10), M8 is set aside first and says why "
-          "(its content arrives with scenario set #1); ten print")
+          "the fallback: over a cap (here 10, all twelve drawn), M11 -- the watch "
+          "instrument's figure (ST-14) -- then M8 are set aside and say why; ten print")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
     nch = ed["chart_count"]
-    check(set(bad) == {"M10"} and "not tracked" in bad["M10"]
-          and nch == len(mch.ORDER) - 1 and not ed.get("charts_over_cap"),
+    # M11 is not drawn on this fixture (no explorer read: ST-14).
+    check(set(bad) == {"M10"} and "not tracked" in bad["M10"] and "M11" not in charts
+          and nch == len(mch.ORDER) - 2 and not ed.get("charts_over_cap"),
           f"with history stored, all but M10 render ({nch}); the fixture stores no "
           f"fed funds contracts, and M10 says so"
           + (f" -- unavailable: {bad}" if set(bad) != {"M10"} else ""))
@@ -2173,9 +2175,12 @@ def t33_group(ed: dict, out: dict) -> None:
           and charts["M8"]["unavailable"] == "not yet: scenario set #1",
           "M3 says why it is empty when the scorecard begins after the month; M8 is "
           "skipped by the 9 Oct ruling and logged so")
-    check("M11" not in mch.ORDER and len(mch.ORDER) == 11,
-          f"the plan is eleven charts, M0-M10 ({', '.join(mch.ORDER)}); there is no "
-          f"M11")
+    # ST-14 (18 Oct 2026): M11, the mechanism watch's supply figure, is planned
+    # last and drawn only once the explorer has read -- never on this fixture.
+    check(len(mch.ORDER) == 12 and mch.ORDER[-1] == "M11"
+          and mch.DROP_ORDER[0] == "M11" and "M11" not in charts,
+          f"the plan is eleven charts, M0-M10, and M11 drawn only once the explorer "
+          f"has read ({', '.join(mch.ORDER)}); first set aside at the cap")
 
 
 def t34a_group(ed: dict, client) -> None:

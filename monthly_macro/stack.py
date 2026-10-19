@@ -2117,6 +2117,19 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
             except Exception:                                   # noqa: BLE001
                 log.warning("crypto data layer unavailable", exc_info=True)
+            # THE DIGITAL ASSET MECHANISM WATCH PART (ST-14, 2.7.6; st-t5-render,
+            # 18 Oct 2026): Pearl, after the crypto data layer's tables inside the
+            # digital-assets material. Tables and code-written lines, no paragraph;
+            # its one figure (M11) only once the explorer has read. Report-only.
+            try:
+                from . import prl_part                           # noqa: PLC0415
+                subs = slow.setdefault("subsections", [])
+                at = max((i for i, x in enumerate(subs)
+                          if str(x.get("title") or "").startswith(prl_part.AFTER_TITLES)),
+                         default=len(subs) - 1)
+                subs[at + 1:at + 1] = prl_part.build(st, now, window(p)[2], db_path)
+            except Exception:                                   # noqa: BLE001
+                log.warning("the mechanism watch part is unavailable", exc_info=True)
             # THE GDP LENSES (Batch 7 item 48, lenses 15-20; lenses-group-b, 18
             # Oct 2026): two tables at the end of the slow layers, the order's
             # placement; no paragraph, no chart (daily_cascade/gdp_block.py).

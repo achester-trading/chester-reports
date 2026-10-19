@@ -318,6 +318,74 @@ def story_events(now: Optional[str] = None,
     return out, report
 
 
+def mechanism_items(now: Optional[str] = None,
+                    fetch: Optional[Any] = None,
+                    robots: Optional[Any] = None) -> tuple[list[dict], dict]:
+    """THE MECHANISM-WATCH GROUP (ST-15; config/story_queries.yaml
+    `mechanism_watch`): the declared public feeds, each read only where its
+    robots.txt allows the path, their items in the window filtered by the group's
+    declared terms. Returns ([{feed, query, title, url, published_at}], report) --
+    the title, the link and the date only, never the body. `fetch(url) -> bytes`
+    and `robots(robots_url) -> text` are injectable so the gate reads fixtures."""
+    from urllib.parse import urlparse                           # noqa: PLC0415
+    from .aaii import robots_verdict                            # noqa: PLC0415
+    cfg = load_queries().get("mechanism_watch") or {}
+    now_dt = dt.datetime.fromisoformat((now or dt.datetime.now(dt.timezone.utc)
+                                        .isoformat()).replace("Z", "+00:00"))
+    since = (now_dt - dt.timedelta(days=int(cfg.get("window_days") or 14))).isoformat()
+    fetch = fetch or http_get_bytes
+
+    def _robots_text(u: str) -> str:
+        try:
+            return http_get_bytes(u).decode("utf-8", "replace")
+        except FetchError as exc:
+            if "HTTP 4" in str(exc):
+                return ""                 # a 4xx robots.txt is no rules (RFC 9309)
+            raise
+    robots = robots or _robots_text
+    cap = int(cfg.get("cap_per_run") or 60)
+    out: list[dict] = []
+    report: dict[str, Any] = {"version": cfg.get("version"), "feeds": {}}
+    seen: set[str] = set()
+    for f in cfg.get("feeds") or []:
+        try:
+            ok, rule = robots_verdict(robots(f["robots"]), urlparse(f["url"]).path or "/",
+                                      "chester-reports")
+        except Exception as exc:                               # noqa: BLE001
+            report["feeds"][f["id"]] = {"state": "skipped",
+                                        "reason": f"robots.txt unreadable ({type(exc).__name__})"}
+            continue
+        if not ok:
+            report["feeds"][f["id"]] = {"state": "skipped",
+                                        "reason": f"robots.txt refuses it ({rule})"}
+            continue
+        try:
+            items = parse_feed(fetch(f["url"]))
+        except Exception as exc:                               # noqa: BLE001
+            report["feeds"][f["id"]] = {"state": "failed",
+                                        "reason": f"{type(exc).__name__}: {exc}"[:160]}
+            continue
+        kept = 0
+        for it in items:
+            when = _when(it["published_raw"])
+            if when is None or when < since or it["url"] in seen or len(out) >= cap:
+                continue
+            title = it["title"] or ""
+            low = title.lower()
+            q = next((name for name, spec in (cfg.get("queries") or {}).items()
+                      if any(t.lower() in low for t in spec.get("terms") or [])
+                      and (not spec.get("also")
+                           or any(a.lower() in low for a in spec["also"]))), None)
+            if q is None:
+                continue
+            seen.add(it["url"])
+            out.append({"feed": f["id"], "query": q, "title": title, "url": it["url"],
+                        "published_at": when})
+            kept += 1
+        report["feeds"][f["id"]] = {"state": "ok", "items": len(items), "kept": kept}
+    return out, report
+
+
 def pull(store: Optional[ev_mod.EventStore] = None,
          dry_run: bool = False) -> dict:
     """Press feeds plus story queries, into the events table."""

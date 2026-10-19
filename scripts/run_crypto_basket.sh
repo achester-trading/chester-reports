@@ -69,5 +69,9 @@ step derive "$PY" -m altdata.crypto_basket derive
 # compute, after the basket's own writes. Both are on the freshness roster (prl).
 step prl_weekly "$PY" -m altdata.prl weekly
 step prl_daily  "$PY" -m altdata.prl daily
+# ST-15 (st-t5-render, 18 Oct 2026): the emerging-mechanism scan, Saturdays only
+# (it skips itself otherwise); its one model call only when a candidate survives
+# the rule pre-filter; writes drafts only.
+step mechanism_scan "$PY" -m altdata.mechanism_scan run
 log "crypto basket: done"
 exit 0

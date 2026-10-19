@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-eight code gates (ninety-five Python,
+**`make validate` runs every gate** — ninety-nine code gates (ninety-six Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -386,8 +386,31 @@ has no FIGI, so the chester-meme export never carries it.
   Saturdays, `altdata.prl daily` after the basket's writes; no new timer). They
   are on the freshness roster (`prl`).
 
-Config is `config/prl.yaml`. Watch-level rights only; nothing renders (ST-14
-renders), and no Daily module names PRL. `tools/validate_st_t5_prl.py` holds it.
+Config is `config/prl.yaml`. Watch-level rights only, and no Daily module names
+PRL. `tools/validate_st_t5_prl.py` holds it.
+
+**The Monthly's Mechanism Watch part and the emerging scan (ST-14, ST-15;
+st-t5-render, 18 Oct 2026).**
+- **The part.** `monthly_macro/prl_part.py` prints in the slow layers, after the
+  digital-assets material. It holds the thesis with its trace (a label, never a
+  recommendation), the S1-S8 table with "not tracked" and ESTIMATED where the
+  inputs say so, and the register's month.
+  - It reads stored rows and computes nothing.
+  - Its guards: the Security Master entry, the explorer's supply within 2% of the
+    formula, STALE never empty.
+  - Its one figure, M11, draws only once the explorer has read.
+- **The scan.** `altdata/mechanism_scan.py` runs the `mechanism_watch` group of
+  `config/story_queries.yaml` over declared feeds under robots
+  (`news.mechanism_items`), and DefiLlama's recently-added list.
+  - It dedupes against the Security Master and the register, then applies the
+    rule pre-filter.
+  - Only when a candidate survives is the model called, once, with Appendix F
+    read verbatim from the order.
+  - It writes drafts only, into the `mechanism_watch` tables of
+    `altdata/mechanism_watch.py`.
+  - `promote` and `reject` write only with the operator's `--confirm`.
+  - It is a Saturday step of the crypto basket's run; `make mechanism-register`
+    renders the register. `tools/validate_st_t5_render.py` holds it.
 
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a
