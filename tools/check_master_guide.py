@@ -5,9 +5,14 @@ section 6). It keeps the front door in step with what the code holds:
 
   1  TIMERS     every timer in deploy/systemd appears in Table 1, its OnCalendar
                 cell matching the unit's OnCalendar (OnUnitActiveSec for one with
-                none), and no row names a timer that does not exist
+                none), and no row names a timer that does not exist -- except a
+                row marked "ruled, not built", which is allowed until its unit
+                file exists and must carry its schedule from then
   2  REPORTS    every report entry point has a card: the 07:00 anchor, the 12:30
-                slot, the 16:45 close, the Weekly, the Monthly and the Quarterly
+                slot, the 16:45 close, the Weekly, the Monthly and the Quarterly;
+                and a card ruled but not built (the 09:50 open note, the 21:30
+                evening note) is required, without "ruled, not built", once its
+                unit file exists
   3  CHAT       every task in docs/master-guide/chat-tasks.yaml appears in Table
                 2 by name, with its status
   4  PAPERS     every paper in the library guide's roster appears in Table 9 by
@@ -56,6 +61,13 @@ REPORT_CARDS = {
     "monthly_macro/run.py": "The Monthly",
     "monthly_macro/quarterly.py": "The Alternative Assets Quarterly",
 }
+# The reports ruled but not built (the secondary-notes order of 19 Oct 2026):
+# timer -> the card heading they must have once the unit file exists.
+PLANNED_CARDS = {
+    "chester-open-note": "The 09:50 open note",
+    "chester-evening-note": "The 21:30 evening note",
+}
+RULED = "ruled, not built"
 VERDICTS = ("PASS", "FAIL", "INSUFFICIENT", "NO GATE")
 MONTHS = {m: i for i, m in enumerate(
     "January February March April May June July August September October "
@@ -130,14 +142,28 @@ def check(root: Path) -> tuple[list[str], list[str]]:
     for name, sched in units.items():
         if name not in t1:
             fails.append(f"[timers] {name}.timer is not in Table 1")
+        elif t1[name] == RULED:
+            fails.append(f"[timers] {name}.timer now exists: replace Table 1's "
+                         f"'{RULED}' row with its schedule ({sched!r})")
         elif t1[name] != sched:
             fails.append(f"[timers] {name}: Table 1 says {t1[name]!r}, the unit says {sched!r}")
     for name in t1:
-        if name not in units:
+        if name not in units and t1[name] != RULED:
             fails.append(f"[timers] Table 1 names {name}, which has no timer in {UNITS}")
 
     # 2. report cards
     heads = re.findall(r"^### Card: (.+?)\s*$", text, re.M)
+    # a card ruled but not built is not required until its unit file exists;
+    # from then it is required, and may no longer say "ruled, not built"
+    for timer, card in PLANNED_CARDS.items():
+        if not (root / UNITS / f"{timer}.timer").exists():
+            continue
+        mine = [h for h in heads if h.startswith(card)]
+        if not mine:
+            fails.append(f"[reports] {timer}.timer exists, and there is no card for {card}")
+        elif any(RULED in h for h in mine):
+            fails.append(f"[reports] {timer}.timer exists: the card for {card} still says "
+                         f"'{RULED}'")
     for entry, card in REPORT_CARDS.items():
         if not (root / entry).exists():
             continue
@@ -248,8 +274,10 @@ def _fixture(root: Path) -> None:
         "**As of:** 19 October 2026",
         "<!-- table:timers -->", "| Timer | OnCalendar |", "|---|---|",
         "| `chester-x` | `Mon-Fri 07:00 America/New_York` |", "| `dog` | `every 5min` |",
+        "| `chester-open-note` | `ruled, not built` |",
         "<!-- /table -->",
         "### Card: The 07:00 anchor", "Entry: `daily_cascade/morning_anchor.py`.",
+        "### Card: The 09:50 open note (ruled, not built)", "Entry point: none yet.",
         "<!-- table:chat-tasks -->", "| Task | Status |", "|---|---|", "| Task one | active |",
         "<!-- /table -->",
         "<!-- table:papers -->", "| # | Paper |", "|---|---|",
@@ -302,6 +330,29 @@ def selftest() -> int:
         g.write_text(base + "\n![Figure](figures/master-guide/none.svg)\n", encoding="utf-8")
         f, _ = check(root)
         expect(any("[figures]" in x for x in f), "a figure link that does not resolve fails")
+        # ruled, not built: required once its unit file exists
+        g.write_text(base, encoding="utf-8")
+        unit = root / UNITS / "chester-open-note.timer"
+        unit.write_text("[Timer]\nOnCalendar=Mon-Fri 09:50 America/New_York\n",
+                        encoding="utf-8")
+        f, _ = check(root)
+        expect(any("chester-open-note.timer now exists" in x for x in f)
+               and any("still says 'ruled, not built'" in x for x in f),
+               "a timer and card marked 'ruled, not built' (allowed while no unit exists) "
+               "become required once the unit file exists")
+        g.write_text(base.replace("| `chester-open-note` | `ruled, not built` |",
+                                  "| `chester-open-note` | `Mon-Fri 09:50 America/New_York` |")
+                     .replace("### Card: The 09:50 open note (ruled, not built)",
+                              "### Card: The 09:50 open note"), encoding="utf-8")
+        f, _ = check(root)
+        expect(f == [], f"and pass again once the row and the card are brought up to date ({f})")
+        unit.unlink()
+        g.write_text(base.replace("| `chester-open-note` | `ruled, not built` |",
+                                  "| `chester-open-note` | `Mon-Fri 09:50 America/New_York` |"),
+                     encoding="utf-8")
+        f, _ = check(root)
+        expect(any("Table 1 names chester-open-note" in x for x in f),
+               "a row that claims a schedule for a timer with no unit still fails")
     print(f"\n{ok} passed, {bad} failed")
     return 0 if bad == 0 else 1
 

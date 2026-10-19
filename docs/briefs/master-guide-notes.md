@@ -10,10 +10,38 @@ Nothing was merged or deployed, nothing ran on the box, and no unit was enabled 
 started. session A's branches were read and never pushed to. chester-meme was not
 opened: the Guide describes it from this repository's code and notes only.
 
+**Second paste (the revised B46, which replaces the first).** Part 0's CI was read once:
+alpha-lab-4 109/109, library-st-l 129/129 and b45-chain3 130/130, all green. The first
+push of this branch (`aac1f9c`) was 129/129. Nothing needed fixing. The paste's one
+addition is **the secondary notes**, ruled 19 Oct 14:14 ET
+(`change-order-secondary-notes-2026-10-19.md`). `a49-secondary-notes` did not exist on
+origin when this was written, so they are read from the order alone:
+- **Two cards,** "The 09:50 open note (ruled, not built)" and "The 21:30 evening note
+  (ruled, not built)", with a short preface in Part 2;
+- **Table 1:** two rows whose schedule cell is `ruled, not built`;
+- **Part 0:** two report rows; Table 4's Daily Cascade row; Table 6's two rows;
+- **Part 6's Book C paragraph and Part 7:** the open note named, with an optional
+  checklist line;
+- **Part 8:** row 3 (the 1000 report) is now marked ruled, not unruled. Rows 16 (the
+  mandatory touch on volatile-protocol days once Book C is active) and 17 (the 1000
+  report as a Book D touch) are added, the order's three Doctrine #2 items with row 3;
+- **Landing next:** a row and two calendar lines (the dry runs; `live_from` 26 Oct).
+
+**The gate** allows a Table 1 row or a card marked "ruled, not built" while no unit file
+exists. Once `chester-open-note.timer` or `chester-evening-note.timer` exists, it
+requires the row's real schedule and a card without the words "ruled, not built"
+(`PLANNED_CARDS`; three new self-test cases, 12/0). **Whichever branch merges second
+carries the rows** (the order's section 6). If a49 merges after this one, its unit files
+turn the gate red until the two rows and two card headings are brought up to date.
+That is intended: it is the refresh the gate exists to force.
+
+Figure 2 (the clock) is drawn from the unit files, so the notes appear on it only once
+their timers exist. The Guide's text says so.
+
 ## What was built
 
-- **`docs/master-guide.md`**, the Guide: about 13,860 words in Parts 0 to 9, Landing
-  next and the Glossary. Part 0 is about 970 words and stands alone.
+- **`docs/master-guide.md`**, the Guide: about 15,110 words in Parts 0 to 9, Landing
+  next and the Glossary. Part 0 is about 1,050 words and stands alone.
 - **The five figures,** in `docs/figures/master-guide/`, as SVG. Each carries its own
   panel and a light/dark palette (`prefers-color-scheme`), sized for a phone held
   upright.
@@ -141,10 +169,10 @@ opened: the Guide describes it from this repository's code and notes only.
 
 ## Part 8's list, for Doctrine #2 (7-8 Nov)
 
-The Guide's Table 8, fifteen rows:
+The Guide's Table 8, seventeen rows:
 1. the eight Daily Cascade reports;
 2. the 0700 setup list;
-3. the 1000 report and its packet field;
+3. the 1000 report: ruled 19 Oct to become the open note (not built); the Doctrine's text to change;
 4. the weekly reflection report;
 5. the figures at the top of the weekly report;
 6. Top & Bottom's ten triggers and override;
@@ -156,9 +184,11 @@ The Guide's Table 8, fifteen rows:
 12. the Book A-alone benchmark;
 13. the 13-week expectancy by book and regime;
 14. the three counts (no difference);
-15. the intraday rung against engine 7.
+15. the intraday rung against engine 7;
+16. the mandatory 1000 touch on volatile-protocol days, once Book C is active (the secondary-notes order, section 3);
+17. the 1000 report as a Book D touch; the open note carries no Book D block (the order, section 6).
 
-Each gives what the Doctrine says, what exists and the choice. None is ruled.
+Each gives what the Doctrine says, what exists and the choice. Only row 3's direction is ruled (by the order of 19 Oct); the Guide rules nothing.
 
 ## Files shared with session A's branches
 
@@ -174,14 +204,19 @@ Each gives what the Doctrine says, what exists and the choice. None is ruled.
   - `daily_cascade/stack_render.py` and `readability.py` (the footer line);
   - `tools/validate_readability.py`.
 - **b45-chain3 and library-st-l:** the same count line and Makefile.
+- **a49-secondary-notes** (not yet on origin): Table 1's two rows and the two cards'
+  headings, which the gate turns red when its unit files land (see the second paste above).
 
 ## Needs you
 
 1. **The trading track and the library map's grouping:** accept, or regroup a paper.
    This is a rule-31 draft. The books each paper serves are judgment.
-2. **Table 8's fifteen rows,** for the Doctrine #2 agenda.
+2. **Table 8's seventeen rows,** for the Doctrine #2 agenda.
 3. **The Guide's status words for the chat tasks:** `planned` was added for the
    not-yet-created quarterly scan.
 4. **Aptos in the HTML edition** needs a font option in the shared builder. Yes or no.
 5. **Refreshing at the third chain's stitch:** Landing next becomes "as built", and
    Tables 1, 2, 7 and 9 change. The gate holds Tables 1, 2, 7a and 9 to the code.
+6. **The secondary notes' Guide rows:** whoever merges second updates Table 1's two
+   rows and the two card headings. If that is a49, it needs this branch's gate to
+   pass, so tell session A.
