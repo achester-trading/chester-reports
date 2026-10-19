@@ -122,6 +122,7 @@ PY_VALIDATORS := \
 	tools/validate_releases_b.py \
 	tools/validate_st_t5_prl.py \
 	tools/validate_st_t5_render.py \
+	tools/validate_b45_chain3.py \
 	tools/validate_digital_addendum.py \
 	tools/validate_crypto_sources.py \
 	tools/validate_audit_3a.py \

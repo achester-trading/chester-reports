@@ -26,6 +26,10 @@ THE EMERGING-MECHANISM SCAN (ST-15, the order's MW-5 and 2.7.7; st-t5-render,
      at the pending grade with `draft` set, and a drafted narrative-register entry
      (<= 60 words, factor I or V). Only a human changes a status
      (altdata/mechanism_watch.py promote | reject, with the operator's flag).
+  6  the posting (ruling 6 of 19 Oct 2026): each entry posted to the narrative
+     register as a PROPOSED story through its existing proposal path, with its
+     factor's declared implied outcome and horizon (mechanism_watch.post_entries),
+     for the operator's confirm or reject. Nothing here confirms.
 
 The whole scan is a step of the Saturday run of the crypto basket's timer
 (scripts/run_crypto_basket.sh); no new timer. Watch-level rights only (MW-2).
@@ -286,6 +290,7 @@ def run(dry_run: bool = False, today: Optional[str] = None, force: bool = False,
         a = assess(survivors, client=client)
         rep["assessment"] = {k: v for k, v in a.items() if k != "assessed"}
         rep["written"] = write_drafts(reg, a.get("assessed") or [], survivors)
+        rep["posted"] = mw.post_entries(reg, db_path)
         return rep
     finally:
         if reg is not None:

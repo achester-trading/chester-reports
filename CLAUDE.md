@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and nineteen code gates (one hundred and sixteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty code gates (one hundred and seventeen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -407,6 +407,15 @@ st-t5-render, 18 Oct 2026).**
     read verbatim from the order.
   - It writes drafts only, into the `mechanism_watch` tables of
     `altdata/mechanism_watch.py`.
+  - Each assessed entry is then posted to the narrative register as a PROPOSED
+    story through its existing proposal path (`post_entries`; ruling 6 of 19 Oct
+    2026): its source stored as a headline event, its factor's implied outcome
+    and horizon from `config/story_queries.yaml` `mechanism_watch.posting`. It
+    is graded on outcome once the operator confirms it; nothing here confirms.
+  - The seven feeds carry their `terms_read` dates, re-read every quarter; the
+    Monthly part names any feed read more than 92 days before its as-of. The
+    part reads `calc.prl_*`, and `pearl.chain_*` and the basket's PRL price
+    directly; nothing is copied into a `calc.prl_*` key.
   - `promote` and `reject` write only with the operator's `--confirm`.
   - It is a Saturday step of the crypto basket's run; `make mechanism-register`
     renders the register. `tools/validate_st_t5_render.py` holds it.

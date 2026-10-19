@@ -395,11 +395,13 @@ def group_d() -> None:
         rows = reg.all()
         ents = reg.month("2026-10-01", "2026-11-30")["entries"]
     check(len(rows) == 1 and rows[0]["name"] == "Lumen" and rows[0]["status"] == "CANDIDATE"
-          and rows[0]["draft"] == 1 and rows[0]["grade"] == mw.GRADE_PENDING
+          and rows[0]["draft"] == 1 and rows[0]["grade"] == mw.GRADE_PROPOSED
+          and len(r2["posted"]["posted"]) == 1
           and r2["written"]["failed"] == [{"name": "Lattice Compute",
                                            "fail_reason": "(i) no team identified"}],
-          "drafts only: Lumen a CANDIDATE draft at the pending grade (G-29); the "
-          "failing one written nowhere, its criterion listed")
+          "drafts only: Lumen a CANDIDATE draft, its entry posted as a proposed story "
+          "(ruling 6 of 19 Oct 2026); the failing one written nowhere, its criterion "
+          "listed")
     check(len(ents) == 1 and ents[0]["draft"] == 1 and ents[0]["factor"] == "I"
           and len(ents[0]["text"].split()) <= 60 and ents[0]["cls"] == "mechanism-watch",
           "and one drafted narrative-register entry: factor I, at most 60 words")

@@ -17,10 +17,17 @@ informational label, never as a recommendation.
   5  the narrative-register entries the scan drafted this month
 
 IT READS, IT DOES NOT COMPUTE. Every figure is a stored row read as of the
-cutoff: the calc.prl_* rows (altdata/prl.py writes them), the explorer's
-pearl.chain_* rows and the crypto basket's PRL price -- nothing is derived here
-but a change between two stored values. The Security Master entry is read
-through its resolver.
+cutoff, from ALLOWED_READS and nothing else (ruling 6 of 19 Oct 2026): the
+calc.prl_* rows (altdata/prl.py writes them), and, read DIRECTLY, the explorer's
+pearl.chain_* rows and the crypto basket's PRL price -- none of them is copied into
+a calc.prl_* key. Nothing is derived here but a change between two stored values.
+The Security Master entry is read through its resolver.
+
+THE FEEDS' TERMS (ruling 6). The mechanism scan's seven feeds stay; each one's
+terms are re-read every quarter, the date in its catalogue entry
+(config/story_queries.yaml `mechanism_watch.feeds[].terms_read`). The part prints
+one line naming any feed last read more than TERMS_DAYS (92) days before the
+Monthly's as-of, and nothing when none is.
 
 THE GUARDS (the row's validators, which also run in tools/validate_st_t5_render.py):
   - the Security Master entry: coingecko_id "pearl-2" and name "Pearl", class
@@ -65,6 +72,36 @@ BASELINE = {
     "S8": "no funding news known",
 }
 NARRATIVE = "not read: a narrative signpost (manual input, fed by the scan)"
+TERMS_DAYS = 92
+
+
+def allowed_reads() -> dict:
+    """{name: key}: every key the part reads -- the calc.prl_* rows, and the
+    explorer's and the basket's rows read directly (ruling 6 of 19 Oct 2026)."""
+    from altdata import prl                                     # noqa: PLC0415
+    keys = dict(prl.KEYS)
+    keys.update({"height": prl.HEIGHT_KEY, "supply": prl.SUPPLY_KEY,
+                 "difficulty": prl.DIFFICULTY_KEY, "price": "yfinance.crypto_prl"})
+    return keys
+
+
+def feeds_terms_line(now: str, feeds: Optional[list] = None) -> Optional[str]:
+    """One line naming each mechanism-scan feed whose terms were last read more
+    than TERMS_DAYS before `now`, or that carries no date; None when none is."""
+    if feeds is None:
+        from altdata.mechanism_scan import config as scan_config  # noqa: PLC0415
+        feeds = scan_config().get("feeds") or []
+    late = []
+    for f in feeds:
+        d = str(f.get("terms_read") or "")
+        if not d:
+            late.append(f"{f.get('id')} (no date)")
+        elif (_day(now) - dt.date.fromisoformat(d[:10])).days > TERMS_DAYS:
+            late.append(f"{f.get('id')} (read {d[:10]})")
+    if not late:
+        return None
+    return (f"Feed terms not re-read in the last {TERMS_DAYS} days: {', '.join(late)}. "
+            f"Each is re-read every quarter (ruling 6 of 19 Oct 2026).")
 
 
 # ---------------------------------------------------------------------------
@@ -103,9 +140,7 @@ def read(st, now: str, then: str) -> dict:
     """Every stored figure the part prints, now and at the prior month's cutoff,
     with its available_at; and the faults of the read guards."""
     from altdata import prl                                     # noqa: PLC0415
-    keys = dict(prl.KEYS)
-    keys.update({"height": prl.HEIGHT_KEY, "supply": prl.SUPPLY_KEY,
-                 "difficulty": prl.DIFFICULTY_KEY, "price": "yfinance.crypto_prl"})
+    keys = allowed_reads()
     out: dict[str, Any] = {"now": {}, "then": {}, "faults": [], "stale": []}
     for when, at in (("now", now), ("then", then)):
         for name, k in keys.items():
@@ -274,6 +309,9 @@ def build(st, now: str, then: str, db_path: Optional[str] = None) -> list[dict]:
                            "ESTIMATED. Report-only: nothing here alters the composite."),
             "data": {"prl": {w: {k: _v(v) for k, v in rd[w].items()} for w in ("now", "then")},
                      "faults": rd["faults"], "stale": rd["stale"]}}
+    terms = feeds_terms_line(now)
+    if terms:
+        lines.append(terms)
     out = [part]
     start, end = then[:10], now[:10]
     try:
@@ -299,6 +337,8 @@ def build(st, now: str, then: str, db_path: Optional[str] = None) -> list[dict]:
                 + ([] if rows else ["No candidate found this month."])})
     out.append({"title": TITLE_ENTRIES, "paragraph_wanted": False,
                 "lines": [f"{e['at'][:10]} · class={e['cls']} · factor={e['factor']} · "
-                          f"{e['grade']} · {e['text']} · {e['source']} (draft)"
+                          f"{e['grade']}"
+                          + (f" as {e['narrative_id']}" if e.get("narrative_id") else "")
+                          + f" · {e['text']} · {e['source']} (draft)"
                           for e in m["entries"]] or ["No entry drafted this month."]})
     return out
