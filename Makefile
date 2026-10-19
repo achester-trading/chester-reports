@@ -137,6 +137,7 @@ PY_VALIDATORS := \
 	tools/validate_alpha_no_orders.py \
 	tools/validate_alpha_proposer.py \
 	tools/validate_alpha_lab_3.py \
+	tools/validate_alpha_lab_4.py \
 	tools/validate_volume_profile.py \
 	tools/validate_es_block.py \
 	tools/validate_st_r4_t1.py \

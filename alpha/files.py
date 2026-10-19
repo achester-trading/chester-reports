@@ -16,13 +16,19 @@ temporary file beside the target, then a rename), and refuses any other path.
 Group A of the gate allows this module and no other; it never writes the
 observation store, the register's live tables, a report or a ledger, and it
 never deletes.
+
+lock() is the one lock the lab holds on a file (ruling 5(c) of 19 Oct 2026: one
+lock for every search step): an advisory, non-blocking lock on a file under a
+writable root, which the kernel releases when the process ends, so a step a
+unit's timeout kills leaves no stale lock behind.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional
 
 from . import config as acfg
 
@@ -69,3 +75,42 @@ def write_text(path: Path, text: str) -> Path:
         fh.write(text)
     os.replace(tmp, p)
     return p
+
+
+@contextlib.contextmanager
+def lock(path: Path) -> Iterator[bool]:
+    """Try to take an exclusive lock on `path` (under a writable lab root),
+    without waiting. Yields True when this process holds it, False when another
+    does; the lock is released on leaving the block or when the process ends."""
+    p = Path(path).resolve()
+    if not allowed(p):
+        raise OutsideTheLab(f"{p} is outside the lab's writable directories")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fh = open(p, "a+", encoding="utf-8")                      # noqa: SIM115
+    held = False
+    try:
+        try:
+            if os.name == "nt":
+                import msvcrt                                   # noqa: PLC0415
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl                                    # noqa: PLC0415
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            held = True
+        except OSError:
+            held = False
+        yield held
+    finally:
+        if held:
+            try:
+                if os.name == "nt":
+                    import msvcrt                               # noqa: PLC0415
+                    fh.seek(0)
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl                                # noqa: PLC0415
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+        fh.close()

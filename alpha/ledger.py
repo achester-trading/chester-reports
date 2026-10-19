@@ -724,10 +724,13 @@ class Ledger:
         r = self.one("SELECT count FROM variant_counts WHERE family=?", (family,))
         return int(r["count"]) if r else 0
 
-    def bump_variant(self, family: str, as_of: str) -> int:
+    def bump_variant(self, family: str, as_of: str, by: int = 1) -> int:
         """Every validation run is one more variant of its family. Returns the
-        count INCLUDING this run, which is the N the run is deflated by."""
-        n = self.variant_count(family) + 1
+        count INCLUDING this run, which is the N the run is deflated by. The
+        grammar search (X-3.5) adds its whole candidate count at once (`by`)."""
+        if int(by) < 1:
+            raise ValueError("a variant count only grows")
+        n = self.variant_count(family) + int(by)
         self._upsert("variant_counts", {"family": family, "count": n, "as_of": as_of})
         return n
 

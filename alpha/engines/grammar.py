@@ -106,6 +106,9 @@ class GrammarEngine(Engine):
         ok, _, _ = rules._signal(self.cmp, data, decide_day, as_of, self.rule["trigger"])
         if not ok:
             return []
+        # grammar v2: every `when` item read as knowable now, else no signal
+        if self.cmp.when and not rules.when_ok(self.cmp, data, decide_day, as_of)[0]:
+            return []
         d = self.rule["direction"]
         if isinstance(d, dict):
             hit, _, _ = rules.holds(d["if"], data, decide_day, as_of)

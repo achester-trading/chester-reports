@@ -241,6 +241,8 @@ alpha/research/agenda.md
 alpha/research/agenda.json
 # Its pre-registration manifests (X-3), written on the box before each register.
 alpha/research/manifests/
+# The grammar search's progress and frozen survivors (X-3.5), written on the box.
+alpha/research/search/
 
 # AUD-1 item 2c (the data and architecture audit of 14 Oct 2026): secrets, the
 # databases, the archives, and the report outputs the box writes. Nothing here is

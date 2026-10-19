@@ -20,6 +20,11 @@
 # THE CALENDAR GUARD, the same one-call question run_daily_close.sh asks: on a
 # holiday there is no new bar to fill against or mark at. Exit 0, log the skip.
 #
+# THE GRAMMAR SEARCH is the loop's last step while a run is unfinished
+# (alpha/search.py `nightly`), capped by CHESTER_UNIT_STARTED above; its own lock
+# (files.lock, alpha/research/search/.lock) keeps a manual `alpha.search run` and
+# this step from holding the search at once.
+#
 # Exit codes are the loop's: 0 every step ran, 1 a step failed (see loop_events).
 #
 # Overridable:
@@ -31,6 +36,11 @@
 #   CHESTER_FORCE_RUN=1   run even on a non-session day
 
 set -uo pipefail
+
+# The unit's start, for the grammar search's last step (ruling 5(c) of 19 Oct
+# 2026): its wall clock is the unit's 20-minute timeout less 3 minutes spare less
+# what the unit has already spent, so the unit always ends inside its timeout.
+export CHESTER_UNIT_STARTED="${CHESTER_UNIT_STARTED:-$(date +%s)}"
 
 REPO="${CHESTER_REPO:-$HOME/chester-reports}"
 LOG_DIR="${CHESTER_LOG_DIR:-$HOME/logs}"

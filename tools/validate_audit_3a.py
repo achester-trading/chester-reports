@@ -904,10 +904,11 @@ def group_f() -> None:
     # Plant a wrong count in words beside whatever count the file prints (every
     # branch that adds a gate moves it; AUD-3c moved it to seventy-six). The
     # printed word may be one word ("eighty", the post-Friday fold of 17 Oct) as
-    # well as two, so the plant matches either.
+    # well as two, so the plant matches either -- and digits, which the count
+    # took at 100 (alpha-lab-4), since a hundred is no one- or two-word number.
     import re
-    worded = re.sub(r"(?<=runs every gate\*\* — )[a-z]+(?: hundred(?: and [a-z]+"
-                    r"(?:-[a-z]+)?)?|(?:-[a-z]+)?)(?= code gates)",
+    worded = re.sub(r"(?<=runs every gate\*\* — )(?:\d+|[a-z]+(?: hundred(?: and [a-z]+"
+                    r"(?:-[a-z]+)?)?|(?:-[a-z]+)?))(?= code gates)",
                     lambda m: ("seventy-four" if m.group(0) != "seventy-four"
                                else "seventy-three"), text, count=1)
     check(worded != text, "the plant found the printed count to replace")

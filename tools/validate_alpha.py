@@ -133,6 +133,11 @@ os.environ.pop("ALPHA_DB", None)
 for _k, _d in (("ALPHA_INBOX", "inbox"), ("ALPHA_OUTBOX", "outbox"),
                ("ALPHA_RESEARCH_DIR", "research"), ("ALPHA_REPORTS_DIR", "reports")):
     os.environ[_k] = os.path.join(_TMP, _d)
+# The nightly loop's last step is the grammar search (ruling 5(c) of 19 Oct 2026),
+# held in tools/validate_alpha_lab_4.py groups B to D. Here the unit is told it
+# started at the epoch, so its budget is spent and the step skips with its reason
+# rather than spending up to ten minutes of this gate on the fixture store.
+os.environ["CHESTER_UNIT_STARTED"] = "0"
 
 import yaml  # noqa: E402
 
@@ -454,10 +459,10 @@ def group_c_static() -> None:
         check(not (Path(_TMP) / "absent.sqlite").exists(), "a missing store is not created")
 
 
-# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026).
+# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026) and part 2's engine 6 (alpha-lab-4).
 ENGINE_IDS = ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer",
               "events_macro", "events_fomc", "events_pead", "events_crush",
-              "crypto_carry"]
+              "crypto_carry", "reversion"]
 
 
 # ---------------------------------------------------------------------------
@@ -473,7 +478,7 @@ def group_d() -> None:
     check([e["id"] for e in reg] == ENGINE_IDS
           and all(str(e["class"]).startswith("alpha.engines.") for e in reg),
           "config/alpha_engines.yaml registers Tranche 2's engines (X-2.1 to X-2.3) and "
-          "Tranche 3's (X-3.1, X-3.2), each in alpha/engines/")
+          "Tranche 3's (X-3.1, X-3.2, X-3.3), each in alpha/engines/")
     loaded = engine_mod.load_all()
     check(len(loaded) == len(ENGINE_IDS) and all(hasattr(e, "coverage") for e in loaded),
           "and each loads, with its coverage check")

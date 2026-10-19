@@ -137,6 +137,9 @@ def check_file(raw: bytes, meta: Optional[dict]) -> tuple[Optional[dict], list[s
     w = hyp.instant(doc.get("written_at"))
     if w and w > meta["created"]:
         why.append(f"written_at {w} is later than its created time {meta['created']}")
+    if doc.get("channel") in ("importer", "search"):
+        why.append(f"a file cannot claim the {doc.get('channel')} channel: the tells "
+                   f"and the search's survivors are registered on the box only")
     if meta["via"] == "proposer" and (doc.get("channel") != "daily-proposer"
                                       or doc.get("source") != "model"):
         why.append("a file the proposer wrote is channel daily-proposer, source model")

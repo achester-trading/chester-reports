@@ -1,4 +1,4 @@
-# The Alpha Lab's rule grammar, v1
+# The Alpha Lab's rule grammar, v1 and v2
 
 **Grammar id:** `alpha-lab-rules/v1`. Built 14 October 2026 for item X-2.10a, with the amendments of 14 October (change order section 10). The interpreter is `alpha/rules.py` and its settings are in `config/alpha_rules.yaml`.
 
@@ -270,3 +270,29 @@ exits: {stop: {atr: 1.5, n: 20}, time: 40}
 - **Intraday bars.** Grammar v1 is daily.
 - **Parameters fitted by the harness.** A grammar rule's numbers are fixed when it is written. A different number is a new, pre-registered variant.
 - **Any reference to a figure the store does not hold.** That is a data gap, never a proxy.
+
+## 14. Grammar v2: the state condition (`alpha-lab-rules/v2`)
+
+Built 19 October 2026 (alpha-lab-4, Part 1). **v2 is v1 plus one key, `when`.** Every v1 rule is a v2 rule with no `when` and backtests to the same trades; a rule marked v1 may not carry `when`. The proposer still writes v1 only (a v2 `rule_dsl` from it is kept as text); v2 is written by the grammar search and by hand.
+
+`when` is a list of state conditions. On each decision **every** item must read a value **knowable at the decision** and take one of its listed `values`; otherwise the rule does not trade that day. A value that cannot be read (no vintage stored by the decision, too few rows) is no trade, never a guess.
+
+```yaml
+grammar: alpha-lab-rules/v2
+when:
+  - {kind: state, path: dials.vol.state, values: [normal]}
+  - {kind: zscore, key: cftc.noncomm_net, instrument: SP500, window: 104, min_rows: 52,
+     bands: {crowded_long: 1.5, crowded_short: -1.5}, values: [crowded_long]}
+  - {kind: mean_band, key: calc.funding_agg, window: 7,
+     bands: {on: 10.0, off: 3.0}, values: ["on"]}
+```
+
+| Kind | Reads | Values |
+|---|---|---|
+| `state` | the stored market-state object for the decision's day, its latest vintage stored by the decision, at `path` | whatever the object holds there |
+| `zscore` | the key's (and `instrument`'s) last `window` observations as known at the decision; the newest one's z against them, given at least `min_rows` | `crowded_long` (z at or above `bands.crowded_long`), `crowded_short` (at or below `bands.crowded_short`), else `neutral` |
+| `mean_band` | the mean of the key's last `window` observations as known at the decision | `on` (at or above `bands.on`), `off` (below `bands.off`), else `between` |
+
+A `zscore` or `mean_band` key must be in `metrics_registry.yaml`; `instrument` reads that instrument's rows only. Each trade records the values it read under `when`, and its `available_at` covers them. One function reads all three (`rules.when_value`): the grammar search's conditioning calls it, so a search candidate conditioned on a state is exactly the v2 rule with that one `when` item, and a conditioned survivor registers that rule.
+
+**What v2 still cannot say:** everything in section 13, and a state condition on anything other than these three kinds (an intraday state, a vendor's figure). Nothing in the search's family `search-v1` needs code.

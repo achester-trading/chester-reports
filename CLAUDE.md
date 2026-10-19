@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and eighteen code gates (one hundred and fifteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and nineteen code gates (one hundred and sixteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -460,6 +460,22 @@ Config `config/crypto_sources.yaml`; `tools/validate_crypto_sources.py` holds it
 crypto flows block (at most 12 lines, a table in Positioning & flows) and the
 Monthly's network-health and data-layer rows, every Monthly row in the triple form
 with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
+
+**CD-12 (Tranche C; alpha-lab-4, 19 Oct 2026; ruling 2 of 19 Oct): SR-29 reads
+the operator's free key.** bitcoin-data.com serves the long- and short-term-holder
+supply and has no robots file; its terms (14 Oct 2026) make the API a free-key
+service and forbid redistribution, not the store (`source_registry.yaml`
+`bitcoin_data` quotes them). `altdata/sources/btcdata.py` reads
+`BITCOIN_DATA_API_KEY` from `.env`, sends it as a Bearer header, and writes
+`btcdata.lth_supply`, `.sth_supply`, `.supply_current` and
+`btcdata.lth_supply_share` (computed, LTH over current x 100), available at the
+pull. Its guard counts every request in a state file and refuses the 9th in an
+hour and the 16th in a day; no retry. One request per series a day, in the
+crypto basket's 17:25 run (no new timer, not on the external roster). Without the
+key it fetches nothing and the Monthly and the addendum print "not tracked
+(btcdata.lth_supply_share): no key in .env (BITCOIN_DATA_API_KEY)". No by-hand
+line (rule 30). CD-11 (Dune) stays unbuilt, a listed gap (ruling 3).
+`tools/validate_crypto_sources.py` group O holds it.
 
 **Item 49 and the addendum's Phase 2 (digital-49-51b, 17 Oct 2026).**
 `altdata/sources/treasury.py` stores three inputs:
@@ -1111,10 +1127,60 @@ changes nothing. The Quarterly mails the lab's page
 `monthly_macro/run.py`), which prints "no quarter closed yet" until a whole
 quarter exists.
 
+**Engine 6, extremes reversion (X-3.3; alpha-lab-4, 19 Oct 2026).**
+`alpha/engines/reversion.py` fades a 2.5-sigma print only where that bucket's
+own point-in-time history reverses.
+- A bucket is a series and the sign of its print.
+- A print is identified against its own trailing window as known on its day,
+  never against the move screen's in-sample "false flag k/N".
+- Below 30 completed formation prints a bucket prints "awaiting (n=k of 30)"
+  and trades nothing.
+- At 30, the horizon (1, 5, 10 or 20 sessions) with the highest reversal share
+  in the formation sample is frozen, and only later prints are traded.
+
+Every rule is `config/alpha_reversion.yaml`'s `spec`. Its sha256 is quoted by
+the roster's E-6 (`alpha/research/roster-2026-10-19-x3-3.yaml`), and the engine
+refuses a spec that no longer hashes to it. `tools/validate_alpha_lab_4.py`
+group A holds it.
+
+**The grammar search (X-3.5; alpha-lab-4, 19 Oct 2026).** `alpha/search.py`
+enumerates `config/alpha_search.yaml`'s family: signal families x
+conditioning options x horizons x instruments x exits, 3,840 candidates, each
+a rule in grammar v2 (`docs/alpha-lab-rules.md` section 14: v1 plus a rule-level `when` list of
+state, zscore and mean_band conditions, each read as knowable at the decision
+by the one reader `rules.when_value`, a missing value meaning no trade; v1
+rules replay unchanged and the proposer stays on v1). A conditioned candidate is
+its base rule plus one `when` item, backtested as that rule, and a conditioned
+survivor registers that rule. The conditioning variables are the macro dial, the volatility
+dial, the CFTC net's z and calc.funding_agg. A variable joins a run only if its
+point-in-time history (the first day a value was knowable) starts at least five
+years before the holdout's first day (ruling 5(a) of 19 Oct 2026); one that
+fails is pending with "history from <date>" and its options are not
+candidates. The dealer regime is pending on its captures' history and is not
+in search-v1. A run goes in this order:
+1. coverage, then its manifest (the family's sha256, each variable's first date
+   and verdict, the count, the split, the deflation and the survivor rule)
+   before the first backtest;
+2. the family's variant count raised by every candidate;
+3. formation against the constitution's deflated gate;
+4. the survivor list frozen, and only then the holdout backtested;
+5. the survivors of both registered as `systematic` hypotheses of the
+   `search` channel, at the manifest's instant.
+
+A step is capped at 400 candidates and resumes from its progress file. A
+resumed run refuses a changed family. While a run is unfinished, its next step
+is the nightly loop's last (ruling 5(c)): its wall clock is the unit's 20
+minutes less 3 spare less what the unit has spent, at most 600 s, and under
+120 s it skips and says why. A new run begins only in a month's first week,
+once the previous run is complete; one lock (`files.lock`) covers every step.
+No new timer; the Monthly's Lab report prints its line, naming the variables
+that passed and failed coverage. `tools/validate_alpha_lab_4.py` groups B and C
+hold it.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
-crypto_carry, all candidates until they pass); a promoted grammar rule is named by
-its register id in `alpha.db`. No gate reads the live store.
+crypto_carry, reversion, all candidates until they pass); a promoted grammar
+rule is named by its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 

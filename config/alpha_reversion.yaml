@@ -1,0 +1,45 @@
+# alpha_reversion.yaml -- engine 6, extremes reversion (X-3.3; alpha/engines/
+# reversion.py). Read by the engine, written by no loop.
+#
+# THE SPEC IS PRE-REGISTERED. Everything under `spec:` is the engine's
+# pre-registration: the bucket, the data gate, the reversal measure, the horizon
+# rule, the instruments, the costs, the exit and the family. Its sha256 (the
+# canonical JSON of `spec`, alpha/manifest.batch_sha256) is `spec_sha256` below
+# and is quoted in the roster's hypothesis (alpha/research/roster-2026-10-19-x3-3.yaml
+# E-6, data.spec_sha256), which the operator registers BY MANIFEST before the
+# first backtest. The engine refuses to run when the spec no longer hashes to
+# spec_sha256: a changed spec is a new hypothesis, never an edit of this one.
+#
+# THE TRAP IT AVOIDS. altdata/move_screen.py's printed "false flag k/N" is
+# in-sample: each past print there is identified against the whole five-year
+# window's mean and spread, as known today. The engine never reads it. It
+# recomputes each bucket's history point in time: a print on day t is a print
+# only if its move is past `sigma` against its own trailing window AS KNOWN AT
+# t's nightly decision, and its reversal is read as known when it completed.
+version: 1
+spec:
+  family: reversion                   # the variant_counts family
+  print:
+    move: "one session's log change of the stored close (a tradeable price only)"
+    sigma: 2.5                        # |z| at or beyond, two-sided
+    window_calendar_days: 1826        # the trailing window (the move screen's five years)
+    min_observations: 500             # changes in the trailing window, else no print
+    stdev: population                 # the move screen's pstdev; today's change excluded
+    identified_at: "the first nightly decision (17:40 ET) at or after the print's close was knowable"
+  bucket: "the series and the sign of its print (e.g. SPY:+, SPY:-)"
+  completed: "a print whose 20 sessions after it are knowable; read at that instant"
+  data_gate:
+    min_formation_prints: 30          # completed prints; below it "awaiting (n=k of 30)", no trade
+    formation_sample: "the bucket's first 30 completed prints, in print order"
+  reversal:
+    horizons_sessions: [1, 5, 10, 20]
+    measure: "the share of prints at least half reversed at h sessions: sign(move) x (log close[t] - log close[t+h]) >= 0.5 x |move|"
+    half: 0.5
+  horizon_rule: "the horizon with the highest reversal share in the formation sample only (ties to the shorter), frozen per bucket when its formation completes"
+  trade_rule: "fade a print of an open bucket identified after its formation completed, only where the frozen horizon's formation share is at least 0.5"
+  min_reversal_share: 0.5
+  entry: "the next session's open where an open is stored, else the next session's close"
+  exit: "the frozen horizon: the close h sessions after the print (open entry) or h sessions after the entry (close entry); the cost model sets no stop (config/alpha_costs.yaml declares none), so the horizon is the only exit"
+  instruments: "the price basket's tradeable symbols with a cost class in config/alpha_costs.yaml (alpha/engines/trend.tradable and cost_class): no index level, no volatility index, no DX-Y.NYB, nothing the blocklist names"
+  costs: "config/alpha_costs.yaml: half the spread, slippage and the commission each way at the engine's own capital, plus borrow (shorts), roll (futures) and funding (perps) over the calendar days held"
+spec_sha256: "91100c551b3c30e55854d5905064ba9059bb6ba1d904c5ee513fe7b473a3a26e"

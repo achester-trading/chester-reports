@@ -28,6 +28,9 @@ each step its own try, every change a loop_events row:
      backtest-to-paper gap per engine; and the register's open queue
      (needs_code, data_gap). A copy goes to the outbox for the Saturday brief.
   5. THE VERDICTS (X-2.11): lab-verdicts-YYYY-MM-DD.md into the outbox.
+  (The grammar search, X-3.5, was this loop's last step until ruling 5(c) of
+  19 Oct 2026 moved it to the nightly loop's last step: alpha/search.py
+  `nightly`. This loop no longer steps it.)
 
 It reads the store read-only and alpha.db, and writes alpha.db and, through
 alpha/files.py, the agenda and the outbox only.
