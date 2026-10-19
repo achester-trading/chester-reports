@@ -998,8 +998,8 @@ def build(ending: str, *, as_of: Optional[str] = None, db_path: Optional[str] = 
         secs["mechanics"] = mechanics_section(st, cutoff, sat, cfg, chain_base)
         secs["onchain"] = plain_section(
             st, cutoff, sat, cfg.get("onchain") or [], cfg,
-            "SR-29's share is computed once CD-12 lands; the froth gauge is "
-            "unscored until its gate (not before January 2027).")
+            "SR-29's share is not tracked (CD-12: no keyless source within terms); "
+            "the froth gauge is unscored until its gate (not before January 2027).")
         secs["attention"] = attention_section(st, cutoff, sun, sat, cfg, inbox)
     first = cutoff[:10]
     last = _plus(first, int((cfg.get("ahead") or {}).get("window_days") or 45))

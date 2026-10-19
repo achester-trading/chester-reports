@@ -10,7 +10,7 @@ config/crypto_sources.yaml `blocks`.
                                 not built, so this one stands alone in the section
     monthly_mechanics(st, now)  the Monthly's mechanics rows: Bitcoin's and
                                 Ethereum's network health, the ETH supply-and-burn
-                                gap, the SR-29 row as it prints today
+                                gap, the SR-29 row (not tracked, CD-12)
     monthly_slow(st, now)       the Monthly's slow-layer rows: the Factor V
                                 stablecoin rows (SR-20's amendment, S-1), the watch
                                 names' fundamentals, VC raises, the next-90-day
@@ -44,6 +44,11 @@ log = logging.getLogger(__name__)
 REPO = Path(__file__).resolve().parent.parent
 TITLE_WEEKLY = "Crypto flows"
 NOT_TRACKED = "not tracked"
+# SR-29 (CD-12, 19 Oct 2026): no keyless source within terms serves it, and rule
+# 30 supersedes D-8's by-hand fallback.
+SR29_NOT_TRACKED = ("not tracked (btcdata.lth_supply_share): bitcoin-data.com's terms "
+                    "(last updated 14 Oct 2026) make its API a free-key service, so it "
+                    "is not keyless; no by-hand line (rule 30)")
 
 
 def _cfg() -> dict:
@@ -291,8 +296,7 @@ def monthly_mechanics(st, now: str) -> dict:
     lines.append("ETH supply and burn: not tracked -- Etherscan's ethsupply2 needs "
                  "ETHERSCAN_API_KEY, not registered; no keyless source within robots "
                  "serves it (Blockscout's figure disagrees with the known supply).")
-    lines.append("BTC long-term-holder supply (SR-29): by hand until Tranche C's "
-                 "CD-12 computes it.")
+    lines.append(f"BTC long-term-holder supply (SR-29): {SR29_NOT_TRACKED}.")
     return {"title": "Crypto network health", "table": {"columns": DUAL_COLUMNS,
                                                          "rows": rows},
             "lines": lines, "not_tracked": nt, "paragraph_wanted": False}

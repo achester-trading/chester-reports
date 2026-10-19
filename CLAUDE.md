@@ -462,6 +462,15 @@ crypto flows block (at most 12 lines, a table in Positioning & flows) and the
 Monthly's network-health and data-layer rows, every Monthly row in the triple form
 with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
 
+**CD-12 (Tranche C; alpha-lab-4, 19 Oct 2026): SR-29 is not tracked.**
+bitcoin-data.com serves the long- and short-term-holder supply, and has no robots
+file. But its terms (14 Oct 2026) make the API a free-key service, so it is not
+keyless. `source_registry.yaml` `bitcoin_data` quotes both and is
+not_yet_sourced. `btcdata.lth_supply_share` is `tracked: false`. The Monthly and
+the addendum print "not tracked" with the key named. There is no by-hand line:
+rule 30 supersedes D-8's fallback. CD-11 (Dune) is not built: it needs a key in
+`.env`.
+
 **Item 49 and the addendum's Phase 2 (digital-49-51b, 17 Oct 2026).**
 `altdata/sources/treasury.py` stores three inputs:
 - the treasury companies' BTC holdings, from BitcoinTreasuries.com's table

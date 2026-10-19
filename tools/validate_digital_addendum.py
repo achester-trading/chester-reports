@@ -387,8 +387,9 @@ def main() -> int:
           "the froth sample with no row says it awaits the first pull (ruling 4 of 17 Oct: "
           "GeckoTerminal's API is read, so no refusal is printed)")
     check(ca["BTC long-term-holder supply share (SR-29)"]["text"].startswith(
-        "not stored: SR-29 is by hand"),
-          "SR-29's row prints as it does today (Tranche C computes it)")
+        "not tracked (btcdata.lth_supply_share): bitcoin-data.com's terms"),
+          "SR-29's row prints not tracked with its key named (CD-12: no keyless "
+          "source within terms; no by-hand line)")
     check(ca["Stablecoin supply, change on the week"]["text"] == "+$3.5bn",
           f"the stablecoin supply prints its week's change "
           f"({ca['Stablecoin supply, change on the week']['text']})")

@@ -111,10 +111,11 @@ mechanics:
     symbol: MSTR
     dates: [2026-11-11, 2026-11-30]
 
-# SECTION 5, ON-CHAIN. SR-29's long-term-holder share is CD-12 (Tranche C, not A):
-# by hand until then. The froth gauge is CD-7 (Tranche A).
+# SECTION 5, ON-CHAIN. SR-29's long-term-holder share: CD-12 found no keyless
+# source within terms (19 Oct 2026), so it is not tracked; rule 30 supersedes
+# D-8's by-hand fallback. The froth gauge is CD-7 (Tranche A).
 onchain:
-  - {label: "BTC long-term-holder supply share (SR-29)", key: btcdata.lth_supply_share, unit: pct, absent: "not stored: SR-29 is by hand until CD-12 (Tranche C)"}
+  - {label: "BTC long-term-holder supply share (SR-29)", key: btcdata.lth_supply_share, unit: pct, absent: "not tracked (btcdata.lth_supply_share): bitcoin-data.com's terms make its API a free-key service, so it is not keyless"}
   - {label: "Froth sample, Solana new pools 24h (unscored)", key: gt.new_pools_24h, instrument: solana, unit: count, absent: "awaiting the first pull"}
   - {label: "Froth sample, Base new pools 24h (unscored)", key: gt.new_pools_24h, instrument: base, unit: count, absent: "awaiting the first pull"}
   - {label: "Exchange balances", key: null, unit: btc, absent: "not tracked (no keyless series within robots)"}

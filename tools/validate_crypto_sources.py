@@ -773,8 +773,28 @@ def part2(cfg: dict) -> None:
           and "unscored until 15 Jan 2027" in next(k for k in lines if k.startswith("Froth")),
           "the froth line prints unscored, and says why it has no sample")
     check(any("ETHERSCAN_API_KEY" in x for x in mm["lines"])
-          and any("SR-29" in x for x in mm["lines"]),
-          "the Monthly's mechanics: the ETH supply-and-burn gap named, SR-29 as today")
+          and any("SR-29" in x and "not tracked (btcdata.lth_supply_share)" in x
+                  for x in mm["lines"]),
+          "the Monthly's mechanics: the ETH supply-and-burn gap named, SR-29 not "
+          "tracked with its key named")
+    # CD-12 (alpha-lab-4, 19 Oct 2026): bitcoin-data.com serves the LTH and STH
+    # supply, but its terms make the API a free-key service: not keyless, so no
+    # fetcher, no row and no by-hand line (rule 30 supersedes D-8's fallback).
+    import yaml as _yaml                                        # noqa: PLC0415
+    _src = _yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    _reg = _yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    bd = (_src.get("sources") or _src).get("bitcoin_data") or {}
+    lth = (_reg.get("metrics") or {}).get("btcdata.lth_supply_share") or {}
+    check(bd.get("status") == "not_yet_sourced" and bd.get("implemented_by") == "none"
+          and bd.get("allowed_reports") == []
+          and "available with a free API key" in str(bd.get("license"))
+          and "robots.txt" in str(bd.get("license"))
+          and lth.get("tracked") is False and lth.get("source") == "bitcoin_data"
+          and not (REPO / "altdata" / "sources" / "btcdata.py").exists()
+          and "manual_input" not in lth,
+          "CD-12: bitcoin-data.com is registered not sourced, its robots and terms "
+          "quoted; btcdata.lth_supply_share is not tracked; no fetcher, no row, no "
+          "by-hand line")
     fv = next(x for x in ms if x["title"].startswith("Factor V"))
     check(fv["table"]["columns"][-2:] == ["Percentile, 5 years", "Percentile, full history"]
           and fv["table"]["rows"][0][0] == "Stablecoin supply, total",

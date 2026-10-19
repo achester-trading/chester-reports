@@ -13113,6 +13113,28 @@ metrics:
     not_tracked_reason: source retired
     description: >-
       D5, venue concentration: the top venue's share of reported volume. NOT TRACKED (source retired): its one input was CoinGecko's tickers, and CoinGecko is retired (rulings of 13 and 18 Oct 2026); no row is written, and the Monthly prints "not tracked (source retired)" with this key named.
+  btcdata.lth_supply_share:
+    source: bitcoin_data
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 4y
+    tracked: false
+    not_tracked_reason: no keyless access within terms
+    description: >-
+      SR-29, Bitcoin's long-term-holder supply as a share of circulating supply
+      (CD-12; decision D-8). NOT TRACKED: bitcoin-data.com serves the long- and
+      short-term-holder supply, but its terms (14 Oct 2026) make the API a free-key
+      service, so it is not keyless; a key in .env is the operator's decision. No
+      row is written, and no by-hand line is kept (rule 30 supersedes D-8's
+      by-hand fallback): the Monthly and the addendum print "not tracked" with
+      this key named.
   calc.prl_idle_gpu_flag:
     source: calc
     mechanism_group: crypto_network

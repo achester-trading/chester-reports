@@ -1560,6 +1560,36 @@ sources:
     implemented_by: none
     status: not_yet_sourced
 
+  bitcoin_data:
+    name: bitcoin-data.com (BGeometrics) -- Bitcoin on-chain API, long- and short-term-holder supply
+    tier: C
+    epistemic_role: derived_estimate
+    domain: [crypto_network]
+    geography: [global]
+    latency: daily, 03:00 UTC
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Not read into the store. Each row carries its day ("d") and a unix time; most
+      indicators update daily at 03:00 UTC (the API's own description).
+    license: >-
+      NOT A SOURCE (CD-12, verified 19 Oct 2026; decision D-8). Robots: neither
+      bitcoin-data.com/robots.txt nor api.bitcoin-data.com/robots.txt exists (404),
+      so the REP excludes nothing. The endpoints exist and serve the series:
+      /v1/long-term-hodler-supply-btc, /v1/short-term-hodler-supply-btc and
+      /v1/supply-current (the OpenAPI spec at api.bitcoin-data.com/v3/api-docs),
+      and one request answered without a token. But the terms
+      (charts.bgeometrics.com/terms.html, "Last updated: October 14, 2026") say
+      "The BGeometrics Bitcoin Data API is available with a free API key" and "To
+      use the API, obtain a key at bitcoin-data.com", the free tier being "8
+      requests per hour, 15 requests per day" and "intended for personal
+      projects, research, and evaluation". (The API's own description says 10 an
+      hour and 15 a day, and history limited to the last 4 years.) A key is not
+      keyless, so under the standing rule of 16 Oct nothing is pulled; a free key
+      in .env is the operator's decision, and with it this becomes one fetcher.
+    allowed_reports: []
+    implemented_by: none
+    status: not_yet_sourced
+
   aaii:
     name: American Association of Individual Investors -- Sentiment Survey
     tier: B
