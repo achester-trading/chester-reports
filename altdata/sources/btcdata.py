@@ -62,13 +62,13 @@ from typing import Any, Callable, Optional
 from .. import secrets
 from . import _crypto as C
 from . import _publication as pub
+from . import user_agent
 
 log = logging.getLogger(__name__)
 
 SOURCE = "bitcoin_data"
 KEY_ENV = "BITCOIN_DATA_API_KEY"
 BASE = "https://api.bitcoin-data.com"
-USER_AGENT = "chester-reports/1.0 (personal research; daily pull)"
 ENDPOINTS = {"btcdata.lth_supply": "/v1/long-term-hodler-supply-btc",
              "btcdata.sth_supply": "/v1/short-term-hodler-supply-btc",
              "btcdata.supply_current": "/v1/supply-current"}
@@ -144,7 +144,7 @@ def _http(url: str, params: dict, key: str) -> Any:
     try:
         r = requests.get(url, params=params, timeout=60,
                          headers={"Authorization": f"Bearer {key}",
-                                  "User-Agent": USER_AGENT, "Accept": "application/json"})
+                                  "User-Agent": user_agent.generic(), "Accept": "application/json"})
     except Exception as exc:                                  # noqa: BLE001
         raise RuntimeError(secrets.redact(f"{type(exc).__name__}: {exc}")) from None
     if r.status_code != 200:

@@ -132,7 +132,16 @@ registered with their units.
 
 ## CI
 
-Read once each, at the end. The numbers are in the closing report.
+| Run | Commit | Result |
+|---|---|---|
+| 39293846470 | 96ae85f (the merge) | 128/129: **`validate_secrets` failed.** CD-12's `btcdata.py` wrote its User-Agent by hand, and chain-2's group J requires `altdata.sources.user_agent` |
+| 39294833168 | c75f371 (ruling 6) | the same failure |
+| 39296209515 | eab82f8 (engine 7) | queued when read |
+
+**The fix** (the Master Guide paste's Part 0, 19 Oct 2026): `btcdata.py` sends
+`user_agent.generic()`. Locally `validate_secrets` reads 58/0 and
+`validate_crypto_sources` 117/0. alpha-lab-4 has no `user_agent` module, so its own
+gate passed there and the fix lives here, on the merged line.
 
 ## Box commands (for Ari; inside a window; after the third chain merges; dry runs first)
 
