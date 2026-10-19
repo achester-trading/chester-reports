@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="e1870a26d2d475d8946af86bd3dd883eb845a3b967802979cdcb97561f5a61c8">
+<meta name="source-sha256" content="adf0dd9eec333b0fa9f2a8068639c57fc1dba36d3ce9a2499ed69b65b21919cf">
 <title>Currencies: A Structural Framework</title>
 <style>
 :root {
@@ -6144,6 +6144,44 @@ L 455.76 390.602047
 <li>Is stablecoin supply still growing?</li>
 <li>Which Part IV outcome did this quarter's evidence support?</li>
 </ol>
+<h2>Appendix E — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)</h2>
+<p><em>Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.</em> Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.</p>
+<h3>SR-2 — the yen carry unwind: four episodes at ST-5's thresholds (ledger of 18 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-2-ledger-2026-10-18.md">sr-2-ledger-2026-10-18.md</a>.</li>
+<li><strong>As of:</strong> USDJPY 2026-10-09; CFTC 2026-10-13; JGB 2026-09-30. <strong>Window:</strong> 1998-01-01 to 2026-10-09 (flags); history from 1972-02-15. <strong>n:</strong> 6.</li>
+<li><strong>Verdict:</strong> FAIL -- 3 of 4 windows flagged (Oct 1998, 2007-08, Aug 2024), 3 false positives 1998-2026 (rule: all four, &lt;= 2)</li>
+<li><strong>Rights consequence (the ledger's):</strong> PASS: the thresholds enter config/market_state.yaml with this ledger named beside them, and the flag becomes the T&amp;B overlay input at queue position #1 after the gate. FAIL: the thresholds stay session-set in config/funding_currency.yaml; the flag stays narrow, display only. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Register:</strong> the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+</ul>
+<h3>SR-4 — the fix and the offshore gap on 2015-17 and 2022-23 (ledger of 18 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-4-ledger-2026-10-18.md">sr-4-ledger-2026-10-18.md</a>.</li>
+<li><strong>As of:</strong> fix 2026-10-16; CNY=X 2026-10-18; spot CNH 2026-10-16; GS10 2026-09. <strong>Window:</strong> fix 2015-01-05 to 2026-10-16; spot CNH 2024-01-01 on; base rate 1998-01 to 2022-12. <strong>n:</strong> 701.</li>
+<li><strong>Verdict:</strong> INSUFFICIENT -- spot CNH reaches neither window (Yahoo's hourly bars from 2024-01-01), so the gap leg cannot be calibrated on our n; the thresholds stay session-set. The CNH=F proxy (labelled, not the gate) reads FAIL</li>
+<li><strong>Rights consequence (the ledger's):</strong> PASS: ST-5's yuan thresholds enter config with this ledger named beside them. FAIL or INSUFFICIENT: they stay session-set in config/funding_currency.yaml; the tell prints as 2 of 3 legs tracked and never a verdict (ruling 6 of 18 Oct). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Register:</strong> the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+</ul>
+<h3>SR-14 — EM against the world after the trend flag, split by the dollar (ledger of 18 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-14-ledger-2026-10-18.md">sr-14-ledger-2026-10-18.md</a>.</li>
+<li><strong>As of:</strong> EEM/ACWI 2026-10; RTWEXBGS 2026-09. <strong>Window:</strong> 2008-03 to 2026-10 (EEM/ACWI); 2003-04 on (EEM/SPY, auxiliary). <strong>n:</strong> 3.</li>
+<li><strong>Verdict:</strong> INSUFFICIENT -- the dollar cell cannot be tested on our n: 1 completed episode(s) in the dollar-up cell and 2 in the dollar-down cell (floor 2 each; 3 completed in all, EEM/ACWI from 2008); the flag stays display only</li>
+<li><strong>Rights consequence (the ledger's):</strong> PASS: the narrow flag and the Book A tilt modifier conditioned on the dollar regime tag, SR-4's tell as exit; the US-vs-RoW block renders. FAIL or INSUFFICIENT: flag only, display; nothing new renders. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Register:</strong> the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+</ul>
+<h3>SR-20 — the reserve scorecard's first entry, from IMF COFER (ledger of 19 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-20-ledger-2026-10-19.md">sr-20-ledger-2026-10-19.md</a>.</li>
+<li><strong>As of:</strong> 2026-Q2 (COFER published 2026-09-30). <strong>Window:</strong> 1999-Q1 to 2026-Q2. <strong>n:</strong> 110.</li>
+<li><strong>Verdict:</strong> NO GATE IN THE ORDER -- scorecard entry recorded. SR-20 is a scorecard with no rights and the order states no pass rule.</li>
+<li><strong>Rights consequence (the ledger's):</strong> None (SR-20's ruling: a scorecard, the level rejected as a signal either way). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+<li><strong>Note:</strong> Tranche H's first reserve-scorecard entry, from IMF COFER through the IMF module; the constant-FX share, the gold share and the holder split are listed not tracked, each with its reason.</li>
+</ul>
 <hr />
 <h2>Closing Note</h2>
 <p>The dollar question is three questions, and answering them separately dissolves most of the apparent disagreement about the dollar's future. Against real assets it is debasing, has been since 2022, and the fiscal arithmetic says it will continue — Dalio is right about this and gold is the proof. Against other currencies it is strong, because its competitors are debasing faster and because the Fed is currently defending it. As the reserve currency it is unchallenged, because nothing exists to challenge it, and the technology that was supposed to has instead extended its reach.</p>

@@ -371,6 +371,48 @@ If ring-four revenue arrives at scale within two years — if the spenders begin
 
 *Three caveats travel with the table: the baskets are defined after the fact; the measures differ (Japan is a country's share of a world index); and the stack's reading is the S&P 500's float-adjusted share, not total US market capitalisation.*
 
+## Appendix C — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-1 — growth/value: the z-above-trend setup and the break (ledger of 18 October 2026)
+
+- **Ledger:** [sr-1-ledger-2026-10-18.md](../ledgers/sr-1-ledger-2026-10-18.md).
+- **As of:** HML 2026-08; ETFs 2026-10-16. **Window:** HML 1963-07 to 2026-08; ETFs 2000-05 to 2026-10. **n:** 6.
+- **Verdict:** PASS -- HML: mean value-minus-growth after costs +4.2% at 6 months and +17.9% at 12 across 6 non-overlapping episodes (rule: both > 0, >= 6)
+- **Rights consequence (the ledger's):** PASS: the narrow flag 'Style regime -- growth extreme / rotation triggered', the Monthly style panel and Book B's pair rule ship. FAIL or INSUFFICIENT: nothing new renders; the panel stays in the backlog. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-13 — tech against defensives: the spread's top decile (ledger of 18 October 2026)
+
+- **Ledger:** [sr-13-ledger-2026-10-18.md](../ledgers/sr-13-ledger-2026-10-18.md).
+- **As of:** formation year 2026 (June); returns to 2026-08. **Window:** 1927 to 2026 (annual book-to-market); monthly returns 1926-07 to 2026-08. **n:** 4.
+- **Verdict:** INSUFFICIENT -- 4 completed episodes in cell (b) (spread plus negative tech momentum), below the floor of 5; no rate prints
+- **Rights consequence (the ledger's):** PASS: the Book A tilt modifier, gated on SR-1's break, and the base-rate table; it rides SR-1's panel. FAIL or INSUFFICIENT: base rate only, no modifier. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### ST-R5.31b — post-peak paths of top-10 concentration at the 40-44% band (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.31b-ledger-2026-10-17.md](../ledgers/st-r5.31b-ledger-2026-10-17.md).
+- **As of:** 2026-10-15. **Window:** 2021-10-18 to 2026-10-15 (back-cast from 2026-10-15); horizon 504 sessions after each peak. **n:** 0.
+- **Verdict:** INSUFFICIENT -- 0 completed episode(s), below the floor of 5; no rate prints
+- **Rights consequence (the ledger's):** Calibration of an existing overlay input; no new weight (the order). A PASS would let the peak-band flag be proposed as the Concentration & Complacency overlay's calibrated ceiling, for the operator to grant; INSUFFICIENT or FAIL keeps it report-only. This ledger grants nothing, and the queue entry (31c) is not filed.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### ST-R5.44b — how wide average-member vs index drawdown gaps resolved (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.44b-ledger-2026-10-17.md](../ledgers/st-r5.44b-ledger-2026-10-17.md).
+- **As of:** 2026-10-16. **Window:** 2022-09-29 to 2026-10-16; 52-week highs, horizon 126 sessions after each peak. **n:** 0.
+- **Verdict:** INSUFFICIENT -- 0 completed episode(s), below the floor of 5; no rate prints
+- **Rights consequence (the ledger's):** Report now; T&B via queue after ledger (the order). A PASS would let the gap's queue entry (44c) be filed for the operator's ruling, one candidate at a time; INSUFFICIENT or FAIL keeps it report-only. This ledger grants nothing, and 44c is not filed (ruling 1 of 17 Oct 2026).
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-25 — the memory-cycle table (no ledger on this line)
+
+- No ledger: the memory-cycle table's inputs (HBM share, DRAM direction) were by-hand lines, and rule 30 creates no by-hand line; the table waits for a source.
+
 ---
 
 *Version 1.0 — September 2026. Companion XV. Cross-references by name throughout, per the library's rule. Word count and revisions logged in the library guide.*

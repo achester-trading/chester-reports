@@ -649,6 +649,22 @@ EIA weekly (Wed/Thu) and STEO (monthly, next 9 September); IEA OMR and OPEC MOMR
 9. Where is the uranium term price, and has the 2028 Russian-waiver deadline moved?
 10. Which Part VII scenario did this quarter's evidence support — and did the power column change?
 
+## Appendix E — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### ST-R5.32b — the oil-shock classifier: supply-shock episodes and what followed (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.32b-ledger-2026-10-17.md](../ledgers/st-r5.32b-ledger-2026-10-17.md).
+- **As of:** 2026-10-14. **Window:** 2000-06-21 to 2026-10-14 (classifier); trailing 5,040 sessions for the percentiles, from 2,520 until 20 years exist. **n:** 3.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.
+- **Rights consequence (the ledger's):** A sub-state (inflation.driver) and a Book A rule-table modifier: oil and commodities to the hedge sleeve while the regime is on. With no gate in the order, the sub-state stays as built in Tranche 1 and this ledger grants no modifier.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-18 — the buffer variable (no ledger on this line)
+
+- No ledger: SR-18's gate (1990, 2008 and 2022, days of cover in the bottom decile against a disruption) needs IEA days of cover, a by-hand line that rule 30 does not create; the gate is pending.
+
 ---
 
 ## Closing Note

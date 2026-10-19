@@ -723,3 +723,18 @@ The projection sections here will age on schedule, and are meant to be graded, n
 The companion on the twenty-five tail scenarios — *The Twenty-Five* — was built from the full table in the Monthly report rather than the five delta rows carried here, with the same treatment per scenario: mechanism, precedent, probability band, instruments, and couplings.
 
 *Version 1.0 · August 29, 2026 · Companion to Disruptive Themes v3.0-prototype · Direction reliable, precision illustrative — here as there.*
+
+## Appendix A — Dated: Evidence log, Factor I and Factor V (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all; the frame ruling 6 of 19 October 2026 asks for.* This appendix holds the Factor I and Factor V entries the mechanism scan assesses. An entry is drafted under rule 31 by the session that posts it and stands only when the operator accepts it; it changes no weight, band or factor reading by being here.
+
+Each entry carries, in this order:
+
+- the date it was drafted, in its heading;
+- the factor (I or V) and the one-sentence claim;
+- the source, by publisher and date, and the feed it came through;
+- the mechanism-scan item it came from, and the PROPOSED story it was posted as to the narrative register, with its implied outcome and horizon;
+- the measure that would grade it, by its key where the stack holds one, else "not tracked" with the reason;
+- the operator's confirmation or rejection, with its date, once given.
+
+No entry has been posted yet.

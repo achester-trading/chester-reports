@@ -39,3 +39,14 @@ The disagreement pairs that some of these items also produce are in `docs/narrat
   - with the flag off (the shock contained), the cell reads "look through the energy print";
   - with the flag on (propagating), it reads "the shock is spreading while hiring slows", the 1970s pattern item 32 names.
 - **Measured by:** item 46b's spike and pass-through flag, and lenses 1 and 2. Each is report-only.
+
+## Section 2.1.5 — the order's one edit (Tranche H; added 19 October 2026)
+
+**Rule-31 draft (library-st-l, session B), for Ari's accept-all.** The signal-triage order's section 2.1.5 asks for one edit by hand. Each line below states what the stack holds on chain-2; none weights a cell.
+
+- **`rates.driver` as a matrix variable (SR-6, SR-17).** The four-cell driver failed its gate twice (0 of 5 episodes, then 2 of 5 under the pre-registered rule; `docs/ledgers/rates-driver-2026-09-30-r2.md`) and is withdrawn. What the matrix can read instead is the rates attribution: each model's path and premium split, dated, with a models-agree flag. It decides nothing, so it can inform a cell and never select one.
+- **The reaction-function variable, "defends the front end or the long end" (SR-9).** Adjudicated in real time by the attribution above: the 10-year rising through the premium with the front end anchored reads as the long end lost; rising through the expected path reads as tight but credible. Where the models disagree, the variable prints "models disagree" and says nothing.
+- **The cell "market prices a hike, the Fed declines", both branches (SR-21, SR-24).**
+  - *Refuse → term-premium repricing, gauged by DEANCHOR.* The base rate does not support the branch as written: on 46 completed divergence episodes since 1982 (DGS1 less the target), the refused episodes' median aligned 10-year change over the next 63 sessions was −17.5 bp against the conceded +45.5 bp (`docs/ledgers/sr-21-ledger-2026-10-18.md`, FAIL; the register's dated note of 18 October records the sign reversal). DEANCHOR is a definition-only flag; its history is the Livingston note (`docs/ledgers/sr-24-ledger-2026-10-19.md`): from 1965 to 1980 realised inflation ran above the survey's twelve-month forecast in 88% of 32 surveys, by a median 1.76 pp, against 29% of 72 in 1984–2019.
+  - *Concede → bear-flatten, then resolve, 1994 to 1995.* The hiking-cycle table (`docs/ledgers/fed-cycles-ledger-2026-10-19.md`) carries the 1994 cycle as February 1994 to February 1995, +300 bp in 13 months, the 10-year +172 bp over it, no recession within 24 months, and two conceded SR-21 episodes inside it.
+- **The cycle table beside the matrix.** Of 21 completed hiking cycles since 1954, 10 were followed by a recession within 24 months of the last hike (median rise 432 bp, median S&P 500 −5.9% over the next 12 months) and 11 were not (median rise 270 bp, +16.8%). No all-cycle average is printed.

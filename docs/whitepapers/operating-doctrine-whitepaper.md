@@ -1036,6 +1036,29 @@ Ruled on 12 October 2026: decisions 1 to 8 of the Alpha Lab brief were accepted 
 
 > **Layer X — the Alpha Lab.** Beside the four books and the five reports there is one independent layer: a machine's book in ledger-paper that reads the observation store and writes nothing back to it, to the register, to the narrative ledger or to any report. It has four restraints and no others — the Brookfield blocklist; ledger entries against stored prices, with no order path of any kind before the Gate 3 ruling; a risk governor; an evidence gate — and inside them it searches, trades, learns and innovates on its own authority, without the sitting and outside the attention budget. Part VIII's limits on engines do not apply inside it and are unchanged outside it. Its results are tabled at sittings as evidence; each rung of the gate ladder is the operator's ruling. Its constitution — the four restraints, the governor's numbers, the validation standard, the kill criterion, the hold-out and the variant count — changes only by ruling.
 
+## Appendix E — Dated: Calibration ledgers (ST-L): the candidate rules' evidence (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-8 — the false-bottom audit: the bottom side, rally by rally (ledger of 18 October 2026)
+
+- **Ledger:** [false-bottom-audit-2026.md](../ledgers/false-bottom-audit-2026.md).
+- **As of:** S&P 500 2026-10-16; French CRSP 202608; FINRA margin 2026-09. **Window:** 1973-74 1973-01-11 to 1974-10-03; 2000-02 2000-03-24 to 2002-10-09; 2007-09 2007-10-09 to 2009-03-09; 2022 2022-01-03 to 2022-10-12; Nasdaq 2000-03-10 to 2002-10-09 (count only). **n:** 16.
+- **Verdict:** FAIL -- 1 element(s) discriminate (breadth_rsp_spy); 12 false bottoms and 4 true across the four bears (S&P 500); rule: >= 2 discriminate, each firing at >= 75% of testable true bottoms and <= one third of testable false ones
+- **Rights consequence (the ledger's):** PASS: the gate specification above is what ST-11 wires at T&B full, and the Doctrine proposal goes to the monthly. FAIL or INSUFFICIENT: the specification stands as written, with its gaps, and the monthly decides. Book A rule A-2 changes nothing until then. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** SR-8's candidate rule goes to the Doctrine monthly of 7-8 November as a proposal ([doctrine-2-proposals-st-l.md](../briefs/doctrine-2-proposals-st-l.md)); it is not a rule.
+
+### SR-22 — coupon auction absorption against the 10-year's next three months (ledger of 18 October 2026)
+
+- **Ledger:** [sr-22-ledger-2026-10-18.md](../ledgers/sr-22-ledger-2026-10-18.md).
+- **As of:** 2026-10-08 (latest auction); last with 63 sessions forward 2026-07-09. **Window:** 2009-01-06 to 2026-10-08. **n:** 1034.
+- **Verdict:** FAIL -- stress flag only: median 3m change -2.0 bp, falls in 51.8% of 1034 (rule: median < 0 and >= 60%)
+- **Rights consequence (the ledger's):** PASS: the contrarian read, the overlay queue's position #2 after the gate, and an input to rule A-3. FAIL: the stress flag only (narrow, display). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** SR-22's note (an ETF's record low is yield arithmetic) goes to the same monthly as a proposal; it is not a rule.
+
 ---
 
 *End of paper.*
