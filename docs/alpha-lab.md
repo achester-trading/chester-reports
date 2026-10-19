@@ -204,7 +204,7 @@ the operator to overrule.
 
 | Loop | When | Tranche 1 |
 |---|---|---|
-| Nightly | weekdays 17:40 ET (`chester-alpha-nightly.timer`), after the 16:45 close's capture | ingest the inbox; run the harness on what was registered; fill, mark, grade; the governor; posteriors; kill; cost calibration; weights proposed; attribution by regime key; drift; signals; promote |
+| Nightly | weekdays 17:40 ET (`chester-alpha-nightly.timer`), after the 16:45 close's capture | ingest the inbox; run the harness on what was registered; fill, mark, grade; the governor; posteriors; kill; cost calibration; weights proposed; attribution by regime key; drift; signals; promote; last, the grammar search's capped step while a run is unfinished (section 11) |
 | Proposer | weekdays 18:10 ET (`chester-alpha-proposer.timer`), after the nightly loop | one model call; at most three hypotheses into the inbox, for the next night |
 | Weekly | Sunday 06:00 ET (`chester-alpha-weekly.timer`), after the Weekly | walk-forward extended; the bounded re-fit; the rebalance; the agenda; the verdicts to the outbox |
 | Fortnightly | the research sitting | X-2.7 |
@@ -410,3 +410,7 @@ It is mailed with the Quarterly through `quarterly_attachment`, which never
 raises. Its prose stays within the Quarterly's medium depth and it draws no
 chart. It prints "no quarter closed yet" until a whole quarter exists.
 `tools/validate_alpha_lab_3.py` group F holds it.
+
+## 11. Tranche 3, part 2 (alpha-lab-4, 19 Oct 2026)
+
+*Accepted as amended (rule 31), 19 Oct 2026:* X-3.3 engine 6 built (alpha-lab-4, 19 Oct 2026): spec sha256 `91100c551b3c30e55854d5905064ba9059bb6ba1d904c5ee513fe7b473a3a26e`, hypothesis E-6 to be registered by manifest on the box after the third chain merges. X-3.5 the grammar search built: family search-v1, at most 3,840 candidates. A conditioning variable joins a run only if its point-in-time history starts at least five years before the holdout's first day; that is evaluated at the run's start, before the manifest, which records each variable's first date and whether it passed, and N counts only the candidates the run tests. Expected: positioning (the CFTC net, each report reconstructed at its Friday release) passes; the macro and volatility dials (the market-state object's stored vintages, each available when it was computed) and the funding regime (calc.funding_agg, from October 2026) fail; the box's first run prints the answer. The dealer regime is pending on its history (our captures' first date) under the same rule and does not join search-v1. While a run is unfinished, its next step runs as the last step of the nightly loop (Mon-Fri 17:40), its wall clock capped so the unit ends inside its 20-minute timeout with 3 minutes spare (at most 600 s; under 120 s it skips and prints why), under one lock for every search step; a new run begins only in the first week of a month, and only once the previous run is complete.

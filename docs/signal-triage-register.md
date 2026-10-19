@@ -558,6 +558,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation.** None (scorecard).
 
+*Accepted as amended (rule 31), 19 Oct 2026:* SR-29 (19 Oct 2026, CD-12): not tracked. bitcoin-data.com serves the LTH and STH supply, but its terms make the API a free-key service, so it is not keyless; D-8's by-hand fallback is superseded by rule 30. The fetcher is built and reads its key from .env; until the key is there the series prints not tracked.
+
 ### SR-30 EU sovereign stress — OAT–Bund (Elliott Wave International chart, 2 Oct 2026) — Threads X and R
 
 **Register status.** ADOPTED — built, branch b3-tranche-a; gate pending (ST-B3-09) · **Built in.** ST-B3-03 (Tranche A) · *Filed 13 Oct 2026 from §2 of the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md), verbatim below; numbering per decision 1.*

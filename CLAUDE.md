@@ -864,21 +864,30 @@ group A holds it.
 enumerates `config/alpha_search.yaml`'s family: signal families x
 conditioning options x horizons x instruments x exits, 3,840 candidates, each
 a grammar rule. The conditioning variables are the macro dial, the volatility
-dial, the CFTC net's z and calc.funding_agg; the dealer regime is pending, and
-skipped with its reason. A run goes in this order:
-1. its manifest (the family's sha256, the count, the split, the deflation and
-   the survivor rule) before the first backtest;
+dial, the CFTC net's z and calc.funding_agg. A variable joins a run only if its
+point-in-time history (the first day a value was knowable) starts at least five
+years before the holdout's first day (ruling 5(a) of 19 Oct 2026); one that
+fails is pending with "history from <date>" and its options are not
+candidates. The dealer regime is pending on its captures' history and is not
+in search-v1. A run goes in this order:
+1. coverage, then its manifest (the family's sha256, each variable's first date
+   and verdict, the count, the split, the deflation and the survivor rule)
+   before the first backtest;
 2. the family's variant count raised by every candidate;
 3. formation against the constitution's deflated gate;
 4. the survivor list frozen, and only then the holdout backtested;
 5. the survivors of both registered as `systematic` hypotheses of the
    `search` channel, at the manifest's instant.
 
-A step is capped at 400 candidates and 600 s and resumes from its progress
-file. A resumed run refuses a changed family. The weekly loop begins a run in
-the first week of each month and resumes an unfinished one on any week (no
-new timer); the Monthly's Lab report prints its line.
-`tools/validate_alpha_lab_4.py` group B holds it.
+A step is capped at 400 candidates and resumes from its progress file. A
+resumed run refuses a changed family. While a run is unfinished, its next step
+is the nightly loop's last (ruling 5(c)): its wall clock is the unit's 20
+minutes less 3 spare less what the unit has spent, at most 600 s, and under
+120 s it skips and says why. A new run begins only in a month's first week,
+once the previous run is complete; one lock (`files.lock`) covers every step.
+No new timer; the Monthly's Lab report prints its line, naming the variables
+that passed and failed coverage. `tools/validate_alpha_lab_4.py` groups B and C
+hold it.
 
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,

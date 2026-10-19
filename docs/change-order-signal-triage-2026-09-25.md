@@ -1152,9 +1152,9 @@ Ruled by the operator, 18 Oct 2026, on the ST-13 report; docs only.
 - **Scheduling:** no new timer. The explorer read is a weekly step of the crypto runs; the D-series compute one line in the crypto basket's daily 17:25 run, after the basket's own writes; both on the roster.
 - **SM00118** stays reclassified in place as `crypto.watch` (one coin, one id).
 
-## Register note — 18 Oct 2026: G-26 closed as a listed gap (rule 31 draft)
+## Register note — 18 Oct 2026: G-26 closed as a listed gap
 
-Drafted by the session under rule 31 for the operator's acceptance; it records the operator's ruling 1 of 18 Oct 2026 and changes no right.
+*Accepted as drafted (rule 31), 19 Oct 2026:* drafted by the session under rule 31; it records the operator's ruling 1 of 18 Oct 2026 and changes no right.
 
 - **G-26 (the Pearl explorer's endpoint) is closed as a listed gap.** explorer.pearlresearch.ai has no robots file: `/robots.txt` and `/robots.txt?network=mainnet` both return 404 with the app's own HTML page. No published API, and no terms covering automated access, were found on Pearl's sites.
 - Under the standing rule of 16 Oct on sources (public and easy, else a gap) nothing is traced or pursued. `config/prl.yaml`'s `explorer` entry stays undeclared, with that reason and the date.
