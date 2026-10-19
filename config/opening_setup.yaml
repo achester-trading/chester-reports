@@ -17,9 +17,19 @@ gauge:
   # for a count), else "awaiting (n=k of 20)".
   sessions: 5
   n_min: 20
+  # ITEM 54 (Batch 11, ruled 19 Oct 2026): like for like. The implied move at
+  # each horizon (the close x the 30-day ATM IV x sqrt(h/252)) beside the
+  # realised |close-to-close| move over h sessions in the gated regime (median,
+  # 80th, 95th, n); the high-low range only against the implied expected range of
+  # a high-low range; net GEX's own-history percentile beside the regime word.
+  # ITEM 55: the one- and five-session bands, around the last close and around
+  # the pre-market price. Every count splits the test sample from the rest.
+  horizons: [1, 5]
   displaces: >-
-    nothing: one line under the dealer-surface table, which keeps its rows; the
-    ST-10 signal-lines block and its budget are unchanged
+    nothing: five short lines under the dealer-surface table (the head, two
+    like-for-like lines, the high-low line and the bands; six with the
+    pre-market centre), which keeps its rows; the ST-10 signal-lines block and
+    its budget are unchanged
 
 # OS-3 every day (ruling 2 of 18 Oct on the a44 report): three short lines beside
 # the gauge, each its level, percentile and window, from item 52's lens functions.

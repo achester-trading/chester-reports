@@ -94,44 +94,86 @@ def days(n: int, end: str = "2026-10-16") -> list[str]:
     return out
 
 
-def card(day: str, net=-1e9, ntg=0.30):
+def card(day: str, net=-1e9, ntg=0.30, i: int = 0):
+    """A stored scorecard row. Batch 11: `close` steps 100.0 + (i mod 5) x 0.5 over
+    a 100 prior close, and net GEX at the close is -1e9 - i x 1e8, so the
+    like-for-like distribution and the net-GEX percentile can be worked by hand."""
     return {"session": day, "net_gex_morning": net, "net_to_gross_morning": ntg,
-            "session_high": 102.0, "session_low": 98.0, "prior_close": 100.0}
+            "session_high": 102.0, "session_low": 98.0, "prior_close": 100.0,
+            "close": 100.0 + (i % 5) * 0.5, "net_gex_close": -1e9 - i * 1e8}
+
+
+def cards(n: int) -> list[dict]:
+    return [card(d, i=i) for i, d in enumerate(days(n))]
 
 
 # ---------------------------------------------------------------------------
 def group_a() -> None:
-    head("A. OS-2: THE EXPECTED-MOVEMENT GAUGE")
+    head("A. OS-2: THE EXPECTED-MOVEMENT GAUGE, LIKE FOR LIKE (BATCH 11 ITEM 54)")
     from altdata import numeral_audit as NA
     from daily_cascade import dealer_block as DB, opening_setup as OS
     cd = DB.config()
-    med, n = OS.typical_range([card(d) for d in days(24)], "negative", cd, 5)
-    med19, n19 = OS.typical_range([card(d) for d in days(23)], "negative", cd, 5)
+    med, n = OS.typical_range(cards(24), "negative", cd, 5)
+    med19, n19 = OS.typical_range(cards(23), "negative", cd, 5)
     check(close(med, 4.0) and n == 20 and n19 == 19
-          and OS.typical_range([card(d) for d in days(24)], "positive", cd, 5) == (None, 0),
+          and OS.typical_range(cards(24), "positive", cd, 5) == (None, 0),
           "the typical realised range by hand: each five-session window spans 102 less "
           "98 over a 100 prior close, 4.0%; 24 stored sessions make n=20, 23 make n=19; "
           "the other regime's sessions are not counted")
     prof = {"symbol": "SPY", "session_date": "2026-10-16",
             "overall": {"net_gex": -2.0e9, "net_to_gross": 0.30}}
     iv = (18.2, "SPY ATM 30-day IV")
-    g20 = OS.gauge(prof, ("2026-10-16", 761.10), iv, [card(d) for d in days(24)])
-    g19 = OS.gauge(prof, ("2026-10-16", 761.10), iv, [card(d) for d in days(23)])
-    r = 761.10 * 0.182 * math.sqrt(1 / 252)
-    check("negative gamma (net-to-gross 30%)" in g20["line"]
-          and f"{761.10 - r:,.2f} to {761.10 + r:,.2f}" in g20["line"]
-          and f"±{r:.2f}" in g20["line"] and close(r, 8.7255, 1e-3)
-          and "typical realised range at this reading: 4.0% over 5 sessions (n=20)" in g20["line"]
-          and "typical realised range at this reading: awaiting (n=19 of 20)" in g19["line"],
-          f"the gauge by hand: negative gamma at 30% net-to-gross; 761.10 ± {r:.2f} "
-          f"(18.2% x sqrt(1/252)); 4.0% over 5 sessions at n=20, awaiting at n=19")
+    g20 = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(24))
+    g19 = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(23))
+    r1 = 761.10 * 0.182 * math.sqrt(1 / 252)
+    r5 = 761.10 * 0.182 * math.sqrt(5 / 252)
+    exp5 = math.sqrt(8 / math.pi) * 18.2 * math.sqrt(5 / 252)
+    L = g20["lines"]
+    check("negative gamma (net-to-gross 30%)" in L[0]
+          and close(r1, 8.7255, 1e-3) and f"Implied one-session move: ±{r1:.2f}" in L[1]
+          and f"Implied 5-session move: ±{r5:.2f}" in L[2],
+          f"the implied moves by hand: 761.10 x 18.2% x sqrt(1/252) = ±{r1:.2f}; "
+          f"x sqrt(5/252) = ±{r5:.2f}")
+    # One session: |close/prior - 1| over 24 gated rows = 0, 0.5, 1, 1.5% five times
+    # each and 2% four times: median 1.00, 80th 1.50 (rank 18.4), 95th 2.00.
+    # Five sessions: the fifth row's close over the first row's prior close, 20 of
+    # them, each of 0, 0.5, 1, 1.5, 2% four times: median 1.00, 80th 1.60 (rank
+    # 15.2, between 1.5 and 2.0), 95th 2.00.
+    check("median 1.00%, 80th 1.50%, 95th 2.00% (n=24: 0 since registration, 24 before "
+          "registration, descriptive)" in L[1]
+          and "median 1.00%, 80th 1.60%, 95th 2.00% (n=20: 0 since registration, 20 "
+          "before registration, descriptive)" in L[2],
+          "the realised |close-to-close| distribution by hand, at the same horizons as "
+          "the implied moves, each count split by sample")
+    check("5-session high-low range: median 4.0% (n=20: 0 since registration, 20 before "
+          "registration, descriptive)" in L[3] and f"{exp5:.1f}%" in L[3]
+          and "sqrt(8/pi)" in L[3]
+          and "5-session high-low range: awaiting (n=19 of 20" in " ".join(g19["lines"]),
+          f"the high-low range stays only against its implied expected range "
+          f"(sqrt(8/pi) x 18.2% x sqrt(5/252) = {exp5:.1f}%), and says which measure")
+    # Net GEX -2.0e9 against -1.0e9 ... -3.3e9: at or below it, rows 10 to 23 and
+    # itself, 15 of 25: the 60th percentile.
+    check("net GEX at the 60th percentile of its own history (2026-09-15 to 2026-10-16, "
+          "n=25)" in L[0],
+          f"net GEX's own-history percentile by hand, with window and n ({L[0][:160]})")
+    check(f"±1σ bands around the last close 761.10: one-session {761.10 - r1:,.2f} to "
+          f"{761.10 + r1:,.2f}; 5-session {761.10 - r5:,.2f} to {761.10 + r5:,.2f}." == L[-1],
+          "item 55: the one- and five-session bands around the last close, each labelled")
+    gp = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(24), premarket=764.0)
+    p1 = 764.0 * 0.182 * math.sqrt(1 / 252)
+    check(gp["lines"][-1].startswith("±1σ bands around the pre-market 764.00: one-session "
+                                     f"{764.0 - p1:,.2f} to {764.0 + p1:,.2f}")
+          and gp["lines"][-2].startswith("±1σ bands around the last close"),
+          "and both again around the pre-market price, labelled by centre")
     ind = OS.gauge({**prof, "overall": {"net_gex": -2e9, "net_to_gross": 0.05}},
-                   ("2026-10-16", 761.10), iv, [card(d) for d in days(24)])
+                   ("2026-10-16", 761.10), iv, cards(24))
     check("indeterminate (net is 5% of gross)" in ind["line"]
-          and "not read (the regime is not gated)" in ind["line"],
-          "under the net-to-gross gate the word is indeterminate and no typical range "
-          "prints (the engine's 0.10 rule)")
-    audits = [NA.audit(g["line"], g["values"], extra_values=g["constants"]) for g in (g20, g19)]
+          and "realised: not read (the regime is not gated)" in ind["line"]
+          and "high-low range" not in ind["line"],
+          "under the net-to-gross gate the word is indeterminate and no realised "
+          "distribution prints (the engine's 0.10 rule); no new regime word")
+    audits = [NA.audit(ln, g["values"], extra_values=g["constants"] + [1, 5, 8, 252, 30])
+              for g in (g20, g19) for ln in g["lines"]]
     check(all(a.passed for a in audits),
           f"the numeral audit passes on the gauge ({[a.reason() for a in audits if not a.passed]})")
     check(not re.search(r"\b(CALM|NORMAL|WILD)\b", g20["line"] + g19["line"] + ind["line"]),
@@ -139,13 +181,16 @@ def group_a() -> None:
     pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
     ren = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
     cfg = OS.config()
-    html = OS.gauge_html(g20)
-    check("opening_setup.gauge_from_store(prior, cutoff, db_path)" in pay
+    html = OS.gauge_html(gp)
+    check("opening_setup.gauge_from_store(" in pay and "premarket=(premarket.get(" in pay
+          and pay.index("premarket = opening_setup.premarket_from_store")
+          < pay.index("gauge = opening_setup.gauge_from_store(")
           and "{exposure_block(payload)}\n{opening_setup.gauge_html(" in ren
-          and html.count("<p") == 1 and cfg["gauge"]["displaces"]
-          and len(g20["line"].split()) <= 80,
-          "the anchor's hook: one line under the dealer-surface table, its displacement "
-          "declared (config/opening_setup.yaml), the ST-10 block's budget untouched")
+          and html.count("<p") == len(gp["lines"]) <= 6 and cfg["gauge"]["displaces"]
+          and all(len(x.split()) <= 60 for x in gp["lines"]),
+          f"the anchor's hook: at most six short lines under the dealer-surface table "
+          f"({len(gp['lines'])}), each under 60 words, its displacement declared, the "
+          f"ST-10 block's budget untouched")
 
 
 def group_b() -> None:

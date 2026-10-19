@@ -84,52 +84,198 @@ def typical_range(cards: list[dict], sign: Optional[str], cfg_dealer: dict,
     return (statistics.median(out) if out else None), len(out)
 
 
+# ITEM 54 (Batch 11, ruled 19 Oct 2026): LIKE FOR LIKE. The implied move and the
+# realised distribution on the same horizon and the same measure -- the close x the
+# 30-day ATM IV x sqrt(h/252) beside the absolute close-to-close move over h
+# sessions in the gated regime (median, 80th, 95th, n). The high-low range stays
+# only against the implied EXPECTED range of a high-low range (a random walk's,
+# sqrt(8/pi) x sigma x sqrt(h/252)), and says so. Every sample is split: the test
+# sample (live rows from the registration date) and the rest, "before
+# registration, descriptive" -- the backfilled rows among them.
+RW_RANGE = math.sqrt(8.0 / math.pi)
+BEFORE = "before registration, descriptive"
+
+
+def registered_on(cfg_scorecard: Optional[dict] = None) -> str:
+    """The scorecard's registration date (its test sample starts here)."""
+    if cfg_scorecard is None:
+        from altdata import dealer_scorecard as dsc               # noqa: PLC0415
+        cfg_scorecard = dsc.config()
+    return str(cfg_scorecard.get("registered_on") or "2026-10-17")[:10]
+
+
+def in_test(card: dict, reg: str) -> bool:
+    """A live row on or after the registration date. A backfilled row never is."""
+    return not card.get("backfilled") and str(card.get("session"))[:10] >= reg
+
+
+def quantile(xs: list[float], q: float) -> float:
+    """Linear interpolation between closest ranks (q in [0, 1])."""
+    s = sorted(xs)
+    if len(s) == 1:
+        return s[0]
+    pos = q * (len(s) - 1)
+    lo = int(math.floor(pos))
+    hi = min(lo + 1, len(s) - 1)
+    return s[lo] + (s[hi] - s[lo]) * (pos - lo)
+
+
+def _gated(cards: list[dict], sign: Optional[str], cd: dict) -> list[int]:
+    from . import dealer_block                                  # noqa: PLC0415
+    return [i for i, c in enumerate(cards)
+            if sign is not None and dealer_block.regime_sign(
+                c.get("net_gex_morning"), c.get("net_to_gross_morning"), cd) == sign]
+
+
+def realised_moves(cards: list[dict], sign: Optional[str], cd: dict, h: int,
+                   reg: str) -> list[tuple[float, bool]]:
+    """[(|close-to-close move| %, in the test sample)] over h sessions from each
+    gated session: the h-th session's close over the first session's prior close."""
+    cs = sorted((c for c in cards if c.get("session")), key=lambda c: str(c["session"]))
+    out = []
+    for i in _gated(cs, sign, cd):
+        win = cs[i:i + h]
+        p0, c1 = cs[i].get("prior_close"), (win[-1] if len(win) == h else {}).get("close")
+        if len(win) < h or not p0 or c1 is None:
+            continue
+        out.append((100.0 * abs(float(c1) / float(p0) - 1.0), in_test(cs[i], reg)))
+    return out
+
+
+def realised_ranges(cards: list[dict], sign: Optional[str], cd: dict, h: int,
+                    reg: str) -> list[tuple[float, bool]]:
+    """[(high-low range %, in the test sample)] over h sessions from each gated
+    session, over its prior close (the typical range, split by sample)."""
+    cs = sorted((c for c in cards if c.get("session")), key=lambda c: str(c["session"]))
+    out = []
+    for i in _gated(cs, sign, cd):
+        win = cs[i:i + h]
+        if len(win) < h or not cs[i].get("prior_close"):
+            continue
+        hs, ls = [w.get("session_high") for w in win], [w.get("session_low") for w in win]
+        if any(x is None for x in hs + ls):
+            continue
+        out.append((100.0 * (max(hs) - min(ls)) / float(cs[i]["prior_close"]),
+                    in_test(cs[i], reg)))
+    return out
+
+
+def _counts(xs: list[tuple[float, bool]]) -> str:
+    t = sum(1 for _, x in xs if x)
+    return f"n={len(xs)}: {t} since registration, {len(xs) - t} {BEFORE}"
+
+
+def net_gex_percentile(net: Optional[float], cards: list[dict]) -> Optional[dict]:
+    """Net GEX's own-history percentile against the stored closes' net GEX (every
+    scorecard row, either sample): the share at or below, with window and n."""
+    hist = sorted(((str(c["session"])[:10], float(c["net_gex_close"])) for c in cards
+                   if c.get("session") and c.get("net_gex_close") is not None))
+    if net is None or not hist:
+        return None
+    vals = [v for _, v in hist] + [float(net)]
+    pct = 100.0 * sum(1 for v in vals if v <= net) / len(vals)
+    return {"pct": pct, "n": len(vals), "first": hist[0][0], "last": hist[-1][0]}
+
+
 def gauge(profile: Optional[dict], last_close: Optional[tuple], iv: tuple,
           cards: list[dict], cfg: Optional[dict] = None,
-          cfg_dealer: Optional[dict] = None) -> dict:
-    """{line, values, constants}: the gauge as one line."""
+          cfg_dealer: Optional[dict] = None, premarket: Optional[float] = None,
+          reg: Optional[str] = None) -> dict:
+    """{line, lines, values, constants}: the gauge, a few short lines (item 54)."""
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
     from . import dealer_block                                  # noqa: PLC0415
     cfg = cfg or config()
     g = cfg["gauge"]
     cd = cfg_dealer if cfg_dealer is not None else dealer_block.config()
+    reg = reg or registered_on()
     if not profile:
-        return {"line": "Expected-movement gauge: no settled dealer profile for the prior "
-                        "session.", "values": {}, "constants": []}
+        msg = "Expected-movement gauge: no settled dealer profile for the prior session."
+        return {"line": msg, "lines": [msg], "values": {}, "constants": []}
     o = profile.get("overall") or {}
     net, ntg = o.get("net_gex"), o.get("net_to_gross")
     word = dealer_block.regime(net, ntg, cd)
     sign = dealer_block.regime_sign(net, ntg, cd)
     vals: dict[str, Any] = {"session": profile.get("session_date")}
-    head = f"Expected-movement gauge ({profile.get('symbol', 'SPY')}, the {profile.get('session_date')} settle): {word}"
+    head = (f"Expected-movement gauge ({profile.get('symbol', 'SPY')}, the "
+            f"{profile.get('session_date')} settle): {word}")
     if ntg is not None and sign:
         head += f" (net-to-gross {ntg * 100:.0f}%)"
         vals["ntg_pct"] = ntg * 100
+    pg = net_gex_percentile(net, cards)
+    if pg:
+        vals.update(net_gex_pct=pg["pct"], net_gex_pct_ordinal=ordinal(pg["pct"]),
+                    net_gex_n=pg["n"], net_gex_first=pg["first"], net_gex_last=pg["last"])
+        head += (f"; net GEX at the {ordinal(pg['pct'])} percentile of its own history "
+                 f"({pg['first']} to {pg['last']}, n={pg['n']})")
+    lines = [head + ". Inferred, not observed; OI as of prior close."]
     iv_pct, iv_src = iv or (None, None)
-    rng_s = "the one-sigma range: not read (no last close or no implied vol stored)"
-    if last_close and iv_pct:
-        d, c = last_close
-        r = dealer_block.implied_range(c, iv_pct)
-        vals.update(close=c, close_day=d, sigma=r, lower=c - r, upper=c + r, iv=iv_pct)
-        if iv_src and "30-day" in iv_src:
-            vals["iv_tenor_days"] = 30
-        rng_s = (f"the one-sigma range from our implied range: {c - r:,.2f} to {c + r:,.2f} "
-                 f"around the last close {c:,.2f} of {d} (±{r:.2f}, {iv_src} {iv_pct:.1f}%)")
-    n_min, k = int(g["n_min"]), int(g["sessions"])
-    med, n = typical_range(cards, sign, cd, k)
-    vals.update(n=n, n_min=n_min, sessions=k)
-    if sign is None:
-        typ = "typical realised range at this reading: not read (the regime is not gated)"
-    elif n >= n_min and med is not None:
+    n_min = int(g["n_min"])
+    horizons = [int(x) for x in g.get("horizons") or [1, 5]]
+    vals.update(n_min=n_min, iv=iv_pct)
+    if not (last_close and iv_pct):
+        lines.append("Implied moves: not read (no last close or no implied vol stored).")
+        return {"line": " ".join(lines), "lines": lines, "values": vals, "constants": [1]}
+    d, c = last_close
+    vals.update(close=c, close_day=d)
+    sig = {h: c * iv_pct / 100.0 * math.sqrt(h / 252.0) for h in horizons}
+    for h in horizons:
+        s_pct = 100.0 * sig[h] / c
+        vals.update({f"sigma_{h}": sig[h], f"sigma_{h}_pct": s_pct})
+        lab = "one-session" if h == 1 else f"{h}-session"
+        imp = (f"Implied {lab} move: ±{sig[h]:.2f} (±{s_pct:.2f}%; the close {c:,.2f} x "
+               f"{iv_src} {iv_pct:.1f}% x sqrt({h}/252))")
+        mv = realised_moves(cards, sign, cd, h, reg)
+        vals[f"realised_{h}_n"] = len(mv)
+        vals[f"realised_{h}_n_test"] = sum(1 for _, x in mv if x)
+        vals[f"realised_{h}_n_before"] = sum(1 for _, x in mv if not x)
+        if sign is None:
+            rl = "realised: not read (the regime is not gated)"
+        elif len(mv) >= n_min:
+            xs = [x for x, _ in mv]
+            m, p80, p95 = quantile(xs, 0.5), quantile(xs, 0.8), quantile(xs, 0.95)
+            vals.update({f"realised_{h}_median": m, f"realised_{h}_p80": p80,
+                         f"realised_{h}_p95": p95})
+            rl = (f"realised |close-to-close| over {h} session{'s' if h > 1 else ''} in "
+                  f"{sign} gamma: median {m:.2f}%, 80th {p80:.2f}%, 95th "
+                  f"{p95:.2f}% ({_counts(mv)})")
+        else:
+            rl = f"realised: awaiting (n={len(mv)} of {n_min}; {_counts(mv)})"
+        lines.append(f"{imp}; {rl}.")
+    # The high-low range, against the implied expected range of that measure.
+    k = int(g["sessions"])
+    rr = realised_ranges(cards, sign, cd, k, reg)
+    exp_rng = RW_RANGE * iv_pct * math.sqrt(k / 252.0)
+    vals.update(expected_range_pct=exp_rng, sessions=k, n=len(rr),
+                range_n_test=sum(1 for _, x in rr if x),
+                range_n_before=sum(1 for _, x in rr if not x))
+    if sign is not None and len(rr) >= n_min:
+        med = statistics.median(x for x, _ in rr)
         vals["typical"] = med
-        typ = f"typical realised range at this reading: {med:.1f}% over {k} sessions (n={n})"
-    else:
-        typ = f"typical realised range at this reading: awaiting (n={n} of {n_min})"
-    return {"line": f"{head}; {rng_s}; {typ}. Inferred, not observed; OI as of prior close.",
-            "values": vals, "constants": [1]}
+        lines.append(f"{k}-session high-low range: median {med:.1f}% ({_counts(rr)}) against "
+                     f"an implied expected high-low range of {exp_rng:.1f}% (a random walk's "
+                     f"at the same IV: sqrt(8/pi) x IV x sqrt({k}/252)).")
+    elif sign is not None:
+        lines.append(f"{k}-session high-low range: awaiting (n={len(rr)} of {n_min}; "
+                     f"{_counts(rr)}); its implied expected range {exp_rng:.1f}%.")
+    # The bands (item 55): each labelled by its horizon and its centre.
+    centres = [("the last close", c)] + ([("the pre-market", premarket)] if premarket else [])
+    for cname, cv in centres:
+        parts = []
+        for h in horizons:
+            sh = cv * iv_pct / 100.0 * math.sqrt(h / 252.0)
+            tag = "pm" if cname != "the last close" else "close"
+            vals[f"band_{h}_{tag}_lower"], vals[f"band_{h}_{tag}_upper"] = cv - sh, cv + sh
+            parts.append(f"{'one-session' if h == 1 else f'{h}-session'} {cv - sh:,.2f} to "
+                         f"{cv + sh:,.2f}")
+        lines.append(f"±1σ bands around {cname} {cv:,.2f}: " + "; ".join(parts) + ".")
+    # The quantile labels and the formula's constants are printed numbers too.
+    return {"line": " ".join(lines), "lines": lines, "values": vals,
+            "constants": [1, 5, 8, 80, 95, 252]}
 
 
 def gauge_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
-                     computed_dir: Optional[str] = None) -> dict:
+                     computed_dir: Optional[str] = None,
+                     premarket: Optional[float] = None) -> dict:
     """The gauge for the 07:00 anchor, read only. Never raises."""
     from altdata import observations                            # noqa: PLC0415
     from . import dealer_block                                  # noqa: PLC0415
@@ -150,11 +296,11 @@ def gauge_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
             last = (str(lc["observed_at"])[:10], float(lc["value_num"])) if lc and \
                 lc.get("value_num") is not None else None
             iv = dealer_block.implied_vol(st, cutoff)
-        return gauge(profile, last, iv, cards)
+        return gauge(profile, last, iv, cards, premarket=premarket)
     except Exception:                                           # noqa: BLE001
         log.warning("the expected-movement gauge faulted", exc_info=True)
-        return {"line": "Expected-movement gauge: not read (its inputs faulted).",
-                "values": {}, "constants": []}
+        msg = "Expected-movement gauge: not read (its inputs faulted)."
+        return {"line": msg, "lines": [msg], "values": {}, "constants": []}
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +452,9 @@ def gauge_html(g: Optional[dict]) -> str:
     from html import escape                                     # noqa: PLC0415
     if not g or not g.get("line"):
         return ""
-    return f'<p style="font-size:13px;margin:6px 0">{escape(g["line"])}</p>'
+    # Item 54: the gauge is a few short lines; the pre-market line one.
+    return "".join(f'<p style="font-size:13px;margin:6px 0">{escape(x)}</p>'
+                   for x in (g.get("lines") or [g["line"]]))
 
 
 # ---------------------------------------------------------------------------

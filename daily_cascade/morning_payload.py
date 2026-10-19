@@ -287,10 +287,13 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     signals = signal_lines.build(this_session, prior, cutoff, db_path)
     # OS-2 (a44-opening-setup): the expected-movement gauge, under the dealer surface.
     from . import opening_setup                                 # noqa: PLC0415
-    gauge = opening_setup.gauge_from_store(prior, cutoff, db_path)
     # Ruling 4 of 19 Oct: the pre-market line under the gauge -- ES's overnight
-    # print at the 23-hour chart's session basis, from the stored bars.
+    # print at the 23-hour chart's session basis, from the stored bars. Read
+    # first: item 55 centres the gauge's bands on it too.
     premarket = opening_setup.premarket_from_store(this_session, cutoff, db_path)
+    gauge = opening_setup.gauge_from_store(
+        prior, cutoff, db_path,
+        premarket=(premarket.get("values") or {}).get("spy"))
     vol_regime = opening_setup.vol_lines_from_store(prior, cutoff, db_path)
     # OS-9 and OS-4 (a45-opening-setup-2): the OI builds, side unknown, and the
     # index put lines, no side.

@@ -760,6 +760,9 @@ dealer_block:
 # Read by altdata/dealer_scorecard.py.
 dealer_scorecard:
   registration: docs/ledgers/dealer-scorecard-preregistration-2026-10.md
+  registered_on: "2026-10-17"   # the test sample starts here; every earlier row, and
+                                # every backfilled row, is "before registration, descriptive"
+  backfill_source: "dealer_scorecard:backfill"   # Batch 11 item 54: rebuilt rows
   net_to_gross_min: 0.10        # a regime session (H1, H2)
   dampened_ratio: 0.8           # H1: range at or under 0.8 x the implied one-day range
   amplified_ratio: 1.2          # H2: range at or over 1.2 x implied
