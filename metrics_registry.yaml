@@ -17679,27 +17679,6 @@ families:
   levetf.aum: quantity
   levetf.nav: price
   levetf.shares_outstanding: quantity
-  manual.aaii_bonds_pct: ratio
-  manual.aaii_cash_pct: ratio
-  manual.aaii_stocks_pct: ratio
-  manual.cbo_deficit_path: ratio
-  manual.cofer_usd_share: ratio
-  manual.cofer_usd_share_constant_fx: ratio
-  manual.fedwatch_next_meeting_prob: ratio
-  manual.g4_issuance_gap_gdp: ratio
-  manual.global_visible_stocks_bbl: quantity
-  manual.gold_share_total_reserves: ratio
-  manual.ig_cover_median: ratio
-  manual.ig_nic_median_bp: spread
-  manual.msci_acwi_exus_usd: price
-  manual.msci_em_local: price
-  manual.msci_em_usd: price
-  manual.msci_world_usd: price
-  manual.mu_hbm_share: ratio
-  manual.oecd_days_cover: quantity   # ambiguous: a duration in days; alternative: ratio
-  manual.panda_bond_issuance: quantity
-  manual.sep_median_12m: rate
-  manual.sep_median_next2: rate
   mof.jgb_2y: rate
   mof.jgb_5y: rate
   nbs.city70_new_mm_avg: ratio   # ambiguous: a return series, not a level; alternative: price

@@ -111,10 +111,17 @@ def redfin_country(column: str) -> Series:
     return sorted(set(out))
 
 
+def open_store(db: Optional[str] = None):
+    """The observation store, read for a box run: the package's one place that
+    opens it (a ledger that needs more than one key's series, 31b's holdings and
+    closes, opens it here; chain-2 stitch, 19 Oct 2026)."""
+    from .. import observations                                 # noqa: PLC0415
+    return observations.ObservationStore(db)
+
+
 def store(key: str, instrument: Optional[str] = None, db: Optional[str] = None) -> Series:
     """The store's newest vintage of each period of `key`."""
-    from .. import observations                                 # noqa: PLC0415
-    st = observations.ObservationStore(db)
+    st = open_store(db)
     try:
         rows = st.as_of(key, instrument=instrument)
     finally:

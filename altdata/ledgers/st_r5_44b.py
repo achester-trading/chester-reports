@@ -226,10 +226,11 @@ def load_public(period: str = "5y") -> dict:
 
 
 def load_store(db: Optional[str] = None) -> dict:
-    from .. import observations, session                         # noqa: PLC0415
+    from .. import session                                       # noqa: PLC0415
+    from . import sources as lsrc                                # noqa: PLC0415
     from .. import st_r5_t1_rest as tr                           # noqa: PLC0415
     cut = session.utc_iso(timespec="microseconds")
-    with observations.ObservationStore(db) as st:
+    with lsrc.open_store(db) as st:
         h = tr.holdings(st, cut, "sp500.member_weight")
         if not h["weights_pct"]:
             raise LookupError("the store holds no sp500.member_weight")
