@@ -131,6 +131,9 @@ commands:
   altdata.session:
     domain: infrastructure
     line: One source of truth for "what time is it" and "what day is this"
+  altdata.st_r5_index:
+    domain: equity
+    line: "What's carrying the index (Batch 6 items 40, 35 and Batch 5 item 29) and the allocation block (item 30)"
   altdata.st_r5_rates:
     domain: rates
     line: 'The rates-transmission cluster (Batch 6 items 34, 36, 37, 41): the tightening flag, the G8 2-year panel, housing, the MBA line, the quality tail'

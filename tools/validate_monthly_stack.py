@@ -754,18 +754,22 @@ def charts_group(cfg: dict) -> None:
                                "sections": [{"depth_reason": "CPI released"}]}) == 4,
           "the cap is the budget's, and a fired trigger lifts it by one")
     many = {k: {"id": k, "png": b"x"} for k in mch.ORDER}
-    aside = mch.hold_cap(many, 10)
-    check(aside == ["M8"] and "cap of 10" in many["M8"]["unavailable"]
-          and sum(1 for c in many.values() if not c.get("unavailable")) == 10,
-          "the fallback: over a cap (here 10), M8 is set aside first and says why "
-          "(its content arrives with scenario set #1); ten print")
+    aside = mch.hold_cap(many, 11)
+    check(aside == ["M8"] and "cap of 11" in many["M8"]["unavailable"]
+          and sum(1 for c in many.values() if not c.get("unavailable")) == 11,
+          "the fallback: over a cap (here 11, one under the twelve planned), M8 is "
+          "set aside first and says why (its content arrives with scenario set #1); "
+          "eleven print")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
     nch = ed["chart_count"]
-    check(set(bad) == {"M10"} and "not tracked" in bad["M10"]
-          and nch == len(mch.ORDER) - 1 and not ed.get("charts_over_cap"),
-          f"with history stored, all but M10 render ({nch}); the fixture stores no "
-          f"fed funds contracts, and M10 says so"
-          + (f" -- unavailable: {bad}" if set(bad) != {"M10"} else ""))
+    # M11 (Batch 6 item 40) reads the S&P 500 close and its earnings; where this
+    # fixture stores neither it says why, and its own gate draws it
+    # (tools/validate_st_r5_index.py group E).
+    check(set(bad) - {"M11"} == {"M10"} and "not tracked" in bad["M10"]
+          and nch == len(mch.ORDER) - len(bad) and not ed.get("charts_over_cap"),
+          f"with history stored, all but M10 (and M11 without index data) render "
+          f"({nch}); the fixture stores no fed funds contracts, and M10 says so"
+          + (f" -- unavailable: {bad}" if set(bad) - {"M11"} != {"M10"} else ""))
     ok_ids = [k for k, c in charts.items() if not c.get("unavailable")]
     ok = [c for c in charts.values() if not c.get("unavailable")]
     check(ok and all(c["png_bytes"] <= dch.MAX_PNG_BYTES and c["png"][:4] == b"\x89PNG"
@@ -845,6 +849,7 @@ def charts_group(cfg: dict) -> None:
                     "M5": "plumbing/Yields & spreads", "M6": "positioning",
                     "M7": "priced/Breakevens",
                     "M10": "priced/FOMC pricing: the fed-funds path",
+                    "M11": "priced/What's carrying the index",
                     "M8": "ahead/Scenarios, and what would change our mind",
                     "M9": "book"},
           "each prints in its section: the long frame in the tape, the "
@@ -1393,11 +1398,12 @@ def t31_positioning_group(ed: dict, out: dict) -> None:
     check(wk["table"]["columns"] == ["Sector or pair", "Week", "One month",
                                      "Three months"],
           "the Weekly's sector table is unchanged: the switch is the cadence")
-    want = ["sectors", "cftc", "short", "retail", "tic"]
+    want = ["sectors", "cftc", "short", "retail", "tic", "alloc"]
     check([ss.get("phase") for ss in pos["subsections"]]
           == [f"block:positioning:{g}" for g in want],
-          "item 10: each of the five sub-sections -- sectors, CFTC, short interest, "
-          "retail sentiment, TIC -- is set up for its own written read")
+          "item 10: each of the six sub-sections -- sectors, CFTC, short interest, "
+          "retail sentiment, TIC, and Batch 6's allocation block -- is set up for its "
+          "own written read")
     with_rows = [ss for ss in pos["subsections"] if (ss.get("table") or {}).get("rows")]
     check(with_rows and all(ss.get("prose") and ss.get("paragraphs") for ss in with_rows)
           and all(ss.get("prose") is None for ss in pos["subsections"]
@@ -2173,9 +2179,9 @@ def t33_group(ed: dict, out: dict) -> None:
           and charts["M8"]["unavailable"] == "not yet: scenario set #1",
           "M3 says why it is empty when the scorecard begins after the month; M8 is "
           "skipped by the 9 Oct ruling and logged so")
-    check("M11" not in mch.ORDER and len(mch.ORDER) == 11,
-          f"the plan is eleven charts, M0-M10 ({', '.join(mch.ORDER)}); there is no "
-          f"M11")
+    check("M11" in mch.ORDER and "M12" not in mch.ORDER and len(mch.ORDER) == 12,
+          f"the plan is twelve charts, M0-M11 ({', '.join(mch.ORDER)}); M11 is Batch "
+          f"6 item 40's standing decomposition")
 
 
 def t34a_group(ed: dict, client) -> None:

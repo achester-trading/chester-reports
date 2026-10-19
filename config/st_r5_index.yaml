@@ -1,0 +1,97 @@
+# st_r5_index.yaml -- "what's carrying the index" and the allocation block:
+# signal-triage Batch 6 items 40, 35 and 30, and Batch 5 item 29
+# (docs/change-order-signal-triage-batch-6-2026-10-15.md, section 4 rulings 2
+# and 3; docs/change-order-signal-triage-batch-5-2026-10-09.md item 29).
+# Tranche 1 only: ST-R5.40a, ST-R4.29a, ST-R5.35a, ST-R5.30a. The ledgers
+# (ST-R5.30b, ST-R5.35b) and the queue entry (ST-R5.30c) are later.
+#
+# Read by altdata/st_r5_index.py; printed by daily_cascade/index_carry_block.py.
+# Report-only and flags only: nothing here enters the market-state object, a
+# composite, a trigger, a book rule or the register (R28; the orders' Rights).
+# Every threshold is SESSION-SET -- the orders rule a direction ("flat or
+# falling", "closing from above"), not a size -- with its reason beside it.
+version: st-r5-index-v1
+updated: 2026-10-16
+header: "What's carrying the index"
+unvalidated: "(descriptive; unvalidated, n=0)"
+
+# ---------------------------------------------------------------------------
+# ST-R5.40a -- the standing decomposition (price = EPS x P/E, in log shares)
+# ---------------------------------------------------------------------------
+decomposition:
+  index_key: yfinance.mkt_gspc          # the S&P 500 close (^GSPC)
+  forward_eps_key: spdji.fwd12m_op_eps  # S&P DJI, bottom-up operating, per drop
+  trailing_eps_key: shiller.sp_earnings # Shiller's trailing twelve months, monthly
+  anchors:
+    cycle_low: "2022-10-12"             # the item's anchor (Edward Jones / FactSet)
+    twelve_months: 12                   # months before the latest close
+    ytd: true                           # the last close of the prior year
+  # A log share is printed only when the price move is large enough to divide
+  # by: |ln(P1/P0)| >= 0.01, SR-38's own rule (altdata/return_attribution.py).
+  min_log_move: 0.01
+  awaiting: "awaiting the estimates workbook (drop pending)"
+  # Which anchor the close's one-line read uses: the item says "one-line read
+  # only"; the 12-month anchor is the Weekly's and the Monthly's shared one.
+  close_anchor: twelve_months
+
+# ---------------------------------------------------------------------------
+# ST-R4.29a -- r-g and the revisions-turn flag (Batch 5 item 29)
+# ---------------------------------------------------------------------------
+r_minus_g:
+  ten_year_key: fred.yield_10y
+  quarter_key: spdji.op_eps_est_q
+  drop_key: spdji.eps_drop
+  # g: the order's "2-year-forward EPS CAGR from S&P DJI's estimates file". The
+  # reader stores the ESTIMATES block only (trailing actuals are not stored and
+  # the layout is declared, not read off a file), so g is read from estimates
+  # alone: the next twelve months' four quarters against the four after them,
+  # g = E(quarters 5-8) / E(quarters 1-4) - 1, the growth the estimates imply
+  # into the second forward year. Labelled so. Needs eight estimated quarters.
+  quarters_ahead: 8
+  window_days: 28                       # "over 4 weeks"
+  # SESSION-SET. "Flat or falling": the same four forward quarters revised by at
+  # most +0.25% across the window (S&P DJI rounds quarterly estimates to the
+  # cent; a quarter-percent is inside that rounding over four quarters).
+  flat_max_pct: 0.25
+  # SESSION-SET. "While the 10-year is up": at least +10 bp over the window, the
+  # rates cluster's threshold (config/st_r5_rates.yaml), for one meaning of "up".
+  ten_year_up_bp: 10
+
+# ---------------------------------------------------------------------------
+# ST-R5.35a -- the corporate-price/ULC gap
+# ---------------------------------------------------------------------------
+price_ulc:
+  ppi_key: fred.ppi_fd_core_ts          # monthly, index
+  ulc_key: fred.ulc_nfb                 # quarterly, index; carried forward
+  # The gap: PPI's change on the year less ULC's change on the year (the four-
+  # quarter change, which is the entry's "4-quarter average" of the quarterly
+  # rate to within compounding), in percentage points.
+  # SESSION-SET. "Closing from above": the gap is above zero and at least 1.0 pp
+  # below its own peak of the last six monthly prints. A 1 pp fall is about a
+  # fifth of the entry's 3.5 pp gap -- large enough not to be one PPI print's
+  # noise.
+  peak_window_months: 6
+  closing_pp: 1.0
+
+# ---------------------------------------------------------------------------
+# ST-R5.30a -- the three-panel investor-allocation block (amends SR-12)
+# ---------------------------------------------------------------------------
+allocation:
+  # Z.1, quarterly. The equities panel is the Fed's own published share (directly
+  # and indirectly held). The bonds and cash panels are the household legs over
+  # total financial assets: debt securities are DIRECTLY held only (Z.1 does not
+  # split mutual-fund shares by type), and cash is currency, deposits and money
+  # funds. Labelled so on the panels.
+  equity_share_key: fred.hh_equity_share
+  bonds_key: fred.hh_debt_securities     # millions
+  cash_key: fred.hh_deposits             # millions
+  assets_key: fred.hh_fin_assets         # millions
+  # The monthly reading between Z.1 releases: the AAII asset-allocation survey,
+  # entered by hand (SR-12's manual_input keys). ICI is a listed gap.
+  aaii_keys:
+    equities: manual.aaii_stocks_pct
+    bonds: manual.aaii_bonds_pct
+    cash: manual.aaii_cash_pct
+  ici_gap: "ICI monthly: no free source the box may read -- ici.org answers this repo's agent with 403 at its CDN, robots.txt included (checked 16 Oct 2026), and a writer never passes for a browser"
+  windows_years: [5]                     # the dual percentile: five years and full (the lens rule)
+  base_rate: "base rate: after ST-R5.30b"

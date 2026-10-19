@@ -12539,7 +12539,9 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 29   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a)
+    expected_members: 33   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    member_units:
+      fred.hh_equity_share: percent_share
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -12559,6 +12561,7 @@ bulk_imports:
       "2R": rates_decomposition
       "3": macro_liquidity
       "6": macro_valuation_credit
+      "4": macro_inflation
       "7": macro_global_fx
       "HH": household_allocation
 
@@ -13630,6 +13633,10 @@ bulk_imports:
 
 families:
   # Signal-triage Batch 6 (16 Oct 2026).
+  fred.hh_equity_share: ratio
+  fred.hh_fin_assets: quantity
+  fred.ppi_fd_core_ts: release
+  fred.ulc_nfb: release
   bbk.bund_2y: rate
   cfets.cgb_2y: rate
   fred.aaa_oas: spread
@@ -13694,6 +13701,12 @@ families:
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:
+  # Signal-triage Batch 6, items 30 and 35: Z.1 from 1945, ULC from 1947, the
+  # PPI leg from 2013 -- each long window is its whole stored history.
+  fred.hh_equity_share: full
+  fred.hh_fin_assets: full
+  fred.ppi_fd_core_ts: full
+  fred.ulc_nfb: full
   # Signal-triage Batch 6: rates take full history (the Bund 2-year from 1997);
   # FRED's ICE BofA series hold three years, so their 'full' is that window.
   bbk.bund_2y: full

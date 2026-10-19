@@ -995,3 +995,24 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
                 "titles": list(W10_TITLES)}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W10", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+# ---------------------------------------------------------------------------
+# W11 / M11: WHAT'S CARRYING THE INDEX (signal-triage Batch 6 item 40, 16 Oct
+# 2026). The standing decomposition: the S&P 500, EPS and the P/E, each indexed
+# to 100 at the anchor (the Weekly's twelve months, the Monthly's 12 Oct 2022
+# low), one point per earnings observation. Price = EPS x P/E, so the price
+# line is the product of the other two (in logs, their sum). Forward EPS where
+# S&P DJI's drops reach the anchor, else trailing; the title says which.
+# ---------------------------------------------------------------------------
+def index_carry(cid: str, cs: dict, plain: str, name: str,
+                out_dir: Optional[str]) -> dict:
+    if not cs or cs.get("absent"):
+        return {"id": cid, "unavailable": (cs or {}).get("reason")
+                or "the decomposition is not read"}
+    title = span_title(f"What's carrying the index: the S&P 500, {cs['version']} EPS "
+                       f"and the {cs['version']} P/E, indexed to 100",
+                       cs["n"], "observations", cs["first"], cs["last"], plain)
+    out = lines_chart(cid, cs["series"], title, name, out_dir, min_points=3)
+    return {**out, "title": title, "version": cs["version"],
+            "anchor_day": cs["anchor_day"]}

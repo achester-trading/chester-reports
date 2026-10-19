@@ -855,6 +855,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
         from . import batch3_block                              # noqa: PLC0415
         built["tape"]["items"] += batch3_block.tape_items(st, cutoff)
+        # SIGNAL-TRIAGE BATCH 6 item 40: the close carries the decomposition's
+        # one-line read only, in What's priced.
+        from . import index_carry_block                         # noqa: PLC0415
+        if built.get("priced") is not None:
+            built["priced"]["items"] += index_carry_block.close_items(st, cutoff)
         # SIGNAL-TRIAGE BATCH 6: the rates-transmission flag and quality tail in
         # Plumbing & rates, and the MBA line on the release Wednesday.
         from . import rates_transmission_block                  # noqa: PLC0415
