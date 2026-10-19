@@ -3,11 +3,12 @@
 #
 # WHAT IT ENUMERATES. Every candidate is one signal family x one conditioning
 # option x one horizon x one instrument x one exit, each a rule in the grammar
-# v1 (alpha/rules.py) backtested point in time and net of the cost model. A
-# conditioning option is "none" or one value of one variable; a conditioned
-# candidate is its base rule's trades taken in that state only (the grammar's own
-# conditioning split, rules.by_variant). A variable marked `pending` is skipped,
-# and the search prints why.
+# v2 (alpha/rules.py, alpha-lab-rules/v2; Part 1 of 19 Oct 2026, before the first
+# run) backtested point in time and net of the cost model. A conditioning option
+# is "none" or one value of one variable; a conditioned candidate is its base rule
+# plus one `when` item, backtested as that rule, and a conditioned survivor
+# registers that rule. A variable marked `pending` is skipped, and the search
+# prints why.
 #
 # COVERAGE (ruling 5(a) of 19 Oct 2026). A conditioning variable joins a run only
 # if its point-in-time history -- the first day any of its values was knowable,
@@ -43,7 +44,7 @@
 version: 1
 family:
   name: search-v1                      # the variant_counts family
-  grammar: alpha-lab-rules/v1
+  grammar: alpha-lab-rules/v2         # the manifest's hash covers it
   cadence: daily_close
   entry: next_close
   signal_families:

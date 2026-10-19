@@ -31,6 +31,16 @@ live store, fetches or calls a model.
      begin while one is unfinished, nor outside a month's first week; the search
      is the nightly loop's last step and the weekly loop's no longer. One lock:
      while another process holds it, a step does nothing.
+  D  GRAMMAR v2 (alpha-lab-rules/v2). A v2 rule conditioned on a fixture state
+     trades only where the state was knowable at the decision and matched; a
+     state stored after the decision (late, or a later revision) is never read;
+     an instrument-keyed z reads its own instrument; a v1 rule may not carry
+     `when`; the registered translations' v1 rules replay identically as v1 and
+     as v2; a conditioned candidate's trades in the search equal its v2 rule's
+     backtest, trade for trade, and are not the base rule's filtered after the
+     fact; the search's Conditions calls the grammar's reader; a conditioned
+     survivor registers its v2 rule; the manifest's hash covers the grammar
+     version; the proposer stays on v1.
 
     python tools/validate_alpha_lab_4.py
 """
@@ -366,11 +376,10 @@ def build_search_store(path: str) -> None:
                          "available_at": at(d), "value": math.exp(lv),
                          "source": "synthetic"})
     import json                                                 # noqa: PLC0415
-    for i, d in enumerate(days):
+    for d in days:
         rows.append({"registry_key": "market_state", "instrument": None, "observed_at": d,
                      "available_at": at(d, "21:30"), "source": "synthetic",
-                     "value": json.dumps({"dials": {"vol": {"state": "crisis" if i % 9 == 0
-                                                             else "subdued"}}})})
+                     "value": json.dumps({"dials": {"vol": {"state": "subdued"}}})})
     write_store(path, rows)
 
 
@@ -702,11 +711,291 @@ def group_c() -> None:
         st.close()
         lg.close()
 
+
+# ---------------------------------------------------------------------------
+# D. Grammar v2's state condition (alpha-lab-rules/v2)
+# ---------------------------------------------------------------------------
+V2_DAYS = ("2019-01-02", "2022-12-30")
+
+
+def build_v2_store(path: str) -> dict:
+    """GLD rising with noise; a market-state object each session whose vol state
+    is "calm" on even ISO weeks and "storm" on odd ones, stored that evening --
+    except: every 7th session's object is stored only the NEXT day (after the
+    decision), and every 11th session's first vintage says "storm" and a later
+    one, stored after the decision, says "calm". The CFTC net under two
+    instruments with different paths."""
+    import json                                                 # noqa: PLC0415
+    days = sessions(*V2_DAYS)
+    rnd = random.Random(11)
+    rows, late, revised = [], set(), set()
+    lv = math.log(100.0)
+    for i, d in enumerate(days):
+        lv += 0.0015 + rnd.uniform(-0.004, 0.004)
+        rows.append({"registry_key": "yfinance.mkt_gld", "instrument": None,
+                     "observed_at": d, "available_at": at(d), "value": math.exp(lv),
+                     "source": "synthetic"})
+        wk = dt.date.fromisoformat(d).isocalendar()[1]
+        state = "calm" if wk % 2 == 0 else "storm"
+        nxt = (dt.date.fromisoformat(d) + dt.timedelta(days=1)).isoformat()
+        if i % 7 == 3:
+            late.add(d)
+            rows.append({"registry_key": "market_state", "instrument": None,
+                         "observed_at": d, "available_at": at(nxt, "13:00"),
+                         "source": "synthetic",
+                         "value": json.dumps({"dials": {"vol": {"state": state}}})})
+        elif i % 11 == 5:
+            revised.add(d)
+            rows.append({"registry_key": "market_state", "instrument": None,
+                         "observed_at": d, "available_at": at(d, "21:30"),
+                         "source": "synthetic",
+                         "value": json.dumps({"dials": {"vol": {"state": "storm"}}})})
+            rows.append({"registry_key": "market_state", "instrument": None,
+                         "observed_at": d, "available_at": at(nxt, "13:00"),
+                         "source": "synthetic",
+                         "value": json.dumps({"dials": {"vol": {"state": "calm"}}})})
+        else:
+            rows.append({"registry_key": "market_state", "instrument": None,
+                         "observed_at": d, "available_at": at(d, "21:30"),
+                         "source": "synthetic",
+                         "value": json.dumps({"dials": {"vol": {"state": state}}})})
+    d = dt.date(2018, 1, 2)
+    k = 0
+    while d.isoformat() <= V2_DAYS[1]:
+        rows.append({"registry_key": "cftc.noncomm_net", "instrument": "SP500",
+                     "observed_at": d.isoformat(), "available_at": at(
+                         (d + dt.timedelta(days=3)).isoformat()),
+                     "value": 1000.0 * math.sin(k / 5.0), "source": "synthetic"})
+        rows.append({"registry_key": "cftc.noncomm_net", "instrument": "NASDAQ100",
+                     "observed_at": d.isoformat(), "available_at": at(
+                         (d + dt.timedelta(days=3)).isoformat()),
+                     "value": 50.0 * k, "source": "synthetic"})
+        d += dt.timedelta(days=7)
+        k += 1
+    write_store(path, rows)
+    return {"late": late, "revised": revised}
+
+
+def group_d() -> None:
+    import copy                                                 # noqa: PLC0415
+    import json                                                 # noqa: PLC0415
+    from alpha import rules                                     # noqa: PLC0415
+    head("D. GRAMMAR v2: THE STATE CONDITION (alpha-lab-rules/v2)")
+    sp = os.path.join(_TMP, "v2.sqlite")
+    plan_ = build_v2_store(sp)
+    st = ReadOnlyStore(sp)
+    try:
+        base = {"grammar": rules.GRAMMAR_V2, "universe": ["GLD"], "cadence": "daily_close",
+                "trigger": [{"series": "GLD", "transform": "pct_change", "n": 5,
+                             "op": ">", "value": -100}],
+                "direction": "long", "instrument": "GLD", "entry": "next_close",
+                "exits": {"time": 3}}
+        cond = {**base, "when": [{"kind": "state", "path": "dials.vol.state",
+                                  "values": ["calm"]}]}
+        data = rules.Data(st)
+        bt = rules.backtest(rules.compile_rule(cond), st, "2019-03-01", V2_DAYS[1],
+                            data=data)
+        trades = bt["trades"]
+        ms = {}
+        for r in st.all_vintages("market_state"):
+            ms.setdefault(str(r["observed_at"])[:10], []).append(
+                (str(r["available_at"]), json.loads(r["value_text"])["dials"]["vol"]["state"]))
+        ok_known = all(any(a <= t["decided_at"] and v == "calm"
+                           for a, v in ms[t["signal_day"]])
+                       and max(a for a, v in ms[t["signal_day"]] if a <= t["decided_at"])
+                       <= t["available_at"]
+                       for t in trades)
+        check(len(trades) > 50 and ok_known
+              and all(t["when"] == {"state:dials.vol.state": "calm"} for t in trades),
+              f"a v2 rule conditioned on a fixture state trades only where the state was "
+              f"knowable at the decision and matched ({len(trades)} trades; each trade's "
+              f"available_at covers the state it read)")
+        on_late = [t for t in trades if t["signal_day"] in plan_["late"]]
+        on_rev = [t for t in trades if t["signal_day"] in plan_["revised"]]
+        calm_late = [d for d in plan_["late"]
+                     if ms[d][0][1] == "calm" and "2019-03-01" <= d]
+        check(not on_late and not on_rev and calm_late
+              and bt["skipped"].get("when: no value knowable at the decision", 0) > 0,
+              f"a state stored after the decision is never read: none of the "
+              f"{len(calm_late)} calm sessions whose object was stored the next day "
+              f"trades, nor a session whose later revision says calm")
+        free = rules.backtest(rules.compile_rule(base), st, "2019-03-01", V2_DAYS[1],
+                              data=data)["trades"]
+        check(len(free) > len(trades) and not any("when" in t for t in free),
+              f"without `when` the same rule trades every eligible session "
+              f"({len(free)} trades)")
+
+        # the instrument-keyed z
+        zit = {"kind": "zscore", "key": "cftc.noncomm_net", "instrument": "SP500",
+               "window": 20, "min_rows": 10,
+               "bands": {"crowded_long": 1.0, "crowded_short": -1.0},
+               "values": ["crowded_long", "neutral", "crowded_short"]}
+        day, t = "2021-06-15", rules.decision_instant("2021-06-15", "next_close")
+        got, av = rules.when_value(zit, data, day, t)
+        xs = [x for x in st.all_vintages("cftc.noncomm_net", "SP500")
+              if str(x["available_at"]) <= t and str(x["observed_at"])[:10] <= day]
+        vals = [float(x["value_num"]) for x in sorted(xs, key=lambda r: r["observed_at"])][-20:]
+        import statistics                                       # noqa: PLC0415
+        z = (vals[-1] - statistics.fmean(vals)) / statistics.stdev(vals)
+        want = "crowded_long" if z >= 1 else ("crowded_short" if z <= -1 else "neutral")
+        nq, _ = rules.when_value({**zit, "instrument": "NASDAQ100"}, data, day, t)
+        check(got == want and nq == "crowded_long" and av <= t,
+              f"an instrument-keyed z reads its own instrument: SP500's z {z:+.2f} -> "
+              f"{got}; NASDAQ100's steady climb -> {nq}")
+        try:
+            rules.compile_rule({**base, "grammar": rules.GRAMMAR, "when": cond["when"]})
+            v1_when = False
+        except rules.RuleError as exc:
+            v1_when = any("grammar v2" in e for e in exc.errors)
+        try:
+            rules.compile_rule({**base, "when": [{**zit, "key": "no.such_key"}]})
+            badkey = False
+        except rules.RuleError:
+            badkey = True
+        check(v1_when and badkey,
+              "a v1 rule may not carry `when`, and a `when` key must be registered")
+    finally:
+        st.close()
+
+    # v1 replays identically: the registered translations' rules on the Tranche 2
+    # fixture store, as v1 and relabelled v2
+    sys.path.insert(0, str(REPO / "tests" / "fixtures" / "alpha"))
+    import fixture_store                                        # noqa: PLC0415
+    fp = os.path.join(_TMP, "fixture_v1.sqlite")
+    fixture_store.build(fp)
+    fs = ReadOnlyStore(fp)
+    try:
+        tdir = REPO / "alpha" / "research" / "translations" / "2026-10-14-claude-weekly-01"
+        same, n_tr, names = True, 0, []
+        for f in sorted(tdir.glob("H-*.yaml")):
+            doc = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+            dsl = doc.get("rule_dsl")
+            if not isinstance(dsl, dict):
+                continue
+            c1 = rules.compile_rule(dsl, fs)
+            c2 = rules.compile_rule({**dsl, "grammar": rules.GRAMMAR_V2}, fs)
+            a = rules.backtest(c1, fs, "2023-01-02", "2026-09-30")
+            b = rules.backtest(c2, fs, "2023-01-02", "2026-09-30")
+            same = same and a["trades"] == b["trades"] and a["skipped"] == b["skipped"]
+            n_tr += len(a["trades"])
+            names.append(f.stem)
+        check(same and n_tr > 0 and len(names) >= 3,
+              f"v1 replays identically: {', '.join(names)}'s registered rules backtest to "
+              f"the same {n_tr} trades as v1 and as v2 with no `when`")
+    finally:
+        fs.close()
+
+    # the search: a conditioned candidate's trades are its v2 rule's
+    sp2 = os.path.join(_TMP, "search_v2.sqlite")
+    build_search_store(sp2)
+    import json as _json                                        # noqa: PLC0415
+    st2 = observations.ObservationStore(sp2)
+    rows = []
+    for i, d in enumerate(sessions("2018-01-02", "2024-06-28")):
+        rows.append({"registry_key": "market_state", "instrument": None, "observed_at": d,
+                     "available_at": at(d, "21:35"), "source": "synthetic",
+                     "value": _json.dumps({"dials": {"vol": {
+                         "state": "normal" if (i // 15) % 2 else "crisis"}}})})
+    st2.write_many(rows)
+    st2.close()
+    st = ReadOnlyStore(sp2)
+    lg = Ledger(os.path.join(_TMP, "alpha_d.db"))
+    seen: list = []
+    real_bt = search_mod.rules.backtest
+
+    def spy(cmp, store, first, last, drop=None, data=None):
+        out = real_bt(cmp, store, first, last, drop=drop, data=data)
+        seen.append((copy.deepcopy(cmp.dsl), first, last, out["trades"]))
+        return out
+    try:
+        cfg = search_cfg()
+        cfg["family"]["name"] = "search-v2"
+        cfg["family"]["conditioning"]["volatility"]["values"] = ["normal", "crisis"]
+        check(cfg["family"]["grammar"] == rules.GRAMMAR_V2
+              and search_mod.load_config()["family"]["grammar"] == "alpha-lab-rules/v2",
+              "the search's family is on grammar v2 before its first run")
+        search_mod.rules.backtest = spy
+        s = search_mod.step(lg, st, SEARCH_AS_OF, cfg)["search"]
+        search_mod.rules.backtest = real_bt
+        prog = search_mod.load_progress(s["run_id"])
+        cid = "trend_63|h5|GLD|time_only|volatility=normal"
+        c = next(x for x in search_mod.candidates(cfg, prog["joined"]) if x["id"] == cid)
+        rule = search_mod.rule_of(cfg, c)
+        used = next(tr for dsl, first, last, tr in seen
+                    if dsl == rule and last < HOLD_FROM)
+        indep = real_bt(rules.compile_rule(rule), st, search_mod._first_day(   # noqa: SLF001
+            rules.Data(st), "GLD"), pit.prev_session(HOLD_FROM))["trades"]
+        indep = [t for t in indep if t["exit_day"] < HOLD_FROM]
+        base_tr = [t for t in real_bt(rules.compile_rule(search_mod.base_rule(cfg, c)), st,
+                                      "2018-01-02", pit.prev_session(HOLD_FROM))["trades"]
+                   if t["exit_day"] < HOLD_FROM]
+        filt = [t for t in base_tr if search_mod.Conditions(st, cfg).value(
+            "volatility", t["signal_day"], t["decided_at"]) == "normal"]
+        used_f = [t for t in used if t["exit_day"] < HOLD_FROM]
+        check(rule["when"] == [{"name": "volatility", "kind": "state",
+                                "path": "dials.vol.state", "values": ["normal"]}]
+              and used_f == indep and len(indep) > 0,
+              f"a conditioned candidate's trades in the search equal its v2 rule's "
+              f"backtest, trade for trade ({len(indep)} formation trades)")
+        check([t["signal_day"] for t in filt] != [t["signal_day"] for t in indep],
+              f"and they are the rule's own trades, not the base rule's filtered after "
+              f"the fact ({len(filt)} filtered against {len(indep)})")
+        calls: list = []
+        real_wv = rules.when_value
+
+        def wv(*a, **k):
+            calls.append(a[0]["name"])
+            return real_wv(*a, **k)
+        rules.when_value = wv
+        try:
+            v = search_mod.Conditions(st, cfg).value("volatility", "2020-03-02",
+                                                     rules.decision_instant("2020-03-02",
+                                                                            "next_close"))
+        finally:
+            rules.when_value = real_wv
+        src = (REPO / "alpha" / "search.py").read_text(encoding="utf-8")
+        check(calls == ["volatility"] and v in ("normal", "crisis")
+              and "statistics.stdev" not in src and "pit.Series(" not in src,
+              "one reader: the search's Conditions calls the grammar's when_value and has "
+              "no z or band arithmetic of its own")
+        h = search_mod.hypothesis_of(cfg, c, {"n_trials": 12, "n": 40},
+                                     {"n": 12, "mean_net": 0.001})
+        doc = {"schema": hyp.SCHEMA_ID, "batch_id": "d", "source": "systematic",
+               "proposer": "alpha/search.py", "channel": "search",
+               "written_at": SEARCH_AS_OF, "model_idea_rule": False, "inputs": [],
+               "hypotheses": [h]}
+        rules.compile_rule(h["rule_dsl"], st)
+        check(h["needs_code"] is False and h["rule_dsl"] == rule
+              and not hyp.validate_batch(doc),
+              "a conditioned survivor registers its v2 rule (rule_dsl, needs_code false), "
+              "and it compiles against the store")
+        mf = manifest.read(prog["manifest"])["batch"]
+        v1cfg = copy.deepcopy(cfg)
+        v1cfg["family"]["grammar"] = rules.GRAMMAR
+        check(mf["grammar"] == "alpha-lab-rules/v2"
+              and mf["spec"]["family"]["grammar"] == "alpha-lab-rules/v2"
+              and search_mod.family_sha256(v1cfg) != search_mod.family_sha256(cfg)
+              == mf["family_sha256"],
+              "the manifest's hash covers the grammar version: the same family on v1 "
+              "hashes differently")
+    finally:
+        search_mod.rules.backtest = real_bt
+        st.close()
+        lg.close()
+
+    pr = (REPO / "alpha_proposer" / "propose.py").read_text(encoding="utf-8")
+    prompt = (REPO / "config" / "alpha_proposer_prompt.md").read_text(encoding="utf-8")
+    check('h["rule_dsl"].get("grammar") != rules.GRAMMAR' in pr
+          and "alpha-lab-rules/v2" not in prompt and rules.GRAMMAR == "alpha-lab-rules/v1",
+          "the proposer stays on v1: its prompt names v1 only, and a v2 rule_dsl from it "
+          "is kept as text")
+
 def main() -> int:
     try:
         group_a()
         group_b()
         group_c()
+        group_d()
     finally:
         shutil.rmtree(_TMP, ignore_errors=True)
     print(f"\n{PASS} passed, {FAIL} failed")

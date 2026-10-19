@@ -125,11 +125,11 @@ class RateGuard:
         self.sent = [t for t in self.sent if now - t < 86400]
         hour, day = self.counts()
         if day + 1 > self.per_day:
-            raise RateExceeded(f"bitcoin-data.com: a request would be the "
-                               f"{day + 1}th in a day; the free tier allows {self.per_day}")
+            raise RateExceeded(f"bitcoin-data.com: a request would make {day + 1} in a "
+                               f"day; the free tier allows {self.per_day}")
         if hour + 1 > self.per_hour:
-            raise RateExceeded(f"bitcoin-data.com: a request would be the "
-                               f"{hour + 1}th in an hour; the free tier allows {self.per_hour}")
+            raise RateExceeded(f"bitcoin-data.com: a request would make {hour + 1} in an "
+                               f"hour; the free tier allows {self.per_hour}")
         self.sent.append(now)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_name(self.path.name + ".part")

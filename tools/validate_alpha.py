@@ -133,6 +133,11 @@ os.environ.pop("ALPHA_DB", None)
 for _k, _d in (("ALPHA_INBOX", "inbox"), ("ALPHA_OUTBOX", "outbox"),
                ("ALPHA_RESEARCH_DIR", "research"), ("ALPHA_REPORTS_DIR", "reports")):
     os.environ[_k] = os.path.join(_TMP, _d)
+# The nightly loop's last step is the grammar search (ruling 5(c) of 19 Oct 2026),
+# held in tools/validate_alpha_lab_4.py groups B to D. Here the unit is told it
+# started at the epoch, so its budget is spent and the step skips with its reason
+# rather than spending up to ten minutes of this gate on the fixture store.
+os.environ["CHESTER_UNIT_STARTED"] = "0"
 
 import yaml  # noqa: E402
 

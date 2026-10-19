@@ -196,7 +196,7 @@ def cd12() -> None:
             g.charge()
             sixteen = False
         except B.RateExceeded as exc:
-            sixteen = "16th in a day" in str(exc)
+            sixteen = "would make 16 in a day" in str(exc)
         reread = B.RateGuard(st_path, per_hour=8, per_day=15, clock=lambda: clock[0])
         check(nine and sixteen and reread.counts()[1] == 15,
               "the rate guard refuses a 9th request in an hour and a 16th in a day, and "

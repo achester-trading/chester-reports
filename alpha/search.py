@@ -11,14 +11,18 @@ variant_counts; survivors written to the register as `systematic` hypotheses,
 pre-registered by the search's own manifest before its first backtest."
 
 THE FAMILY is config/alpha_search.yaml's `family`. Each candidate is a rule in the
-grammar v1 (alpha/rules.py), backtested point in time and net of the cost model
-by rules.backtest. A conditioning option is "none" or one value of one variable:
-the dials and the volatility regime (the stored market-state object's dials,
-read, never recomputed), positioning (the stored CFTC net's z) and the funding
-regime (crypto Tranche A's calc.funding_agg). A conditioned candidate is its base
-rule's trades taken in that state only, as the grammar's own conditioning split
-reads them. A variable marked `pending` (the dealer regime) is skipped, with its
-reason printed.
+grammar v2 (alpha/rules.py, alpha-lab-rules/v2), backtested point in time and net
+of the cost model by rules.backtest. A conditioning option is "none" or one value
+of one variable: the dials and the volatility regime (the stored market-state
+object's dials, read, never recomputed), positioning (the stored CFTC net's z)
+and the funding regime (crypto Tranche A's calc.funding_agg). A conditioned
+candidate IS its v2 rule: the base rule plus one `when` item (when_item), and it
+is backtested as that rule, so its trades are the rule's, trade for trade, and a
+survivor registers that rule (rule_dsl), not text. The variable's value is read by
+the grammar's own reader, rules.when_value; Conditions below calls it and has no
+reader of its own. A variable marked `pending` (the dealer regime) is skipped,
+with its reason printed. Nothing in this family needs code: every conditioning
+kind it declares (state, zscore, mean_band) is a v2 `when` kind.
 
 COVERAGE (ruling 5(a) of 19 Oct 2026). A conditioning variable joins a run only
 if its point-in-time history starts at least `coverage.min_years_before_holdout`
@@ -181,6 +185,34 @@ def base_rule(cfg: dict, cand: dict) -> dict:
             "exits": {"time": int(cand["horizon"]), **(f["exits"][cand["exit"]] or {})}}
 
 
+def when_item(cfg: dict, name: str, values: Optional[list] = None) -> dict:
+    """A conditioning variable as a grammar-v2 `when` item, taking `values` (by
+    default every value the variable declares)."""
+    v = cfg["family"]["conditioning"][name]
+    it: dict[str, Any] = {"name": name, "kind": v["kind"]}
+    if v["kind"] == "state":
+        it["path"] = v["path"]
+    else:
+        it["key"] = v["key"]
+        if v.get("instrument"):
+            it["instrument"] = v["instrument"]
+        it["window"] = int(v["window"])
+        if v["kind"] == "zscore":
+            it["min_rows"] = int(v.get("min_rows") or v["window"])
+        it["bands"] = dict(v["bands"])
+    it["values"] = [str(x) for x in (values if values is not None else v["values"])]
+    return it
+
+
+def rule_of(cfg: dict, cand: dict) -> dict:
+    """The candidate's whole rule in grammar v2: the base rule, plus its one
+    `when` item when it is conditioned."""
+    r = base_rule(cfg, cand)
+    if cand["cond"] is not None:
+        r["when"] = [when_item(cfg, cand["cond"][0], [cand["cond"][1]])]
+    return r
+
+
 def plan(cfg: dict, joined: Optional[list[str]] = None) -> dict:
     act, pend = variables(cfg, joined)
     f = cfg["family"]
@@ -265,45 +297,17 @@ def coverage_lines(cov: dict) -> list[str]:
 # The conditioning variables, point in time
 # ---------------------------------------------------------------------------
 class Conditions:
-    """Each active variable's value at a trade's decision, read as knowable then."""
+    """Each active variable's value at a decision, read as knowable then -- by
+    the grammar's own reader (rules.when_value), never by a second one."""
 
     def __init__(self, store, cfg: dict, data: Optional[rules.Data] = None,
                  joined: Optional[list[str]] = None) -> None:
         self.store, self.data = store, data or rules.Data(store)
+        self.cfg = cfg
         self.act, _ = variables(cfg, joined)
-        self._s: dict[tuple, pit.Series] = {}
-
-    def _series(self, key: str, inst: Optional[str]) -> pit.Series:
-        if (key, inst) not in self._s:
-            self._s[(key, inst)] = pit.Series(self.store, key, inst)
-        return self._s[(key, inst)]
 
     def value(self, name: str, day: str, t: str) -> Optional[str]:
-        v = self.act[name]
-        if v["kind"] == "state":
-            return self.data.state(day, t, v["path"])
-        xs = [x for d, x in self._series(v["key"], v.get("instrument")).known(t)
-              if d <= day]
-        if v["kind"] == "zscore":
-            xs = xs[-int(v["window"]):]
-            if len(xs) < int(v.get("min_rows") or v["window"]):
-                return None
-            sd = statistics.stdev(xs)
-            if not sd:
-                return None
-            z = (xs[-1] - statistics.fmean(xs)) / sd
-            b = v["bands"]
-            return ("crowded_long" if z >= float(b["crowded_long"]) else
-                    "crowded_short" if z <= float(b["crowded_short"]) else "neutral")
-        if v["kind"] == "mean_band":
-            xs = xs[-int(v["window"]):]
-            if len(xs) < int(v["window"]):
-                return None
-            m = statistics.fmean(xs)
-            b = v["bands"]
-            return "on" if m >= float(b["on"]) else ("off" if m < float(b["off"])
-                                                       else "between")
-        raise ValueError(f"conditioning kind {v['kind']!r}")
+        return rules.when_value(when_item(self.cfg, name), self.data, day, t)[0]
 
     def of(self, trade: dict) -> dict:
         return {n: self.value(n, trade["signal_day"], trade["decided_at"]) for n in self.act}
@@ -371,6 +375,7 @@ def start(ledger, store, cfg: dict, as_of: str) -> dict:
     joined = sorted(n for n, c in cov.items() if c["joined"])
     cands = candidates(cfg, joined)
     doc = {"batch_id": rid, "kind": "grammar-search", "family_sha256": family_sha256(cfg),
+           "grammar": cfg["family"]["grammar"],
            "spec": spec_of(cfg), "coverage": cov, "joined": joined,
            "n_candidates": len(cands), "holdout_from": hfrom,
            "candidates": [c["id"] for c in cands], "hypotheses": []}
@@ -413,12 +418,6 @@ def _strategy(family: str, horizon: str) -> av.Strategy:
 def _rows(trades: list[dict]) -> list[dict]:
     return [{"day": t["signal_day"], "decided_at": t["decided_at"],
              "available_at": t["available_at"], "net": t["net"]} for t in trades]
-
-
-def taken(trades: list[dict], conds: list[dict], c: Optional[tuple[str, str]]) -> list[dict]:
-    if c is None:
-        return list(trades)
-    return [t for t, v in zip(trades, conds) if v.get(c[0]) == c[1]]
 
 
 def formation_verdict(trades: list[dict], horizon: str, n_trials: int,
@@ -472,7 +471,7 @@ def freeze(st: dict) -> None:
 
 
 def hypothesis_of(cfg: dict, cand: dict, fr: dict, ho: dict) -> dict:
-    dsl = base_rule(cfg, cand)
+    dsl = rule_of(cfg, cand)
     c = cand["cond"]
     sig = cfg["family"]["signal_families"][cand["signal"]]
     h = {"local_id": cand["id"].replace("|", "_").replace("=", "-"),
@@ -487,19 +486,16 @@ def hypothesis_of(cfg: dict, cand: dict, fr: dict, ho: dict) -> dict:
                        f"{ho['mean_net']:+.5f}). Its mechanism is for the research "
                        f"sitting to state or refute."),
          "universe": [cand["instrument"]],
-         "rule_text": (f"{json.dumps(dsl, sort_keys=True)}; taken only when "
-                       f"{cond_label(c)}" if c else json.dumps(dsl, sort_keys=True)),
+         "rule_text": json.dumps(dsl, sort_keys=True),
          "conditioning": ([] if c is None else
                           [{"name": c[0], "value": c[1],
                             "what": cfg["family"]["conditioning"][c[0]]["what"]}]),
          "expected": {"sign": "positive_expectancy_after_costs"},
          "sample": {"formation_n": fr["n"], "holdout_n": ho["n"]},
          "data": {"search_run": cand["id"], "direction": sig["direction"]},
-         "needs_code": c is not None, "kill": "constitution",
+         "rule_dsl": dsl, "needs_code": False, "kill": "constitution",
          "state_at_registration": "a search survivor; pre-registered by the search's "
                                   "manifest before its first backtest"}
-    if c is None:
-        h["rule_dsl"] = dsl
     return h
 
 
@@ -559,33 +555,29 @@ def _step(ledger, store, as_of: str, cfg: dict, clock: Callable[[], float],
     t0 = clock()
     tested, stopped = 0, None
     data = rules.Data(store)
-    conds = Conditions(store, cfg, data, joined)
     last_f = pit.prev_session(st["holdout_from"])
     if st["stage"] == "formation":
-        todo: dict[str, list[dict]] = {}
         for c in candidates(cfg, joined):
-            if c["id"] not in st["done"]:
-                todo.setdefault(c["base"], []).append(c)
-        for base, cs in todo.items():
+            if c["id"] in st["done"]:
+                continue
             if tested >= cap_n:
                 stopped = "candidates"
                 break
             if clock() - t0 >= cap_s:
                 stopped = "wall_clock"
                 break
-            cs = cs[:cap_n - tested]
-            cmp = rules.compile_rule(base_rule(cfg, cs[0]))
-            first = _first_day(data, cs[0]["instrument"])
+            # the candidate IS its v2 rule: backtested as that rule, trade for trade
+            cmp = rules.compile_rule(rule_of(cfg, c))
+            first = _first_day(data, c["instrument"])
             trades = rules.backtest(cmp, store, first, last_f, data=data)["trades"] \
                 if first <= last_f else []
             trades = [t for t in trades if t["exit_day"] < st["holdout_from"]]
-            cv = [conds.of(t) for t in trades]
-            for c in cs:
-                st["done"][c["id"]] = formation_verdict(taken(trades, cv, c["cond"]),
-                                                        cmp.horizon, st["n_trials"],
-                                                        st["family"])
-                tested += 1
-            save_progress(st)
+            st["done"][c["id"]] = formation_verdict(trades, cmp.horizon, st["n_trials"],
+                                                    st["family"])
+            tested += 1
+            if tested % 10 == 0:
+                save_progress(st)
+        save_progress(st)
         if stopped is None and len(st["done"]) >= st["n_candidates"]:
             freeze(st)
             save_progress(st)
@@ -596,12 +588,10 @@ def _step(ledger, store, as_of: str, cfg: dict, clock: Callable[[], float],
         for cid in st["survivors"]:
             if cid in st["holdout"]:
                 continue
-            c = by[cid]
-            cmp = rules.compile_rule(base_rule(cfg, c))
+            cmp = rules.compile_rule(rule_of(cfg, by[cid]))
             trades = rules.backtest(cmp, store, st["holdout_from"], last, data=data)["trades"]
             trades = [t for t in trades if t["signal_day"] >= st["holdout_from"]]
-            st["holdout"][cid] = holdout_verdict(taken(trades, [conds.of(t) for t in trades],
-                                                       c["cond"]), cfg)
+            st["holdout"][cid] = holdout_verdict(trades, cfg)
         out = register_survivors(ledger, store, cfg, st, as_of)
         st["registered"] = out.get("registered") or {}
         st["stage"] = "done"

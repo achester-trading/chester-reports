@@ -145,6 +145,9 @@ def check(props: list[dict], store, ledger, day: str) -> tuple[list[dict], list[
                 why = "not in the store: " + "; ".join(gaps)
         if why is None and "rule_dsl" in h:
             try:
+                # the proposer stays on grammar v1 (alpha-lab-4): a v2 rule is text
+                if h["rule_dsl"].get("grammar") != rules.GRAMMAR:
+                    raise rules.RuleError([f"the proposer writes {rules.GRAMMAR} only"])
                 rules.compile_rule(h["rule_dsl"], store)
             except rules.RuleError as exc:
                 h["translation_note"] = ("the proposer's rule_dsl did not compile ("

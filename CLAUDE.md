@@ -870,7 +870,12 @@ group A holds it.
 **The grammar search (X-3.5; alpha-lab-4, 19 Oct 2026).** `alpha/search.py`
 enumerates `config/alpha_search.yaml`'s family: signal families x
 conditioning options x horizons x instruments x exits, 3,840 candidates, each
-a grammar rule. The conditioning variables are the macro dial, the volatility
+a rule in grammar v2 (`alpha-lab-rules/v2`: v1 plus a rule-level `when` list of
+state, zscore and mean_band conditions, each read as knowable at the decision
+by the one reader `rules.when_value`, a missing value meaning no trade; v1
+rules replay unchanged and the proposer stays on v1). A conditioned candidate is
+its base rule plus one `when` item, backtested as that rule, and a conditioned
+survivor registers that rule. The conditioning variables are the macro dial, the volatility
 dial, the CFTC net's z and calc.funding_agg. A variable joins a run only if its
 point-in-time history (the first day a value was knowable) starts at least five
 years before the holdout's first day (ruling 5(a) of 19 Oct 2026); one that
