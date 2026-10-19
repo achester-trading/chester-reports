@@ -253,11 +253,15 @@ def group_d() -> None:
           "says the derived layer prints ESTIMATED")
     doc = " ".join((pe.__doc__ or "").split())
     check(base.get("json_endpoint") is None and base.get("block_page") is None
-          and "THE ENDPOINT IS NOT YET DISCOVERED" in doc
-          and "robots: (not read: unreachable 18 Oct 2026)" in doc
-          and "terms: (not read: unreachable 18 Oct 2026)" in doc,
+          and "G-26 IS CLOSED AS A LISTED GAP" in doc
+          and "robots: none (404, the app's HTML page; 18 Oct 2026)" in doc
+          and "terms: none covering automated access (18 Oct 2026)" in doc,
           "nothing is declared on this branch, and the docstring records the endpoint "
-          "as not yet discovered, with its robots and terms lines")
+          "as a listed gap, with its robots and terms lines")
+    check(base.get("status") == "listed gap" and base.get("ruled") == "2026-10-18"
+          and "no robots file" in str(base.get("reason")),
+          "ruling 1 of 18 Oct: config/prl.yaml's explorer entry is a listed gap, with "
+          "its reason and date")
 
 
 # ---------------------------------------------------------------------------
