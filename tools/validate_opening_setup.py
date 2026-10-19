@@ -25,6 +25,10 @@ group OS-3. On fixtures; no network, no model, no live store.
   E  THE RULINGS ON THE A44 REPORT: the three vol-regime lines every day (level,
      percentile, window, as-of; the numeral audit); "of 17 captured names"; no
      pre-market line while the ES conversion runs only SPY to ES.
+  G  RULING 4 OF 19 OCT: the pre-market line (an ES overnight bar converted at
+     the 23-hour chart's session basis to the SPY figure worked by hand; no bar
+     prints "not available"); SPX's and SPCX's cells "awaiting the solver gate";
+     the tags' thresholds labelled session-set.
   F  THE SECOND HALF: OS-8 profiles, OS-9 OI builds (the premium and the chance
      in the money by hand, the spread rule, each tag fired and silent), OS-4 and
      OS-5 put shares by hand; the budgets; no score, weight or side word.
@@ -344,6 +348,7 @@ def group_e() -> None:
     cfg = OS.config()
     check("opening_setup.vol_lines_from_store(prior, cutoff, db_path)" in pay
           and "{opening_setup.gauge_html(payload.get(\"opening_gauge\"))}\n"
+              "{opening_setup.gauge_html(payload.get(\"opening_premarket\"))}\n"
               "{opening_setup.vol_lines_html(payload.get(\"vol_regime_lines\"))}" in ren
           and cfg["vol_lines"]["displaces"],
           "the three lines sit beside the gauge in the anchor, their displacement declared; "
@@ -355,12 +360,8 @@ def group_e() -> None:
         sub = OS.most_active(st, days(5), "2026-10-17T21:00:00+00:00", names=names)
     check("of 17 captured names" in sub["lines"][0],
           "ruling 1: the most-active table says 'of 17 captured names'")
-    src = (REPO / "altdata" / "dealer_es.py").read_text(encoding="utf-8")
-    check(OS.PREMARKET_LINE is None
-          and not re.search(r"def\s+\w*(es_to_spy|to_spy|spy_from)", src)
-          and "pre-market implies SPY" not in pay + ren,
-          "ruling 3: the ES conversion runs SPY to ES only, so no pre-market line prints "
-          "(listed in the notes)")
+    # Ruling 3 of 18 Oct (no pre-market line) is superseded by ruling 4 of 19 Oct:
+    # group G holds the line.
 
 
 SIDE_WORDS = re.compile(r"\b(bought|sold|buyers?|sellers?|bullish|bearish|long|short|"
@@ -567,9 +568,111 @@ def group_f() -> None:
           "the profiles and the single-name table in the Weekly's Mechanics")
 
 
+def _bar(inst: str, sym: str, utc: str, o: float, c: float) -> dict:
+    return {"instrument": inst, "symbol": sym, "interval": "5m", "observed_at": utc,
+            "open": o, "high": max(o, c) + 0.5, "low": min(o, c) - 0.5, "close": c,
+            "volume": 100.0, "available_at": utc,
+            "source": "fixture"}
+
+
+def group_g() -> None:
+    head("G. RULING 4 OF 19 OCT: THE PRE-MARKET LINE, SPX AND SPCX, THE TAGS")
+    from altdata import bars as bars_mod
+    from daily_cascade import opening_setup as OS
+    # By hand. The basis session is Fri 16 Oct (EDT, UTC-4): SPY's 09:30 open
+    # 660.00 over ES's 09:30 open 6,650.00 = 0.0992481... Mon 19 Oct's overnight
+    # (18:00 ET Sun 18 Oct to 09:30) ends with ES's 06:55 ET bar closing at
+    # 6,700.00, so SPY is about 6,700 x 660 / 6,650 = 664.962..., printed 664.96.
+    es5 = [_bar("es", "ES=F", "2026-10-16T13:30:00+00:00", 6650.0, 6652.0),
+           _bar("es", "ES=F", "2026-10-18T22:05:00+00:00", 6690.0, 6691.0),
+           _bar("es", "ES=F", "2026-10-19T10:55:00+00:00", 6699.0, 6700.0)]
+    spy5 = [_bar("spy", "SPY", "2026-10-16T13:30:00+00:00", 660.0, 660.2),
+            _bar("spy", "SPY", "2026-10-16T19:55:00+00:00", 661.0, 661.5)]
+    pm = OS.premarket(es5, spy5, "2026-10-19")
+    v = pm["values"]
+    check(close(v.get("spy"), 6700.0 * 660.0 / 6650.0, 1e-9)
+          and v.get("basis_session") == "2026-10-16" and close(v.get("basis"), 660.0 / 6650.0, 1e-12)
+          and "6,700.00" in pm["line"] and "about 664.96" in pm["line"]
+          and "2026-10-16 session's basis" in pm["line"],
+          f"an ES overnight bar converts at the session's basis to the SPY figure "
+          f"worked by hand ({pm['line']})")
+    none = OS.premarket([_bar("es", "ES=F", "2026-10-16T13:30:00+00:00", 6650.0, 6652.0)],
+                        spy5, "2026-10-19")
+    check(none["line"] == "Pre-market (ES): not available (ES has no overnight bar)."
+          and not none["values"], f"no ES overnight bar prints 'not available' ({none['line']})")
+    nob = OS.premarket(es5, [], "2026-10-19")
+    check("not available" in nob["line"] and "09:30 opens" in nob["line"],
+          "no session with both opens prints 'not available' with its reason")
+    # The same through the store the 06:45 job fills, read as of the cutoff.
+    path = str(TD / "bars-premarket.db")
+    st = bars_mod.BarStore(path, create=True)
+    st.write_many(es5 + spy5)
+    st.close()
+    fs = OS.premarket_from_store("2026-10-19", "2026-10-19T11:00:00+00:00", path)
+    check(fs["line"] == pm["line"], "the anchor's reader prints the same line from the bars store")
+    early = OS.premarket_from_store("2026-10-19", "2026-10-19T10:00:00+00:00", path)
+    check("6,691.00" in early["line"],
+          "read as of the cutoff: a bar after it is not seen (06:00 ET reads the 18:05 ET bar)")
+    src = (REPO / "daily_cascade" / "charts.py").read_text(encoding="utf-8")
+    os_src = (REPO / "daily_cascade" / "opening_setup.py").read_text(encoding="utf-8")
+    check("from .charts import es_at_open, es_overnight" in os_src
+          and 'basis = (seg[0]["open"] / es_open)' in src,
+          "no new conversion method: the line reads W7's own es_overnight and es_at_open")
+    pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
+    ren = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
+    check("opening_setup.premarket_from_store(this_session, cutoff, db_path)" in pay
+          and '"opening_premarket": premarket' in pay
+          and 'gauge_html(payload.get("opening_premarket"))' in ren
+          and ren.index('payload.get("opening_gauge")') < ren.index('payload.get("opening_premarket")'),
+          "the anchor prints it beneath the gauge")
+
+    # SPX and SPCX: their cells await the solver gate.
+    builds = [{"symbol": "SPX", "expiry": "2026-11-20", "strike": 6700.0, "right": "C",
+               "oi_change": 500, "mid": 10.0, "premium": 500000.0, "iv": None,
+               "spot": 6650.0, "dte": 32, "solver_gated": True, "p_itm": None},
+              {"symbol": "N00", "expiry": "2026-11-20", "strike": 100.0, "right": "P",
+               "oi_change": 300, "mid": 1.0, "premium": 30000.0, "iv": 0.2,
+               "spot": 100.0, "dte": 32, "solver_gated": False, "p_itm": 0.45}]
+    tab = OS.oi_build_table(builds, {}, OS.config())
+    spx = next(r for r in tab["rows"] if r[0] == "SPX")
+    n00 = next(r for r in tab["rows"] if r[0] == "N00")
+    check(spx[6] == "awaiting the solver gate" and n00[6] == "45%",
+          f"OS-9: SPX's chance in the money reads 'awaiting the solver gate'; a solved "
+          f"name's prints its figure ({spx[6]}, {n00[6]})")
+    from altdata import observations, chain_metrics as cm, config as acfg
+    with observations.ObservationStore(str(TD / "spx.db")) as st2:
+        st2.write_many([obs(cm.VOL_KEY, d, 50.0, "SPX") for d in days(5)]
+                       + [obs(cm.VOL_KEY, d, 10.0, "N00") for d in days(5)]
+                       + [obs(cm.FRONT_IV_KEY, d, 20.0, "N00") for d in days(5)])
+        ma = OS.most_active(st2, days(5), "2026-10-17T21:00:00+00:00",
+                            names=["N00", "SPX"])
+    row = next(r for r in ma["table"]["rows"] if r[0] == "SPX")
+    check(row[2] == row[3] == "awaiting the solver gate"
+          and next(r for r in ma["table"]["rows"] if r[0] == "N00")[2] == "20.0%",
+          f"OS-10: SPX's IV and IV-rank cells read 'awaiting the solver gate' ({row})")
+    check(set(acfg.massive_universe()) == {"SPX", "SPCX"}
+          and "acfg.chain_universe() + sorted(gated)" in os_src
+          and "gated=s in gated" in os_src,
+          "SPX and SPCX join both tables' universes from the vendor's chains, gated")
+    import inspect
+    bsrc = inspect.getsource(OS.builds_for)
+    check("if not gated:" in bsrc and "_solver()" in bsrc.split("if not gated:", 1)[1],
+          "a gated name's chain is never sent to the solver")
+
+    # The tags' thresholds: session-set, labelled.
+    cfg = OS.config()
+    lab = cfg["oi_builds"]["tags"].get("label") or ""
+    note = OS.oi_builds_from_store("2026-10-16", "2026-10-17T11:00:00+00:00",
+                                   str(TD / "spx.db"), base=TD / "no-chains")["note"]
+    check(lab.startswith("session-set") and "25 Oct" in lab
+          and f"history thresholds are {lab}" in note,
+          f"the tags' history thresholds are labelled session-set in the table's note "
+          f"({lab})")
+
+
 def main() -> int:
     print(f"{LINE}\nthe opening setup, first half\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

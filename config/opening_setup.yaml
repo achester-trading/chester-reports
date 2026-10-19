@@ -9,6 +9,8 @@ version: opening-setup-v1
 # OS-2 -- the expected-movement gauge, in the 07:00 anchor's dealer-surface block.
 gauge:
   symbol: SPY
+  # The pre-market line beneath it (ruling 4, 19 Oct 2026): ES's overnight print
+  # at the 23-hour chart's session basis; one line, nothing else displaced.
   # The typical realised range: over the 5 sessions from each stored scorecard
   # session of the same gated regime, (the highest high less the lowest low) over
   # the prior close; the median, printed once n is 20 (the scorecard's own floor
@@ -61,7 +63,12 @@ profiles:
 # OS-9 -- "Largest OI builds, side unknown", in the 07:00 anchor's mechanics.
 oi_builds:
   rows: 8
+  # THE TAGS' HISTORY THRESHOLDS ARE SESSION-SET (ruling 4, 19 Oct 2026): they
+  # stand as written, the table's note labels them so, and they are reviewed at
+  # the 25 Oct dry run. The decile cut-offs (top 90th, bottom 10th) are
+  # decile_tag's.
   tags:
+    label: "session-set, reviewed at the 25 Oct 2026 dry run"
     earnings_days: 14       # EARNINGS: a report within 14 days
     extreme_sessions: 21    # 1M HIGH / 1M LOW: within extreme_pct of the 21-session close extreme
     extreme_pct: 1.0
