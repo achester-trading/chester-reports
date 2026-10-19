@@ -296,9 +296,9 @@ Each run read once, with `gh run list --branch st-t5-prl --limit 3`.
 
 | Run | Commit | Result when read |
 |---|---|---|
-| 39177151583 | `7c81ed1` (the build) | **in progress**: 105 of 107 jobs green, 1 failed (`validate_config_refs`) |
-| 39177294541 | `dd10f77` (these notes) | **in progress**: the same failure |
-| (the rulings) | the commit after | in the session's closing report |
+| 39177151583 | `7c81ed1` (the build) | **failed**: 105 of 107 jobs; `validate_config_refs` and the roll-up |
+| 39177294541 | `dd10f77` (these notes) | **failed**: 105 of 107 jobs, the same |
+| (latest) | `76299ef` (the rulings and the fix) | **success, 107 of 107 jobs** |
 
 **The cause was mine.** `validate_config_refs` reads any `<namespace>.<name>`
 string in a config file as a metric id. `crypto` is a registered namespace
