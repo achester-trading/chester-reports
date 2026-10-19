@@ -633,7 +633,7 @@ anchor, the 12:30 alert and the 16:45 close remain the reports of record.
   setup list is not built". The evening note has no rights.
 - **Scheduling.** The evening guard reads the next day (`python -m altdata.session
   evening-before`). Before `live_from` (`secondary_notes`, 2026-10-26) every run is
-  a dry run under `dryrun/`, mailed with "[DRY RUN]". Both timers stay out of
+  a dry run under `reports/dryrun/`, mailed with "[DRY RUN]". Both timers stay out of
   `DEPLOY_TIMERS`, and the heartbeat only warns. Neither note emits a state record.
 - **Ledgers.** Two ledgers are pre-registered in `docs/ledgers/`, SN-1 (the
   release-day first hour) and SN-2 (after-hours earnings), with their scoring

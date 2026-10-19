@@ -209,7 +209,12 @@ def group_b() -> None:
             capture_output=True, text=True, timeout=30).stdout.split()
         reg = first(list(PREREGS)[0])
         scr = first("tools/calibration/sn1_release_first_hour.py")
-        if reg and scr:
+        # CI's checkout is shallow: its one grafted commit "adds" every file, so
+        # the order cannot be read there and the SHA pins carry the check.
+        shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=REPO,
+                                 capture_output=True, text=True,
+                                 timeout=30).stdout.strip() == "true"
+        if reg and scr and not shallow:
             anc = subprocess.run(["git", "merge-base", "--is-ancestor", reg[-1], scr[-1]],
                                  cwd=REPO, timeout=30).returncode == 0
             check(anc and reg[-1] != scr[-1],
