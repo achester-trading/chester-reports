@@ -131,9 +131,11 @@ SPX and SPCX are captured only through the vendor's chains (`massive_universe`).
 
 | Commit | Run | Result |
 |---|---|---|
-| `3c18a3a` (part 0) | 39177488304 | queued at my one read |
-| `eccd28b` (part 1) | | not read yet |
-| these notes | | not read yet |
+| `3c18a3a` (part 0) | 39177488304 | **success** |
+| `eccd28b` (part 1) | 39177901647 | **success** |
+| `24a651a` (these notes) | 39178031068 | **success** |
+
+Read once on 19 Oct, before the chain-2 stitch. All green, nothing to fix. **a45 is frozen after this commit.**
 
 ---
 
