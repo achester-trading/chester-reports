@@ -12292,6 +12292,167 @@ metrics:
     description: >-
       IWM volume profile, value-area low (the lower edge of the 70% value area), over a rolling composite of the 20 sessions ending at the session. Where volume traded; it claims nothing about what the level does next.
 
+  # SIGNAL-TRIAGE BATCH 6, the rates-transmission cluster (ST-R5.34b, 36a, 37a,
+  # 41a; 16 Oct 2026; docs/briefs/st-r5-rates-notes.md). Read by
+  # altdata/st_r5_rates.py. The redfin.* and mba.* writers are HELD for D1c:
+  # registered now so the block names its absence by key.
+  bbk.bund_2y:
+    source: bundesbank
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      The 2-year Bund yield, PERCENT, daily: the Bundesbank's term-structure estimate (Svensson method) for listed Federal securities at 2.0 years' residual maturity (BBSIS.D.I.ZST.ZI.EUR.S1311.B.A604.R02XX.R.A.A._Z._Z.A), history from 1997. The euro area's leg of the G8 2-year panel (ST-R5.34b), the free proxy for 12-month policy pricing. A fitted zero-coupon yield. available_at the next weekday 12:00 Frankfurt (reconstructed).
+  cfets.cgb_2y:
+    source: cfets
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      China government bond 2-year closing yield (CFETS curve CYCC000, the 2.0-year point), percent. China's leg of the G8 2-year panel (ST-R5.34b). FORWARD-ONLY from the first run: the endpoint serves the latest curve only.
+  redfin.pending_sales:
+    source: redfin
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Redfin national pending home sales, monthly (data center, housing_market/monthly/country.csv, PENDING SALES), homes. September 2026: 316,652. Redfin restates recent months. ST-R5.36a; the writer is held for D1c.
+  redfin.active_listings:
+    source: redfin
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Redfin national active listings, monthly (country.csv, ACTIVE LISTINGS), homes. ST-R5.36a; held for D1c.
+  redfin.inventory:
+    source: redfin
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Redfin national inventory, monthly (country.csv, INVENTORY), homes. ST-R5.36a; held for D1c.
+  redfin.months_of_supply:
+    source: redfin
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Redfin national months of supply, monthly (country.csv, MONTHS OF SUPPLY): inventory over the month's sales, in months, Redfin's own definition (not NAR's existing-home measure, whose balanced line is ~6). History from January 2012 (verify item 5). ST-R5.36a; held for D1c.
+  redfin.metro_pending_sales:
+    source: redfin
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Redfin pending home sales per metro, monthly, the top 50 metros (housing_market/monthly/top_50_metros.csv), instrument = Redfin REGION ID, homes. Metro breadth is the share below the same month a year earlier, computed at read. ST-R5.36a; held for D1c.
+  mba.purchase_sa_wow:
+    source: mba
+    mechanism_group: macro_momentum
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      MBA purchase index, seasonally adjusted, percent change on the prior survey, whole percent, from the weekly press release's headline; observed_at = the survey's week-ending date. ST-R5.37a; the writer is held for D1c. Forward-only: the newsroom pages no archive.
+  mba.purchase_nsa_yoy:
+    source: mba
+    mechanism_group: macro_momentum
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      MBA purchase index, unadjusted, percent change on the same survey a year earlier, whole percent, from the weekly press release's headline. ST-R5.37a; held for D1c. Forward-only.
+  manual.mba_purchase_index:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      MBA purchase index LEVEL (seasonally adjusted, March 1990 = 100), entered by hand: the press release prints changes only, the level is member-only (verify item 3). observed_at = the survey's week-ending date; the note names where the figure was read. ST-R5.37a's level against the 2023 floor (~127).
+  manual.nar_phsi:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      NAR Pending Home Sales Index (2001 = 100), entered by hand from NAR's monthly release: no free series serves it. The housing block's cross-check on Redfin (ST-R5.36a). observed_at = the reference month's first day.
+  manual.euro_ccc_oas:
+    source: manual_input
+    mechanism_group: manual_entry
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Euro CCC spread, entered by hand IN BASIS POINTS when public reporting carries one (Batch 6 item 41: no free daily euro CCC series; FRED serves only the euro HY aggregate). The note names the measure (OAS, or CCC less AAA) and the source. ST-R5.41a's by-hand line.
+
 bulk_imports:
 
   fred_macro:
@@ -12378,7 +12539,7 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 27   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys)
+    expected_members: 29   # + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a)
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -13468,6 +13629,18 @@ bulk_imports:
     long_window: 365d
 
 families:
+  # Signal-triage Batch 6 (16 Oct 2026).
+  bbk.bund_2y: rate
+  cfets.cgb_2y: rate
+  fred.aaa_oas: spread
+  fred.euro_hy_oas: spread
+  redfin.pending_sales: release
+  redfin.active_listings: release
+  redfin.inventory: release
+  redfin.months_of_supply: release
+  redfin.metro_pending_sales: release
+  mba.purchase_sa_wow: release
+  mba.purchase_nsa_yoy: release
   # Batch 3, Tranche A (13 Oct 2026).
   fred.tips_5y: rate
   acm.risk_neutral_yield_2y: rate
@@ -13521,6 +13694,15 @@ families:
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:
+  # Signal-triage Batch 6: rates take full history (the Bund 2-year from 1997);
+  # FRED's ICE BofA series hold three years, so their 'full' is that window.
+  bbk.bund_2y: full
+  cfets.cgb_2y: full
+  fred.aaa_oas: full
+  fred.euro_hy_oas: full
+  redfin.pending_sales: full
+  redfin.months_of_supply: full
+  mba.purchase_nsa_yoy: full
   fred.tips_5y: full
   acm.risk_neutral_yield_2y: full
   acm.risk_neutral_yield_5y: full
@@ -13568,6 +13750,11 @@ long_windows:
 # stays strict. check_registry holds every kind to the vocabulary and every key
 # to a registered series.
 series_kinds:
+  bbk.bund_2y: yield
+  cfets.cgb_2y: yield
+  mof.jgb_2y: yield
+  fred.aaa_oas: spread
+  fred.euro_hy_oas: spread
   fred.yield_2y: yield
   fred.yield_5y: yield
   fred.yield_10y: yield

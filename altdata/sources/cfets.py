@@ -1,5 +1,6 @@
 """
-CFETS / China Money -- the USD/CNY central parity and the CGB 10-year yield.
+CFETS / China Money -- the USD/CNY central parity and the CGB 10-year and 2-year
+yields.
 
     python -m altdata.sources.cfets          # one pull, summary to stdout
 
@@ -23,6 +24,10 @@ SOURCE. www.chinamoney.com.cn, the CFETS publication site, JSON, no key:
                     returned 24 Sep), so this is FORWARD-ONLY from the first run:
                     no history can be backfilled from here. available_at = the
                     write instant (`ingest_instant`).
+  cfets.cgb_2y      CGB 2-year closing yield, the 2.0-year point of the same
+                    curve, same rules (forward-only). ST-R5.34b (16 Oct 2026;
+                    Batch 6 item 34): China's leg of the G8 2-year panel. The
+                    curve was checked live on 16 Oct 2026 and carries a 2.0 term.
 
 WHY NOT FRED FOR CHINA 10Y. The order named IRLTLT01CNM156N; FRED returns 404 for
 it, and FRED's China interest-rate series are 3-month rates only (checked 26 Sep
@@ -53,7 +58,9 @@ BEIJING = ZoneInfo("Asia/Shanghai")
 
 FIX_KEY = "cfets.cny_fix"
 CGB_KEY = "cfets.cgb_10y"
-KEYS = [FIX_KEY, CGB_KEY]
+CGB_2Y_KEY = "cfets.cgb_2y"
+KEYS = [FIX_KEY, CGB_KEY, CGB_2Y_KEY]
+CGB_TERMS = ((10.0, CGB_KEY), (2.0, CGB_2Y_KEY))
 
 
 # THE BAND (AQ-3 part 1, 11 Oct 2026). Onshore USD/CNY may trade at most 2% either
@@ -105,21 +112,26 @@ def fix_rows(payload: dict) -> list[dict]:
 
 
 def cgb_rows(payload: dict, available: str) -> list[dict]:
-    for rec in payload.get("records") or []:
-        try:
-            term = float(rec.get("yearTermStr"))
-        except (TypeError, ValueError):
-            continue
-        if abs(term - 10.0) < 1e-9:
-            day = str(rec.get("newDateValueCN") or "")[:10]
+    """One row per CGB_TERMS point the curve carries; a term absent or
+    unparseable is simply not stored."""
+    out: list[dict] = []
+    for want, key in CGB_TERMS:
+        for rec in payload.get("records") or []:
             try:
-                v = float(rec.get("maturityYieldStr"))
+                term = float(rec.get("yearTermStr"))
             except (TypeError, ValueError):
-                return []
-            return [{"registry_key": CGB_KEY, "instrument": None,
-                     "observed_at": day, "available_at": available, "value": v,
-                     "availability_kind": "ingest_instant"}]
-    return []
+                continue
+            if abs(term - want) < 1e-9:
+                day = str(rec.get("newDateValueCN") or "")[:10]
+                try:
+                    v = float(rec.get("maturityYieldStr"))
+                except (TypeError, ValueError):
+                    break
+                out.append({"registry_key": key, "instrument": None,
+                            "observed_at": day, "available_at": available,
+                            "value": v, "availability_kind": "ingest_instant"})
+                break
+    return out
 
 
 def _fix_ranges(db) -> list[tuple[str, str]]:
