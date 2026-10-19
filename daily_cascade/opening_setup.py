@@ -344,6 +344,9 @@ def vol_lines(series: dict, day: Optional[str]) -> list[dict]:
     else:
         out.append({"line": f"VIX against 20-day realised: {rl.get('line', 'awaiting')}.",
                     "values": {}, "constants": [20]})
+    sp_line = premium_split(series, day, rl.get("vrp"))
+    if sp_line:
+        out.append(sp_line)
     if tm.get("state") == "computed":
         p3, p6 = tm.get("percentiles_3m") or [], tm.get("percentiles_6m") or []
         out.append({"line": f"Term-structure stress: VIX3M/VIX {tm['ratio_3m']:.3f} ("
@@ -367,11 +370,38 @@ def vol_lines(series: dict, day: Optional[str]) -> list[dict]:
     return out
 
 
+# ITEM 53 (Batch 11, ruled 19 Oct 2026): THE VIX PREMIUM, SPLIT. One line in
+# OS-3's realised lens: VIX less RV20 = (SPY's 30-day ATM IV less RV20), the
+# at-the-money part, + (VIX less SPY's 30-day ATM IV), the wings. SPY's ATM IV
+# stands for SPX's, labelled. It displaces nothing.
+SPLIT_LABEL = "SPY's ATM IV as SPX's proxy"
+
+
+def premium_split(series: dict, day: str, vrp: Optional[float]) -> Optional[dict]:
+    """The split line, or None when the VIX premium or SPY's IV is not stored."""
+    vix = dict(series.get("vix") or []).get(day)
+    iv = dict(series.get("spy_iv30") or []).get(day)
+    if vrp is None or vix is None or iv is None:
+        return None
+    rv20 = vix - vrp
+    atm, wings = iv - rv20, vix - iv
+    return {"line": f"The VIX premium, split: VIX less RV20 {vrp:+.1f} = the at-the-money "
+                    f"part {atm:+.1f} (SPY's 30-day ATM IV {iv:.1f} less RV20 {rv20:.1f}) + "
+                    f"the wings {wings:+.1f} (VIX {vix:.1f} less SPY's ATM IV); "
+                    f"{SPLIT_LABEL}, as of {day}.",
+            "values": {"vrp": vrp, "atm": atm, "wings": wings, "iv": iv, "rv20": rv20,
+                       "vix": vix, "as_of": day},
+            "constants": [20, 30]}
+
+
 def vol_lines_from_store(prior: str, cutoff: str, db_path: Optional[str] = None) -> list[dict]:
     from altdata import observations, vol_event as ve           # noqa: PLC0415
     try:
         with observations.ObservationStore(db_path) as st:
             series = ve.read_series(st, cutoff)
+            series["spy_iv30"] = [(str(r["observed_at"])[:10], float(r["value_num"]))
+                                  for r in st.as_of("chain.spy_atm_iv_30d", cutoff)
+                                  if r.get("value_num") is not None]
         days = [d for d, _ in series.get("vix") or [] if d <= prior]
         return vol_lines(series, days[-1] if days else None)
     except Exception:                                           # noqa: BLE001

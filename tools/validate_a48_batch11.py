@@ -22,6 +22,13 @@ what has no other home.
      in words only, never counted; the detector reads no vendor key and only
      dealer_weekly reads the vendor.
 
+  C  ITEM 53. The VIX premium split by hand (VIX 20.0, RV20 16.0, SPY's ATM IV
+     18.0: +4.0 = +2.0 at the money + +2.0 in the wings), labelled "SPY's ATM IV
+     as SPX's proxy", absent when SPY's IV is not stored; OS-6's ledger: the
+     script reads no store, its first edition is labelled with its verdict, pass
+     rule and CSV, it prints no composite and no weight, and states its rights
+     while granting none.
+
 No gate here reads the live store, fetches or calls a model; every fixture is
 synthetic.
 """
@@ -288,8 +295,36 @@ def group_b() -> None:
           "next session's zones, not in a dry run")
 
 
+def group_c() -> None:
+    head("C. ITEM 53: THE VIX PREMIUM SPLIT AND OS-6'S LEDGER")
+    import glob
+    from daily_cascade import opening_setup as OS
+    ser = {"vix": [("2026-10-16", 20.0)], "spy_iv30": [("2026-10-16", 18.0)]}
+    sp = OS.premium_split(ser, "2026-10-16", 4.0)
+    check(sp and "VIX less RV20 +4.0 = the at-the-money part +2.0 (SPY's 30-day ATM IV "
+          "18.0 less RV20 16.0) + the wings +2.0 (VIX 20.0 less SPY's ATM IV)" in sp["line"]
+          and "SPY's ATM IV as SPX's proxy" in sp["line"]
+          and abs(sp["values"]["atm"] + sp["values"]["wings"] - 4.0) < 1e-9,
+          "the split by hand: +4.0 = +2.0 at the money + +2.0 in the wings, labelled")
+    check(OS.premium_split({"vix": ser["vix"]}, "2026-10-16", 4.0) is None,
+          "absent, not guessed, when SPY's 30-day IV is not stored")
+    src = (REPO / "tools" / "calibration" / "os6_positioning.py").read_text(encoding="utf-8")
+    check(not re.search(r"ObservationStore|observations|derived_forms|regime\.", src),
+          "OS-6's script reads no store (public sources only)")
+    eds = sorted(glob.glob(str(REPO / "docs" / "ledgers" / "os-6-ledger-*.md")))
+    t = Path(eds[0]).read_text(encoding="utf-8") if eds else ""
+    check(eds and "laptop run, public sources" in t
+          and re.search(r"^\| Verdict \| \*\*(PASS|FAIL|INSUFFICIENT)", t, re.M)
+          and "| Pass rule (as the order states it) |" in t
+          and Path(eds[0][:-3] + "-episodes.csv").is_file()
+          and "grants nothing" in t and "No composite and no weights are printed" in t
+          and "composite score" not in t.lower() and "weight:" not in t.lower(),
+          "OS-6's first edition: labelled, its verdict, pass rule and CSV; no composite "
+          "and no weight; its rights stated, granting nothing")
+
+
 def main() -> int:
-    for g in (group_a, group_b):
+    for g in (group_a, group_b, group_c):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

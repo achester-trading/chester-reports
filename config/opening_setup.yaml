@@ -34,6 +34,9 @@ gauge:
 # OS-3 every day (ruling 2 of 18 Oct on the a44 report): three short lines beside
 # the gauge, each its level, percentile and window, from item 52's lens functions.
 vol_lines:
+  # ITEM 53 (Batch 11): one more line beside the realised lens, the VIX premium
+  # split into the at-the-money part and the wings ("SPY's ATM IV as SPX's
+  # proxy"). It displaces nothing.
   displaces: >-
     nothing: three short lines under the gauge; item 52's full lens table stays
     event-day only, and the dealer-surface table and the ST-10 block keep their
