@@ -332,6 +332,16 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             if vol_ev and vol_ev.get("trigger") and not dry_run:
                 from altdata import vol_event as ve             # noqa: PLC0415
                 st.write_many(ve.event_rows(vol_ev, session.utc_iso()))
+            # BATCH 11 ITEM 55 (H6): the next session's level clusters, from the
+            # levels known after the 16:10 capture, frozen 30 days once stored.
+            if not dry_run:
+                from altdata import level_clusters as _lc        # noqa: PLC0415
+                for _sym in _lc.INSTRUMENTS:
+                    try:
+                        _lc.store_for_next(st, bst, _sym, sess, session.utc_iso(),
+                                           ed.get("dealer_computed_dir"))
+                    except Exception:                           # noqa: BLE001
+                        log.warning("level clusters for %s faulted", _sym, exc_info=True)
             if not dry_run:
                 st.write_many([{"registry_key": SCORECARD_KEY, "instrument": "SPY",
                                 "observed_at": sess, "available_at": session.utc_iso(),

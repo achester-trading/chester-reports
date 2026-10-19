@@ -448,6 +448,16 @@ def premarket_from_store(session_day: str, cutoff: str,
         return {"line": PREMARKET_NA.format(why="its inputs faulted"), "values": {}}
 
 
+def lines_html(b: Optional[dict]) -> str:
+    """A small titled block of code-written lines (H6's clusters)."""
+    from html import escape                                     # noqa: PLC0415
+    if not b or not b.get("lines"):
+        return ""
+    return (f'<p style="font-size:12px;margin:6px 0 2px 0"><b>{escape(b["title"])}</b></p>'
+            + "".join(f'<p style="font-size:12px;margin:2px 0">{escape(x)}</p>'
+                      for x in b["lines"]))
+
+
 def gauge_html(g: Optional[dict]) -> str:
     from html import escape                                     # noqa: PLC0415
     if not g or not g.get("line"):

@@ -299,6 +299,13 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     # index put lines, no side.
     oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
     index_puts = opening_setup.index_put_lines_from_store(cutoff, db_path)
+    # BATCH 11 ITEM 55 (H6): at most two level clusters in force today, read only.
+    from altdata import level_clusters as _lc, observations as _obs  # noqa: PLC0415
+    try:
+        with _obs.ObservationStore(db_path) as _st:
+            clusters = _lc.anchor_block(_st, str(this_session)[:10], cutoff, db_path)
+    except Exception:                                           # noqa: BLE001
+        clusters = None
     # CD-9's daily part (the a47 chain): the crypto paragraph, None while its
     # switch is off (config/crypto_sources.yaml blocks.daily.enabled).
     from altdata import crypto_blocks                           # noqa: PLC0415
@@ -376,6 +383,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "vol_regime_lines": vol_regime,
         "oi_builds": oi_builds,
         "index_put_lines": index_puts,
+        "level_clusters": clusters,
         "crypto_paragraph": crypto,
         "warnings": warnings,
         "meme_line": _meme_line(db_path),

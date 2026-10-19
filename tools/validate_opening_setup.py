@@ -58,7 +58,8 @@ from gate_tmp import mkdtemp                                    # noqa: E402
 LINE = "=" * 78
 PASS = FAIL = 0
 TD = Path(mkdtemp("opening-setup-gate-"))
-NEW = ["daily_cascade/opening_setup.py"]
+# Batch 11 (item 55, D3): the H6 detector is held to the same vendor grep.
+NEW = ["daily_cascade/opening_setup.py", "altdata/level_clusters.py"]
 
 
 def check(c: bool, m: str) -> bool:

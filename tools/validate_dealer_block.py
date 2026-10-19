@@ -567,6 +567,10 @@ LEDGER = REPO / "docs" / "ledgers" / "dealer-scorecard-preregistration-2026-10.m
 # The registration's SHA-256 over LF, recorded when it was committed (17 Oct
 # 2026). It is never edited: a change is a new registration in a new file.
 LEDGER_SHA256 = "7f3e1f2493356011a72e33b6941e1a5952429d9db754c2de8a6ff1cda40b2717"
+# H6, the level clusters (Batch 11 item 55, registered 19 Oct 2026, before its
+# scoring code): its own file, never edited.
+LEDGER_H6 = REPO / "docs" / "ledgers" / "dealer-scorecard-preregistration-2026-10-h6.md"
+LEDGER_H6_SHA256 = "ec5691a650a6ebf4b33c337001efe2674b247562f93fe49feaf4c4a69e467216"
 
 
 def group_k() -> None:
@@ -751,6 +755,15 @@ def group_m() -> None:
     raw = LEDGER.read_bytes().replace(b"\r\n", b"\n")
     check(hashlib.sha256(raw).hexdigest() == LEDGER_SHA256,
           "the registration is unchanged since 17 Oct 2026 (its recorded SHA-256)")
+    raw6 = LEDGER_H6.read_bytes().replace(b"\r\n", b"\n")
+    t6 = raw6.decode("utf-8")
+    check(hashlib.sha256(raw6).hexdigest() == LEDGER_H6_SHA256
+          and "Never edited." in t6 and "three or more families" in t6
+          and "**0.2%**" in t6 and "**30 calendar days**" in t6 and "**0.25%**" in t6
+          and "Vendor levels never count" in t6 and "q = 0.10" in t6,
+          "H6's registration is unchanged since 19 Oct 2026 (its recorded SHA-256): three "
+          "families within 0.2%, frozen 30 days, the 0.25% approach, vendor levels never "
+          "counted, Benjamini-Hochberg at 0.10")
     text = raw.decode("utf-8")
     sc = dsc.config()
     check(sc.get("registration") == "docs/ledgers/dealer-scorecard-preregistration-2026-10.md"

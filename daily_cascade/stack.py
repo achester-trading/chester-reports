@@ -1050,6 +1050,20 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # CD-9's daily part (the a47 chain, 19 Oct 2026): the crypto paragraph as
         # a Positioning & flows sub-section of data lines, which the word budget
         # does not count -- only while its switch is on.
+        # BATCH 11 ITEM 55 (H6, registered 19 Oct 2026): one outcome line over the
+        # session's level clusters in force, a Mechanics item (data, outside the
+        # word budget; it displaces nothing).
+        from altdata import level_clusters as _lc               # noqa: PLC0415
+        if built.get("mechanics") is not None:
+            try:
+                with bars_mod.BarStore(store_path) as _bst:
+                    _cl = _lc.close_item_text(st, _bst, p["session"], cutoff)
+                if _cl:
+                    built["mechanics"]["items"].append(item("mech:clusters", _cl, 3))
+            except Exception:                                   # noqa: BLE001
+                import logging                                  # noqa: PLC0415
+                logging.getLogger(__name__).warning(
+                    "the cluster outcome line faulted", exc_info=True)
         from altdata import crypto_blocks                       # noqa: PLC0415
         if built.get("positioning") is not None and crypto_blocks.daily_enabled():
             built["positioning"].setdefault("subsections", []).append(

@@ -3855,6 +3855,26 @@ metrics:
       morning's flip and whether the session crossed it, the session's range and
       return, the pin verdicts, and 5-minute realized volatility. The Monthly's
       dealer retrospective reads these and never recomputes them.
+  calc.level_zones:
+    source: derived_state
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 55, the dealer scorecard's H6 (registered 19 Oct 2026,
+      docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md): one JSON row per
+      instrument (SPY, QQQ, IWM) per session, written by the 16:45 close for the
+      NEXT session -- its new level-cluster zones (three or more families within
+      0.2%, frozen 30 days) with every member level beside them for the base rate.
+      Our own levels only; no vendor level. Read by the 07:00 anchor, the close's
+      outcome line and the Weekly's rates; never a decision.
   paper.benchmark:
     source: derived_state
     mechanism_group: paper_benchmark
@@ -18277,6 +18297,7 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).
   state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"
   state.net_gex_sign: "a sign (+1, -1 or 0), not a level series (EL-5)"

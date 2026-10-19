@@ -776,6 +776,20 @@ dealer_scorecard:
   formation_sessions: 120       # the first 120 eligible form; the next 120 test
   bh_q: 0.10                    # Benjamini-Hochberg across the registered family
 
+# H6, THE LEVEL CLUSTERS (Batch 11 item 55, D3; registered 19 Oct 2026 in
+# docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md, which these mirror
+# and which validate_dealer_block holds to its SHA-256). Our own levels only.
+level_clusters:
+  registration: docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md
+  registered_on: "2026-10-19"
+  cluster_pct: 0.2              # D3: three or more families within 0.2%
+  min_families: 3
+  freeze_days: 30               # a zone keeps its edges for 30 calendar days
+  approach_pct: 0.25            # H3's approach band
+  forward_sessions: 5           # H6f's window
+  instruments: [SPY, QQQ, IWM]  # SPX after the solver gate, as a new registration
+  round_step: {SPY: 5.0, QQQ: 5.0, IWM: 2.5}   # the baseline's grid
+
 # THE TECHNICAL APPENDIX (W-1.3a item 3.7): the reference tier's formulas, units
 # and sign conventions, printed after the Weekly's detail tables. The GEX/DEX
 # universe is the tape's `dealer` symbols, read from the tape set above, never

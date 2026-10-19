@@ -13,6 +13,15 @@ what has no other home.
      beside it, "before registration, descriptive"; the registration file's
      SHA-256 is the one validate_dealer_block records.
 
+  B  ITEM 55'S H6, THE LEVEL CLUSTERS. The registration is committed and hashed
+     (validate_dealer_block); three families within 0.2% is a cluster, three levels
+     from two families is not, and 0.212% apart is not; a zone is frozen 30 days
+     and a later overlapping zone is not stored again; held, broke and not reached
+     by hand; the anchor prints at most two zones, families named, SPY's in SPX
+     and ES terms; the close one line; the rates in H1-H5's form; the vendor note
+     in words only, never counted; the detector reads no vendor key and only
+     dealer_weekly reads the vendor.
+
 No gate here reads the live store, fetches or calls a model; every fixture is
 synthetic.
 """
@@ -180,8 +189,107 @@ def group_a() -> None:
           "OS-2's typical range reads both samples by the same rule, with their counts")
 
 
+def L(fam, name, v):
+    return {"family": fam, "name": name, "value": v}
+
+
+def group_b() -> None:
+    head("B. ITEM 55: H6, THE LEVEL CLUSTERS")
+    from altdata import level_clusters as lc, observations
+    from daily_cascade import dealer_weekly as dw
+    three = [L("positioning", "flip", 660.00), L("bands", "one-session band, upper", 660.50),
+             L("prior", "session high", 660.90), L("profile", "session POC", 640.0)]
+    z = lc.find_clusters(three)
+    check(len(z) == 1 and z[0]["low"] == 660.0 and z[0]["high"] == 660.9
+          and z[0]["families"] == ["positioning", "bands", "prior"],
+          "three families within 0.2% (660.00, 660.50, 660.90: 0.136%) is a cluster, its "
+          "zone 660.00 to 660.90; the POC at 640 is not in it")
+    two = [L("positioning", "flip", 660.0), L("positioning", "OTM call wall", 660.3),
+           L("bands", "one-session band, upper", 660.5)]
+    check(lc.find_clusters(two) == [], "three levels from two families is not a cluster")
+    wide = [L("positioning", "flip", 660.0), L("bands", "x", 660.5), L("prior", "y", 661.4)]
+    check(lc.find_clusters(wide) == [],
+          "three families 0.212% apart (660.00 to 661.40) is not a cluster")
+    db = str(TD / "b.db")
+    rec = {"for": "2026-10-20", "close": 659.0, "levels": three, "zones": [dict(z[0])]}
+    with observations.ObservationStore(db) as st:
+        st.write_many([obs(lc.KEY, "2026-10-20", json.dumps(rec), "SPY",
+                           avail="2026-10-19T20:50:00+00:00")])
+        f29 = lc.in_force(st, "SPY", "2026-11-18", "9999")
+        f30 = lc.in_force(st, "SPY", "2026-11-19", "9999")
+        orig = lc.gather_levels
+        try:
+            lc.gather_levels = lambda *a, **k: (
+                [L("positioning", "flip", 660.4), L("bands", "b", 660.6),
+                 L("prior", "p", 660.8)], 659.5)
+            nxt = lc.zones_for_next(st, None, "SPY", "2026-10-21", "9999")
+        finally:
+            lc.gather_levels = orig
+    check(len(f29) == 1 and f29[0]["found_for"] == "2026-10-20" and f30 == []
+          and nxt["zones"] == [] and nxt["for"] == "2026-10-22",
+          "frozen 30 days: in force through 18 Nov, gone on 19 Nov; a later zone "
+          "overlapping one in force is not stored again")
+    zz = {**z[0], "found_for": "2026-10-20"}
+    base = {"high": 660.2, "low": 657.0, "close": 659.8, "prior_close": 658.0}
+    held = lc.close_line({"SPY": [zz]}, {"SPY": base})
+    broke = lc.close_line({"SPY": [zz]}, {"SPY": {**base, "close": 661.0}})
+    away = lc.close_line({"SPY": [zz]}, {"SPY": {**base, "high": 658.2}})
+    check("660.00 to 660.90 held" in held and "660.00 to 660.90 broke" in broke
+          and "not reached" in away and held.count(";") == 0,
+          "by hand: resistance 660.00-660.90 over a 658 prior close; a 660.20 high "
+          "approaches it, a 659.80 close holds, a 661 close breaks; a 658.20 high (under "
+          "660 x 0.9975 = 658.35) does "
+          "not reach it; one line")
+    days5 = ["d1", "d2", "d3", "d4", "d5", "d6"]
+    ohlc = {"d1": base, "d2": {**base, "high": 658.0}, "d3": base, "d4": base,
+            "d5": {**base, "close": 661.0}, "d6": base}
+    recs = lc.score_zone_sessions(zz, days5, ohlc, 0.25, 5)
+    check([r["h6s"] for r in recs] == [True, None, True, True, False, True]
+          and recs[0]["h6f_eligible"] and recs[0]["h6f"] is False
+          and not recs[2]["h6f_eligible"] and recs[5]["h6f_eligible"]
+          and recs[5]["h6f"] is None,
+          "H6s per session; H6f on the first approach in each five-session window, "
+          "broke when a close beyond the far edge follows (d5), unresolved without five")
+    lines = lc.anchor_lines({"SPY": [zz, {**zz, "low": 650.0, "high": 650.5,
+                                          "families": ["bands", "profile", "prior"]}],
+                             "QQQ": [{**zz, "low": 505.0, "high": 505.8}]},
+                            {"SPY": 658.0, "QQQ": 499.0}, spx_ratio=10.0, es_basis=0.1)
+    check(len(lines) == 2
+          and lines[0].startswith("Level cluster (SPY, resistance): 660.00 to 660.90; 3 "
+                                  "families (positioning, implied bands, the prior session)")
+          and "SPX 6,600.00 to 6,609.00" in lines[0] and "ES 6,600.00 to 6,609.00" in lines[0]
+          and all(len(x.split()) <= 60 for x in lines),
+          "the anchor: at most two zones, nearest first, families named, SPY's also in "
+          "SPX and ES terms; under 60 words each")
+    from altdata import dealer_scorecard as dsc
+    r = lc.rate_h6([{**x, "zone_id": "z"} for x in recs], [], [], "h6s", {})
+    check(dsc.rate_line(r).startswith("H6s cluster held (session): 5 scored sessions, "
+                                      "under the printing floor of 20"),
+          "the rates print in H1-H5's form, with the same floor")
+    notes = dw.vendor_zone_notes({"flip": 660.4, "call_wall": 670.0, "put_wall": 650.0}, [zz])
+    check(notes == ["The vendor's levels against our cluster 660.00 to 660.90: flip inside "
+                    "(an annotation; never counted)."]
+          and "660.4" not in notes[0] and "670" not in notes[0],
+          "the vendor annotation: words only, no vendor figure, never counted")
+    lc_src = (REPO / "altdata" / "level_clusters.py").read_text(encoding="utf-8")
+    dw_src = (REPO / "daily_cascade" / "dealer_weekly.py").read_text(encoding="utf-8")
+    os_src = (REPO / "daily_cascade" / "opening_setup.py").read_text(encoding="utf-8")
+    check("flashalpha" not in lc_src and "vendor_" not in lc_src
+          and "vendor_zone_notes(vend, week_zones)" in dw_src
+          and "flashalpha" not in os_src,
+          "the detector and the opening setup read no vendor key; the annotation is "
+          "dealer_weekly's vendor line only")
+    st_src = (REPO / "daily_cascade" / "stack.py").read_text(encoding="utf-8")
+    sc_src = (REPO / "daily_cascade" / "stack_close.py").read_text(encoding="utf-8")
+    check('built["mechanics"]["items"].append(item("mech:clusters", _cl, 3))' in st_src
+          and "_lc.store_for_next(st, bst, _sym, sess" in sc_src
+          and sc_src.index("_lc.store_for_next") < sc_src.index('"registry_key": SCORECARD_KEY'),
+          "the close: one Mechanics item (data, outside the word budget); it stores the "
+          "next session's zones, not in a dry run")
+
+
 def main() -> int:
-    for g in (group_a,):
+    for g in (group_a, group_b):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
