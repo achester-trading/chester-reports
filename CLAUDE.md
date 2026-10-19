@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-eight code gates (ninety-five Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and eighteen code gates (one hundred and fifteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -934,7 +934,7 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 31 official writers, 27 external writers and 7
+**The scheduled roster is 31 official writers, 37 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.

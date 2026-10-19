@@ -769,8 +769,13 @@ TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
 
 
 def number(tok: str) -> int:
-    """'75', 'seventy-five', 'six' -> an int."""
+    """'75', 'seventy-five', 'six', 'one hundred and eighteen' -> an int."""
     t = tok.lower().strip()
+    if " hundred" in t:
+        h, _, rest = t.partition(" hundred")
+        rest = rest.strip()
+        rest = rest[4:] if rest.startswith("and ") else rest
+        return WORDS[h] * 100 + (number(rest) if rest else 0)
     if t.isdigit():
         return int(t)
     if t in WORDS:
@@ -824,7 +829,8 @@ def code_counts() -> dict:
 
 
 # Each printed count: (what, a regex whose group 1 is the number, the code's key).
-NUM = r"(\d+|[a-z]+(?:-[a-z]+)?)"
+# A count in words past a hundred reads "one hundred and eighteen" (chain-2, 19 Oct).
+NUM = r"(\d+|[a-z]+(?: hundred(?: and [a-z]+(?:-[a-z]+)?)?|(?:-[a-z]+)?))"
 PRINTED_COUNTS = [
     ("FRED_SERIES", rf"Series registry: {NUM} SeriesSpec entries", "fred_series"),
     ("FRED_SIGNAL_SERIES", rf"Monthly's set; {NUM} more in FRED_SIGNAL_SERIES",
@@ -900,12 +906,16 @@ def group_f() -> None:
     # printed word may be one word ("eighty", the post-Friday fold of 17 Oct) as
     # well as two, so the plant matches either.
     import re
-    worded = re.sub(r"(?<=runs every gate\*\* — )[a-z]+(?:-[a-z]+)?(?= code gates)",
+    worded = re.sub(r"(?<=runs every gate\*\* — )[a-z]+(?: hundred(?: and [a-z]+"
+                    r"(?:-[a-z]+)?)?|(?:-[a-z]+)?)(?= code gates)",
                     lambda m: ("seventy-four" if m.group(0) != "seventy-four"
                                else "seventy-three"), text, count=1)
     check(worded != text, "the plant found the printed count to replace")
     check(any("code gates" in f for f in printed_count_faults(worded, counts)),
           "a count in words is read and caught too ('seventy-four code gates')")
+    check(number("one hundred and eighteen") == 118 and number("one hundred") == 100
+          and number("one hundred and five") == 105 and number("ninety-eight") == 98,
+          "a count past a hundred is read in words ('one hundred and eighteen')")
     gone = text.replace("market symbols", "symbols in the basket")
     check(any("sentence is gone" in f for f in printed_count_faults(gone, counts)),
           "and a sentence reworded so its count cannot be found fails rather than "
@@ -922,7 +932,8 @@ def group_f() -> None:
     check(not af, f"each of the {len(ARCH_COUNTS)} counts the architecture document's "
           f"store box prints equals the code's ({af or 'all equal'})")
     check(any("arch: symbols" in f for f in printed_count_faults(
-        flat.replace("and 106 market symbols", "and 27 market symbols"), counts, ARCH_COUNTS)),
+        re.sub(r"and \d+ market symbols", "and 27 market symbols", flat, count=1),
+        counts, ARCH_COUNTS)),
           "and a stale count there is caught: the audit's '27 symbols'")
     check("The store as built (AUD-3a, 14 Oct 2026)" in arch
           and arch.count("As built (14 Oct 2026)") >= 2,

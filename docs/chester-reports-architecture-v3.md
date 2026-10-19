@@ -199,11 +199,11 @@ analysis should almost never require touching an engine.
 > store holds is listed by `python -m altdata.catalogue` and checked against the
 > registry by `python -m tools.check_store_registry`.
 >
-> **Refreshed 18 Oct 2026 (lenses-group-b).** The pull walks 228 FRED series
-> (`config.FRED_PULL_SERIES`) and 106 market symbols
+> **Refreshed 19 Oct 2026 (the chain-2 stitch).** The pull walks 268 FRED series
+> (`config.FRED_PULL_SERIES`) and 115 market symbols
 > (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
 > Master (`config/security_master.yaml`). The scheduled roster is 31 official
-> writers, 27 external writers and 7 loggers. A scheduled writer opens the store
+> writers, 37 external writers and 7 loggers. A scheduled writer opens the store
 > through `observations.open_writer()`; the append-only triggers refuse UPDATE
 > and DELETE once installed, and a row whose source is not a registered id (or
 > `<id>:<variant>`) is refused. Where two sources hold one period at one instant,
