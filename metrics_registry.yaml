@@ -18257,8 +18257,6 @@ lens_excluded:
   ibkr.auction_probe: "units 'label': not a level series"
   ibkr.borrow_probe: "units 'label': not a level series"
   ibkr.stock_loan_file_probe: "units 'label': not a level series"
-  manual.dram_contract_dir: "units 'label': not a level series"
-  manual.state_bank_dollar_selling: "units 'label': not a level series"
   market_actions: "dividends and splits: corporate-action events, not level series"
   overnight.gap_attribution: "units 'label': not a level series"
   overnight.gap_attribution_dominant: "units 'label': not a level series"

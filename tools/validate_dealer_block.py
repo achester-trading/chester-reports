@@ -642,11 +642,13 @@ def group_k() -> None:
           and len(withd) == 10 and ws.PLACE["W12"] == ("mechanics", None),
           "the Weekly: W12 in Mechanics after W7; at the cap it sets W10 aside")
     check(mch.plan({}) == list(mch.ORDER) and mch.plan({"dealer_computed_dir": "d"})
-          == list(mch.ORDER) + ["M12"] and len(mch.ORDER) == 12,
-          "the Monthly: M12 joins the twelve when the profiles are read")
+          == list(mch.ORDER) + ["M12"] and len(mch.ORDER) == 13,
+          "the Monthly: M12 joins the thirteen (M13, ST-14, planned last) when the "
+          "profiles are read")
     many = {k: {"id": k, "png": b"x"} for k in mch.ALL}
-    check(mch.hold_cap(many, 12) == ["M8"],
-          "thirteen rendered at the cap of 12: M8 is the one set aside")
+    check(mch.hold_cap(many, 12) == ["M13", "M8"],
+          "fourteen rendered at the cap of 12: M13, the watch instrument's figure, then "
+          "M8 are set aside (the chain-2 stitch: M13 first, ST-14's ruling)")
 
 
 def group_l() -> None:

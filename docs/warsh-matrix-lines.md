@@ -27,7 +27,7 @@ The disagreement pairs that some of these items also produce are in `docs/narrat
 - **Adjudicated by:** ST-R5.42a, the composite inflation-expectations z-score (the 5y5y breakeven, Michigan 5–10-year, NY Fed SCE 3-year and Cleveland Fed 10-year expected inflation, monthly), read against item 34's flag.
 - **Source:** Callum Thomas (Topdown Charts). Moved here from the `st-r5-t1-rest` session notes, where it was drafted, with its text unchanged in substance.
 
-## energy_shock_softening_labour — an energy shock with a softening labour market (Batch 7 item 46)
+## Item 46 — an energy shock with a softening labour market (Batch 7; `energy_shock_softening_labour`)
 
 **Added 16 October 2026 (6e-releases, session B). A draft for Ari's accept-all.**
 
