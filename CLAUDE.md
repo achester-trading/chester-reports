@@ -583,6 +583,23 @@ history with its n. Each event enters the `vol.event_ledger` calibration ledger;
 no modifier right before 30 events. The 12:30 slot opens on a rise of 15% or 3
 points (upward only). `tools/validate_vol_event.py` holds it.
 
+**ES is read on three timeframes at 07:00 and 16:45 (ST-R6.45, Batch 6 item 45,
+16 Oct 2026).** `altdata/es_block.py` computes the block from the bars table, as
+of the cutoff: session (5-minute), swing (five sessions on 2-hour bars) and
+position (63 sessions on daily bars), each with VWAP or a least-squares trend
+line, VP-1's profile, MACD (12,26,9) and money flow (14), and the nearest levels
+above and below. It records the contract in force (CME's roll rule, or Yahoo's
+report from the pull) and shifts a window across a roll by the gap. The 06:45 job
+pulls the overnight bars (`python -m altdata.bars overnight`), so the anchor
+never fetches. `daily_cascade/es_read.py` writes the read through
+`narrative.generate()` with a `LEAN:` line split off before the audit, and
+prints it first in the anchor, in the close's Mechanics and, as the position
+panel and the week's ledger, in the Weekly. Each printed level and lean goes to
+the `es_ledger` table and is scored on the next session by
+`config/es_block.yaml`'s session-set rules. Report only. The dealer levels in ES
+(ST-R6.45c) wait for the 6b engine. `tools/validate_es_block.py` holds it on
+fixtures.
+
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
 Pending: not yet due -- never tried, or tried by a writer that ran cleanly while

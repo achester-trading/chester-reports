@@ -262,6 +262,18 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                                              cards, computed_dir)
         subs += dealer_add["subsections"]
         nt += dealer_add["not_tracked"]
+    # THE ES BLOCK'S WEEKLY PANEL (ST-R6.45d, Batch 6 item 45): the position
+    # window (three months on daily bars) and the week's ES ledger -- levels
+    # held, broke or untested, leans resolved or not. Tables only.
+    es_sub = None
+    try:
+        from altdata import bars as bars_mod                    # noqa: PLC0415
+        from . import es_read                                   # noqa: PLC0415
+        with bars_mod.BarStore(str(st.path)) as bst:
+            es_sub = es_read.weekly_subsection(bst, sessions, cutoff)
+        subs.append(es_sub)
+    except Exception:                                           # noqa: BLE001
+        log.warning("ES weekly panel unavailable", exc_info=True)
     return {"items": items, "not_tracked": nt,
             "subsections": subs, "lead_paragraphs": "1",
             "table": dw["table"],

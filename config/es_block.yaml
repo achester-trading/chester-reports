@@ -1,0 +1,89 @@
+# config/es_block.yaml -- the standing three-timeframe ES block (ST-R6.45,
+# Batch 6 item 45, ruled 15 Oct 2026). Read by altdata/es_block.py, the one
+# module that computes the block, scores its ledger and names the contract.
+#
+# Every value below marked SESSION-SET was chosen by the session that built
+# ST-R6.45 (16 Oct 2026), not measured and not ruled. The notes
+# (docs/briefs/st-r6-45-notes.md) list each one for the operator with its reason.
+# REPORT ONLY: nothing here generates a setup, a size or an order.
+
+version: 1
+
+instrument: es            # the bars table's id (config/reporting_stack.yaml intraday_extra)
+symbol: "ES=F"            # Yahoo's continuous front month
+
+# THE CONTRACT IN FORCE. ES lists March, June, September and December
+# contracts expiring on the third Friday. CME's roll date is eight calendar days
+# before expiry (the Thursday of the week before), when volume moves to the next
+# contract; a futures session dated on or after it is the next contract's. A
+# contract Yahoo reports for ES=F at a pull, when it reports one, outranks the
+# rule (es_contract table): data beats the calendar.
+contract:
+  months: {3: H, 6: M, 9: U, 12: Z}
+  roll_days_before_expiry: 8          # CME's convention
+
+# THE ROLL IN THE BARS. ES=F is unadjusted, so the session after a switch opens
+# at the new contract's price -- the calendar spread, not a move. Bars before the
+# switch are shifted by the gap between the last bar before it and the first bar
+# after it (additive, "Panama"), so no window reads the spread as a move. The
+# gap is printed beside the window it adjusts.
+roll_adjust: additive                 # session-set
+
+# THE THREE WINDOWS.
+windows:
+  session:
+    interval: 5m                      # the futures day, 18:00 ET to 17:00 ET
+  swing:
+    sessions: 5
+    bar_hours: 2                      # 2-hour bars built from the 5-minute bars,
+                                      # anchored at 18:00 ET (the day's last is 1 hour)
+  position:
+    sessions: 63                      # about three months of sessions
+    min_sessions: 35                  # MACD (26 + 9) needs this many daily bars
+
+# INDICATORS. MACD and money flow as ruled; computed over the window plus a
+# warmup of earlier bars (point in time), so the first value printed is not the
+# start-up transient.
+macd: {fast: 12, slow: 26, signal: 9}
+money_flow: {period: 14}
+warmup_sessions: {session: 1, swing: 10, position: 0}   # session-set
+
+# THE TREND LINE (swing and position). Least-squares line through the window's
+# closes, one point per bar: printed as its value at the last bar, its slope per
+# bar and its R-squared. Chosen over a moving average because it states one
+# direction for the whole window and its fit, and over a hand-drawn channel
+# because it needs no judgement.
+trend:
+  kind: least_squares_close           # session-set
+  swing_bars: all                     # every 2-hour bar of the five sessions
+  position_bars: all                  # every daily bar of the window
+
+# THE LEVELS THAT MATTER: the nearest this many above and below the last price,
+# from the windows' POC, value area, nodes, VWAP and trend value, and (at 07:00)
+# the prior full session's POC and value area. Levels within `merge_points` of
+# one another print once, with every source named.
+levels:
+  above: 3                            # session-set
+  below: 3                            # session-set
+  merge_points: 2.0                   # session-set; ES points
+
+# THE LEDGER (ST-R6.45e). Each printed level and lean is scored against the
+# NEXT SESSION -- for the 07:00 block the session it opens, for the 16:45 block
+# the session after -- from the stored 5-minute bars, at the first close that
+# has that session's bars (the 16:45 close, through the 16:10 pull: the last
+# 50 minutes are not seen, and a scored row is never rewritten).
+ledger:
+  # A level is TESTED when a bar's range comes within touch_points of it.
+  touch_points: 1.0                   # session-set; four ticks
+  # It BROKE when a 5-minute bar CLOSES beyond it by more than break_points on
+  # the far side from the price at print; it HELD when it was tested and no
+  # bar closed through it; UNTESTED otherwise. A close, not a wick: a wick
+  # through a level that closes back is the level holding.
+  break_points: 0.5                   # session-set; two ticks
+  # A lean RESOLVED when the next session's last bar closes beyond the price at
+  # print, in the lean's direction, by at least lean_min_move_pct; otherwise it
+  # is UNRESOLVED (against, or inside the band). A lean of none is logged and
+  # never scored.
+  lean_min_move_pct: 0.25             # session-set
+  # The session's bars must reach the bars table's complete_share of the bars
+  # expected up to the scoring cutoff, or the row waits for the next close.

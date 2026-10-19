@@ -116,6 +116,21 @@ log "$MSG"
 printf 'state=%s rc=%s sha=%s at=%s\n' \
     "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
 
+# ---- ES's overnight bars, for the 07:00 ES block (ST-R6.45a, 16 Oct 2026) ----
+#
+# FIRST AFTER THE STATUS LINE, ahead of the correction pull: the 07:00 anchor's
+# three-timeframe block reads the overnight session's 5-minute bars from the store
+# (reports never fetch, 30.4), and the correction pull is the long step. One
+# request for the bars and one for the contract Yahoo reports; the contract in
+# force and its roll date are recorded (es_contract). Its failure is not this
+# run's: the block prints absent with its reason.
+log "bars: ES overnight start"
+ES_OUT="$("$PY" -m altdata.bars overnight $DRY 2>&1 | tail -30)"
+ES_RC=$?
+printf '%s\n' "$ES_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $ES_RC -ne 0 ]] && log "WARN bars overnight exited $ES_RC -- continuing; the ES block prints absent with a reason"
+log "bars: ES overnight done"
+
 # ---- the feeds, as the CORRECTION pass -------------------------------------
 #
 # AFTER THE FETCH, AND ONLY THE EARLY SET (30 Sep 2026). This pull used to run
