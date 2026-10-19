@@ -1186,9 +1186,32 @@ No new timer; the Monthly's Lab report prints its line, naming the variables
 that passed and failed coverage. `tools/validate_alpha_lab_4.py` groups B and C
 hold it.
 
+**Engine 7, intraday dealer regimes (X-3.4; b45-chain3, 19 Oct 2026).**
+`alpha/engines/intraday_dealer.py` buckets each session by the symbol (SPY, QQQ,
+IWM), the 09:45 gamma regime and the sign of the open-to-09:45 move, and asks
+whether the session continues or reverses to 12:30 or the close. It reads only
+our own data:
+- the 09:45 captures' computed profiles: net GEX's sign where net-to-gross is at
+  least 0.10, knowable at their computed_at, and never read when computed after
+  the 10:15 deadline;
+- each capture's spot, and the session's stored open and close, read at their
+  market time;
+- the 5-minute bars, for the entry (the first bar at or after the decision,
+  within 10 minutes) and the 12:30 exit;
+- the 0DTE share of the captured volume, recorded and labelled no side.
+
+VWAP and a finer opening range print "not tracked": they need intraday bars
+knowable at the decision, and that writer is listed, not built. A bucket
+"awaits (n=k of 30)" until 30 completed sessions; then the side and exit with the
+best formation mean net of costs is frozen, and only later sessions trade. Every
+rule is `config/alpha_intraday_dealer.yaml`'s spec, whose sha256 the roster's E-7
+quotes (`alpha/research/roster-2026-10-19-x3-4.yaml`). It is a research engine:
+it queues no signal, because the nightly loop cannot act at 09:45. No vendor
+value is read. `tools/validate_b45_chain3.py` group B holds it.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
-crypto_carry, reversion, all candidates until they pass); a promoted grammar
+crypto_carry, reversion, intraday_dealer, all candidates until they pass); a promoted grammar
 rule is named by its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup

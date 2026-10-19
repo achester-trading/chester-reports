@@ -177,9 +177,186 @@ def group_a() -> None:
           "states the ruling")
 
 
+# ---------------------------------------------------------------------------
+# B. Engine 7
+# ---------------------------------------------------------------------------
+def _sessions(first: str, n: int) -> list[str]:
+    from altdata import session
+    out, d = [], dt.date.fromisoformat(first)
+    while len(out) < n:
+        if session.is_trading_session(d):
+            out.append(d.isoformat())
+        d += dt.timedelta(days=1)
+    return out
+
+
+def _utc(day: str, hhmm: str) -> str:
+    from zoneinfo import ZoneInfo
+    from altdata import observations
+    h, m = (int(x) for x in hhmm.split(":"))
+    local = dt.datetime.combine(dt.date.fromisoformat(day), dt.time(h, m),
+                                ZoneInfo("America/New_York"))
+    return observations.canonical_instant(local.isoformat())
+
+
+def build_engine7(root: Path, db: str, days: list[str], late: str = "") -> None:
+    """SPY each session: open 100, the 09:45 capture's spot 100.2 (an up move) in a
+    positive gamma regime, the 09:50 bar opens 100.2, the 12:30 bar 100.0, the
+    close 99.9: a reversal. `late`'s capture is computed at 10:20, after the
+    deadline."""
+    import json
+    import sqlite3
+    from altdata import bars as bars_mod, observations
+    rows, bar_rows = [], []
+    for d in days:
+        rows += [{"registry_key": "yfinance.mkt_spy_open", "instrument": None,
+                  "observed_at": d, "available_at": _utc(d, "16:20"), "value": 100.0,
+                  "source": "synthetic"},
+                 {"registry_key": "yfinance.mkt_spy", "instrument": None,
+                  "observed_at": d, "available_at": _utc(d, "16:20"), "value": 99.9,
+                  "source": "synthetic"}]
+        for k in range(78):                                     # 09:30 .. 15:55
+            t = (dt.datetime(2000, 1, 1, 9, 30) + dt.timedelta(minutes=5 * k)).strftime("%H:%M")
+            px = 100.2 if t < "12:30" else 100.0
+            bar_rows.append(("spy", "SPY", "5m", _utc(d, t), px, px, px, px, 1000.0,
+                             _utc(d, "16:12"), _utc(d, "16:12"), "synthetic"))
+        dd = root / d
+        dd.mkdir(parents=True, exist_ok=True)
+        chain = dd / "SPY_chain.csv"
+        chain.write_text("symbol,dte,volume\nSPY,0,600\nSPY,7,300\nSPY,30,100\n",
+                         encoding="utf-8")
+        comp = "10:20" if d == late else "09:47"
+        (dd / "SPY_134600Z_exposure.json").write_text(json.dumps({
+            "symbol": "SPY", "fetched_at": _utc(d, "09:46"), "computed_at": _utc(d, comp),
+            "spot": 100.2, "capture": "intraday", "source_chain": str(chain),
+            "overall": {"net_gex": 1.5e9, "net_to_gross": 0.3}}), encoding="utf-8")
+    st = observations.ObservationStore(db)
+    st.write_many(rows)
+    st.close()
+    con = sqlite3.connect(db)
+    con.executescript(bars_mod.SCHEMA)
+    con.executemany("INSERT OR IGNORE INTO bars (instrument, symbol, interval, observed_at, "
+                    "open, high, low, close, volume, available_at, ingested_at, source) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bar_rows)
+    con.commit()
+    con.close()
+
+
+def group_b() -> None:
+    import copy
+    from alpha.engines import intraday_dealer as E
+    from alpha.store import ReadOnlyStore
+    head("B. X-3.4, ENGINE 7: INTRADAY DEALER REGIMES")
+    cfg = E.load_config()
+    check(E.spec_sha256(cfg) == cfg["spec_sha256"]
+          and cfg["spec_sha256"] in (REPO / "alpha" / "research" /
+                                     "roster-2026-10-19-x3-4.yaml").read_text(encoding="utf-8"),
+          "the spec hashes to the sha256 the roster's E-7 quotes")
+    bad = copy.deepcopy(cfg)
+    bad["spec"]["data_gate"]["min_formation_sessions"] = 20
+    try:
+        E.check_spec(bad)
+        refused = False
+    except E.SpecChanged:
+        refused = True
+    check(refused, "a changed spec is refused")
+
+    days = _sessions("2026-06-01", 37)
+    root29, db29 = TD / "c29", str(TD / "e29.sqlite")
+    build_engine7(root29, db29, days[:29])
+    st = ReadOnlyStore(db29)
+    try:
+        eng = E.IntradayDealerEngine({"computed_dir": str(root29)})
+        as_of = _utc(days[28], "20:00")
+        sc = eng.scan(st, as_of)
+        rows29 = eng.refit_rows(st, as_of)
+    finally:
+        st.close()
+    check(list(sc) == ["SPY:positive:+"] and sc["SPY:positive:+"]["line"]
+          == "awaiting (n=29 of 30)" and rows29 == [],
+          f"at n=29 the bucket awaits and trades nothing: "
+          f"{sc.get('SPY:positive:+', {}).get('line')}")
+
+    root, db = TD / "c37", str(TD / "e37.sqlite")
+    build_engine7(root, db, days, late=days[34])
+    st = ReadOnlyStore(db)
+    try:
+        eng = E.IntradayDealerEngine({"computed_dir": str(root)})
+        as_of = _utc(days[-1], "20:00")
+        caps = E.captures("SPY", eng.spec, root)
+        sc = eng.scan(st, as_of)
+        trades = eng.refit_rows(st, as_of)
+        one = eng.session_row(st, "SPY", caps[days[0]], as_of)
+        lines = eng.lines(st, as_of)
+        sigs = eng.signal(as_of, st)
+    finally:
+        st.close()
+    b = sc["SPY:positive:+"]
+    check(b["open"] and b["side"] == "reversal" and b["exit"] == "exit_close"
+          and b["trades"] and b["open_after"] == days[29],
+          f"at n=30 it opens on its formation sample: {b['line']}")
+    check(len(trades) == 6 and all(t["day"] > days[29] for t in trades)
+          and days[34] not in [t["day"] for t in trades],
+          f"it trades only the sessions after its formation ({len(trades)}: 7 later "
+          f"sessions less the one whose capture was late)")
+    check(days[34] not in caps and len(caps) == 36,
+          "a capture computed after its decision deadline (10:20 against 10:15) is never "
+          "read: that session has no decision")
+    check(one["entry_bar"] >= one["decided_at"] and one["entry"] == 100.2
+          and one["entry_bar"] == _utc(days[0], "09:50"),
+          "the entry is the first stored 5-minute bar at or after the decision (09:50 "
+          "against a 09:47 decision), never a price observed before it")
+    c = eng.cost(500.0)
+    check(abs(c - 0.0023) < 1e-12 and abs(one["cost"] - eng.cost(100.2)) < 1e-15,
+          f"costs reproduce a hand figure: 2 x (1.5 + 5 + 5) bp = 23 bp at $2,000 of "
+          f"capital ({c * 1e4:.2f} bp)")
+    want = -(99.9 / 100.2 - 1.0) - eng.cost(100.2)
+    check(abs(one["net"]["reversal|exit_close"] - want) < 1e-12
+          and abs(one["zero_dte_share"] - 0.6) < 1e-12 and one["zero_dte_label"] == "no side",
+          "a session's net is the move against the entry less costs, by hand; the 0DTE "
+          "share (600 of 1,000) is recorded, labelled no side")
+    check(any(ln.startswith("vwap: not tracked") for ln in lines)
+          and any(ln.startswith("opening_range: not tracked") for ln in lines)
+          and any("listed, not built" in ln for ln in lines) and sigs == [],
+          "VWAP and the opening range print not tracked with the writer listed; no "
+          "signal is queued (the nightly loop cannot act at 09:45)")
+
+    class Spy(dict):
+        def __init__(self, base):
+            super().__init__(base)
+            self.read: list = []
+
+        def get(self, k, d=None):
+            self.read.append(k)
+            return super().get(k, d)
+
+        def __getitem__(self, k):
+            self.read.append(k)
+            return super().__getitem__(k)
+    real = os.environ
+    spy = Spy(real)
+    spy["FLASHALPHA_API_KEY"] = "sentinel-not-a-key"
+    os.environ = spy                                            # type: ignore[assignment]
+    try:
+        st = ReadOnlyStore(db)
+        try:
+            E.IntradayDealerEngine({"computed_dir": str(root)}).scan(st, as_of)
+        finally:
+            st.close()
+    finally:
+        os.environ = real                                       # type: ignore[assignment]
+    src = (REPO / "alpha" / "engines" / "intraday_dealer.py").read_text(encoding="utf-8")
+    check(not any("FLASHALPHA" in str(k).upper() for k in spy.read)
+          and "flashalpha" not in src.lower().replace("no flashalpha key", "")
+          and "data/vendor" not in src.replace("no data/vendor file", ""),
+          "no FlashAlpha key is read and no vendor file opened: the engine reads our own "
+          "captures only")
+
+
 def main() -> int:
     try:
         group_a()
+        group_b()
     finally:
         import shutil                                           # noqa: PLC0415
         shutil.rmtree(TD, ignore_errors=True)

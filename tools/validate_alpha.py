@@ -459,10 +459,10 @@ def group_c_static() -> None:
         check(not (Path(_TMP) / "absent.sqlite").exists(), "a missing store is not created")
 
 
-# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026) and part 2's engine 6 (alpha-lab-4).
+# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026), part 2's engine 6 (alpha-lab-4) and engine 7 (b45-chain3).
 ENGINE_IDS = ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer",
               "events_macro", "events_fomc", "events_pead", "events_crush",
-              "crypto_carry", "reversion"]
+              "crypto_carry", "reversion", "intraday_dealer"]
 
 
 # ---------------------------------------------------------------------------
