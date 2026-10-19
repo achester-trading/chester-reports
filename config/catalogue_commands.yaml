@@ -38,7 +38,7 @@ commands:
     line: 'The catalogue: one place to list, search and read what the system holds'
   altdata.chain_metrics:
     domain: options
-    line: "Per-session readings from SPY's own captured option chain, and (OS-10) every captured name's options volume and front-month ATM IV, and (OS-8, OS-4, OS-5) its 25-delta put skew, IV against realised, front expiry and put shares of volume and OI build; backfill-names rebuilds the latter from the captures on disk"
+    line: "Per-session readings from SPY's own captured option chain, and (OS-10) every captured name's options volume and front-month ATM IV, and (OS-8, OS-4, OS-5) its 25-delta put skew, IV against realised, front expiry and put shares of volume and OI build, and (Batch 11 item 56) its 30-day constant-maturity IV, 25-delta risk reversal and 20- and 60-session realised vol; backfill-names rebuilds the latter from the captures on disk"
     sources: [spy_chain_capture, chain_capture]
   altdata.claims:
     domain: reference

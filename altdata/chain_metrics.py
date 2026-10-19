@@ -54,6 +54,11 @@ IV_RV_KEY = "chain.iv_minus_rv20"        # front ATM IV less 20-session realised
 FRONT_EXP_KEY = "chain.front_expiry"     # the front-month expiry the two used (a label)
 PUT_VOL_KEY = "chain.put_share_volume"   # puts' share of the session's volume, percent
 PUT_OI_KEY = "chain.put_share_oi_build"  # puts' share of the day's positive OI build, percent
+# BATCH 11 ITEM 56 (ruled 19 Oct 2026): per-name volatility state.
+IV30_KEY = "chain.iv30_atm"   # 30-day constant-maturity ATM IV, percent, SPY's method
+RR_KEY = "chain.rr_25d"       # front month: 25-delta put IV less 25-delta call IV, vol points
+RV20_KEY = "chain.rv20"       # 20-session close-to-close realised vol, annualised percent
+RV60_KEY = "chain.rv60"       # 60-session, the same
 NAMES_SOURCE = "chain_capture"
 PC_KEY = "chain.spy_put_call_volume"
 SOURCE = "spy_chain_capture"
@@ -224,6 +229,30 @@ def put_skew_25d(solved: list[dict], spot: float, dte: float, atm_iv: float,
     return None if v is None or not atm_iv else 100.0 * (v - atm_iv)
 
 
+def call_iv_25d(solved: list[dict], spot: float, dte: float, r: float) -> Optional[float]:
+    """The solved call IV at +0.25 delta on one expiry (as put_skew_25d's put side)."""
+    ec = _ec()
+    t = max(float(dte or 0), 0.0) / 365.0
+    pts = []
+    for x in solved:
+        iv, k = x.get("solved_iv"), x.get("strike")
+        if x.get("right") != "C" or not iv or not k:
+            continue
+        g = ec.bs_greeks(spot, k, iv, t, r, "C")
+        if g:
+            pts.append((g["delta"], iv))
+    return iv_at_delta(pts, 0.25)
+
+
+def risk_reversal_25d(skew_put: Optional[float], atm_iv: Optional[float],
+                      call25: Optional[float]) -> Optional[float]:
+    """25-delta put IV less 25-delta call IV, vol points. The put IV is the ATM IV
+    plus the stored put skew (both on the front month)."""
+    if skew_put is None or not atm_iv or call25 is None:
+        return None
+    return skew_put + 100.0 * (atm_iv - call25)
+
+
 def front_month_iv(rows: list[dict], min_dte: int = 7,
                    r: Optional[float] = None) -> Optional[dict]:
     """The front month's ATM IV, percent: the nearest third-Friday expiry at least
@@ -249,8 +278,11 @@ def front_month_iv(rows: list[dict], min_dte: int = 7,
     spot = next((x["spot"] for x in rows if x.get("spot")), None)
     skew = (put_skew_25d(by_exp.get(e) or [], spot, m.get("dte"), iv, rate)
             if spot else None)
+    c25 = call_iv_25d(by_exp.get(e) or [], spot, m.get("dte"), rate) if spot else None
+    rr = risk_reversal_25d(skew, iv, c25)
     return {"iv_pct": round(100.0 * iv, 3), "expiry": e, "dte": m.get("dte"),
-            "method": method, "skew_25d_put": None if skew is None else round(skew, 3)}
+            "method": method, "skew_25d_put": None if skew is None else round(skew, 3),
+            "rr_25d": None if rr is None else round(rr, 3)}
 
 
 def previous_capture(day: str, symbol: str, base: Optional[Path] = None) -> Optional[Path]:
@@ -318,26 +350,47 @@ def name_readings(day: str, symbol: str, base: Optional[Path] = None,
     except Exception as exc:                                    # noqa: BLE001
         out["front"] = None
         out["iv_reason"] = f"{type(exc).__name__}: {exc}"[:160]
+    # Item 56: the 30-day constant-maturity IV, by SPY's method (total variance
+    # between the two expiries bracketing 30 days, else "nearest").
+    try:
+        out["iv30"] = atm_iv_30d(rows) if rows else None
+    except Exception as exc:                                    # noqa: BLE001
+        out["iv30"] = None
+        out["iv30_reason"] = f"{type(exc).__name__}: {exc}"[:160]
     return out
 
 
 def realised_20(closes: list[float]) -> Optional[float]:
     """Annualised close-to-close realised vol over the last 20 returns, percent."""
-    c = [x for x in closes if x][-21:]
-    if len(c) < 21:
+    return realised_n(closes, 20)
+
+
+def realised_n(closes: list[float], n: int) -> Optional[float]:
+    """Annualised close-to-close realised vol over the last `n` returns, percent."""
+    c = [x for x in closes if x][-(n + 1):]
+    if len(c) < n + 1:
         return None
     r = [math.log(b / a) for a, b in zip(c, c[1:])]
     m = sum(r) / len(r)
     return 100.0 * math.sqrt(sum((x - m) ** 2 for x in r) / (len(r) - 1)) * math.sqrt(252)
 
 
-def name_rows(rd: dict, rv20: Optional[float] = None) -> list[dict]:
+def name_rows(rd: dict, rv20: Optional[float] = None,
+              rv60: Optional[float] = None) -> list[dict]:
     avail, out = rd.get("fetched_at"), []
     if not avail:
         return out
     f = rd.get("front") or {}
     base = {"instrument": rd["symbol"], "observed_at": rd["session"], "available_at": avail,
             "source": NAMES_SOURCE}
+    # Item 56's four keys.
+    if (rd.get("iv30") or {}).get("iv_pct") is not None:
+        out.append({**base, "registry_key": IV30_KEY, "value": rd["iv30"]["iv_pct"]})
+    if f.get("rr_25d") is not None:
+        out.append({**base, "registry_key": RR_KEY, "value": f["rr_25d"]})
+    for key, v in ((RV20_KEY, rv20), (RV60_KEY, rv60)):
+        if v is not None:
+            out.append({**base, "registry_key": key, "value": round(v, 3)})
     if f.get("skew_25d_put") is not None:
         out.append({**base, "registry_key": SKEW_KEY, "value": f["skew_25d_put"]})
     if f.get("iv_pct") is not None and rv20 is not None:
@@ -375,13 +428,13 @@ def record_names(day: str, store=None, base: Optional[Path] = None,
                 cl = [float(r["value_num"]) for r in
                       st.as_of(f"yfinance.mkt_{sym.lower()}", f"{day}T23:59:59+00:00") or []
                       if r.get("value_num") is not None and str(r["observed_at"])[:10] <= day]
-                rv = realised_20(cl)
+                rv, rv60 = realised_20(cl), realised_n(cl, 60)
             except Exception as exc:                            # noqa: BLE001
-                rd, rv = {"error": f"{type(exc).__name__}: {exc}"[:160]}, None
+                rd, rv, rv60 = {"error": f"{type(exc).__name__}: {exc}"[:160]}, None, None
             out["names"][sym] = {k: rd.get(k) for k in ("volume", "front", "put_shares",
                                                          "reason", "error")}
             if "error" not in rd:
-                rows += name_rows(rd, rv)
+                rows += name_rows(rd, rv, rv60)
         if rows:
             st.write_many(rows)
     finally:

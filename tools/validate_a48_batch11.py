@@ -29,6 +29,12 @@ what has no other home.
      rule and CSV, it prints no composite and no weight, and states its rights
      while granting none.
 
+  D  ITEM 56. The risk reversal by hand (a +3.0 put skew on a 20.0% ATM IV with
+     an 18.0% 25-delta call: 23.0 less 18.0 = +5.0); RV20 and RV60 by hand; the
+     close's per-name rows carry chain.iv30_atm, chain.rr_25d, chain.rv20 and
+     chain.rv60; the Weekly's per-name table has a row per name with window and n
+     and no strategy label; OS-8 reads the 30-day IV.
+
 No gate here reads the live store, fetches or calls a model; every fixture is
 synthetic.
 """
@@ -323,8 +329,67 @@ def group_c() -> None:
           "and no weight; its rights stated, granting nothing")
 
 
+def group_d() -> None:
+    head("D. ITEM 56: PER-NAME VOLATILITY")
+    import math
+    from altdata import chain_metrics as cm, config as acfg, observations
+    from daily_cascade import opening_setup as OS
+    check(abs(cm.risk_reversal_25d(3.0, 0.20, 0.18) - 5.0) < 1e-9
+          and cm.risk_reversal_25d(None, 0.20, 0.18) is None,
+          "the risk reversal by hand: put 20.0 + 3.0 = 23.0 less the 18.0 call = +5.0 "
+          "vol points; none without its legs")
+    closes = [100.0 * (1.01 if k % 2 else 0.99) ** 0 * (1 + 0.01 * ((-1) ** k)) for k in range(61)]
+    r = [math.log(b / a) for a, b in zip(closes, closes[1:])]
+    def rv(xs):
+        m = sum(xs) / len(xs)
+        return 100 * math.sqrt(sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) * math.sqrt(252)
+    check(abs(cm.realised_n(closes, 20) - rv(r[-20:])) < 1e-9
+          and abs(cm.realised_n(closes, 60) - rv(r)) < 1e-9
+          and cm.realised_n(closes[:30], 60) is None,
+          "RV20 and RV60 by hand, annualised close-to-close; none short of 61 closes")
+    rd = {"symbol": "N00", "session": "2026-10-16", "fetched_at": "2026-10-16T20:14:00+00:00",
+          "front": {"iv_pct": 30.0, "skew_25d_put": 4.0, "rr_25d": 6.5, "expiry": "2026-11-20",
+                    "method": "third Friday"},
+          "iv30": {"iv_pct": 29.0}, "put_shares": {}, "volume": 1000.0}
+    keys = {x["registry_key"]: x["value"] for x in cm.name_rows(rd, 21.0, 19.0)}
+    check(keys.get("chain.iv30_atm") == 29.0 and keys.get("chain.rr_25d") == 6.5
+          and keys.get("chain.rv20") == 21.0 and keys.get("chain.rv60") == 19.0,
+          "the close's per-name rows carry the four new keys (the same writer backfill-names "
+          "runs)")
+    db = str(TD / "d.db")
+    rows = []
+    days = ["2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"]
+    for j, d in enumerate(days):
+        rows += [obs(cm.IV30_KEY, d, 25.0 + j, "N00"), obs(cm.RV20_KEY, d, 20.0, "N00"),
+                 obs(cm.RV60_KEY, d, 18.0, "N00"), obs(cm.SKEW_KEY, d, 3.0 + j, "N00"),
+                 obs(cm.RR_KEY, d, 5.0 - j, "N00")]
+    with observations.ObservationStore(db) as st:
+        st.write_many(rows)
+        t = OS.per_name_table(st, "2026-10-17T21:00:00+00:00", names=["N00", "N01"])
+    r0 = t["table"]["rows"][0]
+    check(r0[0] == "N00" and r0[1] == "28.0% (rank 100, 100th percentile)"
+          and r0[2] == "2026-10-13 to 2026-10-16, n=4" and r0[3] == "+6.0 (100th, n=4)"
+          and r0[4] == "+2.0 (25th, n=4)" and r0[5] == "+8.0 (100th, n=4)"
+          and r0[6] == "20.0%" and r0[7] == "18.0%"
+          and t["table"]["rows"][1][1] == "not stored",
+          f"the per-name table by hand: 28.0% at IV rank 100, its window and n; skew, risk "
+          f"reversal and IV less RV20 with percentiles and n; RV20, RV60 ({r0})")
+    words = json.dumps(t).lower()
+    check(not re.search(r"\b(buy|sell|straddle|strangle|condor|butterfly|calendar|"
+                        r"overwrite|collar|long vol|short vol)\b", words)
+          and len(acfg.chain_universe()) == 17,
+          "descriptive words only, no strategy label; 17 names in the universe")
+    src = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
+    os_src = (REPO / "daily_cascade" / "opening_setup.py").read_text(encoding="utf-8")
+    check("_os.per_name_table(_st, ed[\"as_of\"])" in src
+          and src.index("wsec.technical_appendix(") < src.index("_os.per_name_table(")
+          and "cm.IV30_KEY, now, sym" in os_src and "Highest 30-day IV against 20-day realised" in os_src,
+          "the table sits after the Weekly's technical appendix (a table, outside the word "
+          "budget); OS-8's IV rows read the 30-day IV")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c):
+    for g in (group_a, group_b, group_c, group_d):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

@@ -711,23 +711,36 @@ def _latest_text(st, key: str, now: str, inst: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # OS-8 -- the setup profiles
 # ---------------------------------------------------------------------------
+def iv30_less_rv20(st, now: str, sym: str) -> list[tuple[str, float]]:
+    """Item 56: the 30-day IV less 20-session realised, matched by date."""
+    from altdata import chain_metrics as cm                     # noqa: PLC0415
+    rv = dict(_series(st, cm.RV20_KEY, now, sym))
+    return [(d, v - rv[d]) for d, v in _series(st, cm.IV30_KEY, now, sym) if d in rv]
+
+
+IV30_RV = "iv30_less_rv20"
+
+
 def profiles(st, now: str, names: Optional[list[str]] = None,
              cfg: Optional[dict] = None) -> dict:
     """The Weekly's four-row table: the flattest and the steepest 25-delta put
-    skew, the highest and the lowest IV against 20-day realised."""
+    skew, the highest and the lowest 30-day IV against 20-day realised (Batch 11
+    item 56: the 30-day constant-maturity IV, no longer the front month's)."""
     from altdata import chain_metrics as cm, config as acfg     # noqa: PLC0415
     syms = names or acfg.chain_universe()
     reads: dict[str, dict] = {}
-    for key in (cm.SKEW_KEY, cm.IV_RV_KEY):
-        for s in syms:
-            last, hist = _hist_read(st, key, now, s)
-            if last:
-                reads.setdefault(key, {})[s] = (last, hist)
+    for s in syms:
+        last, hist = _hist_read(st, cm.SKEW_KEY, now, s)
+        if last:
+            reads.setdefault(cm.SKEW_KEY, {})[s] = (last, hist)
+        hist = iv30_less_rv20(st, now, s)
+        if hist:
+            reads.setdefault(IV30_RV, {})[s] = (hist[-1], hist)
     rows, data = [], []
     spec = (("Flattest 25-delta put skew", cm.SKEW_KEY, min),
             ("Steepest 25-delta put skew", cm.SKEW_KEY, max),
-            ("Highest IV against 20-day realised", cm.IV_RV_KEY, max),
-            ("Lowest IV against 20-day realised", cm.IV_RV_KEY, min))
+            ("Highest 30-day IV against 20-day realised", IV30_RV, max),
+            ("Lowest 30-day IV against 20-day realised", IV30_RV, min))
     for label, key, pick in spec:
         got = reads.get(key) or {}
         if not got:
@@ -743,11 +756,60 @@ def profiles(st, now: str, names: Optional[list[str]] = None,
                                   "(window, n)", "Front-month expiry used"], "rows": rows},
             "lines": [f"Across {len(syms)} captured names (our own captures; SPY, QQQ and "
                       f"IWM among them): the 25-delta put skew is the solved put IV at -25 "
-                      f"delta less the ATM IV, and IV against realised is the front ATM IV "
-                      f"less 20-session realised, both in vol points. Each rank is over the "
+                      f"delta less the ATM IV, and IV against realised is the 30-day "
+                      f"constant-maturity ATM IV less 20-session realised, both in vol points. Each rank is over the "
                       f"name's own stored history, its window and n printed. Report-only."],
             "paragraph_wanted": False, "data": {"setup_profiles": data},
             "table_note": "Read from the store; nothing fetched. No chart, no paragraph (OS-8)."}
+
+
+# ---------------------------------------------------------------------------
+# ITEM 56 -- the per-name volatility table (the Weekly's technical appendix)
+# ---------------------------------------------------------------------------
+def _rank_pct(hist: list[tuple[str, float]], x: float) -> str:
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
+    vals = [v for _, v in hist]
+    if len(vals) < 2:
+        return "one reading"
+    return f"{ordinal(iv_pctile(vals, x))}"
+
+
+def per_name_table(st, now: str, names: Optional[list[str]] = None) -> dict:
+    """Batch 11 item 56: one row per captured name (17): the 30-day IV with its IV
+    rank and IV percentile, the 25-delta put skew and the risk reversal with their
+    percentiles, IV less RV20, RV20 and RV60, each against the name's own stored
+    history, window and n printed. Descriptive words only; no strategy label."""
+    from altdata import chain_metrics as cm, config as acfg     # noqa: PLC0415
+    syms = names or acfg.chain_universe()
+    rows = []
+    for s in syms:
+        iv = _series(st, cm.IV30_KEY, now, s)
+        sk = _series(st, cm.SKEW_KEY, now, s)
+        rr = _series(st, cm.RR_KEY, now, s)
+        ivr = iv30_less_rv20(st, now, s)
+        rv20 = _series(st, cm.RV20_KEY, now, s)
+        rv60 = _series(st, cm.RV60_KEY, now, s)
+        if not any((iv, sk, rr, rv20)):
+            rows.append([s, "not stored", "—", "—", "—", "—", "—", "—"])
+            continue
+        win = f"{iv[0][0]} to {iv[-1][0]}, n={len(iv)}" if iv else "—"
+        ivc = (f"{iv[-1][1]:.1f}% (rank {iv_rank([v for _, v in iv], iv[-1][1]):.0f}, "
+               f"{_rank_pct(iv, iv[-1][1])} percentile)" if len(iv) > 1 else
+               f"{iv[-1][1]:.1f}% (one reading)" if iv else "—")
+        f = lambda ser: (f"{ser[-1][1]:+.1f} ({_rank_pct(ser, ser[-1][1])}, n={len(ser)})"  # noqa: E731
+                         if ser else "—")
+        rows.append([s, ivc, win, f(sk), f(rr), f(ivr),
+                     f"{rv20[-1][1]:.1f}%" if rv20 else "—",
+                     f"{rv60[-1][1]:.1f}%" if rv60 else "—"])
+    return {"title": "Per-name volatility (the 30-day IV)",
+            "table": {"columns": ["Name", "30-day IV (IV rank, IV percentile)",
+                                  "Window, n", "25-delta put skew (percentile, n)",
+                                  "Risk reversal (percentile, n)", "IV less RV20 (percentile, n)",
+                                  "RV20", "RV60"], "rows": rows},
+            "lines": [f"{len(syms)} captured names; each figure against the name's own "
+                      f"stored history (our captures), its window and n printed; vol points "
+                      f"for the skew, the risk reversal and IV less RV20. Descriptive only."],
+            "paragraph_wanted": False}
 
 
 # ---------------------------------------------------------------------------

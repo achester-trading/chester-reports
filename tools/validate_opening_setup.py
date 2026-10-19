@@ -532,8 +532,11 @@ def group_f() -> None:
     srows = []
     for s, sk, ir in (("N00", 2.0, 8.0), ("N01", 6.0, -3.0), ("N02", 4.0, 1.0)):
         for j, d in enumerate(hist):
+            # Batch 11 item 56: the IV rows read the 30-day IV less RV20 (here
+            # 20 + ir less 20, so the same figures as before).
             srows += [obs(cm.SKEW_KEY, d, sk + 0.1 * (j - 11), s),
-                      obs(cm.IV_RV_KEY, d, ir + 0.1 * (j - 11), s)]
+                      obs(cm.IV30_KEY, d, 20.0 + ir + 0.1 * (j - 11), s),
+                      obs(cm.RV20_KEY, d, 20.0, s)]
         srows.append({**obs(cm.FRONT_EXP_KEY, hist[-1], "2026-11-20 (third Friday)", s)})
     with observations.ObservationStore(str(TD / "os8.db")) as st:
         st.write_many(srows)
@@ -541,8 +544,8 @@ def group_f() -> None:
     rr = {r[0]: r for r in pr["table"]["rows"]}
     check(len(rr) == 4 and rr["Flattest 25-delta put skew"][1] == "N00"
           and rr["Steepest 25-delta put skew"][1] == "N01"
-          and rr["Highest IV against 20-day realised"][1] == "N00"
-          and rr["Lowest IV against 20-day realised"][1] == "N01"
+          and rr["Highest 30-day IV against 20-day realised"][1] == "N00"
+          and rr["Lowest 30-day IV against 20-day realised"][1] == "N01"
           and rr["Flattest 25-delta put skew"][2] == "+2.0 vol points"
           and rr["Flattest 25-delta put skew"][3] == f"rank 100, 100th percentile ({hist[0]} to {hist[-1]}, n=12)"
           and rr["Steepest 25-delta put skew"][4] == "2026-11-20 (third Friday)",

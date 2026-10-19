@@ -2407,6 +2407,14 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     ta = wsec.technical_appendix(stack_mod.config())
     if ta:
         ed.setdefault("detail", []).append(ta)
+    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
+    # reference tier (a table: outside the word budget; it displaces nothing).
+    try:
+        from . import opening_setup as _os                      # noqa: PLC0415
+        with observations.ObservationStore(db_path) as _st:
+            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the per-name volatility table faulted", exc_info=True)
     ed["definitions_version"] = wsec.definitions_version()
     # W12 (6b part 2) joins the plan only when the week's last settled dealer
     # profile exists under the payload's computed_dir.

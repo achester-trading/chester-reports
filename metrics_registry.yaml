@@ -6576,6 +6576,58 @@ metrics:
     added_date: "2026-10-18"
     description: >-
       One name's front-month 25-delta put skew, in vol points: the solved put IV at -25 delta (Black-Scholes delta on each put's solved IV) less the ATM IV, on the expiry chain.front_expiry names. OS-8 and OS-9's HIGH SKEW tag: report-only (a45-opening-setup-2).
+  chain.iv30_atm:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's 30-day constant-maturity ATM IV, percent, by SPY's method (total variance between the two expiries bracketing 30 days, else the nearest). Written by the close and by backfill-names from the stored chains; the Weekly's per-name table and OS-8 read it; report-only.
+  chain.rr_25d:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's front-month 25-delta risk reversal, vol points: the 25-delta put IV less the 25-delta call IV (Black-Scholes delta on each solved IV), on the expiry chain.front_expiry names. Report-only.
+  chain.rv20:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's 20-session close-to-close realised volatility, annualised percent, from its stored daily closes. Report-only.
+  chain.rv60:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's 60-session close-to-close realised volatility, annualised percent, from its stored daily closes. Report-only.
   chain.iv_minus_rv20:
     source: chain_capture
     mechanism_group: dealer_chain_derived
@@ -17595,6 +17647,10 @@ families:
   chain.options_volume: quantity
   chain.atm_iv_front: conditions
   chain.skew_25d_put: conditions
+  chain.iv30_atm: conditions
+  chain.rr_25d: conditions
+  chain.rv20: conditions
+  chain.rv60: conditions
   chain.iv_minus_rv20: conditions
   chain.put_share_volume: ratio
   chain.put_share_oi_build: ratio
@@ -18139,6 +18195,10 @@ series_kinds:
   chain.spy_atm_iv_30d: volatility
   chain.atm_iv_front: volatility
   chain.skew_25d_put: volatility
+  chain.iv30_atm: volatility
+  chain.rr_25d: volatility
+  chain.rv20: volatility
+  chain.rv60: volatility
   chain.iv_minus_rv20: volatility
   calc.vol_spy_realized_20d: volatility
   yfinance.mkt_spy: price
