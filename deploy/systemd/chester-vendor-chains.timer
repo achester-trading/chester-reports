@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the chester-reports vendor chains (Massive SPX and SPCX) at 16:31 ET on weekdays
+Documentation=https://github.com/achester-trading/chester-reports
+
+[Timer]
+# Wall-clock ET (DST handled per firing); market holidays are the wrapper's
+# calendar guard. 16:31: SPX options trade to 16:15 and Massive is 15 minutes
+# delayed, so this reads the 16:16 data, a quarter-hour before the 16:45 close.
+OnCalendar=Mon-Fri 16:31 America/New_York
+AccuracySec=1s
+RandomizedDelaySec=0
+# A catch-up run after downtime would file a later chain under this slot.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

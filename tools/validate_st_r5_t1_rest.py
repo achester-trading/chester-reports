@@ -7,7 +7,7 @@ FIXTURES only, each in a temporary store of its own -- no live store, no network
 no model. Every expected figure is computed here, independently of the module:
 
   A  THE WRITERS EXTENDED. Nineteen FRED series join the pull (ids, units,
-     cadence; 52 signal series, 154 pulled); the BIS writer reads every area into
+     cadence; 57 signal series, 159 pulled, with the GTM batch's five); the BIS writer reads every area into
      bis.policy_rate, and a failure of that request costs only its key.
   B  THE WRITERS, LIFTED (16 Oct 2026). SPY's holdings parse by column name (a
      class share to Yahoo's form, the cash and CVR lines skipped; a file without
@@ -237,9 +237,11 @@ def group_a() -> None:
     check(len(want) == 19 and not bad,
           f"nineteen FRED series join the pull with their ids, units and cadence "
           f"(bad: {bad or 'none'})")
-    check(len(acfg.FRED_SIGNAL_SERIES) == 52 and len(acfg.FRED_PULL_SERIES) == 154
-          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 154,
-          f"FRED_SIGNAL_SERIES 52, FRED_PULL_SERIES 154, no key twice "
+    # 57 / 159 since the GTM batch, part 1 (17 Oct 2026) added five; 63 / 165
+    # since part 2 added GTM-12's six; 64 / 166 since ST-4 added FEDTARMD.
+    check(len(acfg.FRED_SIGNAL_SERIES) == 64 and len(acfg.FRED_PULL_SERIES) == 166
+          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 166,
+          f"FRED_SIGNAL_SERIES 64, FRED_PULL_SERIES 166, no key twice "
           f"({len(acfg.FRED_SIGNAL_SERIES)}, {len(acfg.FRED_PULL_SERIES)})")
     s = bis_cbpol.parse_all(ALL_CSV)
     check(set(s) == {"US", "XM", "DE"} and s["US"] == {"2026-08-31": 4.25, "2026-09-30": 4.0},

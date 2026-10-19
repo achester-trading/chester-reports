@@ -110,7 +110,10 @@ def load_prior(report_date: str, archive_dir: Optional[str]) -> Optional[dict]:
 
 
 def save_edition(ed: dict, archive_dir: Optional[str]) -> Optional[str]:
+    from altdata import withheld_log                            # noqa: PLC0415
     from daily_cascade import deliver                            # noqa: PLC0415
+    withheld_log.record_edition("monthly_macro", edition_name(ed["report_date"]), ed,
+                                archive_dir)
     return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                            edition_name(ed["report_date"]), archive_dir)
 
@@ -500,6 +503,15 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
                      "table": r["summary_table"], "lines": r["lines"]})
     else:
         subs.append({"title": "The month's counts and hit rates", "lines": r["lines"]})
+    # 6b PART 3: the registered hypotheses' running evidence (the registration,
+    # docs/ledgers/dealer-scorecard-preregistration-2026-10.md), every stored row
+    # to the month's end; none is promoted, so nothing here is a reading.
+    try:
+        from altdata import dealer_scorecard as dsc             # noqa: PLC0415
+        subs.append({"title": "Registered hypotheses (the scorecard)",
+                     "lines": dsc.from_store(st, now)["lines"]})
+    except Exception:                                           # noqa: BLE001
+        pass
     if r["sessions"]:
         subs.append({"title": "Ranges and flags, by session",
                      "table": r["ranges_table"],
@@ -517,6 +529,14 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     # oil-shock signature (32), report-only.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     subs += t1_rest_block.mechanics_subsections(st, now, "monthly")
+    # THE GTM BATCH, PART 2 (17 Oct 2026): GTM-4's buckets and the hyperscaler
+    # cash-flow bridge -- the Factor I exhibit -- after the SR-37 panel, and the
+    # concentration twin (GTM-3, report-only) beside item 31's table. Tables
+    # only: they displace no word and no chart.
+    from daily_cascade import gtm_block                         # noqa: PLC0415
+    subs = gtm_block.place_mechanics(
+        subs, gtm_block.mechanics_subsections(st, now, "monthly"),
+        after_panel=fcf["title"] if fcf else None)
     extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
              **({"ai_revisions": rv_data} if rv_data else {})}
     return {"items": items, "print_items": False,
@@ -839,6 +859,13 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     # Items 42 and 39 after it; the real differentials in the global bucket.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     b["subsections"] += t1_rest_block.plumbing_subsections(st, now, "monthly")
+    # THE GTM BATCH, PART 1: GTM-13's scenario table, GTM-15 and GTM-21.
+    from daily_cascade import gtm_block                         # noqa: PLC0415
+    b["subsections"] += gtm_block.plumbing_subsections(st, now, "monthly")
+    # SIGNAL-TRIAGE ST-6 (st-t1-rest, 18 Oct 2026): the Rate machine summary and the
+    # Duration Absorption block (<= 18 lines), lines only: no word, no chart.
+    from daily_cascade import absorption_block                  # noqa: PLC0415
+    b["subsections"] += absorption_block.subsections(st, now, "plumbing")
     cur = t1_rest_block.currencies_lines(st, now)
     if cur and glob is not None:
         glob["lines"] = list(glob.get("lines") or []) + cur
@@ -1365,8 +1392,13 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     beside it: the URL, the scan's own section (and slide, when the scan recorded
     one), the as-of date. Only reference-table rows were ever stored, so none of
     the publisher's recommendations can reach this table."""
-    from altdata import scans                                    # noqa: PLC0415
+    from altdata import gtm, scans                               # noqa: PLC0415
     rows = scans.latest(now, db_path)
+    # THE GTM BATCH (17 Oct 2026): its declared figures, and the reference-table
+    # rows its tables print, appear in those tables, so each fact prints once.
+    skip = set(gtm.config().get("printed_scan_rows") or [])
+    rows = [r for r in rows if not str(r["metric"]).startswith(gtm.METRIC_PREFIX)
+            and r["metric"] not in skip]
     subs, items, data = [], [], []
     by_fam: dict[str, list] = {}
     for r in rows:
@@ -1695,6 +1727,20 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
             corr = {"title": "Correlations",
                     "not_tracked": [f"the correlation layer: FAULT {exc}"]}
         subs.insert(2, corr)
+    # THE GTM BATCH, PART 1 (17 Oct 2026): its base-rate rows join the table,
+    # and its four tables follow it -- GTM-1 the Top & Bottom standing exhibit,
+    # GTM-7, 8 and 9. Tables and lines only: no words, no chart.
+    if now:
+        from daily_cascade import gtm_block                     # noqa: PLC0415
+        base_rows += gtm_block.base_rate_rows(st, now, db_path)
+        # After the base rates' own seed table, which stays next to them.
+        at = next((i + 1 for i, s in enumerate(subs) if s is seed_sub), len(subs))
+        subs[at:at] = gtm_block.slow_subsections(st, now, db_path)
+        # SIGNAL-TRIAGE ST-6: Cheap-and-Unloved (<= 10 lines), the Factor I, III, IV
+        # and V lines and the China panel's status lines, after the GTM tables.
+        from daily_cascade import absorption_block              # noqa: PLC0415
+        gtm_n = len(gtm_block.slow_subsections(st, now, db_path))
+        subs[at + gtm_n:at + gtm_n] = absorption_block.subsections(st, now, "slow")
     if fam_subs:
         fam_subs[0]["not_tracked"] = (list(fam_subs[0].get("not_tracked") or [])
                                       + ["Disruptive Themes (quarterly; folded into "
@@ -2203,6 +2249,8 @@ def _edition(p: dict, cfg: dict, sections: list, prior: Optional[dict],
           "budget": (cfg.get("budget") or {}).get(cadence),
           "reading_target_minutes": targets.get(cadence),
           "chart_count": 0, "charts": {}, "run_id": p.get("run_id"),
+          # M12 (6b part 2) only when the month's last settled profile exists.
+          "dealer_computed_dir": _dealer_chart_dir(p.get("computed_dir"), last),
           # Which section's table prints each series' month: the gate holds
           # every series to one.
           "printed_metrics": printed}
@@ -2509,6 +2557,36 @@ def markdown(ed: dict) -> str:
     return sr.markdown(ed, CADENCE, title(ed), CHANGED_HEAD, "Monthly", charts=None)
 
 
+def system_metrics_block(p: dict, ed: dict, db_path: Optional[str],
+                         archive_dir: Optional[str], cadence: str) -> dict:
+    """EL-6 (altdata/system_metrics.py) over the Monthly's calendar month, or the
+    Quarterly's quarter: read-only, nothing fetched; a source that does not
+    exist prints "not recorded"."""
+    import datetime as _dt                                      # noqa: PLC0415
+    from altdata import observations, system_metrics as sm      # noqa: PLC0415
+    y, m = (int(x) for x in meter_month(p).split("-"))
+    if cadence == "quarterly":
+        q0 = (m - 1) // 3 * 3 + 1
+        first = _dt.date(y, q0, 1)
+        nxt = _dt.date(y + (q0 == 10), (q0 + 2) % 12 + 1, 1)
+        label = f"Q{(q0 - 1) // 3 + 1} {y}"
+    else:
+        first = _dt.date(y, m, 1)
+        nxt = _dt.date(y + (m == 12), m % 12 + 1, 1)
+        label = f"{first:%B %Y}"
+    last = nxt - _dt.timedelta(days=1)
+    try:
+        with observations.ObservationStore(db_path) as st:
+            src = sm.gather(first.isoformat(), last.isoformat(), st=st,
+                            cutoff=ed.get("as_of"), db_path=db_path,
+                            archive_dir=archive_dir)
+    except Exception:                                           # noqa: BLE001
+        src = sm.gather(first.isoformat(), last.isoformat(), db_path=db_path,
+                        archive_dir=archive_dir)
+    return sm.block(first.isoformat(), last.isoformat(), src, sm.baseline(),
+                    title=label)
+
+
 def meter_month(p: dict) -> str:
     """The month the Monthly covers, YYYY-MM: the month in markets' last day,
     else the month before the report date."""
@@ -2518,6 +2596,11 @@ def meter_month(p: dict) -> str:
     import datetime as _dt                                      # noqa: PLC0415
     d = _dt.date.fromisoformat(str(p.get("report_date"))[:10]).replace(day=1)
     return (d - _dt.timedelta(days=1)).isoformat()[:7]
+
+
+def _dealer_chart_dir(computed_dir: Optional[str], last: Optional[str]) -> Optional[str]:
+    from daily_cascade import dealer_block                      # noqa: PLC0415
+    return dealer_block.chart_dir(computed_dir, last)
 
 
 @model_meter.metered("monthly")
@@ -2535,6 +2618,9 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
                        prior_dir if prior_dir is not None else archive_dir)
     book = level_book(p, db_path)
     ed = build(p, prior, db_path, book=book)
+    # EL-6: THE SYSTEM-METRICS BLOCK, the last detail table. Data, not prose:
+    # it counts in neither the word budget nor the chart cap.
+    ed["detail"].append(system_metrics_block(p, ed, db_path, archive_dir, "monthly"))
     if not narrative:
         written = {}
     elif write is not None:

@@ -172,7 +172,12 @@ def main() -> int:
     universe = args.symbols or config.options_universe()
     # The vendor-only symbols ride along unless --symbols narrowed the run.
     # They are captured but never computed; see Stage 1b.
-    vendor_universe = [] if args.symbols else config.massive_universe()
+    # M-3 (18 Oct 2026): NOT ANY MORE. Massive is 15-minute delayed and SPX trades
+    # to 16:15, so at 16:10 this leg read 15:55 data; the vendor chains are
+    # chester-vendor-chains' at 16:31 (altdata/vendor_chains.py). This pass skips
+    # them and says so.
+    vendor_skipped = [] if args.symbols else config.massive_universe()
+    vendor_universe: list[str] = []
     # The paper bid's four (AQ-8a) are captured with the universe and computed
     # by nothing below except stage 1c; --symbols narrows them away too.
     paper_universe = [] if args.symbols else [
@@ -185,6 +190,11 @@ def main() -> int:
              f"({', '.join(vendor_universe)})" if vendor_universe else "")
           + (f" + {len(paper_universe)} capture-only for the paper bid "
              f"({', '.join(paper_universe)})" if paper_universe else ""))
+    if vendor_skipped:
+        print(f"  vendor:     {', '.join(vendor_skipped)} skipped -- captured at "
+              f"16:31 ET by chester-vendor-chains (M-3: 15-minute delay, SPX to 16:15)")
+        log.info("Stage 1b skipped: the vendor universe (%s) is chester-vendor-chains' "
+                 "at 16:31 ET", ", ".join(vendor_skipped))
     print(f"  convention: {config.CONVENTION_VERSION}")
     print(f"  tolerance:  {config.PIN_TOLERANCE_BPS}bps\n")
 

@@ -1,0 +1,44 @@
+[Unit]
+Description=chester-reports intraday dealer capture, 09:45 ET (chains -> exposure JSON)
+Documentation=https://github.com/achester-trading/chester-reports
+# 6b part 2 (brief v2, Captures; ratified 16 Oct 2026): Yahoo for the options
+# universe, Massive for SPX and SPCX (ingestion only), the engine's exposure JSON
+# per capture beside the 16:10 profiles, OI the prior close's vintage.
+# NOT in scripts/deploy_remote.sh DEPLOY_TIMERS: enabling its timer is the
+# operator's (docs/briefs/6b-dealer-2-notes.md, box commands).
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_dealer_capture.sh 0945
+# Massive's key reaches this run through the environment (altdata.secrets).
+EnvironmentFile=-%h/chester-reports/.env
+# A capture across the universe takes a few minutes; this stops a hung HTTP call
+# holding the lock into the next slot.
+TimeoutStartSec=20min
+# No retry: a capture missed at its slot is not recovered by trying later -- a
+# later chain is a different capture, and T4 says "no equivalent capture".
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# MEMORY CAPS (AUD-2 conventions; 6b part 2, session-set): one capture and one
+# compute, never beside another heavy unit (09:45 and 12:30, against 16:10 and
+# later). README.md section 13.
+# THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026: the box stays at 4 GB):
+# percentages of physical memory. The 8 GB case they equal is AUD-2's
+# MemoryHigh=0.8G MemoryMax=1G; on the 4 GB box they read half that.
+MemoryHigh=10%
+MemoryMax=12%
+# THE OOM ORDER: a capture, like the EOD pass, cannot be fetched again -- 300,
+# below every report and above the Gateway.
+OOMScoreAdjust=300
+
+[Install]
+WantedBy=default.target

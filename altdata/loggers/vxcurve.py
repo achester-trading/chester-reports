@@ -70,6 +70,7 @@ from typing import Any, Optional
 
 from .. import observations, session
 from ..sources._base import http_get_json                      # noqa: F401
+from ..sources.user_agent import generic as _generic_ua
 from . import LoggerSpec, register
 
 log = logging.getLogger(__name__)
@@ -169,7 +170,7 @@ def expiries_around(day: Optional[dt.date] = None, ahead: int = PULL_CONTRACTS,
 def _get(url: str) -> bytes:
     import urllib.request
     req = urllib.request.Request(
-        url, headers={"User-Agent": "chester-reports/1.0 (+market-state)"})
+        url, headers={"User-Agent": _generic_ua()})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
         return r.read()
 

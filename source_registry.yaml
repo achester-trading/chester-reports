@@ -125,7 +125,10 @@ sources:
       moved, consistent with recompute over a settled OI base -- consistent
       with, not proof of.
     license: paid subscription, Basic plan
-    allowed_reports: []
+    # 6b part 3 (brief v2 section 5.6, ratified 16 Oct 2026): the vendor line
+    # prints in the Weekly's Mechanics, labelled a cross-check, read from the
+    # stored dealer.vendor_* series written by altdata/sources/flashalpha.py.
+    allowed_reports: [weekly_tactical]
     implemented_by: tools/cross_check.py
     status: live
     epistemic_note: >-
@@ -135,7 +138,10 @@ sources:
       gated above Basic, so the intended check -- recomputing from their own
       per-strike payload to catch a silent methodology change -- is impossible.
       What we run instead compares our profile against their aggregate: same
-      purpose, weaker evidence.
+      purpose, weaker evidence. From 6b part 3 the vendor writer stores their
+      levels and headline exposures (dealer.vendor_*), and the Weekly prints
+      the comparison as a cross-check line -- the one report it may reach, and
+      only as a gap against our own figure, never as a figure of its own.
     rate_limit: 250/day, verified live via X-RateLimit-Limit
 
   solver_derived:
@@ -1020,7 +1026,7 @@ sources:
       - Not the ibkr.auction_* family, which is the equity closing auction.
 
   fiscaldata:
-    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I)
+    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I) and the Monthly Treasury Statement (Table 4, customs duties)
     tier: A0
     epistemic_role: primary_fact
     domain: [treasury_supply, sovereign]
@@ -1040,6 +1046,11 @@ sources:
         G-14: net marketable issuance is the month-end change in Total Marketable
         held by the public. It includes SOMA add-ons and TIPS accrual and is not
         the refunding's privately-held figure; see the module docstring.
+      - >-
+        The MTS customs lines (the GTM batch, part 2, ruling 3 of 17 Oct 2026) are
+        in dollars as served, gross, refunds and net; the effective tariff rate
+        reads the gross, since refunds of IEEPA duties turned net receipts
+        negative from mid-2026.
 
   manual_input:
     name: Operator-entered figures (tools/manual_input.py)
@@ -1527,6 +1538,21 @@ sources:
       observed_at = the session; available_at = the capture's own fetched_at.
     license: derived from our own capture
     allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/chain_metrics.py
+    status: live
+
+  chain_capture:
+    name: Every captured option chain, per name, read by this system each session (yfinance)
+    tier: B
+    epistemic_role: derived
+    domain: [volatility, positioning]
+    geography: [US]
+    latency: the eod capture after the close; recorded by the 16:45 close
+    timestamp_reliability: high
+    timestamp_notes: >-
+      observed_at = the session; available_at = the capture's own fetched_at.
+    license: derived from our own capture
+    allowed_reports: [daily_cascade, weekly_tactical]
     implemented_by: altdata/chain_metrics.py
     status: live
 
@@ -2161,6 +2187,31 @@ sources:
       - >-
         Tier C mirror of A0 filings. Where EDGAR XBRL is ingested later, it wins.
 
+  edgar_xbrl:
+    name: SEC EDGAR XBRL frames -- annual operating cash flow and capex for the five hyperscalers
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [fundamentals]
+    geography: [US]
+    latency: after each 10-K; the annual frame aggregates each filer's latest filed fact
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The frames carry no publication instant per fact; available_at is the write
+      instant (ingest_instant), an upper bound. observed_at is the fiscal year's
+      end as filed.
+    license: >-
+      public, no key; EDGAR's fair-access rule asks for a User-Agent with a contact,
+      which edgar.user_agent() supplies from CHESTER_SEC_CONTACT and nowhere else
+    allowed_reports: [monthly_macro]
+    implemented_by: altdata/sources/edgar_xbrl.py
+    status: live
+    caveats:
+      - >-
+        The GTM batch, part 2 (17 Oct 2026; GTM-4). A calendar frame takes the
+        fiscal year whose larger part falls in that year, so Microsoft's (June)
+        and Oracle's (May) years sit in the frame before the one their year-end
+        names. Dormant, PENDING, until CHESTER_SEC_CONTACT is set.
+
   # --- AUD-3a item 4 (14 Oct 2026): the string the computed rows carry -------
   calc:
     name: This system's own computations over the store (the calc.* rows)
@@ -2186,6 +2237,23 @@ sources:
   # as an internal source so the store check reads it as an id. The writers keep
   # writing what they write; moving each to a single registered id comes after
   # aud-1-data-fixes merges.
+  vol_event:
+    name: The volatility event flag and attribution (Batch 9 item 52)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/vol_event.py through daily_cascade/stack_close.py:
+      vol.event_day, calc.vol_compression and vol.event_ledger, each observed on
+      the session and available when written.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/vol_event.py
+    status: live
+
   daily_close:
     name: The 16:45 close pass's own records
     tier: derived

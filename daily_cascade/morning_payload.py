@@ -203,6 +203,19 @@ def overnight_block(as_of: Optional[str] = None,
     return block
 
 
+def stored_vol_event(day: str, cutoff: str, db_path: Optional[str] = None) -> Optional[dict]:
+    """The close's stored volatility read for `day` (Batch 9 item 52), or None."""
+    import json as _json                                        # noqa: PLC0415
+    try:
+        from altdata import vol_event                           # noqa: PLC0415
+        with observations.ObservationStore(db_path) as st:
+            rows = [r for r in st.as_of(vol_event.EVENT_KEY, cutoff)
+                    if str(r["observed_at"])[:10] == day]
+        return _json.loads(rows[-1]["value_text"]) if rows else None
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, db_path: Optional[str] = None) -> dict:
     """The whole morning payload. Reads only; never raises on a missing block."""
@@ -240,6 +253,10 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
                                 ahead_days=EVENTS_AHEAD_DAYS)
 
 
+    # BATCH 9 ITEM 52: the prior close's volatility read, as stored (vol.event_day),
+    # never recomputed -- the same rule as the object below.
+    vol_event = stored_vol_event(prior, cutoff, db_path)
+
     state_obj = regime.latest(session_day=prior)
     changed = None
     if state_obj is not None:
@@ -252,6 +269,19 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     # the entry point, behind the audit.
     stories = story_block.build(prior, cutoff, market_state=state_obj,
                                 what_changed=changed, db_path=db_path)
+
+    # ST-10 (a43-render, 18 Oct 2026): the signal lines -- the auction, the FOMC-week
+    # gap, the yen flag and the rally inside a bear -- each only on its trigger.
+    from . import signal_lines                                  # noqa: PLC0415
+    signals = signal_lines.build(this_session, prior, cutoff, db_path)
+    # OS-2 (a44-opening-setup): the expected-movement gauge, under the dealer surface.
+    from . import opening_setup                                 # noqa: PLC0415
+    gauge = opening_setup.gauge_from_store(prior, cutoff, db_path)
+    vol_regime = opening_setup.vol_lines_from_store(prior, cutoff, db_path)
+    # OS-9 and OS-4 (a45-opening-setup-2): the OI builds, side unknown, and the
+    # index put lines, no side.
+    oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
+    index_puts = opening_setup.index_put_lines_from_store(cutoff, db_path)
 
     warnings: list[str] = []
     if state_obj is None:
@@ -308,5 +338,11 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "portfolio": portfolio,
         "market_state": state_obj,
         "what_changed": changed,
+        "vol_event": vol_event,
+        "signal_lines": signals,
+        "opening_gauge": gauge,
+        "vol_regime_lines": vol_regime,
+        "oi_builds": oi_builds,
+        "index_put_lines": index_puts,
         "warnings": warnings,
     }

@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 52 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 64 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 154, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 166, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -125,7 +125,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    106 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    111 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -219,7 +219,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — eighty-eight code gates (eighty-five Python, three shell) and six data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — ninety-eight code gates (ninety-five Python, three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -298,9 +298,13 @@ than substituting a proxy; the count varies by session. Full schema, rules and t
 `altdata/sources/voices_scan.py` runs once a day on its own timer
 (`chester-voices.timer`, 06:15 ET, a fifteen-minute budget) over the public
 sources declared in `config/voices_sources.yaml`, officials first, then desks,
-then news. It obeys robots.txt, identifies itself with the EDGAR contact in a
-browser-like User-Agent, and makes one model call per new item under a daily
-cap. A source the box cannot read is declared unreachable with its reason. `altdata/voices.py` refuses any row without a URL, a published
+then news. It obeys robots.txt, identifies itself with the generic project User-Agent in
+a browser-like shape, and makes one model call per new item under a daily
+cap. **Every request but the SEC's carries that generic string, naming the
+project and its repository and never a person or an address** (ruled 17 Oct
+2026, `altdata/sources/user_agent.py`); sec.gov alone gets
+`CHESTER_SEC_CONTACT` through `edgar.user_agent()`, and `tools/validate_secrets.py`
+group J holds both halves. A source the box cannot read is declared unreachable with its reason. `altdata/voices.py` refuses any row without a URL, a published
 date, a retrieval instant or a tier, and never stores the article body. Status
 (NEW / REITERATED / INFLECTED / SILENT) is computed from the stored directions;
 the model never declares it. `daily_cascade/voices_block.py` is the only renderer,
@@ -368,6 +372,216 @@ absent with its reason; every read is as of. The settings are
 to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
 crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
 is `docs/volume-profile.md`.
+
+**The dealer block is a view of the exposure JSON (6b part 1, brief v2 ratified
+16 Oct 2026).** `daily_cascade/dealer_block.py` prints T1 with its quality panel,
+T4 (changes since the equivalent capture), T2 (key levels) and the decision
+summary inside the close's Mechanics, from one computed profile and the stored
+captures; it recomputes nothing. The engine (`tools/exposure_compute.py`) stores
+the call- and put-gamma masses, the horizon windows and exclusive bands
+(`horizon_windows` in `config/reporting_stack.yaml`), and names the all-strike
+extremes as peaks: the walls are `call_wall_otm` and `put_wall_otm`. The regime
+word prints only at net-to-gross of 0.10 or more, "inferred, not observed" heads
+every dealer table, and the block proposes setups from `config/setups.yaml`
+without writing the register. `tools/validate_dealer_block.py` holds it. Part 2
+(17 Oct 2026) adds the charts (`tools/dealer_charts.py`'s draw functions through
+`daily_cascade/charts.py`: D2 on the close, W12 and M12 panels), the three fixed
+sentences behind the flag-word audit (pinned, held, amplified, dampened), the
+scorecard's pre-registration (`docs/ledgers/dealer-scorecard-preregistration-2026-10.md`,
+never edited; `altdata/dealer_scorecard.py` scores it and prints k/n with Wilson
+intervals), and the 09:45 and 12:30 captures (`altdata/dealer_capture.py`,
+`daily_cascade/midday_gate.py`; their timers are the operator's to enable).
+Part 3 (17 Oct 2026) adds T3, the horizon matrix (lines on the close, a table in
+the Weekly, ending "registered hypotheses: n, none promoted"), T2 per horizon,
+the four sentences' facts in the Weekly (`daily_cascade/dealer_weekly.py`), figure
+5 in the W12 and M12 panels, the FlashAlpha vendor writer
+(`altdata/sources/flashalpha.py`, a 16:25 ET unit the operator enables; its
+divergence data gate `tools/validate_vendor_divergence.py`), and the dealer levels
+in ES (`altdata/dealer_es.py`). **Unit memory caps are percentages of the
+machine** (ruled 17 Oct 2026: the box stays at 4 GB), equal on 8 GB to AUD-2's
+figures; `tools/validate_systemd_units.py` holds the rule at 4 and 8 GB.
+
+**The Enterprise Layer's EL-4 to EL-6 (17 Oct 2026).** EL-4 wrote the Doctrine
+monthly's items 3 to 5 into the Doctrine's body as Part X (the change ladder, the
+attention budget, the intraday rung); `tools/check_library.py` check 14 holds every
+dated appendix to its as-of heading, no figures in a lesson entry, and the ruled
+entries quoted verbatim. EL-5 is 6b's state vector (`altdata/state_vector.py`):
+eighteen measured variables per capture, numbers and None only, stored by the
+close as `state.*` and printed by the close and the Weekly; no engine may import
+it until EL-12. EL-6 is the system-metrics block (`altdata/system_metrics.py`):
+uptime, feed completeness, incidents, model cost and withheld drafts, each with
+its window and source, "not recorded" where a source does not exist; the
+Monthly's last detail table and the Quarterly's opening table. The withheld
+paragraphs are logged at archive time (`altdata/withheld_log.py`), by every
+edition: the anchor, the close, the Weekly, the Monthly, the Quarterly and the
+12:30 slot (ruling 4 of 17 Oct 2026).
+
+**The J.P. Morgan Guide batch (17 Oct 2026; part 1 GTM-1, 7, 8, 9, 13, 15, 21;
+part 2 GTM-3, 4, 10, 12).** `altdata/gtm.py` and `altdata/gtm_equities.py`
+compute, `daily_cascade/gtm_block.py` lays out, and `config/gtm.yaml` declares
+the settings and the Guide's figures. `config/ai_buckets.yaml` holds GTM-4's
+buckets, reference data refreshed each quarter from the scan.
+
+A figure only the Guide has is a **sourced figure**:
+- declared with the scan's words quoted, its section, the Guide's **slide** (now
+  required) and the as-of;
+- stored by `altdata.scans ingest` under `GTM-n · <label>`;
+- printed from the store, never recomputed.
+
+The scan's section 7 transcribes slides 4, 8, 11, 15, 22 and 27 once, read off
+the public PDF.
+
+Where the batch prints:
+- **The Monthly's Slow layers:** GTM-1, 7 (amending SR-9), 8 and 9, which are
+  also `baserate.*` tables.
+- **Plumbing:** GTM-13's scenario table (also in the Weekly; TIP, MUB and MBB now
+  its proxies), GTM-15's tariff rate (monthly from the MTS through the
+  fiscaldata writer, FRED's quarterly as the cross-check), GTM-21 (SR-5's
+  modifier) and GTM-12's federal rows (the Factor IV rows: two bases, never
+  mixed, and the CBO path as a sourced figure).
+- **Mechanics, both cadences:** GTM-3's concentration twin, report-only, beside
+  item 31; its Top & Bottom intake-queue entry is a draft in
+  `config/tb_intake_queue.yaml` and grants nothing. GTM-4's AI buckets; the
+  Monthly adds the hyperscaler cash-flow bridge from EDGAR's XBRL frames
+  (`altdata/sources/edgar_xbrl.py`, after the SR-37 panel).
+- **The sector tables:** GTM-10's one-year correlation to the 10-year is a column
+  in the Weekly's leadership table; the Monthly's sector sub-section carries
+  the full rows.
+
+A measure missing an input prints the Guide's figure, labelled, never a partial
+computation. Register numbers are SR-48 and SR-50 to SR-59 (SR-49 is the shape
+axis's). Everything is tables and lines, so no budget moves.
+`tools/validate_gtm.py` holds it.
+
+**Duration Absorption and the rates flags are computed, never a regime
+(signal-triage ST-4 and ST-6; st-t1-rest, 18 Oct 2026).** `altdata/absorption.py`
+computes the `calc.*` features from the store and rides the features pass after
+the correlation layer. They are:
+- net supply (MSPD less the Fed's Treasuries, G-14) and the private residual;
+- the TIC absorber shares and `ABS_FRAGILITY`;
+- `ABS_STRESS` on cover and dealer share (G-32);
+- the 12-month fed-market gap against FRED's SEP dot (FEDTARMD), `CRED_STRESS`
+  and the venues-against-futures disagreement;
+- `DEANCHOR` and the 5y5y's range position;
+- the AI capex loop from EDGAR's XBRL (`edgar.xbrl_*`);
+- central-bank gold from the IMF IFS.
+
+Four features the order fed from manual keys print "not tracked", naming the key
+(rule 30). Every flag is display and modifier only. `daily_cascade/absorption_block.py`
+lays out the Monthly's Rate machine summary and Duration Absorption block (18
+lines at most) in Plumbing & rates, and Cheap-and-Unloved (10 at most), the Factor
+lines and the China status lines in Slow layers. They are lines only and fetch
+nothing; an absent input prints NOT AVAILABLE with its source.
+
+**The rates driver cell stays withdrawn.** ST-3 adds only its third attribution
+cut, since the last FOMC decision (`calc.attr_*_since_fomc`). Auction results are
+available at TreasuryDirect's own result time, else 13:05 ET (G-30).
+
+Batch 6's constituent ledgers, `altdata/ledgers/st_r5_31b.py` and `st_r5_44b.py`,
+sit in session B's package and pre-register their pass rules in their first
+editions. `tools/validate_st_t1_rest.py` holds all of it.
+
+**The funding currencies are computed, never a flag that decides (ST-5;
+st-t2-rates, 18 Oct 2026).** `altdata/funding_currency.py` rides the features pass
+after ST-4. It computes the yen stack: the front differential and its 60-session
+velocity, CFTC positioning as a z, the hedged carry, realized vol and the unwind
+tell. It also computes the yuan: the fix against the previous close, the US-China
+10-year spread, and the devaluation tell's two tracked legs. The third leg (state
+banks selling dollars) is not tracked under rule 30. The order's `calc.cnh_cny_gap`
+is the existing `calc.cnh_cny_bp`, not a second series. The candidate contradiction
+rows `carry_vs_vol` and `fix_vs_offshore` (G-10) are declared in
+`config/funding_currency.yaml` in the table's own form, outside the table: the
+Monthly's Factor IV lines print their `contradictions.gap_z`, and no row opens.
+Moving them into `config/market_state.yaml` is a rules change (v1.13).
+
+**ST-7's calibration studies** are `tools/calibration/sr12_bond_alloc.py`,
+`sr15_valuation.py`, `sr21_divergence.py`, `sr22_auctions.py` and
+`sr23_net_supply.py`, over `st7_common.py`. Each pulls public sources and writes
+`docs/ledgers/sr-NN-ledger-<date>.md` with its CSV. Each register entry carries
+its A-3 gate status as a rule-31 draft. `tools/validate_st_t2_rates.py` holds both.
+
+**The rulings of 18 Oct on ST-7 and ST-5 print where the flags print
+(st-t3-calib).** ABS_STRESS carries its firing base rate beside it wherever it
+prints (`absorption.ABS_STRESS_BASE`, the SR-22 ledger's 1,034 of 1,540) and its
+modifier effect is suspended, display only, until the Doctrine monthly; SR-21's
+features print descriptive only; the devaluation tell prints "2 of 3 legs
+tracked" with each leg's state and never a verdict word while a leg is not
+tracked (`funding_currency.verdict_allowed()`). `tools/validate_st_t3_calib.py`
+holds these.
+
+**ST-8's calibration studies** are `tools/calibration/sr01_sr13_style.py`,
+`sr05_consumer_credit.py`, `sr14_em_dollar.py`, `sr02_yen_unwind.py` and
+`sr04_cny_fix.py`, over `st8_common.py`; each register entry carries its gate
+status as a rule-31 draft. Only SR-1 passed on the laptop's first edition, so
+only its thresholds are in config (`config/style_regime.yaml`, the admitting
+ledger named beside them as `admitted_by:`) and only its panel renders: the
+Monthly's style-regime sub-section (`daily_cascade/style_block.py`, lines only,
+no flag word until the gate status is accepted), over `altdata/style_regime.py`,
+the rule's one definition. SR-2's and SR-4's thresholds stay session-set in
+`config/funding_currency.yaml`.
+
+**ST-9's false-bottom audit** is `tools/calibration/sr08_false_bottoms.py`,
+writing `docs/ledgers/false-bottom-audit-2026.md`: the bottom side replayed
+rally by rally through 1973-74, 2000-02, 2007-09 and 2022, each confirmation
+element scored on the false bottoms against the four true ones, the gate
+specification and a Doctrine rule proposal for the monthly. Its T&B config stub,
+`config/tb_false_bottom_gate.yaml`, is inert: no module reads it until T&B full.
+
+**The vendor chains are captured at 16:31, not 16:10 (M-3, ruled 18 Oct 2026).**
+Massive Options Starter is 15-minute delayed and SPX options trade to 16:15, so
+`run_eod.py` skips the vendor universe and says so, and
+`chester-vendor-chains.service`/`.timer` (Mon-Fri 16:31 ET, `run_dealer_capture.sh
+chains`, `altdata/vendor_chains.py`) writes the same chain files and its own
+`_vendor_completeness.json`, which the close's reader merges and reads as pending
+before it lands. Every vendor row carries `vendor_data_as_of` (09:30, 12:15,
+16:16 ET, `config.vendor_as_of`).
+
+**The FlashAlpha writer is v2 (F-1 to F-4, ruled 18 Oct 2026).**
+`config/flashalpha.yaml` plans 57 requests a day under a budget of 60 for SPY, QQQ,
+IWM, SPX and MSTR (16:25 in full; 09:45 and 12:30 the summary and levels), stores
+the summary's exposure, volatility and macro blocks under source `flashalpha` and
+keeps the by-strike responses as blobs under `data/vendor/flashalpha/`. A vendor
+ATM IV is compared only on the first 20-DTE expiry from 16:25 (F-2); the writer
+stops after `plan_ends` and the Weekly prints "vendor: plan ended" (F-4). The
+conventions (F-3) are in the Weekly's technical appendix, and
+`docs/ledgers/vendor-divergence-notes.md` holds the reconciliations
+(`tools/vendor_reconcile.py`). No vendor value reaches any flag, tell, dial or
+decision.
+
+**ST-10's rendering rows for ST-4, ST-5 and ST-9 (a43-render).** The 07:00 anchor's
+signal lines (`daily_cascade/signal_lines.py`, `config/st10_lines.yaml`: the
+auction line, the FOMC-week gap, the yen flag, the rally inside a bear; at most
+four lines of 60 words, nothing on a quiet day), the 12:30 hooks for the yen unwind
+and the devaluation tell (`daily_cascade/funding_hooks.py`, in `midday_gate.GATES`,
+alert-only, no verdict word for the tell) and the Weekly's Sunday line with Book A's
+rules and Book B's tells (through `dealer_weekly.mechanics`). The Mechanism Watch
+block and the PRL line wait for Tranche 5. `tools/validate_a43_render.py` holds
+these and Part 0.
+
+**The opening setup's first half (D-3 of 18 Oct 2026; a44-opening-setup) is
+report-only: no score, no weights.** `daily_cascade/opening_setup.py` builds the
+07:00 anchor's expected-movement gauge (OS-2: the engine's regime word, our own
+one-sigma range, and the scorecard's typical realised range by regime, "awaiting"
+below n=20), the Weekly's most-active names (OS-10, from `chain.options_volume` and
+`chain.atm_iv_front`, which `altdata/chain_metrics.py` records per captured name),
+and the Ahead matrix's earnings pricing (OS-11: the last three reactions and
+elevated / muted / in line against the matrix's own implied move). OS-3's three
+volatility-regime lenses extend item 52's lens table (`altdata/vol_event.py`), each
+with its percentiles, windows and as-of. Settings: `config/opening_setup.yaml`. The
+vendor is never read; `tools/validate_opening_setup.py` holds it.
+
+**A volatility event is flagged two-sided and attributed by nine lenses (Batch 9
+item 52, ruled 17 Oct 2026).** `altdata/vol_event.py` fires on a one-day VIX
+change of 15% or 3 points, a five-day change past its own 95th percentile over 20
+years, a crossing of the vol dial's level bands, or compression to within 5% of
+the six-month low held three sessions (`config/vol_event.yaml`); level and change
+print apart, each with five- and 20-year percentiles. A fired event prints in the
+close's Mechanics and the next 07:00 anchor, its lenses one line each (the
+catalyst only as a sourced outlet's attribution, or "not established"), the
+regime consequence printed and never applied, and a base rate from the box's own
+history with its n. Each event enters the `vol.event_ledger` calibration ledger;
+no modifier right before 30 events. The 12:30 slot opens on a rise of 15% or 3
+points (upward only). `tools/validate_vol_event.py` holds it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

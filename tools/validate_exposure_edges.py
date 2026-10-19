@@ -21,6 +21,12 @@ measured flat book, and the regime word would be printed off it.
      spot; and net_gex_at_spot, re-pricing gamma at spot through the same
      dealer_position(), lands on the profile's net -- one sign rule, two
      call sites that agree.
+  E  THE MASSES, THE PEAKS, THE HORIZONS (6b part 1, brief v2 sections 1, 2
+     and 6). The call- and put-gamma masses sum to gross overall, in every
+     bucket and in every horizon window and band; the peak names equal the
+     legacy all-strike keys and are never the OTM walls' keys; the windows and
+     bands carry the same figure set; a settled capture's 0DTE window and band
+     are excluded.
 
     python tools/validate_exposure_edges.py
 """
@@ -180,6 +186,39 @@ def group_d() -> None:
           "swapping every call for a put flips its sign")
 
 
+def group_e() -> None:
+    print(f"\n{LINE}\nE. THE MASSES, THE PEAKS, THE HORIZONS (6b part 1)\n{LINE}")
+    exps = (("2026-09-04", 0), ("2026-09-11", 7), ("2026-10-16", 42),
+            ("2026-12-18", 105))
+    for label, fetched in (("settled", SETTLED), ("intraday", INTRADAY)):
+        prof = ec.compute_symbol(chain(exps, fetched=fetched), "SYN")
+        sets = [("overall", prof["overall"])]
+        sets += [(f"bucket {k}", b) for k, b in prof["buckets"].items()
+                 if not b.get("excluded_from_exposure_aggregates")]
+        sets += [(f"window {k}", w) for k, w in prof["horizons"].items()
+                 if not w.get("excluded")]
+        sets += [(f"band {k}", b) for k, b in prof["bands"].items()
+                 if not b.get("excluded")]
+        bad_sets = [n for n, s in sets
+                    if not math.isclose(s["call_gamma_per_1pct"] + s["put_gamma_per_1pct"],
+                                        s["gross_gamma_per_1pct"], rel_tol=1e-9)]
+        check(not bad_sets and len(sets) > 6,
+              f"{label}: call mass + put mass = gross in {len(sets)} sets "
+              f"({bad_sets or 'all'})")
+        o = prof["overall"]
+        check(o["peak_call_gex_strike"] == o["call_wall"]
+              and o["peak_put_gex_strike"] == o["put_wall"],
+              f"{label}: the peaks equal the legacy all-strike keys")
+        keys = [set(w) for w in prof["horizons"].values() if not w.get("excluded")]
+        check(keys and all(k == keys[0] for k in keys)
+              and set(ec.WINDOW_FIGURES) <= keys[0],
+              f"{label}: every live window carries the same figure set")
+    s = ec.compute_symbol(chain(exps, fetched=SETTLED), "SYN")
+    check(s["horizons"]["0dte"]["excluded"] and s["bands"]["b0"]["excluded"]
+          and not is_num(s["horizons"]["0dte"]["net_gex"]),
+          "settled: the 0DTE window and band are excluded, no net GEX")
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -187,6 +226,7 @@ def main() -> int:
     group_b()
     group_c()
     group_d()
+    group_e()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 1 if FAIL else 0

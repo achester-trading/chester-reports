@@ -635,7 +635,10 @@ def load_prior(report_date: str, archive_dir: Optional[str]) -> Optional[dict]:
 
 
 def save_edition(ed: dict, archive_dir: Optional[str]) -> Optional[str]:
+    from altdata import withheld_log                            # noqa: PLC0415
     from daily_cascade import deliver                            # noqa: PLC0415
+    withheld_log.record_edition("alt_asset_quarterly", edition_name(ed["report_date"]),
+                                ed, archive_dir)
     return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                            edition_name(ed["report_date"]), archive_dir)
 
@@ -670,6 +673,8 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     book = ms.level_book(p, db_path)
     ed = ms.build(p, prior, db_path, book=book, cadence=CADENCE)
     ed["report"] = "alt_asset_quarterly"
+    # EL-6: the system-metrics block over the quarter is the opening table.
+    ed["opening"] = [ms.system_metrics_block(p, ed, db_path, archive_dir, CADENCE)]
     ed["quarter"] = edition_quarter(ed)
     # THE TRANSMISSION MAP opens the front matter (section 3), counted in the cap.
     charts: dict = {}

@@ -360,6 +360,9 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
     for r in cal.get("rows") or []:
         if r.get("cls") == "earnings":
             r = earnings_row(r, cfg, now, chain_base)
+            # OS-11 (a44-opening-setup): the last three reactions and the pricing word.
+            from . import opening_setup                         # noqa: PLC0415
+            r = opening_setup.with_pricing(r, now)
         rows.append(dict(r))
     hrows, absent = hand_rows(cfg, mon, sat, repo)
     rows += hrows + register_rows(cfg, mon, sat) + rebalance_rows(p, mon, sat)

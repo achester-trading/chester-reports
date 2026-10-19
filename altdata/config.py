@@ -267,6 +267,37 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     SeriesSpec("oecd_10y_mx",  "IRLTLT01MXM156N", "Mexico 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
     SeriesSpec("oecd_10y_za",  "IRLTLT01ZAM156N", "South Africa 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
     SeriesSpec("oecd_10y_kr",  "IRLTLT01KRM156N", "Korea 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    # THE GTM BATCH, PART 1 (17 Oct 2026). GTM-15's two legs: customs-duties
+    # receipts, B235RC1Q027SBEA, "Billions of Dollars, Seasonally Adjusted Annual
+    # Rate", quarterly (FRED has no monthly customs-receipts series); goods
+    # imports, BOPGIMP, "Millions of Dollars, Seasonally Adjusted", monthly.
+    # GTM-21: the household debt-service ratio and its two splits, TDSP, CDSP and
+    # MDSP, "Percent of Disposable Personal Income", quarterly from Q1 2005. Each
+    # read off its FRED page 17 Oct 2026.
+    SeriesSpec("customs_duties", "B235RC1Q027SBEA", "Federal current tax receipts: customs duties, SAAR", "4", "B", "quarterly"),
+    SeriesSpec("goods_imports",  "BOPGIMP",  "Imports of goods, balance-of-payments basis", "8", "M", "monthly"),
+    SeriesSpec("dsr_household",  "TDSP",     "Household debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
+    SeriesSpec("dsr_consumer",   "CDSP",     "Consumer debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
+    SeriesSpec("dsr_mortgage",   "MDSP",     "Mortgage debt service payments, % of disposable personal income", "2F", "%", "quarterly"),
+    # THE GTM BATCH, PART 2 (17 Oct 2026). GTM-12, what the Factor IV panel
+    # lacks. National accounts, "Billions of Dollars, Seasonally Adjusted Annual
+    # Rate", quarterly: federal interest payments (A091RC1Q027SBEA) and national
+    # defense consumption and gross investment (FDEFX). The budget, by fiscal
+    # year, "Millions of Dollars, Not Seasonally Adjusted": net interest outlays
+    # (FYOINT), net outlays (FYONET) and the surplus or deficit (FYFSD); and the
+    # surplus or deficit as "Percent of GDP" (FYFSGDA188S), annual. Each read off
+    # its FRED page 17 Oct 2026 -- the millions are not the billions above.
+    SeriesSpec("fed_interest_payments", "A091RC1Q027SBEA", "Federal government current expenditures: interest payments, SAAR", "8", "B", "quarterly"),
+    SeriesSpec("fed_defense",    "FDEFX",    "Federal national defense consumption expenditures and gross investment, SAAR", "8", "B", "quarterly"),
+    SeriesSpec("fy_net_interest", "FYOINT",  "Federal outlays: interest, fiscal year", "8", "M", "annual"),
+    SeriesSpec("fy_net_outlays", "FYONET",   "Federal net outlays, fiscal year", "8", "M", "annual"),
+    SeriesSpec("fy_deficit",     "FYFSD",    "Federal surplus or deficit (-), fiscal year", "8", "M", "annual"),
+    SeriesSpec("fy_deficit_gdp", "FYFSGDA188S", "Federal surplus or deficit (-) as % of GDP, fiscal year", "8", "%", "annual"),
+    # SIGNAL-TRIAGE ST-4 (st-t1-rest, 18 Oct 2026): the SEP median fed funds dot by
+    # year-end (FEDTARMD, "Percent", annual, each year's dot dated 1 Jan of that
+    # year; read off its FRED page 18 Oct 2026). G-31's manual SEP keys are gone
+    # under rule 30, and this is the keyless source for calc.fed_mkt_gap_12m.
+    SeriesSpec("sep_median_ff",  "FEDTARMD", "FOMC SEP median fed funds rate projection, by year-end", "3", "%", "annual"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -485,6 +516,21 @@ def chain_universe() -> list[str]:
 def massive_universe() -> list[str]:
     """Symbols the Massive chain fetcher pulls. Ingestion only."""
     return list(MASSIVE_SYMBOLS)
+
+
+# THE MASSIVE CAPTURE CLOCK (M-3, ruled 18 Oct 2026). Options Starter is 15-minute
+# delayed, so a capture at HH:MM reads HH:MM less 15. SPX options trade to 16:15
+# ET, so the vendor chains are captured at 16:31 (16:16 data) by their own unit,
+# chester-vendor-chains (altdata/vendor_chains.py), not by the 16:10 EOD pass.
+VENDOR_DELAY_MINUTES = 15
+VENDOR_CHAINS_SLOT = "1631"
+
+
+def vendor_as_of(slot: str) -> str:
+    """The data's as-of for a capture at `slot` (HHMM, ET): "09:30 ET (15-minute
+    delay)" for 0945."""
+    t = int(slot[:2]) * 60 + int(slot[2:]) - VENDOR_DELAY_MINUTES
+    return f"{t // 60:02d}:{t % 60:02d} ET ({VENDOR_DELAY_MINUTES}-minute delay)"
 
 def full_universe() -> list[str]:
     """Everything captured nightly, from either vendor. 15 symbols: 13 with

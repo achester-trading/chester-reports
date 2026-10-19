@@ -45,6 +45,7 @@ from zoneinfo import ZoneInfo
 from .. import observations, session
 from . import _publication as pub
 from ._base import http_get_response
+from .user_agent import browser_like
 
 log = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ def _fix_ranges(db) -> list[tuple[str, str]]:
 
 # chinamoney refuses the bare python-requests agent (403), so a browser-style
 # User-Agent and a Referer on its own site are sent.
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; chester-reports)",
+HEADERS = {"User-Agent": browser_like(),
            "Referer": "https://www.chinamoney.com.cn/english/"}
 # AND IT REFUSES A PAGE LARGER THAN ITS OWN. Measured 26 Sep 2026: pageSize=20
 # is served for any date range; pageSize=500 over the same range is 403. So the

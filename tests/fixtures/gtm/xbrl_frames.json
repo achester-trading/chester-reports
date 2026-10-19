@@ -1,0 +1,54 @@
+{
+  "_fixture": "SYNTHETIC round values for tools/validate_gtm.py group L -- the shape of SEC EDGAR's XBRL frames responses (api/xbrl/frames/us-gaap/<tag>/USD/CY<year>.json), not filed figures. Keyed '<tag>|<year>'.",
+  "NetCashProvidedByUsedInOperatingActivities|2023": {
+    "taxonomy": "us-gaap", "tag": "NetCashProvidedByUsedInOperatingActivities", "ccp": "CY2023", "uom": "USD", "pts": 6,
+    "data": [
+      {"accn": "fixture-1", "cik": 1018724, "entityName": "AMAZON (fixture)", "loc": "US-WA", "end": "2023-12-31", "val": 80000000000},
+      {"accn": "fixture-2", "cik": 1652044, "entityName": "ALPHABET (fixture)", "loc": "US-CA", "end": "2023-12-31", "val": 100000000000},
+      {"accn": "fixture-3", "cik": 1326801, "entityName": "META (fixture)", "loc": "US-CA", "end": "2023-12-31", "val": 70000000000},
+      {"accn": "fixture-4", "cik": 789019, "entityName": "MICROSOFT (fixture)", "loc": "US-WA", "end": "2024-06-30", "val": 110000000000},
+      {"accn": "fixture-5", "cik": 1341439, "entityName": "ORACLE (fixture)", "loc": "US-TX", "end": "2024-05-31", "val": 20000000000},
+      {"accn": "fixture-6", "cik": 320193, "entityName": "NOT A HYPERSCALER (fixture)", "loc": "US-CA", "end": "2023-09-30", "val": 99000000000}
+    ]
+  },
+  "NetCashProvidedByUsedInOperatingActivities|2024": {
+    "taxonomy": "us-gaap", "tag": "NetCashProvidedByUsedInOperatingActivities", "ccp": "CY2024", "uom": "USD", "pts": 5,
+    "data": [
+      {"accn": "fixture-7", "cik": 1018724, "entityName": "AMAZON (fixture)", "loc": "US-WA", "end": "2024-12-31", "val": 110000000000},
+      {"accn": "fixture-8", "cik": 1652044, "entityName": "ALPHABET (fixture)", "loc": "US-CA", "end": "2024-12-31", "val": 120000000000},
+      {"accn": "fixture-9", "cik": 1326801, "entityName": "META (fixture)", "loc": "US-CA", "end": "2024-12-31", "val": 90000000000},
+      {"accn": "fixture-10", "cik": 789019, "entityName": "MICROSOFT (fixture)", "loc": "US-WA", "end": "2025-06-30", "val": 130000000000},
+      {"accn": "fixture-11", "cik": 1341439, "entityName": "ORACLE (fixture)", "loc": "US-TX", "end": "2025-05-31", "val": 20000000000}
+    ]
+  },
+  "PaymentsToAcquirePropertyPlantAndEquipment|2023": {
+    "taxonomy": "us-gaap", "tag": "PaymentsToAcquirePropertyPlantAndEquipment", "ccp": "CY2023", "uom": "USD", "pts": 4,
+    "data": [
+      {"accn": "fixture-12", "cik": 1652044, "entityName": "ALPHABET (fixture)", "loc": "US-CA", "end": "2023-12-31", "val": 30000000000},
+      {"accn": "fixture-13", "cik": 1326801, "entityName": "META (fixture)", "loc": "US-CA", "end": "2023-12-31", "val": 28000000000},
+      {"accn": "fixture-14", "cik": 789019, "entityName": "MICROSOFT (fixture)", "loc": "US-WA", "end": "2024-06-30", "val": 40000000000},
+      {"accn": "fixture-15", "cik": 1341439, "entityName": "ORACLE (fixture)", "loc": "US-TX", "end": "2024-05-31", "val": 7000000000}
+    ]
+  },
+  "PaymentsToAcquirePropertyPlantAndEquipment|2024": {
+    "taxonomy": "us-gaap", "tag": "PaymentsToAcquirePropertyPlantAndEquipment", "ccp": "CY2024", "uom": "USD", "pts": 3,
+    "data": [
+      {"accn": "fixture-16", "cik": 1652044, "entityName": "ALPHABET (fixture)", "loc": "US-CA", "end": "2024-12-31", "val": 50000000000},
+      {"accn": "fixture-17", "cik": 789019, "entityName": "MICROSOFT (fixture)", "loc": "US-WA", "end": "2025-06-30", "val": 55000000000},
+      {"accn": "fixture-18", "cik": 1341439, "entityName": "ORACLE (fixture)", "loc": "US-TX", "end": "2025-05-31", "val": 20000000000}
+    ]
+  },
+  "PaymentsToAcquireProductiveAssets|2023": {
+    "taxonomy": "us-gaap", "tag": "PaymentsToAcquireProductiveAssets", "ccp": "CY2023", "uom": "USD", "pts": 2,
+    "data": [
+      {"accn": "fixture-19", "cik": 1018724, "entityName": "AMAZON (fixture)", "loc": "US-WA", "end": "2023-12-31", "val": 50000000000},
+      {"accn": "fixture-20", "cik": 1652044, "entityName": "ALPHABET (fixture)", "loc": "US-CA", "end": "2023-12-31", "val": 999000000000}
+    ]
+  },
+  "PaymentsToAcquireProductiveAssets|2024": {
+    "taxonomy": "us-gaap", "tag": "PaymentsToAcquireProductiveAssets", "ccp": "CY2024", "uom": "USD", "pts": 1,
+    "data": [
+      {"accn": "fixture-21", "cik": 1018724, "entityName": "AMAZON (fixture)", "loc": "US-WA", "end": "2024-12-31", "val": 80000000000}
+    ]
+  }
+}

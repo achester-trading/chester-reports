@@ -25,6 +25,10 @@ from . import config
 EXIT_INCOMPLETE = 5
 MIN_EXPIRY_SHARE = 0.90
 COMPLETENESS_FILE = "_completeness.json"
+# M-3: the 16:31 vendor capture's own record, merged at read.
+VENDOR_FILE = "_vendor_completeness.json"
+VENDOR_PENDING = ("not yet captured at the read (chester-vendor-chains runs at "
+                  "16:31 ET)")
 
 
 def completeness(yf_summary: dict, universe: list[str],
@@ -64,6 +68,26 @@ def completeness(yf_summary: dict, universe: list[str],
     return out
 
 
+def vendor_record(vendor_summary: dict, universe: list[str], data_as_of: str) -> dict:
+    vs = (vendor_summary or {}).get("symbols") or {}
+    return {"expected": list(universe),
+            "captured": [s for s in universe if (vs.get(s) or {}).get("rows")],
+            "missing": [s for s in universe if not (vs.get(s) or {}).get("rows")],
+            "key_missing": bool((vendor_summary or {}).get("key_missing")),
+            "data_as_of": data_as_of}
+
+
+def write_vendor(rec: dict, day: str, base_dir: Optional[str] = None) -> Optional[Path]:
+    d = Path(base_dir or config.CHAIN_DIR) / day
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+        p = d / VENDOR_FILE
+        p.write_text(json.dumps(rec, indent=1, sort_keys=True), encoding="utf-8")
+        return p
+    except OSError:
+        return None
+
+
 def gap_lines(rec: dict) -> list[str]:
     """The record as the close prints it: one line per gap, none when complete."""
     out = []
@@ -75,7 +99,9 @@ def gap_lines(rec: dict) -> list[str]:
                    f"listed expiries captured ({rec['expiry_share']:.0%}, floor "
                    f"{rec['expiry_floor']:.0%})")
     v = rec.get("vendor") or {}
-    if v.get("missing"):
+    if v.get("pending"):
+        out.append(f"vendor chains {', '.join(v.get('expected') or [])}: {VENDOR_PENDING}")
+    elif v.get("missing"):
         why = " (the Massive key is not set)" if v.get("key_missing") else ""
         out.append(f"vendor chains missing: {', '.join(v['missing'])}{why}")
     return out
@@ -100,6 +126,15 @@ def read_completeness(day: str, base_dir: Optional[str] = None) -> Optional[dict
     or a capture that never started)."""
     p = Path(base_dir or config.CHAIN_DIR) / day / COMPLETENESS_FILE
     try:
-        return json.loads(p.read_text(encoding="utf-8"))
+        rec = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    # M-3: the vendor record arrives at 16:31 from its own unit. Merged when it is
+    # there; when it is not, the read says it is pending, never missing. A record
+    # from before M-3 (its vendor section written by the EOD pass) is kept.
+    try:
+        rec["vendor"] = json.loads((p.parent / VENDOR_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        if not rec.get("vendor") and config.massive_universe():
+            rec["vendor"] = {"expected": config.massive_universe(), "pending": True}
+    return rec

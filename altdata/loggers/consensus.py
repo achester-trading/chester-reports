@@ -81,7 +81,8 @@ TIMEOUT_NOTE = "yfinance has no timeout knob on .info; a hung name is skipped"
 
 
 def universe() -> list[str]:
-    """The tracked options universe plus the eleven sector ETFs.
+    """The tracked options universe plus the eleven sector ETFs, and the GTM
+    batch's names (the top 10 issuers and the hyperscalers).
 
     SPY, QQQ and IWM are already in the options universe, so the order's "+
     SPY/QQQ/IWM" is satisfied by it rather than by adding them twice.
@@ -89,8 +90,17 @@ def universe() -> list[str]:
     from .. import config
     from ..sources import yfinance_source as yf_src
     sectors = [k.replace("mkt_", "").upper() for k in yf_src.SECTOR_KEYS]
+    # THE GTM BATCH, PART 2 (17 Oct 2026): the top 10 issuers by SPY's weights
+    # and the hyperscaler bucket's members, so GTM-3's and GTM-4's multiples are
+    # stored for every name they need (altdata/gtm_equities.py consensus_names;
+    # its declared names alone when the holdings cannot be read).
+    try:
+        from .. import gtm_equities
+        gtm_names = gtm_equities.consensus_names()
+    except Exception:                                           # noqa: BLE001
+        gtm_names = []
     seen, out = set(), []
-    for sym in list(config.options_universe()) + sectors:
+    for sym in list(config.options_universe()) + sectors + gtm_names:
         if sym not in seen:
             seen.add(sym)
             out.append(sym)

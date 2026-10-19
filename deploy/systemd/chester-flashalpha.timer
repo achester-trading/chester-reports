@@ -1,0 +1,15 @@
+[Unit]
+Description=Run the chester-reports FlashAlpha vendor writer at 16:25 ET on weekdays
+Documentation=https://github.com/achester-trading/chester-reports
+
+[Timer]
+# 16:25 ET: after the 16:10 capture, before the 16:45 close; DST handled per
+# firing. Market holidays: the vendor answers with the prior session's book,
+# stamped with its own as_of, which the writer stores as it says. 6b part 3.
+OnCalendar=Mon-Fri 16:25 America/New_York
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+
+[Install]
+WantedBy=timers.target

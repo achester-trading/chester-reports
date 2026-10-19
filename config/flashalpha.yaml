@@ -1,0 +1,97 @@
+# THE FLASHALPHA VENDOR WRITER (6b part 3; reconfigured by F-1, F-2 and F-4, ruled
+# 18 Oct 2026; a43-render). Read by altdata/sources/flashalpha.py. Every number
+# is SESSION-SET or RULED, with its reason; docs/briefs/a43-render-notes.md lists
+# them. EVERY VALUE IS THE VENDOR'S, stored under source flashalpha, read by no
+# engine, flag, tell, dial or decision: the Weekly's vendor row and the
+# divergence data gate print it beside our own figures, and nothing else reads it.
+version: flashalpha-writer-v2
+
+# F-4: the plan's end. From the day after it the writer makes no call and the
+# Weekly's vendor row prints "vendor: plan ended".
+plan_ends: "2027-03-31"
+
+# F-1: the symbols. SPX joins (the vendor serves its GEX; ours is pending the
+# solver gate), MSTR stays for the event watch.
+symbols: [SPY, QQQ, IWM, SPX, MSTR]
+
+# F-1: the budget, 60 requests a day (the plan below is 57).
+daily_call_budget: 60
+
+# The endpoints, from the vendor's API documentation (read 18 Oct 2026; auth by
+# the X-Api-Key header). expected_move's path is RULED (ruling 2 of 18 Oct 2026:
+# it served this account that day): GET /v1/expected-move/{symbol}, optional
+# ?expiry=YYYY-MM-DD, answering expected_moves[] with expiry, daysToExpiry, atmIv,
+# expectedMove, expectedMovePct, lowerBound and upperBound. A 403 or 404 stores
+# nothing, prints "expected move: not served", and the 20-day IV comparison waits.
+endpoints:
+  summary: /v1/stock/{symbol}/summary
+  levels: /v1/exposure/levels/{symbol}
+  max_pain: /v1/maxpain/{symbol}
+  expected_move: /v1/expected-move/{symbol}
+  dex: /v1/exposure/dex/{symbol}
+  vex: /v1/exposure/vex/{symbol}
+  chex: /v1/exposure/chex/{symbol}
+  surface: /v1/surface/{symbol}
+  gex: /v1/exposure/gex/{symbol}
+
+# THE PLAN, by slot (ET). 16:25: the full set; 09:45 and 12:30: the summary and
+# levels for three symbols. Blobs are whole responses, one file a request, never
+# store rows.
+slots:
+  "1625":
+    symbols: [SPY, QQQ, IWM, SPX, MSTR]
+    per_symbol: [summary, levels, max_pain, expected_move, dex, vex, chex]
+    blobs: [max_pain, expected_move, dex, vex, chex, surface, gex]
+    surface: [SPY, QQQ]
+    # GEX by single expiry, the nearest N listed expiries (read from the
+    # expected-move or the max-pain response, never guessed).
+    gex_by_expiry: {SPY: 5, SPX: 3}
+  "0945":
+    symbols: [SPY, QQQ, SPX]
+    per_symbol: [summary, levels]
+    blobs: []
+  "1230":
+    symbols: [SPY, QQQ, SPX]
+    per_symbol: [summary, levels]
+    blobs: []
+
+# The blobs' directory, under the checkout's data/ (gitignored, in the units'
+# ReadWritePaths, swept by the backup with the chains).
+blob_dir: data/vendor/flashalpha
+
+# F-2: the ATM IV comparison. ONLY the first listed expiry of 20 DTE or more, and
+# ONLY from the 16:25 capture. Front-expiry vendor IVs are stored (in the blobs)
+# and never compared: on 16 Oct the summary's ATM IV read 33.9% against a 20-day
+# realized 10.5%, and a 1-DTE value read 120%.
+iv_compare:
+  min_dte: 20
+  slot: "1625"
+
+# Field names the parser reads where a response's shape is not fixed by a
+# documented example (the summary's and the levels' are, from the 16 Oct
+# responses); the first box run lists what was absent.
+field_names:
+  net_gex: [net_gex, netGex, gex_total, total_gex, gex]
+  net_dex: [net_dex, netDex, dex_total, total_dex, dex]
+  net_vex: [net_vex, netVex, vex_total, total_vex, vex]
+  net_chex: [net_chex, netChex, chex_total, total_chex, chex]
+  max_pain_strike: [max_pain_strike, max_pain, maxPain]
+  pin_probability: [pin_probability, pinProbability, pin_prob]
+  alignment: [dealer_alignment, alignment, alignment_word]
+  pc_oi_ratio: [put_call_oi_ratio, pc_ratio_oi, pcr_oi]
+
+# THE DIVERGENCE GATE (a data gate, tools/validate_vendor_divergence.py). F-4:
+# a flip more than 0.5% of spot from ours, or a regime that disagrees, is
+# flagged. A flag is a question, never a correction (cross_check.py's rule).
+divergence:
+  # GEX against our dollar_gamma_per_1pct (ledger gex-scale-flashalpha-2026-10-09).
+  gex_rel: 0.50
+  # DEX against our raw-signed dex_raw_notional (the 9 Oct ledger reconciled the
+  # two to 1% on the same inputs).
+  dex_rel: 0.15
+  # F-4 (ruled): the flip, in percent of spot.
+  flip_pct: 0.5
+  # The walls, in percent of spot.
+  wall_pct: 1.5
+  # F-4 (ruled): the regime word compared with the sign of our net GEX.
+  regime: true

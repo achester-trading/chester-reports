@@ -193,11 +193,18 @@ SYMBOLS: dict[str, str] = {
     # vol dial is a statement about today by its own definition. yfinance serves
     # both of these at the close.
     #
-    # ^VIX9D is also served and is deliberately NOT here: the order asked for
-    # these two, and a basket that grows on its own is a basket nobody reviewed.
-    # (^VVIX joined below by ruling, 4 Oct 2026.)
+    # ^VIX9D was left out until an order asked for it: a basket that grows on
+    # its own is a basket nobody reviewed. (^VVIX joined below by ruling, 4 Oct
+    # 2026.)
     "^VIX": "mkt_vix",
     "^VIX3M": "mkt_vix3m",
+    # BATCH 9 ITEM 52 (ruled 17 Oct 2026): the term-structure lens's ends, the
+    # order that asks for them. Under the basket's existing exception (yfinance,
+    # ruled 11 Oct 2026); Cboe's free daily files (cdn.cboe.com, VIX9D from
+    # 2011-01-04, VIX6M from 2008-01-02) are the verified alternative. A name
+    # added here needs tools/backfill_prices.py before its history reads.
+    "^VIX9D": "mkt_vix9d",
+    "^VIX6M": "mkt_vix6m",
     # THE WEEKLY'S GAUGES (T2.2, ruled 4 Oct 2026, item 16): bond-market implied
     # volatility (ICE BofA MOVE), the volatility of the VIX, and Cboe's SKEW. Added
     # by ruling -- the reviewed basket the note above asks for.
@@ -231,6 +238,12 @@ SYMBOLS: dict[str, str] = {
     # and a ledger marked from the store needs AGG's closes in it. Like NVDA, a
     # name added here needs tools/backfill_prices.py before its history reads.
     "AGG": "mkt_agg",
+    # THE GTM BATCH, PART 2 (ruling 2 of 17 Oct 2026): the fixed-income scenario
+    # table's TIPS, municipal and MBS proxies (GTM-13). Like AGG, each needs
+    # tools/backfill_prices.py before its history reads.
+    "TIP": "mkt_tip",
+    "MUB": "mkt_mub",
+    "MBB": "mkt_mbb",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #

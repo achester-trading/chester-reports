@@ -257,6 +257,23 @@ for _w in MODEL_WINDOWS:
             f"ACM's 10-year term premium change over {_w} observations as a "
             f"share of ACM's own fitted 10-year yield change -- a NOMINAL split",
     })
+# THE THIRD CUT, SINCE THE LAST EVENT (ST-3's "1w/1m/since-event"; st-t1-rest,
+# 18 Oct 2026): the move since the close BEFORE the last FOMC decision day, so the
+# decision day's own reaction is in it. The decision days are the claims
+# registry's (config/claims.yaml cal.fomc_<year>, read by events_ingest's own
+# parser); a day before the first registered decision has no cut.
+RATES_FEATURES.update({
+    "calc.attr_d10y_since_fomc":
+        "the 10-year yield's change since the close before the last FOMC decision "
+        "day, in basis points",
+    "calc.attr_real_share_since_fomc":
+        "the 10-year TIPS real yield's change since the last FOMC decision as a "
+        "share of the nominal 10-year's (the real/breakeven cut). Written only when "
+        f"the 10-year moved {ATTR_MIN_MOVE_BP:g}bp",
+    "calc.attr_curve_share_since_fomc":
+        "the 2-year yield's change since the last FOMC decision as a share of the "
+        "10-year's (the curve cut)",
+})
 RATES_FEATURES.update({
     f"calc.corr_spy_tlt_{CORR_WINDOW}d":
         f"Pearson correlation of SPY and TLT daily log returns over "
@@ -556,6 +573,30 @@ def rates_rows(db: observations.ObservationStore,
                 emit(f"calc.attr_curve_share_{w}d", day,
                      (y2[day][0] - y2[p][0]) * 100.0 / d10,
                      base + [av(y2, day), av(y2, p)])
+
+    # --- THE THIRD CUT: SINCE THE LAST FOMC DECISION -------------------------
+    decisions = fomc_decision_days()
+    for day in days:
+        past = [d for d in decisions if d <= day]
+        if not past:
+            continue
+        before = [d for d in days if d < past[-1]]
+        if not before:
+            continue
+        p = before[-1]
+        d10 = (y10[day][0] - y10[p][0]) * 100.0
+        base = [av(y10, day), av(y10, p)]
+        emit("calc.attr_d10y_since_fomc", day, d10, base)
+        if abs(d10) < ATTR_MIN_MOVE_BP:
+            continue
+        if day in tips and p in tips:
+            emit("calc.attr_real_share_since_fomc", day,
+                 (tips[day][0] - tips[p][0]) * 100.0 / d10,
+                 base + [av(tips, day), av(tips, p)])
+        if day in y2 and p in y2:
+            emit("calc.attr_curve_share_since_fomc", day,
+                 (y2[day][0] - y2[p][0]) * 100.0 / d10,
+                 base + [av(y2, day), av(y2, p)])
 
     # --- KIM-WRIGHT: term premium over the nominal 10-year it decomposes -----
     acm_tp = _load(db, "acm.term_premium_10y", as_of)
@@ -993,6 +1034,29 @@ def aq3b_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
     return rows
 
 
+def fomc_decision_days() -> list[str]:
+    """Every FOMC decision day the claims registry holds (cal.fomc_<year>),
+    sorted: the second day of each meeting, parsed by events_ingest's own reader.
+    Empty when the registry cannot be read."""
+    import re                                                   # noqa: PLC0415
+    from pathlib import Path                                    # noqa: PLC0415
+    import yaml                                                 # noqa: PLC0415
+    from .events_ingest import _fomc_dates                      # noqa: PLC0415
+    try:
+        path = Path(__file__).resolve().parent.parent / "config" / "claims.yaml"
+        reg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:                                           # noqa: BLE001
+        return []
+    claims = reg.get("claims", reg) if isinstance(reg, dict) else {}
+    out = []
+    for cid, c in (claims or {}).items():
+        m = re.fullmatch(r"cal\.fomc_(\d{4})", str(cid))
+        if m and isinstance(c, dict):
+            out += [d.isoformat() for d in _fomc_dates(str(c.get("value") or ""),
+                                                        int(m.group(1)))]
+    return sorted(set(out))
+
+
 RECOMPUTE_WINDOW_DAYS = 120
 
 
@@ -1036,8 +1100,26 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("correlation layer failed", exc_info=True)
             corr = {"error": f"{type(exc).__name__}: {exc}"}
+        # ST-4'S DURATION ABSORPTION FEATURES AND RATES FLAGS (st-t1-rest) ride
+        # the same pass, after everything they read is written. Never fatal.
+        try:
+            from . import absorption                             # noqa: PLC0415
+            absr = absorption.compute(as_of=as_of, first_day=first_day, store=db,
+                                      dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("absorption features failed", exc_info=True)
+            absr = {"error": f"{type(exc).__name__}: {exc}"}
+        # ST-5'S FUNDING-CURRENCY FEATURES (st-t2-rates), after ST-4's. Never fatal.
+        try:
+            from . import funding_currency                       # noqa: PLC0415
+            fcr = funding_currency.compute(as_of=as_of, first_day=first_day,
+                                           store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("funding-currency features failed", exc_info=True)
+            fcr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
-                "dry_run": dry_run, "correlation": corr}
+                "dry_run": dry_run, "correlation": corr, "absorption": absr,
+                "funding_currency": fcr}
     finally:
         if own:
             db.close()

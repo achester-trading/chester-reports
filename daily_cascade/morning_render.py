@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from . import events_block, state_block
+from . import events_block, opening_setup, signal_lines, state_block
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -330,6 +330,8 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Exceptions</h2>
 {state_block.exceptions_block(payload)}
+{vol_event_html(payload)}
+{signal_lines.html(payload.get("signal_lines"))}
 
 <h2 style="{H2}">Stories</h2>
 {stories_block(payload)}
@@ -346,6 +348,10 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Prior close &mdash; dealer surface</h2>
 {exposure_block(payload)}
+{opening_setup.gauge_html(payload.get("opening_gauge"))}
+{opening_setup.vol_lines_html(payload.get("vol_regime_lines"))}
+{opening_setup.oi_builds_html(payload.get("oi_builds"))}
+{opening_setup.vol_lines_html(payload.get("index_put_lines"))}
 
 <h2 style="{H2}">Prior close &mdash; pin verdicts</h2>
 {pin_table(payload)}
@@ -399,3 +405,20 @@ def text_fallback(payload: dict) -> str:
     for w in payload.get("warnings") or []:
         lines.append(f"WARNING: {w}")
     return "\n".join(lines)
+
+
+def vol_event_html(payload: dict) -> str:
+    """BATCH 9 ITEM 52: the prior close's volatility event, as the close stored
+    it -- the trigger line, the lenses, the consequence and the base rate. Silent
+    on a session with no event."""
+    ev = payload.get("vol_event") or {}
+    if not ev.get("fired"):
+        return ""
+    rows = "".join(f"<tr><td style=\"padding:2px 8px 2px 0;vertical-align:top\">"
+                   f"<strong>{esc(r[0])}</strong></td><td>{esc(r[1])}</td></tr>"
+                   for r in (ev.get("table") or {}).get("rows") or [])
+    extra = "".join(f"<p>{esc(x)}</p>" for x in (ev.get("consequence"), ev.get("base_rate"),
+                                                  ev.get("complacency")) if x)
+    return (f'<h2 style="{H2}">Volatility event</h2><p>{esc(ev.get("trigger_line"))}</p>'
+            f'<table style="font-size:12.5px;border-collapse:collapse">{rows}</table>'
+            f"{extra}")

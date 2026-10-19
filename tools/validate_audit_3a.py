@@ -159,6 +159,30 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).
 NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
+                     # Batch 9 item 52 (17 Oct 2026): ^VIX9D and ^VIX6M join the
+                     # basket, with their action series.
+                     "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",
+                     "yfinance.mkt_vix9d_dividend", "yfinance.mkt_vix9d_split",
+                     "yfinance.mkt_vix6m_dividend", "yfinance.mkt_vix6m_split",
+                     # Signal-triage ST-4 (st-t1-rest, 18 Oct 2026): FEDTARMD.
+                     "fred.sep_median_ff",
+                     # The GTM batch, part 2 (17 Oct 2026): GTM-12's six FRED
+                     # series and GTM-13's three proxies with their actions.
+                     "fred.fed_interest_payments", "fred.fed_defense",
+                     "fred.fy_net_interest", "fred.fy_net_outlays",
+                     "fred.fy_deficit", "fred.fy_deficit_gdp",
+                     "yfinance.mkt_tip", "yfinance.mkt_mub", "yfinance.mkt_mbb",
+                     "yfinance.mkt_tip_dividend", "yfinance.mkt_tip_split",
+                     "yfinance.mkt_mub_dividend", "yfinance.mkt_mub_split",
+                     "yfinance.mkt_mbb_dividend", "yfinance.mkt_mbb_split",
+                     "yfinance.mkt_tip_volume", "yfinance.mkt_mub_volume",
+                     "yfinance.mkt_mbb_volume",
+                     # The GTM batch, part 1 (17 Oct 2026): five FRED series
+                     # and the three base-rate tables.
+                     "fred.customs_duties", "fred.goods_imports",
+                     "fred.dsr_household", "fred.dsr_consumer", "fred.dsr_mortgage",
+                     "baserate.stock_bond_eras", "baserate.sentiment_turning_points",
+                     "baserate.all_time_highs",
                      # ST-R5.30a and ST-R5.35a (16 Oct 2026)
                      "fred.hh_equity_share", "fred.hh_fin_assets",
                      "fred.ppi_fd_core_ts", "fred.ulc_nfb",
@@ -819,7 +843,7 @@ def group_f() -> None:
     faults = printed_count_faults(text, counts)
     check(not faults, f"each of the {len(PRINTED_COUNTS)} counts CLAUDE.md prints "
           f"equals the code's ({faults or counts})")
-    stale = text.replace("52 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
+    stale = text.replace("64 more in FRED_SIGNAL_SERIES", "20 more in FRED_SIGNAL_SERIES")
     check(any("FRED_SIGNAL_SERIES: CLAUDE.md prints 20" in f
               for f in printed_count_faults(stale, counts)),
           "and a stale count is caught: the audit's '20 more in FRED_SIGNAL_SERIES'")

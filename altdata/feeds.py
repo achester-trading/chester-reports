@@ -152,6 +152,10 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "finra", "proshares",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
+                    # The GTM batch, part 2 (17 Oct 2026): the hyperscalers'
+                    # annual cash flow and capex from EDGAR's XBRL frames
+                    # (GTM-4's bridge); PENDING until the SEC contact is set
+                    "edgar_xbrl",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
                     "aaii",
                     # SR-38's S&P DJI EPS workbook ("spdji") left the roster on
@@ -706,6 +710,10 @@ def freshness(as_of: Optional[str] = None,
         from . import fed_funds as _ff                         # noqa: PLC0415
         rosters += [("prediction_markets", list(PREDICTION_KEYS)),
                     ("fed_funds", [_ff.KEY])]
+        # THE VENDOR WRITER (ruling 3 of 17 Oct 2026): its own 16:25 unit; pending
+        # until its first run records an attempt.
+        from .sources import flashalpha as _fa                 # noqa: PLC0415
+        rosters += [("vendor", list(_fa.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None

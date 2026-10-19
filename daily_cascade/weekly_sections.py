@@ -337,8 +337,12 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     implied = (spot * (iv / 100.0) * math.sqrt(1.0 / 252.0)
                if spot and iv else None)
     actual = (hi - lo) if None not in (hi, lo) else None
-    cw = card.get("call_wall_morning") or card.get("call_wall")
-    pw = card.get("put_wall_morning") or card.get("put_wall")
+    # THE WALLS ARE THE MORNING'S OTM WALLS (ruled 17 Oct 2026; audit F5): the
+    # put wall moves from the all-strike put peak to the OTM put gamma wall, and
+    # the call wall likewise. A card stored before 6b part 1 carries no OTM wall,
+    # so its held flags are None, never scored against a peak.
+    cw = card.get("call_wall_otm_morning")
+    pw = card.get("put_wall_otm_morning")
     mp = card.get("max_pain")
     out = {"implied_range": round(implied, 2) if implied else None,
            "iv_source": ("SPY ATM 30-day IV" if own_iv else
@@ -346,13 +350,22 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
            "actual_range": round(actual, 2) if actual is not None else None,
            "pinned": (None if close is None or mp is None
                       else _within(close, mp, pin_pct)),
-           "call_wall_held": (None if None in (hi, close, cw) else
-                              _within(hi, cw, wall_pct) and close < cw),
-           "put_wall_held": (None if None in (lo, close, pw) else
-                             _within(lo, pw, wall_pct) and close > pw),
+           # ELIGIBILITY BEFORE OUTCOME (brief v2 section 5.2): a wall the
+           # session never approached is None, never False.
+           "call_wall_held": (None if None in (hi, close, cw)
+                              or not _within(hi, cw, wall_pct) else close < cw),
+           "put_wall_held": (None if None in (lo, close, pw)
+                             or not _within(lo, pw, wall_pct) else close > pw),
            "amplified": (None if card.get("flip_crossed") is None or not implied
                          or actual is None else
                          bool(card["flip_crossed"]) and actual >= ratio * implied)}
+    # DAMPENED (6b part 2; the pre-registration's H1 outcome): a regime session
+    # (the morning's net-to-gross at the gate) in positive gamma whose range came
+    # in at or under the declared share of the implied range. Ineligible: None.
+    damp = float(fc.get("dampened_range_ratio", 0.8))
+    elig = (card.get("regime_eligible") and (card.get("net_gex_morning") or 0) > 0)
+    out["dampened"] = (None if not elig or not implied or actual is None
+                       else actual <= damp * implied)
     flip = card.get("flip_morning")
     out["close_vs_flip"] = (None if None in (close, flip) else
                             ("above" if close > flip else "below"))
@@ -361,6 +374,37 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     gap = float((cfg.get("dealer_flags") or {}).get("iv_vix_check_points", 5.0))
     out["iv_check"] = bool(own_iv and vix and abs(own_iv - vix) > gap)
     out["spy_iv"], out["vix"] = own_iv, vix
+    # THE IV'S CAPTURE TIME (Part 0, 17 Oct 2026). The close reads the session's
+    # LAST stored chain; if the 16:10 capture is missing, that is a midday one,
+    # and the implied range would rest on a chain taken before the afternoon. A
+    # capture before 16:00 ET prints its time beside the figure.
+    out["iv_captured"] = (_capture_before_close(card.get("atm_iv_capture_at"),
+                                                card.get("session"))
+                          if own_iv else None)
+    # GAPPED THROUGH THE FLIP (Part 0, 17 Oct 2026; descriptive, not
+    # pre-registered): the prior close on one side of the morning flip and the
+    # whole cash session on the other -- the flip was crossed overnight, not in
+    # the session (14 Oct: prior close 778.04, flip 777.25, high 776.35).
+    pc = card.get("prior_close")
+    out["gapped_through_flip"] = (
+        None if None in (pc, flip, hi, lo) else
+        (not (lo <= flip <= hi)) and (pc > flip > hi or pc < flip < lo))
+    # THE PRE-REGISTRATION'S DEFINITIONS FROM 17 OCT 2026 (ruling 7 of 17 Oct):
+    # pinned, held, amplified and dampened are the registered outcomes
+    # (altdata/dealer_scorecard.py: H4 on the monthly expiry, H3 at the OTM walls,
+    # H2 and H1 on regime sessions). A session before the date keeps the
+    # descriptive definitions it was printed under -- not restated.
+    frm = str(fc.get("definitions_from") or "")
+    sess = str(card.get("session") or "")[:10]
+    if frm and sess and sess >= frm:
+        from altdata import dealer_scorecard as dsc             # noqa: PLC0415
+        sc = dsc.score_card(card, {}, dsc.config(cfg), vix)
+        for k in ("pinned", "call_wall_held", "put_wall_held", "amplified",
+                  "dampened"):
+            out[k] = sc[k]["outcome"]
+        out["definitions"] = "preregistration"
+    else:
+        out["definitions"] = "descriptive"
     return out
 
 
@@ -422,6 +466,37 @@ def apply_flip_words(tape: dict, mech: dict, symbol: str = "spy") -> Optional[di
     return fw
 
 
+def _capture_before_close(at: Optional[str], sess: Optional[str]) -> Optional[str]:
+    """The capture's time as "HH:MM ET" when it is before 16:00 ET on the
+    session; None when it is at or after the close, or either is unknown."""
+    if not at or not sess:
+        return None
+    try:
+        from zoneinfo import ZoneInfo                           # noqa: PLC0415
+        t = dt.datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=dt.timezone.utc)
+        et = t.astimezone(ZoneInfo("America/New_York"))
+    except (ValueError, KeyError):
+        return None
+    close = dt.datetime.combine(dt.date.fromisoformat(str(sess)[:10]),
+                                dt.time(16, 0), et.tzinfo)
+    return et.strftime("%H:%M ET") if et < close else None
+
+
+def _gated_regime(card: dict, cfg: dict) -> str:
+    """The close's regime word, gated on net-to-gross (6b; ruled 16 Oct 2026).
+    A card stored before the gate carries no net-to-gross: its sign prints
+    marked ungated, never as a regime."""
+    from . import dealer_block                                  # noqa: PLC0415
+    ntg = card.get("net_to_gross_close")
+    if ntg is None:
+        g = card.get("gamma_regime")
+        return f"{g} (ungated)" if g else "—"
+    return dealer_block.regime(card.get("net_gex_close"), ntg,
+                               cfg.get("dealer_block") or {})
+
+
 def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
     cards = []
     for s in sessions:
@@ -454,17 +529,24 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
         set_flags = [n for n, k in (("pinned", "pinned"), ("call wall held",
                                      "call_wall_held"), ("put wall held",
                                                          "put_wall_held"),
-                                    ("amplified", "amplified")) if f.get(k)]
-        rows.append([_day(c["session"]), c.get("gamma_regime") or "—",
+                                    ("amplified", "amplified"),
+                                    ("dampened", "dampened"),
+                                    ("gapped through the flip",
+                                     "gapped_through_flip")) if f.get(k)]
+        rows.append([_day(c["session"]), _gated_regime(c, cfg),
                      bn(c.get("net_gex_close")),
                      bn(c.get("dex_close")),
                      g(c.get("flip_morning")),
-                     f"{g(c.get('call_wall_morning') or c.get('call_wall'))} / "
-                     f"{g(c.get('put_wall_morning') or c.get('put_wall'))}",
+                     f"{g(c.get('call_wall_otm_morning'))} / "
+                     f"{g(c.get('put_wall_otm_morning'))}",
                      # -- the second table from here
                      _day(c["session"]), g(c.get("max_pain")),
                      (g(f["implied_range"])
-                      + (f" (SPY IV {f['spy_iv']:.1f}, VIX {f['vix']:.1f}: check)"
+                      + (f" (SPY IV {f['spy_iv']:.1f} captured {f['iv_captured']})"
+                         if f.get("iv_captured") and not f.get("iv_check") else "")
+                      + (f" (SPY IV {f['spy_iv']:.1f}"
+                         + (f" captured {f['iv_captured']}" if f.get("iv_captured") else "")
+                         + f", VIX {f['vix']:.1f}: check)"
                          if f.get("iv_check") else
                          " (VIX as proxy)" if f.get("iv_source") == "VIX as proxy"
                          else "")),
@@ -473,7 +555,8 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                      ", ".join(set_flags + (["check"] if f.get("iv_check") else []))
                      or "none"])
         scored.append({"session": c["session"], "flags": {k: f[k] for k in
-                       ("pinned", "call_wall_held", "put_wall_held", "amplified")},
+                       ("pinned", "call_wall_held", "put_wall_held", "amplified",
+                        "dampened")},
                        "implied_range": f["implied_range"],
                        "actual_range": f["actual_range"],
                        "close_vs_flip": f["close_vs_flip"],
@@ -483,7 +566,7 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                        "high": c.get("session_high"), "low": c.get("session_low")})
     # TWO TABLES OF SIX (T2.3 mobile rule): the profile, then the ranges.
     return {"table": {"columns": ["Session", "Gamma regime", "Net GEX", "DEX",
-                                  "Flip (morning capture)", "Call / put wall"],
+                                  "Flip (morning capture)", "OTM call / put wall"],
                       "rows": [r[:6] for r in rows]},
             "ranges_table": {"columns": ["Session", "Max pain", "Implied range",
                                          "Actual range", "Close vs flip", "Flags"],
@@ -500,7 +583,15 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                            "of it and the close inside; amplified = the flip "
                            "crossed and the actual range at least "
                            f"{(cfg.get('dealer_flags') or {}).get('amplified_range_ratio', 1.2)}"
-                           "× the implied."),
+                           "× the implied. From "
+                           + _day(str((cfg.get('dealer_flags') or {}).get('definitions_from')
+                                      or '2026-10-17'))
+                           + " 2026 the flags are the pre-registration's outcomes "
+                           "(pinned on the monthly expiry at the peak-gamma strike; "
+                           "amplified and dampened on regime sessions); earlier "
+                           "sessions keep the definitions they were printed under. "
+                           "Gapped through the flip: the flip crossed between the "
+                           "prior close and the open, not in the session; descriptive."),
             "data": {"sessions": scored}, "cards": cards}
 
 

@@ -1,0 +1,86 @@
+# The funding-currency features (signal-triage ST-5; st-t2-rates, 18 Oct 2026),
+# computed by altdata/funding_currency.py and printed in the Monthly's Factor IV
+# lines (daily_cascade/absorption_block.py). Display and modifier only: nothing
+# here enters a composite, a trigger or the market-state object.
+#
+# Every number below is SESSION-SET, each with its reason, until SR-2's and SR-4's
+# offline gates (ST-8) calibrate them; the ledger that does will name the values
+# it replaces.
+
+yen:
+  # SR-2 metric 1: "US 2y (or 3m) minus Japan, plus its 60-day change -- velocity
+  # mattered in Aug 2024, not level". The 2-year on both sides: MoF's daily JGB
+  # 2-year is stored, and the 3-month leg is monthly (OECD), too slow for a
+  # 60-session velocity.
+  front_change_sessions: 60
+  # SR-2 metric 2: the CFTC yen net non-commercial position as a z against its own
+  # trailing three years of weekly reports (156), once a year of them is held.
+  # Three years spans one carry cycle without reaching back across a regime.
+  pos_z_weeks: 156
+  pos_z_min_weeks: 52
+  # SR-2 metric 3: 10y UST less (3m USD less 3m JPY). DTB3 (discount basis) is
+  # the 3-month dollar leg and OECD's 3-month interbank rate the yen leg, carried
+  # forward at most 70 days (one monthly print plus its lag, the features pass's
+  # CARRY_DAYS).
+  carry_days: 70
+  # SR-2 metric 4, the unwind tell: USDJPY's 5-session change at or below -3%
+  # (the yen 3% stronger in a week, about a 2.5-sigma week at 2024's realized
+  # vol) WHILE its 20-session realized vol is at least 1.5x its own trailing
+  # 250-session median (a spike, not a level).
+  unwind_sessions: 5
+  unwind_move_pct: -3.0
+  vol_sessions: 20
+  vol_median_sessions: 250
+  vol_spike_ratio: 1.5
+
+yuan:
+  # SR-4's deliberate-devaluation tell, three legs:
+  # 1 "the fix stops leaning against the previous close": calc.cny_fix_dev is the
+  #   fix against the previous session's onshore close, bp; leaning against
+  #   weakness reads negative. The leg is ON when its 5-observation mean is at or
+  #   above -10 bp: the lean has gone (Aug 2015 moved the fix to the close).
+  lean_obs: 5
+  lean_gone_bp: -10.0
+  # 2 "the CNH-CNY gap widens with CNH weaker": calc.cnh_cny_bp (built 11 Oct;
+  #   the order's calc.cnh_cny_gap is this series, not a second one) on a
+  #   5-observation mean at or above +30 bp AND at least 20 bp wider than 20
+  #   observations earlier. 30 bp is about twice the gap's calm-year range.
+  gap_obs: 5
+  gap_weak_bp: 30.0
+  gap_widen_obs: 20
+  gap_widen_bp: 20.0
+  # 3 "state banks stop selling dollars": NOT TRACKED. The by-hand key
+  #   (state_bank_dollar_selling) was dropped by the audit of 16 Oct, and no
+  #   keyless source within terms reports state-bank FX flows daily (rule 30).
+  #   calc.deval_tell is therefore the conjunction of legs 1 and 2 only, and
+  #   every reader says so.
+  third_leg: "not tracked: by-hand key state_bank_dollar_selling, dropped 16 Oct; no keyless source within terms"
+
+# THE CANDIDATE CONTRADICTION ROWS (G-10): declared in the contradiction table's
+# own form (config/market_state.yaml, contradictions.pairs) and NOT in it. The
+# gap machinery (contradictions.gap_z) computes each one's divergence z for the
+# Monthly's Factor IV lines; no row opens, nothing reaches the object or the
+# Weekly's section 4. Whether they join the table or stay flags is decided at the
+# first Monthly after ST-5 (G-10); joining is a rules change (config v1.13).
+candidate_contradictions:
+  window_days: 1826
+  pairs:
+    - id: carry_vs_vol
+      legs: [calc.jpy_pos_z, calc.usdjpy_rvol_20d]
+      kind: metric_pair
+      polarities: [-1, +1]
+      expect: opposite
+      because: >-
+        SR-2. Crowded yen shorts (a negative positioning z, read high at polarity
+        -1) normally build while realized vol is low -- carry is a calm-market
+        trade -- so the legs sit apart. A gap wider than its history is the fuel
+        with no spark yet; the spark is the unwind tell.
+    - id: fix_vs_offshore
+      legs: [calc.cny_fix_dev, calc.cnh_cny_bp]
+      kind: metric_pair
+      polarities: [-1, +1]
+      expect: same
+      because: >-
+        SR-4. Offshore weakness (a wide CNH-CNY gap) normally meets a fix leaning
+        against it (a negative deviation, read high at polarity -1). Pressure
+        without the lean is the devaluation tell's first two legs.

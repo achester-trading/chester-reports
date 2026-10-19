@@ -100,6 +100,16 @@ PY_VALIDATORS := \
 	tools/validate_weekly_analytics.py \
 	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
+	tools/validate_dealer_block.py \
+	tools/validate_vol_event.py \
+	tools/validate_dealer_vendor.py \
+	tools/validate_system_metrics.py \
+	tools/validate_gtm.py \
+	tools/validate_st_t1_rest.py \
+	tools/validate_st_t2_rates.py \
+	tools/validate_st_t3_calib.py \
+	tools/validate_a43_render.py \
+	tools/validate_opening_setup.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \
@@ -149,7 +159,8 @@ DATA_GATES := \
 	tools/validate_monthly_store.py \
 	tools/validate_regime_store.py \
 	tools/validate_weekly_store.py \
-	tools/validate_imf_china.py
+	tools/validate_imf_china.py \
+	tools/validate_vendor_divergence.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \

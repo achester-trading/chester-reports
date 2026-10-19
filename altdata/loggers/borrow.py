@@ -140,7 +140,8 @@ APEWISDOM_PAGE_PAUSE = 1.0   # seconds between pages, for a free, keyless API
 REGSHO_MIN_TOTAL_VOLUME = 1_000_000
 REGSHO_LOOKBACK_SESSIONS = 10
 
-UA = {"User-Agent": "chester-reports/1.0 (research logging)"}
+from ..sources.user_agent import generic as _generic_ua       # noqa: E402
+UA = {"User-Agent": _generic_ua()}
 TIMEOUT = 30
 MIN_HISTORY = 60
 

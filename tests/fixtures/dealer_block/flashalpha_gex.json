@@ -1,0 +1,6 @@
+{
+  "_fixture": "SYNTHETIC, and its field names UNVERIFIED: /v1/exposure/gex is tools/probe_flashalpha.py's registered path, and the parser reads the names in config/flashalpha.yaml field_names. Every number is invented.",
+  "symbol": "SPY",
+  "as_of": "2026-10-16T20:25:00Z",
+  "exposure": {"net_gex": 410000000.0, "net_dex": 18500000000.0, "net_vex": -1200000000.0}
+}

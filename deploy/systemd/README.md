@@ -947,17 +947,24 @@ box keeps its own unit files current.
 The box moves from 4 GB to 8 GB (CX33) on Saturday 17 Oct 2026. The IB Gateway's
 Java shares that RAM with every report, and until AUD-2 no unit had a memory cap.
 
-**The caps (session-set; `tools/validate_systemd_units.py` holds them):**
+**The caps follow the machine (6b part 3; ruled 17 Oct 2026: the rescale did not
+happen and the box stays at 4 GB).** Each cap is a percentage of physical memory,
+equal on 8 GB to AUD-2's absolute figure (kept in each unit's comment), so on the
+4 GB box it reads half that. `tools/validate_systemd_units.py` holds the rule at
+4 GB and at 8 GB, and refuses an absolute cap on any unit.
 
-| Unit | MemoryHigh | MemoryMax | Why this size |
-|---|---|---|---|
-| chester-eod | 1.6G | 2G | the chain fetch, GEX and the pin log for the whole universe, pandas-heavy |
-| chester-daily-close | 1.6G | 2G | the stacked close: levels, charts, the PDF |
-| chester-weekly | 2G | 2.5G | ten sections, ten charts, the PDF, the précis |
-| chester-monthly | 2G | 2.5G | the longest edition: twelve charts, the Monthly's tables |
-| chester-voices | 0.8G | 1G | fetch-and-extract, one article at a time |
-| chester-backup | 1.2G | 1.5G | the online snapshot, gzip, rclone's buffers |
-| chester-restore-drill | 0.8G | 1G | one snapshot, gunzipped |
+| Unit | MemoryHigh | MemoryMax | at 4 GB | at 8 GB (AUD-2) | Why this size |
+|---|---|---|---|---|---|
+| chester-eod | 20% | 25% | 0.8G / 1.0G | 1.6G / 2G | the chain fetch, GEX and the pin log for the whole universe, pandas-heavy |
+| chester-daily-close | 20% | 25% | 0.8G / 1.0G | 1.6G / 2G | the stacked close: levels, charts, the PDF |
+| chester-weekly | 25% | 31% | 1.0G / 1.24G | 2G / 2.48G | ten sections, ten charts, the PDF, the précis |
+| chester-monthly | 25% | 31% | 1.0G / 1.24G | 2G / 2.48G | the longest edition: twelve charts, the Monthly's tables |
+| chester-voices | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | fetch-and-extract, one article at a time |
+| chester-backup | 15% | 19% | 0.6G / 0.76G | 1.2G / 1.52G | the online snapshot, gzip, rclone's buffers |
+| chester-restore-drill | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one snapshot, gunzipped |
+| chester-dealer-0945, -1230 (6b part 2) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one capture and one compute |
+| chester-flashalpha (6b part 3) | 4% | 5% | 0.16G / 0.2G | 0.32G / 0.4G | six REST calls and a store write |
+| chester-vendor-chains (M-3, 16:31) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | the two vendor chains, no compute |
 
 `MemoryHigh` throttles and reclaims, so a report over it slows down rather than
 dies. `MemoryMax` is the hard ceiling, where the kernel kills inside the unit's

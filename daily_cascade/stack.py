@@ -191,25 +191,71 @@ def tape_section(book: dict, vp_windows: Optional[tuple] = ("session",
                      "volume_profile": vpt["data"]}}
 
 
-def mechanics_section(p: dict) -> dict:
+def state_vectors(p: dict, st) -> Optional[list]:
+    """EL-5: the state vector of each SPY capture of the session under the
+    payload's `computed_dir` (altdata/state_vector.py). None when the payload names
+    no directory -- a gate's synthetic payload -- so nothing is read."""
+    if not p.get("computed_dir"):
+        return None
+    from altdata import state_vector as sv                      # noqa: PLC0415
+    from . import dealer_block                                  # noqa: PLC0415
+    out = []
+    try:
+        caps = sorted((c for c in dealer_block.captures_on(p["session"], "SPY",
+                                                           p["computed_dir"])
+                       if not c.get("error") and c.get("fetched_at")),
+                      key=lambda c: c["fetched_at"])
+        if not caps:
+            return []
+        from altdata import events as events_mod                # noqa: PLC0415
+        with bars_mod.BarStore() as bst:
+            try:
+                evs = events_mod.EventStore()
+            except Exception:                                   # noqa: BLE001
+                evs = None
+            try:
+                for c in caps:
+                    out.append(sv.gather(st, bst, evs, c, p["session"]))
+            finally:
+                if evs is not None:
+                    evs.close()
+    except Exception as exc:                                    # noqa: BLE001
+        return [{"absent": f"state vector: {type(exc).__name__}: {exc}"}]
+    return out
+
+
+def mechanics_section(p: dict, dealer: Optional[list] = None,
+                      vol_ev: Optional[dict] = None,
+                      state_vecs: Optional[list] = None) -> dict:
+    """The close's Mechanics. 6b part 1 (brief v2, ratified 16 Oct 2026): the
+    regime word is GATED on net-to-gross (dealer_block.regime), the walls are the
+    OTM walls (audit F5), and `dealer` -- the dealer block per configured symbol
+    (daily_cascade/dealer_block.py) -- adds T1 with its quality panel, T4, T2 and
+    the decision summary as sub-sections, the summary's lead as one item, and
+    the sign convention once, as the section's note."""
+    from . import dealer_block                                  # noqa: PLC0415
+    dcfg = dealer_block.config()
     items, rows = [], []
     for r in p.get("exposure") or []:
         if r.get("symbol") not in ("SPY", "QQQ", "IWM"):
             continue
         g = r.get("net_gex")
-        regime = "positive" if (g or 0) > 0 else "negative"
+        regime = dealer_block.regime(g, r.get("net_to_gross"), dcfg)
         flip, spot = r.get("gamma_flip"), r.get("spot")
         side = ("above" if spot and flip and spot > flip else "below") if flip else None
+        cw = r.get("call_wall_otm", r.get("call_wall"))
+        pw = r.get("put_wall_otm", r.get("put_wall"))
         items.append(item(f"mech:{r['symbol']}",
-                          f"{r['symbol']}: net GEX {regime}, spot {spot:,.2f} "
-                          f"{side + ' the flip at ' + format(flip, ',.2f') if flip else '(no flip)'}"
-                          f"; call wall {r.get('call_wall')}, put wall "
-                          f"{r.get('put_wall')}, max pain {r.get('max_pain')}.",
+                          f"{r['symbol']}: {regime}, spot {spot:,.2f} "
+                          f"{side + ' the zero-gamma level at ' + format(flip, ',.2f') if flip else '(no zero-gamma level)'}"
+                          f"; OTM call wall {cw}, OTM put gamma wall {pw}, max pain "
+                          f"{r.get('max_pain')}.",
                           1 if r["symbol"] == "SPY" else 2,
-                          (regime, flip, r.get("call_wall"), r.get("put_wall"),
-                           r.get("max_pain"))))
-        rows.append([r["symbol"], f"net GEX {regime}", flip, r.get("call_wall"),
-                     r.get("put_wall"), r.get("max_pain")])
+                          # The legacy all-strike peaks stay in the change mark,
+                          # so a moved peak still marks the line.
+                          (regime, flip, cw, pw, r.get("max_pain"),
+                           r.get("call_wall"), r.get("put_wall"))))
+        rows.append([r["symbol"], regime, flip, cw, pw, r.get("max_pain")])
     hits = p.get("pin_hits") or {}
     if p.get("pins"):
         items.append(item("mech:pins",
@@ -223,11 +269,54 @@ def mechanics_section(p: dict) -> dict:
         st = (dials.get(d) or {}).get("state")
         items.append(item(f"mech:dial:{d}", f"{'Dealer gamma' if d == 'gamma' else 'Volatility regime'} "
                           f"read: {st or 'absent'}.", 2, st))
+    subs, notes, nt, extra = [], [], [], {}
+    for b in dealer or []:
+        if b.get("absent"):
+            nt.append(b["absent"])
+            continue
+        subs += b["subsections"]
+        lead = b["summary"]["lines"][0]
+        su = b["summary"]["setups"]
+        items.append(item(f"mech:dealer:{b['data']['symbol']}",
+                          f"{b['data']['symbol']} dealer summary: {lead} "
+                          + (f"Setups whose conditions hold: "
+                             f"{', '.join(dict.fromkeys(x['id'] for x in su))}."
+                             if su else "No setup."),
+                          1, b["fingerprint"]))
+        if b.get("notes") and not notes:
+            notes = [x for x in b["notes"] if x]
+        if b.get("sentences") and "dealer_sentences" not in extra:
+            extra["dealer_sentences"] = b["sentences"]
+        if b.get("_window_rows"):
+            extra.setdefault("_dealer_profiles", []).append(b["_window_rows"])
+    # THE VOLATILITY EVENT (Batch 9 item 52; altdata/vol_event.py): silent unless
+    # the trigger fires; then its sub-section, its trigger line as an item, and
+    # the paragraph's facts.
+    if vol_ev and vol_ev.get("fired"):
+        from altdata import vol_event as ve                     # noqa: PLC0415
+        subs = [ve.block(vol_ev)] + subs
+        items.append(item("mech:vol_event", vol_ev["trigger_line"], 1,
+                          vol_ev["trigger_line"]))
+        extra["vol_event"] = ve.facts(vol_ev)
+    if vol_ev is not None:
+        extra["_vol_event"] = vol_ev
+    # EL-5: THE STATE VECTOR, one compact line per capture; numbers only.
+    if state_vecs:
+        from altdata import state_vector as sv                  # noqa: PLC0415
+        good = [g for g in state_vecs if g.get("vector")]
+        lines = [sv.line(g) for g in good] + [g["absent"] for g in state_vecs
+                                              if g.get("absent")]
+        if lines:
+            subs.append({"title": "State vector, SPY", "table": None, "lines": lines})
+        if good:
+            extra["_state_vectors"] = good
     return {"items": items,
-            "table": {"columns": ["Symbol", "Net GEX", "Flip", "Call wall",
-                                  "Put wall", "Max pain"], "rows": rows},
+            "table": {"columns": ["Symbol", "Regime (gated)", "Zero-gamma",
+                                  "OTM call wall", "OTM put wall", "Max pain"],
+                      "rows": rows},
+            "subsections": subs, "notes": notes,
             "not_tracked": ["the IV solver's latest verdict in the report",
-                            "the FlashAlpha cross-check"],
+                            "the FlashAlpha cross-check"] + nt,
             "data": {"exposure": [{k: r.get(k) for k in
                                    ("symbol", "spot", "net_gex", "gamma_flip",
                                     "call_wall", "put_wall", "max_pain",
@@ -235,7 +324,8 @@ def mechanics_section(p: dict) -> dict:
                                   for r in p.get("exposure") or []
                                   if r.get("symbol") in ("SPY", "QQQ", "IWM")],
                      "pin_hits": hits, "pin_rows": len(p.get("pins") or []),
-                     "dials": {k: (v or {}).get("state") for k, v in dials.items()}}}
+                     "dials": {k: (v or {}).get("state") for k, v in dials.items()},
+                     **extra}}
 
 
 def screen_items(screen: Optional[dict], cadence: str = "daily") -> tuple[list, dict]:
@@ -394,6 +484,73 @@ def _tier1(p: dict, st, cutoff: str, cfg: dict) -> Optional[str]:
         if r and str(r.get("observed_at"))[:10] in (day, nxt.isoformat()):
             return f"{inst.split(':')[-1]} auction"
     return None
+
+
+def releases_on(day: str, st, cutoff: str, cfg: dict) -> list[str]:
+    """The tier-1 releases (triggers.plumbing.tier1_events) on `day`, by the
+    stored events calendar -- the dealer block's d_forced_flow release day. []
+    when none, or when the calendar cannot be read."""
+    trig = (cfg.get("triggers") or {}).get("plumbing") or {}
+    out: list[str] = []
+    try:
+        from altdata import events                               # noqa: PLC0415
+        with events.EventStore(str(st.path)) as ev:
+            rows = ev.calendar(day, day, as_of=cutoff)
+        for r in rows:
+            for t in trig.get("tier1_events") or []:
+                if (t.lower() in str(r.get("title") or "").lower()
+                        and str(r["observed_at"])[:10] == day and t not in out):
+                    out.append(t)
+    except Exception:                                           # noqa: BLE001
+        pass
+    return out
+
+
+def vol_event_for(p: dict, st, cutoff: str) -> Optional[dict]:
+    """Batch 9 item 52: the session's volatility read, from the store, when the
+    payload asks for it (`vol_event`, set by the close's payload builder); None
+    for a gate's synthetic payload, so nothing is read."""
+    if not p.get("vol_event"):
+        return None
+    from altdata import vol_event as ve                         # noqa: PLC0415
+    try:
+        prof = None
+        if p.get("computed_dir"):
+            from . import dealer_block                          # noqa: PLC0415
+            prof = dealer_block.newest_settled(p["session"], "SPY", p["computed_dir"],
+                                               lookback_days=0)
+        return ve.evaluate(ve.read_series(st, cutoff), p["session"], profile=prof,
+                           attributions=ve.attributions_for(p["session"], cutoff))
+    except Exception as exc:                                    # noqa: BLE001
+        return {"day": p["session"], "fired": False, "trigger": {},
+                "trigger_line": f"Volatility: the read faulted ({type(exc).__name__})"}
+
+
+def _dealer_chart_dir(p: dict) -> Optional[str]:
+    from . import dealer_block                                  # noqa: PLC0415
+    return dealer_block.chart_dir(p.get("computed_dir"), p.get("session"), 0)
+
+
+def dealer_blocks(p: dict, st, cutoff: str, cfg: dict) -> Optional[list]:
+    """The dealer block (6b part 1) for the close, read from the computed
+    profiles under the payload's `computed_dir`. None when the payload names no
+    directory -- a gate's synthetic payload -- so nothing is read."""
+    if not p.get("computed_dir"):
+        return None
+    from . import dealer_block                                  # noqa: PLC0415
+    # The close's capture is the settled 16:10, so its summary is for the next
+    # session (dealer_block.target_session): that session's releases.
+    nxt = dt.date.fromisoformat(p["session"]) + dt.timedelta(days=1)
+    while not (session.is_trading_session(nxt) if session.calendar_covers(nxt)
+               else nxt.weekday() < 5):
+        nxt += dt.timedelta(days=1)
+    try:
+        return dealer_block.for_session(p["session"], base_dir=p["computed_dir"],
+                                        releases=releases_on(nxt.isoformat(), st,
+                                                             cutoff, cfg),
+                                        st=st, cutoff=cutoff)
+    except Exception as exc:                                    # noqa: BLE001
+        return [{"absent": f"dealer block: {type(exc).__name__}: {exc}"}]
 
 
 def plumbing_section(p: dict, st, cutoff: str, cfg: dict) -> dict:
@@ -841,7 +998,9 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "read": {"items": read_items(pmb), "data": {
                 "attention_shocks": (pmb or {}).get("shocks") or []}},
             "tape": tape_section(book),
-            "mechanics": mechanics_section(p),
+            "mechanics": mechanics_section(p, dealer_blocks(p, st, cutoff, cfg),
+                                           vol_event_for(p, st, cutoff),
+                                           state_vectors(p, st)),
             "misfit": misfit_section(p, pmb, screen),
             "plumbing": plumbing_section(p, st, cutoff, cfg),
             "positioning": positioning_section(st, cutoff),
@@ -868,6 +1027,7 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                 st, cutoff, p["session"])
     out = assemble(built, cfg, prior, "daily")
     return {"report": "daily_close_stack", "session": p["session"],
+            "dealer_computed_dir": _dealer_chart_dir(p),
             "config_version": cfg.get("version"), "as_of": cutoff,
             "prior_session": (prior or {}).get("session"),
             "sections": out, "budget": (cfg.get("budget") or {}).get("daily")}
@@ -1065,8 +1225,13 @@ def chart_plan(ed: dict, available: dict[str, Optional[str]]) -> list[str]:
     want = ["C1", "C2"]
     misfit = next(s for s in ed["sections"] if s["id"] == "misfit")
     plumb = next(s for s in ed["sections"] if s["id"] == "plumbing")
-    if (misfit.get("data") or {}).get("open_contradictions"):
+    c3 = bool((misfit.get("data") or {}).get("open_contradictions")
+              or plumb.get("depth") == "deep")
+    if c3:
         want.append("C3")
-    elif plumb.get("depth") == "deep":
-        want.append("C3")
+    # D2, THE CLOSE'S ONE DEALER CHART (6b part 2; brief v2 section 3), when the
+    # edition reads the computed profiles: after C1 and any C3, before C2. On a
+    # day with C3 and no fired trigger, C2 is the one set aside.
+    if ed.get("dealer_computed_dir"):
+        want = ["C1"] + (["C3"] if c3 else []) + ["D2", "C2"]
     return [c for c in want][:cap]

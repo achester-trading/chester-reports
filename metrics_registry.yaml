@@ -176,6 +176,7 @@ vocabularies:
     - fraction               # 0..1
     - count
     - days
+    - hours                  # hours, e.g. to the next scheduled release (EL-5)
     - label                  # closed-vocabulary string
     - percent                # RETIRED from entries (AUD-3a item 3, 14 Oct
                              # 2026): it meant a yield, a percentile, a return
@@ -751,6 +752,716 @@ metrics:
     description: >-
       Largest |GEX| strike. EX-0DTE at a settled capture -- with 0DTE in it was
       an artifact of the MIN_T floor and pinned at the money by construction.
+
+  # --- 6b part 1 (brief v2, ratified 16 Oct 2026) ---------------------------
+  exposure.call_gamma_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_1pct
+    added_date: "2026-10-17"
+    description: >-
+      The CALL-GAMMA MASS: sum of gamma x OI x 100 x spot over calls, x 0.01 x spot -- dollars of hedge per 1% move, unsigned. Printed first (brief v2 section 1): it holds under any symmetric convention. With put_gamma_per_1pct it sums to gross_gamma_per_1pct.
+  exposure.put_gamma_per_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_1pct
+    added_date: "2026-10-17"
+    description: >-
+      The PUT-GAMMA MASS, as call_gamma_per_1pct over puts: unsigned, dollars per 1% move.
+  exposure.dex_raw_notional:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      The raw-signed DEX in dollars: sum of delta x OI x 100 x spot with each contract's own delta (calls +, puts -), no dealer sign -- FlashAlpha's DEX definition (ledger gex-scale-flashalpha-2026-10-09), so the vendor line compares like with like (6b part 3).
+  state.gap_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the session open against the prior close, percent. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.gap_fill:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the share of the open's gap retraced by the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.or_high:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the opening range's high (first 30 minutes of 5-minute bars). One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.or_low:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the opening range's low. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.or_break:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): +1 the capture's last price above the opening range, -1 below, 0 inside. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.vwap_rel_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the last price against the session VWAP to the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.breadth_50d:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    sample: sector_etf_proxy
+    delta_unit: pp
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the sector-ETF proxy's share above its 50-day average, as of the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.rv_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): realised vol of the session's 5-minute returns to the capture, annualised. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.iv_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): SPY's own ATM 30-day IV as of the capture (no VIX stand-in). One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.rv_iv_ratio:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): rv_pct over iv_pct. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.vix3m_over_vix:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the champion term-structure leg, VIX3M over VIX, as of the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.vix9d_over_vix:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the challenger leg, VIX9D over VIX, as of the capture. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.flip_dist_pct:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): spot against the capture's zero-gamma level, percent of spot. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.net_gex_sign:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): +1, -1 or 0: the sign of the capture's net GEX. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.net_to_gross:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: fraction
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): the capture's net-to-gross. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.event_hours:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: hours
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): hours from the capture to the next scheduled release. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.volume_ratio_20d:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): volume to the capture against the prior 20 sessions' mean to the same time. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  state.trend_alignment:
+    source: daily_close
+    mechanism_group: market_state
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      6b's state vector (EL-5; altdata/state_vector.py): +1 the day's direction agrees with the trend dimension, -1 opposes, 0 flat. One row per capture, instrument 'SPY:<slot>' (1610; 0945 and 1230 once part 2's units run), observed on the session, available when the close writes it. A number or absent, never a label; no engine reads it until EL-12.
+  dealer.window_gamma:
+    source: daily_close
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: calculated
+    revision_policy: never
+    units: usd_per_1pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Each settled capture's net GEX per 1% by horizon window (instrument = '<symbol>:<window>'), written by the close: T3's percentile history (6b part 3).
+  dealer.vendor_gex_per_1pct:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: usd_per_1pct
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's GEX, dollars per 1% move (6b part 3 vendor writer, 16:25 ET), instrument = the symbol; compared with the engine's dollar_gamma_per_1pct (ledger gex-scale-flashalpha-2026-10-09). A cross-check, never a source.
+  dealer.vendor_dex_raw:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's DEX, raw-signed sum of delta x OI x 100 x S; compared with the engine's dex_raw_notional. A cross-check, never a source.
+  dealer.vendor_vex:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: usd_per_volpt
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's VEX, stored with its flag: UNRECONCILED -- sign and scale differ from the engine's (ledger 9 Oct). Never compared until its per-strike test.
+  dealer.vendor_gamma_flip:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's gamma flip (levels endpoint).
+  dealer.vendor_call_wall:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's call wall, compared with the engine's OTM call wall.
+  dealer.vendor_put_wall:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's put wall, compared with the engine's OTM put gamma wall.
+  dealer.vendor_spot:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      FlashAlpha's underlying price at its capture.
+  dealer.vendor_chex:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's net CHEX (stock summary's exposure block). Stored, never compared: its convention is the vendor's. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_max_pain:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's max-pain strike (the summary's exposure block, else the max-pain endpoint). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_regime:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's gamma regime word (negative_gamma / positive_gamma); compared as a word with the sign of our net GEX by the divergence gate (F-4). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_pin_probability:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's max-pain pin probability, as the vendor states it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_mp_alignment:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's max-pain dealer-alignment word. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  dealer.vendor_pc_oi_ratio:
+    source: flashalpha
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's put/call open-interest ratio (max pain). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.atm_iv:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's summary ATM IV. Stored, NEVER compared (F-2): a front-expiry figure (33.9% against a 20-day realized 10.5% on 16 Oct). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.hv_20:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's 20-day realized vol (summary). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.atm_iv_20dte:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      FlashAlpha's ATM IV on the first listed expiry of 20 DTE or more, from the 16:25 expected-move response only: the one vendor IV compared (F-2). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix9d:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX9D as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix3m:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX3M as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vix6m:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VIX6M as the vendor's summary carries it (macro block). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vx_front:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The VIX futures front month as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vx_basis_pct:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The VIX futures front month's basis to spot VIX, percent, as the vendor states it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.vvix:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      VVIX as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.skew:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      Cboe SKEW as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.move:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The MOVE index as the vendor's summary carries it. Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  vendor.fear_greed:
+    source: flashalpha
+    mechanism_group: equity_tape
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The vendor's Fear & Greed score (0-100), as vendor.fear_greed (F-1). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+  exposure.oi_delta_balance_shares:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: shares
+    added_date: "2026-10-17"
+    description: >-
+      The raw-signed OI balance: sum of delta x OI x 100 with each contract's own delta (calls positive, puts negative), no dealer sign -- delta-weighted open interest, calls less puts, in shares. Printed with no directional word (brief v2 section 2).
+  exposure.peak_call_gex_strike:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The strike with the largest positive signed GEX over ALL strikes: a PEAK, never a wall (audit F5). The same value as the legacy exposure.call_wall; the renderer reads this name. The call wall is exposure.call_wall_otm.
+  exposure.peak_put_gex_strike:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The strike with the most negative signed GEX over ALL strikes: a PEAK, never a wall (audit F5). The same value as the legacy exposure.put_wall; the put gamma wall is exposure.put_wall_otm.
+  exposure.call_concentration_otm_2:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The secondary call concentration: the out-of-the-money strike above spot with the second-largest positive signed GEX (T2's row).
+  exposure.net_gex_up_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_point
+    added_date: "2026-10-17"
+    description: >-
+      Net GEX if spot were 1% higher, every contract's gamma re-priced there with OI and IV held (sticky strike); net_gex units. With net_gex_down_1pct, the profile's +/-1% asymmetry (6b part 2, sentence 1 and figure 2).
+  exposure.net_gex_down_1pct:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: usd_per_point
+    added_date: "2026-10-17"
+    description: >-
+      Net GEX if spot were 1% lower, as net_gex_up_1pct.
+  exposure.put_concentration_otm_2:
+    source: yfinance
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: price
+    added_date: "2026-10-17"
+    description: >-
+      The secondary put concentration: the out-of-the-money strike below spot with the second most negative signed GEX (T2's row).
 
   # --- DEX family -----------------------------------------------------------
   exposure.dex_shares:
@@ -2535,6 +3246,46 @@ metrics:
   # their rows are daily and dated on DKW's own last observation, about a month
   # behind the cutoff, and a daily allowance would call every one of them stale.
   # -------------------------------------------------------------------------
+  # ST-3's third cut, since the last FOMC decision (st-t1-rest, 18 Oct 2026).
+  calc.attr_d10y_since_fomc:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The 10-year Treasury yield's change since the close before the last FOMC decision day (the claims registry's cal.fomc_<year>), in basis points; the decision day's reaction is in it.
+  calc.attr_real_share_since_fomc:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      SR-6's real/breakeven cut since the last FOMC decision: the 10-year TIPS real yield's change as a share of the nominal 10-year's. Written only when the 10-year moved 5bp.
+  calc.attr_curve_share_since_fomc:
+    source: derived_state
+    mechanism_group: rates_decomposition
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      SR-6's curve cut since the last FOMC decision: the 2-year yield's change as a share of the 10-year's.
   calc.attr_d10y_5d:
     source: derived_state
     mechanism_group: rates_decomposition
@@ -3029,6 +3780,59 @@ metrics:
       ZQ<month><yy>.CBT symbols. 100 minus the price is the month's average
       effective fed funds rate; altdata/fed_funds.py turns the months into the
       implied rate after each FOMC meeting. Read at 16:10 ET.
+  vol.event_day:
+    source: vol_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Batch 9 item 52 (ST-R6.52a-c): one JSON row per session, written by the
+      close -- the trigger's four arms (one-day, five-day, band crossing,
+      compression), the trigger line, and when it fired the nine lenses' table,
+      the regime consequence and the base rate (altdata/vol_event.py). Point in
+      time: observed the session, available when the close wrote it. The 07:00
+      anchor reads it; a flag and an alert gate only, no composite weight.
+  vol.event_ledger:
+    source: vol_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Batch 9 item 52 (ST-R6.52d): the calibration ledger, one JSON row per fired
+      event (instrument = the event's date) with its attribution and its realised
+      5- and 20-session SPX and VIX outcomes; a resolution is a new vintage, never
+      an overwrite. No modifier right before 30 events.
+  calc.vol_compression:
+    source: vol_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: boolean
+    trigger_eligible: false
+    added_date: "2026-10-17"
+    description: >-
+      Batch 9 item 52: 1 when the VIX has held within 5% of its trailing
+      six-month low for three sessions (compression), else 0 -- the input the
+      Concentration & Complacency overlay's VIX leg reads when that overlay is
+      built (designed, not built: config/st_r5_t1_rest.yaml). No new overlay.
   dealer.scorecard_day:
     source: derived_state
     mechanism_group: dealer_chain_derived
@@ -5432,6 +6236,97 @@ metrics:
     trigger_eligible: false
     description: >-
       SPY at-the-money implied volatility at 30 days, solved from mid prices by tools/iv_solver.py and interpolated in total variance between the bracketing expiries, in percent.
+  chain.options_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's session options volume, calls and puts, summed over the session's last captured chain (instrument = the symbol; the captured universe and SPY, QQQ, IWM). OS-10, the Weekly's most-active table: report-only (a44-opening-setup).
+  chain.atm_iv_front:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's front-month at-the-money implied volatility, percent: the nearest third-Friday expiry at least 7 days out (else the first expiry that far out), solved from mid prices by tools/iv_solver.py as SPY's 30-day figure is. OS-10, report-only (a44-opening-setup).
+  chain.skew_25d_put:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's front-month 25-delta put skew, in vol points: the solved put IV at -25 delta (Black-Scholes delta on each put's solved IV) less the ATM IV, on the expiry chain.front_expiry names. OS-8 and OS-9's HIGH SKEW tag: report-only (a45-opening-setup-2).
+  chain.iv_minus_rv20:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's front-month ATM IV less its 20-session close-to-close realised vol, in vol points. OS-8 and OS-9's CHEAP VOL / VOL CRUSH tags: report-only (a45-opening-setup-2).
+  chain.front_expiry:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      The front-month expiry the skew and IV readings used, with its method (third Friday, or nearest): the nearest third Friday at least 7 days out, session-set (a45-opening-setup-2).
+  chain.put_share_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's puts' share of the session's options volume, percent, from its last capture (SPY, SPX and every captured name). Put volume and OI build, no side: OS-4 and OS-5, feeding nothing but their own rows (a45-opening-setup-2).
+  chain.put_share_oi_build:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-10-18"
+    description: >-
+      One name's puts' share of the day's positive open-interest build, percent, between its two most recent captures. Put volume and OI build, no side: OS-4, feeding nothing but its own row (a45-opening-setup-2).
   chain.spy_put_call_volume:
     source: spy_chain_capture
     mechanism_group: dealer_chain_derived
@@ -10878,7 +11773,7 @@ metrics:
     units: bps
     trigger_eligible: false
     description: >-
-      USD/CNH less USD/CNY, basis points of USD/CNY: + is the offshore yuan weaker than the onshore.
+      USD/CNH less USD/CNY, basis points of USD/CNY: + is the offshore yuan weaker than the onshore. The signal-triage order's calc.cnh_cny_gap (ST-5) is this series, not a second one.
 
 
   # -------------------------------------------------------------------------
@@ -12114,6 +13009,553 @@ metrics:
     description: >-
       MBA purchase index, unadjusted, percent change on the same survey a year earlier, whole percent, from the weekly press release's headline. ST-R5.37a. Forward-only.
 
+  # THE GTM BATCH, PART 2 (17 Oct 2026). GTM-15 monthly (ruling 3): the Monthly
+  # Treasury Statement's customs duties, Table 4, through the fiscaldata writer.
+  fiscaldata.mts_customs_gross:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Customs duties collected in the month, GROSS of refunds, dollars (Monthly Treasury Statement Table 4, line "Customs Duties", current_month_gross_rcpt_amt), observed at the month-end. Not seasonally adjusted. GTM-15's monthly effective tariff rate divides it by the month's goods imports.
+  fiscaldata.mts_customs_refunds:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Customs duties refunded in the month, dollars (MTS Table 4, current_month_refund_amt). Large since mid-2026, when refunds of IEEPA duties began; printed beside the gross rate.
+  fiscaldata.mts_customs_net:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Customs duties net of refunds in the month, dollars (MTS Table 4, current_month_net_rcpt_amt); negative in a month whose refunds exceed its collections.
+  # GTM-4's hyperscaler cash-flow bridge: SEC EDGAR's XBRL frames, annual, per filer.
+  edgar.xbrl_operating_cash_flow:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's net cash provided by operating activities for its fiscal year, dollars, as filed (XBRL us-gaap NetCashProvidedByUsedInOperatingActivities, read from EDGAR's annual calendar frames), instrument = the filer's ticker (Alphabet as GOOGL), observed_at = the fiscal year's end. GTM-4's bridge.
+  edgar.xbrl_capex:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's payments for property, plant and equipment for its fiscal year, dollars, a positive outflow as filed (XBRL PaymentsToAcquirePropertyPlantAndEquipment, else PaymentsToAcquireProductiveAssets -- Amazon's tag), from EDGAR's annual frames, instrument = the ticker, observed_at = the fiscal year's end. GTM-4's bridge.
+  # SIGNAL-TRIAGE ST-4 (st-t1-rest, 18 Oct 2026): Duration Absorption and the
+  # rates flags, altdata/absorption.py, written by the features pass. Display
+  # and modifier only; none is trigger-eligible or enters a composite.
+  calc.net_supply_1m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Net marketable issuance less the Fed's Treasury change, month (ST-4; altdata/absorption.py).
+  calc.net_supply_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The same over twelve consecutive months (ST-4; altdata/absorption.py).
+  calc.net_supply_12m_gdp:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      Twelve months' net supply over nominal GDP, percent (ST-4; altdata/absorption.py).
+  calc.priv_residual_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Twelve months' net supply less foreign holders' change (ST-4; altdata/absorption.py).
+  calc.tic_official_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign official holdings' twelve-month change (ST-4; altdata/absorption.py).
+  calc.tic_private_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Foreign private holdings' twelve-month change (ST-4; altdata/absorption.py).
+  calc.tic_official_share:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      Official over all foreign holdings, percent (ST-4; altdata/absorption.py).
+  calc.tic_custodial_share:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      The custodial centres' share of foreign holdings, percent (ST-4; altdata/absorption.py).
+  calc.foreign_ust_share_lt:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      Treasuries' share of net foreign long-term purchases, 12m (ST-4; altdata/absorption.py).
+  calc.abs_fragility:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      SR-27's candidate rule, 1 or 0; display only (ST-4; altdata/absorption.py).
+  calc.abs_stress:
+    source: calc
+    mechanism_group: auction_flow
+    native_horizon: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      G-32's absorption-stress rule per coupon auction, 1 or 0 (ST-4; altdata/absorption.py).
+  calc.fed_mkt_gap_12m:
+    source: calc
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The futures-implied rate 12m ahead less the SEP median dot, bp (ST-4; altdata/absorption.py).
+  calc.cred_stress:
+    source: calc
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      |12m gap| > 50 bp, 1 or 0 (the signalled-direction leg not tracked) (ST-4; altdata/absorption.py).
+  calc.pm_disagree_fed:
+    source: calc
+    mechanism_group: prediction_market
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    description: >-
+      Venue less futures-implied probability, next meeting, points (ST-4; altdata/absorption.py). Probability points (0-100 scale differences).
+  calc.deanchor:
+    source: calc
+    mechanism_group: inflation_expectations
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      SR-24's de-anchoring rule, 1 or 0 (ST-4; altdata/absorption.py).
+  calc.be5y5y_range_pos:
+    source: calc
+    mechanism_group: inflation_expectations
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    description: >-
+      The 5y5y breakeven's percentile within 2010 to the day (ST-4; altdata/absorption.py).
+  calc.producers_spot_ratio:
+    source: calc
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      GUNR over DBC (ST-4; altdata/absorption.py).
+  calc.aa_bbb_oas_diff:
+    source: calc
+    mechanism_group: credit_supply
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      BBB less AA OAS, bp (ST-4; altdata/absorption.py).
+  calc.self_fund_ratio:
+    source: calc
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Hyperscalers' operating cash flow over capex, by frame (ST-4; altdata/absorption.py).
+  calc.hs_netdebt_12m:
+    source: calc
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Hyperscalers' long-term debt less cash, year on year (ST-4; altdata/absorption.py).
+  calc.mu_inv_days:
+    source: calc
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: days
+    trigger_eligible: false
+    description: >-
+      Micron's inventory over the quarter's cost of goods x 91 (ST-4; altdata/absorption.py). Days.
+  calc.cb_gold_12m:
+    source: calc
+    mechanism_group: commodity_holdings
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      Twelve months of central-bank net gold purchases, tonnes (ST-4; altdata/absorption.py). Tonnes (troy ounces / 32,150.7466).
+  calc.jp_front_diff:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      US 2-year (DGS2) less the JGB 2-year (MoF), bp (ST-5, SR-2 metric 1; altdata/funding_currency.py).
+  calc.jp_front_diff_60d:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The yen front differential's change over 60 sessions, bp: the velocity that mattered in Aug 2024 (ST-5, SR-2 metric 1; altdata/funding_currency.py).
+  calc.jpy_pos_z:
+    source: calc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      CFTC yen net non-commercial position (instrument JPY, at the Friday release) as a z against its trailing 156 weekly reports, 52 before the first; negative is crowded short yen (ST-5, SR-2 metric 2; altdata/funding_currency.py).
+  calc.jp_hedged_carry:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      What a hedged Japanese buyer of 10-year Treasuries earns: DGS10 less (DTB3 less OECD Japan 3-month interbank, monthly carried 70 days), percent; negative means hedged buying stops (ST-5, SR-2 metric 3; altdata/funding_currency.py).
+  calc.usdjpy_rvol_20d:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: vol_pct
+    trigger_eligible: false
+    description: >-
+      USDJPY's 20-session realized vol of log returns, annualised, percent: the unwind tell's vol leg and carry_vs_vol's second leg (ST-5; altdata/funding_currency.py).
+  calc.jpy_unwind:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      The yen unwind tell, 1 or 0: USDJPY down 3% or more over 5 sessions while its 20-session realized vol is at least 1.5x its 250-session median; session-set in config/funding_currency.yaml until ST-8 (ST-5, SR-2 metric 4; altdata/funding_currency.py). Display only.
+  calc.cny_fix_dev:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      The PBoC's CNY fix against the previous session's onshore close (CNY=X), bp: negative is a fix leaning against weakness (ST-5, SR-4; altdata/funding_currency.py).
+  calc.uscn_10y_spread:
+    source: calc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      10-year Treasury (DGS10) less the CGB 10-year (CFETS), bp (ST-5, SR-4; altdata/funding_currency.py).
+  calc.deval_tell:
+    source: calc
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    description: >-
+      SR-4's deliberate-devaluation tell, its two tracked legs, 1 or 0 (stored; printed as "2 of 3 legs tracked" with each leg's state and never as a verdict while a leg is not tracked, ruling of 18 Oct 2026): the fix's lean gone (5-observation mean of calc.cny_fix_dev at or above -10 bp) and the CNH-CNY gap wide and widening (calc.cnh_cny_bp's 5-observation mean at or above +30 bp and 20 bp wider than 20 observations earlier). The third leg, state banks selling dollars, is NOT TRACKED (rule 30; the by-hand key state_bank_dollar_selling was dropped 16 Oct), so a 1 is two of three legs, never the full tell (ST-5; altdata/funding_currency.py). Display only.
+  calc.net_supply_proj_12m:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from the by-hand key cbo_deficit_path, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  calc.fed_mkt_gap_m1:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from the by-hand key fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  calc.fed_mkt_gap_m2:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from the by-hand key fed_signalled_direction, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  calc.ai_long_share:
+    source: calc
+    mechanism_group: treasury_supply
+    native_horizon: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    status_extra: not_yet_sourced
+    description: >-
+      NOT TRACKED (rule 30): the order fed it from the by-hand key ig_issuance_10y_plus_share and ai_ig_issuance_share, which the by-hand audit of 16 Oct removed; no keyless source within terms reads it. Registered, never written (ST-4).
+  edgar.xbrl_long_term_debt:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's long-term debt at a calendar year-end (XBRL LongTermDebt, else LongTermDebtNoncurrent; EDGAR's annual instant frames), dollars, instrument = ticker. calc.hs_netdebt_12m's input (ST-4).
+  edgar.xbrl_cash:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: annual
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      A hyperscaler's cash and equivalents at a calendar year-end (XBRL CashAndCashEquivalentsAtCarryingValue, else the restricted-cash total; annual instant frames), dollars, instrument = ticker (ST-4).
+  edgar.xbrl_mu_inventory:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Micron's inventory at its quarter-end (XBRL InventoryNet, Micron's company-concept file), dollars, instrument MU (ST-4; calc.mu_inv_days).
+  edgar.xbrl_mu_cogs_q:
+    source: edgar_xbrl
+    mechanism_group: corporate_fundamentals
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Micron's cost of goods for the quarter (XBRL CostOfGoodsAndServicesSold, else CostOfRevenue; quarter-length durations), dollars, instrument MU (ST-4; calc.mu_inv_days).
   sp500.member_weight:
     source: sp500_members
     mechanism_group: equity_tape
@@ -12388,9 +13830,13 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 52   # + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 64   # + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
+      fred.dsr_household: percent_share
+      fred.dsr_consumer: percent_share
+      fred.dsr_mortgage: percent_share
+      fred.fy_deficit_gdp: percent_share
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -12596,6 +14042,9 @@ bulk_imports:
       yfinance.mkt_tyx: percent_rate
       yfinance.mkt_vix: vol_index
       yfinance.mkt_vix3m: vol_index
+      # Batch 9 item 52 (17 Oct 2026): the term structure's ends.
+      yfinance.mkt_vix9d: vol_index
+      yfinance.mkt_vix6m: vol_index
       # Ruled 15 Oct 2026: the MOVE and the VVIX are volatility indexes like the
       # VIX; SKEW is an index level whose percent change means nothing. All three
       # move in points. The move screen's basis is pinned apart, in
@@ -12603,7 +14052,7 @@ bulk_imports:
       yfinance.mkt_vvix: vol_index
       yfinance.mkt_move: vol_index
       yfinance.mkt_skew: index_points
-    expected_members: 106   # 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 111   # + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -12656,7 +14105,7 @@ bulk_imports:
     members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 82
+    expected_members: 85   # + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -12791,7 +14240,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 106   # the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 111   # + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -12845,8 +14294,10 @@ bulk_imports:
     members_are: values
     # 7 since 6c-3: baserate.midterm_from_election, the presidential-cycle
     # conditional measured from election day (ex ante) rather than from the
-    # midterm-year low, with its unconditional comparators.
-    expected_members: 7
+    # midterm-year low, with its unconditional comparators. 10 since the GTM
+    # batch, part 1 (17 Oct 2026): baserate.stock_bond_eras (GTM-7),
+    # baserate.sentiment_turning_points (GTM-8), baserate.all_time_highs (GTM-9).
+    expected_members: 10
     key_prefix: ""
     units: label
     native_horizon: structural
@@ -13553,6 +15004,11 @@ families:
   yfinance.mkt_skew: conditions
   yfinance.mkt_vix: conditions
   yfinance.mkt_vix3m: conditions
+  yfinance.mkt_vix9d: conditions
+  yfinance.mkt_vix6m: conditions
+  vol.event_day: conditions
+  vol.event_ledger: conditions
+  calc.vol_compression: conditions
   calc.net_liquidity: quantity
   fred.bank_reserves: quantity
   fred.tga: quantity
@@ -13567,6 +15023,65 @@ families:
   chain.spy_atm_iv_30d: conditions
   auction.bid_to_cover: ratio
   auction.dealer_share: ratio
+  # The GTM batch, part 1 (17 Oct 2026): GTM-15's legs and GTM-21's ratios.
+  fred.customs_duties: quantity
+  fred.goods_imports: quantity
+  fred.dsr_household: ratio
+  fred.dsr_consumer: ratio
+  fred.dsr_mortgage: ratio
+  # The GTM batch, part 2 (17 Oct 2026): GTM-12's federal series, GTM-15's
+  # monthly customs, GTM-4's filings and GTM-13's three proxies.
+  fred.fed_interest_payments: quantity
+  fred.fed_defense: quantity
+  fred.fy_net_interest: quantity
+  fred.fy_net_outlays: quantity
+  fred.fy_deficit: quantity
+  fred.fy_deficit_gdp: ratio
+  fiscaldata.mts_customs_gross: quantity
+  fiscaldata.mts_customs_refunds: quantity
+  fiscaldata.mts_customs_net: quantity
+  edgar.xbrl_operating_cash_flow: quantity
+  edgar.xbrl_capex: quantity
+  yfinance.mkt_tip: price
+  yfinance.mkt_mub: price
+  yfinance.mkt_mbb: price
+  # Signal-triage ST-4 (st-t1-rest, 18 Oct 2026).
+  fred.sep_median_ff: rate
+  calc.net_supply_1m: quantity
+  calc.net_supply_12m: quantity
+  calc.net_supply_12m_gdp: ratio
+  calc.priv_residual_12m: quantity
+  calc.tic_official_12m: quantity
+  calc.tic_private_12m: quantity
+  calc.tic_official_share: ratio
+  calc.tic_custodial_share: ratio
+  calc.foreign_ust_share_lt: ratio
+  calc.abs_fragility: conditions
+  calc.abs_stress: conditions
+  calc.fed_mkt_gap_12m: spread
+  calc.cred_stress: conditions
+  calc.pm_disagree_fed: ratio
+  calc.deanchor: conditions
+  calc.be5y5y_range_pos: ratio
+  calc.producers_spot_ratio: ratio
+  calc.aa_bbb_oas_diff: spread
+  calc.self_fund_ratio: ratio
+  calc.hs_netdebt_12m: quantity
+  calc.mu_inv_days: quantity
+  calc.cb_gold_12m: quantity
+  calc.jp_front_diff: spread
+  calc.jp_front_diff_60d: spread
+  calc.jpy_pos_z: ratio
+  calc.jp_hedged_carry: spread
+  calc.usdjpy_rvol_20d: conditions
+  calc.jpy_unwind: conditions
+  calc.cny_fix_dev: spread
+  calc.uscn_10y_spread: spread
+  calc.deval_tell: conditions
+  edgar.xbrl_long_term_debt: quantity
+  edgar.xbrl_cash: quantity
+  edgar.xbrl_mu_inventory: quantity
+  edgar.xbrl_mu_cogs_q: quantity
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -13596,6 +15111,66 @@ long_windows:
   jp.cpi_less_fresh_yoy: full
   uk.cpi_yoy: full
   uk.cpi_core_yoy: full
+  # The GTM batch, part 1: each its whole stored history (TDSP from Q1 2005).
+  fred.customs_duties: full
+  fred.goods_imports: full
+  fred.dsr_household: full
+  fred.dsr_consumer: full
+  fred.dsr_mortgage: full
+  # The GTM batch, part 2: each its whole stored history (the budget series
+  # from FY1901 or 1929 on FRED; the MTS from Fiscal Data's first month; the
+  # frames from 2019, the bridge's first year).
+  fred.fed_interest_payments: full
+  fred.fed_defense: full
+  fred.fy_net_interest: full
+  fred.fy_net_outlays: full
+  fred.fy_deficit: full
+  fred.fy_deficit_gdp: full
+  fiscaldata.mts_customs_gross: full
+  fiscaldata.mts_customs_refunds: full
+  fiscaldata.mts_customs_net: full
+  edgar.xbrl_operating_cash_flow: full
+  edgar.xbrl_capex: full
+  yfinance.mkt_tip: full
+  yfinance.mkt_mub: full
+  yfinance.mkt_mbb: full
+  # Signal-triage ST-4 (st-t1-rest): each its whole stored history.
+  fred.sep_median_ff: full
+  calc.net_supply_1m: full
+  calc.net_supply_12m: full
+  calc.net_supply_12m_gdp: full
+  calc.priv_residual_12m: full
+  calc.tic_official_12m: full
+  calc.tic_private_12m: full
+  calc.tic_official_share: full
+  calc.tic_custodial_share: full
+  calc.foreign_ust_share_lt: full
+  calc.abs_fragility: full
+  calc.abs_stress: full
+  calc.fed_mkt_gap_12m: full
+  calc.cred_stress: full
+  calc.pm_disagree_fed: full
+  calc.deanchor: full
+  calc.be5y5y_range_pos: full
+  calc.producers_spot_ratio: full
+  calc.aa_bbb_oas_diff: full
+  calc.self_fund_ratio: full
+  calc.hs_netdebt_12m: full
+  calc.mu_inv_days: full
+  calc.cb_gold_12m: full
+  calc.jp_front_diff: full
+  calc.jp_front_diff_60d: full
+  calc.jpy_pos_z: full
+  calc.jp_hedged_carry: full
+  calc.usdjpy_rvol_20d: full
+  calc.jpy_unwind: full
+  calc.cny_fix_dev: full
+  calc.uscn_10y_spread: full
+  calc.deval_tell: full
+  edgar.xbrl_long_term_debt: full
+  edgar.xbrl_cash: full
+  edgar.xbrl_mu_inventory: full
+  edgar.xbrl_mu_cogs_q: full
   ca.cpi_yoy: full
   ca.cpi_core_yoy: full
   bdf.oat_tec10: full
@@ -13712,8 +15287,13 @@ series_kinds:
   fred.vix: volatility
   yfinance.mkt_vix: volatility
   yfinance.mkt_vix3m: volatility
+  yfinance.mkt_vix9d: volatility
+  yfinance.mkt_vix6m: volatility
   yfinance.mkt_move: volatility
   chain.spy_atm_iv_30d: volatility
+  chain.atm_iv_front: volatility
+  chain.skew_25d_put: volatility
+  chain.iv_minus_rv20: volatility
   calc.vol_spy_realized_20d: volatility
   yfinance.mkt_spy: price
   yfinance.mkt_dxy: price
@@ -13771,6 +15351,8 @@ non_metrics:
     - risk_free_rate
     - capture
     - settled_0dte_rule
+    # 6b part 2: every capture's open interest is the prior close's.
+    - oi_vintage
     - greeks_status
     - underlying_verified_from
     - close_source
@@ -13806,6 +15388,10 @@ non_metrics:
     - greeks
     - expiries
     - usable_for_percentiles
+    # 6b part 1: a horizon window's or band's own bookkeeping (rows counted,
+    # whether a settled capture excluded it).
+    - rows
+    - excluded
     # Emitted by a DEFERRED profile -- the vendor symbols, whose Greeks are
     # gated behind the solver. The absence of a metric is itself a fact the
     # record has to carry, so these are declared rather than unregistered.
@@ -13820,6 +15406,12 @@ non_metrics:
     - quality
     - expiration_release
     - per_strike
+    # 6b part 1 (brief v2 section 2): the cumulative horizon windows and the
+    # exclusive bands, each a container of the figures registered above.
+    - horizons
+    - bands
+    # 6b part 2: figure 2's stored curve (band_pct, spots, net_gex lists).
+    - gamma_profile
     # The per-field mechanism_group map. Structure that says how to READ the
     # metrics, not a metric.
     - field_mechanism_groups
@@ -13832,6 +15424,16 @@ non_metrics:
     - max_pain_expiry_type
     - unwind_direction
     - cumulative_share_of_abs_dex
+    # 6b part 1: a window's or band's identity and its days-to-expiry edges,
+    # the listing buckets it draws on, and its "settled, excluded" status.
+    - id
+    - label
+    - min_dte
+    - max_dte
+    - band_pct
+    - spots
+    - listing_buckets
+    - status
 
 # -----------------------------------------------------------------------------
 # Reserved for a tier we do not have. Present in the pin log, written empty.

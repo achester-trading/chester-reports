@@ -70,8 +70,13 @@ from daily_cascade import charts as ch
 log = logging.getLogger("monthly_macro.charts")
 
 ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M11", "M8", "M9")
-DROP_ORDER = ("M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M11", "M7", "M1",
-              "M0")
+# Every chart that can print: the twelve planned, and M12 (6b part 2) when the
+# edition reads the computed dealer profiles.
+ALL = ORDER + ("M12",)
+# M12 (6b part 2) sits third: with all thirteen rendered, M8 is the one set
+# aside (and M8 does not render until scenario set #1 exists).
+DROP_ORDER = ("M8", "M9", "M12", "M3", "M2", "M5", "M4", "M6", "M10", "M11", "M7",
+              "M1", "M0")
 # Where each chart prints: (section id, sub-section title or None).
 PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M3": ("mechanics", None),
@@ -84,7 +89,8 @@ PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          # Batch 6 item 40: beside its block, by `bucket`.
          "M11": ("priced", "carry"),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
-         "M9": ("book", None)}
+         "M9": ("book", None),
+         "M12": ("mechanics", None)}
 LONG_FRAME_TYPES = {"M1": ("ma_40w",), "M2": ("ma_10m", "ma_20m")}
 DAILY_TYPES = ("ma_50d", "ma_200d")
 BREAKEVENS = (("fred.breakeven_5y", "5-year"), ("fred.breakeven_10y", "10-year"),
@@ -100,9 +106,10 @@ def cap_of(ed: dict) -> int:
 
 
 def plan(ed: dict) -> list[str]:
-    """Every chart in ORDER; the cap is held on what renders (hold_cap)."""
-    del ed
-    return list(ORDER)
+    """Every chart in ORDER; the cap is held on what renders (hold_cap). M12,
+    the dealer panel (6b part 2; brief v2 section 3: figures 2, 1, 3 and 4),
+    joins when the edition reads the computed profiles."""
+    return list(ORDER) + (["M12"] if ed.get("dealer_computed_dir") else [])
 
 
 def hold_cap(charts: dict, cap: int) -> list[str]:
@@ -352,7 +359,7 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
     if len(hy) < 60:
         return {"id": "M5", "unavailable": f"{len(hy)} observations stored, 60 needed"}
     try:
-        from altdata import derived                             # noqa: PLC0415
+        from altdata import derived, labels                     # noqa: PLC0415
         vals = [v for _, v in hy]
         pct = derived.percentile_of(vals, vals[-1])
         yrs = (dt.date.fromisoformat(hy[-1][0]) - dt.date.fromisoformat(hy[0][0])).days
@@ -378,7 +385,7 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
         out = ch._finish(fig, name, out_dir)
         cap = (f"{title}; latest {vals[-1]:.2f} on {hy[-1][0]}, at the "
                f"{ordinal(pct)} percentile of the span; 10th {marks[10]:.2f}, median "
-               f"{marks[50]:.2f}, 90th {marks[90]:.2f}")
+               f"{marks[50]:.2f}, 90th {marks[90]:.2f}; {labels.hy_source(hy[0][0])}")
         return {"id": "M5", "title": title, "drawn": [], "caption": cap, **out,
                 "percentile": pct, "marks": marks,
                 "series": [{"date": d, "value": v} for d, v in hy]}
@@ -742,6 +749,14 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
                                   "since the 12 Oct 2022 low", f"{base}_m11", out_dir)
         run("M11", _m11)
 
+        def _m12():
+            from daily_cascade import dealer_block                # noqa: PLC0415
+            from altdata import dealer_scorecard as dsc           # noqa: PLC0415
+            return ch.dealer_chart("M12", dealer_block.newest_settled(
+                last, "SPY", ed["dealer_computed_dir"]), f"{base}_m12", out_dir,
+                rates=dsc.from_store(st, now)["rates"])
+        run("M12", _m12)
+
         def _m9():
             start = benchmark.start_date().isoformat()
             led = {}
@@ -794,7 +809,7 @@ def log_unrendered(charts: dict) -> list[str]:
     """One log line per chart that does not render, with its kind and reason;
     each chart carries its kind as `unavailable_kind`. Returns the lines."""
     lines = []
-    for cid in ORDER:
+    for cid in ALL:
         c = charts.get(cid)
         kind = unavailable_kind(c or {})
         if not kind:
@@ -813,7 +828,7 @@ def _m4_title(st, now: str, since: str) -> str:
 
 
 def place(ed: dict, charts: dict) -> None:
-    for cid in ORDER:
+    for cid in ALL:
         if cid not in charts:
             continue
         sid, sub = PLACE[cid]

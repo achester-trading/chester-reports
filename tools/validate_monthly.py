@@ -14,6 +14,18 @@ D. A PAST MONTH REPLAYS AS-OF ITS CUTOFF: nothing observed after the cutoff reac
 E. The no-recompute guard: the Monthly READS the object and computes no regime.
 F. The model boundary: the narrative payload is a projection of the document, the
    placeholders are gone, and the long form is a parameter rather than a rewrite.
+I. THE SIGNAL-TRIAGE BLOCKS (ST-6; st-t1-rest, 18 Oct 2026): the Rate machine
+   summary and Duration Absorption in Plumbing & rates, Cheap-and-Unloved, the
+   Factor lines and the China status lines in Slow layers. No block fetches (every
+   HTTP helper raises during the build and none is called); every line is
+   populated or prints NOT AVAILABLE / NOT TRACKED with its key and source; the
+   line caps hold (18, 10); each is lines only, zero words in the budget.
+J. THE FACTOR IV LINES POPULATED (ST-5; st-t2-rates, 18 Oct 2026): on a fixture
+   store holding the funding-currency inputs, every ST-5 line of Factor IV (the
+   yen stack, the unwind tell, the fix, the devaluation tell's two legs, the two
+   candidate contradiction rows), Duration Absorption's Japan line and the China
+   panel's spread and gap print a value with its as-of; none prints NOT
+   AVAILABLE; the third leg prints NOT TRACKED with its key; the caps hold.
 
 Groups B, D and F BUILD THE PAYLOAD, which is why this gate is slower than its
 neighbours and worth the seconds: a completeness rule asserted against the code that
@@ -1179,6 +1191,112 @@ def group_h() -> None:
          payload.previous_monthly) = saved
 
 
+def group_i() -> None:
+    print(f"\n{LINE}\nI. THE SIGNAL-TRIAGE BLOCKS (ST-6)\n{LINE}")
+    import importlib
+    from altdata import observations
+    from altdata.sources import _base
+    from daily_cascade import absorption_block as B, stack
+    spec = importlib.util.spec_from_file_location(
+        "st_t1_gate", REPO / "tools" / "validate_st_t1_rest.py")
+    g = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(g)
+    db = str(Path(gate_mkdtemp("monthly-st6-")) / "st6.db")
+    with observations.ObservationStore(db) as st:
+        st.write_many(g.absorption_fixture())
+        from altdata import absorption
+        st.write_many(absorption.compute_rows(st, "2026-10-17T21:00:00+00:00"))
+    calls = []
+    saved = {n: getattr(_base, n) for n in ("http_get_json", "http_get_text",
+                                           "http_get_response", "http_get_bytes")
+             if hasattr(_base, n)}
+
+    def boom(*a, **k):
+        calls.append(a[:1])
+        raise RuntimeError("a Monthly block fetched")
+    for n in saved:
+        setattr(_base, n, boom)
+    try:
+        with observations.ObservationStore(db) as st:
+            now = "2026-10-17T21:00:00+00:00"
+            subs = B.subsections(st, now, "plumbing") + B.subsections(st, now, "slow")
+    finally:
+        for n, f in saved.items():
+            setattr(_base, n, f)
+    titles = [x["title"] for x in subs]
+    from daily_cascade import style_block
+    # SR-1's style-regime panel sits after the Factor lines (ST-8: its gate passed).
+    check(titles == [B.RATE_TITLE, B.DA_TITLE, B.CU_TITLE, B.FACTOR_TITLE,
+                     style_block.TITLE, B.CHINA_TITLE] and not calls,
+          f"the six blocks build from the store with every HTTP helper raising, and "
+          f"none is called ({len(calls)} calls)")
+    lines = [x for t in subs for x in t["lines"]]
+    data = [x for x in lines if ":" in x and not x.rstrip().endswith(":")]
+    marked = [x for x in data if "NOT AVAILABLE (" in x or "NOT TRACKED (" in x]
+    filled = [x for x in data if "(as of " in x or "as of" in x]
+    other = [x for x in data if x not in marked and x not in filled]
+    check(all(x.strip() for x in lines) and filled and marked
+          and all(("withdrawn" in x or "not determinable" in x or "deferred" in x
+                   or "zero rebalancing" in x or "Attribution" in x or "ON" in x
+                   or "off" in x or "not rendered" in x) for x in other),
+          f"every line is populated with its as-of ({len(filled)}) or marked NOT "
+          f"AVAILABLE / NOT TRACKED with its source ({len(marked)}); the rest say why "
+          f"they are not read ({len(other)})")
+    da = next(t for t in subs if t["title"] == B.DA_TITLE)
+    cu = next(t for t in subs if t["title"] == B.CU_TITLE)
+    check(len(da["lines"]) <= 18 and len(cu["lines"]) <= 10
+          and any("4.40% of GDP" in x for x in da["lines"]),
+          f"the caps hold: Duration Absorption {len(da['lines'])} of 18, "
+          f"Cheap-and-Unloved {len(cu['lines'])} of 10; the supply line reads 4.40%")
+    check(all(t.get("paragraph_wanted") is False and stack.section_words(t) == 0
+              and not t.get("charts") for t in subs),
+          "each block is lines only: no paragraph asked, no chart, zero words in the "
+          "Monthly's budget (it displaces nothing)")
+    src = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
+    check('absorption_block.subsections(st, now, "plumbing")' in src
+          and 'absorption_block.subsections(st, now, "slow")' in src,
+          "the Monthly places them: Plumbing & rates and Slow layers")
+
+
+def group_j() -> None:
+    print(f"\n{LINE}\nJ. THE FACTOR IV LINES POPULATED (ST-5)\n{LINE}")
+    import importlib
+    from altdata import funding_currency, observations
+    from daily_cascade import absorption_block as B, stack
+    spec = importlib.util.spec_from_file_location(
+        "st_t2_gate", REPO / "tools" / "validate_st_t2_rates.py")
+    g = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(g)
+    db = str(Path(gate_mkdtemp("monthly-st5-")) / "st5.db")
+    now = "2026-10-17T21:00:00+00:00"
+    with observations.ObservationStore(db) as st:
+        st.write_many(g.funding_fixture())
+        st.write_many(funding_currency.compute_rows(st, now))
+        subs = {x["title"]: x for x in B.subsections(st, now, "plumbing")
+                + B.subsections(st, now, "slow")}
+    fac = subs.get(B.FACTOR_TITLE, {}).get("lines", [])
+    i0 = next((i for i, x in enumerate(fac) if x.startswith("Factor IV")), None)
+    st5 = [x for x in fac[i0 + 1:i0 + 9]] if i0 is not None else []
+    check(len(st5) == 8 and all("(as of " in x for x in st5)
+          and not any("NOT AVAILABLE" in x for x in st5),
+          f"the eight ST-5 Factor IV lines print a value with its as-of, none NOT "
+          f"AVAILABLE ({sum('(as of ' in x for x in st5)} of {len(st5)})")
+    check(any("NOT TRACKED (rule 30; by-hand key state_bank_dollar_selling" in x
+              for x in st5),
+          "the devaluation tell's third leg prints NOT TRACKED with its key")
+    da = subs.get(B.DA_TITLE, {}).get("lines", [])
+    ch = subs.get(B.CHINA_TITLE, {}).get("lines", [])
+    check(any(x.strip().startswith("Japan's holdings") and "+1.00% (as of" in x for x in da)
+          and len(da) <= 18
+          and any(x.startswith("US-China 10-year spread: stored, as of") for x in ch)
+          and any(x.startswith("CNH-CNY gap") and "stored, as of" in x for x in ch),
+          "Duration Absorption's Japan line reads the hedged carry (+1.00%) within "
+          "its cap of 18, and the China panel's spread and gap are stored")
+    check(all(stack.section_words(t) == 0 and t.get("paragraph_wanted") is False
+              for t in subs.values()),
+          "still lines only: zero words in the Monthly's budget")
+
+
 def isolate_and_seed() -> str:
     """Point every store the payload reads at a temporary database, and seed it.
 
@@ -1259,6 +1377,8 @@ def main() -> int:
     group_a()
     group_g()
     group_h()
+    group_i()
+    group_j()
     built = None
     try:
         from monthly_macro import payload

@@ -42,6 +42,11 @@ socket.
                  re-run moves the stamp earlier without a second row.
   L NOISE        yfinance's NumPy DeprecationWarnings are filtered at their source,
                  proven in a fresh interpreter under the real import order (T2.6).
+  M DEALER FAILURES  6b part 1 (brief v2 section 6): an empty chain, a chain without
+                 IV, and a settled capture whose rows are all DTE 0, each through
+                 the engine AND the dealer block -- no net GEX, no regime word, the
+                 reason printed, never a number from nothing. The engine's own
+                 edges are tools/validate_exposure_edges.py's.
 """
 
 from __future__ import annotations
@@ -613,9 +618,13 @@ def main() -> int:
     print(f"\n{LINE}\nE. LEADERSHIP AND BREADTH\n{LINE}")
     srt = sec["positioning"]["subsections"][0]
     check(srt["table"]["columns"] == ["Sector or pair", "Week", "One month",
-                                      "Three months"]
-          and any(" (XL" in r[0] for r in srt["table"]["rows"]),
-          "the sector table: the week, one month, three months; names from the labels")
+                                      "Three months",
+                                      "Correlation to the 10-year, 1 year"]
+          and any(" (XL" in r[0] for r in srt["table"]["rows"])
+          and all(len(r) == 5 for r in srt["table"]["rows"]),
+          "the sector table: the week, one month, three months, and GTM-10's "
+          "one-year correlation to the 10-year (the GTM batch, part 2); names from "
+          "the labels")
     check(not srt.get("lines") or re.match(
         r"Sectors above their 50-day average: \d+ of \d+; above their 200-day: \d+ of "
         r"\d+\.", srt["lines"][0]), f"the 50/200-day count ({srt.get('lines')})")
@@ -920,9 +929,55 @@ def main() -> int:
     check(not hits, "no registry key, and no key made plain ('mkt eido volume', "
           "'jgb 10y'), in any detail table's cells" + (f": {hits[:4]}" if hits else ""))
 
+    group_m()
+
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 1 if FAIL else 0
+
+
+def group_m() -> None:
+    """M. The dealer block's three failure cases (6b part 1)."""
+    print(f"\n{LINE}\nM. DEALER FAILURES: EMPTY, NO IV, SETTLED ALL DTE 0\n{LINE}")
+    sys.path.insert(0, str(REPO / "tests" / "fixtures" / "dealer_block"))
+    import chains as fx                                         # noqa: PLC0415
+    import exposure_compute as ec                               # noqa: PLC0415
+    from daily_cascade import dealer_block as db, stack as stack_mod  # noqa: PLC0415
+    cfg = db.config()
+    empty = ec.compute_symbol([], "SPY")
+    b0 = db.block(empty, None, "no equivalent capture", cfg)
+    check(empty.get("error") and b0.get("absent") and "no spot" in b0["absent"],
+          f"an empty chain: an error, and the block absent with its reason ({b0.get('absent')})")
+    sec = stack_mod.mechanics_section({"session": fx.SESSION, "exposure": [], "pins": []},
+                                      [b0])
+    check(not sec["subsections"] and any("no spot" in x for x in sec["not_tracked"]),
+          "and Mechanics prints no dealer table, only the reason")
+    no_iv = ec.compute_symbol([fx.row("C", 105, 1000, iv=None),
+                               fx.row("P", 95, 800, iv=None)], "SPY")
+    b1 = db.block(no_iv, None, "no equivalent capture", cfg)
+    t1 = {r[0]: r for r in b1["subsections"][0]["table"]["rows"]}
+    check(no_iv["overall"]["net_gex"] is None
+          and t1["Regime (gated)"][-1] == "no net GEX"
+          and t1["Net GEX ($/1%), net-to-gross"][-1].startswith("n/a")
+          and t1["Zero-gamma (balance) level"][-1].startswith("none (no ")
+          and no_iv["overall"]["flip_reason"] == "no_usable_rows",
+          "a chain without IV: no net GEX, no regime word, the zero-gamma reason printed")
+    check(any("no IV 2" in str(r) for r in b1["subsections"][1]["table"]["rows"])
+          and b1["summary"]["regime"] == "no net GEX" and not b1["summary"]["setups"],
+          "the quality panel says the rows were skipped for no IV; no setup proposed")
+    dte0 = ec.compute_symbol([fx.row("C", 105, 1000, dte=0, expiry=fx.SESSION),
+                              fx.row("P", 95, 800, dte=0, expiry=fx.SESSION)], "SPY")
+    b2 = db.block(dte0, None, "no equivalent capture", cfg)
+    rows2 = b2["subsections"][0]["table"]["rows"]
+    check(dte0["overall"]["net_gex"] is None
+          and dte0["quality"]["settled_0dte_excluded_rows"] == 2
+          and all(r[1] == "settled, excluded" for r in rows2)
+          and all(r[-1] in ("n/a", "no net GEX") or r[-1].startswith(("n/a", "none"))
+                  for r in rows2),
+          "a settled capture all DTE 0: excluded from exposure, the 0DTE column "
+          "'settled, excluded', every other cell n/a or none -- no figure from nothing")
+    check(b2["summary"]["regime"] == "no net GEX",
+          "and the summary prints no regime word")
 
 
 if __name__ == "__main__":

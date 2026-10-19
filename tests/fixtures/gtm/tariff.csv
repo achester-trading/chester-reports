@@ -1,0 +1,13 @@
+key,day,value
+fred.customs_duties,2025-10-01,200.0
+fred.customs_duties,2026-01-01,300.0
+fred.customs_duties,2026-04-01,400.0
+fred.goods_imports,2025-10-01,250000
+fred.goods_imports,2025-11-01,250000
+fred.goods_imports,2025-12-01,250000
+fred.goods_imports,2026-01-01,250000
+fred.goods_imports,2026-02-01,250000
+fred.goods_imports,2026-03-01,250000
+fred.goods_imports,2026-04-01,270000
+fred.goods_imports,2026-05-01,270000
+fred.goods_imports,2026-06-01,270000

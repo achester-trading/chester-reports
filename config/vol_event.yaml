@@ -1,0 +1,91 @@
+# THE VOLATILITY EVENT FLAG AND ATTRIBUTION (Batch 9 item 52, ruled 17 Oct 2026;
+# docs/change-order-signal-triage-batch-9-2026-10-17.md). Read by
+# altdata/vol_event.py. Values marked RULED are the order's; every other number
+# is SESSION-SET, with its reason, and listed in docs/briefs/vol-event-52-notes.md.
+version: vol-event-v1
+
+# ST-R6.52a -- THE TRIGGER, two-sided. RULED.
+trigger:
+  one_day_pct: 15.0            # a one-day VIX change of 15% either way ...
+  one_day_points: 3.0          # ... or 3 points either way
+  five_day_percentile: 95.0    # a five-day change beyond its own 95th percentile
+  five_day_window_years: 20    # ... on a 20-year window
+  five_day_sessions: 5
+  # Session-set: the five-day change is measured in LOG terms (the move screen's
+  # unit for the VIX, config/move_screen.yaml), so a move from 12 and one from 40
+  # are read on one scale; its tail is |change|, two-sided.
+  compression_within_pct: 5.0  # within 5% of the trailing six-month low ...
+  compression_window_sessions: 126   # six months of sessions (session-set: 126)
+  compression_hold_sessions: 3       # ... held three sessions
+  # The XIII regime band crossing reads the vol dial's level bands
+  # (config/market_state.yaml dimensions.vol.level_bands), the bands the close
+  # already prints; no second copy is kept here.
+
+# The level and change percentiles, printed as separate fields (RULED: five-year
+# and 20-year). Sessions per year: 252 (session-set).
+percentiles:
+  windows_years: [5, 20]
+  sessions_per_year: 252
+
+# THE STORE KEYS the lenses read. The VIX history joins FRED's VIXCLS (from 1990,
+# next-morning) with the same-day ^VIX, the same-day value winning a date.
+keys:
+  vix: yfinance.mkt_vix
+  vix_history: fred.vix
+  vix9d: yfinance.mkt_vix9d        # added to the basket by this branch
+  vix3m: yfinance.mkt_vix3m
+  vix6m: yfinance.mkt_vix6m        # added to the basket by this branch
+  vvix: yfinance.mkt_vvix
+  skew: yfinance.mkt_skew
+  move: yfinance.mkt_move
+  hy_oas: fred.hy_oas
+  spx: yfinance.mkt_gspc
+  cftc_net: cftc.noncomm_net       # instrument VIX (contract 1170E1, since 3 Oct)
+  # Item 18's dispersion panel (session B, st-r4-tranche-1b): read by key name,
+  # "awaiting" until rows are stored.
+  # Cboe's history file only: Yahoo's ^COR3M joins the basket on session B's
+  # branch, so naming it here would name a key this branch does not register.
+  implied_corr: cboe.cor3m
+  dispersion: cboe.dspx
+  # Crypto DVOL (session B, crypto Tranche A, CD-2): read by key name, awaiting.
+  dvol_btc: deribit.dvol_btc
+
+# ST-R6.52b -- THE LENSES. Session-set readings.
+lenses:
+  beta_sessions: 60            # RULED: the trailing 60-day spot-vol beta
+  front_led_points: 1.0        # front-led: VIX9D's change exceeds VIX6M's by 1+ point
+  whole_curve_share: 0.5       # whole-curve: VIX6M moved at least half VIX9D's change
+  systemic_move_log_pct: 5.0   # cross-asset systemic: MOVE up 5%+ (log) ...
+  systemic_hy_bp: 10.0         # ... or HY OAS up 10+ bp on the day
+  realized_windows: [10, 20]   # RULED: 10- and 20-day realised SPX vol
+  # The gaps the order allows (filing note 4): no free series within robots.
+  gaps:
+    g10_fx_vol: "a G10 FX volatility proxy: the published FX vol indices are proprietary; no free series within robots (a listed gap, 16 Oct rule)"
+    etp_vega: "VIX ETP vega: no free source within robots (a listed gap, 16 Oct rule)"
+  # The catalyst: the Phase B scan's stored press attributions for the session,
+  # for these markets, printed as the outlet's attribution, never as our cause.
+  catalyst_markets: ["US stocks", "stocks", "S&P 500", "volatility", "VIX", "equities"]
+
+# ST-R6.52c -- THE BLOCK. The regime consequence: the XIII band, and Book C's
+# vol rule -- the Doctrine's volatile-day protocol (Part I; Section 5.5): VIX at
+# or above 25, or up 20% on the day. PRINTED, NEVER APPLIED.
+book_c:
+  vix_level: 25.0
+  vix_up_pct: 20.0
+  rule: "the volatile-day protocol (Doctrine 5.5): all sizes halved on top of the dial multipliers, Book C only from the 0700 list and only defined-risk"
+# The 12:30 gate (RULED, upward only): a one-day rise of 15% or 3 points by 12:30.
+midday:
+  up_pct: 15.0
+  up_points: 3.0
+
+# ST-R6.52d -- THE BASE RATE, from the box's history, never recalled.
+base_rate:
+  # Session-set: the move-size buckets on |one-day % change| (15-25%, 25-40%,
+  # 40%+); a points-only trigger uses its points bucket (3-5, 5+).
+  pct_buckets: [15.0, 25.0, 40.0]
+  points_buckets: [3.0, 5.0]
+  forward_sessions: [5, 20]    # RULED: the realised 5- and 20-day outcomes
+  min_n: 10                    # session-set: under 10 prior cases, "too few to read"
+# THE LEDGER: modifier rights only after 30 events (RULED).
+ledger:
+  rights_after_events: 30

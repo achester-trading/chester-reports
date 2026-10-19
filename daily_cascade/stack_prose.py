@@ -701,6 +701,42 @@ SECTION_NOTES = {
 }
 
 
+# THE THREE FIXED SENTENCES (6b part 2; brief v2 section 4): when Mechanics
+# carries the dealer block, its paragraph opens with them, from
+# `dealer_sentences` only, behind the numeral and flag-word audits.
+DEALER_SENTENCES_NOTE = (
+    "\n\nTHE THREE DEALER SENTENCES: your paragraph's body opens with exactly "
+    "three sentences, in this order, citing only the figures under "
+    "`dealer_sentences`, verbatim: (1) the regime with its net-to-gross, the "
+    "zero-gamma level and its distance from spot, and the asymmetry of net GEX "
+    "one percent either side of spot; (2) where the gamma concentrates -- the "
+    "OTM call wall, the OTM put gamma wall, the peak-gamma strike and which "
+    "expiry carries it, and the hedge rolling off at the next expiry, as a SIZE "
+    "with no direction; (3) the setups whose conditions hold for the session "
+    "named, each with its invalidating level, or that no setup holds. Every "
+    "level is inferred, not observed. Never write 'support' or 'resistance', "
+    "and never write pinned, held, amplified or dampened about a session.")
+
+
+# THE VOLATILITY EVENT'S PARAGRAPH (Batch 9 item 52): in the desk voice, from
+# `vol_event` only, behind the same audits.
+VOL_EVENT_NOTE = (
+    "\n\nTHE VOLATILITY EVENT: one passage, in the desk voice, on what is behind "
+    "the move, from `vol_event` only: the trigger, then which lenses carried it "
+    "and which did not, then the regime consequence and the base rate as "
+    "printed. The catalyst is the outlet's attribution when the data names one, "
+    "never ours; where it says 'not established', say so. The Book C line is "
+    "printed, not applied. No forecast beyond the base rate's own figures.")
+
+
+def dealer_flag_faults(text: str, ed: dict) -> list[str]:
+    """The flag-word audit over Mechanics: the Weekly's scored sessions
+    (`dealer_week`) are the flags; the close has none at prose time."""
+    from . import dealer_block                                  # noqa: PLC0415
+    mech = next((s for s in ed.get("sections") or [] if s.get("id") == "mechanics"), {})
+    return dealer_block.flag_word_faults(text, (mech.get("data") or {}).get("dealer_week"))
+
+
 # THE WEEKLY'S OWN NOTES (T2.2, ruled 4 Oct 2026), appended after SECTION_NOTES
 # on the Weekly only -- the daily close keeps its shape.
 WEEKLY_NOTES = {
@@ -831,6 +867,13 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
         figure_tail="")
     if s["id"] not in CADENCE_REPLACES_NOTES.get(cadence, ()):
         sys_prompt += SECTION_NOTES.get(s["id"], "")
+    if (s.get("data") or {}).get("dealer_sentences"):
+        sys_prompt += DEALER_SENTENCES_NOTE
+    if (s.get("data") or {}).get("vol_event"):
+        sys_prompt += VOL_EVENT_NOTE
+    if (s.get("data") or {}).get("dealer_week_vs_monday"):
+        from .dealer_weekly import FOURTH_NOTE                  # noqa: PLC0415
+        sys_prompt += FOURTH_NOTE
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
     sys_prompt += (extra_notes or {}).get(s["id"], "")
     if not claim_only and is_parent(s, cadence):
@@ -1068,6 +1111,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                                       else section_figure_cap(sid, cadence),
                                       _groups(sid, ed, cadence))
                       + filler_faults(text, filler_names(payload))
+                      # THE FLAG WORDS (brief v2 section 4; 6b part 2): pinned,
+                      # held, amplified and dampened only where a named
+                      # session's flag is True. The close has no scored session
+                      # at prose time, so it carries none.
+                      + (dealer_flag_faults(text, ed) if sid == "mechanics" else [])
                       + tail_faults(text, stored_tails(ed))
                       # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
                       # Takeaway, last, carrying no figure.

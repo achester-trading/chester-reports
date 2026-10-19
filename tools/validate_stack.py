@@ -233,8 +233,24 @@ def group_m(db: str, out1: dict, n: int) -> None:
             f"{80 * n:,} output tokens today")
     check(out1["edition"].get("model_line") == want and want in out1["html_email"],
           f"the footer prints \"{out1['edition'].get('model_line')}\"")
-    check(model_meter.daily_line(db, session.to_eastern().date().isoformat()) == want,
-          "and the line is the meter's own sum over the day's rows")
+    day = out1["edition"].get("model_day")
+    check(bool(day) and model_meter.daily_line(db, day) == want,
+          f"and the line is the meter's own sum over the edition's own day ({day}), "
+          f"not over the gate's today, which a run across midnight ET moves")
+    # The ET day's bounds, at 23:59 and 00:01 ET (EDT, so 03:59 and 04:01 UTC).
+    mdb = str(Path(gate_mkdtemp("stack-meter-")) / "m.db")
+    with model_meter.scope(report="daily_close", run_id="midnight", db_path=mdb):
+        class _R:
+            model = "fixture-model"
+
+            class usage:
+                input_tokens, output_tokens = 10, 1
+        model_meter.record(_R(), now="2026-10-18T03:59:00+00:00")
+        model_meter.record(_R(), now="2026-10-18T04:01:00+00:00")
+    d1, d2 = (model_meter.daily_line(mdb, d) for d in ("2026-10-17", "2026-10-18"))
+    check(d1.startswith("Model: 1 call,") and d2.startswith("Model: 1 call,"),
+          f"a call at 23:59 ET counts on its own day and one at 00:01 ET on the next "
+          f"({d1!r}; {d2!r})")
     body = narrative.build_prompt({"b": [1, 2], "a": {"x": "y"}}, None)
     check('{"a":{"x":"y"},"b":[1,2]}' in body,
           "the payload reaches the model compact: no indentation, no padding")

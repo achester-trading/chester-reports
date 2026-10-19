@@ -1,0 +1,802 @@
+# The J.P. Morgan Guide to the Markets batch, part 1 (GTM-1, 7, 8, 9, 13, 15, 21).
+# Change order docs/change-order-jpm-gtm-2026-10-03.md (ruled 3 Oct 2026); built
+# on branch gtm-core-1, 17 Oct 2026. altdata/gtm.py computes; daily_cascade/
+# gtm_block.py lays out; tools/base_rates.py stores the three base-rate tables;
+# tools/validate_gtm.py holds it.
+#
+# TWO KINDS OF NUMBER, NEVER MIXED. A figure the store can compute is computed
+# (the eras, the episodes, the all-time-high shares, the duration returns, the
+# tariff and debt-service ratios). A figure only the Guide has is a SOURCED
+# FIGURE: it is declared under `sourced` below with the scan's own words quoted,
+# its section reference (and slide where the scan recorded one -- the 8 Oct
+# narrowing of the scans ingest), and its as-of date; `altdata.scans ingest`
+# stores it beside the reference table, and it prints only from the store,
+# labelled, and never recomputed. A sourced figure without a section reference,
+# an as-of date, or a quote the scan contains is refused.
+#
+# Everything here is session-set unless a line names a ruling.
+version: gtm-v1
+updated: 2026-10-17
+scan_id: jpm-gtm-2026q4
+
+# Register numbers (ruling 4 of 17 Oct 2026): the adopted items take fresh
+# numbers from SR-48 upward in the order's table order. SR-49 is skipped: it is
+# the selloff-shape axis's working number in code (signal-triage batch 4), and
+# the working numbers the other branches use stand, as SR-43, 45 and 46 do.
+# Part 1 had used SR-37 ... SR-47; renumbered on gtm-core-1 before part 2.
+register_numbers:
+  GTM-1: SR-48
+  GTM-3: SR-50
+  GTM-4: SR-51
+  GTM-8: SR-52
+  GTM-9: SR-53
+  GTM-10: SR-54
+  GTM-11: SR-55
+  GTM-12: SR-56
+  GTM-13: SR-57
+  GTM-14: SR-58
+  GTM-15: SR-59
+  GTM-7: SR-9    # amended, keeps its key
+  GTM-21: SR-5   # amended, keeps its key
+
+# GTM-1: the eight prior tops and bottoms, as the scan names them (month only;
+# the scan gives a day for 12 Oct 2022 alone, and no day is invented).
+inflection_points:
+  - {id: top_2000, kind: top, label: "24 Mar 2000"}
+  - {id: top_2007, kind: top, label: "9 Oct 2007"}
+  - {id: top_2020, kind: top, label: "19 Feb 2020"}
+  - {id: top_2022, kind: top, label: "3 Jan 2022"}
+  - {id: bottom_2002, kind: bottom, label: "9 Oct 2002"}
+  - {id: bottom_2009, kind: bottom, label: "9 Mar 2009"}
+  - {id: bottom_2020, kind: bottom, label: "23 Mar 2020"}
+  - {id: bottom_2022, kind: bottom, label: "12 Oct 2022"}
+inflection_fields: [level, forward_pe, dividend_yield, yield_10y]
+
+# GTM-7: the three eras (the Guide's), monthly total returns from Shiller's sheet
+# (the S&P Composite's price and dividend; a 10-year par bond priced off GS10),
+# the average of the 24-month rolling correlation whose window ends in the era,
+# and the era's average CPI inflation on the year. An era our history does not
+# cover to `min_coverage` prints the Guide's figure, labelled.
+stock_bond:
+  rolling_months: 24
+  bond_maturity_years: 10
+  min_coverage: 0.9
+  eras:
+    - {id: "1964-1999", label: "1964 to 1999", start: "1964-01", end: "1999-12"}
+    - {id: "2000-2020", label: "2000 to 2020", start: "2000-01", end: "2020-12"}
+    - {id: "2021-now", label: "2021 to now", start: "2021-01", end: null}
+  # The regime word Book A's rule table reads (and nothing automated does): the
+  # current 24-month correlation at or above +0.10 is "positive", at or below
+  # -0.10 "negative", between them "near zero".
+  regime_bands: {positive: 0.10, negative: -0.10}
+
+# GTM-8: Michigan sentiment's turning points. A peak (trough) is a month whose
+# reading is strictly the highest (lowest) within `window_months` either side (a
+# tie is neither, so a flat stretch marks nothing);
+# turning points then alternate (two peaks in a row keep the higher), and a
+# peak-trough pair less than `min_swing_points` apart is dropped. The forward
+# return is the S&P 500's month-end close 12 months on, price only. A trough "at
+# a price low" is one where the S&P 500 sat at least `price_low_drawdown_pct`
+# below its prior 12-month closing high -- the test of the order's caveat.
+sentiment:
+  window_months: 12
+  min_swing_points: 15.0
+  forward_months: 12
+  price_low_drawdown_pct: 10.0
+  # The order's words, printed in the row (change order, GTM-8's ruling).
+  caveat: "every sampled trough coincided with a price low; this one is at a high"
+
+# GTM-9: all-time highs from the S&P 500's daily closes (^GSPC). An all-time high
+# is a close above every prior close. A FLOOR is the scan's definition (section 4,
+# GTM-9): an all-time high the market never afterwards closed 5% or more below,
+# measured to the end of the stored data. "Followed by another within a week":
+# another all-time high in the next five sessions. The comparison sample is the
+# scan's, 1988 to 2025.
+all_time_highs:
+  floor_drawdown_pct: 5.0
+  within_sessions: 5
+  sample: {start: "1988-01-01", end: "2025-12-31"}
+  definition_source: "the scan's (section 4, GTM-9): never fell 5% below"
+
+# GTM-13: the fixed-income scenario table. A sector prints only through a proxy
+# the store holds; a sector without one prints "no proxy". Yields are the store's
+# own series for the tenor (the CMT nearest the fund's maturity band, labelled);
+# a sector whose yield is not stored prints "not stored". Duration only from
+# config/instrument_reference.yaml; the +/-100 bp price return is -duration x
+# change (no convexity: the reference carries none).
+fixed_income:
+  window_sessions: 252
+  shift_bp: 100
+  rate_key: fred.yield_10y
+  equity_key: yfinance.mkt_spy
+  sectors:
+    - {sector: "Treasury 2-year", yield_key: fred.yield_2y, yield_label: "2-year CMT",
+       proxy: SHY, proxy_key: yfinance.mkt_shy, guide: "2y"}
+    - {sector: "Treasury 10-year", yield_key: fred.yield_10y, yield_label: "10-year CMT",
+       proxy: IEF, proxy_key: yfinance.mkt_ief, guide: "10y"}
+    - {sector: "Treasury 30-year", yield_key: fred.yield_30y, yield_label: "30-year CMT",
+       proxy: TLT, proxy_key: yfinance.mkt_tlt, guide: "30y"}
+    - {sector: "TIPS", yield_key: fred.tips_10y, yield_label: "10-year real",
+       proxy: TIP, proxy_key: yfinance.mkt_tip, guide: "TIPS"}
+    - {sector: "Aggregate", yield_key: null, proxy: AGG, proxy_key: yfinance.mkt_agg,
+       guide: "Agg"}
+    - {sector: "Investment grade", yield_key: null, proxy: LQD,
+       proxy_key: yfinance.mkt_lqd, guide: "IG"}
+    - {sector: "High yield", yield_key: null, proxy: HYG, proxy_key: yfinance.mkt_hyg,
+       guide: "HY"}
+    # Ruling 2 of 17 Oct 2026: TIP, MUB and MBB join the price basket (Yahoo,
+    # keyless) as the TIPS, municipal and MBS proxies.
+    - {sector: "Municipals", yield_key: null, proxy: MUB, proxy_key: yfinance.mkt_mub,
+       guide: "munis"}
+    - {sector: "MBS", yield_key: null, proxy: MBB, proxy_key: yfinance.mkt_mbb, guide: "MBS"}
+
+# GTM-15: customs duties over goods imports. FRED serves the receipts QUARTERLY
+# (B235RC1Q027SBEA, billions, SAAR) and goods imports MONTHLY (BOPGIMP, millions,
+# SA); the rate is the quarter's receipts over four times the quarter's three
+# months of imports. No monthly customs-receipts series is on FRED, so the
+# order's "monthly" is quarterly here and is printed so.
+tariff:
+  customs_key: fred.customs_duties
+  imports_key: fred.goods_imports
+
+# GTM-21: the household debt-service ratio and its two splits (FRED, quarterly).
+dsr:
+  keys:
+    - {key: fred.dsr_household, label: "Household debt service, % of disposable income (TDSP)"}
+    - {key: fred.dsr_consumer, label: "Consumer debt service (CDSP)"}
+    - {key: fred.dsr_mortgage, label: "Mortgage debt service (MDSP)"}
+  short_window_days: 1826
+
+# ===========================================================================
+# PART 2 (gtm-core-2, 17 Oct 2026): GTM-3, 4, 10 and 12, and the fixes to GTM-13
+# and GTM-15 the rulings of 17 Oct asked for. Computed in altdata/gtm_equities.py
+# (GTM-3, 4, 10) and altdata/gtm.py (GTM-12, GTM-15 monthly); laid out in
+# daily_cascade/gtm_block.py. Every Guide figure is a sourced figure below, with
+# its slide and as-of, and is never recomputed.
+# ===========================================================================
+
+# GTM-3: the concentration twin. The top 10 ISSUERS by SPY's weights (a second
+# share class counts with its first: config/st_r5_t1_rest.yaml's
+# `share_classes`, the one map). Earnings share: each top-10 name's weight over its
+# trailing P/E (Yahoo's trailing twelve months, yf.trailing_pe), times the index's
+# trailing P/E from Shiller's sheet (the month's price over the month's trailing
+# twelve-month earnings) -- cap share over P/E is earnings share, so no share
+# count is needed. Forward P/E: the top 10's is their weight over the sum of
+# weight over forward P/E (Yahoo's forward P/E, the next fiscal year); the
+# index's is the S&P 500's close over S&P DJI's forward twelve-month operating EPS
+# (the operator's monthly drop); the other 490's backs the top 10 out of the
+# index, the Guide's own method. Every name must carry its multiple, or the cell
+# prints the Guide's figure, labelled. Own averages: over every stored holdings
+# day the inputs cover; under `min_own_history_days` ours prints with its window
+# and the Guide's average is the comparison.
+concentration_twin:
+  weight_key: sp500.member_weight
+  top_n: 10
+  trailing_pe_key: yf.trailing_pe
+  forward_pe_key: yf.forward_pe
+  index_close_key: yfinance.mkt_gspc
+  index_forward_eps_key: spdji.fwd12m_op_eps
+  shiller_price_key: shiller.sp_price
+  shiller_earnings_key: shiller.sp_earnings
+  max_age_days: 7
+  min_own_history_days: 252
+  # The consensus log (altdata/loggers/consensus.py) reads these beside its own
+  # universe, so the top 10 and the hyperscaler bucket carry their multiples:
+  # the bucket's members not already in it, and the newest holdings' top
+  # `consensus_top_n` issuers' lines (keyless Yahoo, the same read as the rest).
+  consensus_static: [ORCL, GOOG]
+  consensus_top_n: 12
+
+# GTM-4: the five buckets are config/ai_buckets.yaml (slide 11, refreshed each
+# quarter). A bucket's weight is the sum of its members' SPY weights; its year to
+# date the market-weighted price return from the last close of the prior year
+# (each member's starting weight backed out of today's weight and its return);
+# its NTM P/E the members' weight over the sum of weight over forward P/E. Every
+# member must be stored, or the cell prints the Guide's figure, labelled.
+ai_buckets:
+  close_key: sp500.member_close
+  weight_key: sp500.member_weight
+  forward_pe_key: yf.forward_pe
+  ocf_key: edgar.xbrl_operating_cash_flow
+  capex_key: edgar.xbrl_capex
+  forecast_years: [2026F, 2027F, 2028F]
+
+# GTM-10: the sector rows. The correlation of each sector ETF's daily price return
+# with the 10-year's daily change in basis points (FRED DGS10), over one year and
+# five years of sessions where both are stored; at least `min_coverage` of the
+# window's sessions, else "not reached". The Guide's columns (forward P/E against
+# its 20-year average, NTM EPS growth against its 20-year median, foreign share
+# of sales, and its own 2-year monthly correlation) are sourced figures. The ETF
+# maps to the slide's sector row.
+sector_rows:
+  rate_key: fred.yield_10y
+  windows: {one_year: 252, five_years: 1260}
+  min_coverage: 0.9
+  sectors:
+    XLE: energy
+    XLB: materials
+    XLF: financials
+    XLI: industrials
+    XLY: cons_disc
+    XLK: tech
+    XLC: comm_services
+    XLRE: real_estate
+    XLV: health_care
+    XLP: cons_staples
+    XLU: utilities
+  index_row: s_p_500
+
+# GTM-12: what the Factor IV panel lacks (the Monthly's fiscal rows carry debt to
+# GDP and r minus g). Two bases, never mixed in one ratio: the national accounts,
+# quarterly at an annual rate, each against federal current expenditures
+# (FGEXPND); and the budget, by fiscal year, each against net outlays (FYONET).
+# Defense in the national accounts is consumption AND gross investment, which
+# current expenditures exclude, so its share is printed with that caveat. Each
+# row: the latest, its period, and the share's percentile over `short_years` and
+# over the full stored history.
+federal:
+  short_years: 10
+  nipa_denominator: fred.fed_outlays
+  budget_denominator: fred.fy_net_outlays
+  rows:
+    - {id: interest_nipa, key: fred.fed_interest_payments, series: A091RC1Q027SBEA,
+       label: "Interest payments (national accounts)", basis: nipa}
+    - {id: defense_nipa, key: fred.fed_defense, series: FDEFX,
+       label: "Defense consumption and gross investment (national accounts)", basis: nipa}
+    - {id: customs_nipa, key: fred.customs_duties, series: B235RC1Q027SBEA,
+       label: "Customs duties receipts (national accounts)", basis: nipa}
+    - {id: net_interest_fy, key: fred.fy_net_interest, series: FYOINT,
+       label: "Net interest outlays (budget, fiscal year)", basis: budget}
+    - {id: deficit_fy, key: fred.fy_deficit, series: FYFSD,
+       label: "Deficit (budget, fiscal year)", basis: budget, sign: -1}
+    - {id: deficit_gdp, key: fred.fy_deficit_gdp, series: FYFSGDA188S,
+       label: "Deficit, % of GDP (fiscal year)", basis: gdp, sign: -1}
+  # The CBO path: a sourced figure taken from the scan or CBO's own outlook at each
+  # update, dated, never typed from memory (ruled 17 Oct 2026).
+  cbo_path: [gtm12.debt_2025, gtm12.debt_2036]
+
+# GTM-15, MONTHLY (ruling 3 of 17 Oct 2026): customs duties from the Monthly
+# Treasury Statement (Table 4, keyless, through the fiscaldata writer) over the
+# month's goods imports (BOPGIMP). GROSS receipts: the month's duties collected;
+# net receipts subtract refunds, which since the IEEPA refunds of mid-2026 turn
+# net receipts negative and say nothing about the rate on current imports. The
+# refunds print beside it. Duties are not seasonally adjusted and imports are, so
+# the three-month rate prints beside the month's. The quarterly FRED rate above
+# is the cross-check.
+tariff_monthly:
+  gross_key: fiscaldata.mts_customs_gross
+  refunds_key: fiscaldata.mts_customs_refunds
+  imports_key: fred.goods_imports
+  smooth_months: 3
+
+# THE SOURCED FIGURES. Each: the item, a label, the figure as printed, its number
+# where one is compared, the section and the Guide's slide (required since part 2:
+# each read against the 4Q 2026 PDF on 17 Oct 2026), and the scan's words it was
+# read from, quoted exactly.
+sourced:
+  # GTM-1, the prior tops and bottoms: slide 4, transcribed once (step 0.4 of
+  # the part 2 paste, ruling 1 of 17 Oct 2026) into the scan's section 7. The
+  # slide prints dividend yield and the 10-year at the tops only.
+  - {id: gtm1.top_2000.level, item: GTM-1, label: "24 Mar 2000 top, S&P 500",
+     value: "1,527", number: 1527.0, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2000.forward_pe, item: GTM-1, label: "24 Mar 2000 top, forward P/E",
+     value: "25.2x", number: 25.2, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2000.dividend_yield, item: GTM-1, label: "24 Mar 2000 top, dividend yield",
+     value: "1.4%", number: 1.4, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2000.yield_10y, item: GTM-1, label: "24 Mar 2000 top, 10-year",
+     value: "6.2%", number: 6.2, section: "§7", slide: 4,
+     quote: "| 24 Mar 2000 | top | 1,527 | 25.2x | 1.4% | 6.2% |"}
+  - {id: gtm1.top_2007.level, item: GTM-1, label: "9 Oct 2007 top, S&P 500",
+     value: "1,565", number: 1565.0, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2007.forward_pe, item: GTM-1, label: "9 Oct 2007 top, forward P/E",
+     value: "15.1x", number: 15.1, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2007.dividend_yield, item: GTM-1, label: "9 Oct 2007 top, dividend yield",
+     value: "1.9%", number: 1.9, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2007.yield_10y, item: GTM-1, label: "9 Oct 2007 top, 10-year",
+     value: "4.7%", number: 4.7, section: "§7", slide: 4,
+     quote: "| 9 Oct 2007 | top | 1,565 | 15.1x | 1.9% | 4.7% |"}
+  - {id: gtm1.top_2020.level, item: GTM-1, label: "19 Feb 2020 top, S&P 500",
+     value: "3,386", number: 3386.0, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2020.forward_pe, item: GTM-1, label: "19 Feb 2020 top, forward P/E",
+     value: "19.2x", number: 19.2, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2020.dividend_yield, item: GTM-1, label: "19 Feb 2020 top, dividend yield",
+     value: "1.9%", number: 1.9, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2020.yield_10y, item: GTM-1, label: "19 Feb 2020 top, 10-year",
+     value: "1.6%", number: 1.6, section: "§7", slide: 4,
+     quote: "| 19 Feb 2020 | top | 3,386 | 19.2x | 1.9% | 1.6% |"}
+  - {id: gtm1.top_2022.level, item: GTM-1, label: "3 Jan 2022 top, S&P 500",
+     value: "4,797", number: 4797.0, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.top_2022.forward_pe, item: GTM-1, label: "3 Jan 2022 top, forward P/E",
+     value: "21.4x", number: 21.4, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.top_2022.dividend_yield, item: GTM-1, label: "3 Jan 2022 top, dividend yield",
+     value: "1.8%", number: 1.8, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.top_2022.yield_10y, item: GTM-1, label: "3 Jan 2022 top, 10-year",
+     value: "1.6%", number: 1.6, section: "§7", slide: 4,
+     quote: "| 3 Jan 2022 | top | 4,797 | 21.4x | 1.8% | 1.6% |"}
+  - {id: gtm1.bottom_2002.level, item: GTM-1, label: "9 Oct 2002 low, S&P 500",
+     value: "777", number: 777.0, section: "§7", slide: 4,
+     quote: "| 9 Oct 2002 | bottom | 777 | 14.1x | — | — |"}
+  - {id: gtm1.bottom_2002.forward_pe, item: GTM-1, label: "9 Oct 2002 low, forward P/E",
+     value: "14.1x", number: 14.1, section: "§7", slide: 4,
+     quote: "| 9 Oct 2002 | bottom | 777 | 14.1x | — | — |"}
+  - {id: gtm1.bottom_2009.level, item: GTM-1, label: "9 Mar 2009 low, S&P 500",
+     value: "677", number: 677.0, section: "§7", slide: 4,
+     quote: "| 9 Mar 2009 | bottom | 677 | 10.4x | — | — |"}
+  - {id: gtm1.bottom_2009.forward_pe, item: GTM-1, label: "9 Mar 2009 low, forward P/E",
+     value: "10.4x", number: 10.4, section: "§7", slide: 4,
+     quote: "| 9 Mar 2009 | bottom | 677 | 10.4x | — | — |"}
+  - {id: gtm1.bottom_2020.level, item: GTM-1, label: "23 Mar 2020 low, S&P 500",
+     value: "2,237", number: 2237.0, section: "§7", slide: 4,
+     quote: "| 23 Mar 2020 | bottom | 2,237 | 13.3x | — | — |"}
+  - {id: gtm1.bottom_2020.forward_pe, item: GTM-1, label: "23 Mar 2020 low, forward P/E",
+     value: "13.3x", number: 13.3, section: "§7", slide: 4,
+     quote: "| 23 Mar 2020 | bottom | 2,237 | 13.3x | — | — |"}
+  - {id: gtm1.bottom_2022.level, item: GTM-1, label: "12 Oct 2022 low, S&P 500",
+     value: "3,577", number: 3577.0, section: "§7", slide: 4,
+     quote: "| 12 Oct 2022 | bottom | 3,577 | 15.7x | — | — |"}
+  - {id: gtm1.bottom_2022.forward_pe, item: GTM-1, label: "12 Oct 2022 low, forward P/E",
+     value: "15.7x", number: 15.7, section: "§7", slide: 4,
+     quote: "| 12 Oct 2022 | bottom | 3,577 | 15.7x | — | — |"}
+  # GTM-1, the Guide's own 30 Sep row (the "today" row's reconciliation).
+  - {id: gtm1.guide.level, item: GTM-1, label: "30 Sep 2026, S&P 500 (the Guide)",
+     value: "7,652", number: 7652.0, section: "§6", slide: 4,
+     quote: "| S&P 500 level | 7,652 |"}
+  - {id: gtm1.guide.forward_pe, item: GTM-1, label: "30 Sep 2026, forward P/E (the Guide)",
+     value: "19.0x", number: 19.0, section: "§6", slide: 4,
+     quote: "| Forward P/E | 19.0x |"}
+  - {id: gtm1.guide.dividend_yield, item: GTM-1, label: "30 Sep 2026, dividend yield (the Guide)",
+     value: "1.4%", number: 1.4, section: "§6", slide: 4,
+     quote: "| Dividend yield | 1.4% |"}
+  - {id: gtm1.guide.yield_10y, item: GTM-1, label: "30 Sep 2026, 10-year (the Guide)",
+     value: "5.29%", number: 5.29, section: "§6", slide: 34,
+     quote: "10y 5.29"}
+  # GTM-7, the Guide's three eras.
+  - {id: gtm7.1964-1999.corr, item: GTM-7, label: "1964 to 1999, average 24-month correlation",
+     value: "+0.28", number: 0.28, section: "§6", slide: 65,
+     quote: "1964–99 +0.28 (4.86%)"}
+  - {id: gtm7.1964-1999.inflation, item: GTM-7, label: "1964 to 1999, average inflation",
+     value: "4.86%", number: 4.86, section: "§6", slide: 65,
+     quote: "1964–99 +0.28 (4.86%)"}
+  - {id: gtm7.2000-2020.corr, item: GTM-7, label: "2000 to 2020, average 24-month correlation",
+     value: "−0.31", number: -0.31, section: "§6", slide: 65,
+     quote: "2000–20 −0.31 (2.13%)"}
+  - {id: gtm7.2000-2020.inflation, item: GTM-7, label: "2000 to 2020, average inflation",
+     value: "2.13%", number: 2.13, section: "§6", slide: 65,
+     quote: "2000–20 −0.31 (2.13%)"}
+  - {id: gtm7.2021-now.corr, item: GTM-7, label: "2021 to 2025, average 24-month correlation",
+     value: "+0.33", number: 0.33, section: "§6", slide: 65,
+     quote: "2021–25 avg +0.33 (inflation 4.52%)"}
+  - {id: gtm7.2021-now.inflation, item: GTM-7, label: "2021 to 2025, average inflation",
+     value: "4.52%", number: 4.52, section: "§6", slide: 65,
+     quote: "2021–25 avg +0.33 (inflation 4.52%)"}
+  # GTM-8, the Guide's base rate and the current reading.
+  - {id: gtm8.peaks, item: GTM-8, label: "After 10 sentiment peaks, next 12 months",
+     value: "+4.8%", number: 4.8, n: 10, section: "§4", slide: 30,
+     quote: "10 peaks +4.8%, 9 troughs +24.1%"}
+  - {id: gtm8.troughs, item: GTM-8, label: "After 9 sentiment troughs, next 12 months",
+     value: "+24.1%", number: 24.1, n: 9, section: "§4", slide: 30,
+     quote: "10 peaks +4.8%, 9 troughs +24.1%"}
+  - {id: gtm8.current, item: GTM-8, label: "Michigan sentiment, Sep 2026 (the Guide)",
+     value: "48.1", number: 48.1, section: "§6", slide: 30,
+     quote: "Michigan 48.1 (Sep)"}
+  # GTM-9, the Guide's 1988 to 2025 sample and its year to date.
+  - {id: gtm9.ytd_count, item: GTM-9, label: "All-time highs, 2026 to 30 Sep (the Guide)",
+     value: "27", number: 27.0, section: "§6", slide: 62,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  - {id: gtm9.share_days, item: GTM-9, label: "Share of days at an all-time high, 1988 to 2025",
+     value: "7%", number: 7.0, section: "§6", slide: 62,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  - {id: gtm9.share_floors, item: GTM-9, label: "Share that became floors, 1988 to 2025",
+     value: "31%", number: 31.0, section: "§6", slide: 62,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  - {id: gtm9.share_week, item: GTM-9, label: "Share followed by another within a week, 1988 to 2025",
+     value: "80%", number: 80.0, section: "§6", slide: 62,
+     quote: "27 YTD; 7% of days; 31% became floors; 80% followed by another within a week"}
+  # GTM-13, the Guide's year-to-date returns by sector.
+  - {id: gtm13.ytd, item: GTM-13, label: "Fixed-income returns, 2026 to 30 Sep (the Guide)",
+     value: "2y +0.3%, 10y −5.3%, 30y −8.1%, TIPS −2.1%, Agg −2.9%, IG −3.1%, munis −4.2%, MBS −3.3%, HY +0.1%",
+     number: null, section: "§6", slide: 34,
+     quote: "2y +0.3%, 10y −5.3%, 30y −8.1%, TIPS −2.1%, Agg −2.9%, IG −3.1%, munis −4.2%, MBS −3.3%, HY +0.1%"}
+  # GTM-15, the Guide's rate and the statutory peaks with their dates.
+  - {id: gtm15.effective, item: GTM-15, label: "Effective tariff rate, 30 Sep 2026 (the Guide)",
+     value: "10.6%", number: 10.6, section: "§6", slide: 24,
+     quote: "effective 10.6%"}
+  - {id: gtm15.statutory_peak, item: GTM-15, label: "Statutory peak, 8 Apr 2025",
+     value: "30.0%", number: 30.0, section: "§6", slide: 24,
+     quote: "statutory peak 30.0% (8 Apr 2025)"}
+  - {id: gtm15.ieepa, item: GTM-15, label: "Including IEEPA, 20 Feb 2026",
+     value: "15.9%", number: 15.9, section: "§6", slide: 24,
+     quote: "15.9% incl. IEEPA (20 Feb 2026)"}
+  # GTM-21, the Guide's debt-service ratio and the delinquency flows (the scan
+  # does not name the quarter; the Guide's data date is printed).
+  - {id: gtm21.dsr, item: GTM-21, label: "Debt-service ratio (the Guide)",
+     value: "11.1%", number: 11.1, section: "§6", slide: 26,
+     quote: "DSR 11.1%"}
+  - {id: gtm21.dsr_4q07, item: GTM-21, label: "Debt-service ratio, 4Q07 (the Guide)",
+     value: "15.8%", number: 15.8, section: "§6", slide: 26,
+     quote: "DSR 15.8% at 4Q07"}
+  - {id: gtm21.flow_cards, item: GTM-21, label: "Into 30+ days delinquent: credit cards",
+     value: "8.7%", number: 8.7, section: "§6", slide: 26,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+  - {id: gtm21.flow_auto, item: GTM-21, label: "Into 30+ days delinquent: auto",
+     value: "7.9%", number: 7.9, section: "§6", slide: 26,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+  - {id: gtm21.flow_student, item: GTM-21, label: "Into 30+ days delinquent: student",
+     value: "7.8%", number: 7.8, section: "§6", slide: 26,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+  - {id: gtm21.flow_mortgage, item: GTM-21, label: "Into 30+ days delinquent: mortgage",
+     value: "4.0%", number: 4.0, section: "§6", slide: 26,
+     quote: "delinquency flows: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%"}
+
+  # GTM-3, the concentration twin: slide 8 (scan section 7), as of 30 Sep 2026.
+  - {id: gtm3.top10.pe, item: GTM-3, label: "NTM P/E, top 10 (the Guide)",
+     value: "20.9x", number: 20.9, section: "§7", slide: 8,
+     quote: "| Top 10 | 20.9x | 20.8x | 100% |"}
+  - {id: gtm3.top10.avg, item: GTM-3, label: "NTM P/E average since 1996, top 10 (the Guide)",
+     value: "20.8x", number: 20.8, section: "§7", slide: 8,
+     quote: "| Top 10 | 20.9x | 20.8x | 100% |"}
+  - {id: gtm3.top10.pct_avg, item: GTM-3, label: "NTM P/E as % of its average, top 10 (the Guide)",
+     value: "100%", number: 100.0, section: "§7", slide: 8,
+     quote: "| Top 10 | 20.9x | 20.8x | 100% |"}
+  - {id: gtm3.other.pe, item: GTM-3, label: "NTM P/E, the other 490 (the Guide)",
+     value: "17.9x", number: 17.9, section: "§7", slide: 8,
+     quote: "| Remaining companies | 17.9x | 16.0x | 112% |"}
+  - {id: gtm3.other.avg, item: GTM-3, label: "NTM P/E average since 1996, the other 490 (the Guide)",
+     value: "16.0x", number: 16.0, section: "§7", slide: 8,
+     quote: "| Remaining companies | 17.9x | 16.0x | 112% |"}
+  - {id: gtm3.other.pct_avg, item: GTM-3, label: "NTM P/E as % of its average, the other 490 (the Guide)",
+     value: "112%", number: 112.0, section: "§7", slide: 8,
+     quote: "| Remaining companies | 17.9x | 16.0x | 112% |"}
+  - {id: gtm3.index.pe, item: GTM-3, label: "NTM P/E, the S&P 500 (the Guide)",
+     value: "19.0x", number: 19.0, section: "§7", slide: 8,
+     quote: "| S&P 500 | 19.0x | 16.9x | 113% |"}
+  - {id: gtm3.index.avg, item: GTM-3, label: "NTM P/E average since 1996, the S&P 500 (the Guide)",
+     value: "16.9x", number: 16.9, section: "§7", slide: 8,
+     quote: "| S&P 500 | 19.0x | 16.9x | 113% |"}
+  - {id: gtm3.index.pct_avg, item: GTM-3, label: "NTM P/E as % of its average, the S&P 500 (the Guide)",
+     value: "113%", number: 113.0, section: "§7", slide: 8,
+     quote: "| S&P 500 | 19.0x | 16.9x | 113% |"}
+  - {id: gtm3.cap_share, item: GTM-3, label: "Top 10 share of market capitalization (the Guide)",
+     value: "40.6%", number: 40.6, section: "§7", slide: 8,
+     quote: "Top 10 share of market capitalization, 30 Sep 2026: 40.6%."}
+  - {id: gtm3.earn_share, item: GTM-3, label: "Top 10 share of last-12-months earnings (the Guide)",
+     value: "36.1%", number: 36.1, section: "§7", slide: 8,
+     quote: "Top 10 share of last-12-months earnings, 30 Sep 2026: 36.1%."}
+  # GTM-4, the AI buckets: slide 11 (scan section 7), as of 30 Sep 2026.
+  - {id: gtm4.hyperscalers.weight, item: GTM-4, label: "Hyperscalers, % of S&P 500 (the Guide)",
+     value: "17.8%", number: 17.8, section: "§7", slide: 11,
+     quote: "| Hyperscalers | 17.8% | 7% | 22.2x | AMZN, GOOGL/GOOG, META, MSFT, ORCL, market-weighted |"}
+  - {id: gtm4.hyperscalers.ytd, item: GTM-4, label: "Hyperscalers, 2026 price return to 30 Sep (the Guide)",
+     value: "7%", number: 7.0, section: "§7", slide: 11,
+     quote: "| Hyperscalers | 17.8% | 7% | 22.2x | AMZN, GOOGL/GOOG, META, MSFT, ORCL, market-weighted |"}
+  - {id: gtm4.hyperscalers.ntm_pe, item: GTM-4, label: "Hyperscalers, NTM P/E (the Guide)",
+     value: "22.2x", number: 22.2, section: "§7", slide: 11,
+     quote: "| Hyperscalers | 17.8% | 7% | 22.2x | AMZN, GOOGL/GOOG, META, MSFT, ORCL, market-weighted |"}
+  - {id: gtm4.semiconductors.weight, item: GTM-4, label: "Semiconductors, % of S&P 500 (the Guide)",
+     value: "18.6%", number: 18.6, section: "§7", slide: 11,
+     quote: "| Semiconductors | 18.6% | 44% | 18.2x | GICS industry Semiconductors & Semiconductor Equipment |"}
+  - {id: gtm4.semiconductors.ytd, item: GTM-4, label: "Semiconductors, 2026 price return to 30 Sep (the Guide)",
+     value: "44%", number: 44.0, section: "§7", slide: 11,
+     quote: "| Semiconductors | 18.6% | 44% | 18.2x | GICS industry Semiconductors & Semiconductor Equipment |"}
+  - {id: gtm4.semiconductors.ntm_pe, item: GTM-4, label: "Semiconductors, NTM P/E (the Guide)",
+     value: "18.2x", number: 18.2, section: "§7", slide: 11,
+     quote: "| Semiconductors | 18.6% | 44% | 18.2x | GICS industry Semiconductors & Semiconductor Equipment |"}
+  - {id: gtm4.hardware.weight, item: GTM-4, label: "Hardware, % of S&P 500 (the Guide)",
+     value: "11.2%", number: 11.2, section: "§7", slide: 11,
+     quote: "| Hardware | 11.2% | 37% | 27.1x | GICS industries Communications Equipment; Electronic Equipment, Instruments & Components; Technology Hardware, Storage & Peripherals, market-weighted |"}
+  - {id: gtm4.hardware.ytd, item: GTM-4, label: "Hardware, 2026 price return to 30 Sep (the Guide)",
+     value: "37%", number: 37.0, section: "§7", slide: 11,
+     quote: "| Hardware | 11.2% | 37% | 27.1x | GICS industries Communications Equipment; Electronic Equipment, Instruments & Components; Technology Hardware, Storage & Peripherals, market-weighted |"}
+  - {id: gtm4.hardware.ntm_pe, item: GTM-4, label: "Hardware, NTM P/E (the Guide)",
+     value: "27.1x", number: 27.1, section: "§7", slide: 11,
+     quote: "| Hardware | 11.2% | 37% | 27.1x | GICS industries Communications Equipment; Electronic Equipment, Instruments & Components; Technology Hardware, Storage & Peripherals, market-weighted |"}
+  - {id: gtm4.power.weight, item: GTM-4, label: "Power, % of S&P 500 (the Guide)",
+     value: "2.5%", number: 2.5, section: "§7", slide: 11,
+     quote: "| Power | 2.5% | 22% | 20.6x | GICS industries Electrical Equipment and Electric Utilities, market-weighted |"}
+  - {id: gtm4.power.ytd, item: GTM-4, label: "Power, 2026 price return to 30 Sep (the Guide)",
+     value: "22%", number: 22.0, section: "§7", slide: 11,
+     quote: "| Power | 2.5% | 22% | 20.6x | GICS industries Electrical Equipment and Electric Utilities, market-weighted |"}
+  - {id: gtm4.power.ntm_pe, item: GTM-4, label: "Power, NTM P/E (the Guide)",
+     value: "20.6x", number: 20.6, section: "§7", slide: 11,
+     quote: "| Power | 2.5% | 22% | 20.6x | GICS industries Electrical Equipment and Electric Utilities, market-weighted |"}
+  - {id: gtm4.software.weight, item: GTM-4, label: "Software, % of S&P 500 (the Guide)",
+     value: "9.3%", number: 9.3, section: "§7", slide: 11,
+     quote: "| Software | 9.3% | 4% | 25.9x | GICS industry Software |"}
+  - {id: gtm4.software.ytd, item: GTM-4, label: "Software, 2026 price return to 30 Sep (the Guide)",
+     value: "4%", number: 4.0, section: "§7", slide: 11,
+     quote: "| Software | 9.3% | 4% | 25.9x | GICS industry Software |"}
+  - {id: gtm4.software.ntm_pe, item: GTM-4, label: "Software, NTM P/E (the Guide)",
+     value: "25.9x", number: 25.9, section: "§7", slide: 11,
+     quote: "| Software | 9.3% | 4% | 25.9x | GICS industry Software |"}
+  - {id: gtm4.total.weight, item: GTM-4, label: "AI buckets together, % of S&P 500 (the Guide)",
+     value: "53.2%", number: 53.2, section: "§7", slide: 11,
+     quote: "| Total | 53.2% | — | — | does not double count hyperscalers that fall in another bucket |"}
+  # GTM-4, the hyperscalers' capex: slide 22 (scan section 7); 2026 to 2028 are
+  # consensus forecasts (Bloomberg), as of 30 Sep 2026.
+  - {id: gtm4.capex.2019, item: GTM-4, label: "Hyperscaler capex, 2019, USD bn (the Guide)",
+     value: "71", number: 71.0, section: "§7", slide: 22,
+     quote: "| 2019 | 71 | 4% |"}
+  - {id: gtm4.capex.2020, item: GTM-4, label: "Hyperscaler capex, 2020, USD bn (the Guide)",
+     value: "97", number: 97.0, section: "§7", slide: 22,
+     quote: "| 2020 | 97 | 37% |"}
+  - {id: gtm4.capex.2021, item: GTM-4, label: "Hyperscaler capex, 2021, USD bn (the Guide)",
+     value: "131", number: 131.0, section: "§7", slide: 22,
+     quote: "| 2021 | 131 | 35% |"}
+  - {id: gtm4.capex.2022, item: GTM-4, label: "Hyperscaler capex, 2022, USD bn (the Guide)",
+     value: "159", number: 159.0, section: "§7", slide: 22,
+     quote: "| 2022 | 159 | 21% |"}
+  - {id: gtm4.capex.2023, item: GTM-4, label: "Hyperscaler capex, 2023, USD bn (the Guide)",
+     value: "154", number: 154.0, section: "§7", slide: 22,
+     quote: "| 2023 | 154 | −3% |"}
+  - {id: gtm4.capex.2024, item: GTM-4, label: "Hyperscaler capex, 2024, USD bn (the Guide)",
+     value: "241", number: 241.0, section: "§7", slide: 22,
+     quote: "| 2024 | 241 | 56% |"}
+  - {id: gtm4.capex.2025, item: GTM-4, label: "Hyperscaler capex, 2025, USD bn (the Guide)",
+     value: "416", number: 416.0, section: "§7", slide: 22,
+     quote: "| 2025 | 416 | 73% |"}
+  - {id: gtm4.capex.2026f, item: GTM-4, label: "Hyperscaler capex, 2026F, USD bn (the Guide)",
+     value: "799", number: 799.0, section: "§7", slide: 22,
+     quote: "| 2026F | 799 | 92% |"}
+  - {id: gtm4.capex.2027f, item: GTM-4, label: "Hyperscaler capex, 2027F, USD bn (the Guide)",
+     value: "1,093", number: 1093.0, section: "§7", slide: 22,
+     quote: "| 2027F | 1,093 | 37% |"}
+  - {id: gtm4.capex.2028f, item: GTM-4, label: "Hyperscaler capex, 2028F, USD bn (the Guide)",
+     value: "1,200", number: 1200.0, section: "§7", slide: 22,
+     quote: "| 2028F | 1,200 | 10% |"}
+  # GTM-10, the sector rows: slide 15 (scan section 7), as of 30 Sep 2026.
+  - {id: gtm10.energy.corr_guide, item: GTM-10, label: "Energy, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.1", number: -0.1, section: "§7", slide: 15,
+     quote: "| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |"}
+  - {id: gtm10.energy.foreign_sales, item: GTM-10, label: "Energy, foreign % of sales (the Guide)",
+     value: "36.5", number: 36.5, section: "§7", slide: 15,
+     quote: "| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |"}
+  - {id: gtm10.energy.ntm_eps, item: GTM-10, label: "Energy, NTM earnings growth (the Guide)",
+     value: "4.3%", number: 4.3, section: "§7", slide: 15,
+     quote: "| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |"}
+  - {id: gtm10.energy.eps_median, item: GTM-10, label: "Energy, NTM earnings growth 20-year median (the Guide)",
+     value: "6.8%", number: 6.8, section: "§7", slide: 15,
+     quote: "| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |"}
+  - {id: gtm10.energy.fwd_pe, item: GTM-10, label: "Energy, forward P/E (the Guide)",
+     value: "13.0x", number: 13.0, section: "§7", slide: 15,
+     quote: "| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |"}
+  - {id: gtm10.energy.pe_avg, item: GTM-10, label: "Energy, forward P/E 20-year average (the Guide)",
+     value: "13.9x", number: 13.9, section: "§7", slide: 15,
+     quote: "| Energy | 3.4% | −0.1 | 36.5 | 4.3% | 6.8% | 13.0x | 13.9x |"}
+  - {id: gtm10.materials.corr_guide, item: GTM-10, label: "Materials, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.6", number: -0.6, section: "§7", slide: 15,
+     quote: "| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |"}
+  - {id: gtm10.materials.foreign_sales, item: GTM-10, label: "Materials, foreign % of sales (the Guide)",
+     value: "52.5", number: 52.5, section: "§7", slide: 15,
+     quote: "| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |"}
+  - {id: gtm10.materials.ntm_eps, item: GTM-10, label: "Materials, NTM earnings growth (the Guide)",
+     value: "16.8%", number: 16.8, section: "§7", slide: 15,
+     quote: "| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |"}
+  - {id: gtm10.materials.eps_median, item: GTM-10, label: "Materials, NTM earnings growth 20-year median (the Guide)",
+     value: "11.6%", number: 11.6, section: "§7", slide: 15,
+     quote: "| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |"}
+  - {id: gtm10.materials.fwd_pe, item: GTM-10, label: "Materials, forward P/E (the Guide)",
+     value: "16.7x", number: 16.7, section: "§7", slide: 15,
+     quote: "| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |"}
+  - {id: gtm10.materials.pe_avg, item: GTM-10, label: "Materials, forward P/E 20-year average (the Guide)",
+     value: "15.9x", number: 15.9, section: "§7", slide: 15,
+     quote: "| Materials | 1.7% | −0.6 | 52.5 | 16.8% | 11.6% | 16.7x | 15.9x |"}
+  - {id: gtm10.financials.corr_guide, item: GTM-10, label: "Financials, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.2", number: -0.2, section: "§7", slide: 15,
+     quote: "| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |"}
+  - {id: gtm10.financials.foreign_sales, item: GTM-10, label: "Financials, foreign % of sales (the Guide)",
+     value: "28.8", number: 28.8, section: "§7", slide: 15,
+     quote: "| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |"}
+  - {id: gtm10.financials.ntm_eps, item: GTM-10, label: "Financials, NTM earnings growth (the Guide)",
+     value: "10.1%", number: 10.1, section: "§7", slide: 15,
+     quote: "| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |"}
+  - {id: gtm10.financials.eps_median, item: GTM-10, label: "Financials, NTM earnings growth 20-year median (the Guide)",
+     value: "11.5%", number: 11.5, section: "§7", slide: 15,
+     quote: "| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |"}
+  - {id: gtm10.financials.fwd_pe, item: GTM-10, label: "Financials, forward P/E (the Guide)",
+     value: "14.1x", number: 14.1, section: "§7", slide: 15,
+     quote: "| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |"}
+  - {id: gtm10.financials.pe_avg, item: GTM-10, label: "Financials, forward P/E 20-year average (the Guide)",
+     value: "13.0x", number: 13.0, section: "§7", slide: 15,
+     quote: "| Financials | 11.4% | −0.2 | 28.8 | 10.1% | 11.5% | 14.1x | 13.0x |"}
+  - {id: gtm10.industrials.corr_guide, item: GTM-10, label: "Industrials, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.4", number: -0.4, section: "§7", slide: 15,
+     quote: "| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |"}
+  - {id: gtm10.industrials.foreign_sales, item: GTM-10, label: "Industrials, foreign % of sales (the Guide)",
+     value: "35.0", number: 35.0, section: "§7", slide: 15,
+     quote: "| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |"}
+  - {id: gtm10.industrials.ntm_eps, item: GTM-10, label: "Industrials, NTM earnings growth (the Guide)",
+     value: "14.8%", number: 14.8, section: "§7", slide: 15,
+     quote: "| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |"}
+  - {id: gtm10.industrials.eps_median, item: GTM-10, label: "Industrials, NTM earnings growth 20-year median (the Guide)",
+     value: "11.7%", number: 11.7, section: "§7", slide: 15,
+     quote: "| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |"}
+  - {id: gtm10.industrials.fwd_pe, item: GTM-10, label: "Industrials, forward P/E (the Guide)",
+     value: "22.5x", number: 22.5, section: "§7", slide: 15,
+     quote: "| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |"}
+  - {id: gtm10.industrials.pe_avg, item: GTM-10, label: "Industrials, forward P/E 20-year average (the Guide)",
+     value: "17.1x", number: 17.1, section: "§7", slide: 15,
+     quote: "| Industrials | 8.0% | −0.4 | 35.0 | 14.8% | 11.7% | 22.5x | 17.1x |"}
+  - {id: gtm10.cons_disc.corr_guide, item: GTM-10, label: "Cons. Disc., correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "0.0", number: 0.0, section: "§7", slide: 15,
+     quote: "| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |"}
+  - {id: gtm10.cons_disc.foreign_sales, item: GTM-10, label: "Cons. Disc., foreign % of sales (the Guide)",
+     value: "34.5", number: 34.5, section: "§7", slide: 15,
+     quote: "| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |"}
+  - {id: gtm10.cons_disc.ntm_eps, item: GTM-10, label: "Cons. Disc., NTM earnings growth (the Guide)",
+     value: "4.3%", number: 4.3, section: "§7", slide: 15,
+     quote: "| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |"}
+  - {id: gtm10.cons_disc.eps_median, item: GTM-10, label: "Cons. Disc., NTM earnings growth 20-year median (the Guide)",
+     value: "13.5%", number: 13.5, section: "§7", slide: 15,
+     quote: "| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |"}
+  - {id: gtm10.cons_disc.fwd_pe, item: GTM-10, label: "Cons. Disc., forward P/E (the Guide)",
+     value: "22.6x", number: 22.6, section: "§7", slide: 15,
+     quote: "| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |"}
+  - {id: gtm10.cons_disc.pe_avg, item: GTM-10, label: "Cons. Disc., forward P/E 20-year average (the Guide)",
+     value: "20.9x", number: 20.9, section: "§7", slide: 15,
+     quote: "| Cons. Disc. | 8.6% | 0.0 | 34.5 | 4.3% | 13.5% | 22.6x | 20.9x |"}
+  - {id: gtm10.tech.corr_guide, item: GTM-10, label: "Tech., correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "0.0", number: 0.0, section: "§7", slide: 15,
+     quote: "| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |"}
+  - {id: gtm10.tech.foreign_sales, item: GTM-10, label: "Tech., foreign % of sales (the Guide)",
+     value: "52.3", number: 52.3, section: "§7", slide: 15,
+     quote: "| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |"}
+  - {id: gtm10.tech.ntm_eps, item: GTM-10, label: "Tech., NTM earnings growth (the Guide)",
+     value: "43.4%", number: 43.4, section: "§7", slide: 15,
+     quote: "| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |"}
+  - {id: gtm10.tech.eps_median, item: GTM-10, label: "Tech., NTM earnings growth 20-year median (the Guide)",
+     value: "12.3%", number: 12.3, section: "§7", slide: 15,
+     quote: "| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |"}
+  - {id: gtm10.tech.fwd_pe, item: GTM-10, label: "Tech., forward P/E (the Guide)",
+     value: "21.5x", number: 21.5, section: "§7", slide: 15,
+     quote: "| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |"}
+  - {id: gtm10.tech.pe_avg, item: GTM-10, label: "Tech., forward P/E 20-year average (the Guide)",
+     value: "18.8x", number: 18.8, section: "§7", slide: 15,
+     quote: "| Tech. | 39.7% | 0.0 | 52.3 | 43.4% | 12.3% | 21.5x | 18.8x |"}
+  - {id: gtm10.comm_services.corr_guide, item: GTM-10, label: "Comm. Services, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "0.1", number: 0.1, section: "§7", slide: 15,
+     quote: "| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |"}
+  - {id: gtm10.comm_services.foreign_sales, item: GTM-10, label: "Comm. Services, foreign % of sales (the Guide)",
+     value: "49.9", number: 49.9, section: "§7", slide: 15,
+     quote: "| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |"}
+  - {id: gtm10.comm_services.ntm_eps, item: GTM-10, label: "Comm. Services, NTM earnings growth (the Guide)",
+     value: "−0.3%", number: -0.3, section: "§7", slide: 15,
+     quote: "| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |"}
+  - {id: gtm10.comm_services.eps_median, item: GTM-10, label: "Comm. Services, NTM earnings growth 20-year median (the Guide)",
+     value: "8.9%", number: 8.9, section: "§7", slide: 15,
+     quote: "| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |"}
+  - {id: gtm10.comm_services.fwd_pe, item: GTM-10, label: "Comm. Services, forward P/E (the Guide)",
+     value: "18.6x", number: 18.6, section: "§7", slide: 15,
+     quote: "| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |"}
+  - {id: gtm10.comm_services.pe_avg, item: GTM-10, label: "Comm. Services, forward P/E 20-year average (the Guide)",
+     value: "16.0x", number: 16.0, section: "§7", slide: 15,
+     quote: "| Comm. Services | 9.9% | 0.1 | 49.9 | −0.3% | 8.9% | 18.6x | 16.0x |"}
+  - {id: gtm10.real_estate.corr_guide, item: GTM-10, label: "Real Estate, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.6", number: -0.6, section: "§7", slide: 15,
+     quote: "| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |"}
+  - {id: gtm10.real_estate.foreign_sales, item: GTM-10, label: "Real Estate, foreign % of sales (the Guide)",
+     value: "21.3", number: 21.3, section: "§7", slide: 15,
+     quote: "| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |"}
+  - {id: gtm10.real_estate.ntm_eps, item: GTM-10, label: "Real Estate, NTM earnings growth (the Guide)",
+     value: "6.3%", number: 6.3, section: "§7", slide: 15,
+     quote: "| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |"}
+  - {id: gtm10.real_estate.eps_median, item: GTM-10, label: "Real Estate, NTM earnings growth 20-year median (the Guide)",
+     value: "4.5%", number: 4.5, section: "§7", slide: 15,
+     quote: "| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |"}
+  - {id: gtm10.real_estate.fwd_pe, item: GTM-10, label: "Real Estate, forward P/E (the Guide)",
+     value: "16.8x", number: 16.8, section: "§7", slide: 15,
+     quote: "| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |"}
+  - {id: gtm10.real_estate.pe_avg, item: GTM-10, label: "Real Estate, forward P/E 20-year average (the Guide)",
+     value: "18.6x", number: 18.6, section: "§7", slide: 15,
+     quote: "| Real Estate | 1.7% | −0.6 | 21.3 | 6.3% | 4.5% | 16.8x | 18.6x |"}
+  - {id: gtm10.health_care.corr_guide, item: GTM-10, label: "Health Care, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.6", number: -0.6, section: "§7", slide: 15,
+     quote: "| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |"}
+  - {id: gtm10.health_care.foreign_sales, item: GTM-10, label: "Health Care, foreign % of sales (the Guide)",
+     value: "33.4", number: 33.4, section: "§7", slide: 15,
+     quote: "| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |"}
+  - {id: gtm10.health_care.ntm_eps, item: GTM-10, label: "Health Care, NTM earnings growth (the Guide)",
+     value: "16.8%", number: 16.8, section: "§7", slide: 15,
+     quote: "| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |"}
+  - {id: gtm10.health_care.eps_median, item: GTM-10, label: "Health Care, NTM earnings growth 20-year median (the Guide)",
+     value: "8.3%", number: 8.3, section: "§7", slide: 15,
+     quote: "| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |"}
+  - {id: gtm10.health_care.fwd_pe, item: GTM-10, label: "Health Care, forward P/E (the Guide)",
+     value: "18.4x", number: 18.4, section: "§7", slide: 15,
+     quote: "| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |"}
+  - {id: gtm10.health_care.pe_avg, item: GTM-10, label: "Health Care, forward P/E 20-year average (the Guide)",
+     value: "15.1x", number: 15.1, section: "§7", slide: 15,
+     quote: "| Health Care | 9.3% | −0.6 | 33.4 | 16.8% | 8.3% | 18.4x | 15.1x |"}
+  - {id: gtm10.cons_staples.corr_guide, item: GTM-10, label: "Cons. Staples, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.6", number: -0.6, section: "§7", slide: 15,
+     quote: "| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |"}
+  - {id: gtm10.cons_staples.foreign_sales, item: GTM-10, label: "Cons. Staples, foreign % of sales (the Guide)",
+     value: "40.8", number: 40.8, section: "§7", slide: 15,
+     quote: "| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |"}
+  - {id: gtm10.cons_staples.ntm_eps, item: GTM-10, label: "Cons. Staples, NTM earnings growth (the Guide)",
+     value: "6.5%", number: 6.5, section: "§7", slide: 15,
+     quote: "| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |"}
+  - {id: gtm10.cons_staples.eps_median, item: GTM-10, label: "Cons. Staples, NTM earnings growth 20-year median (the Guide)",
+     value: "6.7%", number: 6.7, section: "§7", slide: 15,
+     quote: "| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |"}
+  - {id: gtm10.cons_staples.fwd_pe, item: GTM-10, label: "Cons. Staples, forward P/E (the Guide)",
+     value: "20.7x", number: 20.7, section: "§7", slide: 15,
+     quote: "| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |"}
+  - {id: gtm10.cons_staples.pe_avg, item: GTM-10, label: "Cons. Staples, forward P/E 20-year average (the Guide)",
+     value: "18.1x", number: 18.1, section: "§7", slide: 15,
+     quote: "| Cons. Staples | 4.4% | −0.6 | 40.8 | 6.5% | 6.7% | 20.7x | 18.1x |"}
+  - {id: gtm10.utilities.corr_guide, item: GTM-10, label: "Utilities, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.6", number: -0.6, section: "§7", slide: 15,
+     quote: "| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |"}
+  - {id: gtm10.utilities.foreign_sales, item: GTM-10, label: "Utilities, foreign % of sales (the Guide)",
+     value: "1.8", number: 1.8, section: "§7", slide: 15,
+     quote: "| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |"}
+  - {id: gtm10.utilities.ntm_eps, item: GTM-10, label: "Utilities, NTM earnings growth (the Guide)",
+     value: "9.1%", number: 9.1, section: "§7", slide: 15,
+     quote: "| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |"}
+  - {id: gtm10.utilities.eps_median, item: GTM-10, label: "Utilities, NTM earnings growth 20-year median (the Guide)",
+     value: "4.7%", number: 4.7, section: "§7", slide: 15,
+     quote: "| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |"}
+  - {id: gtm10.utilities.fwd_pe, item: GTM-10, label: "Utilities, forward P/E (the Guide)",
+     value: "15.5x", number: 15.5, section: "§7", slide: 15,
+     quote: "| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |"}
+  - {id: gtm10.utilities.pe_avg, item: GTM-10, label: "Utilities, forward P/E 20-year average (the Guide)",
+     value: "16.1x", number: 16.1, section: "§7", slide: 15,
+     quote: "| Utilities | 1.9% | −0.6 | 1.8 | 9.1% | 4.7% | 15.5x | 16.1x |"}
+  - {id: gtm10.s_p_500.corr_guide, item: GTM-10, label: "S&P 500, correlation to Treasury yields, 2-year monthly (the Guide)",
+     value: "−0.2", number: -0.2, section: "§7", slide: 15,
+     quote: "| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |"}
+  - {id: gtm10.s_p_500.foreign_sales, item: GTM-10, label: "S&P 500, foreign % of sales (the Guide)",
+     value: "42.2", number: 42.2, section: "§7", slide: 15,
+     quote: "| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |"}
+  - {id: gtm10.s_p_500.ntm_eps, item: GTM-10, label: "S&P 500, NTM earnings growth (the Guide)",
+     value: "18.7%", number: 18.7, section: "§7", slide: 15,
+     quote: "| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |"}
+  - {id: gtm10.s_p_500.eps_median, item: GTM-10, label: "S&P 500, NTM earnings growth 20-year median (the Guide)",
+     value: "10.3%", number: 10.3, section: "§7", slide: 15,
+     quote: "| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |"}
+  - {id: gtm10.s_p_500.fwd_pe, item: GTM-10, label: "S&P 500, forward P/E (the Guide)",
+     value: "19.0x", number: 19.0, section: "§7", slide: 15,
+     quote: "| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |"}
+  - {id: gtm10.s_p_500.pe_avg, item: GTM-10, label: "S&P 500, forward P/E 20-year average (the Guide)",
+     value: "16.5x", number: 16.5, section: "§7", slide: 15,
+     quote: "| S&P 500 | 100.0% | −0.2 | 42.2 | 18.7% | 10.3% | 19.0x | 16.5x |"}
+  # GTM-12, federal finances: slide 27 (scan section 7), CBO's February 2026
+  # update; the debt path is a sourced figure dated at each update.
+  - {id: gtm12.outlays, item: GTM-12, label: "2026 total spending (the Guide, CBO)",
+     value: "$7.4tn", number: 7.4, section: "§7", slide: 27,
+     quote: "| 2026 total spending | $7.4tn |"}
+  - {id: gtm12.net_interest, item: GTM-12, label: "2026 net interest (the Guide, CBO)",
+     value: "$1,039bn", number: 1039.0, section: "§7", slide: 27,
+     quote: "| 2026 net interest | $1,039bn (14%) |"}
+  - {id: gtm12.defense, item: GTM-12, label: "2026 defense (the Guide, CBO)",
+     value: "$885bn", number: 885.0, section: "§7", slide: 27,
+     quote: "| 2026 defense | $885bn (12%) |"}
+  - {id: gtm12.customs, item: GTM-12, label: "2026 customs duties (the Guide, CBO)",
+     value: "$418bn", number: 418.0, section: "§7", slide: 27,
+     quote: "| 2026 customs duties | $418bn (6%) |"}
+  - {id: gtm12.deficit, item: GTM-12, label: "2026 deficit (the Guide, CBO)",
+     value: "$1,853bn", number: 1853.0, section: "§7", slide: 27,
+     quote: "| 2026 deficit | $1,853bn (25%) |"}
+  - {id: gtm12.debt_2025, item: GTM-12, label: "Federal net debt, end of FY2025 (the Guide, CBO)",
+     value: "99.4%", number: 99.4, section: "§7", slide: 27,
+     quote: "| Federal net debt, end of FY2025 | 99.4% of GDP |"}
+  - {id: gtm12.debt_2036, item: GTM-12, label: "Federal net debt, end of FY2036 (CBO baseline) (the Guide, CBO)",
+     value: "120.2%", number: 120.2, section: "§7", slide: 27,
+     quote: "| Federal net debt, end of FY2036 (CBO baseline) | 120.2% of GDP |"}
+
+# The reference-table rows the GTM tables now print, kept out of the Monthly's
+# "Sourced figures" table so each fact prints once (each still stored).
+printed_scan_rows: ["Stock–bond correlation", "ATHs", "Tariffs", "Consumer",
+                    "FI returns YTD"]

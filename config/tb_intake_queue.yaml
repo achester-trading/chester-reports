@@ -1,0 +1,51 @@
+# tb_intake_queue.yaml -- the Top & Bottom overlay and trigger intake queue, as
+# DRAFT entries (change order of 25 Sep 2026, section 2.6; SR-19's ruling of
+# 28 Sep 2026: one candidate at a time, champion/challenger, a calibration
+# ledger before any panel).
+#
+# NOTHING HERE DECIDES. No module reads this file to weight, score, trigger or
+# size anything; the Top & Bottom overlays are not built in this repo, and an
+# entry here grants no right. Each entry is a judgment draft committed under
+# rule 31 for the operator's accept-all, and its `position` is the operator's:
+# the queue's order among the top-side candidates (Batch 6's items 30, 31 and 44,
+# and GTM-3) is ruled at the 25 Oct dry run, not here. tools/validate_gtm.py
+# holds every entry to `status: draft` and `rights: none`, and diffs the
+# overlay's declared inputs against the ones pinned there, so filing an entry
+# cannot change what the overlay reads.
+version: tb-intake-queue-draft-1
+updated: 2026-10-17
+
+entries:
+  - id: GTM-3
+    register: SR-50
+    overlay: Concentration & Complacency
+    side: top
+    status: draft
+    filed: 2026-10-17
+    filed_under: rule 31 (a judgment draft, committed as drafted for the operator's accept-all)
+    position: null
+    position_note: >-
+      The order among the top-side candidates (Batch 6 items 30, 31 and 44, and
+      GTM-3) is the operator's ruling at the 25 Oct dry run.
+    candidate: >-
+      The concentration twin: the top 10's share of index trailing earnings
+      against its share of index market cap, and the top 10's forward P/E against
+      its own average (the Guide's slide 8; altdata/gtm_equities.py).
+    adds_beyond_the_overlay: >-
+      The overlay's Top-10 >= 25% input reads the cap share alone. The twin asks
+      whether that share is earned: a cap share well above the earnings share,
+      with the top 10's multiple above its own average, is the 2000 shape; a cap
+      share the earnings share nearly matches, with the multiple at its average
+      (the Guide's 40.6% against 36.1%, 100% of average, on 30 Sep 2026), is not.
+    ledger_needed: >-
+      A pre-registered calibration ledger before champion/challenger: at each
+      month-end, the gap (cap share less earnings share, points) and the top 10's
+      forward P/E as a percent of its own average, each beside the overlay's
+      five-input state that month; resolved against the following twelve months'
+      equal-weight less cap-weight S&P 500 return and the top 10's drawdown. Its
+      home is the probability ledger under a source of its own (proposed
+      `tb_intake:gtm3`), written only once the operator accepts this entry; the
+      own-average history it needs starts with the stored holdings (16 Oct 2026),
+      so the Guide's averages since 1996 are the comparison until ours is long.
+    rights: none
+    printed_as: report-only exhibit (Mechanics, the Weekly and the Monthly)
