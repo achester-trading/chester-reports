@@ -340,7 +340,7 @@ def yoy(pts: list[tuple[str, float]]) -> list[tuple[str, float]]:
 def price_ulc(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     cfg = cfg or config()
     c = cfg.get("price_ulc") or {}
-    ppi = yoy(_pts(st, c.get("ppi_key", "fred.ppi_fd_core_ts"), cutoff))
+    ppi = yoy(_pts(st, c.get("ppi_key", "fred.ppi_fd_core_ex_trade"), cutoff))
     ulc = yoy(_pts(st, c.get("ulc_key", "fred.ulc_nfb"), cutoff))
     out: dict[str, Any] = {"closing_pp": float(c.get("closing_pp", 1.0)),
                            "peak_window_months": int(c.get("peak_window_months", 6)),

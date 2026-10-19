@@ -245,7 +245,6 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # 2013=100, Seasonally Adjusted", monthly from Aug 2013; unit labor costs,
     # nonfarm business, is ULCNFB, "Index 2017=100, Seasonally Adjusted",
     # quarterly from 1947. Read off their FRED pages 16 Oct 2026.
-    SeriesSpec("ppi_fd_core_ts",   "WPSFD49116", "PPI final demand less foods, energy and trade services","4","idx", "monthly"),
     SeriesSpec("ulc_nfb",          "ULCNFB",     "Unit labor costs, nonfarm business",             "4", "idx",  "quarterly"),
     # ST-R5.42a (Batch 6 item 42, 16 Oct 2026): the Cleveland Fed's 10-year
     # expected inflation, EXPINF10YR, "Percent, Not Seasonally Adjusted", monthly
@@ -301,7 +300,6 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # (FYOINT), net outlays (FYONET) and the surplus or deficit (FYFSD); and the
     # surplus or deficit as "Percent of GDP" (FYFSGDA188S), annual. Each read off
     # its FRED page 17 Oct 2026 -- the millions are not the billions above.
-    SeriesSpec("fed_interest_payments", "A091RC1Q027SBEA", "Federal government current expenditures: interest payments, SAAR", "8", "B", "quarterly"),
     SeriesSpec("fed_defense",    "FDEFX",    "Federal national defense consumption expenditures and gross investment, SAAR", "8", "B", "quarterly"),
     SeriesSpec("fy_net_interest", "FYOINT",  "Federal outlays: interest, fiscal year", "8", "M", "annual"),
     SeriesSpec("fy_net_outlays", "FYONET",   "Federal net outlays, fiscal year", "8", "M", "annual"),

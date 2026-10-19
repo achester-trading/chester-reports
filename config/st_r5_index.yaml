@@ -61,7 +61,7 @@ r_minus_g:
 # ST-R5.35a -- the corporate-price/ULC gap
 # ---------------------------------------------------------------------------
 price_ulc:
-  ppi_key: fred.ppi_fd_core_ts          # monthly, index
+  ppi_key: fred.ppi_fd_core_ex_trade    # monthly, index: WPSFD49116, Group B's key (chain-2: one key per series)
   ulc_key: fred.ulc_nfb                 # quarterly, index; carried forward
   # The gap: PPI's change on the year less ULC's change on the year (the four-
   # quarter change, which is the entry's "4-quarter average" of the quarterly

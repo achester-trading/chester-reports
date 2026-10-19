@@ -156,9 +156,9 @@ def gap_rows(last_gaps: list[float]) -> list[tuple]:
     100 x (1 + (1.5 + gap)/100) in 2026, the gaps for January-September."""
     rows = [("fred.ulc_nfb", None, d, 100.0) for d in ("2025-01-01", "2025-04-01")]
     rows += [("fred.ulc_nfb", None, d, 101.5) for d in ("2026-01-01", "2026-04-01")]
-    rows += [("fred.ppi_fd_core_ts", None, d, 100.0) for d in month_list("2025-01-01", 9)]
+    rows += [("fred.ppi_fd_core_ex_trade", None, d, 100.0) for d in month_list("2025-01-01", 9)]
     for d, g in zip(month_list("2026-01-01", 9), last_gaps):
-        rows.append(("fred.ppi_fd_core_ts", None, d, 100.0 * (1 + (1.5 + g) / 100.0)))
+        rows.append(("fred.ppi_fd_core_ex_trade", None, d, 100.0 * (1 + (1.5 + g) / 100.0)))
     return rows
 
 
@@ -385,12 +385,16 @@ def group_e() -> None:
     check("W11" in plan6 and "W10" not in plan6 and len(plan6) == 10,
           "with W6 open, W10 is the one set aside; W11 holds")
     check(ws.PLACE["W11"] == ("priced", None) and mch.PLACE["M11"] == ("priced", "carry")
-          and "M11" in mch.ORDER and len(mch.ORDER) == 12,
-          "W11 prints in What's priced; M11 beside its block; twelve planned")
+          and "M11" in mch.ORDER and len(mch.ORDER) == 13 and mch.ORDER[-1] == "M13",
+          "W11 prints in What's priced; M11 beside its block; thirteen planned (M13, "
+          "ST-14's, last)")
     many = {k: {"id": k, "png": b"x"} for k in mch.ORDER}
-    check(mch.hold_cap(dict(many), 12) == [], "twelve render at the cap of 12")
+    check(mch.hold_cap(dict(many), 13) == [], "thirteen render at the cap of 13")
     many["M99"] = {"id": "M99", "png": b"x"}
-    check(mch.hold_cap(many, 12) == ["M8"], "a thirteenth: M8 is set aside first")
+    check(mch.hold_cap(many, 13) == ["M13"], "a fourteenth: M13 is set aside first")
+    twelve = {k: v for k, v in many.items() if k != "M13"}
+    check(mch.hold_cap(twelve, 12) == ["M8"],
+          "without M13, a thirteenth at the cap of 12: M8 is set aside first")
 
 
 def group_f() -> None:
@@ -474,7 +478,7 @@ def group_g() -> None:
     specs = {s.key: s for s in acfg.FRED_PULL_SERIES}
     want = {"hh_equity_share": ("BOGZ1FL153064486Q", "%", "quarterly"),
             "hh_fin_assets": ("TFAABSHNO", "M", "quarterly"),
-            "ppi_fd_core_ts": ("WPSFD49116", "idx", "monthly"),
+            "ppi_fd_core_ex_trade": ("WPSFD49116", "idx", "monthly"),
             "ulc_nfb": ("ULCNFB", "idx", "quarterly")}
     check(all(k in specs and (specs[k].fred_id, specs[k].units, specs[k].freq) == v
               for k, v in want.items())

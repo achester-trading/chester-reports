@@ -175,7 +175,7 @@ NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      "fred.sep_median_ff",
                      # The GTM batch, part 2 (17 Oct 2026): GTM-12's six FRED
                      # series and GTM-13's three proxies with their actions.
-                     "fred.fed_interest_payments", "fred.fed_defense",
+                     "fred.fed_defense",
                      "fred.fy_net_interest", "fred.fy_net_outlays",
                      "fred.fy_deficit", "fred.fy_deficit_gdp",
                      "yfinance.mkt_tip", "yfinance.mkt_mub", "yfinance.mkt_mbb",
@@ -192,7 +192,7 @@ NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      "baserate.all_time_highs",
                      # ST-R5.30a and ST-R5.35a (16 Oct 2026)
                      "fred.hh_equity_share", "fred.hh_fin_assets",
-                     "fred.ppi_fd_core_ts", "fred.ulc_nfb",
+                     "fred.ulc_nfb",
                      # ST-R5.42a, 43a and 39a (16 Oct 2026)
                      "fred.expinf_10y",
                      "fred.oecd_cli_g7",

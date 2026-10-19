@@ -86,14 +86,14 @@ def earnings_class(symbol: str, cfg: dict) -> str:
 
 
 def ai_names(cfg: dict, repo: Optional[Path] = None) -> set[str]:
-    """The names the AI-capex clause applies to (W8-6): config/ai_buckets.yaml's
-    when it exists (every symbol listed under any bucket), else the Weekly's own
+    """The names the AI-capex clause applies to (W8-6): every symbol listed under
+    any bucket of config/ai_buckets.yaml, with the Weekly's own
     `earnings.ai_names`."""
     p = (repo or REPO) / "config" / "ai_buckets.yaml"
+    out: set[str] = set()
     if p.exists():
         try:
             doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-            out: set[str] = set()
 
             def walk(x):
                 if isinstance(x, dict):
@@ -105,11 +105,12 @@ def ai_names(cfg: dict, repo: Optional[Path] = None) -> set[str]:
                 elif isinstance(x, str) and re.fullmatch(r"[A-Z][A-Z.\-]{0,5}", x):
                     out.add(x)
             walk(doc.get("buckets", doc))
-            if out:
-                return out
         except (OSError, yaml.YAMLError):
             log.warning("config/ai_buckets.yaml unreadable; the Weekly's AI names stand")
-    return {str(s).upper() for s in (cfg.get("earnings") or {}).get("ai_names") or []}
+    # GTM-4 names members for the hyperscalers only (its other buckets are GICS
+    # industries the store cannot classify), so its members join the Weekly's
+    # own list rather than replace it (the chain-2 stitch, 19 Oct 2026).
+    return out | {str(s).upper() for s in (cfg.get("earnings") or {}).get("ai_names") or []}
 
 
 def why_of(r: dict, c: dict, ai: set[str]) -> str:

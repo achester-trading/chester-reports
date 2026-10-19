@@ -199,7 +199,7 @@ analysis should almost never require touching an engine.
 > store holds is listed by `python -m altdata.catalogue` and checked against the
 > registry by `python -m tools.check_store_registry`.
 >
-> **Refreshed 19 Oct 2026 (the chain-2 stitch).** The pull walks 268 FRED series
+> **Refreshed 19 Oct 2026 (the chain-2 stitch).** The pull walks 266 FRED series
 > (`config.FRED_PULL_SERIES`) and 115 market symbols
 > (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
 > Master (`config/security_master.yaml`). The scheduled roster is 31 official

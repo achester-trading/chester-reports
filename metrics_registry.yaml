@@ -15558,7 +15558,7 @@ bulk_imports:
       fred.yield_5y: rate
     member_key: key
     key_prefix: "fred."
-    expected_members: 67   # + PPIDCS and the two GDP contributions (ST-R4.23a, 22b; session B, the union at chain-2) + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 65   # - ppi_fd_core_ts and GTM-12's fed_interest_payments, each already pulled under one key (the chain-2 stitch) + PPIDCS and the two GDP contributions (ST-R4.23a, 22b; session B, the union at chain-2) + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
       fred.dsr_household: percent_share
@@ -17026,7 +17026,6 @@ families:
   # Signal-triage Batch 6 (16 Oct 2026).
   fred.hh_equity_share: ratio
   fred.hh_fin_assets: quantity
-  fred.ppi_fd_core_ts: release
   fred.ulc_nfb: release
   bbk.bund_2y: rate
   cfets.cgb_2y: rate
@@ -17541,6 +17540,12 @@ families:
   exposure.chex_notional_per_day: quantity
   exposure.chex_shares_per_day: quantity
   exposure.dex_notional: quantity
+  # 6b part 1 (16 Oct): the gamma masses and the raw-signed DEX; EL-5's gap
+  # (the chain-2 stitch: they arrived after 6e's family pass).
+  exposure.call_gamma_per_1pct: quantity
+  exposure.put_gamma_per_1pct: quantity
+  exposure.dex_raw_notional: quantity
+  state.gap_pct: ratio
   exposure.dex_shares: quantity
   exposure.dollar_gamma_per_1pct: quantity
   exposure.expiration_release.dex_shares: quantity
@@ -17972,7 +17977,6 @@ long_windows:
   # PPI leg from 2013 -- each long window is its whole stored history.
   fred.hh_equity_share: full
   fred.hh_fin_assets: full
-  fred.ppi_fd_core_ts: full
   fred.ulc_nfb: full
   # Signal-triage Batch 6: rates take full history (the Bund 2-year from 1997);
   # FRED's ICE BofA series hold three years, so their 'full' is that window.

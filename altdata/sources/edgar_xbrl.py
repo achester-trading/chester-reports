@@ -222,7 +222,7 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
 
     def produce() -> list[dict]:
         own = db is None
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             years = years_to_read(store, cfg)
         finally:

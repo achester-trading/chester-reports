@@ -229,7 +229,7 @@ def fetch_mts(start: Optional[str]) -> list[dict]:
 def _mts_start(db: Optional[observations.ObservationStore]) -> Optional[str]:
     """None (every month served) on the first pull; else the last REFRESH_MONTHS."""
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, [MTS_KEYS["current_month_gross_rcpt_amt"]])
     finally:

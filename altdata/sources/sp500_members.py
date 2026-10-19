@@ -168,7 +168,7 @@ def held_members(db=None) -> set[str]:
     """The members whose closes are already stored. The feeds pull passes no
     store, so the default one is opened to ask."""
     from .. import observations                                 # noqa: PLC0415
-    st = db or observations.ObservationStore()
+    st = db or observations.open_writer(__name__)
     try:
         return set(st.instruments(CLOSE_KEY))
     finally:

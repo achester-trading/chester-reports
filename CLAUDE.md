@@ -106,7 +106,7 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 67 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 65 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
                           Thailand 1); 25 in FRED_6E_SERIES (6e, the rest:
@@ -114,7 +114,7 @@ altdata/                  Shared ingestion package — used by every report
                           45 in FRED_RELEASES_SERIES (Batch 7's release
                           lenses, Group A); 29 in FRED_GROUP_B_SERIES
                           (Group B, the PPI and GDP lenses);
-                          FRED_PULL_SERIES, 268, is the union the
+                          FRED_PULL_SERIES, 266, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)

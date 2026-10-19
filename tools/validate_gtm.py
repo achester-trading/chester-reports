@@ -531,7 +531,8 @@ def group_j() -> None:
             "fred.dsr_consumer", "fred.dsr_mortgage", "fred.fed_interest_payments",
             "fred.fed_defense", "fred.fy_net_interest", "fred.fy_net_outlays",
             "fred.fy_deficit", "fred.fy_deficit_gdp"]
-    specs = {f"fred.{s.key}": s for s in acfg.FRED_SIGNAL_SERIES}
+    # fed_interest_payments is pulled once, under 6e-rest's spec (the chain-2 stitch).
+    specs = {f"fred.{s.key}": s for s in acfg.FRED_PULL_SERIES}
     reg = __import__("yaml").safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
     check(all(k in specs for k in keys)
           and [specs[k].fred_id for k in keys] == ["B235RC1Q027SBEA", "BOPGIMP", "TDSP",
