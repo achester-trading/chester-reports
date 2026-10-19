@@ -13,6 +13,14 @@ live store, fetches or calls a model.
      its manifest and is refused; the roster quotes the spec's sha256; the costs
      reproduce a hand figure; registered by manifest, the harness waits on the
      sample and counts nothing.
+  B  THE GRAMMAR SEARCH (X-3.5). A fixture family of known size counts every
+     candidate (the variant count rises by all of them before the first test);
+     the manifest fixes the family's sha256, the count and the split, and refuses
+     a changed family on resume; the candidate and wall-clock caps stop a step and
+     the next resumes; the holdout is backtested only after the survivor list is
+     frozen; a formation survivor that fails the holdout is not written; the
+     survivor written is systematic, pre-registered by the search's manifest; a
+     pending variable is skipped with its reason; the Lab report prints the line.
 
     python tools/validate_alpha_lab_4.py
 """
@@ -49,6 +57,7 @@ from altdata import observations, session  # noqa: E402
 observations.DEFAULT_DB = os.environ["CHESTER_DB"]
 
 from alpha import manifest, pit  # noqa: E402
+from alpha import search as search_mod  # noqa: E402
 from alpha import hypotheses as hyp  # noqa: E402
 from alpha.engines import reversion as rev  # noqa: E402
 from alpha.ledger import Ledger  # noqa: E402
@@ -293,9 +302,177 @@ def group_a() -> None:
         st.close()
 
 
+# ---------------------------------------------------------------------------
+# B. The grammar search
+# ---------------------------------------------------------------------------
+SEARCH_AS_OF = "2024-07-02T22:00:00+00:00"       # the first week of July 2024
+HOLD_FROM = "2023-07-01"                         # 12 whole months before July 2024
+
+
+def search_cfg() -> dict:
+    """A fixture family of known size: 2 signal families x (none + 2 values of one
+    state variable; the dealer regime pending) x 1 horizon x 2 instruments x 1
+    exit = 12 candidates."""
+    import copy                                                 # noqa: PLC0415
+    cfg = copy.deepcopy(search_mod.load_config())
+    f = cfg["family"]
+    f["signal_families"] = {k: f["signal_families"][k] for k in ("trend_63", "dip_20")}
+    f["horizons"] = [5]
+    f["instruments"] = ["GLD", "TLT"]
+    f["exits"] = {"time_only": {}}
+    f["conditioning"] = {"volatility": {**f["conditioning"]["volatility"],
+                                        "values": ["normal", "crisis"]},
+                         "dealer": f["conditioning"]["dealer"]}
+    return cfg
+
+
+def build_search_store(path: str) -> None:
+    """GLD rises steadily throughout; TLT rises until the holdout, then falls."""
+    days = sessions("2018-01-02", "2024-06-28")
+    rnd = random.Random(5)
+    rows = []
+    for key, turns in (("yfinance.mkt_gld", False), ("yfinance.mkt_tlt", True)):
+        lv = math.log(100.0)
+        for d in days:
+            drift = -0.002 if (turns and d >= HOLD_FROM) else 0.002
+            lv += drift + rnd.uniform(-0.002, 0.002)
+            rows.append({"registry_key": key, "instrument": None, "observed_at": d,
+                         "available_at": at(d), "value": math.exp(lv),
+                         "source": "synthetic"})
+    write_store(path, rows)
+
+
+def group_b() -> None:
+    head("B. THE GRAMMAR SEARCH (X-3.5)")
+    sp = os.path.join(_TMP, "search.sqlite")
+    build_search_store(sp)
+    st = ReadOnlyStore(sp)
+    cfg = search_cfg()
+    lg = Ledger(os.path.join(_TMP, "alpha_b.db"))
+    seen: list[tuple[str, str]] = []
+    real_bt = search_mod.rules.backtest
+
+    def spy_bt(cmp, store, first, last, drop=None, data=None):
+        seen.append((first, last))
+        return real_bt(cmp, store, first, last, drop=drop, data=data)
+    search_mod.rules.backtest = spy_bt
+    try:
+        p = search_mod.plan(cfg)
+        cands = search_mod.candidates(cfg)
+        check(p["n_candidates"] == 12 == len(cands) == len({c["id"] for c in cands})
+              and p["conditioning_options"] == 3,
+              f"a fixture family of known size: 2 x 3 x 1 x 2 x 1 = {p['n_candidates']} "
+              f"candidates, each enumerated once")
+        check(p["pending"] == {"dealer": "joins when the 6b keys are on this line, at the "
+                                         "third chain's stitch"}
+              and not any("dealer" in c["id"] for c in cands)
+              and p["pending_lines"] == ["dealer: skipped, pending -- joins when the 6b "
+                                         "keys are on this line, at the third chain's stitch"],
+              "a pending variable is skipped, with its reason printed")
+        real = search_mod.load_config()
+        check(real["family"]["conditioning"]["dealer"].get("pending") is True
+              and {"dials", "positioning", "funding", "volatility"}
+              <= set(real["family"]["conditioning"])
+              and real["caps"] == {"max_candidates_per_run": 400, "max_wall_seconds": 600},
+              "the shipped family conditions on the dials, positioning, the funding and "
+              "the volatility regime, the dealer regime pending; caps 400 candidates and "
+              "600 s a run")
+
+        s1 = search_mod.step(lg, st, SEARCH_AS_OF, cfg, max_candidates=4)["search"]
+        prog = search_mod.load_progress(s1["run_id"])
+        mf = manifest.read(prog["manifest"])
+        check(mf is not None and mf["batch"]["n_candidates"] == 12
+              and mf["batch"]["family_sha256"] == search_mod.family_sha256(cfg)
+              and mf["batch"]["holdout_from"] == HOLD_FROM
+              and mf["written_at"] == hyp.instant(SEARCH_AS_OF) == prog["manifest_at"],
+              f"the manifest is written before the first backtest and fixes the family's "
+              f"sha256, the count (12) and the split (holdout from {HOLD_FROM})")
+        check(lg.variant_count("search-v1") == 12 == prog["n_trials"]
+              and all(v["n_trials"] == 12 for v in prog["done"].values()),
+              "the family's variant count rises by the whole candidate count, and every "
+              "candidate is deflated by N=12")
+        check(s1["stopped"] == "candidates" and s1["tested"] == 4
+              and prog["stage"] == "formation",
+              f"the candidate cap stops the step: {s1['line']}")
+        clock = iter([0.0, 0.0, 1e6, 1e6, 1e6])
+        s2 = search_mod.step(lg, st, SEARCH_AS_OF, cfg, clock=lambda: next(clock),
+                             max_wall=5.0)["search"]
+        check(s2["stopped"] == "wall_clock" and 4 < s2["tested"] < 12,
+              f"the wall-clock cap stops it too, after resuming where it stopped: "
+              f"{s2['tested']} of 12")
+        import copy                                             # noqa: PLC0415
+        changed = copy.deepcopy(cfg)
+        changed["family"]["horizons"] = [5, 10]
+        try:
+            search_mod.step(lg, st, SEARCH_AS_OF, changed)
+            refused = False
+        except search_mod.FamilyChanged:
+            refused = True
+        check(refused, "the manifest's hash refuses a changed family on resume")
+        check(all(last < HOLD_FROM for _, last in seen),
+              f"in formation the holdout is never backtested: {len(seen)} backtests, "
+              f"each ending before {HOLD_FROM}")
+        n_bt = len(seen)
+        s3 = search_mod.step(lg, st, SEARCH_AS_OF, cfg)["search"]
+        prog = search_mod.load_progress(s3["run_id"])
+        surv = prog["survivors"]
+        hold_bt = seen[n_bt:]
+        check(s3["stage"] == "done" and len(prog["done"]) == 12
+              and set(surv) == {"trend_63|h5|GLD|time_only|none",
+                                "trend_63|h5|TLT|time_only|none"}
+              and prog["frozen_sha256"]
+              and any(first == HOLD_FROM for first, _ in hold_bt),
+              f"resumed to the end: {len(surv)} formation survivors frozen, and only then "
+              f"the holdout backtested")
+        ho = prog["holdout"]
+        check(ho["trend_63|h5|GLD|time_only|none"]["passed"]
+              and not ho["trend_63|h5|TLT|time_only|none"]["passed"],
+              f"the holdout test: GLD passes ({ho['trend_63|h5|GLD|time_only|none']['n']} "
+              f"trades), TLT fails ({ho['trend_63|h5|TLT|time_only|none']['why']})")
+        rows = lg.q("SELECT * FROM hypotheses ORDER BY id")
+        check(len(rows) == 1 and rows[0]["source"] == "systematic"
+              and "GLD" in rows[0]["title"] and prog["registered"],
+              "a formation survivor that fails the holdout is not written; the one that "
+              "passes is registered, source systematic")
+        h = hyp.Register(lg).get(rows[0]["id"])
+        try:
+            m = manifest.check(lg, h, SEARCH_AS_OF)
+            ok = m["kind"] == "manifest_file" and m["sha256"] == prog["manifest_sha256"]
+        except manifest.NoManifest:
+            ok = False
+        check(ok and h["status"] == "registered" and h["pre_registered_at"] == prog["manifest_at"],
+              "it is pre-registered by the search's manifest, at the manifest's instant, "
+              "and the harness's manifest check accepts it")
+        check(lg.one("SELECT COUNT(*) AS n FROM engines")["n"] == 0
+              and not lg.q("SELECT 1 FROM loop_events WHERE kind IN ('promotion', "
+                           "'validation_pass')"),
+              "nothing else is written: no engine row, no promotion")
+        bad = {**search_mod.load_config()}
+        doc = {"schema": hyp.SCHEMA_ID, "batch_id": "x", "source": "operator",
+               "proposer": "x", "channel": "search", "written_at": SEARCH_AS_OF,
+               "model_idea_rule": False, "inputs": [], "hypotheses": [{}]}
+        check(any("the search's source" in e for e in hyp.validate_batch(doc)) and bad,
+              "the search channel takes source systematic only")
+        from alpha import report                                # noqa: PLC0415
+        lines = report.search_lines(lg, "2024-07-31")
+        check(lines[0] == "## 10. The grammar search"
+              and "12 of 12 candidates tested" in lines[2]
+              and "1 registered" in lines[2] and "N=12" in lines[2]
+              and any("dealer: skipped, pending" in x for x in lines),
+              f"the Monthly's Lab report prints the line: {lines[2][:110]}")
+        later = "2024-08-13T22:00:00+00:00"
+        check(search_mod.weekly(lg, st, later, cfg) == {"search": None},
+              "past the first week with no run unfinished, the weekly step does nothing")
+    finally:
+        search_mod.rules.backtest = real_bt
+        st.close()
+        lg.close()
+
+
 def main() -> int:
     try:
         group_a()
+        group_b()
     finally:
         shutil.rmtree(_TMP, ignore_errors=True)
     print(f"\n{PASS} passed, {FAIL} failed")

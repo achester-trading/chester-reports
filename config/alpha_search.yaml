@@ -1,0 +1,88 @@
+# alpha_search.yaml -- the grammar search (X-3.5; alpha/search.py). Read by the
+# search, written by nothing.
+#
+# WHAT IT ENUMERATES. Every candidate is one signal family x one conditioning
+# option x one horizon x one instrument x one exit, each a rule in the grammar
+# v1 (alpha/rules.py) backtested point in time and net of the cost model. A
+# conditioning option is "none" or one value of one variable; a conditioned
+# candidate is its base rule's trades taken in that state only (the grammar's own
+# conditioning split, rules.by_variant). A variable marked `pending` is skipped,
+# and the search prints why.
+#
+# THE MANIFEST COMES FIRST. Each run writes its manifest (alpha/manifest.py,
+# under the research directory) before its first backtest: the family below and
+# its sha256, the full candidate count, the formation and holdout split, the
+# deflation and the survivor rule. Then the family's variant count is raised by
+# the whole candidate count, and every candidate is deflated by it. A resumed
+# run refuses a family that no longer hashes to its manifest.
+#
+# THE CAPS (session-set; the box has 4 GB and the weekly unit 20 minutes): a run
+# stops after `max_candidates_per_run` candidates or `max_wall_seconds`,
+# whichever comes first, and the next weekly loop resumes it where it stopped.
+# A new run begins in the first week of each month (the weekly loop's step).
+version: 1
+family:
+  name: search-v1                      # the variant_counts family
+  grammar: alpha-lab-rules/v1
+  cadence: daily_close
+  entry: next_close
+  signal_families:
+    trend_63:
+      trigger: [{series: "{sym}", transform: pct_change, n: 63, op: ">", value: 0}]
+      direction: long
+    dip_20:
+      trigger: [{series: "{sym}", transform: zscore, w: 20, op: "<", value: -2}]
+      direction: long
+    spike_20:
+      trigger: [{series: "{sym}", transform: zscore, w: 20, op: ">", value: 2}]
+      direction: short
+    high_252:
+      trigger: [{series: "{sym}", transform: percentile, w: 252, op: ">=", value: 95}]
+      direction: long
+  horizons: [5, 10, 20]                # exits.time, sessions
+  instruments: [SPY, QQQ, IWM, TLT, GLD, HYG, XLE, BTC-USD]
+  exits:
+    time_only: {}
+    stop_3pct: {stop: {pct: 3}}
+  conditioning:
+    dials:
+      kind: state
+      what: "the market-state object's macro dial (regime.latest's stored object)"
+      path: dials.macro.state
+      values: [expansion, goldilocks, overheating, late_cycle, disinflationary_slowdown,
+               contraction, stagflation, deflationary_bust, mixed]
+    volatility:
+      kind: state
+      what: "the market-state object's volatility dial"
+      path: dials.vol.state
+      values: [crisis, elevated, normal, subdued]
+    positioning:
+      kind: zscore
+      what: "the stored CFTC S&P 500 speculative net, its z over two years of weekly reports"
+      key: cftc.noncomm_net
+      instrument: SP500
+      window: 104
+      min_rows: 52
+      bands: {crowded_long: 1.5, crowded_short: -1.5}
+      values: [crowded_long, neutral, crowded_short]
+    funding:
+      kind: mean_band
+      what: "crypto Tranche A's OI-weighted funding (calc.funding_agg, annualised %), its trailing 7-observation mean"
+      key: calc.funding_agg
+      window: 7
+      bands: {on: 10.0, off: 3.0}
+      values: ["on", between, "off"]
+    dealer:
+      pending: true
+      reason: "joins when the 6b keys are on this line, at the third chain's stitch"
+split:
+  holdout_months: 12                   # the last 12 whole months before the run's month
+  rule: "formation is every trade that enters and exits before the holdout's first day; the holdout is every trade that enters on or after it; the holdout is not backtested until the survivor list is frozen"
+deflation: "alpha/validate.py's deflated Sharpe, with N the family's variant count after the whole candidate count is added (the run's N is at least its candidate count)"
+survivor_rule:
+  formation: "the walk-forward over formation trades (fit 1, test 10, the embargo, the constitution's hold-out months never fitted) passes the constitution's gate: at least min_signals out of sample, expectancy after costs above 0, deflated Sharpe at least deflated_sharpe_min"
+  holdout: "the frozen survivor's holdout trades number at least min_holdout_trades and their mean net of costs is above 0"
+  min_holdout_trades: 10
+caps:
+  max_candidates_per_run: 400
+  max_wall_seconds: 600

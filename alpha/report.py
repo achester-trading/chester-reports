@@ -17,7 +17,9 @@ One Markdown page from alpha.db, read-only, for the month:
      engine's -10% halve and -20% stop);
   7. the tells imported as hypotheses, counted by source (X-3.6);
   8. the system's own event base rates, each row with n and its window (X-3.1);
-  9. the paper book's crypto rows: venue, leg sizes, funding accrued (X-3.2).
+  9. the paper book's crypto rows: venue, leg sizes, funding accrued (X-3.2);
+ 10. the grammar search's line: tested, survivors, the deflation, the variables
+     it skipped as pending (X-3.5).
 
 The Monthly attaches it through ONE hook in monthly_macro/run.py
 (monthly_attachment), which never raises: a lab that cannot be read costs the
@@ -227,7 +229,25 @@ def tranche_3(ledger, last: str) -> list[str]:
                        f"{r['spot_qty']:.6f} | {r['perp_qty']:.6f} | "
                        f"{r['funding_accrued']:,.2f} | {r['status']} | {net} |")
         out += ["", f"The basis: {rows[-1]['basis_note']}", ""]
+    out += search_lines(ledger, last)
     return out
+
+
+def search_lines(ledger, last: str) -> list[str]:
+    """X-3.5: the grammar search's line for the month -- tested, survivors, the
+    deflation -- from its latest progress event, and the variables it skipped."""
+    out = ["## 10. The grammar search", ""]
+    r = ledger.one("SELECT after FROM loop_events WHERE kind='search_progress' AND "
+                   "substr(as_of,1,10)>=? AND substr(as_of,1,10)<=? ORDER BY id DESC "
+                   "LIMIT 1", (last[:7] + "-01", last)) if _has(ledger, "loop_events") \
+        else None
+    if not r:
+        return out + ["No search step this month (a run begins in the first week of "
+                      "each month, in the weekly loop).", ""]
+    s = json.loads(r["after"])
+    out += [f"- {s['line']}."]
+    out += [f"- {p}." for p in s.get("pending") or []]
+    return out + [""]
 
 
 # ---------------------------------------------------------------------------

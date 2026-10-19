@@ -28,6 +28,10 @@ each step its own try, every change a loop_events row:
      backtest-to-paper gap per engine; and the register's open queue
      (needs_code, data_gap). A copy goes to the outbox for the Saturday brief.
   5. THE VERDICTS (X-2.11): lab-verdicts-YYYY-MM-DD.md into the outbox.
+  6. THE GRAMMAR SEARCH (X-3.5; alpha/search.py): a run begins in the first week
+     of each month and an unfinished one resumes on any week, one capped step a
+     week (candidates and wall clock, config/alpha_search.yaml); its line
+     reaches the Monthly's Lab report. No new timer.
 
 It reads the store read-only and alpha.db, and writes alpha.db and, through
 alpha/files.py, the agenda and the outbox only.
@@ -48,6 +52,7 @@ from typing import Optional
 from altdata import session
 
 from .. import book, files, governor, promote, rules, screen
+from .. import search as search_mod
 from .. import config as acfg
 from .. import engine as engine_mod
 from .. import hypotheses as hyp
@@ -452,6 +457,9 @@ def run(as_of: Optional[str] = None, ledger_path=None, store_path=None,
         steps += [("rebalance", lambda: rebalance(lg, as_of)),
                   ("agenda", lambda: write_agenda(lg, st, as_of)),
                   ("verdicts", lambda: verdicts(lg, as_of))]
+        if st is not None:
+            # X-3.5: last, so a capped search never delays the week's own steps
+            steps.append(("search", lambda: search_mod.weekly(lg, st, as_of)))
         try:
             for name, fn in steps:
                 try:

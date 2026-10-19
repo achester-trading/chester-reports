@@ -851,6 +851,26 @@ the roster's E-6 (`alpha/research/roster-2026-10-19-x3-3.yaml`), and the engine
 refuses a spec that no longer hashes to it. `tools/validate_alpha_lab_4.py`
 group A holds it.
 
+**The grammar search (X-3.5; alpha-lab-4, 19 Oct 2026).** `alpha/search.py`
+enumerates `config/alpha_search.yaml`'s family: signal families x
+conditioning options x horizons x instruments x exits, 3,840 candidates, each
+a grammar rule. The conditioning variables are the macro dial, the volatility
+dial, the CFTC net's z and calc.funding_agg; the dealer regime is pending, and
+skipped with its reason. A run goes in this order:
+1. its manifest (the family's sha256, the count, the split, the deflation and
+   the survivor rule) before the first backtest;
+2. the family's variant count raised by every candidate;
+3. formation against the constitution's deflated gate;
+4. the survivor list frozen, and only then the holdout backtested;
+5. the survivors of both registered as `systematic` hypotheses of the
+   `search` channel, at the manifest's instant.
+
+A step is capped at 400 candidates and 600 s and resumes from its progress
+file. A resumed run refuses a changed family. The weekly loop begins a run in
+the first week of each month and resumes an unfinished one on any week (no
+new timer); the Monthly's Lab report prints its line.
+`tools/validate_alpha_lab_4.py` group B holds it.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
 crypto_carry, reversion, all candidates until they pass); a promoted grammar
