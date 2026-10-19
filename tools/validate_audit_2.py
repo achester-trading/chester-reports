@@ -273,16 +273,27 @@ def group_c(td: str) -> None:
         check(False, "the real runner refuses a write verb")
     except ValueError:
         check(True, "the real runner refuses any verb but lsf and copy")
+    # Ruling 6 (19 Oct 2026): the weekly restore test superseded the monthly drill.
+    # The drill's units, wrapper and allow entry are gone; the test is the one
+    # restore check, and it runs this module through the crypt remote.
     units = REPO / "deploy" / "systemd"
-    svc = (units / "chester-restore-drill.service").read_text(encoding="utf-8")
     remote_sh = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
-    wrapper = (REPO / "scripts" / "run_restore_drill.sh").read_text(encoding="utf-8")
-    check("scripts/run_restore_drill.sh" in svc and "-m tools.restore_drill" in wrapper
+    allow = (units / "box-config.allow").read_text(encoding="utf-8")
+    check(not (units / "chester-restore-drill.service").exists()
+          and not (units / "chester-restore-drill.timer").exists()
+          and not (REPO / "scripts" / "run_restore_drill.sh").exists()
+          and "chester-restore-drill" not in allow and "restore-drill" not in remote_sh,
+          "the monthly drill is retired: no unit, no wrapper, no allow entry")
+    svc = (units / "chester-restore-test.service").read_text(encoding="utf-8")
+    wrapper = (REPO / "scripts" / "run_restore_test.sh").read_text(encoding="utf-8")
+    restore_units = sorted(p.name for p in units.glob("*restore*"))
+    check("scripts/run_restore_test.sh" in svc and "-m tools.restore_drill" in wrapper
+          and '"$CRYPT_REMOTE"' in wrapper
           and "git pull" not in wrapper.split("set -uo", 1)[-1]
-          and (units / "chester-restore-drill.timer").exists()
-          and "chester-restore-drill.timer" not in remote_sh,
-          "the monthly unit runs the drill and is never in DEPLOY_TIMERS: printed, "
-          "enabled by the operator")
+          and restore_units == ["chester-restore-test.service", "chester-restore-test.timer"]
+          and "chester-restore-test.timer" not in remote_sh,
+          f"chester-restore-test is the one restore check: it runs the drill module "
+          f"through the crypt remote and is never in DEPLOY_TIMERS ({restore_units})")
     check((REPO / "docs" / "runbooks" / "restore.md").exists(),
           "docs/runbooks/restore.md exists")
 

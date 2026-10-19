@@ -757,11 +757,14 @@ sweep shows red.
 2. runs `PRAGMA integrity_check`;
 3. compares the restored `observations` count with the count recorded at
    snapshot time;
-4. writes `~/.chester/restore_test_status` (`state=restore_ok` or
-   `state=restore_failed`, with the reason).
+4. writes `restore_test_status` in the state directory (`state=restore_ok` or
+   `state=restore_failed`, with the reason): `~/state` on this box, through the
+   unit's declared drop-in (ruling 7, 19 Oct 2026), `~/.chester` by default.
 
-The monthly restore drill (`chester-restore-drill.timer`, aud-2) reads through the
-same crypt remote.
+**It is the one restore check** (ruling 6, 19 Oct 2026). The monthly AUD-2 drill it
+superseded read the old plaintext remote, which gets no new snapshot after the
+migration; its units and wrapper are retired, and `tools/restore_drill.py` stays,
+run by this test through the crypt remote.
 
 The 08:30 heartbeat's `backup=` field reads three files:
 
@@ -999,7 +1002,7 @@ wrapper pulls first. Unit files used to wait for somebody to run
 and enables `chester-deploy.timer`, which is in `DEPLOY_TIMERS`. From then on the
 box keeps its own unit files current.
 
-## 13. Memory caps, the Gateway's OOM order, the auction unit and the restore drill (AUD-2, 14 Oct 2026)
+## 13. Memory caps, the Gateway's OOM order, the auction unit and the restore test (AUD-2, 14 Oct 2026)
 
 The box moves from 4 GB to 8 GB (CX33) on Saturday 17 Oct 2026. The IB Gateway's
 Java shares that RAM with every report, and until AUD-2 no unit had a memory cap.
@@ -1018,7 +1021,7 @@ equal on 8 GB to AUD-2's absolute figure (kept in each unit's comment), so on th
 | chester-monthly | 25% | 31% | 1.0G / 1.24G | 2G / 2.48G | the longest edition: twelve charts, the Monthly's tables |
 | chester-voices | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | fetch-and-extract, one article at a time |
 | chester-backup | 15% | 19% | 0.6G / 0.76G | 1.2G / 1.52G | the online snapshot, gzip, rclone's buffers |
-| chester-restore-drill | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one snapshot, gunzipped |
+| chester-restore-test | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one snapshot, gunzipped |
 | chester-dealer-0945, -1230 (6b part 2) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one capture and one compute |
 | chester-flashalpha (6b part 3) | 4% | 5% | 0.16G / 0.2G | 0.32G / 0.4G | six REST calls and a store write |
 | chester-vendor-chains (M-3, 16:31) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | the two vendor chains, no compute |
@@ -1037,7 +1040,7 @@ cannot be fetched again; the Gateway needs Ari's supervised login. So:
 
 | Unit | OOMScoreAdjust |
 |---|---|
-| chester-daily-close, -weekly, -monthly, -voices, -backup, -restore-drill | 500 |
+| chester-daily-close, -weekly, -monthly, -voices, -backup, -restore-test | 500 |
 | chester-eod (the chain capture) | 300 |
 | ibgateway | -500 |
 
@@ -1064,10 +1067,10 @@ unit is sandboxed as the EOD unit is.
 02:30, plus up to 5 minutes of jitter, plus 2 hours. It can no longer run into the
 Sunday 05:00 Weekly.
 
-**The restore drill**, `chester-restore-drill.{service,timer}`, monthly on the 3rd
-at 10:30 ET. It is not in `DEPLOY_TIMERS`, so the operator enables it. It needs
-the backup's remote in its own drop-in. The commands are in
-`docs/briefs/aud-2-notes.md`, and the procedure in `docs/runbooks/restore.md`.
+**The restore test**, `chester-restore-test.{service,timer}`, Sundays at 10:15 ET
+(section 10). It superseded the monthly AUD-2 drill, whose units are retired
+(ruling 6, 19 Oct 2026). It is not in `DEPLOY_TIMERS`, so the operator enables it,
+with its state-directory drop-in. The procedure is in `docs/runbooks/restore.md`.
 
 ## 14. The Alpha Lab's loops (X-1.10, 13 Oct 2026)
 

@@ -543,8 +543,11 @@ close's footer prints the day's calls and tokens, the Monthly's the month's by
 report; tokens, never dollars. **A restore is drilled, not assumed:**
 `python -m tools.restore_drill` restores the backup's newest database snapshot into a temporary
 directory, integrity-checks it and counts it against the live store, read-only;
-`docs/runbooks/restore.md` is the dead-box procedure. `tools/validate_audit_2.py`
-holds the auction sampler's stand-aside, the meter's client and the drill.
+the weekly restore test (`chester-restore-test`) runs it through the crypt remote and
+is the one restore check -- the monthly drill timer it superseded is retired
+(ruling 6, 19 Oct 2026). `docs/runbooks/restore.md` is the dead-box procedure.
+`tools/validate_audit_2.py` holds the auction sampler's stand-aside, the meter's
+client and the drill's retirement.
 
 **Backups are encrypted, go to a separate account, and are restored every week
 (audit-leftovers-1, 17 Oct 2026).**

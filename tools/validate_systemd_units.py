@@ -376,7 +376,7 @@ OOM_SCORES = {
     "chester-monthly.service":        500,
     "chester-voices.service":         500,
     "chester-backup.service":         500,
-    "chester-restore-drill.service":  500,
+    "chester-restore-test.service":   500,
 }
 REPORT_UNITS = [u for u, v in OOM_SCORES.items()
                 if u not in ("ibgateway.service", "chester-eod.service")]
@@ -701,7 +701,7 @@ def aud2() -> None:
              "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
             ("a report below the capture", "chester-voices.service",
              "OOMScoreAdjust=500", "OOMScoreAdjust=200"),
-            ("a report with no score", "chester-restore-drill.service",
+            ("a report with no score", "chester-restore-test.service",
              "OOMScoreAdjust=500", ""),
             ("the old 2h30 timeout", "chester-backup.service",
              "TimeoutStartSec=2h", "TimeoutStartSec=2h30min"),

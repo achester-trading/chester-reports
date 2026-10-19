@@ -3,9 +3,10 @@
 # The encrypted backup remote, built from the environment (audit-leftovers-1; the
 # 14 Oct audit's security finding, the fix ruled 15 Oct: rclone crypt under a
 # separate Google account used only for backups). SOURCED, never run: the nightly
-# sweep (scripts/rclone_sync.sh), the weekly restore test
-# (scripts/run_restore_test.sh) and the monthly drill (scripts/run_restore_drill.sh)
-# each source it, so the remote is defined in exactly one place.
+# sweep (scripts/rclone_sync.sh) and the weekly restore test
+# (scripts/run_restore_test.sh) each source it, so the remote is defined in
+# exactly one place. (The monthly drill's wrapper, which also did, is retired:
+# ruling 6, 19 Oct 2026.)
 #
 #   crypt_env    sets RCLONE_CONFIG_CHESTERCRYPT_* in this shell's environment and
 #                CRYPT_REMOTE to the crypt remote's root; returns 1, with

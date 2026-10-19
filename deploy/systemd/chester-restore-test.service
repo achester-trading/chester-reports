@@ -48,7 +48,7 @@ ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 # THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026: the box stays at 4 GB):
-# percentages of physical memory, the restore drill's own.
+# percentages of physical memory, as the retired monthly drill carried them.
 MemoryHigh=10%
 MemoryMax=12%
 # THE OOM ORDER (AUD-2, ruled 14 Oct 2026; README.md section 13): a test can be
