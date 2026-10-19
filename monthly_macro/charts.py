@@ -37,7 +37,7 @@ prose is held to.
     M8  the scenario weights by edition, and their Brier           Ahead
     M9  Book Z (cash, SPY, 60/40) against the paper account's NAV,
         indexed to 100 since the start date                        The book
-    M11 Pearl: the supply the explorer reports against the designed
+    M13 Pearl: the supply the explorer reports against the designed
         supply at its heights, the week-one overhang on the right
         axis (ST-14, 2.7.6 item 3) -- DRAWN ONLY once the explorer
         has stored a height and a supply; until then no figure      Slow layers
@@ -71,10 +71,10 @@ from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
 
-ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M8", "M9", "M11")
-# M11 is a watch instrument's optional figure (MW-2: watch-level rights), so it is
+ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M8", "M9", "M13")
+# M13 is a watch instrument's optional figure (MW-2: watch-level rights), so it is
 # the first set aside when the cap binds (ST-14).
-DROP_ORDER = ("M11", "M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M7", "M1", "M0")
+DROP_ORDER = ("M13", "M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M7", "M1", "M0")
 # Where each chart prints: (section id, sub-section title or None).
 PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M3": ("mechanics", None),
@@ -87,7 +87,7 @@ PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
          "M9": ("book", None),
          # ST-14: under the Digital Asset Mechanism Watch part (prl_part.TITLE).
-         "M11": ("slow", "Digital Asset Mechanism Watch: Pearl")}
+         "M13": ("slow", "Digital Asset Mechanism Watch: Pearl")}
 LONG_FRAME_TYPES = {"M1": ("ma_40w",), "M2": ("ma_10m", "ma_20m")}
 DAILY_TYPES = ("ma_50d", "ma_200d")
 BREAKEVENS = (("fred.breakeven_5y", "5-year"), ("fred.breakeven_10y", "10-year"),
@@ -754,12 +754,12 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
             return m8(scenario_history(led.all_rows(), now), f"{base}_m8", out_dir)
     run("M8", _m8)
 
-    def _m11():
-        return m11(db_path, now, f"{base}_m11", out_dir)
+    def _m13():
+        return m13(db_path, now, f"{base}_m13", out_dir)
     from . import prl_part                                       # noqa: PLC0415
     with observations.ObservationStore(db_path) as st11:
         if prl_part.explorer_read(st11, now):
-            run("M11", _m11)
+            run("M13", _m13)
     for c in charts.values():
         if c.get("min_px_at_400") is not None:
             c["min_px_at_400"] = float(c["min_px_at_400"])
@@ -816,7 +816,7 @@ def _m4_title(st, now: str, since: str) -> str:
                          len(pts), "observations", first, now, "five years")
 
 
-def m11(db_path: Optional[str], now: str, name: str, out_dir: Optional[str]) -> dict:
+def m13(db_path: Optional[str], now: str, name: str, out_dir: Optional[str]) -> dict:
     """Pearl's realized supply (the explorer's) against the designed supply at the
     explorer's own heights, and the week-one overhang (D2) on the right axis."""
     from altdata import observations, prl                        # noqa: PLC0415
@@ -827,7 +827,7 @@ def m11(db_path: Optional[str], now: str, name: str, out_dir: Optional[str]) -> 
     designed = [(d, prl.supply_code(h) / 1e6) for d, h in sorted(heights.items())]
     title = (f"Pearl: realized and designed supply, {len(real)} explorer read(s), "
              f"{real[0][0] if real else '-'} to {real[-1][0] if real else '-'}")
-    c = ch.lines_chart("M11", {"Realized (the explorer's), M PRL":
+    c = ch.lines_chart("M13", {"Realized (the explorer's), M PRL":
                                [(d, v / 1e6) for d, v in real],
                                "Designed (the formula at its height), M PRL": designed,
                                "Week-one overhang, %": over},

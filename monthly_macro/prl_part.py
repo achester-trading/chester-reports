@@ -10,7 +10,7 @@ informational label, never as a recommendation.
   1  the thesis status with its rule trace and what moved, code-written lines
   2  the S1-S8 table: baseline (19 Sep 2026) / prior month / now / change, with
      "not tracked" and ESTIMATED where the inputs say so
-  3  the supply figure (M11, monthly_macro/charts.py) only once the explorer has
+  3  the supply figure (M13, monthly_macro/charts.py) only once the explorer has
      read; otherwise no figure and one line
   4  the candidates found this month and the status changes made (the
      mechanism-watch register, altdata/mechanism_watch.py)
@@ -133,7 +133,7 @@ def read(st, now: str, then: str) -> dict:
 
 
 def explorer_read(st, now: str) -> bool:
-    """Has the explorer stored a height and a supply? (M11 draws only then.)"""
+    """Has the explorer stored a height and a supply? (M13 draws only then.)"""
     from altdata import prl                                     # noqa: PLC0415
     return bool(_latest(st, prl.HEIGHT_KEY, now) and _latest(st, prl.SUPPLY_KEY, now))
 

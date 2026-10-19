@@ -755,15 +755,15 @@ def charts_group(cfg: dict) -> None:
           "the cap is the budget's, and a fired trigger lifts it by one")
     many = {k: {"id": k, "png": b"x"} for k in mch.ORDER}
     aside = mch.hold_cap(many, 10)
-    check(aside == ["M11", "M8"] and "cap of 10" in many["M8"]["unavailable"]
-          and "cap of 10" in many["M11"]["unavailable"]
+    check(aside == ["M13", "M8"] and "cap of 10" in many["M8"]["unavailable"]
+          and "cap of 10" in many["M13"]["unavailable"]
           and sum(1 for c in many.values() if not c.get("unavailable")) == 10,
-          "the fallback: over a cap (here 10, all twelve drawn), M11 -- the watch "
+          "the fallback: over a cap (here 10, all twelve drawn), M13 -- the watch "
           "instrument's figure (ST-14) -- then M8 are set aside and say why; ten print")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
     nch = ed["chart_count"]
-    # M11 is not drawn on this fixture (no explorer read: ST-14).
-    check(set(bad) == {"M10"} and "not tracked" in bad["M10"] and "M11" not in charts
+    # M13 is not drawn on this fixture (no explorer read: ST-14).
+    check(set(bad) == {"M10"} and "not tracked" in bad["M10"] and "M13" not in charts
           and nch == len(mch.ORDER) - 2 and not ed.get("charts_over_cap"),
           f"with history stored, all but M10 render ({nch}); the fixture stores no "
           f"fed funds contracts, and M10 says so"
@@ -2175,11 +2175,11 @@ def t33_group(ed: dict, out: dict) -> None:
           and charts["M8"]["unavailable"] == "not yet: scenario set #1",
           "M3 says why it is empty when the scorecard begins after the month; M8 is "
           "skipped by the 9 Oct ruling and logged so")
-    # ST-14 (18 Oct 2026): M11, the mechanism watch's supply figure, is planned
+    # ST-14 (18 Oct 2026): M13, the mechanism watch's supply figure, is planned
     # last and drawn only once the explorer has read -- never on this fixture.
-    check(len(mch.ORDER) == 12 and mch.ORDER[-1] == "M11"
-          and mch.DROP_ORDER[0] == "M11" and "M11" not in charts,
-          f"the plan is eleven charts, M0-M10, and M11 drawn only once the explorer "
+    check(len(mch.ORDER) == 12 and mch.ORDER[-1] == "M13"
+          and mch.DROP_ORDER[0] == "M13" and "M13" not in charts,
+          f"the plan is eleven charts, M0-M10, and M13 drawn only once the explorer "
           f"has read ({', '.join(mch.ORDER)}); first set aside at the cap")
 
 

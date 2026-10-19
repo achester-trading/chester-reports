@@ -13,7 +13,7 @@ gate. It never reads the live store, fetches or calls a model.
      S1-S8 table with "not tracked" and ESTIMATED where the inputs say so, the
      supply within 2% of the formula, available_at present, STALE never empty,
      the register's month; the part reads stored rows and computes nothing
-  B  THE FIGURE: M11 only once the explorer has read, else no figure and one
+  B  THE FIGURE: M13 only once the explorer has read, else no figure and one
      line; first set aside at the cap
   C  THE MONTHLY: the part present (rows stored) and absent (nothing stored, or
      the builder failing) and the Monthly unharmed; no words against the budget
@@ -206,18 +206,18 @@ def group_a() -> None:
 
 # ---------------------------------------------------------------------------
 def group_b() -> None:
-    head("B. THE FIGURE (M11)")
+    head("B. THE FIGURE (M13)")
     from monthly_macro import charts as mch, prl_part
     p_no, p_yes = db(stored(False)), db(stored(True))
     with observations.ObservationStore(p_no) as a, observations.ObservationStore(p_yes) as b:
         check(not prl_part.explorer_read(a, NOW) and prl_part.explorer_read(b, NOW),
               "the figure's condition: the explorer has stored a height and a supply")
-    c = mch.m11(p_yes, NOW, "m11_fixture", str(TMP))
+    c = mch.m13(p_yes, NOW, "m13_fixture", str(TMP))
     check(not c.get("unavailable") and c.get("png") and c["title"].startswith(
               "Pearl: realized and designed supply, 4 explorer read(s)"),
-          f"with the explorer read, M11 draws ({c.get('title')})")
-    check(mch.ORDER[-1] == "M11" and mch.DROP_ORDER[0] == "M11"
-          and mch.PLACE["M11"] == ("slow", prl_part.TITLE),
+          f"with the explorer read, M13 draws ({c.get('title')})")
+    check(mch.ORDER[-1] == "M13" and mch.DROP_ORDER[0] == "M13"
+          and mch.PLACE["M13"] == ("slow", prl_part.TITLE),
           "planned last, first set aside at the cap, placed under the part")
     src = (REPO / "monthly_macro" / "charts.py").read_text(encoding="utf-8")
     check("if prl_part.explorer_read(st11, now):" in src,
@@ -243,7 +243,7 @@ def group_c() -> None:
     check(words == base and all(s.get("paragraph_wanted") is False and not s.get("charts")
                                 for s in present + absent),
           "no word against the Monthly's 10,000: tables and code-written lines, no "
-          "paragraph; its one chart is M11, only once the explorer has read")
+          "paragraph; its one chart is M13, only once the explorer has read")
     check(len(present) == 3 and len(absent) == 3
           and [s["title"] for s in present] == [prl_part.TITLE, prl_part.TITLE_REGISTER,
                                                 prl_part.TITLE_ENTRIES],

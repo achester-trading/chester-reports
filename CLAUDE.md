@@ -398,7 +398,7 @@ st-t5-render, 18 Oct 2026).**
   - It reads stored rows and computes nothing.
   - Its guards: the Security Master entry, the explorer's supply within 2% of the
     formula, STALE never empty.
-  - Its one figure, M11, draws only once the explorer has read.
+  - Its one figure, M13, draws only once the explorer has read.
 - **The scan.** `altdata/mechanism_scan.py` runs the `mechanism_watch` group of
   `config/story_queries.yaml` over declared feeds under robots
   (`news.mechanism_items`), and DefiLlama's recently-added list.
