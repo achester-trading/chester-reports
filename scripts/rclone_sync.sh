@@ -624,9 +624,16 @@ pull_x_pilot || true
 # never delete: the inbox only gains, and the daily proposer's own files and
 # manifest, which are not on Drive, are never touched.
 #
-# OUT: ~/chester-data/outbox/lab/ -> <remote>:chester-vendor-checks/lab-outbox/.
-# The weekly loop writes lab-verdicts-YYYY-MM-DD.md there for the Saturday brief.
-# `rclone copy`, never sync: the remote folder only gains.
+# OUT: ~/chester-data/outbox/lab/ -> <outbox remote>:chester-lab-outbox/, a
+# top-level folder of its own (ruling 8, 19 Oct 2026), NEVER under
+# chester-vendor-checks. A drive.file remote sees only what its own app made, so
+# it cannot see the operator's chester-vendor-checks and would create a second
+# folder of that name; rclone then resolves the duplicated name to either one,
+# which could send the read-only inbox pulls (GLD's archive, AAII's row, the X
+# pilot's files, the lab inbox) to the wrong folder. The inbox pulls stay where
+# they are. The weekly loop writes lab-verdicts-YYYY-MM-DD.md there for the
+# Saturday brief. `rclone copy`, never sync: the remote folder only gains.
+LAB_OUTBOX_FOLDER="chester-lab-outbox"
 LAB_INBOX="$DATA_DIR/inbox/lab"
 LAB_OUTBOX="$DATA_DIR/outbox/lab"
 # UNDER THE SWEEP'S BUDGET (stitching, week of 19 Oct): each copy runs only with
@@ -686,9 +693,9 @@ push_lab_outbox() {
         return 0
     fi
     lab_budget "lab-outbox" || return 0
-    if timeout --kill-after=60s "${LAB_CAP}m" rclone copy "$LAB_OUTBOX" "$rname:chester-vendor-checks/lab-outbox" $RCLONE_LIMITS \
+    if timeout --kill-after=60s "${LAB_CAP}m" rclone copy "$LAB_OUTBOX" "$rname:$LAB_OUTBOX_FOLDER" $RCLONE_LIMITS \
             --log-file "$LOG" --log-level INFO; then
-        log "  lab outbox: ok -> $rname:chester-vendor-checks/lab-outbox"
+        log "  lab outbox: ok -> $rname:$LAB_OUTBOX_FOLDER"
     else
         log "  lab outbox: FAILED copy (not counted against the sweep)"
     fi

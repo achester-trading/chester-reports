@@ -458,10 +458,13 @@ def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
         k, v = kv.split("=")
         if auc.get(k) != [v]:
             faults.append(f"chester-auction.service lacks {kv}")
-    # The narrowest it can run with: its log, its status and lock (~/.chester),
-    # and the checkout (the wrapper's git pull; data/chester.db). Nothing else.
+    # The narrowest it can run with: its log, its status and lock (the state
+    # directory: ~/state on this box through its declared drop-in, ~/.chester by
+    # default; ruling 7, 19 Oct 2026), and the checkout (the wrapper's git pull;
+    # data/chester.db). Nothing else.
     rw = " ".join(auc.get("ReadWritePaths", []))
-    if sorted(rw.split()) != sorted(["%h/logs", "%h/.chester", "%h/chester-reports"]):
+    if sorted(rw.split()) != sorted(["%h/logs", "%h/.chester", "-%h/state",
+                                     "%h/chester-reports"]):
         faults.append(f"chester-auction.service ReadWritePaths not narrow ({rw!r})")
     score: dict = {}
     for name, want in OOM_SCORES.items():
@@ -567,6 +570,103 @@ def check_captures(unit_dir: Path, score: dict) -> list[str]:
     return faults
 
 
+# ---------------------------------------------------------------------------
+# THE STATE DIRECTORY (ruling 7, 19 Oct 2026). This box keeps status files,
+# records and locks in ~/state through Environment drop-ins that box-config.allow
+# declares; a wrapper's default is ~/.chester. A unit that shares a file with the
+# heartbeat or another unit through that directory must point at the same one:
+# declared there, and able to write ~/state under ProtectSystem=strict. The
+# restore test was the case that was not (it reads the backup's record).
+ALLOW = UNIT_DIR / "box-config.allow"
+HEARTBEAT_SCRIPT = REPO / "scripts" / "check_heartbeat_cron.sh"
+# Records one unit reads that another unit writes, by file name -> the writer.
+STATE_READERS = {"chester-restore-test.service": {"backup_snapshot": "chester-backup.service"}}
+
+
+def declared_units(text: str) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line:
+            parts = line.split()
+            out[parts[0]] = parts[1:]
+    return out
+
+
+def _wrapper(unit: Path) -> str:
+    for v in directives(unit).get("ExecStart", []):
+        m = re.search(r"%h/chester-reports/(scripts/\S+\.sh)", v)
+        if m and (REPO / m.group(1)).exists():
+            return (REPO / m.group(1)).read_text(encoding="utf-8")
+    return ""
+
+
+def _state_files(wrapper: str) -> set[str]:
+    """The literal file names a wrapper keeps under $STATE_DIR."""
+    return set(re.findall(r'\$STATE_DIR/([A-Za-z0-9_.-]+)"', wrapper))
+
+
+def state_dir_faults(unit_dir: Path, allow_text: str, heartbeat_text: str,
+                     readers: dict) -> list[str]:
+    faults: list[str] = []
+    declared = declared_units(allow_text)
+    hb_reads = set(re.findall(r'\$STATE_DIR/([A-Za-z0-9_.-]+)', heartbeat_text))
+    for name in declared:
+        if not (unit_dir / name).exists():
+            faults.append(f"box-config.allow declares {name}, which deploy/systemd does not ship")
+    for unit in sorted(unit_dir.glob("*.service")):
+        wr = _wrapper(unit)
+        if "CHESTER_STATE_DIR" not in wr:
+            continue
+        shared = _state_files(wr) & hb_reads
+        if unit.name == "chester-heartbeat.service":
+            shared = set()
+        if shared and "Environment" not in declared.get(unit.name, []):
+            faults.append(f"{unit.name} writes {sorted(shared)}, which the heartbeat reads "
+                          f"from the state directory, and box-config.allow does not "
+                          f"declare its Environment drop-in")
+        d = directives(unit)
+        rw = " ".join(d.get("ReadWritePaths", [])).split()
+        if ("Environment" in declared.get(unit.name, []) and d.get("ProtectSystem") == ["strict"]
+                and "-%h/state" not in rw and "%h/state" not in rw):
+            faults.append(f"{unit.name} is declared for the state drop-in but cannot write "
+                          f"~/state under ProtectSystem=strict ({' '.join(rw)})")
+    for reader, recs in readers.items():
+        for rec, writer in recs.items():
+            for u in (reader, writer):
+                if "Environment" not in declared.get(u, []):
+                    faults.append(f"{u} shares {rec} through the state directory and "
+                                  f"box-config.allow does not declare its drop-in")
+            if rec not in _state_files(_wrapper(unit_dir / reader)) | set(
+                    re.findall(r'\$STATE_DIR/([A-Za-z0-9_.-]+)', _wrapper(unit_dir / reader))):
+                faults.append(f"{reader}'s wrapper no longer reads $STATE_DIR/{rec}")
+    return faults
+
+
+def state_dir() -> None:
+    print(f"\n{LINE}\nTHE STATE DIRECTORY (ruling 7, 19 Oct 2026): one directory per box\n{LINE}")
+    allow = ALLOW.read_text(encoding="utf-8")
+    hb = HEARTBEAT_SCRIPT.read_text(encoding="utf-8")
+    faults = state_dir_faults(UNIT_DIR, allow, hb, STATE_READERS)
+    if faults:
+        for f in faults:
+            bad(f)
+    else:
+        ok("every unit sharing a status, record or lock with the heartbeat or another "
+           "unit through the state directory is declared in box-config.allow and may "
+           "write ~/state; every declared unit is shipped")
+    # The check fires: without the restore test's line, its reading of the
+    # backup's record and its status the heartbeat reads are both caught.
+    cut = "\n".join(l for l in allow.splitlines()
+                    if not l.startswith("chester-restore-test.service"))
+    got = state_dir_faults(UNIT_DIR, cut, hb, STATE_READERS)
+    if any("chester-restore-test.service shares backup_snapshot" in f for f in got) and any(
+            "chester-restore-test.service writes ['restore_test_status']" in f for f in got):
+        ok("planted: the allow list without the restore test's line fails on both counts")
+    else:
+        bad(f"planted: removing the restore test's declaration was not caught ({got})")
+
+
 def aud2() -> None:
     print(f"\n{LINE}\nAUD-2: memory caps, the auction unit, the Gateway's OOM order, "
           f"the backup's end\n{LINE}")
@@ -636,6 +736,7 @@ def main() -> int:
     self_test()
     check_environment_file()
     aud2()
+    state_dir()
     units = sorted(list(UNIT_DIR.glob("*.service")) + list(UNIT_DIR.glob("*.timer")))
     print(f"{LINE}\nsystemd units shipped in deploy/systemd/\n{LINE}")
     if not units:

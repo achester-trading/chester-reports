@@ -360,8 +360,10 @@ def group_e() -> None:
     (fake / "config").mkdir(parents=True, exist_ok=True)
     (fake / "config" / "ai_buckets.yaml").write_text(
         "buckets:\n  compute: [NVDA, AMD]\n  hyperscalers: [MSFT]\n", encoding="utf-8")
-    check(ahead.ai_names(cfg, fake) == {"NVDA", "AMD", "MSFT"},
-          "config/ai_buckets.yaml, where it exists, is read first")
+    own = {str(s).upper() for s in (cfg.get("earnings") or {}).get("ai_names") or []}
+    check(ahead.ai_names(cfg, fake) == {"NVDA", "AMD", "MSFT"} | own,
+          "config/ai_buckets.yaml, where it exists, joins the Weekly's own list "
+          "(the chain-2 stitch: GTM-4 names members for the hyperscalers only)")
 
 
 # ---------------------------------------------------------------------------

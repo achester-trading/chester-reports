@@ -8,10 +8,12 @@
 # It pulls the newest db/ snapshot THROUGH THE CRYPT REMOTE (scripts/
 # rclone_crypt_env.sh) into a temporary directory, decompresses it, runs PRAGMA
 # integrity_check, and compares its observations count with the count the sweep
-# recorded at snapshot time (~/.chester/backup_snapshot). It writes
-#     ~/.chester/restore_test_status   state=restore_ok|restore_failed at= ...
+# recorded at snapshot time ($STATE_DIR/backup_snapshot). It writes
+#     $STATE_DIR/restore_test_status   state=restore_ok|restore_failed at= ...
 # which the heartbeat's backup field reads. Like the monthly drill's wrapper: NO
 # git pull -- the test should prove the backup with the code that is on the box.
+# $STATE_DIR is CHESTER_STATE_DIR: ~/state on this box, through the unit's
+# declared drop-in (ruling 7, 19 Oct 2026); ~/.chester only by default.
 
 set -uo pipefail
 

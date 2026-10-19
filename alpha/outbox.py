@@ -3,8 +3,9 @@ The verdicts outbox (X-2.11; change order 10.2 d).
 
 The weekly loop writes ~/chester-data/outbox/lab/lab-verdicts-YYYY-MM-DD.md
 (config/alpha.yaml files.outbox; $ALPHA_OUTBOX), and the nightly sweep copies
-that folder up to <remote>:chester-vendor-checks/lab-outbox/ (copy, never sync),
-where the Saturday brief reads it. One file a week, dated by the weekly run:
+that folder up to <outbox remote>:chester-lab-outbox/, a top-level Drive folder
+of its own, never under chester-vendor-checks (ruling 8, 19 Oct 2026; copy, never
+sync), where the Saturday brief reads it. One file a week, dated by the weekly run:
 
   1. every hypothesis received, screened or tested in the seven days to the run:
      id, title, source, channel, and its status in words -- registered,

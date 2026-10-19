@@ -1558,8 +1558,10 @@ def _group_q() -> None:
           "the sweep lists Drive's lab-inbox with --metadata --hash into the manifest "
           "BEFORE it copies")
     check("rclone sync" not in pull + push and "delete" not in pull + push
-          and "chester-vendor-checks/lab-outbox" in push and "rclone copy" in push,
-          "inbox down and outbox up are copies, never sync, never delete")
+          and '"$rname:$LAB_OUTBOX_FOLDER"' in push and "chester-vendor-checks" not in push
+          and 'LAB_OUTBOX_FOLDER="chester-lab-outbox"' in sweep and "rclone copy" in push,
+          "inbox down and outbox up are copies, never sync, never delete; the outbox "
+          "goes to its own top-level chester-lab-outbox (ruling 8, 19 Oct 2026)")
     check("RC=" not in pull + push, "and neither touches the sweep's exit code")
     bk = (REPO / "deploy" / "systemd" / "chester-backup.service").read_text(encoding="utf-8")
     aw = (REPO / "deploy" / "systemd" / "chester-alpha-weekly.service").read_text(encoding="utf-8")

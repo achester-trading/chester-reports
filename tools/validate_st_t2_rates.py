@@ -367,7 +367,7 @@ def group_h() -> None:
     for sr in STUDIES:
         m = re.search(rf"^### {sr} .*?(?=^### )", reg, re.M | re.S)
         e = m.group(0) if m else ""
-        d = re.search(r"\*Drafted under rule 31, 18 Oct 2026 \(ST-7[^*]*\*\s*\*\*A-3 gate "
+        d = re.search(r"\*(?:Drafted under rule 31, 18 Oct 2026 \(ST-7|Accepted as drafted \(rule 31\), 19 Oct 2026)[^*]*\*\s*\*\*A-3 gate "
                       r"status: (PASS|FAIL|INSUFFICIENT)\.\*\* ledger: (docs/ledgers/\S+\.md), "
                       r"(PASS|FAIL|INSUFFICIENT)", e)
         led = (REPO / d.group(2)) if d else None

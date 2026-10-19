@@ -34,6 +34,31 @@ The self-deploy (every 30 minutes inside the windows) copies the unit files and 
 
 `chester-quarterly.timer` ships disabled and stays disabled. `ibgateway.service` and its restart timer stay held behind the witnessed clean start.
 
+**The monthly restore drill (`chester-restore-drill.timer`) is superseded by the weekly restore test and is never enabled** (ruling 6, 19 Oct 2026). The test restores the encrypted snapshot the sweep now writes, every week, and feeds the heartbeat; the drill reads the old plaintext remote, which gets no new snapshot after C4 and loses its token at C7. Its unit files arrive with this merge and retire in the third chain.
+
+## The state directory: where each new or changed unit writes on this box (ruling 7)
+
+This box keeps status files, records and locks in `~/state`, through the Environment drop-ins `deploy/systemd/box-config.allow` declares; a unit without one writes the wrappers' default, `~/.chester`. A unit has to point at `~/state` only where the heartbeat or another unit reads its file from there. Every unit chain-2 adds or changes, and its answer:
+
+| Unit | Shares a file through the state directory? | Drop-in | Status, record and lock on this box |
+|---|---|---|---|
+| `chester-restore-test` | **Yes.** It reads the backup's `backup_snapshot`, and the heartbeat reads its `restore_test_status` | **Declared now; you put it on in C5** | `~/state` |
+| `chester-backup` (changed) | Yes: `rclone_sync_status`, `backup_snapshot` | Already on the box | `~/state` |
+| `chester-auction` (changed: now sandboxed) | Its status and lock, and it reads the Gateway's stop marker in `~/state` | Already on the box. **Fixed here:** its new sandbox could not write `~/state` | `~/state` |
+| `chester-daily-close` (changed) | Its status and lock | Already on the box. **Fixed here:** `-%h/state` added to its write paths | `~/state` |
+| `chester-ibkr-sync` (not changed by chain-2) | Its status and lock | Already on the box. **The same gap, from main:** `-%h/state` added | `~/state` |
+| `chester-eod`, `-weekly`, `-monthly` (changed: memory caps) | Yes | Already on the box | `~/state` |
+| `chester-vendor-chains`, `chester-dealer-0945`, `chester-dealer-1230` | No: their heartbeat, status and the shared `dealer_capture.lock` are read by nothing else, and all three use the same directory | None | `~/.chester` |
+| `chester-flashalpha` | No: `flashalpha.lock` and the day's call count `flashalpha_calls.json` are its own | None | `~/.chester` |
+| `chester-meme-ingest` | No: its lock only | None | `~/.chester` |
+| `chester-prices-saturday` | No: its lock only | None | `~/.chester` |
+| `chester-alpha-nightly`, `-weekly`, `-proposer` | No: each wrapper's status and lock are read by nothing else (the reports read `alpha.db`) | None | `~/.chester` |
+| `chester-restore-drill` | Superseded (ruling 6); never enabled | Declared for its remote only; retires in the third chain | none |
+
+`tools/validate_systemd_units.py` holds this: a unit that writes a file the heartbeat reads from the state directory, or reads another unit's record there, must be declared and able to write `~/state`.
+
+**The three changed oneshots (auction, daily-close, ibkr-sync)** take the new write path at their next timer run after the self-deploy copies them. Nothing needs a restart; if the heartbeat names one as `restart pending` anyway, `systemctl --user daemon-reload` is enough.
+
 ---
 
 ## A. The same evening as the merge: anything whose absence loses data
@@ -98,7 +123,7 @@ systemctl --user list-timers 'chester-flashalpha*'
 - Cannot wait.
 - **Paste back** the journal if the count passes 60 or a name reads "missing".
 
-**C1 to C4 below should also be done this evening, before 02:30.** Until they are, the nightly backup exits `no_crypt` and the heartbeat reads `backup=failed:no_crypt`. One night without the encrypted backup is accepted, no more.
+**C1 to C4: do them before the merge if you can.** With C4's names in `.env` before the merge, the first 02:30 sweep after it runs encrypted with no step by hand. Done after the merge, the nightly backup exits `no_crypt` until they are, and the heartbeat reads `backup=failed:no_crypt`: one night of that is accepted, once.
 
 ---
 
@@ -273,7 +298,11 @@ systemctl --user enable --now chester-meme-ingest.timer
 
 ---
 
-## C. The encrypted-backup migration (do C1 to C4 the merge evening, before 02:30)
+## C. The encrypted-backup migration
+
+**C1 to C3, and adding C4's names to `.env`, can be done any time before the merge; that leaves the merge evening only C4's first encrypted backup and C5.** Main's backup reads only `CHESTER_RCLONE_REMOTE` and `CHESTER_RCLONE_FLAGS` of the rclone settings (checked in main's `scripts/rclone_sync.sh`), so the new remotes and names change nothing on the box until the merge brings the sweep that reads them.
+
+**The monthly restore drill is superseded by C5's weekly test and is never enabled** (ruling 6).
 
 **Values never go anywhere but `.env` and your password manager:**
 - generate the password and salt (32 random characters each);
@@ -289,11 +318,11 @@ A session never reads `.env`.
 
 **C2. ⚑ The read-only inbox remote** on your main account: the same steps, scope `drive.readonly`. It reads AAII's row, GLD's archive and the X pilot's files. Prove it with `rclone lsd <name>:`.
 
-**C3. ⚑ The outbox remote** on your main account: scope `drive.file`, which lets it create and write only its own files.
+**C3. ⚑ The outbox remote** on your main account: scope `drive.file`, which lets it create and write only its own files. Its folder is **`chester-lab-outbox`, at the top of the main Drive**, never under `chester-vendor-checks` (ruling 8): a `drive.file` remote sees only what its own app made, so it cannot see your `chester-vendor-checks` and would make a second folder of that name, and rclone could then send the read-only inbox pulls to either one.
 ```
-rclone lsd <outbox remote name>: && rclone mkdir <outbox remote name>:chester-vendor-checks/lab-outbox
+rclone lsd <outbox remote name>: && rclone mkdir <outbox remote name>:chester-lab-outbox
 ```
-Do not reuse the crypt remote.
+Do not reuse the crypt remote. The inbox pulls stay where they are, under `chester-vendor-checks`. The chat-side Saturday brief reads `chester-lab-outbox` from now on: its prompt needs that change (yours, in chat).
 
 **C4. `.env`, by name** (the values are yours):
 - `CHESTER_RCLONE_BACKUP_REMOTE`
@@ -303,19 +332,43 @@ Do not reuse the crypt remote.
 - `CHESTER_RCLONE_OUTBOX_REMOTE`
 - optionally `CHESTER_MEME_DROP`
 
-Then the first encrypted backup, by hand:
+Then the first encrypted backup, after the merge, **by starting the unit** (as README section 10's "Run it once by hand after a deploy"). A script typed at an ssh prompt reads neither `.env` nor the unit's drop-in, so it would exit `no_crypt` and write its status to `~/.chester`:
 ```
-scripts/rclone_sync.sh; echo "exit=$?"; cat ~/.chester/rclone_sync_status ~/.chester/backup_snapshot
+systemctl --user start --no-block chester-backup.service
+systemctl --user is-active chester-backup.service   # "activating" while it runs, "inactive" when done
+systemctl --user status chester-backup.service --no-pager | head -5   # when done: "status=0/SUCCESS"
+cat ~/state/rclone_sync_status ~/state/backup_snapshot
+tail -20 ~/logs/rclone_sync-$(date +%F).log
 ```
-- **Expect** `exit=0`, `state=ok`, and a record with the observations count. The backup account's Drive folder should hold only encrypted names.
-- **Paste back** any `exit` other than 0.
+- **Expect** `status=0/SUCCESS`, `state=ok`, and a record with the observations count. The backup account's Drive folder should hold only encrypted names.
+- **Paste back** any status other than 0/SUCCESS.
 
-**C5. The first restore test, then its weekly timer.**
+**C5. The restore test's drop-in, its first run, then its weekly timer.** After C4's backup has finished.
+
+First the drop-in, which points it at `~/state`, where the backup's record is and where the heartbeat reads its status (declared in `box-config.allow`, Environment only):
 ```
-scripts/run_restore_test.sh; cat ~/.chester/restore_test_status
-systemctl --user daemon-reload && systemctl --user enable --now chester-restore-test.timer
+mkdir -p ~/.config/systemd/user/chester-restore-test.service.d
+printf '[Service]\nEnvironment=CHESTER_STATE_DIR=%%h/state\n' > ~/.config/systemd/user/chester-restore-test.service.d/override.conf
+cat ~/.config/systemd/user/chester-restore-test.service.d/override.conf
+systemctl --user daemon-reload
+systemctl --user show chester-restore-test.service -p Environment
 ```
-Expect `state=restore_ok`. Can wait a day after C4, no longer.
+- **Expect** the file to read `[Service]` and `Environment=CHESTER_STATE_DIR=%h/state`, and `show` to print `Environment=CHESTER_STATE_DIR=/home/<you>/state`.
+
+Then start the unit, not the script:
+```
+systemctl --user start --no-block chester-restore-test.service
+systemctl --user is-active chester-restore-test.service   # "inactive" when done
+cat ~/state/restore_test_status
+```
+- **Expect** `state=restore_ok`.
+
+Then the timer:
+```
+systemctl --user enable --now chester-restore-test.timer
+systemctl --user list-timers 'chester-restore-test*'
+```
+Can wait a day after C4, no longer. **Paste back** `restore_failed` with its detail.
 
 **C6. The append-only trigger migration** (idempotent, safe at any time; every writer already inserts only).
 ```
@@ -325,7 +378,7 @@ Expect `state=restore_ok`. Can wait a day after C4, no longer.
 Expect the triggers listed (`triggers` exits 3 if they are not in).
 
 **C7. ⚑ Revoke the old full-scope token, last.**
-- **Wait for both:** C5 has passed, and one night's sweep log shows `lab-outbox` written through its own remote.
+- **Wait for both:** C5 has passed, and one night's sweep log shows `lab outbox: ok -> <outbox remote>:chester-lab-outbox`, written through its own remote.
 - **Revoke:** the main account's Security page → third-party access → the rclone client. Revoking before C2 and C3 would stop the inbound files and the lab outbox.
 - **Then:**
   - remove the `chester-backup.service.d/remote.conf` drop-in;

@@ -24,7 +24,7 @@ You make no order, recommendation or position for anyone. You do not touch the b
 
 Read these in this order:
 
-1. **The lab's agenda.** It is the newest `lab-agenda-YYYY-MM-DD.md` in Drive `chester-vendor-checks/lab-outbox/`, written by the weekly loop each Sunday. It covers:
+1. **The lab's agenda.** It is the newest `lab-agenda-YYYY-MM-DD.md` in Drive `chester-lab-outbox/` (its own top-level folder since 19 Oct 2026), written by the weekly loop each Sunday. It covers:
    - where the lab lost, by regime, instrument and day;
    - the move screen's 2.5σ prints that it did not trade;
    - its engines' crowding;

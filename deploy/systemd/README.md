@@ -712,12 +712,12 @@ else. An absent file is a logged skip, and no inbox outcome touches the sweep's
 exit code.
 
 **The Alpha Lab's inbox and outbox (X-2.11, 14 Oct 2026).** After the AAII file,
-two more folder copies, neither touching the exit code. The inbox is read through `CHESTER_RCLONE_INBOX_REMOTE` (read-only); the outbox is written through `CHESTER_RCLONE_OUTBOX_REMOTE`, its own `drive.file` remote on the main account, which can write only the files it makes (ruling 1 of 17 Oct 2026). Neither goes near the crypt remote:
+two more folder copies, neither touching the exit code. The inbox is read through `CHESTER_RCLONE_INBOX_REMOTE` (read-only); the outbox is written through `CHESTER_RCLONE_OUTBOX_REMOTE`, its own `drive.file` remote on the main account, which can write only the files it makes (ruling 1 of 17 Oct 2026). Because it sees only what its own app made, it writes to its own top-level folder, `chester-lab-outbox`, never under `chester-vendor-checks`: there it would make a second folder of that name, and rclone could then resolve the inbox pulls to either one (ruling 8, 19 Oct 2026). Neither goes near the crypt remote:
 
 | Direction | From | To |
 |---|---|---|
 | in | `<inbox remote>:chester-vendor-checks/lab-inbox` (the Saturday brief's batches) | `~/chester-data/inbox/lab/` |
-| out | `~/chester-data/outbox/lab/` (the weekly loop's `lab-verdicts-YYYY-MM-DD.md`) | `<outbox remote>:chester-vendor-checks/lab-outbox/` |
+| out | `~/chester-data/outbox/lab/` (the weekly loop's `lab-verdicts-YYYY-MM-DD.md`) | `<outbox remote>:chester-lab-outbox/`, a top-level folder of its own (ruling 8, 19 Oct 2026) |
 
 - **The manifest is listed first.** `rclone lsjson --metadata --hash` of the Drive
   folder is written to `inbox/lab/manifest-drive.json`. Each entry's

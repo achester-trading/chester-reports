@@ -82,6 +82,8 @@
       "Bash(*retire_local_register.py*--apply*)",
       "Bash(*altdata.narratives confirm*)",
       "Bash(*altdata.narratives reject*)",
+      "Bash(*altdata.mechanism_watch promote*)",
+      "Bash(*altdata.mechanism_watch reject*)",
       "Bash(*alpha.promote retire*)",
       "Bash(*alpha.governor resume*)",
 

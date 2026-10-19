@@ -275,6 +275,17 @@ def group_j() -> None:
           "the four inbound pulls (AAII, GLD, the X pilot, the lab) read the inbox "
           "remote, the lab outbox writes through its own remote (ruling 1 of 17 Oct), "
           "and none goes through the backup remote")
+    # Ruling 8 (19 Oct 2026): the outbox's drive.file remote sees only what its
+    # own app made, so it writes to its own top-level folder; under
+    # chester-vendor-checks it would make a second folder of that name, and the
+    # inbox pulls could resolve to either one.
+    push = sw[sw.index("push_lab_outbox() {"):sw.index("pull_lab_inbox || true")]
+    check('LAB_OUTBOX_FOLDER="chester-lab-outbox"' in sw
+          and 'rclone copy "$LAB_OUTBOX" "$rname:$LAB_OUTBOX_FOLDER"' in push
+          and "chester-vendor-checks" not in push
+          and 'src="$rname:chester-vendor-checks/lab-inbox"' in sw,
+          "the lab outbox copies to <outbox remote>:chester-lab-outbox/, never under "
+          "chester-vendor-checks; the inbox pulls stay under chester-vendor-checks")
     unit = (REPO / "deploy" / "systemd" / "chester-backup.service").read_text(encoding="utf-8")
     check("EnvironmentFile=-%h/chester-reports/.env" in unit,
           "the backup unit reads the crypt settings from .env")

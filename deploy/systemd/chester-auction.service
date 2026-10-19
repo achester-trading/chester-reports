@@ -32,14 +32,16 @@ TimeoutStartSec=780
 SuccessExitStatus=0
 
 # THE SAME SANDBOX AS chester-eod.service (AUD-2 item 2), with the narrowest write
-# set this run needs: its log, its status and lock in ~/.chester, and the checkout
-# (the wrapper's git pull, and data/chester.db where the ticks land). It reads the
-# Gateway's stop marker under ~/state and writes nothing there.
+# set this run needs: its log, its status and lock in the state directory, and the
+# checkout (the wrapper's git pull, and data/chester.db where the ticks land). The
+# state directory is ~/state on this box (its declared drop-in; box-config.allow),
+# where it also reads the Gateway's stop marker, so -%h/state is writable
+# (ruling 7, 19 Oct 2026); ~/.chester is the default elsewhere.
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=no
-ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

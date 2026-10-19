@@ -485,8 +485,19 @@ def group_g() -> None:
           and derived.delta_unit_for("fred.hh_equity_share")[0] == "pp",
           "the four FRED series, each with its FRED page's unit; the share moves in pp")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    # The PPI key is Group B's since the chain-2 stitch: its family is its
+    # block's member family, and ruling 7 of 18 Oct holds it to the release
+    # family's window, so it carries no long-window override of its own.
+    member_fams = {}
+    for blk in (reg.get("bulk_imports") or {}).values():
+        member_fams.update((blk or {}).get("member_families") or {})
+    own = [k for k in want if k != "ppi_fd_core_ex_trade"]
     check(all(f"fred.{k}" in reg["families"] and f"fred.{k}" in reg["long_windows"]
-              for k in want), "each carries a family and a long window")
+              for k in own)
+          and member_fams.get("fred.ppi_fd_core_ex_trade") == "release"
+          and "fred.ppi_fd_core_ex_trade" not in reg["long_windows"],
+          "each carries a family and a long window; the PPI key the release "
+          "family's, under Group B's block (ruling 7, 18 Oct)")
     check("altdata.st_r5_index" in catalogue.commands(), "the catalogue names the command")
     mine = "".join((REPO / p).read_text(encoding="utf-8") for p in
                    ("altdata/st_r5_index.py", "daily_cascade/index_carry_block.py"))

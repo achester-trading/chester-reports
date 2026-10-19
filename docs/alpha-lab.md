@@ -235,7 +235,7 @@ and are not in `DEPLOY_TIMERS`: see `deploy/systemd/README.md` section 14.
 | Before the first engine | the same header reads `Alpha Lab: not yet live` |
 | The Daily close's header | `Alpha Lab today: n proposed · k screened out · j testing · m promoted · lab equity x% · drawdown y%` |
 | Monthly | the Lab report, X-2.8, attached to the Monthly's mail |
-| Drive, weekly | `lab-verdicts-YYYY-MM-DD.md` and `lab-agenda-YYYY-MM-DD.md` in `chester-vendor-checks/lab-outbox/`, for the Saturday brief and the sitting |
+| Drive, weekly | `lab-verdicts-YYYY-MM-DD.md` and `lab-agenda-YYYY-MM-DD.md` in `chester-lab-outbox/`, a top-level Drive folder of its own (ruling 8, 19 Oct 2026: a `drive.file` remote cannot see `chester-vendor-checks`), for the Saturday brief and the sitting |
 | Quarterly | the lab page, X-3.7 |
 | Anywhere else | nothing |
 

@@ -422,7 +422,8 @@ def write_agenda(ledger: Ledger, store, as_of: str) -> dict:
 # ---------------------------------------------------------------------------
 def verdicts(ledger: Ledger, as_of: str) -> dict:
     """lab-verdicts-YYYY-MM-DD.md into the outbox, for the sweep to copy up to
-    Drive's lab-outbox, where the Saturday brief reads it."""
+    Drive's chester-lab-outbox (its own top-level folder, ruling 8 of 19 Oct
+    2026), where the Saturday brief reads it."""
     from .. import outbox                                       # noqa: PLC0415
     path = outbox.write(ledger, as_of)
     ledger.event(LOOP, "verdicts_written", as_of, None, after={"path": path})

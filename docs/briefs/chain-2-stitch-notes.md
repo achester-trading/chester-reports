@@ -98,7 +98,7 @@ Branch-only: I pushed chain-2 and nothing else, ran nothing on the box, and enab
   - The by-hand audit (ruled 16 Oct 2026, CLAUDE.md standing rule 3) leaves one manual key, `manual.global_pmi`, plus item 47's line. This one has no explicit yes, and the same ruling bars a vendor value from any flag.
   - Dropped: the two registry entries and the config's `manual:` block. The panel then prints no FlashAlpha row.
   - **Gate kept, its check inverted:** `validate_st_r4_t1b`'s fixture still stores the two figures, and the check now holds that no by-hand FlashAlpha row prints. Its units check names the other keys.
-  - A yes from you restores the block and the two keys (Needs you).
+  - **Ruled 19 Oct 2026 (ruling 2): it stays retired.** No by-hand keys under the by-hand audit, and no vendor value in any flag; the vendor writer stores what the API serves.
 - **SEMANTIC CHOICE 2: Greece-Bund's live-tier check.**
   - Tranche 1b put its Greece check inside the monthly live-tier test. The by-hand audit's SR-30 (daily OAT-Bund, 16 Oct) retired that test: a monthly series never tiers.
   - Kept the newer form and moved Greece's check into the daily group (fix `4a188fd`). Greece prints "untiered (monthly)" beside the daily OAT-Bund.
@@ -141,20 +141,51 @@ Eighteen files. st-t5-render's notes give the resolution for `monthly_macro/char
 - It failed loudly once, in `morning_payload.py`. I then fixed the helper, recreated the four files resolved that way in this merge, and resolved them again.
 - I wrote a loss audit and ran it over every merge commit (`git show` of both parents, the base and the merge). It lists each line whose count in the merge falls below what the two sides added. Every line it lists is a deliberate resolution named in this file; no addition was lost.
 
+### CI round 1 (run 39205188783 on `5722fb1`: six gates failed, all where the two lines meet), fixed in `abf6b7d`
+
+| Gate | Failure | Resolution |
+|---|---|---|
+| `validate_releases_b` (B's), `validate_st_r5_t1_rest` (mine) | **Two FRED series pulled twice.** WPSFD49116 under my `ppi_fd_core_ts` (ST-R5.35a, 16 Oct) and B's `ppi_fd_core_ex_trade` (Group B); `fed_interest_payments`, the same key and id, in my GTM-12 list and B's 6e list | **SEMANTIC CHOICE 4.** One spec per series. WPSFD49116 keeps B's key, because ruling 7 of 18 Oct (the later) holds every PPI key to the release family's 20-year window, which my "full" override contradicted. My ST-R5.35a reader (`config/st_r5_index.yaml` `ppi_key`) now reads `fred.ppi_fd_core_ex_trade`, and its fixture follows. `fed_interest_payments` keeps 6e-rest's spec (16 Oct, the earlier, as the Friday stitch kept AQ-3's over c1's); GTM-12 reads the same key. FRED_SIGNAL_SERIES is 65, FRED_PULL_SERIES 266, and no key or id appears twice. The registry block, the audit's member set, CLAUDE.md and the architecture box follow |
+| `validate_weekly_fixes_8` (B's) | W8-6's `ai_names` preferred `config/ai_buckets.yaml` when it existed. GTM-4's buckets list members for the hyperscalers only, so NVDA lost its AI clause | The buckets' members **join** the Weekly's own list rather than replace it (`daily_cascade/ahead.py`) |
+| `validate_backups` (B's) | Three of my writers (`edgar_xbrl`, `fiscaldata`, `sp500_members`) opened the store directly; audit-leftovers' rule is `open_writer` | All three open it through `observations.open_writer(__name__)` |
+| `validate_lenses` (B's) | Four series arrived after 6e's family pass with no family: 6b's call and put gamma masses, the raw-signed DEX, and EL-5's `state.gap_pct` | Families added: the three exposures `quantity`, the gap `ratio` |
+| `validate_st_r5_index` (mine) | It pinned the Monthly's plan at twelve charts | Thirteen planned, M13 last and set aside first; without M13, M8 is still the one set aside at a cap of 12 |
+
+**Not run locally, by the paste's rule.** Windows reported low memory and stopped the background run of these gates after the edits had applied. I did not retry: the edits passed a syntax and YAML parse and went to CI.
+
+### CI round 2 (run 39207080387 on `abf6b7d`: three gates failed), fixed with Part 0 of the 19 Oct paste
+
+| Gate | Failure | Resolution |
+|---|---|---|
+| `validate_weekly_fixes_8` (B's) | Its fixture still pinned the buckets **replacing** the Weekly's list, the behaviour round 1 changed | The check now holds the join: the fixture's buckets plus the Weekly's own `earnings.ai_names` |
+| `validate_st_r5_index` (mine) | It looked for `fred.ppi_fd_core_ex_trade` in the top-level `families` and `long_windows` maps; since semantic choice 4 the key is Group B's | The check reads the key's family from its block's `member_families` (`release`) and holds that it carries **no** long-window override, so ruling 7's release window applies |
+| `validate_lenses` (B's) | CI printed four keys; the full list was **80**: EL-5's state vector, the vendor writer's stored values, the opening setup's `chain.*`, 6b's exposures, Tranche 1b's Census and Cboe series, SR-6's attribution, three FRED keys and four rule-30 "not tracked" calcs, all of which arrived in the union after 6e's family pass | **41 families**, each the one its unit carries elsewhere in the registry (fraction and shares `ratio`, a strike or range `price`, vol `conditions`, dollars and counts `quantity`, bp `spread`, a yield `rate`, the FRED contributions and PPI `release`). **35 exclusions with their reasons:** the three EL-5 signs and the hours count; the opening setup's expiry label; the four rule-30 keys; and the vendor's 26 stored values, which ruling 2 keeps out of any flag, so none is lensed |
+
+The acceptances of 19 Oct (ruling 3) re-pinned one hash, `validate_st_t3_calib`'s SR-8 entry, and two gates (`validate_st_t2_rates` H, `validate_st_t3_calib` K) now read the drafted or the accepted header. Run locally, one at a time: `validate_weekly_fixes_8` 67/0, `validate_st_r5_index` 58/0, `validate_st_t2_rates` 71/0, `validate_st_t3_calib` 88/0, `validate_deploy` 154/0 (the mechanism watch's pair, ruling 5). `validate_lenses` is CI's.
+
+## The rulings of 19 Oct, applied on chain-2 (Part 0 of the 19 Oct paste)
+
+- **Ruling 2:** the FlashAlpha by-hand cross-check stays retired (semantic choice 1 above; its Needs-you item closed).
+- **Ruling 3, the acceptances (00:38 ET, rule 31):** in `docs/signal-triage-register.md`, the eleven gate statuses (ST-8: SR-1, 2, 4, 5, 13, 14; ST-7: SR-12, 15, 21, 22, 23) now read "*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:*", the form of GTM-21's of 17 Oct, and the four dated notes (SR-4's and SR-8's FRED notes, SR-21's, SR-22's) end "Accepted 19 Oct 2026." The false-bottom audit's proposal is "Accepted onto the Doctrine #2 agenda, 19 Oct 2026; a proposal until the sitting rules." The register statuses are unchanged; nothing is promoted and no right changes.
+- **Ruling 5:** `altdata.mechanism_watch promote` and `reject` are denied with their verbs whole in `.claude/settings.json`, beside the narratives pair, held by two `MUST_DENY` shapes in `validate_deploy` (one local with `--confirm`, one over ssh) and named in CLAUDE.md's deny table. The read-only `review` stays open. Ari approved the settings edit at the laptop.
+- **Ruling 7, the state directory:** `chester-restore-test` gains `-%h/state` and a declared Environment drop-in in `box-config.allow`. The audit of every unit chain-2 adds or changes is in the box sheet, unit by unit. It found one more real split: **chain-2 sandboxes `chester-auction` (AUD-2) with no `~/state` write path, while the box's declared drop-in points it at `~/state`**, so its status and lock would have landed on a read-only path. Fixed, with `chester-daily-close` (changed here) and `chester-ibkr-sync` (the same gap since main's AUD-2 sandbox; not otherwise changed here), each given `-%h/state`. A new group in `validate_systemd_units` holds the rule, with a plant that removes the restore test's line.
+- **Ruling 8, the lab outbox:** `push_lab_outbox` copies to `<outbox remote>:chester-lab-outbox/` (`LAB_OUTBOX_FOLDER`), never under `chester-vendor-checks`; the inbox pulls are unchanged. `alpha/outbox.py`, `alpha/loops/weekly.py`, `docs/alpha-lab.md`, `docs/briefs/alpha-research-sitting-template.md` and README section 11's table say so; `validate_backups` group J and `validate_alpha` hold the path.
+- **The box sheet**, corrected for rulings 6, 7 and 8 and for the order of the backup migration (C1 to C3 and C4's names before the merge; main's sweep reads only `CHESTER_RCLONE_REMOTE` and `CHESTER_RCLONE_FLAGS`, checked in main's `scripts/rclone_sync.sh`).
+
 ## The counts, recomputed once from the merged Makefile
 
-**One hundred and eighteen code gates (one hundred and fifteen Python, three shell) and eight data gates.**
+**One hundred and eighteen code gates (one hundred and fifteen Python, three shell) and eight data gates.** Recounted on the tip after CI round 2, from `scripts/make.sh list` and the code; CLAUDE.md's count line and directory block and the architecture document's store box print the same figures.
 
 The other counts CLAUDE.md prints, from the code:
 
 | Count | Value |
 |---|---|
-| Signal series | 67 |
-| FRED series pulled | 268 |
-| Market symbols | 115 |
-| Official writers | 31 |
-| External writers | 37 |
-| Loggers | 7 |
+| Signal series (`FRED_SIGNAL_SERIES`) | 65 |
+| FRED series pulled (`FRED_PULL_SERIES`, no id twice) | 266 |
+| Market symbols (`yfinance_source.SYMBOLS`) | 115 |
+| Official writers (`feeds.OFFICIAL_WRITERS`) | 31 |
+| External writers (`feeds.EXTERNAL_WRITERS`) | 37 |
+| Loggers (`loggers.load_all()`) | 7 |
 
 The architecture document's store box carries the same figures. `validate_audit_3a`'s word parser stopped at ninety-nine, so it now reads "one hundred and eighteen", and a check of that is added. Its stale-symbols plant replaces whatever count is printed rather than a hard-coded "106".
 
@@ -225,5 +256,6 @@ CI-TABLE
 
 ## Needs you
 
-1. **The FlashAlpha by-hand cross-check (ST-R4.18b).** It is retired here under the by-hand audit. A yes in a filed order restores its two keys and the config block.
-2. **The rest** is in the box sheet (`docs/briefs/chain-2-box-sheet.md`), each decision marked ⚑.
+1. ~~**The FlashAlpha by-hand cross-check (ST-R4.18b).**~~ **Closed: ruled 19 Oct 2026 (ruling 2), it stays retired.**
+2. **The Saturday brief (chat-side).** Its prompt must read the lab's verdicts and agenda from Drive `chester-lab-outbox/` (ruling 8), no longer `chester-vendor-checks/lab-outbox/`. Yours to update in chat.
+3. **The rest** is in the box sheet (`docs/briefs/chain-2-box-sheet.md`), each decision marked ⚑.

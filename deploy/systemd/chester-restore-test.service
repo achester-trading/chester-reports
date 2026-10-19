@@ -14,6 +14,14 @@ Type=oneshot
 # ~/.chester/restore_test_status (restore_ok / restore_failed with the reason),
 # which the heartbeat's backup field reads. Writes nothing else; removes the
 # directory.
+#
+# THE STATE DIRECTORY (ruling 7, 19 Oct 2026). "~/.chester" above is the
+# wrapper's default. This box keeps its records in ~/state, through the declared
+# Environment drop-in (CHESTER_STATE_DIR=%h/state; deploy/systemd/box-config.allow):
+# the sweep writes backup_snapshot there and the heartbeat reads
+# restore_test_status there. Without the drop-in the test reads ~/.chester, finds
+# no record, fails every week, and writes its status where nothing looks. The
+# drop-in goes on with the enable (the box sheet, C5).
 WorkingDirectory=%h/chester-reports
 ExecStart=%h/chester-reports/scripts/run_restore_test.sh
 
@@ -29,10 +37,12 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=no
-# The status file is under ~/.chester. The live store is read only to print the
-# gap beside the restored counts (SQLite mode=ro, which may need the -shm file
-# beside a WAL database), so data/ is writable; nothing else is.
-ReadWritePaths=%h/logs %h/.chester %h/chester-reports/data
+# The status file is in the state directory: ~/state on this box (the drop-in),
+# else the ~/.chester default; '-' makes ~/state permitted-if-present. The live
+# store is read only to print the gap beside the restored counts (SQLite mode=ro,
+# which may need the -shm file beside a WAL database), so data/ is writable;
+# nothing else is.
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data
 ReadOnlyPaths=%h/chester-reports %h/.config/rclone
 ProtectKernelTunables=true
 ProtectControlGroups=true

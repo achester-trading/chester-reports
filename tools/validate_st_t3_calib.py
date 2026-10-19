@@ -587,7 +587,7 @@ def group_k() -> None:
     for sr in PART1:
         m = re.search(rf"^### {sr} .*?(?=^### )", reg, re.M | re.S)
         e = m.group(0) if m else ""
-        d = re.search(r"\*Drafted under rule 31, 18 Oct 2026 \(ST-8[^*]*\*\s*\*\*Gate status "
+        d = re.search(r"\*(?:Drafted under rule 31, 18 Oct 2026 \(ST-8|Accepted as drafted \(rule 31\), 19 Oct 2026)[^*]*\*\s*\*\*Gate status "
                       r"\(ST-8\): (PASS|FAIL|INSUFFICIENT)\.\*\* ledger: (docs/ledgers/\S+\.md), "
                       r"(PASS|FAIL|INSUFFICIENT)", e)
         led = (REPO / d.group(2)) if d else None
@@ -708,8 +708,9 @@ def group_n() -> None:
 AUDIT = LEDGERS / "false-bottom-audit-2026.md"
 STUB = REPO / "config" / "tb_false_bottom_gate.yaml"
 # The register's SR-8 entry with its one dated source note (HY OAS, ruled 18 Oct;
-# a43-render): no draft of the audit's is written there.
-SR8_ENTRY_SHA = "6338399418ec3d14cef1b482d118e5de4dbc9ea22ac2975497e61d3729da3db6"
+# a43-render): no draft of the audit's is written there. Re-pinned 19 Oct 2026,
+# when the note gained its acceptance (ruling 3 of 19 Oct; the chain-2 stitch).
+SR8_ENTRY_SHA = "999f9249276f126bfe0686bebf9d63de462ab017e4d22c3ac16debd92370db60"
 
 
 def _path(levels: list[float], start: str = "2000-01-03") -> list[tuple[str, float]]:

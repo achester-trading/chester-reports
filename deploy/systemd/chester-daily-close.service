@@ -49,7 +49,9 @@ ProtectHome=no
 # -%h/chester-data: the live CSV store (ALTDATA_STORE in .env) lives outside the
 # checkout so a pass never dirties the tracked data_store/. The leading - lets
 # the unit start on a box not yet migrated. deploy/systemd/README.md section 11.
-ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data
+# The state directory: ~/state on this box through the declared drop-in
+# (box-config.allow), ~/.chester by default (ruling 7, 19 Oct 2026).
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

@@ -94,7 +94,7 @@ False bottoms by bear: 1973-74 2; 2000-02 4; 2007-09 4; 2022 2. Nasdaq Composite
 
 ## The Doctrine rule proposal
 
-**A proposal for the Doctrine monthly of 7-8 Nov, drafted under rule 31. It grants nothing, and its number is the monthly's to assign.**
+**A proposal for the Doctrine monthly of 7-8 Nov, drafted under rule 31. It grants nothing, and its number is the monthly's to assign. Accepted onto the Doctrine #2 agenda, 19 Oct 2026; a proposal until the sitting rules.**
 
 > *In a declared bear regime a rally is a mechanism, not a signal. Book A re-entry requires the bottom composite plus confirmation from the audited set, in a number the monthly sets (breadth_rsp_spy), read in the rally's first six weeks. Size on the assumption that a bear rally and a new bull are indistinguishable in real time.*
 

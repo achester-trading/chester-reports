@@ -151,6 +151,10 @@ MUST_DENY = {
         # register's one human gate, on the same argument as a decision write.
         "python -m altdata.narratives confirm dollar_funding_squeeze",
         "ssh vps '.venv/bin/python -m altdata.narratives reject some_story'",
+        # Ruling 5 of 19 Oct: promoting or rejecting a mechanism-watch candidate
+        # is the operator's write, as the narratives pair is.
+        "python -m altdata.mechanism_watch promote MW-0001 --reason x --confirm",
+        "ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.mechanism_watch reject MW-0001 --reason x --confirm'",
         # X-2.6: the operator retires an Alpha Lab engine BY RULING; the loop
         # retires by the kill rule alone, and a session never does either.
         "python -m alpha.promote retire HYP-0004 --ruling 'x'",

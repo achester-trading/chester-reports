@@ -17546,6 +17546,49 @@ families:
   exposure.put_gamma_per_1pct: quantity
   exposure.dex_raw_notional: quantity
   state.gap_pct: ratio
+  # The chain-2 stitch, CI round 2 (19 Oct 2026): the series that reached the
+  # union after 6e's family pass, each by the family its unit carries elsewhere.
+  state.gap_fill: ratio
+  state.or_high: price
+  state.or_low: price
+  state.vwap_rel_pct: ratio
+  state.breadth_50d: ratio
+  state.rv_pct: conditions
+  state.iv_pct: conditions
+  state.rv_iv_ratio: ratio
+  state.vix3m_over_vix: ratio
+  state.vix9d_over_vix: ratio
+  state.flip_dist_pct: ratio
+  state.net_to_gross: ratio
+  state.volume_ratio_20d: ratio
+  dealer.window_gamma: quantity
+  exposure.oi_delta_balance_shares: quantity
+  exposure.peak_call_gex_strike: price
+  exposure.peak_put_gex_strike: price
+  exposure.call_concentration_otm_2: price
+  exposure.put_concentration_otm_2: price
+  exposure.net_gex_up_1pct: quantity
+  exposure.net_gex_down_1pct: quantity
+  calc.attr_d10y_since_fomc: spread
+  calc.attr_real_share_since_fomc: ratio
+  calc.attr_curve_share_since_fomc: ratio
+  chain.options_volume: quantity
+  chain.atm_iv_front: conditions
+  chain.skew_25d_put: conditions
+  chain.iv_minus_rv20: conditions
+  chain.put_share_volume: ratio
+  chain.put_share_oi_build: ratio
+  ecb.irs_10y_gr: rate
+  census.vip_data_center: quantity
+  census.vip_private_nonresidential: quantity
+  census.vip_total: quantity
+  census.vip_power: quantity
+  cboe.cor1m: conditions
+  cboe.cor3m: conditions
+  cboe.dspx: conditions
+  fred.ppi_construction: release
+  fred.contrib_info_equipment: release
+  fred.contrib_software: release
   exposure.dex_shares: quantity
   exposure.dollar_gamma_per_1pct: quantity
   exposure.expiration_release.dex_shares: quantity
@@ -18234,6 +18277,42 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  # The chain-2 stitch, CI round 2 (19 Oct 2026).
+  state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"
+  state.net_gex_sign: "a sign (+1, -1 or 0), not a level series (EL-5)"
+  state.trend_alignment: "a sign (+1, -1 or 0), not a level series (EL-5)"
+  state.event_hours: "units 'hours': a time to the next release, not a level series (EL-5)"
+  chain.front_expiry: "units 'label': the expiry and its method, not a level series"
+  calc.net_supply_proj_12m: "NOT TRACKED (rule 30): its by-hand input was retired by the by-hand audit"
+  calc.fed_mkt_gap_m1: "NOT TRACKED (rule 30): its by-hand input was retired by the by-hand audit"
+  calc.fed_mkt_gap_m2: "NOT TRACKED (rule 30): its by-hand input was retired by the by-hand audit"
+  calc.ai_long_share: "NOT TRACKED (rule 30): its by-hand input was retired by the by-hand audit"
+  dealer.vendor_gex_per_1pct: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_dex_raw: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_vex: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_gamma_flip: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_call_wall: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_put_wall: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_spot: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_chex: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_max_pain: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_regime: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_pin_probability: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_mp_alignment: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  dealer.vendor_pc_oi_ratio: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.atm_iv: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.hv_20: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.atm_iv_20dte: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vix9d: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vix: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vix3m: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vix6m: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vx_front: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vx_basis_pct: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.vvix: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.skew: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.move: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
+  vendor.fear_greed: "a vendor value, stored for the cross-check and never lensed: no vendor value in any flag, tell, dial or decision (ruling 2, 19 Oct 2026)"
   calc.prl_idle_gpu_flag: "units 'boolean': a flag, not a level series (ST-13 D6)"
   calc.prl_thesis_status: "units 'label': the thesis word and its trace, not a level series (ST-13)"
   fred.mts_deficit: "a monthly flow of either sign: read through calc.deficit_ttm_pct_gdp (6e, the rest)"
