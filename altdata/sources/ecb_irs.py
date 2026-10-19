@@ -84,10 +84,24 @@ def rows_from_csv(text: str, available: str, kind: str) -> list[dict]:
     return out
 
 
+# INCREMENTAL (audit-leftovers-1): the ECB's SDMX API takes `startPeriod`. With
+# history stored, ask from the newest month less a SESSION-SET year (the monthly
+# convergence yields are rarely restated, and a year covers any that is); with
+# none, the whole history (checked 17 Oct 2026: 37 lines against 1,358).
+REVISION_DAYS = 366
+
+
+def params_for(start: Optional[str]) -> dict:
+    p = {"format": "csvdata"}
+    if start:
+        p["startPeriod"] = start[:7]
+    return p
+
+
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     def produce() -> list[dict]:
-        data, headers = http_get_response(URL, params={"format": "csvdata"},
-                                          timeout=60)
+        data, headers = http_get_response(
+            URL, params=params_for(pub.since(KEYS, REVISION_DAYS, db=db)), timeout=60)
         available, kind = pub.availability(headers)
         return rows_from_csv(data.decode("utf-8"), available, kind)
     return pub.run(SOURCE, KEYS, produce, run_id=run_id, db=db)

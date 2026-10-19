@@ -239,6 +239,8 @@ reports/dryrun/
 # The Alpha Lab's weekly agenda (X-2.4), written by the loop on the box.
 alpha/research/agenda.md
 alpha/research/agenda.json
+# Its pre-registration manifests (X-3), written on the box before each register.
+alpha/research/manifests/
 
 # AUD-1 item 2c (the data and architecture audit of 14 Oct 2026): secrets, the
 # databases, the archives, and the report outputs the box writes. Nothing here is

@@ -31,3 +31,18 @@ The pair itself is session B's item-26 draft (`st-r4-tranche-1` notes), and its 
   - the composite flat or falling with the flag on scores for side B;
   - both rising, or both off, is a draw and is said to be one.
 - **Review:** monthly.
+
+## energy_contained_vs_broad — "An energy shock, contained" against "broad acceleration" (Batch 7 item 46)
+
+**Added 16 October 2026 (6e-releases, session B). A draft for Ari's accept-all.**
+
+- **The question:** is September 2026's CPI an energy shock that stays in energy, or the start of a broader acceleration?
+- **Side A, "An energy shock, contained"** (Charles-Henry Monchau, Syz, public post on the September 2026 CPI; Schwab chart of BLS data as of 30 September 2026). Headline CPI rose 0.6% on the month, and gasoline (+9.1%) was roughly half of it. Rent rose 0.2% and owners' equivalent rent 0.3%; dairy, meat and medical goods fell. The question is pass-through into airfares, shipping and business prices.
+- **Side B, "Broad acceleration"** (Arthur Budaghyan, BCA Research, "Collision course", October 2026; Batch 6 item 35). Core corporate prices run near +5% on the year, so inflation is broader than core CPI shows.
+- **Adjudicated monthly** by the two measures the order names, median CPI and diffusion (`altdata/releases.py` `decomposition`). Each month:
+  - side A scores when the Cleveland Fed median's three-month average (annualised) does not rise from the previous month's and fewer than half of the 24 categories run above 4% annualised;
+  - side B scores when the median's three-month average rises and half or more of the categories run above 4%;
+  - anything else is a draw, and is said to be one.
+- **The pass-through flag** (item 46b) is printed beside the verdict and does not score: it says whether the shock is spreading through the energy-sensitive basket, which is what side A's own question asks.
+- **Review:** monthly, in the Monthly's inflation block.
+- **Session-set in this draft:** the "half of the categories" line (50%), and "does not rise" read on the three-month average so one month's median does not decide it.

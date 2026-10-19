@@ -52,8 +52,11 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 import os
 import sqlite3
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
@@ -330,8 +333,157 @@ def integrity_check(path: Path) -> list[str]:
     return [] if rows == ["ok"] else rows
 
 
+# ---------------------------------------------------------------------------
+# THE APPEND-ONLY CONTRACT, ENFORCED (audit-leftovers-1, the 14 Oct audit's
+# security finding). The class has always said "never updates, never deletes";
+# nothing made it so, and a bug in any writer could rewrite history. Two SQLite
+# triggers refuse UPDATE and DELETE on observations, with ONE documented
+# exception path: a maintenance row, inserted and removed INSIDE the caller's own
+# transaction (`maintenance()`), so no other connection ever sees it and a crash
+# rolls it back with the deletes. aud-1's compaction tool (altdata/compact_fred.py)
+# is its user; the prediction-market backfill's replacement of its own earlier
+# backfill rows takes the same path. Every use is logged.
+#
+# The triggers are a MIGRATION, a box write the operator runs once:
+#     python -m altdata.observations install-triggers [db]
+# They are not in SCHEMA, so opening a store never installs them by surprise.
+# Measured on a fixture (tools/validate_backups.py group L): an INSERT does not
+# fire a BEFORE UPDATE/DELETE trigger, so write throughput is unchanged.
+# ---------------------------------------------------------------------------
+log = logging.getLogger(__name__)
+BUSY_TIMEOUT_MS = 5000
+MAINTENANCE_TABLE = "observations_maintenance"
+APPEND_ONLY_SQL = f"""
+CREATE TABLE IF NOT EXISTS {MAINTENANCE_TABLE} (
+    token TEXT PRIMARY KEY, tool TEXT NOT NULL, started_at TEXT NOT NULL);
+CREATE TRIGGER IF NOT EXISTS observations_no_update
+BEFORE UPDATE ON observations
+WHEN NOT EXISTS (SELECT 1 FROM {MAINTENANCE_TABLE})
+BEGIN SELECT RAISE(ABORT, 'observations is append-only: UPDATE refused'); END;
+CREATE TRIGGER IF NOT EXISTS observations_no_delete
+BEFORE DELETE ON observations
+WHEN NOT EXISTS (SELECT 1 FROM {MAINTENANCE_TABLE})
+BEGIN SELECT RAISE(ABORT, 'observations is append-only: DELETE refused'); END;
+"""
+
+
+def install_append_only(conn: sqlite3.Connection) -> None:
+    """The migration: the maintenance table and the two triggers. Idempotent."""
+    conn.executescript(APPEND_ONLY_SQL)
+    conn.commit()
+
+
+def append_only_installed(conn: sqlite3.Connection) -> bool:
+    names = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = "
+        "'observations'")}
+    return {"observations_no_update", "observations_no_delete"} <= names
+
+
+@contextmanager
+def maintenance(conn: sqlite3.Connection, tool: str):
+    """THE ONE EXCEPTION PATH. Opens a transaction, inserts the maintenance row,
+    yields for the tool's DELETEs, removes the row and commits -- all one
+    transaction, so the row is never visible to another connection and never
+    outlives it. Logged at start and end with the tool's name."""
+    token = uuid.uuid4().hex
+    # The table exists before the migration too (harmless without the triggers),
+    # so the path works on a store that has not been migrated yet.
+    conn.execute(f"CREATE TABLE IF NOT EXISTS {MAINTENANCE_TABLE} (token TEXT "
+                 f"PRIMARY KEY, tool TEXT NOT NULL, started_at TEXT NOT NULL)")
+    conn.commit()
+    log.warning("observations: maintenance by %s begins (append-only lifted inside "
+                "this transaction only)", tool)
+    with conn:
+        conn.execute(f"INSERT INTO {MAINTENANCE_TABLE} (token, tool, started_at) "
+                     f"VALUES (?, ?, ?)", (token, tool, session.utc_iso()))
+        yield conn
+        conn.execute(f"DELETE FROM {MAINTENANCE_TABLE} WHERE token = ?", (token,))
+    log.warning("observations: maintenance by %s committed", tool)
+
+
+def prefer_tier(rows: list[dict], registry_key: Optional[str] = None) -> list[dict]:
+    """THE SOURCE TIER IN THE AS-OF JOIN (audit-leftovers-2; the 14 Oct audit's
+    item 15). The join keeps, per period, the rows at the newest instant
+    knowable; two SOURCES can share that instant (the uniqueness key includes
+    the source), and the join returned both. Here the higher catalogue tier wins
+    (source_ids.TIER_ORDER: A0 over A1 over B, C, D, E, derived, then a string on
+    no list); rows of equal tier are all kept, as before. The kept row carries
+    `tier` and, where it beat another, `tier_over` -- which source it chose and
+    over what. A newer vintage still wins over an older one of any tier: this
+    rule decides only between sources at one as-of."""
+    from . import source_ids                                    # noqa: PLC0415
+    by: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for r in rows:
+        d = str(r["observed_at"])
+        if d not in by:
+            by[d] = []
+            order.append(d)
+        by[d].append(r)
+    out: list[dict] = []
+    for d in order:
+        group = by[d]
+        if len(group) == 1 or len({str(r.get("source")) for r in group}) == 1:
+            out.extend(group)
+            continue
+        ranked = [(source_ids.tier_rank(r.get("source"), registry_key), r) for r in group]
+        best = min(k for k, _ in ranked)
+        kept = [dict(r, tier=source_ids.tier_of(r.get("source"), registry_key))
+                for k, r in ranked if k == best]
+        lost = [f"{r.get('source')} ({source_ids.tier_of(r.get('source'), registry_key) or 'no tier'})"
+                for k, r in ranked if k != best]
+        if lost:
+            for r in kept:
+                r["tier_over"] = lost
+            log.info("as-of tier: %s %s chose %s (%s) over %s", registry_key, d,
+                     kept[0].get("source"), kept[0].get("tier"), ", ".join(lost))
+        out.extend(kept)
+    return out
+
+
+class UnregisteredSource(ValueError):
+    """A scheduled writer stamped a row with a source the catalogue does not
+    know (audit-leftovers-2; the 14 Oct audit's item 12)."""
+
+
+def unregistered_sources(payload: Iterable[tuple]) -> list[str]:
+    """The source strings in write_many's payload (column 8) that are neither a
+    registered id nor `<id>:<variant>` -- source_registry.yaml's `sources`."""
+    from . import source_ids                                    # noqa: PLC0415
+    known = source_ids.ids()
+    return sorted({str(p[7]) for p in payload
+                   if source_ids.writable(p[7], known) is None})
+
+
+def open_writer(writer: str, path: Optional[str] = None) -> "ObservationStore":
+    """THE ONE WAY A SCHEDULED WRITER OPENS THE STORE (audit-leftovers-1; D1c is
+    WAL and the busy timeout for append-only writers, and this makes that rule
+    one function). WAL, a busy timeout of BUSY_TIMEOUT_MS, the append-only
+    contract (write_many inserts; the triggers, once installed, refuse UPDATE and
+    DELETE), and the writer's name in the log. tools/validate_backups.py group K
+    fails any scheduled writer that opens the store another way."""
+    st = ObservationStore(path)
+    st.writer = writer
+    mode = st.conn.execute("PRAGMA journal_mode").fetchone()[0]
+    busy = st.conn.execute("PRAGMA busy_timeout").fetchone()[0]
+    stray = 0
+    try:
+        stray = st.conn.execute(f"SELECT COUNT(*) FROM {MAINTENANCE_TABLE}").fetchone()[0]
+    except sqlite3.OperationalError:
+        pass                                    # the migration has not run here
+    if stray:
+        log.error("observations: %d maintenance row(s) left committed -- the "
+                  "append-only triggers are lifted until they are removed", stray)
+    log.debug("observations opened for writing by %s (journal %s, busy %s ms)",
+              writer, mode, busy)
+    return st
+
+
 class ObservationStore:
-    """Append-only point-in-time store. Never updates, never deletes."""
+    """Append-only point-in-time store. Never updates, never deletes -- enforced
+    by triggers once `install-triggers` has run; scheduled writers open it
+    through open_writer()."""
 
     def __init__(self, path: Optional[str] = None) -> None:
         self.path = Path(path or DEFAULT_DB)
@@ -359,7 +511,7 @@ class ObservationStore:
         # this exception, so a lock collision there costs observations with no
         # trace anywhere.
         self.conn.execute("PRAGMA journal_mode = WAL")
-        self.conn.execute("PRAGMA busy_timeout = 5000")
+        self.conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
         self._migrate()
@@ -428,6 +580,19 @@ class ObservationStore:
                             r["source"], r.get("run_id"), kind))
         if not payload:
             return 0
+        # A REGISTERED SOURCE ID ON EVERY ROW A SCHEDULED WRITER WRITES
+        # (audit-leftovers-2; the 14 Oct audit's item 12). A store opened through
+        # open_writer() refuses the whole write when any row's source is free
+        # text: the writer's own error path reports it and freshness names the
+        # key stale, where a silently stored string would sit under no source the
+        # tier rule or the store check can read. The history is never rewritten:
+        # old strings read through source_ids.canonical()'s declared aliases.
+        if getattr(self, "writer", None):
+            bad = unregistered_sources(payload)
+            if bad:
+                raise UnregisteredSource(
+                    f"{self.writer}: source {', '.join(map(repr, bad))} is not in "
+                    f"source_registry.yaml -- register it, or stamp <id>:<variant>")
         cur = self.conn.executemany(
             "INSERT OR IGNORE INTO observations "
             "(registry_key, instrument, observed_at, available_at, ingested_at,"
@@ -462,7 +627,7 @@ class ObservationStore:
             cur = self.conn.execute(AS_OF_SQL, {"key": registry_key,
                                                 "instrument": instrument,
                                                 "as_of": cutoff})
-        return [dict(r) for r in cur.fetchall()]
+        return prefer_tier([dict(r) for r in cur.fetchall()], registry_key)
 
     def last_observed(self, keys=(), prefixes=()) -> Optional[str]:
         """The newest observed_at day stored under any of `keys`, or under any key
@@ -494,6 +659,32 @@ class ObservationStore:
             "AND available_at <= ?", (registry_key, cutoff)).fetchone()
         return str(r[0])[:10] if r and r[0] else None
 
+    def newest_observed_map(self, keys: Iterable[str], as_of: Optional[str] = None
+                            ) -> dict[str, tuple[Optional[str], Optional[str]]]:
+        """{key: (newest observed day with instrument NULL, newest under any
+        instrument)}, knowable at `as_of` -- ONE grouped query for a whole roster
+        (audit-leftovers-1), the same answers as latest_as_of(key)["observed_at"]
+        and newest_observed_any(key) asked key by key. A key with no row is
+        absent from the map."""
+        keys = sorted(set(keys))
+        if not keys:
+            return {}
+        cutoff = canonical_instant(as_of or session.utc_iso(timespec="microseconds"))
+        out: dict[str, tuple[Optional[str], Optional[str]]] = {}
+        # One statement per 900 keys keeps under SQLite's parameter limit on old
+        # builds; a roster today is about 1,100 keys, so two at most.
+        for i in range(0, len(keys), 900):
+            part = keys[i:i + 900]
+            q = ("SELECT registry_key, "
+                 "MAX(CASE WHEN instrument IS NULL THEN observed_at END), "
+                 "MAX(observed_at) FROM observations WHERE available_at <= ? "
+                 f"AND registry_key IN ({','.join('?' * len(part))}) "
+                 "GROUP BY registry_key")
+            for k, null_newest, any_newest in self.conn.execute(q, [cutoff, *part]):
+                out[k] = (str(null_newest)[:10] if null_newest else None,
+                          str(any_newest)[:10] if any_newest else None)
+        return out
+
     def latest_as_of(self, registry_key: str, as_of: Optional[str] = None,
                      instrument: Optional[str] = None) -> Optional[dict]:
         """The most recent period knowable at the cutoff, or None -- one row from
@@ -502,7 +693,17 @@ class ObservationStore:
         r = self.conn.execute(LATEST_AS_OF_SQL, {"key": registry_key,
                                                  "instrument": instrument,
                                                  "as_of": cutoff}).fetchone()
-        return dict(r) if r else None
+        if not r:
+            return None
+        # Every source at that period's newest instant, then the tier rule.
+        ties = self.conn.execute(
+            "SELECT observed_at, value_num, value_text, source, available_at, run_id,"
+            " availability_kind FROM observations WHERE registry_key = ? AND "
+            "instrument IS ? AND observed_at = ? AND available_at = ? ORDER BY source",
+            (registry_key, instrument, r["observed_at"], r["available_at"])).fetchall()
+        if len(ties) <= 1:
+            return dict(r)
+        return prefer_tier([dict(t) for t in ties], registry_key)[0]
 
     def all_vintages(self, registry_key: str,
                      instrument: Optional[str] = None) -> list[dict]:
@@ -736,8 +937,65 @@ def _main(argv) -> int:
             return 2
         print(f"integrity ok {path}")
         return 0
+    if argv and argv[0] in ("install-triggers", "triggers"):
+        # install-triggers: the append-only migration (a box write: the
+        # operator's, printed in the notes). triggers: read-only, are they in.
+        path = Path(argv[1]) if len(argv) > 1 else Path(DEFAULT_DB)
+        if not path.exists():
+            print(f"no database at {path}")
+            return 1
+        if argv[0] == "triggers":
+            conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+            try:
+                ok = append_only_installed(conn)
+            finally:
+                conn.close()
+            print(f"append-only triggers {'installed' if ok else 'NOT installed'} on {path}")
+            return 0 if ok else 3
+        conn = sqlite3.connect(str(path))
+        try:
+            conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+            install_append_only(conn)
+            ok = append_only_installed(conn)
+        finally:
+            conn.close()
+        print(f"append-only triggers {'installed' if ok else 'FAILED'} on {path}")
+        return 0 if ok else 2
+    if argv and argv[0] == "as-of" and len(argv) >= 2:
+        # Read-only: the newest period's row as the join returns it, and which
+        # source the tier rule chose where two shared the instant.
+        import argparse                                         # noqa: PLC0415
+        ap = argparse.ArgumentParser(prog="python -m altdata.observations as-of")
+        ap.add_argument("key")
+        ap.add_argument("--instrument", default=None)
+        ap.add_argument("--as-of", dest="cutoff", default=None)
+        ap.add_argument("--db", default=None)
+        ap.add_argument("--last", type=int, default=5)
+        a = ap.parse_args(argv[1:])
+        path = Path(a.db or DEFAULT_DB)
+        if not path.exists():
+            print(f"no database at {path}")
+            return 1
+        conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        try:
+            cutoff = canonical_instant(a.cutoff or session.utc_iso(timespec="microseconds"))
+            rows = prefer_tier([dict(r) for r in conn.execute(AS_OF_SQL, {
+                "key": a.key, "instrument": a.instrument, "as_of": cutoff})], a.key)
+        finally:
+            conn.close()
+        from . import source_ids                                # noqa: PLC0415
+        for r in rows[-a.last:]:
+            print(f"{r['observed_at']}  {r['value_num'] if r['value_num'] is not None else r['value_text']}"
+                  f"  source={r['source']} ({source_ids.tier_of(r['source'], a.key) or 'no tier'})"
+                  + (f"  chosen over {', '.join(r['tier_over'])}" if r.get("tier_over") else ""))
+        return 0 if rows else 1
     print("usage: python -m altdata.observations snapshot <dest> [src]\n"
-          "       python -m altdata.observations integrity <staged copy>")
+          "       python -m altdata.observations as-of KEY [--instrument I] [--as-of T]"
+          " [--db PATH]\n"
+          "       python -m altdata.observations integrity <staged copy>\n"
+          "       python -m altdata.observations install-triggers [db]   (a box write)\n"
+          "       python -m altdata.observations triggers [db]           (read-only)")
     return 2
 
 

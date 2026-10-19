@@ -182,7 +182,12 @@ def show(key: str, db: Optional[str] = None) -> Optional[dict]:
         "staleness_allowance": allow, "staleness_rule": awhy,
         "bulk_block": e.get("bulk_block"), "domains": domains(e),
         "writers": writer_modules(e), "commands": producing_commands(e),
-        "aliases": aliases().get(key, [])}
+        "aliases": aliases().get(key, []),
+        # The source's terms as read (ruling 3 of 17 Oct 2026): the URL, the date
+        # read and the re-read cadence, where the source registry records them.
+        "terms": {s: {f: (sources().get(s) or {}).get(f)
+                      for f in ("terms_url", "terms_read", "terms_reread")}
+                  for s in key_sources(e) if (sources().get(s) or {}).get("terms_url")}}
     if db:
         out["store"] = store_facts(db, key)
     return out
@@ -256,6 +261,9 @@ def main(argv: Optional[list[str]] = None) -> int:
                   "staleness_allowance", "staleness_rule", "bulk_block", "domains",
                   "writers", "commands", "aliases"):
             print(f"  {k:<20}: {s[k]}")
+        for src, t in s["terms"].items():
+            print(f"  terms ({src}){'':<{max(0, 11 - len(src))}}: {t['terms_url']}, read "
+                  f"{t['terms_read']}, re-read {t['terms_reread']}")
         print("  registry fields:")
         for k, v in s["fields"].items():
             if k != "description":

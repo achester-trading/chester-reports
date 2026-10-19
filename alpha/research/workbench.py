@@ -38,7 +38,7 @@ from typing import Any, Optional
 from altdata import session
 
 from .. import config as acfg
-from .. import files, intake, promote, rules
+from .. import files, intake, manifest, promote, rules
 from .. import hypotheses as hyp
 from .. import validate as av
 
@@ -77,8 +77,14 @@ def new(ledger, store, doc: Any, source: str = "operator",
         raise ValueError("the batch fails the v1 schema: " + "; ".join(errs[:8]))
     if hyp.Register(ledger).batch(batch["batch_id"]):
         raise ValueError(f"batch {batch['batch_id']} is already registered")
-    pre = hyp.instant(now)
-    return intake.admit(ledger, store, batch, pre, now, file_name=file_name)
+    # X-3: THE MANIFEST FIRST (alpha/manifest.py), then the register at its
+    # instant; the batch row carries the manifest's sha256.
+    m = manifest.write(batch, now)
+    out = intake.admit(ledger, store, batch, m["written_at"], now,
+                       file_name=m["name"], file_sha256=m["sha256"],
+                       created_time=m["written_at"])
+    out["manifest"] = m
+    return out
 
 
 def _rows(trades: list[dict]) -> list[dict]:
@@ -110,6 +116,7 @@ def run(ledger, store, hid: str, as_of: Optional[str] = None) -> dict:
         raise QueuedForSitting(f"{hid} is needs_code ({h.get('status_reason')}): "
                                f"queued for the research sitting")
     hyp.refuse_if_unregistered(h, as_of)
+    manifest.check(ledger, h, as_of)
     if h["status"] == "data_gap":
         raise QueuedForSitting(f"{hid} is a data gap ({h.get('status_reason')})")
     first_run = h["status"] == "registered"
@@ -194,6 +201,14 @@ def run_engine(ledger, store, h: dict, as_of: str, first_run: bool) -> dict:
         raise QueuedForSitting(f"{hid}: engine {eid} is not registered")
     eng = engine_mod.load(entry)
     cov = eng.coverage(store, as_of) if hasattr(eng, "coverage") else {"ok": True}
+    if not cov.get("ok") and cov.get("wait"):
+        # X-3.2: a history window the manifest states and the store has not yet
+        # met. Nothing runs and nothing is counted; the hypothesis stays
+        # registered, so the nightly harness looks again once the window fills.
+        if h.get("status_reason") != cov.get("why"):
+            reg.set_status(hid, "registered", as_of, cov.get("why"))
+        return {"id": hid, "status": "insufficient_history", "reason": cov.get("why"),
+                "result": {"coverage": cov}}
     if not cov.get("ok"):
         reg.set_status(hid, "data_gap", as_of, cov.get("why"),
                        result={"coverage": cov, "run_at": as_of})

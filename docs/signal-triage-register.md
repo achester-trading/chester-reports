@@ -424,6 +424,16 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Disposition.** Annual by hand (three numbers plus the holder split, ≈30 min at each DT refresh); monthly proxies automated in ST-2/ST-4. G-13: whether Factor V already carries the gold-share line.
 
+**Amendment, S-1 stablecoin rows (Batch 4 crypto data-sources order §3 S-1 and §7; drafted 17 Oct 2026 on `crypto-tranche-a-2` for Ari's accept-all; not ratified).**
+- **What it adds.** The Factor V scorecard gains the private-dollar leg beside COFER's official-reserve leg.
+- **The rows:**
+  - total dollar-pegged stablecoin supply (`llama.stable_total`, history from 2017);
+  - its 30-day and 90-day change (`calc.stable_impulse_30d`, `calc.stable_impulse_90d`);
+  - the share by chain for Ethereum, Tron, Solana and Base (`calc.stable_share`).
+- **Form.** Each row prints in the Monthly's triple form (latest, long-run average, percentile, data-as-of), with the dual percentiles (five years and full history), in the slow layers' "Factor V: stablecoins" table.
+- **Rights.** None: a scorecard. A "liquidity signal" reading is rejected until a gate says otherwise; a flag proposal would need a 90-day ledger against BTC and risk returns.
+- **Register status.** Unchanged (ADOPTED, scorecard, no rights).
+
 ### SR-21 October 28 FOMC hike probability 70–77% (Bianco Research / Bloomberg WIRP, 24 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-4

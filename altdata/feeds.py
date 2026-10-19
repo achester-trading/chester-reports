@@ -127,7 +127,10 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # Signal-triage batch 3, Tranche A (13 Oct 2026): Treasury's
                     # buyback operations (SR-33), Japan's reserves and the Fed's
                     # FIMA repo line (SR-34, both in tic.*)
-                    "treasury_buybacks", "mof_reserves", "fedboard_h41")
+                    "treasury_buybacks", "mof_reserves", "fedboard_h41",
+                    # 6e-releases (16 Oct 2026, ruling (a)5): the Cleveland Fed's
+                    # simple-policy-rules path, keyless
+                    "clevfed_rules")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -185,7 +188,27 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # for an append-only writer)
                     "census_vip",
                     # ST-R4.18a: Cboe's COR1M, COR3M and DSPX daily history
-                    "cboe_indices")
+                    "cboe_indices",
+                    # 6e-releases (16 Oct 2026, Batch 7 lens 7): Zillow's and
+                    # Apartment List's national rent indices, the shelter lead
+                    "rent_indices",
+                    # Batch 4 Tranche A part 1 (17 Oct 2026): perp funding and OI
+                    # (Hyperliquid; OKX and Deribit), Bitcoin's network state, the
+                    # fear-and-greed index, Ethereum's gas (keyless), then the S-1
+                    # and S-3 derived series, which read what those just wrote --
+                    # the order of the tuple is the order they run in. DefiLlama
+                    # (llama) stays on the crypto basket's own timer.
+                    "hl", "fut", "mempool", "fng", "blockscout",
+                    # Tranche A part 2 (17 Oct 2026): DVOL, the ETF flow tables
+                    # (Farside; also the 06:45 run for the T-1 figure), the froth
+                    # gauge's sample, CoinPaprika's global figures -- all before
+                    # the derived writer, which reads them.
+                    "deribit", "farside", "gt", "paprika",
+                    # Item 49 (digital-49-51b): treasury holdings, Strategy's
+                    # share count, MSTR's captured spot -- before the derived
+                    # writer, which computes mNAV and net purchases from them.
+                    "treasury",
+                    "crypto_derived")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:
@@ -720,9 +743,20 @@ def freshness(as_of: Optional[str] = None,
         # until its first run records an attempt.
         from .sources import flashalpha as _fa                 # noqa: PLC0415
         rosters += [("vendor", list(_fa.ROSTER_KEYS))]
+        # ST-13 (ruling 3 of 18 Oct 2026): the PRL steps of the crypto basket's
+        # run -- the daily D-series compute and the weekly explorer read -- so the
+        # heartbeat sees them; the explorer's keys are PENDING until it reads.
+        from . import prl as _prl                              # noqa: PLC0415
+        rosters += [(_prl.ROSTER, list(_prl.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
+        # ONE GROUPED QUERY for every roster (audit-leftovers-1): the newest day per
+        # key, with instrument NULL and under any instrument, where this read one
+        # indexed query per key, twice for an instrument-keyed one. The verdicts
+        # are unchanged (validate_backups holds the equivalence on a fixture).
+        newest_map = db.newest_observed_map([k for _, ks in rosters for k in ks],
+                                            as_of=as_of)
         for name, keys in rosters:
             absent, stale, fresh, pending = [], [], [], []
             detail, pdetail = {}, {}
@@ -736,9 +770,9 @@ def freshness(as_of: Optional[str] = None,
                                       "note": "declares no keys yet"}
                 continue
             for k in keys:
-                # AUD-1 4c: one row from the index, not the whole history.
-                newest_row = db.latest_as_of(k, as_of=as_of)
-                rows = [newest_row] if newest_row else []
+                # AUD-1 4c, then audit-leftovers-1: from the one grouped read.
+                null_newest, any_newest = newest_map.get(k, (None, None))
+                rows = [{"observed_at": null_newest}] if null_newest else []
                 if not rows:
                     # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
                     # and most macro rows carry NULL, so a per-ticker logger looks
@@ -747,7 +781,7 @@ def freshness(as_of: Optional[str] = None,
                     # logger write last night", not "did it write for SPY".
                     # One indexed MAX across instruments (AUD-1 3: thousands
                     # of them now, asked one at a time until then).
-                    newest_any = db.newest_observed_any(k, as_of=as_of)
+                    newest_any = any_newest
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.
@@ -929,6 +963,10 @@ def _main(argv: list[str]) -> int:
         print(format_freshness(r))
         for ln in named_keys(r):
             print(f"  {ln}")
+        # THE DATA CHECK'S COUNT (audit-leftovers-2): "n outliers" from the marks
+        # the pulls' `quality record` wrote. Information, never the exit code.
+        from . import quality                                   # noqa: PLC0415
+        print(f"  {quality.outliers_line(quality.outliers_count(quality.default_db()))}")
     return 0 if r["ok"] else 1
 
 

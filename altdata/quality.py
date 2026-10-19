@@ -4,6 +4,16 @@ data and architecture audit of 14 Oct, recommendation 14.)
 
     python -m altdata.quality check   [--date D] [--db PATH]   # the day's table
     python -m altdata.quality measure [--to D]   [--db PATH]   # the pairs' tolerances
+    python -m altdata.quality record  [--date D] [--db PATH]   # after a pull: mark
+    python -m altdata.quality outliers [--date D] [--db PATH]  # "n outliers"
+
+THE MARK (audit-leftovers-2, 17 Oct 2026; the audit's item 14). `record` runs the
+check and writes each flag as one row in data_quality_flags -- after the EOD
+pass's price pull and the 06:45 FRED pull -- and lists them in the run log; the
+freshness check and the heartbeat print the count, "n outliers". A flag is
+MARKED, never corrected: no value is altered, dropped or withheld. `check` and
+`outliers` stay read-only. The multiple and the window are listed per family
+(config outliers.families).
 
 Config: config/data_quality.yaml (every number session-set, each with its reason).
 
@@ -156,11 +166,26 @@ def step_keys(cfg: dict) -> set:
     return {str(s["key"]) for s in ((cfg.get("steps") or {}).get("series") or [])}
 
 
+def family_of(key: str) -> Optional[str]:
+    """The key's metric-lens family (price, rate, release, ...), or None."""
+    from . import derived                                       # noqa: PLC0415
+    return (derived._load_registry().get(key) or {}).get("family")  # noqa: SLF001
+
+
+def params_for(key: str, cfg: dict) -> tuple[float, int]:
+    """(sigma, window) for the key: its family's line under outliers.families,
+    else the defaults (audit-leftovers-2: the multiple and the window listed per
+    family)."""
+    o = cfg.get("outliers") or {}
+    sigma, window = float(o.get("sigma") or 6), int(o.get("window") or 60)
+    fam = (o.get("families") or {}).get(family_of(key) or "") or {}
+    return float(fam.get("sigma", sigma)), int(fam.get("window", window))
+
+
 def outlier_of(key: str, v: dict, day: str, cfg: dict) -> dict:
     """{"state": "flag" | "clean" | "skipped" | "not new" | "backfill", ...} for
     one key."""
-    o = cfg.get("outliers") or {}
-    sigma, window = float(o.get("sigma") or 6), int(o.get("window") or 60)
+    sigma, window = params_for(key, cfg)
     if not v:
         return {"state": "not new"}
     newest = max(v)
@@ -384,6 +409,114 @@ def close_warnings(day: str, db: Optional[str] = None,
 
 
 # ---------------------------------------------------------------------------
+# The record (audit-leftovers-2, the 14 Oct audit's item 14): after each pull
+# ---------------------------------------------------------------------------
+# THE MARK IS A ROW, NEVER AN EDIT. `record` runs the same read-only check and
+# writes each flag as one row in data_quality_flags, in the store's database but
+# not in `observations`: the value stays exactly as stored, and the flag says to
+# look at it. The table's own triggers refuse UPDATE and DELETE; a second record
+# of the same day writes nothing new (the primary key). The freshness check and
+# the heartbeat print the day's count as "n outliers".
+FLAGS_TABLE = "data_quality_flags"
+# One row per record run, so a clean day (no flag rows) reads "0 outliers"
+# rather than "no record yet".
+RUNS_TABLE = "data_quality_runs"
+FLAGS_SQL = f"""
+CREATE TABLE IF NOT EXISTS {FLAGS_TABLE} (
+    day          TEXT NOT NULL,
+    kind         TEXT NOT NULL CHECK (kind IN ('outlier', 'pair')),
+    registry_key TEXT NOT NULL,
+    reason       TEXT NOT NULL,
+    observed_at  TEXT,
+    detail       TEXT,
+    recorded_at  TEXT NOT NULL,
+    PRIMARY KEY (day, kind, registry_key)
+);
+CREATE TRIGGER IF NOT EXISTS {FLAGS_TABLE}_no_update BEFORE UPDATE ON {FLAGS_TABLE}
+BEGIN SELECT RAISE(ABORT, '{FLAGS_TABLE} is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS {FLAGS_TABLE}_no_delete BEFORE DELETE ON {FLAGS_TABLE}
+BEGIN SELECT RAISE(ABORT, '{FLAGS_TABLE} is append-only'); END;
+CREATE TABLE IF NOT EXISTS {RUNS_TABLE} (
+    day          TEXT NOT NULL,
+    recorded_at  TEXT NOT NULL,
+    checked      INTEGER NOT NULL,
+    flagged      INTEGER NOT NULL,
+    PRIMARY KEY (day, recorded_at)
+);
+"""
+
+
+def flag_rows(r: dict, recorded_at: str) -> list[tuple]:
+    import json                                                 # noqa: PLC0415
+    out = []
+    for f in r.get("flags") or []:
+        key = f.get("key") if f.get("kind") == "outlier" else f.get("id")
+        detail = {k: v for k, v in f.items() if isinstance(v, (int, float, str))}
+        out.append((r["day"], f["kind"], str(key), flag_line(f),
+                    f.get("observed_at") or f.get("on"),
+                    json.dumps(detail, sort_keys=True, default=str), recorded_at))
+    return out
+
+
+def record(db: str, day: Optional[str] = None, cfg: Optional[dict] = None,
+           now: Optional[str] = None) -> dict:
+    """Check the day (read-only), then write each flag as a row. Returns the
+    check's result with `recorded`, the rows new this run."""
+    from . import observations, session                         # noqa: PLC0415
+    r = check(db, day, cfg)
+    rows = flag_rows(r, now or session.utc_iso())
+    st = observations.open_writer("quality", db)
+    try:
+        st.conn.executescript(FLAGS_SQL)
+        before = st.conn.total_changes
+        st.conn.executemany(
+            f"INSERT OR IGNORE INTO {FLAGS_TABLE} (day, kind, registry_key, reason, "
+            f"observed_at, detail, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+        st.conn.commit()
+        r["recorded"] = st.conn.total_changes - before
+        st.conn.execute(f"INSERT OR IGNORE INTO {RUNS_TABLE} (day, recorded_at, checked, "
+                        f"flagged) VALUES (?, ?, ?, ?)",
+                        (r["day"], now or session.utc_iso(), r["checked"], len(rows)))
+        st.conn.commit()
+    finally:
+        st.close()
+    return r
+
+
+def outliers_count(db: str, day: Optional[str] = None) -> Optional[dict]:
+    """{"day", "n", "keys"} for `day`, or for the newest recorded day; None when
+    nothing has been recorded (or the store cannot be opened)."""
+    try:
+        conn = open_ro(db)
+    except (sqlite3.Error, OSError):
+        return None
+    try:
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND "
+                            "name=?", (RUNS_TABLE,)).fetchone():
+            return None
+        if day is None:
+            row = conn.execute(f"SELECT MAX(day) FROM {RUNS_TABLE}").fetchone()
+            day = row[0] if row else None
+            if not day:
+                return None
+        keys = [k for (k,) in conn.execute(
+            f"SELECT registry_key FROM {FLAGS_TABLE} WHERE day = ? "
+            f"ORDER BY kind, registry_key", (day,))]
+        return {"day": day, "n": len(keys), "keys": keys}
+    finally:
+        conn.close()
+
+
+def outliers_line(c: Optional[dict]) -> str:
+    """The freshness check's and the heartbeat's line: "n outliers"."""
+    if not c:
+        return "data check: no record yet (python -m altdata.quality record)"
+    return (f"data check: {c['n']} outlier{'s' if c['n'] != 1 else ''} on {c['day']}"
+            + (f" ({', '.join(c['keys'][:5])}{', ...' if c['n'] > 5 else ''})"
+               if c["n"] else ""))
+
+
+# ---------------------------------------------------------------------------
 # The table
 # ---------------------------------------------------------------------------
 def report(r: dict) -> str:
@@ -467,11 +600,30 @@ def main(argv: Optional[list[str]] = None) -> int:
     m = sub.add_parser("measure")
     m.add_argument("--to", default=None)
     m.add_argument("--db", default=None)
+    rc_ = sub.add_parser("record", help="check, then mark each flag as a row "
+                                        "(after a pull; never alters a value)")
+    rc_.add_argument("--date", default=None)
+    rc_.add_argument("--db", default=None)
+    oc = sub.add_parser("outliers", help="the day's count: 'n outliers'")
+    oc.add_argument("--date", default=None)
+    oc.add_argument("--db", default=None)
     a = ap.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     db = a.db or default_db()
+    if a.cmd == "outliers":
+        c = outliers_count(db, a.date)
+        print(outliers_line(c))
+        return 0 if c is not None else 2
     try:
+        if a.cmd == "record":
+            r = record(db, a.date)
+            print(f"data check {r['day']}: {r['checked']} checked, "
+                  f"{len(r['flags'])} flagged, {r['recorded']} new mark(s)")
+            for f in r["flags"]:
+                print(f"  {flag_line(f)}")
+            return 0
+
         if a.cmd == "measure":
             for x in measure(db, a.to):
                 print(f"{x['id']}: n={x['n']} {x['first']}..{x['last']} "

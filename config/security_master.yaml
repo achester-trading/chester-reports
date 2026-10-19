@@ -2429,8 +2429,14 @@ instruments:
   unverified:
   - exchange
 - id: SM00118
+  # ST-13 (st-t5-prl, 18 Oct 2026): the first crypto.watch instrument, with the
+  # MW-1 fields (docs/change-order-signal-triage-2026-09-25.md 2.7.2), reclassified
+  # in place -- one coin, one id. Keyed by its CoinGecko id; Yahoo's coin-specific
+  # id and the basket's store key stay (the basket resolves through them); the bare
+  # ticker alias PRL is gone: the ticker is never a key. No FIGI, so the
+  # chester-meme export never carries it.
   name: Pearl
-  asset_class: crypto
+  asset_class: crypto.watch
   currency: USD
   multiplier: 1
   exchange: null
@@ -2438,13 +2444,22 @@ instruments:
     yahoo: PRL41876-USD
     store_key: yfinance.crypto_prl
     crypto_id: coingecko:pearl-2
-  aliases:
-  - PRL
-  active_from: null
+  aliases: []
+  active_from: '2026-04-27'
   active_to: null
+  watch:
+    coingecko_id: pearl-2
+    name: Pearl
+    issuer: Pearl Research Labs
+    chain: pearl (native L1, btcd fork)
+    explorer: https://explorer.pearlresearch.ai
+    mechanism_class: PoUW / AI-compute
   sources:
-    identifiers: config/crypto_basket.yaml
+    identifiers: config/crypto_basket.yaml (PRL's yahoo and llama_coin coingecko:pearl-2)
     currency: the -USD suffix of its Yahoo id
+    asset_class: the order's MW-1 -- crypto.watch, not core Alternative Asset coverage
+    active_from: the order's Appendix E -- genesis 2026-04-27 09:00 UTC
+    watch: the order's MW-1 disambiguation fields, verbatim
   unverified:
   - exchange
 - id: SM00119

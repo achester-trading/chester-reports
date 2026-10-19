@@ -18,6 +18,11 @@ calls weekly_line() once, from its one hook in daily_cascade/weekly_stack.py.
                        resume never hides a loss (15 Oct 2026)
   loop events this week k   rows in loop_events written in the seven days to
                        the cutoff -- the loop's activity, not its success
+
+X-3.6 adds one clause once the importer has registered tells, on the live line
+and on "not yet live" alike: "· tells n (Weekly a, Doctrine b, setups c,
+forecasts d)", the count of hypotheses by source (alpha/tells.py). With none it
+adds nothing, so the line is unchanged until the first import.
 """
 
 from __future__ import annotations
@@ -39,6 +44,21 @@ def weekly_line(cutoff: str, path: Optional[str | Path] = None) -> str:
         return f"Alpha Lab: unavailable ({type(exc).__name__})"
 
 
+def tells_clause(lg) -> str:
+    """" · tells n (Weekly a, Doctrine b, setups c, forecasts d)", or "" when no
+    tell is registered (or the register predates Tranche 2)."""
+    try:
+        from . import tells                                     # noqa: PLC0415
+        c = tells.counts(lg)
+    except Exception:                                         # noqa: BLE001
+        return ""
+    n = sum(c.values())
+    if not n:
+        return ""
+    return (f" · tells {n} (Weekly {c['weekly']}, Doctrine {c['doctrine']}, "
+            f"setups {c['setup']}, forecasts {c['forecast']})")
+
+
 def _line(cutoff: str, path: Optional[str | Path] = None) -> str:
     p = Path(path or acfg.ledger_path())
     if not p.is_file():
@@ -51,7 +71,7 @@ def _line(cutoff: str, path: Optional[str | Path] = None) -> str:
     try:
         live = lg.q("SELECT id FROM engines WHERE status IN ('live','halved')")
         if not live:
-            return NOT_LIVE
+            return NOT_LIVE + tells_clause(lg)
         day = cutoff[:10]
         eq = lg.one("SELECT equity, hwm, drawdown FROM equity WHERE engine_id=? AND "
                     "day<=? ORDER BY day DESC LIMIT 1", (LAB, day))
@@ -80,7 +100,7 @@ def _line(cutoff: str, path: Optional[str | Path] = None) -> str:
             dd = "drawdown n/a"
         n = len(live)
         return (f"Alpha Lab: {perf} · {n} engine{'s' if n != 1 else ''} live · "
-                f"{dd} · loop events this week {k}")
+                f"{dd} · loop events this week {k}" + tells_clause(lg))
     finally:
         lg.close()
 

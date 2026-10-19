@@ -74,8 +74,10 @@
 
       "Bash(*decide.py record*)",
       "Bash(*decide.py set-status*)",
+      "Bash(*decide.py meme-reject*)",
       "Bash(*decide_remote.sh record*)",
       "Bash(*decide_remote.sh set-status*)",
+      "Bash(*decide_remote.sh meme-reject*)",
       "Bash(*migrate_register.py import*)",
       "Bash(*retire_local_register.py*--apply*)",
       "Bash(*altdata.narratives confirm*)",

@@ -822,6 +822,14 @@ def compute_rows(db: observations.ObservationStore,
     rows += rates_rows(db, as_of=as_of, first_day=first_day)
     rows += aq3_rows(db, as_of=as_of, first_day=first_day)
     rows += aq3b_rows(db, as_of=as_of, first_day=first_day)
+    # 6E, THE REST (16 Oct 2026): S3a-S3c's calc series, the CPI-PCE gap and the
+    # CPI lead composite (altdata/macro_6e.py). Never fatal: a fault costs these
+    # rows, not the features above.
+    try:
+        from . import macro_6e                                   # noqa: PLC0415
+        rows += macro_6e.rows(db, as_of=as_of, first_day=first_day)
+    except Exception:                                            # noqa: BLE001
+        log.warning("6e macro-completeness rows failed", exc_info=True)
     return rows
 
 
@@ -1075,7 +1083,7 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None,
             dry_run: bool = False, full: bool = False) -> dict:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         # AUD-1 4d: FROM A START DAY, NOT THE WHOLE HISTORY, EVERY RUN. Without
         # --from, the recompute starts RECOMPUTE_WINDOW_DAYS before the newest day

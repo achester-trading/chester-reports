@@ -176,6 +176,28 @@ printf '%s\n' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
 log "feeds: loggers done"
 
+# THE DATA CHECK'S MARKS (audit-leftovers-2; the 14 Oct audit's item 14): the
+# correction pull above is the 06:45 FRED pull, so its new prints are checked
+# here, marked as rows in data_quality_flags and listed in this log. A mark never
+# alters a value; its failure is not this run's.
+log "data check: record"
+DQ_OUT="$("$PY" -m altdata.quality record 2>&1)"
+DQ_RC=$?
+printf '%s\n' "$DQ_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $DQ_RC -ne 0 ]] && log "WARN quality record exited $DQ_RC -- continuing"
+
+# ---- Farside's T-1 figure (Batch 4 Tranche A part 2, 17 Oct 2026) ------------
+#
+# Farside posts a session's ETF flows in the US evening, and issuers fill in late;
+# the 17:25 crypto run is too early for some of them. This read, before 07:00,
+# takes the previous session's completed row for the morning. One writer, its own
+# STALE-not-empty contract: a refusal writes nothing and is not this run's failure.
+log "farside: T-1 read start"
+FS_OUT="$("$PY" -m altdata.sources.farside 2>&1)"
+FS_RC=$?
+printf '%s\n' "$FS_OUT" | tail -20 | sed 's/^/  /' >>"$LOG"
+[[ $FS_RC -ne 0 ]] && log "WARN farside exited $FS_RC -- continuing"
+log "farside: T-1 read done"
 # ---- the Security Master export, for chester-meme (AUD-3b, 15 Oct 2026) ------
 #
 # After the loggers, because the listings logger writes the day's snapshot this
@@ -256,6 +278,18 @@ SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?
 printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
+
+# ---- chester-meme's packets, as Book D drafts (meme-ingest-ledgers-1) -------
+#
+# After the pulls and before the 07:00 anchor, which prints the one line: the
+# 06:30 morning scan has written its packets by 06:45. Reads $CHESTER_MEME_DROP
+# (else ~/chester-meme/drop), writes drafts only, never a decision; a failure is
+# this step's and never the pass's.
+log "meme ingest: start"
+MI_OUT="$("$PY" -m altdata.meme_ingest 2>&1 | tail -12)"
+MI_EXIT=$?
+printf '%s\n' "$MI_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $MI_EXIT -ne 0 ]] && log "WARN meme ingest exited $MI_EXIT -- continuing"
 
 
 exit $RC

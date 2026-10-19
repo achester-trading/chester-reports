@@ -1,0 +1,110 @@
+[
+ {
+  "name": "Hyperliquid Bridge",
+  "slug": "hyperliquid-bridge",
+  "symbol": "HYPE",
+  "category": "Bridge",
+  "parentProtocol": "parent#hyperliquid",
+  "gecko_id": null,
+  "tvl": 6731686896.071774
+ },
+ {
+  "name": "Hyperliquid HLP",
+  "slug": "hyperliquid-hlp",
+  "symbol": "HYPE",
+  "category": "Derivatives",
+  "parentProtocol": "parent#hyperliquid",
+  "gecko_id": null,
+  "tvl": 177710580.17502874
+ },
+ {
+  "name": "Hyperliquid Spot Orderbook",
+  "slug": "hyperliquid-spot-orderbook",
+  "symbol": "HYPE",
+  "category": "Dexs",
+  "parentProtocol": "parent#hyperliquid",
+  "gecko_id": null,
+  "tvl": 148904722.58143118
+ },
+ {
+  "name": "HyperBlast",
+  "slug": "hyperblast",
+  "symbol": "HYPE",
+  "category": "Dexs",
+  "parentProtocol": null,
+  "gecko_id": "hyperblast",
+  "tvl": 4198.97784022124
+ },
+ {
+  "name": "Ethereum Foundation",
+  "slug": "ethereum-foundation",
+  "symbol": "ETH",
+  "category": "Foundation",
+  "parentProtocol": null,
+  "gecko_id": "ethereum",
+  "tvl": null
+ },
+ {
+  "name": "Chainlink Requests",
+  "slug": "chainlink-requests",
+  "symbol": "LINK",
+  "category": "Oracle",
+  "parentProtocol": "parent#chainlink",
+  "gecko_id": null,
+  "tvl": null
+ },
+ {
+  "name": "Bitcoin",
+  "slug": "bitcoin",
+  "symbol": "BTC",
+  "category": "Canonical Bridge",
+  "parentProtocol": null,
+  "gecko_id": "bitcoin",
+  "tvl": null
+ },
+ {
+  "name": "Alpha",
+  "slug": "alpha",
+  "symbol": "BTC",
+  "category": "SoFi",
+  "parentProtocol": null,
+  "gecko_id": null,
+  "tvl": null
+ },
+ {
+  "name": "Chainlink Staking",
+  "slug": "chainlink-staking",
+  "symbol": "LINK",
+  "category": "Services",
+  "parentProtocol": "parent#chainlink",
+  "gecko_id": null,
+  "tvl": 0
+ },
+ {
+  "name": "BlackrockFund",
+  "slug": "blackrockfund",
+  "symbol": "BTC",
+  "category": "Reserve Currency",
+  "parentProtocol": null,
+  "gecko_id": null,
+  "tvl": 0
+ },
+ {
+  "name": "Hyperliquid Perps",
+  "slug": "hyperliquid-perps",
+  "symbol": "HYPE",
+  "category": "Derivatives",
+  "parentProtocol": "parent#hyperliquid",
+  "gecko_id": null,
+  "tvl": null
+ },
+ {
+  "name": "Hyperliquid Outcomes",
+  "slug": "hyperliquid-outcomes",
+  "symbol": "HYPE",
+  "category": "Prediction Market",
+  "parentProtocol": "parent#hyperliquid",
+  "gecko_id": null,
+  "tvl": null
+ }
+]

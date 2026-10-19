@@ -1,0 +1,24 @@
+{
+ "average_block_time": 12000.0,
+ "coin_image": "https://coin-images.coingecko.com/coins/images/279/small/ethereum.png?1696501628",
+ "coin_price": "2425.84",
+ "coin_price_change_percentage": -2.01,
+ "gas_price_updated_at": "2026-10-17T12:36:22.754790Z",
+ "gas_prices": {
+  "slow": 0.09,
+  "average": 0.32,
+  "fast": 1.84
+ },
+ "gas_prices_update_in": 16575,
+ "gas_used_today": "218191743999",
+ "market_cap": "296298067008.3805324272",
+ "network_utilization_percentage": 51.0092185446754,
+ "secondary_coin_image": null,
+ "secondary_coin_price": null,
+ "static_gas_price": null,
+ "total_addresses": "742688722",
+ "total_blocks": "26211802",
+ "total_transactions": "3807270908",
+ "transactions_today": "1769890",
+ "tvl": null
+}

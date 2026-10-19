@@ -202,7 +202,7 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
         now_iso = session.utc_iso(timespec="microseconds")
         ciks, headers = _edgar_context()
         own = db is None
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             held = {(r[0], r[1]) for r in store.conn.execute(
                 "SELECT DISTINCT registry_key, observed_at FROM observations "

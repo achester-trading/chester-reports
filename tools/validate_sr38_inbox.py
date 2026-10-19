@@ -483,10 +483,13 @@ def group_e() -> None:
     sweep = (REPO / "scripts" / "rclone_sync.sh").read_text(encoding="utf-8")
     unit = (REPO / "deploy" / "systemd" / "chester-backup.service").read_text(
         encoding="utf-8")
-    check("pull_inbox_file spdji sp-500-eps-est.xlsx || true" in sweep
+    # S&P DJI withdrew the workbook (item 40's forward leg, ruled 17 Oct 2026):
+    # the sweep no longer pulls it (audit-leftovers-1), and the writer left the
+    # roster on weekly-fixes-7. The unit keeps the directory writable, harmless.
+    check("pull_inbox_file spdji" not in sweep
           and "-%h/chester-data/inbox/spdji" in unit,
-          "the sweep copies chester-vendor-checks/spdji/sp-500-eps-est.xlsx into "
-          "~/chester-data/inbox/spdji, which its unit may write")
+          "the sweep no longer copies S&P DJI's withdrawn workbook (the unit's "
+          "inbox path stays, harmless)")
     lay = spdji.layout()
     check(lay["sheet"] == "ESTIMATES&PEs" and lay["forward_quarters"] == 4
           and spdji.inbox_path().name == "sp-500-eps-est.xlsx",

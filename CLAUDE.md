@@ -109,10 +109,15 @@ altdata/                  Shared ingestion package — used by every report
                           Monthly's set; 67 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 169, is the union the
+                          Thailand 1); 25 in FRED_6E_SERIES (6e, the rest:
+                          Session 3b-3c and the CPI lead's components);
+                          45 in FRED_RELEASES_SERIES (Batch 7's release
+                          lenses, Group A); 29 in FRED_GROUP_B_SERIES
+                          (Group B, the PPI and GDP lenses);
+                          FRED_PULL_SERIES, 268, is the union the
                           pull walks.
-                          + ENABLED_SOURCES switches (fred on; eia/cftc/
-                          coingecko off)
+                          + ENABLED_SOURCES switches (fred, eia and cftc on;
+                          CoinGecko is no source and has no switch)
   store.py                Store — one CSV per series, columns date/value/source/
                           as_of. $ALTDATA_STORE from the environment, else from
                           .env, else ./data_store. On the VPS it is set in .env
@@ -283,6 +288,201 @@ never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
 words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
 
+**Each family of metrics is measured its own way (6e, the metric lenses; ruled
+1 Oct, ratified 4 Oct 2026).** Every level series in the registry carries a
+`family` -- price, rate, spread, release, quantity, conditions or ratio -- in the
+`families` map, a block's `family` or `member_families`; a series that is not a
+level is named in `lens_excluded` with its reason. `derived.lens_forms()` computes
+the family's forms (returns and drawdown flags for a price; bp changes for a rate;
+YoY, 3-month annualized and the revision line for a release; direction for a
+quantity; dual percentiles with n wherever a level is placed), point-in-time,
+and the Monthly v2 pillar tables print them. A monthly release never shows a
+20-session change. `tools/validate_lenses.py` holds it.
+
+**6e, the rest (16 Oct 2026): macro completeness and the bound lenses.**
+`altdata/macro_6e.py` writes, in the market_features pass, the architecture's
+Session 3 series the free sources carry: path divergence (S3a, the close against
+the noon fixing), the policy spreads, differentials and real policy rate (S3b),
+the twelve-month deficit, interest burden, effective rate, R less G on both bases,
+the TGA's range and debt against GDP by sector (S3c), the core CPI less core PCE
+gap, and `altdata/cpi_lead.py`'s CPI lead composite (stated lags, unvalidated,
+with its kill test). The lens thresholds and the surprise's "no consensus" are
+`config/metric_lenses.yaml`'s; the 10-year's lens carries the SR-43 anchors and
+fair value. `daily_cascade/lens_cells.py` formats the cells once, so the Weekly's
+and the close's lens tables print the Monthly's forms; `daily_cascade/
+inflation_block.py` holds Plumbing's inflation panels, with slots for Batch 7
+items 46 and 48. `tools/validate_6e_rest.py` and `tools/validate_lenses.py` hold
+it.
+
+**The release lenses (Batch 7 items 46 and 48, Group A; 6e-releases, 16 Oct
+2026).** `altdata/releases.py` reads, as of the cutoff, the CPI decomposition (five
+contributions, the Cleveland Fed median and trimmed mean, the share of 24
+categories above 4% annualised), item 46's pass-through flag, employment lenses
+1-6 and CPI lenses 7-11; thresholds in `config/releases.yaml`. Flags only where
+the order names them (diffusion, revisions, permanent job losers, pass-through),
+each withheld when it needs a vintage not yet published. The inflation block
+prints the CPI panels; `daily_cascade/labour_block.py` is the Monthly's own section
+after Plumbing (Monthly only, no paragraph); the close carries one code-written
+"what moved the print" item on a release's day. New readers:
+`altdata/sources/rent_indices.py` (Zillow, Apartment List; the CPI lead's shelter
+lead) and `altdata/sources/clevfed_rules.py` (the Cleveland Fed's policy-rules
+path, not market pricing). The BLS API and data.bls.gov disallow every agent in
+robots.txt, so the CES industry diffusion indexes, birth-death and the new-tenant
+rent index are listed gaps. `tools/validate_releases.py` holds it.
+
+**Group B and the surprise index (Batch 7 item 48 lenses 12-20 and 48f;
+lenses-group-b, 18 Oct 2026).** `altdata/releases_b.py` reads, as of the cutoff:
+- the PPI lenses: the four intermediate-demand stages against final demand, the
+  PCE-relevant lines (NSA, read on the year) and trade services beside the core
+  less trade, in the inflation block's `ppi` panel, which is Monthly-only
+  (ruling 5 of 18 Oct; the close keeps the release-day line);
+- the GDP lenses: final sales to private domestic purchasers and BEA's
+  contributions, the investment split (structures less the Census's data
+  centers, read by name), GDI less GDP, NIPA profits against S&P EPS, income and
+  saving, and GDPNow's path from its FRED vintages with the first print read
+  against it. They are two tables at the end of the Monthly's Slow layers
+  (`daily_cascade/gdp_block.py`).
+
+Every lens figure carries its family, its long window, two percentiles over its
+own history with their n, and the 30-point disagreement. Report-only, no
+composite. The NY Fed nowcast and the K-shape panel are listed gaps.
+`altdata/surprise_index.py` is actual less consensus in the release's own units,
+standardised by the release's own surprises, with no composite (the order
+defines none). Its rows ride `altdata.surprise compute`
+(`calc.consensus_surprise.<id>`, `_z.<id>`, `_z.earnings` per name). The
+consensus logger's yfinance serves no macro consensus, so every macro release,
+payrolls among them, prints "no consensus" (ruling 5 of 18 Oct). The FOMC
+surprise is **market-implied, not a survey consensus** (ruling 1 of 18 Oct): the
+decision less the change the stored fed funds futures implied at the prior
+session's close, in bp, standardised the same way, under its own keys
+(`calc.market_implied_surprise.fomc`, `_z.fomc`) so no survey consensus is
+mixed with it. Lens 24 gains the PPI and GDP lines, and every line's surprise
+clause carries its percentile and z once a consensus is stored; the edition's
+first z says "against the release's own surprise history". Engine 4 reads the
+consensus surprise by name ahead of the naive one (for FOMC, the market-implied
+key). `tools/validate_releases_b.py` holds it.
+
+**The PRL data layer (signal-triage ST-13, Tranche 5; st-t5-prl, 18 Oct 2026).**
+PRL is the Security Master's first `crypto.watch` instrument (SM00118,
+reclassified in place). It is keyed by its CoinGecko id (`crypto_id
+coingecko:pearl-2`, `Master.by_coingecko`) and carries MW-1's fields under
+`watch`. A watch entry keyed by a ticker is refused by `structural()`, and it
+has no FIGI, so the chester-meme export never carries it.
+- `altdata/prl.py` holds Appendix E's emission (`reward`, `supply_code`) and
+  D1-D6 as `calc.prl_*`, with the thesis status and its trace. A height with no
+  explorer read is ESTIMATED, stepped at the 194 s target, never blank.
+- **CoinGecko stays retired** (13 and 18 Oct 2026: its terms forbid the
+  point-in-time store; MW-4's clause is superseded). No fetcher and no switch are
+  kept.
+  - PRL's price and 24h volume are Yahoo's at the basket's symbol; its cap and
+    circulating supply are DefiLlama's coin service's.
+  - D5 is "not tracked (source retired)".
+  - D3 is the formula against the explorer's supply, ESTIMATED until the
+    explorer reads.
+- `altdata/sources/pearl_explorer.py` reads only a declared endpoint that
+  robots allows (G-26: none discovered yet).
+- Both steps run in the crypto basket's 17:25 run (`altdata.prl weekly` on
+  Saturdays, `altdata.prl daily` after the basket's writes; no new timer). They
+  are on the freshness roster (`prl`).
+
+Config is `config/prl.yaml`. Watch-level rights only, and no Daily module names
+PRL. `tools/validate_st_t5_prl.py` holds it.
+
+**The Monthly's Mechanism Watch part and the emerging scan (ST-14, ST-15;
+st-t5-render, 18 Oct 2026).**
+- **The part.** `monthly_macro/prl_part.py` prints in the slow layers, after the
+  digital-assets material. It holds the thesis with its trace (a label, never a
+  recommendation), the S1-S8 table with "not tracked" and ESTIMATED where the
+  inputs say so, and the register's month.
+  - It reads stored rows and computes nothing.
+  - Its guards: the Security Master entry, the explorer's supply within 2% of the
+    formula, STALE never empty.
+  - Its one figure, M13, draws only once the explorer has read.
+- **The scan.** `altdata/mechanism_scan.py` runs the `mechanism_watch` group of
+  `config/story_queries.yaml` over declared feeds under robots
+  (`news.mechanism_items`), and DefiLlama's recently-added list.
+  - It dedupes against the Security Master and the register, then applies the
+    rule pre-filter.
+  - Only when a candidate survives is the model called, once, with Appendix F
+    read verbatim from the order.
+  - It writes drafts only, into the `mechanism_watch` tables of
+    `altdata/mechanism_watch.py`.
+  - `promote` and `reject` write only with the operator's `--confirm`.
+  - It is a Saturday step of the crypto basket's run; `make mechanism-register`
+    renders the register. `tools/validate_st_t5_render.py` holds it.
+
+**The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
+17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a
+page of its own in the Sunday Weekly's run, before the Weekly, archives it beside
+the Weekly (`weekly_digital_<ending>.html` and `.pdf`, its edition JSON and its
+appendix line) and attaches it to the Weekly's own email as a second PDF (ruled
+17 Oct 2026); the Weekly prints one line naming
+it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
+the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
+minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
+Tranche A" until its key has a row; the read is one paragraph through the
+existing narrative step and its audits, from the page's figures only. The X
+pilot's ledgers and digests are read from the box's inbox, which the nightly
+sweep fills from the Drive folders chester-x-digest and x-triage,
+each file's available_at its `.copied_at` stamp. The book section opens the
+register read-only (`mode=ro`). The dated index events (the STRC vote, MSCI's
+review, FTSE Russell's reconstitution) are `config/digital_asset_calendar.yaml`,
+by hand, which the Weekly's Ahead also reads. `tools/validate_digital_addendum.py`
+holds it.
+
+**The crypto data layer, Batch 4 Tranche A part 1 (crypto-tranche-a-1, 17 Oct
+2026).** Keyless writers on `feeds.EXTERNAL_WRITERS` and on the crypto basket's
+daily run (`scripts/run_crypto_basket.sh`, which covers the weekend): perp funding
+and open interest from Hyperliquid (`altdata/sources/hl.py`, behind a weight guard
+under its documented 1,200-a-minute limit) and from OKX and Deribit
+(`altdata/sources/fut.py`; Bybit is geo-blocked from the US and switched off);
+Bitcoin's network state (`mempool.py`); the fear-and-greed index (`fng.py`);
+Ethereum's gas and activity, keyless, from Blockscout (`blockscout.py`; Etherscan's
+key was not registered, so ETH supply and burn are a gap). DefiLlama's watch names
+resolve their slugs at run time (`llama.py`). `altdata/sources/crypto_derived.py`
+writes S-1's share by chain and S-3 (OI-weighted funding, total OI, OI over market
+cap, 90-day z), which begin when two venues carry OI on the same day. Every row is
+point in time: the pull instant as available_at, complete UTC days for history.
+Config `config/crypto_sources.yaml`; `tools/validate_crypto_sources.py` holds it.
+
+**Part 2 (crypto-tranche-a-2, 17 Oct 2026)** adds four more writers:
+- Deribit's DVOL (`deribit.py`, from March 2021);
+- Farside's ETF flow tables (`farside.py`), with a column-change detector, STALE
+  with its last good date on any refusal, and a 06:45 read for the T-1 figure;
+- the froth gauge's sample (`gt.py`), which reads nothing while GeckoTerminal's
+  robots.txt disallows its API, with a DexScreener fallback marked in the row and
+  never scored;
+- CoinPaprika's total market cap and BTC dominance (`paprika.py`), in place of
+  CoinGecko.
+
+`crypto_derived.py` computes S-1 to S-5 and stores the three flags with gate status
+"not passed"; no block prints a flag. `altdata/crypto_blocks.py` prints the Weekly's
+crypto flows block (at most 12 lines, a table in Positioning & flows) and the
+Monthly's network-health and data-layer rows, every Monthly row in the triple form
+with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
+
+**Item 49 and the addendum's Phase 2 (digital-49-51b, 17 Oct 2026).**
+`altdata/sources/treasury.py` stores three inputs:
+- the treasury companies' BTC holdings, from BitcoinTreasuries.com's table
+  (treasuries.bitbo.io);
+- Strategy's share count, from EDGAR, which needs `CHESTER_SEC_CONTACT`, otherwise
+  a listed gap;
+- MSTR's spot, from the captured chains.
+
+`crypto_derived.py` computes `calc.mnav` (market cap over BTC value, the order's
+basic definition) and `calc.treasury_net_purchases`. The Digital Assets addendum's
+panels read Tranche A by key:
+- mNAV carries the 1.2 watch line and item 49's one flag at 1.0, which prints with
+  its date;
+- "who is buying" sets ETF flow and treasury purchases against new supply, and
+  withholds the residual when a leg is missing;
+- an absent series prints "awaiting the first pull", "not tracked" or "awaiting
+  EL-12".
+
+The page holds Phase 1's 52-line budget, and the read's audits gain a flag-word
+check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
+watch, read-only.
+
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
 computed — the delta's meaning comes from the registry's `units` (bps for rates
 and spreads, percent for prices, raw for counts), never from one formula. Do not
@@ -346,6 +546,81 @@ directory, integrity-checks it and counts it against the live store, read-only;
 `docs/runbooks/restore.md` is the dead-box procedure. `tools/validate_audit_2.py`
 holds the auction sampler's stand-aside, the meter's client and the drill.
 
+**Backups are encrypted, go to a separate account, and are restored every week
+(audit-leftovers-1, 17 Oct 2026).**
+
+- `scripts/rclone_sync.sh` sends every tree to an rclone crypt remote that
+  `scripts/rclone_crypt_env.sh` builds from `.env`. The trees are the db
+  snapshot, data, chester-data, state, reports and the EOD zips; the settings are
+  `CHESTER_RCLONE_BACKUP_REMOTE` (a Drive used only for backups),
+  `CHESTER_RCLONE_CRYPT_PASSWORD` and `CHESTER_RCLONE_CRYPT_SALT`. File names are
+  encrypted too, and nothing secret sits in `rclone.conf`.
+- Without those settings the sweep exits 1 (`no_crypt`); the old plaintext
+  remote is never written.
+- The inbound files come from the main Drive through
+  `CHESTER_RCLONE_INBOX_REMOTE`, a read-only token.
+- Retention: the db snapshots keep 14 daily, 8 weekly and monthly forever; the chain zips
+  keep the newest 14 on the box and on Drive alike.
+- The sweep records the snapshot's row count in the state directory's
+  `backup_snapshot`.
+- `chester-restore-test.timer` (Sundays, enabled by hand) restores the newest
+  snapshot through the crypt remote, integrity-checks it, compares the count and
+  writes `restore_test_status`. The heartbeat's `backup=` field reads it:
+  `failed:restore_test`, `stale_restore:<d>d`, both exit 12.
+
+**Scheduled writers open the store through `observations.open_writer(name)`**
+(WAL, the busy timeout, the writer's name: D1c as one function). Once
+`python -m altdata.observations install-triggers` has run on the box, two
+triggers refuse UPDATE and DELETE on `observations`. The one exception is
+`observations.maintenance()`, a row inserted and removed inside the caller's own
+transaction, which the FRED compaction and the prediction-market backfill use.
+
+**Pulls are incremental:**
+
+- FRED asks from its newest stored day less a revision window by frequency
+  (daily 30 days, weekly 120, monthly and quarterly 400), or for the full
+  history when nothing is stored, and merges into the CSV copy.
+- `_publication.since()` gives other writers the same window.
+- `feeds.freshness` reads the whole roster in one grouped query.
+
+The gates are `tools/validate_backups.py`, `validate_audit_1.py` group E,
+`validate_secrets.py` group I and the data gate `validate_backup_crypt.py` (real
+rclone, the local backend).
+
+**chester-meme's packets come in as Book D drafts, never decisions
+(meme-ingest-ledgers-1, 17 Oct 2026).** `altdata/meme_ingest.py` runs at 21:45
+(`chester-meme-ingest.timer`, enabled by hand) and at the end of the 06:45 pass.
+It reads `$CHESTER_MEME_DROP` (else the meme checkout's drop directory in the
+same user's home) and never writes into it:
+
+- the manifest first: its schema must be the copy in `docs/interface/`, the same
+  version and SHA-256, or nothing is read;
+- a restricted packet, or a Brookfield-blocklisted name (by root or by name,
+  aliases included), is refused and logged, never stored;
+- a packet the schema rejects is logged and skipped, never repaired;
+- the rest become one row each in the register database's `meme_drafts`, keyed
+  by `packet_id`; a second sighting writes nothing.
+
+A trigger refuses a restricted instrument there too, the packet columns are
+immutable, and the decision tables are never written. The close and the anchor
+print one line, "meme drafts awaiting review: n (refused: m)". The operator
+confirms with `decide.py record --meme-packet <id>` and rejects with `decide.py
+meme-reject <id>`; both are on the deny list. `tools/validate_meme_ingest.py`
+holds it.
+
+**The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
+Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,
+36b and 43b, and ST-R4.17b and 19b; `python -m
+altdata.ledgers run <item|all> --source public|store` writes
+`docs/ledgers/<item>-ledger-<date>.md` and its episodes CSV, dated and never
+edited. Each prints its as-of, window, n, statistic, the pass rule as the order
+states it and that rule's verdict. Neither order states a pass rule for any of
+the seven, so each says so and none is invented. The pass rule is pre-registered
+(ruled 17 Oct 2026): the order's, else the first edition's, and every edition
+says so at its head; `write_ledger` refuses a re-run that changes it. Each states its rights consequence
+and grants nothing; the package never opens the register. A ledger without its
+as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
+
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
 read-only after each pull and lists three things: an outlier (a price's or a FRED
@@ -356,6 +631,32 @@ cross-source gap (^TNX/DGS10, ^TYX/DGS30, ^VIX/VIXCLS past the pair's measured
 tolerance). The close prints the day's flags in its Warnings table, at most five
 and a count, nothing on a clean day; a flag never blocks a report or changes a
 value. The numbers live in `config/data_quality.yaml`, each with its reason.
+
+**A bad print is marked, a source is registered, and the tier decides a tie
+(audit-leftovers-2, 17 Oct 2026; the 14 Oct audit's items 12, 14 and 15).**
+
+- `python -m altdata.quality record` runs after the EOD pass's price pull and the
+  06:45 FRED pull, over the closes and every FRED block. Each flag becomes a row
+  in `data_quality_flags`, a table of its own that refuses UPDATE and DELETE, and
+  is listed in the run log. The freshness check and the heartbeat print the
+  day's count, "n outliers" (`quality=<n>`). A flagged value is marked, never
+  corrected: nothing is altered, dropped or withheld. The sigma and the window
+  are listed per family under `outliers.families`.
+- A store opened through `open_writer()` refuses a write whose source is not a
+  registered id or `<id>:<variant>` (`observations.UnregisteredSource`). The
+  history is never rewritten; old strings read through `source_ids.canonical()`'s
+  declared aliases.
+- When two sources hold one period at the same newest instant, the as-of join,
+  `latest_as_of()` and the row cache keep the higher tier (A0, A1, B, C, D, E,
+  derived, then a string on no list) and say which they chose (`tier`,
+  `tier_over`; `python -m altdata.observations as-of KEY`). A newer vintage still
+  wins over an older one.
+- The yfinance basket and the crypto basket resolve their store keys through the
+  Security Master (`yfinance_source.resolve_basket()`, `instrument()`); the
+  module's maps are its seed.
+
+`tools/validate_outliers.py` holds the marks, the source refusal and the tier
+rule; `tools/validate_security_master.py` group M holds the basket.
 
 **The volume profile is data, never a claim (VP-1, 14 Oct 2026).**
 `altdata/volume_profile.py` is the one module that bins volume by price, and every
@@ -633,6 +934,11 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
+**The scheduled roster is 31 official writers, 27 external writers and 7
+loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
+`altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
+and fed-funds feeds.
+
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
 Pending: not yet due -- never tried, or tried by a writer that ran cleanly while
@@ -759,9 +1065,56 @@ and duplicates of them screened out. A rule in the grammar
 is registered and is promoted on the loop's authority if it passes. A model's
 idea must also pass the model-idea rule (`alpha/promote.py`).
 
+**A manifest is written before the register (Tranche 3 part 1, alpha-lab-3, 17 Oct
+2026).** Outside Drive and the proposer, whose manifests are their own,
+`alpha/manifest.py` writes the batch, its sha256 and its instant under the
+research directory first, and the register takes that instant; the harness
+refuses a hypothesis whose batch carries no manifest, one dated after the run,
+or one edited since. Three things now register this way:
+- **The tells (X-3.6).** `python -m alpha.tells import` reads the Weekly's tells
+  (`config/book_b_scanner.yaml`), the Doctrine's section 5.3 trust matrix (its
+  entries only, ruled 18 Oct 2026), the setups in `config/setups.yaml` and the probability ledger's graded
+  sources (by SQL over the read-only store). It registers each as "predicts at h
+  sessions after costs?", needs_code, with its mechanism quoted from the cited
+  section. Every quote is checked word for word (`config/alpha_tells.yaml`). An
+  unchanged tell writes nothing; a changed one supersedes its old registration.
+- **The event base rates (X-3.1).** `python -m alpha.event_rates compute` writes
+  the system's own CPI, payroll, FOMC and earnings base rates, each row with its n
+  and window, to alpha.db's `event_base_rates` (`config/alpha_events.yaml`).
+  Macro surprises are the naive ones; the dealer regime is read from 6b's keys by
+  name and prints "awaiting" where absent.
+- **The X-3 engines.** Engine 4 is `alpha/engines/events.py`; engine 5 is
+  `alpha/engines/carry.py`, crypto carry. Engine 5 runs nothing until S-3 holds
+  its 92-week window, uses venue fees as dated constants
+  (`config/alpha_crypto_venues.yaml`) and books the paper book's two-leg crypto
+  rows in `carry_book`. Their roster, `alpha/research/roster-2026-10-17-x3.yaml`,
+  is registered on the box by `python -m alpha.manifest register`.
+
+The lab line and the Lab report gain the tells' counts and these rows.
+`tools/validate_alpha_lab_3.py` holds all of it.
+
+**The quarterly meta-loop (X-3.7; lenses-group-b, 18 Oct 2026).**
+`alpha/loops/quarterly.py` reviews a closed quarter the lab ran through whole.
+The weekly loop asks for the review inside 21 days of the quarter's end; there
+is no new timer. For each of the loop's own changes it computes what the lab
+would have earned without the change, from the same stored prices:
+- an accepted re-fit, re-run at the old parameters;
+- a rebalance, the engines' recorded returns at the old weights.
+
+The governor's moves are the constitution's, listed and not counted. When the
+net contribution is negative, ONE `meta_tighten` loop event narrows each
+re-fitted engine's ranges toward its current parameters and slows the re-fit
+cadence (`config/alpha.yaml` `meta_loop:`) for the next quarter only. The weekly
+loop obeys it through `refit_due()` and `effective_ranges()`. A positive quarter
+changes nothing. The Quarterly mails the lab's page
+(`alpha/report.py` `quarter_page`, through `quarterly_attachment` in
+`monthly_macro/run.py`), which prints "no quarter closed yet" until a whole
+quarter exists.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
-pm_futures, vrp_dealer, all candidates until they pass); a promoted grammar rule
-is named by its register id in `alpha.db`. No gate reads the live store.
+pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
+crypto_carry, all candidates until they pass); a promoted grammar rule is named by
+its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 

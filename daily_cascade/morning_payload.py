@@ -217,6 +217,16 @@ def stored_vol_event(day: str, cutoff: str, db_path: Optional[str] = None) -> Op
         return None
 
 
+def _meme_line(db_path: Optional[str]) -> Optional[str]:
+    """chester-meme's drafts awaiting review (meme-ingest-ledgers-1), one line,
+    read-only; None before the ingest has run."""
+    try:
+        from altdata import meme_ingest                         # noqa: PLC0415
+        return meme_ingest.status_line(db_path)
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, db_path: Optional[str] = None) -> dict:
     """The whole morning payload. Reads only; never raises on a missing block."""
@@ -356,4 +366,5 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "oi_builds": oi_builds,
         "index_put_lines": index_puts,
         "warnings": warnings,
+        "meme_line": _meme_line(db_path),
     }

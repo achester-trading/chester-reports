@@ -1,0 +1,171 @@
+# The Alpha Lab's Tranche 3 engines as hypotheses (X-3.1, X-3.2), for the
+# register. The change order's section 5 names them (docs/change-order-alpha-lab-
+# 2026-10-12.md, ruled 12 Oct 2026); alpha-lab-3 builds them (alpha/engines/
+# events.py, alpha/engines/carry.py). Each names its registered engine
+# (`engine:`), so the harness runs the engine's own hooks.
+#
+# NOT YET PRE-REGISTERED. A file in the repository is not a registration. On the
+# box, inside a window, the operator registers it BY MANIFEST -- the manifest is
+# written first, and its instant is every hypothesis's pre_registered_at:
+#
+#   python -m alpha.manifest register alpha/research/roster-2026-10-17-x3.yaml
+#
+# The nightly harness then runs each (the coverage check first: a data gap is
+# registered as one; a history window not yet met waits, counted nothing).
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-17-roster-tranche-3
+source: operator
+proposer: "the change order's Tranche 3 (section 5, X-3.1 and X-3.2), built by session B"
+channel: workbench
+written_at: "2026-10-17T23:00:00-04:00"
+model_idea_rule: false
+inputs:
+  - "docs/change-order-alpha-lab-2026-10-12.md X-3.1, X-3.2 (ruled 12 Oct 2026)"
+  - "docs/briefs/alpha-lab-brief-2026-10-12.md section 5, roster items 4 and 5"
+  - "config/alpha_events.yaml, config/alpha_crypto_venues.yaml"
+hypotheses:
+  - local_id: E-4a
+    title: "After a CPI or payroll print, SPY's next session drifts with its surprise bucket"
+    horizon_class: short
+    horizon_sessions: 1
+    family: events
+    mechanism: >-
+      The change order's X-3.1: "CPI, payrolls, FOMC: the surprise against
+      consensus conditioned on stored positioning and the dealer regime, traded in
+      the first session's drift". A print that surprises re-prices the rate path,
+      and the repricing is not finished at the print's own close. The store holds
+      no free consensus, so the surprise is the naive one (actual less the
+      declared naive expectation), never quoted as a consensus surprise.
+    universe: [SPY]
+    rule_text: >-
+      For each CPI or payroll release: its naive surprise bucketed by sign and
+      size (large at 1 standard deviation of the previous 24); decided at the
+      first nightly loop after the print and SPY's close are knowable; long or
+      short SPY from the next session's open to its close by the sign of that
+      bucket's mean in the fit window, no trade in a bucket with fewer than 6
+      events or awaiting a surprise; costed as an ETF round trip.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      in_store: ["fred.cpi (ALFRED first vintages)", "calc.surprise_vs_naive.cpi",
+                 "yfinance.mkt_spy, _open", "the events table's release rows"]
+      gaps: ["payrolls: no naive expectation is declared for nfp, so its surprise bucket is awaiting"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 17 Oct 2026; not run on the box's store before registration."
+    engine: events_macro
+  - local_id: E-4b
+    title: "The session after an FOMC statement drifts with positioning"
+    horizon_class: short
+    horizon_sessions: 1
+    family: events
+    mechanism: >-
+      X-3.1's FOMC leg. A statement lands at 14:00 inside the session, so the
+      first full session after it carries the market's settled read; crowded
+      speculative positioning into the meeting is the fuel the drift spends. No
+      FOMC surprise series is stored, so positioning is the bucket.
+    universe: [SPY]
+    rule_text: >-
+      For each FOMC statement day: the CFTC S&P 500 speculative net's two-year z
+      at the decision (crowded at |z| >= 1.5); long or short SPY from the next
+      session's open to its close by the sign of that positioning bucket's mean
+      in the fit window, no trade in a bucket with fewer than 6 events.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      in_store: ["the events table's FOMC claims rows", "cftc.noncomm_net (SP500)",
+                 "yfinance.mkt_spy, _open"]
+      gaps: ["no FOMC surprise series is stored", "FOMC dates before the claims rows"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 17 Oct 2026; FOMC history in the events table is short."
+    engine: events_fomc
+  - local_id: E-4c
+    title: "Earnings surprises keep drifting for twenty sessions in the 29 names"
+    horizon_class: medium
+    horizon_sessions: 20
+    family: events
+    mechanism: >-
+      The post-earnings-announcement drift: prices under-react to an earnings
+      surprise against the analyst consensus, and the adjustment runs for weeks
+      (the brief's roster item 4, "earnings in the 29-name universe:
+      post-announcement drift").
+    universe: [AAPL, ABBV, AMZN, AVGO, BAC, BRK-B, C, COST, GOOG, GOOGL, GS, HD, JNJ,
+               JPM, LLY, MA, META, MS, MSFT, NFLX, NVDA, ORCL, PG, TSLA, UNH, V, WFC,
+               WMT, XOM]
+    rule_text: >-
+      For each earnings report in the universe with a stored surprise against the
+      analyst mean: long a positive surprise, short a negative one, from the close
+      of the first session the nightly loop can enter after the report and its
+      first close are knowable, to the close 20 sessions later; a single-name
+      round trip's costs; nothing fitted.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      in_store: ["the events table's earnings rows (surprise_pct)", "yfinance.mkt_<name> closes"]
+      gaps: ["history ingested after the fact is not knowable in time and is left out: the sample grows live"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 17 Oct 2026; not run on the box's store before registration."
+    engine: events_pead
+  - local_id: E-4d
+    title: "Implied volatility is crushed after a scheduled print"
+    horizon_class: short
+    horizon_sessions: 1
+    family: events
+    mechanism: >-
+      X-3.1's second trade, "or the volatility crush after": option buyers pay for
+      the event, and implied volatility falls once it is out. Its base rate (the
+      VIX's change on the day) is computed; the trade needs a tradable volatility
+      instrument the store does not hold.
+    universe: [SPY]
+    rule_text: >-
+      Sell event volatility before CPI, payrolls and FOMC and buy it back after
+      the print, at stored bid and ask; a data gap until option quotes per strike
+      or a volatility ETP are stored.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      in_store: ["yfinance.mkt_vix (the base rate only)"]
+      gaps: ["option quotes per strike (6b's chain history) or a volatility ETP"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 17 Oct 2026 as a coverage check only."
+    engine: events_crush
+  - local_id: E-5
+    title: "Delta-neutral perp funding pays when the funding regime is on"
+    horizon_class: medium
+    horizon_sessions: 5
+    family: carry
+    mechanism: >-
+      X-3.2: "perp funding harvest and spot-perp basis on BTC and ETH,
+      delta-neutral, with the funding regime as the switch". Leveraged longs pay
+      to hold perpetual exposure; a short perp against long spot collects that
+      payment while the market's direction nets out, and the payment is large and
+      persistent when funding is high but the long is not yet crowded.
+    universe: [BTC-USD, ETH-USD]
+    rule_text: >-
+      Weekly at the last session of the ISO week, per coin: ON when the trailing
+      7-day mean of calc.funding_agg is at or above 10% annualised and
+      calc.leverage_z is below +2; OFF below 3% or at leverage_z +2. While ON:
+      long spot, short the perp on the venue paying the highest stored funding at
+      entry, equal notional (a quarter of it held as the perp's margin); funding
+      accrued daily from that venue; the venues' taker fees (dated constants) and
+      the perp class's spread and slippage on both legs at entry and exit. The
+      basis is a listed gap (no perp mark stored). Runs nothing until 92 weekly
+      decisions with the switch computable are stored.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 40}
+    data:
+      in_store: ["calc.funding_agg, calc.leverage_z (S-3)", "hl.funding, fut.funding_okx, fut.funding_deribit",
+                 "yfinance.mkt_btc_usd, mkt_eth_usd"]
+      gaps: ["a perp mark price (the basis)", "92 weeks of S-3 history: the z-scores mature in December"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 17 Oct 2026; S-3's history is short, so it waits for its window."
+    engine: crypto_carry

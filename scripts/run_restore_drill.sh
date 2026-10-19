@@ -20,6 +20,18 @@ cd "$REPO" || { echo "FATAL cannot cd $REPO"; exit 1; }
 PY="${CHESTER_PYTHON:-$REPO/.venv/bin/python}"
 [[ -x "$PY" ]] || { echo "FATAL no interpreter at $PY"; exit 1; }
 
+# audit-leftovers-1: the backup is encrypted, so the drill reads it through the
+# crypt remote (scripts/rclone_crypt_env.sh) unless a --remote is given.
+if [[ $# -eq 0 ]] && command -v rclone >/dev/null 2>&1; then
+    # shellcheck source=scripts/rclone_crypt_env.sh
+    . "$REPO/scripts/rclone_crypt_env.sh"
+    if crypt_env; then
+        set -- --remote "$CRYPT_REMOTE"
+    else
+        echo "restore drill: $CRYPT_ERR"
+        exit 1
+    fi
+fi
 OUT="$("$PY" -m tools.restore_drill "$@" 2>&1)"
 RC=$?
 { printf '%s restore drill rc=%s\n' "$(date --iso-8601=seconds)" "$RC"

@@ -518,7 +518,7 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
     `backfill` writes every session the inputs support. Only a CHANGED value is
     written (observations.drop_unchanged): a re-run is a no-op."""
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         fd = None if backfill else (first_day or default_first_day(as_of))
         rows = compute_rows(db, as_of=as_of, first_day=fd)
@@ -743,7 +743,7 @@ def _main(argv: list[str]) -> int:
             print(f"  {k:10} {r['by_kind'][k]:>8}")
         return 0
     now = a.as_of or session.utc_iso(timespec="microseconds")
-    with observations.ObservationStore() as st:
+    with observations.open_writer(__name__) as st:
         if a.cmd == "peers":
             for r in peer_table(st, now):
                 if r.get("absent_reason"):

@@ -212,9 +212,11 @@ def main() -> int:
            "Treasury moves by session: overnight against the US session",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
-           "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash"],
-          "Positioning in nine sub-sections, each with its table (the eighth, ST-R4.27a's "
-          "Treasury moves by session; the ninth, Batch 6 item 30's allocation block)")
+           "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash",
+           "Crypto flows"],
+          "Positioning in ten sub-sections, each with its table (the eighth, ST-R4.27a's "
+          "Treasury moves by session; the ninth, Batch 6 item 30's allocation block; the "
+          "crypto flows block last, Batch 4 Tranche A)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the

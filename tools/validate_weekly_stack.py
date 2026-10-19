@@ -425,6 +425,18 @@ def main() -> int:
              if pp.get_content_type() == "image/png"}
     check(cids and cids == parts and len(cids) == ed["chart_count"],
           f"the Content-ID set matches the charts in the body ({sorted(cids)})")
+    # BATCH 8 ITEM 51: the Digital Assets addendum's one line -- absent when the
+    # run carries no addendum, one line when it does (validate_digital_addendum.py
+    # holds the page itself).
+    check("Digital Assets addendum" not in out["html_email"],
+          "without an addendum the Weekly prints no addendum line")
+    pa = {**p, "addendum": {"state": "built", "name": f"weekly_digital_{ENDING}.html",
+                            "minutes": 4}}
+    wa = ws.render(pa, ed, out["charts"], "email")
+    check(f"Digital Assets addendum, about 4 minutes: weekly_digital_{ENDING}.html, "
+          f"attached to this message." in wa
+          and wa.count("Digital Assets addendum") == 1,
+          "with one, the Weekly gains exactly one line naming the attached page")
     bad = charts_mod.bars_chart("W5", [], "x", "x", None)
     check(bad.get("unavailable") and "chart unavailable" in
           stack_render._chart_html(bad, "email").lower(),

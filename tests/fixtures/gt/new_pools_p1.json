@@ -1,0 +1,1724 @@
+{
+ "data": [
+  {
+   "id": "solana_pool0",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T19:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "0"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool1",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T18:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "1000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool2",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T17:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "2000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool3",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T16:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "3000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool4",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T15:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "4000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool5",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T14:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "5000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool6",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T13:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "6000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool7",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T12:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "7000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool8",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T11:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "8000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool9",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T10:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "9000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool10",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T09:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "10000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool11",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T08:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "11000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool12",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T07:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "12000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool13",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T06:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "13000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool14",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T05:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "14000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool15",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T04:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "15000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool16",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T03:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "16000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool17",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T02:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "17000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool18",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T01:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "18000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_pool19",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "3653.12491645176",
+    "base_token_price_native_currency": "1.0",
+    "quote_token_price_usd": "0.998343707926245",
+    "quote_token_price_native_currency": "0.000273040545093221",
+    "base_token_price_quote_token": "3662.46",
+    "quote_token_price_base_token": "0.00027304",
+    "address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    "name": "WETH / USDC 0.05%",
+    "pool_created_at": "2026-10-17T00:00:00Z",
+    "fdv_usd": "11007041041",
+    "market_cap_usd": "11007041041",
+    "price_change_percentage": {
+     "m5": "0",
+     "m15": "0.21",
+     "m30": "0.31",
+     "h1": "0.51",
+     "h6": "0.86",
+     "h24": "7.71"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 7,
+      "sells": 2,
+      "buyers": 7,
+      "sellers": 2
+     },
+     "m15": {
+      "buys": 19,
+      "sells": 27,
+      "buyers": 19,
+      "sellers": 27
+     },
+     "m30": {
+      "buys": 49,
+      "sells": 61,
+      "buyers": 45,
+      "sellers": 57
+     },
+     "h1": {
+      "buys": 97,
+      "sells": 144,
+      "buyers": 83,
+      "sellers": 124
+     },
+     "h24": {
+      "buys": 2966,
+      "sells": 3847,
+      "buyers": 1625,
+      "sellers": 2399
+     }
+    },
+    "volume_usd": {
+     "m5": "868581.7348314",
+     "m15": "2056262.885098",
+     "m30": "4081230.098456",
+     "h1": "16798158.0138526",
+     "h6": "164054610.850188",
+     "h24": "19000"
+    },
+    "reserve_in_usd": "163988541.3812"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "eth_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "eth_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "uniswap_v3",
+      "type": "dex"
+     }
+    }
+   }
+  }
+ ]
+}

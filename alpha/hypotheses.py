@@ -60,7 +60,11 @@ from . import blocklist
 SCHEMA_ID = "alpha-lab-hypotheses/v1"
 SOURCES = ("model", "operator", "chat", "sitting", "systematic", "tell")
 FILE_SOURCES = ("model", "operator", "chat")
-CHANNELS = ("daily-proposer", "weekly-brief", "workbench", "chat", "sitting")
+CHANNELS = ("daily-proposer", "weekly-brief", "workbench", "chat", "sitting",
+            "importer")
+# X-3.6: the reports' tells enter through the importer (alpha/tells.py) only,
+# as source `tell`; no file from Drive or the proposer may claim that source.
+IMPORTER_SOURCES = ("tell",)
 HORIZON_CLASSES = ("short", "medium", "long")
 STATUSES = ("registered", "needs_code", "data_gap", "screened_out", "testing",
             "passed", "failed", "refined", "promoted", "retired")
@@ -74,7 +78,7 @@ BATCH_OPTIONAL = ("human_record", "prompt_version", "model_id", "packet_sha256",
 HYP_REQUIRED = ("local_id", "title", "horizon_class", "horizon_sessions", "family",
                 "mechanism", "universe", "rule_text", "conditioning", "expected",
                 "sample", "data", "needs_code", "kill", "state_at_registration")
-HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note", "engine")
+HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note", "engine", "tell")
 
 # THE BUDGETS (10.2 c), per channel. The daily proposer's weekly family budget
 # is a register-wide count (family_week_count), checked by the proposer before
@@ -137,7 +141,11 @@ def validate_batch(doc: Any) -> list[str]:
         err.append(f"schema is {doc.get('schema')!r}, not {SCHEMA_ID}")
     if not isinstance(doc.get("batch_id"), str) or not doc.get("batch_id"):
         err.append("batch_id is not a non-empty string")
-    if doc.get("source") not in FILE_SOURCES:
+    if doc.get("channel") == "importer":
+        if doc.get("source") not in IMPORTER_SOURCES:
+            err.append(f"the importer's source is one of {IMPORTER_SOURCES}, not "
+                       f"{doc.get('source')!r}")
+    elif doc.get("source") not in FILE_SOURCES:
         err.append(f"source {doc.get('source')!r} is not one of {FILE_SOURCES}")
     if doc.get("channel") not in CHANNELS:
         err.append(f"channel {doc.get('channel')!r} is not one of {CHANNELS}")
@@ -195,6 +203,13 @@ def validate_batch(doc: Any) -> list[str]:
             err.append(f"{tag}: needs_code is not true or false")
         if h.get("rule_dsl") is not None and not isinstance(h["rule_dsl"], dict):
             err.append(f"{tag}: rule_dsl is not a mapping")
+        if "tell" in h:
+            t = h["tell"]
+            if doc.get("channel") != "importer":
+                err.append(f"{tag}: only the importer's hypotheses carry `tell`")
+            elif not isinstance(t, dict) or not all(t.get(k) for k in (
+                    "kind", "id", "hash", "cited")):
+                err.append(f"{tag}: tell carries kind, id, hash and cited")
     return err
 
 
@@ -482,8 +497,9 @@ class Register:
                              "variant_count": n, "rule_origin": rule_origin})
         sup = h.get("supersedes")
         if sup and self.get(sup):
-            self.set_status(sup, "refined", as_of, f"refined into {hid}",
-                            superseded_by=hid)
+            why = (f"superseded by {hid}: the tell changed" if batch["source"] == "tell"
+                   else f"refined into {hid}")
+            self.set_status(sup, "refined", as_of, why, superseded_by=hid)
         return hid
 
     def set_status(self, hid: str, status: str, as_of: str,

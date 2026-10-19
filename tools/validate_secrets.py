@@ -363,6 +363,69 @@ def group_h() -> None:
 
 
 # ---------------------------------------------------------------------------
+# I. RCLONE'S VARIABLES (audit-leftovers-1): the crypt remote is built from the
+# environment, so no tracked file may give one of its secrets a value.
+# ---------------------------------------------------------------------------
+RCLONE_SECRET = re.compile(
+    r"(?<![{$\w])(RCLONE_CONFIG_\w+_(?:PASSWORD2?|PASS|TOKEN|CLIENT_SECRET)|"
+    r"CHESTER_RCLONE_CRYPT_(?:PASSWORD|SALT))\s*[=:]\s*['\"]?(?![$'\"\s]|\{|$)(\S+)")
+
+
+def rclone_secret_hits(text: str) -> list[str]:
+    """A literal value given to an rclone secret variable, or to the crypt
+    settings -- `NAME=value` or `NAME: value` with a value that is not a shell
+    expansion. Placeholders in angle brackets and the names on their own pass."""
+    out = []
+    for m in RCLONE_SECRET.finditer(text):
+        val = m.group(2)
+        if val.startswith("<") or val.startswith("${") or val.startswith("$("):
+            continue
+        out.append(f"{m.group(1)}={val[:6]}...")
+    return out
+
+
+def group_i() -> None:
+    import subprocess
+    print(f"\n{LINE}\nI. RCLONE'S VARIABLES CARRY NO LITERAL SECRET\n{LINE}")
+    tracked = subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True,
+                             text=True).stdout.split()
+    check(not [f for f in tracked if f.endswith("rclone.conf")],
+          "no rclone.conf is tracked")
+    hits = []
+    for f in tracked:
+        if not f.endswith((".py", ".sh", ".service", ".timer", ".conf", ".yaml",
+                           ".yml", ".md", ".env.example", ".txt", ".toml", ".cfg")):
+            continue
+        if f == "tools/validate_secrets.py":
+            continue
+        try:
+            text = (REPO / f).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        hits += [f"{f}: {h}" for h in rclone_secret_hits(text)]
+        # An INVOCATION with an argument: at a line's start, after `$(` or a pipe.
+        for m in re.finditer(r"(?:^|\$\(|\|)\s*rclone obscure\s+(?!-)(\S+)", text, re.M):
+            if not m.group(1).startswith(("$", "<", '"$', "'$", "`")):
+                hits.append(f"{f}: rclone obscure {m.group(1)[:6]}...")
+    check(not hits, f"no tracked file gives an rclone secret a value ({hits[:4]})")
+    probes = {"export RCLONE_CONFIG_X_PASSWORD=hunter2": True,
+              "CHESTER_RCLONE_CRYPT_SALT=abc": True,
+              'export "RCLONE_CONFIG_${CRYPT_NAME}_PASSWORD=$opw"': False,
+              "RCLONE_CONFIG_CHESTERCRYPT_PASSWORD=$(printf x)": False,
+              "CHESTER_RCLONE_CRYPT_PASSWORD=<in .env, never here>": False,
+              "the .env lines CHESTER_RCLONE_CRYPT_PASSWORD and _SALT": False,
+              'local pw="${CHESTER_RCLONE_CRYPT_PASSWORD:-}"': False}
+    check(all(bool(rclone_secret_hits(t)) == want for t, want in probes.items()),
+          "and the scan fires on a literal and passes an expansion, a placeholder and "
+          "a bare name (probes)")
+    sh = (REPO / "scripts" / "rclone_crypt_env.sh").read_text(encoding="utf-8")
+    check("CHESTER_RCLONE_CRYPT_PASSWORD" in sh and ".env" in sh
+          and "rclone obscure -" in sh,
+          "the crypt script reads the password and salt from the environment (.env) "
+          "and obscures them from stdin")
+
+
+# ---------------------------------------------------------------------------
 # J. THE USER-AGENT RULE (ruled 17 Oct 2026). Lettered J, not I: session B's
 # audit-leftovers-1 adds its own group I (rclone's variables) to this file.
 # ---------------------------------------------------------------------------
@@ -532,7 +595,7 @@ def group_j() -> None:
 def main() -> int:
     print(f"{LINE}\nThe one secrets loader\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_j):
+              group_h, group_i, group_j):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

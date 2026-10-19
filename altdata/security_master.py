@@ -64,7 +64,20 @@ EXPORT_DEFAULT = "~/chester-data/export/security_master.json"
 EXPORT_VAR = "CHESTER_SM_EXPORT"
 
 ASSET_CLASSES = ("equity", "etf", "index", "future", "option_root", "fx", "crypto",
-                 "rate", "prediction_contract", "preferred", "note", "closed_end_fund")
+                 "rate", "prediction_contract", "preferred", "note", "closed_end_fund",
+                 "crypto.watch")
+# THE crypto.watch CLASS (ST-13, MW-1; G-24 settled by AUD-3b: the class lives in
+# this instrument model, not a separate table). A watch instrument is keyed by its
+# CoinGecko id (identifiers.crypto_id = "coingecko:<id>"), carries the MW-1
+# disambiguation fields under `watch`, and is NEVER keyed by a ticker: several
+# unrelated projects share PRL's. It has no FIGI, so the export to chester-meme
+# (US-listed with a FIGI only) never carries it.
+WATCH_FIELDS = ("coingecko_id", "name", "issuer", "chain", "explorer", "mechanism_class")
+# The bare ticker is the collision MW-1 names, so a watch entry carries no `ticker`
+# identifier, no ticker history and no bare-ticker alias. A source's own
+# coin-specific id (Yahoo's PRL41876-USD; plain PRL-USD is another coin) and the
+# store key it is filed under are not tickers, and the baskets resolve through them.
+WATCH_TICKER_SCHEMES = ("ticker",)
 SCHEMES = ("yahoo", "store_key", "ticker", "occ_root", "ibkr_conid", "pm_id",
            "crypto_id", "overnight_slug")
 FIELDS = ("id", "name", "asset_class", "currency", "multiplier", "exchange",
@@ -91,6 +104,32 @@ def _iso(v: Any) -> Optional[str]:
     if v is None or v == "":
         return None
     return v.isoformat() if isinstance(v, dt.date) else str(v)[:10]
+
+
+def watch_faults(e: dict) -> list[str]:
+    """A crypto.watch entry's faults (ST-13, MW-1): keyed by a ticker in any form,
+    missing a disambiguation field, or its CoinGecko id and name disagreeing with
+    its identifier and its own name. The loader test (G-24) holds every entry."""
+    sid, out = str(e.get("id")), []
+    keyed = sorted(s for s in (e.get("identifiers") or {}) if s in WATCH_TICKER_SCHEMES)
+    if keyed:
+        out.append(f"{sid}: a crypto.watch entry keyed by ticker ({', '.join(keyed)}): "
+                   f"the ticker is never a key (MW-1)")
+    if e.get("ticker_history"):
+        out.append(f"{sid}: a crypto.watch entry with a ticker history (MW-1)")
+    bare = [a for a in e.get("aliases") or [] if str(a).isupper() and 2 <= len(str(a)) <= 6]
+    if bare:
+        out.append(f"{sid}: a crypto.watch alias that is a bare ticker {bare} (MW-1)")
+    w = e.get("watch") or {}
+    miss = [f for f in WATCH_FIELDS if not w.get(f)]
+    if miss:
+        out.append(f"{sid}: crypto.watch without {', '.join(miss)} (MW-1)")
+    cid = (e.get("identifiers") or {}).get("crypto_id")
+    if w.get("coingecko_id") and cid != f"coingecko:{w['coingecko_id']}":
+        out.append(f"{sid}: crypto_id {cid!r} is not coingecko:{w.get('coingecko_id')}")
+    if w.get("name") and e.get("name") != w["name"]:
+        out.append(f"{sid}: name {e.get('name')!r} is not the watch name {w['name']!r}")
+    return out
 
 
 class Master:
@@ -138,6 +177,10 @@ class Master:
         return None
 
     # -- the API ---------------------------------------------------------------
+    def by_coingecko(self, coingecko_id: str, on: Day = None) -> dict:
+        """The instrument CoinGecko's id names (ST-13): its crypto_id scheme."""
+        return self.resolve(f"coingecko:{coingecko_id}", "crypto_id", on)
+
     def by_id(self, sid: str) -> dict:
         if sid not in self._by_id:
             raise NotFound(sid)
@@ -254,6 +297,8 @@ class Master:
                 out.append(f"{sid}: active_from after active_to")
             if e.get("asset_class") == "option_root" and e.get("underlying") not in self._by_id:
                 out.append(f"{sid}: option root without a known underlying")
+            if e.get("asset_class") == "crypto.watch":
+                out += watch_faults(e)
             for f in FIELDS:
                 if f not in e:
                     out.append(f"{sid}: missing field {f}")

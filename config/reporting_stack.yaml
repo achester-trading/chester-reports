@@ -182,6 +182,13 @@ sections:
   - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)", quarterly: light, quarterly_tier: reference}
   - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep, quarterly: medium, quarterly_tier: reference}
   - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium, monthly: deep, quarterly: deep, quarterly_tier: reference}
+  # THE LABOUR BLOCK, the Monthly only (Batch 7 item 48 lenses 1-6, filing note 6;
+  # 6e-releases, 16 Oct 2026): immediately after Plumbing & rates. No daily or
+  # weekly depth: the close carries the employment report's one line on its
+  # release day instead, and the Weekly the ten sections as before. Tables and
+  # code-written lines only (prose_wanted false), so its budget is 0 prose words
+  # and 0 charts: it displaces nothing inside the 10,000 words or the 12 charts.
+  - {id: labour,      title: "Labour", subtitle: "payrolls' cyclical core, breadth, revisions, flows and wages",                          monthly: medium}
   - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium, quarterly: deep, quarterly_tier: reference}
   - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep, quarterly: deep, quarterly_tier: reference}
   - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep, quarterly: medium, quarterly_tier: reference}

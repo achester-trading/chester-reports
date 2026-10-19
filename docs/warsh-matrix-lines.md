@@ -27,6 +27,15 @@ The disagreement pairs that some of these items also produce are in `docs/narrat
 - **Adjudicated by:** ST-R5.42a, the composite inflation-expectations z-score (the 5y5y breakeven, Michigan 5–10-year, NY Fed SCE 3-year and Cleveland Fed 10-year expected inflation, monthly), read against item 34's flag.
 - **Source:** Callum Thomas (Topdown Charts). Moved here from the `st-r5-t1-rest` session notes, where it was drafted, with its text unchanged in substance.
 
-## Item 46 — (Batch 7)
+## energy_shock_softening_labour — an energy shock with a softening labour market (Batch 7 item 46)
 
-Session B adds item 46's line here, in the same shape.
+**Added 16 October 2026 (6e-releases, session B). A draft for Ari's accept-all.**
+
+- **The scenario:** an energy price shock lifts headline inflation while hiring slows: Monchau's "hard October call" on the September 2026 CPI.
+- **Live when** both hold in the same month:
+  - an energy spike by item 46b's rule (CPI energy up 4.0% or more in a month, within the last three months; `config/releases.yaml`);
+  - the labour block reads softening: the cyclical core's three-month average below zero, or the diffusion flag on (lens 1 or lens 2, `altdata/releases.py`).
+- **What the cell says the Fed faces:** a headline print it cannot ignore against a labour market that argues for patience. The pass-through flag decides which way the cell leans:
+  - with the flag off (the shock contained), the cell reads "look through the energy print";
+  - with the flag on (propagating), it reads "the shock is spreading while hiring slows", the 1970s pattern item 32 names.
+- **Measured by:** item 46b's spike and pass-through flag, and lenses 1 and 2. Each is report-only.

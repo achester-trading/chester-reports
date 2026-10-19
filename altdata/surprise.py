@@ -209,12 +209,19 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         earn = earnings_rows(as_of=as_of)
         rows = macro + earn
         written = 0 if dry_run else db.write_many(rows)
+        # THE SURPRISE INDEX (ST-R6.48f, lenses-group-b 18 Oct 2026): actual less
+        # CONSENSUS, standardised by each release's own history -- after the
+        # earnings rows are written, because it standardises them.
+        from . import surprise_index                           # noqa: PLC0415
+        idx = surprise_index.rows(db, as_of=as_of)
+        written += 0 if dry_run else db.write_many(idx)
+        rows = rows + idx
         by_key: dict[str, int] = {}
         for r in rows:
             by_key[r["registry_key"]] = by_key.get(r["registry_key"], 0) + 1
         return {"computed": len(rows), "written": written, "by_key": by_key,
                 "macro_rows": len(macro), "earnings_rows": len(earn),
-                "dry_run": dry_run}
+                "index_rows": len(idx), "dry_run": dry_run}
     finally:
         if own:
             db.close()
@@ -244,7 +251,8 @@ def _main(argv: list[str]) -> int:
         r = compute(as_of=a.as_of, first_day=a.first, dry_run=a.dry_run,
                     full=a.full)
         print(f"{r['computed']} rows ({r['macro_rows']} macro, "
-              f"{r['earnings_rows']} earnings), {r['written']} written"
+              f"{r['earnings_rows']} earnings, {r['index_rows']} surprise index), "
+              f"{r['written']} written"
               + ("  (dry run)" if r["dry_run"] else ""))
         for k in sorted(r["by_key"]):
             print(f"  {k:32} {r['by_key'][k]:>6}")

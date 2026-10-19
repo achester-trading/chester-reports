@@ -5,6 +5,11 @@ Documentation=file:///%h/chester-reports/deploy/systemd/README.md
 [Service]
 Type=oneshot
 ExecStart=%h/chester-reports/scripts/rclone_sync.sh
+# The crypt settings (audit-leftovers-1): CHESTER_RCLONE_BACKUP_REMOTE,
+# CHESTER_RCLONE_CRYPT_PASSWORD, CHESTER_RCLONE_CRYPT_SALT and
+# CHESTER_RCLONE_INBOX_REMOTE are .env's (scripts/rclone_crypt_env.sh). Optional,
+# as for every unit: without them the sweep exits 1, no_crypt, by name.
+EnvironmentFile=-%h/chester-reports/.env
 
 # NOT listed as success: 1 (no rclone, no remote, no venv), 2 (the database
 # snapshot, its integrity check or its compression failed), 3 (a tree did not
@@ -52,12 +57,14 @@ ProtectHome=no
 # before the sweep starts for the pull to write.
 # -%h/chester-data/inbox/spdji (13 Oct 2026): S&P DJI's EPS workbook, the same
 # way; mkdir -p it once.
+# -%h/chester-data/inbox/x-triage and x-digest (17 Oct 2026): the X pilot's two
+# ledgers and daily digests, for the Digital Assets addendum; mkdir -p both once.
 # -%h/backups/chains (AUD-1 item 1b): the sweep deletes a local chain zip past
 # the newest 14, and only once the remote holds that exact file.
 # -%h/chester-data/inbox/lab (X-2.11, 14 Oct 2026): the Alpha Lab's inbox -- the
 # sweep lists Drive's lab-inbox into its manifest and copies the batches there.
 # The outbox is only READ by the sweep (copied up), so it needs no grant.
-ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/chester-data/inbox/spdji -%h/chester-data/inbox/etf -%h/backups/chains -%h/chester-data/inbox/lab
+ReadWritePaths=%h/logs %h/.chester -%h/state %h/chester-reports/data -%h/chester-data/inbox/aaii -%h/chester-data/inbox/spdji -%h/chester-data/inbox/etf -%h/chester-data/inbox/x-triage -%h/chester-data/inbox/x-digest -%h/backups/chains -%h/chester-data/inbox/lab
 ReadOnlyPaths=%h/chester-reports %h/backups %h/.config/rclone -%h/chester-data
 ProtectKernelTunables=true
 ProtectControlGroups=true

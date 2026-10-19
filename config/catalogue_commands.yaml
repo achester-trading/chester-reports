@@ -96,9 +96,16 @@ commands:
     domain: register
     line: The grader -- Phase 3's closing link, and the reason the register exists
     sources: [derived_grade]
+  altdata.macro_6e:
+    domain: computed
+    line: '6e macro completeness: Session 3a-3c calc series, the core CPI-PCE gap and the CPI lead composite (stated lags, unvalidated)'
+    sources: [calc]
   altdata.listings:
     domain: reference
     line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
+  altdata.meme_ingest:
+    domain: reference
+    line: 'chester-meme packets in as Book D drafts, never decisions; `status` prints the line the close and the anchor carry'
   altdata.market_features:
     domain: computed
     line: 'Calculated features: breadth, trend, realized volatility -- and the macro transforms the Monthly used to compute privately'
@@ -131,6 +138,14 @@ commands:
   altdata.rates_shape:
     domain: rates
     line: THE SELLOFF-SHAPE AXIS AND THE SELLOFF'S COMPOSITION, and the four voices adjudicated by the measures
+  altdata.releases:
+    domain: computed
+    line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'
+    sources: [fred, rent_indices, calc]
+  altdata.releases_b:
+    domain: computed
+    line: 'Batch 7 release lenses, Group B (item 48 lenses 12-20): the PPI pipeline, PCE-relevant and trade lines, the GDP core, investment split, GDI gap, profits, income and the GDPNow path, read as of a cutoff; writes nothing'
+    sources: [fred, shiller]
   altdata.return_attribution:
     domain: equity
     line: SR-38 -- THE RETURN-ATTRIBUTION LENS, THE REVISION LINE, EY MINUS THE BILL (signal-triage batch 4, ST4-02)
@@ -161,6 +176,10 @@ commands:
   altdata.vol_event:
     domain: computed
     line: 'The volatility event flag and its attribution (Batch 9 item 52): show a session, seed the ledger, resolve its outcomes'
+  altdata.surprise_index:
+    domain: events
+    line: 'The surprise index (ST-R6.48f): actual less consensus, standardised by each release''s own surprises; no composite; its rows ride altdata.surprise compute'
+    sources: [calc, yfinance]
   altdata.volume_profile:
     domain: equity
     line: 'The volume profile: where volume traded by price over a window (VP-1)'
@@ -204,6 +223,10 @@ commands:
     domain: positioning
     line: CFTC Commitments of Traders -- legacy, disaggregated and TFF futures-only reports, Socrata API
     sources: [cftc]
+  altdata.sources.clevfed_rules:
+    domain: macro
+    line: Cleveland Fed simple monetary policy rules -- the rules' prescribed funds-rate path, median and width (not market pricing)
+    sources: [clevfed_rules]
   altdata.sources.cnh:
     domain: fx
     line: USD/CNH -- the offshore yuan's daily New York close, from Yahoo's hourly bars
@@ -331,6 +354,66 @@ commands:
     domain: housing
     line: MBA Weekly Mortgage Applications Survey -- the purchase index's headline changes
     sources: [mba]
+  altdata.sources.hl:
+    domain: crypto
+    line: Hyperliquid -- perp funding and open interest, the `hl.*` family (Tranche A, CD-2)
+    sources: [hyperliquid]
+  altdata.sources.fut:
+    domain: crypto
+    line: OKX and Deribit perps -- funding, open interest, long/short, the `fut.*` family (Tranche A, CD-2)
+    sources: [perp_venues]
+  altdata.sources.mempool:
+    domain: crypto
+    line: mempool.space -- Bitcoin hashrate, difficulty, fees, mempool, pools (Tranche A, CD-5)
+    sources: [mempool_space]
+  altdata.sources.pearl_explorer:
+    domain: crypto
+    line: Pearl's explorer -- chain height, difficulty, supply; JSON endpoint or block page where robots allow, else ESTIMATED downstream (ST-13, G-26)
+    sources: [pearl_explorer]
+  altdata.prl:
+    domain: crypto
+    line: PRL's emission calculator, D1-D6 and the thesis status with its trace; daily | weekly | compute | show, each with --dry-run (ST-13)
+    sources: [calc]
+  altdata.mechanism_scan:
+    domain: crypto
+    line: The emerging-mechanism scan -- feeds, DefiLlama's recently added, dedupe, the rule pre-filter, the gated model step; drafts only; run --dry-run (ST-15)
+    sources: [defillama, news_rss]
+  altdata.mechanism_watch:
+    domain: crypto
+    line: The mechanism-watch register -- review | render; promote | reject write only with the operator's --confirm (ST-15)
+    sources: [calc]
+  altdata.sources.fng:
+    domain: crypto
+    line: alternative.me's Crypto Fear & Greed Index, full history (Tranche A, CD-5)
+    sources: [alternative_me]
+  altdata.sources.blockscout:
+    domain: crypto
+    line: Blockscout's Ethereum explorer -- gas, utilisation, daily transactions, keyless (Tranche A, CD-5)
+    sources: [blockscout]
+  altdata.sources.crypto_derived:
+    domain: crypto
+    line: The crypto data layer's derived series -- S-1 to S-5 and the three flags, stored never printed (Tranche A)
+    sources: [derived_state]
+  altdata.sources.deribit:
+    domain: crypto
+    line: Deribit DVOL for BTC and ETH, history from Mar 2021 (Tranche A, CD-3)
+    sources: [deribit]
+  altdata.sources.farside:
+    domain: crypto
+    line: Farside's US spot BTC and ETH ETF daily flows, total and by issuer (Tranche A, CD-4)
+    sources: [farside]
+  altdata.sources.gt:
+    domain: crypto
+    line: The froth gauge's sample -- GeckoTerminal new and trending pools, DexScreener fallback (Tranche A, CD-7)
+    sources: [geckoterminal, dexscreener]
+  altdata.sources.treasury:
+    domain: crypto
+    line: The treasury companies -- holdings, Strategy's share count, MSTR's spot; `show` reads mNAV (item 49)
+    sources: [treasury_companies]
+  altdata.sources.paprika:
+    domain: crypto
+    line: CoinPaprika's global figures -- total crypto market cap and BTC dominance (ruling 2 of 17 Oct)
+    sources: [coinpaprika]
   altdata.sources.massive_chain:
     domain: options
     line: Option chain fetcher (Massive, ex-Polygon) -- the symbols yfinance cannot serve
@@ -382,6 +465,10 @@ commands:
     domain: housing
     line: Redfin data center -- national pending sales, listings, months of supply and top-50 metros, monthly
     sources: [redfin]
+  altdata.sources.rent_indices:
+    domain: macro
+    line: Zillow ZORI and Apartment List national rent -- the shelter lead (Batch 7 lens 7)
+    sources: [rent_indices]
   altdata.sources.safe:
     domain: china
     line: China State Administration of Foreign Exchange (SAFE) -- reserves, BOP, IIP

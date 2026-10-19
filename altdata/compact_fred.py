@@ -148,7 +148,9 @@ def run(db_path: Optional[str] = None, apply: bool = False,
             out("dry run: nothing deleted")
             return 0
         ids = [r[0] for r in rows]
-        with db.conn:
+        # THE ONE EXCEPTION PATH (audit-leftovers-1): the append-only triggers
+        # are lifted inside this transaction only, and the lift is logged.
+        with observations.maintenance(db.conn, "compact_fred"):
             for i in range(0, len(ids), 5000):
                 chunk = ids[i:i + 5000]
                 db.conn.execute(f"DELETE FROM observations WHERE rowid IN "

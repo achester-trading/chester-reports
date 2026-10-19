@@ -95,7 +95,7 @@ def rows_from_payload(payload, now: dt.datetime) -> list[dict]:
 
 def _start(db) -> tuple[int, int]:
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, KEYS).get("thai.cpi")
     finally:

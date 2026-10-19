@@ -762,20 +762,24 @@ def charts_group(cfg: dict) -> None:
           "the cap is the budget's, and a fired trigger lifts it by one")
     many = {k: {"id": k, "png": b"x"} for k in mch.ORDER}
     aside = mch.hold_cap(many, 11)
-    check(aside == ["M8"] and "cap of 11" in many["M8"]["unavailable"]
+    check(aside == ["M13", "M8"] and "cap of 11" in many["M8"]["unavailable"]
+          and "cap of 11" in many["M13"]["unavailable"]
           and sum(1 for c in many.values() if not c.get("unavailable")) == 11,
-          "the fallback: over a cap (here 11, one under the twelve planned), M8 is "
-          "set aside first and says why (its content arrives with scenario set #1); "
-          "eleven print")
+          "the fallback: over a cap (here 11, all thirteen drawn), M13 -- the watch "
+          "instrument's figure (ST-14) -- then M8 are set aside and say why (M8's "
+          "content arrives with scenario set #1); eleven print")
     bad = {k: c.get("unavailable") for k, c in charts.items() if c.get("unavailable")}
     nch = ed["chart_count"]
     # M11 (Batch 6 item 40) reads the S&P 500 close and its earnings; where this
     # fixture stores neither it says why, and its own gate draws it
-    # (tools/validate_st_r5_index.py group E).
+    # (tools/validate_st_r5_index.py group E). M13 is not drawn on this fixture
+    # (no explorer read: ST-14), so it is never in `bad`.
     check(set(bad) - {"M11"} == {"M10"} and "not tracked" in bad["M10"]
-          and nch == len(mch.ORDER) - len(bad) and not ed.get("charts_over_cap"),
-          f"with history stored, all but M10 (and M11 without index data) render "
-          f"({nch}); the fixture stores no fed funds contracts, and M10 says so"
+          and "M13" not in charts
+          and nch == len(mch.ORDER) - len(bad) - 1 and not ed.get("charts_over_cap"),
+          f"with history stored, all but M10 (and M11 without index data, M13 without "
+          f"an explorer read) render ({nch}); the fixture stores no fed funds "
+          f"contracts, and M10 says so"
           + (f" -- unavailable: {bad}" if set(bad) - {"M11"} != {"M10"} else ""))
     ok_ids = [k for k, c in charts.items() if not c.get("unavailable")]
     ok = [c for c in charts.values() if not c.get("unavailable")]
@@ -2186,9 +2190,14 @@ def t33_group(ed: dict, out: dict) -> None:
           and charts["M8"]["unavailable"] == "not yet: scenario set #1",
           "M3 says why it is empty when the scorecard begins after the month; M8 is "
           "skipped by the 9 Oct ruling and logged so")
-    check("M11" in mch.ORDER and "M12" not in mch.ORDER and len(mch.ORDER) == 12,
-          f"the plan is twelve charts, M0-M11 ({', '.join(mch.ORDER)}); M11 is Batch "
-          f"6 item 40's standing decomposition")
+    # ST-14 (18 Oct 2026): M13, the mechanism watch's supply figure, is planned
+    # last and drawn only once the explorer has read -- never on this fixture.
+    check("M11" in mch.ORDER and "M12" not in mch.ORDER and len(mch.ORDER) == 13
+          and mch.ORDER[-1] == "M13" and mch.DROP_ORDER[0] == "M13"
+          and "M13" not in charts,
+          f"the plan is thirteen charts, M0-M11 and M13 ({', '.join(mch.ORDER)}); M11 is "
+          f"Batch 6 item 40's standing decomposition, M13 drawn only once the explorer "
+          f"has read and first set aside at the cap")
 
 
 def t34a_group(ed: dict, client) -> None:
@@ -2343,11 +2352,14 @@ def main() -> int:
     ten = list(stack_mod.SECTION_ORDER)
     order = ten[:ten.index("narratives") + 1] + ["reading"] \
         + ten[ten.index("narratives") + 1:] + ["slow"]
+    # The labour block (Batch 7 item 48, 6e-releases) follows Plumbing.
+    order.insert(order.index("plumbing") + 1, "labour")
     check([s["id"] for s in ed["sections"]] == order,
-          "the ten sections in the brief's order, Reading between Narratives and "
-          "Ahead (D1), Slow layers last")
+          "the ten sections in the brief's order, the labour block after Plumbing, "
+          "Reading between Narratives and Ahead (D1), Slow layers last")
     want = {"read": "deep", "tape": "light", "mechanics": "deep", "misfit": "deep",
-            "plumbing": "deep", "positioning": "medium", "priced": "deep",
+            "plumbing": "deep", "labour": "medium", "positioning": "medium",
+            "priced": "deep",
             "narratives": "deep", "reading": "deep", "ahead": "deep",
             "book": "medium", "slow": "deep"}
     got = {k: sec[k]["depth"] for k in want}

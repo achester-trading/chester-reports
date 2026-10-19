@@ -300,3 +300,113 @@ high-water mark.
 
 **The weekly loop closes the circle.** It writes the agenda of misses and the
 verdicts back to Drive for the next brief and the next sitting.
+
+## 9. Tranche 3, part 1 (alpha-lab-3, 17 Oct 2026; change order section 5)
+
+Pulled forward from November: X-3.6, X-3.1 and X-3.2. Nothing here changes the
+constitution, and the lab still writes only alpha.db and its own files.
+
+**Pre-registration by manifest.** `alpha/manifest.py` writes a batch's manifest,
+holding the batch, its sha256 and its instant, under the research directory before
+the register takes the batch. That instant is every hypothesis's
+`pre_registered_at`, and the manifest's sha256 is on the batch row. Drive's
+created time and the proposer's manifest line count as manifests too.
+
+The harness (`workbench.run`) refuses a hypothesis:
+- whose batch carries no manifest;
+- whose manifest is dated after the run;
+- whose manifest file no longer hashes to what was registered.
+
+The workbench's `new`, the tells importer and the X-3 roster all register this
+way. The box registers the roster with
+`python -m alpha.manifest register alpha/research/roster-2026-10-17-x3.yaml`.
+
+**X-3.6, tells as hypotheses** (`alpha/tells.py`, `config/alpha_tells.yaml`). The
+importer reads four sources:
+- the Weekly's tells (the Book B scanner's `tells:`);
+- the Doctrine's section 5.3 trust matrix, its entries and nothing else (ruled 18 Oct 2026: the dated appendix's lessons are not tells);
+- the setups in `config/setups.yaml`;
+- the probability ledger's graded sources, read by SQL over the read-only store.
+
+Each tell becomes one hypothesis, "predicts at h sessions after costs?". It is
+registered needs_code, as source `tell` on the channel `importer`. Its mechanism
+is quoted word for word from the cited section, and the quote is checked. Its
+horizon comes from the tell's own window.
+
+The importer is idempotent:
+- an unchanged tell writes nothing;
+- a changed one is a new registration, and the old one is marked superseded (status
+  refined, `superseded_by` set);
+- a tell no paper states is not imported, and the import report says why. The move
+  screen is one, and so is a forecast source with no declared paper.
+
+The lab line and the Lab report print the count by source. Nothing is tested
+here.
+
+**X-3.1, engine 4, scheduled events.**
+
+The base rates come first. `python -m alpha.event_rates compute` writes them to
+`event_base_rates`, each row with its n, window and unit:
+- for CPI, payrolls and FOMC: the first session's drift, the next session's drift
+  and the VIX's change, by naive surprise, positioning and dealer regime;
+- for earnings in the 29 names: the 1- and 20-session drift by the sign of the
+  real surprise, and the realised reaction. The implied move is "awaiting", since
+  none is stored.
+
+The engine follows (`alpha/engines/events.py`):
+- `events_macro`: CPI and payrolls, the next session by surprise bucket;
+- `events_fomc`: by positioning;
+- `events_pead`: the 20-session drift;
+- `events_crush`: a data gap, since no tradable volatility instrument is stored.
+
+**X-3.2, engine 5, crypto carry** (`alpha/engines/carry.py`,
+`config/alpha_crypto_venues.yaml`). It is long spot and short the perp on the venue
+paying the most. Its switch is S-3's funding regime (calc.funding_agg and
+calc.leverage_z). Venue fees are dated constants, and funding accrues daily. The
+basis is a listed gap, because no perp mark is stored.
+
+The engine runs nothing until the store holds the manifest's 92-week window, and
+until then prints "insufficient history". Once live (after the gate), the nightly
+loop's carry step books the paper book's crypto rows in `carry_book` and
+`carry_accruals`, and `book.cum_pnl` reads them.
+
+The gate is `tools/validate_alpha_lab_3.py`. Part 2 takes X-3.5 (the grammar
+search) and X-3.7 (the quarterly meta-loop). Engines 6 and 7 wait for their
+preconditions.
+
+## 10. The quarterly meta-loop (X-3.7; lenses-group-b, 18 Oct 2026)
+
+`alpha/loops/quarterly.py` asks one question: did the loop's learning earn its
+keep? The weekly loop runs it once, inside `review_window_days` (21) of a
+quarter's end, and only for a quarter the lab ran through whole.
+
+| The loop's change | The counterfactual, from the same stored prices |
+|---|---|
+| `refit_accepted` | the engine's strategy over its rows from the change to the next re-fit (or the quarter's end), at the old parameters; the difference in summed returns times the engine's capital |
+| `rebalance` | each engine's recorded daily returns over the days the weights held, times the notional, times the change in weight; an engine weighted to zero is listed as not computable |
+
+Every other kind is not counted. The governor's moves are the constitution's
+rules, and the register's and the harness's are bookkeeping. A reversed change
+counts nothing.
+
+**A negative net contribution** writes one `meta_tighten` loop event for the next
+quarter (`config/alpha.yaml` `meta_loop:`, session-set):
+- each re-fitted engine's numeric ranges narrowed toward its current parameters
+  (each side keeps half its distance);
+- the re-fit cadence doubled (weekly to fortnightly), never beyond every 8 weeks.
+
+The weekly loop reads it through `refit_due()` and `effective_ranges()`. A
+positive or zero quarter changes nothing and writes nothing, and a quarter is
+adjusted once.
+
+**The Quarterly's page** (`alpha/report.py` `quarter_page`) has five sections:
+1. the lab's quarter;
+2. the engines;
+3. the loop's contribution and any adjustment;
+4. the failures register;
+5. the gate-ladder standing.
+
+It is mailed with the Quarterly through `quarterly_attachment`, which never
+raises. Its prose stays within the Quarterly's medium depth and it draws no
+chart. It prints "no quarter closed yet" until a whole quarter exists.
+`tools/validate_alpha_lab_3.py` group F holds it.

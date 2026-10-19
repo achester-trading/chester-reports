@@ -251,7 +251,7 @@ def _produce(backfill: bool) -> list[dict]:
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     from .. import observations
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         backfill = not pub.newest_observed(store, ["safe.fx_reserves"]).get(
             "safe.fx_reserves")

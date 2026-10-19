@@ -396,7 +396,7 @@ def ever_dropped(db=None) -> bool:
     from altdata import observations                           # noqa: PLC0415
     own = db is None
     try:
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             return pub.newest_observed(store, [DROP_KEY])[DROP_KEY] is not None
         finally:

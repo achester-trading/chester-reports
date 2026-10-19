@@ -361,7 +361,7 @@ def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None,
          months: int = PULL_CONTRACTS, behind: int = 1) -> dict:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         exps = expiries_around(ahead=months, behind=behind)
         contracts, failed = [], []
@@ -461,7 +461,7 @@ def _main(argv: list[str]) -> int:
     if a.cmd == "backfill":
         print(json.dumps(backfill(months=a.months), indent=2, sort_keys=True))
         return 0
-    db = observations.ObservationStore()
+    db = observations.open_writer(__name__)
     try:
         day = a.session or session.last_completed_session().isoformat()
         out = {}

@@ -1,0 +1,109 @@
+# 6e, the rest: macro completeness (16 Oct 2026, session B, branch 6e-rest).
+# Read by altdata/macro_6e.py (the calc.* series, written in the market_features
+# pass) and altdata/cpi_lead.py (the CPI lead composite). Nothing here is a state,
+# a modifier or a rule; every series is trigger_eligible false.
+#
+# Each value is the architecture's (docs/chester-reports-architecture-v3.md,
+# Session 3 and Part 17) where it gives one, and SESSION-SET otherwise, with its
+# reason beside it. The session-set ones are listed in docs/briefs/6e-rest-notes.md.
+version: 1
+
+# ---------------------------------------------------------------------------
+# S3a -- PATH-AWARE SAMPLING: path_divergence (architecture lines 425-427,
+# 1296, 1330, 3107: "JPY flags path_divergence").
+# ---------------------------------------------------------------------------
+# The same exchange rate sampled two ways: FRED's H.10 noon buying rate (one
+# fixing a day) against Yahoo's close (the end of the day's path). On a quiet
+# day they agree to a few hundredths of a percent; on a day the path moved after
+# noon New York they part. The divergence is the close less the noon print, in
+# percent of the noon print.
+path_divergence:
+  pairs:
+    - {key: calc.path_divergence_usdjpy, fixing: fred.usd_jpy,
+       close: yfinance.mkt_usdjpy, label: "USD/JPY"}
+  # THE FLAG (session-set): the divergence at or beyond 3 standard deviations
+  # of its own trailing year, with at least 120 days in the year. Three sigma,
+  # because the series is mostly timing noise and the flag is for the day the
+  # path, not the clock, made the gap.
+  sigma: 3.0
+  window_days: 365
+  min_days: 120
+
+# ---------------------------------------------------------------------------
+# S3c -- THE TGA RANGE, not just the level (architecture lines 542-557).
+# ---------------------------------------------------------------------------
+tga:
+  # Session-set: one quarter of weekly prints, the horizon on which the
+  # Treasury's cash balance swings around tax dates and refundings.
+  weeks: 13
+
+# ---------------------------------------------------------------------------
+# THE CPI LEAD COMPOSITE (architecture Part 17, lines 3386-3516)
+# ---------------------------------------------------------------------------
+# "Every component stores its stated lag explicitly, and the report renders the
+# lag-adjusted projection alongside the current print." "Weighted implied CPI
+# three to nine months forward, built from each component with its lag applied
+# and weighted by CPI basket share." Render 3, 6 and 9 months and state the
+# covered basket share at each. trigger_eligible false.
+#
+# STATUS: UNVALIDATED. The architecture: "The composite cannot be built before
+# [Session 6's backfill, then fit and validate the lag structure against
+# history]." So the composite here is the STATED-LAG composite, printed with
+# "(stated lags, unvalidated)", and the kill condition is coded and runs on
+# whatever history the store holds: if the 6-month composite shows no
+# relationship to realized CPI (correlation under `kill_min_corr` over at least
+# `kill_min_months`), the composite prints its failure, not a number.
+cpi_lead:
+  status: unvalidated
+  horizons_months: [3, 6, 9]
+  target: fred.cpi                  # realized CPI, year over year, for the kill test
+  kill_min_corr: 0.3                # session-set: a weak positive relationship at least
+  kill_min_months: 60               # session-set: five years of monthly pairs
+  # One leading series per basket component, so no component is counted twice
+  # (the architecture's correlation guard). Weights: CPI-U relative importance,
+  # rounded to sum to one (BLS, December 2025 weights): shelter 35.5%, core goods
+  # 19%, services ex shelter 25.5%, food 13.6%, energy 6.4%. Lags are PARAMETERS ("reviewed
+  # annually"), session-set until Session 6's fit.
+  components:
+    - name: core goods
+      weight: 0.19
+      lead: fred.import_prices_ex_fuel
+      transform: yoy                # percent year over year
+      lag_months: 6                 # session-set: import prices pass into core goods over about two quarters (the architecture's freight lag)
+      scale: 1.0
+      offset: 0.0
+    - name: services ex shelter
+      weight: 0.255
+      lead: fred.atl_wage_tracker
+      transform: level              # already a year-over-year growth rate, percent
+      lag_months: 6                 # session-set: wage growth leads services prices by about two quarters
+      scale: 1.0
+      offset: -1.5                  # session-set: wage growth less trend productivity (1.5%) is unit-labour-cost growth
+    - name: shelter
+      weight: 0.355
+      # 6e-releases (16 Oct 2026, ruling (a)3): the gap closes with lens 7's
+      # Zillow ZORI (altdata/sources/rent_indices.py). ONE lead, the correlation
+      # guard: Apartment List prints beside it in lens 7 but is not counted
+      # twice. Zillow, not Apartment List, because its history is longer (2015
+      # against 2017), so the kill test reaches its 60 months sooner.
+      lead: zillow.zori_us
+      transform: yoy                # percent year over year of the dollar rent
+      lag_months: 12                # the architecture's ~4 quarters (Part 17) and the order's lens 7: "~12-month lead"
+      scale: 1.0                    # stated: new-lease rent growth passes into shelter one for one, unvalidated
+      offset: 0.0
+    - name: food
+      weight: 0.136
+      lead: null
+      absent_reason: "the nitrogen complex (Tampa ammonia, NOLA urea, DAP) is not stored"
+    - name: energy
+      weight: 0.064
+      lead: null
+      absent_reason: "energy has no lead: it passes through within the month"
+  # The conditioner (architecture lines 3426-3452): trailing 10-year annualized
+  # CPI less the 10-year breakeven, with the roll-off calendar of flat paths.
+  conditioner:
+    key: calc.realized_10y_vs_expected_10y
+    cpi: fred.cpi
+    breakeven: fred.breakeven_10y
+    rolloff_paths_pct: [2.5, 3.0, 3.5]
+    rolloff_months: [12, 24]

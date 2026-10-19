@@ -116,14 +116,27 @@ PY_VALIDATORS := \
 	tools/validate_ai_fcf.py \
 	tools/validate_sr38_inbox.py \
 	tools/validate_correlation_layer.py \
+	tools/validate_lenses.py \
+	tools/validate_6e_rest.py \
+	tools/validate_releases.py \
+	tools/validate_releases_b.py \
+	tools/validate_st_t5_prl.py \
+	tools/validate_st_t5_render.py \
+	tools/validate_digital_addendum.py \
+	tools/validate_crypto_sources.py \
 	tools/validate_audit_3a.py \
 	tools/validate_audit_2.py \
 	tools/validate_audit_1.py \
+	tools/validate_backups.py \
+	tools/validate_meme_ingest.py \
+	tools/validate_ledgers_b6.py \
+	tools/validate_outliers.py \
 	tools/validate_quality.py \
 	tools/validate_fred_history.py \
 	tools/validate_alpha.py \
 	tools/validate_alpha_no_orders.py \
 	tools/validate_alpha_proposer.py \
+	tools/validate_alpha_lab_3.py \
 	tools/validate_volume_profile.py \
 	tools/validate_es_block.py \
 	tools/validate_st_r4_t1.py \
@@ -163,7 +176,8 @@ DATA_GATES := \
 	tools/validate_regime_store.py \
 	tools/validate_weekly_store.py \
 	tools/validate_imf_china.py \
-	tools/validate_vendor_divergence.py
+	tools/validate_vendor_divergence.py \
+	tools/validate_backup_crypt.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \
@@ -172,7 +186,7 @@ SH_VALIDATORS := \
 
 EXTRA := smoke_test.py
 
-.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures
+.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures mechanism-register
 
 # THE BUILT HTML EDITIONS. docs/html/ is output, not source: every file in it
 # is generated from the .md by tools/build_paper_html.py, figures embedded.
@@ -181,6 +195,11 @@ EXTRA := smoke_test.py
 # stale copy was canonical for reading. A built artifact cannot drift.
 html:
 	@$(PYTHON) tools/build_paper_html.py
+
+# THE MECHANISM-WATCH REGISTER'S RENDERED VIEW (ST-15): from the store's
+# mechanism_watch table; never edited by hand.
+mechanism-register:
+	@$(PYTHON) -m altdata.mechanism_watch render --out docs/mechanism-watch-register.md
 
 # THE CURRENCIES CHARTS, REDRAWN FROM DATA -- INTO build/, NOT INTO docs/.
 #

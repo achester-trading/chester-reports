@@ -25,6 +25,9 @@ never calls a model.
      snapshot, from_known true; consecutive sessions give the snapshot date;
      the master's known date still wins; a ticker change keeps the snapshot
      date
+  M. The call sites moved (audit-leftovers-2): the yfinance basket and the
+     crypto basket resolve their store keys through the master; seed and master
+     agree; a symbol the master lacks keeps its seed key and logs
 """
 
 from __future__ import annotations
@@ -786,6 +789,50 @@ def group_l() -> None:
           "a ticker change across the gap keeps the snapshot date")
 
 
+def group_m(m: Master) -> None:
+    """M. THE CALL SITES MOVED (audit-leftovers-2; aud-3b answer 9, the yfinance
+    basket first): the pull resolves each Yahoo symbol's store key through the
+    master, the module's maps are its seed, and the two agree."""
+    print("\nM. The yfinance basket through the master")
+    import inspect
+    import logging
+    from altdata.sources import yfinance_source as yf
+    check(yf.resolve_basket(yf.SYMBOLS) == yf.SYMBOLS,
+          f"all {len(yf.SYMBOLS)} SYMBOLS resolve through the master to their seed keys")
+    check(yf.resolve_basket(yf.CRYPTO_BASKET) == yf.CRYPTO_BASKET,
+          f"the crypto basket's {len(yf.CRYPTO_BASKET)} names resolve likewise")
+    check("resolve_basket(symbols or SYMBOLS)" in inspect.getsource(yf.pull),
+          "pull() takes its keys from the master's resolver, not the map")
+    eq = {s for s in yf.SYMBOLS if m.resolve(s, "yahoo")["asset_class"] == "equity"}
+    check(eq == set(yf.EARNINGS_SYMBOLS),
+          f"EARNINGS_SYMBOLS is exactly the basket's equities by the master "
+          f"({len(eq)}; differ {sorted(eq ^ set(yf.EARNINGS_SYMBOLS))})")
+    cont = {s: m.resolve(s, "yahoo")["asset_class"] for s in yf.CONTINUOUS_SYMBOLS}
+    # ST-13: a crypto.watch coin (PRL) trades round the clock like any coin.
+    check(all(c in ("crypto", "crypto.watch", "fx") for c in cont.values()),
+          "every CONTINUOUS symbol is crypto (a watch coin included) or fx by the "
+          "master (the rule itself stays the module's: IDR=X and TRY=X are fx and "
+          "not continuous)")
+    i = yf.instrument("SPY")
+    check(i["store_key"] == "yfinance.mkt_spy" and i["asset_class"] == "etf"
+          and i["currency"] == "USD" and i["exchange"] == "ARCX" and i["id"] == "SM00001",
+          f"instrument('SPY') reads id, class, currency and exchange from the master: {i}")
+    logs: list[str] = []
+
+    class H(logging.Handler):
+        def emit(self, rec):
+            logs.append(rec.getMessage())
+    h = H()
+    logging.getLogger(yf.__name__).addHandler(h)
+    try:
+        got = yf.resolve_basket({"NOTAREALSYM": "mkt_fixture"})
+    finally:
+        logging.getLogger(yf.__name__).removeHandler(h)
+    check(got == {"NOTAREALSYM": "mkt_fixture"} and any("does not resolve" in x for x in logs),
+          "a symbol the master lacks keeps its seed key and logs an error -- no capture "
+          "is lost to a reference gap")
+
+
 def main() -> int:
     m = Master()
     group_a(m)
@@ -800,6 +847,7 @@ def main() -> int:
     group_j(m)
     group_k()
     group_l()
+    group_m(m)
     print(f"\n{PASSED} passed, {FAILED} failed")
     print(LINE)
     print("VALIDATION PASSED" if not FAILED else "VALIDATION FAILED")

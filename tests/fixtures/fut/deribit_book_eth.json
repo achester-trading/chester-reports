@@ -1,0 +1,30 @@
+{
+ "jsonrpc": "2.0",
+ "result": [
+  {
+   "high": 2478.05,
+   "low": 2390.45,
+   "last": 2427.7,
+   "instrument_name": "ETH-PERPETUAL",
+   "bid_price": 2427.7,
+   "ask_price": 2427.75,
+   "open_interest": 245856878,
+   "mark_price": 2427.64,
+   "creation_timestamp": 1792240592716,
+   "current_funding": 0.0,
+   "estimated_delivery_price": 2427.12,
+   "funding_8h": 5e-06,
+   "price_change": -1.8338,
+   "volume": 36086.40577,
+   "base_currency": "ETH",
+   "quote_currency": "USD",
+   "volume_usd": 87708315.0,
+   "volume_notional": 87708315.0,
+   "mid_price": 2427.73
+  }
+ ],
+ "usIn": 1792240592716180,
+ "usOut": 1792240592716329,
+ "usDiff": 149,
+ "testnet": false
+}

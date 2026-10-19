@@ -553,6 +553,11 @@ vocabularies:
     - prediction_market
     # The correlation layer (AQ-5): one mechanism, however many pairs.
     - cross_asset_correlation
+    # Batch 4 Tranche A part 1 (17 Oct 2026): crypto perp leverage (funding,
+    # open interest, long/short across the venues) and Bitcoin's and Ethereum's
+    # network state (hashrate, fees, gas).
+    - crypto_leverage
+    - crypto_network
 
 defaults:
   trigger_eligible: false
@@ -4031,6 +4036,282 @@ metrics:
         reported -- a GAAP figure against an adjusted estimate, or a one-off gain.
         The payload keeps both numbers so a reader can see what produced it, and a
         percentile over this metric's own history is the only honest way to read it.
+  # -------------------------------------------------------------------------
+  # THE SURPRISE INDEX (Batch 7 item 48 lens 23, ST-R6.48f; lenses-group-b,
+  # 18 Oct 2026; altdata/surprise_index.py). Written by altdata.surprise's
+  # compute step. A macro release's rows exist only once a `consensus.<id>`
+  # source writes; none does (the consensus logger's yfinance serves no macro
+  # consensus, ruling 5 of 18 Oct 2026), so those keys are registered with no
+  # rows. No composite is built: the order defines none.
+  # -------------------------------------------------------------------------
+  calc.consensus_surprise.cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The cpi release's actual (its first print) less the stored consensus
+      (consensus.cpi), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.cpi over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.core_cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The core_cpi release's actual (its first print) less the stored consensus
+      (consensus.core_cpi), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.core_cpi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.core_cpi over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.payrolls:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    description: >-
+      In THOUSANDS of jobs (a count).
+      The payrolls release's actual (its first print) less the stored consensus
+      (consensus.payrolls), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.payrolls:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.payrolls over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.unemployment:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      The unemployment release's actual (its first print) less the stored consensus
+      (consensus.unemployment), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.unemployment:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.unemployment over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.ppi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The ppi release's actual (its first print) less the stored consensus
+      (consensus.ppi), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.ppi:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.ppi over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.gdp:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    description: >-
+      The gdp release's actual (its first print) less the stored consensus
+      (consensus.gdp), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.gdp:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.gdp over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.consensus_surprise.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      The fomc release's actual (its first print) less the stored consensus
+      (consensus.fomc), in the release's own units (config/releases.yaml
+      surprise_index). NOT the naive surprise (calc.surprise_vs_naive.*). No
+      rows until a consensus source writes consensus.<id>.
+  calc.consensus_surprise_z.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.consensus_surprise.fomc over the standard deviation of the
+      release's own earlier surprises (the latest 40, at least 8): a
+      standardised surprise, unitless. No rows until a consensus source writes.
+  calc.market_implied_surprise.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      MARKET-IMPLIED, NOT A SURVEY CONSENSUS (ruling 1 of 18 Oct 2026). On each
+      FOMC decision day, the decision (the change in the target range's
+      midpoint, fred.fed_target_upper and fred.fed_target_lower) less the change
+      the stored fed funds futures (fedfunds.futures_price) implied for that
+      meeting at the prior session's close, in basis points
+      (altdata/surprise_index.py market_implied_series). Kept apart from
+      calc.consensus_surprise.fomc so no survey consensus is mixed with it.
+  calc.market_implied_surprise_z.fomc:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      calc.market_implied_surprise.fomc over the standard deviation of its own
+      earlier surprises (the latest 40, at least 8; not demeaned): a
+      standardised surprise, unitless, market-implied.
+  calc.consensus_surprise_z.earnings:
+    source: calc
+    mechanism_group: macro_momentum
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    description: >-
+      Per name (the instrument): calc.earnings_surprise_pct, the reported EPS
+      against the analyst mean (yfinance, the consensus logger's library), over
+      the standard deviation of the same name's earlier surprises (the latest 40,
+      at least 8). Standardised and unitless; each name against its own history.
   events.release:
     source: fred
     mechanism_group: macro_momentum
@@ -12768,12 +13049,1278 @@ metrics:
       gold/silver ratio widening -- in risk-off is 'one of the most dependable stress
       behaviours'.
 
-  # THE VOLUME PROFILE (VP-1, 14 Oct 2026; altdata/volume_profile.py,
-  # docs/volume-profile.md). Prices, written by `python -m
-  # altdata.volume_profile compute` after the derived features in the EOD
-  # pass. Each row's available_at is the max of its input bars'. For the
-  # Alpha Lab's rule grammar (H-006 to H-008); none is trigger-eligible,
-  # because what the profile predicts is the lab's question, not this repo's.
+  # 6e, THE REST (16 Oct 2026): S3a-S3c, the CPI-PCE gap and the CPI lead.
+  calc.path_divergence_usdjpy:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: conditions
+    trigger_eligible: false
+    description: >-
+      S3a, path-aware sampling: Yahoo's USD/JPY close (JPY=X) less FRED's H.10 noon buying rate (DEXJPUS) on the same day, PERCENT of the noon print. The same rate sampled at two points of the day's path; altdata/macro_6e.py path_divergence_flag() flags a day at or beyond 3 standard deviations of its trailing year (config/macro_6e.yaml). 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.policy_2y_minus_effr_bp:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b: the 2-year Treasury yield (DGS2) less the effective fed funds rate (EFFR), bp -- the architecture's compact easing-priced proxy. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.sofr_iorb_bp:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b funding stress: SOFR less interest on reserve balances, bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.sofr_effr_bp:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b funding stress: SOFR less the effective fed funds rate (EFFR), bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.ccc_bb_oas_bp:
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      The CCC & lower OAS less the BB OAS (BAMLH0A3HYC less BAMLH0A1HYBB), bp: the architecture's Session 2 CCC-BB differential, the tail of high yield against its best credits. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.real_policy_rate:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3b: the effective fed funds rate known at the month's first day less that month's core PCE year over year, percent. The real policy rate of the four-bank frame's US leg. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.policy_diff_us_ea_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b policy differential: EFFR less the euro short-term rate (EURSTR), bp, the overnight legs of the Fed and the ECB. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.policy_diff_us_uk_bp:
+    source: derived_state
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      S3b policy differential: EFFR less SONIA, bp, the overnight legs of the Fed and the Bank of England (Bank Rate's FRED series stopped in 2017). Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.deficit_ttm_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c deficit ratio: the Monthly Treasury Statement's surplus or deficit (MTSDS133FMS, millions) summed over twelve consecutive months, against nominal GDP (GDP, billions SAAR, the latest quarter at or before) converted to millions, percent. NEGATIVE is a deficit. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.interest_to_receipts:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c interest burden: federal interest payments (A091RC1Q027SBEA) against federal current receipts (FGRECPT), both billions SAAR, percent. The coverage stress test waits for the 12-month maturity share (see 6e-rest notes). 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.federal_effective_rate:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3c: the federal government's average effective interest rate -- interest payments (A091RC1Q027SBEA, billions SAAR, x1000) over total public debt (GFDEBTN, millions), percent. R's average basis. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.r_minus_g_marginal:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3c R-vs-G, the MARGINAL basis: the 10-year yield at or before the quarter's date less nominal GDP year over year, percentage points. Beside calc.r_minus_g (real basis) and calc.r_minus_g_average. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.r_minus_g_average:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      S3c R-vs-G, the AVERAGE basis: the federal effective rate (calc.federal_effective_rate) less nominal GDP year over year, percentage points. The architecture's 'R on both bases', the gap between them the refinancing to come. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.tga_range_13w:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      S3c: the Treasury General Account's range (maximum less minimum) over the last 13 weekly prints, DOLLARS (WTREGEN is millions, converted). 'The TGA range, not just the level.' 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.tga_vol_13w:
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      S3c: the standard deviation of the TGA's 12 weekly changes inside the last 13 prints, DOLLARS. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.fed_debt_total_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c sectoral debt, government: total public debt (GFDEBTN, millions) against nominal GDP (billions SAAR, converted), percent, same quarter. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.nonfin_corp_debt_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c sectoral debt, nonfinancial corporate: debt securities and loans (BCNSDODNS, Z.1, millions) against nominal GDP, percent, same quarter. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.household_debt_pct_gdp:
+    source: derived_state
+    mechanism_group: macro_sovereign
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      S3c sectoral debt, households: debt securities and loans (CMDEBT, Z.1, MILLIONS -- read off FRED 16 Oct 2026) against nominal GDP, percent, same quarter. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.core_cpi_pce_gap:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      The core CPI less core PCE gap: core CPI year over year less core PCE year over year, same month, percentage points (JPM GTM change order, 3 Oct 2026: 'as a derived series with a lens'). Core PCE normally runs below core CPI; a NEGATIVE gap is the sign flip the lens flags. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.realized_10y_vs_expected_10y:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: ratio
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite's conditioner (architecture lines 3426-3452): trailing ten-year annualized CPI (CPIAUCSL against the same month ten years before) less the 10-year breakeven (T10YIE) at or before the month's end, percentage points. Graded against its roll-off calendar (altdata/cpi_lead.py rolloff()), not against zero. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cpi_lead_3m:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: release
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite, 3 months ahead: the implied CPI year over year from each component's lead with its stated lag, weighted by basket share over the covered share (altdata/cpi_lead.py; config/macro_6e.yaml). STATED LAGS, UNVALIDATED: Session 6's lag fit has not run, and the kill test withholds it when it fails. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cpi_lead_6m:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: release
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite, 6 months ahead; as calc.cpi_lead_3m. The horizon the kill test reads. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cpi_lead_9m:
+    source: derived_state
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    family: release
+    trigger_eligible: false
+    description: >-
+      The CPI lead composite, 9 months ahead; as calc.cpi_lead_3m. Written only when a component's stated lag reaches nine months: shelter's, whose 12-month lead is Zillow's rent (6e-releases, 16 Oct 2026, ruling (a)3), so the 9-month composite is shelter alone, 35.5% of the basket. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+
+  zillow.zori_us:
+    source: rent_indices
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: release
+    trigger_eligible: false
+    description: >-
+      Zillow Observed Rent Index (ZORI), smoothed, all homes plus multifamily, the United States row of the metro file, DOLLARS a month, monthly from Jan 2015 (files.zillowstatic.com/research/public_csvs/zori/Metro_zori_uc_sfrcondomfr_sm_month.csv, checked 16 Oct 2026). Batch 7 lens 7, the shelter lead (new leases reach CPI shelter about 12 months later), and the CPI lead composite's shelter component (config/macro_6e.yaml, ruling (a)3 of 16 Oct 2026). observed_at the month's first day. Written by altdata/sources/rent_indices.py; the history carries the first pull's Last-Modified.
+  aptlist.rent_us:
+    source: rent_indices
+    mechanism_group: macro_inflation
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: release
+    trigger_eligible: false
+    description: >-
+      Apartment List national rent estimate, United States, all bedroom sizes ('overall'), DOLLARS a month, monthly from Jan 2017, from the month's Apartment_List_Rent_Estimates_<YYYY>_<MM>.csv linked on apartmentlist.com/research/category/data-rent-estimates (checked 16 Oct 2026). Batch 7 lens 7, printed beside Zillow's; not counted in the CPI lead composite (one lead a component). Written by altdata/sources/rent_indices.py.
+  clevfed.rules_start:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the starting quarter's federal funds rate in the rules' chart file (www.clevelandfed.org/-/media/files/webcharts/policyrules/chartdata.csv, checked 16 Oct 2026), PERCENT; observed_at the starting quarter. The rules' prescribed path, not market pricing. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+  clevfed.rules_median_4q:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the MEDIAN rule's prescribed federal funds rate four quarters after the starting quarter, PERCENT. A policy-rules path, not a market-implied one. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+  clevfed.rules_median_8q:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: rate
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the median prescription eight quarters on, PERCENT. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+  clevfed.rules_iqr_4q:
+    source: clevfed_rules
+    mechanism_group: macro_liquidity
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    family: spread
+    trigger_eligible: false
+    description: >-
+      The Cleveland Fed's simple monetary policy rules: the 75th less the 25th percentile prescription four quarters on, PERCENT (its change in bp) -- the path's width across rules, the architecture's path dispersion (Session 3b) as the rules give it. Ruling (a)5 of 16 Oct 2026; altdata/sources/clevfed_rules.py.
+
+  # -------------------------------------------------------------------------
+  # BATCH 4 TRANCHE A, PART 1 (crypto-tranche-a-1, 17 Oct 2026): CD-2's perp
+  # venues (hl.*, fut.*), CD-5's network state (mempool.*, blockscout.*), the
+  # fear-and-greed index (fng.*), and the S-1 / S-3 derived series (calc.*).
+  # config/crypto_sources.yaml; docs/briefs/crypto-tranche-a-1-notes.md.
+  # -------------------------------------------------------------------------
+  hl.funding:
+    source: hyperliquid
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      Hyperliquid perp funding for one coin (instrument BTC or ETH), the UTC day's hourly prints summed x 365, annualised percent; complete days only; history from 12 May 2023 (fundingHistory).
+  hl.oi:
+    source: hyperliquid
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Hyperliquid open interest for one coin in USD (openInterest in coins x markPx, metaAndAssetCtxs): a snapshot filed under the pull's UTC day. FORWARD-ONLY: Hyperliquid serves no OI history.
+  fut.funding_okx:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      OKX USDT-swap funding for one coin (instrument BTC or ETH), the UTC day's eight-hourly realizedRate prints summed x 365, annualised percent; OKX serves about three months of history.
+  fut.oi_okx:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      OKX USDT-swap open interest for one coin in USD: history from rubik open-interest-history (period 1D, OKX's day stamped 16:00 UTC, filed under that UTC date), today from public/open-interest (oiUsd).
+  fut.ls_account_okx:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      OKX's account long/short ratio for the currency's contracts (instrument BTC or ETH), daily (rubik long-short-account-ratio, about 180 days served). Stored, never a direction call: the order reads it as a retail-skew measure.
+  fut.funding_deribit:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      Deribit perpetual funding for one coin (instrument BTC or ETH), the UTC day's hourly interest_1h summed x 365, annualised percent; history from 2019. Deribit is the third venue in place of Bybit, which is geo-blocked from the US.
+  fut.oi_deribit:
+    source: perp_venues
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Deribit perpetual open interest for one coin in USD (an inverse perpetual's open_interest is USD), get_book_summary_by_instrument: a snapshot, FORWARD-ONLY.
+  mempool.hashrate:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Bitcoin's average hashrate for the UTC day, hashes a second (mempool.space /v1/mining/hashrate; backfill from 2009 with /all); complete days only.
+  mempool.difficulty:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Bitcoin's difficulty as set at each adjustment, filed under the adjustment's UTC day (mempool.space /v1/mining/hashrate's difficulty list).
+  mempool.difficulty_change_est:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_return
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      The next difficulty adjustment's estimated change, percent (/v1/difficulty-adjustment): a snapshot of an estimate that moves until the retarget.
+  mempool.fee_rate:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: conditions
+    long_window: 365d
+    description: >-
+      mempool.space's recommended fee rate, sat/vB; instrument fastest, half_hour, hour, economy or minimum (/v1/fees/recommended): a snapshot.
+  mempool.mempool_vsize:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The projected mempool blocks' total virtual size, vbytes (/v1/fees/mempool-blocks): a snapshot of the queue.
+  mempool.tip_height:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Bitcoin's chain-tip height (/blocks/tip/height): a snapshot.
+  mempool.pool_share:
+    source: mempool_space
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      A mining pool's share of the last week's blocks, percent; instrument = the pool's slug, the top ten (/v1/mining/pools/1w): a snapshot.
+  fng.value:
+    source: alternative_me
+    mechanism_group: macro_sentiment
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      alternative.me's Crypto Fear & Greed Index, 0 (extreme fear) to 100 (extreme greed), the UTC day's value; full history from 1 Feb 2018 in one call. The publisher's classification is its banding of the value and is not stored.
+  # THE PRL DATA LAYER (ST-13, st-t5-prl, 18 Oct 2026; config/prl.yaml): the
+  # explorer's chain series and D1-D6 with the thesis status (altdata/prl.py).
+  # No CoinGecko series: retired (rulings of 13 and 18 Oct 2026); price and
+  # 24h volume are Yahoo's at the basket's symbol, cap and circulating supply
+  # DefiLlama's coin service's (the crypto basket's own keys).
+  pearl.chain_height:
+    source: pearl_explorer
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Pearl's chain-tip height from explorer.pearlresearch.ai (MW-4; G-26: the JSON endpoint where declared, else the block page; neither yet discovered). Observed values only; the estimate is calc.prl_height_estimated. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  pearl.chain_difficulty:
+    source: pearl_explorer
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    family: conditions
+    long_window: 365d
+    description: >-
+      The chain tip's difficulty from the explorer (S4; D6's 30-day leg). Unitless. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  pearl.chain_supply:
+    source: pearl_explorer
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The supply the explorer reports, in PRL, where it reports one. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_reward:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      The block reward at the height (Appendix E: 2.1e9 x K / ((h + K)(h - 1 + K)), K = 650,226), in PRL (altdata/prl.py). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_height_estimated:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Pearl's height ESTIMATED where the explorer stored none at the cutoff: the newest observed height (else Appendix E's block 113,770 at 2026-09-15 23:53 UTC) stepped at the 194 s target (G-26). Every figure computed from it carries ESTIMATED in its trace. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_supply_code:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      D1, the code supply: 2.1e9 x H / (H + K) at the height H, in PRL (altdata/prl.py). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_overhang:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      D2, the week-one overhang ratio: the 121.70M PRL minted by 2026-05-03 over D1, percent; 38.9% at the 19 Sep baseline. MW-7's promotion test (< 25%). Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_supply_gap:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      D3, the supply gap: D1 at the explorer's height less the supply the explorer reports, in PRL (ruling 1 of 18 Oct 2026; the order's CoinGecko circulating leg is retired). ESTIMATED, and no row written, until the explorer reads. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_emission_to_volume:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      D4, emission-to-volume: the day's issuance at the target pace (reward x 86400/194) times price, over 24h volume -- price and volume Yahoo's at the basket's symbol (yfinance.crypto_prl, yfinance.crypto_prl_volume); above 0.5 issuance is a large share of turnover, above 1.0 the market is not absorbing miner selling. Watch-level rights only (MW-2): no composite, overlay, dial or trigger reads it.
+  calc.prl_venue_conc:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    tracked: false
+    not_tracked_reason: source retired
+    description: >-
+      D5, venue concentration: the top venue's share of reported volume. NOT TRACKED (source retired): its one input was CoinGecko's tickers, and CoinGecko is retired (rulings of 13 and 18 Oct 2026); no row is written, and the Monthly prints "not tracked (source retired)" with this key named.
+  calc.prl_idle_gpu_flag:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    rights_ceiling: narrow_flag
+    description: >-
+      D6, the idle-GPU flag: 1 when the explorer's difficulty is up more than 25% over 30 days while price is down more than 20% over the same 30 days, else 0. MW-2's ONE narrow flag (Factor I attention, no scoring effect). Initial thresholds; calibrate after 90 days (January 2027).
+  calc.prl_thesis_status:
+    source: calc
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    rights_ceiling: none
+    description: >-
+      PRL's thesis status by the rule of 2.7.5 -- UNCHANGED / IMPROVED / DETERIORATED -- stored as JSON {status, trace} with the rule's inputs beside its word. An informational label with no decision rights, not a state of the market-state object; overridable by hand.
+  blockscout.gas_gwei:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: conditions
+    long_window: 365d
+    description: >-
+      Ethereum's gas oracle, gwei; instrument slow, average or fast (eth.blockscout.com /api/v2/stats): a snapshot. The keyless path in place of Etherscan's gas oracle (no ETHERSCAN_API_KEY; rule (b) of 16 Oct 2026).
+  blockscout.utilization:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      Ethereum network utilisation, percent of block gas used (Blockscout /api/v2/stats): a snapshot.
+  blockscout.tx_count:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      Ethereum transactions a day (Blockscout /api/v2/stats/charts/transactions, the last 30 days served); complete UTC days.
+  calc.stable_share:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-1: one chain's share of total stablecoin supply, percent (instrument Ethereum, Tron, Solana or Base): llama.stable_by_chain over llama.stable_total, the same day. A scorecard row, no rights.
+  calc.funding_agg:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_rate
+    trigger_eligible: false
+    family: rate
+    long_window: full
+    description: >-
+      S-3: open-interest-weighted perp funding across the enabled venues (Hyperliquid, OKX, Deribit), annualised percent, per coin (instrument BTC or ETH); at least two venues carrying both funding and OI that day, else not written. Starts with the venues' first common OI day (no OI history at two of them).
+  calc.oi_usd:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      S-3: total perp open interest in USD across every enabled venue (a day missing one is not written); instrument BTC or ETH, NULL = BTC + ETH.
+  calc.oi_mcap:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3: calc.oi_usd over the coin's market cap (llama.mcap_btc / _eth, on the day or within the three before), percent; instrument BTC or ETH.
+  calc.leverage_z:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3: z-score of calc.funding_agg against its trailing 90 days (60 observations needed); the order's calc.leverage_z (part 1 named it funding_agg_z, renamed before any row was stored). Prints from mid-December 2026 (ruling 5 of 17 Oct).
+  calc.oi_mcap_z:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3: z-score of calc.oi_mcap against its trailing 90 days (60 observations needed).
+
+  # -------------------------------------------------------------------------
+  # BATCH 4 TRANCHE A, PART 2 (crypto-tranche-a-2, 17 Oct 2026): DVOL (deribit.*),
+  # ETF flows (farside.*), the froth gauge's inputs (gt.*), CoinPaprika's global
+  # figures (paprika.*), and S-2, S-4, S-5 with the three flags (calc.*).
+  # -------------------------------------------------------------------------
+  deribit.dvol_btc:
+    source: deribit
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      Deribit's BTC volatility index (DVOL), the UTC day's close; history from 24 Mar 2021 (public/get_volatility_index_data, 1D). S-4.
+  deribit.dvol_eth:
+    source: deribit
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      Deribit's ETH volatility index (DVOL), the UTC day's close; history from 24 Mar 2021. S-4.
+  farside.btc_total:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      The day's net flow across the US spot bitcoin ETFs, USD (Farside's US$ millions x 1e6); one row a session, history from Jan 2024 (the all-data page). S-2.
+  farside.eth_total:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      The day's net flow across the US spot ether ETFs, USD; one row a session. S-2.
+  farside.btc_issuer:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      One spot bitcoin ETF's net flow for the day, USD; instrument = its ticker (Farside's issuer columns, checked by the column-change detector).
+  farside.eth_issuer:
+    source: farside
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      One spot ether ETF's net flow for the day, USD; instrument = its ticker.
+  gt.new_pools_24h:
+    source: geckoterminal
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      S-5: DEX pools created in the last 24 hours on one network (instrument solana or base), from GeckoTerminal's new_pools, at most 200 (censored). Sampled from the first run; no backfill. Read under the API's own terms (ruling 4 of 17 Oct 2026).
+  gt.trending_vol_24h:
+    source: geckoterminal
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: 365d
+    description: >-
+      S-5: the 24-hour USD volume of the top 20 trending pools on one network. A row whose source is dexscreener:fallback is DexScreener's search (a different sample), stored when GeckoTerminal fails and never scored.
+  paprika.total_mcap_usd:
+    source: coinpaprika
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Total crypto market capitalisation, USD (CoinPaprika /v1/global; keyless free plan, attribution "Powered by Coinpaprika"). A snapshot under the pull's UTC day, forward-only. Ruling 2 of 17 Oct 2026, in place of CoinGecko /global.
+  paprika.btc_dominance:
+    source: coinpaprika
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      Bitcoin's share of total crypto market capitalisation, percent (CoinPaprika /v1/global): a snapshot, forward-only.
+  calc.etf_streak:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      S-2: consecutive same-sign ETF flow sessions to the day, signed (+3 is three inflow sessions; a zero session is 0); instrument btc or eth.
+  calc.etf_5d_pct:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-2: the five-session ETF flow sum's percentile against every stored five-session sum to the day (from Jan 2024; 20 needed); instrument btc or eth.
+  calc.dvol_pct_5y:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-4: the day's DVOL percentile over the five years before it (instrument BTC or ETH); 60 days needed. The regime band (compressed / normal / stressed at 20 and 80 on the full-history percentile) is a lens printed from it, no gate.
+  calc.dvol_pct_full:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      S-4: the day's DVOL percentile over its full history (from Mar 2021); 60 days needed.
+  calc.dvol_minus_rv30:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: vol_index
+    trigger_eligible: false
+    family: conditions
+    long_window: full
+    description: >-
+      S-4: DVOL less 30-day realised volatility, points; realised from the stored daily closes (yfinance.mkt_btc_usd / _eth_usd), 30 log returns annualised over 365 days.
+  calc.froth_z:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-5: the froth gauge, z-score on a 20-day window of one network's measure (instrument solana:new_pools, solana:trending_vol, base:...), from GeckoTerminal's own rows only, once 90 days of its store exist: mid-January 2027 at the earliest. Unscored until then.
+  calc.flag_etf_extreme:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-2 FLAG: 1 when the five-session ETF flow sum's percentile is at or below 5 or at or above 95, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
+  calc.flag_leverage_crowded:
+    source: derived_state
+    mechanism_group: crypto_leverage
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-3 FLAG: 1 when calc.leverage_z > +2 with calc.oi_mcap at its 90-day high, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
+  calc.flag_froth:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: boolean
+    trigger_eligible: false
+    family: ratio
+    long_window: 365d
+    description: >-
+      S-5 FLAG: 1 when both of a network's froth measures are at z >= +2 the same day, else 0. Stored, never rendered; gate status not passed (the order's offline gate has not run).
+
+  # -------------------------------------------------------------------------
+  # ITEM 49 (digital-49-51b, 17 Oct 2026): the treasury companies (treasury.*),
+  # mNAV and the month's treasury net purchases (calc.*).
+  # -------------------------------------------------------------------------
+  treasury.btc_holdings:
+    source: treasury_companies
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      BTC held by one public treasury company (instrument = its ticker), from BitcoinTreasuries.com's public-companies table (treasuries.bitbo.io), the top 20 by holdings; a snapshot under the pull's UTC day.
+  treasury.mstr_shares:
+    source: treasury_companies
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Strategy's shares outstanding as its latest filing states them (EDGAR XBRL dei:EntityCommonStockSharesOutstanding), filed under the fact's end date. Needs CHESTER_SEC_CONTACT on the box; without it a listed gap.
+  treasury.mstr_spot:
+    source: treasury_companies
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    family: price
+    long_window: 365d
+    description: >-
+      MSTR's spot from the session's newest captured option chain (MSTR is a watched name): the capture's spot, not the official close; instrument MSTR.
+  calc.mnav:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    family: ratio
+    long_window: full
+    description: >-
+      Item 49a: MSTR's market cap over the value of its BTC holdings (spot x shares / (BTC held x BTC close)), the order's definition, basic not enterprise value; instrument MSTR. Item 49's one flag reads it at render: at or below 1.0 on the latest capture; the watch line 1.2. No composite weight.
+  calc.treasury_net_purchases:
+    source: derived_state
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: full
+    description: >-
+      Item 49b: the month's net BTC bought by the tracked treasury companies, holdings at the month end less the prior month end, over companies present at both; complete months only.
+
   calc.vp_spy_session_poc:
     source: derived_state
     mechanism_group: equity_tape
@@ -13859,6 +15406,59 @@ bulk_imports:
       confirm each other, two labour series cannot.
     source: fred
     members_from: altdata.config.FRED_SERIES
+    member_families:
+      fred.ahe_yoy: release
+      fred.auto_delinq: release
+      fred.avg_wkly_hours: release
+      fred.breakeven_10y: rate
+      fred.breakeven_5y5y: rate
+      fred.brent: price
+      fred.cc_chargeoff: release
+      fred.cc_delinq_30: release
+      fred.claims_4wk: release
+      fred.core_cpi: release
+      fred.core_pce: release
+      fred.cpi: release
+      fred.current_account: release
+      fred.dxy: price
+      fred.emp_pop_ratio: release
+      fred.existing_homes: release
+      fred.fed_balance: quantity
+      fred.fed_debt_pct_gdp: ratio
+      fred.fed_outlays: quantity
+      fred.flex_cpi: release
+      fred.hires_total: release
+      fred.housing_permits: release
+      fred.housing_starts: release
+      fred.housing_starts_sf: release
+      fred.job_openings: release
+      fred.layoffs: release
+      fred.lfp_rate: release
+      fred.lt_unemp: release
+      fred.m2: quantity
+      fred.mortgage_30y: rate
+      fred.mortgage_delinq: release
+      fred.natgas: price
+      fred.new_homes: release
+      fred.nfci: conditions
+      fred.nfci_lev: conditions
+      fred.nfp: release
+      fred.pce: release
+      fred.quits_rate: release
+      fred.real_gdp: release
+      fred.sticky_core: release
+      fred.sticky_cpi: release
+      fred.total_hh_debt: quantity
+      fred.u3_rate: release
+      fred.uoM_sent: conditions
+      fred.usd_cny: price
+      fred.usd_eur: price
+      fred.usd_jpy: price
+      fred.vix: conditions
+      fred.wti: price
+      fred.yield_10y: rate
+      fred.yield_2y: rate
+      fred.yield_30y: rate
     member_key: key
     # The observation store writes these as "fred.nfp", not "nfp", so that a
     # future non-FRED series of the same name cannot collide. The registry has
@@ -13932,6 +15532,30 @@ bulk_imports:
       REVOLSL, NONREVSL and the Z.1 rows are MILLIONS; GDP is billions SAAR.
     source: fred
     members_from: altdata.config.FRED_SIGNAL_SERIES
+    member_families:
+      fred.aa_oas: spread
+      fred.bbb_oas: spread
+      fred.breakeven_5y: rate
+      fred.consumer_credit_nonrevolving: quantity
+      fred.consumer_credit_revolving: quantity
+      fred.consumer_credit_total: quantity
+      fred.em_corp_oas: spread
+      fred.em_hy_oas: spread
+      fred.fed_funds: rate
+      fred.gdp_nominal: release
+      fred.hh_debt_securities: quantity
+      fred.hh_deposits: quantity
+      fred.hh_equities: quantity
+      fred.jp_10y: rate
+      fred.jp_3m: rate
+      fred.real_dollar_broad: price
+      fred.soma_treasuries: quantity
+      fred.tbill_3m: rate
+      fred.term_premium_kw: rate
+      fred.tips_10y: rate
+      fred.tips_30y: rate
+      fred.usd_mxn: price
+      fred.yield_5y: rate
     member_key: key
     key_prefix: "fred."
     expected_members: 67   # + PPIDCS and the two GDP contributions (ST-R4.23a, 22b; session B, the union at chain-2) + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
@@ -13982,6 +15606,25 @@ bulk_imports:
       currency chapter. The baht is NOT here (fred_thailand).
     source: fred
     members_from: altdata.config.FRED_FX_SCAN_SERIES
+    member_families:
+      fred.usd_aud: price
+      fred.usd_brl: price
+      fred.usd_cad: price
+      fred.usd_chf: price
+      fred.usd_dkk: price
+      fred.usd_gbp: price
+      fred.usd_hkd: price
+      fred.usd_inr: price
+      fred.usd_krw: price
+      fred.usd_lkr: price
+      fred.usd_myr: price
+      fred.usd_nok: price
+      fred.usd_nzd: price
+      fred.usd_sek: price
+      fred.usd_sgd: price
+      fred.usd_twd: price
+      fred.usd_ves: price
+      fred.usd_zar: price
     member_key: key
     key_prefix: "fred."
     expected_members: 18
@@ -14010,6 +15653,12 @@ bulk_imports:
       would print a ten-point swing as 1,000 bp.
     source: fred
     members_from: altdata.config.FRED_SLOOS_SERIES
+    member_families:
+      fred.sloos_ci_large: conditions
+      fred.sloos_ci_small: conditions
+      fred.sloos_cre_construction: conditions
+      fred.sloos_cre_multifamily: conditions
+      fred.sloos_cre_nonres: conditions
     member_key: key
     key_prefix: "fred."
     expected_members: 5
@@ -14034,6 +15683,234 @@ bulk_imports:
     mechanism_group_map:
       "6": macro_valuation_credit
 
+  fred_6e:
+    description: >-
+      6e, the rest (macro completeness; 16 Oct 2026, session B): the FRED legs of
+      the architecture's Session 3b (the target range, EFFR, EURSTR, SONIA), 3c
+      (the Monthly Treasury Statement's deficit, receipts and outlays; federal
+      interest payments and current receipts; total public debt; nonfinancial
+      corporate debt; Korea's exports) and the CPI lead composite's free
+      components (CPI shelter, rent, OER, services, core goods, used cars; PPI
+      final demand, intermediate, unprocessed; import prices all and ex fuels;
+      the Atlanta Fed wage tracker). Ids and units read off FRED 16 Oct 2026; see
+      altdata/config.py FRED_6E_SERIES. MTS, GFDEBTN and BCNSDODNS are MILLIONS;
+      A091RC1Q027SBEA and FGRECPT BILLIONS SAAR.
+    source: fred
+    members_from: altdata.config.FRED_6E_SERIES
+    member_families:
+      fred.atl_wage_tracker: release
+      fred.cpi_core_goods: release
+      fred.cpi_oer: release
+      fred.cpi_rent: release
+      fred.cpi_services: release
+      fred.cpi_shelter: release
+      fred.cpi_used_cars: release
+      fred.effr: rate
+      fred.estr: rate
+      fred.fed_current_receipts: quantity
+      fred.fed_debt_total: quantity
+      fred.fed_interest_payments: quantity
+      fred.fed_target_lower: rate
+      fred.fed_target_upper: rate
+      fred.import_prices: release
+      fred.import_prices_ex_fuel: release
+      fred.korea_exports: release
+      fred.mts_outlays: quantity
+      fred.mts_receipts: quantity
+      fred.nonfin_corp_debt: quantity
+      fred.ppi_final_demand: release
+      fred.ppi_intermediate: release
+      fred.ppi_unprocessed: release
+      fred.sonia: rate
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 25
+    units: from_member
+    # The wage tracker is a growth rate: pp (AUD-3a). The five policy rates keep bp.
+    member_units:
+      fred.atl_wage_tracker: percent_return
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org) -- not yet ingested"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "3": macro_liquidity
+      "4": macro_inflation
+      "6": macro_valuation_credit
+      "7": macro_global_fx
+      "8": macro_sovereign
+
+  fred_releases:
+    description: >-
+      Batch 7, Group A (items 46 and 48; 6e-releases, 16 Oct 2026, session B): the
+      release lenses' FRED legs -- CPI energy, food, core services, commodities,
+      the Cleveland Fed median and 16% trimmed mean, airline fares, transportation
+      services, the truck-transportation PPI; private and education-and-health
+      payrolls, the unemployment level, initial and continuing claims, permanent
+      job losers, prime-age participation, temporary help, aggregate weekly hours,
+      the ECI (total and private wages), the Atlanta Fed tracker for switchers and
+      stayers, the State and Metro diffusion indexes (the keyless stand-in for the
+      CES industry indexes); the Eurosystem's total assets (EURO millions, ruling
+      (a)5); and the CPI diffusion's 20 new categories. Ids and units read off
+      FRED 16 Oct 2026; see altdata/config.py FRED_RELEASES_SERIES. Payroll,
+      unemployment, permanent-loser and temp-help levels are THOUSANDS; claims a
+      NUMBER; the medians, the tracker and the diffusion indexes percent.
+    source: fred
+    members_from: altdata.config.FRED_RELEASES_SERIES
+    member_families:
+      fred.agg_weekly_hours: release
+      fred.atl_wage_stayers: release
+      fred.atl_wage_switchers: release
+      fred.claims_continuing: release
+      fred.claims_initial: release
+      fred.cpi_airline_fares: release
+      fred.cpi_c_alcohol: release
+      fred.cpi_c_apparel: release
+      fred.cpi_c_electricity: release
+      fred.cpi_c_food_away: release
+      fred.cpi_c_food_home: release
+      fred.cpi_c_gasoline: release
+      fred.cpi_c_hospital: release
+      fred.cpi_c_household: release
+      fred.cpi_c_lodging: release
+      fred.cpi_c_medical_goods: release
+      fred.cpi_c_new_vehicles: release
+      fred.cpi_c_personal_care: release
+      fred.cpi_c_professional_med: release
+      fred.cpi_c_tobacco: release
+      fred.cpi_c_tuition: release
+      fred.cpi_c_utility_gas: release
+      fred.cpi_c_vehicle_parts: release
+      fred.cpi_c_vehicle_repair: release
+      fred.cpi_c_video_audio: release
+      fred.cpi_c_water_trash: release
+      fred.cpi_commodities: release
+      fred.cpi_core_services: release
+      fred.cpi_energy: release
+      fred.cpi_food: release
+      fred.cpi_median: release
+      fred.cpi_transport_services: release
+      fred.cpi_trimmed_mean: release
+      fred.diffusion_states_1m: release
+      fred.diffusion_states_3m: release
+      fred.ecb_assets: quantity
+      fred.eci_total: release
+      fred.eci_wages: release
+      fred.lfpr_prime_age: release
+      fred.payrolls_edu_health: release
+      fred.payrolls_private: release
+      fred.permanent_job_losers: release
+      fred.ppi_truck_freight: release
+      fred.temp_help: release
+      fred.unemployed_level: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 45
+    units: from_member
+    # Rates of change in pp and shares in pp (AUD-3a): the Cleveland medians and
+    # the Atlanta tracker are growth rates; participation and the diffusion
+    # indexes are shares of a whole.
+    member_units:
+      fred.atl_wage_stayers: percent_return
+      fred.atl_wage_switchers: percent_return
+      fred.cpi_median: percent_return
+      fred.cpi_trimmed_mean: percent_return
+      fred.diffusion_states_1m: percent_share
+      fred.diffusion_states_3m: percent_share
+      fred.lfpr_prime_age: percent_share
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "1": macro_labor
+      "4": macro_inflation
+      "7": macro_global_fx
+
+  fred_group_b:
+    description: >-
+      Batch 7, Group B (item 48 lenses 12-20; lenses-group-b, 18 Oct 2026, session
+      B): the PPI and GDP lenses' FRED legs -- PPI final demand less foods,
+      energy and trade services, trade services, the four intermediate-demand
+      stages, and the PCE-relevant industries (portfolio management, scheduled
+      air passenger transport, hospitals, physicians); real GDP's growth, real
+      final sales to private domestic purchasers, six contributions to growth,
+      the deflator, GDI, the investment split (information processing
+      equipment, software, nonresidential structures, real residential), after-
+      tax corporate profits, real disposable income, real income ex transfers,
+      the saving rate, and the Atlanta Fed's GDPNow. Ids and titles read off FRED
+      18 Oct 2026; see altdata/config.py FRED_GROUP_B_SERIES. The levels are
+      BILLIONS (chained where real); growth, contributions and GDPNow are
+      percent at an annual rate (contributions in pp); the saving rate a share.
+    source: fred
+    members_from: altdata.config.FRED_GROUP_B_SERIES
+    member_families:
+      fred.corp_profits_after_tax: release
+      fred.final_sales_pdp: release
+      fred.gdi_nominal: release
+      fred.gdp_contrib_government: release
+      fred.gdp_contrib_inventories: release
+      fred.gdp_contrib_net_exports: release
+      fred.gdp_contrib_nonres: release
+      fred.gdp_contrib_pce: release
+      fred.gdp_contrib_residential: release
+      fred.gdp_deflator: release
+      fred.gdp_real_growth: release
+      fred.gdpnow: release
+      fred.inv_info_equipment: release
+      fred.inv_nonres_structures: release
+      fred.inv_residential_real: release
+      fred.inv_software: release
+      fred.ppi_airline_passenger: release
+      fred.ppi_fd_core_ex_trade: release
+      fred.ppi_hospitals: release
+      fred.ppi_physicians: release
+      fred.ppi_portfolio_mgmt: release
+      fred.ppi_stage1: release
+      fred.ppi_stage2: release
+      fred.ppi_stage3: release
+      fred.ppi_stage4: release
+      fred.ppi_trade_services: release
+      fred.real_disp_income: release
+      fred.real_income_ex_transfers: release
+      fred.saving_rate: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 29
+    units: from_member
+    # Growth rates, contributions and the nowcast in pp; the saving rate a share
+    # of income in pp (AUD-3a).
+    member_units:
+      fred.gdp_contrib_government: percent_return
+      fred.gdp_contrib_inventories: percent_return
+      fred.gdp_contrib_net_exports: percent_return
+      fred.gdp_contrib_nonres: percent_return
+      fred.gdp_contrib_pce: percent_return
+      fred.gdp_contrib_residential: percent_return
+      fred.gdp_real_growth: percent_return
+      fred.gdpnow: percent_return
+      fred.saving_rate: percent_share
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+      "4": macro_inflation
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -14048,6 +15925,14 @@ bulk_imports:
       2006 = 100, daily -- the EM paper's request, 12 Oct 2026).
     source: fred
     members_from: altdata.config.FRED_AQ3_SERIES
+    member_families:
+      fred.case_shiller_national: release
+      fred.cre_delinq: release
+      fred.dxy_em: price
+      fred.ecb_dfr: rate
+      fred.effr_daily: rate
+      fred.gilt_10y: rate
+      fred.jp_call_rate: rate
     member_key: key
     key_prefix: "fred."
     expected_members: 7
@@ -14080,6 +15965,19 @@ bulk_imports:
       Switzerland and Sweden. Ids and units read off each FRED page 12 Oct 2026.
     source: fred
     members_from: altdata.config.FRED_SR43_SERIES
+    member_families:
+      fred.oecd_10y_au: rate
+      fred.oecd_10y_be: rate
+      fred.oecd_10y_ca: rate
+      fred.oecd_10y_ch: rate
+      fred.oecd_10y_de: rate
+      fred.oecd_10y_es: rate
+      fred.oecd_10y_fr: rate
+      fred.oecd_10y_it: rate
+      fred.oecd_10y_nl: rate
+      fred.oecd_10y_nz: rate
+      fred.oecd_10y_se: rate
+      fred.oecd_10y_us: rate
     member_key: key
     key_prefix: "fred."
     expected_members: 12
@@ -14104,6 +16002,8 @@ bulk_imports:
       isolation is declared once, on the block, and cannot be lost in a list.
     source: fred
     members_from: altdata.config.FRED_THAILAND_SERIES
+    member_families:
+      fred.usd_thb: price
     member_key: key
     key_prefix: "fred."
     expected_members: 1
@@ -14137,6 +16037,10 @@ bulk_imports:
       without un-adjusting anything.
     source: yfinance
     members_from: altdata.sources.yfinance_source.SYMBOLS
+    family: price
+    member_families:
+      yfinance.mkt_tnx: rate
+      yfinance.mkt_tyx: rate
     # SYMBOLS maps ticker -> store key, and the STORE KEY is the member name.
     # Declared rather than assumed: iterating the dict yields tickers, so a
     # resolver left to guess would register yfinance.SPY and never
@@ -14190,6 +16094,7 @@ bulk_imports:
       splits a Treasury move into its overnight and session legs.
     source: yfinance
     members_from: altdata.sources.yfinance_source.OHLC_KEYS
+    family: price
     members_are: values
     member_suffixes: ['_open', '_high', '_low']
     # The two yields' open, high and low are yields as their closes are
@@ -14222,6 +16127,7 @@ bulk_imports:
       and have no member here (yfinance_source.VOLUME_UNITS).
     source: yfinance
     members_from: altdata.sources.yfinance_source.VOLUME_SHARE_KEYS
+    family: quantity
     members_are: values
     member_suffixes: ['_volume']
     expected_members: 85   # + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
@@ -14242,6 +16148,7 @@ bulk_imports:
       never multiplies it by the close.
     source: yfinance
     members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
+    family: quantity
     members_are: values
     member_suffixes: ['_volume']
     expected_members: 6   # GC=F CL=F HG=F RB=F HO=F + ZN=F (Batch 5 item 27)
@@ -14261,6 +16168,7 @@ bulk_imports:
       it is already a dollar volume and the scanner reads it as one.
     source: yfinance
     members_from: altdata.sources.yfinance_source.VOLUME_USD_KEYS
+    family: quantity
     members_are: values
     member_suffixes: ['_volume']
     expected_members: 4
@@ -14285,6 +16193,7 @@ bulk_imports:
       bars.<tape id> (bars.spy, bars.y10 ...). The two yield indices are yields
       in percent, as their daily closes are.
     members_from: altdata.bars.BAR_PRICE_KEYS
+    family: price
     members_are: keys
     expected_members: 10
     units: price
@@ -14305,6 +16214,7 @@ bulk_imports:
       bars.<tape id>.volume. An index, a currency pair and the dollar index carry
       no volume and have no key.
     members_from: altdata.bars.BAR_VOLUME_SHARE_KEYS
+    family: quantity
     expected_members: 3
     units: shares
     source: yfinance
@@ -14320,6 +16230,7 @@ bulk_imports:
       A bar's volume in CONTRACTS, for the futures (gold, oil, ES): front-month
       contracts traded, not a notional.
     members_from: altdata.bars.BAR_VOLUME_CONTRACT_KEYS
+    family: quantity
     expected_members: 3
     units: count
     source: yfinance
@@ -14334,6 +16245,7 @@ bulk_imports:
     description: >-
       A bar's volume in DOLLARS, for Bitcoin, as Yahoo quotes a crypto pair.
     members_from: altdata.bars.BAR_VOLUME_USD_KEYS
+    family: quantity
     expected_members: 1
     units: usd
     source: yfinance
@@ -14448,6 +16360,7 @@ bulk_imports:
       is mislabelled and mislabelled is worse than absent.
     source: derived_state
     members_from: altdata.config.FRED_SERIES
+    family: release   # ambiguous: the naive expectation of a release, in its units; alternative: the member's own family
     member_key: key
     key_prefix: "calc.naive_expectation."
     expected_members: 59
@@ -14505,6 +16418,7 @@ bulk_imports:
       values, not because a cut reads it.
     source: derived_state
     members_from: altdata.config.FRED_SERIES
+    family: conditions   # ambiguous: a surprise against the naive expectation, read as a standardised level; alternative: ratio
     member_key: key
     key_prefix: "calc.surprise_vs_naive."
     expected_members: 59
@@ -14562,13 +16476,13 @@ bulk_imports:
       lens, never a composite; 'attributing a move to any one driver is
       guesswork' (III Ch 7), so the share is printed, not asserted.
     members_from: altdata.attribution.DRIVER_EXPLAINED
+    family: ratio
     units: fraction
     source: derived_state
     members_are: keys
     mechanism_group: factor_attribution
     native_horizon: monthly
     freq: monthly
-    family: ratio
     information_half_life: month
     invalidated_by: none
     observation_type: calculated
@@ -14589,6 +16503,7 @@ bulk_imports:
       60-month fit on the four common factors, in the return's own units x 100
       (log-return percent for a price). What the common factors do not explain.
     members_from: altdata.attribution.DRIVER_RESIDUAL
+    family: ratio   # ambiguous: a residual return; alternative: price
     units: percent_return
     delta_unit: pp
     source: derived_state
@@ -14596,7 +16511,6 @@ bulk_imports:
     mechanism_group: factor_attribution
     native_horizon: monthly
     freq: monthly
-    family: ratio
     information_half_life: month
     invalidated_by: none
     observation_type: calculated
@@ -14617,13 +16531,13 @@ bulk_imports:
       60 months: the beta times the factor's standard deviation over the
       return's, so the four compare. The Monthly prints the largest.
     members_from: altdata.attribution.DRIVER_LOADINGS
+    family: ratio
     units: ratio
     source: derived_state
     members_are: keys
     mechanism_group: factor_attribution
     native_horizon: monthly
     freq: monthly
-    family: ratio
     information_half_life: month
     invalidated_by: none
     observation_type: calculated
@@ -14678,13 +16592,13 @@ bulk_imports:
       retrievable historically.
     source: derived_state
     members_from: altdata.paper_bid.PAPER_OI_SERIES
+    family: quantity
     members_are: keys
     expected_members: 4
     mechanism_group: paper_bid
     native_horizon: daily
     freq: daily
     units: count
-    family: quantity
     information_half_life: session
     invalidated_by: none
     observation_type: calculated
@@ -14708,6 +16622,7 @@ bulk_imports:
       condition ruled on it.
     source: derived_state
     members_from: altdata.paper_bid.PAPER_RR_SERIES
+    family: conditions   # ambiguous: a 25-delta risk reversal in vol points; alternative: spread
     members_are: keys
     expected_members: 4
     mechanism_group: paper_bid
@@ -14715,7 +16630,6 @@ bulk_imports:
     freq: daily
     units: vol_pct
     delta_unit: pp
-    family: ratio
     information_half_life: session
     invalidated_by: none
     observation_type: calculated
@@ -14798,6 +16712,7 @@ bulk_imports:
       count here until this block is updated, which is the intended friction.
     source: yfinance
     members_from: altdata.sources.overnight.PRICE_KEYS
+    family: price   # ambiguous: the overnight levels block also holds changes and settles; alternative: split per member
     expected_members: 36
     mechanism_group: overnight_context
     native_horizon: intraday
@@ -14823,6 +16738,7 @@ bulk_imports:
       cannot declare two units. altdata.sources.overnight.PERCENT_KEYS.
     source: yfinance
     members_from: altdata.sources.overnight.PERCENT_KEYS
+    family: price   # ambiguous: percent changes, not levels; alternative: exclude
     expected_members: 10
     mechanism_group: overnight_context
     native_horizon: intraday
@@ -14850,13 +16766,13 @@ bulk_imports:
       a member: it is calc.corr_spy_tlt_60d, read under its alias.
     source: derived_state
     members_from: altdata.correlation.PAIR_SERIES
+    family: ratio
     members_are: keys
     expected_members: 419
     mechanism_group: cross_asset_correlation
     native_horizon: daily
     freq: daily
     units: ratio
-    family: ratio
     information_half_life: session
     invalidated_by: none
     observation_type: calculated
@@ -14902,13 +16818,13 @@ bulk_imports:
       escalating no trigger.
     source: derived_state
     members_from: altdata.correlation.BREAK_SERIES
+    family: ratio
     members_are: keys
     expected_members: 36
     mechanism_group: cross_asset_correlation
     native_horizon: daily
     freq: daily
     units: ratio
-    family: ratio
     information_half_life: session
     invalidated_by: none
     observation_type: calculated
@@ -14932,6 +16848,7 @@ bulk_imports:
       a bar, written once the day has ended.
     source: yfinance
     members_from: altdata.sources.yfinance_source.CRYPTO_BASKET_KEYS
+    family: price
     members_are: values
     expected_members: 12
     key_prefix: yfinance.
@@ -14943,7 +16860,6 @@ bulk_imports:
     revision_policy: split_only
     trigger_eligible: false
     mechanism_group: crypto_basket_price
-    family: price
     long_window: full
   crypto_basket_volume:
     description: >-
@@ -14951,6 +16867,7 @@ bulk_imports:
       in the pair's currency), for MW-7's turnover (volume over market cap).
     source: yfinance
     members_from: altdata.sources.yfinance_source.CRYPTO_BASKET_KEYS
+    family: quantity
     members_are: values
     member_suffixes: [_volume]
     expected_members: 12
@@ -14963,7 +16880,6 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
     mechanism_group: crypto_basket_price
-    family: quantity
     long_window: 365d
   llama_protocol_daily:
     description: >-
@@ -14974,6 +16890,7 @@ bulk_imports:
       (TAO has no fee or TVL series; KAS is not listed).
     source: defillama
     members_from: altdata.sources.llama.PROTOCOL_KEYS
+    family: quantity
     members_are: values
     expected_members: 36  # 8 names x 4, ONDO x 3 (no TVL chart), PRL x 1 (a chain: fees only)
     key_prefix: llama.
@@ -14985,17 +16902,18 @@ bulk_imports:
     revision_policy: revised
     trigger_eligible: false
     mechanism_group: crypto_protocol_economics
-    family: quantity
     long_window: 365d
   llama_coin_mcap:
     description: >-
-      Market cap (llama.mcap_<sym>) for all twelve, from coins.llama.fi/mcaps.
+      Market cap (llama.mcap_<sym>) for all twelve, and BTC and ETH for S-3's
+      denominator (Tranche A part 1), from coins.llama.fi/mcaps.
       FORWARD-ONLY: the service serves the current cap and no history, so the
       series starts the day the writer first runs.
     source: defillama
     members_from: altdata.sources.llama.MCAP_KEYS
+    family: quantity   # ambiguous: a market capitalisation, price times supply; alternative: price
     members_are: values
-    expected_members: 12
+    expected_members: 14  # the twelve basket names, and BTC and ETH (S-3)
     key_prefix: llama.
     units: usd
     native_horizon: daily
@@ -15005,8 +16923,29 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
     mechanism_group: crypto_basket_price
-    family: quantity
     long_window: full
+  llama_watch_daily:
+    description: >-
+      CD-1, Tranche A part 1 (17 Oct 2026): fees and revenue for the order's watch
+      names that are not basket names -- llama.fees_<sym>, llama.revenue_<sym> for
+      BTC, ETH, SOL, ZEC (chain fees) and HYPE, LINK (their parent protocol) --
+      from /summary/fees/{slug}, the slug resolved at run time
+      (config/crypto_sources.yaml watch_names). Daily flows, USD.
+    source: defillama
+    members_from: altdata.sources.llama.WATCH_KEYS
+    members_are: values
+    expected_members: 12
+    key_prefix: llama.
+    units: usd
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    trigger_eligible: false
+    mechanism_group: crypto_protocol_economics
+    family: quantity
+    long_window: 365d
   llama_coin_supply:
     description: >-
       Circulating supply in tokens (llama.supply_<sym>): the coin service's cap
@@ -15014,8 +16953,9 @@ bulk_imports:
       Forward-only, like the cap.
     source: defillama
     members_from: altdata.sources.llama.SUPPLY_KEYS
+    family: quantity
     members_are: values
-    expected_members: 12
+    expected_members: 14  # the twelve basket names, and BTC and ETH (S-3)
     key_prefix: llama.
     units: count
     native_horizon: daily
@@ -15025,7 +16965,6 @@ bulk_imports:
     revision_policy: never
     trigger_eligible: false
     mechanism_group: crypto_basket_price
-    family: quantity
     long_window: full
   crypto_dilution:
     description: >-
@@ -15036,6 +16975,7 @@ bulk_imports:
       are stored; otherwise the reports print "not measured -- <reason>".
     source: derived_state
     members_from: altdata.crypto_basket.DILUTION_KEYS
+    family: ratio
     members_are: values
     expected_members: 12
     key_prefix: calc.
@@ -15047,7 +16987,6 @@ bulk_imports:
     revision_policy: recomputed
     trigger_eligible: false
     mechanism_group: crypto_protocol_economics
-    family: ratio
     long_window: 365d
 
 families:
@@ -15100,6 +17039,26 @@ families:
   redfin.metro_pending_sales: release
   mba.purchase_sa_wow: release
   mba.purchase_nsa_yoy: release
+  # VP-1 (folded from Monday's chain, 17 Oct 2026): POC, VAH and VAL are price
+  # levels -- the chain carried no lens gate, so they arrived without a family.
+  calc.vp_spy_session_poc: price
+  calc.vp_spy_session_vah: price
+  calc.vp_spy_session_val: price
+  calc.vp_spy_20s_poc: price
+  calc.vp_spy_20s_vah: price
+  calc.vp_spy_20s_val: price
+  calc.vp_qqq_session_poc: price
+  calc.vp_qqq_session_vah: price
+  calc.vp_qqq_session_val: price
+  calc.vp_qqq_20s_poc: price
+  calc.vp_qqq_20s_vah: price
+  calc.vp_qqq_20s_val: price
+  calc.vp_iwm_session_poc: price
+  calc.vp_iwm_session_vah: price
+  calc.vp_iwm_session_val: price
+  calc.vp_iwm_20s_poc: price
+  calc.vp_iwm_20s_vah: price
+  calc.vp_iwm_20s_val: price
   # Batch 3, Tranche A (13 Oct 2026).
   fred.tips_5y: rate
   acm.risk_neutral_yield_2y: rate
@@ -15201,6 +17160,725 @@ families:
   edgar.xbrl_cash: quantity
   edgar.xbrl_mu_inventory: quantity
   edgar.xbrl_mu_cogs_q: quantity
+  # 6e (15 Oct 2026): every other individually registered level series,
+  # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari.
+  aaii.bull_bear_spread: ratio
+  acm.fitted_yield_10y: rate
+  acm.risk_neutral_yield_10y: rate
+  acm.term_premium_10y: rate
+  acm.term_premium_2y: rate
+  acm.term_premium_5y: rate
+  apewisdom.mentions: quantity
+  apewisdom.rank: quantity
+  apewisdom.upvotes: quantity
+  auction.direct_share: ratio
+  auction.high_yield: rate
+  auction.indirect_share: ratio
+  auction.offering_amount: quantity
+  auction.tail_bp: spread
+  bbk.bund_10y: rate
+  brier.running: ratio
+  brier.score: ratio
+  brier.vs_coin: ratio
+  calc.attr_acm_tp_share_20d: ratio
+  calc.attr_acm_tp_share_60d: ratio
+  calc.attr_curve_share_20d: ratio
+  calc.attr_curve_share_5d: ratio
+  calc.attr_curve_share_60d: ratio
+  calc.attr_d10y_20d: spread
+  calc.attr_d10y_5d: spread
+  calc.attr_d10y_60d: spread
+  calc.attr_dkw_path_share_20d: ratio
+  calc.attr_dkw_path_share_60d: ratio
+  calc.attr_dkw_tp_share_20d: ratio
+  calc.attr_dkw_tp_share_60d: ratio
+  calc.attr_kw_tp_share_20d: ratio
+  calc.attr_kw_tp_share_60d: ratio
+  calc.attr_real_share_20d: ratio
+  calc.attr_real_share_5d: ratio
+  calc.attr_real_share_60d: ratio
+  calc.breadth_rsp_over_spy: ratio
+  calc.breadth_sector_above_200d: ratio
+  calc.breadth_sector_above_50d: ratio
+  calc.btp_bund_bp: spread
+  calc.bund_hedged_spread_bp: spread
+  calc.bund_hedged_yield: rate
+  calc.cnh_cny_bp: spread
+  calc.cnh_fix_gap_bp: spread
+  calc.cny_band_position: ratio
+  calc.cny_fix_gap_bp: spread
+  calc.corr_spy_tlt_60d: ratio
+  calc.crack_321: price
+  calc.cyclical_over_defensive: ratio
+  calc.earnings_surprise_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  # The surprise index (ST-R6.48f; lenses-group-b, 18 Oct 2026): as the naive
+  # surprises' block -- a surprise read as a standardised level.
+  calc.consensus_surprise.cpi: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.cpi: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.core_cpi: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.core_cpi: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.payrolls: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.payrolls: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.unemployment: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.unemployment: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.ppi: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.ppi: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.gdp: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.gdp: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise.fomc: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.consensus_surprise_z.fomc: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.consensus_surprise_z.earnings: conditions   # ambiguous: a standardised surprise per name; alternative: ratio
+  calc.market_implied_surprise.fomc: conditions   # ambiguous: a surprise read as a standardised level, as calc.surprise_vs_naive.*; alternative: ratio
+  calc.market_implied_surprise_z.fomc: conditions   # ambiguous: a standardised surprise; alternative: ratio
+  calc.efa_spy: ratio
+  calc.hefa_efa: ratio
+  calc.infl_vol: conditions
+  calc.jgb_hedged_spread_bp: spread
+  calc.jgb_hedged_yield: rate
+  calc.mortgage_spread_10y_bp: spread
+  calc.oat_bund_bp: spread
+  calc.r_minus_g: rate
+  calc.r_real_10y_core_pce: rate
+  calc.r_real_10y_cpi: rate
+  calc.real_wages_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.sahm_rule: ratio
+  calc.spy_vs_252d_high: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.trend_spy_ma20_slope: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.trend_spy_vs_200d: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.trend_spy_vs_50d: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.us_jgb_10y_bp: spread
+  calc.vea_spy: ratio
+  calc.vix3m_over_vix: ratio
+  calc.vnq_spy: ratio
+  calc.vx1_vix_basis: ratio
+  calc.vx_front_ratio: ratio
+  calc.vx_front_slope: ratio
+  calc.xlre_spy: ratio
+  calc.yield_curve_2s10s: ratio
+  calc.yoy_ahe: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_core_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_core_pce: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_housing_starts: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_m2: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_pce: ratio   # ambiguous: a return series, not a level; alternative: price
+  calc.yoy_real_gdp: ratio   # ambiguous: a return series, not a level; alternative: price
+  cfe.vx1: price
+  cfe.vx2: price
+  cfe.vx3: price
+  cfe.vx_settle: price
+  cfets.cgb_10y: rate
+  cfets.cny_fix: price
+  cftc.dis_managed_money_long: quantity
+  cftc.dis_managed_money_long_oi: ratio
+  cftc.dis_managed_money_net: quantity
+  cftc.dis_managed_money_net_oi: ratio
+  cftc.dis_managed_money_short: quantity
+  cftc.dis_managed_money_short_oi: ratio
+  cftc.dis_open_interest: quantity
+  cftc.dis_other_rept_long: quantity
+  cftc.dis_other_rept_long_oi: ratio
+  cftc.dis_other_rept_net: quantity
+  cftc.dis_other_rept_net_oi: ratio
+  cftc.dis_other_rept_short: quantity
+  cftc.dis_other_rept_short_oi: ratio
+  cftc.dis_prod_merc_long: quantity
+  cftc.dis_prod_merc_long_oi: ratio
+  cftc.dis_prod_merc_net: quantity
+  cftc.dis_prod_merc_net_oi: ratio
+  cftc.dis_prod_merc_short: quantity
+  cftc.dis_prod_merc_short_oi: ratio
+  cftc.dis_swap_long: quantity
+  cftc.dis_swap_long_oi: ratio
+  cftc.dis_swap_net: quantity
+  cftc.dis_swap_net_oi: ratio
+  cftc.dis_swap_short: quantity
+  cftc.dis_swap_short_oi: ratio
+  cftc.noncomm_long: quantity
+  cftc.noncomm_net: quantity
+  cftc.noncomm_short: quantity
+  cftc.open_interest: quantity
+  cftc.tff_asset_mgr_long: quantity
+  cftc.tff_asset_mgr_long_oi: ratio
+  cftc.tff_asset_mgr_net: quantity
+  cftc.tff_asset_mgr_net_oi: ratio
+  cftc.tff_asset_mgr_short: quantity
+  cftc.tff_asset_mgr_short_oi: ratio
+  cftc.tff_dealer_long: quantity
+  cftc.tff_dealer_long_oi: ratio
+  cftc.tff_dealer_net: quantity
+  cftc.tff_dealer_net_oi: ratio
+  cftc.tff_dealer_short: quantity
+  cftc.tff_dealer_short_oi: ratio
+  cftc.tff_lev_money_long: quantity
+  cftc.tff_lev_money_long_oi: ratio
+  cftc.tff_lev_money_net: quantity
+  cftc.tff_lev_money_net_oi: ratio
+  cftc.tff_lev_money_short: quantity
+  cftc.tff_lev_money_short_oi: ratio
+  cftc.tff_open_interest: quantity
+  cftc.tff_other_rept_long: quantity
+  cftc.tff_other_rept_long_oi: ratio
+  cftc.tff_other_rept_net: quantity
+  cftc.tff_other_rept_net_oi: ratio
+  cftc.tff_other_rept_short: quantity
+  cftc.tff_other_rept_short_oi: ratio
+  chain.spy_put_call_volume: ratio
+  cnh.usdcnh: price
+  contradiction.magnitude: ratio
+  contradiction.persistence_days: quantity   # ambiguous: a duration in days; alternative: ratio
+  crypto.total_market_cap_usd: quantity
+  damodaran.ev_ebitda: ratio
+  damodaran.pe_forward: ratio
+  damodaran.pe_trailing: ratio
+  dealer.scorecard_day: quantity
+  dkw.exp_real_short_rate_10y: rate
+  dkw.exp_real_short_rate_5y: rate
+  dkw.real_term_premium_10y: rate
+  dkw.real_term_premium_5y: rate
+  dkw.tips_liquidity_premium_10y: rate
+  dkw.tips_liquidity_premium_5y: rate
+  ecb.irs_10y_de: rate
+  ecb.irs_10y_fr: rate
+  ecb.irs_10y_it: rate
+  eia.crude_stocks: quantity
+  eia.product_stocks: quantity
+  eia.rigs_gas: quantity
+  eia.rigs_oil: quantity
+  eia.rigs_total: quantity
+  eia.total_stocks: quantity
+  em.bis.policy_rate.bra: rate
+  em.bis.policy_rate.chn: rate
+  em.bis.policy_rate.idn: rate
+  em.bis.policy_rate.ind: rate
+  em.bis.policy_rate.kor: rate
+  em.bis.policy_rate.mex: rate
+  em.bis.policy_rate.mys: rate
+  em.bis.policy_rate.pol: rate
+  em.bis.policy_rate.sau: rate
+  em.bis.policy_rate.tha: rate
+  em.bis.policy_rate.zaf: rate
+  em.cpi.yoy.are: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.bra: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.chn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.idn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.ind: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.kor: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.mex: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.mys: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.pol: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.sau: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.tha: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.cpi.yoy.zaf: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.ifs.reserves_usd.are: quantity
+  em.ifs.reserves_usd.bra: quantity
+  em.ifs.reserves_usd.chn: quantity
+  em.ifs.reserves_usd.idn: quantity
+  em.ifs.reserves_usd.ind: quantity
+  em.ifs.reserves_usd.kor: quantity
+  em.ifs.reserves_usd.mex: quantity
+  em.ifs.reserves_usd.mys: quantity
+  em.ifs.reserves_usd.pol: quantity
+  em.ifs.reserves_usd.sau: quantity
+  em.ifs.reserves_usd.tha: quantity
+  em.ifs.reserves_usd.twn: quantity
+  em.ifs.reserves_usd.zaf: quantity
+  em.itg.imports_usd.bra: quantity
+  em.itg.imports_usd.chn: quantity
+  em.itg.imports_usd.idn: quantity
+  em.itg.imports_usd.ind: quantity
+  em.itg.imports_usd.kor: quantity
+  em.itg.imports_usd.mex: quantity
+  em.itg.imports_usd.mys: quantity
+  em.itg.imports_usd.pol: quantity
+  em.itg.imports_usd.sau: quantity
+  em.itg.imports_usd.tha: quantity
+  em.itg.imports_usd.twn: quantity
+  em.lens.ext_debt_gdp.bra: ratio
+  em.lens.ext_debt_gdp.chn: ratio
+  em.lens.ext_debt_gdp.idn: ratio
+  em.lens.ext_debt_gdp.ind: ratio
+  em.lens.ext_debt_gdp.kor: ratio
+  em.lens.ext_debt_gdp.mex: ratio
+  em.lens.ext_debt_gdp.mys: ratio
+  em.lens.ext_debt_gdp.pol: ratio
+  em.lens.ext_debt_gdp.sau: ratio
+  em.lens.ext_debt_gdp.tha: ratio
+  em.lens.ext_debt_gdp.zaf: ratio
+  em.lens.inflation_gap.bra: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.chn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.idn: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.ind: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.kor: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.mex: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.pol: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.tha: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.inflation_gap.zaf: ratio   # ambiguous: a return series, not a level; alternative: price
+  em.lens.real_policy_rate.bra: rate
+  em.lens.real_policy_rate.chn: rate
+  em.lens.real_policy_rate.idn: rate
+  em.lens.real_policy_rate.ind: rate
+  em.lens.real_policy_rate.kor: rate
+  em.lens.real_policy_rate.mex: rate
+  em.lens.real_policy_rate.mys: rate
+  em.lens.real_policy_rate.pol: rate
+  em.lens.real_policy_rate.sau: rate
+  em.lens.real_policy_rate.tha: rate
+  em.lens.real_policy_rate.zaf: rate
+  em.lens.reserves_import_months.bra: ratio
+  em.lens.reserves_import_months.chn: ratio
+  em.lens.reserves_import_months.idn: ratio
+  em.lens.reserves_import_months.ind: ratio
+  em.lens.reserves_import_months.kor: ratio
+  em.lens.reserves_import_months.mex: ratio
+  em.lens.reserves_import_months.mys: ratio
+  em.lens.reserves_import_months.pol: ratio
+  em.lens.reserves_import_months.sau: ratio
+  em.lens.reserves_import_months.tha: ratio
+  em.lens.reserves_import_months.twn: ratio
+  em.lens.reserves_st_debt.bra: ratio
+  em.lens.reserves_st_debt.chn: ratio
+  em.lens.reserves_st_debt.idn: ratio
+  em.lens.reserves_st_debt.ind: ratio
+  em.lens.reserves_st_debt.kor: ratio
+  em.lens.reserves_st_debt.mex: ratio
+  em.lens.reserves_st_debt.mys: ratio
+  em.lens.reserves_st_debt.pol: ratio
+  em.lens.reserves_st_debt.sau: ratio
+  em.lens.reserves_st_debt.tha: ratio
+  em.lens.reserves_st_debt.zaf: ratio
+  em.qeds.ext_debt_usd.bra: quantity
+  em.qeds.ext_debt_usd.chn: quantity
+  em.qeds.ext_debt_usd.idn: quantity
+  em.qeds.ext_debt_usd.ind: quantity
+  em.qeds.ext_debt_usd.kor: quantity
+  em.qeds.ext_debt_usd.mex: quantity
+  em.qeds.ext_debt_usd.mys: quantity
+  em.qeds.ext_debt_usd.pol: quantity
+  em.qeds.ext_debt_usd.sau: quantity
+  em.qeds.ext_debt_usd.tha: quantity
+  em.qeds.ext_debt_usd.zaf: quantity
+  em.qeds.st_debt_usd.bra: quantity
+  em.qeds.st_debt_usd.chn: quantity
+  em.qeds.st_debt_usd.idn: quantity
+  em.qeds.st_debt_usd.ind: quantity
+  em.qeds.st_debt_usd.kor: quantity
+  em.qeds.st_debt_usd.mex: quantity
+  em.qeds.st_debt_usd.mys: quantity
+  em.qeds.st_debt_usd.pol: quantity
+  em.qeds.st_debt_usd.sau: quantity
+  em.qeds.st_debt_usd.tha: quantity
+  em.qeds.st_debt_usd.zaf: quantity
+  em.weo.ca_gdp.are: ratio
+  em.weo.ca_gdp.bra: ratio
+  em.weo.ca_gdp.chn: ratio
+  em.weo.ca_gdp.idn: ratio
+  em.weo.ca_gdp.ind: ratio
+  em.weo.ca_gdp.kor: ratio
+  em.weo.ca_gdp.mex: ratio
+  em.weo.ca_gdp.mys: ratio
+  em.weo.ca_gdp.pol: ratio
+  em.weo.ca_gdp.sau: ratio
+  em.weo.ca_gdp.tha: ratio
+  em.weo.ca_gdp.twn: ratio
+  em.weo.ca_gdp.zaf: ratio
+  em.weo.debt_gdp.are: ratio
+  em.weo.debt_gdp.bra: ratio
+  em.weo.debt_gdp.chn: ratio
+  em.weo.debt_gdp.idn: ratio
+  em.weo.debt_gdp.ind: ratio
+  em.weo.debt_gdp.kor: ratio
+  em.weo.debt_gdp.mex: ratio
+  em.weo.debt_gdp.mys: ratio
+  em.weo.debt_gdp.pol: ratio
+  em.weo.debt_gdp.sau: ratio
+  em.weo.debt_gdp.tha: ratio
+  em.weo.debt_gdp.twn: ratio
+  em.weo.debt_gdp.zaf: ratio
+  em.weo.fiscal_gdp.are: ratio
+  em.weo.fiscal_gdp.bra: ratio
+  em.weo.fiscal_gdp.chn: ratio
+  em.weo.fiscal_gdp.idn: ratio
+  em.weo.fiscal_gdp.ind: ratio
+  em.weo.fiscal_gdp.kor: ratio
+  em.weo.fiscal_gdp.mex: ratio
+  em.weo.fiscal_gdp.mys: ratio
+  em.weo.fiscal_gdp.pol: ratio
+  em.weo.fiscal_gdp.sau: ratio
+  em.weo.fiscal_gdp.tha: ratio
+  em.weo.fiscal_gdp.twn: ratio
+  em.weo.fiscal_gdp.zaf: ratio
+  em.weo.gdp_usd.are: quantity
+  em.weo.gdp_usd.bra: quantity
+  em.weo.gdp_usd.chn: quantity
+  em.weo.gdp_usd.idn: quantity
+  em.weo.gdp_usd.ind: quantity
+  em.weo.gdp_usd.kor: quantity
+  em.weo.gdp_usd.mex: quantity
+  em.weo.gdp_usd.mys: quantity
+  em.weo.gdp_usd.pol: quantity
+  em.weo.gdp_usd.sau: quantity
+  em.weo.gdp_usd.tha: quantity
+  em.weo.gdp_usd.twn: quantity
+  em.weo.gdp_usd.zaf: quantity
+  etf.gld_oz: quantity
+  etf.gld_share_flow: quantity
+  etf.gld_shares: quantity
+  etf.gld_tonnes: quantity
+  etf.iau_oz: quantity
+  etf.iau_share_flow: quantity
+  etf.iau_shares: quantity
+  etf.iau_tonnes: quantity
+  etf.ibit_share_flow: quantity
+  etf.ibit_shares: quantity
+  etf.slv_oz: quantity
+  etf.slv_share_flow: quantity
+  etf.slv_shares: quantity
+  etf.slv_tonnes: quantity
+  exposure.abs_dex_shares: quantity
+  exposure.call_wall: price
+  exposure.call_wall_otm: price
+  exposure.chex_notional_per_day: quantity
+  exposure.chex_shares_per_day: quantity
+  exposure.dex_notional: quantity
+  exposure.dex_shares: quantity
+  exposure.dollar_gamma_per_1pct: quantity
+  exposure.expiration_release.dex_shares: quantity
+  exposure.expiration_release.share_of_abs_dex: ratio
+  exposure.floored_share_of_abs_gex: ratio
+  exposure.gamma_flip: price
+  exposure.gamma_flip_cum_strikes: price
+  exposure.gross_gamma_per_1pct: quantity
+  exposure.gross_gex_abs: quantity
+  exposure.max_pain: price
+  exposure.net_gex: quantity
+  exposure.net_to_gross: ratio
+  exposure.oi_calls: quantity
+  exposure.oi_put_call_ratio: ratio
+  exposure.oi_puts: quantity
+  exposure.oi_strikes: quantity
+  exposure.oi_total: quantity
+  exposure.peak_abs_gex_strike: price
+  exposure.per_strike.call_gex: quantity
+  exposure.per_strike.chex: quantity
+  exposure.per_strike.dex: quantity
+  exposure.per_strike.gex: quantity
+  exposure.per_strike.put_gex: quantity
+  exposure.per_strike.vex: quantity
+  exposure.put_wall: price
+  exposure.put_wall_gamma: price
+  exposure.put_wall_oi: price
+  exposure.put_wall_otm: price
+  exposure.share_of_total_abs_dex: ratio
+  exposure.share_of_total_abs_gex: ratio
+  exposure.shares_per_1pct: quantity
+  exposure.spot: price
+  exposure.vex_notional_per_volpt: quantity
+  exposure.vex_shares_per_volpt: quantity
+  fedboard.cie: rate
+  fedfunds.futures_price: price
+  finra.margin_debit: quantity
+  finra.margin_free_credit_cash: quantity
+  finra.margin_free_credit_margin: quantity
+  finra.short_exempt_volume: quantity
+  finra.short_interest: quantity
+  finra.short_interest_avg_volume: quantity
+  finra.short_interest_days_to_cover: quantity   # ambiguous: a duration in days; alternative: ratio
+  finra.short_interest_prior: quantity
+  finra.short_volume: quantity
+  finra.total_volume: quantity
+  fiscaldata.mspd_bills: quantity
+  fiscaldata.mspd_bonds: quantity
+  fiscaldata.mspd_frn: quantity
+  fiscaldata.mspd_marketable_total: quantity
+  fiscaldata.mspd_net_marketable_issuance: quantity
+  fiscaldata.mspd_notes: quantity
+  fiscaldata.mspd_tips: quantity
+  french.hml: ratio   # ambiguous: a return series, not a level; alternative: price
+  french.ind49_beme: ratio
+  french.ind49_ret_vw: ratio   # ambiguous: a return series, not a level; alternative: price
+  gates.iv_dispersion: ratio
+  gates.oi_concentration: ratio
+  gates.oi_weighted_dte: quantity   # ambiguous: a duration in days; alternative: ratio
+  grade.dollars_at_risk: quantity
+  grade.mae_close_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  grade.r_multiple: ratio
+  grade.r_multiple_ruled: ratio
+  grade.return_pct: ratio   # ambiguous: a return series, not a level; alternative: price
+  grade.return_points: price
+  grade.risk_per_unit: price
+  hktma.cnh_hibor_1m: rate
+  hktma.cnh_hibor_1w: rate
+  hktma.cnh_hibor_3m: rate
+  hktma.cnh_hibor_on: rate
+  ibkr.auction_imbalance_qty: quantity
+  ibkr.auction_indicative_price: price
+  ibkr.auction_paired_qty: quantity
+  ibkr.borrow_fee_rate: rate
+  ibkr.borrow_rebate_rate: rate
+  ibkr.shortable_shares: quantity
+  imf.ifs.gold_net_purchases_count.total: quantity
+  imf.ifs.gold_net_purchases_oz.aut: quantity
+  imf.ifs.gold_net_purchases_oz.bel: quantity
+  imf.ifs.gold_net_purchases_oz.che: quantity
+  imf.ifs.gold_net_purchases_oz.chn: quantity
+  imf.ifs.gold_net_purchases_oz.cze: quantity
+  imf.ifs.gold_net_purchases_oz.deu: quantity
+  imf.ifs.gold_net_purchases_oz.esp: quantity
+  imf.ifs.gold_net_purchases_oz.fra: quantity
+  imf.ifs.gold_net_purchases_oz.gbr: quantity
+  imf.ifs.gold_net_purchases_oz.hun: quantity
+  imf.ifs.gold_net_purchases_oz.ind: quantity
+  imf.ifs.gold_net_purchases_oz.irq: quantity
+  imf.ifs.gold_net_purchases_oz.ita: quantity
+  imf.ifs.gold_net_purchases_oz.jpn: quantity
+  imf.ifs.gold_net_purchases_oz.kaz: quantity
+  imf.ifs.gold_net_purchases_oz.lbn: quantity
+  imf.ifs.gold_net_purchases_oz.nld: quantity
+  imf.ifs.gold_net_purchases_oz.pol: quantity
+  imf.ifs.gold_net_purchases_oz.prt: quantity
+  imf.ifs.gold_net_purchases_oz.rus: quantity
+  imf.ifs.gold_net_purchases_oz.sau: quantity
+  imf.ifs.gold_net_purchases_oz.sgp: quantity
+  imf.ifs.gold_net_purchases_oz.tha: quantity
+  imf.ifs.gold_net_purchases_oz.total: quantity
+  imf.ifs.gold_net_purchases_oz.tur: quantity
+  imf.ifs.gold_net_purchases_oz.twn: quantity
+  imf.ifs.gold_net_purchases_oz.usa: quantity
+  imf.ifs.gold_net_purchases_oz.uzb: quantity
+  imf.ifs.gold_reserves_oz.aut: quantity
+  imf.ifs.gold_reserves_oz.bel: quantity
+  imf.ifs.gold_reserves_oz.che: quantity
+  imf.ifs.gold_reserves_oz.chn: quantity
+  imf.ifs.gold_reserves_oz.cze: quantity
+  imf.ifs.gold_reserves_oz.deu: quantity
+  imf.ifs.gold_reserves_oz.esp: quantity
+  imf.ifs.gold_reserves_oz.fra: quantity
+  imf.ifs.gold_reserves_oz.gbr: quantity
+  imf.ifs.gold_reserves_oz.hun: quantity
+  imf.ifs.gold_reserves_oz.ind: quantity
+  imf.ifs.gold_reserves_oz.irq: quantity
+  imf.ifs.gold_reserves_oz.ita: quantity
+  imf.ifs.gold_reserves_oz.jpn: quantity
+  imf.ifs.gold_reserves_oz.kaz: quantity
+  imf.ifs.gold_reserves_oz.lbn: quantity
+  imf.ifs.gold_reserves_oz.nld: quantity
+  imf.ifs.gold_reserves_oz.pol: quantity
+  imf.ifs.gold_reserves_oz.prt: quantity
+  imf.ifs.gold_reserves_oz.rus: quantity
+  imf.ifs.gold_reserves_oz.sau: quantity
+  imf.ifs.gold_reserves_oz.sgp: quantity
+  imf.ifs.gold_reserves_oz.tha: quantity
+  imf.ifs.gold_reserves_oz.tur: quantity
+  imf.ifs.gold_reserves_oz.twn: quantity
+  imf.ifs.gold_reserves_oz.usa: quantity
+  imf.ifs.gold_reserves_oz.uzb: quantity
+  imf.ifs_official_gold_oz: quantity
+  index.forward_pe: ratio
+  lbma.gold_pm_usd: price
+  levetf.aum: quantity
+  levetf.nav: price
+  levetf.shares_outstanding: quantity
+  manual.aaii_bonds_pct: ratio
+  manual.aaii_cash_pct: ratio
+  manual.aaii_stocks_pct: ratio
+  manual.cbo_deficit_path: ratio
+  manual.cofer_usd_share: ratio
+  manual.cofer_usd_share_constant_fx: ratio
+  manual.fedwatch_next_meeting_prob: ratio
+  manual.g4_issuance_gap_gdp: ratio
+  manual.global_visible_stocks_bbl: quantity
+  manual.gold_share_total_reserves: ratio
+  manual.ig_cover_median: ratio
+  manual.ig_nic_median_bp: spread
+  manual.msci_acwi_exus_usd: price
+  manual.msci_em_local: price
+  manual.msci_em_usd: price
+  manual.msci_world_usd: price
+  manual.mu_hbm_share: ratio
+  manual.oecd_days_cover: quantity   # ambiguous: a duration in days; alternative: ratio
+  manual.panda_bond_issuance: quantity
+  manual.sep_median_12m: rate
+  manual.sep_median_next2: rate
+  mof.jgb_2y: rate
+  mof.jgb_5y: rate
+  nbs.city70_new_mm_avg: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.city70_new_mm_down: quantity
+  nbs.city70_new_mm_up: quantity
+  nbs.city70_new_yy_avg: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.city70_new_yy_down: quantity
+  nbs.re_sales_ytd: quantity
+  nbs.re_sales_ytd_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.re_sold_area_ytd: quantity
+  nbs.re_sold_area_ytd_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  nbs.re_starts_ytd: quantity
+  nbs.re_starts_ytd_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  ndl.rtat10_activity: ratio
+  ndl.rtat10_concentration: ratio
+  ndl.rtat10_new_entrants: quantity
+  ndl.rtat10_persistence: quantity   # ambiguous: a duration in days; alternative: ratio
+  ndl.rtat10_sentiment: quantity
+  nyfed.sce_3y: rate
+  nyfed.sce_5y: rate
+  oil.prompt_spread: price
+  paper.benchmark: price
+  pin.dist_bps: spread
+  pm.ask: ratio
+  pm.bid: ratio
+  pm.implied: ratio
+  pm.last: ratio
+  pm.probability: ratio
+  portfolio.available_funds: quantity
+  portfolio.buying_power: quantity
+  portfolio.cash: quantity
+  portfolio.cushion: ratio
+  portfolio.excess_liquidity: quantity
+  portfolio.gross_position_value: quantity
+  portfolio.init_margin: quantity
+  portfolio.maint_margin: quantity
+  portfolio.nav: quantity
+  portfolio.position_avg_cost: price
+  portfolio.position_con_id: quantity
+  portfolio.position_market_value: quantity
+  portfolio.position_qty: quantity
+  portfolio.position_unrealized_pnl: quantity
+  regime.dimension_percentile: ratio
+  safe.bop_capital_financial: quantity
+  safe.bop_current_account: quantity
+  safe.bop_errors_omissions: quantity
+  safe.bop_financial_ex_reserves: quantity
+  safe.bop_reserve_assets: quantity
+  safe.fx_reserves: quantity
+  safe.gold_reserves_oz: quantity
+  safe.gold_reserves_usd: quantity
+  safe.iip_assets: quantity
+  safe.iip_liabilities: quantity
+  safe.iip_net: quantity
+  safe.iip_reserve_assets: quantity
+  safe.official_reserves_total: quantity
+  sffed.expected_rate_10y: rate
+  sffed.fitted_yield_10y: rate
+  sffed.term_premium_10y: rate
+  sffed.term_premium_5y: rate
+  shfe.stocks_t: quantity
+  shfe.warrants_t: quantity
+  shiller.cape: ratio
+  shiller.cpi: price
+  shiller.gs10: rate
+  shiller.sp_dividend: price
+  shiller.sp_earnings: price
+  shiller.sp_price: price
+  sifma.corp_issuance_by_maturity: quantity
+  spdji.fwd12m_op_eps: quantity
+  spdji.op_eps_est_q: quantity
+  thai.bot_policy_rate: rate
+  thai.cpi: price
+  thai.cpi_yoy: ratio   # ambiguous: a return series, not a level; alternative: price
+  thai.gdp_real_sa: quantity
+  thai.gdp_real_sa_qoq: ratio   # ambiguous: a return series, not a level; alternative: price
+  thai.set_index: price
+  thai.tourist_arrivals: quantity
+  tic.flow_banks_own_dollar_liabilities: quantity
+  tic.flow_bills_official: quantity
+  tic.flow_bills_other_custody: quantity
+  tic.flow_bills_private: quantity
+  tic.flow_bills_total: quantity
+  tic.flow_gross_us_purchases_domestic: quantity
+  tic.flow_gross_us_purchases_foreign: quantity
+  tic.flow_gross_us_sales_domestic: quantity
+  tic.flow_gross_us_sales_foreign: quantity
+  tic.flow_net_domestic: quantity
+  tic.flow_net_foreign: quantity
+  tic.flow_net_foreign_bonds: quantity
+  tic.flow_net_foreign_equity: quantity
+  tic.flow_net_lt_acquisitions: quantity
+  tic.flow_net_lt_securities: quantity
+  tic.flow_official_agency: quantity
+  tic.flow_official_corporate: quantity
+  tic.flow_official_equity: quantity
+  tic.flow_official_net_domestic: quantity
+  tic.flow_official_treasuries: quantity
+  tic.flow_other_acquisitions: quantity
+  tic.flow_other_negotiable_official: quantity
+  tic.flow_other_negotiable_private: quantity
+  tic.flow_other_negotiable_total: quantity
+  tic.flow_private_agency: quantity
+  tic.flow_private_corporate: quantity
+  tic.flow_private_equity: quantity
+  tic.flow_private_net_domestic: quantity
+  tic.flow_private_treasuries: quantity
+  tic.flow_total: quantity
+  tic.flow_total_official: quantity
+  tic.flow_total_private: quantity
+  tic.holdings_by_country: quantity
+  tic.holdings_total: quantity
+  tic.official_bills: quantity
+  tic.official_bonds_notes: quantity
+  tic.official_holdings: quantity
+  tic.private_holdings: quantity
+  umich.expect_5_10y: rate
+  wgc.cb_gold_holdings_t: quantity
+  wgc.cb_net_purchases_t: quantity
+  worldbank.cmo_energy: price
+  worldbank.cmo_metals: price
+  worldbank.cmo_nonenergy: price
+  worldbank.cmo_precious: price
+  worldbank.cmo_total: price
+  yf.analyst_count: quantity
+  yf.forward_eps: quantity
+  yf.forward_pe: ratio
+  yf.target_mean_price: quantity
+  yf.trailing_eps: quantity
+  yf.trailing_pe: ratio
+  yfinance.fund_amat_capex: quantity
+  yfinance.fund_amat_cogs: quantity
+  yfinance.fund_amat_net_debt: quantity
+  yfinance.fund_amat_operating_cash_flow: quantity
+  yfinance.fund_amzn_capex: quantity
+  yfinance.fund_amzn_cogs: quantity
+  yfinance.fund_amzn_inventory: quantity
+  yfinance.fund_amzn_net_debt: quantity
+  yfinance.fund_amzn_operating_cash_flow: quantity
+  yfinance.fund_avgo_capex: quantity
+  yfinance.fund_avgo_cogs: quantity
+  yfinance.fund_avgo_net_debt: quantity
+  yfinance.fund_avgo_operating_cash_flow: quantity
+  yfinance.fund_googl_capex: quantity
+  yfinance.fund_googl_cogs: quantity
+  yfinance.fund_googl_inventory: quantity
+  yfinance.fund_googl_net_debt: quantity
+  yfinance.fund_googl_operating_cash_flow: quantity
+  yfinance.fund_meta_capex: quantity
+  yfinance.fund_meta_cogs: quantity
+  yfinance.fund_meta_net_debt: quantity
+  yfinance.fund_meta_operating_cash_flow: quantity
+  yfinance.fund_msft_capex: quantity
+  yfinance.fund_msft_cogs: quantity
+  yfinance.fund_msft_inventory: quantity
+  yfinance.fund_msft_net_debt: quantity
+  yfinance.fund_msft_operating_cash_flow: quantity
+  yfinance.fund_mu_capex: quantity
+  yfinance.fund_mu_cogs: quantity
+  yfinance.fund_mu_inventory: quantity
+  yfinance.fund_mu_net_debt: quantity
+  yfinance.fund_mu_operating_cash_flow: quantity
+  yfinance.fund_nvda_capex: quantity
+  yfinance.fund_nvda_cogs: quantity
+  yfinance.fund_nvda_net_debt: quantity
+  yfinance.fund_nvda_operating_cash_flow: quantity
+  yfinance.fund_orcl_capex: quantity
+  yfinance.fund_orcl_cogs: quantity
+  yfinance.fund_orcl_net_debt: quantity
+  yfinance.fund_orcl_operating_cash_flow: quantity
+  zec.beta_to_btc_60d: ratio
+  zec.btc_ratio: ratio
+  zec.crypto_cap_share: ratio
+  zec.market_cap_usd: quantity
+  zec.pool_value: quantity
+  zec.price_usd: price
+  zec.realized_vol_20d: conditions
+  zec.shielded_tx_share: ratio
+  zec.shielded_value_share: ratio
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -15372,6 +18050,9 @@ long_windows:
 # a change in a yield, rate or spread, pts for a change in a probability. A price
 # stays strict. check_registry holds every kind to the vocabulary and every key
 # to a registered series.
+  shiller.cape: full
+  index.forward_pe: full
+  yf.forward_pe: full
 series_kinds:
   bbk.bund_2y: yield
   cfets.cgb_2y: yield
@@ -15566,3 +18247,59 @@ reserved:
     - vendor_call_wall
     - vendor_put_wall
     - vendor_source
+
+# NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
+# names every member of the block; a key names one series.
+lens_excluded:
+  calc.prl_idle_gpu_flag: "units 'boolean': a flag, not a level series (ST-13 D6)"
+  calc.prl_thesis_status: "units 'label': the thesis word and its trace, not a level series (ST-13)"
+  fred.mts_deficit: "a monthly flow of either sign: read through calc.deficit_ttm_pct_gdp (6e, the rest)"
+  auction.cusip: "units 'label': not a level series"
+  base_rate_tables: "tables, not series"
+  baserate.review_flag: "units 'label': not a level series"
+  cfe.vx_probe: "units 'label': not a level series"
+  contradiction.open: "units 'boolean': not a level series"
+  contradiction.since: "units 'date': not a level series"
+  correlation_shift_flags: "boolean flags"
+  driver_attribution_sign_stability: "boolean flags"
+  event_columns: "the events table's columns"
+  event_types: "the events table's types"
+  events.earnings: "units 'label': not a level series"
+  events.filing: "units 'label': not a level series"
+  events.headline: "units 'label': not a level series"
+  events.release: "units 'label': not a level series"
+  events.scheduled: "units 'label': not a level series"
+  events.session_event: "units 'label': not a level series"
+  fred.usrec: "the NBER recession flag (0/1)"
+  gates.data_quality: "units 'label': not a level series"
+  gates.liquidity_floor: "units 'boolean': not a level series"
+  grade.invalidation_hit: "units 'boolean': not a level series"
+  ibkr.auction_imbalance_side: "units 'label': not a level series"
+  ibkr.auction_probe: "units 'label': not a level series"
+  ibkr.borrow_probe: "units 'label': not a level series"
+  ibkr.stock_loan_file_probe: "units 'label': not a level series"
+  manual.dram_contract_dir: "units 'label': not a level series"
+  manual.state_bank_dollar_selling: "units 'label': not a level series"
+  market_actions: "dividends and splits: corporate-action events, not level series"
+  overnight.gap_attribution: "units 'label': not a level series"
+  overnight.gap_attribution_dominant: "units 'label': not a level series"
+  pin.hit: "units 'boolean': not a level series"
+  pin_log_columns: "the pin log's columns"
+  pm.market: "units 'label': not a level series"
+  pm.open_interest: "units 'by_source': not a level series"
+  pm.price_basis: "units 'label': not a level series"
+  pm.volume: "units 'by_source': not a level series"
+  portfolio.position_currency: "units 'label': not a level series"
+  reference.file_vintage: "units 'label': not a level series"
+  regime.dial_state: "units 'label': not a level series"
+  regime.dimension_direction: "units 'label': not a level series"
+  regime.dimension_state: "units 'label': not a level series"
+  scan.crypto_basket_item: "units 'label': not a level series"
+  screen.em: "units 'label': not a level series"
+  screen.em_contagion: "units 'label': not a level series"
+  screen.move: "units 'label': not a level series"
+  screen.move_summary: "units 'label': not a level series"
+  spdji.eps_drop: "units 'label': not a level series"
+  structure_comparison: "labels"
+  zec.cap_probe: "units 'label': not a level series"
+  zec.shielded_probe: "units 'label': not a level series"

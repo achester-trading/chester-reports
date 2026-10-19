@@ -382,6 +382,18 @@ sources:
     status: retired
     caveats:
       - >-
+        STAYS RETIRED (ruled 18 Oct 2026, on the ST-13 report). The terms as read
+        18 Oct 2026 (coingecko.com/en/api_terms): "We do not encourage caching or
+        storage of Data" (6.1); a cache refreshed "at least every 24 hours"
+        (6.1.1); "you are not allowed to duplicate, reproduce, copy, store, derive
+        from or translate any Data" (6.2). They forbid the point-in-time store the
+        signal-triage order's MW-4 asked for, so MW-4's CoinGecko clause is
+        superseded (the order's rulings addendum of 18 Oct 2026). The ST-13
+        fetcher and the ENABLED_SOURCES switch were removed rather than kept a
+        flag away from a breach. PRL reads Yahoo (price, 24h volume) and
+        DefiLlama's coin service (cap, circulating supply) at the crypto basket's
+        keys; its venue concentration (D5) is not tracked.
+      - >-
         RETIRED 13 OCT 2026. Nothing reads CoinGecko now: ZEC's cap moved to
         defillama, and the total crypto cap and ZEC's share of it stopped at their
         last stored values (rows 6-12 Oct 2026 keep this source), because no free
@@ -1828,6 +1840,256 @@ sources:
     license: public, no key; see the workbook's License sheet
     allowed_reports: [monthly_macro, daily_cascade]
     implemented_by: altdata/sources/nyfed_sce.py
+    status: live
+
+  rent_indices:
+    name: Zillow Observed Rent Index and Apartment List national rent (published files)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [inflation, real_estate]
+    geography: [US]
+    latency: monthly, mid-month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each file's Last-Modified (observed) where sent, else the write instant.
+      Zillow's file is on files.zillowstatic.com (robots.txt carries no rule);
+      Apartment List's is linked from its research page (robots: Allow /) and
+      served from assets.ctfassets.net (robots.txt 404: no rules). Checked 16 Oct
+      2026. Batch 7 lens 7, the shelter lead.
+    license: public research files, no key; cite the publisher
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/rent_indices.py
+    status: live
+  hyperliquid:
+    name: Hyperliquid info API -- perp funding and open interest
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: funding hourly; open interest live (read once a day)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Funding prints carry their own epoch-millisecond time and are summed by UTC
+      day, complete days only; open interest is a snapshot filed under the pull's
+      UTC day. available_at is the pull instant. No robots.txt (404: no rules).
+      Weight limit 1,200 a minute per IP (documentation, read 17 Oct 2026); the
+      writer spends at most 600.
+    license: public info endpoint, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/hl.py
+    status: live
+  perp_venues:
+    name: OKX and Deribit public market APIs -- perp funding, open interest, long/short
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: funding eight-hourly (OKX) or hourly (Deribit); open interest live
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Funding by UTC day from each print's own time, complete days only; OKX's
+      daily OI and long/short buckets are stamped 16:00 UTC and filed under that
+      UTC date; Deribit's OI is a snapshot. available_at is the pull instant.
+      www.okx.com's robots.txt disallows nothing under /api/v5/; www.deribit.com
+      publishes none. Bybit's reader exists and is switched off: api.bybit.com
+      answers the US with 403 (17 Oct 2026).
+    license: public market-data endpoints, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fut.py
+    status: live
+  mempool_space:
+    name: mempool.space open API -- Bitcoin hashrate, difficulty, fees, mempool, pools
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_network]
+    geography: [global]
+    latency: hashrate daily; fees, mempool and pools live (read once a day)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Hashrate by UTC day (complete days), difficulty by adjustment; the rest are
+      snapshots filed under the pull's UTC day. available_at is the pull instant.
+      /robots.txt returns the site's app page (no rules).
+    license: open API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/mempool.py
+    status: live
+  pearl_explorer:
+    name: Pearl's block explorer (explorer.pearlresearch.ai)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [crypto_network]
+    geography: [global]
+    latency: the chain tip, read weekly (MW-4)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The tip's own time where the endpoint gives it, else the read's UTC day;
+      available_at is the pull instant. G-26: the JSON endpoint is not yet
+      discovered (unreachable from the session's machine 18 Oct 2026), so robots.txt
+      and the terms are not yet read and nothing is declared; until then the
+      derived layer prints the height ESTIMATED from the emission formula.
+    license: "not yet read (G-26): an endpoint is declared only where robots.txt and the site's terms allow it"
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/pearl_explorer.py
+    status: built
+  alternative_me:
+    name: alternative.me Crypto Fear & Greed Index
+    tier: C
+    epistemic_role: derived_index
+    domain: [crypto_sentiment]
+    geography: [global]
+    latency: daily, set at 00:00 UTC
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each value carries its day's epoch time; full history from 1 Feb 2018 in one
+      call. available_at is the pull instant. No robots.txt (404: no rules).
+    license: open API, no key; attribution to alternative.me
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fng.py
+    status: live
+  blockscout:
+    name: Blockscout Ethereum explorer API -- gas oracle, utilisation, daily transactions
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_network]
+    geography: [global]
+    latency: gas and utilisation live (read once a day); transactions daily
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Gas and utilisation are snapshots filed under the pull's UTC day; the
+      transaction chart is by UTC date (30 days served), complete days only.
+      robots.txt: Allow /. Its price and market cap are CoinGecko's and are not
+      stored (13 Oct 2026). The keyless path in place of Etherscan (no
+      ETHERSCAN_API_KEY; rule (b) of 16 Oct 2026).
+    license: public explorer API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/blockscout.py
+    status: live
+  deribit:
+    name: Deribit public API -- the DVOL volatility indices
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: daily candles; history from 24 Mar 2021
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The 1D candle's close, filed under its UTC day, complete days only;
+      available_at is the pull instant. No robots.txt (404). Strike-level OI is
+      EL-12's (D-4), not fetched.
+    license: public market-data API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/deribit.py
+    status: live
+  farside:
+    name: Farside Investors -- US spot bitcoin and ether ETF daily flows (HTML tables)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [US]
+    latency: US evening, the session's figures; issuers fill in over the evening
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each row is a session's date; available_at is the pull instant. robots.txt
+      names only Twitterbot (no rule for this agent). On 17 Oct 2026 the site
+      answered the laptop 403 through Cloudflare; the writer is STALE with its last
+      good date on any refusal and scrapes nothing around it.
+    license: public web page; cite Farside Investors
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/farside.py
+    status: live
+  geckoterminal:
+    name: GeckoTerminal public API -- new pools and trending pools (the froth gauge)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: live (sampled once a day)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A daily sample under the pull's UTC day, no history. The host's robots.txt
+      disallows / for every agent; ruling 4 of 17 Oct 2026: a robots.txt governs
+      crawlers of pages, and the documented API is governed by its own terms.
+    license: >-
+      Public beta API, no key, "limited to approximately 10 calls/minute"; no
+      attribution or storage clause stated (the API's swagger, read 17 Oct 2026).
+      Ruling 4 of 17 Oct 2026. Re-read quarterly.
+    terms_url: https://api.geckoterminal.com/docs/v2/swagger.json
+    terms_read: 2026-10-17
+    terms_reread: quarterly
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/gt.py
+    status: built
+  dexscreener:
+    name: DexScreener public API -- pair search (the froth gauge's fallback)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: live
+    timestamp_reliability: low
+    timestamp_notes: >-
+      Used only when GeckoTerminal fails; its rows carry source dexscreener:fallback
+      and are never scored (a search, not a census). No robots.txt (404).
+    license: public API, no key, 300 calls a minute
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/gt.py
+    status: live
+  coinpaprika:
+    name: CoinPaprika API, free plan -- total crypto market cap and bitcoin dominance
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_aggregate]
+    geography: [global]
+    latency: live (read once a day)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A snapshot under the pull's UTC day, forward-only. No robots.txt (404).
+    license: >-
+      Free plan, keyless: personal and non-commercial use; attribution "Powered by
+      Coinpaprika" where displayed; no redistribution (API terms read 17 Oct 2026;
+      no clause on storage). Ruling 2 of 17 Oct 2026; ruling 3 of 17 Oct: the series
+      may be stored, terms re-read quarterly. The 13 Oct note on storage was about
+      CoinGecko's terms, not this source's.
+    terms_url: https://docs.coinpaprika.com/api-plans
+    terms_read: 2026-10-17
+    terms_reread: quarterly
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/paprika.py
+    status: live
+  treasury_companies:
+    name: Public bitcoin treasury companies -- holdings (BitcoinTreasuries.com), Strategy's share count (EDGAR), MSTR's captured spot
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: holdings as the aggregator updates them; the share count per quarterly filing; the spot per captured chain
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Holdings are snapshots under the pull's UTC day (treasuries.bitbo.io; robots
+      allows it; no terms page). The share count is filed under the XBRL fact's end
+      date, read with the repo's EDGAR contact (CHESTER_SEC_CONTACT). The spot is the
+      newest captured MSTR chain's. www.strategy.com refuses this client (403);
+      bitcointreasuries.net's terms forbid automated extraction -- neither is read.
+    license: public web page and SEC filings; cite BitcoinTreasuries.com
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/treasury.py
+    status: live
+
+  clevfed_rules:
+    name: Federal Reserve Bank of Cleveland -- simple monetary policy rules
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [US]
+    latency: quarterly, after the SEP and the GDP release
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The chart file's Last-Modified (observed) where sent, else the write
+      instant. www.clevelandfed.org robots.txt disallows /errors/* only (checked
+      16 Oct 2026). The rules' prescribed path, never read as market pricing.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/clevfed_rules.py
     status: live
 
   wgc:

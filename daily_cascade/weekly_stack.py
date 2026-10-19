@@ -498,6 +498,13 @@ PLUMB = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
          ("acm.term_premium_10y", "10-year term premium (ACM)"))
 
 
+# 6e, the rest: the Weekly's lens table carries Plumbing's series and these.
+WEEKLY_LENS_EXTRA = [("fred.ig_oas", "Investment-grade OAS"),
+                     ("fred.cpi", "CPI"), ("fred.core_pce", "Core PCE"),
+                     ("fred.u3_rate", "Unemployment rate"),
+                     ("calc.core_cpi_pce_gap", "Core CPI less core PCE")]
+
+
 # THE BARS' YIELD FOR THE WEEK'S MOVE (T2 ruling 3, 3 Oct 2026): one 10-year
 # change per edition, the tape's -- Friday close to Friday close from the 5-minute
 # feed's daily bars. FRED stays the level, the percentile and the history, and
@@ -628,6 +635,16 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
     from . import batch5_block                                  # noqa: PLC0415
     subs += batch5_block.plumbing_subsections(st, now, then, cadence)
+    # 6E, THE REST (16 Oct 2026): the lens columns the brief left for "later",
+    # as one table of Plumbing's series, and the inflation block (the CPI lead
+    # composite, the core CPI-PCE gap; Batch 7 items 46 and 48 attach to it).
+    # The Weekly's only: tables and lines, no prose word and no chart.
+    if cadence == "weekly":
+        from . import inflation_block, lens_cells                # noqa: PLC0415
+        lt = lens_cells.lens_table(st, now, list(PLUMB) + WEEKLY_LENS_EXTRA)
+        if lt:
+            subs.append(lt)
+        subs += inflation_block.subsections(st, now, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
@@ -2100,6 +2117,16 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             if cb["line"]:
                 built["misfit"]["items"].append(
                     item("misfit:crypto_basket", cb["line"], 2, cb["line"]))
+        # THE CRYPTO FLOWS BLOCK (Batch 4 Tranche A, CD-9; 17 Oct 2026): at most
+        # 12 lines, a table of its own in Positioning & flows, read from the
+        # store with each line's data-as-of; no paragraph, no chart. The flags
+        # never print (altdata/crypto_blocks.py).
+        try:
+            from altdata import crypto_blocks                   # noqa: PLC0415
+            built["positioning"].setdefault("subsections", []).append(
+                crypto_blocks.weekly_block(st, now))
+        except Exception:                                       # noqa: BLE001
+            log.warning("crypto flows block unavailable", exc_info=True)
         em_week(built, screen, ending)
         # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
         # Ahead's top events, and the top event's playbook.
@@ -2557,6 +2584,12 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
         ed.get("changed_since") or [], "Changed since last Weekly",
         extra_html=f' &middot; {stack_render.esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else "")
+    # THE ADDENDUM'S ONE LINE (Batch 8 item 51): where the Digital Assets page is;
+    # nothing when the run carries no addendum.
+    from . import digital_addendum                              # noqa: PLC0415
+    link = digital_addendum.link_line(p.get("addendum"), mode)
+    if link:
+        head += f'<p style="{stack_render.SUB}">{stack_render.esc(link)}</p>'
     # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
     # then the ten sections; the reference tables after the last section.
     from . import precis                                        # noqa: PLC0415

@@ -1,0 +1,19 @@
+[Unit]
+Description=Weekly restore test (Sundays 10:15 ET) -- PRINTED, NEVER ENABLED BY A DEPLOY
+Documentation=file:///%h/chester-reports/docs/runbooks/restore.md
+
+[Timer]
+# Sundays at 10:15 ET: hours after the 02:30 sweep wrote the snapshot it restores
+# (the sweep's ceiling is two hours), clear of the 05:00 Weekly, on an open
+# weekend window.
+OnCalendar=Sun *-*-* 10:15 America/New_York
+RandomizedDelaySec=5min
+Persistent=true
+
+# NOT IN DEPLOY_TIMERS (scripts/deploy_remote.sh): enabled before the first
+# encrypted snapshot exists it could only fail, and the heartbeat would read that
+# as a failed backup. The operator enables it after the first restore test by
+# hand: docs/briefs/audit-leftovers-1-notes.md, "Box steps".
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,48 @@
+# The metric lenses' configuration (6e; the brief of 1 Oct 2026, ratified at the
+# Doctrine monthly of 4 Oct). Read by altdata/derived.py lens_forms(). Part 1 held
+# the ratified thresholds as constants; 6e, the rest (16 Oct 2026) moves the
+# per-series values here so each carries its source or its reason. The flags'
+# arithmetic stays in derived.py, the one place a delta or a percentile is made.
+version: 1
+
+# ---------------------------------------------------------------------------
+# THE WIDENING FLAG, per series: a 3-month change in the OAS at or above this
+# many basis points. Ratified for four series; SESSION-SET for four more under
+# the 16 Oct ruling (d)4 ("the widening thresholds for AA, BBB and the EM OAS
+# series are session-set, written in config with reasons, and listed").
+# ---------------------------------------------------------------------------
+widening_bp_3m:
+  fred.hy_oas:  {bp: 100, basis: "ratified: minutes 6b, 4 Oct 2026"}
+  fred.bb_oas:  {bp: 100, basis: "ratified: minutes 6b, 4 Oct 2026"}
+  fred.ccc_oas: {bp: 100, basis: "ratified: minutes 6b, 4 Oct 2026"}
+  fred.ig_oas:  {bp: 40,  basis: "ratified: minutes 6b, 4 Oct 2026"}
+  # THE SESSION'S RULE for the four: the ratified pair sets the scale. IG's +40
+  # bp is about 0.3 of its long-run median OAS (about 1.3%) and HY's +100 bp
+  # about 0.25 of its median (about 4.5%), so each new series takes about 0.3
+  # of its own median level, rounded to a 5 or a 25: the same proportional
+  # move, read in each series' own spread.
+  fred.aa_oas:      {bp: 25,  basis: "session-set 16 Oct 2026: about 0.3 of AA's long-run median OAS (about 0.75%), the IG rule scaled to AA"}
+  fred.bbb_oas:     {bp: 50,  basis: "session-set 16 Oct 2026: about 0.3 of BBB's long-run median OAS (about 1.6%); between AA and IG's ratified 40 and HY's 100"}
+  fred.em_corp_oas: {bp: 75,  basis: "session-set 16 Oct 2026: about 0.3 of the EM corporate OAS's long-run median (about 2.6%)"}
+  fred.em_hy_oas:   {bp: 150, basis: "session-set 16 Oct 2026: about 0.3 of the EM high-yield OAS's long-run median (about 5%); above US HY's 100 as its spread is wider"}
+
+# ---------------------------------------------------------------------------
+# THE SURPRISE FORM (ruling (d)6, 16 Oct 2026): "no free consensus source exists,
+# so the surprise form prints 'no consensus' and the SPF stays the quarterly
+# anchor." Nothing is guessed: a caller-supplied consensus still computes it.
+# ---------------------------------------------------------------------------
+surprise:
+  state: "no consensus"
+  reason: "no consensus: no free consensus source exists (ruled 16 Oct 2026); the SPF stays the quarterly anchor"
+
+# ---------------------------------------------------------------------------
+# THE LENSES OTHER ORDERS BIND TO 6e
+# ---------------------------------------------------------------------------
+# The 10-year's anchors (Batch 4 section 4.1: "consolidated into one lens in the
+# 6e metric-lenses build, rates family"): the SR-43 inflation anchor and the
+# fair-value fits (the inflation fit and the twin-deficit fiscal fit), read from
+# altdata/rates_anchors.py (config/rates_anchors.yaml), beside the term premium.
+anchored_rates: [fred.yield_10y]
+# The core CPI less core PCE gap (JPM GTM change order, 3 Oct 2026): flagged when
+# the sign has flipped, core PCE above core CPI.
+sign_flip: [calc.core_cpi_pce_gap]

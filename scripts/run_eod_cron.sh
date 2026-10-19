@@ -231,6 +231,16 @@ else
     log "volume profile: compute done"
 fi
 
+# THE DATA CHECK'S MARKS (audit-leftovers-2; the 14 Oct audit's item 14): after
+# the price and FRED pull, every move past its own volatility and every
+# cross-source pair past its tolerance is written as a row in data_quality_flags
+# and listed here. A mark never alters a value. Never fatal.
+log "data check: record"
+DQ_OUT="$("$VENV_PY" -m altdata.quality record 2>&1)"
+DQ_RC=$?
+printf '%s\n' "$DQ_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $DQ_RC -ne 0 ]] && log "WARN quality record exited $DQ_RC -- continuing; the values stand as stored"
+
 # ---- the events ingest, then the surprises ---------------------------------
 #
 # ORDER MATTERS AND IT IS NOT ALPHABETICAL. The ingest writes the earnings rows

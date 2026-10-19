@@ -109,7 +109,7 @@ def rows_from_csv(text: str, now: dt.datetime, series_id: str = SERIES_ID,
 
 def _start(db, key: str = KEY) -> Optional[str]:
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, [key]).get(key)
     finally:

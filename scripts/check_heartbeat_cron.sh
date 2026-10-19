@@ -627,6 +627,40 @@ else
     log "  backup: $BACKUP_STATE (latest=${b_latest:-none} last_ok=${b_ok_at:-none} allowance=${BACKUP_MAX_H}h)"
 fi
 
+# ---- the weekly restore test (audit-leftovers-1) ---------------------------
+# scripts/run_restore_test.sh writes restore_test_status (state=restore_ok|
+# restore_failed at= snapshot= detail=). A backup that does not restore is not a
+# backup, so a failed test is reported in the backup field as
+# failed:restore_test; a test that has stopped running (older than
+# CHESTER_RESTORE_MAX_DAYS, default 8: a weekly test and a day's grace) as
+# stale_restore:<d>d. No status file -- the test not yet enabled -- changes
+# nothing. Only an otherwise-ok backup is overridden: last night's failed sweep
+# is still the bigger news.
+RESTORE_STATE=none
+RESTORE_MAX_D="${CHESTER_RESTORE_MAX_DAYS:-8}"
+if [[ "$BACKUP_STATE" != "skipped" ]] && [[ -f "$STATE_DIR/restore_test_status" ]]; then
+    r_state="$(sed -n 's/^state=\([^ ]*\).*/\1/p' "$STATE_DIR/restore_test_status" | head -1)"
+    r_at="$(sed -n 's/.* at=\([^ ]*\).*/\1/p' "$STATE_DIR/restore_test_status" | head -1)"
+    r_s="$(date -d "$r_at" +%s 2>/dev/null || echo "")"
+    if [[ "$r_state" != "restore_ok" ]] || [[ -z "$r_s" ]]; then
+        RESTORE_STATE=failed
+    else
+        r_age_d=$(( ( $(date +%s) - r_s ) / 86400 ))
+        if (( r_age_d > RESTORE_MAX_D )); then
+            RESTORE_STATE="stale:${r_age_d}d"
+        else
+            RESTORE_STATE=ok
+        fi
+    fi
+    if [[ "$BACKUP_STATE" == "ok" ]]; then
+        case "$RESTORE_STATE" in
+            failed)  BACKUP_STATE="failed:restore_test" ;;
+            stale:*) BACKUP_STATE="stale_restore:${RESTORE_STATE#stale:}" ;;
+        esac
+    fi
+    log "  restore test: $RESTORE_STATE (state=${r_state:-none} at=${r_at:-none} allowance=${RESTORE_MAX_D}d)"
+fi
+
 # RANKED below the pipeline verdicts, drift and the state object -- each of those
 # is upstream of everything -- and ABOVE a stale feed: a store with no off-box
 # copy is worse than a late feed, because a late feed recovers on its own and a
@@ -715,6 +749,11 @@ fi
 FEEDS_STATE=unknown
 FEEDS_LINE=""
 FEEDS_STALE_NAMES=""
+# THE DATA CHECK'S COUNT (audit-leftovers-2): `feeds check` ends on "data check: n
+# outliers on D", from the marks the pulls' `quality record` wrote. Logged, and
+# carried as quality=<n> (none before the first record). A WARNING AND NEVER A
+# VERDICT: a marked print is a prompt to look, and the value stands as stored.
+QUALITY_STATE=unknown
 if [[ -n "${CHESTER_SKIP_FEED_CHECK:-}" ]]; then
     FEEDS_STATE=skipped
 elif [[ -z "${STATE_PY:-}" ]]; then
@@ -732,6 +771,10 @@ else
     [[ -n "$FEEDS_LINE" ]] && log "  feeds: $FEEDS_LINE"
     printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(stale\|pending\) /\1 /p' \
         | while IFS= read -r ln; do log "    $ln"; done
+    DQ_LINE="$(printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(data check: .*\)/\1/p' | head -n 1)"
+    QUALITY_STATE="$(printf '%s\n' "$DQ_LINE" | sed -n 's/^data check: \([0-9][0-9]*\) outlier.*/\1/p')"
+    [[ -z "$QUALITY_STATE" ]] && QUALITY_STATE=none
+    [[ -n "$DQ_LINE" ]] && log "  $DQ_LINE"
 fi
 
 # Ranked below the pipeline verdicts, below drift, and below the state object, on
@@ -1016,15 +1059,15 @@ fi
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE quality=$QUALITY_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s quality=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$QUALITY_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
@@ -1061,6 +1104,7 @@ python_json() {
     printf '  "unit_drift_days": %s,\n' "${DRIFT_DAYS:-0}"
     printf '  "restart_pending": "%s",\n' "$RESTART_PENDING"
     printf '  "backup": "%s",\n' "$BACKUP_STATE"
+    printf '  "restore_test": "%s",\n' "${RESTORE_STATE:-none}"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
 }

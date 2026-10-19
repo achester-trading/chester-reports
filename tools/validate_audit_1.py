@@ -383,6 +383,127 @@ def group_d() -> None:
           "3c: the logger's own description says the same")
 
 
+def group_e() -> None:
+    """E. INCREMENTAL PULLS AND ONE GROUPED FRESHNESS QUERY (audit-leftovers-1).
+    A writer with stored history asks for the narrow window; one with nothing
+    stored asks for the whole history; a narrow fetch merges into the CSV copy,
+    never truncating it; the grouped roster read gives the same answers as the
+    per-key reads. Fixtures only: no fetch, no live store."""
+    import datetime as dt
+    from types import SimpleNamespace
+    from unittest import mock
+    from altdata import feeds
+    from altdata.store import Store
+    from altdata.sources import _publication as pub, ecb_irs, fng, fred
+    head("E. INCREMENTAL PULLS, AND ONE GROUPED FRESHNESS QUERY")
+    td = gate_tmp.mkdtemp("aud1_e_")
+    st = Store(os.path.join(td, "csv"))
+    monthly = SimpleNamespace(key="cpi", fred_id="CPIAUCSL", freq="monthly")
+    daily = SimpleNamespace(key="dgs10", fred_id="DGS10", freq="daily")
+    st.write_observations("cpi", [("2020-01-01", 1.0), ("2026-08-01", 2.0)],
+                          source="fred", dual_write=False)
+    check(fred.newest_stored(st, "cpi") == "2026-08-01"
+          and fred.fetch_start(monthly, "2026-08-01") == "2025-06-27"
+          and fred.fetch_start(daily, "2026-10-16") == "2026-09-16",
+          "FRED with history asks from its newest stored day less the revision "
+          "window: 400 days for a monthly series, 30 for a daily one")
+    check(fred.newest_stored(st, "dgs10") is None
+          and fred.fetch_start(daily, fred.newest_stored(st, "dgs10")) is None,
+          "FRED with nothing stored asks for the full history (no observation_start)")
+    sent: list = []
+
+    def fake_get(url, params=None, **k):
+        sent.append(dict(params or {}))
+        return {"observations": [{"date": "2026-08-01", "value": "2.5"},
+                                 {"date": "2026-09-01", "value": "2.6"}]}
+    with mock.patch.object(fred, "http_get_json", fake_get), \
+            mock.patch.object(fred, "_get_key", lambda: "k"), \
+            mock.patch.object(fred.time, "sleep", lambda s: None):
+        out = fred.pull(st, series=[monthly, daily])
+    check(sent[0].get("observation_start") == "2025-06-27"
+          and "observation_start" not in sent[1]
+          and out["windows"] == {"cpi": "2025-06-27", "dgs10": None},
+          f"through fred.pull: the held series sends the narrow window, the new one "
+          f"none ({[p_.get('observation_start') for p_ in sent]})")
+    cpi = {r["date"]: r["value"] for r in st.read("cpi")}
+    check(cpi == {"2020-01-01": 1.0, "2026-08-01": 2.5, "2026-09-01": 2.6},
+          "the narrow fetch MERGES into the CSV copy: the 2020 row survives, the "
+          "re-read month is replaced, the new month added")
+    fixed: list = []
+    with mock.patch.object(fred, "http_get_json",
+                           lambda url, params=None, **k: fixed.append(params) or
+                           {"observations": []}), \
+            mock.patch.object(fred, "_get_key", lambda: "k"), \
+            mock.patch.object(fred.time, "sleep", lambda s: None):
+        fred.pull(st, lookback_days=1500, series=[monthly])
+    check(fixed and fixed[0]["observation_start"] == (
+              fred.session.session_date_obj() - dt.timedelta(days=1500)).isoformat(),
+          "a caller that passes lookback_days keeps the fixed window (the Monthly)")
+
+    db = observations.ObservationStore(os.path.join(td, "obs.db"))
+    try:
+        check(pub.since(fng.KEYS, fng.MARGIN_DAYS, db=db) is None
+              and fng.limit_for(None) == "0"
+              and ecb_irs.params_for(pub.since(ecb_irs.KEYS, 366, db=db))
+              == {"format": "csvdata"},
+              "the fear-and-greed index and the ECB, with nothing stored: the whole "
+              "history (limit=0; no startPeriod)")
+        db.write_many([_row("fng.value", "2026-10-10", "2026-10-10T01:00:00+00:00",
+                            50.0, source="alternative_me")]
+                      + [_row(k, "2026-09-01", "2026-10-02T08:00:00+00:00", 3.0,
+                              source="ecb") for k in ecb_irs.KEYS])
+        s_f = pub.since(fng.KEYS, fng.MARGIN_DAYS, db=db)
+        check(s_f == "2026-10-03" and fng.limit_for(s_f, "2026-10-17") == "15"
+              and ecb_irs.params_for(pub.since(ecb_irs.KEYS, 366, db=db))
+              == {"format": "csvdata", "startPeriod": "2025-08"},
+              "with history: fng asks for the 15 days since its newest less 7, the "
+              "ECB from a year before its newest month")
+        db.write_many([_row("ecb.irs_10y_de", "2026-10-01", "2026-11-02T08:00:00+00:00",
+                            3.1, source="ecb")])
+        check(ecb_irs.params_for(pub.since(ecb_irs.KEYS, 366, db=db))["startPeriod"]
+              == "2025-08", "the window starts from the EARLIEST key's newest day")
+
+        # THE GROUPED QUERY against the per-key reads, on a fixture store with a
+        # NULL-instrument key, an instrument-keyed one, a vintage not yet
+        # knowable at the cutoff, and an absent key.
+        db.write_many([
+            _row("fred.a", "2026-10-01", "2026-10-02T00:00:00+00:00", 1.0),
+            _row("fred.a", "2026-10-08", "2026-10-09T00:00:00+00:00", 1.1),
+            _row("fred.a", "2026-10-15", "2026-10-20T00:00:00+00:00", 1.2),
+            _row("logger.b", "2026-10-14", "2026-10-15T00:00:00+00:00", 5.0, inst="SPY"),
+            _row("logger.b", "2026-10-15", "2026-10-16T00:00:00+00:00", 6.0, inst="QQQ")])
+        keys = ["fred.a", "logger.b", "absent.c", "fng.value"]
+        cut = "2026-10-17T00:00:00+00:00"
+        grouped = db.newest_observed_map(keys, as_of=cut)
+        per = {}
+        for k in keys:
+            r = db.latest_as_of(k, as_of=cut)
+            per[k] = ((str(r["observed_at"])[:10] if r else None),
+                      db.newest_observed_any(k, as_of=cut))
+        per = {k: v for k, v in per.items() if v != (None, None)}
+        check(grouped == per and grouped["fred.a"] == ("2026-10-08", "2026-10-08")
+              and grouped["logger.b"] == (None, "2026-10-15") and "absent.c" not in grouped,
+              f"the grouped query returns the per-key answers on a fixture store "
+              f"({grouped})")
+        calls: list = []
+        real = db.latest_as_of
+        db.latest_as_of = lambda *a, **k: calls.append(a) or real(*a, **k)
+        with mock.patch.object(feeds, "price_keys", lambda: []), \
+                mock.patch.object(feeds, "fred_keys", lambda: ["fred.a"]), \
+                mock.patch.object(feeds, "official_keys", lambda: []), \
+                mock.patch.object(feeds, "external_keys", lambda: ["logger.b"]), \
+                mock.patch.object(feeds, "logger_rosters", lambda: []), \
+                mock.patch.object(feeds, "PREDICTION_KEYS", ()):
+            fr = feeds.freshness(as_of=cut, store=db)
+        check(not calls and fr["feeds"]["fred"]["expected"] == 1
+              and fr["feeds"]["external"]["expected"] == 1
+              and fr["feeds"]["fred"]["fresh"] + fr["feeds"]["fred"]["stale"] == 1,
+              "feeds.freshness reads the roster through the one grouped query (no "
+              "per-key latest_as_of)")
+    finally:
+        db.close()
+
+
 def json_roundtrip(d: dict) -> dict:
     import json
     return json.loads(json.dumps(d))
@@ -390,7 +511,7 @@ def json_roundtrip(d: dict) -> dict:
 
 def main() -> int:
     print(f"{LINE}\nAUD-1, THE FIXES WITH NO OTHER GATE\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d):
+    for g in (group_a, group_b, group_c, group_d, group_e):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

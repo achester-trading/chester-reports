@@ -22,6 +22,20 @@ it will run; anything else raises before rclone is called.
 
 Exit codes: 0 restored and clean; 1 environment (no remote configured, no rclone);
 2 no snapshot found, or the restored copy failed integrity_check.
+
+THE WEEKLY RESTORE TEST (audit-leftovers-1; chester-restore-test.timer, Sundays
+after the backup, through scripts/run_restore_test.sh and the crypt remote) runs
+the same drill with two more options:
+  --expect FILE   the record the sweep writes at snapshot time
+                  (~/.chester/backup_snapshot: name= observations= at=). The
+                  restored copy's observations count must EQUAL the count recorded
+                  for that snapshot -- the live store has moved on since, the
+                  snapshot has not -- and the newest snapshot on the remote must be
+                  the one the record names.
+  --status FILE   writes `state=restore_ok|restore_failed at= snapshot= detail=`,
+                  which the heartbeat's backup field reads
+                  (scripts/check_heartbeat_cron.sh): a failed restore test is a
+                  failed backup.
 """
 
 from __future__ import annotations
@@ -86,8 +100,33 @@ def table_counts(path: Path, ro: bool = True) -> dict[str, int]:
         conn.close()
 
 
+def read_record(path: Optional[str]) -> Optional[dict]:
+    """The sweep's snapshot record, `name= observations= at=`, or None."""
+    if not path or not Path(path).exists():
+        return None
+    rec = dict(kv.split("=", 1) for kv in Path(path).read_text(encoding="utf-8").split()
+               if "=" in kv)
+    try:
+        rec["observations"] = int(rec.get("observations", ""))
+    except ValueError:
+        rec["observations"] = None
+    return rec
+
+
+def write_status(path: str, r: dict) -> None:
+    """state=restore_ok|restore_failed at= snapshot= detail= -- one line."""
+    state = "restore_ok" if r.get("ok") else "restore_failed"
+    detail = ("restored, integrity ok, observations as recorded"
+              if r.get("ok") else str(r.get("error") or r.get("integrity") or "failed"))
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(
+        f"state={state} at={dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')} "
+        f"snapshot={r.get('snapshot') or 'none'} detail={detail.replace(chr(10), ' ')}\n",
+        encoding="utf-8")
+
+
 def drill(remote: str, live: Optional[str], runner: Runner = rclone,
-          today: Optional[str] = None) -> dict:
+          today: Optional[str] = None, expect: Optional[dict] = None) -> dict:
     """The drill. Never writes outside its temporary directory, which it removes."""
     from altdata import observations                            # noqa: PLC0415
     out: dict = {"remote": remote, "ok": False}
@@ -116,6 +155,21 @@ def drill(remote: str, live: Optional[str], runner: Runner = rclone,
             out["rc"] = 2
             return out
         restored = table_counts(db)
+        if expect is not None:
+            # THE WEEKLY TEST: the snapshot the record names, at the count it
+            # recorded.
+            want, got = expect.get("observations"), restored.get("observations")
+            out["expected_observations"], out["restored_observations"] = want, got
+            if expect.get("name") and expect["name"] != name:
+                out["error"] = (f"the newest snapshot on the remote is {name}, but the "
+                                f"sweep recorded {expect['name']}")
+                out["rc"] = 2
+                return out
+            if want is None or got != want:
+                out["error"] = (f"observations: {got} restored against {want} "
+                                f"recorded at snapshot time")
+                out["rc"] = 2
+                return out
         live_counts: dict[str, int] = {}
         if live and Path(live).exists():
             try:
@@ -169,19 +223,40 @@ def main(argv: Optional[list] = None) -> int:
     ap.add_argument("--live", default=None,
                     help="the live store to compare against, read-only "
                          "(default the observations store)")
+    ap.add_argument("--expect", default=None,
+                    help="the sweep's snapshot record (the weekly restore test)")
+    ap.add_argument("--status", default=None,
+                    help="write restore_ok / restore_failed here (the weekly test)")
     a = ap.parse_args(argv)
     remote = a.remote or secrets.get("CHESTER_RCLONE_REMOTE")
     if not remote:
         print("restore drill: CHESTER_RCLONE_REMOTE is unset and no --remote given")
         return 1
+    expect = None
+    if a.expect:
+        expect = read_record(a.expect)
+        if expect is None:
+            r = {"ok": False, "error": f"no snapshot record at {a.expect}"}
+            if a.status:
+                write_status(a.status, r)
+            print(f"restore test: {r['error']}")
+            return 2
     try:
-        r = drill(remote.rstrip("/"), a.live or str(observations.DEFAULT_DB))
+        r = drill(remote.rstrip("/"), a.live or str(observations.DEFAULT_DB),
+                  expect=expect)
     except FileNotFoundError as exc:
+        if a.status:
+            write_status(a.status, {"ok": False, "error": str(exc)})
         print(f"restore drill: {exc}")
         return 1
     except Exception as exc:                                    # noqa: BLE001
+        if a.status:
+            write_status(a.status, {"ok": False,
+                                    "error": f"{type(exc).__name__}: {exc}"})
         print(f"restore drill: FAILED {type(exc).__name__}: {exc}")
         return 2
+    if a.status:
+        write_status(a.status, r)
     print(report(r))
     return int(r.get("rc", 2))
 

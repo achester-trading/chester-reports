@@ -829,6 +829,38 @@ else
     bad "never case -> backup=$(backup_of) state=$(state_of) exit=$RC"
 fi
 
+# 5-7. THE WEEKLY RESTORE TEST (audit-leftovers-1): restore_test_status, which
+# scripts/run_restore_test.sh writes. A failed test fails an otherwise-ok backup;
+# one past CHESTER_RESTORE_MAX_DAYS (8) is stale; a passing one changes nothing.
+R_STATUS="$STATE_DIR/restore_test_status"
+iso_days_ago() { date -u -d "@$(( $(date +%s) - $1 * 86400 ))" --iso-8601=seconds; }
+printf 'state=ok rc=0 at=%s detail=swept\n' "$(iso_hours_ago 2)" >"$B_STATUS"
+printf 'state=ok at=%s\n' "$(iso_hours_ago 2)" >"$B_LAST_OK"
+printf 'state=restore_failed at=%s snapshot=chester-x.db.gz detail=observations: 9 restored against 10 recorded\n' \
+    "$(iso_days_ago 1)" >"$R_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "failed:restore_test" ]] && [[ "$(state_of)" == "backup_failed" ]] \
+        && [[ "$RC" == "12" ]] && grep -q '"restore_test": "failed"' "$ALERT"; then
+    ok "a failed weekly restore test -> backup=failed:restore_test, exit 12, restore_test in the JSON"
+else
+    bad "restore failed case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+printf 'state=restore_ok at=%s snapshot=chester-x.db.gz detail=ok\n' "$(iso_days_ago 10)" >"$R_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "stale_restore:10d" ]] && [[ "$RC" == "12" ]]; then
+    ok "a restore test last passed 10 days ago -> backup=stale_restore:10d, exit 12"
+else
+    bad "restore stale case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+printf 'state=restore_ok at=%s snapshot=chester-x.db.gz detail=ok\n' "$(iso_days_ago 2)" >"$R_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "ok" ]] && [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]]; then
+    ok "a restore test passed 2 days ago -> backup=ok, exit 0"
+else
+    bad "restore ok case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+rm -f "$R_STATUS" "$B_STATUS" "$B_LAST_OK"; rm -f "$STATUS"; run_backup 0
+
 # The field travels on the log's verdict line and in the alert JSON.
 if grep -q 'verdict=backup_failed rc=12 .* backup=never ' $LOG_GLOB \
         && grep -q '"backup": "never"' "$ALERT"; then

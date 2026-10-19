@@ -138,7 +138,7 @@ def cgb_rows(payload: dict, available: str) -> list[dict]:
 def _fix_ranges(db) -> list[tuple[str, str]]:
     today = session.session_date_obj()
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, [FIX_KEY]).get(FIX_KEY)
     finally:

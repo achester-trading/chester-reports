@@ -225,7 +225,7 @@ def probe(store: Optional[observations.ObservationStore] = None) -> dict:
                          "contain 'shield' are mempool counters. The shielded-pool "
                          "transaction share has no reachable source today.")
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -267,7 +267,7 @@ def probe_cap(store: Optional[observations.ObservationStore] = None,
         out["state"] = "error"
         out["reason"] = f"{type(exc).__name__}: {str(exc)[:120]}"
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(CAP_PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -357,7 +357,7 @@ def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None) -> dict:
     """The market series, logged whatever the explorer probe said."""
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     out: dict[str, Any] = {}
     try:
         # THE PROBE RUNS EVERY NIGHT, cheaply, because an explorer that gains the

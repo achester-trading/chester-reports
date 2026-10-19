@@ -1,0 +1,162 @@
+# config/digital_addendum.yaml -- the Digital Assets addendum to the Sunday Weekly
+# (Batch 8 item 51, Phase 1, ST-R6.51a; docs/change-order-signal-triage-batch-8-
+# 2026-10-17.md on docs-batch-8; 6e-digital, 17 Oct 2026, session B). Read by
+# daily_cascade/digital_addendum.py.
+#
+# A FIXED CHAPTER, NOT A SIXTH REPORT: its own page, rendered off the Sunday
+# Weekly's run, archived beside it and attached to its message, linked from the
+# Weekly by one line. Report only; nothing here has decision rights.
+#
+# Phase 1 assembles it from what already flows. Every cell whose source is Batch
+# 4 Tranche A carries the key that Tranche A is to write (the crypto data-sources
+# order of 6 Oct 2026 names them) and prints "awaiting Tranche A" until that key
+# has a row at the cutoff; a cell with no named key (`key: null`) prints the
+# phrase until Phase 2 (ST-R6.51b) names one. Never a guess.
+#
+# SESSION-SET values are marked; docs/briefs/6e-digital-notes.md lists them.
+version: 2
+title: "Digital Assets — the week"
+# THE FIRST EDITION is the Weekly of Sun 1 Nov 2026 (its Friday, 30 Oct; the
+# ruling). A Sunday run before it builds the page as a dry run only -- archived
+# under <reports>/dryrun/, not attached, no link line in the Weekly -- which is
+# the order's "the Weekly of 25 Oct renders the addendum as a dry-run page".
+first_edition_week_ending: 2026-10-30
+# PHASE 2 (ST-R6.51b, digital-49-51b, 17 Oct 2026): the panels read Tranche A's
+# series by key. A built series with no row yet prints "awaiting the first pull";
+# a series nobody writes prints "not tracked" with its reason; the dealer-engine
+# items print "awaiting EL-12". Never a blank, never a zero.
+awaiting: "awaiting the first pull"
+# THE LINE BUDGET (SESSION-SET, held by tools/validate_digital_addendum.py): the
+# page's table rows and lines may not grow past Phase 1's count on the full
+# fixture week (52, measured 17 Oct). The panels displace to fit: the tape's four weekly-range lines
+# fold into one, the two undated ahead lines into one, the mNAV cell carries its watch and flag lines, and the "who is
+# buying" table replaces the single treasury cell.
+max_lines: 52
+
+# THE BUDGETS (SESSION-SET). Reading target five minutes (the ruling). Words are
+# every word the page prints -- tables, lines and the read -- at the stack's 250 a
+# minute (daily_cascade/readability.WORDS_PER_MINUTE), plus 20 seconds a chart.
+# 1,100 words leaves a chart's room inside the five minutes. The read is one
+# paragraph of at most 120 words and six figures. Charts: two allowed, none drawn
+# in Phase 1 (the tables carry every figure; a chart waits for Tranche A's series).
+budget:
+  reading_minutes: 5
+  words: 1100
+  read_words: 120
+  read_figures: 6
+  charts: 2
+
+# SECTION 2, THE TAPE. Yahoo's daily closes (yfinance.mkt_*; the crypto week ends
+# Saturday 24:00 UTC, the close of the Saturday bar, so the Sunday 05:00 ET cutoff
+# holds the whole week). The weekly bar is built from the dailies: the seven
+# closes to the week's last stored day. Read against the daily bar (the last
+# day's change) and the monthly bar (SESSION-SET: the trailing 30 days, not the
+# calendar month, so the 1 Nov edition does not read a one-day month).
+# Realised vol: 30 daily log returns, annualised over 365 days (crypto trades
+# every day).
+tape:
+  coins:
+    - {sym: BTC, name: "Bitcoin", key: yfinance.mkt_btc_usd}
+    - {sym: ETH, name: "Ether", key: yfinance.mkt_eth_usd}
+    - {sym: SOL, name: "Solana", key: yfinance.mkt_sol_usd}
+    - {sym: ZEC, name: "Zcash", key: yfinance.mkt_zec_usd}
+  vol_days: 30
+  month_days: 30
+  # The derivatives cells (Tranche A: CD-2 Deribit, CD-3 venues).
+  derivatives:
+    - {label: "BTC implied vol (DVOL)", key: deribit.dvol_btc, unit: points}
+    - {label: "ETH implied vol (DVOL)", key: deribit.dvol_eth, unit: points}
+    # S-3 is per coin (Tranche A part 1, 17 Oct 2026): instrument BTC or ETH; the
+    # OI total's instrument NULL is BTC + ETH.
+    - {label: "BTC funding, OI-weighted (annualised)", key: calc.funding_agg, instrument: BTC, unit: pct}
+    - {label: "ETH funding, OI-weighted (annualised)", key: calc.funding_agg, instrument: ETH, unit: pct}
+    - {label: "Basis (futures over spot)", key: null, unit: pct, absent: "not tracked (no basis series in Tranche A)"}
+    - {label: "Open interest (BTC + ETH)", key: calc.oi_usd, unit: usd}
+    - {label: "Liquidations", key: null, unit: usd, absent: "not tracked (D-1: no CoinGlass)"}
+
+# SECTION 3, FLOWS. Farside's flows are stored in dollars (Tranche A part 2). The stablecoin supply is stored today (llama.stable_total,
+# CD-1 pulled forward by the crypto basket, 13 Oct); the rest is Tranche A
+# (CD-4 Farside) or item 49b.
+flows:
+  - {label: "BTC ETF net flow, the week", key: farside.btc_total, unit: usd, agg: sum_week}
+  - {label: "ETH ETF net flow, the week", key: farside.eth_total, unit: usd, agg: sum_week}
+  - {label: "Exchange net flows", key: null, unit: usd, absent: "not tracked (no keyless series within robots)"}
+  - {label: "Stablecoin supply, change on the week", key: llama.stable_total, unit: usd, agg: change_week}
+# THE "WHO IS BUYING" DECOMPOSITION (item 49b, printed beside the ETF flows): the
+# latest complete month, in BTC. ETF net flow is each session's Farside total over
+# that day's BTC close, summed; treasury-company net purchases are
+# calc.treasury_net_purchases; new supply is the blocks mined in the month (the
+# change in mempool.tip_height between the month-end snapshots) times the 3.125
+# BTC subsidy. SESSION-SET: the residual is ETF + treasury less new supply -- what
+# the two buyers took beyond the month's issuance, which came from other holders.
+# A leg with no reading prints "not tracked" and the residual is withheld.
+who_is_buying:
+  subsidy_btc: 3.125
+  min_sessions: 15
+  snapshot_window_days: 3
+
+# SECTION 4, MECHANICS. MSTR's option-implied move to each event date reads the
+# chain store (the watched name's captured chains; daily_cascade/ahead.implied_move).
+mechanics:
+  cells:
+    - {label: "Deribit skew and term structure", key: null, absent: "awaiting EL-12"}
+    - {label: "MSTR mNAV, equity basis (item 49a; lines 1.2 and 1.0)", key: calc.mnav, instrument: MSTR, panel: mnav}
+    - {label: "Crypto GEX", key: null, absent: "awaiting EL-12"}
+  # ITEM 49's ONE FLAG (Batch 8): mNAV at or below 1.0 on the latest capture
+  # prints, with its date; the watch line 1.2 is printed beside the level. No
+  # composite weight; nothing else is derived from it. Dual percentiles once 60
+  # sessions are stored; before, "percentile from <date>".
+  mnav: {watch: 1.2, flag: 1.0, min_obs: 60}
+  implied_moves:
+    symbol: MSTR
+    dates: [2026-11-11, 2026-11-30]
+
+# SECTION 5, ON-CHAIN. SR-29's long-term-holder share is CD-12 (Tranche C, not A):
+# by hand until then. The froth gauge is CD-7 (Tranche A).
+onchain:
+  - {label: "BTC long-term-holder supply share (SR-29)", key: btcdata.lth_supply_share, unit: pct, absent: "not stored: SR-29 is by hand until CD-12 (Tranche C)"}
+  - {label: "Froth sample, Solana new pools 24h (unscored)", key: gt.new_pools_24h, instrument: solana, unit: count, absent: "awaiting the first pull"}
+  - {label: "Froth sample, Base new pools 24h (unscored)", key: gt.new_pools_24h, instrument: base, unit: count, absent: "awaiting the first pull"}
+  - {label: "Exchange balances", key: null, unit: btc, absent: "not tracked (no keyless series within robots)"}
+
+# SECTIONS 6 AND 7, THE X PILOT'S FILES (item 50, Tranche 0), read from the box's
+# inbox after the nightly sweep copies them from Drive (scripts/rclone_sync.sh):
+#   Drive chester-x-digest/x-digest-YYYY-MM-DD.md       -> <inbox>/x-digest/
+#   Drive chester-vendor-checks/x-triage/x-attention-ledger.csv, x-voices-ledger.csv
+#                                                        -> <inbox>/x-triage/
+# Each copied file has a stamp beside it, <file>.copied_at, holding the sweep's
+# copy instant: that is the file's available_at. A file without a stamp falls
+# back to its modification time, said so in the footnote. Nothing prints without
+# its row and the row's URL (item 50's rule: no stored source, not printed).
+attention:
+  digest_dir: x-digest
+  triage_dir: x-triage
+  attention_ledger: x-attention-ledger.csv
+  voices_ledger: x-voices-ledger.csv
+  max_themes: 9
+  max_items: 6
+  # Section 7's digest themes.
+  incident_themes: [incident, incidents, regulation]
+
+# SECTION 8, AHEAD. The hand calendar's entries (config/digital_asset_calendar.yaml)
+# inside the window, the FOMC dates from the events store, and Deribit's monthly
+# expiries by their rule. SESSION-SET: 45 days, so the 25 Oct page already shows
+# the effective date of 30 Nov.
+ahead:
+  calendar: config/digital_asset_calendar.yaml
+  window_days: 45
+  deribit_expiry: {weekday: 4, time: "08:00 UTC", marker: "Deribit's last-Friday rule; to verify on Deribit's calendar"}
+
+# SECTION 9, THE BOOK. Book D's paper decisions from the register, opened
+# read-only. A decision counts as crypto when its instrument is one of these.
+book:
+  book: D
+  instruments: [BTC, ETH, SOL, ZEC, IBIT, FBTC, ETHA, MSTR, COIN, BITO, GBTC, MSTU, MSTZ]
+  engine_note: "the paper engine's view joins this section from mid-November"
+
+# THE DATED LINE for the Digital Assets paper's dated appendix: one a week,
+# code-written from the page's own figures, a draft for Ari's accept-all. Never
+# the model's.
+appendix:
+  paper: docs/whitepapers/digital-assets-whitepaper.md
+  heading: "Appendix E: Dated Record"

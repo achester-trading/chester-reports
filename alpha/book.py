@@ -39,6 +39,26 @@ def cum_pnl(ledger, engine_id: str, day: str) -> float:
                        "ORDER BY day DESC LIMIT 1", (p["id"], day))
         if m:
             unreal += float(m["unrealised"])
+    return float(real) + unreal + carry_pnl(ledger, engine_id, day)
+
+
+def carry_pnl(ledger, engine_id: str, day: str) -> float:
+    """X-3.2's crypto rows: a closed carry's net P&L once closed on or before
+    `day`; an open one's funding accrued to `day` less its entry costs (both legs
+    at one notional, the basis assumed unchanged: no perp mark is stored)."""
+    if not ledger.one("SELECT 1 AS x FROM sqlite_master WHERE type='table' AND "
+                      "name='carry_book'"):
+        return 0.0                       # a read-only open of a pre-Tranche-3 alpha.db
+    real = ledger.one("SELECT COALESCE(SUM(net_pnl),0) AS s FROM carry_book WHERE "
+                      "engine_id=? AND status='closed' AND closed_day<=?",
+                      (engine_id, day))["s"]
+    unreal = 0.0
+    for c in ledger.q("SELECT id, entry_costs FROM carry_book WHERE engine_id=? AND "
+                      "opened_day<=? AND (closed_day IS NULL OR closed_day>?)",
+                      (engine_id, day, day)):
+        acc = ledger.one("SELECT COALESCE(SUM(accrued),0) AS s FROM carry_accruals "
+                         "WHERE carry_id=? AND day<=?", (c["id"], day))["s"]
+        unreal += float(acc) - float(c["entry_costs"])
     return float(real) + unreal
 
 

@@ -864,6 +864,15 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     from daily_cascade import batch5_block                      # noqa: PLC0415
     b["subsections"] = (subs + keep + batch3_block.monthly_subsections(st, now, then)
                         + batch5_block.plumbing_subsections(st, now, then, "monthly"))
+    # THE INFLATION BLOCK (6e, the rest; Batch 7 items 46 and 48, 6e-releases):
+    # the full panels in the Monthly -- the CPI lead composite, the CPI-PCE gap,
+    # the decomposition with the pass-through flag, and CPI lenses 7-11. Tables
+    # and code-written lines after the buckets: no paragraph, no chart.
+    try:
+        from daily_cascade import inflation_block               # noqa: PLC0415
+        b["subsections"] += inflation_block.subsections(st, now)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the Monthly's inflation block is unavailable", exc_info=True)
     # SIGNAL-TRIAGE BATCH 6: the rates-transmission cluster, one header, last.
     from daily_cascade import rates_transmission_block          # noqa: PLC0415
     rt_sub = rates_transmission_block.subsection(st, now, "monthly")
@@ -884,6 +893,29 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
         glob["lines"] = list(glob.get("lines") or []) + cur
     b["claim_only"] = True
     return b
+
+
+def labour_section(st, now: str, cfg: dict, prior: Optional[dict]) -> dict:
+    """THE LABOUR BLOCK (Batch 7 item 48, lenses 1-6; 6e-releases): the
+    Monthly's own section after Plumbing (filing note 6), built after assembly
+    and placed by config order like Reading. A fault costs the section's
+    content, never the edition."""
+    from daily_cascade import labour_block                      # noqa: PLC0415
+    spec = {x["id"]: x for x in cfg.get("sections") or []}.get(labour_block.SECTION_ID) or {}
+    try:
+        return labour_block.stack_section(st, now, spec, prior)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("the labour block faulted", exc_info=True)
+        return {"id": labour_block.SECTION_ID, "title": spec.get("title") or "Labour",
+                "subtitle": spec.get("monthly_subtitle") or spec.get("subtitle"),
+                "depth": spec.get("monthly") or "medium", "depth_reason": None,
+                "items": [], "print_items": False, "table": None, "subsections": [],
+                "data": {}, "not_tracked": [], "legend": None,
+                "notes": [f"FAULT (code, not data) -- {type(exc).__name__}."],
+                "fingerprint": stack_mod._fp([]), "collapsed": False,
+                "unchanged_since": None, "prior_claim": None, "claim": None,
+                "paragraphs": [], "trimmed": False, "period": "month", "phase_a": [],
+                "prose_wanted": False, "empty": False}
 
 
 # WHERE EACH POSITIONING SERIES SITS IN ITS OWN HISTORY (T3.1 items 10 and 11):
@@ -2178,6 +2210,48 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
         for sid in ("plumbing", "narratives"):
             printed += [(k, sid) for k in built[sid].pop("_printed", None) or []]
         slow = slow_layers(p, cfg, st, now, db_path) if monthly else None
+        if monthly:
+            # THE CRYPTO DATA LAYER (Batch 4 Tranche A, CD-9; 17 Oct 2026): the
+            # network-health rows in mechanics, and the Factor V stablecoin rows,
+            # the watch names' fundamentals, VC raises and the unlock table in the
+            # slow layers after the digital family -- tables in the triple form,
+            # no paragraph, no chart (altdata/crypto_blocks.py).
+            try:
+                from altdata import crypto_blocks              # noqa: PLC0415
+                built["mechanics"].setdefault("subsections", []).append(
+                    crypto_blocks.monthly_mechanics(st, now))
+                subs = slow.setdefault("subsections", [])
+                at = next((i for i, x in enumerate(subs)
+                           if x.get("family") == "digital"), len(subs) - 1)
+                at = max((i for i, x in enumerate(subs)
+                          if str(x.get("title") or "").startswith("Themes: digital")),
+                         default=at)
+                subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
+            except Exception:                                   # noqa: BLE001
+                log.warning("crypto data layer unavailable", exc_info=True)
+            # THE DIGITAL ASSET MECHANISM WATCH PART (ST-14, 2.7.6; st-t5-render,
+            # 18 Oct 2026): Pearl, after the crypto data layer's tables inside the
+            # digital-assets material. Tables and code-written lines, no paragraph;
+            # its one figure (M11) only once the explorer has read. Report-only.
+            try:
+                from . import prl_part                           # noqa: PLC0415
+                subs = slow.setdefault("subsections", [])
+                at = max((i for i, x in enumerate(subs)
+                          if str(x.get("title") or "").startswith(prl_part.AFTER_TITLES)),
+                         default=len(subs) - 1)
+                subs[at + 1:at + 1] = prl_part.build(st, now, window(p)[2], db_path)
+            except Exception:                                   # noqa: BLE001
+                log.warning("the mechanism watch part is unavailable", exc_info=True)
+            # THE GDP LENSES (Batch 7 item 48, lenses 15-20; lenses-group-b, 18
+            # Oct 2026): two tables at the end of the slow layers, the order's
+            # placement; no paragraph, no chart (daily_cascade/gdp_block.py).
+            try:
+                from daily_cascade import gdp_block              # noqa: PLC0415
+                slow.setdefault("subsections", []).extend(
+                    gdp_block.subsections(st, now))
+            except Exception:                                   # noqa: BLE001
+                log.warning("GDP lenses unavailable", exc_info=True)
+        lsec = labour_section(st, now, cfg, prior) if monthly else None
     if not monthly:
         built = {k: period_words(v, noun) for k, v in built.items()}
     sections = stack_mod.assemble(built, cfg, prior, cadence)
@@ -2238,8 +2312,9 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                  "fault": f"FAULT (code, not data) -- {type(exc).__name__}"}
     rsec = reading_mod.stack_section(rdata, specs.get("reading") or {}, prior)
     # ITS PLACE IS CONFIG ORDER (stack.section_ids: the reading row follows
-    # narratives); Slow layers, which has no row there, stays last.
-    by_id = {x["id"]: x for x in sections + [rsec]}
+    # narratives, the labour row Plumbing); Slow layers, which has no row
+    # there, stays last.
+    by_id = {x["id"]: x for x in sections + [rsec] + ([lsec] if lsec else [])}
     ids = stack_mod.section_ids(cfg, CADENCE, by_id)
     sections = [by_id[i] for i in ids] + [x for x in sections if x["id"] not in ids]
     return _edition(p, cfg, sections, prior, cadence, (first, last, then, now),

@@ -54,6 +54,7 @@ from .. import hypotheses as hyp
 from .. import validate as av
 from ..ledger import Ledger
 from ..store import ReadOnlyStore
+from . import quarterly
 
 log = logging.getLogger(__name__)
 LOOP = "weekly"
@@ -125,6 +126,13 @@ def walk_forward(ledger: Ledger, store: ReadOnlyStore, as_of: str,
                          after={"why": "frozen: no re-fitting inside a drawdown"})
             done[e["id"]] = {"refit": "frozen"}
             continue
+        # X-3.7: the cadence in force (the quarterly meta-loop slows it after a
+        # quarter whose loop contribution was negative)
+        due, why = quarterly.refit_due(ledger, e["id"], as_of)
+        if not due:
+            ledger.event(LOOP, "refit_skipped", as_of, e["id"], after={"why": why})
+            done[e["id"]] = {"refit": "not_due"}
+            continue
         done[e["id"]] = refit(ledger, store, eng, e, as_of, con, cfg)
     return {"walk_forward": done}
 
@@ -166,7 +174,8 @@ def refit(ledger, store, eng, e: dict, as_of: str, con: dict, cfg: dict) -> dict
     ppy = acfg.periods_per_year(e["horizon"], cfg)
     cur = av.deflated_sharpe(list(strat.returns(test, current)), n_trials, ppy)
     new = av.deflated_sharpe(list(strat.returns(test, proposed)), n_trials, ppy)
-    ranges = e.get("validated_ranges") or {}
+    # X-3.7: the validated ranges, or the meta-loop's narrowed ones in force
+    ranges = quarterly.effective_ranges(ledger, e, as_of)
     outside = _in_ranges(proposed, ranges)
     base = {"current": current, "proposed": proposed, "n_trials": n_trials,
             "current_dsr": cur["deflated_sharpe"], "proposed_dsr": new["deflated_sharpe"],
@@ -214,6 +223,19 @@ def _wants_out(ledger, e: dict, proposed: dict, outside: list[str], as_of: str) 
     return reg.register(h, batch, now, as_of, "needs_code",
                         "an engine's re-fit outside its validated ranges: a new "
                         "engine, coded and validated through the gate")
+
+
+def meta_loop(ledger: Ledger, store: ReadOnlyStore, as_of: str,
+              registry_path=None) -> dict:
+    """X-3.7: the last closed quarter's review, when one is due and not yet
+    made (quarterly.adjust is idempotent per quarter)."""
+    q = quarterly.due_quarter(ledger, as_of)
+    if not q:
+        return {"meta_loop": None}
+    rv = quarterly.review(ledger, store, q, _loaded(ledger, registry_path))
+    adj = quarterly.adjust(ledger, rv, as_of)
+    return {"meta_loop": {"quarter": q, "net_contribution": rv["net_contribution"],
+                          "adjusted": bool(adj)}}
 
 
 # ---------------------------------------------------------------------------
@@ -422,6 +444,9 @@ def run(as_of: Optional[str] = None, ledger_path=None, store_path=None,
             failures.append("open_store")
         steps = []
         if st is not None:
+            # X-3.7: the quarter just closed, reviewed once inside its window,
+            # before this week's re-fits read the bounds it may set
+            steps.append(("meta_loop", lambda: meta_loop(lg, st, as_of, registry_path)))
             steps.append(("walk_forward",
                           lambda: walk_forward(lg, st, as_of, registry_path)))
         steps += [("rebalance", lambda: rebalance(lg, as_of)),
