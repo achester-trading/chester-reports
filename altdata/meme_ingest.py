@@ -7,8 +7,8 @@ item 2; the 11 Oct interface spec, schema s3). meme-ingest-ledgers-1, 17 Oct 202
     python -m altdata.meme_ingest --dry-run    # read and decide, write nothing
     python -m altdata.meme_ingest status       # the one line the reports print
 
-WHEN. After chester-meme's scans have finished writing: the 21:45 ET pass
-(chester-meme-ingest.timer, after the 19:30 evening scan, which is done by about
+WHEN. After chester-meme's scans have finished writing: the 21:15 ET pass
+(chester-meme-ingest.timer, moved from 21:45 for the 21:30 evening note, after the 19:30 evening scan, which is done by about
 19:45, and the contract's "after 20:15") and the 06:45 overnight pass
 (scripts/fetch_overnight.sh, after its pulls; the 06:30 morning scan is done by
 06:45, and the contract's read is "before 07:00").

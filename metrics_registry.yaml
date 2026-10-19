@@ -3855,6 +3855,44 @@ metrics:
       morning's flip and whether the session crossed it, the session's range and
       return, the pin verdicts, and 5-minute realized volatility. The Monthly's
       dealer retrospective reads these and never recomputes them.
+  calc.release_first_hour:
+    source: secondary_notes
+    mechanism_group: equity_tape
+    native_horizon: intraday
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      The secondary-notes order, section 4.1: on a day with a tier-1 or tier-2
+      08:30 release, one JSON record per instrument (ES=F in percent, ^TNX in
+      basis points): the 5-minute move from the last bar before 08:30 to the last
+      before 09:45, with both bars' times and the day's releases. Written by the
+      open fetch; the release-first-hour ledger's own sample
+      (docs/ledgers/release-first-hour-preregistration-2026-10.md). Report-only.
+  calc.after_hours_move:
+    source: secondary_notes
+    mechanism_group: equity_tape
+    native_horizon: intraday
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      The secondary-notes order, section 4.2: for a captured name reporting
+      after the 16:00 close, one JSON record: the regular-session close, the last
+      after-hours trade the evening fetch sees by 21:30 and its time, and the move
+      in percent, from yfinance's pre- and post-market 5-minute bars. The
+      after-hours-earnings ledger's own sample
+      (docs/ledgers/after-hours-earnings-preregistration-2026-10.md). Report-only.
   calc.earnings_move:
     source: derived_state
     mechanism_group: equity_tape
@@ -16278,6 +16316,26 @@ bulk_imports:
   # instrument, and so its VOLUME has a declared unit, as the daily
   # market_volume_* blocks give the closes'. The keys are built from the tape in
   # config/reporting_stack.yaml (altdata.bars.BAR_PRICE_KEYS / BAR_VOLUME_*).
+  note_bars_prices:
+    description: >-
+      The secondary notes' 5-minute open, high, low and close (the secondary-notes
+      order, 19 Oct 2026), keyed bars.<note id> from config/reporting_stack.yaml
+      note_bars: the 10- and 2-year note futures, the VIX, the Nasdaq-100 and
+      Russell 2000 e-minis, dollar-yen, offshore dollar-yuan, ether, and the four
+      Asian indices. Written only by altdata/note_fetch.py, after 09:45 and at
+      21:30; stored without volume; read only by the two notes.
+    members_from: altdata.bars.NOTE_BAR_PRICE_KEYS
+    family: price
+    members_are: keys
+    expected_members: 12
+    units: price
+    source: yfinance
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
   bars_prices:
     description: >-
       Each bar instrument's 5-minute and daily open, high, low and close, keyed
@@ -18376,6 +18434,8 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  calc.release_first_hour: "units 'label': a JSON record per release day and instrument (the secondary notes)"
+  calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"
   calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
   calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).

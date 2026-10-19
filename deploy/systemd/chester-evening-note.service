@@ -1,0 +1,39 @@
+[Unit]
+Description=chester-reports evening note, 21:30 ET Sunday to Thursday (secondary; fetch then note)
+Documentation=https://github.com/achester-trading/chester-reports
+# The secondary-notes order (docs/change-order-secondary-notes-2026-10-19.md,
+# ruled 19 Oct 2026). The fetch writes the store, the note reads it.
+# NOT in scripts/deploy_remote.sh DEPLOY_TIMERS: enabling its timer is the
+# operator's (docs/briefs/a49-secondary-notes-notes.md, box commands).
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_evening_note.sh
+# The model key and the mail settings reach the note through the environment.
+EnvironmentFile=-%h/chester-reports/.env
+# The fetch (bars, the fix, news, earnings, one voices pass of 120 s) and the
+# note; it stops a hung HTTP call holding the lock.
+TimeoutStartSec=15min
+# No retry: a note missed at its time is not recovered later; the 07:00 anchor
+# re-reads everything material.
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# MEMORY CAPS (AUD-2 conventions, session-set): a short fetch and one model call,
+# never beside a heavy unit. Percentages of physical memory: the caps follow the
+# machine (ruled 17 Oct 2026, the box stays at 4 GB).
+MemoryHigh=8%
+MemoryMax=10%
+# THE OOM ORDER: a note is a report and can be rendered again -- 500.
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=default.target

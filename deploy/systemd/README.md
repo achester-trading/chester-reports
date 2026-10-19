@@ -1025,6 +1025,7 @@ equal on 8 GB to AUD-2's absolute figure (kept in each unit's comment), so on th
 | chester-dealer-0945, -1230 (6b part 2) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one capture and one compute |
 | chester-flashalpha (6b part 3) | 4% | 5% | 0.16G / 0.2G | 0.32G / 0.4G | six REST calls and a store write |
 | chester-vendor-chains (M-3, 16:31) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | the two vendor chains, no compute |
+| chester-open-note, -evening-note (secondary notes) | 8% | 10% | 0.32G / 0.4G | 0.64G / 0.8G | a short bar fetch, one model call, one small chart |
 
 `MemoryHigh` throttles and reclaims, so a report over it slows down rather than
 dies. `MemoryMax` is the hard ceiling, where the kernel kills inside the unit's
@@ -1384,3 +1385,22 @@ clear of Sunday 05:00's Weekly. No key. Caps as percentages (the 4 GB ruling of
 `DEPLOY_TIMERS`, so the self-deploy enables it after the merge; nobody enables it
 by hand.
 
+## The secondary notes (19 Oct 2026)
+
+`chester-open-note.timer` runs `scripts/run_open_note.sh` at 09:50 ET on weekdays
+and `chester-evening-note.timer` runs `scripts/run_evening_note.sh` at 21:30 ET
+Sunday to Thursday (docs/change-order-secondary-notes-2026-10-19.md). Each wrapper
+pulls main, checks the calendar (the open note: today a session; the evening
+note: `python -m altdata.session evening-before`, tomorrow a session), runs its
+fetch (`python -m altdata.note_fetch open|evening`, which writes the store) and
+then its note (`python -m daily_cascade.open_note|evening_note`, which reads it).
+Before `live_from` in config/reporting_stack.yaml `secondary_notes` every run is a
+dry run, archived under `dryrun/` and mailed with "[DRY RUN]" in the subject.
+
+**Neither timer is in `DEPLOY_TIMERS`.** Ari enables both by hand after the merge,
+with the state drop-in each is declared for in `box-config.allow`. **A note is
+secondary:** its wrapper exits 0 after a soft failure, and the heartbeat warns on
+a stale `open_note_heartbeat` or `evening_note_heartbeat` (100 hours, which spans
+a weekend and a holiday) without changing the verdict. The meme ingest moved from
+21:45 to 21:15 in the same order so the evening note can show tonight's Book D
+drafts; the move takes effect when Ari reloads and restarts its timer.

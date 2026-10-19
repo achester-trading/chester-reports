@@ -932,8 +932,12 @@ fi
 # The allowances carry one period of slack each: nine days for a weekly (a Sunday the
 # box was down plus the Persistent=true catch-up that follows), and forty days for a
 # monthly.
+# The secondary notes (19 Oct 2026) ride the same table: warning only, never the
+# verdict. 100 hours spans a weekend and a holiday for either note.
 ANCHOR_TABLE="chester-weekly.timer:weekly_heartbeat:216:weekly
-chester-monthly.timer:monthly_heartbeat:960:monthly"
+chester-monthly.timer:monthly_heartbeat:960:monthly
+chester-open-note.timer:open_note_heartbeat:100:open note
+chester-evening-note.timer:evening_note_heartbeat:100:evening note"
 
 WEEKLY_STATE=not_enabled
 MONTHLY_STATE=not_enabled

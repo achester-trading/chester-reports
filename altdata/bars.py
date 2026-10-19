@@ -119,6 +119,19 @@ BAR_VOLUME_CONTRACT_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u ==
 BAR_VOLUME_USD_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "usd")
 
 
+
+def note_instruments(cfg: Optional[dict] = None) -> list[dict]:
+    """The secondary notes' instruments (config `note_bars`; the secondary-notes
+    order, 19 Oct 2026): fetched only by altdata/note_fetch.py, never by the 16:10
+    `bars` feed, stored without volume."""
+    cfg = cfg or load_config()
+    return list(cfg.get("note_bars") or [])
+
+
+# Their OHLC keys, bars.<id>, for the registry's `note_bars_prices` block.
+NOTE_BAR_PRICE_KEYS = {f"bars.{t['id']}": str(t["bars"]) for t in note_instruments()}
+
+
 def full_session(instrument: str) -> bool:
     """An instrument whose counted session is the futures day, 18:00 ET the
     evening before to 17:00 ET (T2.3)."""

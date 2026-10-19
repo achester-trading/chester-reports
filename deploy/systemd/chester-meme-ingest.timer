@@ -1,13 +1,15 @@
 [Unit]
-Description=chester-meme packet ingest at 21:45 ET (Mon-Fri and Sun, after the 19:30 evening scan) -- PRINTED, NEVER ENABLED BY A DEPLOY
+Description=chester-meme packet ingest at 21:15 ET (Mon-Fri and Sun, after the 19:30 evening scan) -- PRINTED, NEVER ENABLED BY A DEPLOY
 Documentation=file:///%h/chester-reports/docs/interface/README-interface.md
 
 [Timer]
-# 21:45 ET on the evenings chester-meme scans (Mon-Fri and Sun, 19:30): after the
+# 21:15 ET on the evenings chester-meme scans (Mon-Fri and Sun, 19:30): after the
 # scan's packets are written (by about 19:45; the contract reads after 20:15), in
-# the evening window, clear of the 16:00-17:20 passes. The cadence's 21:45 slot
-# is a conditional report not yet built; this is only the ingest.
-OnCalendar=Mon..Fri,Sun *-*-* 21:45 America/New_York
+# the evening window, clear of the 16:00-17:20 passes. Moved from 21:45 by the
+# secondary-notes order (19 Oct 2026, section 5) so the 21:30 evening note shows
+# tonight's Book D drafts; with the two-minute random delay it is done before
+# 21:30. It shares no lock and no input with the note.
+OnCalendar=Mon..Fri,Sun *-*-* 21:15 America/New_York
 RandomizedDelaySec=120
 Persistent=true
 

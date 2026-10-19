@@ -1,0 +1,15 @@
+[Unit]
+Description=Run the chester-reports open note on weekdays
+Documentation=https://github.com/achester-trading/chester-reports
+
+[Timer]
+# Wall-clock ET (DST handled per firing); market holidays are the wrapper's
+# calendar guard. After the 09:45 capture; the note lands by 09:55.
+OnCalendar=Mon-Fri 09:50 America/New_York
+AccuracySec=1s
+RandomizedDelaySec=0
+# A catch-up run after downtime would print a stale window under today's name.
+Persistent=false
+
+[Install]
+WantedBy=timers.target
