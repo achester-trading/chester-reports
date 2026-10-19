@@ -2,6 +2,7 @@
 The grammar search (X-3.5; the change order's section 5).
 
     python -m alpha.search plan                     # the candidate count, no test
+    python -m alpha.search coverage [--as-of ISO]   # each variable's history (read-only)
     python -m alpha.search run [--as-of ISO]        # one capped step (box write)
 
 "Engine components -- signal families x conditioning variables x horizons x
@@ -19,7 +20,22 @@ rule's trades taken in that state only, as the grammar's own conditioning split
 reads them. A variable marked `pending` (the dealer regime) is skipped, with its
 reason printed.
 
+COVERAGE (ruling 5(a) of 19 Oct 2026). A conditioning variable joins a run only
+if its point-in-time history starts at least `coverage.min_years_before_holdout`
+(5) years before the holdout's first day. It is evaluated at the run's start,
+before the manifest, which records each variable's first date and whether it
+passed. A variable's history starts on the first day any of its values was
+KNOWABLE: the earliest, over its stored rows, of the later of the row's observed
+day and its available_at's ET date -- so a series backfilled today without its
+vintages starts today, and a stored market-state object starts when it was
+computed, not on the session it describes. A variable that fails is pending
+with "history from <date>"; its options are not candidates, and N counts only
+the candidates the run tests. A `pending` variable (the dealer regime, ruling
+5(b)) is evaluated the same way for the record, from its declared `history`
+series, and never joins this family.
+
 THE ORDER OF A RUN, each step before the next:
+  0. COVERAGE, as above: the variables that join, and so the candidate list.
   1. THE MANIFEST (alpha/manifest.py), written and hashed before the first
      backtest: the family and its sha256, the full candidate count, the split
      (the holdout's first day), the deflation and the survivor rule.
@@ -35,12 +51,21 @@ THE ORDER OF A RUN, each step before the next:
      search's channel, pre-registered at the manifest's instant. Nothing else is
      written outside the lab's files and alpha.db's loop events.
 
-THE CAPS. A step stops after `caps.max_candidates_per_run` candidates or
-`caps.max_wall_seconds`, and the next step resumes from the progress file. A
-resumed run refuses a family that no longer hashes to its manifest. The weekly
-loop begins a run in the first week of each month and resumes an unfinished one
-on any week (alpha/loops/weekly.py), so its line lands in the Monthly's Lab
-report. No new timer.
+THE CAPS. A step stops after `caps.max_candidates_per_run` candidates or its
+wall-clock budget, and the next step resumes from the progress file. A resumed
+run refuses a family that no longer hashes to its manifest.
+
+THE CADENCE (ruling 5(c) of 19 Oct 2026). While a run is unfinished, its next
+step is the LAST step of the nightly loop (alpha/loops/nightly.py; Mon-Fri 17:40,
+chester-alpha-nightly.timer), its wall clock capped so the unit ends inside its
+20-minute timeout with 3 minutes spare: the budget is the unit's timeout less
+the spare less what the unit has already spent (scripts/run_alpha_nightly.sh
+exports CHESTER_UNIT_STARTED), at most `caps.max_wall_seconds` (600 s); under
+`cadence.min_step_seconds` (120 s) the step is skipped and says why. A new run
+begins only in the first week of a month, and only once the previous run is
+complete. Every step -- the nightly one and `python -m alpha.search run` --
+holds one lock (files.lock on search/.lock), so two steps never hold the search
+at once. No new timer; the weekly loop no longer steps it.
 """
 
 from __future__ import annotations
@@ -49,6 +74,7 @@ import argparse
 import datetime as dt
 import itertools
 import json
+import os
 import statistics
 import sys
 import time
@@ -69,6 +95,8 @@ SUBDIR = "search"
 LOOP = "search"
 FIT_ROWS, TEST_ROWS = 1, 10            # the workbench's, for a rule with nothing fitted
 NONE = "none"
+LOCK_NAME = ".lock"
+_T0 = time.time()                      # the process's start, when the unit's is not exported
 
 
 class FamilyChanged(ValueError):
@@ -81,8 +109,10 @@ def load_config(path: Optional[Path] = None) -> dict:
 
 def spec_of(cfg: dict) -> dict:
     """What the manifest fixes: the family, the split, the deflation and the
-    survivor rule. The caps are a run's limits, not the family."""
-    return {k: cfg[k] for k in ("family", "split", "deflation", "survivor_rule")}
+    survivor rule, and the coverage rule that decides which variables join. The
+    caps and the cadence are a run's limits, not the family."""
+    return {k: cfg[k] for k in ("family", "split", "deflation", "survivor_rule",
+                                "coverage") if k in cfg}
 
 
 def family_sha256(cfg: dict) -> str:
@@ -92,19 +122,22 @@ def family_sha256(cfg: dict) -> str:
 # ---------------------------------------------------------------------------
 # The candidates
 # ---------------------------------------------------------------------------
-def variables(cfg: dict) -> tuple[dict, dict]:
-    """(active {name: spec}, pending {name: reason})."""
+def variables(cfg: dict, joined: Optional[list[str]] = None) -> tuple[dict, dict]:
+    """(active {name: spec}, pending {name: reason}). With `joined` (a run's
+    coverage verdict), only those variables are active."""
     act, pend = {}, {}
     for name, v in (cfg["family"].get("conditioning") or {}).items():
         if v.get("pending"):
             pend[name] = str(v.get("reason") or "pending")
+        elif joined is not None and name not in joined:
+            pend[name] = "failed coverage"
         else:
             act[name] = v
     return act, pend
 
 
-def options(cfg: dict) -> list[Optional[tuple[str, str]]]:
-    act, _ = variables(cfg)
+def options(cfg: dict, joined: Optional[list[str]] = None) -> list[Optional[tuple[str, str]]]:
+    act, _ = variables(cfg, joined)
     return [None] + [(n, str(x)) for n, v in act.items() for x in v["values"]]
 
 
@@ -112,8 +145,9 @@ def cond_label(c: Optional[tuple[str, str]]) -> str:
     return NONE if c is None else f"{c[0]}={c[1]}"
 
 
-def candidates(cfg: dict) -> list[dict]:
-    """Every candidate, in a fixed order: by base rule, then by conditioning."""
+def candidates(cfg: dict, joined: Optional[list[str]] = None) -> list[dict]:
+    """Every candidate, in a fixed order: by base rule, then by conditioning.
+    With `joined`, only the options of the variables that passed coverage."""
     f = cfg["family"]
     out = []
     for sig, h, sym, ex in itertools.product(sorted(f["signal_families"]),
@@ -121,7 +155,7 @@ def candidates(cfg: dict) -> list[dict]:
                                              [str(s).upper() for s in f["instruments"]],
                                              sorted(f["exits"])):
         base = f"{sig}|h{h}|{sym}|{ex}"
-        for c in options(cfg):
+        for c in options(cfg, joined):
             out.append({"id": f"{base}|{cond_label(c)}", "base": base, "signal": sig,
                         "horizon": h, "instrument": sym, "exit": ex, "cond": c})
     return out
@@ -147,10 +181,10 @@ def base_rule(cfg: dict, cand: dict) -> dict:
             "exits": {"time": int(cand["horizon"]), **(f["exits"][cand["exit"]] or {})}}
 
 
-def plan(cfg: dict) -> dict:
-    act, pend = variables(cfg)
+def plan(cfg: dict, joined: Optional[list[str]] = None) -> dict:
+    act, pend = variables(cfg, joined)
     f = cfg["family"]
-    n_opt = len(options(cfg))
+    n_opt = len(options(cfg, joined))
     n = (len(f["signal_families"]) * n_opt * len(f["horizons"]) *
          len(f["instruments"]) * len(f["exits"]))
     return {"family": f["name"], "n_candidates": n, "signal_families": len(f["signal_families"]),
@@ -161,14 +195,82 @@ def plan(cfg: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Coverage (ruling 5(a)): which variables have the history to join a run
+# ---------------------------------------------------------------------------
+def history_series(v: dict) -> Optional[tuple[str, Optional[str]]]:
+    """(store key, instrument) a variable's coverage is read from: the stored
+    market-state object for a state variable, its own series for a z-score or a
+    mean band, a pending variable's declared `history`."""
+    if v.get("pending"):
+        h = v.get("history") or {}
+        return (str(h["key"]), h.get("instrument")) if h.get("key") else None
+    if v.get("kind") == "state":
+        return ("market_state", None)
+    if v.get("key"):
+        return (str(v["key"]), v.get("instrument"))
+    return None
+
+
+def history_from(store, key: str, instrument: Optional[str] = None) -> Optional[str]:
+    """The first day any value of the series was knowable: the earliest, over
+    its stored rows, of max(observed day, available_at's ET date)."""
+    first = None
+    for r in store.all_vintages(key, instrument):
+        if r.get("value_num") is None and not r.get("value_text"):
+            continue
+        d = max(str(r["observed_at"])[:10], pit.et_date(str(r["available_at"])))
+        if first is None or d < first:
+            first = d
+    return first
+
+
+def years_before(day: str, years: int) -> str:
+    d = dt.date.fromisoformat(day)
+    try:
+        return d.replace(year=d.year - int(years)).isoformat()
+    except ValueError:                                        # 29 February
+        return d.replace(year=d.year - int(years), day=28).isoformat()
+
+
+def coverage(store, cfg: dict, hfrom: str) -> dict:
+    """Each declared variable's history against the rule: {name: {key,
+    instrument, first, required_by, passed, joined, line}}."""
+    years = int((cfg.get("coverage") or {}).get("min_years_before_holdout", 5))
+    need = years_before(hfrom, years)
+    out = {}
+    for name, v in (cfg["family"].get("conditioning") or {}).items():
+        hs = history_series(v)
+        first = history_from(store, *hs) if hs else None
+        passed = first is not None and first <= need
+        joined = passed and not v.get("pending")
+        hist = f"history from {first}" if first else "no history stored"
+        if v.get("pending"):
+            line = f"{name}: pending -- {hist} (needs {need}); {v.get('reason') or 'pending'}"
+        elif joined:
+            line = f"{name}: joined -- {hist} (needs {need})"
+        else:
+            line = f"{name}: pending -- {hist} (needs {need})"
+        out[name] = {"key": hs[0] if hs else None, "instrument": hs[1] if hs else None,
+                     "first": first, "required_by": need, "passed": passed,
+                     "joined": joined, "line": line}
+    return out
+
+
+def coverage_lines(cov: dict) -> list[str]:
+    """Joined first, then pending, each by name."""
+    return [cov[n]["line"] for n in sorted(cov, key=lambda n: (not cov[n]["joined"], n))]
+
+
+# ---------------------------------------------------------------------------
 # The conditioning variables, point in time
 # ---------------------------------------------------------------------------
 class Conditions:
     """Each active variable's value at a trade's decision, read as knowable then."""
 
-    def __init__(self, store, cfg: dict, data: Optional[rules.Data] = None) -> None:
+    def __init__(self, store, cfg: dict, data: Optional[rules.Data] = None,
+                 joined: Optional[list[str]] = None) -> None:
         self.store, self.data = store, data or rules.Data(store)
-        self.act, _ = variables(cfg)
+        self.act, _ = variables(cfg, joined)
         self._s: dict[tuple, pit.Series] = {}
 
     def _series(self, key: str, inst: Optional[str]) -> pit.Series:
@@ -241,6 +343,10 @@ def save_progress(st: dict) -> None:
                      json.dumps(st, indent=1, sort_keys=True, default=str) + "\n")
 
 
+def lock_path() -> Path:
+    return files.root("research_dir") / SUBDIR / LOCK_NAME
+
+
 def unfinished(cfg: dict) -> Optional[dict]:
     """The newest run of this family not yet done, if any."""
     root = files.root("research_dir") / SUBDIR
@@ -253,16 +359,20 @@ def unfinished(cfg: dict) -> Optional[dict]:
     return None
 
 
-def start(ledger, cfg: dict, as_of: str) -> dict:
-    """Steps 1 and 2: the manifest, then the count. Nothing is backtested."""
+def start(ledger, store, cfg: dict, as_of: str) -> dict:
+    """Steps 0 to 2: coverage, the manifest, then the count. Nothing is
+    backtested."""
     rid = run_id(cfg, as_of)
     if load_progress(rid):
         raise FileExistsError(f"search run {rid} already exists; it is resumed, never "
                               f"restarted")
-    cands = candidates(cfg)
     hfrom = holdout_from(as_of, int(cfg["split"]["holdout_months"]))
+    cov = coverage(store, cfg, hfrom)
+    joined = sorted(n for n, c in cov.items() if c["joined"])
+    cands = candidates(cfg, joined)
     doc = {"batch_id": rid, "kind": "grammar-search", "family_sha256": family_sha256(cfg),
-           "spec": spec_of(cfg), "n_candidates": len(cands), "holdout_from": hfrom,
+           "spec": spec_of(cfg), "coverage": cov, "joined": joined,
+           "n_candidates": len(cands), "holdout_from": hfrom,
            "candidates": [c["id"] for c in cands], "hypotheses": []}
     m = manifest.write(doc, as_of)
     n_trials = ledger.bump_variant(cfg["family"]["name"], as_of, by=len(cands))
@@ -270,12 +380,12 @@ def start(ledger, cfg: dict, as_of: str) -> dict:
           "manifest_sha256": m["sha256"], "manifest_at": m["written_at"],
           "family_sha256": doc["family_sha256"], "n_candidates": len(cands),
           "holdout_from": hfrom, "n_trials": n_trials, "stage": "formation",
-          "done": {}, "survivors": [], "frozen_sha256": None, "holdout": {},
+          "coverage": cov, "joined": joined, "done": {}, "survivors": [], "frozen_sha256": None, "holdout": {},
           "registered": {}, "started_at": as_of}
     save_progress(st)
     ledger.event(LOOP, "search_start", as_of, None,
                  after={k: st[k] for k in ("run_id", "n_candidates", "n_trials",
-                                           "holdout_from", "manifest_sha256")})
+                                           "holdout_from", "manifest_sha256", "joined")})
     return st
 
 
@@ -394,8 +504,8 @@ def hypothesis_of(cfg: dict, cand: dict, fr: dict, ho: dict) -> dict:
 
 
 def register_survivors(ledger, store, cfg: dict, st: dict, as_of: str) -> dict:
-    by = {c["id"]: c for c in candidates(cfg)}
-    hyps = [hypothesis_of(cfg, by[cid], st["done"][cid], st["holdout"][cid])
+    by = {c["id"]: c for c in candidates(cfg, st.get("joined"))}
+    hyps =[hypothesis_of(cfg, by[cid], st["done"][cid], st["holdout"][cid])
             for cid in st["survivors"] if st["holdout"].get(cid, {}).get("passed")]
     if not hyps:
         return {"registered": {}, "statuses": {}}
@@ -417,16 +527,31 @@ def step(ledger, store, as_of: str, cfg: Optional[dict] = None,
          clock: Callable[[], float] = time.monotonic,
          max_candidates: Optional[int] = None, max_wall: Optional[float] = None,
          begin: bool = True) -> dict:
-    """One capped step of the current run: start it (when `begin`), or resume."""
+    """One capped step of the current run: start it (when `begin`), or resume.
+    Every step holds the search's one lock; a second step while one holds it
+    does nothing and says so."""
     cfg = cfg or load_config()
-    st = load_progress(run_id(cfg, as_of)) or unfinished(cfg)
+    with files.lock(lock_path()) as held:
+        if not held:
+            why = "another search step holds the lock"
+            ledger.event(LOOP, "search_skipped", as_of, None, after={"why": why})
+            return {"search": None, "search_skipped": why}
+        return _step(ledger, store, as_of, cfg, clock, max_candidates, max_wall, begin)
+
+
+def _step(ledger, store, as_of: str, cfg: dict, clock: Callable[[], float],
+          max_candidates: Optional[int], max_wall: Optional[float], begin: bool) -> dict:
+    st = load_progress(run_id(cfg, as_of))
+    if st is None or st.get("stage") == "done":
+        st = unfinished(cfg) or st
     if st is None:
         if not begin:
             return {"search": None}
-        st = start(ledger, cfg, as_of)
+        st = start(ledger, store, cfg, as_of)
     if st["stage"] == "done":
         return {"search": summary(cfg, st, None)}
     check_family(cfg, st)
+    joined = st.get("joined")
     caps = cfg.get("caps") or {}
     cap_n = int(max_candidates if max_candidates is not None
                 else caps.get("max_candidates_per_run", 400))
@@ -434,11 +559,11 @@ def step(ledger, store, as_of: str, cfg: Optional[dict] = None,
     t0 = clock()
     tested, stopped = 0, None
     data = rules.Data(store)
-    conds = Conditions(store, cfg, data)
+    conds = Conditions(store, cfg, data, joined)
     last_f = pit.prev_session(st["holdout_from"])
     if st["stage"] == "formation":
         todo: dict[str, list[dict]] = {}
-        for c in candidates(cfg):
+        for c in candidates(cfg, joined):
             if c["id"] not in st["done"]:
                 todo.setdefault(c["base"], []).append(c)
         for base, cs in todo.items():
@@ -466,7 +591,7 @@ def step(ledger, store, as_of: str, cfg: Optional[dict] = None,
             save_progress(st)
     if st["stage"] == "frozen":
         # the holdout, touched only now that the survivor list is frozen
-        by = {c["id"]: c for c in candidates(cfg)}
+        by = {c["id"]: c for c in candidates(cfg, joined)}
         last = session.session_date(as_of)
         for cid in st["survivors"]:
             if cid in st["holdout"]:
@@ -488,7 +613,7 @@ def step(ledger, store, as_of: str, cfg: Optional[dict] = None,
 
 
 def summary(cfg: dict, st: dict, stopped: Optional[str], tested: int = 0) -> dict:
-    p = plan(cfg)
+    p = plan(cfg, st.get("joined"))
     done = len(st["done"])
     held = sum(1 for v in st["holdout"].values() if v.get("passed"))
     passed = sum(1 for v in st["done"].values() if v.get("passed"))
@@ -498,23 +623,73 @@ def summary(cfg: dict, st: dict, stopped: Optional[str], tested: int = 0) -> dic
                if st["stage"] == "done" else "")
             + f"; deflated by N={st['n_trials']} (family {st['family']})")
     if stopped:
-        line += f"; stopped at the {'candidate' if stopped == 'candidates' else 'wall-clock'} cap, resumes next week"
+        line += (f"; stopped at the {'candidate' if stopped == 'candidates' else 'wall-clock'}"
+                 f" cap, resumes at the next nightly loop")
+    cov = st.get("coverage") or {}
     return {"run_id": st["run_id"], "stage": st["stage"], "tested": done,
             "tested_this_step": tested, "n_candidates": st["n_candidates"],
             "n_trials": st["n_trials"], "survivors_formation": passed,
             "survivors_holdout": held, "registered": len(st["registered"]),
-            "stopped": stopped, "pending": p["pending_lines"], "line": line}
+            "stopped": stopped, "joined": list(st.get("joined") or []),
+            "coverage": coverage_lines(cov) if cov else [],
+            "pending": [] if cov else p["pending_lines"], "line": line}
 
 
-def weekly(ledger, store, as_of: str, cfg: Optional[dict] = None) -> dict:
-    """The weekly loop's step: begin a run in the first week of a month, else
-    resume an unfinished one, else nothing."""
+# ---------------------------------------------------------------------------
+# The cadence (ruling 5(c)): the nightly loop's last step
+# ---------------------------------------------------------------------------
+def step_budget(cfg: dict, now: Optional[float] = None,
+                started: Optional[float] = None) -> float:
+    """Seconds this step may run: the unit's timeout, less the spare, less what
+    the unit has spent already, at most the step's own cap."""
+    cad = cfg.get("cadence") or {}
+    if started is None:
+        env = os.environ.get("CHESTER_UNIT_STARTED", "")
+        try:
+            started = float(env) if env else _T0
+        except ValueError:
+            started = _T0
+    spent = max(0.0, (time.time() if now is None else now) - started)
+    left = (float(cad.get("unit_timeout_seconds", 1200))
+            - float(cad.get("spare_seconds", 180)) - spent)
+    return min(float((cfg.get("caps") or {}).get("max_wall_seconds", 600)), left)
+
+
+def can_begin(cfg: dict, as_of: str) -> tuple[bool, str]:
+    """A new run begins only in a month's first week, and only once the previous
+    run is complete."""
+    if unfinished(cfg) is not None:
+        return False, "a run is unfinished; it is resumed, and no new run begins"
+    if int(pit.et_date(as_of)[8:10]) > int((cfg.get("cadence") or {})
+                                           .get("begin_by_day", 7)):
+        return False, "a new run begins only in the first week of a month"
+    return True, ""
+
+
+def nightly(ledger, store, as_of: str, cfg: Optional[dict] = None,
+            budget: Optional[float] = None,
+            clock: Callable[[], float] = time.monotonic) -> dict:
+    """The nightly loop's last step: resume an unfinished run, or begin one in a
+    month's first week, inside the unit's budget; under the minimum, skip and
+    say why."""
     cfg = cfg or load_config()
-    first_week = int(pit.et_date(as_of)[8:10]) <= 7
-    have = load_progress(run_id(cfg, as_of)) or unfinished(cfg)
-    if have is None and not first_week:
-        return {"search": None}
-    return step(ledger, store, as_of, cfg, begin=first_week)
+    have = unfinished(cfg)
+    if have is None:
+        ok, why = can_begin(cfg, as_of)
+        mine = load_progress(run_id(cfg, as_of))
+        if not ok or (mine is not None and mine.get("stage") == "done"):
+            return {"search": None}
+    b = step_budget(cfg) if budget is None else float(budget)
+    floor = float((cfg.get("cadence") or {}).get("min_step_seconds", 120))
+    if b < floor:
+        why = (f"search step skipped: {max(b, 0.0):.0f} s left of the unit's budget "
+               f"(timeout less {int((cfg.get('cadence') or {}).get('spare_seconds', 180))}"
+               f" s spare), under the {floor:.0f} s minimum")
+        print(why)
+        ledger.event(LOOP, "search_skipped", as_of, None, after={"why": why, "budget": b})
+        return {"search": None, "search_skipped": why}
+    return step(ledger, store, as_of, cfg, clock=clock, max_wall=b,
+                begin=have is None)
 
 
 def _main(argv: list[str]) -> int:
@@ -525,6 +700,9 @@ def _main(argv: list[str]) -> int:
     ap.add_argument("--ledger")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("plan", help="the candidate count and the pending variables")
+    cv = sub.add_parser("coverage", help="each variable's history against the rule "
+                                         "(read-only; writes nothing)")
+    cv.add_argument("--as-of")
     r = sub.add_parser("run", help="one capped step of the current run (box write)")
     r.add_argument("--as-of")
     r.add_argument("--max-candidates", type=int)
@@ -533,24 +711,42 @@ def _main(argv: list[str]) -> int:
     cfg = load_config()
     if a.cmd == "plan":
         p = plan(cfg)
-        print(f"family {p['family']} (sha256 {family_sha256(cfg)}): {p['n_candidates']} "
-              f"candidates = {p['signal_families']} signal families x "
+        print(f"family {p['family']} (sha256 {family_sha256(cfg)}): at most "
+              f"{p['n_candidates']} candidates = {p['signal_families']} signal families x "
               f"{p['conditioning_options']} conditioning options x {p['horizons']} horizons "
-              f"x {p['instruments']} instruments x {p['exits']} exits")
+              f"x {p['instruments']} instruments x {p['exits']} exits; a run tests only "
+              f"the options of the variables that pass coverage at its start")
         for ln in p["pending_lines"]:
             print("  " + ln)
         return 0
-    from .ledger import Ledger                                  # noqa: PLC0415
     from .store import ReadOnlyStore                            # noqa: PLC0415
     as_of = a.as_of or session.utc_iso(timespec="microseconds")
+    if a.cmd == "coverage":
+        st = ReadOnlyStore(a.store)
+        try:
+            hfrom = holdout_from(as_of, int(cfg["split"]["holdout_months"]))
+            cov = coverage(st, cfg, hfrom)
+        finally:
+            st.close()
+        joined = sorted(n for n, c in cov.items() if c["joined"])
+        print(f"holdout from {hfrom}; a run starting now would test "
+              f"{len(candidates(cfg, joined))} candidates")
+        for ln in coverage_lines(cov):
+            print("  " + ln)
+        return 0
+    from .ledger import Ledger                                  # noqa: PLC0415
     with Ledger(a.ledger) as lg:
         st = ReadOnlyStore(a.store)
         try:
+            ok, why = can_begin(cfg, as_of)
+            if not ok and unfinished(cfg) is None:
+                print(f"no search run: {why}")
             out = step(lg, st, as_of, cfg, max_candidates=a.max_candidates,
-                       max_wall=a.max_seconds)
+                       max_wall=a.max_seconds, begin=ok)
         finally:
             st.close()
-    print(out["search"]["line"] if out.get("search") else "no search run")
+    print(out["search"]["line"] if out.get("search")
+          else out.get("search_skipped") or "no search run")
     return 0
 
 

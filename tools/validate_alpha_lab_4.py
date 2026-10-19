@@ -21,6 +21,16 @@ live store, fetches or calls a model.
      frozen; a formation survivor that fails the holdout is not written; the
      survivor written is systematic, pre-registered by the search's manifest; a
      pending variable is skipped with its reason; the Lab report prints the line.
+  C  RULING 5 OF 19 OCT 2026. Coverage: a fixture variable whose history starts
+     four years before the holdout is pending with its date and its options are
+     not candidates (N counts only what the run tests), one at six years joins,
+     a series stored in 2024 for observations from 2010 starts in 2024, and the
+     manifest records each; the dealer regime is pending on its captures'
+     history. The cadence: the nightly step's cap leaves the 20-minute unit 3
+     minutes spare and under 120 s it skips and prints why; a new run does not
+     begin while one is unfinished, nor outside a month's first week; the search
+     is the nightly loop's last step and the weekly loop's no longer. One lock:
+     while another process holds it, a step does nothing.
 
     python tools/validate_alpha_lab_4.py
 """
@@ -341,7 +351,9 @@ def search_cfg() -> dict:
 
 
 def build_search_store(path: str) -> None:
-    """GLD rises steadily throughout; TLT rises until the holdout, then falls."""
+    """GLD rises steadily throughout; TLT rises until the holdout, then falls.
+    The market-state object is stored each session from the start, available
+    that evening, so the volatility dial's history passes coverage."""
     days = sessions("2018-01-02", "2024-06-28")
     rnd = random.Random(5)
     rows = []
@@ -353,6 +365,12 @@ def build_search_store(path: str) -> None:
             rows.append({"registry_key": key, "instrument": None, "observed_at": d,
                          "available_at": at(d), "value": math.exp(lv),
                          "source": "synthetic"})
+    import json                                                 # noqa: PLC0415
+    for i, d in enumerate(days):
+        rows.append({"registry_key": "market_state", "instrument": None, "observed_at": d,
+                     "available_at": at(d, "21:30"), "source": "synthetic",
+                     "value": json.dumps({"dials": {"vol": {"state": "crisis" if i % 9 == 0
+                                                             else "subdued"}}})})
     write_store(path, rows)
 
 
@@ -377,20 +395,28 @@ def group_b() -> None:
               and p["conditioning_options"] == 3,
               f"a fixture family of known size: 2 x 3 x 1 x 2 x 1 = {p['n_candidates']} "
               f"candidates, each enumerated once")
-        check(p["pending"] == {"dealer": "joins when the 6b keys are on this line, at the "
-                                         "third chain's stitch"}
+        why_d = "the dealer regime is not in search-v1 (ruling 5(b) of 19 Oct 2026)"
+        check(p["pending"] == {"dealer": why_d}
               and not any("dealer" in c["id"] for c in cands)
-              and p["pending_lines"] == ["dealer: skipped, pending -- joins when the 6b "
-                                         "keys are on this line, at the third chain's stitch"],
+              and p["pending_lines"] == [f"dealer: skipped, pending -- {why_d}"],
               "a pending variable is skipped, with its reason printed")
         real = search_mod.load_config()
         check(real["family"]["conditioning"]["dealer"].get("pending") is True
               and {"dials", "positioning", "funding", "volatility"}
               <= set(real["family"]["conditioning"])
-              and real["caps"] == {"max_candidates_per_run": 400, "max_wall_seconds": 600},
+              and real["caps"] == {"max_candidates_per_run": 400, "max_wall_seconds": 600}
+              and real["coverage"]["min_years_before_holdout"] == 5
+              and real["family"]["conditioning"]["dealer"]["history"]
+              == {"key": "exposure.net_gex", "instrument": "SPY"}
+              and {k: real["cadence"][k] for k in ("step_in", "unit_timeout_seconds",
+                                                    "spare_seconds", "min_step_seconds",
+                                                    "begin_by_day")}
+              == {"step_in": "nightly", "unit_timeout_seconds": 1200, "spare_seconds": 180,
+                  "min_step_seconds": 120, "begin_by_day": 7},
               "the shipped family conditions on the dials, positioning, the funding and "
-              "the volatility regime, the dealer regime pending; caps 400 candidates and "
-              "600 s a run")
+              "the volatility regime, the dealer regime pending on its captures' history; "
+              "caps 400 candidates and 600 s; coverage 5 years; the nightly cadence with "
+              "3 minutes spare and a 120 s floor (ruling 5)")
 
         s1 = search_mod.step(lg, st, SEARCH_AS_OF, cfg, max_candidates=4)["search"]
         prog = search_mod.load_progress(s1["run_id"])
@@ -472,21 +498,215 @@ def group_b() -> None:
         check(lines[0] == "## 10. The grammar search"
               and "12 of 12 candidates tested" in lines[2]
               and "1 registered" in lines[2] and "N=12" in lines[2]
-              and any("dealer: skipped, pending" in x for x in lines),
+              and any("dealer: pending -- no history stored" in x for x in lines)
+              and any("passed volatility" in x for x in lines),
               f"the Monthly's Lab report prints the line: {lines[2][:110]}")
         later = "2024-08-13T22:00:00+00:00"
-        check(search_mod.weekly(lg, st, later, cfg) == {"search": None},
-              "past the first week with no run unfinished, the weekly step does nothing")
+        check(search_mod.nightly(lg, st, later, cfg, budget=600) == {"search": None},
+              "past the first week with no run unfinished, the nightly step does nothing")
     finally:
         search_mod.rules.backtest = real_bt
         st.close()
         lg.close()
 
 
+
+# ---------------------------------------------------------------------------
+# C. Ruling 5 of 19 Oct 2026: coverage, the nightly cadence, the lock
+# ---------------------------------------------------------------------------
+C_AS_OF = "2024-07-02T22:00:00+00:00"           # holdout from 2023-07-01; needs 2018-07-01
+
+
+def coverage_cfg(name: str) -> dict:
+    """1 signal family x (none + 3 bands of each z variable) x 1 x 1 x 1: a
+    variable at six years joins, one at four years and one backfilled today
+    without vintages do not."""
+    import copy                                                 # noqa: PLC0415
+    cfg = copy.deepcopy(search_mod.load_config())
+    f = cfg["family"]
+    f["name"] = name
+    f["signal_families"] = {"trend_63": f["signal_families"]["trend_63"]}
+    f["horizons"], f["instruments"], f["exits"] = [5], ["GLD"], {"time_only": {}}
+    z = {"kind": "zscore", "window": 20, "min_rows": 10,
+         "bands": {"crowded_long": 1.5, "crowded_short": -1.5},
+         "values": ["crowded_long", "neutral", "crowded_short"]}
+    f["conditioning"] = {
+        "six_years": {**z, "what": "fixture, observed from 2017-07-03, each knowable 3 days on",
+                      "key": "cftc.noncomm_net", "instrument": "SP500"},
+        "four_years": {**z, "what": "fixture, observed from 2019-07-01, each knowable 3 days on",
+                       "key": "cftc.noncomm_net", "instrument": "NASDAQ100"},
+        "backfilled": {**z, "what": "fixture, observed from 2010, stored in 2024",
+                       "key": "calc.funding_agg"},
+        "dealer": f["conditioning"]["dealer"]}
+    return cfg
+
+
+def build_coverage_store(path: str) -> None:
+    rows = []
+    for inst, first in (("SP500", "2017-07-03"), ("NASDAQ100", "2019-07-01")):
+        d = dt.date.fromisoformat(first)
+        while d.isoformat() <= "2024-06-25":
+            rows.append({"registry_key": "cftc.noncomm_net", "instrument": inst,
+                         "observed_at": d.isoformat(),
+                         "available_at": at((d + dt.timedelta(days=3)).isoformat()),
+                         "value": float(d.toordinal() % 97), "source": "synthetic"})
+            d += dt.timedelta(days=7)
+    d = dt.date(2010, 1, 4)
+    while d.isoformat() <= "2024-06-25":
+        rows.append({"registry_key": "calc.funding_agg", "instrument": None,
+                     "observed_at": d.isoformat(), "available_at": at("2024-06-26"),
+                     "value": 5.0, "source": "synthetic"})
+        d += dt.timedelta(days=7)
+    for d in sessions("2024-04-01", "2024-06-28"):              # 6b's captures, recent
+        rows.append({"registry_key": "exposure.net_gex", "instrument": "SPY",
+                     "observed_at": d, "available_at": at(d), "value": 1.0e9,
+                     "source": "synthetic"})
+    write_store(path, rows)
+
+
+def group_c() -> None:
+    import subprocess                                           # noqa: PLC0415
+    head("C. RULING 5 OF 19 OCT 2026: COVERAGE, THE NIGHTLY CADENCE, ONE LOCK")
+    sp = os.path.join(_TMP, "coverage.sqlite")
+    build_coverage_store(sp)
+    st = ReadOnlyStore(sp)
+    lg = Ledger(os.path.join(_TMP, "alpha_c.db"))
+    try:
+        # (a) coverage, before the manifest
+        cfg = coverage_cfg("search-cov")
+        s0 = search_mod.start(lg, st, cfg, C_AS_OF)
+        mf = manifest.read(s0["manifest"])["batch"]
+        cov = mf["coverage"]
+        check(cov["six_years"]["first"] == "2017-07-06" and cov["six_years"]["passed"]
+              and cov["six_years"]["joined"]
+              and cov["six_years"]["required_by"] == "2018-07-01",
+              f"a variable whose history starts six years before the holdout joins: "
+              f"{cov['six_years']['line']}")
+        check(cov["four_years"]["first"] == "2019-07-04" and not cov["four_years"]["passed"]
+              and cov["four_years"]["line"]
+              == "four_years: pending -- history from 2019-07-04 (needs 2018-07-01)",
+              f"one at four years is pending with its date: {cov['four_years']['line']}")
+        check(cov["backfilled"]["first"] == "2024-06-26" and not cov["backfilled"]["joined"],
+              "a series observed from 2010 but stored only in 2024 starts in 2024: "
+              "history is what was knowable, not what was observed")
+        check(cov["dealer"]["first"] == "2024-04-01" and not cov["dealer"]["joined"]
+              and "pending -- history from 2024-04-01" in cov["dealer"]["line"],
+              f"the dealer regime's pending reason is its captures' history (ruling 5(b)): "
+              f"{cov['dealer']['line']}")
+        ids = mf["candidates"]
+        check(mf["n_candidates"] == 4 == len(ids) == s0["n_candidates"]
+              and mf["joined"] == ["six_years"]
+              and not any(x in i for i in ids for x in ("four_years", "backfilled", "dealer")),
+              f"the manifest records both, and only the joined variable's options are "
+              f"candidates: {ids}")
+        check(lg.variant_count("search-cov") == 4 == s0["n_trials"],
+              "N counts only the candidates the run tests (4, not 13)")
+        check(s0["manifest_at"] == hyp.instant(C_AS_OF)
+              and not lg.q("SELECT 1 FROM loop_events WHERE kind='search_progress'"),
+              "coverage is evaluated at the run's start, before the manifest and before "
+              "any backtest")
+
+        # (c) the budget
+        c = search_mod.load_config()
+        grid = [(spent, search_mod.step_budget(c, now=1000.0 + spent, started=1000.0))
+                for spent in (0, 300, 420, 600, 840, 900, 950, 1100)]
+        check(dict(grid)[0] == 600 and dict(grid)[420] == 600 and dict(grid)[600] == 420
+              and dict(grid)[900] == 120
+              and all(spent + b <= 1200 - 180 for spent, b in grid),
+              f"the step's cap leaves the unit 3 minutes inside its 20-minute timeout: "
+              f"{grid}")
+        os.environ["CHESTER_UNIT_STARTED"] = "1000"
+        try:
+            env_b = search_mod.step_budget(c, now=1500.0)
+        finally:
+            os.environ.pop("CHESTER_UNIT_STARTED", None)
+        check(env_b == 520, f"the unit's start is read from CHESTER_UNIT_STARTED: {env_b}")
+        wrapper = (REPO / "scripts" / "run_alpha_nightly.sh").read_text(encoding="utf-8")
+        check('export CHESTER_UNIT_STARTED="${CHESTER_UNIT_STARTED:-$(date +%s)}"' in wrapper
+              and wrapper.index("export CHESTER_UNIT_STARTED") < wrapper.index("git pull --ff-only >>"),
+              "the nightly wrapper exports the unit's start before its pull")
+        import contextlib                                       # noqa: PLC0415
+        import io                                               # noqa: PLC0415
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            sk = search_mod.nightly(lg, st, C_AS_OF, cfg, budget=70)
+        ev = lg.q("SELECT after FROM loop_events WHERE kind='search_skipped'")
+        check(sk["search"] is None and "under the 120 s minimum" in sk["search_skipped"]
+              and "70 s left" in buf.getvalue() and len(ev) == 1,
+              f"under 120 s the step is skipped and prints why: {buf.getvalue().strip()}")
+        seen: list[dict] = []
+        real_step = search_mod.step
+
+        def spy(ledger, store, as_of, cfg=None, **kw):
+            seen.append({"as_of": as_of, **kw})
+            return {"search": None}
+        search_mod.step = spy
+        try:
+            search_mod.nightly(lg, st, C_AS_OF, cfg, budget=333)
+            nxt = "2024-08-05T22:00:00+00:00"                  # August's first week
+            search_mod.nightly(lg, st, nxt, cfg, budget=600)
+            fresh = coverage_cfg("search-none")
+            out_wk3 = search_mod.nightly(lg, st, "2024-08-20T22:00:00+00:00", fresh,
+                                         budget=600)
+        finally:
+            search_mod.step = real_step
+        check(seen[0]["max_wall"] == 333 and seen[0]["begin"] is False,
+              "an unfinished run's step is capped at the budget the nightly loop has left")
+        check(seen[1]["begin"] is False and seen[1]["as_of"] == nxt
+              and search_mod.load_progress("search-cov-2024-08") is None
+              and search_mod.can_begin(cfg, nxt)[0] is False
+              and "unfinished" in search_mod.can_begin(cfg, nxt)[1],
+              "a new run does not begin while one is unfinished, even in a month's first "
+              "week: the unfinished one is resumed")
+        check(out_wk3 == {"search": None} and len(seen) == 2
+              and search_mod.can_begin(fresh, "2024-08-20T22:00:00+00:00")
+              == (False, "a new run begins only in the first week of a month")
+              and search_mod.can_begin(fresh, "2024-08-06T22:00:00+00:00") == (True, ""),
+              "nor outside a month's first week; in it, with nothing unfinished, one may")
+        nl = (REPO / "alpha" / "loops" / "nightly.py").read_text(encoding="utf-8")
+        wk = (REPO / "alpha" / "loops" / "weekly.py").read_text(encoding="utf-8")
+        check(nl.index('("promote", self.promote_step)') < nl.index('("search", self.search_step)')
+              and "search_mod.nightly" in nl and "search_mod" not in wk,
+              "the search is the nightly loop's last step, and the weekly loop no longer "
+              "steps it")
+
+        # (c) one lock for every search step
+        lp = search_mod.lock_path()
+        code = ("import os,sys; sys.path.insert(0, sys.argv[1]); "
+                "from alpha import files; from pathlib import Path\n"
+                "with files.lock(Path(sys.argv[2])) as h:\n"
+                "    print('held' if h else 'refused', flush=True); sys.stdin.read()\n")
+        holder = subprocess.Popen([sys.executable, "-c", code, str(REPO), str(lp)],
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                                  env={**os.environ})
+        try:
+            first_line = holder.stdout.readline().strip()
+            blocked = search_mod.step(lg, st, C_AS_OF, cfg, max_candidates=1)
+            with search_mod.files.lock(lp) as mine:
+                in_proc = mine
+        finally:
+            holder.stdin.close()
+            holder.wait(timeout=30)
+        check(first_line == "held" and blocked == {
+            "search": None, "search_skipped": "another search step holds the lock"}
+              and in_proc is False,
+              "while another process holds the search's lock, a step does nothing and "
+              "says why: two steps never hold the search at once")
+        with search_mod.files.lock(lp) as again:
+            with search_mod.files.lock(lp) as second:
+                pair = (again, second)
+        check(pair == (True, False),
+              "the lock is released when its holder ends, and a second handle in one "
+              "process is refused too")
+    finally:
+        st.close()
+        lg.close()
+
 def main() -> int:
     try:
         group_a()
         group_b()
+        group_c()
     finally:
         shutil.rmtree(_TMP, ignore_errors=True)
     print(f"\n{PASS} passed, {FAIL} failed")

@@ -18,8 +18,9 @@ One Markdown page from alpha.db, read-only, for the month:
   7. the tells imported as hypotheses, counted by source (X-3.6);
   8. the system's own event base rates, each row with n and its window (X-3.1);
   9. the paper book's crypto rows: venue, leg sizes, funding accrued (X-3.2);
- 10. the grammar search's line: tested, survivors, the deflation, the variables
-     it skipped as pending (X-3.5).
+ 10. the grammar search's line: tested, survivors, the deflation, and the
+     variables that passed and failed coverage, each with its history's first
+     date (X-3.5; ruling 5(a) of 19 Oct 2026).
 
 The Monthly attaches it through ONE hook in monthly_macro/run.py
 (monthly_attachment), which never raises: a lab that cannot be read costs the
@@ -243,9 +244,17 @@ def search_lines(ledger, last: str) -> list[str]:
         else None
     if not r:
         return out + ["No search step this month (a run begins in the first week of "
-                      "each month, in the weekly loop).", ""]
+                      "a month, as the nightly loop's last step, once the previous run "
+                      "is complete).", ""]
     s = json.loads(r["after"])
     out += [f"- {s['line']}."]
+    cov = s.get("coverage") or []
+    if cov:
+        ok = [c.split(":")[0] for c in cov if ": joined" in c]
+        out += [f"- Coverage (at least five years of point-in-time history before the "
+                f"holdout): passed {', '.join(ok) or 'none'}; failed or pending "
+                f"{', '.join(c.split(':')[0] for c in cov if ': joined' not in c) or 'none'}."]
+        out += [f"  - {c}." for c in cov]
     out += [f"- {p}." for p in s.get("pending") or []]
     return out + [""]
 

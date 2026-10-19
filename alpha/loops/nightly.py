@@ -29,7 +29,12 @@ ET), in order, each step its own try so one failure costs that step only:
  10. the DRIFT CHECK against each engine's validated metrics;
  11. tonight's SIGNALS from the live engines, queued for tomorrow's fills;
  12. PROMOTION (X-2.6): each passed grammar hypothesis written to engines at
-     min_size, trading from the next loop.
+     min_size, trading from the next loop;
+ 13. THE GRAMMAR SEARCH (X-3.5; ruling 5(c) of 19 Oct 2026), LAST: while a run is
+     unfinished its next step, or a new run in a month's first week once the
+     previous one is complete, its wall clock capped so the unit ends inside its
+     20-minute timeout with 3 minutes spare; under 120 s it is skipped and says
+     why (alpha/search.py `nightly`).
 
 Every change is a loop_events row. This loop changes sizes and weights; it never
 changes an engine's rules. It reads the store read-only, writes alpha.db only,
@@ -49,6 +54,7 @@ from typing import Optional
 from altdata import session
 
 from .. import allocate, book, blocklist, governor
+from .. import search as search_mod
 from .. import config as acfg
 from .. import engine as engine_mod
 from ..costs import CostModel
@@ -388,6 +394,11 @@ class Run:
                               after={"queued": queued, "refused": refused})
         self.summary.update(queued=len(queued), refused=len(refused))
 
+    def search_step(self) -> None:
+        out = search_mod.nightly(self.ledger, self.store, self.as_of)
+        s = out.get("search")
+        self.summary["search"] = (s["line"] if s else out.get("search_skipped"))
+
     def run(self) -> dict:
         for name, fn in (("setup", self.setup), ("inbox", self.inbox_step),
                          ("harness", self.harness_step),
@@ -398,7 +409,9 @@ class Run:
                          ("allocate", self.allocate_step),
                          ("attribution", self.attribution_step),
                          ("drift", self.drift_step), ("signals", self.signal_step),
-                         ("promote", self.promote_step)):
+                         ("promote", self.promote_step),
+                         # X-3.5, last: a capped search never delays the loop's own steps
+                         ("search", self.search_step)):
             self.step(name, fn)
         self.summary["failures"] = self.failures
         self.ledger.event(LOOP, "run", self.as_of, None,
