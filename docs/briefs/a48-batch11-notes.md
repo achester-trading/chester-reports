@@ -244,4 +244,9 @@ The rest is CI's. That includes `validate_monthly_stack` and `validate_weekly_co
 
 ## CI
 
-CI-TABLE
+| Run | Commit | Result |
+|---|---|---|
+| 39296690572 | `174da7c` (Parts 0 to 2) | success |
+| 39299419882 | `5ebc157` (Parts 3 and 4) | success |
+| **39300378572** | **`991520f` (Part 5 and the notes)** | **success: 130 of 130 jobs** |
+
