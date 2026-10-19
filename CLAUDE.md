@@ -870,7 +870,7 @@ group A holds it.
 **The grammar search (X-3.5; alpha-lab-4, 19 Oct 2026).** `alpha/search.py`
 enumerates `config/alpha_search.yaml`'s family: signal families x
 conditioning options x horizons x instruments x exits, 3,840 candidates, each
-a rule in grammar v2 (`alpha-lab-rules/v2`: v1 plus a rule-level `when` list of
+a rule in grammar v2 (`docs/alpha-lab-rules.md` section 14: v1 plus a rule-level `when` list of
 state, zscore and mean_band conditions, each read as knowable at the decision
 by the one reader `rules.when_value`, a missing value meaning no trade; v1
 rules replay unchanged and the proposer stays on v1). A conditioned candidate is

@@ -1,5 +1,247 @@
 # alpha-lab-4: session notes (Parts 0 to 3)
 
+**alpha-lab-4 final tip: the commit that adds these notes, on top of 541a298** (the last
+code commit). b45-chain3 merges this tip, in the third chain.
+
+# Second paste of 19 Oct 2026 (session B): Parts 0 and 1
+
+Nothing merged to main, deployed or run on the box. No unit was touched. chester-meme
+and session A's branches (chain-2, library-draft-3, a47-chain3) were not written.
+
+## CI, second paste
+
+| Run | Commit | Result |
+|---|---|---|
+| 39203678583, and the three before it | 18f472e, 2278874, fe4c429, cae2fb8 | 109/109 jobs green each: nothing to fix |
+| 39287961485 | db92738 (CD-12) | **1 failure:** `validate_numeral_audit`. The rate guard's message wrote "16th" by hand. Fixed in 541a298 ("would make 16 in a day") |
+| 39292353888 | 541a298 (Part 1) | see the closing report |
+
+Gates run locally, one at a time (written or changed here):
+
+| Gate | Result |
+|---|---|
+| `validate_alpha_lab_4` | 65/0 (groups C and D new) |
+| `validate_alpha` | 257/0 |
+| `validate_alpha_lab_3` | pass |
+| `validate_alpha_proposer` | pass |
+| `validate_crypto_sources` | 117/0 (group O new) |
+| `validate_digital_addendum` | 94/0 |
+| `validate_numeral_audit` | pass |
+| `validate_audit_3a` | 86/0 |
+| `check_registry` | OK |
+
+**The gates that run the nightly loop** (`validate_alpha` and `validate_alpha_lab_3`)
+set `CHESTER_UNIT_STARTED=0`, so the loop's new last step, the search, skips with its
+reason. Without that, each simulated first-week night ran a 600 s search step on the
+fixture store; one local run passed forty minutes before I stopped it. The search
+itself is held by `validate_alpha_lab_4` groups B to D.
+
+## Part 0
+
+### Ruling 1: the three rule-31 drafts (8cb0ff5)
+
+- **The G-26 note** in the signal-triage change order is now labelled "*Accepted as
+  drafted (rule 31), 19 Oct 2026:*".
+- **SR-29's line** is written under SR-29 in `docs/signal-triage-register.md`, ending
+  with ruling 2's sentence. It is labelled accepted as amended.
+- **The lab line** is `docs/alpha-lab.md` section 11, labelled accepted as amended. Its
+  search clause is brought to ruling 5: the coverage rule, the variables expected to
+  pass, the dealer regime pending on its history, and the nightly cadence. The loops
+  table names the search as the nightly loop's last step.
+
+### Ruling 5: the search (4b6a08a)
+
+- **(a) Coverage.** `search.coverage()` runs at a run's start, before the manifest.
+  - **What "history" means:** the first day any value of the variable was knowable,
+    the earliest over its rows of max(observed day, available_at's ET date). A series
+    backfilled today without vintages therefore starts today.
+  - **The rule:** a variable joins only if that day is at least
+    `coverage.min_years_before_holdout` (5) years before the holdout's first day.
+  - **The manifest** records each variable's key, first date, required date, verdict
+    and line.
+  - **A variable that fails** is pending with "history from <date>". Its options are
+    not candidates, and N (`bump_variant`) counts only what the run tests.
+  - **Expected on the box:**
+    - positioning passes: the CFTC net, each report reconstructed at its Friday
+      release, from 2006 or so;
+    - the macro and volatility dials fail: the market-state object's stored vintages
+      are each available when computed, which is September 2026 even for the
+      backfill;
+    - funding fails: `calc.funding_agg` starts in October 2026.
+
+    So the first run should test 768 candidates (4 x (1 + 3) x 3 x 8 x 2), not 3,840.
+    `python -m alpha.search coverage` prints the answer read-only before any run.
+- **(b) The dealer regime** stays `pending`. Its line is its history,
+  `exposure.net_gex` (SPY): "dealer: pending -- history from <date> (needs <date>); the
+  dealer regime is not in search-v1". It does not join at the stitch.
+- **(c) The cadence.**
+  - **Where it runs:** `search.nightly()` is the nightly loop's last step (after
+    promote). The weekly loop no longer steps the search.
+  - **The budget:** the unit's 1,200 s, less 180 s spare, less what the unit has spent,
+    capped at 600 s. `scripts/run_alpha_nightly.sh` exports `CHESTER_UNIT_STARTED`
+    before its pull. Under 120 s the step skips, prints why and writes a
+    `search_skipped` event.
+  - **When a run begins:** only in a month's first week (day 7 or earlier), and only
+    when no run is unfinished. The CLI `run` obeys the same rule.
+  - **One lock:** `files.lock` on `search/.lock` (flock on the box, msvcrt on Windows;
+    released when the process dies). A second step while one holds it does nothing and
+    says so.
+  - **The Lab report's line** names the variables that passed and the ones that failed
+    or are pending, each with its history line.
+- **Gates (group C):**
+  - a variable at four years is pending with its date, and its options are not
+    counted (N = 4, not 13);
+  - one at six years joins;
+  - a series stored in 2024 for observations from 2010 starts in 2024;
+  - the dealer's line is its captures' first date;
+  - the budget grid leaves 3 minutes at every point, and the env start is read;
+  - under 120 s the step skips and prints why;
+  - an unfinished run is resumed, never restarted, and no new run begins while it is
+    unfinished or outside the first week;
+  - the search is nightly's last step and not the weekly loop's;
+  - while another process holds the lock, a step does nothing.
+
+### Ruling 2: CD-12, bitcoin-data.com (db92738, fixed in 541a298)
+
+- **The terms, re-read 19 Oct 2026** (last updated 14 Oct 2026). They are quoted in
+  `source_registry.yaml` `bitcoin_data`, now `status: built`:
+  - **on storing:** no clause, so nothing forbids the store;
+  - **on redistributing:** "BGeometrics data must not be provided to third parties
+    through an API, data feed or any other machine-readable access". Nothing here
+    offers any: the chester-meme export carries no btcdata key, and the backups are
+    your own encrypted copies;
+  - **on publishing:** "Personal and non-commercial publishing does not require the
+    add-on", with BGeometrics credited. The Monthly's line credits it;
+  - **on the key:** one key per registered user, so the key lives on the box alone.
+- **The fetcher,** `altdata/sources/btcdata.py`:
+  - **what it writes:** `btcdata.lth_supply`, `btcdata.sth_supply`,
+    `btcdata.supply_current`, and `btcdata.lth_supply_share`, which it computes (LTH
+    over current x 100, on the days both are read);
+  - **point in time:** `available_at` is the pull instant (ingest_instant);
+  - **the key** is sent as `Authorization: Bearer`, never in a URL, and is redacted
+    from errors;
+  - **the guard:** every request is counted in `~/.chester/btcdata_requests.json`
+    before it is sent. It refuses the 9th in a rolling hour and the 16th in a rolling
+    day (the terms' 8 an hour, which is stricter than the API's own 10), with no retry;
+  - **the budget it spends:** one request per series, so 3 a day. The first run reads
+    the free tier's four years (about 1,460 days) in one page per series (size 2,000),
+    so it also spends 3, unless the API pages shorter;
+  - **without the key** it fetches nothing and returns `NOT_TRACKED` with "not tracked
+    (btcdata.lth_supply_share): no key in .env (BITCOIN_DATA_API_KEY)";
+  - **`budget`** prints the requests spent, and whether the key is present (never its
+    value).
+- **Where it runs:** a step of the crypto basket's 17:25 run (`step btcdata` after
+  treasury), which loads .env. No new timer. It is not on `feeds.EXTERNAL_WRITERS`,
+  which would pull a second time and spend the budget twice.
+- **The readers:**
+  - **the Monthly's network-health block** prints SR-29 as a triple-form row once a
+    share is stored, with "read the 3-month change with price context, not the level;
+    source: BGeometrics (bitcoin-data.com)";
+  - **with no row,** it prints "not tracked ... no key in .env
+    (BITCOIN_DATA_API_KEY)", or "awaiting the first pull" once the key is present;
+  - **the addendum's on-chain cell** reads the same through
+    `crypto_blocks.sr29_absent()`.
+- **The response's field names were not confirmed:** the spec declares no schema, and
+  I sent no further unauthenticated request. The parser takes the day from `d` and the
+  row's one numeric value field, and **refuses a row with two** rather than guessing.
+  The first dry run on the box shows the real shape.
+- **Registry and catalogue:** the four keys are registered (units `count` and
+  `percent_share`, families `quantity` and `ratio`, long window 4y); the catalogue has
+  the command's line.
+- **Gates (validate_crypto_sources group O):**
+  - a fixture response parses, and a two-field row is refused;
+  - the share is computed by hand;
+  - the first run's three requests start 2022-10-17;
+  - the 9th request in an hour and the 16th in a day are refused, and a second guard
+    reads the first's count;
+  - a refused request is not sent;
+  - with no key nothing is fetched;
+  - the HTTP call is never reached;
+  - the key goes in the header, with no retry and no address in the User-Agent.
+
+  Both gates set the key to empty in the environment, so the laptop's .env cannot
+  change their verdict.
+- **CD-11 (Dune)** stays unbuilt (ruling 3).
+
+## Part 1: grammar v2's state condition (541a298)
+
+- **`alpha-lab-rules/v2`** is v1 plus a rule-level `when` list. Each item is one of:
+  - `state`: a path in the stored market-state object;
+  - `zscore`: a registered key, with an optional instrument, a window, `min_rows` and
+    the crowded_long and crowded_short bands;
+  - `mean_band`: a key with a window and its on and off bands.
+
+  Every item must read a value **knowable at the decision** and take one of its
+  values. A missing value means no trade, with the skip reason "when: no value
+  knowable at the decision".
+- **One reader.** `rules.when_value()` reads all three kinds. `Data.state_vintage()`
+  returns the value and its availability, and never reads a vintage stored after the
+  decision. `Data.series(key, instrument)` reads an instrument's rows. The search's
+  `Conditions.value()` calls `rules.when_value()` and has no arithmetic of its own.
+- **The backtest** applies `when_ok()` after the trigger, and its availability raises
+  the trade's `available_at`. **The grammar engine** applies it before a live signal.
+- **v1 is unchanged.** A v1 rule may not carry `when`. The registered translations
+  (H-002, H-004, H-005) backtest to identical trades as v1 and as v2 without `when`.
+- **The search's family is on v2** (`config/alpha_search.yaml` grammar
+  `alpha-lab-rules/v2`), before its first run.
+  - A conditioned candidate is `rule_of()`: the base rule plus one `when` item. It is
+    **backtested as that rule**, so its trades are its own and not the base rule's
+    filtered after the fact.
+  - The caps are checked per candidate.
+  - A conditioned survivor registers its v2 `rule_dsl` with `needs_code: false`.
+  - The manifest names the grammar, and the family's hash covers it.
+  - **needs_code remains for nothing in search-v1:** all its kinds are v2 kinds.
+- **The proposer stays on v1.** Its prompt names v1 only. A v2 `rule_dsl` from it is
+  kept as text with "the proposer writes alpha-lab-rules/v1 only".
+- **Documentation:** `docs/alpha-lab-rules.md` gains section 14, and CLAUDE.md's
+  search paragraph names v2.
+- **Gates (group D):**
+  - a v2 rule on a fixture state trades only where the state was knowable and matched,
+    and each trade's `available_at` covers it;
+  - a session whose object was stored the next day never trades, and nor does one whose
+    later revision says "calm";
+  - SP500's z is computed from SP500's rows alone, against a hand z, while NASDAQ100
+    reads differently;
+  - v1 may not carry `when`, and an unregistered `when` key is refused;
+  - the translations replay identically;
+  - a conditioned candidate's formation trades in the search equal an independent
+    backtest of its v2 rule, trade for trade, and differ from the filtered base;
+  - `Conditions` calls `when_value`;
+  - a conditioned survivor's rule compiles;
+  - the manifest's hash differs with the grammar;
+  - the proposer stays on v1.
+
+## Box commands (for Ari; inside a window; dry run first)
+
+```bash
+cd ~/chester-reports
+
+# The search: coverage first (read-only), then a scratch dry run as of a first-week
+# day; the first real step is the nightly loop's own, in November's first week
+.venv/bin/python -m alpha.search coverage
+ALPHA_RESEARCH_DIR=/tmp/search-dry .venv/bin/python -m alpha.search \
+  --ledger /tmp/search-dry.db run --as-of 2026-11-02T22:00:00+00:00 \
+  --max-candidates 8 --max-seconds 120 2>&1 | tee ~/logs/search_dryrun.log
+
+# bitcoin-data.com, once BITCOIN_DATA_API_KEY is in .env: the budget (no request),
+# then one pull by hand before the basket's run does it (3 requests of the 15)
+.venv/bin/python -m altdata.sources.btcdata budget
+.venv/bin/python -m altdata.sources.btcdata 2>&1 | tee ~/logs/btcdata_first_pull.log
+```
+
+E-6 is registered after the third chain merges (b45-chain3's notes carry the
+command).
+
+## Needs you (second paste)
+
+- **The key:** register bitcoin-data.com's free key and add it to .env as
+  `BITCOIN_DATA_API_KEY`. The first pull's log shows the response's real field names;
+  if the parser refuses a row, the fix is one line.
+- **The search's expected first count is 768** (positioning alone joins). Coverage on
+  the box decides. Say if you want the dials' history re-thought before November.
+- **No new rule-31 draft on this branch:** ruling 1's three are now written in as
+  accepted.
+
 **st-t5-render final tip: ef9014c** (frozen; nothing failed, so no fix was pushed to
 it).
 
