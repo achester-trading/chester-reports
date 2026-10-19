@@ -16,6 +16,7 @@ one failure mode a compliance restriction may not have.
     BN                        -> BN
     bn.to                     -> BN     exchange suffix
     BN.PR.A                   -> BN     preferred series
+    BPY$A, BN$A               -> BPY, BN  preferred series, ACT/CQS form (16 Oct 2026)
     BEP.UN                    -> BEP    unit class
     O:BN260918C00050000       -> BN     Polygon option symbol
     BN260918C00050000         -> BN     OCC / yfinance contract symbol
@@ -58,6 +59,10 @@ _OPTION = re.compile(r"^(?:O:)?([A-Z][A-Z0-9]{0,5})\s*(\d{6})([CP])(\d{1,8})$")
 # itself contain dots, so the currency is anchored to the end.
 _LISTING_QUALIFIER = re.compile(r"@[A-Z0-9_.-]+\.[A-Z]{3}$")
 
+# The ACT/CQS preferred form: a dollar sign and one to three series letters,
+# optionally with a dotted when-issued or class tail (BPY$A, ABR$D, XYZ$A.W).
+_ACT_PREFERRED = re.compile(r"\$[A-Z]{0,3}(\.[A-Z]{1,2})?$")
+
 # Dotted tails that denote a listing or a class of the SAME issuer.
 _DOTTED_SUFFIX = re.compile(r"\.(TO|V|NE|CN|L|AX|SI|HK|PA|DE|MI|MC|AS|BR|"
                             r"UN|PR|RT|WT|WS|A|B|C|U|X)\b.*$", re.I)
@@ -84,6 +89,13 @@ def normalise(instrument: Optional[str]) -> str:
     # including before the option branch, since an option's localSymbol can
     # carry a qualifier too.
     s = _LISTING_QUALIFIER.sub("", s)
+
+    # THE ACT PREFERRED FORM (16 Oct 2026). Nasdaq Trader's directories, and so
+    # the Security Master's export, write a preferred series as the root, a
+    # dollar sign and the series letters: BPY$A, BN$A, ABR$D. It is the same
+    # issuer as BN.PR.A and must reach the blocklist as the root. Only letters
+    # after the sign are stripped, never the root's own, so BEPC$A stays BEPC.
+    s = _ACT_PREFERRED.sub("", s)
 
     # Option symbol -> underlying root. Done before suffix stripping because an
     # option symbol has no dots and would otherwise survive intact.

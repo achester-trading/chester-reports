@@ -86,12 +86,11 @@ allocation:
   bonds_key: fred.hh_debt_securities     # millions
   cash_key: fred.hh_deposits             # millions
   assets_key: fred.hh_fin_assets         # millions
-  # The monthly reading between Z.1 releases: the AAII asset-allocation survey,
-  # entered by hand (SR-12's manual_input keys). ICI is a listed gap.
-  aaii_keys:
-    equities: manual.aaii_stocks_pct
-    bonds: manual.aaii_bonds_pct
-    cash: manual.aaii_cash_pct
+  # The monthly reading between Z.1 releases. AAII's allocation survey was
+  # entered by hand (SR-12); the by-hand audit (16 Oct 2026) drops it, because
+  # no recurring by-hand line survives without the operator's yes and AAII
+  # cannot be read by a writer. ICI is a listed gap too.
+  aaii_gap: "AAII asset-allocation survey: not tracked -- aaii.com answers any client that names itself with 403, robots.txt included (checked 16 Oct 2026), a writer never passes for a browser, and the by-hand entry is dropped (ruled 16 Oct 2026)"
   ici_gap: "ICI monthly: no free source the box may read -- ici.org answers this repo's agent with 403 at its CDN, robots.txt included (checked 16 Oct 2026), and a writer never passes for a browser"
   windows_years: [5]                     # the dual percentile: five years and full (the lens rule)
   base_rate: "base rate: after ST-R5.30b"

@@ -137,6 +137,9 @@ commands:
   altdata.st_r5_rates:
     domain: rates
     line: 'The rates-transmission cluster (Batch 6 items 34, 36, 37, 41): the tightening flag, the G8 2-year panel, housing, the MBA line, the quality tail'
+  altdata.st_r5_t1_rest:
+    domain: macro
+    line: 'The rest of Batch 6 Tranche 1 (items 31, 32, 38, 39, 42, 43, 44): the peak-band flag, the oil-shock signature, the gold/equity ratio, real yields, the expectations composite, policy diffusion, the drawdown histogram'
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
@@ -157,7 +160,7 @@ commands:
     sources: [nyfed_acm]
   altdata.sources.bis_cbpol:
     domain: em
-    line: BIS central-bank policy rates for the EM scorecard
+    line: BIS central-bank policy rates -- the EM scorecard's eleven and every area for the global policy diffusion index
     sources: [bis_cbpol]
   altdata.sources.bot:
     domain: thailand
@@ -275,7 +278,7 @@ commands:
     sources: [defillama]
   altdata.sources.mba:
     domain: housing
-    line: MBA Weekly Mortgage Applications Survey -- the purchase index's headline changes (HELD for D1c)
+    line: MBA Weekly Mortgage Applications Survey -- the purchase index's headline changes
     sources: [mba]
   altdata.sources.massive_chain:
     domain: options
@@ -326,7 +329,7 @@ commands:
     sources: [proshares]
   altdata.sources.redfin:
     domain: housing
-    line: Redfin data center -- national pending sales, listings, months of supply and top-50 metros, monthly (HELD for D1c)
+    line: Redfin data center -- national pending sales, listings, months of supply and top-50 metros, monthly
     sources: [redfin]
   altdata.sources.safe:
     domain: china
@@ -344,6 +347,10 @@ commands:
     domain: reference
     line: Robert Shiller's stock market data -- CAPE and its inputs, monthly from 1871
     sources: [shiller]
+  altdata.sources.sp500_members:
+    domain: equity
+    line: S&P 500 constituents -- SPY's daily holdings (SSGA) and the members' daily closes
+    sources: [sp500_members]
   altdata.sources.spdji:
     domain: equity
     line: S&P Dow Jones Indices' S&P 500 EPS estimates -- the inbox reader
@@ -386,6 +393,26 @@ commands:
     domain: em
     line: World Bank Quarterly External Debt Statistics for the EM scorecard
     sources: [wb_qeds]
+  altdata.sources.stat_jp_cpi:
+    domain: japan
+    line: Statistics Bureau of Japan -- the national CPI's change on the year (all items, core, less fresh food), monthly
+    sources: [stat_jp_cpi]
+  altdata.sources.ons_cpi:
+    domain: macro
+    line: Office for National Statistics -- the UK CPI's 12-month rate, headline and core, monthly
+    sources: [ons_cpi]
+  altdata.sources.statcan_cpi:
+    domain: macro
+    line: Statistics Canada -- the CPI's change on the year, headline and core (excluding food and energy), monthly
+    sources: [statcan_cpi]
+  altdata.sources.bdf_webstat:
+    domain: rates
+    line: Banque de France, Webstat -- the French 10-year (TEC 10), daily, SR-30's OAT leg
+    sources: [bdf_webstat]
+  altdata.sources.wgc_stock:
+    domain: commodities
+    line: World Gold Council -- the above-ground stock of gold, quarterly
+    sources: [wgc_stock]
   altdata.sources.worldbank:
     domain: commodities
     line: World Bank Commodity Price Data ("Pink Sheet") -- monthly commodity indices

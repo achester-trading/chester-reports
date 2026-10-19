@@ -313,14 +313,14 @@ def housing(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     c = cfg.get("housing") or {}
     pend = _pts(st, c.get("pending_key", "redfin.pending_sales"), cutoff)
     mort = _pts(st, c.get("mortgage_key", "fred.mortgage_30y"), cutoff)
-    nar = st.latest_as_of(c.get("nar_key", "manual.nar_phsi"), cutoff)
+    # Redfin alone, single-source (ruled 16 Oct 2026: no recurring by-hand line
+    # without Ari's yes, so NAR's index, which has no free series, is dropped).
     out: dict[str, Any] = {
+        "single_source": True,
         "mortgage": None if not mort else {"rate": mort[-1][1], "as_of": mort[-1][0],
-                                           "change_28d_bp": (change(mort, 28, 100.0) or {}).get("change")},
-        "nar": None if not nar or nar.get("value_num") is None else
-        {"value": float(nar["value_num"]), "as_of": str(nar["observed_at"])[:10]}}
+                                           "change_28d_bp": (change(mort, 28, 100.0) or {}).get("change")}}
     if not pend:
-        return dict(out, absent=True, reason=c.get("held_reason", "Redfin is not stored"))
+        return dict(out, absent=True, reason=c.get("absent_reason", "Redfin is not stored"))
     month, level = pend[-1]
     prior = dict(pend).get(_month_back(month, 12))
 
@@ -350,7 +350,8 @@ def housing_lines(h: dict) -> list[str]:
             sup.append(f"active listings {h['active']:,.0f}")
         if h.get("months_supply") is not None:
             sup.append(f"months of supply {h['months_supply']:.1f}")
-        lines.append(f"Pending home sales (Redfin, {mon}): {h['pending']:,.0f}{yoy}"
+        lines.append(f"Pending home sales (Redfin, single-source, {mon}): "
+                     f"{h['pending']:,.0f}{yoy}"
                      + (f"; {', '.join(sup)}" if sup else "") + ".")
         b = h["breadth"]
         if b["n"]:
@@ -365,10 +366,6 @@ def housing_lines(h: dict) -> list[str]:
               f", {m['change_28d_bp']:+.0f} bp over 28 days")
         lines.append(f"30-year mortgage rate {m['rate']:.2f}% (Freddie Mac via FRED, "
                      f"{m['as_of']}{ch}).")
-    n = h.get("nar")
-    lines.append(f"NAR pending home sales index {n['value']:.1f} ({n['as_of']}, entered "
-                 f"by hand), the cross-check." if n else
-                 "NAR pending home sales index: by hand, not entered.")
     return lines
 
 
@@ -380,17 +377,36 @@ def mba(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     c = cfg.get("mba") or {}
     yoy = _pts(st, c.get("yoy_key", "mba.purchase_nsa_yoy"), cutoff)
     wow = dict(_pts(st, c.get("wow_key", "mba.purchase_sa_wow"), cutoff))
-    lvl = st.latest_as_of(c.get("level_key", "manual.mba_purchase_index"), cutoff)
-    out: dict[str, Any] = {
-        "floor_2023": c.get("floor_2023"), "floor_source": c.get("floor_source"),
-        "level": None if not lvl or lvl.get("value_num") is None else
-        {"value": float(lvl["value_num"]), "as_of": str(lvl["observed_at"])[:10]}}
+    out: dict[str, Any] = {}
     if not yoy:
-        return dict(out, absent=True, reason=c.get("held_reason", "MBA is not stored"))
+        return dict(out, absent=True, reason=c.get("absent_reason", "MBA is not stored"))
     week, y = yoy[-1]
     years = (c.get("windows_years") or [5])[0]
+    chain = chained_index(sorted(wow.items()), int(c.get("max_gap_days", 10)),
+                          float(c.get("chain_base", 100.0)))
     return dict(out, absent=False, week=week, yoy_pct=y, wow_pct=wow.get(week),
-                lens=lens(yoy, years))
+                lens=lens(yoy, years),
+                chain=None if not chain else
+                {"level": round(chain[-1][1], 4), "base_week": chain[0][0], "weeks_n": len(chain),
+                 "lens": lens(chain, years)})
+
+
+def chained_index(wow: list[tuple[str, float]], max_gap_days: int = 10,
+                  base: float = 100.0) -> list[tuple[str, float]]:
+    """A level built from the weekly SA changes: `base` at the first stored week,
+    then each later week times (1 + its change). The release prints changes only
+    and no free series carries the level (ruled 16 Oct 2026: no by-hand level), so
+    this is the level the store can make. A gap of more than `max_gap_days`
+    between stored weeks breaks the chain; the run after the last break is kept,
+    so a missed week never compounds a wrong level."""
+    out: list[tuple[str, float]] = []
+    prev = None
+    for d, v in wow:
+        if prev and (dt.date.fromisoformat(d) - dt.date.fromisoformat(prev)).days > max_gap_days:
+            out = []
+        out.append((d, base if not out else out[-1][1] * (1 + v / 100.0)))
+        prev = d
+    return out
 
 
 def mba_prints_on(session_day: str, m: dict, cfg: Optional[dict] = None) -> bool:
@@ -404,14 +420,12 @@ def mba_prints_on(session_day: str, m: dict, cfg: Optional[dict] = None) -> bool
 
 
 def mba_line(m: dict) -> str:
-    fl = m.get("floor_2023")
-    lv = m.get("level")
-    level = (f" Level {lv['value']:.1f} ({lv['as_of']}, entered by hand), "
-             f"{lv['value'] - fl:+.1f} against the 2023 floor of ~{fl}." if lv and fl else
-             f" Level: by hand, not entered (the release prints changes only); the 2023 "
-             f"floor is ~{fl}.")
     if m.get("absent"):
-        return f"MBA purchase index (weekly): not read — {m['reason']}.{level}"
+        return f"MBA purchase index (weekly): not read — {m['reason']}."
+    ch = m.get("chain")
+    level = ("" if not ch else
+             f" Chained from the weekly changes since {ch['base_week']} (100 = that "
+             f"week): {ch['level']:.1f}, the {lens_text(ch['lens'])}.")
     wk = ("" if m.get("wow_pct") is None else
           f"{m['wow_pct']:+.0f}% on the prior survey (SA), ")
     return (f"MBA purchase index, weekly survey dated {m['week']}: {wk}"
@@ -438,14 +452,11 @@ def quality_tail(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     aaa = _pts(st, c.get("aaa_key", "fred.aaa_oas"), cutoff)
     hy = _pts(st, c.get("hy_key", "fred.hy_oas"), cutoff)
     eu = _pts(st, c.get("euro_hy_key", "fred.euro_hy_oas"), cutoff)
-    euccc = st.latest_as_of(c.get("euro_ccc_key", "manual.euro_ccc_oas"), cutoff)
     out: dict[str, Any] = {"overlay": c.get("overlay"),
                            "overlay_built": bool(c.get("overlay_built")),
                            "ccc_excess_bp": float(c.get("ccc_excess_bp", 25)),
                            "window_days": days, "unvalidated": cfg.get("unvalidated"),
-                           "euro_ccc": None if not euccc or euccc.get("value_num") is None
-                           else {"oas_bp": float(euccc["value_num"]),
-                                 "as_of": str(euccc["observed_at"])[:10]}}
+                           "euro_leg": c.get("euro_leg_label")}
     if not ccc or not bb:
         return dict(out, absent=True, reason="CCC or BB OAS is not stored (FRED)")
     cb = spread_bp(ccc, bb)
@@ -494,14 +505,12 @@ def quality_tail_lines(q: dict) -> list[str]:
                      f"widens at least {q['ccc_excess_bp']:.0f} bp more than BB).")
     eu, us = q.get("euro_hy"), q.get("us_hy")
     if eu and us:
-        lines.append(f"Europe against the US: euro HY OAS {eu['oas_bp']:,.0f} bp at the "
+        lines.append(f"Europe against the US: euro HY OAS {eu['oas_bp']:,.0f} bp "
+                     f"({q.get('euro_leg') or 'the proxy for euro CCC'}) at the "
                      f"{lens_text(eu['lens'])}; US HY {us['oas_bp']:,.0f} bp at the "
                      f"{lens_text(us['lens'])} ({eu['as_of']}).")
     elif not eu:
         lines.append("Euro HY OAS: not stored yet.")
-    ec = q.get("euro_ccc")
-    lines.append(f"Euro CCC {ec['oas_bp']:,.0f} bp ({ec['as_of']}, entered by hand)." if ec
-                 else "Euro CCC: by hand when reported, none entered.")
     return lines
 
 

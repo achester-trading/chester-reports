@@ -25,7 +25,8 @@ which let it run unattended cannot be widened by accident.
      restart is denied, and `ssh vps cat *` is allowed while reading .env is
      denied.
   F  CLAUDE.md DOCUMENTS EVERY DENY CATEGORY, because a rule whose reason is
-     not written down is a rule the next person removes.
+     not written down is a rule the next person removes. And its standing
+     rules carry the by-hand rule (ruled 16 Oct 2026), word for word.
   G  EVERY make ENTRY IS REACHABLE WITHOUT make. `make` is absent on the authoring
      laptop, so an allow entry that only matches a make command grants nothing
      there -- the gate run or the deploy falls back to a prompt and the allowlist
@@ -79,6 +80,10 @@ DEPLOY_SERVICE = REPO / "deploy" / "systemd" / "chester-deploy.service"
 DEPLOY_TIMER = REPO / "deploy" / "systemd" / "chester-deploy.timer"
 SETTINGS = REPO / ".claude" / "settings.json"
 CLAUDE_MD = REPO / "CLAUDE.md"
+# Standing rule 3 as ruled (16 Oct 2026); group F holds CLAUDE.md to it.
+BY_HAND_RULE = ("No new recurring by-hand data line without the operator's explicit "
+                "yes in a filed order; prefer public, easy-to-access sources; "
+                "friction is a gap, not a key.")
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -460,6 +465,12 @@ def group_f() -> None:
           "and states that deny takes precedence over allow")
     check("exit 3" in section or "exits 3" in section,
           "and documents the exit-3 handover")
+    # The by-hand rule (the by-hand audit, ruled 16 Oct 2026), in the standing
+    # rules and nowhere weaker: the sentence as ruled, one line or wrapped.
+    rules = " ".join(text.split("## Standing rules", 1)[-1].split())
+    check(BY_HAND_RULE in rules,
+          "CLAUDE.md's standing rules carry the by-hand rule, word for word: "
+          f"'{BY_HAND_RULE}'")
 
 
 def group_g() -> None:

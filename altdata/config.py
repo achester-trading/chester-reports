@@ -233,6 +233,40 @@ FRED_SIGNAL_SERIES: list[SeriesSpec] = [
     # quarterly from 1947. Read off their FRED pages 16 Oct 2026.
     SeriesSpec("ppi_fd_core_ts",   "WPSFD49116", "PPI final demand less foods, energy and trade services","4","idx", "monthly"),
     SeriesSpec("ulc_nfb",          "ULCNFB",     "Unit labor costs, nonfarm business",             "4", "idx",  "quarterly"),
+    # ST-R5.42a (Batch 6 item 42, 16 Oct 2026): the Cleveland Fed's 10-year
+    # expected inflation, EXPINF10YR, "Percent, Not Seasonally Adjusted", monthly
+    # from 1982 -- one of the composite's four inputs.
+    SeriesSpec("expinf_10y",       "EXPINF10YR", "Cleveland Fed 10-year expected inflation",       "4", "%",    "monthly"),
+    # ST-R5.43a (item 43): the OECD leading indicator at the lead. FRED's OECD-
+    # total CLI (OECDLOLITOAASTSAM) stopped at Nov 2022 and the US one at Jan
+    # 2024; the G7 aggregate, G7LOLITOAASTSAM, "Normalised (Normal=100), Seasonally
+    # Adjusted", is current (Sep 2026). Read off its FRED page 16 Oct 2026.
+    SeriesSpec("oecd_cli_g7",      "G7LOLITOAASTSAM","OECD composite leading indicator, G7, amplitude adjusted","2","idx","monthly"),
+    # ST-R5.39a (item 39): the real-yield panel's CPI legs. FRED's OECD CPI
+    # series (CPALTT01/CPGRLE01) stopped in 2025 (Japan's in 2021), so the panel
+    # reads Eurostat's HICP on FRED, current to Sep 2026: all items (CP0000) and
+    # excluding energy, food, alcohol and tobacco (00XEFD), each "Index
+    # 2015=100, Not Seasonally Adjusted", monthly. YoY is computed.
+    SeriesSpec("hicp_de",        "CP0000DEM086NEST","HICP all items, Germany (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_de",   "00XEFDDEM086NEST","HICP excluding energy, food, alcohol and tobacco, Germany (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_fr",        "CP0000FRM086NEST","HICP all items, France (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_fr",   "00XEFDFRM086NEST","HICP excluding energy, food, alcohol and tobacco, France (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_it",        "CP0000ITM086NEST","HICP all items, Italy (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_it",   "00XEFDITM086NEST","HICP excluding energy, food, alcohol and tobacco, Italy (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_nl",        "CP0000NLM086NEST","HICP all items, Netherlands (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_nl",   "00XEFDNLM086NEST","HICP excluding energy, food, alcohol and tobacco, Netherlands (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_be",        "CP0000BEM086NEST","HICP all items, Belgium (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_be",   "00XEFDBEM086NEST","HICP excluding energy, food, alcohol and tobacco, Belgium (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_se",        "CP0000SEM086NEST","HICP all items, Sweden (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_se",   "00XEFDSEM086NEST","HICP excluding energy, food, alcohol and tobacco, Sweden (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_ch",        "CP0000CHM086NEST","HICP all items, Switzerland (Eurostat)","4","idx","monthly"),
+    SeriesSpec("hicp_core_ch",   "00XEFDCHM086NEST","HICP excluding energy, food, alcohol and tobacco, Switzerland (Eurostat)","4","idx","monthly"),
+    # The EM shock screen's 10-years where FRED serves one (OECD, "Percent, Not
+    # Seasonally Adjusted", monthly averages); India, Brazil, Indonesia, Turkey,
+    # Taiwan and Thailand have none on FRED and are listed gaps.
+    SeriesSpec("oecd_10y_mx",  "IRLTLT01MXM156N", "Mexico 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    SeriesSpec("oecd_10y_za",  "IRLTLT01ZAM156N", "South Africa 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
+    SeriesSpec("oecd_10y_kr",  "IRLTLT01KRM156N", "Korea 10-year government bond yield, monthly average (OECD)", "7", "%", "monthly"),
 ]
 
 # ---------------------------------------------------------------------------

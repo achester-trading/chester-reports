@@ -356,6 +356,21 @@ If ring-four revenue arrives at scale within two years — if the spenders begin
 
 *The pattern the table shows: the earnings basis was real in every case; the multiple was the casualty; and the businesses mostly outlived the drawdown. Which is why the fourth row's empty cells are the question, not the answer.*
 
+### B.1 Peak concentration by episode (dated, 16 October 2026)
+
+*Dated. Batch 6 item 31. The shares are BofA's, through secondary reporting; the peak dates are to be confirmed against BofA's chart, and the post-peak columns are filled by the ST-R5.31b ledger. The stack's own reading is the S&P 500's ten largest issuers' share of SPY's holdings: 40.1% on 15 October 2026 (SSGA's daily holdings file), against BofA's 40–44% band of prior peaks.*
+
+| Episode | Basket | Denominator | Peak share | Peak (to confirm) | Leaders' relative drawdown | Time to trough | Breadth after |
+|---|---|---|---|---|---|---|---|
+| Railroads | the railroads | US market capitalisation | 63% | 19th century | 31b | 31b | 31b |
+| 1920s | utilities, telecoms, industrials | US market capitalisation | 36% | 1929 | 31b | 31b | 31b |
+| Nifty Fifty | the fifty | US market capitalisation | 40% | 1972–73 | 31b | 31b | 31b |
+| Japan | Japanese equities | MSCI ACWI | 44% | 1989 | 31b | 31b | 31b |
+| TMT | technology, media, telecoms | US market capitalisation | 41% | 2000 | 31b | 31b | 31b |
+| AI Big 10 | Mag 7, Broadcom, AMD, Micron | US market capitalisation | 42% | 2026 (live) | — | — | — |
+
+*Three caveats travel with the table: the baskets are defined after the fact; the measures differ (Japan is a country's share of a world index); and the stack's reading is the S&P 500's float-adjusted share, not total US market capitalisation.*
+
 ---
 
 *Version 1.0 — September 2026. Companion XV. Cross-references by name throughout, per the library's rule. Word count and revisions logged in the library guide.*

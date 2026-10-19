@@ -91,6 +91,8 @@ PY_VALIDATORS := \
 	tools/validate_batch3_a.py \
 	tools/validate_st_r5_rates.py \
 	tools/validate_st_r5_index.py \
+	tools/validate_st_r5_t1_rest.py \
+	tools/validate_by_hand_audit.py \
 	tools/validate_monthly_frames.py \
 	tools/validate_weekly_storyline.py \
 	tools/validate_weekly_opener.py \

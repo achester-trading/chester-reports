@@ -21,8 +21,9 @@ model. Every expected figure below is computed by hand in its comment:
      does not, a negative gap does not; the margin-source line.
   D  ST-R5.30a THE ALLOCATION BLOCK. Three panels with five-year and full
      percentiles and their n (106 quarters; a short history prints one
-     window); bonds and cash as shares of financial assets; AAII by hand; ICI
-     a listed gap; "base rate: after ST-R5.30b".
+     window); bonds and cash as shares of financial assets; AAII and ICI
+     listed gaps (AAII's by-hand entry dropped, 16 Oct 2026, and nothing reads
+     its keys); "base rate: after ST-R5.30b".
   E  THE CHARTS AND THE CAPS. W11 and M11 render from the fixture (twelve
      months; the cycle low); the Weekly's plan puts W11 before W10 and sets W10
      aside when W6 is open; the Monthly's twelve fill its cap, and a thirteenth
@@ -314,9 +315,7 @@ def group_c() -> None:
 
 def group_d() -> None:
     print(f"\n{LINE}\nD. ST-R5.30a THE ALLOCATION BLOCK\n{LINE}")
-    rows = alloc_rows() + [("manual.aaii_stocks_pct", None, "2026-09-01", 68.0),
-                           ("manual.aaii_bonds_pct", None, "2026-09-01", 14.0),
-                           ("manual.aaii_cash_pct", None, "2026-09-01", 18.0)]
+    rows = alloc_rows()
     with open_store(store(rows)) as st:
         a = ix.allocation(st, NOW, CFG)
     eq, bo, ca = (a["panels"][k] for k in ("equities", "bonds", "cash"))
@@ -334,9 +333,12 @@ def group_d() -> None:
           f"the table prints both windows: {tbl[0][4][:80]}")
     lines = ix.allocation_lines(a)
     check("base rate: after ST-R5.30b" in lines[0]
-          and "AAII asset-allocation survey (entered by hand, 2026-09-01)" in lines[1]
+          and lines[1].startswith("AAII asset-allocation survey: not tracked")
+          and "403" in lines[1] and "by hand" not in lines[1].replace("by-hand", "")
           and lines[2].startswith("ICI monthly: no free source"),
-          "the base-rate placeholder, AAII by hand, ICI a listed gap")
+          "the base-rate placeholder; AAII and ICI listed gaps, nothing by hand")
+    check("aaii_keys" not in (CFG.get("allocation") or {}) and "aaii" not in a,
+          "no AAII key is read (the by-hand entry is dropped)")
     with open_store(store(alloc_rows(8))) as st:
         short = ix.allocation(st, NOW, CFG)
     check(short["panels"]["equities"]["lens"]["same"]
@@ -465,9 +467,9 @@ def group_g() -> None:
     keys = set()
     for sec in ("decomposition", "r_minus_g", "price_ulc", "allocation"):
         keys |= {v for k, v in (CFG.get(sec) or {}).items() if k.endswith("_key")}
-    keys |= set(((CFG.get("allocation") or {}).get("aaii_keys") or {}).values())
     unreg = sorted(k for k in keys if not (derived.registry_entry(k) or {}).get("units"))
-    check(len(keys) >= 15 and not unreg,
+    # 12 since the by-hand audit dropped AAII's three keys (16 Oct 2026).
+    check(len(keys) >= 12 and not unreg,
           f"every key read is registered with its units ({len(keys)}; {unreg or 'none'})")
     specs = {s.key: s for s in acfg.FRED_PULL_SERIES}
     want = {"hh_equity_share": ("BOGZ1FL153064486Q", "%", "quarterly"),

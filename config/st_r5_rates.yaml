@@ -57,7 +57,10 @@ panel:
     source: "Bundesbank, Svensson curve"
   - id: kr
     label: Korea
-    gap: "no writer: the Bank of Korea's ECOS API needs a free key in the box's .env (the operator's), and a new writer waits for D1c"
+    # The by-hand audit (16 Oct 2026): the ECOS key is ruled out (ruling (a):
+    # friction is a gap, not a key), and KOFIA's bond information service is a
+    # script-driven frameset with no export URL a writer can read.
+    gap: "no free source a writer can read: the Bank of Korea's ECOS API needs a registered key (ruled out, 16 Oct 2026) and KOFIA's bond service is a script-driven portal with no export"
   - id: ca
     label: Canada
     gap: "no writer: the Bank of Canada's Valet API is free and daily, but a new writer waits for D1c's write lock"
@@ -91,8 +94,9 @@ housing:
   metro_key: redfin.metro_pending_sales       # instrument = Redfin region id
   metro_universe: 50                          # Redfin's top-50 metros file
   mortgage_key: fred.mortgage_30y
-  nar_key: manual.nar_phsi                    # by hand (no free series)
-  held_reason: "the Redfin writer is held until D1c's write lock lands (altdata/sources/redfin.py)"
+  # Redfin alone, printed single-source: NAR's index has no free series, and no
+  # recurring by-hand line survives without Ari's yes (ruled 16 Oct 2026).
+  absent_reason: "Redfin has not been pulled yet (altdata/sources/redfin.py, weekly)"
 
 # ---------------------------------------------------------------------------
 # ST-R5.37a -- the MBA purchase index, the block's weekly line (item 37)
@@ -100,16 +104,20 @@ housing:
 mba:
   wow_key: mba.purchase_sa_wow                # SA, percent change on the week
   yoy_key: mba.purchase_nsa_yoy               # NSA, percent change on the year
-  level_key: manual.mba_purchase_index        # BY HAND: the press release never
-                                              # prints the level (verify item 3)
-  # The reference floor (the order: "2023 low as the reference floor"): the
-  # entry's read of the re:venture chart, "2023 lows printed lower (~127)". By
-  # hand, approximate, and printed as such.
-  floor_2023: 127
-  floor_source: "Batch 6 item 37's read of the re:venture chart (~127, 2023)"
+  # No level: the release prints changes only and no free series carries the
+  # index (verify item 3), and a by-hand level is dropped (ruled 16 Oct 2026).
+  # The line prints a level CHAINED from the weekly SA changes since the first
+  # pull instead. The 2023-low reference floor is removed with it: a floor needs
+  # the published level to sit against, and the chain's base is arbitrary.
+  chain_base: 100.0                           # the chain's first stored week
+  # SESSION-SET. A gap of more than 10 days between stored weeks (one missed
+  # Wednesday plus slack for a holiday-shifted release) breaks the chain, and it
+  # restarts: a missed week's change is unknown, so compounding past it would
+  # print a wrong level.
+  max_gap_days: 10
   windows_years: [5]                          # with the full stored history
   release_weekday: 2                          # Wednesday: the close prints it then
-  held_reason: "the MBA headline writer is held until D1c's write lock lands (altdata/sources/mba.py)"
+  absent_reason: "the MBA headline has not been pulled yet (altdata/sources/mba.py, Wednesdays)"
 
 # ---------------------------------------------------------------------------
 # ST-R5.41a -- the quality-tail spread (item 41)
@@ -120,7 +128,9 @@ quality_tail:
   aaa_key: fred.aaa_oas
   hy_key: fred.hy_oas
   euro_hy_key: fred.euro_hy_oas               # the daily European proxy
-  euro_ccc_key: manual.euro_ccc_oas           # by hand, when reported
+  # The European leg of the tail: euro high yield (FRED) stands in for euro CCC,
+  # which has no free series; a by-hand euro CCC is dropped (ruled 16 Oct 2026).
+  euro_leg_label: "the proxy for euro CCC, which has no free series"
   window_days: 28                             # "over 4 weeks"
   # SESSION-SET. The co-signal: CCC widening, and widening at least 25 bp more
   # than BB over the window. Under 25 bp the gap is inside the daily scatter of

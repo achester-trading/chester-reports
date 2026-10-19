@@ -426,7 +426,6 @@ DISPLAY_NOUNS = {
     "fred.existing_homes": "homes", "fred.new_homes": "homes",
     "cftc.": "contracts", "pm.volume": "contracts", "pm.open_interest": "contracts",
     "exposure.oi_": "contracts", "eia.": "barrels",
-    "manual.global_visible_stocks_bbl": "barrels",
 }
 UNIT_NOUNS = {"shares": "shares", "contracts": "contracts", "Contracts": "contracts",
               "jobs": "jobs", "persons": "people", "Persons": "people"}

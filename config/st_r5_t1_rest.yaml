@@ -1,0 +1,189 @@
+# st_r5_t1_rest.yaml -- the rest of signal-triage Batch 6's Tranche 1: items 31,
+# 32, 38, 39, 42, 43 and 44 (docs/change-order-signal-triage-batch-6-2026-10-15.md;
+# section 4 rulings 3, 4 and 5; section 8 verify items 1, 6 and 8; section 11
+# filing notes 4, 6 and 8). Tranche 1 only: ST-R5.31a, 32a, 38a, 39a, 42a, 43a,
+# 44a. The ledgers (31b, 32b, 43b, 44b) and the queue entry (44c) come later.
+#
+# Read by altdata/st_r5_t1_rest.py; printed by daily_cascade/t1_rest_block.py.
+# REPORT-ONLY. Nothing here enters the market-state object, a composite weight, a
+# trigger, a book rule or the register (R28; the order's Rights). Every number the
+# order does not give is SESSION-SET, with its reason beside it, and listed for
+# the operator in docs/briefs/st-r5-t1-rest-notes.md.
+version: st-r5-t1-rest-v1
+updated: 2026-10-16
+unvalidated: "(descriptive; unvalidated, n=0)"
+
+# ---------------------------------------------------------------------------
+# ST-R5.31a -- the peak-band flag (concentration)
+# ---------------------------------------------------------------------------
+concentration:
+  # The box held no top-10 series (16 Oct 2026). The measure is the top ten
+  # weights of SPY's daily holdings file (SSGA) -- the S&P 500's float-adjusted
+  # capitalisation -- from the constituent writer (altdata/sources/sp500_members.py,
+  # HELD for D1c). Until it runs, the flag prints "awaiting constituent holdings".
+  weight_key: sp500.member_weight
+  top_n: 10
+  # The ten largest ISSUERS: a second share class counts with its first (SSGA
+  # lists Alphabet as GOOGL and GOOG). On 15 Oct 2026 the ten largest lines held
+  # 38.6% and the ten largest issuers 40.1%.
+  share_classes: {GOOG: GOOGL, FOX: FOXA, NWS: NWSA}
+  # The order's band: BofA's bubble peaks at 40-44% (Nifty Fifty 40, TMT 41,
+  # Japan 44; "AI Big 10" 42). The flag fires AT 40.0, not below.
+  band_low_pct: 40.0
+  band_high_pct: 44.0
+  # Verify item 8: BofA's basket, mapped once against the same file (the Mag 7,
+  # Broadcom, AMD and Micron; Alphabet's two share classes count as one name).
+  bofa_basket: [NVDA, MSFT, AAPL, AMZN, GOOGL, GOOG, META, TSLA, AVGO, AMD, MU]
+  # The overlay this calibrates is designed, not built (docs/master-narrative.md:
+  # "Top-10 >= 25%" among its five inputs). Named so the line says so.
+  overlay: "Concentration & Complacency"
+  overlay_built: false
+  overlay_input_pct: 25.0
+  max_age_days: 7            # SESSION-SET: holdings older than a week are stale
+
+# ---------------------------------------------------------------------------
+# ST-R5.44a -- the breadth amendment: drawdown histogram and the gap
+# ---------------------------------------------------------------------------
+breadth:
+  close_key: sp500.member_close     # instrument = the member's ticker (Yahoo form)
+  weight_key: sp500.member_weight
+  index_key: yfinance.mkt_gspc
+  window_days: 365                  # "52-week high", on closes
+  # The chart's four buckets (Raymond James): at a record, within 10%, 10-20%
+  # off, 20% or more off. A member is "at a record" when its close IS its
+  # 52-week closing high.
+  buckets_pct: [10.0, 20.0]
+  # SESSION-SET. A member counts when it holds at least 240 closes in the window
+  # (a year is about 250 sessions; ten missing sessions are tolerated) and closed
+  # within 4 days of the index's last close. The histogram prints only when at
+  # least 95% of members count, so a half-loaded store never reads as breadth.
+  min_closes: 240
+  max_lag_days: 4
+  min_coverage_pct: 95.0
+  awaiting: "awaiting constituent prices"
+
+# ---------------------------------------------------------------------------
+# ST-R5.32a -- the oil-shock classifier
+# ---------------------------------------------------------------------------
+oil_shock:
+  brent_key: fred.brent             # DCOILBRENTEU, $/bbl, daily
+  spx_key: yfinance.mkt_gspc        # ^GSPC close
+  ten_year_key: fred.yield_10y      # DGS10, percent
+  window_sessions: 126              # "6-month rolling", daily changes
+  # SESSION-SET: a window needs 120 of its 126 sessions with all three series.
+  min_obs: 120
+  history_years: 20                 # "below its 20-year 20th percentile"
+  spx_below_pct: 20
+  ten_year_above_pct: 80
+  # The order rules the read an inflation.driver sub-state. The market-state
+  # object (v1.10) has no driver on inflation, and adding one is a rules change
+  # (v1.13) that needs a pre-registered calibration first -- so the classifier is
+  # report-only here, as item 34's flag was (docs/briefs/st-r5-rates-notes.md).
+  substate_built: false
+
+# ---------------------------------------------------------------------------
+# ST-R5.42a -- the composite inflation-expectations z-score
+# ---------------------------------------------------------------------------
+expectations:
+  inputs:
+    - {id: breakeven_5y5y, key: fred.breakeven_5y5y, label: "5y5y breakeven", basis: month_end}
+    - {id: cleveland_10y, key: fred.expinf_10y, label: "Cleveland Fed 10-year", basis: monthly}
+    - {id: sce_3y, key: nyfed.sce_3y, label: "NY Fed SCE 3-year", basis: monthly}
+    - {id: umich_5_10y, key: umich.expect_5_10y, label: "Michigan 5-10 year", basis: monthly}
+  # SESSION-SET. Each z is the latest month against that input's own trailing
+  # ten years of months (120), at least 36 months; an input counts as present
+  # when its latest month is within 3 months of the edition's month (SCE and
+  # Michigan publish with about a month's lag).
+  window_months: 120
+  min_months: 36
+  max_lag_months: 3
+  min_inputs: 3                     # the order: refuse a composite on fewer
+  # SESSION-SET: the flag fires at a composite z of +1.0, one standard deviation
+  # above the inputs' own ten-year means, and not below.
+  flag_z: 1.0
+  change_months: 3
+  # DEANCHOR (SR-24) is a definition, not built: the 5y5y above its 2022 high.
+  # The line prints the comparison; the 2022 high is read from the store.
+  deanchor_year: 2022
+
+# ---------------------------------------------------------------------------
+# ST-R5.39a -- the cross-country real-yield panel (monthly)
+# ---------------------------------------------------------------------------
+real_yields:
+  # SESSION-SET: a CPI print more than 3 months older than the nominal month is
+  # stale, and that country's real yield is a gap rather than a stale number.
+  max_cpi_lag_months: 3
+  # The G10 (the eleven countries of the Group of Ten) and SR-46's EM shock
+  # screen (config/move_screen.yaml `em:`). nominal: the OECD 10-year on FRED
+  # (monthly average) or an existing writer's daily yield; core/headline: a CPI
+  # index (YoY computed), or core_yoy/headline_yoy: a stored YoY. A missing leg
+  # is a listed gap. The UK's and Canada's CPI are read from the ONS and
+  # Statistics Canada (the by-hand audit, 16 Oct 2026).
+  countries:
+    - {id: US, name: United States, nominal: fred.oecd_10y_us, core: fred.core_cpi, headline: fred.cpi, linker: fred.tips_10y}
+    # The UK's and Canada's CPI from the national statistics offices
+    # (altdata/sources/ons_cpi.py, statcan_cpi.py; the by-hand audit, 16 Oct
+    # 2026): FRED's OECD CPI for both stopped at Mar 2025.
+    - {id: GB, name: United Kingdom, nominal: fred.gilt_10y, core_yoy: uk.cpi_core_yoy, headline_yoy: uk.cpi_yoy, gap_linker: "no free index-linked gilt yield on FRED"}
+    # Japan's CPI from the Statistics Bureau's own CSV (altdata/sources/stat_jp_cpi.py,
+    # 16 Oct 2026): core is all items less fresh food and energy, the aggregate
+    # closest to the US core; FRED's OECD CPI for Japan stopped at Jun 2021.
+    - {id: JP, name: Japan, nominal: fred.jp_10y, core_yoy: jp.cpi_core_yoy, headline_yoy: jp.cpi_yoy, gap_linker: "no JGBi real yield on FRED"}
+    - {id: DE, name: Germany, nominal: fred.oecd_10y_de, core: fred.hicp_core_de, headline: fred.hicp_de, gap_linker: "no Bund linker yield on FRED"}
+    - {id: FR, name: France, nominal: fred.oecd_10y_fr, core: fred.hicp_core_fr, headline: fred.hicp_fr, gap_linker: "no OATi yield on FRED"}
+    - {id: IT, name: Italy, nominal: fred.oecd_10y_it, core: fred.hicp_core_it, headline: fred.hicp_it, gap_linker: "no BTP Italia/BTP€i yield on FRED"}
+    - {id: CA, name: Canada, nominal: fred.oecd_10y_ca, core_yoy: ca.cpi_core_yoy, headline_yoy: ca.cpi_yoy}
+    - {id: CH, name: Switzerland, nominal: fred.oecd_10y_ch, core: fred.hicp_core_ch, headline: fred.hicp_ch}
+    - {id: SE, name: Sweden, nominal: fred.oecd_10y_se, core: fred.hicp_core_se, headline: fred.hicp_se}
+    - {id: NL, name: Netherlands, nominal: fred.oecd_10y_nl, core: fred.hicp_core_nl, headline: fred.hicp_nl}
+    - {id: BE, name: Belgium, nominal: fred.oecd_10y_be, core: fred.hicp_core_be, headline: fred.hicp_be}
+    - {id: BR, name: Brazil, gap_nominal: "no OECD 10-year for Brazil on FRED", headline_yoy: em.cpi.yoy.bra}
+    - {id: MX, name: Mexico, nominal: fred.oecd_10y_mx, headline_yoy: em.cpi.yoy.mex}
+    - {id: ZA, name: South Africa, nominal: fred.oecd_10y_za, headline_yoy: em.cpi.yoy.zaf}
+    - {id: IN, name: India, gap_nominal: "no OECD 10-year for India on FRED", headline_yoy: em.cpi.yoy.ind}
+    - {id: KR, name: Korea, nominal: fred.oecd_10y_kr, headline_yoy: em.cpi.yoy.kor}
+    - {id: TW, name: Taiwan, gap_nominal: "no 10-year for Taiwan on FRED", gap_cpi: "no Taiwanese CPI stored"}
+    - {id: TH, name: Thailand, gap_nominal: "no 10-year for Thailand on FRED", headline_yoy: thai.cpi_yoy}
+    - {id: CN, name: China, nominal: cfets.cgb_10y, headline_yoy: em.cpi.yoy.chn}
+    - {id: TR, name: Turkey, gap_nominal: "no OECD 10-year for Turkey on FRED"}
+    - {id: ID, name: Indonesia, gap_nominal: "no OECD 10-year for Indonesia on FRED", headline_yoy: em.cpi.yoy.idn}
+  # EM core CPI is not stored anywhere; their real yields are on headline only.
+  em_core_gap: "no core CPI stored for the EM screen's countries"
+  # The Currencies read: real differentials, core basis.
+  differentials: [[US, DE], [US, JP]]
+
+# ---------------------------------------------------------------------------
+# ST-R5.38a -- the gold/equity market-cap ratio (Factor V)
+# ---------------------------------------------------------------------------
+gold_equity:
+  stock_key: wgc.above_ground_t       # WGC, tonnes, quarterly
+  gold_key: yfinance.mkt_gold_front   # GC=F, $/oz
+  # NO DENOMINATOR. World equity capitalisation has no free source: WFE's portal
+  # needs a login and MSCI's ACWI figure is in a PDF factsheet. The by-hand ACWI
+  # key is dropped (ruled 16 Oct 2026: no recurring by-hand line without Ari's
+  # yes), so the ratio is not tracked; the by-hand audit, queued, looks for a
+  # free source. Set cap_key to a stored key (USD bn) and the ratio reads again.
+  cap_key: null
+  no_cap_reason: "not tracked: no free source for world equity capitalisation"
+  oz_per_tonne: 32150.7466
+  # SESSION-SET: the gold close used is the last on or before the cap's date,
+  # no more than 5 days earlier.
+  max_gold_lag_days: 5
+  windows_years: [10]
+  wfe_gap: "WFE's world equity capitalisation: its statistics portal needs a login, so the quarterly WFE line is a listed gap"
+
+# ---------------------------------------------------------------------------
+# ST-R5.43a -- the global policy diffusion index
+# ---------------------------------------------------------------------------
+diffusion:
+  rate_key: bis.policy_rate           # instrument = the BIS reference area
+  # SESSION-SET: an area counts in a month when its last observation is no more
+  # than 3 months older than that month (India and Korea run behind), so a
+  # legacy series (the euro members before 1999) drops out by itself.
+  max_lag_months: 3
+  min_move_pp: 0.01                   # a change below a basis point is no move
+  min_areas: 20                       # SESSION-SET: fewer counted areas -> no index
+  lead_months: 8                      # Topdown's fit; ledgered at 43b, not assumed
+  cli_key: fred.oecd_cli_g7           # G7LOLITOAASTSAM; FRED's OECD-total CLI stopped Nov 2022
+  pmi_key: manual.global_pmi          # by hand, monthly
+  windows_years: [10]

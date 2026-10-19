@@ -103,9 +103,8 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
         rows.append([p["label"], f"{p['bp']:.1f} bp", _bp(p["change_bp"]),
                      f"{_ord(pc.get(5, {}).get('pct'))} (n={pc.get(5, {}).get('n')})",
                      f"{_ord(pc.get(20, {}).get('pct'))} (n={pc.get(20, {}).get('n')})"]
-                    + ([{"watch": f"WATCH (≥ {e['watch_bp']:.0f} bp)", "crisis": "CRISIS",
-                         "none": "below the watch line"}.get(p.get("tier"), "—")
-                        if p.get("tier") else "untiered"] if live else [])
+                    + ([_tier_cell(p, e) if p.get("tier")
+                        else "untiered (monthly)"] if live else [])
                     + [p["as_of"]])
     if e.get("eurchf"):
         x = e["eurchf"]
@@ -121,20 +120,27 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
             "crisis": f"OAT–Bund at the crisis tier (≥ {e['crisis_bp']:.0f} bp)"}.get(tier)
     if flag:
         lines.insert(0, f"{flag} {e['unvalidated']}.")
-    tiers = (f"Tiers on OAT–Bund only: watch {e['watch_bp']:.0f} bp, crisis "
-             f"{e['crisis_bp']:.0f} bp." if live else
-             "No tier prints: the tiers sit on a daily weekly close, which no free "
-             "official source publishes yet.")
+    tiers = (f"Tiers on OAT–Bund only, on its latest weekly close: watch "
+             f"{e['watch_bp']:.0f} bp, crisis {e['crisis_bp']:.1f} bp (the daily "
+             f"series' own November 2011 peak)." if live else
+             "No tier prints: the tiers sit on a daily weekly close, and the daily "
+             "OAT legs (the Banque de France's TEC 10, the Bundesbank's 10-year) are "
+             "not stored yet.")
+    if live:
+        oat = next(p for p in e["pairs"] if p["id"] == "oat_bund")
+        basis = (f"OAT–Bund is daily: {oat.get('source')}. BTP–Bund is the ECB's "
+                 f"monthly-average 10-year (the convergence series), Italy less "
+                 f"Germany: no keyless daily Italian 10-year was found.")
+    else:
+        basis = ("Spreads are the ECB's monthly-average 10-year yields (the "
+                 "convergence series), France or Italy less Germany.")
     return {"title": TITLE_EU,
             "table": {"columns": ["Spread", "Level", "Change on the prior period",
                                   "5-year percentile", "20-year percentile"]
                       + (["Tier"] if live else []) + ["As of"],
                       "rows": rows} if rows else None,
             "lines": lines, "paragraph_wanted": False,
-            "table_note": (f"Spreads are the ECB's monthly-average 10-year yields (the "
-                           f"convergence series), France or Italy less Germany: no free "
-                           f"official source publishes a daily OAT or BTP. {tiers} "
-                           f"{e['unvalidated']}"),
+            "table_note": f"{basis} {tiers} {e['unvalidated']}",
             "data": {"eu_stress": e}}
 
 
@@ -366,6 +372,16 @@ def monthly_subsections(st, now: str, then: str, cfg: Optional[dict] = None
         levers_subsection(st, now, then, cfg)]
 
 
+def _tier_cell(p: dict, e: dict) -> str:
+    """The tier, named with the weekly close it sits on."""
+    word = {"watch": f"WATCH (≥ {e['watch_bp']:.0f} bp)", "crisis": "CRISIS",
+            "none": "below the watch line"}.get(p.get("tier"))
+    wk = p.get("weekly_close")
+    if not word or not wk:
+        return "no weekly close yet"
+    return f"{word}, weekly close {wk['as_of']} at {wk['bp']:.1f} bp"
+
+
 def misfit_items(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
     """One sentence in the Monthly's "what doesn't fit" at SR-30's crisis tier,
     and none below it (decision 2)."""
@@ -373,8 +389,9 @@ def misfit_items(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
     if e["tier"] != "crisis":
         return []
     p = next(x for x in e["pairs"] if x["id"] == "oat_bund")
+    wk = p["weekly_close"]
     return [_item("misfit:sr30_crisis",
-                  f"OAT–Bund at {p['bp']:.1f} bp (ECB monthly, {p['as_of']}) is at "
-                  f"SR-30's crisis tier, the November 2011 peak of its own series, "
-                  f"in the core rather than the periphery {e['unvalidated']}.", 1,
-                  (p["bp"], p["as_of"]))]
+                  f"OAT–Bund's weekly close at {wk['bp']:.1f} bp ({wk['as_of']}, "
+                  f"daily) is at SR-30's crisis tier, the November 2011 peak of its "
+                  f"own series, in the core rather than the periphery "
+                  f"{e['unvalidated']}.", 1, (wk["bp"], wk["as_of"]))]

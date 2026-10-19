@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="b076b63b5aa070649a3163ad5773eeaafd839fd97ae811707caeb8ac7f2c8907">
+<meta name="source-sha256" content="942964b81d5fbdbd3a8c4c5f71e1d7af1ea5ed18e62571a8f93227649f99b5cf">
 <title>Base Rates</title>
 <style>
 :root {
@@ -1221,6 +1221,62 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p><em>The tail, globally:</em> p90 −55 to −60% real over a decade or more; p95 −80% with recovery measured in decades (Japan 1989, U.S. 1929); p99 total loss (Russia, China). Deflationary resolutions destroy equities and reward long bonds; inflationary resolutions destroy bonds and reward real assets; <strong>no single hedge covers both</strong>, which is why the tail budget is convex and renewed rather than held.</p>
 <h2>Appendix B — Recomputation and provenance</h2>
 <p>Each table names its window and source class. Figures computed from data the system holds are recomputed annually by a scheduled job and stored as observations with <code>available_at</code>, so that a base rate cited in a decision packet can be replayed as of the date it was cited. Figures cited from the literature carry their citation in the claims registry and are re-verified when the paper is revised. Any figure that moves by more than a stated tolerance on recomputation is flagged for review, on the principle that a base rate that changes is itself information.</p>
+<h2>Appendix C — The Book A rule table (dated; candidates)</h2>
+<p><em>Dated appendix. The Signal Triage change order (25 September 2026, §2.4) makes Book A's rules one table, owned by Portfolio Construction Across Regimes and held in this paper meanwhile. Every row is a candidate until its gate passes, and none changes a Book state before then. Rows are added with their date and never renumbered; a later ruling that changes a row is a new row.</em></p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Condition</th>
+<th>Action</th>
+<th>Source items</th>
+<th>Gate</th>
+<th>Added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A-1 Hedge substitution</td>
+<td><code>rates.driver</code> ∈ {fed_path, term_premium}, or the correlation member positive and persistent (SR-9 level prior)</td>
+<td>Book A's hedge mix shifts from duration to T-bills, gold, commodities, trend-following and option structures</td>
+<td>SR-6, SR-9</td>
+<td>SR-9 regression (backlog) or driver calibration (ST-3)</td>
+<td>26 Sep 2026</td>
+</tr>
+<tr>
+<td>A-2 Bear-regime re-entry</td>
+<td>The Tops and Bottoms top side fired and price below a falling 200-day</td>
+<td>The bottom threshold rises; two of the confirmation set are required before Book A re-enters; rallies in that state are Book C material</td>
+<td>SR-8</td>
+<td>SR-8 audit (ST-9); wired when Tops and Bottoms is built in full</td>
+<td>26 Sep 2026</td>
+</tr>
+<tr>
+<td>A-3 Duration tilt</td>
+<td>Bond allocation in its bottom decile (SR-12) ∧ Treasuries z ≤ −0.5 (SR-15) ∧ <code>ABS_STRESS</code> active (SR-22) ∧ <code>rates.driver</code> = term_premium</td>
+<td>A tilt sized by |z|; exit when the driver flips to fed_path, or <code>ABS_STRESS</code> clears with yields higher, or the supply projection rises with no absorber change</td>
+<td>SR-12, 15, 22, 23</td>
+<td>SR-12 and SR-22 gates (ST-7)</td>
+<td>26 Sep 2026</td>
+</tr>
+<tr>
+<td>A-4 Long-horizon expected return</td>
+<td>The aggregate investor allocation to equities (the Federal Reserve's Z.1, the ST-R5.30b construct) in its top decile of history</td>
+<td>Book A's long-horizon expected-return line reads at the floor of its range, and no new equity risk is added on valuation grounds; a cash-share spike to its top decile is recorded as a bottom-side confirm only</td>
+<td>SR-12 as amended by Batch 6 item 30</td>
+<td>ST-R5.30b's ledger</td>
+<td>16 Oct 2026</td>
+</tr>
+<tr>
+<td>A-5 Oil-shock hedge sleeve</td>
+<td>The oil-shock signature ON: the Brent–S&amp;P 500 six-month correlation of daily changes at or below its 20-year 20th percentile, and the Brent–10-year correlation at or above its 80th</td>
+<td>Oil and broad commodities sit in the hedge sleeve, not the risk sleeve; they return at the first weekly close with either leg outside its band</td>
+<td>Batch 6 item 32</td>
+<td>ST-R5.32b's ledger; descriptive until then</td>
+<td>16 Oct 2026</td>
+</tr>
+</tbody>
+</table>
       </div>
     </details>
 

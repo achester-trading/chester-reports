@@ -160,7 +160,8 @@ def group_a() -> None:
         check(m.KEYS and not miss and not trig and s.get("status") == "live"
               and (REPO / s.get("implemented_by", "x")).is_file(),
               f"{m.SOURCE}: {len(m.KEYS)} keys registered, trigger_eligible false, source live")
-    check(sum(len(m.KEYS) for m in WRITERS) == 174, "174 keys across the five writers")
+    check(sum(len(m.KEYS) for m in WRITERS) == 175, "175 keys across the five writers "
+          "(174, and bis.policy_rate: every area, ST-R5.43a)")
     lenses = [L["id"] for L in cfg["lenses"]]
     check(lenses == ["ca_gdp", "reserves_imp", "reserves_std", "ext_debt_gdp", "real_rate",
                      "infl_gap", "fiscal_gdp", "debt_gdp"]

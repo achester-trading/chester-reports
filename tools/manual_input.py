@@ -2,15 +2,21 @@
 manual_input -- the one door for an operator-typed figure into the observation store.
 
     python tools/manual_input.py KEY VALUE OBSERVED_AT "NOTE"
-    python tools/manual_input.py manual.sep_median_12m 3.625 2026-09-17 \
-        "SEP Sep 2026, 2027 year-end median dot, midpoint"
+    python tools/manual_input.py manual.global_pmi 50.2 2026-10-01 \
+        "J.P.Morgan Global Manufacturing PMI, Sep 2026, S&P Global release"
     python tools/manual_input.py --list
+
+THE BY-HAND RULE (the by-hand audit, ruled 16 Oct 2026; CLAUDE.md): no new
+recurring by-hand data line without the operator's explicit yes in a filed
+order; prefer public, easy-to-access sources; friction is a gap, not a key.
+Since the audit one key stands, manual.global_pmi (Batch 6 item 43, the
+operator's yes; S&P Global answers a named client with 403). Item 47's
+quarterly AI unit-economics line (Batch 7) is the other yes, and has no key.
 
 Signal-triage order §1.10: "every operator-entered figure is a manual_input writer
 (a small CLI that stamps available_at and run_id). No block reads a file." Some
-numbers have no free machine source -- the SEP median dot, a FedWatch probability
-until G-4 settles one, the CBO deficit path, IG new-issue concessions -- and the
-alternative to this CLI is a figure pasted into a renderer or a YAML file, where
+numbers have no free machine source -- the global PMI headline is the one left
+-- and the alternative to this CLI is a figure pasted into a renderer or a YAML file, where
 it has no available_at, no registry entry and no history.
 
 WHAT IT WRITES. ONE observation per call:
@@ -39,9 +45,9 @@ UNITS ARE CHECKED where the registry declares a bounded one: a `fraction` must l
 in [0, 1], so "72" for a 72% probability is refused rather than stored as 7,200%.
 
 LABELS ARE CODED (ST-2). A key with `units: label` declares `codes` in the
-registry -- manual.state_bank_dollar_selling {yes: 1, no: 0, unknown: -1} -- and
-the CLI takes the label, stores its code in value_num, and keeps the note in
-value_text as for any other key. A label outside the codes is refused.
+registry -- e.g. {yes: 1, no: 0, unknown: -1}; none is registered since the
+by-hand audit -- and the CLI takes the label, stores its code in value_num,
+and keeps the note in value_text as for any other key. A label outside the codes is refused.
 """
 
 from __future__ import annotations

@@ -162,7 +162,20 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # weekly metal stocks, and USD/CNH's New York close
                     "spdr_gld", "ishares_trusts", "shfe", "cnh",
                     # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
-                    "thai_set")
+                    "thai_set",
+                    # ST-R5 (lifted 16 Oct 2026, D1c ruled met by WAL and the busy
+                    # timeout for an append-only writer): Redfin's housing files,
+                    # the MBA weekly headline, the S&P 500's constituents (SPY's
+                    # holdings and member closes), the WGC's above-ground stock
+                    "redfin", "mba", "sp500_members", "wgc_stock",
+                    # ST-R5 fixes (16 Oct 2026): Japan's national CPI from the
+                    # Statistics Bureau's own files (item 39's US-JP gap)
+                    "stat_jp_cpi",
+                    # The by-hand audit (16 Oct 2026): the UK's and Canada's CPI
+                    # from the ONS and Statistics Canada (the real-yield panel's
+                    # gaps), and SR-30's daily OAT from the Banque de France's
+                    # keyless Webstat export
+                    "ons_cpi", "statcan_cpi", "bdf_webstat")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

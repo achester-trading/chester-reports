@@ -1567,6 +1567,136 @@ sources:
     implemented_by: altdata/sources/aaii.py
     status: live
 
+  sp500_members:
+    name: S&P 500 constituents -- SPY's daily holdings (SSGA) and the members' daily closes (Yahoo)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [equities, breadth]
+    geography: [US]
+    latency: daily; the holdings file is dated the prior session, closes after 16:00 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Holdings: Last-Modified where sent (observed), else the write instant.
+      Closes: the write instant (ingest_instant), as yfinance_source's live pull.
+    license: >-
+      SSGA's public fund-data workbook, within www.ssga.com's robots.txt (read each
+      run; checked 16 Oct 2026); Yahoo through yfinance under the operator's
+      sanctioned exception, never passing for a browser
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/sp500_members.py
+    status: live
+    caveats:
+      - >-
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS.
+        SPY's weights are the S&P 500's float-adjusted shares, not total US
+        market capitalisation.
+
+  stat_jp_cpi:
+    name: Statistics Bureau of Japan -- national CPI, the published index files (zmi<BASE>aa.csv)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [JP]
+    latency: monthly; the national CPI at 08:30 JST on the release Friday, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per month, dated by its first day.
+    license: >-
+      public CSV at www.stat.go.jp, no key; robots.txt disallows only /library/opac/
+      (read each run with the wildcard-aware reader; checked 16 Oct 2026). Not the
+      e-Stat API, which needs an application id
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/stat_jp_cpi.py
+    status: live
+    caveats:
+      - >-
+        The change on the year is computed from the published index within one
+        base file, never chained across bases; it can differ from the release's
+        own rate by rounding.
+
+  ons_cpi:
+    name: Office for National Statistics -- CPI time series (MM23), the series pages' CSV download
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [GB]
+    latency: monthly; the CPI at 07:00 UK on its release day, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The file states its release date; every row of it is stamped at 07:00 UK that day (observed). On the first pull the history takes the same instant, later than the truth.
+    license: >-
+      public CSV at www.ons.gov.uk (the generator link on each series page), no key;
+      robots.txt answers 404, which is no rules (RFC 9309), read each run (checked 16 Oct 2026)
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/ons_cpi.py
+    status: live
+    caveats:
+      - >-
+        The rates are the ONS's own, to one decimal. The core is CPI excluding energy, food, alcoholic beverages and tobacco (DKO8).
+
+  statcan_cpi:
+    name: Statistics Canada -- Web Data Service, CPI table 18-10-0004-01 by vector
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [CA]
+    latency: monthly; 08:30 Ottawa on the release day, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each point carries its releaseTime (observed); history loaded before 2007 carries the database's load day, later than the truth.
+    license: >-
+      public JSON at www150.statcan.gc.ca/t1/wds/rest, no key; robots.txt has no rule
+      over /t1/wds/, read each run (checked 16 Oct 2026)
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/statcan_cpi.py
+    status: live
+    caveats:
+      - >-
+        The change on the year is computed from the published index (2002=100), to one decimal, as the agency rounds its own.
+
+  bdf_webstat:
+    name: Banque de France, Webstat -- one series' anonymous CSV export (the TEC 10)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [FR]
+    latency: the same business day, about 11:00-13:00 UTC
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each row carries updated_at, the instant its value as now stated was set (observed); rows reloaded on 2 Dec 2024 carry that instant, later than their first publication.
+    license: >-
+      public CSV at webstat.banque-france.fr/export/csv/fr/catalogue/FM/<series>, no key and
+      no login (Webstat's API proper needs a key; this is not it); robots.txt "Allow: /",
+      read each run (checked 16 Oct 2026). data.gouv.fr republishes the same export
+    allowed_reports: [weekly_tactical, monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/bdf_webstat.py
+    status: live
+    caveats:
+      - >-
+        The TEC 10 is a constant-maturity interpolation between two OATs, and the Bund leg it is set against is the Bundesbank's fitted zero-coupon 10-year: the spread's basis is neither benchmark screen's, which is why SR-30's daily crisis line is the series' own November 2011 peak.
+
+  wgc_stock:
+    name: World Gold Council -- above-ground stock of gold (the "how much gold" page)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [global]
+    latency: quarterly; the page names its quarter-end (end-Q2 2026 on 16 Oct 2026)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The page's Last-Modified is the serving instant, so the write instant stands
+      in (ingest_instant); observed_at is the quarter-end the page names.
+    license: >-
+      public page at www.gold.org, allowed by its robots.txt (read each run;
+      checked 16 Oct 2026)
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/wgc_stock.py
+    status: live
+    caveats:
+      - >-
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. One
+        sentence of the page body, read by phrase; a changed sentence is refused.
+
   redfin:
     name: Redfin data center -- monthly housing market data (national and top-50 metros)
     tier: B
@@ -1583,11 +1713,10 @@ sources:
       answers robots.txt with 403 (no rules, RFC 9309), checked 16 Oct 2026
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/redfin.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c: a new store writer waits for the repo-wide write lock;
-        pull() writes nothing and the module is on no feeds roster. Months of
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Months of
         supply is Redfin's definition, not NAR's.
 
   mba:
@@ -1607,10 +1736,10 @@ sources:
       index level and its history are member-only
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/mba.py
-    status: held
+    status: live
     caveats:
       - >-
-        HELD for D1c, as redfin. Forward-only: the newsroom pages no archive.
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Forward-only: the newsroom pages no archive.
 
   nyfed_sce:
     name: Federal Reserve Bank of New York -- Survey of Consumer Expectations
@@ -1724,12 +1853,16 @@ sources:
       The response's Last-Modified where sent (`observed`), else the ingest instant.
     license: >-
       BIS statistics: free reuse with attribution ('Source: BIS'), per the BIS terms of use.
-    allowed_reports: [monthly_macro, alt_asset]
+    allowed_reports: [monthly_macro, weekly_tactical, alt_asset]
     implemented_by: altdata/sources/bis_cbpol.py
     status: live
     caveats:
       - >-
         No row for Taiwan or the UAE (11 Oct 2026). Definition breaks are documented by the BIS in each series' COMPILATION field.
+      - >-
+        Extended 16 Oct 2026 (ST-R5.43a): a second request stores every area as
+        bis.policy_rate (49 areas, 38 current). The BIS sent no Last-Modified that
+        day, so those rows carry the ingest instant.
 
   wb_qeds:
     name: World Bank Quarterly External Debt Statistics (QEDS, SDDS; API source 22)

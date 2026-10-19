@@ -17,16 +17,15 @@ the mechanism behind both the earnings and the yields. The allocation block
                                 revisions-turn flag
     price_ulc(st, cutoff)       ST-R5.35a  the gap, its closing flag and the
                                 margin-source line
-    allocation(st, cutoff)      ST-R5.30a  equities, bonds, cash (Z.1), AAII by
-                                hand, ICI a listed gap
+    allocation(st, cutoff)      ST-R5.30a  equities, bonds, cash (Z.1); AAII and
+                                ICI listed gaps (the by-hand audit, 16 Oct 2026)
 
 THE DATA, all already stored or added to the FRED pull on this branch: the S&P
 500 close (yfinance.mkt_gspc); S&P DJI's forward operating EPS and quarterly
 estimates (altdata/sources/spdji.py, the operator's drop -- nothing fetches the
 workbook, and until the first drop the forward legs print "awaiting the
 estimates workbook (drop pending)"); Shiller's trailing earnings (the trailing
-version, as SR-38 labels it); FRED's 10-year, PPI, ULC and Z.1 rows; the AAII
-allocation survey by hand. SR-38's identity and its constant-quarter revisions
+version, as SR-38 labels it); FRED's 10-year, PPI, ULC and Z.1 rows. SR-38's identity and its constant-quarter revisions
 (altdata/return_attribution.py) are reused, not rebuilt.
 
 Every read is as of the cutoff. Every percentile names its real window and n
@@ -432,13 +431,7 @@ def allocation(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
                        "quarter": pts[-1][0],
                        "change_pp": None if prev is None else round(pts[-1][1] - prev[1], 2),
                        "lens": lens(pts, years)}
-    aaii = {}
-    for pid, key in (c.get("aaii_keys") or {}).items():
-        r = st.latest_as_of(key, cutoff)
-        if r and r.get("value_num") is not None:
-            aaii[pid] = {"share_pct": float(r["value_num"]),
-                         "as_of": str(r["observed_at"])[:10]}
-    return {"panels": panels, "aaii": aaii, "ici_gap": c.get("ici_gap"),
+    return {"panels": panels, "aaii_gap": c.get("aaii_gap"), "ici_gap": c.get("ici_gap"),
             "base_rate": c.get("base_rate"), "years": years}
 
 
@@ -467,14 +460,7 @@ def allocation_lines(a: dict) -> list[str]:
     eq = a["panels"]["equities"]
     if not eq["absent"]:
         lines.append(f"Equities panel: {a['base_rate']}.")
-    if a["aaii"]:
-        parts = [f"{k} {v['share_pct']:.1f}%" for k, v in a["aaii"].items()]
-        day = max(v["as_of"] for v in a["aaii"].values())
-        lines.append(f"Between Z.1 releases, the AAII asset-allocation survey (entered by "
-                     f"hand, {day}): {', '.join(parts)}.")
-    else:
-        lines.append("Between Z.1 releases: the AAII asset-allocation survey is by hand "
-                     "and none is entered.")
+    lines.append(f"{a['aaii_gap']}.")
     lines.append(f"{a['ici_gap']}.")
     return lines
 
