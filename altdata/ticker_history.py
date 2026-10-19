@@ -21,9 +21,7 @@ THE RULES, one composite FIGI at a time, walking the snapshots in date order:
                  consecutive trading days but for the weekend's calendar days, on
                  which nothing trades. A reused ticker's new holder still opens on
                  the snapshot date, where the old holder's row closes, so the two
-                 never overlap
-                 (from_known false only after a missed morning, ruled 15 Oct;
-                 the start date is the 16 Oct ruling's)
+                 never overlap; from_known stays true
 
 Where a boundary falls between two snapshots and the master knows its real date
 (BAM in 2022, SPCX in 2026, the ETF's SPCX -> SPCK in April 2026), the master's
@@ -35,15 +33,15 @@ is 1900-01-01 and the row carries from_known: false, so chester-meme's guard
 keeps its present assumption ("no ticker changed hands") for every unknown
 start: it repairs only what is known and never wipes history for want of a date.
 
-A MISSED MORNING (ruled 15 Oct 2026, built 17 Oct). The snapshot date is a new
-listing's exact start only when the two snapshots are consecutive sessions. When
-a session falls between them (the 06:45 job missed a morning), the listing began
-on some day in the gap, so the row starts on the day after the previous snapshot
-and carries from_known: false. Starting it on the later snapshot would state a
-start too late, and chester-meme's guard nulls a listing's rows before a stated
-start; the earlier bound never wipes history. Sessions are counted by the session
-calendar (derived.sessions_between), so a weekend or a holiday is no miss. The
-master's known date still wins where it falls in the gap. Ticker changes and
+A MISSED MORNING. The 15 Oct ruling started a new listing after a missed morning
+on the day after the previous snapshot with from_known: false, and kept the
+snapshot date otherwise. The 16 Oct ruling (aud-3b Needs-you 9, relayed from the
+chester-meme side) supersedes it: EVERY new listing starts the day after the
+previous snapshot, so a missed morning makes the start early, never late, and
+from_known stays true (chain-2 stitch, 19 Oct 2026). Starting it on the later
+snapshot would state a start too late, and chester-meme's guard nulls a
+listing's rows before a stated start. The master's known date still wins where
+it falls in the gap. Ticker changes and
 reuse keep the snapshot date: the ruling names new listings.
 
 Dates: effective_from inclusive, effective_to EXCLUSIVE (the contract's). The
@@ -130,7 +128,6 @@ def build(snapshots, assignments: Assignments, master=None) -> dict[str, list[di
                         "effective_to": None, "from_known": False}]
     prev = d0
     for day, rows in it:
-        missed = _missed_morning(prev, day)
         holder = {}
         for r in rows:
             f = assignments.figi_of(r["symbol"], day)
@@ -152,14 +149,13 @@ def build(snapshots, assignments: Assignments, master=None) -> dict[str, list[di
             if any(x["ticker"] == s and x["effective_to"] is None for x in rs):
                 continue
             w = _master_at(windows, s, day)
-            # The start is the 16 Oct ruling's (aud-3b Needs-you 9): a new listing
-            # opens the day after the previous snapshot; a reused ticker's new
-            # holder on the snapshot day. from_known is false only after a
-            # missed morning (ruled 15 Oct), where the start is a bound.
+            # The 16 Oct ruling (aud-3b Needs-you 9): a new listing opens the day
+            # after the previous snapshot, from_known true; a reused ticker's new
+            # holder opens on the snapshot day.
             if w and w["from"] and prev < w["from"] <= day:
                 start, known = w["from"], True
             elif new_listing:
-                start, known = _next(prev), not missed
+                start, known = _next(prev), True
             else:
                 start, known = day, True
             rs.append({"ticker": s, "effective_from": start, "effective_to": None,
@@ -167,9 +163,3 @@ def build(snapshots, assignments: Assignments, master=None) -> dict[str, list[di
         prev = day
     return hist
 
-
-def _missed_morning(prev: str, day: str) -> bool:
-    """True when a trading session falls strictly between two snapshot days:
-    more than one session from `prev` (exclusive) to `day` (inclusive)."""
-    from . import derived                                       # noqa: PLC0415
-    return derived.sessions_between(prev, day)[0] > 1

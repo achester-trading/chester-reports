@@ -19,11 +19,12 @@ never calls a model.
   I. The ticker history and the export, to the contract, from two fixture days
   J. The box draft: prediction contracts and IBKR conids printed, nothing written
   K. The 06:45 job: the FIGI mapping and the export after the loggers
-  L. A missed morning (ruled 15 Oct 2026): a new listing first seen after a
-     one-day or a three-day gap starts the day after the previous snapshot,
-     from_known false; consecutive sessions and a weekend keep the snapshot
-     date; the master's known date still wins; a ticker change keeps the
-     snapshot date
+  L. A missed morning, under the 16 Oct ruling (which superseded the 15 Oct
+     one at the chain-2 stitch): a new listing first seen after a one-day or a
+     three-day gap, or after a weekend, starts the day after the previous
+     snapshot, from_known true; consecutive sessions give the snapshot date;
+     the master's known date still wins; a ticker change keeps the snapshot
+     date
 """
 
 from __future__ import annotations
@@ -736,31 +737,32 @@ def group_l() -> None:
     h = rows_of([("2026-10-19", snap("OLDA")), ("2026-10-21", snap("OLDA", "NEWB"))],
                 base + [{"symbol": "NEWB", "date": "2026-10-21", "figi": "BBG000FXNB01"}])
     check(h["BBG000FXNB01"] == [{"ticker": "NEWB", "effective_from": "2026-10-20",
-                                 "effective_to": None, "from_known": False}],
+                                 "effective_to": None, "from_known": True}],
           f"a one-day gap (Mon 19, Tuesday missed, Wed 21): from Tue 20, the day after "
-          f"the previous snapshot, from_known false ({h['BBG000FXNB01']})")
+          f"the previous snapshot, from_known true (16 Oct) ({h['BBG000FXNB01']})")
     check(h["BBG000FXOL01"][0]["effective_to"] is None,
           "the running holding is untouched by the gap")
     # Three-day gap: Mon 19, Tue-Thu missed, Fri 23.
     h = rows_of([("2026-10-19", snap("OLDA")), ("2026-10-23", snap("OLDA", "NEWC"))],
                 base + [{"symbol": "NEWC", "date": "2026-10-23", "figi": "BBG000FXNC01"}])
     check(h["BBG000FXNC01"] == [{"ticker": "NEWC", "effective_from": "2026-10-20",
-                                 "effective_to": None, "from_known": False}],
+                                 "effective_to": None, "from_known": True}],
           f"a three-day gap (Mon 19, Tue-Thu missed, Fri 23): from Tue 20, from_known "
-          f"false ({h['BBG000FXNC01']})")
+          f"true (16 Oct) ({h['BBG000FXNC01']})")
     # A weekend is no miss: Fri 23 -> Mon 26.
     h = rows_of([("2026-10-23", snap("OLDA")), ("2026-10-26", snap("OLDA", "NEWD"))],
                 base + [{"symbol": "NEWD", "date": "2026-10-26", "figi": "BBG000FXND01"}])
-    check(h["BBG000FXND01"][0]["effective_from"] == "2026-10-26"
+    check(h["BBG000FXND01"][0]["effective_from"] == "2026-10-24"
           and h["BBG000FXND01"][0]["from_known"] is True,
-          "a weekend is no missed morning (Fri 23 -> Mon 26): the snapshot date, known")
+          "across a weekend (Fri 23 -> Mon 26) the start is Sat 24, the day after the "
+          "previous snapshot, known: the 16 Oct ruling's weekend calendar days")
     # Three snapshots, the gap in the middle: the start counts from the snapshot
     # just before the listing appeared, not the first.
     h = rows_of([("2026-10-19", snap("OLDA")), ("2026-10-20", snap("OLDA")),
                  ("2026-10-23", snap("OLDA", "NEWE"))],
                 base + [{"symbol": "NEWE", "date": "2026-10-23", "figi": "BBG000FXNE01"}])
     check(h["BBG000FXNE01"][0]["effective_from"] == "2026-10-21"
-          and h["BBG000FXNE01"][0]["from_known"] is False,
+          and h["BBG000FXNE01"][0]["from_known"] is True,
           "the bound is the day after the snapshot just before (Tue 20 -> Wed 21), not "
           "the first snapshot")
 
