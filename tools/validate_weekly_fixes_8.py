@@ -321,8 +321,13 @@ def group_d() -> None:
     (chain / "META_200000.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
     mv = ahead.implied_move("META", "2026-10-21", "2026-10-16T22:00:00+00:00",
                             TMP / "chains", time="after the close")
-    check(mv == "implied move ±5.7% (straddle to 2026-10-23)",
-          f"end to end on a fixture chain: the 23 Oct straddle, (20 + 20) / 700 ({mv})")
+    # Batch 11 item 57: the 21 Oct expiry settles before the after-close report,
+    # so the move is event-only: (40/700 / sqrt(2/pi))^2 less the 21 Oct straddle's
+    # variance rate ((19.8/700 / sqrt(2/pi))^2 per 5/365) over 7/365, back on the
+    # straddle convention: 4.6%.
+    check(mv == "implied move ±4.6% (event-only: the straddle to 2026-10-23 less the "
+                "2026-10-21 expiry's variance rate over the same time)",
+          f"end to end on a fixture chain: the event-only move into the report ({mv})")
     row_ = ahead.earnings_row({"symbol": "META", "event": "META earnings",
                                "date": "2026-10-21", "time": "after the close"},
                               ahead.load_config(), "2026-10-16T22:00:00+00:00",

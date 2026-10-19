@@ -35,6 +35,18 @@ what has no other home.
      chain.rv60; the Weekly's per-name table has a row per name with window and n
      and no strategy label; OS-8 reads the 30-day IV.
 
+  E  ITEM 57. The event-only move by hand (a 40/700 straddle to 23 Oct less the
+     21 Oct straddle's 19.8/700 variance rate: 4.6%), and the full straddle
+     labelled "includes non-event days" where no expiry precedes the report; up
+     to eight reactions with n, "n=2, no word" under three; the MSTR row names
+     the MSCI events; one implied-against-realised record per print, written once
+     by the close after the report and read back by the row.
+  F  ITEM 58. OS-9's floor (2,000 for SPY, QQQ, IWM; 500 for a single name); the
+     OI change as a share of the session's volume by hand; the outcome ledger's
+     pass rule on synthetic builds (a calibrated set PASSES, an inverted one
+     FAILS, under 30 is INSUFFICIENT) and its first edition; the December
+     specification carries no vendor figure.
+
 No gate here reads the live store, fetches or calls a model; every fixture is
 synthetic.
 """
@@ -388,8 +400,168 @@ def group_d() -> None:
           "budget); OS-8's IV rows read the 30-day IV")
 
 
+def _chain(path: Path, legs: dict, spot: float, day: str) -> None:
+    """A capture CSV: {expiry: (call mid, put mid)} at one ATM strike."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = ["expiry,dte,right,strike,bid,ask,last_price,volume,last_trade_date,"
+             "fetched_at,spot"]
+    for e, (c, pt) in legs.items():
+        for right, mid in (("C", c), ("P", pt)):
+            lines.append(f"{e},5,{right},{spot},{mid - 0.1},{mid + 0.1},,100,,"
+                         f"{day}T20:00:00Z,{spot}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def group_e() -> None:
+    head("E. ITEM 57: EARNINGS")
+    import math
+    from altdata import earnings_moves as em, events as ev_mod, observations
+    from daily_cascade import ahead, opening_setup as OS
+    k = math.sqrt(2 / math.pi)
+    v_post = (40 / 700 / k) ** 2
+    rate = (19.8 / 700 / k) ** 2 / (5 / 365)
+    hand = 100 * k * math.sqrt(v_post - rate * 7 / 365)
+    check(abs(ahead.event_move(19.8 / 700, 5, 40 / 700, 7) - hand) < 1e-9
+          and round(hand, 1) == 4.6 and ahead.event_move(0.05, 5, 0.05, 7) is None,
+          f"the event-only move by hand: {hand:.2f}%; none when the pre-event rate "
+          f"leaves no variance for the event")
+    base = TD / "e" / "chains"
+    _chain(base / "2026-10-16" / "META_200000.csv",
+           {"2026-10-21": (9.9, 9.9), "2026-10-23": (20.0, 20.0)}, 700.0, "2026-10-16")
+    mv = ahead.implied_move("META", "2026-10-21", "2026-10-16T22:00:00+00:00", base,
+                            time="after the close")
+    _chain(base / "2026-10-16" / "NVDA_200000.csv", {"2026-10-23": (7.0, 6.5)}, 181.0,
+           "2026-10-16")
+    full = ahead.implied_move("NVDA", "2026-10-21", "2026-10-16T22:00:00+00:00", base,
+                              time="after the close")
+    check(mv.startswith("implied move ±4.6% (event-only: the straddle to 2026-10-23 less "
+                        "the 2026-10-21 expiry")
+          and full == "implied move ±7.5% (straddle to 2026-10-23; includes non-event days)",
+          f"labelled: event-only where an expiry before the report exists, else the full "
+          f"straddle 'includes non-event days' ({full})")
+    db = str(TD / "e.db")
+    reports = ["2026-04-22", "2026-07-22"]
+    closes = {"2026-04-21": 100.0, "2026-04-23": 104.0, "2026-07-21": 110.0,
+              "2026-07-23": 105.6, "2026-10-20": 120.0, "2026-10-22": 126.0}
+    with observations.ObservationStore(db) as st:
+        st.write_many([obs("yfinance.mkt_nvda", d, v) for d, v in closes.items()])
+    evs = [ev_mod.Event(type="earnings", observed_at=f"{d}T21:00:00+00:00", source="fixture",
+                        title=f"NVDA earnings {d}",
+                        payload={"symbol": "NVDA", "reported_eps": 1.0}, key=f"fx:{d}")
+           for d in reports + ["2026-10-21"]]
+    with ev_mod.EventStore(db) as ev:
+        ev.write_many(evs, available_at="2026-01-01T00:00:00+00:00")
+    row = {"symbol": "NVDA", "event": "NVDA earnings", "date": "2026-11-19",
+           "consensus": "EPS 1.20; implied move ±6.0% (straddle to 2026-11-21; includes "
+                        "non-event days)",
+           "implied_move": "implied move ±6.0% (straddle to 2026-11-21; includes non-event days)"}
+    two = OS.with_pricing(row, "2026-10-17T21:00:00+00:00", db)
+    check("reactions (n=2, up to 8): +4.0%, -4.0%" in two["consensus"]
+          and "pricing: n=2, no word" in two["consensus"]
+          and two["pricing"]["word"] is None and OS.config()["earnings"]["reactions"] == 8,
+          "up to eight reactions, n printed; under three, 'n=2, no word' (the 20% band "
+          "unchanged)")
+    ms = OS.with_pricing({**row, "symbol": "MSTR", "event": "MSTR earnings"},
+                         "2026-10-17T21:00:00+00:00", db)
+    check("MSCI index events: 2026-11-11 (November 2026 Index Review announced" in ms["consensus"]
+          and "2026-11-30" in ms["consensus"],
+          "the MSTR row names the MSCI index events (the stored digital-asset calendar)")
+    with observations.ObservationStore(db) as st:
+        _chain(base / "2026-10-20" / "NVDA_200000.csv", {"2026-10-23": (6.0, 6.0)}, 120.0,
+               "2026-10-20")
+        n1 = em.record_due(st, "2026-10-22", "2026-10-22T21:00:00+00:00", db, base,
+                           universe=["NVDA"])
+        n2 = em.record_due(st, "2026-10-22", "2026-10-22T21:00:00+00:00", db, base,
+                           universe=["NVDA"])
+        recs = st.as_of(em.KEY, "9999", "NVDA")
+    v = json.loads(recs[0]["value_text"]) if recs else {}
+    check(n1 == 1 and n2 == 0 and len(recs) == 1 and v.get("realised_pct") == 5.0
+          and v.get("implied_pct") == 10.0 and v.get("before") == "2026-10-20"
+          and "includes non-event days" in str(v.get("implied_label")),
+          f"one record per print, written once by the close after the report (22 Oct "
+          f"for the 21 Oct report): implied ±10.0% from the 20 Oct chain ((6 + 6) / "
+          f"120), realised 126 over 120, +5.0% ({v})")
+    back = OS.with_pricing({**row, "date": "2027-01-20"}, "2026-10-23T21:00:00+00:00", db)
+    check("implied against realised at past prints: 2026-10-21 ±10.0% vs +5.0%"
+          in back["consensus"],
+          "the Ahead row reads the stored record back")
+
+
+def group_f() -> None:
+    head("F. ITEM 58: THE OI BUILDS")
+    sys.path.insert(0, str(REPO / "tools" / "calibration"))
+    import os9_build_outcomes as O9
+    from daily_cascade import opening_setup as OS
+    check(OS.oi_floor("SPY") == OS.oi_floor("QQQ") == OS.oi_floor("IWM") == 2000
+          and OS.oi_floor("AAPL") == OS.oi_floor("ASTS") == 500,
+          "D6's floor: 2,000 contracts for SPY, QQQ and IWM, 500 for a single name")
+    prev = [{"expiry": "2026-11-20", "strike": 100.0, "right": "C", "open_interest": 1000,
+             "volume": 2500.0, "bid": 1.0, "ask": 1.2, "spot": 99.0, "dte": 30}]
+    cur = [{**prev[0], "open_interest": 2600, "volume": 10.0}]
+    from altdata import chain_metrics as cm
+    saved = cm._solver
+    cm._solver = lambda: type("S", (), {"solve_chain": staticmethod(
+        lambda rows, r: {"rows": [{**x, "solved_iv": 0.2} for x in rows]})})
+    try:
+        b = OS.builds_for("AAPL", prev, cur, 0.04, floor=500)
+        none = OS.builds_for("SPY", prev, cur, 0.04, floor=OS.oi_floor("SPY"))
+    finally:
+        cm._solver = saved
+    t = OS.oi_build_table(b, {}, OS.config())
+    check(b and b[0]["oi_vol_pct"] == 64.0 and t["rows"][0][5] == "64%",
+          "the OI change as a share of the session's volume by hand: +1,600 over the "
+          "2,500 traded in the earlier capture's session, 64%")
+    check(none == [] and "OI change, % of the day's volume" in t["columns"],
+          "a +1,600 build clears a single name's floor of 500 but not SPY's of 2,000; the "
+          "column is printed")
+    good = [{"session": "d", "symbol": "X", "expiry": "2026-01-02", "strike": 100.0,
+             "right": "C", "p_itm": p} for p in [0.1] * 20 + [0.9] * 20]
+    closes = {"X": {"2026-01-02": 0.0}}
+    d = {"builds": good, "closes": {}, "sessions": 1}
+    # 2 of 20 low and 18 of 20 high finish in the money: calibrated.
+    rows = [{**g, "strike": 100.0} for g in good]
+    for i, r in enumerate(rows):
+        r["expiry"] = f"2026-01-{(i % 20) + 1:02d}"
+    cl = {f"2026-01-{k:02d}": 0.0 for k in range(1, 21)}
+    def mk(itm_low, itm_high):
+        bl = []
+        for i in range(20):
+            bl.append({"session": "d", "symbol": "X", "expiry": f"2026-01-{i + 1:02d}",
+                       "strike": 100.0, "right": "C", "p_itm": 0.1,
+                       "_itm": i < itm_low})
+            bl.append({"session": "d", "symbol": "X", "expiry": f"2026-02-{i + 1:02d}",
+                       "strike": 100.0, "right": "C", "p_itm": 0.9,
+                       "_itm": i < itm_high})
+        c = {b["expiry"]: (101.0 if b["_itm"] else 99.0) for b in bl}
+        return {"builds": [{k: v for k, v in b.items() if k != "_itm"} for b in bl],
+                "closes": {"X": c}, "sessions": 1}
+    ok = O9.study(mk(2, 18), O9.LAPTOP, today="2026-12-31")
+    bad = O9.study(mk(18, 2), O9.LAPTOP, today="2026-12-31")
+    few = O9.study({"builds": mk(2, 18)["builds"][:20], "closes": mk(2, 18)["closes"],
+                    "sessions": 1}, O9.LAPTOP, today="2026-12-31")
+    check(ok["verdict"].startswith("PASS") and bad["verdict"].startswith("FAIL")
+          and few["verdict"].startswith("INSUFFICIENT"),
+          f"the outcome ledger's pre-registered rule on synthetic builds: 2/20 at 0.1 and "
+          f"18/20 at 0.9 PASS; inverted FAIL; 20 resolved INSUFFICIENT ({ok['verdict'][:60]})")
+    import glob
+    eds = sorted(glob.glob(str(REPO / "docs" / "ledgers" / "os-9-ledger-*.md")))
+    t9 = Path(eds[0]).read_text(encoding="utf-8") if eds else ""
+    src = (REPO / "tools" / "calibration" / "os9_build_outcomes.py").read_text(encoding="utf-8")
+    check(eds and "INSUFFICIENT" in t9 and "laptop run" in t9 and "grants nothing" in t9
+          and not re.search(r"ObservationStore|observations\.", src),
+          "its first edition (no captures on the laptop: INSUFFICIENT), labelled, granting "
+          "nothing; the script reads no store")
+    spec = (REPO / "docs" / "ledgers" / "os-9-vendor-month-comparison-spec-2026-10.md"
+            ).read_text(encoding="utf-8")
+    check("Never edited." in spec and "agreement statistics only" in spec
+          and "an opening build is read as a purchase" in spec
+          and not re.search(r"\$\s?\d|SpotGamma['’]s \w+ (level|figure) of \d", spec),
+          "the December comparison is pre-registered: overlap, the side read, the size "
+          "check; no vendor figure")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

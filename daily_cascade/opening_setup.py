@@ -44,6 +44,7 @@ from typing import Any, Optional
 import yaml
 
 log = logging.getLogger(__name__)
+REPO = Path(__file__).resolve().parent.parent
 
 CONFIG = Path(__file__).resolve().parent.parent / "config" / "opening_setup.yaml"
 
@@ -594,10 +595,14 @@ def _ro(db_path: Optional[str]) -> Optional[sqlite3.Connection]:
 def reactions(conn, symbol: str, before: str, now: str, n: int = 3) -> list[dict]:
     """The last `n` reports before `before` with their next-session reaction: the
     close before the report date to the close after it (the Weekly's earnings
-    block's rule); "not stored" where a close is missing."""
-    rows = conn.execute(
-        "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
-        "observed_at < ? AND available_at <= ?", (before, now)).fetchall()
+    block's rule); "not stored" where a close is missing. A store without the
+    events table reads as nothing stored, never a fault."""
+    try:
+        rows = conn.execute(
+            "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
+            "observed_at < ? AND available_at <= ?", (before, now)).fetchall()
+    except sqlite3.Error:
+        return []
     reps = []
     for obs, payload in rows:
         try:
@@ -608,10 +613,14 @@ def reactions(conn, symbol: str, before: str, now: str, n: int = 3) -> list[dict
                 pl.get("reported_eps") is not None:
             reps.append(str(obs)[:10])
     reps = sorted(set(reps))[-n:]
-    closes = dict(conn.execute(
-        "SELECT substr(observed_at, 1, 10), value_num FROM observations WHERE "
-        "registry_key = ? AND available_at <= ? AND value_num IS NOT NULL "
-        "ORDER BY observed_at, available_at", (f"yfinance.mkt_{symbol.lower()}", now)).fetchall())
+    try:
+        closes = dict(conn.execute(
+            "SELECT substr(observed_at, 1, 10), value_num FROM observations WHERE "
+            "registry_key = ? AND available_at <= ? AND value_num IS NOT NULL "
+            "ORDER BY observed_at, available_at",
+            (f"yfinance.mkt_{symbol.lower()}", now)).fetchall())
+    except sqlite3.Error:
+        closes = {}
     days = sorted(closes)
     out = []
     for d in reps:
@@ -641,12 +650,50 @@ def pricing_word(implied: Optional[float], reacts: list[Optional[float]],
 MOVE_RE = re.compile(r"±\s*([\d.]+)%")
 
 
+def stored_moves(conn, symbol: str, now: str, n: int = 3) -> list[dict]:
+    """Item 57's records (calc.earnings_move): the implied move at the close before
+    each past report and the realised move after it, newest last."""
+    try:
+        rows = conn.execute(
+            "SELECT observed_at, value_text FROM observations WHERE registry_key = ? "
+            "AND instrument = ? AND available_at <= ? ORDER BY observed_at",
+            ("calc.earnings_move", symbol.upper(), now)).fetchall()
+    except sqlite3.Error:
+        return []
+    out = []
+    for d, txt in rows:
+        try:
+            out.append({"date": str(d)[:10], **json.loads(txt or "{}")})
+        except ValueError:
+            continue
+    return out[-n:]
+
+
+def msci_events(now: str) -> list[str]:
+    """Item 57 (item 49): the MSCI index events in the hand-seeded digital-asset
+    calendar from `now` on, each its date and the event's first clause."""
+    try:
+        doc = yaml.safe_load((REPO / "config" / "digital_asset_calendar.yaml")
+                             .read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return []
+    out = []
+    for e in doc.get("entries") or []:
+        if str(e.get("body")) == "MSCI" and str(e.get("date")) >= now[:10]:
+            out.append(f"{e['date']} ({str(e.get('event') or '').split(',')[0]})")
+    return out
+
+
 def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
                  cfg: Optional[dict] = None) -> dict:
-    """An Ahead earnings row with its last three reactions and pricing word
-    appended to its consensus cell, the implied move being the matrix's own."""
+    """An Ahead earnings row with up to eight reactions (config), n printed, and
+    the pricing word on their median (n of 3 or more; else "n=k, no word"),
+    appended to its consensus cell, the implied move being the matrix's own (Batch
+    11 item 57); the stored implied-against-realised records beside them; and,
+    for MSTR, the MSCI index events stored in the digital-asset calendar."""
     cfg = cfg or config()
     e = cfg["earnings"]
+    n_max, n_min = int(e["reactions"]), int(e.get("word_min_n", 3))
     sym = r.get("symbol") or str(r.get("event") or "").split(" ")[0]
     m = MOVE_RE.search(str(r.get("implied_move") or ""))
     implied = float(m.group(1)) if m else None
@@ -654,28 +701,41 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
         conn = _ro(db_path)
     except sqlite3.Error:
         conn = None
-    if conn is None:
-        txt = "; last three reactions: not stored"
-        return {**r, "pricing": {"reactions": [], "word": None},
-                "consensus": f"{r.get('consensus') or '—'}{txt}"}
-    try:
-        reacts = reactions(conn, sym, str(r.get("date"))[:10], now, int(e["reactions"]))
-    finally:
-        conn.close()
+    reacts, moves = [], []
+    if conn is not None:
+        try:
+            reacts = reactions(conn, sym, str(r.get("date"))[:10], now, n_max)
+            moves = stored_moves(conn, sym, now)
+        finally:
+            conn.close()
     figs = [x["reaction_pct"] for x in reacts]
-    cells = [f"{x:+.1f}%" if x is not None else "not stored" for x in figs]
-    cells += ["not stored"] * (int(e["reactions"]) - len(cells))
-    word, med = pricing_word(implied, figs, float(e["band"]))
-    txt = f"; last three reactions: {', '.join(cells)}"
-    if word:
+    avail = [x for x in figs if x is not None]
+    k = len(avail)
+    if avail:
+        txt = (f"; reactions (n={k}, up to {n_max}): "
+               + ", ".join(f"{x:+.1f}%" for x in avail))
+    else:
+        txt = "; reactions: not stored"
+    word, med = pricing_word(implied, avail, float(e["band"]))
+    if word and k >= n_min:
         txt += (f"; pricing {word}: implied ±{implied:.1f}% against a median absolute "
-                f"reaction of {med:.1f}% (a fifth either way is in line; not a "
+                f"reaction of {med:.1f}% (n={k}; a fifth either way is in line; not a "
                 f"recommendation)")
     elif implied is not None:
-        txt += "; pricing: not read (three reactions are not stored)"
+        txt += f"; pricing: n={k}, no word"
+    if moves:
+        txt += "; implied against realised at past prints: " + ", ".join(
+            f"{x['date']} ±{x['implied_pct']:.1f}% vs {x['realised_pct']:+.1f}%"
+            for x in moves if x.get("implied_pct") is not None
+            and x.get("realised_pct") is not None)
+    if sym.upper() == "MSTR":
+        ev = msci_events(now)
+        if ev:
+            txt += "; MSCI index events: " + "; ".join(ev)
     return {**r, "consensus": f"{r.get('consensus') or '—'}{txt}",
-            "pricing": {"reactions": reacts, "word": word, "median": med,
-                        "implied": implied}}
+            "pricing": {"reactions": reacts, "word": word if k >= n_min else None,
+                        "median": med, "implied": implied, "n": k,
+                        "stored_moves": moves}}
 
 
 # ===========================================================================
@@ -875,13 +935,22 @@ def name_tags(sym: str, day: str, closes: list[float], skew: list[float],
     return out
 
 
+def oi_floor(sym: str, cfg: Optional[dict] = None) -> int:
+    """Batch 11 item 58, D6 (provisional, session-set): 2,000 contracts for SPY,
+    QQQ and IWM (and SPX, an index), 500 for a single name."""
+    f = ((cfg or config()).get("oi_builds") or {}).get("floor") or {}
+    idx = [str(x).upper() for x in f.get("index_names") or ["SPY", "QQQ", "IWM", "SPX"]]
+    return int(f.get("index", 2000) if sym.upper() in idx else f.get("single", 500))
+
+
 def builds_for(sym: str, prev: list[dict], cur: list[dict], r: float,
-               gated: bool = False) -> list[dict]:
+               gated: bool = False, floor: int = 0) -> list[dict]:
     """Every positive OI change with its premium estimate and ITM probability.
     `gated` (SPX, SPCX): no IV is solved and no probability computed; the row
     carries `solver_gated` and its cell prints SOLVER_GATED."""
     from altdata import chain_metrics as cm                     # noqa: PLC0415
-    ch = [c for c in cm.oi_changes(prev, cur) if c["oi_change"] > 0]
+    ch = [c for c in cm.oi_changes(prev, cur) if c["oi_change"] > 0
+          and c["oi_change"] >= floor]
     if not ch:
         return []
     ivs: dict = {}
@@ -901,7 +970,9 @@ def builds_for(sym: str, prev: list[dict], cur: list[dict], r: float,
                     "right": c["right"], "oi_change": c["oi_change"], "mid": mid,
                     "premium": None if mid is None else mid * c["oi_change"] * 100.0,
                     "iv": iv, "spot": c.get("spot"), "dte": c.get("dte"),
-                    "solver_gated": gated,
+                    "solver_gated": gated, "volume_day": c.get("volume_before"),
+                    "oi_vol_pct": (100.0 * c["oi_change"] / c["volume_before"]
+                                   if c.get("volume_before") else None),
                     "p_itm": bs_itm_prob(c.get("spot"), c["strike"], iv, t, r, c["right"])
                     if iv else None})
     return out
@@ -935,15 +1006,18 @@ def oi_build_table(builds: list[dict], tags: dict[str, list[str]], cfg: dict) ->
         typ = " / ".join("call" if x["right"] == "C" else "put" for x in legs)
         prem = [x["premium"] for x in legs if x["premium"] is not None]
         pit = [x["p_itm"] for x in legs if x["p_itm"] is not None]
+        ov = [x.get("oi_vol_pct") for x in legs]
         rows.append([b["symbol"] + (" -- spread (legs equal)" if b["spread"] else ""),
                      b["expiry"], strike, typ, f"{b['oi_change']:+,.0f}"
                      + (" each" if b["spread"] else ""),
+                     " / ".join(f"{v:.0f}%" if v is not None else "n/a" for v in ov),
                      f"${sum(prem) / 1e6:,.2f}m" if prem else "n/a",
                      SOLVER_GATED if b.get("solver_gated") else
                      " / ".join(f"{p * 100:.0f}%" for p in pit) if pit else "n/a",
                      str(b.get("dte")), ", ".join(tags.get(b["symbol"]) or []) or "—"])
     return {"columns": ["Name", "Expiry", "Strike", "Type", "OI change",
-                        "Premium (est.)", "Chance in the money", "Days", "Context"],
+                        "OI change, % of the day's volume", "Premium (est.)",
+                        "Chance in the money", "Days", "Context"],
             "rows": rows}
 
 
@@ -973,7 +1047,8 @@ def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
                 if not prev_p:
                     continue
                 builds += builds_for(s, cm.load_rows(prev_p), cm.load_rows(cur_p),
-                                     acfg.RISK_FREE_RATE, gated=s in gated)
+                                     acfg.RISK_FREE_RATE, gated=s in gated,
+                                     floor=oi_floor(s, cfg))
                 closes = [v for _, v in _series(st, f"yfinance.mkt_{s.lower()}", cutoff)]
                 skew = [v for _, v in _series(st, cm.SKEW_KEY, cutoff, s)]
                 ivrv = [v for _, v in _series(st, cm.IV_RV_KEY, cutoff, s)]
@@ -1007,8 +1082,10 @@ def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
                      f"\"{SOLVER_GATED}\" until the IV solver's gate admits them. The "
                      "Context tags' history thresholds are "
                      f"{cfg['oi_builds']['tags'].get('label') or 'session-set'} "
-                     "(config/opening_setup.yaml). Who opened the position is not known: "
-                     "side unknown.")}
+                     "(config/opening_setup.yaml). Only builds of 2,000 contracts or more "
+                     "(SPY, QQQ, IWM, SPX) or 500 (single names) print (provisional), and "
+                     "each shows its OI change as a share of the session's volume in that "
+                     "contract. Who opened the position is not known: side unknown.")}
 
 
 def oi_builds_html(b: Optional[dict]) -> str:

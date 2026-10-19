@@ -303,12 +303,16 @@ def oi_changes(prev: list[dict], cur: list[dict]) -> list[dict]:
     row and its open-interest change."""
     before = {(r["expiry"], r["strike"], r["right"]): r.get("open_interest")
               for r in prev if r.get("open_interest") is not None}
+    # Batch 11 item 58: the earlier capture's session volume per contract -- the
+    # later capture's OI is that session's settlement, so its build is that
+    # session's trading.
+    vol_before = {(r["expiry"], r["strike"], r["right"]): r.get("volume") for r in prev}
     out = []
     for r in cur:
         k = (r["expiry"], r["strike"], r["right"])
         if k in before and r.get("open_interest") is not None:
             out.append({**r, "oi_change": r["open_interest"] - before[k],
-                        "oi_before": before[k]})
+                        "oi_before": before[k], "volume_before": vol_before.get(k)})
     return out
 
 

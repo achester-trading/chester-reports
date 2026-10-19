@@ -3855,6 +3855,25 @@ metrics:
       morning's flip and whether the session crossed it, the session's range and
       return, the pin verdicts, and 5-minute realized volatility. The Monthly's
       dealer retrospective reads these and never recomputes them.
+  calc.earnings_move:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 57: one JSON record per earnings print of a captured name -- the
+      implied move at the close before the report (the Ahead matrix's own: the
+      event-only move where an expiry before the report exists, else the full
+      straddle, labelled) and the realised close-to-close move after it. Written
+      once by the 16:45 close of the first session after the report; read by the
+      Ahead rows; offered to the Alpha Lab's engine 4. Report-only.
   calc.level_zones:
     source: derived_state
     mechanism_group: dealer_chain_derived
@@ -18357,6 +18376,7 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
   calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).
   state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"

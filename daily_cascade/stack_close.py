@@ -342,6 +342,11 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                                            ed.get("dealer_computed_dir"))
                     except Exception:                           # noqa: BLE001
                         log.warning("level clusters for %s faulted", _sym, exc_info=True)
+                # BATCH 11 ITEM 57: one implied-against-realised record per earnings
+                # print, written once by the close after the report.
+                from altdata import earnings_moves as _em        # noqa: PLC0415
+                report["earnings_moves"] = _em.record_due(st, sess, session.utc_iso(),
+                                                          db_path)
             if not dry_run:
                 st.write_many([{"registry_key": SCORECARD_KEY, "instrument": "SPY",
                                 "observed_at": sess, "available_at": session.utc_iso(),

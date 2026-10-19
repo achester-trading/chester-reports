@@ -290,14 +290,14 @@ def group_c() -> None:
     out = OS.with_pricing(row, "2026-10-17T21:00:00+00:00", db)
     c = out["consensus"]
     check([round(x["reaction_pct"], 1) for x in out["pricing"]["reactions"]] == [5.0, -4.0, 3.0]
-          and "last three reactions: +5.0%, -4.0%, +3.0%" in c
+          and "reactions (n=3, up to 8): +5.0%, -4.0%, +3.0%" in c
           and "pricing elevated: implied ±6.0% against a median absolute reaction of 4.0%" in c
           and "not a recommendation" in c and c.startswith(row["consensus"]),
           "the reactions from stored events and closes (the close before each report to "
           "the close after it: +5.0%, -4.0%, +3.0%); the row prints them, the word and "
           "its figures, never a recommendation, after the matrix's own figure")
     none = OS.with_pricing(row, "2026-10-17T21:00:00+00:00", str(TD / "absent.db"))
-    check("last three reactions: not stored" in none["consensus"]
+    check("reactions: not stored" in none["consensus"]
           and not (TD / "absent.db").exists(),
           "no store file: 'not stored', and nothing is created (read only)")
     src = (REPO / "daily_cascade" / "ahead.py").read_text(encoding="utf-8")
@@ -488,8 +488,14 @@ def group_f() -> None:
     _csv(base / d_cur / "N00_201000Z.csv", rows_cur)
     cm._solver = lambda: _FakeSolver                            # noqa: SLF001
     try:
+        # The table's shape with no size floor; Batch 11's floor is checked below.
+        import copy
+        cfg0 = copy.deepcopy(OS.config())
+        cfg0["oi_builds"]["floor"]["single"] = 0
         ob = OS.oi_builds_from_store(d_cur, "2026-10-17T11:00:00+00:00",
-                                     str(TD / "ob.db"), base, names=["N00"])
+                                     str(TD / "ob.db"), base, names=["N00"], cfg=cfg0)
+        obf = OS.oi_builds_from_store(d_cur, "2026-10-17T11:00:00+00:00",
+                                      str(TD / "ob.db"), base, names=["N00"])
     finally:
         cm._solver = saved                                      # noqa: SLF001
     rows = ob["table"]["rows"]
@@ -500,6 +506,15 @@ def group_f() -> None:
           f"the table: 'Largest OI builds, side unknown', eight rows of ten builds, the "
           f"largest first (+1,000); the two equal +500 builds on one expiry print as one "
           f"line, 'spread (legs equal)' ({len(rows)} rows)")
+    floor_rows = obf["table"]["rows"]
+    check(floor_rows and all(int(r[4].split()[0].replace("+", "").replace(",", "")) >= 500
+                             for r in floor_rows)
+          and len(floor_rows) < len(rows)
+          and OS.oi_floor("SPY") == 2000 and OS.oi_floor("IWM") == 2000
+          and OS.oi_floor("NVDA") == 500,
+          f"Batch 11 item 58: the size floor -- 500 contracts for a single name drops the "
+          f"smaller builds ({len(floor_rows)} of {len(rows)} rows), 2,000 for SPY, QQQ "
+          f"and IWM")
     txt = json.dumps({"c": ob["table"]["columns"], "r": rows}) + ob["note"]
     check(not SIDE_WORDS.search(txt.replace("side unknown", "")),
           f"no side word anywhere in the table or its note ({SIDE_WORDS.findall(txt)})")
@@ -685,9 +700,9 @@ def group_g() -> None:
     tab = OS.oi_build_table(builds, {}, OS.config())
     spx = next(r for r in tab["rows"] if r[0] == "SPX")
     n00 = next(r for r in tab["rows"] if r[0] == "N00")
-    check(spx[6] == "awaiting the solver gate" and n00[6] == "45%",
+    check(spx[7] == "awaiting the solver gate" and n00[7] == "45%",
           f"OS-9: SPX's chance in the money reads 'awaiting the solver gate'; a solved "
-          f"name's prints its figure ({spx[6]}, {n00[6]})")
+          f"name's prints its figure ({spx[7]}, {n00[7]})")
     from altdata import observations, chain_metrics as cm, config as acfg
     with observations.ObservationStore(str(TD / "spx.db")) as st2:
         st2.write_many([obs(cm.VOL_KEY, d, 50.0, "SPX") for d in days(5)]

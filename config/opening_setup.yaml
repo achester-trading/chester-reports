@@ -58,7 +58,10 @@ most_active:
 
 # OS-11 -- the earnings rows' pricing, in the Ahead matrix.
 earnings:
-  reactions: 3
+  # Batch 11 item 57: up to eight reactions, n printed; the word on the median of
+  # those available, from 3 (else "n=k, no word"). The 20% band is unchanged (D5).
+  reactions: 8
+  word_min_n: 3
   # "elevated" when the implied move exceeds the median of the last three
   # absolute reactions by a fifth or more; "muted" a fifth or more below; else
   # "in line". Never a recommendation.
@@ -76,6 +79,13 @@ profiles:
 # OS-9 -- "Largest OI builds, side unknown", in the 07:00 anchor's mechanics.
 oi_builds:
   rows: 8
+  # BATCH 11 ITEM 58, D6 (provisional, session-set): the size floor, and the OI
+  # change as a share of the session's volume printed as a column instead of a
+  # 70% filter. The premium is unchanged: the mid at the later capture.
+  floor:
+    index: 2000
+    single: 500
+    index_names: [SPY, QQQ, IWM, SPX]
   # THE TAGS' HISTORY THRESHOLDS ARE SESSION-SET (ruling 4, 19 Oct 2026): they
   # stand as written, the table's note labels them so, and they are reviewed at
   # the 25 Oct dry run. The decile cut-offs (top 90th, bottom 10th) are
