@@ -94,3 +94,13 @@ engines:
     cost_class: perp
     min_size: 0.05
     params: {perp_margin_frac: 0.25}
+  # X-3.3 engine 6, extremes reversion (alpha/engines/reversion.py): every
+  # bucket waits for its 30 formation prints (config/alpha_reversion.yaml's
+  # pre-registered spec, hashed in the roster's E-6)
+  - id: reversion
+    class: alpha.engines.reversion:ReversionEngine
+    family: reversion
+    horizon: daily
+    cost_class: etf
+    min_size: 0.02
+    params: {}

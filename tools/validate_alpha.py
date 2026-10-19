@@ -454,10 +454,10 @@ def group_c_static() -> None:
         check(not (Path(_TMP) / "absent.sqlite").exists(), "a missing store is not created")
 
 
-# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026).
+# Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026) and part 2's engine 6 (alpha-lab-4).
 ENGINE_IDS = ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer",
               "events_macro", "events_fomc", "events_pead", "events_crush",
-              "crypto_carry"]
+              "crypto_carry", "reversion"]
 
 
 # ---------------------------------------------------------------------------
@@ -473,7 +473,7 @@ def group_d() -> None:
     check([e["id"] for e in reg] == ENGINE_IDS
           and all(str(e["class"]).startswith("alpha.engines.") for e in reg),
           "config/alpha_engines.yaml registers Tranche 2's engines (X-2.1 to X-2.3) and "
-          "Tranche 3's (X-3.1, X-3.2), each in alpha/engines/")
+          "Tranche 3's (X-3.1, X-3.2, X-3.3), each in alpha/engines/")
     loaded = engine_mod.load_all()
     check(len(loaded) == len(ENGINE_IDS) and all(hasattr(e, "coverage") for e in loaded),
           "and each loads, with its coverage check")

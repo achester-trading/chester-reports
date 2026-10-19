@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — ninety-nine code gates (ninety-six Python,
+**`make validate` runs every gate** — 100 code gates (97 Python,
 three shell) and seven data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
@@ -835,10 +835,26 @@ changes nothing. The Quarterly mails the lab's page
 `monthly_macro/run.py`), which prints "no quarter closed yet" until a whole
 quarter exists.
 
+**Engine 6, extremes reversion (X-3.3; alpha-lab-4, 19 Oct 2026).**
+`alpha/engines/reversion.py` fades a 2.5-sigma print only where that bucket's
+own point-in-time history reverses.
+- A bucket is a series and the sign of its print.
+- A print is identified against its own trailing window as known on its day,
+  never against the move screen's in-sample "false flag k/N".
+- Below 30 completed formation prints a bucket prints "awaiting (n=k of 30)"
+  and trades nothing.
+- At 30, the horizon (1, 5, 10 or 20 sessions) with the highest reversal share
+  in the formation sample is frozen, and only later prints are traded.
+
+Every rule is `config/alpha_reversion.yaml`'s `spec`. Its sha256 is quoted by
+the roster's E-6 (`alpha/research/roster-2026-10-19-x3-3.yaml`), and the engine
+refuses a spec that no longer hashes to it. `tools/validate_alpha_lab_4.py`
+group A holds it.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
-crypto_carry, all candidates until they pass); a promoted grammar rule is named by
-its register id in `alpha.db`. No gate reads the live store.
+crypto_carry, reversion, all candidates until they pass); a promoted grammar
+rule is named by its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 

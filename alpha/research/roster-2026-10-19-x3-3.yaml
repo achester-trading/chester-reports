@@ -1,0 +1,67 @@
+# The Alpha Lab's engine 6 as a hypothesis (X-3.3), for the register. The change
+# order's section 5 names it (docs/change-order-alpha-lab-2026-10-12.md, ruled 12
+# Oct 2026); alpha-lab-4 builds it (alpha/engines/reversion.py). Its every rule is
+# config/alpha_reversion.yaml's `spec`, quoted below by its sha256: the engine
+# refuses to run if the spec no longer hashes to it.
+#
+# NOT YET PRE-REGISTERED. A file in the repository is not a registration. On the
+# box, inside a window, the operator registers it BY MANIFEST before any backtest
+# -- the manifest is written first, and its instant is the pre_registered_at:
+#
+#   python -m alpha.manifest register alpha/research/roster-2026-10-19-x3-3.yaml
+#
+# The nightly harness then runs it: every bucket below its 30 formation prints
+# prints "awaiting (n=k of 30)", and nothing runs or is counted until the open
+# buckets hold the harness's sample.
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-19-roster-tranche-3-engine-6
+source: operator
+proposer: "the change order's Tranche 3 (section 5, X-3.3), built by session B"
+channel: workbench
+written_at: "2026-10-19T01:30:00-04:00"
+model_idea_rule: false
+inputs:
+  - "docs/change-order-alpha-lab-2026-10-12.md X-3.3 (ruled 12 Oct 2026)"
+  - "config/alpha_reversion.yaml spec (sha256 91100c551b3c30e55854d5905064ba9059bb6ba1d904c5ee513fe7b473a3a26e)"
+  - "config/alpha_costs.yaml"
+hypotheses:
+  - local_id: E-6
+    title: "A 2.5 sigma print fades where its own bucket's history reverses"
+    horizon_class: short
+    horizon_sessions: 20
+    family: reversion
+    mechanism: >-
+      The change order's X-3.3: "fade the 2.5 sigma prints whose own history
+      reverses, at the horizon the history says". An extreme one-session move
+      is partly liquidity -- forced selling or buying that overshoots -- and the
+      overshoot is given back once the forced flow is done. Whether a given
+      series' extremes reverse, and how fast, is a property of that series and
+      the side of the move, so each bucket is judged by its own history alone.
+    universe: "the price basket's tradeable symbols with a cost class in config/alpha_costs.yaml"
+    rule_text: >-
+      Per series and per sign of the print (the bucket): a print is a one-session
+      log change of the stored close at or beyond 2.5 sigma against its own
+      trailing 1,826 calendar days of changes (at least 500, population sd,
+      today's excluded) AS KNOWN AT its nightly decision -- never the move
+      screen's in-sample false-flag rate. A print completes when its 20 sessions
+      after are knowable. The bucket's formation sample is its first 30
+      completed prints; below 30 it prints "awaiting (n=k of 30)" and trades
+      nothing. Its horizon is the one of 1, 5, 10 and 20 sessions with the
+      highest share of formation prints at least half reversed (ties to the
+      shorter), frozen when the formation completes. It fades only prints
+      identified after that, and only where the frozen share is at least 0.5:
+      from the next session's open (else its close) to the close at the horizon,
+      no other stop (the cost model sets none). Costs: the lab's cost model at
+      the engine's capital, a round trip plus borrow, roll and funding.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      spec: config/alpha_reversion.yaml
+      spec_sha256: 91100c551b3c30e55854d5905064ba9059bb6ba1d904c5ee513fe7b473a3a26e
+      in_store: ["the price basket's stored closes (yfinance.mkt_<sym>) and opens where stored"]
+      gaps: ["altdata/move_screen.py's false-flag rate is in-sample and is not read"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 19 Oct 2026; not run on the box's store before registration."
+    engine: reversion
