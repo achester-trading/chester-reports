@@ -462,14 +462,21 @@ crypto flows block (at most 12 lines, a table in Positioning & flows) and the
 Monthly's network-health and data-layer rows, every Monthly row in the triple form
 with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
 
-**CD-12 (Tranche C; alpha-lab-4, 19 Oct 2026): SR-29 is not tracked.**
-bitcoin-data.com serves the long- and short-term-holder supply, and has no robots
-file. But its terms (14 Oct 2026) make the API a free-key service, so it is not
-keyless. `source_registry.yaml` `bitcoin_data` quotes both and is
-not_yet_sourced. `btcdata.lth_supply_share` is `tracked: false`. The Monthly and
-the addendum print "not tracked" with the key named. There is no by-hand line:
-rule 30 supersedes D-8's fallback. CD-11 (Dune) is not built: it needs a key in
-`.env`.
+**CD-12 (Tranche C; alpha-lab-4, 19 Oct 2026; ruling 2 of 19 Oct): SR-29 reads
+the operator's free key.** bitcoin-data.com serves the long- and short-term-holder
+supply and has no robots file; its terms (14 Oct 2026) make the API a free-key
+service and forbid redistribution, not the store (`source_registry.yaml`
+`bitcoin_data` quotes them). `altdata/sources/btcdata.py` reads
+`BITCOIN_DATA_API_KEY` from `.env`, sends it as a Bearer header, and writes
+`btcdata.lth_supply`, `.sth_supply`, `.supply_current` and
+`btcdata.lth_supply_share` (computed, LTH over current x 100), available at the
+pull. Its guard counts every request in a state file and refuses the 9th in an
+hour and the 16th in a day; no retry. One request per series a day, in the
+crypto basket's 17:25 run (no new timer, not on the external roster). Without the
+key it fetches nothing and the Monthly and the addendum print "not tracked
+(btcdata.lth_supply_share): no key in .env (BITCOIN_DATA_API_KEY)". No by-hand
+line (rule 30). CD-11 (Dune) stays unbuilt, a listed gap (ruling 3).
+`tools/validate_crypto_sources.py` group O holds it.
 
 **Item 49 and the addendum's Phase 2 (digital-49-51b, 17 Oct 2026).**
 `altdata/sources/treasury.py` stores three inputs:

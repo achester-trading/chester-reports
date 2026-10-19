@@ -13113,7 +13113,7 @@ metrics:
     not_tracked_reason: source retired
     description: >-
       D5, venue concentration: the top venue's share of reported volume. NOT TRACKED (source retired): its one input was CoinGecko's tickers, and CoinGecko is retired (rulings of 13 and 18 Oct 2026); no row is written, and the Monthly prints "not tracked (source retired)" with this key named.
-  btcdata.lth_supply_share:
+  btcdata.lth_supply:
     source: bitcoin_data
     mechanism_group: crypto_network
     native_horizon: daily
@@ -13121,20 +13121,54 @@ metrics:
     invalidated_by: none
     observation_type: observed
     revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 4y
+    description: >-
+      SR-29's input (CD-12): BTC held by long-term holders (coins last moved more than 155 days ago), bitcoin-data.com's /v1/long-term-hodler-supply-btc, BGeometrics credited. Read with the operator's free key (BITCOIN_DATA_API_KEY in .env; ruling 2 of 19 Oct 2026) by altdata/sources/btcdata.py in the crypto basket's daily run; available_at is the pull instant. No row until the key is there.
+  btcdata.sth_supply:
+    source: bitcoin_data
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 4y
+    description: >-
+      SR-29's companion (CD-12): BTC held by short-term holders (coins moved within 155 days), bitcoin-data.com's /v1/short-term-hodler-supply-btc, BGeometrics credited. Read with the operator's free key by altdata/sources/btcdata.py; available_at is the pull instant.
+  btcdata.supply_current:
+    source: bitcoin_data
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: month
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: recomputed
+    units: count
+    trigger_eligible: false
+    family: quantity
+    long_window: 4y
+    description: >-
+      SR-29's denominator (CD-12): BTC in circulation, bitcoin-data.com's /v1/supply-current, BGeometrics credited. Read with the operator's free key by altdata/sources/btcdata.py; available_at is the pull instant.
+  btcdata.lth_supply_share:
+    source: bitcoin_data
+    mechanism_group: crypto_network
+    native_horizon: daily
+    information_half_life: month
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
     units: percent_share
     trigger_eligible: false
     family: ratio
     long_window: 4y
-    tracked: false
-    not_tracked_reason: no keyless access within terms
     description: >-
-      SR-29, Bitcoin's long-term-holder supply as a share of circulating supply
-      (CD-12; decision D-8). NOT TRACKED: bitcoin-data.com serves the long- and
-      short-term-holder supply, but its terms (14 Oct 2026) make the API a free-key
-      service, so it is not keyless; a key in .env is the operator's decision. No
-      row is written, and no by-hand line is kept (rule 30 supersedes D-8's
-      by-hand fallback): the Monthly and the addendum print "not tracked" with
-      this key named.
+      SR-29, Bitcoin's long-term-holder supply as a share of the current supply (CD-12; decision D-8): btcdata.lth_supply over btcdata.supply_current x 100, computed by altdata/sources/btcdata.py on each day both are read, never a vendor ratio. The fetcher is built and reads its key from .env (BITCOIN_DATA_API_KEY, ruling 2 of 19 Oct 2026); until the key is there the series prints 'not tracked (btcdata.lth_supply_share): no key in .env (BITCOIN_DATA_API_KEY)'. No by-hand line (rule 30 supersedes D-8's fallback). Read in the Monthly's network-health block and the addendum's on-chain cell; SR-29's mechanism reads the 3-month change with price context, not the level.
   calc.prl_idle_gpu_flag:
     source: calc
     mechanism_group: crypto_network

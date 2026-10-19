@@ -79,6 +79,8 @@ class _NoSocket(socket.socket):
 socket.socket = _NoSocket                                       # type: ignore[misc]
 os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ["CHESTER_INBOX_DIR"] = str(TD / "inbox-none")
+# SR-29's key is never this gate's (an empty value is absent; the environment wins)
+os.environ["BITCOIN_DATA_API_KEY"] = ""
 
 
 def check(c, m: str) -> None:
@@ -386,10 +388,10 @@ def main() -> int:
     check(ca["Froth sample, Solana new pools 24h (unscored)"]["text"] == "awaiting the first pull",
           "the froth sample with no row says it awaits the first pull (ruling 4 of 17 Oct: "
           "GeckoTerminal's API is read, so no refusal is printed)")
-    check(ca["BTC long-term-holder supply share (SR-29)"]["text"].startswith(
-        "not tracked (btcdata.lth_supply_share): bitcoin-data.com's terms"),
-          "SR-29's row prints not tracked with its key named (CD-12: no keyless "
-          "source within terms; no by-hand line)")
+    check(ca["BTC long-term-holder supply share (SR-29)"]["text"]
+          == "not tracked (btcdata.lth_supply_share): no key in .env (BITCOIN_DATA_API_KEY)",
+          "SR-29's row prints not tracked with its key and the .env name (CD-12, ruling 2 "
+          "of 19 Oct 2026: the fetcher reads the free key; no by-hand line)")
     check(ca["Stablecoin supply, change on the week"]["text"] == "+$3.5bn",
           f"the stablecoin supply prints its week's change "
           f"({ca['Stablecoin supply, change on the week']['text']})")

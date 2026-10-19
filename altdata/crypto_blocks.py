@@ -44,11 +44,26 @@ log = logging.getLogger(__name__)
 REPO = Path(__file__).resolve().parent.parent
 TITLE_WEEKLY = "Crypto flows"
 NOT_TRACKED = "not tracked"
-# SR-29 (CD-12, 19 Oct 2026): no keyless source within terms serves it, and rule
-# 30 supersedes D-8's by-hand fallback.
-SR29_NOT_TRACKED = ("not tracked (btcdata.lth_supply_share): bitcoin-data.com's terms "
-                    "(last updated 14 Oct 2026) make its API a free-key service, so it "
-                    "is not keyless; no by-hand line (rule 30)")
+# SR-29 (CD-12; ruling 2 of 19 Oct 2026): bitcoin-data.com with the operator's free
+# key (altdata/sources/btcdata.py). The fetcher is built and reads its key from
+# .env; until the key is there the series prints not tracked. Rule 30 supersedes
+# D-8's by-hand fallback, so there is no by-hand line.
+SR29_KEY = "btcdata.lth_supply_share"
+SR29_KEY_ENV = "BITCOIN_DATA_API_KEY"
+SR29_NOT_TRACKED = f"not tracked ({SR29_KEY}): no key in .env ({SR29_KEY_ENV})"
+SR29_AWAITING = f"awaiting the first pull ({SR29_KEY}; the key is in .env)"
+SR29_CREDIT = "source: BGeometrics (bitcoin-data.com)"
+
+
+def sr29_absent() -> str:
+    """What SR-29 prints with no row knowable: not tracked without the key,
+    awaiting the first pull with it. The key's presence only; never its value."""
+    from altdata import secrets                                 # noqa: PLC0415
+    try:
+        have = secrets.present(SR29_KEY_ENV)
+    except Exception:                                         # noqa: BLE001
+        have = False
+    return SR29_AWAITING if have else SR29_NOT_TRACKED
 
 
 def _cfg() -> dict:
@@ -296,7 +311,13 @@ def monthly_mechanics(st, now: str) -> dict:
     lines.append("ETH supply and burn: not tracked -- Etherscan's ethsupply2 needs "
                  "ETHERSCAN_API_KEY, not registered; no keyless source within robots "
                  "serves it (Blockscout's figure disagrees with the known supply).")
-    lines.append(f"BTC long-term-holder supply (SR-29): {SR29_NOT_TRACKED}.")
+    sr29 = dual_row(st, SR29_KEY, now, "BTC long-term-holder supply share (%), SR-29")
+    if sr29:
+        rows.append(sr29)
+        lines.append(f"BTC long-term-holder supply (SR-29): read the 3-month change with "
+                     f"price context, not the level; {SR29_CREDIT}.")
+    else:
+        lines.append(f"BTC long-term-holder supply (SR-29): {sr29_absent()}.")
     return {"title": "Crypto network health", "table": {"columns": DUAL_COLUMNS,
                                                          "rows": rows},
             "lines": lines, "not_tracked": nt, "paragraph_wanted": False}

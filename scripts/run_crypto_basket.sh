@@ -62,6 +62,8 @@ step farside "$PY" -m altdata.sources.farside
 step gt     "$PY" -m altdata.sources.gt
 step paprika "$PY" -m altdata.sources.paprika
 step treasury "$PY" -m altdata.sources.treasury
+# SR-29 (CD-12): bitcoin-data.com, with the free key from .env; without it, nothing fetched
+step btcdata "$PY" -m altdata.sources.btcdata
 step s1_s3  "$PY" -m altdata.sources.crypto_derived
 step derive "$PY" -m altdata.crypto_basket derive
 # ST-13 (ruling 3 of 18 Oct 2026; no new timer): the PRL explorer read, a weekly

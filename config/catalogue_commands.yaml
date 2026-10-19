@@ -318,6 +318,10 @@ commands:
     domain: crypto
     line: The mechanism-watch register -- review | render; promote | reject write only with the operator's --confirm (ST-15)
     sources: [calc]
+  altdata.sources.btcdata:
+    domain: crypto
+    line: bitcoin-data.com (BGeometrics) -- BTC long- and short-term-holder supply and SR-29's share, with the operator's free key from .env; `budget` prints the requests spent (CD-12)
+    sources: [bitcoin_data]
   altdata.sources.fng:
     domain: crypto
     line: alternative.me's Crypto Fear & Greed Index, full history (Tranche A, CD-5)
