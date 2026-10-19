@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from altdata import observations, session
-from daily_cascade import readability
+from daily_cascade import audit_retry, readability
 
 from .narrative import TEMPLATE_PATH
 
@@ -1122,33 +1122,44 @@ def direction_faults(text: str, sec: dict, ed: dict) -> list[str]:
 # API call failed, a payload past its guard, an empty reply, a reply that overran
 # its length. Only an AUDIT's refusal is retried.
 #
-# THREE ATTEMPTS FOR EVERY SECTION (T3.3 item 4, the second box dry run): the
-# first, and two retries, each with the audit's reason fed back. Where the draft
-# ran over the figure cap the retry says exactly how far, in one fixed sentence
-# (CAP_RETRY) -- the 10 Oct retries were told only "at most 8" and came back over
-# it again. The caps themselves are not raised.
-ATTEMPTS = 3
+# ONE REVISION, THE STACK'S (the a47 chain, 19 Oct 2026; weekly-fixes-9's ruling
+# 1): the draft, then one revision told the rule it broke, the failing span and
+# the draft itself (audit_retry.revision_note), as the stack, the precis, the
+# close and the anchor are; a second failure is withheld with both reasons kept.
+# T3.3's three attempts are retired with it. Where the draft ran over the figure
+# cap the revision still says exactly how far, in one fixed sentence (CAP_RETRY)
+# -- the 10 Oct retries were told only "at most 8" and came back over it again.
+# The caps themselves are not raised.
+ATTEMPTS = audit_retry.ATTEMPTS
 CAP_RETRY = "your draft cited {n} figures; the cap is {m}; remove figures, keep the reading"
 
 
 def retry_prompt(system: str, prev: dict, sl: Optional[dict] = None) -> str:
-    """The prompt for the next attempt: the frame, the audit's reason, and --
-    when the draft ran over the cap -- the count and the cap; after the
-    numeral audit, the figures it refused and those `sl` allows (T3.5)."""
-    out = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS WITHHELD BY THE "
-           "AUDIT: " + str(prev.get("reason"))[:600])
+    """The prompt for the one revision: the frame, then the stack's revision note
+    (the withhold and the rule it broke, the failing span, the draft), with this
+    writer's own lines beside the rule -- the words refused, the count against the
+    cap, and after the numeral audit the figures it refused and those `sl` allows
+    (T3.5). Without a draft, the note and the lines, and the old closing line."""
+    note = audit_retry.revision_note(str(prev.get("reason")), prev.get("rejected_text"))
+    note = note.replace("YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1)
+    extra = ""
     if prev.get("vocab_words"):
-        out += "\n" + VOCAB_RETRY.format(
+        extra += "\n" + VOCAB_RETRY.format(
             words=", ".join(f'"{w}"' for w in prev["vocab_words"]), rule=VOCAB_RULE)
     if prev.get("figures_over"):
         n, m = prev["figures_over"]
-        out += "\n" + CAP_RETRY.format(n=n, m=m)
+        extra += "\n" + CAP_RETRY.format(n=n, m=m)
     if prev.get("unmatched"):
-        out += "\n" + FIGURE_RETRY.format(
+        extra += "\n" + FIGURE_RETRY.format(
             figures=", ".join(f'"{f}"' for f in prev["unmatched"][:12]),
             allowed=allowed_figures(sl) or "none -- write the reading without figures")
-    return out + ("\nWrite it again from the same data, fixing exactly that and "
-                  "changing nothing else.")
+    # The writer's own lines sit with the rule, before the note's closing line
+    # (and so before the span and the draft).
+    for cut in ("\nWrite it again from the same data", "\nTHE FAILING SPAN"):
+        if cut in note:
+            head, tail = note.split(cut, 1)
+            return system + head + extra + cut + tail
+    return system + note + extra
 
 
 # THE RETRY NAMES THE FIGURES (T3.5 (b), as W-1.1's did for the Weekly): after the
@@ -1192,8 +1203,8 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
               ed: Optional[dict] = None,
               secs: Optional[list[dict]] = None) -> dict:
     """{section key: result}, one audited call each -- and, for a section the
-    audit withholds, up to two retries (ATTEMPTS, T3.3) with the audit's reason
-    fed back (T3: the stack's retry, extended to the Monthly's section writer).
+    audit withholds, one revision (ATTEMPTS, the stack's: the rule, the failing span
+    and the draft fed back; audit_retry.revision_note). Withheld on a second failure.
     Never raises.
 
     With `ed` (the stacked edition, monthly_macro.stack), the stack's own
@@ -1306,20 +1317,26 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             continue
         system = sec.get("system") or system_prompt(sec["title"], sec["scope"],
                                                     sec["paragraphs"])
-        # THE RETRIES (Reader's Guide 5.3; three attempts from T3.3): the audit's
-        # reason goes back with the instruction to fix exactly that; a third
-        # failure is withheld as before, with every reason kept.
+        # THE ONE REVISION (Reader's Guide 5.3; the stack's since the a47 chain):
+        # the audit's rule, span and draft go back with the instruction to fix
+        # exactly that; a second failure is withheld, with both reasons kept.
         res = {**attempt(sec, system), "attempts": 1}
         reasons = [res.get("reason")]
+        audit_retry.log_attempt("monthly", sec["key"], 1, res["published"],
+                                res.get("reason"), res.get("rejected_text"))
         while (not res["published"] and not _not_retried(res)
                and res["attempts"] < ATTEMPTS):
             res = {**attempt(sec, retry_prompt(system, res, sec.get("slice"))),
                    "attempts": res["attempts"] + 1}
             reasons.append(res.get("reason"))
+            audit_retry.log_attempt("monthly", sec["key"], res["attempts"],
+                                    res["published"], res.get("reason"),
+                                    res.get("rejected_text"))
         # TOO LONG IS RETRIED ONCE, TIGHTER (T3.6 M8): the Ahead summary failed
         # "too_long" on its only attempt -- the length was never fed back. One
-        # more call, told the cap it overran and a tighter one to write to.
-        if res.get("state") == "too_long" and res["attempts"] < ATTEMPTS + 1:
+        # more call, told the cap it overran and a tighter one to write to; it is
+        # the one revision, so a too-long revision is not called a third time.
+        if res.get("state") == "too_long" and res["attempts"] < ATTEMPTS:
             cap = int(round(int(sec.get("max_chars") or SECTION_MAX_CHARS) * TIGHTER))
             res = {**attempt(sec, system + "\n\n" + TOO_LONG_RETRY.format(
                 n=int(sec.get("max_chars") or SECTION_MAX_CHARS), cap=cap)),
