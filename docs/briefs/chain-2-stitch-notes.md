@@ -1,4 +1,4 @@
-STITCH PENDING CI
+STITCH COMPLETE e0a8cc0 2026-10-19 12:49 ET
 
 # chain-2: the second chain stitched into one branch (session A, 19 Oct 2026)
 
@@ -229,7 +229,11 @@ Every other gate is CI's.
 
 **CI.**
 
-CI-TABLE
+| Run | Commit | Result |
+|---|---|---|
+| 39205188783 | `5722fb1` (the stitch) | failure: six gates where the two lines meet (round 1 above) |
+| 39207080387 | `abf6b7d` (CI round 1) | failure: three gates (round 2 above) |
+| **39286575408** | **`e0a8cc0` (CI round 2 and the rulings of 19 Oct)** | **success: 128 of 128 jobs, every code gate and the gates-passed summary** |
 
 ## Containment
 
