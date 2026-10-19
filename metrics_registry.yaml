@@ -11833,6 +11833,110 @@ metrics:
     trigger_eligible: false
     description: >-
       Italy (BTP) 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.IT.L.L40.CI.0000.EUR.N.Z). observed_at = the month's first day. One method across the three, so the OAT-Bund and BTP-Bund spreads compare like with like.
+  ecb.irs_10y_gr:
+    source: ecb
+    mechanism_group: foreign_rates
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Greece 10-year government bond yield, PERCENT, monthly average: the ECB's long-term interest rate for convergence purposes (IRS.M.GR.L.L40.CI.0000.EUR.N.Z), from October 1992. observed_at = the month's first day. The leg of the Greece-Bund watch spread beside OAT-Bund (ST-R4.21a, Batch 5 item 21): same method as the three, untiered. Optional in the pull: its absence never stops the three SR-30 legs.
+  census.vip_data_center:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), private "Data center" (under Office), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2014 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Blank before 2014, skipped, never zero. August 2026: 84,950 (preliminary). ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
+  census.vip_private_nonresidential:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), private "Nonresidential", MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. The denominator of the data-center share. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
+  census.vip_total:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), "Total Construction" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 1993 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Less census.vip_data_center, the ex-data-center line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
+  census.vip_power:
+    source: census_vip
+    mechanism_group: macro_momentum
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Census construction spending (VIP, value put in place), "Total Power" (private + public), MILLIONS of dollars, seasonally adjusted annual rate, monthly, from January 2002 (census.gov/construction/c30/xlsx, checked 16 Oct 2026). observed_at = the month's first day; Census revises the latest two months and benchmarks annually. Read from 2002: the workbook's footnote says detailed types are not available before, and those cells print 0. The XII power-buildout disagreement note's line. ST-R4.23a (Batch 5 item 23), deflated by fred.ppi_construction; no rights until the Disruptive Themes refresh. The writer is altdata/sources/census_vip.py, live from the D1c ruling of 16 Oct 2026.
+  cboe.cor1m:
+    source: cboe_indices
+    mechanism_group: market_close
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      Cboe S&P 500 1-Month Implied Correlation Index (COR1M), POINTS, the daily CLOSE from Cboe's history file (cdn.cboe.com/api/global/us_indices/daily_prices/COR1M_History.csv, checked 16 Oct 2026), from 3 Jan 2006. 10.07 on 16 Oct 2026. Read first by altdata/batch5b.py's dispersion panel (ST-R4.18a), Yahoo's key the fallback. Written by altdata/sources/cboe_indices.py (live under the D1c ruling of 16 Oct 2026); the whole history carries the first pull's Last-Modified.
+  cboe.cor3m:
+    source: cboe_indices
+    mechanism_group: market_close
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      Cboe S&P 500 3-Month Implied Correlation Index (COR3M), POINTS, the daily CLOSE from Cboe's history file (COR3M_History.csv), from 3 Jan 2006. 13.98 on 16 Oct 2026. Read first by altdata/batch5b.py's dispersion panel (ST-R4.18a), Yahoo's key the fallback. Written by altdata/sources/cboe_indices.py (live under the D1c ruling of 16 Oct 2026); the whole history carries the first pull's Last-Modified.
+  cboe.dspx:
+    source: cboe_indices
+    mechanism_group: market_close
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: vol_index
+    trigger_eligible: false
+    description: >-
+      Cboe S&P 500 Dispersion Index (DSPX), POINTS (an implied-volatility measure, so vol_index), daily, from Cboe's history file (DSPX_History.csv), from 19 Jun 2014. 37.04 on 15 Oct 2026. Read first by altdata/batch5b.py's dispersion panel (ST-R4.18a), Yahoo's key the fallback. Written by altdata/sources/cboe_indices.py (live under the D1c ruling of 16 Oct 2026); the whole history carries the first pull's Last-Modified.
   nbs.city70_new_mm_down:
     source: nbs
     mechanism_group: macro_momentum
@@ -13830,13 +13934,19 @@ bulk_imports:
     members_from: altdata.config.FRED_SIGNAL_SERIES
     member_key: key
     key_prefix: "fred."
-    expected_members: 64   # + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
+    expected_members: 67   # + PPIDCS and the two GDP contributions (ST-R4.23a, 22b; session B, the union at chain-2) + FEDTARMD (ST-4, st-t1-rest, 18 Oct 2026) + GTM-12's six (A091RC1Q027SBEA, FDEFX, FYOINT, FYONET, FYFSD, FYFSGDA188S; the GTM batch, part 2, 17 Oct 2026) + the GTM batch's five (B235RC1Q027SBEA, BOPGIMP, TDSP, CDSP, MDSP; 17 Oct 2026) + EXPINF10YR, the G7 CLI, fourteen HICP legs and three EM 10-years (ST-R5.42a/43a/39a) + T5YIE (6d) + SOFR, IORB (T2.3) + DFII5 (batch 3, ST-B3-02) + the two EM OAS (SR-46; its six EM currencies are AQ-3's FX-scan and Thailand keys) + AAA and euro HY OAS (ST-R5.41a) + the Z.1 equity share and financial assets (ST-R5.30a) + WPSFD49116 and ULCNFB (ST-R5.35a)
     member_units:
       fred.hh_equity_share: percent_share
       fred.dsr_household: percent_share
       fred.dsr_consumer: percent_share
       fred.dsr_mortgage: percent_share
       fred.fy_deficit_gdp: percent_share
+      # ST-R4.22b (16 Oct 2026): BEA's contributions to real GDP growth are
+      # percentage points of a growth rate, quoted "%" by FRED; their change
+      # prints in pp, never bp (AUD-3a's rule for shares and rates of change).
+      # One member_units map with session A's (a second key would replace it).
+      fred.contrib_info_equipment: percent_return
+      fred.contrib_software: percent_return
     units: from_member
     native_horizon: from_member
     information_half_life: until_next_release
@@ -14052,7 +14162,14 @@ bulk_imports:
       yfinance.mkt_vvix: vol_index
       yfinance.mkt_move: vol_index
       yfinance.mkt_skew: index_points
-    expected_members: 111   # + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+      # ST-R4.18a (Batch 5 item 18, 16 Oct 2026): Cboe's dispersion index is an
+      # implied-volatility spread in vol points, like the VIX; the two implied-
+      # correlation indexes are levels on 0-100 whose percent change means
+      # nothing. All three move in points.
+      yfinance.mkt_dspx: vol_index
+      yfinance.mkt_cor1m: index_points
+      yfinance.mkt_cor3m: index_points
+    expected_members: 115   # + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -14069,6 +14186,8 @@ bulk_imports:
       BTC-USD), keyed yfinance.mkt_<sym>_open / _high / _low, so the tape's daily
       frames and the Weekly's candles read the store and the bars table holds
       intraday only. Same basis as the close: split-adjusted, dividend-unadjusted.
+      ST-R4.27a (Batch 5 item 27, 16 Oct 2026) adds TLT and ZN=F, whose open
+      splits a Treasury move into its overnight and session legs.
     source: yfinance
     members_from: altdata.sources.yfinance_source.OHLC_KEYS
     members_are: values
@@ -14082,7 +14201,7 @@ bulk_imports:
       yfinance.mkt_tyx_open: percent_rate
       yfinance.mkt_tyx_high: percent_rate
       yfinance.mkt_tyx_low: percent_rate
-    expected_members: 9
+    expected_members: 11
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -14125,7 +14244,7 @@ bulk_imports:
     members_from: altdata.sources.yfinance_source.VOLUME_CONTRACT_KEYS
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 5
+    expected_members: 6   # GC=F CL=F HG=F RB=F HO=F + ZN=F (Batch 5 item 27)
     key_prefix: yfinance.
     units: count
     native_horizon: daily
@@ -14240,7 +14359,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 111   # + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 115   # + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily

@@ -537,6 +537,17 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     subs = gtm_block.place_mechanics(
         subs, gtm_block.mechanics_subsections(st, now, "monthly"),
         after_panel=fcf["title"] if fcf else None)
+    # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
+    from daily_cascade import batch5_block                       # noqa: PLC0415
+    sb = batch5_block.mechanics_subsection(st, now)
+    if sb:
+        subs.append(sb)
+    # BATCH 5 ITEMS 18 AND 19 (ST-R4.18a, 19a), in Mechanics; the vol divergence
+    # line joins the read's items when the flag is active.
+    from daily_cascade import batch5b_block                      # noqa: PLC0415
+    subs += batch5b_block.mechanics_subsections(st, now)
+    items += [item(iid, text, 1, val)
+              for iid, text, val in batch5b_block.read_items(st, now)]
     extra = {**({"ai_fcf": fcf_data} if fcf_data else {}),
              **({"ai_revisions": rv_data} if rv_data else {})}
     return {"items": items, "print_items": False,
@@ -850,7 +861,9 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     # SIGNAL-TRIAGE BATCH 3, TRANCHE A: the Weekly's batch-3 sub-sections over
     # the month, and the Rate and Liquidity Machine's lever table (SR-33).
     from daily_cascade import batch3_block                      # noqa: PLC0415
-    b["subsections"] = subs + keep + batch3_block.monthly_subsections(st, now, then)
+    from daily_cascade import batch5_block                      # noqa: PLC0415
+    b["subsections"] = (subs + keep + batch3_block.monthly_subsections(st, now, then)
+                        + batch5_block.plumbing_subsections(st, now, then, "monthly"))
     # SIGNAL-TRIAGE BATCH 6: the rates-transmission cluster, one header, last.
     from daily_cascade import rates_transmission_block          # noqa: PLC0415
     rt_sub = rates_transmission_block.subsection(st, now, "monthly")
@@ -1784,6 +1797,18 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         subs[-1]["not_tracked"].append(
             "the scans' sourced figures: no scan ingested by this edition's cutoff")
     subs += src_subs
+    # FACTOR I, THE REAL ECONOMY (ST-R4.23a, Batch 5 item 23): construction
+    # spending, real -- data centers and the rest. No rights until the
+    # Disruptive Themes refresh; held until D1c, it prints why.
+    if st is not None and now:
+        from daily_cascade import batch5_block                   # noqa: PLC0415
+        con = batch5_block.slow_subsection(st, now)
+        if con:
+            subs.append(con)
+        # BATCH 5 ITEM 22 (ST-R4.22a, 22b): the expansion's age with the post-war
+        # hazard, and Factor I's information-processing dependency line.
+        from daily_cascade import batch5b_block                  # noqa: PLC0415
+        subs += batch5b_block.slow_subsections(st, now)
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]

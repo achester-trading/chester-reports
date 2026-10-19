@@ -227,6 +227,17 @@ SYMBOLS: dict[str, str] = {
     "EURCHF=X": "mkt_eurchf",
     "^VVIX": "mkt_vvix",
     "^SKEW": "mkt_skew",
+    # ST-R4.18a (Batch 5 item 18, 16 Oct 2026): the dispersion panel. Cboe's S&P
+    # 500 Dispersion Index (^DSPX, daily on Yahoo from 22 May 2024) and the 1- and
+    # 3-month implied-correlation indices. CHECKED 16 Oct 2026: Yahoo serves
+    # ^COR1M and ^COR3M as today's quote only (period "1d"/"5d"; no history), so
+    # their history is what the daily pull accumulates from its first run, and the
+    # panel prints its real n. ST-R4.27a: ZN=F, the 10-year note front future,
+    # for the overnight-vs-session split beside TLT (both in OHLC_SYMBOLS).
+    "^DSPX": "mkt_dspx",
+    "^COR1M": "mkt_cor1m",
+    "^COR3M": "mkt_cor3m",
+    "ZN=F": "mkt_zn_front",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
     # computes each position's beta against SPY from stored daily returns, and a
     # name the store does not carry has no beta -- the gate then DELAYS rather than
@@ -355,8 +366,12 @@ CONTINUOUS_SYMBOLS = CONTINUOUS_SYMBOLS | frozenset(CRYPTO_BASKET)
 # series for every symbol; for these nine the open, high and low are stored beside
 # it as `yfinance.<key>_open` / `_high` / `_low`, so the tape's daily frames and
 # the Weekly's candles (W1, W2) read the store and the bars table stays intraday.
+# ST-R4.27a (Batch 5 item 27, 16 Oct 2026) adds TLT and ZN=F: the overnight
+# (open less the prior close) and session (close less open) legs of a Treasury
+# move are read from their daily open (altdata/batch5b.py).
 OHLC_SYMBOLS: frozenset[str] = frozenset({"SPY", "QQQ", "IWM", "^TNX", "^TYX",
-                                          "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD"})
+                                          "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD",
+                                          "TLT", "ZN=F"})
 OHLC_SUFFIXES = ("_open", "_high", "_low")
 # symbol -> store key, for the registry's market_ohlc block.
 OHLC_KEYS: dict[str, str] = {s: SYMBOLS[s] for s in sorted(OHLC_SYMBOLS)}
@@ -378,7 +393,9 @@ OHLC_KEYS: dict[str, str] = {s: SYMBOLS[s] for s in sorted(OHLC_SYMBOLS)}
 # any symbol, because 0 is the source saying it has none, not a session in which
 # nothing traded.
 # AQ-3 added RB=F and HO=F (the crack; Friday stitching).
-VOLUME_FUTURES: frozenset[str] = frozenset({"GC=F", "CL=F", "HG=F", "RB=F", "HO=F"})
+# ST-R4.27a added ZN=F (16 Oct 2026).
+VOLUME_FUTURES: frozenset[str] = frozenset({"GC=F", "CL=F", "HG=F", "RB=F", "HO=F",
+                                            "ZN=F"})
 # Every crypto pair in the basket (AQ-5 added ETH, SOL and ZEC; Friday stitching).
 VOLUME_USD: frozenset[str] = frozenset({"BTC-USD", "ETH-USD", "SOL-USD", "ZEC-USD"})
 

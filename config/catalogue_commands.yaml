@@ -21,6 +21,12 @@ commands:
   altdata.basis_proxy:
     domain: rates
     line: THE TREASURY BASIS-TRADE PROXY AND ITS CALIBRATION LEDGER
+  altdata.batch5:
+    domain: rates
+    line: 'Batch 5 Tranche 1: the term premium printed, the fiscal-bark and stock-bond flags, net liquidity attributed, construction spending real'
+  altdata.batch5b:
+    domain: rates
+    line: 'Batch 5 Tranche 1, part 2: the dispersion panel, the MOVE-VIX divergence flag, the expansion age and Factor I line, Treasury moves overnight against the session'
   altdata.benchmark:
     domain: portfolio
     line: Book Z -- the benchmark ledgers
@@ -182,6 +188,14 @@ commands:
     domain: rates
     line: Bundesbank -- the 10-year and 2-year Bund yields, daily, from the Bundesbank's open data API
     sources: [bundesbank]
+  altdata.sources.census_vip:
+    domain: macro
+    line: 'Census construction spending (VIP) -- data centers, private nonresidential, power and total, monthly SAAR'
+    sources: [census_vip]
+  altdata.sources.cboe_indices:
+    domain: options
+    line: "Cboe's daily history files: COR1M, COR3M (implied correlation) and DSPX (dispersion), from 2006 and 2014"
+    sources: [cboe_indices]
   altdata.sources.cfets:
     domain: china
     line: CFETS / China Money -- the USD/CNY central parity and the CGB 10-year and 2-year yields
@@ -207,7 +221,7 @@ commands:
     line: Earnings dates, estimates and the real surprise, from yfinance
   altdata.sources.ecb_irs:
     domain: rates
-    line: 'ECB data portal -- the euro-area long-term interest rates: Bund, OAT, BTP, monthly'
+    line: 'ECB data portal -- the euro-area long-term interest rates: Bund, OAT, BTP and Greece, monthly'
     sources: [ecb]
   altdata.sources.edgar:
     domain: events

@@ -483,6 +483,37 @@ class NarrativeRegister:
                      defn["prediction_market_contracts"], defn["implied_outcome"],
                      defn["story_query"], cfg.get("version"), now, nid))
                 out["synced"].append(nid)
+        # COMMITTED PROPOSALS (ruling (c), 16 Oct 2026: judgment drafts are
+        # committed by the session as drafted; the register's confirm step stays
+        # the operator's). A `proposals:` entry enters as `proposed`, emerging,
+        # never evaluated, and waits for `confirm` like a model proposal. Inserted
+        # once and never synced after: once in the register it is the operator's.
+        for nid, spec in (cfg.get("proposals") or {}).items():
+            spec = spec or {}
+            if self.get(nid) is not None:
+                continue
+            errs = validate_config_story(nid, spec, dims=dims, queries=queries)
+            if not str(spec.get("proposed_by") or "").strip():
+                errs.append("no proposed_by -- a proposal records who made it")
+            if errs:
+                out["refused"][nid] = errs
+                log.warning("narrative proposal %s not written: %s", nid,
+                            "; ".join(errs))
+                continue
+            defn = _definition_columns(spec)
+            self.conn.execute(
+                "INSERT INTO narratives (narrative_id, name, status, state, "
+                " direction, opened, last_changed, linked_dimensions, "
+                " linked_instruments, prediction_market_contracts, "
+                " implied_outcome, story_query, origin, proposed_at, proposed_by, "
+                " proposal_basis, config_version, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (nid, defn["name"], "proposed", "emerging", defn["direction"],
+                 None, None, defn["linked_dimensions"], defn["linked_instruments"],
+                 defn["prediction_market_contracts"], defn["implied_outcome"],
+                 defn["story_query"], "config_proposal", now,
+                 str(spec["proposed_by"]), "[]", cfg.get("version"), now, now))
+            out.setdefault("proposed", []).append(nid)
         self.conn.commit()
         return out
 
@@ -588,6 +619,12 @@ def _definition_columns(spec: dict) -> dict:
 # ===========================================================================
 # 6c-2.2 -- STATE TRANSITIONS ON DECLARED RULES
 # ===========================================================================
+def story_spec(cfg: dict, nid: str) -> dict:
+    """A story's definition: a seed's, or a committed proposal's (below)."""
+    return ((cfg.get("narratives") or {}).get(nid)
+            or (cfg.get("proposals") or {}).get(nid) or {})
+
+
 def rules_version(cfg: dict, nid: str) -> str:
     """A hash of everything that decides this story's transitions.
 
@@ -599,7 +636,7 @@ def rules_version(cfg: dict, nid: str) -> str:
     """
     import hashlib  # noqa: PLC0415
     from . import source_tiers  # noqa: PLC0415
-    spec = (cfg.get("narratives") or {}).get(nid)
+    spec = story_spec(cfg, nid) or None
     # THE SOURCE TIERS ARE PART OF THE RULE (Weekly edition 1, item 5): which
     # headlines count decides attention and evidence, so a reclassified outlet is
     # a declared rule change and the replay does not compare across it.
@@ -1006,7 +1043,7 @@ def evaluate(session_day: Optional[str] = None, as_of: Optional[str] = None, *,
             out["seeded"] = reg.seed(cfg)
             for row in reg.all("active"):
                 nid = row["narrative_id"]
-                spec = (cfg.get("narratives") or {}).get(nid) or {}
+                spec = story_spec(cfg, nid)
                 if reg.conn.execute(
                         "SELECT 1 FROM narrative_evaluations WHERE narrative_id=? "
                         " AND session=?", (nid, day)).fetchone():
@@ -1060,7 +1097,7 @@ def evaluate(session_day: Optional[str] = None, as_of: Optional[str] = None, *,
             out["hypotheses"] = {}
             for row in reg.all("active"):
                 nid = row["narrative_id"]
-                spec = (cfg.get("narratives") or {}).get(nid) or {}
+                spec = story_spec(cfg, nid)
                 if spec.get("hypotheses") and not (row.get("opened")
                                                    and row["opened"] > day):
                     out["hypotheses"][nid] = emit_hypotheses(
@@ -1422,7 +1459,7 @@ def replay(db_path: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
                     out["other_version"] += 1
                     continue
                 row = reg.get(nid) or {}
-                spec = (cfg.get("narratives") or {}).get(nid) or {}
+                spec = story_spec(cfg, nid)
                 obj = regime.latest(as_of=r["cutoff"], store=store)
                 inputs = compute_inputs(nid, spec, row, r["session"], r["cutoff"],
                                         cfg, ev_conn=ev.conn, obj=obj, store=store)

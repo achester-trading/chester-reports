@@ -262,6 +262,18 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
                                              cards, computed_dir)
         subs += dealer_add["subsections"]
         nt += dealer_add["not_tracked"]
+    # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24): the stock-bond correlation,
+    # 60 days beside two years, its flag conditioned on the attribution.
+    from . import batch5_block                                  # noqa: PLC0415
+    sb = batch5_block.mechanics_subsection(st, cutoff)
+    if sb:
+        subs.append(sb)
+    # BATCH 5 ITEMS 18 AND 19 (ST-R4.18a, 19a): the dispersion panel and the
+    # cross-asset vol divergence flag, with a line in the read when it is active.
+    from . import batch5b_block                                 # noqa: PLC0415
+    subs += batch5b_block.mechanics_subsections(st, cutoff)
+    for iid, text, val in batch5b_block.read_items(st, cutoff):
+        items.append(item(iid, text, 1, val))
     # THE ES BLOCK'S WEEKLY PANEL (ST-R6.45d, Batch 6 item 45): the position
     # window (three months on daily bars) and the week's ES ledger -- levels
     # held, broke or untested, leans resolved or not. Tables only.
@@ -612,6 +624,10 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     cur = t1_rest_block.currencies_lines(st, now)
     if cur:
         subs[0]["lines"] = list(subs[0].get("lines") or []) + cur
+    # BATCH 5 TRANCHE 1 (ST-R4.21b, 26a, 17a): the attribution's term premium
+    # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
+    from . import batch5_block                                  # noqa: PLC0415
+    subs += batch5_block.plumbing_subsections(st, now, then, cadence)
     # NO BULLETS (T2.2 item 6): the table carries every figure and the prose
     # reads from it; the items stay as the section's data and its change marks.
     return {"items": items, "print_items": False,
@@ -962,6 +978,16 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
+    # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
+    # under the CFTC table and SR-36's line -- a co-signal of the Japan
+    # slow-money set and of SR-36's unwind watch, never a flag of its own. The
+    # Weekly's only, like the 10A blocks: the Monthly's Positioning keeps its
+    # five read blocks (T3.1 item 10).
+    if cadence == "weekly":
+        from . import batch5b_block                             # noqa: PLC0415
+        on = batch5b_block.positioning_subsection(st, now)
+        if on:
+            out.append(on)
     si = [[f"{sym} days to cover", f"{data[f'finra:{sym}']['level']:,.2f}",
            _change(data[f"finra:{sym}"]), data[f"finra:{sym}"]["observed_at"]]
           for sym in ("SPY", "QQQ", "IWM") if data.get(f"finra:{sym}")]

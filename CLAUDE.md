@@ -106,10 +106,10 @@ numerals were reassigned once already and every in-text numeral broke.
 altdata/                  Shared ingestion package — used by every report
   config.py               Series registry: 59 SeriesSpec entries (key, fred_id,
                           description, pillar, units, freq) in FRED_SERIES, the
-                          Monthly's set; 64 more in FRED_SIGNAL_SERIES (ST-1/2),
+                          Monthly's set; 67 more in FRED_SIGNAL_SERIES (ST-1/2),
                           pulled and freshness-watched; 43 in five smaller
                           lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12,
-                          Thailand 1); FRED_PULL_SERIES, 166, is the union the
+                          Thailand 1); FRED_PULL_SERIES, 169, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred on; eia/cftc/
                           coingecko off)
@@ -125,7 +125,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    111 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    115 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -598,6 +598,39 @@ panel and the week's ledger, in the Weekly. Each printed level and lean goes to
 the `es_ledger` table and is scored on the next session by
 `config/es_block.yaml`'s session-set rules. Report only. The dealer levels in ES
 (ST-R6.45c) wait for the 6b engine. `tools/validate_es_block.py` holds it on
+fixtures.
+
+**The 10-year attribution is the arbiter, and Batch 5 builds on it first (ST-R4,
+Tranche 1 part 1, 16 Oct 2026).** `altdata/batch5.py` reads the store as of the
+cutoff and decides nothing: ACM's term premium with dual percentiles that print
+their n and real window (21b); the fiscal-bark flag, the term premium's share of
+the six-month move with its divergence from the expected short rate (26a); SR-9's
+60-day stock-bond correlation beside a two-year weekly window, its flag's strength
+conditioned on the attribution (24); net liquidity's 4- and 13-week changes split
+by leg in dollars (17a); and construction spending, real (23a). Greece-Bund rides
+SR-30's table, untiered (`ecb.irs_10y_gr`). `daily_cascade/batch5_block.py` prints
+them in Plumbing, Mechanics and the Monthly's slow layers, tables and lines only.
+The Census writer `altdata/sources/census_vip.py` is live from the D1c ruling of
+16 Oct 2026 (WAL and the busy timeout suffice for an append-only writer).
+The thresholds are `config/batch5_tranche_1.yaml`'s, all session-set.
+`tools/validate_st_r4_t1.py` holds it on fixtures.
+
+**Batch 5's Tranche 1 ends with two top-side tells, a base rate and a co-signal
+(ST-R4, Tranche 1 part 2, 16 Oct 2026).** `altdata/batch5b.py` reads the store as
+of the cutoff and decides nothing: the dispersion panel, Cboe's DSPX, COR1M and
+COR3M with dual percentiles and a "dispersion regime: high or low" flag (18a;
+the history is Cboe's daily files, read by `altdata/sources/cboe_indices.py` from
+2006 for the COR indices and 2014 for DSPX, with Yahoo's pull the fallback, and
+the constituent fallback prints "awaiting constituent prices" until Batch 6 item
+44's writer runs); the MOVE-VIX divergence flag on one-year z,
+watch and strong tiers, with the T&B conditioner's path in place and inactive
+(19a); the expansion's age with the post-war hazard from the committed NBER
+fixture `config/nber_expansions.yaml` (22a); BEA's information-processing
+contribution to real GDP growth, two FRED series (22b); and TLT's and ZN=F's
+overnight and session legs over 20 sessions (27a), which SR-36's unwind watch
+counts as its fifth co-signal. `daily_cascade/batch5b_block.py` prints them in
+Mechanics, the slow layers and Positioning & flows. The thresholds are
+`config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s

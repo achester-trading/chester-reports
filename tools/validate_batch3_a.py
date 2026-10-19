@@ -153,7 +153,9 @@ def eu_rows(oat_last: float) -> list[tuple]:
             oat = oat_last
         rows += [("ecb.irs_10y_de", None, day, f["de_level"]),
                  ("ecb.irs_10y_fr", None, day, f["de_level"] + oat / 100.0),
-                 ("ecb.irs_10y_it", None, day, f["de_level"] + btp / 100.0)]
+                 ("ecb.irs_10y_it", None, day, f["de_level"] + btp / 100.0),
+                 # Greece (ST-R4.21a): 120 bp over the Bund throughout.
+                 ("ecb.irs_10y_gr", None, day, f["de_level"] + 1.20)]
         d = (d.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
     rows += [(batch3.EURCHF_KEY, None, dd, v) for dd, v in f["eurchf"]]
     return rows
@@ -201,7 +203,14 @@ def group_b() -> None:
             btp = sub["table"]["rows"][1]
             check(btp[0] == "BTP-Bund, ECB monthly average" and len(btp) == 6,
                   "BTP-Bund under its own label beside it")
-            chf = sub["table"]["rows"][2]
+            gr = sub["table"]["rows"][2]
+            grp = next(p for p in e["pairs"] if p["id"] == "gr_bund")
+            check(gr[0] == "Greece-Bund, ECB monthly average (a watch spread)"
+                  and gr[1] == "120.0 bp" and grp["tier"] is None and len(gr) == 6
+                  and "(n=60)" in gr[3] and "(n=240)" in gr[4],
+                  f"Greece-Bund beside them (ST-R4.21a), a watch spread with its "
+                  f"dual percentiles and no tier ({gr})")
+            chf = sub["table"]["rows"][3]
             check(chf[0].startswith("EUR/CHF") and chf[1] == "0.9250"
                   and chf[2] == "-0.64%" and len(chf) == 6,
                   f"EUR/CHF daily, the transmission tell, with its week ({chf[1]}, {chf[2]})")

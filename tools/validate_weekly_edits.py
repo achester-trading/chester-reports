@@ -205,14 +205,16 @@ def main() -> int:
               or h[2] == "what markets and surveys expect, not how they're positioned"
               for h in heads),
           "What's priced: 'what markets and surveys expect, not how they're positioned'")
-    # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts).
+    # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts);
+    # ST-R4.27a puts Treasury moves by session under the CFTC table.
     check([ss["title"] for ss in sec["positioning"]["subsections"]] ==
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
+           "Treasury moves by session: overnight against the US session",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
            "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash"],
-          "Positioning in eight sub-sections, each with its table (the eighth, "
-          "Batch 6 item 30's allocation block)")
+          "Positioning in nine sub-sections, each with its table (the eighth, ST-R4.27a's "
+          "Treasury moves by session; the ninth, Batch 6 item 30's allocation block)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the

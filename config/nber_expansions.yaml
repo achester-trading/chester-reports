@@ -1,0 +1,52 @@
+# THE NBER US BUSINESS CYCLE REFERENCE DATES, post-war (ST-R4.22a, Batch 5
+# item 22). A committed fixture: read by altdata/batch5b.expansion_age; never
+# fetched.
+#
+# SOURCE: NBER, "US Business Cycle Expansions and Contractions",
+# https://www.nber.org/research/data/us-business-cycle-expansions-and-contractions
+# read 16 Oct 2026. The page's latest reference date is the April 2020 trough; no
+# peak after it was announced. WHEN THE NBER ANNOUNCES ONE, add it here as the
+# open expansion's `peak` and the line stops calling the expansion current.
+#
+# POST-WAR means from the October 1945 trough: the 80-month expansion that peaked
+# in February 1945 began in June 1938 and is the war economy's, not a post-war
+# cycle. Months are trough-to-peak, NBER's own convention (the page's
+# "Expansion" column), so the April 2020 to February 2020 arithmetic is never
+# done by hand.
+source: "NBER, US Business Cycle Expansions and Contractions (nber.org), read 2026-10-16"
+read_on: "2026-10-16"
+expansions:
+  - {trough: "1945-10", peak: "1948-11", months: 37}
+  - {trough: "1949-10", peak: "1953-07", months: 45}
+  - {trough: "1954-05", peak: "1957-08", months: 39}
+  - {trough: "1958-04", peak: "1960-04", months: 24}
+  - {trough: "1961-02", peak: "1969-12", months: 106}
+  - {trough: "1970-11", peak: "1973-11", months: 36}
+  - {trough: "1975-03", peak: "1980-01", months: 58}
+  - {trough: "1980-07", peak: "1981-07", months: 12}
+  - {trough: "1982-11", peak: "1990-07", months: 92}
+  - {trough: "1991-03", peak: "2001-03", months: 120}
+  - {trough: "2001-11", peak: "2007-12", months: 73}
+  - {trough: "2009-06", peak: "2020-02", months: 128}
+  - {trough: "2020-04", peak: null}            # current: no peak announced
+# The post-1982 sample the order points to ("against the post-1982 sample this
+# expansion's age is ordinary"): the expansions from the November 1982 trough.
+modern_from: "1982-11"
+# THE HAZARD TABLE, HAND-COMPUTED (16 Oct 2026) from the twelve completed
+# expansions above, the gate's check on the code: at age A, `of` is the number
+# that lasted A months or more and `ended` how many of those peaked before
+# A + 12 (A <= months < A + 12).
+#   sorted: 12 24 36 37 39 45 58 73 92 106 120 128
+hazard_check:
+  - {age: 12,  ended: 1, of: 12}     # 12
+  - {age: 24,  ended: 1, of: 11}     # 24
+  - {age: 36,  ended: 4, of: 10}     # 36 37 39 45
+  - {age: 48,  ended: 1, of: 6}      # 58
+  - {age: 60,  ended: 0, of: 5}
+  - {age: 72,  ended: 1, of: 5}      # 73
+  - {age: 78,  ended: 0, of: 4}      # Oct 2026's age: 92 106 120 128 all ran past 90
+  - {age: 84,  ended: 1, of: 4}      # 92
+  - {age: 96,  ended: 1, of: 3}      # 106
+  - {age: 108, ended: 0, of: 2}
+  - {age: 120, ended: 2, of: 2}      # 120 128
+  - {age: 129, ended: 0, of: 0}      # past the longest: no base rate

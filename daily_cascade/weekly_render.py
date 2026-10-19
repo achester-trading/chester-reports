@@ -553,8 +553,10 @@ def narratives_register_block(payload: dict) -> str:
             f'<div style="{WARN}"><strong>Proposed: {esc(p["name"])}</strong> '
             f'&mdash; {esc(p["direction"])}<br>'
             f'Implied outcome: {esc(p["implied_outcome"])}<br>'
-            f'Drawn from events {esc(", ".join(str(x) for x in p["basis_events"]))} '
-            f'by {esc(p["proposed_by"])} at {esc(p["proposed_at"])}.<br>'
+            + (f'Drawn from events '
+               f'{esc(", ".join(str(x) for x in p["basis_events"]))} '
+               if p["basis_events"] else "Committed ")
+            + f'by {esc(p["proposed_by"])} at {esc(p["proposed_at"])}.<br>'
             f'Confirm: <code>{esc(p["confirm"])}</code><br>'
             f'Reject: <code>{esc(p["reject"])}</code></div>'
             for p in props)

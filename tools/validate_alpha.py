@@ -1237,9 +1237,10 @@ def group_o() -> None:
         e2 = rules.evaluate({"series": "SPY", "transform": "level"}, data, d, t2)
         check(abs(e2.value - data.series("yfinance.mkt_spy").first(prev)) < 1e-12,
               "a this_close rule decides at 15:50 ET, so it reads the previous close")
-        bad = {"grammar": rules.GRAMMAR, "universe": ["TLT", "BN"], "cadence": "hourly",
+        # IEF, closes only: TLT has stored opens since ST-R4.27a.
+        bad = {"grammar": rules.GRAMMAR, "universe": ["IEF", "BN"], "cadence": "hourly",
                "trigger": [{"series": "NOPE", "transform": "wiggle", "op": "~"}],
-               "direction": "up", "instrument": "TLT", "entry": "next_open",
+               "direction": "up", "instrument": "IEF", "entry": "next_open",
                "exits": {"target": {"r": 1}, "time": 5}, "colour": "red"}
         try:
             rules.compile_rule(bad)

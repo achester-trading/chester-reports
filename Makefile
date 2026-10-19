@@ -126,6 +126,8 @@ PY_VALIDATORS := \
 	tools/validate_alpha_proposer.py \
 	tools/validate_volume_profile.py \
 	tools/validate_es_block.py \
+	tools/validate_st_r4_t1.py \
+	tools/validate_st_r4_t1b.py \
 	tools/validate_security_master.py \
 	tools/check_library.py \
 	tools/validate_gates.py

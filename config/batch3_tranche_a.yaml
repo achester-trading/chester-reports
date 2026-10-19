@@ -64,6 +64,7 @@ eu_stress:
   series_labels:
     oat_bund: "OAT-Bund, ECB monthly average"
     btp_bund: "BTP-Bund, ECB monthly average"
+    gr_bund: "Greece-Bund, ECB monthly average (a watch spread)"
   windows_years: [5, 20]          # the dual percentile (entry's measure)
   unvalidated: "(descriptive; unvalidated, n=0)"   # until ST-B3-09's ledger
   transmission_label: "EUR/CHF (francs per euro)"

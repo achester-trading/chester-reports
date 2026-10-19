@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 200
+next_id: 204
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -4085,3 +4085,83 @@ instruments:
   - currency
   - exchange
   - multiplier
+- id: SM00200
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^DSPX
+    store_key: yfinance.mkt_dspx
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00201
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^COR1M
+    store_key: yfinance.mkt_cor1m
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00202
+  name: null
+  asset_class: index
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ^COR3M
+    store_key: yfinance.mkt_cor3m
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00203
+  name: null
+  asset_class: future
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ZN=F
+    store_key: yfinance.mkt_zn_front
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name

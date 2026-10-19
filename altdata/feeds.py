@@ -179,7 +179,13 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # from the ONS and Statistics Canada (the real-yield panel's
                     # gaps), and SR-30's daily OAT from the Banque de France's
                     # keyless Webstat export
-                    "ons_cpi", "statcan_cpi", "bdf_webstat")
+                    "ons_cpi", "statcan_cpi", "bdf_webstat",
+                    # ST-R4.23a: Census construction spending, live from the D1c
+                    # ruling of 16 Oct 2026 (WAL and the busy timeout suffice
+                    # for an append-only writer)
+                    "census_vip",
+                    # ST-R4.18a: Cboe's COR1M, COR3M and DSPX daily history
+                    "cboe_indices")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

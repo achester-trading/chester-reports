@@ -52,8 +52,12 @@ REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "config" / "batch3_tranche_a.yaml"
 
 # SR-30's legs: the ECB's monthly convergence 10-year yields (aq-3-series-2).
-EU_LEGS = {"fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it", "de": "ecb.irs_10y_de"}
-EU_PAIRS = (("oat_bund", "OAT–Bund", "fr"), ("btp_bund", "BTP–Bund", "it"))
+EU_LEGS = {"fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it", "de": "ecb.irs_10y_de",
+           "gr": "ecb.irs_10y_gr"}
+# Greece-Bund (ST-R4.21a, Batch 5 item 21): a WATCH spread beside OAT-Bund, no
+# tiers -- the tier applies to OAT-Bund only, whatever tiers_live says.
+EU_PAIRS = (("oat_bund", "OAT–Bund", "fr"), ("btp_bund", "BTP–Bund", "it"),
+            ("gr_bund", "Greece–Bund (watch)", "gr"))
 # weekly-fixes-7 item 11: the source by name; the date is the edition's (eu_stress).
 EU_WRITER = "the ECB's data portal"
 EURCHF_KEY = "yfinance.mkt_eurchf"
