@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1156" role="img" aria-labelledby="t d">
+<title id="t">Figure 4. The input map</title><desc id="d">Eleven input families, each with the highest rung its output may reach, flow into the point-in-time store; the reports and the lab read the store.</desc>
+<style>
+.bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
+.line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
+.touch{stroke:#16202e}.boxs{stroke:#0f5c9e}.chats{stroke:#c06a12}.onbox{fill:#ffffff}
+.pill{fill:#e6ecf3}.bA{fill:#2b6cb0}.bB{fill:#2f855a}.bC{fill:#b7791f}.bD{fill:#9b2c2c}
+@media (prefers-color-scheme: dark){
+.bg{fill:#121821}.panel{fill:#1b2330}.ink{fill:#e8edf3}.mute{fill:#a3adbb}
+.line{stroke:#5f6b7b}.grid{stroke:#2c3646}.box{fill:#5aa2e6}.chat{fill:#f0a14a}
+.touch{stroke:#e8edf3}.boxs{stroke:#5aa2e6}.chats{stroke:#f0a14a}.onbox{fill:#121821}
+.pill{fill:#243042}.bA{fill:#63a4ff}.bB{fill:#5cc28a}.bC{fill:#e8b04e}.bD{fill:#e07a7a}}
+text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
+</style>
+<rect class="bg" x="0" y="0" width="720" height="1156" rx="14"/>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mute" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 4. The input map</text>
+<text class="mute" x="24.0" y="72.0" font-size="16" text-anchor="start" font-weight="400">Families → the store → the reports. The rung is the most it may do.</text>
+<text class="ink" x="24.0" y="100.0" font-size="18" text-anchor="start" font-weight="700">Sources (and their highest rung)</text>
+<rect class="pill" x="24" y="118" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="144.0" font-size="17" text-anchor="start" font-weight="700">Official and macro data</text>
+<text class="mute" x="38.0" y="166.0" font-size="15" text-anchor="start" font-weight="400">FRED, 31 official and 37 external writers</text>
+<rect class="box" x="470" y="134" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="154.0" font-size="15" text-anchor="middle" font-weight="700">flag</text>
+<line class="line" stroke-width="3" x1="570" y1="148" x2="600" y2="148" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="186" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="212.0" font-size="17" text-anchor="start" font-weight="700">Market prices</text>
+<text class="mute" x="38.0" y="234.0" font-size="15" text-anchor="start" font-weight="400">the yfinance basket, IBKR truth, Massive</text>
+<rect class="box" x="470" y="202" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="222.0" font-size="15" text-anchor="middle" font-weight="700">flag</text>
+<line class="line" stroke-width="3" x1="570" y1="216" x2="600" y2="216" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="254" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="280.0" font-size="17" text-anchor="start" font-weight="700">Option chains, dealer engine</text>
+<text class="mute" x="38.0" y="302.0" font-size="15" text-anchor="start" font-weight="400">16:10, 09:45, 12:30 captures</text>
+<rect class="box" x="470" y="270" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="290.0" font-size="15" text-anchor="middle" font-weight="700">setup</text>
+<line class="line" stroke-width="3" x1="570" y1="284" x2="600" y2="284" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="322" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="348.0" font-size="17" text-anchor="start" font-weight="700">Vendor cross-checks</text>
+<text class="mute" x="38.0" y="370.0" font-size="15" text-anchor="start" font-weight="400">FlashAlpha writer: never a source</text>
+<rect class="box" x="470" y="338" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="358.0" font-size="15" text-anchor="middle" font-weight="700">none</text>
+<line class="line" stroke-width="3" x1="570" y1="352" x2="600" y2="352" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="390" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="416.0" font-size="17" text-anchor="start" font-weight="700">News, voices, narratives</text>
+<text class="mute" x="38.0" y="438.0" font-size="15" text-anchor="start" font-weight="400">06:15 voices scan; register</text>
+<rect class="box" x="470" y="406" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="426.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
+<line class="line" stroke-width="3" x1="570" y1="420" x2="600" y2="420" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="458" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="484.0" font-size="17" text-anchor="start" font-weight="700">Prediction markets</text>
+<text class="mute" x="38.0" y="506.0" font-size="15" text-anchor="start" font-weight="400">discovery, attention, disagreement; no packet</text>
+<rect class="box" x="470" y="474" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="494.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
+<line class="line" stroke-width="3" x1="570" y1="488" x2="600" y2="488" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="526" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="552.0" font-size="17" text-anchor="start" font-weight="700">The crypto layer</text>
+<text class="mute" x="38.0" y="574.0" font-size="15" text-anchor="start" font-weight="400">Tranche A writers, basket, addendum</text>
+<rect class="box" x="470" y="542" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="562.0" font-size="15" text-anchor="middle" font-weight="700">flag</text>
+<line class="line" stroke-width="3" x1="570" y1="556" x2="600" y2="556" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="594" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="620.0" font-size="17" text-anchor="start" font-weight="700">Social attention (X pilot)</text>
+<text class="mute" x="38.0" y="642.0" font-size="15" text-anchor="start" font-weight="400">Grok digest, 06:50 triage</text>
+<rect class="box" x="470" y="610" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="630.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
+<line class="line" stroke-width="3" x1="570" y1="624" x2="600" y2="624" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="662" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="688.0" font-size="17" text-anchor="start" font-weight="700">Meme layer (chester-meme)</text>
+<text class="mute" x="38.0" y="710.0" font-size="15" text-anchor="start" font-weight="400">packets → Book D drafts</text>
+<rect class="box" x="470" y="678" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="698.0" font-size="15" text-anchor="middle" font-weight="700">candidate</text>
+<line class="line" stroke-width="3" x1="570" y1="692" x2="600" y2="692" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="730" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="756.0" font-size="17" text-anchor="start" font-weight="700">The Alpha Lab</text>
+<text class="mute" x="38.0" y="778.0" font-size="15" text-anchor="start" font-weight="400">its own paper book</text>
+<rect class="box" x="470" y="746" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="766.0" font-size="15" text-anchor="middle" font-weight="700">evidence</text>
+<line class="line" stroke-width="3" x1="570" y1="760" x2="600" y2="760" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="798" width="430" height="60" rx="10"/>
+<text class="ink" x="38.0" y="824.0" font-size="17" text-anchor="start" font-weight="700">By-hand inputs (rule 30)</text>
+<text class="mute" x="38.0" y="846.0" font-size="15" text-anchor="start" font-weight="400">only those ruled</text>
+<rect class="box" x="470" y="814" width="98" height="28" rx="14"/>
+<text class="onbox" x="519.0" y="834.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
+<line class="line" stroke-width="3" x1="570" y1="828" x2="600" y2="828" marker-end="url(#ah)"/>
+<rect class="panel" x="604" y="118" width="92" height="740" rx="12"/>
+<text class="ink" x="650.0" y="462.0" font-size="17" text-anchor="middle" font-weight="700">the</text>
+<text class="ink" x="650.0" y="486.0" font-size="17" text-anchor="middle" font-weight="700">point-</text>
+<text class="ink" x="650.0" y="510.0" font-size="17" text-anchor="middle" font-weight="700">in-time</text>
+<text class="ink" x="650.0" y="534.0" font-size="17" text-anchor="middle" font-weight="700">store</text>
+<line class="line" stroke-width="3" x1="650" y1="866" x2="650" y2="900" marker-end="url(#ah)"/>
+<text class="ink" x="24.0" y="914.0" font-size="18" text-anchor="start" font-weight="700">Consumers (they read the store)</text>
+<rect class="pill" x="24" y="928" width="328" height="42" rx="10"/>
+<text class="ink" x="40.0" y="955.0" font-size="17" text-anchor="start" font-weight="400">07:00 anchor</text>
+<rect class="pill" x="364" y="928" width="328" height="42" rx="10"/>
+<text class="ink" x="380.0" y="955.0" font-size="17" text-anchor="start" font-weight="400">12:30 alert</text>
+<rect class="pill" x="24" y="980" width="328" height="42" rx="10"/>
+<text class="ink" x="40.0" y="1007.0" font-size="17" text-anchor="start" font-weight="400">16:45 close</text>
+<rect class="pill" x="364" y="980" width="328" height="42" rx="10"/>
+<text class="ink" x="380.0" y="1007.0" font-size="17" text-anchor="start" font-weight="400">The Weekly</text>
+<rect class="pill" x="24" y="1032" width="328" height="42" rx="10"/>
+<text class="ink" x="40.0" y="1059.0" font-size="17" text-anchor="start" font-weight="400">Digital Assets addendum</text>
+<rect class="pill" x="364" y="1032" width="328" height="42" rx="10"/>
+<text class="ink" x="380.0" y="1059.0" font-size="17" text-anchor="start" font-weight="400">The Monthly</text>
+<rect class="pill" x="24" y="1084" width="328" height="42" rx="10"/>
+<text class="ink" x="40.0" y="1111.0" font-size="17" text-anchor="start" font-weight="400">The Quarterly (off)</text>
+<rect class="pill" x="364" y="1084" width="328" height="42" rx="10"/>
+<text class="ink" x="380.0" y="1111.0" font-size="17" text-anchor="start" font-weight="400">The Alpha Lab</text>
+</svg>

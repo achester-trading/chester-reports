@@ -45,6 +45,10 @@ therefore clean.
   is the Makefile's `PY_VALIDATORS` plus one. That offset is carried unchanged,
   so each count below is the sum of both sides. The final count is
   **seventy-six code gates (seventy-three Python, three shell)**.
+- **The Master Guide** (added 19 Oct 2026, master-guide): after the last merge of
+  a chain, refresh the Guide's dated parts (its "As of" line, Tables 1, 2, 7 and 9,
+  Landing next), regenerate its figures with `tools/figures/master_guide.py`,
+  rebuild its HTML edition, and run `tools/check_master_guide.py`.
 - **The proof.** On a throwaway branch from `origin/main`, the 23 branches
   merge in order with `--no-ff` and **no conflict**. The resulting tree is
   identical to `el-2-3-rollup`'s. The branch was deleted and never pushed.

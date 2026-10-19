@@ -13,7 +13,7 @@ SYNTHETIC Weekly in temporary stores -- a code gate never reads the live store:
   B THE FIXED ORDER (2)    claim -> table(s) -> chart(s) -> one paragraph (at
                            most 120 words) -> footnote, in both reports
   C NO METHOD (3)          the six phrases are banned and none is in a body; one
-                           footer line points to the Reader's Guide
+                           footer line points to the Reader's Guide and the Master Guide
   D NO SENTENCE TWICE (4)  a sentence repeating The read is withheld where it
                            repeats, with its reason; The read is asked to reword
   E EMPTY, ONE LINE (5)    an unchanged section prints its footnote alone and
@@ -339,8 +339,10 @@ def main() -> int:
         check(not hits, f"{name}: no banned method phrase in the body ({hits})")
         check(html.count("How to read this report:") == 1
               and rd.READERS_GUIDE in html
+              and rd.MASTER_GUIDE in html and rd.MASTER_GUIDE_PATH in html
               and html.find("How to read this report:") > html.find(">Glossary</h2>"),
-              f"{name}: one footer line points to the Reader's Guide")
+              f"{name}: one footer line points to the Reader's Guide and the Master "
+              f"Guide")
     check("which is itself the finding" not in whtml
           and "Every figure above was read" not in whtml
           and "figures and odds" in whtml,

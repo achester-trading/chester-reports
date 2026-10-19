@@ -143,6 +143,7 @@ PY_VALIDATORS := \
 	tools/validate_st_r4_t1b.py \
 	tools/validate_security_master.py \
 	tools/check_library.py \
+	tools/check_master_guide.py \
 	tools/validate_gates.py
 
 # DATA GATES -- a DIFFERENT KIND OF CHECK, and the distinction is the point.

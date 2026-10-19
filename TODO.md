@@ -1224,7 +1224,7 @@ on the box running it** — no timer, no unit, no caller except
 `validate_session_calendar.sh` driving it in a sandbox. The inverted-heartbeat
 design was half-built: `run_eod_cron.sh` writes the heartbeat on every clean
 exit and no process ever read it. The EOD pass could have failed every night
-for the six weeks the system narrative describes and the first symptom would
+for the six weeks the system narrative (docs/archive/chester-reports-system-narrative-2026-09-30.md) describes and the first symptom would
 have been a report with a hole in it. Built before D1 because it is the thing
 that tells you D1 is needed.*
 

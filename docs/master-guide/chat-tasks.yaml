@@ -1,0 +1,141 @@
+# chat-tasks.yaml -- the repo's record of the scheduled tasks that run on claude.ai,
+# and of Ari's own Grok automation (the Master Guide's specification of 19 Oct
+# 2026, section 5). No prompts and no secrets: the prompts live in the scheduler.
+# docs/master-guide.md's Table 2 and Figure 2 (tools/figures/master_guide.py) read
+# this file, and tools/check_master_guide.py fails when Table 2 and this file
+# disagree. When Ari adds, changes or retires a chat-side task, a session edits
+# this file, regenerates Figure 2 and refreshes Table 2.
+#
+# Fields: name; cadence_et (in words, with the daylight-saving note where the
+# scheduler holds the task in UTC); when (structured, for the clock); reads;
+# writes (the Drive path, if any); consumer (what in the repo reads it); rights;
+# status (active | pilot | retiring | retired | planned); retire_when.
+#
+# Sources: docs/scheduled-tasks.md (the register); the signal-triage order's Batch 8
+# (the X pilot and the MSTR/MSCI watch, items 49 and 50); the Alpha Lab order
+# (the Saturday brief) and ruling 8 of 19 Oct (its outbox path); chain-2's box
+# sheet (E6, the FlashAlpha tasks).
+version: 1
+updated: 2026-10-19
+dst_note: >-
+  Times are ET. A task the scheduler holds in UTC moves an hour on the ET clock
+  when daylight saving ends on Sunday 1 Nov 2026: 12:00 UTC is 08:00 ET until then
+  and 07:00 ET after.
+tasks:
+  - name: Grok X digest (Ari's automation)
+    cadence_et: daily 06:00
+    when: {kind: daily, time_et: "06:00"}
+    reads: X, through Ari's own Grok automation (outside Claude)
+    writes: "Drive chester-x-digest/x-digest-YYYY-MM-DD.md"
+    consumer: the X digest triage; the box's nightly sweep copies the folder into the inbox (scripts/rclone_sync.sh)
+    rights: attention only; an X post never earns measurement rights by volume alone
+    status: pilot
+    retire_when: the pilot's decision point after two weeks (Batch 8 item 50, the box-side xAI build or not)
+  - name: X digest triage
+    cadence_et: daily 06:50
+    when: {kind: daily, time_et: "06:50"}
+    reads: "Drive chester-x-digest/"
+    writes: "Drive chester-vendor-checks/x-triage/ (x-attention-ledger.csv, x-voices-ledger.csv) and a push summary"
+    consumer: the box's sweep copies the ledgers in; the Digital Assets addendum reads them (daily_cascade/digital_addendum.py)
+    rights: attention, voices and rumour tracking only; candidates go to the intake for Ari's ruling
+    status: pilot
+    retire_when: the pilot's decision point (Batch 8 item 50)
+  - name: AAII weekly read
+    cadence_et: Thursday 12:10
+    when: {kind: weekly, days: Thu, time_et: "12:10"}
+    reads: AAII's published weekly sentiment survey
+    writes: "Drive chester-vendor-checks/aaii/aaii-weekly.csv (one row a week)"
+    consumer: the sweep pulls it into ~/chester-data/inbox/aaii; altdata/sources/aaii.py reads it
+    rights: a reading (positioning), no decision right
+    status: active
+    retire_when: ""
+  - name: Alpha Lab Saturday brief
+    cadence_et: Saturday 07:50
+    when: {kind: weekly, days: Sat, time_et: "07:50"}
+    reads: "the lab's verdicts and agenda in Drive chester-lab-outbox/"
+    writes: "Drive chester-vendor-checks/lab-inbox/ (at most five short-term and five medium-term hypotheses)"
+    consumer: alpha/inbox.py, pre-registered at the file's Drive creation time
+    rights: hypotheses for the lab only; never a candidate, packet or trade
+    status: active
+    retire_when: ""
+  - name: Weekly crypto tech scan (Pearl and new mechanisms)
+    cadence_et: Saturday 12:00 UTC (08:00 ET until 1 Nov, 07:00 ET after)
+    when: {kind: weekly, days: Sat, time_et: "08:00"}
+    reads: public crypto sources
+    writes: a message only
+    consumer: Ari
+    rights: none (a read)
+    status: retiring
+    retire_when: interim, due to retire now the box's emerging-mechanism scan runs (altdata/mechanism_scan.py, Saturdays)
+  - name: Publication watch (the reading shelf)
+    cadence_et: the 12th and 27th, 06:58
+    when: {kind: monthly, dom: 12, time_et: "06:58", label: "Publication watch (also the 27th)"}
+    reads: the publishers on the reading shelf
+    writes: a reading-watch file that Ari commits to docs/scans/
+    consumer: the library (the papers' refresh queue)
+    rights: none (a read)
+    status: active
+    retire_when: ""
+  - name: Monthly signal scan
+    cadence_et: the 25th, 06:57
+    when: {kind: monthly, dom: 25, time_et: "06:57"}
+    reads: the month's public commentary
+    writes: "docs/scans/signal-scan-YYYY-MM.md, for Ari to rule on"
+    consumer: the signal-triage register (Ari's rulings)
+    rights: none until ruled
+    status: active
+    retire_when: ""
+  - name: AI-risk consensus-drift scan
+    cadence_et: the 20th of even months, 13:00 UTC (09:00 ET until 1 Nov, 08:00 ET after)
+    when: {kind: monthly, dom: 20, time_et: "09:00", label: "AI-risk drift (even months)"}
+    reads: public commentary on AI risk
+    writes: one line for Disruptive Themes
+    consumer: Disruptive Themes (human-gated)
+    rights: none (a read)
+    status: active
+    retire_when: folds into the monthly signal scan once that is stable
+  - name: JPM Guide to the Markets read
+    cadence_et: the 6th of January, April, July and October, 06:56
+    when: {kind: quarterly, time_et: "06:56", label: "JPM Guide read (6th, quarterly)"}
+    reads: J.P. Morgan's quarterly Guide to the Markets
+    writes: "docs/scans/jpm-gtm-YYYYqN.md"
+    consumer: Ari's rulings (change-order-jpm-gtm-2026-10-03.md)
+    rights: none until ruled
+    status: active
+    retire_when: ""
+  - name: MSTR / MSCI event watch
+    cadence_et: weekdays 2-30 Nov, 07:10 (Thanksgiving skipped), and a post-effective read on 1 Dec, 07:10
+    when: {kind: event, time_et: "07:10", label: "MSTR / MSCI watch (2-30 Nov, 1 Dec)"}
+    reads: the index review's public notices
+    writes: "Drive chester-vendor-checks/mstr-msci-watch/mstr-msci-watch.csv, and a short push"
+    consumer: the Digital Assets addendum's dated calendar
+    rights: none (a read)
+    status: active
+    retire_when: after the 1 Dec post-effective read
+  - name: FlashAlpha vendor pull (Wednesday close)
+    cadence_et: Wednesday 16:25
+    when: {kind: weekly, days: Wed, time_et: "16:25"}
+    reads: the vendor's settled-close SPY and QQQ exposure
+    writes: "Drive chester-vendor-checks (one JSON)"
+    consumer: the reconcile below
+    rights: a cross-check only; never a source
+    status: retiring
+    retire_when: chain-2's box sheet (E6) deletes it on Thu 29 Oct if the divergence gate is clean; Batch 11's D7 (landing next, on a48-batch11) retires it the morning after chain-2's merge
+  - name: FlashAlpha vendor reconcile (Thursday morning)
+    cadence_et: Thursday 07:05
+    when: {kind: weekly, days: Thu, time_et: "07:05"}
+    reads: the Wednesday pull and the box's exposure JSON from the backup
+    writes: "Drive chester-vendor-checks/flashalpha-ledger.md, and an email"
+    consumer: a session pastes rows into docs/ledgers/
+    rights: a cross-check only; never a source
+    status: retiring
+    retire_when: as the pull above; the box's 16:25 vendor writer and its divergence gate take its place
+  - name: Alternative assets quarterly scan
+    cadence_et: 06:30 on the Monday of each edition's week (4 Jan, 5 Apr, 5 Jul, 4 Oct 2027)
+    when: {kind: quarterly, time_et: "06:30", label: "Alt assets scan (planned)"}
+    reads: config/alt_asset_scan.yaml and its companions, and the previous scan
+    writes: "docs/scans/alt-assets-YYYYqN.md"
+    consumer: the Alternative Assets Quarterly
+    rights: none (a read)
+    status: planned
+    retire_when: "not yet created: the operator creates it from docs/scans/PROMPT-alt-assets-quarterly.md (AQ-7)"

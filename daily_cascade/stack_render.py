@@ -46,7 +46,7 @@ at most six columns; the chart with a small italic caption; the paragraph; the
 footnote, small and grey. Nothing prints as a list.
 
 The run's metadata -- stack version, word count, as-of cutoff, run id -- sits in a
-small footer with the one line that points to the Reader's Guide (item 7).
+small footer with the one line that points to the Reader's Guide (item 7) and the Master Guide.
 """
 
 from __future__ import annotations
@@ -588,7 +588,8 @@ def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
     if pdf_note:
         lines.append(esc(pdf_note))
     lines.append(f"How to read this report: {esc(rd.READERS_GUIDE)} "
-                 f"({esc(rd.READERS_GUIDE_PATH)}).")
+                 f"({esc(rd.READERS_GUIDE_PATH)}); the whole system: "
+                 f"{esc(rd.MASTER_GUIDE)} ({esc(rd.MASTER_GUIDE_PATH)}).")
     return (f'<div style="margin:24px 0 0 0;padding-top:8px;border-top:1px solid '
             f'#d5dde5">' + "".join(f'<p style="{FOOT}">{x}</p>' for x in lines)
             + "</div>")

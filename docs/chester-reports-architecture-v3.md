@@ -2867,7 +2867,7 @@ reader should trust least and why. Same spirit as the gaps register, applied to
 what *is* built rather than what is not.
 
 **Artifacts to preserve from that chat before it is deleted:** Master Narrative
-v1.4 (superseded by the system-narrative document, but the lineage is worth
+v1.4 (superseded by the system-narrative document, now archived at `docs/archive/chester-reports-system-narrative-2026-09-30.md`, but the lineage is worth
 keeping) and **Translation Table v2.3** — the mapping of each report's score onto
 a common risk scale, which the precedence rules do not replace. Commit both to
 `docs/` first.

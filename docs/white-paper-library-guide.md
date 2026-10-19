@@ -1,3 +1,5 @@
+*Start with the [Master Guide](master-guide.md): how the whole system fits together, and how to use it.*
+
 # The White Paper Library — A Reader's Guide
 
 *Twenty-seven companion documents as of 11 October 2026 — twenty-one full papers, one doctrine, three Draft-1 editions written the week the execution layer was built, the System shelf's reader's guide to the reporting system (XXXIII), and the Draft-1 emerging-markets paper commissioned for the Alternative Assets Quarterly (XXXIV, numeral provisional until the filing), roughly 426,000 words. Twenty-seven numerals on the roster and twenty-seven papers in `docs/whitepapers/`; XXVI–XXXII are reserved by Audit 2's approved roster for the Phase 2 papers, which is why the guide to the reporting system took XXXIII.

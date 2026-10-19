@@ -7,7 +7,7 @@
 # faithfully on every clean exit, and no process on the box ever reads it. The
 # inverted-heartbeat design says the ABSENCE of a signal raises the alarm, and
 # an absence nobody looks for is not an alarm, it is a silence. The EOD pass
-# could fail every night for six weeks exactly as the system narrative describes
+# could fail every night for six weeks exactly as the system narrative (docs/archive/chester-reports-system-narrative-2026-09-30.md) describes
 # and the first symptom would be a report with a hole in it.
 #
 # So this is deliberately thin. It runs the checker, and then does the three

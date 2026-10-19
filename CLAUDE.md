@@ -20,6 +20,19 @@ carries `gamma_weekly`, the EOD options pass, and `weekly_tactical`, the Weekly,
 added 6 Oct 2026). Treat that set as the registry of report
 identities — a new report adds its key there before anything else.
 
+**The Master Guide (`docs/master-guide.md`) is the front door.** It shows how the whole
+system fits together, what every report and input may do, what is proven so far
+and the operator's daily, weekly and monthly rhythm, as built, and it points into
+the Reader's Guide, the Doctrine and the library for depth. It is not a library
+paper: dated, as-built, and **refreshed at every chain merge** (its "As of" line,
+its tables and Landing next). Its HTML edition is `docs/html/master-guide.html`
+(`tools/build_paper_html.py docs/master-guide.md`); figures 2 and 5 are generated
+by `tools/figures/master_guide.py` from the timers, `docs/master-guide/chat-tasks.yaml`
+(the record of the chat-side tasks) and the library guide's roster; and
+`tools/check_master_guide.py` fails when a timer, a report card, a chat task, a
+paper or a ledger is out of step with it. The old system narrative is archived at
+`docs/archive/chester-reports-system-narrative-2026-09-30.md`.
+
 `docs/chester-reports-architecture-v3.md` **is the canonical planning document**
 for the system. It is committed, and it declares its own authority in
 **Part 26 — FINAL ARCHITECTURE CHANGE ORDER (controlling)**. Read it before
@@ -224,7 +237,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and eighteen code gates (one hundred and fifteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and nineteen code gates (one hundred and sixteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report

@@ -52,6 +52,10 @@ SECONDS_PER_CHART = 20
 
 READERS_GUIDE = "The Reporting System: A Reader's Guide"
 READERS_GUIDE_PATH = "docs/whitepapers/reporting-system-whitepaper.md"
+# The front door (the Master Guide's specification of 19 Oct 2026, section 7):
+# the footer names it beside the Reader's Guide.
+MASTER_GUIDE = "The Master Guide"
+MASTER_GUIDE_PATH = "docs/master-guide.md"
 
 # THE STANDING NOTES THAT LEFT THE BODY (item 3). Each was a sentence about the
 # system's own method -- how a count is read, why an empty table is not broken --
