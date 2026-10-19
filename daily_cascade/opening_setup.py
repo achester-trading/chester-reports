@@ -502,10 +502,12 @@ def gauge_html(g: Optional[dict]) -> str:
 # OS-10 -- the most-active names
 # ---------------------------------------------------------------------------
 def _series(st, key: str, now: str, inst=None) -> list[tuple[str, float]]:
-    out: dict[str, float] = {}
-    for r in st.as_of(key, now, inst) or []:
-        if r.get("value_num") is not None:
-            out[str(r["observed_at"])[:10]] = float(r["value_num"])
+    """A name's stored readings, oldest first. D4 (Batch 11): rows from the
+    flat-file backfill join only where altdata.flatfile_history admits them (their
+    overlap with our captures agrees within the pre-registered tolerance); a
+    captured reading wins on a shared session."""
+    from altdata import flatfile_history as ffh                 # noqa: PLC0415
+    out, _ = ffh.merged(ffh.rows_both(st, key, now, inst), key)
     return sorted(out.items())
 
 

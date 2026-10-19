@@ -47,6 +47,14 @@ what has no other home.
      FAILS, under 30 is INSUFFICIENT) and its first edition; the December
      specification carries no vendor figure.
 
+  G  D4'S BACKFILL. The option ticker parsed; only the 17 names' contracts kept;
+     puts' share of volume by hand; each row under `chain_capture:flatfiles`,
+     reconstructed, available at 11:00 ET the next session; the admission rule
+     by hand (10 overlapping sessions within 1.5 points admit; 9 do not; a 2-point
+     median gap does not) and a rank's series leaving out unadmitted rows; the
+     resumable state; the credentials named, never read from a file here; no
+     network call in this gate.
+
 No gate here reads the live store, fetches or calls a model; every fixture is
 synthetic.
 """
@@ -560,8 +568,70 @@ def group_f() -> None:
           "check; no vendor figure")
 
 
+def group_g() -> None:
+    head("G. D4: THE FLAT-FILE BACKFILL AND ITS ADMISSION")
+    sys.path.insert(0, str(REPO / "tools"))
+    import massive_flatfiles_backfill as M
+    from altdata import flatfile_history as ffh, observations
+    from daily_cascade import opening_setup as OS
+    t = M.parse_ticker("O:SPY261120C00650000")
+    check(t == {"root": "SPY", "expiry": "2026-11-20", "right": "C", "strike": 650.0}
+          and M.parse_ticker("SPY") is None,
+          "the option ticker parsed: root, expiry, right, strike (thousandths)")
+    lines = [{"ticker": "O:SPY261120C00650000", "close": "12.5", "volume": "100"},
+             {"ticker": "O:SPY261120P00650000", "close": "11.0", "volume": "300"},
+             {"ticker": "O:ZZZZ261120P00650000", "close": "1.0", "volume": "9"},
+             {"ticker": "O:SPY261016P00650000", "close": "0.0", "volume": "5"}]
+    kept = M.rows_for(lines, {"SPY"}, "2026-10-16", {"SPY": 650.0})
+    check(list(kept) == ["SPY"] and len(kept["SPY"]) == 3
+          and M.readings(kept["SPY"])["chain.put_share_volume"] == 305 / 405 * 100
+          and all(r["bid"] is None and r["ask"] is None for r in kept["SPY"]),
+          "only the names' contracts are kept (an expiry before the day dropped); puts' "
+          "share of volume by hand, 305 of 405; no bid or ask: last-trade closes")
+    rows = M.store_rows("2026-10-16", {"SPY": [{**r, "dte": 35} for r in kept["SPY"]
+                                               if r["expiry"] >= "2026-10-17"]})
+    check(rows and all(r["source"] == "chain_capture:flatfiles"
+                       and r["availability_kind"] == "reconstructed"
+                       and r["available_at"] == "2026-10-19T15:00:00+00:00" for r in rows),
+          "each row under its own source, reconstructed, available at 11:00 ET the next "
+          "session (Friday's file on Monday)")
+    days = [f"2026-09-{d:02d}" for d in range(1, 13)]
+    cap = {d: 20.0 for d in days[:10]}
+    good = {d: 21.0 for d in days}
+    check(ffh.admitted(cap, good, "chain.iv30_atm")
+          and not ffh.admitted({d: 20.0 for d in days[:9]}, good, "chain.iv30_atm")
+          and not ffh.admitted(cap, {d: 22.0 for d in days}, "chain.iv30_atm"),
+          "the admission rule by hand: ten sessions a point apart admit; nine do not; a "
+          "two-point median gap (over 1.5) does not")
+    db = str(TD / "g.db")
+    srows = [obs("chain.iv30_atm", d, 20.0, "N00") for d in days[:10]]
+    # The flat-file rows are published later than the captures (the next morning),
+    # as on the box: newer, they must still not hide the captured readings.
+    srows += [{**obs("chain.iv30_atm", d, 22.0, "N00"), "source": ffh.SOURCE,
+               "available_at": f"{d}T23:30:00+00:00"}
+              for d in ["2026-08-0" + str(k) for k in range(1, 6)] + days]
+    with observations.ObservationStore(db) as st:
+        st.write_many(srows)
+        ser = OS._series(st, "chain.iv30_atm", "2026-10-17T21:00:00+00:00", "N00")
+    check([d for d, _ in ser] == days[:10] and all(v == 20.0 for _, v in ser),
+          "a rank's series leaves out flat-file rows its overlap does not admit, and the "
+          "captured reading wins on a shared session")
+    sp = TD / "g" / "state.json"
+    M.save_state({"done": {"2026-01-02": {"rows": 4}}}, sp)
+    check(M.load_state(sp)["done"]["2026-01-02"]["rows"] == 4
+          and M.load_state(TD / "g" / "absent.json") == {"done": {}},
+          "the resumable state: written atomically, read back; absent reads as nothing done")
+    src = (REPO / "tools" / "massive_flatfiles_backfill.py").read_text(encoding="utf-8")
+    check('"Included in select Options plans"' in src and '"2 years"' in src
+          and "no open interest" in src and "MASSIVE_FLATFILES_ACCESS_KEY_ID" in src
+          and "secrets.get(" in src and "--max-days" in src and "--dry-run" in src
+          and "rclone.conf" in src and "boto3" not in src,
+          "the probe's findings are quoted; the credentials are read by name through "
+          "altdata.secrets; capped, dry run first; rclone, no new dependency")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
