@@ -168,8 +168,9 @@ def release_series(rel: dict, cfg_notes: Optional[dict] = None) -> list[dict]:
     """[{key, form, label}] behind a release: the calendar's declared form
     (tier1_headlines), else the notes' own declared form; [] where none."""
     import yaml                                                  # noqa: PLC0415
-    from .config import REPO as _R                               # noqa: PLC0415
-    cal = yaml.safe_load((_R / "config" / "release_calendar.yaml").read_text(encoding="utf-8"))
+    from pathlib import Path                                     # noqa: PLC0415
+    repo = Path(__file__).resolve().parent.parent
+    cal = yaml.safe_load((repo / "config" / "release_calendar.yaml").read_text(encoding="utf-8"))
     for name, rows in (cal.get("tier1_headlines") or {}).items():
         if str(rel.get("title") or "").startswith(name) or rel.get("match") == name:
             return list(rows)

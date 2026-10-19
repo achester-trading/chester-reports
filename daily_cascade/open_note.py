@@ -99,6 +99,10 @@ def releases_block(day: str, cutoff: str, db_path=None, rels=None) -> dict:
                        "period": str(pts[-1]["observed_at"])[:7],
                        "naive_surprise": naive, "naive_units": units}
                 r["prints"].append(rec)
+                # The release's own row carries its headline print, so a subject
+                # naming the release binds to the figure it cites.
+                r.setdefault("headline", round(got[0], 1))
+                r.setdefault("headline_form", form)
                 nv = (f"; naive surprise {naive:+.2f} ({units}, against the declared naive "
                       "expectation)" if naive is not None else "; naive surprise not stored")
                 out["lines"].append(f"{rel['label']}, {rec['period']}: {h.get('label')} "
@@ -323,10 +327,11 @@ def subject_of(p: dict) -> tuple[str, str]:
     """(the code-written subject, its figure-free fallback)."""
     parts = []
     for r in p.get("releases") or []:
-        pr = next((x for x in r["prints"] if x.get("actual_text")), None)
-        if pr:
-            parts.append(f"{r['label'].split(' (')[0]} {pr['actual_text']}"
-                         + (" m/m" if pr.get("form") == "mom" else ""))
+        if r.get("headline") is not None:
+            f = r.get("headline_form")
+            v = f"{r['headline']:+.1f}%" if f in ("mom",) else (
+                f"{r['headline']:.1f}%" if f in ("yoy", "annualised") else f"{r['headline']:,.1f}")
+            parts.append(f"{r['label'].split(' (')[0]} {v}" + (" m/m" if f == "mom" else ""))
             break
     y = (p.get("reaction") or {}).get("y10")
     if y and y.get("move") is not None:
