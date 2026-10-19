@@ -208,4 +208,7 @@ CI: see the table at the end.
 
 ## CI
 
-CI-TABLE
+| Run | Commit | Result |
+|---|---|---|
+| 39291070089 | `a2f1461` (items 1 to 6, merged with chain-2's `ab27c07`) | **success: 129 of 129 jobs** |
+
