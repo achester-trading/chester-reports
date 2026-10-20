@@ -131,7 +131,7 @@ Three things the table does not show:
 
 ### Table 2. The chat-side tasks, and your own automation
 
-The repo's record of these is `docs/master-guide/chat-tasks.yaml` (no prompts, no secrets). Times are ET. **A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November**: 12:00 UTC is 08:00 ET until then and 07:00 ET after.
+The repo's record of these is `docs/master-guide/chat-tasks.yaml` (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and **planned** (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. **A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November**: 12:00 UTC is 08:00 ET until then and 07:00 ET after.
 
 <!-- table:chat-tasks -->
 | Task | When (ET) | Writes | Read by | Rights | Status |

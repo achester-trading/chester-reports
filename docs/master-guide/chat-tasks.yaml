@@ -9,7 +9,8 @@
 # Fields: name; cadence_et (in words, with the daylight-saving note where the
 # scheduler holds the task in UTC); when (structured, for the clock); reads;
 # writes (the Drive path, if any); consumer (what in the repo reads it); rights;
-# status (active | pilot | retiring | retired | planned); retire_when.
+# status (active | pilot | retiring | retired | planned; "planned" accepted as a
+# status word on 19 Oct 2026, R15); retire_when.
 #
 # Sources: docs/scheduled-tasks.md (the register); the signal-triage order's Batch 8
 # (the X pilot and the MSTR/MSCI watch, items 49 and 50); the Alpha Lab order
