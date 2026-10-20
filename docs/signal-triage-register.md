@@ -812,6 +812,8 @@ above changes.
 
 *Accepted as drafted (rule 31), 19 Oct 2026 (R5):* **OS-6's first edition, FAIL** (`docs/ledgers/os-6-ledger-2026-10-19.md`: 0 of 12 tests survive Benjamini-Hochberg at q = 0.10 on 498 sampled sessions). Display only, no rights: no component flag, composite or weight follows from it.
 
+*Accepted as drafted (rule 31), 19 Oct 2026 (R6):* **D4's agreement tolerances** (the flat-file backfill, `tools/massive_flatfiles_backfill.py`). Readings reconstructed from last-trade closes are stored labelled `reconstructed`, and ranks read them only within the pre-registered agreement tolerances as drafted. The first run is the operator's, after the two credential names are in `.env`.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
