@@ -435,6 +435,8 @@ Register entry points to the Part C specification and its backlog status (Append
 - **Rights.** None: a scorecard. A "liquidity signal" reading is rejected until a gate says otherwise; a flag proposal would need a 90-day ledger against BTC and risk returns.
 - **Register status.** Unchanged (ADOPTED, scorecard, no rights).
 
+*Accepted as drafted (rule 31), 19 Oct 2026 (R11; library-st-l):* **SR-20's first COFER entry.** ledger: docs/ledgers/sr-20-ledger-2026-10-19.md, NO GATE IN THE ORDER (laptop run, public sources; 1999-Q1 to 2026-Q2, n 110): a scorecard entry recorded; SR-20 is a scorecard with no rights and the order states no pass rule. The register status above is unchanged.
+
 ### SR-21 October 28 FOMC hike probability 70–77% (Bianco Research / Bloomberg WIRP, 24 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-4
@@ -512,6 +514,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Data.** `fred.breakeven_5y5y` (held); Fed Board CIE (quarterly, new source); UMich 5–10y (monthly, new); NY Fed SCE 3y/5y (monthly, new); Livingston history (by hand, base rate); GUNR as the producers proxy (G-15). *Lives in:* `fedboard.cie`, `umich.expect_5_10y`, `nyfed.sce_*`; `DEANCHOR`, `calc.be5y5y_range_pos`, `calc.producers_spot_ratio`.
 
 **Rights.** Narrow flag, definition only; Warsh-matrix consequence gauge. **Validation.** None possible on market data; Livingston 1965–80 base-rate note by hand.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R11; library-st-l):* **SR-24's Livingston base-rate note.** ledger: docs/ledgers/sr-24-ledger-2026-10-19.md, NO GATE IN THE ORDER (laptop run, public sources; 1965-06 to 1980-12 against the 1984-2019 control, n 32): base rate recorded; Tranche H asks for a base-rate note and states no pass rule. DEANCHOR stays definition only, and the register status above is unchanged.
 
 ### SR-25 Burry adding to AI shorts — Micron, Nebius, SOXX, Palantir (Monchau via Bull Theory, 24 Sep 2026) — Thread E
 
@@ -817,6 +821,8 @@ above changes.
 *Accepted as drafted with one addition (rule 31), 19 Oct 2026 (R7):* **the mechanism watch's posting templates** (`config/story_queries.yaml` `mechanism_watch.posting`): Factor I, NVDA's close higher in 182 days, linked to trend +; Factor V, BTC-USD's close higher in 182 days, linked to liquidity +. **The addition:** wherever a posted story's grade prints, its base rate prints beside it, code-written: the share of 182-day windows in the stored history in which the linked instrument closed higher, with the window and n, point in time as of the grade (`altdata/mechanism_watch.base_rate`). No key was added. Confirm and reject stay the operator's.
 
 *Accepted as frozen (rule 31), 19 Oct 2026 (R8):* **engine 7's seven session-set choices** (`alpha/engines/intraday_dealer.py`; its spec `config/alpha_intraday_dealer.yaml`, sha256 quoted by the roster's E-7): the 10:15 decision deadline, the 10-minute entry wait, the 0.10 net-to-gross floor, the capture's spot read as real time, SPY, QQQ and IWM, the tie order, and the 30-session floor. They are accepted as its spec freezes them; registering E-7 (`python -m alpha.manifest register alpha/research/roster-2026-10-19-x3-4.yaml`) stays the operator's box command.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R11):* **library-st-l's drafts**: the twelve dated calibration appendices and the Digital Assets paper's timeless paragraph; the Warsh matrix's section 2.1.5 entry (`docs/warsh-matrix-lines.md`); the five Doctrine #2 proposals (`docs/briefs/doctrine-2-proposals-st-l.md`, for the sitting of 7-8 Nov, none ruled by this acceptance); and the three ledgers: the hiking-cycle table (`docs/ledgers/fed-cycles-ledger-2026-10-19.md`, NO GATE IN THE ORDER, n 21), SR-20's first COFER entry and SR-24's Livingston note (each under its entry above). Each states that it grants nothing.
 
 ## Explicit rejections (do not re-propose)
 
