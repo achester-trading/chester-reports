@@ -77,7 +77,7 @@ Settings live in `config/opening_setup.yaml`, each session-set with its reason. 
 - **"Pre-market or last close":** the gauge uses the last close. The pre-market level would need the futures-to-SPY conversion, which is not built.
 - **Fixtures (A):**
   - each five-session window is 4.0% of the prior close; 24 sessions make n=20 and it prints, 23 make n=19 and it is "awaiting";
-  - 761.10 × 18.2% × √(1/252) = ±8.73;
+  - the last close × 18.2% × √(1/252) (the close the fixture uses is synthetic since 19 Oct 2026, when a vendor-served spot was removed under the standing rule);
   - the indeterminate gate;
   - the numeral audit passes.
 

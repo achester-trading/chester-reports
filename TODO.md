@@ -166,8 +166,9 @@ Durability and coverage
 ## Put-wall definition resolved (5 Sep)
 
 FlashAlpha's `put_wall` is the extreme-GEX strike **restricted to OTM**, not the
-extreme across all strikes. Verified against both symbols: SPY 760 = 760, QQQ
-700 = 700, zero divergence, where the all-strikes version was 19 points off on
+extreme across all strikes. Verified against both symbols: SPY and QQQ matched
+exactly, zero divergence (the levels are not kept: no vendor figure in a committed
+file, 19 Oct 2026), where the all-strikes version was 19 points off on
 QQQ because the ATM 719 strike carries the largest negative GEX (-0.37bn)
 without being a wall in any tradeable sense.
 

@@ -3,19 +3,26 @@
 The one-strike reconciliation of the vendor's GEX against ours -- F-3, the first
 entry of docs/ledgers/vendor-divergence-notes.md (ruled 18 Oct 2026; a43-render).
 
-    python tools/vendor_reconcile.py                       # the fixture: vendor side
-    python tools/vendor_reconcile.py --chain PATH          # the box: ours from the
-                                                           # 16 Oct capture's CSV
+    python tools/vendor_reconcile.py                       # the synthetic fixture
+    python tools/vendor_reconcile.py --vendor PATH --chain PATH
+                                                           # the box: the vendor's
+                                                           # response kept on the box,
+                                                           # ours from the 16 Oct
+                                                           # capture's CSV
 
-THE GAP. On 16 Oct the vendor printed SPY net GEX -6.61bn and net DEX -52.2bn where
-we printed -1.41bn per 1% and +209.94bn. The 9 Oct ledger established that the
-two GEX definitions are the same sum (dealer position x gamma x OI x 100 x S^2 x
-0.01, calls +, puts -), so a factor of four to five has to come from the inputs:
-the OI set, gamma, the multiplier, the spot term, or the expiries covered.
+THE GAP. On 16 Oct the vendor's SPY net GEX and net DEX differed from ours by a
+multiple (the figures are not kept in the repository: no vendor figure in a
+committed file, 19 Oct 2026). The 9 Oct ledger established that the two GEX
+definitions are the same sum (dealer position x gamma x OI x 100 x S^2 x 0.01,
+calls +, puts -), so the multiple has to come from the inputs: the OI set, gamma,
+the multiplier, the spot term, or the expiries covered.
 
 THE STRIKE. SPY 770, the 23 Oct expiry, from the vendor's single-expiry GEX (its
-per-strike call and put OI are in the response; tests/fixtures/dealer_block/
-flashalpha_gex_SPY_exp2026-10-23_770.json). Backing gamma out of each leg under
+per-strike call and put OI are in the response). The committed fixture,
+tests/fixtures/dealer_block/flashalpha_gex_SPY_exp2026-10-23_770.json, carries
+SYNTHETIC values in that response's shape; the box run passes the real response
+with --vendor (a file kept on the box, outside the checkout) and prints the
+result, which is never committed. Backing gamma out of each leg under
 their own convention shows what their IV did: a call and a put at one strike and
 expiry have ONE Black-Scholes gamma at one IV, so two different implied gammas are
 two different IVs. The box run sets our capture's gamma (from its IV) beside them.
@@ -119,8 +126,10 @@ def ours_from_chain(path: Path, expiry: str = EXPIRY, strike: float = STRIKE) ->
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="F-3's one-strike reconciliation")
     ap.add_argument("--chain", help="our 16 Oct SPY capture's CSV (data/chains/2026-10-16/)")
+    ap.add_argument("--vendor", help="the vendor's single-expiry GEX response, kept on the "
+                                     "box (default: the synthetic fixture)")
     a = ap.parse_args(argv)
-    fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fx = json.loads((Path(a.vendor) if a.vendor else FIXTURE).read_text(encoding="utf-8"))
     row = next(r for r in fx["strikes"] if r["strike"] == STRIKE)
     ours = ours_from_chain(Path(a.chain)) if a.chain else {}
     iv = None

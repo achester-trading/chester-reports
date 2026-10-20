@@ -309,9 +309,10 @@ def group_c() -> None:
         if "expected-move" in url:
             return {"status": 200, "body": em}
         if "/maxpain/" in url:
-            return {"status": 200, "body": {"max_pain_strike": 765, "pin_probability": 0.31,
+            # Synthetic values (no vendor figure in a committed file, 19 Oct 2026).
+            return {"status": 200, "body": {"max_pain_strike": 750, "pin_probability": 0.30,
                                             "dealer_alignment": "aligned",
-                                            "put_call_oi_ratio": 2.17}}
+                                            "put_call_oi_ratio": 1.80}}
         return {"status": 200, "body": {"fixture": True}}
     os.environ.setdefault("FLASHALPHA_API_KEY", "fixture-key-0123456789abcdef")
     os.environ.setdefault("FLASHALPHA_BASE_URL", "https://example.invalid")
@@ -322,7 +323,10 @@ def group_c() -> None:
         for slot in ("0945", "1230", "1625", "1625"):
             runs.append(fa.pull(db=st, get=get, cfg=cfg, day=day, quota_path=q,
                                 slot=slot, blob_dir=TD / "fa_blobs"))
-        cut = "2026-10-20T00:00:00+00:00"
+        # pull() stamps each row at the real instant it writes, so the read is
+        # taken after any instant this gate can run at: a fixed 20 Oct cutoff
+        # failed every run from 00:00 UTC that day on.
+        cut = "2099-01-01T00:00:00+00:00"
         v = fa.stored(st, cut, "SPY")
         iv20 = st.as_of("vendor.atm_iv_20dte", cut, "SPY")
         iv20_intraday = st.as_of("vendor.atm_iv_20dte", cut, "SPY@1230")
@@ -343,8 +347,8 @@ def group_c() -> None:
           and iv20 and float(iv20[-1]["value_num"]) == 15.2 and not iv20_intraday,
           "F-2: the ATM IV compared is the first expiry of 20 DTE or more (15.2, not the "
           "1-DTE 120), from the 16:25 capture only")
-    check(v.get("gex") == -6608741134.0 and v.get("regime") == "negative_gamma"
-          and v.get("max_pain") == 765.0 and fg and float(fg[-1]["value_num"]) == 18.0,
+    check(v.get("gex") == -4000000000.0 and v.get("regime") == "negative_gamma"
+          and v.get("max_pain") == 750.0 and fg and float(fg[-1]["value_num"]) == 20.0,
           "the summary's exposure and macro blocks are stored under the vendor source "
           "(net GEX, the regime word, max pain; Fear & Greed as vendor.fear_greed)")
     blobs = sorted(p.name for p in (TD / "fa_blobs" / day).glob("*.json"))
@@ -359,19 +363,19 @@ def group_c() -> None:
           and fa.mechanics_row(v, "2027-04-01", cfg)["rows"][0][0] == "vendor: plan ended",
           "F-4: from 1 April 2027 the writer makes no call and the Weekly's vendor row "
           "prints 'vendor: plan ended'")
-    row = fa.mechanics_row({"gex": -6608741134.0, "spot": 761.1, "flip": 768.1,
-                            "call_wall": 800.0, "put_wall": 760.0, "max_pain": 765.0,
+    row = fa.mechanics_row({"gex": -4000000000.0, "spot": 750.0, "flip": 755.0,
+                            "call_wall": 780.0, "put_wall": 740.0, "max_pain": 750.0,
                             "regime": "negative_gamma", "day": "2026-10-16"}, "2026-10-16", cfg)
     check(row["columns"][-2:] == ["Net GEX ($ per 1%)", "Net GEX ($ per point)"]
-          and row["rows"][0][-2:] == ["-6.61bn", "-0.87bn"],
+          and row["rows"][0][-2:] == ["-4.00bn", "-0.53bn"],
           "the mechanics table's vendor row: flip, walls, max pain, regime, net GEX in "
-          "both units (-6.61bn per 1%, -0.87bn per point at 761.10)")
-    prof = {"spot": 761.1, "overall": {"dollar_gamma_per_1pct": 1.0e9, "gamma_flip": 765.0,
+          "both units (synthetic: -4.00bn per 1%, -0.53bn per point at 750.00)")
+    prof = {"spot": 750.0, "overall": {"dollar_gamma_per_1pct": 1.0e9, "gamma_flip": 765.0,
                                        "dex_raw_notional": 1.0, "call_wall_otm": 800.0,
                                        "put_wall_otm": 740.0}}
-    c1 = {r["name"]: r for r in fa.compare({"flip": 765.0 + 0.004 * 761.1,
+    c1 = {r["name"]: r for r in fa.compare({"flip": 765.0 + 0.004 * 750.0,
                                             "regime": "positive_gamma"}, prof, cfg)}
-    c2 = {r["name"]: r for r in fa.compare({"flip": 765.0 + 0.006 * 761.1,
+    c2 = {r["name"]: r for r in fa.compare({"flip": 765.0 + 0.006 * 750.0,
                                             "regime": "negative_gamma"}, prof, cfg)}
     check(c1["Zero-gamma level"]["flag"] is False and c2["Zero-gamma level"]["flag"] is True
           and c1["Regime"]["flag"] is False and c2["Regime"]["flag"] is True,
@@ -391,14 +395,15 @@ def group_c() -> None:
     import vendor_reconcile as VR
     fx = json.loads(VR.FIXTURE.read_text(encoding="utf-8"))
     r = VR.strike_reconciliation(fx["strikes"][0], fx["underlying_price"], 0.16)
-    check(close(r["gamma_ratio_put_over_call"], 4.2679, 1e-3)
-          and close(r["vendor_call_iv_roots"][1], 0.6696, 2e-3)
+    check(close(r["gamma_ratio_put_over_call"], 2.584, 1e-3)
+          and close(r["vendor_call_iv_roots"][1], 0.8909, 2e-3)
           and r["vendor_put_iv_roots"][1] is None
           and r["vendor_put_gamma"] > r["gamma_peak"]
-          and close(r["one_iv_net_gex"] / 1e6, 47.2, 0.1) and r["vendor_net_gex"] < 0,
-          f"the one-strike reconciliation by hand: SPY 770 (23 Oct): put gamma "
-          f"{r['vendor_put_gamma']:.5f} against call {r['vendor_call_gamma']:.5f}, 4.27x, "
-          f"the call leg at ~67% IV; one IV (16%) nets +47.2m against the vendor's -32.4m")
+          and close(r["one_iv_net_gex"] / 1e6, 24.1, 0.1) and r["vendor_net_gex"] < 0,
+          f"the one-strike reconciliation by hand, on the synthetic fixture: strike 770 "
+          f"(23 Oct): put gamma {r['vendor_put_gamma']:.5f} against call "
+          f"{r['vendor_call_gamma']:.5f}, 2.58x, the call leg at ~89% IV; one IV (16%) "
+          f"nets +24.1m against the fixture's -6.57m")
     allowed = {"altdata/sources/flashalpha.py", "daily_cascade/dealer_weekly.py"}
     readers = []
     for p in REPO.rglob("*.py"):
@@ -620,7 +625,7 @@ def group_e() -> None:
         with observations.ObservationStore(str(TD / f"em{status}.db")) as st:
             out = fa.pull(db=st, get=get(status), cfg=cfg, day="2026-10-19",
                           quota_path=TD / f"emq{status}.json", blob_dir=TD / f"emb{status}")
-            iv = st.as_of("vendor.atm_iv_20dte", "2026-10-20T00:00:00+00:00", "SPY")
+            iv = st.as_of("vendor.atm_iv_20dte", "2099-01-01T00:00:00+00:00", "SPY")  # after the pull's real instant
         runs[status] = (out, iv)
     ok200 = runs[200][1] and float(runs[200][1][-1]["value_num"]) == 16.8 \
         and not runs[200][0].get("expected_move")

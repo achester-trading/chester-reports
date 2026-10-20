@@ -794,7 +794,7 @@ def _profile(rows: list[dict], spot: float) -> dict:
 
     # Third definition, and the one FlashAlpha turns out to use: the extreme
     # GEX strike restricted to OTM. Verified 5 Sep -- it reproduces their
-    # put_wall on both SPY (760) and QQQ (700), where the all-strikes version
+    # put_wall on both SPY and QQQ exactly, where the all-strikes version
     # disagreed by 19 points on QQQ because the ATM strike carries the largest
     # negative GEX without being a wall in any tradeable sense.
     _pairs_all = sorted(by_strike.items())

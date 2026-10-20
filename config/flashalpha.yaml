@@ -61,8 +61,9 @@ blob_dir: data/vendor/flashalpha
 
 # F-2: the ATM IV comparison. ONLY the first listed expiry of 20 DTE or more, and
 # ONLY from the 16:25 capture. Front-expiry vendor IVs are stored (in the blobs)
-# and never compared: on 16 Oct the summary's ATM IV read 33.9% against a 20-day
-# realized 10.5%, and a 1-DTE value read 120%.
+# and never compared: on 16 Oct the summary's ATM IV read about three times the
+# 20-day realized, and a 1-DTE value read far above both (the figures are not kept:
+# no vendor figure in a committed file, 19 Oct 2026).
 iv_compare:
   min_dte: 20
   slot: "1625"

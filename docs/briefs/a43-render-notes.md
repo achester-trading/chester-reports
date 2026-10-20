@@ -82,7 +82,7 @@
 - **19 new registry keys** under source `flashalpha`. No engine, flag, tell, dial or decision reads one; the gate greps for that.
 - **The endpoint paths** come from the vendor's own documentation, read 18 Oct. **Expected move's path is not in the docs** and is marked unverified: the first box run's summary lists what answered.
 
-**F-2.** A vendor ATM IV is compared only on the first listed expiry of 20 DTE or more, and only from 16:25 (`vendor.atm_iv_20dte`). The summary's front IV (33.9% against a 20-day realized 10.5% on 16 Oct) is stored, never compared.
+**F-2.** A vendor ATM IV is compared only on the first listed expiry of 20 DTE or more, and only from 16:25 (`vendor.atm_iv_20dte`). The summary's front IV (on 16 Oct about three times the 20-day realized; vendor figures removed, 19 Oct 2026, under the standing rule) is stored, never compared.
 
 **F-4.**
 - `plan_ends: 2027-03-31`. From 1 April the writer makes no call and the Weekly's vendor row reads "vendor: plan ended".
@@ -96,16 +96,16 @@
 - **DEX:** theirs is the customer book (calls +); ours is the dealer position.
 - **Walls:** theirs are the all-strike peaks; ours, from Thursday, are the OTM walls.
 
-**The one-strike reconciliation** is the first entry of `docs/ledgers/vendor-divergence-notes.md`. I reached the vendor through the FlashAlpha connector: two requests, SPY's 23 Oct GEX and its summary. It covers SPY 770, 23 Oct expiry, spot 761.10, OI 7,165 calls and 3,652 puts.
+**The one-strike reconciliation** is the first entry of `docs/ledgers/vendor-divergence-notes.md`. I reached the vendor through the FlashAlpha connector: two requests, SPY's 23 Oct GEX and its summary. It covers SPY 770, 23 Oct expiry, on the 16 Oct settlement's OI. (Vendor figures removed, 19 Oct 2026, under the standing rule: the spot, OI, GEX and implied gammas the vendor served are not kept here; the committed fixture is synthetic.)
 
 | | Their GEX | Gamma that implies | IV that implies |
 |---|---|---|---|
-| Call | +27.6m | 0.00665 | about 67% |
-| Put | −60.0m | 0.02838 | above Black-Scholes' peak for the tenor (0.02750) |
+| Call | positive | under Black-Scholes' peak | a high IV, far above ours |
+| Put | negative, larger | above Black-Scholes' peak for the tenor | none |
 
-- **The ratio is 4.27×, at one strike and one expiry.** Black-Scholes gives a call and a put one gamma at one IV.
-- With one IV of 12–20% on both legs, the strike nets +40m to +54m against their −32.4m: the sign flips.
-- **So the factor of four to five is the gamma term,** from the vendor's own per-contract IVs on a front expiry. It is not the multiplier or the spot term (the same on both sides, as on 9 Oct) or the OI set (both read the prior settlement). The expiries covered are a residual question for the box.
+- **The two legs' implied gammas differ by a multiple, at one strike and one expiry.** Black-Scholes gives a call and a put one gamma at one IV.
+- With one IV of 12–20% on both legs, the strike nets positive where the vendor's net is negative: the sign flips.
+- **So the vendor's larger GEX is the gamma term,** from the vendor's own per-contract IVs on a front expiry. It is not the multiplier or the spot term (the same on both sides, as on 9 Oct) or the OI set (both read the prior settlement). The expiries covered are a residual question for the box.
 - **Our side is marked for the box.** `tools/vendor_reconcile.py --chain` reads our 16 Oct capture.
 
 ---
@@ -261,7 +261,7 @@ cat ~/.chester/flashalpha_calls.json        # the day's count, at most 60
 
 1. **The vendor plan is 57 requests a day, not about 49.** That is 45 at 16:25 as specified, plus 6 at 09:45 and 6 at 12:30. It fits the 60. To reach 49, the fields could drop to 16:25 only for IWM and MSTR. That's your ruling; I changed nothing to get there.
 2. **Expected move's endpoint path is not in the vendor's documentation.** It is configured as `/v1/exposure/expected-move/{symbol}`, unverified. If the first box run shows it absent, the 20-DTE IV (F-2) and the GEX expiries fall back to the max-pain response's expiries. Then the 20-DTE IV is absent until a path is confirmed.
-3. **The reconciliation's conclusion is the vendor's per-contract IV.** It can be restated with our side once the box run gives our 770 gamma. If the expiries covered turn out to carry the rest of the 4.7×, the entry's addendum says so.
+3. **The reconciliation's conclusion is the vendor's per-contract IV.** It can be restated with our side once the box run gives our 770 gamma. If the expiries covered turn out to carry the rest of the gap, the entry's addendum says so.
 4. **The rally-inside-bear line's live rule** (20% drawdown, 10% off the low, a falling 200-day) is the audit's candidate definition read live. It is session-set and displays only. Since the audit failed, whether the line should print at all before the Doctrine monthly is yours.
 5. **The Sunday line sits in the Weekly's Mechanics section**, through the hook session A owns. Section 7 places it in the Sunday anchor, which is the Weekly. A first-page position would mean editing `weekly_stack.py`, which B is fixing this week.
 6. **The drafts for your accept-all (rule 31):** the six ST-8 gate statuses (SR-1's now carrying ruling 1), the SR-21 and SR-22 dated notes, the two FRED source notes (SR-4, SR-8), and the Doctrine rule proposal in the false-bottom audit.

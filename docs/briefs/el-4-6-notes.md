@@ -105,14 +105,14 @@ Again read from here, not from the box. On Saturday, yfinance's SPY chain carrie
 - **The capture was fresh.** Quotes up to 16:14 ET, with tight spreads (the 765 calls and puts for 13 Nov at 12.17/12.26 and 12.07/12.19).
 - **The interpolation picked the right expiries.** 13 Nov (28 days) and 20 Nov (35 days), variance-interpolated. Result: **14.44%** against the Weekly's 14.5.
 - **The solver's reading is consistent.** Every expiry from 7 to 45 days reads 14.0–14.5. A hand check: the 28-day straddle (24.4) over 0.8 × spot × √T gives 14.4%.
-- **The difference is the VIX's construction.** The same chain under the VIX's own model-free method (the 28- and 35-day strips, variance-interpolated to 30 days) gives **19.5**, against the VIX's 19.99. The VIX prices the whole strip, the put wing included. On a falling day with a steep skew it sits well above the at-the-money figure without either being wrong.
+- **The difference is the VIX's construction.** The same chain under the VIX's own model-free method (the 28- and 35-day strips, variance-interpolated to 30 days) gives **19.5**, against the VIX's 19.98 (Cboe's published close; a vendor-served figure replaced, 19 Oct 2026, under the standing rule). The VIX prices the whole strip, the put wing included. On a falling day with a steep skew it sits well above the at-the-money figure without either being wrong.
 
 **The implied ranges, and whether the flags change.** On the 771.71 prior close:
 
 | IV used | Implied range | Actual range 12.61 is |
 |---|---|---|
 | SPY's own 14.44 | 7.02 | 1.80× |
-| The VIX's 19.99 | 9.72 | 1.30× |
+| The VIX's 19.98 | 9.71 | 1.30× |
 
 Both clear 1.2. **No flag on 16 Oct turns on which figure is used.**
 

@@ -232,7 +232,7 @@ The rest is CI's. That includes `validate_monthly_stack` and `validate_weekly_co
 
 1. **The deny list's literal key names.** `.claude/settings.json` denies `cat` and `tail` of any literal key name. The two new names, `MASSIVE_FLATFILES_ACCESS_KEY_ID` and `MASSIVE_FLATFILES_SECRET_ACCESS_KEY`, are not on it, and nor are they in `validate_deploy`'s MUST_DENY. That is a settings edit, which is yours to approve at the laptop, as with ruling 5.
 2. **Vendor figures already committed before D2:**
-   - `tools/validate_a43_render.py`'s FlashAlpha fixture (−6.61bn, −0.87bn);
+   - `tools/validate_a43_render.py`'s FlashAlpha fixture (now synthetic; vendor figures removed, 19 Oct 2026, under the standing rule);
    - `tools/vendor_reconcile.py`'s docstring;
    - `docs/ledgers/vendor-divergence-notes.md`'s Entry 1.
 

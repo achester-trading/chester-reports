@@ -176,7 +176,7 @@ def group_c() -> None:
         from altdata import session as _s  # noqa: PLC0415
         stored = fa.stored(st, _s.utc_iso(), "SPY")
     check(out["status"] == "OK" and out["calls"] == 37 and out["written"] > 0
-          and all(k for _, k in calls) and stored["gex"] == -6608741134.0
+          and all(k for _, k in calls) and stored["gex"] == -4000000000.0
           and stored["regime"] == "negative_gamma",
           "a 16:25 run (writer v2): seven requests a symbol for SPY, QQQ, IWM, SPX and "
           "MSTR and the two surfaces (no expiry listed, so no GEX by expiry), the "

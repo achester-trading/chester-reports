@@ -8,8 +8,8 @@ group OS-3. On fixtures; no network, no model, no live store.
   A  OS-2, THE GAUGE. The typical realised range by hand (each five-session window
      4.0% of the prior close; n=20 prints it, n=19 reads "awaiting (n=19 of 20)");
      the regime word as the engine prints it, gated (an indeterminate read prints
-     no typical range); the one-sigma range by hand (761.10 x 18.2% x sqrt(1/252)
-     = 8.73); the numeral audit passes; no CALM / NORMAL / WILD word; the anchor's
+     no typical range); the one-sigma range by hand (750.00 x 18.2% x sqrt(1/252)
+     = 8.60); the numeral audit passes; no CALM / NORMAL / WILD word; the anchor's
      hook, one line under the dealer surface, its displacement declared.
   B  OS-10, THE MOST-ACTIVE TABLE. The week's ten by volume in order; IV rank and
      percentile by hand, each with its window and n; the one-day change; the
@@ -124,16 +124,16 @@ def group_a() -> None:
     prof = {"symbol": "SPY", "session_date": "2026-10-16",
             "overall": {"net_gex": -2.0e9, "net_to_gross": 0.30}}
     iv = (18.2, "SPY ATM 30-day IV")
-    g20 = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(24))
-    g19 = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(23))
-    r1 = 761.10 * 0.182 * math.sqrt(1 / 252)
-    r5 = 761.10 * 0.182 * math.sqrt(5 / 252)
+    g20 = OS.gauge(prof, ("2026-10-16", 750.00), iv, cards(24))
+    g19 = OS.gauge(prof, ("2026-10-16", 750.00), iv, cards(23))
+    r1 = 750.00 * 0.182 * math.sqrt(1 / 252)
+    r5 = 750.00 * 0.182 * math.sqrt(5 / 252)
     exp5 = math.sqrt(8 / math.pi) * 18.2 * math.sqrt(5 / 252)
     L = g20["lines"]
     check("negative gamma (net-to-gross 30%)" in L[0]
-          and close(r1, 8.7255, 1e-3) and f"Implied one-session move: ±{r1:.2f}" in L[1]
+          and close(r1, 8.5988, 1e-3) and f"Implied one-session move: ±{r1:.2f}" in L[1]
           and f"Implied 5-session move: ±{r5:.2f}" in L[2],
-          f"the implied moves by hand: 761.10 x 18.2% x sqrt(1/252) = ±{r1:.2f}; "
+          f"the implied moves by hand: 750.00 x 18.2% x sqrt(1/252) = ±{r1:.2f}; "
           f"x sqrt(5/252) = ±{r5:.2f}")
     # One session: |close/prior - 1| over 24 gated rows = 0, 0.5, 1, 1.5% five times
     # each and 2% four times: median 1.00, 80th 1.50 (rank 18.4), 95th 2.00.
@@ -157,17 +157,17 @@ def group_a() -> None:
     check("net GEX at the 60th percentile of its own history (2026-09-15 to 2026-10-16, "
           "n=25)" in L[0],
           f"net GEX's own-history percentile by hand, with window and n ({L[0][:160]})")
-    check(f"±1σ bands around the last close 761.10: one-session {761.10 - r1:,.2f} to "
-          f"{761.10 + r1:,.2f}; 5-session {761.10 - r5:,.2f} to {761.10 + r5:,.2f}." == L[-1],
+    check(f"±1σ bands around the last close 750.00: one-session {750.00 - r1:,.2f} to "
+          f"{750.00 + r1:,.2f}; 5-session {750.00 - r5:,.2f} to {750.00 + r5:,.2f}." == L[-1],
           "item 55: the one- and five-session bands around the last close, each labelled")
-    gp = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(24), premarket=764.0)
+    gp = OS.gauge(prof, ("2026-10-16", 750.00), iv, cards(24), premarket=764.0)
     p1 = 764.0 * 0.182 * math.sqrt(1 / 252)
     check(gp["lines"][-1].startswith("±1σ bands around the pre-market 764.00: one-session "
                                      f"{764.0 - p1:,.2f} to {764.0 + p1:,.2f}")
           and gp["lines"][-2].startswith("±1σ bands around the last close"),
           "and both again around the pre-market price, labelled by centre")
     ind = OS.gauge({**prof, "overall": {"net_gex": -2e9, "net_to_gross": 0.05}},
-                   ("2026-10-16", 761.10), iv, cards(24))
+                   ("2026-10-16", 750.00), iv, cards(24))
     check("indeterminate (net is 5% of gross)" in ind["line"]
           and "realised: not read (the regime is not gated)" in ind["line"]
           and "high-low range" not in ind["line"],

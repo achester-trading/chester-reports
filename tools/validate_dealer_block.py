@@ -1003,14 +1003,14 @@ def group_o() -> None:
     check(h["amplified"] is None and p["pinned"] is None,
           "positive gamma: amplified is ineligible (None); pinned is None off the "
           "monthly expiry, max pain or not")
-    # 16 OCT: the IV check. SPY's own chain 14.443 against the VIX 19.99, on a
+    # 16 OCT: the IV check. SPY's own chain 14.443 against the VIX 19.98 (Cboe's published close), on a
     # prior close of 771.71; the actual range 12.61.
     fri = {"session": "2026-10-16", "prior_close": 771.71, "close": 763.31,
            "session_high": 773.25, "session_low": 760.64, "atm_iv_30d": 14.443,
            "atm_iv_capture_at": "2026-10-16T20:10:31+00:00"}
-    own = wsec.flags_for(fri, 19.99, cfg)
-    vx = wsec.flags_for(dict(fri, atm_iv_30d=None), 19.99, cfg)
-    check(own["implied_range"] == 7.02 and vx["implied_range"] == 9.72
+    own = wsec.flags_for(fri, 19.98, cfg)
+    vx = wsec.flags_for(dict(fri, atm_iv_30d=None), 19.98, cfg)
+    check(own["implied_range"] == 7.02 and vx["implied_range"] == 9.71
           and own["iv_check"] and own["iv_captured"] is None,
           f"16 Oct: implied {own['implied_range']} from SPY's 14.4 and "
           f"{vx['implied_range']} from the VIX; the check marks the gap; a 16:10 "
@@ -1019,12 +1019,12 @@ def group_o() -> None:
           and vx["actual_range"] / vx["implied_range"] >= 1.2,
           "12.61 is past 1.2x either implied range (1.80x and 1.30x): no ratio test "
           "on 16 Oct turns on which figure is used")
-    mid = wsec.flags_for(dict(fri, atm_iv_capture_at="2026-10-16T16:31:00Z"), 19.99, cfg)
+    mid = wsec.flags_for(dict(fri, atm_iv_capture_at="2026-10-16T16:31:00Z"), 19.98, cfg)
     st = _CardStore([{"k": "dealer.scorecard_day", "i": "SPY",
                       "observed_at": "2026-10-16", "value_text": json.dumps(
                           dict(fri, atm_iv_capture_at="2026-10-16T16:31:00Z"))},
                      {"k": "yfinance.mkt_vix", "observed_at": "2026-10-16",
-                      "value_num": 19.99}])
+                      "value_num": 19.98}])
     wk = wsec.dealer_week(st, ["2026-10-16"], "2026-10-17T00:00:00Z", cfg)
     cell = wk["ranges_table"]["rows"][0][2]
     check(mid["iv_captured"] == "12:31 ET" and "captured 12:31 ET" in cell

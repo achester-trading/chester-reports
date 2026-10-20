@@ -1226,7 +1226,7 @@ metrics:
     trigger_eligible: false
     added_date: "2026-10-18"
     description: >-
-      FlashAlpha's summary ATM IV. Stored, NEVER compared (F-2): a front-expiry figure (33.9% against a 20-day realized 10.5% on 16 Oct). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
+      FlashAlpha's summary ATM IV. Stored, NEVER compared (F-2): a front-expiry figure (on 16 Oct about three times the 20-day realized; the figures are not kept, 19 Oct 2026). Vendor value (source flashalpha, tier vendor): read by no engine, flag, tell, dial or decision.
   vendor.hv_20:
     source: flashalpha
     mechanism_group: equity_tape

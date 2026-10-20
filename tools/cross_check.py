@@ -30,8 +30,8 @@ false conclusion here.
 
 THEIR PER-STRIKE TABLE IS NOT A REFERENCE FOR ANYTHING. The Basic tier serves no
 per-strike data the logger could use, and what it does show cannot be trusted as a
-yardstick: the observed table carried a strike of 8000 on SPY, an instrument
-trading near 760. That is an index-scale strike on an ETF, so either the table
+yardstick: the observed table carried an index-scale strike, about ten times
+spot, on SPY. That is an index-scale strike on an ETF, so either the table
 mixes SPX-scale contracts into an SPY view or it is simply wrong -- and either way
 nothing here may treat it as the reference. Only the derived LEVELS are compared,
 and even those are compared as an independent opinion rather than as truth.

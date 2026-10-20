@@ -1,7 +1,7 @@
-{"symbol": "SPY", "underlying_price": 761.1,
+{"symbol": "SPY", "underlying_price": 750.0,
  "expected_moves": [
-  {"expiry": "2026-10-20", "daysToExpiry": 1, "atmIv": 120.4, "expectedMove": 52.7, "expectedMovePct": 6.92, "lowerBound": 708.4, "upperBound": 813.8},
-  {"expiry": "2026-10-23", "daysToExpiry": 4, "atmIv": 28.1, "expectedMove": 22.4, "expectedMovePct": 2.94, "lowerBound": 738.7, "upperBound": 783.5},
-  {"expiry": "2026-11-06", "daysToExpiry": 18, "atmIv": 17.9, "expectedMove": 33.6, "expectedMovePct": 4.41, "lowerBound": 727.5, "upperBound": 794.7},
-  {"expiry": "2026-11-20", "daysToExpiry": 32, "atmIv": 16.8, "expectedMove": 42.0, "expectedMovePct": 5.52, "lowerBound": 719.1, "upperBound": 803.1}],
- "_fixture_note": "SYNTHETIC values in the response shape ruled on 18 Oct 2026 (ruling 2: expected_moves[] with expiry, daysToExpiry, atmIv, expectedMove, expectedMovePct, lowerBound, upperBound); a44-opening-setup"}
+  {"expiry": "2026-10-20", "daysToExpiry": 1, "atmIv": 120.4, "expectedMove": 52.7, "expectedMovePct": 7.03, "lowerBound": 697.3, "upperBound": 802.7},
+  {"expiry": "2026-10-23", "daysToExpiry": 4, "atmIv": 28.1, "expectedMove": 22.4, "expectedMovePct": 2.99, "lowerBound": 727.6, "upperBound": 772.4},
+  {"expiry": "2026-11-06", "daysToExpiry": 18, "atmIv": 17.9, "expectedMove": 33.6, "expectedMovePct": 4.48, "lowerBound": 716.4, "upperBound": 783.6},
+  {"expiry": "2026-11-20", "daysToExpiry": 32, "atmIv": 16.8, "expectedMove": 42.0, "expectedMovePct": 5.6, "lowerBound": 708.0, "upperBound": 792.0}],
+ "_fixture_note": "SYNTHETIC values in the response shape ruled on 18 Oct 2026 (ruling 2: expected_moves[] with expiry, daysToExpiry, atmIv, expectedMove, expectedMovePct, lowerBound, upperBound); a44-opening-setup; spot made synthetic too, 19 Oct 2026 (R2 of chain-3)"}
