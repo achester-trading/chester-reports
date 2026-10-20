@@ -17,7 +17,7 @@
 # (the Saturday brief) and ruling 8 of 19 Oct (its outbox path); chain-2's box
 # sheet (E6, the FlashAlpha tasks).
 version: 1
-updated: 2026-10-19
+updated: 2026-10-20
 dst_note: >-
   Times are ET. A task the scheduler holds in UTC moves an hour on the ET clock
   when daylight saving ends on Sunday 1 Nov 2026: 12:00 UTC is 08:00 ET until then
@@ -121,7 +121,7 @@ tasks:
     consumer: the reconcile below
     rights: a cross-check only; never a source
     status: retiring
-    retire_when: chain-2's box sheet (E6) deletes it on Thu 29 Oct if the divergence gate is clean; Batch 11's D7 (landing next, on a48-batch11) retires it the morning after chain-2's merge
+    retire_when: Batch 11's D7 (19 Oct, as built on chain-3; it replaces the box sheet's 29 Oct date) retires it at chain-2's merge, and the chat deletes it the morning after
   - name: FlashAlpha vendor reconcile (Thursday morning)
     cadence_et: Thursday 07:05
     when: {kind: weekly, days: Thu, time_et: "07:05"}

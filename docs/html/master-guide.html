@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="5ea7b16917e01b5b1a1899982cf0f460a7dd53881b6893a50b1b6552358829f0">
+<meta name="source-sha256" content="1f1bb8c866aa3b61a6ce0a04a451bd8399c559b4af595297eefd41a2e5237afd">
 <title>The Master Guide</title>
 <style>
 :root {
@@ -15,7 +15,7 @@
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   margin: 0; background: var(--paper); color: var(--ink);
-  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-family: Aptos, "Segoe UI", Calibri, Arial, sans-serif;
   font-size: 16px; line-height: 1.55;
 }
 .wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
@@ -131,7 +131,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   <div class="masthead">
 <h1>The Master Guide</h1>
 <h3>How the whole system fits together, what each part may do, and how to use it</h3>
-<p><strong>As of:</strong> 19 October 2026 · <strong>As built:</strong> chain-2 (stitched 19 Oct 2026, <code>e0a8cc0</code>), as carried by library-draft-3 · <strong>Refreshed:</strong> at every chain merge</p>
+<p><strong>As of:</strong> 20 October 2026 · <strong>As built:</strong> chain-3 (the third chain, stitched 19–20 Oct 2026: chain-2 via library-draft-3, then a48-batch11 with a47-chain3, b45-chain3 with alpha-lab-4, library-st-l and a49-secondary-notes) · <strong>Refreshed:</strong> at every chain merge</p>
   </div>
 
   <div class="controls">
@@ -139,7 +139,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     <button id="collapseAll">Collapse all</button>
   </div>
 
-  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-0-the-whole-system-in-ten-minutes">Part 0. The whole system in ten minutes</a></li><li><a href="#s3-part-1-the-clock-everything-that-arrives-and-when">Part 1. The clock: everything that arrives, and when</a></li><li><a href="#s4-part-2-the-reports-one-card-each">Part 2. The reports, one card each</a></li><li><a href="#s5-part-3-the-ladder-the-levels-of-trading-output">Part 3. The ladder: the levels of trading output</a></li><li><a href="#s6-part-4-the-inputs-and-what-each-may-do">Part 4. The inputs, and what each may do</a></li><li><a href="#s7-part-5-what-is-proven-so-far">Part 5. What is proven so far</a></li><li><a href="#s8-part-6-a-trade-end-to-end">Part 6. A trade, end to end</a></li><li><a href="#s9-part-7-your-operating-rhythm-the-checklist">Part 7. Your operating rhythm: the checklist</a></li><li><a href="#s10-part-8-where-the-doctrine-and-the-build-differ-for-doctrine-">Part 8. Where the Doctrine and the build differ (for Doctrine #2)</a></li><li><a href="#s11-part-9-the-library-by-what-it-helps-you-do">Part 9. The library, by what it helps you do</a></li><li><a href="#s12-landing-next-as-of-19-october-2026">Landing next (as of 19 October 2026)</a></li><li><a href="#s13-glossary">Glossary</a></li></ol></nav>
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-0-the-whole-system-in-ten-minutes">Part 0. The whole system in ten minutes</a></li><li><a href="#s3-part-1-the-clock-everything-that-arrives-and-when">Part 1. The clock: everything that arrives, and when</a></li><li><a href="#s4-part-2-the-reports-one-card-each">Part 2. The reports, one card each</a></li><li><a href="#s5-part-3-the-ladder-the-levels-of-trading-output">Part 3. The ladder: the levels of trading output</a></li><li><a href="#s6-part-4-the-inputs-and-what-each-may-do">Part 4. The inputs, and what each may do</a></li><li><a href="#s7-part-5-what-is-proven-so-far">Part 5. What is proven so far</a></li><li><a href="#s8-part-6-a-trade-end-to-end">Part 6. A trade, end to end</a></li><li><a href="#s9-part-7-your-operating-rhythm-the-checklist">Part 7. Your operating rhythm: the checklist</a></li><li><a href="#s10-part-8-where-the-doctrine-and-the-build-differ-for-doctrine-">Part 8. Where the Doctrine and the build differ (for Doctrine #2)</a></li><li><a href="#s11-part-9-the-library-by-what-it-helps-you-do">Part 9. The library, by what it helps you do</a></li><li><a href="#s12-landing-next-as-of-20-october-2026">Landing next (as of 20 October 2026)</a></li><li><a href="#s13-glossary">Glossary</a></li></ol></nav>
 
     <details class="section" id="s1-front-matter" open>
       <summary class="section-head">
@@ -153,7 +153,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li><strong>The Operating Doctrine</strong> (<a href="whitepapers/operating-doctrine-whitepaper.md">operating-doctrine-whitepaper.md</a>) is the rulebook. This Guide quotes its rules and never restates them differently.</li>
 <li><strong>The library guide</strong> (<a href="white-paper-library-guide.md">white-paper-library-guide.md</a>) catalogues the 27 papers.</li>
 </ul>
-<p>Everything below is checked against the code and config on chain-2. Where something is specified but not built, it says "not built" and where the plan stands. Work on the third chain's branches appears only under <strong>Landing next</strong>, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.</p>
+<p>Everything below is checked against the code and config on chain-3. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under <strong>Landing next</strong>, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.</p>
 <p><strong>The one picture to keep in mind is a newsroom with a research lab and a trading desk.</strong> The feeds are the wires. The market-state object is the single editor's view of the market. The reports are the editions. The Alpha Lab is the research lab next door. You are the desk, with four books. The Doctrine's rules and switches are compliance. The register, the grader and the ledgers are the scorekeeper.</p>
 <hr />
       </div>
@@ -265,7 +265,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>about 10 minutes (no configured target)</td>
 <td>C (and B's brackets)</td>
 <td>Flag; setups proposed in the dealer block</td>
-<td>Read the dials, the volatile-day context, the gauge and the signal lines. No Book C drafts exist yet.</td>
+<td>Read the dials, the volatile-day context, the gauge, the pre-market line and the signal lines. No Book C drafts exist yet.</td>
 </tr>
 <tr>
 <td>The 12:30 alert</td>
@@ -308,20 +308,20 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Built, <strong>disabled</strong>: the first edition is planned for January 2027.</td>
 </tr>
 <tr>
-<td>The open note (ruled, not built)</td>
+<td>The open note</td>
 <td>weekdays 09:50</td>
 <td>2 minutes (the order)</td>
 <td>C</td>
 <td>Confirm or cancel Book C's 07:00 drafts, never add</td>
-<td>Optional while Book C is inactive. Third chain; dry runs first.</td>
+<td>Optional while Book C is inactive. Built: dry runs until <code>live_from</code> 2026-10-26; its timer is enabled by hand.</td>
 </tr>
 <tr>
-<td>The evening note (ruled, not built)</td>
+<td>The evening note</td>
 <td>Sunday to Thursday 21:30</td>
 <td>1 minute; 3 on Sunday (the order)</td>
 <td>none</td>
 <td>Reading</td>
-<td>Optional; never act on it at night. Third chain.</td>
+<td>Optional; never act on it at night. Built: dry runs until <code>live_from</code> 2026-10-26; its timer is enabled by hand.</td>
 </tr>
 </tbody>
 </table>
@@ -346,6 +346,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>10 minutes</td>
 </tr>
 <tr>
+<td>Weekdays 09:50 (optional)</td>
+<td>The open note</td>
+<td>2 minutes</td>
+</tr>
+<tr>
 <td>Weekdays 12:30, if it arrives</td>
 <td>The 12:30 alert: read, then wait for the close</td>
 <td>2 minutes</td>
@@ -354,6 +359,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Weekdays 16:45</td>
 <td>The close</td>
 <td>5 minutes</td>
+</tr>
+<tr>
+<td>Sunday to Thursday 21:30 (optional)</td>
+<td>The evening note: never act on it at night</td>
+<td>1 minute; 3 on Sunday</td>
 </tr>
 <tr>
 <td>Saturday or Sunday</td>
@@ -378,11 +388,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tbody>
 </table>
 <h3>What is proven so far</h3>
-<p><strong>Very little, and the system says so.</strong> Fifteen signals have a gate that has given a verdict.
+<p><strong>Very little, and the system says so.</strong> Twenty-one signals have a gate that has given a verdict.
 - <strong>One has passed:</strong> SR-1's style regime (value against growth after a growth extreme). Even that is display only until the Doctrine monthly of 7–8 November rules on its rights.
-- <strong>Seven have failed:</strong> the rates driver, the yen unwind, the false-bottom gate, the valuation strip, the Fed–market divergence split, the auction-stress flag, and net supply against the term premium.
-- <strong>Seven are insufficient:</strong> too few episodes to judge.</p>
-<p>Eleven more are <strong>accruing</strong> a sample: the dealer scorecard's six tests, the three Book B pivot setups, the prediction-market archive and the crypto froth gauge. Everything else, about sixty flags, lenses, setups, engines and composites, is <strong>untested context</strong>. Nothing in the Alpha Lab has passed. The full table is Part 5.</p>
+- <strong>Twelve have failed:</strong> the rates driver, the yen unwind, the false-bottom gate, the valuation strip, the Fed–market divergence split, the auction-stress flag, net supply against the term premium, the two crypto flags (S-2's ETF flows and S-3's leverage), the opening setup's positioning composite (OS-6), and the two secondary-note studies (SN-1, the release-day first hour; SN-2, after-hours earnings).
+- <strong>Eight are insufficient:</strong> too few episodes to judge, OS-9's outcome ledger among them.</p>
+<p>Twelve more are <strong>accruing</strong> a sample: the dealer scorecard's seven tests (H6, the level clusters, pre-registered on the third chain), the three Book B pivot setups, the prediction-market archive and the crypto froth gauge. Everything else, about sixty flags, lenses, setups, engines and composites, is <strong>untested context</strong>. Nothing in the Alpha Lab's eleven engines has passed. The full table is Part 5.</p>
 <h3>The one rule that matters most</h3>
 <p><strong>No Decision Packet, no trade</strong> (Doctrine Rule 18). And <strong>top-down sets the budget; bottom-up spends it</strong>: a lower horizon may veto but never enlarge (Doctrine Rule 19). Everything a report prints is an input to a packet, never a trade on its own.</p>
 <p>Deeper: the Reader's Guide, Part I (what the system is for) and Part X (reading the reports); the Doctrine's Card and Part VI.</p>
@@ -473,28 +483,30 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="onbox" x="542.5" y="565.0" font-size="14" text-anchor="middle" font-weight="700">8</text>
 <circle class="box" cx="487.8" cy="611.2" r="13"/>
 <text class="onbox" x="487.8" y="616.2" font-size="14" text-anchor="middle" font-weight="700">9</text>
+<circle class="box" cx="467.5" cy="588.7" r="13"/>
+<text class="onbox" x="467.5" y="593.7" font-size="14" text-anchor="middle" font-weight="700">10</text>
 <circle class="box" cx="330.0" cy="648.0" r="13"/>
 <circle fill="none" class="touch" stroke-width="3" cx="330.0" cy="648.0" r="18"/>
-<text class="onbox" x="330.0" y="653.0" font-size="14" text-anchor="middle" font-weight="700">10</text>
+<text class="onbox" x="330.0" y="653.0" font-size="14" text-anchor="middle" font-weight="700">11</text>
 <circle class="box" cx="166.6" cy="544.4" r="13"/>
-<text class="onbox" x="166.6" y="549.4" font-size="14" text-anchor="middle" font-weight="700">11</text>
+<text class="onbox" x="166.6" y="549.4" font-size="14" text-anchor="middle" font-weight="700">12</text>
 <circle class="box" cx="182.6" cy="512.3" r="13"/>
-<text class="onbox" x="182.6" y="517.3" font-size="14" text-anchor="middle" font-weight="700">12</text>
+<text class="onbox" x="182.6" y="517.3" font-size="14" text-anchor="middle" font-weight="700">13</text>
 <circle class="box" cx="204.4" cy="488.5" r="13"/>
-<text class="onbox" x="204.4" y="493.5" font-size="14" text-anchor="middle" font-weight="700">13</text>
+<text class="onbox" x="204.4" y="493.5" font-size="14" text-anchor="middle" font-weight="700">14</text>
 <circle class="box" cx="147.1" cy="507.1" r="13"/>
-<text class="onbox" x="147.1" y="512.1" font-size="14" text-anchor="middle" font-weight="700">14</text>
+<text class="onbox" x="147.1" y="512.1" font-size="14" text-anchor="middle" font-weight="700">15</text>
 <circle class="box" cx="170.6" cy="484.3" r="13"/>
 <circle fill="none" class="touch" stroke-width="3" cx="170.6" cy="484.3" r="18"/>
-<text class="onbox" x="170.6" y="489.3" font-size="14" text-anchor="middle" font-weight="700">15</text>
+<text class="onbox" x="170.6" y="489.3" font-size="14" text-anchor="middle" font-weight="700">16</text>
 <circle class="box" cx="132.7" cy="455.0" r="13"/>
-<text class="onbox" x="132.7" y="460.0" font-size="14" text-anchor="middle" font-weight="700">16</text>
+<text class="onbox" x="132.7" y="460.0" font-size="14" text-anchor="middle" font-weight="700">17</text>
 <circle class="box" cx="160.8" cy="437.4" r="13"/>
-<text class="onbox" x="160.8" y="442.4" font-size="14" text-anchor="middle" font-weight="700">17</text>
+<text class="onbox" x="160.8" y="442.4" font-size="14" text-anchor="middle" font-weight="700">18</text>
 <circle class="box" cx="130.2" cy="410.0" r="13"/>
-<text class="onbox" x="130.2" y="415.0" font-size="14" text-anchor="middle" font-weight="700">18</text>
-<circle class="box" cx="232.2" cy="228.8" r="13"/>
-<text class="onbox" x="232.2" y="233.8" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<text class="onbox" x="130.2" y="415.0" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<circle class="box" cx="208.4" cy="247.1" r="13"/>
+<text class="onbox" x="208.4" y="252.1" font-size="14" text-anchor="middle" font-weight="700">20</text>
 <text class="ink" x="24.0" y="760.0" font-size="20" text-anchor="start" font-weight="700">Weekdays, by time</text>
 <circle class="box" cx="36" cy="790" r="11"/>
 <text class="onbox" x="36.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">1</text>
@@ -525,34 +537,37 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="ink" x="54.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">09:45  Dealer capture</text>
 <circle class="box" cx="36" cy="1060" r="11"/>
 <text class="onbox" x="36.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">10</text>
-<text class="ink" x="54.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">12:30  Capture + 12:30 alert gates ◉</text>
+<text class="ink" x="54.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">09:50  chester-open-note</text>
 <circle class="box" cx="396" cy="790" r="11"/>
 <text class="onbox" x="396.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">11</text>
-<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
+<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">12:30  Capture + 12:30 alert gates ◉</text>
 <circle class="box" cx="396" cy="820" r="11"/>
 <text class="onbox" x="396.0" y="825.0" font-size="13" text-anchor="middle" font-weight="700">12</text>
-<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
+<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
 <circle class="box" cx="396" cy="850" r="11"/>
 <text class="onbox" x="396.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">13</text>
-<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
+<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
 <circle class="box" cx="396" cy="880" r="11"/>
 <text class="onbox" x="396.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">14</text>
-<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
+<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
 <circle class="box" cx="396" cy="910" r="11"/>
 <text class="onbox" x="396.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">15</text>
-<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
+<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
 <circle class="box" cx="396" cy="940" r="11"/>
 <text class="onbox" x="396.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">16</text>
-<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
+<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
 <circle class="box" cx="396" cy="970" r="11"/>
 <text class="onbox" x="396.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">17</text>
-<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
+<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
 <circle class="box" cx="396" cy="1000" r="11"/>
 <text class="onbox" x="396.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">18</text>
-<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
+<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
 <circle class="box" cx="396" cy="1030" r="11"/>
 <text class="onbox" x="396.0" y="1035.0" font-size="13" text-anchor="middle" font-weight="700">19</text>
-<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">21:45  Meme ingest</text>
+<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
+<circle class="box" cx="396" cy="1060" r="11"/>
+<text class="onbox" x="396.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">20</text>
+<text class="ink" x="414.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">21:15  Meme ingest</text>
 <text class="ink" x="24.0" y="1120.0" font-size="20" text-anchor="start" font-weight="700">The week</text>
 <rect class="panel" x="26.0" y="1136" width="92.0" height="34" rx="6"/>
 <text class="ink" x="72.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Mon</text>
@@ -577,6 +592,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <circle class="box" cx="614.0" cy="1182" r="6"/>
 <circle class="box" cx="630.0" cy="1182" r="6"/>
 <circle class="box" cx="646.0" cy="1182" r="6"/>
+<circle class="box" cx="662.0" cy="1182" r="6"/>
 <rect class="chat" x="24" y="1203" width="10" height="20" rx="3"/>
 <text class="ink" x="42.0" y="1218.0" font-size="16" text-anchor="start" font-weight="400">Wed 16:25  FlashAlpha vendor pull (Wednesday close)</text>
 <rect class="chat" x="24" y="1231" width="10" height="20" rx="3"/>
@@ -595,22 +611,21 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="ink" x="42.0" y="1414.0" font-size="16" text-anchor="start" font-weight="400">Sun 06:00  Alpha weekly</text>
 <rect class="box" x="24" y="1427" width="10" height="20" rx="3"/>
 <text class="ink" x="42.0" y="1442.0" font-size="16" text-anchor="start" font-weight="400">Sun 10:15  Restore test</text>
-<text class="ink" x="24.0" y="1486.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
-<rect class="panel" x="24" y="1502" width="672" height="34" rx="6"/>
-<text class="mute" x="34.8" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
-<text class="mute" x="186.6" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
-<text class="mute" x="338.3" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
-<text class="mute" x="490.1" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
-<text class="mute" x="641.8" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
-<circle class="box" cx="34.8" cy="1548" r="6"/>
-<circle class="box" cx="78.2" cy="1548" r="6"/>
-<circle class="chat" cx="273.3" cy="1548" r="6"/>
-<circle class="chat" cx="446.7" cy="1548" r="6"/>
-<circle class="chat" cx="555.1" cy="1548" r="6"/>
-<rect class="box" x="24" y="1569" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1584.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
+<rect class="box" x="24" y="1455" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1470.0" font-size="16" text-anchor="start" font-weight="400">Sun 21:30  chester-evening-note</text>
+<text class="ink" x="24.0" y="1514.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
+<rect class="panel" x="24" y="1530" width="672" height="34" rx="6"/>
+<text class="mute" x="34.8" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
+<text class="mute" x="186.6" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
+<text class="mute" x="338.3" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
+<text class="mute" x="490.1" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
+<text class="mute" x="641.8" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
+<circle class="box" cx="34.8" cy="1576" r="6"/>
+<circle class="chat" cx="273.3" cy="1576" r="6"/>
+<circle class="chat" cx="446.7" cy="1576" r="6"/>
+<circle class="chat" cx="555.1" cy="1576" r="6"/>
 <rect class="box" x="24" y="1597" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1612.0" font-size="16" text-anchor="start" font-weight="400">day 3, 10:30  Restore drill (not enabled)</text>
+<text class="ink" x="42.0" y="1612.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
 <rect class="chat" x="24" y="1625" width="10" height="20" rx="3"/>
 <text class="ink" x="42.0" y="1640.0" font-size="16" text-anchor="start" font-weight="400">day 12, 06:58  Publication watch (also the 27th)</text>
 <rect class="chat" x="24" y="1653" width="10" height="20" rx="3"/>
@@ -629,10 +644,10 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="mute" x="24.0" y="1868.0" font-size="15" text-anchor="start" font-weight="400">when daylight saving ends on 1 Nov.</text>
 </svg>
 <figcaption>Figure 2 — The clock: the box&#x27;s timers and the chat-side tasks on a 24-hour weekday dial, with the week and the month below; generated from deploy/systemd and docs/master-guide/chat-tasks.yaml</figcaption></figure></p>
-<p><strong>In three lines.</strong> Twenty-seven timers run on the box, all in ET; five of them produce something you read. Thirteen chat-side entries (twelve claude.ai tasks, one of them planned and not yet created, plus your own Grok automation) feed you directly or feed the box through Drive. A few items arrive only when an event makes them: the 12:30 alert, volatility events and release days.</p>
-<p>Figure 2 is generated by <code>tools/figures/master_guide.py</code> from the timer files and <code>docs/master-guide/chat-tasks.yaml</code>, so it changes when they do. The two secondary notes (ruled, not built) appear in Table 1 but not on the dial until their timer files exist.</p>
+<p><strong>In three lines.</strong> Twenty-eight timers run on the box, all in ET; seven of them produce something you read. Thirteen chat-side entries (twelve claude.ai tasks, one of them planned and not yet created, plus your own Grok automation) feed you directly or feed the box through Drive. A few items arrive only when an event makes them: the 12:30 alert, volatility events and release days.</p>
+<p>Figure 2 is generated by <code>tools/figures/master_guide.py</code> from the timer files and <code>docs/master-guide/chat-tasks.yaml</code>, so it changes when they do. The two secondary notes are on the dial now that their timer files exist.</p>
 <h3>Table 1. The box's timers</h3>
-<p>Read from <code>deploy/systemd/*.timer</code>. "Enabled" says who turns it on: the deploy enables the fourteen timers in <code>DEPLOY_TIMERS</code> (<code>scripts/deploy_remote.sh</code>); the rest are enabled by hand on the box, each starting a new data line (chain-2's box sheet). This Guide cannot see which are enabled on the box today; it says only who enables each.</p>
+<p>Read from <code>deploy/systemd/*.timer</code>. "Enabled" says who turns it on: the deploy enables the fourteen timers in <code>DEPLOY_TIMERS</code> (<code>scripts/deploy_remote.sh</code>); the rest are enabled by hand on the box, each starting a new data line or a new report (chain-2's and chain-3's box sheets). This Guide cannot see which are enabled on the box today; it says only who enables each.</p>
 <!-- table:timers -->
 <table>
 <thead>
@@ -792,11 +807,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td><code>chester-meme-ingest</code></td>
-<td><code>Mon..Fri,Sun *-*-* 21:45 America/New_York</code></td>
-<td>Mon to Fri and Sun 21:45</td>
+<td><code>Mon..Fri,Sun *-*-* 21:15 America/New_York</code></td>
+<td>Mon to Fri and Sun 21:15 (moved from 21:45 so its drafts are in before the evening note)</td>
 <td>chester-meme's packets into the Book D drafts table</td>
 <td>background</td>
-<td>by hand</td>
+<td>by hand (restarted for the new time)</td>
 </tr>
 <tr>
 <td><code>chester-prices-saturday</code></td>
@@ -847,14 +862,6 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td><strong>disabled</strong> (ships off; first edition Sat 9 Jan 2027)</td>
 </tr>
 <tr>
-<td><code>chester-restore-drill</code></td>
-<td><code>*-*-03 10:30 America/New_York</code></td>
-<td>the 3rd, 10:30</td>
-<td>the old monthly restore drill</td>
-<td>background</td>
-<td><strong>never enabled</strong> (superseded by the weekly restore test; retires in the third chain)</td>
-</tr>
-<tr>
 <td><code>chester-deploy</code></td>
 <td><code>Mon-Fri *-*-* 09..15:05,35:00 America/New_York; Mon-Fri *-*-* 17..22:20,50:00 America/New_York; Mon-Fri *-*-* 23:20:00 America/New_York; Sat *-*-* *:05,35:00 America/New_York; Sun *-*-* 00..03:05,35:00 America/New_York; Sun *-*-* 07..23:05,35:00 America/New_York</code></td>
 <td>every 30 minutes inside the operating windows</td>
@@ -864,19 +871,19 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td><code>chester-open-note</code></td>
-<td><code>ruled, not built</code></td>
-<td>weekdays 09:50 (the order)</td>
-<td>the open note: the 1000 report's role</td>
+<td><code>Mon-Fri 09:50 America/New_York</code></td>
+<td>weekdays 09:50</td>
+<td><strong>the open note</strong>: the 1000 report's role; dry runs until <code>live_from</code> 2026-10-26</td>
 <td>you read it (optional; mandatory on volatile days once Book C is active)</td>
-<td>ruled, not built: by hand after the third chain's merge</td>
+<td>by hand</td>
 </tr>
 <tr>
 <td><code>chester-evening-note</code></td>
-<td><code>ruled, not built</code></td>
-<td>Sun–Thu 21:30 (the order)</td>
-<td>the evening note: no rights</td>
+<td><code>Sun..Thu 21:30 America/New_York</code></td>
+<td>Sunday to Thursday 21:30</td>
+<td><strong>the evening note</strong>: no rights; dry runs until <code>live_from</code> 2026-10-26</td>
 <td>you read it (optional)</td>
-<td>ruled, not built: by hand after the third chain's merge</td>
+<td>by hand</td>
 </tr>
 </tbody>
 </table>
@@ -885,9 +892,10 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p>Three things the table does not show:
 - The 16:10 EOD pass and the 06:45 pass are the two main feed runs; the 16:45 close re-pulls the day's prices before it writes the market state.
 - The self-deploy copies unit files only. A changed unit that was running is named in the heartbeat as <code>restart pending</code>, and <strong>you</strong> run the restart: no session or timer ever does.
-- The Gateway's restart and watchdog wait behind one witnessed clean start; until then IB Gateway is not running on a timer.</p>
+- The Gateway's restart and watchdog wait behind one witnessed clean start; until then IB Gateway is not running on a timer.
+- The old monthly restore drill is retired (a47-chain3, ruling 6): its unit files are gone, and the weekly restore test is the one restore check.</p>
 <h3>Table 2. The chat-side tasks, and your own automation</h3>
-<p>The repo's record of these is <code>docs/master-guide/chat-tasks.yaml</code> (no prompts, no secrets). Times are ET. <strong>A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November</strong>: 12:00 UTC is 08:00 ET until then and 07:00 ET after.</p>
+<p>The repo's record of these is <code>docs/master-guide/chat-tasks.yaml</code> (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and <strong>planned</strong> (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. <strong>A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November</strong>: 12:00 UTC is 08:00 ET until then and 07:00 ET after.</p>
 <!-- table:chat-tasks -->
 <table>
 <thead>
@@ -1009,7 +1017,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </table>
 <!-- /table -->
 
-<p><strong>The two FlashAlpha chat tasks are retiring.</strong> On chain-2, the box sheet (E6) deletes them on Thursday 29 October if the divergence gate is clean. Batch 11's ruling D7 (19 October; on a48-batch11, landing next) retires them the morning after chain-2's merge instead. Either way, the box's 16:25 vendor writer and its divergence gate take their place, and FlashAlpha stays a cross-check, never a source.</p>
+<p><strong>The two FlashAlpha chat tasks are retiring.</strong> Batch 11's ruling D7 (19 October, as built) retires them at chain-2's merge, in place of the box sheet's 29 October date: the chat deletes both the morning after. The box's 16:25 vendor writer and its divergence gate take their place, and FlashAlpha stays a cross-check, never a source.</p>
 <h3>Table 3. What arrives only when something happens</h3>
 <table>
 <thead>
@@ -1059,7 +1067,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 </tbody>
 </table>
-<p>From the third chain (landing next): the S-3 leverage line could join the 12:30 gates once its ledger passes; its first edition failed (Landing next).</p>
+<p>The S-3 leverage line could join the 12:30 gates only once its ledger passes; its first edition FAILs (Table 7a), so it does not.</p>
 <p>Deeper: the Reader's Guide, Appendix A (timers, gates, windows), Part II 2.4 (which report reads what) and 4.7 (the anchor, the 12:30 slot); <code>docs/scheduled-tasks.md</code>.</p>
 <hr />
       </div>
@@ -1076,13 +1084,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <thead>
 <tr>
 <th>Then (the original five)</th>
-<th>Now, as built on chain-2</th>
+<th>Now, as built on chain-3</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Daily Cascade</strong> (the Doctrine's "eight reports")</td>
-<td>Three touches: the <strong>07:00 anchor</strong>, the <strong>12:30 alert</strong> (sent only when a gate opens) and the <strong>16:45 close</strong>. There is no 10:00 report and no separate setup-list report. <strong>Ruled, not built:</strong> the <strong>09:50 open note</strong>, which takes the 1000 report's role, and the <strong>21:30 evening note</strong> (the secondary-notes order of 19 Oct; cards below).</td>
+<td>Three touches: the <strong>07:00 anchor</strong>, the <strong>12:30 alert</strong> (sent only when a gate opens) and the <strong>16:45 close</strong>. There is no 10:00 report and no separate setup-list report. Two secondary notes, <strong>built</strong> on the secondary-notes order of 19 Oct: the <strong>09:50 open note</strong>, which takes the 1000 report's role, and the <strong>21:30 evening note</strong> (cards below).</td>
 </tr>
 <tr>
 <td><strong>The weekly reflection report</strong></td>
@@ -1117,7 +1125,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>What changed</strong>, with every magnitude stamped with its percentile;</li>
 <li><strong>Market state</strong> and <strong>Contradictions</strong>: the three dials as the close left them;</li>
 <li><strong>Signal lines</strong> (auction, FOMC-week gap, yen flag, "rally inside a bear");</li>
-<li><strong>Prior close — dealer surface</strong>, then the <strong>opening setup</strong>: the gauge (OS-2), the vol lines (OS-3), the largest OI builds (OS-9, side unknown), the index puts (OS-4);</li>
+<li><strong>Prior close — dealer surface</strong>, then the <strong>opening setup</strong>: the gauge (OS-2) with the <strong>pre-market line</strong> under it (ES's newest overnight bar in SPY's terms), the vol lines (OS-3), the largest OI builds (OS-9, side unknown; SPX and SPCX included, their chance cells "awaiting the solver gate"), the index puts (OS-4), and the level clusters (H6, pre-registered);</li>
+<li>the <strong>crypto paragraph</strong> (six computed lines), built behind a switch that ships <strong>off</strong> (<code>config/crypto_sources.yaml</code> <code>blocks.daily.enabled</code>): your yes turns it on;</li>
 <li>the <strong>meme drafts line</strong> in the header ("meme drafts awaiting review: n (refused: m)").</li>
 <li><strong>Highest rung:</strong> flags and readings, and two audited model calls (the narrative scan and the ES read). It may write a story <strong>proposal</strong> to the narrative register, which waits for your confirm. "No figure here is a recommendation and nothing in this edition enters the decision register."</li>
 <li><strong>Not allowed:</strong> to recompute the market state, to draft a Book C packet or to write the register. <strong>Book C drafts are not built</strong>: there is no 0700 setup list in code.</li>
@@ -1188,28 +1197,30 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Highest rung:</strong> reading. <strong>What you do with it:</strong> from January, read it before the quarterly tier of the change ladder.</li>
 <li><strong>Deeper:</strong> the Reader's Guide 4.8; Emerging Markets; the asset-class papers.</li>
 </ul>
-<h3>The secondary notes (ruled 19 October, not built)</h3>
-<p>Two short, optional notes were ruled on 19 October at 14:14 ET (<code>docs/change-order-secondary-notes-2026-10-19.md</code>, on session A's third-chain branch a49-secondary-notes, which did not exist when this Guide was written). The cards below are read from the order, not from code. The 07:00 anchor, the 12:30 alert and the 16:45 close remain the reports of record; skipping a note loses nothing while Book C is inactive.</p>
-<h3>Card: The 09:50 open note (ruled, not built)</h3>
+<h3>The secondary notes (ruled 19 October, built)</h3>
+<p>Two short, optional notes, ruled on 19 October at 14:14 ET (<code>docs/change-order-secondary-notes-2026-10-19.md</code>) and built on a49-secondary-notes. <strong>Built: dry runs until <code>live_from</code> 2026-10-26</strong> (<code>config/reporting_stack.yaml</code> <code>secondary_notes.live_from</code>), each mailed under "[DRY RUN]" and archived under <code>reports/dryrun/</code>; <strong>both timers are enabled by hand.</strong> Where the order and the code differ, the code wins, and the branch's notes list each difference. The 07:00 anchor, the 12:30 alert and the 16:45 close remain the reports of record; skipping a note loses nothing while Book C is inactive.</p>
+<h3>Card: The 09:50 open note</h3>
 <ul>
-<li><strong>Entry point:</strong> none yet. The order names <code>chester-open-note.timer</code> (Mon–Fri), enabled by hand after the merge; dry runs first, live from the week of 26 October.</li>
+<li><strong>Entry point:</strong> <code>daily_cascade/open_note.py</code> (<code>chester-open-note.timer</code>, Mon–Fri 09:50, through <code>scripts/run_open_note.sh</code>; its fetch is <code>python -m altdata.note_fetch open</code>, after the 09:45 capture, waiting at most four minutes for it). Enabled by hand; dry runs until 26 October.</li>
 <li><strong>Purpose:</strong> what changed between the 07:00 anchor and the first fifteen minutes of the cash session. <strong>It takes the Doctrine's 1000-report role:</strong> it may confirm or cancel Book C's 07:00 drafts, and never add to them.</li>
 <li><strong>When and how long:</strong> every trading day, after the 09:45 capture, landing by 09:55, before the Doctrine's 10:30 cutoff. Two minutes.</li>
-<li><strong>The blocks, each with its as-of time:</strong> the 08:30 releases (the first print, the surprise against the naive expectation, "no consensus" with the gap named); the reaction from 08:30 to 09:45 (ES, the 10-year, the 2-year where served, the dollar, VIX); the open (SPY's gap and first fifteen minutes against the gauge, and against our own engine's flip and walls); news since 07:00 (at most five items, each with its outlet and time); <strong>Book C</strong> (each 07:00 draft confirmed or cancelled; until drafts exist, "No Book C drafts: the 07:00 setup list is not built"); one line on what the close will check.</li>
+<li><strong>The blocks, each with its as-of time:</strong> the 08:30 releases (the first print, the surprise against the naive expectation, "no consensus" with the gap named); the reaction from 08:30 to 09:45 (ES, the 10-year, the 2-year where served, the dollar, VIX); the open (SPY's gap and first fifteen minutes against the gauge, and against our own engine's flip and walls); news since 07:00 (at most five items, each with its outlet and time); <strong>Book C</strong> (each 07:00 draft confirmed or cancelled; until drafts exist, "No Book C drafts: the 07:00 setup list is not built"); one line on what the close will check. There is no macro consensus, so a release prints "no consensus" with the naive surprise beside it, labelled.</li>
 <li><strong>Prose:</strong> at most 250 words, only when its gate opens (a tier-1 release, a gap or range beyond the gauge's implied move, or a volatile-day trigger). One chart at most.</li>
 <li><strong>Highest rung:</strong> confirm or cancel (rung 7's veto side) for Book C's drafts only. <strong>Not allowed:</strong> to create a packet, candidate, flag or tell; to write the register; to enter or compute the market state.</li>
-<li><strong>What you do with it, once built:</strong> on a normal day, read it or skip it. Once Book C is active, the Doctrine makes this touch <strong>mandatory on volatile-protocol days</strong>; Doctrine #2 decides whether that stands.</li>
+<li><strong>What you do with it:</strong> on a normal day, read it or skip it. Once Book C is active, the Doctrine makes this touch <strong>mandatory on volatile-protocol days</strong>; Doctrine #2 decides whether that stands.</li>
+<li><strong>Its study:</strong> SN-1, the release-day first hour (pre-registered; first edition FAIL, report-only).</li>
 <li><strong>Deeper:</strong> the secondary-notes order, sections 1, 3 and 6; the Doctrine 4.3 and 5.5.</li>
 </ul>
-<h3>Card: The 21:30 evening note (ruled, not built)</h3>
+<h3>Card: The 21:30 evening note</h3>
 <ul>
-<li><strong>Entry point:</strong> none yet. The order names <code>chester-evening-note.timer</code> (Sun–Thu), enabled by hand after the merge.</li>
+<li><strong>Entry point:</strong> <code>daily_cascade/evening_note.py</code> (<code>chester-evening-note.timer</code>, Sun–Thu 21:30, through <code>scripts/run_evening_note.sh</code>; its fetch is <code>python -m altdata.note_fetch evening</code>, and <code>altdata.session evening-before</code> skips an evening with no session after it). Enabled by hand; dry runs until 26 October.</li>
 <li><strong>Purpose:</strong> what has happened since the 16:45 close (after-hours earnings, US futures, Asia's open, currencies, crypto, news), to prepare tomorrow's anchor. <strong>It has no rights over any book.</strong> Its default line: "Nothing to do tonight; the 07:00 anchor re-reads all of this."</li>
 <li><strong>When and how long:</strong> 21:30 on an evening before a session (Sunday to Thursday). One minute on weekdays, three on Sundays.</li>
-<li><strong>The blocks:</strong> US futures against the close; after-hours earnings against the analyst mean and the implied move; Asia's open; currencies (the yen, offshore yuan, the PBoC fix; the yen and devaluation hooks, descriptive only); crypto since 16:45; news since 16:45; Book D's drafts from the meme ingest (read only; they are decided at 07:00). <strong>The Sunday edition</strong> adds the futures' open against Friday, and the weekend's news, with what is new since the 05:00 Weekly first.</li>
+<li><strong>The blocks:</strong> US futures against the close; after-hours earnings against the analyst mean and the implied move; Asia's open; currencies (the yen, offshore yuan, the PBoC fix; the yen and devaluation hooks, descriptive only); crypto since 16:45; news since 16:45; Book D's drafts from the meme ingest, which now runs at 21:15 so they are in (read only; they are decided at 07:00). <strong>The Sunday edition</strong> adds the futures' open against Friday, and the weekend's news, with what is new since the 05:00 Weekly first.</li>
 <li><strong>Prose:</strong> weekdays at most 150 words, only when its gate opens (an earnings night, ES or NQ past 0.75%, the yen past 1%, an Asia index past 1.5%, a hook tripped: starting values, session-set); Sundays always, at most 400 words.</li>
 <li><strong>Highest rung:</strong> reading. <strong>Not allowed:</strong> anything the open note may not do, and it has no confirm or cancel right.</li>
-<li><strong>What you do with it, once built:</strong> read it if you are up; never act on it at night. The default is nothing.</li>
+<li><strong>What you do with it:</strong> read it if you are up; never act on it at night. The default is nothing.</li>
+<li><strong>Its study:</strong> SN-2, after-hours earnings (pre-registered; first edition FAIL, report-only).</li>
 <li><strong>Deeper:</strong> the secondary-notes order, sections 2, 3 and 5.</li>
 </ul>
 <h3>Short cards: the reports that are not built</h3>
@@ -1456,7 +1467,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>The 0700 report owns Book C and publishes its setup list; the 1000 report confirms or vetoes</td>
 </tr>
 <tr>
-<td>09:50 open note (ruled, not built)</td>
+<td>09:50 open note</td>
 <td>—</td>
 <td>—</td>
 <td>confirm or cancel the 07:00 drafts (never add)</td>
@@ -1480,7 +1491,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>The close records fills and carry for every book</td>
 </tr>
 <tr>
-<td>21:30 evening note (ruled, not built)</td>
+<td>21:30 evening note</td>
 <td>—</td>
 <td>—</td>
 <td>—</td>
@@ -1663,7 +1674,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <h3>2. Market prices</h3>
 <ul>
 <li><strong>What:</strong> the yfinance basket (<strong>115 symbols</strong>, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
-<li><strong>When:</strong> 16:10 and 06:45; the close's re-pull; Saturday 06:00; IBKR every 30 minutes in the session; Massive at 16:31 and in the intraday captures.</li>
+<li><strong>When:</strong> 16:10 and 06:45; the close's re-pull; Saturday 06:00; IBKR every 30 minutes in the session; Massive at 16:31 and in the intraday captures; the secondary notes' own 5-minute bars at 09:50 and 21:30.</li>
+<li><strong>History from Massive's flat files</strong> (D4, <code>tools/massive_flatfiles_backfill.py</code>): the chains' history reconstructed from last-trade closes, stored labelled <code>reconstructed</code>, and read by the ranks only within the pre-registered agreement tolerances (accepted 19 October, R6). It runs by hand on the box once its two credentials are in <code>.env</code>.</li>
 <li><strong>The most it may do:</strong> readings and lenses; the volatility-event flag (no modifier right before 30 events).</li>
 <li><strong>Never:</strong> corrects a bad print (it is marked, never altered); places an order.</li>
 <li><strong>Owner:</strong> code.</li>
@@ -1675,7 +1687,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li>the <strong>09:45 and 12:30 intraday captures</strong> (the 13 and Massive; open interest is the prior close's);</li>
 <li>the engine's <strong>GEX, DEX, VEX and CHEX</strong> by horizon, the walls, the flip, peak gamma and max pain (<code>tools/exposure_compute.py</code>);</li>
 <li>the <strong>opening-setup block</strong> (<code>config/opening_setup.yaml</code>: OS-2 gauge, OS-3 vol lines, OS-4 index puts, OS-5 single-name puts, OS-8 profiles, OS-9 OI builds, OS-10 most active, OS-11 earnings pricing); report-only, no score, no weights;</li>
-<li>the <strong>dealer scorecard</strong> (H1 to H5, pre-registered 17 October).</li>
+<li>the <strong>dealer scorecard</strong> (H1 to H5, pre-registered 17 October; H6, the level clusters, pre-registered on the third chain, its prior-session family read with the overnight that led into it, accepted 19 October, R3), with its history rebuilt from the settled captures by <code>daily_cascade.scorecard_backfill</code> (rows labelled backfilled);</li>
+<li>Batch 11's additions: the like-for-like gauge, the per-name volatility table, the earnings event-only implied move, the OI-build floor (SPX in the index floor, R4) and the share-of-volume column.</li>
 <li><strong>The sign convention, stated once:</strong> "dealers are assumed long calls and short puts, so call gamma counts positive and put gamma negative. An assumption about who holds the options, not an observation; under the opposite reading every net sign inverts." Every dealer table is stamped "inferred, not observed", and the regime word prints only where net-to-gross is at least 0.10.</li>
 <li><strong>The most it may do:</strong> setup proposals in the close's dealer block (rung 5, proposed); flag words (pinned, held, amplified, dampened).</li>
 <li><strong>Never:</strong> writes the register; becomes a promoted rate before the scorecard's test window.</li>
@@ -1683,9 +1696,9 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </ul>
 <h3>4. Vendor cross-checks</h3>
 <ul>
-<li><strong>What:</strong> the box's FlashAlpha writer (<code>altdata/sources/flashalpha.py</code>, 16:25, and inside the intraday captures), its <strong>divergence gate</strong> (a data gate: a divergence is "a question, never a correction"), and the <strong>vendor line</strong> in the Weekly's mechanics.</li>
+<li><strong>What:</strong> the box's FlashAlpha writer (<code>altdata/sources/flashalpha.py</code>, 16:25, and inside the intraday captures), its <strong>divergence gate</strong> (a data gate: a divergence is "a question, never a correction"), and the <strong>vendor line</strong> in the Weekly's mechanics. The two chat-side FlashAlpha tasks retire at chain-2's merge (D7).</li>
 <li><strong>The December vendor month</strong> (FlashAlpha beside SpotGamma for one month, judged in the January Monthly) is <strong>a plan, not built</strong>.</li>
-<li><strong>The most it may do:</strong> a labelled comparison. <strong>Never a source:</strong> "No engine, flag, tell, dial or decision reads a vendor value." This Guide prints no vendor figure.</li>
+<li><strong>The most it may do:</strong> a labelled comparison. <strong>Never a source:</strong> "No engine, flag, tell, dial or decision reads a vendor value." No vendor figure sits in any committed file (Batch 11's D2, reaching back, R2), and this Guide prints none.</li>
 <li><strong>Owner:</strong> code writes; you enable the unit.</li>
 </ul>
 <h3>5. News, voices and narratives</h3>
@@ -1745,7 +1758,17 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>The emerging-mechanism scan</td>
 <td>Saturdays, in the 17:25 run</td>
-<td>candidate draft in the mechanism-watch register; <strong>promote and reject are yours</strong></td>
+<td>candidate draft in the mechanism-watch register; <strong>promote and reject are yours</strong>. An assessed entry is posted to the narrative register as a PROPOSED story (Factor I: NVDA higher in 182 days; Factor V: BTC-USD higher in 182 days; accepted 19 October, R7), with its base rate printed beside its grade; <strong>confirm and reject are yours</strong></td>
+</tr>
+<tr>
+<td>The crypto paragraph and the 12:30 crypto line</td>
+<td>the anchor and the close</td>
+<td>six computed lines, built behind a switch that ships <strong>off</strong>: your yes turns it on</td>
+</tr>
+<tr>
+<td>SR-29, bitcoin-data's long-term-holder share (CD-12)</td>
+<td>17:25 daily, once its free key is in <code>.env</code></td>
+<td>reading; "not tracked" until the key is there</td>
 </tr>
 <tr>
 <td>The chat-side Saturday crypto tech scan</td>
@@ -1754,7 +1777,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 </tbody>
 </table>
-<p>Landing next (third chain): the crypto paragraph for the anchor and close, built behind a switch that ships <strong>off</strong>; the S-2 and S-3 ledgers (both FAIL in their first editions); CD-12's bitcoin-data fetcher behind its key.</p>
+<p>The S-2 and S-3 ledgers both FAIL in their first editions, so neither flag prints and the 12:30 crypto line stays closed.</p>
 <h3>8. Social attention: the X pilot</h3>
 <ul>
 <li><strong>What:</strong> your Grok automation writes a digest to Drive at 06:00; the chat-side triage reads it at 06:50 and keeps two ledgers in <code>chester-vendor-checks/x-triage/</code> (attention and voices), with a push summary. The 02:30 sweep copies them onto the box, and the addendum's section 6 reads them.</li>
@@ -1765,19 +1788,20 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <h3>9. The meme layer: chester-meme</h3>
 <p>Described here only from this repository's code and notes.
 - <strong>What:</strong> a separate repository with its own Brookfield restriction. It writes packets and a manifest to a drop directory; this repository never writes there.
-- <strong>The ingest</strong> (<code>altdata/meme_ingest.py</code>, 21:45 Mon–Fri and Sun, and at the end of the 06:45 pass; enabled by hand) checks the manifest's schema against <code>docs/interface/</code> by version and SHA-256, refuses restricted and Brookfield-blocklisted packets (a database trigger refuses them too), logs schema failures without repairing them, and stores the rest as rows in the <strong>Book D drafts</strong> table, once each.
+- <strong>The ingest</strong> (<code>altdata/meme_ingest.py</code>, 21:15 Mon–Fri and Sun, and at the end of the 06:45 pass; enabled by hand) checks the manifest's schema against <code>docs/interface/</code> by version and SHA-256, refuses restricted and Brookfield-blocklisted packets (a database trigger refuses them too), logs schema failures without repairing them, and stores the rest as rows in the <strong>Book D drafts</strong> table, once each.
 - <strong>The meme line:</strong> "meme drafts awaiting review: n (refused: m)" in the close and the anchor.
 - <strong>Your commands:</strong> confirm with <code>decide.py record --meme-packet &lt;id&gt;</code>; reject with <code>decide.py meme-reject &lt;id&gt;</code>. Both are yours alone.
 - <strong>Book D's limits, as the Card sets them:</strong> at most 0.25% risk a position, a 1% monthly book stop, at most three concurrent positions, and the 0.4% tail-hedge budget inside the 1%; the first quarter at half budget.
 - <strong>Rung:</strong> candidate (a draft). Never a decision.</p>
 <h3>10. The Alpha Lab</h3>
 <ul>
-<li><strong>What:</strong> a separate machine paper book (<code>alpha/</code>). On chain-2 it registers nine engines (two trend engines, prediction markets against futures, a VRP engine, four event engines and crypto carry), all <strong>candidates until they pass</strong>, and a hypothesis register fed by the Saturday brief, the daily proposer, the workbench and the research sitting.</li>
+<li><strong>What:</strong> a separate machine paper book (<code>alpha/</code>). It names eleven engines (two trend engines, prediction markets against futures, a VRP engine, four event engines, crypto carry, <strong>engine 6</strong>, extremes reversion, and <strong>engine 7</strong>, intraday dealer regimes, a research engine with no signals), all <strong>candidates until they pass</strong>, and a hypothesis register fed by the Saturday brief, the daily proposer, the workbench and the research sitting.</li>
 <li><strong>Its discipline:</strong> every idea is pre-registered before it is tested (the manifest comes first); every validation run is counted and deflated by its family's count (the deflated Sharpe); nothing is promoted outside the gate ladder: ledger-paper now, broker-paper after Gate 1.5, live after Gate 3 and not before 2027, each rung your ruling.</li>
 <li><strong>Its loops:</strong> nightly 17:40, the proposer 18:10, weekly Sunday 06:00 (all enabled by hand). Inbox from Drive <code>chester-vendor-checks/lab-inbox</code>; verdicts to Drive <code>chester-lab-outbox/</code>.</li>
 <li><strong>What prints:</strong> the Weekly's lab line ("Alpha Lab: not yet live" today), the close's line, the Monthly's Lab report, the Quarterly's page.</li>
 <li><strong>It never trades your books.</strong> Its value is evidence. A lab verdict can reach a book only one way: as evidence you table at a sitting, through the gate ladder and the change ladder.</li>
-<li>Landing next: engine 6 (extremes reversion), engine 7 (intraday dealer regimes), the grammar search and grammar v2.</li>
+<li><strong>The grammar search and grammar v2:</strong> a rule-level state condition (grammar v2), and the grammar search under the coverage rule (five years of point-in-time history before the holdout), run as the nightly loop's last step from a month's first week. The dials' history is not rethought before November: the box's coverage decides (R12).</li>
+<li><strong>Engines 6 and 7 register by your box command</strong> (their manifests); engine 7's seven session-set choices are accepted as its spec freezes them (R8).</li>
 </ul>
 <h3>11. The by-hand inputs that remain</h3>
 <p>Rule 30 (16 October) ends new by-hand data lines; only those ruled remain.
@@ -1797,7 +1821,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><strong>In three lines.</strong> Of fifteen gated signals with a verdict, one passed, seven failed and seven are insufficient; eleven more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime, and only part of it prints today.</p>
+<p><strong>In three lines.</strong> Of twenty-one gated signals with a verdict, one passed, twelve failed and eight are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime, and only part of it prints today.</p>
 <h3>The headline counts</h3>
 <table>
 <thead>
@@ -1815,23 +1839,23 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td><strong>Failed</strong></td>
-<td>7</td>
-<td>The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger; the register's status line still reads "audit pending"), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23). Each prints display only, or not at all.</td>
+<td>12</td>
+<td>The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger; the register's status line still reads "audit pending"), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings). Each prints display only, or not at all.</td>
 </tr>
 <tr>
 <td><strong>Insufficient</strong></td>
-<td>7</td>
-<td>SR-4, SR-5, SR-12, SR-13, SR-14, and the two index studies ST-R5.31 and ST-R5.44: too few episodes to judge.</td>
+<td>8</td>
+<td>SR-4, SR-5, SR-12, SR-13, SR-14, the two index studies ST-R5.31 and ST-R5.44, and OS-9's outcome ledger (0 resolved builds against a floor of 30): too few episodes to judge.</td>
 </tr>
 <tr>
 <td><strong>Accruing</strong></td>
-<td>11</td>
-<td>The dealer scorecard's six tests; the three Book B pivot setups; the prediction-market archive; the froth gauge (S-5, no print before 15 January 2027).</td>
+<td>12</td>
+<td>The dealer scorecard's seven tests (H6, the level clusters, joins H1 to H5); the three Book B pivot setups; the prediction-market archive; the froth gauge (S-5, no print before 15 January 2027).</td>
 </tr>
 <tr>
 <td><strong>Untested</strong></td>
 <td>about 60</td>
-<td>Every other flag, lens, setup, overlay, engine and composite, including seven studies whose order states no gate at all.</td>
+<td>Every other flag, lens, setup, overlay, engine and composite, including ten studies whose order states no gate at all (the third chain adds the hiking-cycle table, SR-20's COFER entry and SR-24's Livingston note).</td>
 </tr>
 </tbody>
 </table>
@@ -1849,6 +1873,18 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </thead>
 <tbody>
 <tr>
+<td><code>after-hours-earnings-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>After-hours earnings: continuation or fade — pre-registration (SN-2, October 2026)</td>
+</tr>
+<tr>
+<td><code>dealer-scorecard-preregistration-2026-10-h6.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>Dealer scorecard — pre-registration H6, level clusters (Batch 11 item 55)</td>
+</tr>
+<tr>
 <td><code>dealer-scorecard-preregistration-2026-10.md</code></td>
 <td>diagnostic</td>
 <td>n —</td>
@@ -1861,6 +1897,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>SR-8 ledger -- the false-bottom audit: the bottom side, rally by rally</td>
 </tr>
 <tr>
+<td><code>fed-cycles-ledger-2026-10-19.md</code></td>
+<td>NO GATE</td>
+<td>n 21</td>
+<td>FED-CYCLES ledger -- the hiking-cycle table, computed by rule</td>
+</tr>
+<tr>
 <td><code>gex-scale-flashalpha-2026-09-30.md</code></td>
 <td>diagnostic</td>
 <td>n —</td>
@@ -1871,6 +1913,24 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>diagnostic</td>
 <td>n —</td>
 <td>GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic)</td>
+</tr>
+<tr>
+<td><code>os-6-ledger-2026-10-19.md</code></td>
+<td>FAIL</td>
+<td>n 498</td>
+<td>OS-6 ledger -- the positioning components against SPX's forward path (item 53)</td>
+</tr>
+<tr>
+<td><code>os-9-ledger-2026-10-19.md</code></td>
+<td>INSUFFICIENT</td>
+<td>n 0</td>
+<td>OS-9 ledger -- the OI builds' chance in the money, against the outcome at expiry (item 58)</td>
+</tr>
+<tr>
+<td><code>os-9-vendor-month-comparison-spec-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>OS-9 against the vendor's large-activity table: the December comparison, pre-registered (item 58)</td>
 </tr>
 <tr>
 <td><code>rates-driver-2026-09-30-r2-preregistration.md</code></td>
@@ -1889,6 +1949,36 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>FAIL</td>
 <td>n —</td>
 <td>Rates driver — calibration ledger (SR-6, SR-9, SR-17)</td>
+</tr>
+<tr>
+<td><code>release-first-hour-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>The release-day first hour — pre-registration (SN-1, October 2026)</td>
+</tr>
+<tr>
+<td><code>s-2-ledger-2026-10-19.md</code></td>
+<td>FAIL</td>
+<td>n 22</td>
+<td>S-2 ledger -- spot bitcoin ETF flow extremes and BTC's forward return</td>
+</tr>
+<tr>
+<td><code>s-3-ledger-2026-10-19.md</code></td>
+<td>FAIL</td>
+<td>n 4</td>
+<td>S-3 ledger -- the crypto leverage extreme (funding z with open interest at a 90-day high)</td>
+</tr>
+<tr>
+<td><code>sn-1-ledger-2026-10-19.md</code></td>
+<td>FAIL</td>
+<td>n 159</td>
+<td>SN-1 ledger -- the release-day first hour: continue or fade</td>
+</tr>
+<tr>
+<td><code>sn-2-ledger-2026-10-19.md</code></td>
+<td>FAIL</td>
+<td>n 193</td>
+<td>SN-2 ledger -- after-hours earnings: continuation or fade</td>
 </tr>
 <tr>
 <td><code>sr-1-ledger-2026-10-18.md</code></td>
@@ -1927,6 +2017,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>SR-2 ledger -- the yen carry unwind: four episodes at ST-5's thresholds</td>
 </tr>
 <tr>
+<td><code>sr-20-ledger-2026-10-19.md</code></td>
+<td>NO GATE</td>
+<td>n 110</td>
+<td>SR-20 ledger -- the reserve scorecard's first entry, from IMF COFER</td>
+</tr>
+<tr>
 <td><code>sr-21-ledger-2026-10-18.md</code></td>
 <td>FAIL</td>
 <td>n 46</td>
@@ -1949,6 +2045,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>FAIL</td>
 <td>n 262</td>
 <td>SR-23 ledger -- net Treasury supply against the term premium</td>
+</tr>
+<tr>
+<td><code>sr-24-ledger-2026-10-19.md</code></td>
+<td>NO GATE</td>
+<td>n 32</td>
+<td>SR-24 ledger -- the Livingston 1965-80 base-rate note</td>
 </tr>
 <tr>
 <td><code>sr-4-ledger-2026-10-18.md</code></td>
@@ -2086,6 +2188,24 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Descriptive, no modifier</td>
 </tr>
 <tr>
+<td>S-2 ETF-flow extremes; S-3 leverage extreme</td>
+<td>flags</td>
+<td><strong>Failed</strong></td>
+<td>Stored "not passed", never printed; the 12:30 crypto line stays closed</td>
+</tr>
+<tr>
+<td>OS-6 positioning components (the opening setup)</td>
+<td>report-only components</td>
+<td><strong>Failed</strong> (accepted, R5)</td>
+<td>Display only, no rights; no component flag, composite or weight</td>
+</tr>
+<tr>
+<td>SN-1 release-day first hour; SN-2 after-hours earnings</td>
+<td>studies (the secondary notes)</td>
+<td><strong>Failed</strong></td>
+<td>Report-only; the notes print their readings and claim nothing from them</td>
+</tr>
+<tr>
 <td>SR-4 devaluation tell</td>
 <td>flag</td>
 <td><strong>Insufficient</strong></td>
@@ -2128,7 +2248,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Report-only</td>
 </tr>
 <tr>
-<td>Dealer scorecard H1, H2, H3a, H3b, H4, H5</td>
+<td>OS-9 largest OI builds, against the outcome at expiry</td>
+<td>display</td>
+<td><strong>Insufficient</strong></td>
+<td>Report-only; SPX and SPCX's chance cells read "awaiting the solver gate"; the December vendor comparison is pre-registered and not run</td>
+</tr>
+<tr>
+<td>Dealer scorecard H1, H2, H3a, H3b, H4, H5, H6 (the level clusters)</td>
 <td>tests</td>
 <td><strong>Accruing</strong></td>
 <td>Nothing below 20 scored sessions; "no rate is a decision" below 120 eligible; a verdict needs 120 formation and 120 test sessions</td>
@@ -2188,7 +2314,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Report-only; no rights</td>
 </tr>
 <tr>
-<td>The ST-R studies with no gate in the order (17b, 19b, 30b, 32b, 35b, 36b, 43b)</td>
+<td>The ST-R studies with no gate in the order (17b, 19b, 30b, 32b, 35b, 36b, 43b), the hiking-cycle table, SR-20's COFER entry and SR-24's Livingston note</td>
 <td>studies</td>
 <td>Untested</td>
 <td>Base rates recorded; any gate is yours to pre-register</td>
@@ -2218,26 +2344,32 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Not built; a draft queue entry with no rights</td>
 </tr>
 <tr>
-<td>S-1, S-2, S-3, S-4</td>
-<td>lenses and flags</td>
+<td>S-1, S-4</td>
+<td>lenses</td>
 <td>Untested</td>
-<td>S-1 and S-4 print; S-2 and S-3's flags are stored "not passed", never printed</td>
+<td>Print as readings</td>
 </tr>
 <tr>
-<td>OS-9 largest OI builds</td>
-<td>display</td>
+<td>The crypto paragraph (anchor and close)</td>
+<td>readings</td>
 <td>Untested</td>
-<td>Report-only; no outcome ledger on chain-2</td>
+<td>Built behind a switch that ships off</td>
 </tr>
 <tr>
-<td>The nine Alpha Lab engines</td>
+<td>The mechanism watch's posted stories</td>
+<td>narrative proposals</td>
+<td>Untested</td>
+<td>Each posted as PROPOSED, its base rate beside its grade; confirm or reject is yours</td>
+</tr>
+<tr>
+<td>The eleven Alpha Lab engines (engine 6, extremes reversion, and engine 7, intraday dealer regimes, join the nine)</td>
 <td>engines</td>
 <td>Untested</td>
-<td>Candidates; nothing passed or promoted</td>
+<td>Candidates; nothing passed or promoted; engine 6 prints "awaiting (n=k of 30)" per bucket</td>
 </tr>
 </tbody>
 </table>
-<p><strong>OS-6</strong> (the opening setup's positioning composite) has no code or ledger on chain-2; its first ledger is on the third chain, and FAILs (Landing next).</p>
+<p><strong>OS-6</strong> (the opening setup's positioning components) has its first ledger on the third chain, and FAILs: display only, no rights (accepted 19 October, R5).</p>
 <h3>How to trade with what is proven</h3>
 <ul>
 <li><strong>Size untested and accruing signals at the Card's minimum, or not at all.</strong> The minimum is the Card's standard risk for the book (0.75% for Book B, 0.35% for Book C, 0.25% at most for Book D), never the exceptional tier.</li>
@@ -2274,8 +2406,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>The grade at the horizon.</strong> At the time stop or the exit, the grader scores it in R (say, +1.4R, invented).</li>
 <li><strong>Into the evidence.</strong> The grade enters the register's month (the Monthly's expectancy) and the setup's own count toward its 40 graded. The candidates you declined that week are graded too, at p = 0.5 over 42 days, so the scanner's record is honest.</li>
 </ol>
-<p><strong>Book C, in a paragraph.</strong> On a Positive-gamma morning the close's dealer block proposed a pin fade toward a large strike. <strong>This is where the build stops:</strong> there is no 0700 setup list and no Book C draft in code, and no 10:00 report to confirm it (the 09:50 open note that will take that role is ruled, not built). A Book C trade today is one you write yourself from the dealer block's proposal, defined-risk and bracketed, at 0.35% risk, within the Doctrine's limits (two concurrent positions; 1% daily and 2% weekly book stops). On a flagged day the volatile-day protocol halves the size and allows no new entry after 10:30.</p>
-<p><strong>Book D, in a paragraph.</strong> On Tuesday morning the meme line reads "meme drafts awaiting review: 1 (refused: 0)". The draft came from chester-meme's evening scan through the 21:45 ingest. You read it at the next scheduled touch, never on a flagged day: if it has a catalyst with a date, an exit in one session and a clean Security Master check, you confirm it with <code>decide.py record --meme-packet &lt;id&gt;</code> at no more than 0.25% risk; otherwise <code>decide.py meme-reject &lt;id&gt;</code>. Either way the decision is graded.</p>
+<p><strong>Book C, in a paragraph.</strong> On a Positive-gamma morning the close's dealer block proposed a pin fade toward a large strike. <strong>This is where the build stops:</strong> there is no 0700 setup list and no Book C draft in code, and no 10:00 report to confirm it (the 09:50 open note takes that role, but with no drafts to read it prints "No Book C drafts: the 07:00 setup list is not built"). A Book C trade today is one you write yourself from the dealer block's proposal, defined-risk and bracketed, at 0.35% risk, within the Doctrine's limits (two concurrent positions; 1% daily and 2% weekly book stops). On a flagged day the volatile-day protocol halves the size and allows no new entry after 10:30.</p>
+<p><strong>Book D, in a paragraph.</strong> On Tuesday morning the meme line reads "meme drafts awaiting review: 1 (refused: 0)". The draft came from chester-meme's evening scan through the 21:15 ingest, and the 21:30 evening note listed it the night before (reading only). You read it at the next scheduled touch, never on a flagged day: if it has a catalyst with a date, an exit in one session and a clean Security Master check, you confirm it with <code>decide.py record --meme-packet &lt;id&gt;</code> at no more than 0.25% risk; otherwise <code>decide.py meme-reject &lt;id&gt;</code>. Either way the decision is graded.</p>
 <p>Deeper: the Doctrine Appendix B (the packet by book) and 6.4; Options as Expression; the Reader's Guide 7.2–7.4.</p>
 <hr />
       </div>
@@ -2298,8 +2430,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tbody>
 <tr>
 <td>Every trading day</td>
-<td>the X push (optional), the anchor, the 12:30 alert if sent, the close</td>
-<td>about 15 minutes</td>
+<td>the X push (optional), the anchor, the 09:50 open note (optional), the 12:30 alert if sent, the close, the 21:30 evening note (optional, Sunday to Thursday)</td>
+<td>about 15 minutes, 18 with both notes</td>
 </tr>
 <tr>
 <td>Sunday</td>
@@ -2318,14 +2450,15 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 </tbody>
 </table>
-<p><strong>In three lines.</strong> This is the as-built version of the Doctrine's operating rhythm (6.5). The Doctrine's 10:00 report does not exist; the 09:50 open note that takes its role is ruled, not built, and the 12:30 alert has no veto right. The as-built rhythm comes to about two and a half to three hours a week, inside the Doctrine's three to four.</p>
+<p><strong>In three lines.</strong> This is the as-built version of the Doctrine's operating rhythm (6.5). The Doctrine's 10:00 report does not exist; the 09:50 open note takes its role (built; dry runs until 26 October), and the 12:30 alert has no veto right. The as-built rhythm comes to about two and a half to three hours a week, inside the Doctrine's three to four.</p>
 <h3>Every trading day</h3>
 <ul>
 <li>[ ] <strong>06:50, optional, one minute:</strong> the X triage push. Attention only; never act on it.</li>
-<li>[ ] <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day context; the gauge and the vol lines; the signal lines; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list, the crypto paragraph (landing next, behind a switch that ships off).</li>
-<li>[ ] <strong>12:30, only if it arrives, two minutes:</strong> read the alert; do nothing until the close. <em>Differs from the Doctrine:</em> the 10:00 report's confirm-or-cancel touch has no as-built counterpart.</li>
-<li>[ ] <em>Ruled, not built (third chain):</em> <strong>09:50, optional, two minutes:</strong> the open note, once enabled. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that. <strong>21:30 Sunday to Thursday, optional, one minute (three on Sunday):</strong> the evening note; never act on it at night.</li>
+<li>[ ] <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day context; the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list. <em>Off until your yes:</em> the crypto paragraph (built behind a switch that ships off).</li>
+<li>[ ] <strong>09:50, optional, two minutes:</strong> the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.</li>
+<li>[ ] <strong>12:30, only if it arrives, two minutes:</strong> read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.</li>
 <li>[ ] <strong>16:45, five minutes:</strong> the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.</li>
+<li>[ ] <strong>21:30 Sunday to Thursday, optional, one minute (three on Sunday):</strong> the evening note (once you enable its timer). Never act on it at night; the 07:00 anchor re-reads all of it.</li>
 </ul>
 <h3>Sunday, 45 to 60 minutes</h3>
 <ul>
@@ -2366,7 +2499,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li>Change a rule between sittings (Doctrine Rule 20).</li>
 <li>Trade through a tripped switch (Doctrine Rule 2).</li>
 </ul>
-<p><strong>Total time.</strong> Daily touches about 75 minutes a week; Sunday 45 to 60; the monthly 90, about 20 minutes a week averaged. About two and a half to three hours a week: the as-built reports meet the Doctrine's three to four hours, with room to spare because the 10:00 touch does not exist.</p>
+<p><strong>Total time.</strong> Daily touches about 75 minutes a week; Sunday 45 to 60; the monthly 90, about 20 minutes a week averaged. About two and a half to three hours a week: the as-built reports meet the Doctrine's three to four hours, with room to spare because the open note and the evening note are optional while Book C is inactive.</p>
 <p>Deeper: the Doctrine 6.5 and 10.2; the Reader's Guide Part X (reading targets, reading order).</p>
 <hr />
       </div>
@@ -2380,6 +2513,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       <div class="section-body">
 <p><strong>In three lines.</strong> The Doctrine was written for the five original reports; the build has three daily touches, a Weekly and a Monthly. Each row says what the Doctrine says, what exists, and the choice for you at Doctrine #2 (7–8 November). This Guide lists; it does not rule.</p>
 <h3>Table 8</h3>
+<p><strong>Table 8 is the agenda for Doctrine #2 (7–8 November), with none of its rows ruled</strong> (R14, 19 October 2026). Where a row says a direction is already set, that is the order's, not this table's.</p>
 <table>
 <thead>
 <tr>
@@ -2405,7 +2539,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>3</td>
 <td>"The 1000 report … veto and confirmation rights" (the Card, 4.3, 5.5, Appendix B's "1000-report confirmation status")</td>
-<td><strong>Ruled 19 Oct, not built:</strong> the 09:50 open note takes the 1000 report's role (confirm or cancel Book C's 07:00 drafts, never add), on the third chain (a49-secondary-notes). Not built on chain-2</td>
+<td><strong>Built on the order of 19 Oct:</strong> the 09:50 open note takes the 1000 report's role (confirm or cancel Book C's 07:00 drafts, never add); dry runs until 26 October</td>
 <td>No longer unruled. For Doctrine #2: the Doctrine's 1000 report becomes the open note's text (the order does not edit the Doctrine)</td>
 </tr>
 <tr>
@@ -2477,7 +2611,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>15</td>
 <td>The intraday rung's first engine, the Dealer's Hand's zero-day regime engine (10.3)</td>
-<td>Not built as such; the Alpha Lab's engine 7 (landing next) is a research engine of the lab, not the Doctrine's</td>
+<td>Not built as such; the Alpha Lab's engine 7 (intraday dealer regimes, built; its registration is your box command) is a research engine of the lab, not the Doctrine's</td>
 <td>Say whether engine 7 informs 10.3, or keep them apart</td>
 </tr>
 <tr>
@@ -2489,7 +2623,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>17</td>
 <td>The 1000 report is also a Book D touch (6.2)</td>
-<td>The ruled open note carries no Book D block; Book D's drafts are read by the 21:30 evening note (no rights) and decided at 07:00</td>
+<td>The open note carries no Book D block; Book D's drafts are read by the 21:30 evening note (no rights) and decided at 07:00</td>
 <td>Give the open note a Book D block, or drop the 1000 report's Book D touch</td>
 </tr>
 </tbody>
@@ -2775,9 +2909,9 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <circle fill="none" class="grid" stroke-width="2" cx="654" cy="1328" r="12"/>
 </svg>
 <figcaption>Figure 5 — The library map: the 27 papers in four groups by the decisions they support, each with the books it serves; generated from the library guide&#x27;s roster</figcaption></figure></p>
-<p><strong>In three lines.</strong> Twenty-seven papers, grouped here by what each helps you decide, each linked to the books it serves. Read the trading track first if the goal is turning the reports into trades. Eight more papers are planned and not written.</p>
+<p><strong>In three lines.</strong> Twenty-seven papers, grouped here by what each helps you decide, each linked to the books it serves. Twelve of them now carry dated calibration appendices (library-st-l, accepted 19 October, R11). Read the trading track first if the goal is turning the reports into trades. Eight more papers are planned and not written.</p>
 <h3>Table 9. Every paper, and what to use it for</h3>
-<p>The numeral, status and size are the library guide's; the grouping is this Guide's, refined against each paper's "Companion to" column.</p>
+<p>The numeral, status and size are the library guide's; the grouping is this Guide's, refined against each paper's "Companion to" column, and was accepted on 19 October 2026 (R13).</p>
 <!-- table:papers -->
 <table>
 <thead>
@@ -3040,7 +3174,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <!-- /table -->
 
 <h3>The trading track</h3>
-<p>Eight steps, aimed at turning the reports into trades. It is a subset of the library guide's core track (Audit 2's reading plan), reordered for the desk:</p>
+<p>Eight steps, aimed at turning the reports into trades, accepted on 19 October 2026 (R13). It is a subset of the library guide's core track (Audit 2's reading plan), reordered for the desk:</p>
 <ol>
 <li><strong>The Doctrine's Card and Part VI</strong> (the books, the map from report to book, the rhythm).</li>
 <li><strong>The Reporting System, Part X</strong> (how to read the reports).</li>
@@ -3068,14 +3202,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       </div>
     </details>
 
-    <details class="section" id="s12-landing-next-as-of-19-october-2026">
+    <details class="section" id="s12-landing-next-as-of-20-october-2026">
       <summary class="section-head">
-        <span class="section-title">Landing next (as of 19 October 2026)</span>
+        <span class="section-title">Landing next (as of 20 October 2026)</span>
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><strong>In three lines.</strong> The third chain merges after chain-2: four branches read from their notes, and a fifth, the secondary notes, read from its order. None of what follows is built on chain-2, and each item is labelled with its branch. The calendar after it runs to January.</p>
-<p>Read from: the secondary-notes order (<code>docs/change-order-secondary-notes-2026-10-19.md</code>, a49-secondary-notes), <code>docs/briefs/a47-chain3-notes.md</code> (a47-chain3), <code>docs/briefs/a48-batch11-notes.md</code> (a48-batch11), <code>docs/briefs/b45-chain3-notes.md</code> and <code>docs/briefs/alpha-lab-4-notes.md</code> (b45-chain3), <code>docs/briefs/library-st-l-notes.md</code> (library-st-l).</p>
+<p><strong>In three lines.</strong> Everything the third chain carries is now described above as built. What is still on its own branch is session A's, and it merges on its own after chain-3. The calendar after it runs to January.</p>
 <table>
 <thead>
 <tr>
@@ -3086,62 +3219,28 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </thead>
 <tbody>
 <tr>
-<td>The pre-market line</td>
-<td>a47-chain3</td>
-<td>ES's newest overnight bar in SPY's terms, under the anchor's gauge</td>
+<td>The dealer captures stored (decision 9 of 19 Oct, R9)</td>
+<td>a50-dealer-store (session A)</td>
+<td>The dealer captures written to the store</td>
 </tr>
 <tr>
-<td>The crypto paragraph and the 12:30 crypto line</td>
-<td>a47-chain3</td>
-<td>Six computed lines in the anchor and close, built behind a switch that ships <strong>off</strong>; your yes turns it on</td>
+<td>The 09:45 bars for engine 7 (decision 10, R10)</td>
+<td>a50-dealer-store (session A)</td>
+<td>The bars engine 7 reads; on chain-3 its legs are not tracked</td>
 </tr>
 <tr>
-<td>The S-2 and S-3 ledgers</td>
-<td>a47-chain3</td>
-<td>Both <strong>FAIL</strong> in their first editions: neither flag prints; the 12:30 line stays closed</td>
+<td>The Ahead matrix's store path</td>
+<td>a50-dealer-store (session A)</td>
+<td>The store path for the Ahead matrix (A48's note)</td>
 </tr>
 <tr>
-<td>The monthly restore drill retired</td>
-<td>a47-chain3</td>
-<td>The weekly restore test is the one restore check</td>
-</tr>
-<tr>
-<td>Batch 11</td>
-<td>a48-batch11</td>
-<td>The like-for-like gauge; the level clusters (H6, pre-registered); OS-6's ledger (<strong>FAIL</strong>); the per-name volatility table; the earnings event-only implied move; the OI-build floor and share-of-volume column; D7 (the FlashAlpha chat tasks retired at the merge)</td>
-</tr>
-<tr>
-<td>Grammar v2 and the search's changes</td>
-<td>b45-chain3</td>
-<td>A rule-level state condition; the grammar search under the coverage rule (five years of history), run as the nightly loop's last step</td>
-</tr>
-<tr>
-<td>Engines 6 and 7</td>
-<td>b45-chain3</td>
-<td>Extremes reversion; intraday dealer regimes (a research engine, no signals)</td>
-</tr>
-<tr>
-<td>The mechanism watch's posting</td>
-<td>b45-chain3</td>
-<td>Assessed entries posted to the narrative register as PROPOSED stories, for your confirm or reject</td>
-</tr>
-<tr>
-<td>CD-12, SR-29</td>
-<td>b45-chain3</td>
-<td>The bitcoin-data fetcher, reading its free key from <code>.env</code>; "not tracked" until the key is there</td>
-</tr>
-<tr>
-<td>The secondary notes</td>
-<td>a49-secondary-notes (session A; ruled 19 Oct 14:14 ET, read from the order: the branch did not exist when this was written)</td>
-<td>The 09:50 open note (the 1000 report's role) and the 21:30 evening note, Sunday to Thursday (no rights), both by hand after the merge; two pre-registered, report-only ledgers (the release-day first hour; after-hours earnings); the meme ingest moved from 21:45 to 21:15 where safe</td>
-</tr>
-<tr>
-<td>ST-L's appendices and Tranche H</td>
-<td>library-st-l</td>
-<td>Dated calibration appendices in twelve papers; the hiking-cycle table; SR-20's first COFER entry; SR-24's Livingston note; the Warsh matrix's edit; five Doctrine #2 proposals</td>
+<td>A49's three answers and the volatile-day flag with all four of the Doctrine 5.5's arms</td>
+<td>a50-dealer-store (session A; ruled 19 Oct, late evening)</td>
+<td>On chain-3 the open note's volatile-day trigger reads the VIX arms only</td>
 </tr>
 </tbody>
 </table>
+<p>Read from: the branch's own commits; its notes are its own. None of it is built on chain-3.</p>
 <h3>The calendar ahead</h3>
 <table>
 <thead>
@@ -3152,12 +3251,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </thead>
 <tbody>
 <tr>
-<td>Thursday 22 – Sunday 25 October</td>
-<td>The secondary notes' dry runs (at least two weekday runs of each and one Sunday), if the third chain merges in time</td>
+<td>From chain-3's merge to Sunday 25 October</td>
+<td>The secondary notes' dry runs (at least two weekday runs of each and one Sunday), mailed "[DRY RUN]" and archived under <code>reports/dryrun/</code></td>
 </tr>
 <tr>
 <td>Monday 26 October</td>
-<td>The secondary notes' <code>live_from</code> (moved later if the third chain merges after 22 October)</td>
+<td>The secondary notes' <code>live_from</code> (moved later if chain-3 merges after Thursday 22 October)</td>
 </tr>
 <tr>
 <td>Sunday 25 October</td>
@@ -3170,6 +3269,10 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>Sunday 1 November</td>
 <td>The 1 November Monthly (the 1st, 07:30)</td>
+</tr>
+<tr>
+<td>1–7 November</td>
+<td>The grammar search's first capped step, as the nightly loop's last step in a month's first week</td>
 </tr>
 <tr>
 <td>about 31 October</td>
@@ -3205,7 +3308,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       <div class="section-body">
 <ul>
 <li><strong>Anchor:</strong> the 07:00 morning report; it reads the close's market state and says what changed.</li>
-<li><strong>As-built:</strong> what the code and config on chain-2 do, as opposed to what a plan or the Doctrine specifies.</li>
+<li><strong>As-built:</strong> what the code and config on the chain this Guide is as built on (chain-3) do, as opposed to what a plan or the Doctrine specifies.</li>
 <li><strong>available_at:</strong> the instant a row could have been known; every as-of read filters on it.</li>
 <li><strong>Attention budget:</strong> seven packet approvals a week and one sitting of at most two hours (Doctrine 10.2); a deferred packet is graded as an abstention.</li>
 <li><strong>Base rate:</strong> how often an outcome happens unconditionally, the yardstick a conditional signal must beat.</li>

@@ -75,28 +75,30 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="onbox" x="542.5" y="565.0" font-size="14" text-anchor="middle" font-weight="700">8</text>
 <circle class="box" cx="487.8" cy="611.2" r="13"/>
 <text class="onbox" x="487.8" y="616.2" font-size="14" text-anchor="middle" font-weight="700">9</text>
+<circle class="box" cx="467.5" cy="588.7" r="13"/>
+<text class="onbox" x="467.5" y="593.7" font-size="14" text-anchor="middle" font-weight="700">10</text>
 <circle class="box" cx="330.0" cy="648.0" r="13"/>
 <circle fill="none" class="touch" stroke-width="3" cx="330.0" cy="648.0" r="18"/>
-<text class="onbox" x="330.0" y="653.0" font-size="14" text-anchor="middle" font-weight="700">10</text>
+<text class="onbox" x="330.0" y="653.0" font-size="14" text-anchor="middle" font-weight="700">11</text>
 <circle class="box" cx="166.6" cy="544.4" r="13"/>
-<text class="onbox" x="166.6" y="549.4" font-size="14" text-anchor="middle" font-weight="700">11</text>
+<text class="onbox" x="166.6" y="549.4" font-size="14" text-anchor="middle" font-weight="700">12</text>
 <circle class="box" cx="182.6" cy="512.3" r="13"/>
-<text class="onbox" x="182.6" y="517.3" font-size="14" text-anchor="middle" font-weight="700">12</text>
+<text class="onbox" x="182.6" y="517.3" font-size="14" text-anchor="middle" font-weight="700">13</text>
 <circle class="box" cx="204.4" cy="488.5" r="13"/>
-<text class="onbox" x="204.4" y="493.5" font-size="14" text-anchor="middle" font-weight="700">13</text>
+<text class="onbox" x="204.4" y="493.5" font-size="14" text-anchor="middle" font-weight="700">14</text>
 <circle class="box" cx="147.1" cy="507.1" r="13"/>
-<text class="onbox" x="147.1" y="512.1" font-size="14" text-anchor="middle" font-weight="700">14</text>
+<text class="onbox" x="147.1" y="512.1" font-size="14" text-anchor="middle" font-weight="700">15</text>
 <circle class="box" cx="170.6" cy="484.3" r="13"/>
 <circle fill="none" class="touch" stroke-width="3" cx="170.6" cy="484.3" r="18"/>
-<text class="onbox" x="170.6" y="489.3" font-size="14" text-anchor="middle" font-weight="700">15</text>
+<text class="onbox" x="170.6" y="489.3" font-size="14" text-anchor="middle" font-weight="700">16</text>
 <circle class="box" cx="132.7" cy="455.0" r="13"/>
-<text class="onbox" x="132.7" y="460.0" font-size="14" text-anchor="middle" font-weight="700">16</text>
+<text class="onbox" x="132.7" y="460.0" font-size="14" text-anchor="middle" font-weight="700">17</text>
 <circle class="box" cx="160.8" cy="437.4" r="13"/>
-<text class="onbox" x="160.8" y="442.4" font-size="14" text-anchor="middle" font-weight="700">17</text>
+<text class="onbox" x="160.8" y="442.4" font-size="14" text-anchor="middle" font-weight="700">18</text>
 <circle class="box" cx="130.2" cy="410.0" r="13"/>
-<text class="onbox" x="130.2" y="415.0" font-size="14" text-anchor="middle" font-weight="700">18</text>
-<circle class="box" cx="232.2" cy="228.8" r="13"/>
-<text class="onbox" x="232.2" y="233.8" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<text class="onbox" x="130.2" y="415.0" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<circle class="box" cx="208.4" cy="247.1" r="13"/>
+<text class="onbox" x="208.4" y="252.1" font-size="14" text-anchor="middle" font-weight="700">20</text>
 <text class="ink" x="24.0" y="760.0" font-size="20" text-anchor="start" font-weight="700">Weekdays, by time</text>
 <circle class="box" cx="36" cy="790" r="11"/>
 <text class="onbox" x="36.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">1</text>
@@ -127,34 +129,37 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="ink" x="54.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">09:45  Dealer capture</text>
 <circle class="box" cx="36" cy="1060" r="11"/>
 <text class="onbox" x="36.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">10</text>
-<text class="ink" x="54.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">12:30  Capture + 12:30 alert gates ◉</text>
+<text class="ink" x="54.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">09:50  chester-open-note</text>
 <circle class="box" cx="396" cy="790" r="11"/>
 <text class="onbox" x="396.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">11</text>
-<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
+<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">12:30  Capture + 12:30 alert gates ◉</text>
 <circle class="box" cx="396" cy="820" r="11"/>
 <text class="onbox" x="396.0" y="825.0" font-size="13" text-anchor="middle" font-weight="700">12</text>
-<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
+<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
 <circle class="box" cx="396" cy="850" r="11"/>
 <text class="onbox" x="396.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">13</text>
-<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
+<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
 <circle class="box" cx="396" cy="880" r="11"/>
 <text class="onbox" x="396.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">14</text>
-<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
+<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
 <circle class="box" cx="396" cy="910" r="11"/>
 <text class="onbox" x="396.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">15</text>
-<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
+<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
 <circle class="box" cx="396" cy="940" r="11"/>
 <text class="onbox" x="396.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">16</text>
-<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
+<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
 <circle class="box" cx="396" cy="970" r="11"/>
 <text class="onbox" x="396.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">17</text>
-<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
+<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
 <circle class="box" cx="396" cy="1000" r="11"/>
 <text class="onbox" x="396.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">18</text>
-<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
+<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
 <circle class="box" cx="396" cy="1030" r="11"/>
 <text class="onbox" x="396.0" y="1035.0" font-size="13" text-anchor="middle" font-weight="700">19</text>
-<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">21:45  Meme ingest</text>
+<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
+<circle class="box" cx="396" cy="1060" r="11"/>
+<text class="onbox" x="396.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">20</text>
+<text class="ink" x="414.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">21:15  Meme ingest</text>
 <text class="ink" x="24.0" y="1120.0" font-size="20" text-anchor="start" font-weight="700">The week</text>
 <rect class="panel" x="26.0" y="1136" width="92.0" height="34" rx="6"/>
 <text class="ink" x="72.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Mon</text>
@@ -179,6 +184,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <circle class="box" cx="614.0" cy="1182" r="6"/>
 <circle class="box" cx="630.0" cy="1182" r="6"/>
 <circle class="box" cx="646.0" cy="1182" r="6"/>
+<circle class="box" cx="662.0" cy="1182" r="6"/>
 <rect class="chat" x="24" y="1203" width="10" height="20" rx="3"/>
 <text class="ink" x="42.0" y="1218.0" font-size="16" text-anchor="start" font-weight="400">Wed 16:25  FlashAlpha vendor pull (Wednesday close)</text>
 <rect class="chat" x="24" y="1231" width="10" height="20" rx="3"/>
@@ -197,22 +203,21 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="ink" x="42.0" y="1414.0" font-size="16" text-anchor="start" font-weight="400">Sun 06:00  Alpha weekly</text>
 <rect class="box" x="24" y="1427" width="10" height="20" rx="3"/>
 <text class="ink" x="42.0" y="1442.0" font-size="16" text-anchor="start" font-weight="400">Sun 10:15  Restore test</text>
-<text class="ink" x="24.0" y="1486.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
-<rect class="panel" x="24" y="1502" width="672" height="34" rx="6"/>
-<text class="mute" x="34.8" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
-<text class="mute" x="186.6" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
-<text class="mute" x="338.3" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
-<text class="mute" x="490.1" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
-<text class="mute" x="641.8" y="1525.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
-<circle class="box" cx="34.8" cy="1548" r="6"/>
-<circle class="box" cx="78.2" cy="1548" r="6"/>
-<circle class="chat" cx="273.3" cy="1548" r="6"/>
-<circle class="chat" cx="446.7" cy="1548" r="6"/>
-<circle class="chat" cx="555.1" cy="1548" r="6"/>
-<rect class="box" x="24" y="1569" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1584.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
+<rect class="box" x="24" y="1455" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1470.0" font-size="16" text-anchor="start" font-weight="400">Sun 21:30  chester-evening-note</text>
+<text class="ink" x="24.0" y="1514.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
+<rect class="panel" x="24" y="1530" width="672" height="34" rx="6"/>
+<text class="mute" x="34.8" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
+<text class="mute" x="186.6" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
+<text class="mute" x="338.3" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
+<text class="mute" x="490.1" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
+<text class="mute" x="641.8" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
+<circle class="box" cx="34.8" cy="1576" r="6"/>
+<circle class="chat" cx="273.3" cy="1576" r="6"/>
+<circle class="chat" cx="446.7" cy="1576" r="6"/>
+<circle class="chat" cx="555.1" cy="1576" r="6"/>
 <rect class="box" x="24" y="1597" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1612.0" font-size="16" text-anchor="start" font-weight="400">day 3, 10:30  Restore drill (not enabled)</text>
+<text class="ink" x="42.0" y="1612.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
 <rect class="chat" x="24" y="1625" width="10" height="20" rx="3"/>
 <text class="ink" x="42.0" y="1640.0" font-size="16" text-anchor="start" font-weight="400">day 12, 06:58  Publication watch (also the 27th)</text>
 <rect class="chat" x="24" y="1653" width="10" height="20" rx="3"/>
