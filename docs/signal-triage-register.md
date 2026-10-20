@@ -814,6 +814,8 @@ above changes.
 
 *Accepted as drafted (rule 31), 19 Oct 2026 (R6):* **D4's agreement tolerances** (the flat-file backfill, `tools/massive_flatfiles_backfill.py`). Readings reconstructed from last-trade closes are stored labelled `reconstructed`, and ranks read them only within the pre-registered agreement tolerances as drafted. The first run is the operator's, after the two credential names are in `.env`.
 
+*Accepted as drafted with one addition (rule 31), 19 Oct 2026 (R7):* **the mechanism watch's posting templates** (`config/story_queries.yaml` `mechanism_watch.posting`): Factor I, NVDA's close higher in 182 days, linked to trend +; Factor V, BTC-USD's close higher in 182 days, linked to liquidity +. **The addition:** wherever a posted story's grade prints, its base rate prints beside it, code-written: the share of 182-day windows in the stored history in which the linked instrument closed higher, with the window and n, point in time as of the grade (`altdata/mechanism_watch.base_rate`). No key was added. Confirm and reject stay the operator's.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
