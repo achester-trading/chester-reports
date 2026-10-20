@@ -1,0 +1,20 @@
+# eps_overshoot.yaml -- signal-triage Batch 12, item 60.1-60.3 (F3; a53, 20 Oct
+# 2026): implied forward growth, the realised forecast error and the
+# estimates-overshoot flag. Read by altdata/eps_overshoot.py.
+#
+# F3's probe of 20 Oct 2026 FAILED the standing rule on sources: Yardeni's public
+# charts read their data from /api, which its robots.txt disallows, and its
+# copyright clause forbids any download or reuse without written consent. S&P
+# DJI's estimates file was withdrawn on 17 Oct. So no source is named: both series
+# are listed gaps, the flag does not print, and the base-rate ledger around the
+# 2000, 2007 and 2019 peaks waits for a source. Naming a keyless source with
+# vintages here (its two store keys beside it) switches the module to its built
+# branch with no other change.
+source: null
+forward_eps_key: null      # forward operating EPS pushed 52 weeks ahead, by vintage
+trailing_eps_key: null     # actual trailing four-quarter operating EPS
+lens_years: 5
+gap_reason: >-
+  Implied forward growth and the realised forecast error: listed gaps (item 60,
+  F3: no keyless forward-EPS source with vintages); the estimates-overshoot flag
+  does not print.

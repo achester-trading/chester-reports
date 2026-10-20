@@ -437,3 +437,54 @@ proposals:
       comparison: up
       quorum: 1
       horizon_days: 90
+
+  # SIGNAL-TRIAGE BATCH 12, ITEM 60.6 (a53, 20 Oct 2026): the narrative pair, seeded
+  # PROPOSED through this path for the operator's confirm or reject. The realised
+  # forecast-error series would adjudicate between them once it exists (F3: a listed
+  # gap today), so each starts with its evidence rule alone, on QQQ.
+  ai_excess_orderly_flush:
+    name: AI excess flushed in an orderly way
+    direction: >-
+      The AI-capex cycle's excess is being worked off in an orderly way:
+      hyperscaler multiples compress from their 2025 peaks while earnings carry
+      the index, and companies guide to a return on capex.
+    proposed_by: >-
+      session A, as drafted from the Batch 12 change order item 60 (a commentator's
+      post, already in the voices register; the bull reading of an
+      estimates-overshoot chart), committed 20 Oct 2026
+    linked_dimensions: {trend: "+"}
+    linked_instruments: [yfinance.mkt_qqq]
+    prediction_market_contracts: []
+    evidence:
+      series_moves:
+        yfinance.mkt_qqq: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        QQQ is higher at the horizon than when the forecast was emitted.
+      metrics: [yfinance.mkt_qqq]
+      comparison: up
+      quorum: 1
+      horizon_days: 180
+
+  estimates_overshoot_reckoning:
+    name: Estimates overshoot into a reckoning
+    direction: >-
+      Forward earnings estimates have overshot what will be earned, as they did
+      into 2001, 2008 and 2020; the realised forecast error turns negative and the
+      market reprices toward actual earnings.
+    proposed_by: >-
+      session A, as drafted from the Batch 12 change order item 60 (the bear reading
+      of the same estimates-overshoot chart), committed 20 Oct 2026
+    linked_dimensions: {trend: "-"}
+    linked_instruments: [yfinance.mkt_qqq]
+    prediction_market_contracts: []
+    evidence:
+      series_moves:
+        yfinance.mkt_qqq: {sign: "-", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        QQQ is lower at the horizon than when the forecast was emitted.
+      metrics: [yfinance.mkt_qqq]
+      comparison: down
+      quorum: 1
+      horizon_days: 180

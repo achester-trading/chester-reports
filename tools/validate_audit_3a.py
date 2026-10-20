@@ -163,11 +163,16 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # fees, and BTC's and ETH's caps and supply in the coin blocks
                   "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply",
                   # the secondary notes (19 Oct 2026): their own 5-minute bars
-                  "note_bars_prices"}
+                  "note_bars_prices",
+                  # Batch 12 item 59 (a53, 20 Oct 2026): the bank-stress panel's FRED legs
+                  "fred_bank_stress"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).
 NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
+                     # Batch 12 item 59 (a53, 20 Oct 2026): KRE joins the basket.
+                     "yfinance.mkt_kre", "yfinance.mkt_kre_dividend",
+                     "yfinance.mkt_kre_split", "yfinance.mkt_kre_volume",
                      # Batch 9 item 52 (17 Oct 2026): ^VIX9D and ^VIX6M join the
                      # basket, with their action series.
                      "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",
