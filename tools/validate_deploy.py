@@ -190,6 +190,13 @@ MUST_DENY = {
         "printenv FLASHALPHA_API_KEY",
         "python -c 'import os; print(os.getenv(\"NASDAQ_DATA_LINK_API_KEY\"))'",
         "echo $OPENAI_API_KEY",
+        # R1 of 19 Oct 2026 (chain-3): the flat-file pair, the bitcoin-data key and
+        # the backup's crypt settings, each by its literal name.
+        "echo $MASSIVE_FLATFILES_ACCESS_KEY_ID",
+        "printenv MASSIVE_FLATFILES_SECRET_ACCESS_KEY",
+        "ssh vps 'grep BITCOIN_DATA_API_KEY ~/chester-reports/.env'",
+        "echo $CHESTER_RCLONE_CRYPT_PASSWORD",
+        "python -c 'import os; print(os.getenv(\"CHESTER_RCLONE_CRYPT_SALT\"))'",
     ],
 }
 
