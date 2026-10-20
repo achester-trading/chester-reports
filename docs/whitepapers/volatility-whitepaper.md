@@ -4,6 +4,8 @@
 
 **Version 1.0 — August 2026**
 
+**Change record:** 20 Oct 2026: vendor figures replaced with Cboe's published values, under the standing rule.
+
 *Companion paper **XI** in the chester-reports library — prepared for the Daily Cascade, Top & Bottom, and Disruptive Themes*
 
 *Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
@@ -763,7 +765,7 @@ FOMC 15–16 September, 27–28 October, 8–9 December. CPI and PCE. Treasury r
 
 *One line per fired volatility event (the amendment to Section 36), added as each enters the stack's ledger. Drafted by the build session for the operator's accept-all; the ledger row on the box is the record, and a line here that disagrees with it is corrected by a new dated line, never edited.*
 
-- **16 October 2026** — the VIX (Cboe ^VIX close) 19.98, up 3.53 points (+21.5%) from 16.45, a large change at a modest level, still inside the normal band. As reported in the order's worked example (FlashAlpha's macro block at the close; the box's stored series to confirm in the ledger's first row): VIX9D 20.12, VIX3M 20.50, VIX6M 21.67, so the move was led from the front and contango collapsed there; VVIX 109.9 (+18.7%) and SKEW 168.6 (+5.1%), tail and vol-of-vol bid faster than the at-the-money move; the S&P 500 down 1.09%, explaining roughly a quarter of the VIX move at the usual spot-vol beta; MOVE down 1.4%, so rates were not the driver; the index closed below the gamma flip. Catalyst: not established.
+- **16 October 2026** — the VIX (Cboe ^VIX close) 19.98, up 3.53 points (+21.5%) from 16.45, a large change at a modest level, still inside the normal band. At Cboe's published closes for the day (its daily index files): VIX9D 20.12, VIX3M 20.50, VIX6M 21.67, so the move was led from the front and contango collapsed there; VVIX 109.91 and SKEW 168.59, tail and vol-of-vol bid faster than the at-the-money move (their one-day changes are the box's stored series to confirm in the ledger's first row). The S&P 500 fell on the day, by an amount the order's arithmetic put at roughly a quarter of the VIX move at the usual spot-vol beta, and the MOVE index fell, so rates were not the driver; both are the stored closes to confirm in the ledger's first row. Catalyst: not established.
 
 ---
 
