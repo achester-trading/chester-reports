@@ -932,8 +932,12 @@ fi
 # The allowances carry one period of slack each: nine days for a weekly (a Sunday the
 # box was down plus the Persistent=true catch-up that follows), and forty days for a
 # monthly.
+# The secondary notes (19 Oct 2026) ride the same table: warning only, never the
+# verdict. 100 hours spans a weekend and a holiday for either note.
 ANCHOR_TABLE="chester-weekly.timer:weekly_heartbeat:216:weekly
-chester-monthly.timer:monthly_heartbeat:960:monthly"
+chester-monthly.timer:monthly_heartbeat:960:monthly
+chester-open-note.timer:open_note_heartbeat:100:open note
+chester-evening-note.timer:evening_note_heartbeat:100:evening note"
 
 WEEKLY_STATE=not_enabled
 MONTHLY_STATE=not_enabled
@@ -968,6 +972,20 @@ while IFS=: read -r unit hb_file max_h label; do
         monthly) MONTHLY_STATE="$state" ;;
     esac
 done <<< "$ANCHOR_TABLE"
+
+# THE SECONDARY NOTES' LAST RUN (19 Oct 2026). Their wrappers exit 0 after a soft
+# failure (a note is secondary), so a failed run never fails its unit; the status
+# file carries the note's rc, and a non-zero one is named here the next morning
+# rather than after the 100-hour allowance above. WARNING ONLY: the verdict and
+# the exit code are untouched.
+for note in open_note evening_note; do
+    st="$STATE_DIR/${note}_status"
+    [[ -f "$st" ]] || continue
+    note_rc="$(sed -n 's/^rc=\([0-9]*\).*/\1/p' "$st" 2>/dev/null)"
+    if [[ -n "$note_rc" && "$note_rc" != "0" ]]; then
+        log "  WARNING ${note/_/ }: the last run returned rc=$note_rc ($(cut -c1-120 "$st")) -- see ~/logs/${note}-*.log. The verdict and exit code are untouched"
+    fi
+done
 
 # ---- the events ingest: declared sources, one allowance ---------------------
 #

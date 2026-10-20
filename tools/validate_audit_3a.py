@@ -161,7 +161,9 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "fred_group_b",    # lenses-group-b (18 Oct 2026): Batch 7 Group B's FRED legs
                   # Tranche A part 1 (17 Oct 2026): the watch names' DefiLlama
                   # fees, and BTC's and ETH's caps and supply in the coin blocks
-                  "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply"}
+                  "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply",
+                  # the secondary notes (19 Oct 2026): their own 5-minute bars
+                  "note_bars_prices"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).

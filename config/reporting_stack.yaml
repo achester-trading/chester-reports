@@ -50,6 +50,28 @@ tape:
 intraday_extra:
   - {id: es, label: "S&P 500 e-mini (front)", bars: "ES=F", session: full}
 
+# THE SECONDARY NOTES' INSTRUMENTS (the secondary-notes order, 19 Oct 2026, ruled
+# 14:14 ET): 5-minute bars the open note's and the evening note's FETCH STEPS
+# write (altdata/note_fetch.py), read by the notes only. Kept apart from the tape
+# and intraday_extra on purpose: those join the 16:10 `bars` feed and its
+# final-bar retry, and these never do. Stored without volume (the notes read
+# none). The tape's own ids (spy, y10, dxy, btc) and es are reused, not repeated.
+# `tz` is the market's own zone: its open time in ET is computed with zoneinfo,
+# never hard-coded. No Brookfield instrument.
+note_bars:
+  - {id: zn,     label: "10-year note future", bars: "ZN=F"}
+  - {id: zt,     label: "2-year note future", bars: "ZT=F"}
+  - {id: vix,    label: "VIX", bars: "^VIX"}
+  - {id: nq,     label: "Nasdaq-100 e-mini", bars: "NQ=F"}
+  - {id: rty,    label: "Russell 2000 e-mini", bars: "RTY=F"}
+  - {id: usdjpy, label: "Dollar-yen", bars: "JPY=X"}
+  - {id: cnh,    label: "Dollar-yuan (offshore)", bars: "CNH=X"}
+  - {id: eth,    label: "Ether", bars: "ETH-USD"}
+  - {id: n225,   label: "Nikkei 225", bars: "^N225", tz: Asia/Tokyo, open: "09:00"}
+  - {id: hsi,    label: "Hang Seng", bars: "^HSI", tz: Asia/Hong_Kong, open: "09:30"}
+  - {id: sse,    label: "Shanghai Composite", bars: "000001.SS", tz: Asia/Shanghai, open: "09:30"}
+  - {id: kospi,  label: "KOSPI", bars: "^KS11", tz: Asia/Seoul, open: "09:00"}
+
 # INTRADAY BARS (brief 2.3). Pulled by the `bars` feed in the 16:10 eod run
 # (altdata/feeds.py); the close reads the store only.
 bars:
@@ -92,13 +114,46 @@ budget:
   # seven (three horizon bars, the quilt, two heatmaps, the transmission map).
   # The operator rules the number at the December dry run.
   quarterly: {words: null, charts: 40}
+  # THE SECONDARY NOTES (the secondary-notes order, 19 Oct 2026): prose only when
+  # the gate opens; at most one chart. The evening note's Sunday edition has its
+  # own budget (the weekend is a long window).
+  open_note: {words: 250, charts: 1}
+  evening_note: {words: 150, charts: 1}
+  evening_note_sunday: {words: 400, charts: 1}
 
 # THE READING-TIME TARGETS (brief 1.4; item 10: daily 5, Weekly 20, Monthly 40
 # minutes), as configuration rather than prose (T3, 7 Oct 2026). The header's
 # estimate is prose words at 250 a minute plus 20 seconds a chart
 # (daily_cascade/readability.py); these are what it is read against.
 # The Monthly's target rose from 40 to 55 minutes with its words (T3.1 item 22).
-reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55, quarterly: 90}
+reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55, quarterly: 90,
+                          open_note: 2, evening_note: 1, evening_note_sunday: 3}
+
+# THE SECONDARY NOTES (docs/change-order-secondary-notes-2026-10-19.md, ruled 19 Oct
+# 2026, 14:14 ET). Secondary: the 07:00 anchor, the 12:30 alert and the 16:45
+# close remain the reports of record. The open note's only right is to confirm
+# or cancel Book C's 07:00 drafts (none exist: "the 07:00 setup list is not
+# built"); the evening note has none.
+secondary_notes:
+  # Before live_from every run is a dry run: archived under dryrun/ and mailed
+  # with "[DRY RUN]" in the subject (the order, section 6). The merge sheet moves
+  # it later if the third chain merges after Thursday 22 Oct.
+  live_from: "2026-10-26"
+  open:
+    capture_wait_minutes: 4    # SESSION-SET: the bounded wait for the 09:45 capture; the note must land by 09:55
+    news_after: "07:00"        # news published after 07:00 ET, by the source's own time
+    news_max: 5
+    model: null                # null: narrative.MORNING_MODEL
+  evening:
+    news_after: "16:45"
+    news_max: 8
+    # THE WEEKDAY PROSE GATE (the order, section 2). SESSION-SET starting values,
+    # not measured; listed for Ari:
+    es_nq_pct: 0.75     # ES or NQ beyond 0.75% from the 16:00 close: about half the
+                        # gauge's typical one-session sigma, a move worth a sentence
+    usdjpy_pct: 1.0     # dollar-yen beyond 1%: the carry-unwind order of magnitude
+    asia_pct: 1.5       # an Asia index beyond 1.5% from its prior close: a large open
+    model: null
 
 # CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
 # (item 10). A firing trigger raises the report's chart cap by one (stack.chart_plan).

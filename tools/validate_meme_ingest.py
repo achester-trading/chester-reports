@@ -21,7 +21,7 @@ store, no network, no model.
   E  THE OPERATOR'S TOOL: decide.py's confirm (`record --meme-packet`) refuses a
      draft's mismatched instrument or direction; `meme-reject` moves only the
      review columns; both reject writes are on the deny list.
-  F  THE WIRING: the 06:45 pass calls the ingest after its pulls, the 21:45 unit
+  F  THE WIRING: the 06:45 pass calls the ingest after its pulls, the 21:15 unit
      after a pull of main and is not in DEPLOY_TIMERS; the close and the anchor
      carry the one line.
 
@@ -186,7 +186,7 @@ def main() -> int:
     conn.close()
     check(r2["drafts"] == 0 and r2["refused"] == 0 and r2["seen"] == 6
           and n_after == 1 and n_ref == 4,
-          "a second run (the 06:45 after the 21:45) writes nothing: every packet seen")
+          "a second run (the 06:45 after the 21:15) writes nothing: every packet seen")
 
     head("B. THE REGISTER'S DECISION TABLES ARE UNTOUCHED")
     after = table_dump(db, ("meme_drafts", "meme_refusals"))
@@ -283,11 +283,11 @@ def main() -> int:
     sv = (REPO / "deploy" / "systemd" / "chester-meme-ingest.service").read_text(encoding="utf-8")
     dr = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
     check(wr.index("git pull --ff-only") < wr.index("-m altdata.meme_ingest")
-          and "21:45 America/New_York" in tm and "run_meme_ingest.sh" in sv
+          and "21:15 America/New_York" in tm and "run_meme_ingest.sh" in sv
           and "ReadOnlyPaths=-%h/chester-meme" in sv
           and "chester-meme-ingest.timer" not in re.search(
               r'DEPLOY_TIMERS="([^"]*)"', dr, re.S).group(1),
-          "the 21:45 unit runs the ingest after a pull of main, holds the drop "
+          "the 21:15 unit runs the ingest after a pull of main, holds the drop "
           "read-only, and is not in DEPLOY_TIMERS")
     sc = (REPO / "daily_cascade" / "stack_close.py").read_text(encoding="utf-8")
     sr = (REPO / "daily_cascade" / "stack_render.py").read_text(encoding="utf-8")

@@ -124,3 +124,10 @@ ibgateway-watchdog.service    Environment
 # Environment only; the drop-in goes on with the enable, as the Weekly's and the
 # Monthly's do.
 chester-restore-test.service  Environment
+
+# THE SECONDARY NOTES (19 Oct 2026). Each wrapper writes its status, lock and
+# heartbeat to the state directory, and the heartbeat's anchor table reads the
+# heartbeat (a warning only). Environment only; the drop-in goes on with the
+# enable, as the Weekly's and the Monthly's do.
+chester-open-note.service     Environment
+chester-evening-note.service  Environment

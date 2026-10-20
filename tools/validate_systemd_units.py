@@ -377,6 +377,9 @@ OOM_SCORES = {
     "chester-voices.service":         500,
     "chester-backup.service":         500,
     "chester-restore-test.service":   500,
+    # The secondary notes (19 Oct 2026): reports, rendered again at will.
+    "chester-open-note.service":      500,
+    "chester-evening-note.service":   500,
 }
 REPORT_UNITS = [u for u, v in OOM_SCORES.items()
                 if u not in ("ibgateway.service", "chester-eod.service")]

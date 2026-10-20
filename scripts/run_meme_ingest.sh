@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_meme_ingest.sh -- chester-meme's packets in, as Book D drafts, at 21:45 ET
+# run_meme_ingest.sh -- chester-meme's packets in, as Book D drafts, at 21:15 ET
 # (meme-ingest-ledgers-1, 17 Oct 2026), under chester-meme-ingest.service.
 #
 #   git pull --ff-only -> python -m altdata.meme_ingest

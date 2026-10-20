@@ -1,0 +1,329 @@
+day,release,instrument,outcome,m1,m2,not_scored
+2025-01-02,jobless claims,ES=F,continues,-0.1462,-0.9624,
+2025-01-02,jobless claims,^TNX,,,,a bar missing at either end
+2025-01-08,jobless claims,ES=F,continues,0.118,0.3283,
+2025-01-08,jobless claims,^TNX,,,,a bar missing at either end
+2025-01-10,payrolls,ES=F,continues,-1.0083,-0.4074,
+2025-01-10,payrolls,^TNX,,,,a bar missing at either end
+2025-01-14,PPI,ES=F,continues,-0.1231,-0.0043,
+2025-01-14,PPI,^TNX,,,,a bar missing at either end
+2025-01-15,CPI,ES=F,continues,1.3471,0.1296,
+2025-01-15,CPI,^TNX,,,,a bar missing at either end
+2025-01-16,retail sales,ES=F,continues,-0.1461,-0.0919,
+2025-01-16,retail sales,^TNX,,,,a bar missing at either end
+2025-01-23,jobless claims,ES=F,continues,0.0531,0.5761,
+2025-01-23,jobless claims,^TNX,,,,a bar missing at either end
+2025-01-30,GDP,ES=F,fades,0.2713,0.0,
+2025-01-30,GDP,^TNX,,,,a bar missing at either end
+2025-01-31,PCE,ES=F,fades,0.0571,-1.0483,
+2025-01-31,PCE,^TNX,,,,a bar missing at either end
+2025-02-06,jobless claims,ES=F,fades,-0.0328,0.1804,
+2025-02-06,jobless claims,^TNX,,,,a bar missing at either end
+2025-02-07,payrolls,ES=F,fades,0.2621,-1.1641,
+2025-02-07,payrolls,^TNX,,,,a bar missing at either end
+2025-02-12,CPI,ES=F,fades,-0.6606,0.3304,
+2025-02-12,CPI,^TNX,,,,a bar missing at either end
+2025-02-13,PPI,ES=F,continues,0.276,0.8051,
+2025-02-13,PPI,^TNX,,,,a bar missing at either end
+2025-02-14,retail sales,ES=F,fades,0.1917,-0.1303,
+2025-02-14,retail sales,^TNX,,,,a bar missing at either end
+2025-02-20,jobless claims,ES=F,fades,-0.5042,0.3351,
+2025-02-20,jobless claims,^TNX,,,,a bar missing at either end
+2025-02-27,GDP,ES=F,continues,-0.9281,-1.2351,
+2025-02-27,GDP,^TNX,,,,a bar missing at either end
+2025-02-28,PCE,ES=F,fades,-0.1146,1.3596,
+2025-02-28,PCE,^TNX,,,,a bar missing at either end
+2025-03-06,jobless claims,ES=F,continues,-0.3673,-0.2733,
+2025-03-06,jobless claims,^TNX,,,,a bar missing at either end
+2025-03-07,payrolls,ES=F,continues,0.0826,0.3257,
+2025-03-07,payrolls,^TNX,,,,a bar missing at either end
+2025-03-12,CPI,ES=F,continues,-0.2357,-0.0981,
+2025-03-12,CPI,^TNX,,,,a bar missing at either end
+2025-03-13,PPI,ES=F,continues,-0.4964,-0.6247,
+2025-03-13,PPI,^TNX,,,,a bar missing at either end
+2025-03-17,retail sales,ES=F,continues,0.7556,0.2382,
+2025-03-17,retail sales,^TNX,,,,a bar missing at either end
+2025-03-20,jobless claims,ES=F,fades,0.2518,-0.1762,
+2025-03-20,jobless claims,^TNX,,,,a bar missing at either end
+2025-03-27,GDP,ES=F,continues,-0.0651,-0.2346,
+2025-03-27,GDP,^TNX,,,,a bar missing at either end
+2025-03-28,PCE,ES=F,continues,-0.4492,-1.4499,
+2025-03-28,PCE,^TNX,,,,a bar missing at either end
+2025-04-03,jobless claims,ES=F,continues,-0.2128,-1.3161,
+2025-04-03,jobless claims,^TNX,,,,a bar missing at either end
+2025-04-04,payrolls,ES=F,fades,0.052,-3.3762,
+2025-04-04,payrolls,^TNX,,,,a bar missing at either end
+2025-04-10,CPI,ES=F,continues,-1.1653,-0.8188,
+2025-04-10,CPI,^TNX,,,,a bar missing at either end
+2025-04-11,PPI,ES=F,fades,-0.0799,1.3824,
+2025-04-11,PPI,^TNX,,,,a bar missing at either end
+2025-04-16,retail sales,ES=F,continues,-0.7193,-0.8086,
+2025-04-16,retail sales,^TNX,,,,a bar missing at either end
+2025-04-17,jobless claims,ES=F,fades,0.0844,-0.4265,
+2025-04-17,jobless claims,^TNX,,,,a bar missing at either end
+2025-04-24,jobless claims,ES=F,continues,0.9652,1.3053,
+2025-04-24,jobless claims,^TNX,,,,a bar missing at either end
+2025-04-25,retail sales,ES=F,fades,-0.1046,1.0241,
+2025-04-25,retail sales,^TNX,,,,a bar missing at either end
+2025-04-30,PCE,ES=F,fades,-1.9046,2.2804,
+2025-04-30,PCE,^TNX,,,,a bar missing at either end
+2025-05-01,jobless claims,ES=F,continues,-0.4554,-0.0711,
+2025-05-01,jobless claims,^TNX,,,,a bar missing at either end
+2025-05-02,payrolls,ES=F,continues,0.5803,0.5241,
+2025-05-02,payrolls,^TNX,,,,a bar missing at either end
+2025-05-08,jobless claims,ES=F,fades,-0.4078,0.1541,
+2025-05-08,jobless claims,^TNX,,,,a bar missing at either end
+2025-05-13,CPI,ES=F,continues,0.5507,0.3524,
+2025-05-13,CPI,^TNX,,,,a bar missing at either end
+2025-05-15,PPI,ES=F,continues,0.1827,0.7294,
+2025-05-15,PPI,^TNX,,,,a bar missing at either end
+2025-05-22,jobless claims,ES=F,fades,0.5567,-0.2002,
+2025-05-22,jobless claims,^TNX,,,,a bar missing at either end
+2025-05-29,GDP,ES=F,continues,-0.2604,-0.2148,
+2025-05-29,GDP,^TNX,,,,a bar missing at either end
+2025-05-30,PCE,ES=F,fades,-0.3889,0.3904,
+2025-05-30,PCE,^TNX,,,,a bar missing at either end
+2025-06-05,jobless claims,ES=F,continues,-0.3469,-0.2223,
+2025-06-05,jobless claims,^TNX,,,,a bar missing at either end
+2025-06-06,payrolls,ES=F,fades,0.8376,-0.2118,
+2025-06-06,payrolls,^TNX,,,,a bar missing at either end
+2025-06-11,CPI,ES=F,fades,0.2195,-0.3595,
+2025-06-11,CPI,^TNX,,,,a bar missing at either end
+2025-06-12,PPI,ES=F,continues,0.5049,0.4899,
+2025-06-12,PPI,^TNX,,,,a bar missing at either end
+2025-06-17,retail sales,ES=F,fades,0.0873,-0.5484,
+2025-06-17,retail sales,^TNX,,,,a bar missing at either end
+2025-06-18,jobless claims,ES=F,fades,0.0792,-0.2959,
+2025-06-18,jobless claims,^TNX,,,,a bar missing at either end
+2025-06-26,GDP,ES=F,fades,-0.0648,0.4987,
+2025-06-26,GDP,^TNX,,,,a bar missing at either end
+2025-06-27,PCE,ES=F,,0.0,0.0844,m1 is zero
+2025-06-27,PCE,^TNX,,,,a bar missing at either end
+2025-07-03,payrolls,ES=F,,,,a bar missing at either end
+2025-07-03,payrolls,^TNX,,,,a bar missing at either end
+2025-07-10,jobless claims,ES=F,fades,-0.1427,0.3889,
+2025-07-10,jobless claims,^TNX,,,,a bar missing at either end
+2025-07-15,CPI,ES=F,continues,-0.2329,-0.4827,
+2025-07-15,CPI,^TNX,,,,a bar missing at either end
+2025-07-16,PPI,ES=F,fades,-0.0239,0.3383,
+2025-07-16,PPI,^TNX,,,,a bar missing at either end
+2025-07-17,retail sales,ES=F,continues,0.3135,0.368,
+2025-07-17,retail sales,^TNX,,,,a bar missing at either end
+2025-07-24,jobless claims,ES=F,fades,0.0468,-0.078,
+2025-07-24,jobless claims,^TNX,,,,a bar missing at either end
+2025-07-30,GDP,ES=F,continues,-0.0779,-0.1911,
+2025-07-30,GDP,^TNX,,,,a bar missing at either end
+2025-07-31,PCE,ES=F,continues,-0.0853,-1.1558,
+2025-07-31,PCE,^TNX,,,,a bar missing at either end
+2025-08-01,payrolls,ES=F,fades,-0.8549,0.02,
+2025-08-01,payrolls,^TNX,,,,a bar missing at either end
+2025-08-07,jobless claims,ES=F,fades,0.0429,-0.6514,
+2025-08-07,jobless claims,^TNX,,,,a bar missing at either end
+2025-08-12,CPI,ES=F,continues,0.2501,0.8341,
+2025-08-12,CPI,^TNX,,,,a bar missing at either end
+2025-08-14,PPI,ES=F,fades,-0.1733,0.1428,
+2025-08-14,PPI,^TNX,,,,a bar missing at either end
+2025-08-15,retail sales,ES=F,continues,-0.3423,-0.0888,
+2025-08-15,retail sales,^TNX,,,,a bar missing at either end
+2025-08-21,jobless claims,ES=F,fades,-0.2149,0.0705,
+2025-08-21,jobless claims,^TNX,,,,a bar missing at either end
+2025-08-28,GDP,ES=F,fades,-0.1578,0.4625,
+2025-08-28,GDP,^TNX,,,,a bar missing at either end
+2025-08-29,PCE,ES=F,continues,-0.2617,-0.054,
+2025-08-29,PCE,^TNX,,,,a bar missing at either end
+2025-09-04,jobless claims,ES=F,continues,0.0735,0.6337,
+2025-09-04,jobless claims,^TNX,,,,a bar missing at either end
+2025-09-05,payrolls,ES=F,fades,0.1918,-0.6011,
+2025-09-05,payrolls,^TNX,,,,a bar missing at either end
+2025-09-10,PPI,ES=F,fades,0.1414,-0.2098,
+2025-09-10,PPI,^TNX,,,,a bar missing at either end
+2025-09-11,CPI,ES=F,continues,0.2861,0.3043,
+2025-09-11,CPI,^TNX,,,,a bar missing at either end
+2025-09-16,retail sales,ES=F,fades,-0.245,0.805,
+2025-09-16,retail sales,^TNX,,,,a bar missing at either end
+2025-09-18,jobless claims,ES=F,fades,-0.3204,0.0523,
+2025-09-18,jobless claims,^TNX,,,,a bar missing at either end
+2025-09-25,GDP,ES=F,fades,-0.4164,0.3616,
+2025-09-25,GDP,^TNX,,,,a bar missing at either end
+2025-09-26,PCE,ES=F,fades,0.465,-0.0112,
+2025-09-26,PCE,^TNX,,,,a bar missing at either end
+2025-10-24,CPI,ES=F,fades,0.4744,-0.0329,
+2025-10-24,CPI,^TNX,,,,a bar missing at either end
+2025-11-20,payrolls,ES=F,fades,0.567,-3.3238,
+2025-11-20,payrolls,^TNX,,,,a bar missing at either end
+2025-11-25,PPI,ES=F,continues,0.0112,0.9229,
+2025-11-25,PPI,^TNX,,,,a bar missing at either end
+2025-11-26,jobless claims,ES=F,continues,0.0809,0.3418,
+2025-11-26,jobless claims,^TNX,,,,a bar missing at either end
+2025-12-04,jobless claims,ES=F,fades,-0.2148,0.2006,
+2025-12-04,jobless claims,^TNX,,,,a bar missing at either end
+2025-12-05,PCE,ES=F,fades,0.1526,-0.1887,
+2025-12-05,PCE,^TNX,,,,a bar missing at either end
+2025-12-11,jobless claims,ES=F,fades,-0.4582,0.9536,
+2025-12-11,jobless claims,^TNX,,,,a bar missing at either end
+2025-12-16,payrolls,ES=F,continues,0.0513,0.5132,
+2025-12-16,payrolls,^TNX,,,,a bar missing at either end
+2025-12-18,CPI,ES=F,fades,0.5805,-0.2301,
+2025-12-18,CPI,^TNX,,,,a bar missing at either end
+2025-12-23,PCE,ES=F,continues,0.101,0.3677,
+2025-12-23,PCE,^TNX,,,,a bar missing at either end
+2025-12-24,jobless claims,ES=F,,,,a bar missing at either end
+2025-12-24,jobless claims,^TNX,,,,a bar missing at either end
+2025-12-31,jobless claims,ES=F,continues,-0.0613,-0.5806,
+2025-12-31,jobless claims,^TNX,,,,a bar missing at either end
+2026-01-08,jobless claims,ES=F,fades,-0.0144,0.1799,
+2026-01-08,jobless claims,^TNX,,,,a bar missing at either end
+2026-01-09,payrolls,ES=F,continues,0.1112,0.3582,
+2026-01-09,payrolls,^TNX,,,,a bar missing at either end
+2026-01-13,CPI,ES=F,continues,-0.0178,-0.0642,
+2026-01-13,CPI,^TNX,,,,a bar missing at either end
+2026-01-14,PPI,ES=F,fades,-0.3835,0.2698,
+2026-01-14,PPI,^TNX,,,,a bar missing at either end
+2026-01-15,jobless claims,ES=F,fades,0.0858,-0.2,
+2026-01-15,jobless claims,^TNX,,,,a bar missing at either end
+2026-01-22,PCE,ES=F,fades,-0.1655,0.1442,
+2026-01-22,PCE,^TNX,,,,a bar missing at either end
+2026-01-29,jobless claims,ES=F,fades,-0.748,0.3373,
+2026-01-29,jobless claims,^TNX,,,,a bar missing at either end
+2026-01-30,PPI,ES=F,,,,a bar missing at either end
+2026-01-30,PPI,^TNX,,,,a bar missing at either end
+2026-02-05,jobless claims,ES=F,continues,-0.2984,-0.4672,
+2026-02-05,jobless claims,^TNX,,,,a bar missing at either end
+2026-02-10,retail sales,ES=F,fades,0.2902,-0.5252,
+2026-02-10,retail sales,^TNX,,,,a bar missing at either end
+2026-02-11,payrolls,ES=F,fades,0.1938,-0.3187,
+2026-02-11,payrolls,^TNX,,,,a bar missing at either end
+2026-02-12,jobless claims,ES=F,continues,-0.1827,-1.6721,
+2026-02-12,jobless claims,^TNX,,,,a bar missing at either end
+2026-02-13,CPI,ES=F,fades,-0.0293,0.2451,
+2026-02-13,CPI,^TNX,,,,a bar missing at either end
+2026-02-19,jobless claims,ES=F,fades,0.04,-0.0618,
+2026-02-19,jobless claims,^TNX,,,,a bar missing at either end
+2026-02-20,PCE,ES=F,continues,0.131,0.6687,
+2026-02-20,PCE,^TNX,,,,a bar missing at either end
+2026-02-26,jobless claims,ES=F,continues,-0.395,-0.1911,
+2026-02-26,jobless claims,^TNX,,,,a bar missing at either end
+2026-02-27,PPI,ES=F,fades,-0.3526,0.5034,
+2026-02-27,PPI,^TNX,,,,a bar missing at either end
+2026-03-05,jobless claims,ES=F,fades,0.1457,-0.5493,
+2026-03-05,jobless claims,^TNX,,,,a bar missing at either end
+2026-03-06,payrolls,ES=F,fades,-0.9242,0.2304,
+2026-03-06,payrolls,^TNX,,,,a bar missing at either end
+2026-03-11,CPI,ES=F,fades,0.2397,-0.2354,
+2026-03-11,CPI,^TNX,,,,a bar missing at either end
+2026-03-12,jobless claims,ES=F,continues,-0.5747,-0.4139,
+2026-03-12,jobless claims,^TNX,,,,a bar missing at either end
+2026-03-13,PCE,ES=F,fades,0.1976,-1.2314,
+2026-03-13,PCE,^TNX,,,,a bar missing at either end
+2026-03-18,PPI,ES=F,continues,-0.5447,-1.1656,
+2026-03-18,PPI,^TNX,,,,a bar missing at either end
+2026-03-19,jobless claims,ES=F,fades,-0.1914,0.173,
+2026-03-19,jobless claims,^TNX,,,,a bar missing at either end
+2026-03-26,jobless claims,ES=F,fades,0.5852,-1.4355,
+2026-03-26,jobless claims,^TNX,,,,a bar missing at either end
+2026-04-01,retail sales,ES=F,fades,-0.249,0.1248,
+2026-04-01,retail sales,^TNX,,,,a bar missing at either end
+2026-04-02,jobless claims,ES=F,continues,0.799,0.9603,
+2026-04-02,jobless claims,^TNX,,,,a bar missing at either end
+2026-04-03,payrolls,ES=F,,,,a bar missing at either end
+2026-04-03,payrolls,^TNX,,,,a bar missing at either end
+2026-04-09,PCE,ES=F,continues,0.169,0.6638,
+2026-04-09,PCE,^TNX,,,,a bar missing at either end
+2026-04-10,CPI,ES=F,fades,0.0838,-0.2111,
+2026-04-10,CPI,^TNX,,,,a bar missing at either end
+2026-04-14,PPI,ES=F,continues,0.2522,0.7116,
+2026-04-14,PPI,^TNX,,,,a bar missing at either end
+2026-04-16,jobless claims,ES=F,fades,-0.1733,0.287,
+2026-04-16,jobless claims,^TNX,,,,a bar missing at either end
+2026-04-21,retail sales,ES=F,continues,-0.108,-0.9382,
+2026-04-21,retail sales,^TNX,,,,a bar missing at either end
+2026-04-23,jobless claims,ES=F,fades,0.021,-0.2444,
+2026-04-23,jobless claims,^TNX,,,,a bar missing at either end
+2026-04-30,PCE,ES=F,fades,-0.4066,1.0188,
+2026-04-30,PCE,^TNX,,,,a bar missing at either end
+2026-05-07,jobless claims,ES=F,continues,-0.1217,-0.3181,
+2026-05-07,jobless claims,^TNX,,,,a bar missing at either end
+2026-05-08,payrolls,ES=F,continues,0.1858,0.1045,
+2026-05-08,payrolls,^TNX,,,,a bar missing at either end
+2026-05-12,CPI,ES=F,fades,-0.1552,0.4293,
+2026-05-12,CPI,^TNX,,,,a bar missing at either end
+2026-05-13,PPI,ES=F,fades,-0.3729,0.7419,
+2026-05-13,PPI,^TNX,,,,a bar missing at either end
+2026-05-14,retail sales,ES=F,fades,-0.0334,0.5008,
+2026-05-14,retail sales,^TNX,,,,a bar missing at either end
+2026-05-21,jobless claims,ES=F,continues,0.0774,0.3967,
+2026-05-21,jobless claims,^TNX,,,,a bar missing at either end
+2026-05-28,PCE,ES=F,continues,0.1828,0.6104,
+2026-05-28,PCE,^TNX,,,,a bar missing at either end
+2026-06-04,jobless claims,ES=F,continues,0.2055,0.5324,
+2026-06-04,jobless claims,^TNX,,,,a bar missing at either end
+2026-06-05,payrolls,ES=F,continues,-0.6875,-1.4778,
+2026-06-05,payrolls,^TNX,,,,a bar missing at either end
+2026-06-10,CPI,ES=F,fades,0.7614,-1.3825,
+2026-06-10,CPI,^TNX,,,,a bar missing at either end
+2026-06-11,PPI,ES=F,fades,-0.208,1.0592,
+2026-06-11,PPI,^TNX,,,,a bar missing at either end
+2026-06-17,retail sales,ES=F,continues,-0.0725,-1.1674,
+2026-06-17,retail sales,^TNX,,,,a bar missing at either end
+2026-06-18,jobless claims,ES=F,continues,0.0099,0.2717,
+2026-06-18,jobless claims,^TNX,,,,a bar missing at either end
+2026-06-25,PCE,ES=F,fades,-1.1069,0.4802,
+2026-06-25,PCE,^TNX,,,,a bar missing at either end
+2026-07-02,payrolls,ES=F,fades,0.5999,-0.8203,
+2026-07-02,payrolls,^TNX,,,,a bar missing at either end
+2026-07-09,jobless claims,ES=F,continues,0.2353,0.3902,
+2026-07-09,jobless claims,^TNX,,,,a bar missing at either end
+2026-07-14,CPI,ES=F,continues,0.3673,0.0857,
+2026-07-14,CPI,^TNX,,,,a bar missing at either end
+2026-07-15,PPI,ES=F,continues,0.1908,0.0295,
+2026-07-15,PPI,^TNX,,,,a bar missing at either end
+2026-07-16,retail sales,ES=F,continues,-0.1218,-0.1417,
+2026-07-16,retail sales,^TNX,,,,a bar missing at either end
+2026-07-23,jobless claims,ES=F,continues,-0.59,-0.1609,
+2026-07-23,jobless claims,^TNX,,,,a bar missing at either end
+2026-07-30,PCE,ES=F,continues,0.5372,0.4436,
+2026-07-30,PCE,^TNX,,,,a bar missing at either end
+2026-08-06,jobless claims,ES=F,continues,-0.0064,-0.3029,
+2026-08-06,jobless claims,^TNX,,,,a bar missing at either end
+2026-08-07,payrolls,ES=F,continues,0.1194,0.2642,
+2026-08-07,payrolls,^TNX,,,,a bar missing at either end
+2026-08-12,CPI,ES=F,fades,0.0032,-0.0161,
+2026-08-12,CPI,^TNX,,,,a bar missing at either end
+2026-08-13,PPI,ES=F,continues,0.4721,0.032,
+2026-08-13,PPI,^TNX,,,,a bar missing at either end
+2026-08-14,retail sales,ES=F,continues,-0.0383,-0.2651,
+2026-08-14,retail sales,^TNX,,,,a bar missing at either end
+2026-08-20,jobless claims,ES=F,continues,-0.0065,-0.503,
+2026-08-20,jobless claims,^TNX,,,,a bar missing at either end
+2026-08-26,PCE,ES=F,fades,0.1756,-0.1201,
+2026-08-26,PCE,^TNX,,,,a bar missing at either end
+2026-08-27,jobless claims,ES=F,fades,-0.0906,0.337,
+2026-08-27,jobless claims,^TNX,,,,a bar missing at either end
+2026-09-03,jobless claims,ES=F,continues,0.6288,0.4435,
+2026-09-03,jobless claims,^TNX,,,,a bar missing at either end
+2026-09-04,payrolls,ES=F,continues,-0.219,-0.2711,
+2026-09-04,payrolls,^TNX,,,,a bar missing at either end
+2026-09-10,PPI,ES=F,fades,-0.5929,0.1582,
+2026-09-10,PPI,^TNX,,,,a bar missing at either end
+2026-09-11,CPI,ES=F,fades,0.5268,-0.2864,
+2026-09-11,CPI,^TNX,,,,a bar missing at either end
+2026-09-16,retail sales,ES=F,fades,0.013,-0.8068,
+2026-09-16,retail sales,^TNX,,,,a bar missing at either end
+2026-09-17,jobless claims,ES=F,fades,-0.0195,0.1755,
+2026-09-17,jobless claims,^TNX,,,,a bar missing at either end
+2026-09-24,jobless claims,ES=F,continues,0.2037,0.2226,
+2026-09-24,jobless claims,^TNX,,,,a bar missing at either end
+2026-09-28,retail sales,ES=F,fades,0.0611,-0.3409,
+2026-09-28,retail sales,^TNX,,,,a bar missing at either end
+2026-09-30,PCE,ES=F,fades,0.4072,-0.6952,
+2026-09-30,PCE,^TNX,,,,a bar missing at either end
+2026-10-01,jobless claims,ES=F,fades,-0.4165,0.1945,
+2026-10-01,jobless claims,^TNX,,,,a bar missing at either end
+2026-10-02,payrolls,ES=F,fades,0.4028,-0.122,
+2026-10-02,payrolls,^TNX,,,,a bar missing at either end
+2026-10-08,jobless claims,ES=F,fades,0.1759,-0.1788,
+2026-10-08,jobless claims,^TNX,,,,a bar missing at either end
+2026-10-14,CPI,ES=F,continues,-0.7626,-0.4643,
+2026-10-14,CPI,^TNX,,,,a bar missing at either end
+2026-10-15,PPI,ES=F,fades,-0.2098,0.8185,
+2026-10-15,PPI,^TNX,,,,a bar missing at either end

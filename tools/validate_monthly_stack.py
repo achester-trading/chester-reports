@@ -2379,8 +2379,10 @@ def main() -> int:
           "the old record follows as the detail tables, in order: regime, scenario "
           "record, the register's month, the appendix, then EL-6's system metrics")
     check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
-          and cfg.get("reading_targets_minutes") == {"daily": 5, "weekly": 20,
-                                                     "monthly": 55, "quarterly": 90},
+          # The four cadences' targets (the secondary notes add their own keys).
+          and {k: (cfg.get("reading_targets_minutes") or {}).get(k)
+               for k in ("daily", "weekly", "monthly", "quarterly")}
+          == {"daily": 5, "weekly": 20, "monthly": 55, "quarterly": 90},
           "the Monthly budget (10,000 words, 12 charts; T3.1) and the four "
           "reading targets (5, 20, 55 minutes; the Quarterly's read 90, AQ-1) are "
           "configuration")

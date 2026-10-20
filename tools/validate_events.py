@@ -205,7 +205,11 @@ def group_d() -> None:
     FILES = ("daily_cascade/events_block.py", "daily_cascade/morning_render.py",
              "daily_cascade/weekly_render.py", "daily_cascade/morning_payload.py",
              "daily_cascade/weekly_payload.py", "daily_cascade/story_block.py",
-             "altdata/narratives.py")
+             "altdata/narratives.py",
+             # The secondary notes (19 Oct 2026): the fetch is altdata/note_fetch.py;
+             # the notes read the store only.
+             "daily_cascade/open_note.py", "daily_cascade/evening_note.py",
+             "daily_cascade/note_common.py")
     # CALLS AND IMPORTS, NOT THE WORD. The first version of this pattern
     # matched the string "yfinance" anywhere, so it failed on
     # `PRICE_METRIC_PREFIX = "yfinance.mkt_"` -- a metric key -- and on a
@@ -253,6 +257,11 @@ def group_d() -> None:
            f"{(w.get('weekend_developments') or {}).get('state')})")
         b = events_block.build("2026-09-01T00:00:00+00:00")
         ok(f"and the events block itself ({b.get('state')})")
+        from daily_cascade import evening_note, open_note
+        on = open_note.build("2026-10-20", "2026-10-20T13:50:00+00:00")
+        en = evening_note.build("2026-10-18", "2026-10-19T01:30:00+00:00")
+        ok(f"and the two secondary notes ({len(on['blocks'])} and {len(en['blocks'])} "
+           f"blocks)")
     except AssertionError as exc:
         bad(f"a render reached for the network: {exc}")
     except Exception as exc:                                    # noqa: BLE001

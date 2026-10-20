@@ -629,8 +629,10 @@ The gates are `tools/validate_backups.py`, `validate_audit_1.py` group E,
 rclone, the local backend).
 
 **chester-meme's packets come in as Book D drafts, never decisions
-(meme-ingest-ledgers-1, 17 Oct 2026).** `altdata/meme_ingest.py` runs at 21:45
-(`chester-meme-ingest.timer`, enabled by hand) and at the end of the 06:45 pass.
+(meme-ingest-ledgers-1, 17 Oct 2026).** `altdata/meme_ingest.py` runs at 21:15
+(`chester-meme-ingest.timer`, enabled by hand; moved from 21:45 by the
+secondary-notes order so the 21:30 evening note shows tonight's drafts) and at the
+end of the 06:45 pass.
 It reads `$CHESTER_MEME_DROP` (else the meme checkout's drop directory in the
 same user's home) and never writes into it:
 
@@ -648,6 +650,34 @@ print one line, "meme drafts awaiting review: n (refused: m)". The operator
 confirms with `decide.py record --meme-packet <id>` and rejects with `decide.py
 meme-reject <id>`; both are on the deny list. `tools/validate_meme_ingest.py`
 holds it.
+
+**Two secondary notes, the 09:50 open note and the 21:30 evening note
+(docs/change-order-secondary-notes-2026-10-19.md, ruled 19 Oct 2026).** The 07:00
+anchor, the 12:30 alert and the 16:45 close remain the reports of record.
+
+- **The split.** Each note's fetch step, `python -m altdata.note_fetch
+  open|evening`, writes the store: the `note_bars` instruments' 5-minute bars
+  (config/reporting_stack.yaml, registered as `note_bars_prices`), a FRED pull of
+  only today's 08:30 release series, news and one voices pass. It also writes the
+  notes' own two readings, `calc.release_first_hour` and `calc.after_hours_move`
+  (source `secondary_notes`). `daily_cascade/open_note.py` and `evening_note.py`
+  read the store only, through `note_common.py`.
+- **Prose.** Every line is code-written. Prose is written only when a note's gate
+  opens, at most 250 words for the open note and 150 for the evening note (400 on
+  Sunday). A reply past its cap is withheld, never trimmed. The subject is
+  code-written and numeral-audited, with a figure-free fallback.
+- **Rights.** The open note holds the Doctrine's 1000-report right: confirm or
+  cancel Book C's 07:00 drafts, never add. It prints "No Book C drafts: the 07:00
+  setup list is not built". The evening note has no rights.
+- **Scheduling.** The evening guard reads the next day (`python -m altdata.session
+  evening-before`). Before `live_from` (`secondary_notes`, 2026-10-26) every run is
+  a dry run under `reports/dryrun/`, mailed with "[DRY RUN]". Both timers stay out of
+  `DEPLOY_TIMERS`, and the heartbeat only warns. Neither note emits a state record.
+- **Ledgers.** Two ledgers are pre-registered in `docs/ledgers/`, SN-1 (the
+  release-day first hour) and SN-2 (after-hours earnings), with their scoring
+  scripts `tools/calibration/sn1_release_first_hour.py` and
+  `tools/calibration/sn2_after_hours_earnings.py`.
+- **The gate.** `tools/validate_secondary_notes.py` holds all of it.
 
 **The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
 Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,

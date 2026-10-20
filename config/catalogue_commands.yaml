@@ -103,6 +103,9 @@ commands:
   altdata.listings:
     domain: reference
     line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
+  altdata.note_fetch:
+    domain: prices
+    line: 'the secondary notes'' fetch steps: `open` after 09:45, `evening` at 21:30; 5-minute bars, a targeted FRED pull, news, one voices pass; writes the store only'
   altdata.meme_ingest:
     domain: reference
     line: 'chester-meme packets in as Book D drafts, never decisions; `status` prints the line the close and the anchor carry'

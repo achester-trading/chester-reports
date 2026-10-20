@@ -2619,6 +2619,24 @@ sources:
     implemented_by: altdata/vol_event.py
     status: live
 
+  secondary_notes:
+    name: The secondary notes' fetch steps' own readings
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/note_fetch.py (the secondary-notes order, 19 Oct 2026):
+      calc.release_first_hour after 09:45 on an 08:30 release day, and
+      calc.after_hours_move at 21:30, each from the 5-minute bars the same pass
+      fetched. Available at the pass's instant.
+    license: own work
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/note_fetch.py
+    status: live
+
   daily_close:
     name: The 16:45 close pass's own records
     tier: derived
