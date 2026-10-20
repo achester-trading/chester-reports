@@ -19,6 +19,11 @@ and the store are seeded in a temporary database of the gate's own.
      the cut beside its overall figure, from the same function.
   D  READ-ONLY, AND NOTHING ELSE. The live databases are opened mode=ro; the
      module imports no order path and writes nothing; no figure in dollars.
+  E  B49 1(d): THE SUPERSEDING BATCH. The 14 Oct batch is untouched (its pinned
+     sha256 and size stand); the 20 Oct correction carries no vendor figure,
+     registers by manifest as superseding each of the five (named by
+     <batch_id>:<local_id>), is not screened out as their duplicate, and each
+     original moves to refined with its successor named.
 
     python tools/validate_b48_scoreboard.py
 """
@@ -42,6 +47,10 @@ from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
 TD = Path(gate_mkdtemp("b48_scoreboard_"))
 DB = TD / "store.sqlite"
 os.environ["CHESTER_DB"] = str(DB)
+os.environ.pop("ALPHA_DB", None)
+for _k, _d in (("ALPHA_INBOX", "inbox"), ("ALPHA_OUTBOX", "outbox"),
+               ("ALPHA_RESEARCH_DIR", "research"), ("ALPHA_REPORTS_DIR", "reports")):
+    os.environ[_k] = str(TD / _d)
 PASS = FAIL = 0
 LINE = "=" * 78
 AS_OF = "2026-12-31T22:00:00+00:00"
@@ -308,6 +317,69 @@ def group_d() -> None:
     del before
 
 
+SEED = REPO / "tests" / "fixtures" / "alpha" / "inbox" / "hypotheses-2026-10-14.yaml"
+SEED_SHA256 = "6fdc4dc7a32d659375e22e0dbe1293b480b4c0877c48174a8cc8272d14446626"
+CORRECTION = REPO / "alpha" / "research" / "hypotheses-2026-10-20-supersedes-2026-10-14.yaml"
+
+
+def group_e() -> None:
+    import hashlib                                              # noqa: PLC0415
+    import yaml                                                 # noqa: PLC0415
+    from alpha import hypotheses as hyp, intake, manifest      # noqa: PLC0415
+    from alpha.ledger import Ledger                             # noqa: PLC0415
+    from alpha.store import ReadOnlyStore                       # noqa: PLC0415
+    head("E. B49 1(d): THE SUPERSEDING BATCH; THE ORIGINAL NEVER EDITED")
+    raw = SEED.read_bytes()
+    check(len(raw) == 8047 and hashlib.sha256(raw).hexdigest() == SEED_SHA256,
+          "the 14 Oct batch is byte for byte the pinned file (8,047 bytes, its sha256)")
+    text = CORRECTION.read_text(encoding="utf-8")
+    vendor = [w for w in ("$5.20", "19.1%", "13.6%", "9.8%", "ratio 1.40", "779.70",
+                          "0.67%") if w in text]
+    check(not vendor, f"the correction carries none of the vendor's figures ({vendor})")
+    seed = yaml.safe_load(raw.decode("utf-8"))
+    doc = yaml.safe_load(text)
+    check(not hyp.validate_batch(doc) and not hyp.budget_errors(doc),
+          "the correction passes the v1 schema and the weekly brief's budget")
+    check([h["supersedes"] for h in doc["hypotheses"]]
+          == [f"{seed['batch_id']}:{h['local_id']}" for h in seed["hypotheses"]],
+          "each hypothesis names the one it supersedes, as <batch_id>:<local_id>")
+    st = ReadOnlyStore(str(DB))
+    lg = Ledger(str(TD / "alpha_e.db"))
+    try:
+        first = intake.admit(lg, st, seed, "2026-10-14T09:17:00+00:00",
+                             "2026-10-14T09:17:00+00:00", file_name=SEED.name,
+                             file_sha256=SEED_SHA256,
+                             created_time="2026-10-14T09:17:00+00:00")
+        out = manifest.register(lg, st, doc, as_of="2026-10-20T12:00:00+00:00",
+                                written_at="2026-10-20T12:00:00+00:00")
+        reg = hyp.Register(lg)
+        old_ids = first["registered"]
+        new_ids = out["registered"]
+        check(len(new_ids) == 5 and "screened_out" not in out["statuses"].values(),
+              f"five registered, none screened out as a duplicate ({out['statuses']})")
+        check(all(out["statuses"][k] == first["statuses"][k] for k in new_ids),
+              "each takes the status its original took (the same rules, the same store)")
+        moved = [reg.get(old_ids[k]) for k in old_ids]
+        check(all(m["status"] == "refined" and m["superseded_by"] == new_ids[k]
+                  for k, m in zip(old_ids, moved)),
+              "each original moves to refined, its successor named")
+        check(all(reg.get(new_ids[k])["supersedes"] == old_ids[k] for k in new_ids),
+              "each successor records the register id it supersedes")
+        check(all(reg.get(new_ids[k])["pre_registered_at"] > reg.get(old_ids[k])
+                  ["pre_registered_at"] for k in new_ids),
+              "a correction's pre-registration is its own, later than the original's")
+        again = dict(doc, batch_id="2026-10-20-a-plain-repeat")
+        for h in again["hypotheses"]:
+            h.pop("supersedes", None)
+        rep = intake.admit(lg, st, again, "2026-10-20T13:00:00+00:00",
+                           "2026-10-20T13:00:00+00:00")
+        check(all(v == "screened_out" for v in rep["statuses"].values()),
+              "a repeat that supersedes nothing is still screened out as a duplicate")
+    finally:
+        lg.close() if hasattr(lg, "close") else None
+        st.close() if hasattr(st, "close") else None
+
+
 def main() -> int:
     try:
         seed(DB)
@@ -315,6 +387,7 @@ def main() -> int:
         group_b()
         group_c()
         group_d()
+        group_e()
     finally:
         import shutil                                           # noqa: PLC0415
         shutil.rmtree(TD, ignore_errors=True)

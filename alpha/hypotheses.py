@@ -407,12 +407,33 @@ class Register:
         n = int(r["id"].split("-")[1]) + 1 if r else 1
         return f"HYP-{n:04d}"
 
-    def duplicate_of(self, h: dict) -> Optional[tuple[str, str]]:
+    def resolve_ref(self, ref: Any) -> Optional[str]:
+        """A `supersedes` reference as a register id. A batch file cannot know the
+        ids the box assigned, so it may name the hypothesis it corrects as
+        `<batch_id>:<local_id>` (B49, 20 Oct 2026); a register id passes through.
+        None when nothing on the register matches."""
+        if not ref:
+            return None
+        ref = str(ref).strip()
+        if self.get(ref):
+            return ref
+        if ":" in ref:
+            bid, lid = ref.rsplit(":", 1)
+            r = self.lg.one("SELECT id FROM hypotheses WHERE batch_id=? AND local_id=? "
+                            "ORDER BY id DESC LIMIT 1", (bid, lid))
+            return r["id"] if r else None
+        return None
+
+    def duplicate_of(self, h: dict, exempt: Optional[str] = None) -> Optional[tuple[str, str]]:
         """(register id, why) when the whole register -- failures included --
         already holds this rule (its normalised hash) or this title (similarity
-        at or above TITLE_SIMILAR)."""
+        at or above TITLE_SIMILAR). `exempt` is the hypothesis this one
+        supersedes: a correction repeats the rule it corrects by design, and is
+        screened against everything else."""
         rh = rule_hash(h)
         for r in self.lg.q("SELECT id, title, rule_hash, status FROM hypotheses ORDER BY id"):
+            if exempt and r["id"] == exempt:
+                continue
             if r["rule_hash"] == rh:
                 return r["id"], f"the same rule as {r['id']} ({r['status']})"
             sim = title_similarity(h.get("title") or "", r["title"])
