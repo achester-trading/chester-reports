@@ -137,6 +137,8 @@ Also changed here, and read by chain-3's engine 7 and search: `alpha/event_rates
 |---|---|---|
 | A50 | 39364872331 | failed: `validate_a43_render` 43/3. Its fixed `2026-10-20T00:00:00Z` cutoff hid the vendor pull's wall-clock fixture rows on every run after midnight UTC on 20 Oct, on any branch |
 | A50 round 1 | 39366016941 | **green, 132/132 jobs** (`bb33cd5`): the gate reads at a cutoff after the run (46/0 locally) |
+| A51 | 39367053057 | failed: `validate_st_r5_t1_rest` pins `FRED_PULL_SERIES` at 266; RSAFS makes it 267 |
+| A51 round 1 | (below) | the pin moves to 267 with its reason (103/0 locally) |
 
 **For the merge sheet:** any branch carrying `validate_a43_render` as of A43 fails it from 20 Oct 00:00 UTC, chain-3 included, until this fix (or its equivalent) is on it.
 
