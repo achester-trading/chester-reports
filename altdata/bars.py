@@ -5,6 +5,7 @@ OHLC bars for the tape set: 5-minute for the session, daily for the frames.
     python -m altdata.bars pull [--session 2026-10-01] [--dry-run]
     python -m altdata.bars status [--session 2026-10-01]
     python -m altdata.bars backfill --days 60 [--dry-run]   # one-time (T2.2)
+    python -m altdata.bars overnight [--session D] [--dry-run]  # 06:45 (ST-R6.45a)
 
 A FEED, IN THE 16:10 EOD RUN (ruled 2 Oct 2026). Reports never fetch (30.4), so
 the pull is the `bars` feed in altdata/feeds.py, which chester-eod runs; the 16:45
@@ -77,6 +78,58 @@ def intraday_instruments(cfg: Optional[dict] = None) -> list[dict]:
     """The tape set plus the intraday-only instruments (T2.3: ES=F)."""
     cfg = cfg or load_config()
     return list(cfg.get("tape") or []) + list(cfg.get("intraday_extra") or [])
+
+
+def volume_unit(symbol: str) -> Optional[str]:
+    """THE BAR'S VOLUME UNIT (AUD-3a item 3), by the rule the daily
+    market_volume_* blocks already follow (yfinance_source.VOLUME_UNITS): a
+    future's volume is contracts, a crypto pair's is dollars, an ETF's or a
+    stock's is shares, and an index, a currency pair or the dollar index has
+    none. ES=F is a future outside the daily basket, so the rule is read, not the
+    basket's set."""
+    from .sources import yfinance_source as y                   # noqa: PLC0415
+    if not y._has_volume(symbol):                               # noqa: SLF001
+        return None
+    if symbol.endswith("=F") or symbol in y.VOLUME_FUTURES:
+        return "count"
+    if symbol.endswith("-USD") or symbol in y.VOLUME_USD:
+        return "usd"
+    return "shares"
+
+
+def _bar_keys() -> tuple[dict, dict]:
+    """({bars.<id>: symbol}, {bars.<id>.volume: unit}) over every bar instrument."""
+    prices, volumes = {}, {}
+    for t in intraday_instruments():
+        sym = str(t.get("bars") or t.get("symbol") or "")
+        prices[f"bars.{t['id']}"] = sym
+        u = volume_unit(sym) if sym else None
+        if u:
+            volumes[f"bars.{t['id']}.volume"] = u
+    return prices, volumes
+
+
+# THE BARS TABLE'S KEYS, for the registry and the store check (AUD-3a items 1
+# and 3): a bar instrument's OHLC is `bars.<id>`, its volume `bars.<id>.volume`,
+# one registry block per volume unit. Built from config/reporting_stack.yaml's
+# tape, so a new instrument is registered by the block counts changing.
+BAR_PRICE_KEYS, BAR_VOLUME_UNITS = _bar_keys()
+BAR_VOLUME_SHARE_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "shares")
+BAR_VOLUME_CONTRACT_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "count")
+BAR_VOLUME_USD_KEYS = sorted(k for k, u in BAR_VOLUME_UNITS.items() if u == "usd")
+
+
+
+def note_instruments(cfg: Optional[dict] = None) -> list[dict]:
+    """The secondary notes' instruments (config `note_bars`; the secondary-notes
+    order, 19 Oct 2026): fetched only by altdata/note_fetch.py, never by the 16:10
+    `bars` feed, stored without volume."""
+    cfg = cfg or load_config()
+    return list(cfg.get("note_bars") or [])
+
+
+# Their OHLC keys, bars.<id>, for the registry's `note_bars_prices` block.
+NOTE_BAR_PRICE_KEYS = {f"bars.{t['id']}": str(t["bars"]) for t in note_instruments()}
 
 
 def full_session(instrument: str) -> bool:
@@ -370,6 +423,79 @@ def backfill(days: int = 60, store: Optional[BarStore] = None,
             st.close()
 
 
+def pull_overnight(day: Optional[str] = None, store: Optional[BarStore] = None,
+                   dry_run: bool = False, fetcher=None, contract_fetcher=None,
+                   fetched_at: Optional[str] = None) -> dict:
+    """THE MORNING PULL (ST-R6.45a, Batch 6 item 45): every full-session
+    instrument's 5-minute bars from 18:00 ET the evening before to the latest
+    COMPLETED bar, in the 06:45 job, so the 07:00 anchor reads stored bars --
+    reports never fetch (30.4). Stamped at the fetch; a bar still open at the
+    fetch is dropped, and the 16:10 pull later inserts nothing over a bar already
+    stored (INSERT OR IGNORE keeps the earlier stamp).
+
+    THE CONTRACT IN FORCE is recorded for ES (altdata/es_block.py): CME's rule,
+    its roll date, and what Yahoo reports for ES=F when `contract_fetcher`
+    answers. Never raises: a symbol that fails is reported."""
+    day = day or session.session_date()
+    fetched_at = fetched_at or session.utc_iso()
+    if fetcher is None:
+        from altdata import import_yfinance                     # noqa: PLC0415
+        yf = import_yfinance()
+
+        def fetcher(symbol, **kw):
+            return yf.Ticker(symbol).history(auto_adjust=False, **kw)
+
+        def _yahoo_contract(symbol):
+            info = yf.Ticker(symbol).info or {}
+            return info.get("underlyingSymbol")
+        contract_fetcher = contract_fetcher or _yahoo_contract
+    own = store is None and not dry_run
+    st = store or (BarStore(create=True) if not dry_run else None)
+    report: dict[str, Any] = {"session": day, "fetched_at": fetched_at,
+                              "instruments": {}}
+    try:
+        d = dt.date.fromisoformat(day)
+        cut = dt.datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+        for t in intraday_instruments():
+            if t.get("session") != "full":
+                continue
+            iid, sym = t["id"], t["bars"]
+            got: dict[str, Any] = {}
+            try:
+                first, last, _ = session_window(iid, day)
+                df = fetcher(sym, start=(d - dt.timedelta(days=1)).isoformat(),
+                             end=(d + dt.timedelta(days=1)).isoformat(),
+                             interval="5m", prepost=False)
+                rows = [r for r in _frame_rows(df, iid, sym, "5m", fetched_at)
+                        if first <= r["observed_at"] <= last]
+                kept = [r for r in rows if dt.datetime.fromisoformat(r["observed_at"])
+                        + dt.timedelta(minutes=5) <= cut]
+                got = {"5m": len(kept), "dropped_still_open": len(rows) - len(kept),
+                       "first": kept[0]["observed_at"] if kept else None,
+                       "last": kept[-1]["observed_at"] if kept else None}
+                if not dry_run:
+                    got["written"] = st.write_many(kept)
+            except Exception as exc:                            # noqa: BLE001
+                got = {"error": f"{type(exc).__name__}: {exc}"[:200]}
+            if iid == "es":
+                from altdata import es_block                    # noqa: PLC0415
+                try:
+                    yahoo = contract_fetcher(sym) if contract_fetcher else None
+                except Exception as exc:                        # noqa: BLE001
+                    yahoo = None
+                    got["contract_error"] = f"{type(exc).__name__}: {exc}"[:200]
+                c = es_block.contract_for(day)
+                got["contract"] = {"rule": c["contract"], "roll_date": c["roll_date"],
+                                   "yahoo": yahoo}
+                if not dry_run:
+                    es_block.record_contract(st.conn, day, yahoo, fetched_at)
+            report["instruments"][iid] = got
+        return report
+    finally:
+        if own and st is not None:
+            st.close()
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     import json
@@ -383,8 +509,16 @@ def _main(argv: list[str]) -> int:
                                          "bars for the tape set (Yahoo serves 60)")
     bf.add_argument("--days", type=int, default=60)
     bf.add_argument("--dry-run", action="store_true")
+    ov = sub.add_parser("overnight", help="06:45: the full-session instruments' "
+                                          "bars since 18:00 ET (ES), and its contract")
+    ov.add_argument("--session", default=None, help="the session being opened")
+    ov.add_argument("--dry-run", action="store_true")
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
+    if a.cmd == "overnight":
+        rep = pull_overnight(a.session, dry_run=a.dry_run)
+        print(json.dumps(rep, indent=2))
+        return 1 if any("error" in v for v in rep["instruments"].values()) else 0
     if a.cmd == "backfill":
         print(json.dumps(backfill(a.days, dry_run=a.dry_run), indent=2))
         return 0

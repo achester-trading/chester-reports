@@ -11,7 +11,21 @@ whole history each serves -- so the first pull is the backfill:
   em.bis.policy_rate.<iso3>   percent, the month-end policy rate
 
 It is the real-policy-rate lens's first term (altdata/sources/em_lenses.py: the
-policy rate less IMF CPI inflation). observed_at is the month-end; available_at
+policy rate less IMF CPI inflation).
+
+EXTENDED (ST-R5.43a, 16 Oct 2026; Batch 6 item 43, filing note 6): a second
+request reads EVERY reference area the table serves, for the global policy
+diffusion index (altdata/st_r5_t1_rest.py diffusion()):
+
+  bis.policy_rate             percent, the month-end policy rate, instrument =
+                              the BIS reference area (US, XM for the euro area, ...)
+
+An extension of this writer, not a new one. On 16 Oct 2026 the table served 49
+areas: 36 current to Sep 2026, Korea to Aug, India to Jun, Argentina to Jun 2025,
+Croatia to Jul 2022 (euro entry), and the ten euro members' legacy rates ending in
+1998-2000 (the euro area's own is XM). The BIS sent no Last-Modified, so the rows
+carry the ingest instant. A failure of the second request costs only its key:
+the scorecard's eleven still write. observed_at is the month-end; available_at
 the response's Last-Modified where the API sends one (`observed`), else the
 ingest instant (`ingest_instant`). The table restates a series' definition across
 regimes (Brazil's rediscount rate before the Selic target); the BIS documents
@@ -46,7 +60,8 @@ ISO2 = {"CHN": "CN", "IND": "IN", "KOR": "KR", "BRA": "BR", "SAU": "SA", "ZAF": 
         "MEX": "MX", "MYS": "MY", "IDN": "ID", "POL": "PL", "THA": "TH"}
 COUNTRIES = ("CHN", "IND", "KOR", "BRA", "SAU", "ZAF", "MEX", "MYS", "IDN", "POL", "THA")
 
-KEYS = [PREFIX + c.lower() for c in COUNTRIES]
+ALL_KEY = "bis.policy_rate"
+KEYS = [PREFIX + c.lower() for c in COUNTRIES] + [ALL_KEY]
 
 
 def config() -> dict:
@@ -58,6 +73,34 @@ def url(cfg: dict) -> tuple[str, dict]:
     b = cfg["bis"]
     return (f"{b['url']}/{b['frequency']}.{'+'.join(ISO2[c] for c in COUNTRIES)}",
             {"format": "csv"})
+
+
+def url_all(cfg: dict) -> tuple[str, dict]:
+    b = cfg["bis"]
+    return f"{b['url']}/{b['frequency']}.", {"format": "csv"}
+
+
+def parse_all(text: str) -> dict[str, dict[str, float]]:
+    """{BIS reference area: {month_end: percent}}, every area the CSV carries."""
+    rd = csv.DictReader(io.StringIO(text))
+    need = {"FREQ", "REF_AREA", "TIME_PERIOD", "OBS_VALUE"}
+    if not rd.fieldnames or not need <= set(rd.fieldnames):
+        raise ValueError(f"BIS CSV: missing columns {sorted(need - set(rd.fieldnames or []))}")
+    out: dict[str, dict[str, float]] = {}
+    for r in rd:
+        if r["FREQ"] != "M" or r["OBS_VALUE"] in ("", "NaN", None) or not r["REF_AREA"]:
+            continue
+        out.setdefault(r["REF_AREA"], {})[sdmx.period_end(r["TIME_PERIOD"])] =             float(r["OBS_VALUE"])
+    return out
+
+
+def rows_all(series: dict, available: tuple[str, str]) -> list[dict]:
+    av, kind = available
+    today = session.session_date()
+    return [{"registry_key": ALL_KEY, "instrument": area, "observed_at": d,
+             "available_at": av, "value": v, "availability_kind": kind}
+            for area in sorted(series) for d, v in sorted(series[area].items())
+            if d <= today]
 
 
 def parse(text: str) -> dict[str, dict[str, float]]:
@@ -97,7 +140,16 @@ def _produce(cfg: Optional[dict] = None) -> list[dict]:
     missing = sorted(set(COUNTRIES) - set(series))
     if missing:
         log.warning("bis_cbpol: no rows for %s", ", ".join(missing))
-    return rows_from(series, pub.availability(headers))
+    rows = rows_from(series, pub.availability(headers))
+    try:
+        u, params = url_all(c)
+        body, headers = http_get_response(u, params=params, timeout=180,
+                                          headers={"Accept": "text/csv"})
+        rows += rows_all(parse_all(body.decode("utf-8")), pub.availability(headers))
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("bis_cbpol: the all-areas table failed (%s); the scorecard's "
+                    "eleven still write", exc)
+    return rows
 
 
 def pull(run_id: Optional[str] = None, db=None) -> dict:

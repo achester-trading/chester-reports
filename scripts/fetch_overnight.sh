@@ -116,6 +116,21 @@ log "$MSG"
 printf 'state=%s rc=%s sha=%s at=%s\n' \
     "$STATE" "$RC" "$SHA" "$(date --iso-8601=seconds)" >"$STATUS"
 
+# ---- ES's overnight bars, for the 07:00 ES block (ST-R6.45a, 16 Oct 2026) ----
+#
+# FIRST AFTER THE STATUS LINE, ahead of the correction pull: the 07:00 anchor's
+# three-timeframe block reads the overnight session's 5-minute bars from the store
+# (reports never fetch, 30.4), and the correction pull is the long step. One
+# request for the bars and one for the contract Yahoo reports; the contract in
+# force and its roll date are recorded (es_contract). Its failure is not this
+# run's: the block prints absent with its reason.
+log "bars: ES overnight start"
+ES_OUT="$("$PY" -m altdata.bars overnight $DRY 2>&1 | tail -30)"
+ES_RC=$?
+printf '%s\n' "$ES_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $ES_RC -ne 0 ]] && log "WARN bars overnight exited $ES_RC -- continuing; the ES block prints absent with a reason"
+log "bars: ES overnight done"
+
 # ---- the feeds, as the CORRECTION pass -------------------------------------
 #
 # AFTER THE FETCH, AND ONLY THE EARLY SET (30 Sep 2026). This pull used to run
@@ -160,6 +175,47 @@ LOG_RC=$?
 printf '%s\n' "$LOG_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $LOG_RC -ne 0 ]] && log "WARN feeds pull --only loggers exited $LOG_RC -- continuing"
 log "feeds: loggers done"
+
+# THE DATA CHECK'S MARKS (audit-leftovers-2; the 14 Oct audit's item 14): the
+# correction pull above is the 06:45 FRED pull, so its new prints are checked
+# here, marked as rows in data_quality_flags and listed in this log. A mark never
+# alters a value; its failure is not this run's.
+log "data check: record"
+DQ_OUT="$("$PY" -m altdata.quality record 2>&1)"
+DQ_RC=$?
+printf '%s\n' "$DQ_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $DQ_RC -ne 0 ]] && log "WARN quality record exited $DQ_RC -- continuing"
+
+# ---- Farside's T-1 figure (Batch 4 Tranche A part 2, 17 Oct 2026) ------------
+#
+# Farside posts a session's ETF flows in the US evening, and issuers fill in late;
+# the 17:25 crypto run is too early for some of them. This read, before 07:00,
+# takes the previous session's completed row for the morning. One writer, its own
+# STALE-not-empty contract: a refusal writes nothing and is not this run's failure.
+log "farside: T-1 read start"
+FS_OUT="$("$PY" -m altdata.sources.farside 2>&1)"
+FS_RC=$?
+printf '%s\n' "$FS_OUT" | tail -20 | sed 's/^/  /' >>"$LOG"
+[[ $FS_RC -ne 0 ]] && log "WARN farside exited $FS_RC -- continuing"
+log "farside: T-1 read done"
+# ---- the Security Master export, for chester-meme (AUD-3b, 15 Oct 2026) ------
+#
+# After the loggers, because the listings logger writes the day's snapshot this
+# reads. First the morning FIGI mapping -- only the symbols new, renamed or not
+# yet mapped, capped so it fits this job -- then the export to chester-meme's
+# contract, validated before it is written ($CHESTER_SM_EXPORT, else under
+# ~/chester-data/export/). chester-meme reads it before its
+# 19:30 scan. Neither step's failure is this run's: each is logged and skipped.
+log "security master: figi + export start"
+SM_OUT="$("$PY" -m altdata.figi map 2>&1)"
+SM_RC=$?
+printf '%s\n' "$SM_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SM_RC -ne 0 ]] && log "WARN figi map exited $SM_RC -- continuing"
+SM_OUT="$("$PY" -m altdata.security_master export 2>&1)"
+SM_RC=$?
+printf '%s\n' "$SM_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SM_RC -ne 0 ]] && log "WARN security_master export exited $SM_RC -- the file was not rewritten"
+log "security master: figi + export done"
 
 # THE BASE-RATE TABLES, AND WHY THERE IS NO SECOND UNIT FOR THEM.
 #
@@ -222,6 +278,18 @@ SUR_OUT="$("$PY" -m altdata.surprise compute 2>&1 | tail -8)"
 SUR_EXIT=$?
 printf '%s\n' "$SUR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SUR_EXIT -ne 0 ]] && log "WARN surprise exited $SUR_EXIT -- continuing"
+
+# ---- chester-meme's packets, as Book D drafts (meme-ingest-ledgers-1) -------
+#
+# After the pulls and before the 07:00 anchor, which prints the one line: the
+# 06:30 morning scan has written its packets by 06:45. Reads $CHESTER_MEME_DROP
+# (else ~/chester-meme/drop), writes drafts only, never a decision; a failure is
+# this step's and never the pass's.
+log "meme ingest: start"
+MI_OUT="$("$PY" -m altdata.meme_ingest 2>&1 | tail -12)"
+MI_EXIT=$?
+printf '%s\n' "$MI_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $MI_EXIT -ne 0 ]] && log "WARN meme ingest exited $MI_EXIT -- continuing"
 
 
 exit $RC

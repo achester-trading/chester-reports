@@ -13,7 +13,7 @@ SYNTHETIC Weekly in temporary stores -- a code gate never reads the live store:
   B THE FIXED ORDER (2)    claim -> table(s) -> chart(s) -> one paragraph (at
                            most 120 words) -> footnote, in both reports
   C NO METHOD (3)          the six phrases are banned and none is in a body; one
-                           footer line points to the Reader's Guide
+                           footer line points to the Reader's Guide and the Master Guide
   D NO SENTENCE TWICE (4)  a sentence repeating The read is withheld where it
                            repeats, with its reason; The read is asked to reword
   E EMPTY, ONE LINE (5)    an unchanged section prints its footnote alone and
@@ -339,8 +339,10 @@ def main() -> int:
         check(not hits, f"{name}: no banned method phrase in the body ({hits})")
         check(html.count("How to read this report:") == 1
               and rd.READERS_GUIDE in html
+              and rd.MASTER_GUIDE in html and rd.MASTER_GUIDE_PATH in html
               and html.find("How to read this report:") > html.find(">Glossary</h2>"),
-              f"{name}: one footer line points to the Reader's Guide")
+              f"{name}: one footer line points to the Reader's Guide and the Master "
+              f"Guide")
     check("which is itself the finding" not in whtml
           and "Every figure above was read" not in whtml
           and "figures and odds" in whtml,
@@ -371,9 +373,10 @@ def main() -> int:
     claim = "The tape view held steady over the week."
     _, dcalls, _ = weekly_fixture(dup_td, {"READ": claim + " " + DEFAULT.format(p="week")})
     reads = [c for c in dcalls if "Write THE READ" in c]
-    # Three attempts on the Weekly since W-1.3c item 6 (this fixture's Read is
-    # out of the opener's band, so every attempt is withheld).
-    check(len(reads) == 3 and "repeats a section's sentence" in reads[1]
+    # One draft and one revision (W8-1, weekly-fixes-8; three attempts under
+    # W-1.3c item 6 before). This fixture's Read is out of the opener's band, so
+    # both attempts are withheld.
+    check(len(reads) == 2 and "repeats a section's sentence" in reads[1]
           and "NEVER copy a section's claim" in reads[0],
           "The read is told never to copy a section's sentence, and a draft that "
           "does is sent back with the reason")

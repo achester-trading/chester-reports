@@ -14,7 +14,7 @@ data.ecb.europa.eu's, whose `*` group disallows only the portal's own Drupal
 paths (checked 11 Oct 2026). Dataset IRS, the long-term interest rates for
 convergence purposes: 10-year government bond yields, secondary market, monthly
 average, per country:
-  IRS.M.{DE,FR,IT}.L.L40.CI.0000.EUR.N.Z
+  IRS.M.{DE,FR,IT,GR}.L.L40.CI.0000.EUR.N.Z
 Banque de France's own Webstat API needs a registered key, and neither it nor
 the Bundesbank publishes a daily OAT or BTP keyless, so these are monthly.
 
@@ -23,6 +23,12 @@ each row is stored by its REF_AREA, and a country not asked for is refused.
 
   ecb.irs_10y_de, ecb.irs_10y_fr, ecb.irs_10y_it   percent; observed_at = the
                   month's first day (a monthly average)
+  ecb.irs_10y_gr  Greece, the same method (ST-R4.21a, Batch 5 item 21, 16 Oct
+                  2026): the leg of the Greece-Bund watch spread beside OAT-Bund.
+                  From October 1992 (checked 16 Oct 2026: 408 months to September
+                  2026, one blank). OPTIONAL: a response without Greece still
+                  writes the three legs SR-30 needs, so a quiet Greek series can
+                  never take OAT-Bund down with it.
 
 AVAILABILITY. Last-Modified, which the API sends, is this vintage's instant
 (`observed`); without it the write instant (`ingest_instant`). Either is an upper
@@ -43,7 +49,10 @@ from ._base import http_get_response
 log = logging.getLogger(__name__)
 
 SOURCE = "ecb"
-COUNTRIES = {"DE": "ecb.irs_10y_de", "FR": "ecb.irs_10y_fr", "IT": "ecb.irs_10y_it"}
+COUNTRIES = {"DE": "ecb.irs_10y_de", "FR": "ecb.irs_10y_fr", "IT": "ecb.irs_10y_it",
+             "GR": "ecb.irs_10y_gr"}
+# The legs a pull must carry (SR-30's); Greece is optional (ST-R4.21a).
+REQUIRED = ("ecb.irs_10y_de", "ecb.irs_10y_fr", "ecb.irs_10y_it")
 URL = ("https://data-api.ecb.europa.eu/service/data/IRS/M."
        + "+".join(COUNTRIES) + ".L.L40.CI.0000.EUR.N.Z")
 KEYS = list(COUNTRIES.values())
@@ -69,16 +78,30 @@ def rows_from_csv(text: str, available: str, kind: str) -> list[dict]:
                     "observed_at": r["TIME_PERIOD"][:7] + "-01",
                     "available_at": available, "value": v,
                     "availability_kind": kind})
-    missing = set(KEYS) - {r["registry_key"] for r in out}
+    missing = set(REQUIRED) - {r["registry_key"] for r in out}
     if missing:
         raise ValueError(f"the ECB response has no rows for {sorted(missing)}")
     return out
 
 
+# INCREMENTAL (audit-leftovers-1): the ECB's SDMX API takes `startPeriod`. With
+# history stored, ask from the newest month less a SESSION-SET year (the monthly
+# convergence yields are rarely restated, and a year covers any that is); with
+# none, the whole history (checked 17 Oct 2026: 37 lines against 1,358).
+REVISION_DAYS = 366
+
+
+def params_for(start: Optional[str]) -> dict:
+    p = {"format": "csvdata"}
+    if start:
+        p["startPeriod"] = start[:7]
+    return p
+
+
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     def produce() -> list[dict]:
-        data, headers = http_get_response(URL, params={"format": "csvdata"},
-                                          timeout=60)
+        data, headers = http_get_response(
+            URL, params=params_for(pub.since(KEYS, REVISION_DAYS, db=db)), timeout=60)
         available, kind = pub.availability(headers)
         return rows_from_csv(data.decode("utf-8"), available, kind)
     return pub.run(SOURCE, KEYS, produce, run_id=run_id, db=db)

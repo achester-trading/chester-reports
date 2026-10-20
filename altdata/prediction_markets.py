@@ -332,6 +332,17 @@ def block(session_day: str, as_of: Optional[str] = None,
         if own:
             st.close()
     rows = [r for r in rows if r["probability"] is not None]
+    # weekly-fixes-7 item 5: a contract whose question is already settled.
+    if rows:
+        own2 = store is None
+        st2 = store or observations.ObservationStore()
+        try:
+            pub = published_months(st2, as_of)
+        finally:
+            if own2:
+                st2.close()
+        for r in rows:
+            r["resolved"] = resolved(r, day, pub)
     venues = {}
     for v in ("kalshi", "polymarket"):
         vr = [r for r in rows if r["venue"] == v]
@@ -348,3 +359,60 @@ def block(session_day: str, as_of: Optional[str] = None,
             "shocks": shocks(rows, cfg),
             "disagreements": disagreements(rows, fed_path, cfg, scenario_weights),
             "fomc_odds": fomc_venue_odds(rows)}
+
+
+# ---------------------------------------------------------------------------
+# weekly-fixes-7 item 5: RESOLVED QUESTIONS (dry run 7: Polymarket "Will Core CPI
+# MoM be 0.2% in September?" printed 51% on 16 Oct, two days after September's
+# CPI printed). A contract is resolved when its decision date is before the
+# edition's day, or when the release its question names, for the month it names,
+# is already in the store at the cutoff. Its outcome prints only where the market
+# gives one (a last price at 99% or 1% and beyond); otherwise it drops.
+# ---------------------------------------------------------------------------
+RELEASE_KEYS = (  # (pattern in the question, the stored series), most specific first
+    (r"\bcore\s+cpi\b", "fred.core_cpi"), (r"\bcpi\b|consumer price", "fred.cpi"),
+    (r"\bcore\s+pce\b", "fred.core_pce"), (r"\bpce\b", "fred.pce"),
+    (r"payrolls?|\bnfp\b|jobs report", "fred.nfp"),
+    (r"unemployment rate", "fred.u3_rate"))
+MONTHS = ("january", "february", "march", "april", "may", "june", "july",
+          "august", "september", "october", "november", "december")
+
+
+def published_months(st, as_of: Optional[str]) -> dict[str, set]:
+    """{store key: {"YYYY-MM", ...}} of the reference months each release key
+    holds at the cutoff."""
+    out: dict[str, set] = {}
+    for _, key in RELEASE_KEYS:
+        try:
+            out[key] = {str(r["observed_at"])[:7] for r in st.as_of(key, as_of)
+                        if r.get("value_num") is not None}
+        except Exception:                                       # noqa: BLE001
+            out[key] = set()
+    return out
+
+
+def resolved(r: dict, day: dt.date, published: Optional[dict] = None) -> Optional[dict]:
+    """None for a live contract; else {"why", "outcome"} where outcome is "Yes",
+    "No" or None (the market gives none: the row drops)."""
+    why = None
+    dd = str(r.get("decision_date") or "")[:10]
+    if dd and dd < day.isoformat():
+        why = f"decision date {dd}"
+    q = str(r.get("question") or "").lower()
+    if not why and published:
+        mm = [i for i, m in enumerate(MONTHS, 1) if re.search(rf"\b{m}\b", q)]
+        for pat, key in RELEASE_KEYS:
+            if mm and re.search(pat, q):
+                yr = re.search(r"\b(20\d\d)\b", q)
+                ym_day = day.year if mm[0] <= day.month else day.year - 1
+                ym = f"{int(yr.group(1)) if yr else ym_day}-{mm[0]:02d}"
+                if ym in (published.get(key) or set()):
+                    why = f"{key.split('.', 1)[1]} for {ym} is published"
+                break
+    if not why:
+        return None
+    p = r.get("probability")
+    outcome = ("Yes" if p is not None and p >= 0.99 else
+               "No" if p is not None and p <= 0.01 else None)
+    return {"why": why, "outcome": outcome}
+

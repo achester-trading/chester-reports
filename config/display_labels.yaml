@@ -18,6 +18,11 @@ contradictions:
   narrative_vs_data: "a story against the data"
 
 metrics:
+  # W8-12 (weekly-fixes-9): keys the detail tables printed as "jgb 10y", "mkt
+  # vvix" and "shares outstanding (SQQQ)", with no name elsewhere in the repo.
+  mof.jgb_10y: "Japan 10-year (JGB)"
+  yfinance.mkt_vvix: "the VVIX (the VIX's own volatility)"
+  levetf.shares_outstanding: "leveraged-ETF shares outstanding"
   calc.breadth_rsp_over_spy: "equal-weight over cap-weight S&P (RSP/SPY)"
   calc.breadth_sector_above_200d: "sectors above their 200-day average"
   calc.breadth_sector_above_50d: "sectors above their 50-day average"
@@ -45,6 +50,15 @@ metrics:
   fred.fed_balance: "the Fed's balance sheet"
   fred.housing_permits: "housing permits"
   fred.hy_oas: "high-yield credit spreads (OAS)"
+  # OS-10 (a44-opening-setup): the most-active table's two stored series.
+  chain.options_volume: "options volume (our own capture)"
+  chain.atm_iv_front: "front-month at-the-money implied volatility (our own capture)"
+  # OS-8, OS-4, OS-5 (a45-opening-setup-2).
+  chain.skew_25d_put: "front-month 25-delta put skew (our own capture)"
+  chain.iv_minus_rv20: "front-month IV against 20-day realised (our own capture)"
+  chain.front_expiry: "the front-month expiry used"
+  chain.put_share_volume: "puts' share of options volume (put volume and OI build, no side)"
+  chain.put_share_oi_build: "puts' share of the day's OI build (put volume and OI build, no side)"
   fred.ig_oas: "investment-grade credit spreads (OAS)"
   fred.job_openings: "job openings"
   fred.mortgage_30y: "the 30-year mortgage rate"
@@ -182,9 +196,11 @@ glossary:
   # tools/validate_stack_cadence.py holds these sentences to those values.
   - term: "Slow layers"
     text: "the Monthly's eleventh section: valuation, base rates, tail risks and the long-running themes — the readings that move over months, printed as levels and frequencies, never as signals."
+  - term: "net GEX, DEX"
+    text: "the dealer book's gamma and delta in dollars, under the dealer-short-options convention. Net GEX is the dollars of delta the hedge changes by for a $1 move in SPY (one hundredth of it is shares per 1% move); DEX is the delta notional the hedge holds against. Both print in $bn."
   - term: "pinned, held, amplified"
-    text: "a session's dealer flags, computed from the stored close and never judged: pinned, SPY closed within 0.25% of max pain; held, the session's high came within 0.25% of the morning's call wall (or its low of the put wall) and the close stayed inside it; amplified, price crossed the morning's gamma flip and the session's range was at least 1.2 times the one-day range implied by volatility. A flag is left blank when an input is missing, never guessed."
+    text: "a session's dealer flags, computed from the stored close and never judged: pinned, SPY closed within 0.25% of max pain; held, the session's high came within 0.25% of the morning's call wall (or its low of the put wall) and the close stayed inside it; amplified, price crossed the morning's gamma flip and the session's range was at least 1.2 times the one-day range implied by volatility. From 17 Oct 2026 the flags are the pre-registered tests' outcomes: pinned only on the monthly expiry, at the morning's peak-gamma strike; amplified and dampened only on sessions whose positioning clears the regime gate; earlier sessions keep the definitions above. Gapped through the flip, a descriptive flag that is not pre-registered: the prior close sat on one side of the morning's flip and the whole session on the other, so the flip was crossed overnight. A flag is left blank when an input is missing, never guessed."
   - term: "IV check"
-    text: "marks a session on which SPY's own 30-day at-the-money implied volatility and the VIX differ by more than 5 volatility points; both are printed side by side and neither is chosen. The implied range uses SPY's own volatility when it is stored, and the VIX, labelled as a proxy, when it is not."
+    text: "marks a session on which SPY's own 30-day at-the-money implied volatility and the VIX differ by more than 5 volatility points; both are printed side by side and neither is chosen. The implied range uses SPY's own volatility when it is stored, and the VIX, labelled as a proxy, when it is not. The two measure different things: the VIX prices the whole 30-day option strip, puts far below spot included, so on a falling day with a steep skew it can sit well above the at-the-money figure without either being wrong. A chain captured before the 16:00 close prints its capture time beside the figure."
   - term: "hit rate"
     text: "in the Monthly's dealer retrospective, how often a flag was set over the sessions on which it could be computed — a count over a count; below 20 scored sessions the section prints \"insufficient sessions\" and no rate."

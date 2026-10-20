@@ -50,6 +50,28 @@ tape:
 intraday_extra:
   - {id: es, label: "S&P 500 e-mini (front)", bars: "ES=F", session: full}
 
+# THE SECONDARY NOTES' INSTRUMENTS (the secondary-notes order, 19 Oct 2026, ruled
+# 14:14 ET): 5-minute bars the open note's and the evening note's FETCH STEPS
+# write (altdata/note_fetch.py), read by the notes only. Kept apart from the tape
+# and intraday_extra on purpose: those join the 16:10 `bars` feed and its
+# final-bar retry, and these never do. Stored without volume (the notes read
+# none). The tape's own ids (spy, y10, dxy, btc) and es are reused, not repeated.
+# `tz` is the market's own zone: its open time in ET is computed with zoneinfo,
+# never hard-coded. No Brookfield instrument.
+note_bars:
+  - {id: zn,     label: "10-year note future", bars: "ZN=F"}
+  - {id: zt,     label: "2-year note future", bars: "ZT=F"}
+  - {id: vix,    label: "VIX", bars: "^VIX"}
+  - {id: nq,     label: "Nasdaq-100 e-mini", bars: "NQ=F"}
+  - {id: rty,    label: "Russell 2000 e-mini", bars: "RTY=F"}
+  - {id: usdjpy, label: "Dollar-yen", bars: "JPY=X"}
+  - {id: cnh,    label: "Dollar-yuan (offshore)", bars: "CNH=X"}
+  - {id: eth,    label: "Ether", bars: "ETH-USD"}
+  - {id: n225,   label: "Nikkei 225", bars: "^N225", tz: Asia/Tokyo, open: "09:00"}
+  - {id: hsi,    label: "Hang Seng", bars: "^HSI", tz: Asia/Hong_Kong, open: "09:30"}
+  - {id: sse,    label: "Shanghai Composite", bars: "000001.SS", tz: Asia/Shanghai, open: "09:30"}
+  - {id: kospi,  label: "KOSPI", bars: "^KS11", tz: Asia/Seoul, open: "09:00"}
+
 # INTRADAY BARS (brief 2.3). Pulled by the `bars` feed in the 16:10 eod run
 # (altdata/feeds.py); the close reads the store only.
 bars:
@@ -68,14 +90,18 @@ bars:
 # WORDS COUNT PROSE ONLY, every report (T2.2, ruled 4 Oct 2026): the claim lines
 # and paragraphs the model writes. Tables and the code-written lines beneath them
 # are data and are never counted or cut. The Weekly's chart cap is 10 (ruled
-# 4 Oct: W7 intraday, W8 panel, W9 gauges, W10 priced).
+# 4 Oct: W7 intraday, W8 panel, W9 gauges, W10 priced). W11, the standing
+# decomposition (Batch 6 item 40, 16 Oct 2026), sits before W10 in the plan: ten
+# charts fill the cap, and with W6 open W10 is the one set aside.
 # THE MONTHLY'S WORDS RISE TO 10,000 (T3.1 item 22, ruled 9 Oct 2026) so that
 # nothing is trimmed to make room for the prose the operator's notes add (about
 # 3,000 words: the executive summary, the buckets' and blocks' reads). The
 # operator confirms or changes it at the 23 Oct dry run with the count in front
 # of him.
 # The Monthly's chart cap: 12 from 9 Oct 2026 (T3.1 ruling; M8 counts once
-# scenario set #1 exists).
+# scenario set #1 exists). M11 (Batch 6 item 40) makes twelve planned; eleven
+# render while M8 waits, so M11 displaces nothing; once M8 prints, twelve fill
+# the cap exactly.
 budget:
   daily: {words: 1000, charts: 3}
   weekly: {words: 3500, charts: 10}
@@ -88,13 +114,46 @@ budget:
   # seven (three horizon bars, the quilt, two heatmaps, the transmission map).
   # The operator rules the number at the December dry run.
   quarterly: {words: null, charts: 40}
+  # THE SECONDARY NOTES (the secondary-notes order, 19 Oct 2026): prose only when
+  # the gate opens; at most one chart. The evening note's Sunday edition has its
+  # own budget (the weekend is a long window).
+  open_note: {words: 250, charts: 1}
+  evening_note: {words: 150, charts: 1}
+  evening_note_sunday: {words: 400, charts: 1}
 
 # THE READING-TIME TARGETS (brief 1.4; item 10: daily 5, Weekly 20, Monthly 40
 # minutes), as configuration rather than prose (T3, 7 Oct 2026). The header's
 # estimate is prose words at 250 a minute plus 20 seconds a chart
 # (daily_cascade/readability.py); these are what it is read against.
 # The Monthly's target rose from 40 to 55 minutes with its words (T3.1 item 22).
-reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55, quarterly: 90}
+reading_targets_minutes: {daily: 5, weekly: 20, monthly: 55, quarterly: 90,
+                          open_note: 2, evening_note: 1, evening_note_sunday: 3}
+
+# THE SECONDARY NOTES (docs/change-order-secondary-notes-2026-10-19.md, ruled 19 Oct
+# 2026, 14:14 ET). Secondary: the 07:00 anchor, the 12:30 alert and the 16:45
+# close remain the reports of record. The open note's only right is to confirm
+# or cancel Book C's 07:00 drafts (none exist: "the 07:00 setup list is not
+# built"); the evening note has none.
+secondary_notes:
+  # Before live_from every run is a dry run: archived under dryrun/ and mailed
+  # with "[DRY RUN]" in the subject (the order, section 6). The merge sheet moves
+  # it later if the third chain merges after Thursday 22 Oct.
+  live_from: "2026-10-26"
+  open:
+    capture_wait_minutes: 4    # SESSION-SET: the bounded wait for the 09:45 capture; the note must land by 09:55
+    news_after: "07:00"        # news published after 07:00 ET, by the source's own time
+    news_max: 5
+    model: null                # null: narrative.MORNING_MODEL
+  evening:
+    news_after: "16:45"
+    news_max: 8
+    # THE WEEKDAY PROSE GATE (the order, section 2). SESSION-SET starting values,
+    # not measured; listed for Ari:
+    es_nq_pct: 0.75     # ES or NQ beyond 0.75% from the 16:00 close: about half the
+                        # gauge's typical one-session sigma, a move worth a sentence
+    usdjpy_pct: 1.0     # dollar-yen beyond 1%: the carry-unwind order of magnitude
+    asia_pct: 1.5       # an Asia index beyond 1.5% from its prior close: a large open
+    model: null
 
 # CONDITIONAL DEPTH (brief 1.1): computed, never judged. Ratified thresholds
 # (item 10). A firing trigger raises the report's chart cap by one (stack.chart_plan).
@@ -178,6 +237,13 @@ sections:
   - {id: mechanics,   title: "Mechanics", subtitle: "how dealer hedging shaped the moves",           daily: deep,  weekly: medium, monthly: deep, monthly_note: "deep -- the dealer retrospective (brief 1.2)", quarterly: light, quarterly_tier: reference}
   - {id: misfit,      title: "What doesn't fit", subtitle: "where markets disagree with each other",    daily: deep,  weekly: deep, monthly: deep, quarterly: medium, quarterly_tier: reference}
   - {id: plumbing,    title: "Plumbing & rates", subtitle: "rates, the curve and credit",    daily: light, deep_on: plumbing, weekly: medium, monthly: deep, quarterly: deep, quarterly_tier: reference}
+  # THE LABOUR BLOCK, the Monthly only (Batch 7 item 48 lenses 1-6, filing note 6;
+  # 6e-releases, 16 Oct 2026): immediately after Plumbing & rates. No daily or
+  # weekly depth: the close carries the employment report's one line on its
+  # release day instead, and the Weekly the ten sections as before. Tables and
+  # code-written lines only (prose_wanted false), so its budget is 0 prose words
+  # and 0 charts: it displaces nothing inside the 10,000 words or the 12 charts.
+  - {id: labour,      title: "Labour", subtitle: "payrolls' cyclical core, breadth, revisions, flows and wages",                          monthly: medium}
   - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium, quarterly: deep, quarterly_tier: reference}
   - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep, quarterly: deep, quarterly_tier: reference}
   - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep, quarterly: medium, quarterly_tier: reference}
@@ -263,10 +329,10 @@ cadences:
     frames: "the days of the week first, then the week as a whole, then where the week sits in the month."
     chars_scale: 2.5
     read_chars: 2400
-    # THREE AUDITED ATTEMPTS (W-1.3c item 6): a withheld draft is retried twice,
-    # each retry told the whole withhold message and the rule behind each fault;
-    # then withheld. A cadence without the key keeps one draft and one retry.
-    prose_attempts: 3
+    # ONE REVISION (W8-1, 18 Oct 2026; W-1.3c item 6's three attempts withdrawn):
+    # a withheld draft goes back once with the draft, the failing rule and span,
+    # to fix that and change nothing else; a second failure withholds. Every
+    # cadence alike (daily_cascade/audit_retry.py ATTEMPTS), so no key here.
     # THE SECTION OPENER (W-1.3a item 3.0, change order amended 12 Oct 2026):
     # every section's commentary prints FIRST, before any table or chart, as one
     # paragraph -- the précis's relevance sentence, then the writer's claim and
@@ -590,6 +656,194 @@ dealer_flags:
   # PB-1 (5 Oct 2026): SPY's own ATM IV and the VIX further apart than this, in
   # vol points, print side by side and mark the row "check".
   iv_vix_check_points: 5.0
+  # RULING 7 OF 17 OCT 2026: from this session date the flags are the
+  # pre-registration's outcomes (dealer_scorecard below; altdata/dealer_scorecard.py).
+  # Sessions before it keep the descriptive definitions above, as printed, with
+  # this dated note; nothing was graded under them (n = 0), and the Monthly's
+  # retrospective counts from this date.
+  definitions_from: "2026-10-17"
+
+# THE SYSTEM-METRICS BLOCK (EL-6, 17 Oct 2026; altdata/system_metrics.py).
+# RULING 5 OF 17 OCT 2026: the Audit #4 baseline prints what was recorded and
+# nothing else -- the agenda's feeds line (docs/briefs/audit-4-agenda.md I.3,
+# the 9 Oct line) and the data-and-architecture audit's measured figures of
+# 14 Oct, each labelled `label`. Days up, session hours and model cost were not
+# recorded for that baseline and print "not recorded"; so do incidents and
+# withheld drafts, which the ruling did not name.
+system_metrics:
+  baseline_audit_4:
+    label: "by hand, Audit #4, 14 Oct"
+    uptime: "not recorded"
+    feeds: "official 96/96; external 52 of 5x, one stale (AAII, the operator's drop); the 9 Oct line"
+    # Ruling 6 of 17 Oct 2026: the agenda recorded INC-1 to INC-9 with one open.
+    incidents: "INC-1 to INC-9, one open"
+    model_cost: "not recorded"
+    withheld: "not recorded"
+    measured:
+      - ["Store rows", "2.33 million, 688,000 of them FRED"]
+      - ["Store growth", "about 86,000 rows a weekday"]
+      - ["Disk free", "14 GB of 38 GB"]
+      - ["Backup zip", "about 115 MB"]
+      - ["Drive backup folder", "7.6 GB"]
+      - ["Days up", "not recorded"]
+      - ["Session hours", "not recorded"]
+      - ["Model cost", "not recorded"]
+
+# 6b'S STATE VECTOR (EL-5, 17 Oct 2026; altdata/state_vector.py). SESSION-SET:
+# the opening range is the first 30 minutes (six 5-minute bars), the classic
+# definition; volume is compared with the prior 20 sessions to the same clock;
+# realised vol needs ten 5-minute returns; the next release is looked for over
+# 14 days.
+state_vector:
+  opening_range_minutes: 30
+  volume_sessions: 20
+  rv_min_returns: 10
+  event_horizon_days: 14
+
+# THE DEALER BLOCK'S HORIZONS (6b part 1; brief v2 section 2, ratified 16 Oct
+# 2026). CUMULATIVE windows for the tables -- 0DTE, 7 days or less, 45 days or
+# less, all -- and EXCLUSIVE bands for the bucket chart -- 0DTE, 1 to 7, 8 to
+# 45, over 45 -- which sum to "all". Cut by each expiry's days to expiry from the
+# same rows the engine's listing buckets (0dte, weekly, monthly, quarterly,
+# other) are built from; the buckets stay as stored, and each window records the
+# listing buckets it draws on. tools/exposure_compute.py reads this block and
+# stores the windows on the profile; the renderer prints them and the bands'
+# reconciliation, and recomputes nothing. At a settled capture the 0DTE window
+# and band print "settled, excluded" (config.SETTLED_0DTE_RULE).
+horizon_windows:
+  windows:
+    - {id: "0dte", label: "0DTE", max_dte: 0}
+    - {id: "le7",  label: "≤ 7 days", max_dte: 7}
+    - {id: "le45", label: "≤ 45 days", max_dte: 45}
+    - {id: "all",  label: "All", max_dte: null}
+  bands:
+    - {id: "b0",    label: "0DTE",    min_dte: 0,  max_dte: 0}
+    - {id: "b1_7",  label: "1–7",     min_dte: 1,  max_dte: 7}
+    - {id: "b8_45", label: "8–45",    min_dte: 8,  max_dte: 45}
+    - {id: "b46",   label: "> 45",    min_dte: 46, max_dte: null}
+
+# THE DEALER BLOCK (6b part 1; brief v2, ratified 16 Oct 2026). Views of the
+# engine's exposure JSON: T1 with its quality panel, T4, T2 and the decision
+# summary, inside the close's Mechanics section and its budgets. Ratified
+# values are marked RULED; every other number is SESSION-SET, with its reason,
+# and listed in docs/briefs/6b-dealer-1-notes.md.
+dealer_block:
+  # The symbols the close prints the block for. SESSION-SET: SPY only, the
+  # scorecard's symbol; QQQ and IWM keep their one Mechanics line each, inside
+  # the close's word and table budget.
+  symbols: [SPY]
+  # RULED: the regime word prints only at net-to-gross at or above this;
+  # below it "indeterminate (net is x% of gross)".
+  net_to_gross_min: 0.10
+  # RULED: on every dealer table, and the convention once per edition.
+  inferred_stamp: "inferred, not observed"
+  convention_line: >-
+    Sign convention (dealers-hand-v1): dealers are assumed long calls and short
+    puts, so call gamma counts positive and put gamma negative. An assumption
+    about who holds the options, not an observation; under the opposite reading
+    every net sign inverts. The call- and put-gamma masses and the zero-gamma
+    level hold under either.
+  # THE CAPTURE SLOTS for T4's equivalent capture. RULED: 16:10 against the
+  # prior 16:10, 09:45 against the prior 09:45. 12:30 is the brief's third
+  # capture (part 2 adds its unit). A settled capture is the 16:10 slot; an
+  # intraday one takes the nearest slot within `slot_tolerance_min` minutes,
+  # else it has no slot and T4 prints "no equivalent capture".
+  capture_slots: ["09:45", "12:30", "16:10"]
+  # SESSION-SET: 20 minutes, so a capture that ran late by a pacing retry still
+  # matches its slot, and 09:45 and 12:30 can never be confused.
+  slot_tolerance_min: 20
+  # SESSION-SET: look back this many trading sessions for the prior equivalent
+  # capture, so one missed capture still compares against the one before it
+  # (T4 names the date it compares against).
+  equivalent_lookback_sessions: 3
+  # WHAT COUNTS AS AN EXPIRY SESSION for the setups and T2's max-pain row.
+  # RULED 17 Oct 2026: "monthly" -- the target session is the monthly third
+  # Friday, with a listed expiry; weekly Fridays stay out, and the scorecard's
+  # pinned hypothesis uses the same day (the pre-registration records the
+  # choice so it can be revisited with evidence). "friday" and "any" are the
+  # alternatives; SPY lists an expiry every weekday.
+  expiry_sessions: monthly
+  # THE SETUP CONDITIONS (config/setups.yaml; Doctrine 4.3 and 4.4). The block
+  # proposes; the books decide; nothing writes the register.
+  setups:
+    c_pin_fade:
+      # SESSION-SET: "near the peak-gamma strike" is spot within this % of it.
+      # 0.5% is about two SPY strikes at $5 spacing near 680: close enough that
+      # the fade is toward the pin, not a trend trade.
+      near_peak_pct: 0.5
+      # Invalidation: the zero-gamma level (the regime boundary, DH 7.5) -- a
+      # pin fade has no premise below it. Time stop: the expiry session's close.
+      time_stop: "the expiry session's close"
+    c_negative_gamma_continuation:
+      # SESSION-SET: confirmation through a level is the capture's spot beyond
+      # the level by at least this %, having been on the other side at the
+      # equivalent capture. 0.10% is about 0.7 SPY points: past the strike's
+      # own noise without waiting for the move to be over.
+      confirm_pct: 0.10
+      # The levels that count: the zero-gamma level and the two OTM walls.
+      levels: [gamma_flip, put_wall_otm, call_wall_otm]
+      # Invalidation: back through the level. Time stop: two sessions (Book C
+      # is tactical, intraday to a few days; Doctrine 4.3).
+      time_stop: "two sessions"
+    d_forced_flow:
+      # On an expiry session (the capture carried DTE 0 rows) and on a day with
+      # a tier-1 release in the payload's events. Level: the peak-gamma strike
+      # with max pain as the control on expiry; the two OTM walls on a release
+      # day. Invalidation: spot beyond the level's far side. Time stop: the
+      # closing auction on expiry; the release session's close otherwise.
+      time_stop_expiry: "the closing auction"
+      time_stop_release: "the release session's close"
+  # T2's conditional readings, in the Dealer's Hand's words (Chapter 7). Never
+  # "support" or "resistance" as facts (brief section 1).
+  readings:
+    call_wall_otm: "if approached while gamma is positive, dealer long-call hedging sells into the rally; a decisive break can squeeze (DH 7.1)"
+    call_concentration_2: "the next call concentration above; the same reading, smaller (DH 7.1)"
+    gamma_flip: "the regime boundary: above it dealer hedging leans against moves, below it leans with them; crossing it changes the playbook, not the price (DH 7.5)"
+    spot: "the capture's spot"
+    put_concentration_2: "the next put concentration below; the same reading, smaller (DH 7.2)"
+    put_wall_otm: "holds only if holders monetize and vol falls; a break is regime information (DH 7.2)"
+    peak_abs_gex_strike: "where hedging flow is densest; the pin candidate on an expiry session (DH 7.4)"
+    peak_put_gamma_strike: "where put gamma peaks, near the money by construction; a peak, not a wall (audit F5)"
+    put_oi_shelf: "the largest out-of-the-money put open interest; an OI level, not a gamma one (DH 7.2)"
+    max_pain: "an OI construct; meaningful only where it coincides with the peak-gamma strike (DH 7.4)"
+
+# THE DEALER SCORECARD'S PRE-REGISTERED HYPOTHESES (6b part 2; brief v2 section
+# 5, ratified 16 Oct 2026). MIRRORS the registration,
+# docs/ledgers/dealer-scorecard-preregistration-2026-10.md (dated 17 Oct 2026,
+# unchanged thereafter; a change is a new registration): tools/validate_dealer_
+# block.py holds these values to its text and the file to its recorded SHA-256.
+# Read by altdata/dealer_scorecard.py.
+dealer_scorecard:
+  registration: docs/ledgers/dealer-scorecard-preregistration-2026-10.md
+  registered_on: "2026-10-17"   # the test sample starts here; every earlier row, and
+                                # every backfilled row, is "before registration, descriptive"
+  backfill_source: "dealer_scorecard:backfill"   # Batch 11 item 54: rebuilt rows
+  net_to_gross_min: 0.10        # a regime session (H1, H2)
+  dampened_ratio: 0.8           # H1: range at or under 0.8 x the implied one-day range
+  amplified_ratio: 1.2          # H2: range at or over 1.2 x implied
+  wall_pct: 0.25                # H3: the approach band to the morning OTM wall
+  pin_pct: 0.25                 # H4: the close within this % of the peak-gamma strike
+  round_step: 5.0               # the round-number baselines (H3, H4): SPY's $5 grid
+  flip_forward_sessions: 3      # H5: the next three sessions' realised vol ...
+  flip_prior_sessions: 10       # ... against the prior ten's
+  print_floor_sessions: 20      # no count prints below 20 scored sessions
+  decision_floor_eligible: 120  # below 120 eligible sessions no rate is a decision
+  formation_sessions: 120       # the first 120 eligible form; the next 120 test
+  bh_q: 0.10                    # Benjamini-Hochberg across the registered family
+
+# H6, THE LEVEL CLUSTERS (Batch 11 item 55, D3; registered 19 Oct 2026 in
+# docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md, which these mirror
+# and which validate_dealer_block holds to its SHA-256). Our own levels only.
+level_clusters:
+  registration: docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md
+  registered_on: "2026-10-19"
+  cluster_pct: 0.2              # D3: three or more families within 0.2%
+  min_families: 3
+  freeze_days: 30               # a zone keeps its edges for 30 calendar days
+  approach_pct: 0.25            # H3's approach band
+  forward_sessions: 5           # H6f's window
+  instruments: [SPY, QQQ, IWM]  # SPX after the solver gate, as a new registration
+  round_step: {SPY: 5.0, QQQ: 5.0, IWM: 2.5}   # the baseline's grid
 
 # THE TECHNICAL APPENDIX (W-1.3a item 3.7): the reference tier's formulas, units
 # and sign conventions, printed after the Weekly's detail tables. The GEX/DEX
@@ -601,19 +855,28 @@ technical_appendix:
     - {quantity: "Move z-score", formula: "(the change - the mean change) / the standard deviation of changes over the series' window", units: "standard deviations", sign: "+ is a rise; the size is how unusual the move is"}
     - {quantity: "Percentile", formula: "share of the window's observations at or below the level", units: "percentile (0-100)", sign: "high is near the window's top"}
     - {quantity: "Basis point", formula: "0.01 percentage point; yields and spreads move in it", units: "bp", sign: "+ is higher"}
-    - {quantity: "Credit spread (OAS)", formula: "ICE BofA option-adjusted spread over Treasuries, via FRED (BAMLH0A0HYM2, BAMLC0A0CM, BAMLH0A3HYC)", units: "bp", sign: "+ is wider: lenders asking more"}
-    - {quantity: "Net GEX", formula: "sum over strikes of dealer position x gamma x open interest x 100 x spot, stored as shares per 1% move", units: "shares per 1% move", sign: "+ dealers long gamma (hedging damps moves); under the dealer-short-options convention"}
-    - {quantity: "DEX", formula: "sum over strikes of dealer position x delta x open interest x 100", units: "shares", sign: "+ the option book is long delta, so the hedge held is short stock"}
+    - {quantity: "Credit spread (OAS)", formula: "ICE BofA option-adjusted spread over Treasuries, via FRED (BAMLH0A0HYM2, BAMLC0A0CM, BAMLH0A3HYC); FRED serves them from 17 Oct 2023 only, so a chart prints the first day the store holds, and a study before 2023 reads Moody's Baa less the 10-year, labelled a proxy (ruled 18 Oct 2026)", units: "bp", sign: "+ is wider: lenders asking more"}
+    - {quantity: "Net GEX", formula: "sum over strikes of dealer position x gamma x open interest x 100 x spot (one hundredth of it is shares per 1% move)", units: "$ of delta per $1 move", sign: "+ dealers long gamma (hedging damps moves); under the dealer-short-options convention"}
+    - {quantity: "DEX", formula: "sum over strikes of dealer position x delta x open interest x 100 x spot", units: "$ (delta notional)", sign: "+ the option book is long delta, so the hedge held is short stock"}
     - {quantity: "Flip", formula: "the spot level at which net GEX changes sign", units: "index points", sign: "above it, dealer hedging damps; below it, amplifies"}
     - {quantity: "Net liquidity", formula: "Fed balance sheet - reverse repo - Treasury General Account, each leg in dollars (WALCL x 1e6, RRPONTSYD x 1e9, WTREGEN x 1e6)", units: "$", sign: "+ is more liquidity"}
     - {quantity: "CFTC net position", formula: "non-commercial longs - shorts", units: "contracts", sign: "+ speculators net long"}
-    - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, first expiry on or after the event", units: "% of spot", sign: "either direction"}
+    - {quantity: "Implied move", formula: "the at-the-money straddle's mid over spot, to the first expiry strictly after the event date (the event date's own expiry only when the release is before the open)", units: "% of spot", sign: "either direction"}
     - {quantity: "Brier score", formula: "the mean of (probability - outcome) squared", units: "0 to 1", sign: "lower is better; 0.25 is a coin"}
+    # Ruling 2 of 18 Oct 2026: the binding is conservative on purpose, and the note says so.
+    - {quantity: "Numeral audit", formula: "every figure in the commentary is one the section's data carries, as printed; in a sentence that names a series, each figure binds to the series named nearest before it in its clause and must be that series' own, in the unit its column states. Deliberately conservative: a figure in no series' row (a spread between two series, say) is left to the plain check", units: "-", sign: "a draft that fails is revised once, then withheld with its reason"}
+    # F-3 (ruled 18 Oct 2026): the vendor's conventions beside ours, in the same
+    # terms, printed before the first vendor row.
+    - {quantity: "Vendor GEX (FlashAlpha)", formula: "sum over strikes and expiries of dealer position x gamma x open interest x 100 x spot squared x 0.01, on prior-night settled open interest and the vendor's own implied vol per contract", units: "$ per 1% move", sign: "calls +, puts - (the convention polarity: dealers long calls, short puts)"}
+    - {quantity: "Our GEX in the vendor's terms", formula: "the same sum on our capture's open interest (the prior settlement's) and our own implied vol per contract; the report's Net GEX per $1 move times 0.01 x spot", units: "$ per 1% move", sign: "calls +, puts - (the same convention)"}
+    - {quantity: "Vendor DEX (FlashAlpha)", formula: "sum of delta x open interest x 100 x spot, raw option deltas", units: "$", sign: "the customer book: calls +, puts -; ours is the dealer position, so a put's sign is opposite"}
+    - {quantity: "Walls, vendor and ours", formula: "the vendor's call and put walls are the peaks across all strikes; ours, from 22 Oct 2026, are the out-of-the-money walls (above spot for calls, below for puts)", units: "index points", sign: "—"}
   expiry_coverage: "every listed expiry the captured chain holds (the capture takes no cap unless one is passed), bucketed 0DTE / weekly / monthly / quarterly / other"
 
 # W-1.2 -- THE WEEKLY'S STORYLINE (change order of 11 Oct 2026, section 3).
 storyline:
-  # Item 2.4: an open contradiction's status line. "resolved by <section>" when
+  # Item 2.4: an open contradiction's status line. "read in <section>" (was
+  # "resolved by"; weekly-fixes-7 item 12: the gap is not closed by it) when
   # the named section prints every listed row -- the decomposition that answers
   # the gap (the 9 Oct HY tension: Plumbing's CCC against investment grade) --
   # and its commentary published; "stale" when the gap has been open at least

@@ -58,7 +58,13 @@ VERDICT_ASSETS = (
 VERDICTS = ("up", "down", "chop", "transition")
 STANCE_SOURCE = "weekly_stance"
 DRY_RUN_NAMESPACE = "dryrun."
-FIRST_EDITION = "First edition with a précis."
+# weekly-fixes-7 item 7: "archived". The comparison reads the ARCHIVED editions
+# (prior_dir), which carry no précis before the first live one; the stance
+# ledger's n counts graded stances wherever they were recorded, dry runs
+# included (dryrun.weekly_stance). Dry run 7 printed "First edition with a
+# précis" beside "p = 0.40 (n=1)": both true, of different stores. The word
+# says which store the first line is about, so the two no longer contradict.
+FIRST_EDITION = "First archived edition with a précis."
 WITHHELD = "(précis withheld — audit)"
 
 # A WINDOW names a date or a span inside the coming week.
@@ -168,12 +174,69 @@ def present(comms: list[dict]) -> list[dict]:
     return [c for c in comms if c["state"] == "published"]
 
 
-def frame(ed: dict, prior: Optional[dict]) -> dict:
+def grader_block(ed: dict) -> Optional[dict]:
+    """W8-1b: the grader's table as Ahead prints it -- resolved counts and mean
+    Brier by source over four weeks, the total resolved and open, and the coin
+    -- so a figure the précis takes from it is in the précis's own block."""
+    s = next((x for x in ed.get("sections") or [] if x.get("id") == "ahead"), None)
+    gc = ((s or {}).get("data") or {}).get("graded_calls") or {}
+    if not gc:
+        return None
+    return {"since": gc.get("since"), "resolved": gc.get("resolved"),
+            "unresolved": gc.get("unresolved"), "coin_brier": gc.get("coin_brier"),
+            "by_source": [{"source": r.get("source"), "resolved": r.get("n"),
+                           "mean_brier": (None if r.get("mean_brier") is None
+                                          else f"{r['mean_brier']:.3f}"),
+                           "against_a_coin": (None if r.get("vs_coin") is None
+                                              else f"{r['vs_coin']:+.3f}")}
+                          for r in gc.get("rows") or []]}
+
+
+def stance_block(prior: Optional[dict], n: Optional[int]) -> dict:
+    """W8-1b: the stance ledger's n (graded stances to date) and the previous
+    edition's p."""
+    pp = ((prior or {}).get("precis") or {}).get("parsed") or {}
+    p = pp.get("stance_p")
+    return {"graded_n": n, "previous_p": None if p is None else f"{float(p):.2f}"}
+
+
+def block_figures(block: Any) -> list[str]:
+    """Every figure a block carries, as it prints."""
+    out: list[str] = []
+    if isinstance(block, dict):
+        for v in block.values():
+            out += block_figures(v)
+    elif isinstance(block, (list, tuple)):
+        for v in block:
+            out += block_figures(v)
+    elif isinstance(block, bool) or block is None:
+        pass
+    elif isinstance(block, (int, float)):
+        out.append(f"{block:g}")
+    else:
+        out += _figs(str(block))
+    return out
+
+
+def frame(ed: dict, prior: Optional[dict], stance_n: Optional[int] = None) -> dict:
+    """THE PRÉCIS'S DATA BLOCK (W8-1b, weekly-fixes-8): the ten commentaries, the
+    grader's table, the stance ledger's n and p, and the "Changed since last
+    Weekly" box. The figures it may cite are those four and nothing else -- this
+    morning's précis cited the grader's 17, which only Ahead's data carried."""
     comms = commentaries(ed)
     pp = ((prior or {}).get("precis") or {}).get("parsed")
+    grader = grader_block(ed)
+    stance = stance_block(prior, stance_n)
+    changed = [x for x in ed.get("changed_since") or [] if isinstance(x, str)]
+    seen: dict[str, str] = {_norm(f): f for f in allowed_figures(comms)}
+    for f in block_figures([grader, stance, changed]):
+        seen.setdefault(_norm(f), f)
     return {"week_ending": ed.get("week_ending"),
             "commentaries": comms,
-            "figures_you_may_cite": allowed_figures(comms),
+            "graded_calls": grader,
+            "stance_ledger": stance,
+            "changed_since_last_weekly": changed,
+            "figures_you_may_cite": list(seen.values()),
             "previous_precis": ({k: pp.get(k) for k in ("tension", "verdicts",
                                                          "stance_p", "change")}
                                 if pp else None)}
@@ -287,7 +350,7 @@ def audit(p: dict, fr: dict) -> list[str]:
     bad = sorted({f for t in prose_fields(p) for f in _figs(t)
                   if _norm(f) not in allowed})
     if bad:
-        faults.append("figures no commentary cites: " + ", ".join(bad[:8])
+        faults.append("figures in no block of the précis's data: " + ", ".join(bad[:8])
                       + " -- cite only figures_you_may_cite, exactly as printed")
     want = [c["id"] for c in present(fr["commentaries"])]
     missing = [s for s in want if not p["relevance"].get(s)]
@@ -321,30 +384,34 @@ def _call(fr: dict, system: str, client, model: Optional[str]) -> str:
                     "system": system,
                     "messages": [{"role": "user", "content": prompt}],
                     "thinking": {"type": "disabled"}}
-    try:
-        resp = client.messages.create(**kwargs)
-    except TypeError:
-        kwargs.pop("thinking")
-        resp = client.messages.create(**kwargs)
+    from altdata import model_meter                             # noqa: PLC0415
+    with model_meter.scope(section="precis"):
+        try:
+            resp = model_meter.create(client, **kwargs)
+        except TypeError:
+            kwargs.pop("thinking")
+            resp = model_meter.create(client, **kwargs)
     return "".join(getattr(b, "text", "") for b in resp.content
                    if getattr(b, "type", "") == "text").strip()
 
 
-ATTEMPTS = 3
+from .audit_retry import ATTEMPTS                               # noqa: E402  (W8-1: one revision)
 
 
 def write(ed: dict, prior: Optional[dict] = None, *, client=None,
-          model: Optional[str] = None) -> dict:
-    """The précis over the finished edition: up to three audited attempts, each
-    retry told the whole withhold message and the rule behind each fault
-    (W-1.3c item 6). Never raises."""
-    fr = frame(ed, prior)
+          model: Optional[str] = None, stance_n: Optional[int] = None) -> dict:
+    """The précis over the finished edition: one draft and, when the audit
+    withholds it, ONE revision told the withhold message, the rule behind each
+    fault, the failing span and the draft (W8-1; three attempts before). Both
+    attempts are logged. Never raises."""
+    fr = frame(ed, prior, stance_n)
     if client is None:
         from . import narrative as base                         # noqa: PLC0415
         client, why = base._client()                            # noqa: SLF001
         if client is None:
             return {"state": "unavailable", "published": False, "reason": why,
                     "frame": fr}
+    from . import audit_retry                                   # noqa: PLC0415
     system = system_prompt(fr)
     reasons = []
     for attempt in range(1, ATTEMPTS + 1):
@@ -355,6 +422,9 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
                     "reason": f"FAULT {type(exc).__name__}: {exc}", "attempts": attempt}
         p = parse(text)
         faults = audit(p, fr)
+        audit_retry.log_attempt("weekly", "precis", attempt, not faults,
+                                None if not faults else "withheld: " + "; ".join(faults),
+                                None if not faults else text)
         if not faults:
             if not fr.get("previous_precis"):
                 p["outlook"] = FIRST_EDITION
@@ -362,9 +432,7 @@ def write(ed: dict, prior: Optional[dict] = None, *, client=None,
                     "text": text, "frame": fr, "attempts": attempt,
                     "first_reason": reasons[0] if reasons else None}
         reasons.append("withheld: " + "; ".join(faults))
-        from . import opener                                    # noqa: PLC0415
-        system = system_prompt(fr) + opener.retry_note(reasons[-1], attempt + 1,
-                                                       ATTEMPTS)
+        system = system_prompt(fr) + audit_retry.revision_note(reasons[-1], text)
     return {"state": "audit_failed", "published": False, "frame": fr,
             "reason": reasons[-1], "first_reason": reasons[0], "attempts": ATTEMPTS,
             "rejected_text": text, "reasons": reasons}
@@ -492,7 +560,7 @@ def terms_line(ed: dict, enforcement: Optional[dict]) -> Optional[str]:
     obs = [f"{c['series']} ({c['window']})" for c in (p.get("change") or [])[:3]]
     wrong = ("its caution would be wrong if these move against it: " + "; ".join(obs)
              if obs else "the précis named no observables this week")
-    return f"Terms: {permits}; {held}; {wrong}."
+    return f"Stance: {permits}; {held}; {wrong}."
 
 
 # ---------------------------------------------------------------------------
@@ -543,6 +611,26 @@ def subject_claim(ed: dict) -> Optional[str]:
     return pr.get("stance_line") or None
 
 
+def withheld_line(pr: dict) -> str:
+    """W8-1c: the précis's withheld line carries its reason, as a section's does
+    ("Commentary withheld by the audit: ..."); WITHHELD only when none is kept."""
+    why = re.sub(r"^(?:narrative\s+)?withheld:\s*", "", str(pr.get("reason") or ""),
+                 flags=re.I).strip()
+    return f"Précis withheld by the audit: {why}" if why else WITHHELD
+
+
+def summary_row(ed: dict) -> Optional[str]:
+    """W8-1c: the précis as its own row of the run's stack listing, beside the
+    sections', so the operator sees its state and reason without grepping."""
+    pr = ed.get("precis") or {}
+    if pr.get("state") in (None, "skipped"):
+        return None
+    flag = ("ok" if pr.get("published") else
+            "withheld: " + str(pr.get("reason") or "no reason kept")[:90])
+    n = pr.get("attempts")
+    return f"    {'precis':<12} {'-':<6} {flag}" + (f"  ({n} attempt(s))" if n else "")
+
+
 def precis_html(ed: dict) -> str:
     """The edition's opening: the précis, or its withheld note."""
     from .stack_render import CLAIM, H3, PARA, SECTION, esc     # noqa: PLC0415
@@ -551,7 +639,7 @@ def precis_html(ed: dict) -> str:
     if not pr.get("published"):
         if pr.get("state") in (None, "skipped"):
             return ""
-        out.append(f'<p style="{PARA}">{esc(WITHHELD)}</p>')
+        out.append(f'<p style="{PARA}"><i>{esc(withheld_line(pr))}</i></p>')
         return "".join(out)
     p = pr["parsed"]
     if p.get("week"):

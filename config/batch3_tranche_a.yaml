@@ -36,13 +36,35 @@ eu_stress:
   crisis_source: "ECB IRS monthly 10-year, FR less DE, November 2011 (the series' peak), fetched 13 Oct 2026"
   # RULED 13 Oct 2026: THE TIERS SIT ON THE DAILY WEEKLY CLOSE. No tier prints
   # on the monthly-average series; the block prints the series under its own
-  # label, levels and percentiles only. The lines above stay as set for the
-  # daily series, to be wired after Audit #4 once a Banque de France Webstat
-  # key is in the box's environment file. `tiers_live` turns them on then.
-  tiers_live: false
+  # label, levels and percentiles only.
+  # DAILY OAT-BUND, KEYLESS (st-r5-audit, 16 Oct 2026). The Webstat key the
+  # line above waited on is not needed (ruling (a) of 16 Oct: friction is a gap,
+  # not a key): the Banque de France publishes the TEC 10 daily through its
+  # series page's anonymous export (altdata/sources/bdf_webstat.py). With both
+  # daily legs stored, OAT-Bund reads daily and is tiered on the latest weekly
+  # close; without them it falls back to the monthly series above, untiered.
+  # BTP-Bund has no daily entry: no keyless daily Italian 10-year was found
+  # (the Banca d'Italia's statistical database is an interactive portal with no
+  # export URL; the MEF publishes yearly PDFs and its robots.txt answers 403).
+  daily:
+    oat_bund:
+      legs: {fr: bdf.oat_tec10, de: bbk.bund_10y}
+      label: "OAT-Bund, daily (Banque de France TEC 10 less the Bundesbank's fitted 10-year)"
+      source: "the Banque de France's TEC 10 (Webstat) less the Bundesbank's fitted 10-year zero-coupon Bund"
+      # THE DAILY CRISIS LINE, SET FROM THIS SERIES' NOVEMBER 2011 PEAK, as
+      # decision 2 rules for the stored series: 208.1 bp on 17 Nov 2011 (167.1 on
+      # the 15th, 162.0 on the 16th: a one-day spike),
+      # computed 16 Oct 2026 from both publishers' files. The entry's ~190 bp
+      # is the benchmark screen's close; the basis here differs (an
+      # interpolated constant-maturity yield less a fitted zero), which is why
+      # the line is the series' own. Recomputed from the store by
+      # altdata.batch3.crisis_level_daily after the first pull.
+      crisis_bp: 208.1
+      crisis_source: "the daily series' November 2011 peak, 17 Nov 2011 (Webstat TEC 10 less Bundesbank 10-year), computed 16 Oct 2026"
   series_labels:
     oat_bund: "OAT-Bund, ECB monthly average"
     btp_bund: "BTP-Bund, ECB monthly average"
+    gr_bund: "Greece-Bund, ECB monthly average (a watch spread)"
   windows_years: [5, 20]          # the dual percentile (entry's measure)
   unvalidated: "(descriptive; unvalidated, n=0)"   # until ST-B3-09's ledger
   transmission_label: "EUR/CHF (francs per euro)"
@@ -53,8 +75,12 @@ eu_stress:
 buybacks:
   # The long-end sectors (the entry: 10-20y and 20-30y, and the TIPS 10-30y).
   long_end_buckets: ["10Y to 20Y", "20Y to 30Y", "10Y to 30Y"]
-  thirty_year_key: fred.yield_30y # the stored 30-year (DGS30), for the next
-                                  # session's change after each operation
+  thirty_year_key: fred.yield_30y # the stored 30-year (DGS30): the FALLBACK for
+                                  # the next session's change after each operation
+  # W8-13 (weekly-fixes-8): the tape's 30-year first -- FRED's leg lags a session,
+  # so the newest operation read "not yet stored" -- as weekly-fixes-7's rule for
+  # the 10-year; each cell names its source and date.
+  thirty_year_tape: yfinance.mkt_tyx
   tga_key: fred.tga               # MILLIONS (CLAUDE.md, the net-liquidity trap)
   # The modifier on the long-end supply read, in the Monthly's lever table:
   # a bought/max ratio below `soft_ratio` reads as soft take-up.

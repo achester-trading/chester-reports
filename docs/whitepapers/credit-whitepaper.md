@@ -870,6 +870,31 @@ SLOOS releases (early February, May, August, November). FOMC decisions and the r
 9. Are maturing CRE loans being extended or foreclosed?
 10. Which of the four twelve-month scenarios did this quarter's evidence support?
 
+## Appendix E — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-5 — the consumer credit impulse's bull side (ledger of 18 October 2026)
+
+- **Ledger:** [sr-5-ledger-2026-10-18.md](../ledgers/sr-5-ledger-2026-10-18.md).
+- **As of:** G.19 2026-08 (latest vintage); S&P 2026-06. **Window:** 1943-02 to 2026-08 (total), 1968-02 to 2026-08 (revolving). **n:** 19.
+- **Verdict:** INSUFFICIENT -- the rule is on first prints, which this laptop edition does not read (latest vintages; the box edition reads ALFRED). On latest vintages: 10-year window FAIL (expectancy +8.6% against unconditional +5.7%, 19 episodes), 5-year window FAIL
+- **Rights consequence (the ledger's):** PASS: the bull side becomes a T&B bottom-confirmation trigger candidate, behind SR-8's gate, and the consumer/credit tilt line and RS tell render. FAIL or INSUFFICIENT: nothing new renders. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### ST-R5.35b — the corporate-price/ULC gap and margins after its peaks (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.35b-ledger-2026-10-17.md](../ledgers/st-r5.35b-ledger-2026-10-17.md).
+- **As of:** 2026-04. **Window:** 2014-07 to 2026-04 (the order's leg); 1975-01 to 2026-04 (robustness). **n:** 6.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.
+- **Rights consequence (the ledger's):** Flag only: the gap closing from above as a leading input to item 29's revisions-turn flag (built in Tranche 1). This ledger grants nothing new.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-16 — the capex funding transition and its rings (no ledger on this line)
+
+- No ledger on this line: SR-16's rows are Factor I evidence-log entries, human-gated, and its new-issue concession input was a by-hand line.
+
 ---
 
 ## Closing Note

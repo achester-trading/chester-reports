@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import math
 import re
 from pathlib import Path
 from typing import Any, Optional
@@ -85,6 +86,45 @@ def earnings_class(symbol: str, cfg: dict) -> str:
     return "earnings_tracked"
 
 
+def ai_names(cfg: dict, repo: Optional[Path] = None) -> set[str]:
+    """The names the AI-capex clause applies to (W8-6): every symbol listed under
+    any bucket of config/ai_buckets.yaml, with the Weekly's own
+    `earnings.ai_names`."""
+    p = (repo or REPO) / "config" / "ai_buckets.yaml"
+    out: set[str] = set()
+    if p.exists():
+        try:
+            doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+
+            def walk(x):
+                if isinstance(x, dict):
+                    for v in x.values():
+                        walk(v)
+                elif isinstance(x, list):
+                    for v in x:
+                        walk(v)
+                elif isinstance(x, str) and re.fullmatch(r"[A-Z][A-Z.\-]{0,5}", x):
+                    out.add(x)
+            walk(doc.get("buckets", doc))
+        except (OSError, yaml.YAMLError):
+            log.warning("config/ai_buckets.yaml unreadable; the Weekly's AI names stand")
+    # GTM-4 names members for the hyperscalers only (its other buckets are GICS
+    # industries the store cannot classify), so its members join the Weekly's
+    # own list rather than replace it (the chain-2 stitch, 19 Oct 2026).
+    return out | {str(s).upper() for s in (cfg.get("earnings") or {}).get("ai_names") or []}
+
+
+def why_of(r: dict, c: dict, ai: set[str]) -> str:
+    """A row's "why it matters": its class's channel, with the class's AI clause
+    only for an AI name (W8-6: "its capital spending is the AI trade's" printed
+    for TSLA)."""
+    why = c.get("channel") or "—"
+    sym = str(r.get("symbol") or str(r.get("event") or "").split(" ")[0]).upper()
+    if c.get("ai_clause") and r.get("cls", "").startswith("earnings") and sym in ai:
+        why += c["ai_clause"]
+    return why
+
+
 def _mid(r: dict) -> Optional[float]:
     b, a = r.get("bid"), r.get("ask")
     if b is not None and a is not None and a >= b > 0:
@@ -92,12 +132,76 @@ def _mid(r: dict) -> Optional[float]:
     return None
 
 
+_BEFORE_OPEN = re.compile(r"before\s+(?:the\s+)?(?:open|bell)|pre-?market|\bbmo\b", re.I)
+
+
+def before_open(time: Optional[str]) -> bool:
+    """Is the release stated to land before the open (09:30 ET)? An unknown
+    time is not."""
+    t = str(time or "")
+    if _BEFORE_OPEN.search(t):
+        return True
+    m = re.match(r"\s*(\d{1,2}):(\d{2})", t)
+    return bool(m) and (int(m.group(1)), int(m.group(2))) < (9, 30)
+
+
+def straddle_expiry(expiries, event_date: str,
+                    time: Optional[str] = None) -> Optional[str]:
+    """The expiry an event's straddle is read to (W8-5, weekly-fixes-8): the first
+    expiry STRICTLY AFTER the event date whenever the release time is unknown or
+    after the close -- an expiry on the event day itself settles before an
+    after-close report (META, Wed 21 Oct, was read to the 21 Oct expiry) -- and
+    the event date's own expiry only for a release before the open."""
+    d = str(event_date)[:10]
+    ok = sorted(str(e) for e in expiries
+                if (str(e) >= d if before_open(time) else str(e) > d))
+    return ok[0] if ok else None
+
+
+STRADDLE_K = math.sqrt(2.0 / math.pi)   # straddle / spot = this x sigma x sqrt(T)
+
+
+def atm_straddle(rows: list[dict], ex: str) -> Optional[tuple[float, float]]:
+    """(the at-the-money straddle's mid, spot) on expiry `ex`, or None."""
+    leg = [r for r in rows if str(r.get("expiry")) == ex]
+    spot = next((r["spot"] for r in leg if r.get("spot")), None)
+    if not spot:
+        return None
+    by: dict[float, dict] = {}
+    for r in leg:
+        if r.get("strike") is not None and _mid(r) is not None:
+            by.setdefault(r["strike"], {})[r["right"]] = _mid(r)
+    both = [k for k, v in by.items() if "C" in v and "P" in v]
+    if not both:
+        return None
+    atm = min(both, key=lambda k: abs(k - spot))
+    return by[atm]["C"] + by[atm]["P"], float(spot)
+
+
+def event_move(pre_frac: float, pre_days: int, post_frac: float,
+               post_days: int) -> Optional[float]:
+    """The event-only move, percent, on the straddle convention: each straddle's
+    fraction of spot is turned into total variance ((frac / sqrt(2/pi))^2), the
+    pre-event expiry's variance RATE is applied over the post-event expiry's time,
+    and the remainder, if positive, is turned back into a straddle fraction."""
+    if pre_days <= 0 or post_days <= pre_days:
+        return None
+    v_post = (post_frac / STRADDLE_K) ** 2
+    rate_pre = (pre_frac / STRADDLE_K) ** 2 / (pre_days / 365.0)
+    ev = v_post - rate_pre * (post_days / 365.0)
+    if ev <= 0:
+        return None
+    return 100.0 * STRADDLE_K * math.sqrt(ev)
+
+
 def implied_move(symbol: str, report_date: str, now: str,
-                 base: Optional[Path] = None, days_back: int = 5) -> Optional[str]:
-    """The option-implied move into a report: the at-the-money straddle's mid on
-    the first expiry on or after the report date, over spot, from the newest
-    captured chain of `symbol` at or before `now` (looking back `days_back`
-    days). None when no chain is captured."""
+                 base: Optional[Path] = None, days_back: int = 5,
+                 time: Optional[str] = None) -> Optional[str]:
+    """The option-implied move into a report: the at-the-money straddle's mid to
+    the event's expiry (`straddle_expiry`: strictly after the report date unless
+    the release is before the open), over spot, from the newest captured chain
+    of `symbol` at or before `now` (looking back `days_back` days). None when no
+    chain is captured."""
     try:
         from altdata import chain_metrics                       # noqa: PLC0415
         root = Path(base) if base else chain_metrics.chain_dir()
@@ -109,25 +213,34 @@ def implied_move(symbol: str, report_date: str, now: str,
             if not files:
                 continue
             rows = chain_metrics.load_rows(files[-1])
-            exps = sorted({r["expiry"] for r in rows if r.get("expiry")
-                           and str(r["expiry"]) >= report_date[:10]})
-            if not exps:
+            ex = straddle_expiry({str(r["expiry"]) for r in rows if r.get("expiry")},
+                                 report_date, time)
+            if not ex:
                 return None
-            ex = exps[0]
-            leg = [r for r in rows if r["expiry"] == ex]
-            spot = next((r["spot"] for r in leg if r.get("spot")), None)
-            if not spot:
+            post = atm_straddle(rows, ex)
+            if not post:
                 return None
-            by: dict[float, dict] = {}
-            for r in leg:
-                if r.get("strike") is not None and _mid(r) is not None:
-                    by.setdefault(r["strike"], {})[r["right"]] = _mid(r)
-            both = [k for k, v in by.items() if "C" in v and "P" in v]
-            if not both:
-                return None
-            atm = min(both, key=lambda k: abs(k - spot))
-            mv = 100.0 * (by[atm]["C"] + by[atm]["P"]) / spot
-            return f"implied move ±{mv:.1f}% (straddle to {ex})"
+            strad, spot = post
+            mv = 100.0 * strad / spot
+            # BATCH 11 ITEM 57 (ruled 19 Oct 2026): THE EVENT-ONLY MOVE, where an
+            # expiry before the report exists -- the expiry before the post-event
+            # one, which settles before the report. On the straddle convention
+            # (straddle / spot = sqrt(2/pi) x sigma x sqrt(T)): the post-event
+            # expiry's total variance less the pre-event expiry's variance rate
+            # over the same time; else the full straddle, labelled.
+            pre_ex = max((str(r["expiry"]) for r in rows if r.get("expiry")
+                          and str(r["expiry"]) < ex
+                          and str(r["expiry"])[:10] > day), default=None)
+            pre = atm_straddle(rows, pre_ex) if pre_ex else None
+            if pre:
+                ev = event_move(pre[0] / pre[1], (dt.date.fromisoformat(pre_ex[:10])
+                                                   - dt.date.fromisoformat(day)).days,
+                                strad / spot, (dt.date.fromisoformat(ex[:10])
+                                               - dt.date.fromisoformat(day)).days)
+                if ev is not None:
+                    return (f"implied move ±{ev:.1f}% (event-only: the straddle to {ex} "
+                            f"less the {pre_ex} expiry's variance rate over the same time)")
+            return f"implied move ±{mv:.1f}% (straddle to {ex}; includes non-event days)"
     except Exception:                                           # noqa: BLE001
         log.warning("implied move unavailable for %s", symbol, exc_info=True)
     return None
@@ -138,7 +251,7 @@ def earnings_row(r: dict, cfg: dict, now: str, chain_base: Optional[Path]) -> di
     eps = r.get("eps_estimate")
     cons = (f"EPS {eps:.2f} (analyst mean)" if isinstance(eps, (int, float))
             else "no consensus EPS carried")
-    mv = implied_move(sym, r["date"], now, chain_base) or NOT_CAPTURED
+    mv = implied_move(sym, r["date"], now, chain_base, time=r.get("time")) or NOT_CAPTURED
     return {**r, "cls": earnings_class(sym, cfg), "consensus": f"{cons}; {mv}",
             "implied_move": None if mv == NOT_CAPTURED else mv}
 
@@ -167,10 +280,14 @@ def hand_rows(cfg: dict, mon: dt.date, sat: dt.date,
                 continue
             if mon <= d < sat:
                 who = e.get(hc.get("who") or "body") or e.get("country") or e.get("body")
+                ev = f"{who}: {e.get('event')}" if who else str(e.get("event"))
+                # A DATE NOT YET CONFIRMED AT ITS SOURCE carries its marker
+                # ("30 Nov, to verify on MSCI's calendar"; Batch 8 item 49c).
+                if e.get("marker"):
+                    ev += f" ({e['marker']})"
                 rows.append({"date": d.isoformat(),
                              "time": str(e.get("time") or "time not stated"),
-                             "event": f"{who}: {e.get('event')}" if who
-                             else str(e.get("event")),
+                             "event": ev,
                              "consensus": "—", "cls": hc["class"],
                              "source": e.get("source")})
     return rows, absent
@@ -295,15 +412,19 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
     for r in cal.get("rows") or []:
         if r.get("cls") == "earnings":
             r = earnings_row(r, cfg, now, chain_base)
+            # OS-11 (a44-opening-setup): the last three reactions and the pricing word.
+            from . import opening_setup                         # noqa: PLC0415
+            r = opening_setup.with_pricing(r, now)
         rows.append(dict(r))
     hrows, absent = hand_rows(cfg, mon, sat, repo)
     rows += hrows + register_rows(cfg, mon, sat) + rebalance_rows(p, mon, sat)
     rows, full, lines = collapse_families(rows, min_outcomes)
     z_min = float(cfg.get("amplifier_z") or 1.5)
+    ai = ai_names(cfg, repo)
     for r in rows:
         c = classes.get(r.get("cls") or "") or {}
         r["tier"] = int(c.get("tier") or r.get("tier") or 3)
-        r["why"] = c.get("channel") or "—"
+        r["why"] = why_of(r, c, ai)
         r["amplify"] = amplifier(c, pos, z_min)
     rows.sort(key=lambda r: (r["tier"], r["date"], str(r.get("time")), r["event"]))
     for i, r in enumerate(rows, start=1):
@@ -337,6 +458,11 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
                                               r["event"], r.get("consensus")]
                                              for r in full]}})
     notes = []
+    # weekly-fixes-7 item 12: "release time not captured" once, as a footnote.
+    from .weekly_sections import RELEASE_NOT_CAPTURED            # noqa: PLC0415
+    from .readability import fold_repeated_gaps                  # noqa: PLC0415
+    notes += fold_repeated_gaps(table, {RELEASE_NOT_CAPTURED: (
+        "A day with no time: the source stored the date, not the release time.")})
     if routine:
         notes.append(f"{len(routine)} routine data release(s) and bill auction(s) "
                      f"are in the reference tables.")

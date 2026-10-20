@@ -1,0 +1,21 @@
+[Unit]
+Description=Saturday price pull at 06:00 ET (Friday's continuous bars)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+
+[Timer]
+# WHY SATURDAY (weekly-fixes-7 item 9, dry run 7). CONTINUOUS_SYMBOLS (BTC, the
+# FX crosses) store a daily bar only once its UTC day has ended (the bar-finished
+# rule, PB-1, altdata/sources/yfinance_source.py). The 16:45 ET Friday pull is
+# before Friday's UTC day ends (20:00 ET), and the next weekday pull is Monday
+# 06:45, so the Sunday Weekly printed Friday's FX and Bitcoin as "stale since
+# Thursday" every week. Saturday 06:00 ET is after Friday's UTC day has ended,
+# on an open weekend window and clear of Sunday 05:00's Weekly.
+OnCalendar=Sat *-*-* 06:00 America/New_York
+RandomizedDelaySec=120
+
+# A missed Saturday is caught up at the next boot: the price pull re-reads its
+# history, so the catch-up writes only what changed.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

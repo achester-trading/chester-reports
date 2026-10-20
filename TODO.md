@@ -166,8 +166,9 @@ Durability and coverage
 ## Put-wall definition resolved (5 Sep)
 
 FlashAlpha's `put_wall` is the extreme-GEX strike **restricted to OTM**, not the
-extreme across all strikes. Verified against both symbols: SPY 760 = 760, QQQ
-700 = 700, zero divergence, where the all-strikes version was 19 points off on
+extreme across all strikes. Verified against both symbols: SPY and QQQ matched
+exactly, zero divergence (the levels are not kept: no vendor figure in a committed
+file, 19 Oct 2026), where the all-strikes version was 19 points off on
 QQQ because the ATM 719 strike carries the largest negative GEX (-0.37bn)
 without being a wall in any tradeable sense.
 
@@ -1224,7 +1225,7 @@ on the box running it** — no timer, no unit, no caller except
 `validate_session_calendar.sh` driving it in a sandbox. The inverted-heartbeat
 design was half-built: `run_eod_cron.sh` writes the heartbeat on every clean
 exit and no process ever read it. The EOD pass could have failed every night
-for the six weeks the system narrative describes and the first symptom would
+for the six weeks the system narrative (docs/archive/chester-reports-system-narrative-2026-09-30.md) describes and the first symptom would
 have been a report with a hole in it. Built before D1 because it is the thing
 that tells you D1 is needed.*
 

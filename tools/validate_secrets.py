@@ -23,6 +23,9 @@ produced identical output.
      traceback.
   F  A PLACEHOLDER IS NOT A SECRET. Committed files carry PLACEHOLDER, and treating
      it as configured would make `present()` lie in exactly the case that matters.
+  J  THE USER-AGENT RULE (17 Oct 2026): every request but the SEC's carries
+     the generic project string from altdata/sources/user_agent.py; no
+     User-Agent carries an address; no non-SEC caller imports edgar's.
 
     python tools/validate_secrets.py
 """
@@ -238,9 +241,362 @@ def group_f() -> None:
           f"{secrets.describe((FRED_NAME, 'ANTHROPIC_API_KEY', 'SMTP_USER', 'NASDAQ_DATA_LINK_API_KEY'))}")
 
 
+
+def group_g() -> None:
+    """AUD-1 2b: a fetch error and a logged exception carry no key."""
+    print(f"\n{LINE}\nG. A FETCH ERROR AND A LOGGED EXCEPTION CARRY NO KEY (AUD-1 2b)\n{LINE}")
+    import io
+    import logging
+    from unittest import mock
+    from altdata import secrets
+    from altdata.sources import _base, fred
+    key = "fixturekey0123456789abcdef"
+    url = ("https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&"
+           f"api_key={key}&file_type=json")
+    import requests
+
+    def boom(*a, **k):
+        raise requests.ConnectionError(f"HTTPSConnectionPool: Max retries exceeded "
+                                       f"with url: {url}")
+    with mock.patch.object(_base.requests, "get", boom), \
+            mock.patch.object(_base.time, "sleep", lambda s: None):
+        try:
+            _base.http_get_json(url, max_retries=2)
+            err = ""
+        except _base.FetchError as e:
+            err = str(e)
+    check(err and key not in err and secrets.REDACTED in err,
+          "a connection error whose text carries api_key=... raises a FetchError "
+          "without it")
+    buf = io.StringIO()
+    h = logging.StreamHandler(buf)
+    lg = logging.getLogger(fred.__name__)
+    lg.addHandler(h)
+    lg.setLevel(logging.INFO)
+    store = mock.MagicMock()
+
+    def fetch(*a, **k):
+        raise RuntimeError(f"socket said: {url}")
+    try:
+        with mock.patch.object(fred, "_fetch_series", fetch), \
+                mock.patch.object(fred, "_get_key", lambda: key), \
+                mock.patch.object(fred.time, "sleep", lambda s: None):
+            out = fred.pull(store=store, series=[fred.config.FRED_SERIES[0]])
+    finally:
+        lg.removeHandler(h)
+    logged = buf.getvalue()
+    check(logged and key not in logged and "socket said" in logged,
+          "fred.pull logs an unexpected error's traceback without the key")
+    check(all(key not in why for _, why in out.get("failed") or []),
+          "and records the failure without it")
+    for rel in ("altdata/sources/_base.py", "altdata/sources/fred.py",
+                "altdata/sources/fred_releases.py", "altdata/feeds.py"):
+        src = (REPO / rel).read_text(encoding="utf-8")
+        check("log.exception(" not in src,
+              f"{rel} logs no raw traceback (each passes secrets.redact)")
+
+
+def group_h() -> None:
+    """AUD-1 2a: both SMTP senders verify the server's certificate."""
+    print(f"\n{LINE}\nH. EMAIL VERIFIES THE SERVER'S CERTIFICATE (AUD-1 2a)\n{LINE}")
+    import ssl
+    from unittest import mock
+    seen: list = []
+
+    class FakeSMTP:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self, context=None):
+            seen.append(context)
+
+        def login(self, *a):
+            pass
+
+        def send_message(self, *a, **k):
+            pass
+
+        def sendmail(self, *a, **k):
+            pass
+    from daily_cascade import deliver
+    cfg = {"host": "smtp.example.invalid", "port": 587, "user": "u",
+           "password": "p", "rcpt": "b@example.invalid"}
+    with mock.patch.object(deliver.smtplib, "SMTP", FakeSMTP), \
+            mock.patch.object(deliver, "smtp_config", lambda: (cfg, [])), \
+            mock.patch.object(deliver, "build_message", lambda *a, **k: object()):
+        state, _ = deliver.send_html("fixture", "<p>x</p>")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "send_smtp_alert", REPO / "scripts" / "send_smtp_alert.py")
+    alert_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(alert_mod)
+    env = {"SMTP_USER": "u", "SMTP_PASSWORD": "p", "SMTP_RCPT": "b@example.invalid"}
+    with mock.patch.object(alert_mod.smtplib, "SMTP", FakeSMTP), \
+            mock.patch.dict(os.environ, env):
+        try:
+            alert_mod.main()
+        except SystemExit:
+            pass
+    src = (REPO / "daily_cascade" / "deliver.py").read_text(encoding="utf-8")
+    alert = (REPO / "scripts" / "send_smtp_alert.py").read_text(encoding="utf-8")
+    ctxs = [c for c in seen if c is not None]
+    check(("starttls(context=ssl.create_default_context())" in src
+           and "starttls(context=ssl.create_default_context())" in alert),
+          "both senders call starttls with ssl.create_default_context()")
+    check(state == "sent" and len(ctxs) == 2
+          and all(isinstance(c, ssl.SSLContext) and c.verify_mode == ssl.CERT_REQUIRED
+                  and c.check_hostname for c in ctxs),
+          f"the context each sender's call receives verifies the certificate and "
+          f"the host name ({len(ctxs)} of 2 calls)")
+    ign = (REPO / ".gitignore").read_text(encoding="utf-8")
+    check(all(p in ign.split() for p in (".env*", "!.env.example", "*.db", "*.sqlite",
+                                         "*.zip", "monthly_macro_*", "morning_anchor_*",
+                                         "weekly_tactical_*", "daily_close_*.pdf")),
+          "AUD-1 2c: .gitignore keeps secrets, databases, zips and the box's report "
+          "outputs out")
+
+
+# ---------------------------------------------------------------------------
+# I. RCLONE'S VARIABLES (audit-leftovers-1): the crypt remote is built from the
+# environment, so no tracked file may give one of its secrets a value.
+# ---------------------------------------------------------------------------
+RCLONE_SECRET = re.compile(
+    r"(?<![{$\w])(RCLONE_CONFIG_\w+_(?:PASSWORD2?|PASS|TOKEN|CLIENT_SECRET)|"
+    r"CHESTER_RCLONE_CRYPT_(?:PASSWORD|SALT))\s*[=:]\s*['\"]?(?![$'\"\s]|\{|$)(\S+)")
+
+
+def rclone_secret_hits(text: str) -> list[str]:
+    """A literal value given to an rclone secret variable, or to the crypt
+    settings -- `NAME=value` or `NAME: value` with a value that is not a shell
+    expansion. Placeholders in angle brackets and the names on their own pass."""
+    out = []
+    for m in RCLONE_SECRET.finditer(text):
+        val = m.group(2)
+        if val.startswith("<") or val.startswith("${") or val.startswith("$("):
+            continue
+        out.append(f"{m.group(1)}={val[:6]}...")
+    return out
+
+
+def group_i() -> None:
+    import subprocess
+    print(f"\n{LINE}\nI. RCLONE'S VARIABLES CARRY NO LITERAL SECRET\n{LINE}")
+    tracked = subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True,
+                             text=True).stdout.split()
+    check(not [f for f in tracked if f.endswith("rclone.conf")],
+          "no rclone.conf is tracked")
+    hits = []
+    for f in tracked:
+        if not f.endswith((".py", ".sh", ".service", ".timer", ".conf", ".yaml",
+                           ".yml", ".md", ".env.example", ".txt", ".toml", ".cfg")):
+            continue
+        if f == "tools/validate_secrets.py":
+            continue
+        try:
+            text = (REPO / f).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        hits += [f"{f}: {h}" for h in rclone_secret_hits(text)]
+        # An INVOCATION with an argument: at a line's start, after `$(` or a pipe.
+        for m in re.finditer(r"(?:^|\$\(|\|)\s*rclone obscure\s+(?!-)(\S+)", text, re.M):
+            if not m.group(1).startswith(("$", "<", '"$', "'$", "`")):
+                hits.append(f"{f}: rclone obscure {m.group(1)[:6]}...")
+    check(not hits, f"no tracked file gives an rclone secret a value ({hits[:4]})")
+    probes = {"export RCLONE_CONFIG_X_PASSWORD=hunter2": True,
+              "CHESTER_RCLONE_CRYPT_SALT=abc": True,
+              'export "RCLONE_CONFIG_${CRYPT_NAME}_PASSWORD=$opw"': False,
+              "RCLONE_CONFIG_CHESTERCRYPT_PASSWORD=$(printf x)": False,
+              "CHESTER_RCLONE_CRYPT_PASSWORD=<in .env, never here>": False,
+              "the .env lines CHESTER_RCLONE_CRYPT_PASSWORD and _SALT": False,
+              'local pw="${CHESTER_RCLONE_CRYPT_PASSWORD:-}"': False}
+    check(all(bool(rclone_secret_hits(t)) == want for t, want in probes.items()),
+          "and the scan fires on a literal and passes an expansion, a placeholder and "
+          "a bare name (probes)")
+    sh = (REPO / "scripts" / "rclone_crypt_env.sh").read_text(encoding="utf-8")
+    check("CHESTER_RCLONE_CRYPT_PASSWORD" in sh and ".env" in sh
+          and "rclone obscure -" in sh,
+          "the crypt script reads the password and salt from the environment (.env) "
+          "and obscures them from stdin")
+
+
+# ---------------------------------------------------------------------------
+# J. THE USER-AGENT RULE (ruled 17 Oct 2026). Lettered J, not I: session B's
+# audit-leftovers-1 adds its own group I (rclone's variables) to this file.
+# ---------------------------------------------------------------------------
+# The two modules allowed to write a User-Agent: the generic one and the SEC's.
+UA_HOMES = {"altdata/sources/user_agent.py", "altdata/sources/edgar.py"}
+# The modules allowed to reach edgar's contact form, each for sec.gov only.
+SEC_UA_CALLERS = {
+    "altdata/sources/edgar.py",          # its own requests (sec.gov)
+    "altdata/sources/user_agent.py",     # for_url, an SEC host only
+    "altdata/sources/fundamentals.py",   # EDGAR submissions (data.sec.gov)
+    "altdata/sources/voices_scan.py",    # sec_user_agent: 13F and the CIK lookup
+    "altdata/sources/edgar_xbrl.py",     # the XBRL frames (data.sec.gov; GTM-4)
+    "altdata/sources/treasury.py",       # Strategy's share count (data.sec.gov; item 49)
+}
+UA_NAME = re.compile(r"(^|_)(UA|USER_AGENT|HEADERS)($|_)", re.I)
+
+
+def ua_literals(src: str) -> list:
+    """(line, text) for every string literal that is, or builds, a User-Agent:
+    a `User-Agent` dict value, a constant assigned to a UA/USER_AGENT/HEADERS
+    name, or any literal opening `chester-reports/` or `Mozilla/`."""
+    import ast  # noqa: PLC0415
+    out = []
+
+    def strings(node):
+        for n in ast.walk(node):
+            if isinstance(n, ast.Constant) and isinstance(n.value, str):
+                out.append((n.lineno, n.value))
+    tree = ast.parse(src)
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Dict):
+            for k, v in zip(n.keys, n.values):
+                if isinstance(k, ast.Constant) and str(k.value).lower() == "user-agent":
+                    strings(v)
+        elif isinstance(n, (ast.Assign, ast.AnnAssign)):
+            tgts = n.targets if isinstance(n, ast.Assign) else [n.target]
+            if any(isinstance(t, ast.Name) and UA_NAME.search(t.id) for t in tgts) \
+                    and n.value is not None:
+                strings(n.value)
+        elif isinstance(n, ast.Constant) and isinstance(n.value, str) \
+                and n.value.startswith(("chester-reports/", "Mozilla/")):
+            out.append((n.lineno, n.value))
+    return sorted(set(out))
+
+
+def edgar_ua_imports(src: str) -> bool:
+    """True when the source reaches edgar's user_agent (attribute or import)."""
+    import ast  # noqa: PLC0415
+    for n in ast.walk(ast.parse(src)):
+        if isinstance(n, ast.Attribute) and n.attr == "user_agent" \
+                and isinstance(n.value, ast.Name) and n.value.id in ("edgar", "_edgar"):
+            return True
+        if isinstance(n, ast.ImportFrom) and (n.module or "").endswith("edgar") \
+                and any(a.name == "user_agent" for a in n.names):
+            return True
+    return False
+
+
+def ua_faults(rel: str, src: str) -> list:
+    """The rule's faults in one production file."""
+    faults = []
+    for ln, s in ua_literals(src):
+        if "@" in s or "mailto" in s.lower():
+            faults.append(f"{rel}:{ln} a User-Agent literal carries an address")
+        elif rel not in UA_HOMES and s.startswith(("chester-reports/", "Mozilla/")):
+            faults.append(f"{rel}:{ln} a hand-written User-Agent (use "
+                          f"altdata.sources.user_agent)")
+    if rel not in SEC_UA_CALLERS and edgar_ua_imports(src):
+        faults.append(f"{rel} imports edgar's User-Agent for a non-SEC caller")
+    return faults
+
+
+def group_j() -> None:
+    """Ruled 17 Oct 2026: every request but the SEC's carries the generic project
+    User-Agent; the SEC alone gets CHESTER_SEC_CONTACT."""
+    print(f"\n{LINE}\nJ. THE USER-AGENT RULE: GENERIC EVERYWHERE BUT SEC.GOV "
+          f"(17 OCT 2026)\n{LINE}")
+    import subprocess  # noqa: PLC0415
+    from unittest import mock  # noqa: PLC0415
+    from altdata.sources import edgar, user_agent as ua  # noqa: PLC0415
+    repo = "https://github.com/achester-trading/chester-reports"
+    check(ua.generic() == f"chester-reports/1.0 (+{repo})"
+          and ua.browser_like() == f"Mozilla/5.0 (compatible; chester-reports/1.0; +{repo})",
+          f"the generic string names the project and its repository, nothing else "
+          f"({ua.generic()})")
+    with mock.patch.object(edgar, "contact", lambda: "ops@example.invalid"):
+        both = (ua.for_url("https://www.sec.gov/Archives/x"),
+                ua.for_url("https://data.sec.gov/submissions/x.json"),
+                ua.for_url("https://www.federalreserve.gov/feeds/x.xml"),
+                ua.for_url("https://sec.gov.example.com/x"))
+    check(both[0] == both[1] == "chester-reports/1.0 (ops@example.invalid)"
+          and both[2] == both[3] == ua.generic(),
+          "fixture both ways: sec.gov and its subdomains get the contact form; "
+          "every other host, a look-alike included, gets the generic string")
+    with mock.patch.object(edgar, "contact", lambda: None):
+        check(ua.for_url("https://www.sec.gov/x") is None,
+              "no contact: an SEC host gets None (the caller stays dormant), never "
+              "the generic string or a guess")
+    # The scanner fires on a planted fault, and passes the clean shape.
+    planted = ('import requests\nfrom altdata.sources import edgar\n'
+               'UA = {"User-Agent": "chester-reports/1.0 (+mailto:x@example.invalid)"}\n'
+               'HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; me)"}\n'
+               'h = {"User-Agent": edgar.user_agent()}\n')
+    clean = ('from altdata.sources.user_agent import generic\n'
+             'UA = {"User-Agent": generic()}\n')
+    pf = ua_faults("altdata/sources/planted.py", planted)
+    check(len(pf) == 3 and not ua_faults("altdata/sources/clean.py", clean),
+          f"the scan catches an address, a hand-written string and a non-SEC "
+          f"import of edgar's on a planted file ({len(pf)} of 3), and passes the "
+          f"clean shape")
+    try:
+        files = subprocess.run(["git", "ls-files", "*.py"], cwd=REPO,
+                               capture_output=True, text=True, check=True
+                               ).stdout.split()
+    except Exception:                                         # noqa: BLE001
+        files = [str(p.relative_to(REPO)).replace("\\", "/")
+                 for p in REPO.rglob("*.py") if ".venv" not in p.parts]
+    prod = [f for f in files if not f.startswith(("tools/", "tests/", ".venv/"))
+            and f != "smoke_test.py"]
+    faults = []
+    for rel in prod:
+        try:
+            src = (REPO / rel).read_text(encoding="utf-8")
+            faults += ua_faults(rel, src)
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            continue
+    check(not faults, f"no production User-Agent carries an address or is written "
+                      f"by hand, and no non-SEC caller imports edgar's "
+                      f"({len(prod)} files; {faults[:4]})")
+    # Gates and fixtures may model the SEC form, only at example.invalid.
+    loose = []
+    for rel in files:
+        if not rel.startswith(("tools/", "tests/")):
+            continue
+        try:
+            src = (REPO / rel).read_text(encoding="utf-8")
+            for ln, s in ua_literals(src):
+                if "@" in s and "@example.invalid" not in s \
+                        and "@example.com" not in s:
+                    loose.append(f"{rel}:{ln}")
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            continue
+    check(not loose, f"a gate's or fixture's User-Agent carries a reserved "
+                     f"example address only ({loose[:4]})")
+    shell = []
+    for pat in ("*.sh", "*.service", "*.yaml", "*.yml"):
+        try:
+            shell += subprocess.run(["git", "ls-files", pat], cwd=REPO,
+                                    capture_output=True, text=True,
+                                    check=True).stdout.split()
+        except Exception:                                     # noqa: BLE001
+            pass
+    bad_sh = []
+    rx = re.compile(r"(?:-A\s+|--user-agent[ =]|User-Agent:\s*)['\"]?([^'\"\n]+)", re.I)
+    for rel in shell:
+        try:
+            for i, line in enumerate((REPO / rel).read_text(encoding="utf-8")
+                                     .splitlines(), 1):
+                m = rx.search(line)
+                if m and ("@" in m.group(1) or "mailto" in m.group(1).lower()):
+                    bad_sh.append(f"{rel}:{i}")
+        except (OSError, UnicodeDecodeError):
+            continue
+    check(not bad_sh, f"no shell, unit or YAML User-Agent carries an address "
+                      f"({len(shell)} files; {bad_sh[:4]})")
+
+
 def main() -> int:
     print(f"{LINE}\nThe one secrets loader\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
+              group_h, group_i, group_j):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

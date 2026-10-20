@@ -8,6 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) and [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -87,6 +88,8 @@
 
 **Validation gate.** Forward 3/6/12-month value-minus-growth after each trigger, HML from 1963 and ETFs from 2000; hit rate and asymmetry; check the late 1990s for early fires and 2023 for the reversal. Ledger in Base Rates. Pass: positive expectancy after costs at 6 and 12 months across ≥6 non-overlapping episodes. Offline (ST-8).
 
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **Gate status (ST-8): PASS.** ledger: docs/ledgers/sr-1-ledger-2026-10-18.md, PASS (laptop run, public sources): on HML from 1963, mean value-minus-growth after 0.50% round-trip costs +4.2% at 6 months and +17.9% at 12 across 6 non-overlapping episodes (1981, 1992, 2000, 2009, 2019, 2021), exactly the floor of 6; no late-1990s early fire. The ETF pairs from 2000 read the other way (3 episodes each, 5 of 6 negative at 52 weeks), under their floor, so they do not block under the pre-registered rule. Thresholds admitted into config/style_regime.yaml with this ledger named; the Monthly's style-regime panel renders, display only, with no flag word until this status is accepted. Ruled 18 Oct (ruling 1): the pre-registered pass stands, a rule not being changed after its result is seen; the panel prints the ETF pairs' reading beside the HML result, each pair's n (3) and "under its floor of six"; the flag stays display only; and the rights question, whether a modifier needs the pairs at their floor and agreeing with HML, goes to the Doctrine monthly of 7-8 Nov. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-2 Yen carry stack (chat question, 10 Sep 2026) — Thread X
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-5, ST-10
@@ -102,6 +105,8 @@
 **Data.** FRED Japan 10y and 3m (monthly); Japan MoF daily JGB yield CSV; CFTC COT weekly (Tuesday positions, Friday release — `available_at` = release); USDJPY held (`fred.usd_jpy`, plus yfinance daily). JPY implied vol and risk reversals are not free; use realized. *Lives in:* `altdata/sources/cftc.py`, `mof_jgb.py`; `calc.jp_front_diff`, `calc.jpy_pos_z`, `calc.jp_hedged_carry`, `calc.jpy_unwind`; candidate contradiction row `carry_vs_vol`.
 
 **Validation gate.** Anatomy check on Oct 1998, 2007–08, Jan–Feb 2016, Aug 2024 (narrowing differential + crowded shorts + vol spike). Pass: all four flagged with ≤2 false positives 1998–2026 at the chosen thresholds. Offline (ST-8); thresholds then set in `config/market_state.yaml`.
+
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **Gate status (ST-8): FAIL.** ledger: docs/ledgers/sr-2-ledger-2026-10-18.md, FAIL (laptop run, public sources): at ST-5's thresholds (crowding pre-registered at z <= -1.0 over 91 days), 3 of the 4 windows flag (Oct 1998, 2007-08, Aug 2024; Jan-Feb 2016 misses on crowding, z -0.15) with 3 false positives against the rule's all four and at most 2; no single threshold on the grid reaches all four within 2. The thresholds stay session-set in config/funding_currency.yaml. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 ### SR-3 China external position (shadow-reserves post, 11 Sep 2026) — Thread X
 
@@ -133,6 +138,10 @@
 
 **Validation gate.** Calibrate fix-deviation and CNH–CNY thresholds on Aug 2015–Jan 2017 and Sep 2022–Sep 2023. Base rate for spread persistence from Japan–US 1998–2022. Offline (ST-8).
 
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-4-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): spot CNH has no keyless history before 2024 (Yahoo's hourly bars), so the gap leg cannot be calibrated on either window; the CNH=F futures proxy, labelled, reads FAIL and admits nothing. Japan-US 1998-2022: US above Japan in every month, the sign held at 12, 24 and 60 months every time. The thresholds stay session-set. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
+*Dated note under rule 31, 18 Oct 2026 (a register fact, ruled 18 Oct):* **FRED's China 10-year is gone.** IRLTLT01CNM156N, the monthly series this entry's Data names, returns 404 from FRED's graph CSV as of 18 Oct 2026, and so do IRLTLT01CNA156N and INTGSBCNM193N. The live US-China spread reads the CFETS curve (calc.uscn_10y_spread from cfets.cgb_10y); a laptop study has no long China 10-year and says so (docs/ledgers/sr-4-ledger-2026-10-18.md). A listed gap under the standing rule of 16 Oct; no key pursued. Accepted 19 Oct 2026.
+
 ### SR-5 Consumer credit impulse (deGraaf / RenMac, G.19 July print, 8 Sep 2026) — Thread E
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-8; wired ST-11
@@ -148,6 +157,10 @@
 **Data.** TOTALSL, REVOLSL, NONREVSL (FRED) with ALFRED first-print vintages. G.19 lag ≈5 weeks; heavily revised. *Lives in:* `fred.consumer_credit*` (new, with vintages once O.16 lands; the calibration script pulls ALFRED directly meanwhile); `calc.cc_z`, `calc.cons_rs`.
 
 **Validation gate.** Replicate at 5- and 10-year z windows; count non-overlapping episodes; run the revolving-only variant; rerun everything on first prints. Bull side passes if first-print six-month expectancy stays ≥2× unconditional across ≥8 episodes. Offline (ST-8).
+
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-5-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): the rule is on first prints and this edition reads FRED's latest vintages; on those, the bull side's six-month expectancy is 1.49x unconditional (10-year window, 19 episodes) and 1.57x (5-year, 20), under the 2x rule. The box edition on ALFRED first prints (--alfred, with the key) is the gate's. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
+*Accepted as drafted (rule 31), 17 Oct 2026: the GTM-21 amendment.* **Modifier: the household debt-service ratio.** FRED's TDSP (household debt service as a percent of disposable income), with its consumer and mortgage splits (CDSP, MDSP), quarterly from Q1 2005, is printed with its five-year and full-history percentiles in Plumbing & rates (the Monthly; `daily_cascade/gtm_block.py`, "Household debt service (SR-5's modifier)"). It modifies how the impulse is read and grants nothing. A high ratio makes a borrowing spike read as strain; a low one makes it read as capacity. The Guide's delinquency flows into 30+ days are stored as sourced figures by quarter and printed labelled: cards 8.7%, auto 7.9%, student 7.8%, mortgage 4.0%, and the DSR at 11.1% against 15.8% at 4Q07, all as of 30 Sep 2026, scan §6. The key stays SR-5. *Lives in:* `fred.dsr_household`, `fred.dsr_consumer`, `fred.dsr_mortgage`. The impulse row itself (`calc.cc_z`) is still not built.
 
 ### SR-6 Yield move attribution (Runkevicius, SF Fed decomposition, 10y at 5%, 15 Sep 2026) — Thread R
 
@@ -203,6 +216,8 @@
 
 **Validation gate.** Replay the bottom side rally-by-rally through 2000–02, 2007–09 (Mar 2008), 1973–74 and 2022 (Mar; Jun–Aug); count false bottoms. Score each confirmation element on whether it separates those from Oct 2002, Mar 2009, Oct 1974 and Oct 2022. Elements that discriminate enter the gate; elements that don't are dropped.
 
+*Dated note under rule 31, 18 Oct 2026 (a register fact, ruled 18 Oct):* **FRED's ICE BofA HY OAS starts in Oct 2023.** BAMLH0A0HYM2, and its effective-yield twin, are served by FRED's graph CSV from 2023-10-17 only. Wherever a study needs HY before then, Moody's Baa less the 10-year Treasury (DBAA less DGS10, daily from 1986; BAA less GS10, monthly before) is the labelled long-history proxy, as the false-bottom audit reads it (docs/ledgers/false-bottom-audit-2026.md). A chart or lens that prints HY says which series it reads and from when. Accepted 19 Oct 2026.
+
 ### SR-9 5.25% and stock-bond correlation (Simon White, Sep 2026) — Threads R and A
 
 **Register status.** ADOPTED — regression in backlog · **Built in.** ST-3
@@ -218,6 +233,8 @@
 **Data.** ^GSPC daily; constant-maturity 10y return proxy built from DGS10 (1962–); SPY, IEF/TLT for the live reading; core CPI (held) and its rolling volatility as the regime variable. *Lives in:* `calc.corr_spy_tlt_60d`, `calc.infl_vol`.
 
 **Validation gate (backlog).** Reproduce the scatter (2-year rolling correlation of weekly changes vs. 10y level). Regress next-6-month correlation on yield level and inflation volatility. If level adds nothing, inflation vol is the lever and 5.25% stays a heuristic.
+
+*Accepted as drafted (rule 31), 17 Oct 2026: the GTM-7 amendment.* **The frame SR-9 was missing: the regime table.** There are three eras of the 24-month rolling stock-bond correlation, each beside its average inflation: 1964 to 1999, 2000 to 2020, and 2021 to now. They are computed from monthly total returns: Shiller's S&P Composite with its dividend, and a 10-year par bond priced off GS10. The Guide's own figures are printed beside them as sourced figures: +0.28 / 4.86%, −0.31 / 2.13% and +0.33 / 4.52% (2021–25), as of 30 Sep 2026, scan §6. The current 24-month correlation prints with a regime word: positive at or above +0.10, negative at or below −0.10, near zero between. **Book A's rule table reads the regime word only** (Base Rates, Appendix C, row A-6), and nothing automated reads it. This makes the yield-level prior's "persistent" concrete: a positive word in an era whose inflation runs above the 2000–20 average is the persistent case. The key stays SR-9. *Lives in:* `baserate.stock_bond_eras` (annual), recomputed at render from the store (`altdata/gtm.py`).
 
 ### SR-10 Digital Asset Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan (change order of 19 Sep 2026; integrated 26 Sep) — Thread D
 
@@ -263,6 +280,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes: bottom-decile readings (AAII 2000, 2007, 2024–26; Z.1 adds late 1960s/1972). Statistic: forward 12m and 36m 10y Treasury total return, nominal and real, vs. cash, split by trailing CPI ≥4% / <4% and by 1y stock-bond correlation sign. Pass for the modifier: in the growth/term-premium cell, median real return beats unconditional with ≥2/3 hit rate. If the split does not separate, table only. Falsifier: bonds lose to cash over 12m from a bottom-decile print in an inflation regime. Offline (ST-7).
 
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **A-3 gate status: INSUFFICIENT.** ledger: docs/ledgers/sr-12-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): 3 completed bottom-decile episodes in the cell (CPI < 4%, negative stock-bond correlation, read for the withdrawn driver's growth cell), below the floor of 5; no rate prints. The Z.1 allocation reads the 34th percentile now, not a bottom decile. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-13 Tech (TMT) vs. defensives relative valuation (Topdown Charts / LSEG, 24 Sep 2026) — Thread E
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-8
@@ -279,6 +298,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes: top-decile spread (1929, 1968–72, 1983, 1999–2000, 2020–21, 2024–26). Statistic: forward 12/36/60m relative return of defensives vs. tech, (a) on spread alone, (b) on spread plus negative 12m tech relative momentum. Pass for the tilt modifier: defensives' 36m relative return positive in ≥4 of 5 completed episodes in cell (b). Falsifier: reversion via earnings with flat relative prices. Runs in SR-1's session (ST-8).
 
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-13-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): 4 completed top-decile spread episodes in cell (b) (French's 49 industries, 1985, 1996, 2000, 2020-26), below the floor of 5; no rate prints. The spread line does not ride on SR-1's panel. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-14 EM equities, absolute and relative to DM (Topdown Charts / LSEG; MSCI EM from 1987, 24 Sep 2026) — Thread X
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-8
@@ -294,6 +315,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Narrow flag (relative trend break: 12m EM/World relative return > 0 and ratio above its 24m average); Book A tilt modifier conditioned on the dollar regime tag; SR-4 tell as exit.
 
 **Validation gate.** Episodes: 1988, 2001, 2016 (false), 2024. Statistic: forward 36m EM/World relative return after the flag fires, split by real-dollar 12m change sign. Pass: the dollar cell discriminates (2016 in the dollar-up failure cell). If not, flag only. Falsifier for the current instance: the turn proceeds with a flat or strong dollar — then it is the AI trade and the tilt earns no credit. Offline (ST-8).
+
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **Gate status (ST-8): INSUFFICIENT.** ledger: docs/ledgers/sr-14-ledger-2026-10-18.md, INSUFFICIENT (laptop run, public sources): on EEM/ACWI from 2008 the dollar cell cannot be tested: 3 completed episodes, 1 in the dollar-up cell (2016-10, -12.5% over 36 months) and 2 in the dollar-down cell, against a floor of 2 a cell; 1988 and 2001 are the register's chart's, sourced comparisons. The flag stays display only. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 ### SR-15 Cross-asset valuation z-scores — gold, S&P 500, Treasuries, commodities (Topdown Charts / LSEG, 1994–, 24 Sep 2026) — Thread A
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-6, ST-7
@@ -309,6 +332,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Book A rebalancing modifier (tilt toward the lowest-z diversifier, sized by |z|, gated by `rates.driver`); confidence modifier on the Valuation pillar.
 
 **Validation gate.** Cross-asset rank test — forward 3y real return of the cheapest-tercile asset vs. the richest, paired by date; per-asset forward 3y/5y real returns conditional on z > +1.5 and z < −1. Pass: cheap beats rich in ≥2/3 of paired observations. Window-fragility test on gold: if its conclusion flips between 1971-start and 1994-start windows, gold drops to base-rate rights only. Falsifier: an anchor-shift regime in which "expensive" persists for a decade. Offline (ST-7).
+
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-15-ledger-2026-10-18.md, FAIL (laptop run, public sources): cheap beat rich in 55.8% of 570 paired months against the rule's two thirds (43.8% of 16 non-overlapping); the gold window test FLIPS (the 1971 window reverts, the 1994 window does not), so under the register gold drops to base-rate rights only. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
 
 ### SR-16 Hyperscaler debt supply and AI credit absorption (Bloomberg chart via Lemand, 24 Sep 2026) — Thread E (supply side of Thread R)
 
@@ -400,6 +425,18 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Disposition.** Annual by hand (three numbers plus the holder split, ≈30 min at each DT refresh); monthly proxies automated in ST-2/ST-4. G-13: whether Factor V already carries the gold-share line.
 
+**Amendment, S-1 stablecoin rows (Batch 4 crypto data-sources order §3 S-1 and §7; drafted 17 Oct 2026 on `crypto-tranche-a-2` for Ari's accept-all; not ratified).**
+- **What it adds.** The Factor V scorecard gains the private-dollar leg beside COFER's official-reserve leg.
+- **The rows:**
+  - total dollar-pegged stablecoin supply (`llama.stable_total`, history from 2017);
+  - its 30-day and 90-day change (`calc.stable_impulse_30d`, `calc.stable_impulse_90d`);
+  - the share by chain for Ethereum, Tron, Solana and Base (`calc.stable_share`).
+- **Form.** Each row prints in the Monthly's triple form (latest, long-run average, percentile, data-as-of), with the dual percentiles (five years and full history), in the slow layers' "Factor V: stablecoins" table.
+- **Rights.** None: a scorecard. A "liquidity signal" reading is rejected until a gate says otherwise; a flag proposal would need a 90-day ledger against BTC and risk returns.
+- **Register status.** Unchanged (ADOPTED, scorecard, no rights).
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R11; library-st-l):* **SR-20's first COFER entry.** ledger: docs/ledgers/sr-20-ledger-2026-10-19.md, NO GATE IN THE ORDER (laptop run, public sources; 1999-Q1 to 2026-Q2, n 110): a scorecard entry recorded; SR-20 is a scorecard with no rights and the order states no pass rule. The register status above is unchanged.
+
 ### SR-21 October 28 FOMC hike probability 70–77% (Bianco Research / Bloomberg WIRP, 24 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-4
@@ -416,6 +453,10 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** Episodes of ≥50 bp divergence within 3 months (1994, 1998, 2007, 2013, 2018, 2022, 2024). Statistic: forward 3m 10y change and equity return split by conceded / refused. Pass: the split separates the long-end outcome. First live test: 28 Oct 2026. Offline (ST-7).
 
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-21-ledger-2026-10-18.md, FAIL (laptop run, public sources): 46 completed divergence episodes (DGS1 less the target, the keyless pair): refused median aligned 10-year change -17.5 bp, conceded +45.5 bp, the opposite of the pre-registered direction. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
+*Dated note under rule 31, 18 Oct 2026 (ruling 2 of 18 Oct; st-t3-calib):* **the sign reversal.** On the keyless legs (DGS1 less the target), which stand, the split separates in the opposite direction to this entry's mechanism: the median aligned 10-year change over the next three months was +45.5 bp after the Fed conceded and -17.5 bp after it refused, n=46 completed episodes (22 conceded, 24 refused; docs/ledgers/sr-21-ledger-2026-10-18.md). The verdict FAIL stands. The mechanism text above is not amended by a session: an amendment is a proposal for the Doctrine monthly of 7-8 Nov, which the operator drafts. Until then SR-21's features (CRED_STRESS, the fed-market gap, the venues' disagreement) print descriptive only. Accepted 19 Oct 2026.
+
 ### SR-22 5-year auction at 5.033%, TLT record low, "meltdown" (Padley, 24 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — gate pending · **Built in.** ST-1, ST-4, ST-7
@@ -431,6 +472,10 @@ Register entry points to the Part C specification and its backlog status (Append
 **Rights.** Narrow flag "absorption stress" (tail ≥2 bp on two consecutive coupon auctions, or dealer takedown >20%) → overlay queue #2 after gate; A-3 input after gate.
 
 **Validation gate.** ~1,000 coupon auctions 2009–2026; forward 1m and 3m 10y change conditional on top-decile tails. Pass for the contrarian read: median forward 3m change negative with ≥60% hit rate. Otherwise stress flag only. Offline (ST-7).
+
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-22-ledger-2026-10-18.md, FAIL (laptop run, public sources): ABS_STRESS as G-32 defines it fired on 1,034 of 1,540 coupon auctions with 63 sessions forward (the dealers-above-20% leg on 1,031); median 3m 10-year change -2.0 bp, a fall in 51.8%, against the rule's median < 0 and 60%: stress flag only. The pseudo-tail candidate also fails (40.8%). The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
+*Dated note under rule 31, 18 Oct 2026 (ruling 3 of 18 Oct; st-t3-calib):* **the dealer leg is not a flag.** G-32's 20% dealer leg fires on 1,031 of 1,540 auctions since 2009. The definition stays as pre-registered and the ledger fails it honestly. Wherever ABS_STRESS prints, its firing base rate prints beside it (on for 67 percent of auctions since 2009, n=1,540), and any modifier effect the order granted it is suspended, display only, until the Doctrine monthly rules. The ledger's second edition (docs/ledgers/sr-22-ledger-2026-10-18-r2.md) adds a labelled variant, the dealer share above its rolling two-year 80th percentile per tenor, as a candidate re-specification for that monthly: on for 11 percent of auctions (175 of 1,540), median 3m change -1.0 bp, a fall in 51.4%, FAIL under the same rule. It replaces nothing. Accepted 19 Oct 2026.
 
 **Doctrine note (by hand).** Drawdown of a constant-duration fund is yield arithmetic; a "record low" in price is not a level that means anything. Candidate rule, not a rule.
 
@@ -452,6 +497,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation gate.** 2003–2026 monthly; regress the 12m change in ACM term premium (and `fred.tips_10y`) on the 12m change in net supply/GDP with a funds-rate-path control. Pass: positive, significant coefficient in both pre- and post-2008 subsamples. If only post-2008 → descriptive, no modifier. Falsifier: 2010–13 consistent; 2018–19 inconsistent without the Fed control. Offline (ST-7).
 
+*Accepted as drafted (rule 31), 19 Oct 2026; the register status above is unchanged:* **A-3 gate status: FAIL.** ledger: docs/ledgers/sr-23-ledger-2026-10-18.md, FAIL (laptop run, public sources): the supply coefficient on the ACM 10-year term premium is +5.1 bp per pp of GDP post-2008 (Newey-West t 1.29) and -34.1 pre-2008 (t -3.47), with the funds-rate control: not significant post-2008, so descriptive, no modifier. The box re-run after Thursday's merge writes a new dated ledger that supersedes this edition.
+
 ### SR-24 5y5y forward breakeven vs. MSCI World Commodity Producers (Costa / Azuria Capital, chart as of 12 Sep 2026) — Thread R
 
 **Register status.** ADOPTED — definition only, no gate possible · **Built in.** ST-4
@@ -467,6 +514,8 @@ Register entry points to the Part C specification and its backlog status (Append
 **Data.** `fred.breakeven_5y5y` (held); Fed Board CIE (quarterly, new source); UMich 5–10y (monthly, new); NY Fed SCE 3y/5y (monthly, new); Livingston history (by hand, base rate); GUNR as the producers proxy (G-15). *Lives in:* `fedboard.cie`, `umich.expect_5_10y`, `nyfed.sce_*`; `DEANCHOR`, `calc.be5y5y_range_pos`, `calc.producers_spot_ratio`.
 
 **Rights.** Narrow flag, definition only; Warsh-matrix consequence gauge. **Validation.** None possible on market data; Livingston 1965–80 base-rate note by hand.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R11; library-st-l):* **SR-24's Livingston base-rate note.** ledger: docs/ledgers/sr-24-ledger-2026-10-19.md, NO GATE IN THE ORDER (laptop run, public sources; 1965-06 to 1980-12 against the 1984-2019 control, n 32): base rate recorded; Tranche H asks for a base-rate note and states no pass rule. DEANCHOR stays definition only, and the register status above is unchanged.
 
 ### SR-25 Burry adding to AI shorts — Micron, Nebius, SOXX, Palantir (Monchau via Bull Theory, 24 Sep 2026) — Thread E
 
@@ -548,6 +597,8 @@ Register entry points to the Part C specification and its backlog status (Append
 
 **Validation.** None (scorecard).
 
+*Accepted as amended (rule 31), 19 Oct 2026:* SR-29 (19 Oct 2026, CD-12): not tracked. bitcoin-data.com serves the LTH and STH supply, but its terms make the API a free-key service, so it is not keyless; D-8's by-hand fallback is superseded by rule 30. The fetcher is built and reads its key from .env; until the key is there the series prints not tracked.
+
 ### SR-30 EU sovereign stress — OAT–Bund (Elliott Wave International chart, 2 Oct 2026) — Threads X and R
 
 **Register status.** ADOPTED — built, branch b3-tranche-a; gate pending (ST-B3-09) · **Built in.** ST-B3-03 (Tranche A) · *Filed 13 Oct 2026 from §2 of the [change order, batch 3](change-order-signal-triage-batch-3-2026-10-02.md), verbatim below; numbering per decision 1.*
@@ -589,6 +640,191 @@ Register entry points to the Part C specification and its backlog status (Append
 *Built: ST-B3-05, branch b3-tranche-a (13 Oct 2026).* `tic.jp_reserves_total` and `tic.jp_reserves_fx_securities` from the ministry's `historical.csv` (monthly from April 2000; August 2026: total −$79.6bn to $1,207.5bn, securities −$87.8bn); `tic.fima_repo` and `tic.fima_repo_weekavg` from the H.4.1 package through `altdata/sources/fedboard.py`. Printed: a narrow flag in Plumbing & rates, each figure with its as-of; the TIC rows' lag line unchanged.
 
 ---
+
+### SR-48 Inflection-points table (J.P. Morgan Guide to the Markets 4Q 2026, slide 4) — GTM-1
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026) · *Number assigned 17 Oct 2026 by ruling 4: the GTM items take fresh numbers from SR-48 upward in the order's table order, SR-49 skipped as the selloff-shape axis's working number; part 1 had used SR-48 … SR-59.*
+
+**Ruling.** ADOPT (change order of 3 Oct 2026). The eight historical rows are stored from the scan as sourced figures; the "today" row is computed.
+
+**Built.** The prior tops (Mar 2000, Oct 2007, Feb 2020, Jan 2022) and bottoms (Oct 2002, Mar 2009, Mar 2020, 12 Oct 2022), each with level, forward P/E, dividend yield and 10-year.
+- **The historical rows:** each cell is the Guide's figure from slide 4 (as of 30 Sep 2026), transcribed once on 17 Oct 2026 into the scan's §7 under ruling 1 and stored as a sourced figure with its slide. The slide prints 24 of 32 cells: all four fields at the tops, level and forward P/E at the bottoms. The bottoms' dividend yield and 10-year print "not on the slide". No recurring line.
+- **The Guide's own 30 Sep row** is beside them.
+- **Today:** the S&P 500's close and the 10-year from the store; the dividend yield from Shiller's trailing dividend over price; the forward P/E "not stored".
+- **Where it prints:** the Monthly's Slow layers, as the Top & Bottom standing exhibit and a base-rate row.
+
+**Rights.** Base-rate row. *Lives in:* config/gtm.yaml (`sourced`), `altdata/gtm.py`, `daily_cascade/gtm_block.py`.
+
+### SR-50 Concentration twin (Guide to the Markets 4Q 2026, slide 8) — GTM-3
+
+**Register status.** ADOPTED via the Top & Bottom overlay's intake queue (change order of 3 Oct 2026), one candidate at a time — built as a report-only exhibit, branch gtm-core-2 (17 Oct 2026). Its queue entry is filed as a draft.
+
+**Built.** Beside item 31's peak-concentration table, in the Mechanics of the Weekly and the Monthly (`altdata/gtm_equities.py`, `daily_cascade/gtm_block.py`):
+- **The top 10's cap share:** the ten largest issuers in SPY's daily holdings, with a second share class counted with its issuer. These are item 31's ten.
+- **The top 10's earnings share:** each name's weight over its trailing P/E (Yahoo, `yf.trailing_pe`), times the index's trailing P/E. The index's is the S&P 500's close over Shiller's trailing twelve-month earnings, and the window prints.
+- **The forward P/E of three groups:**
+  - the top 10's, from Yahoo's forward P/E (the next fiscal year);
+  - the index's, the close over S&P DJI's forward operating EPS;
+  - the other 490's, backed out of the index (the Guide's method).
+- **The own averages:** each P/E against the average of every stored holdings day, with the window and n. The history starts with the holdings (16 Oct 2026), so it prints as short.
+- **The Guide's figures:** printed beside ours as sourced figures. The cap share is 40.6% against an earnings share of 36.1%. The P/Es are 20.9x, 17.9x and 19.0x, which are 100%, 112% and 113% of their own averages since 1996.
+
+A name without its multiple leaves its cell "not stored", naming the name, never a partial sum. The consensus log reads the top 10 and the hyperscalers beside its own universe (`gtm_equities.consensus_names`), so the multiples accumulate.
+
+**Intake-queue entry.** Filed as a draft under rule 31 in `config/tb_intake_queue.yaml`:
+- **Status:** draft, no right, no position.
+- **Its order** among the top-side candidates (Batch 6's items 30, 31 and 44, and GTM-3) is the operator's ruling at the 25 Oct dry run.
+- **The ledger it would need:** a pre-registered monthly calibration ledger. It records the cap-less-earnings gap and the top 10's P/E against its own average, beside the overlay's five-input state, resolved against the next twelve months' equal-weight less cap-weight return.
+
+`tools/validate_gtm.py` (group Q) diffs the overlay's five declared inputs and fails if filing changed them.
+
+**Rights.** None: a report-only exhibit until the queue rules it.
+
+### SR-51 AI five-bucket decomposition and the hyperscaler cash-flow bridge (Guide to the Markets 4Q 2026, slides 11 and 22) — GTM-4
+
+**Register status.** ADOPTED — built, branch gtm-core-2 (17 Oct 2026)
+
+**Built.** Two exhibits.
+
+**The buckets** (`config/ai_buckets.yaml`): the Guide's five as slide 11 defines them, dated 30 Sep 2026, refreshed each quarter from the scan as reference data.
+- **Members:** the hyperscalers are named (AMZN, GOOGL/GOOG, META, MSFT, ORCL). The other four are GICS industries, and the store holds no GICS industry classification.
+- **Per bucket, ours where every member is stored:**
+  - the weight in SPY;
+  - the market-weighted year-to-date price return;
+  - the NTM P/E from Yahoo's forward P/E.
+- **Otherwise** the Guide's figure prints, labelled: semis +44%, hardware +37%, power +22%, hyperscalers +7%, software +4% year to date; 53.2% of the index together.
+
+**The bridge:** the five hyperscalers' operating cash flow less capex.
+- **Years:** 2019 to the latest filed year, by calendar frame.
+- **Source:** SEC EDGAR's XBRL frames (`altdata/sources/edgar_xbrl.py`, keyless, with the SEC contact). A filer without a tag prints "not stored".
+- **Beside it,** as sourced figures (slide 22): the Guide's capex path, $416bn in 2025, and the forecast $799bn for 2026, $1,093bn for 2027 and $1,200bn for 2028.
+
+**Where it prints:**
+- **The Monthly:** the Mechanics, as the Factor I exhibit after the SR-37 panel.
+- **The Weekly:** the bucket table only, in the Mechanics. A table spends no words, so the Weekly's budget allows it.
+
+Neither displaces a word or a chart.
+
+**Rights.** Modifier on Factor I, read by a human.
+
+### SR-52 Sentiment turning-point base rate (Guide to the Markets 4Q 2026) — GTM-8
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+
+**Ruling.** ADOPT, with the applicability caveat printed in the row: "every sampled trough coincided with a price low; this one is at a high". The disagreement entry is drafted in config/narratives.yaml (`disagreements`).
+
+**Built.** Our own peaks and troughs of FRED's Michigan sentiment, by a declared rule: strictly the extreme within 12 months either side, alternating, a swing of 15 points. Each is followed by the S&P 500's next-12-month price return from month-end closes, with n, mean and median. The Guide's figures print beside them as sourced figures: 10 peaks +4.8%, 9 troughs +24.1%, scan §4. The row also prints the share of our troughs taken at a price low, the test of the caveat. *Lives in:* `baserate.sentiment_turning_points`, recomputed at render.
+
+**Rights.** Base-rate row; the disagreement entry. Nothing in a composite.
+
+### SR-53 All-time-high base rates (Guide to the Markets 4Q 2026) — GTM-9
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026)
+
+**Built.** From ^GSPC's daily closes:
+- **This year:** the count of all-time highs and their share of sessions.
+- **1988 to 2025, the scan's sample:** the share of sessions; the share that became floors; the share followed by another within five sessions.
+
+A floor uses the scan's definition (§4): never afterwards closed 5% or more below. The Guide's figures (27; 7%; 31%; 80%) print as the sourced comparison. The Bull Rebuttal reads the row as the order places it, with no new right. *Lives in:* `baserate.all_time_highs`, recomputed at render.
+
+**Rights.** Base-rate row.
+
+### SR-54 Sector rows (Guide to the Markets 4Q 2026, slide 15) — GTM-10
+
+**Register status.** ADOPTED — built, branch gtm-core-2 (17 Oct 2026)
+
+**Built.** The correlation row is computed: each sector ETF's daily price return against the 10-year's daily change in basis points (FRED DGS10), over 252 and 1,260 sessions. A window the store does not cover prints "not reached".
+- **The Weekly:** the one-year correlation is a column in the leadership table ("Sector rotation and leadership"), a table cell inside its budget.
+- **The Monthly:** the sector sub-section carries the full rows as a second table, ours beside the Guide's slide-15 figures as sourced figures dated 30 Sep 2026:
+  - forward P/E against its 20-year average;
+  - NTM EPS growth against its 20-year median;
+  - the foreign share of sales;
+  - the Guide's own correlation, two years of monthly returns, a different window and frequency from ours.
+
+**Rights.** Modifier.
+
+### SR-55, SR-58 (numbers reserved)
+
+GTM-11 (SR-55) comes with Amendment #3 workstream B; GTM-14 (SR-58) was pulled into T3. *Ruled 17 Oct 2026 (ruling 4):* the working numbers the other branches use stand (SR-43 the OECD-yields fetcher, SR-45 constituent breadth, SR-46 the EM rules), and so does SR-49, the selloff-shape axis, which is why the GTM run skips it.
+
+### SR-56 Federal finances (Guide to the Markets 4Q 2026, slide 27) — GTM-12
+
+**Register status.** ADOPTED — built, branch gtm-core-2 (17 Oct 2026)
+
+**Built.** What the Factor IV rows lacked (they carry debt to GDP and r minus g), from FRED, each with its ten-year and full-history percentile, family and long window. Two bases, never mixed:
+- **The national accounts,** quarterly SAAR, as shares of federal current expenditures (FGEXPND):
+  - interest payments (A091RC1Q027SBEA);
+  - defense consumption and gross investment (FDEFX);
+  - customs duties (B235RC1Q027SBEA).
+- **The budget by fiscal year,** as shares of net outlays (FYONET):
+  - net interest outlays (FYOINT);
+  - the deficit (FYFSD);
+  - and the deficit as a share of GDP (FYFSGDA188S).
+- **The CBO debt path:** 99.4% of GDP at the end of FY2025, rising to 120.2% in 2036. A sourced figure from the scan (slide 27, CBO's February 2026 update), dated, replaced at each update.
+- **Where it prints:** a table in the Monthly's Plumbing & rates. It displaces nothing.
+
+**Rights.** Modifier.
+
+### SR-57 Fixed-income scenario table (Guide to the Markets 4Q 2026) — GTM-13
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026); amended by ruling 2 of 17 Oct, branch gtm-core-2
+
+**Amended (ruling 2, 17 Oct 2026).** The rows the store could not fill now have proxies:
+- **TIP, MUB and MBB** join the price basket (Yahoo, keyless, registered in the Security Master as SM00197 to SM00199).
+- **Durations:** theirs and AGG's are the issuer's own effective durations, read off the iShares product pages on 17 Oct 2026 (as of 15 Oct). They are recorded in `config/instrument_reference.yaml` as reference data with the date read: AGG 5.70, TIP 6.19, MUB 7.13, MBB 5.75 years.
+- **History:** each needs the price backfill on the box before its rows read.
+
+**Built (part 1).** Per sector with a stored proxy:
+- **Proxies:** SHY, IEF and TLT against the 2-, 10- and 30-year CMT; AGG; LQD; HYG.
+- **Columns:** yield where the store holds one; year-to-date total return; duration from config/instrument_reference.yaml; the correlations to the 10-year's change and to SPY over 252 sessions; and the price return under −100 / +100 bp from the duration. The reference carries no convexity, so none is applied.
+- **Rows the store cannot fill:**
+  - TIPS has only the 10-year real yield and no fund proxy;
+  - munis and MBS print "no proxy";
+  - AGG prints "no duration in the reference" until the reference carries one.
+- **Where it prints:** Plumbing & rates, in the Weekly and the Monthly.
+
+Book A's rule table reads it as a modifier (Appendix C, row A-7); nothing automated reads it.
+
+**Rights.** Modifier.
+
+### SR-59 Effective tariff rate (Guide to the Markets 4Q 2026) — GTM-15
+
+**Register status.** ADOPTED — built, branch gtm-core-1 (17 Oct 2026); amended by ruling 3 of 17 Oct, branch gtm-core-2
+
+**Amended (ruling 3, 17 Oct 2026).** The rate is now **monthly**:
+- **The rate:** the Monthly Treasury Statement's customs duties collected in the month (Table 4, gross of refunds) over the month's goods imports (BOPGIMP). Read keyless through the fiscaldata writer (`fiscaldata.mts_customs_*`).
+- **Beside it:** the same rate over three months, and the month's refunds. Refunds of IEEPA duties turned net receipts negative from mid-2026, so the rate reads the gross.
+- **The cross-check:** the quarterly FRED rate below. Both print with their as-of.
+
+**Built (part 1).** Customs-duties receipts (FRED B235RC1Q027SBEA, billions, SAAR) over four times the quarter's goods imports (FRED BOPGIMP, millions, monthly), with its five-year and full-history percentiles. The rate is **quarterly**, because FRED has no monthly customs-receipts series. The Guide's 10.6% and the statutory peaks are the sourced comparison: 30.0% on 8 Apr 2025, and 15.9% including IEEPA on 20 Feb 2026, scan §6. National-accounts receipts are not the Census imports-for-consumption basis, so the two differ by construction. Printed in the Monthly's Plumbing & rates as the inflation modifier. Family `quantity` (both legs), long window `full`.
+
+**Rights.** Modifier.
+
+---
+
+## Rule-31 acceptances outside the SR entries
+
+Acceptances of drafts that belong to no SR entry: the Batch 11 studies and the
+mechanism watch's posting, ruled on 19 Oct 2026 at 15:59 ET ("accept all",
+decisions 1 to 19) and applied on the third chain (`chain-3`). Each acceptance
+grants what its draft says and nothing more; none is a gate's pass, and no status
+above changes.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R3):* **H6, the level clusters' prior-session family** (Batch 11; `docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md`). The prior session's family is read with the overnight that led into that session, as a48-batch11 drafted it. H6 stays pre-registered and accruing; nothing prints as a verdict until its sample is met.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R4):* **SPX in OS-9's index floor** (Batch 11; `docs/ledgers/os-9-ledger-2026-10-19.md`). SPX is held to the index floor of 2,000 contracts, as drafted. OS-9's outcome ledger's first edition stays **INSUFFICIENT** (0 resolved builds against a floor of 30); report-only.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R5):* **OS-6's first edition, FAIL** (`docs/ledgers/os-6-ledger-2026-10-19.md`: 0 of 12 tests survive Benjamini-Hochberg at q = 0.10 on 498 sampled sessions). Display only, no rights: no component flag, composite or weight follows from it.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R6):* **D4's agreement tolerances** (the flat-file backfill, `tools/massive_flatfiles_backfill.py`). Readings reconstructed from last-trade closes are stored labelled `reconstructed`, and ranks read them only within the pre-registered agreement tolerances as drafted. The first run is the operator's, after the two credential names are in `.env`.
+
+*Accepted as drafted with one addition (rule 31), 19 Oct 2026 (R7):* **the mechanism watch's posting templates** (`config/story_queries.yaml` `mechanism_watch.posting`): Factor I, NVDA's close higher in 182 days, linked to trend +; Factor V, BTC-USD's close higher in 182 days, linked to liquidity +. **The addition:** wherever a posted story's grade prints, its base rate prints beside it, code-written: the share of 182-day windows in the stored history in which the linked instrument closed higher, with the window and n, point in time as of the grade (`altdata/mechanism_watch.base_rate`). No key was added. Confirm and reject stay the operator's.
+
+*Accepted as frozen (rule 31), 19 Oct 2026 (R8):* **engine 7's seven session-set choices** (`alpha/engines/intraday_dealer.py`; its spec `config/alpha_intraday_dealer.yaml`, sha256 quoted by the roster's E-7): the 10:15 decision deadline, the 10-minute entry wait, the 0.10 net-to-gross floor, the capture's spot read as real time, SPY, QQQ and IWM, the tie order, and the 30-session floor. They are accepted as its spec freezes them; registering E-7 (`python -m alpha.manifest register alpha/research/roster-2026-10-19-x3-4.yaml`) stays the operator's box command.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R11):* **library-st-l's drafts**: the twelve dated calibration appendices and the Digital Assets paper's timeless paragraph; the Warsh matrix's section 2.1.5 entry (`docs/warsh-matrix-lines.md`); the five Doctrine #2 proposals (`docs/briefs/doctrine-2-proposals-st-l.md`, for the sitting of 7-8 Nov, none ruled by this acceptance); and the three ledgers: the hiking-cycle table (`docs/ledgers/fed-cycles-ledger-2026-10-19.md`, NO GATE IN THE ORDER, n 21), SR-20's first COFER entry and SR-24's Livingston note (each under its entry above). Each states that it grants nothing.
+
+*Ruled 19 Oct 2026 (R12):* **no rethink of the dials' history before November.** The grammar search's coverage rule stands as written: the macro and volatility dials join a run only once their point-in-time history clears five years before the holdout, and the box's coverage at the first run decides. Nothing is backfilled or reinterpreted to make them pass.
 
 ## Explicit rejections (do not re-propose)
 

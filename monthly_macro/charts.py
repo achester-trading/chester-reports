@@ -34,9 +34,15 @@ prose is held to.
     M7  breakevens at the month's start against its end          What's priced
     M10 the fed-funds futures' implied path, month start
         against month end (T3.1 item 12: each beside its block)   What's priced
+    M11 what's carrying the index: the S&P 500, EPS and the P/E
+        indexed to 100 since the 12 Oct 2022 low (Batch 6 item 40) What's priced
     M8  the scenario weights by edition, and their Brier           Ahead
     M9  Book Z (cash, SPY, 60/40) against the paper account's NAV,
         indexed to 100 since the start date                        The book
+    M13 Pearl: the supply the explorer reports against the designed
+        supply at its heights, the week-one overhang on the right
+        axis (ST-14, 2.7.6 item 3) -- DRAWN ONLY once the explorer
+        has stored a height and a supply; until then no figure      Slow layers
 
 The cap is the Monthly's chart budget (10); a fired depth trigger lifts it by
 one, as on every cadence.
@@ -46,7 +52,7 @@ monthly (item 6); M1 carries the "% from high" underlay M2 has (item 5); M6 is
 one ranked z chart (item 11); M7's two panels are two charts, M7 and M10, each
 beside its block in What's priced (item 12).
 
-THE CAP HOLDS ON WHAT PRINTS. Eleven charts are planned; the Monthly's cap is 12
+THE CAP HOLDS ON WHAT PRINTS. Twelve charts are planned (M11, 16 Oct 2026); the Monthly's cap is 12
 from 9 Oct 2026 (T3.1 ruling; it was 10). M8 counts once scenario set #1 exists:
 while the ledger holds no monthly_macro weight it prints "not yet: scenario set
 #1" and is not drawn. Should more than the cap ever render, the ones first in
@@ -67,8 +73,17 @@ from daily_cascade import charts as ch
 
 log = logging.getLogger("monthly_macro.charts")
 
-ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M8", "M9")
-DROP_ORDER = ("M8", "M9", "M3", "M2", "M5", "M4", "M6", "M10", "M7", "M1", "M0")
+ORDER = ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M10", "M11", "M8", "M9",
+         "M13")
+# Every chart that can print: the thirteen planned, and M12 (6b part 2) when the
+# edition reads the computed dealer profiles.
+ALL = ORDER + ("M12",)
+# M13 is a watch instrument's optional figure (MW-2: watch-level rights), so it is
+# the first set aside when the cap binds (ST-14); M12 (6b part 2) sits fourth, so
+# with every chart rendered M13, then M8, are the ones set aside (and M8 does not
+# render until scenario set #1 exists).
+DROP_ORDER = ("M13", "M8", "M9", "M12", "M3", "M2", "M5", "M4", "M6", "M10", "M11",
+              "M7", "M1", "M0")
 # Where each chart prints: (section id, sub-section title or None).
 PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M3": ("mechanics", None),
@@ -78,8 +93,13 @@ PLACE = {"M0": ("tape", None), "M1": ("tape", None), "M2": ("tape", None),
          "M6": ("positioning", None),
          # Beside their blocks in What's priced (T3.1 item 12), by `bucket`.
          "M7": ("priced", "breakevens"), "M10": ("priced", "fomc"),
+         # Batch 6 item 40: beside its block, by `bucket`.
+         "M11": ("priced", "carry"),
          "M8": ("ahead", "Scenarios, and what would change our mind"),
-         "M9": ("book", None)}
+         "M9": ("book", None),
+         "M12": ("mechanics", None),
+         # ST-14: under the Digital Asset Mechanism Watch part (prl_part.TITLE).
+         "M13": ("slow", "Digital Asset Mechanism Watch: Pearl")}
 LONG_FRAME_TYPES = {"M1": ("ma_40w",), "M2": ("ma_10m", "ma_20m")}
 DAILY_TYPES = ("ma_50d", "ma_200d")
 BREAKEVENS = (("fred.breakeven_5y", "5-year"), ("fred.breakeven_10y", "10-year"),
@@ -95,9 +115,10 @@ def cap_of(ed: dict) -> int:
 
 
 def plan(ed: dict) -> list[str]:
-    """Every chart in ORDER; the cap is held on what renders (hold_cap)."""
-    del ed
-    return list(ORDER)
+    """Every chart in ORDER; the cap is held on what renders (hold_cap). M12,
+    the dealer panel (6b part 2; brief v2 section 3: figures 2, 1, 3 and 4),
+    joins when the edition reads the computed profiles."""
+    return list(ORDER) + (["M12"] if ed.get("dealer_computed_dir") else [])
 
 
 def hold_cap(charts: dict, cap: int) -> list[str]:
@@ -347,7 +368,7 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
     if len(hy) < 60:
         return {"id": "M5", "unavailable": f"{len(hy)} observations stored, 60 needed"}
     try:
-        from altdata import derived                             # noqa: PLC0415
+        from altdata import derived, labels                     # noqa: PLC0415
         vals = [v for _, v in hy]
         pct = derived.percentile_of(vals, vals[-1])
         yrs = (dt.date.fromisoformat(hy[-1][0]) - dt.date.fromisoformat(hy[0][0])).days
@@ -373,7 +394,7 @@ def m5(hy: list[tuple[str, float]], name: str, out_dir: Optional[str]) -> dict:
         out = ch._finish(fig, name, out_dir)
         cap = (f"{title}; latest {vals[-1]:.2f} on {hy[-1][0]}, at the "
                f"{ordinal(pct)} percentile of the span; 10th {marks[10]:.2f}, median "
-               f"{marks[50]:.2f}, 90th {marks[90]:.2f}")
+               f"{marks[50]:.2f}, 90th {marks[90]:.2f}; {labels.hy_source(hy[0][0])}")
         return {"id": "M5", "title": title, "drawn": [], "caption": cap, **out,
                 "percentile": pct, "marks": marks,
                 "series": [{"date": d, "value": v} for d, v in hy]}
@@ -731,6 +752,20 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
                        then, now, f"{base}_m10", out_dir)
         run("M10", _m10)
 
+        def _m11():
+            from altdata import st_r5_index                       # noqa: PLC0415
+            return ch.index_carry("M11", st_r5_index.chart_series(st, now, "cycle_low"),
+                                  "since the 12 Oct 2022 low", f"{base}_m11", out_dir)
+        run("M11", _m11)
+
+        def _m12():
+            from daily_cascade import dealer_block                # noqa: PLC0415
+            from altdata import dealer_scorecard as dsc           # noqa: PLC0415
+            return ch.dealer_chart("M12", dealer_block.newest_settled(
+                last, "SPY", ed["dealer_computed_dir"]), f"{base}_m12", out_dir,
+                rates=dsc.from_store(st, now)["rates"])
+        run("M12", _m12)
+
         def _m9():
             start = benchmark.start_date().isoformat()
             led = {}
@@ -745,6 +780,13 @@ def build(ed: dict, book: Optional[dict], retro: Optional[dict], db_path: Option
         with probability_ledger.ProbabilityLedger(db_path) as led:
             return m8(scenario_history(led.all_rows(), now), f"{base}_m8", out_dir)
     run("M8", _m8)
+
+    def _m13():
+        return m13(db_path, now, f"{base}_m13", out_dir)
+    from . import prl_part                                       # noqa: PLC0415
+    with observations.ObservationStore(db_path) as st11:
+        if prl_part.explorer_read(st11, now):
+            run("M13", _m13)
     for c in charts.values():
         if c.get("min_px_at_400") is not None:
             c["min_px_at_400"] = float(c["min_px_at_400"])
@@ -783,7 +825,7 @@ def log_unrendered(charts: dict) -> list[str]:
     """One log line per chart that does not render, with its kind and reason;
     each chart carries its kind as `unavailable_kind`. Returns the lines."""
     lines = []
-    for cid in ORDER:
+    for cid in ALL:
         c = charts.get(cid)
         kind = unavailable_kind(c or {})
         if not kind:
@@ -801,8 +843,27 @@ def _m4_title(st, now: str, since: str) -> str:
                          len(pts), "observations", first, now, "five years")
 
 
+def m13(db_path: Optional[str], now: str, name: str, out_dir: Optional[str]) -> dict:
+    """Pearl's realized supply (the explorer's) against the designed supply at the
+    explorer's own heights, and the week-one overhang (D2) on the right axis."""
+    from altdata import observations, prl                        # noqa: PLC0415
+    with observations.ObservationStore(db_path) as st:
+        heights = dict(series(st, prl.HEIGHT_KEY, now))
+        real = series(st, prl.SUPPLY_KEY, now)
+        over = series(st, "calc.prl_overhang", now)
+    designed = [(d, prl.supply_code(h) / 1e6) for d, h in sorted(heights.items())]
+    title = (f"Pearl: realized and designed supply, {len(real)} explorer read(s), "
+             f"{real[0][0] if real else '-'} to {real[-1][0] if real else '-'}")
+    c = ch.lines_chart("M13", {"Realized (the explorer's), M PRL":
+                               [(d, v / 1e6) for d, v in real],
+                               "Designed (the formula at its height), M PRL": designed,
+                               "Week-one overhang, %": over},
+                       title, name, out_dir, right="Week-one overhang, %", min_points=2)
+    return {**c, "title": title}
+
+
 def place(ed: dict, charts: dict) -> None:
-    for cid in ORDER:
+    for cid in ALL:
         if cid not in charts:
             continue
         sid, sub = PLACE[cid]

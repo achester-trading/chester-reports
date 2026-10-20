@@ -157,10 +157,12 @@ def main() -> int:
     fr = precis.frame(ed, None)
     allowed = {precis._norm(f) for f in fr["figures_you_may_cite"]}
     used = {precis._norm(f) for t in precis.prose_fields(pp) for f in precis._figs(t)}
-    check(pr.get("attempts") == 2 and "figures no commentary cites"
+    # W8-1b: the allowed set is the précis's whole block (commentaries, grader,
+    # stance ledger, the changed-since box), and the fault says so.
+    check(pr.get("attempts") == 2 and "figures in no block of the précis's data"
           in str(pr.get("first_reason")) and used <= allowed,
-          f"a draft citing a figure no commentary cites is withheld and the retry "
-          f"publishes; its figures {sorted(used)} are within the commentaries' set")
+          f"a draft citing a figure in no block is withheld and the retry "
+          f"publishes; its figures {sorted(used)} are within the block's set")
     check(set(pp.get("verdicts") or {}) == {a for a, _, _ in precis.VERDICT_ASSETS}
           and all(v in precis.VERDICTS for v in pp["verdicts"].values()),
           f"six verdicts in the fixed vocabulary: {pp.get('verdicts')}")
@@ -170,7 +172,7 @@ def main() -> int:
     check(3 <= len(ch) <= 4 and all(c["series"] and c["window"] for c in ch),
           f"{len(ch)} what-would-change items, each a series and a window")
     check(pp.get("outlook") == precis.FIRST_EDITION and precis.FIRST_EDITION in html,
-          "with no prior précis: \"First edition with a précis.\"")
+          "with no prior précis: \"First archived edition with a précis.\"")
     prior = {"precis": {"parsed": dict(pp)}}
     fr2 = precis.frame(ed, prior)
     sys2 = precis.system_prompt(fr2)
@@ -252,7 +254,7 @@ def main() -> int:
     r3 = storyline.status_for({"id": "price_vs_breadth"}, {"sessions_open": 4,
                                                            "direction": "rising"},
                               fake, cfg)
-    check(r1 == ("resolved by Plumbing & rates", "#sec-plumbing") and r2[0] == "stale"
+    check(r1 == ("read in Plumbing & rates", "#sec-plumbing") and r2[0] == "stale"
           and r3[0].startswith("carried — resolves when"),
           f"resolved (linked), stale and carried: {r1[0]}; {r2[0]}; {r3[0][:50]}")
     t = {"columns": ["Gap", "Status"], "rows": [["x", r1[0]]],
@@ -263,7 +265,7 @@ def main() -> int:
     # --- E ------------------------------------------------------------------
     print(f"\n{LINE}\nE. THE BOOK'S TERMS\n{LINE}")
     tl = (sec["book"].get("closing_lines") or [""])[0]
-    check(tl.startswith("Terms:") and "regime band" in tl and "positioned" in tl
+    check(tl.startswith("Stance:") and "regime band" in tl and "positioned" in tl
           and all(a in tl for a, _, _ in CHANGES), f"{tl[:160]}")
     enf = {"view": {"net_beta_pct": 30.0, "regime": {"regime": "Expansion",
                                                       "band": [40, 80]}}}
@@ -320,6 +322,26 @@ def main() -> int:
     check(not any(ss.get("title") == "Levels" for ss in sec["tape"].get("subsections") or [])
           and any(d["title"] == "The tape: named levels" for d in ed.get("detail") or []),
           "the tape's named levels are in the reference tables")
+    # VP-1 (ruled 14 Oct 2026, 14:04 ET): the value-area table follows them,
+    # directly after; its gaps stay in the tape's own not-yet-tracked.
+    va_ed = {"sections": [
+        {"id": "read"},
+        {"id": "tape", "not_tracked": ["x"], "subsections": [
+            {"title": "Levels", "table": {"columns": ["a"], "rows": [["SPY"]]}},
+            {"title": "Value area: the week against the prior week",
+             "table": {"columns": ["Market"], "rows": [["SPY"]]},
+             "not_tracked": ["IWM prior week: not stored whole"]},
+            {"title": "Something else", "table": None}]},
+        {"id": "mechanics", "subsections": []}]}
+    storyline.move_daily_tables(va_ed)
+    va_tape = va_ed["sections"][1]
+    check([d["title"] for d in va_ed.get("detail") or []]
+          == ["The tape: named levels",
+              "The tape: value area, the week against the prior week"]
+          and [ss["title"] for ss in va_tape["subsections"]] == ["Something else"]
+          and va_tape["not_tracked"] == ["x", "IWM prior week: not stored whole"],
+          "the value-area table follows the named levels into the reference "
+          "tables, directly after them; its gaps stay in the tape's foot")
 
     # --- H ------------------------------------------------------------------
     print(f"\n{LINE}\nH. PRESENTATION\n{LINE}")

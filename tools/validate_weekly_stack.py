@@ -243,6 +243,81 @@ def client(calls: list, text: str = OPENER_TEXT):
     return types.SimpleNamespace(messages=types.SimpleNamespace(create=create))
 
 
+def group_v(out: dict, td: str) -> None:
+    """VP-1 item 7: the week's value-area table beside the levels, and W7's
+    volume-at-price panel."""
+    from altdata import bars as bars_mod, session
+    from daily_cascade import charts as charts_mod
+    print(f"\n{LINE}\nV. THE VOLUME PROFILE ON THE WEEKLY (VP-1 item 7)\n{LINE}")
+    tape = next(s for s in out["edition"]["sections"] if s["id"] == "tape")
+    titles = [ss.get("title") for ss in tape.get("subsections") or []]
+    # The storyline (W-1.2) moves the Levels table to the detail tables, and the
+    # value-area table follows it there, directly after it (ruled 14 Oct 2026,
+    # 14:04 ET). What the profile could not compute stays in the tape's foot.
+    detail = out["edition"].get("detail") or []
+    dtitles = [d.get("title") for d in detail]
+    VA = "The tape: value area, the week against the prior week"
+    vt = next((d for d in detail if d.get("title") == VA), {})
+    check((vt.get("table") or {}).get("columns") == [
+              "Market", "Value area (POC)", "Prior week", "Migration",
+              "Close vs value"]
+          and [r[0] for r in vt["table"]["rows"]] == ["SPY", "QQQ", "IWM"],
+          f"the detail tables carry the week against the prior week, one row per "
+          f"instrument ({dtitles})")
+    check("The tape: named levels" in dtitles and VA in dtitles
+          and dtitles.index(VA) == dtitles.index("The tape: named levels") + 1,
+          "beside the named levels: the value-area table directly after them")
+    check(not any(str(t or "").startswith("Value area") for t in titles),
+          f"and no longer in the tape section ({titles})")
+    check(not tape.get("tables"),
+          "and not the close's session table: the Weekly's is the week's")
+    check(any(" week: " in x or " prior week: " in x
+              for x in tape.get("not_tracked") or []),
+          "a week the fixture does not store whole is not computed, with its "
+          "reason, in the tape's own not-yet-tracked")
+    html = out["html_archive"]
+    i_lv, i_va = html.find("The tape: named levels"), html.find(VA)
+    check(0 <= i_lv < i_va, "and the archive's HTML prints it after the named levels")
+    # W7 over ten fixture sessions, two weeks: still one chart, one figure.
+    days, d = [], dt.date.fromisoformat(ENDING)
+    while len(days) < 10:
+        if session.is_trading_session(d):
+            days.insert(0, d.isoformat())
+        d -= dt.timedelta(days=1)
+    bars5 = []
+    for k, day in enumerate(days):
+        first, _, n = bars_mod.session_window("spy", day)
+        t0 = dt.datetime.fromisoformat(first)
+        for j in range(n):
+            px = 640.0 + 1.5 * k + 0.8 * ((j % 11) - 5) / 5
+            bars5.append({"observed_at": (t0 + dt.timedelta(minutes=5 * j)).isoformat(),
+                          "open": px, "high": px + 0.3, "low": px - 0.3,
+                          "close": px + 0.1, "volume": 5000 + 40 * (j % 13),
+                          "available_at": f"{day}T21:00:00+00:00",
+                          "source": "yfinance"})
+    w7 = charts_mod.w7(bars5, {}, "w7_vp", str(Path(td) / "w7vp"))
+    vap = w7.get("volume_at_price") or {}
+    week = vap.get("week") or {}
+    check(w7.get("png") and w7["png_bytes"] <= charts_mod.MAX_PNG_BYTES
+          and w7.get("svg_path") and Path(w7["svg_path"]).exists(),
+          f"W7 with its panel is still one chart, under the size cap "
+          f"({w7.get('png_bytes')} bytes; {w7.get('unavailable')})")
+    check(len(vap.get("week_sessions") or []) == 5 and vap.get("sessions") == 10,
+          f"the panel covers the ten sessions W7 draws, this week's five apart "
+          f"({vap.get('week_sessions')})")
+    check(week.get("poc") is not None and week["val"] <= week["poc"] <= week["vah"],
+          f"the week's POC is marked inside its value area ({week.get('poc')}, "
+          f"{week.get('val')} to {week.get('vah')})")
+    cap = w7.get("caption") or ""
+    check("volume at price over the 10 sessions" in cap
+          and f"POC {week.get('poc') or 0:,.2f}" in cap
+          and "this week's 5 darker, the earlier 5 lighter" in cap,
+          f"the caption is written from the data ({cap[cap.find('beside'):][:150]})")
+    check((w7.get("min_px_at_400") or 0) >= charts_mod.MIN_PX_AT_400,
+          f"and the mobile rule holds: no text under {charts_mod.MIN_PX_AT_400} px "
+          f"at 400 px ({w7.get('min_px_at_400')})")
+
+
 def main() -> int:
     from altdata import config, bars as bars_mod
     from daily_cascade import deliver, stack as stack_mod, stack_prose, stack_render
@@ -350,6 +425,18 @@ def main() -> int:
              if pp.get_content_type() == "image/png"}
     check(cids and cids == parts and len(cids) == ed["chart_count"],
           f"the Content-ID set matches the charts in the body ({sorted(cids)})")
+    # BATCH 8 ITEM 51: the Digital Assets addendum's one line -- absent when the
+    # run carries no addendum, one line when it does (validate_digital_addendum.py
+    # holds the page itself).
+    check("Digital Assets addendum" not in out["html_email"],
+          "without an addendum the Weekly prints no addendum line")
+    pa = {**p, "addendum": {"state": "built", "name": f"weekly_digital_{ENDING}.html",
+                            "minutes": 4}}
+    wa = ws.render(pa, ed, out["charts"], "email")
+    check(f"Digital Assets addendum, about 4 minutes: weekly_digital_{ENDING}.html, "
+          f"attached to this message." in wa
+          and wa.count("Digital Assets addendum") == 1,
+          "with one, the Weekly gains exactly one line naming the attached page")
     bad = charts_mod.bars_chart("W5", [], "x", "x", None)
     check(bad.get("unavailable") and "chart unavailable" in
           stack_render._chart_html(bad, "email").lower(),
@@ -606,8 +693,9 @@ def main() -> int:
     check("z +3.0 against a threshold of 2.0" in c_line
           and c_line.startswith("Equities against high-yield credit"),
           f"7: z to one decimal, under its label ({c_line})")
-    check(_st._signed(4.4, "bp") == "+4 bp" and _st._signed(-0.4, "bp") == "−0 bp",
-          "7: basis points whole")
+    check(_st._signed(4.4, "bp") == "+4 bp" and _st._signed(-0.4, "bp") == "0 bp",
+          "7: basis points whole, and a move that rounds to zero carries no sign "
+          "(weekly-fixes-7 item 12)")
     check(scaled_display(-68522000000.0, "usd") == "−$68.52bn",
           "7: TIC in billions through the scaled display")
     sp = _sp.stack_system_prompt(__import__("daily_cascade.narrative",
@@ -690,6 +778,8 @@ def main() -> int:
           and sum(len(s["items"]) for s in e["sections"]) == n_items,
           "over budget, later paragraphs go, the section prints \"(trimmed)\", and "
           "no item is cut")
+
+    group_v(out, td)
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

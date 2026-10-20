@@ -1,0 +1,56 @@
+{
+ "_source": "https://www.treasurydirect.gov/TA_WS/securities/search?startDate=2026-09-02&endDate=2026-11-17&format=json (read 17 Oct 2026; three records, trimmed)",
+ "records": [
+  {
+   "cusip": "91282CRQ6",
+   "type": "Note",
+   "securityType": "Note",
+   "securityTerm": "3-Year",
+   "originalSecurityTerm": "3-Year",
+   "competitiveAuctionCloseDate": "2026-10-06T00:00:00",
+   "issueDate": "2026-10-15T00:00:00",
+   "bidToCoverRatio": "2.62",
+   "highYield": "4.932",
+   "offeringAmount": "58000000000",
+   "primaryDealersCompetitiveParAwarded": "6121437500",
+   "directBiddersCompetitiveParAwarded": "18047610000",
+   "indirectBiddersCompetitiveParAwarded": "32826490000",
+   "subtotalCompetitiveParAwardedInsideOfOfferingAmount": "56995537500",
+   "updatedTimestamp": "2026-10-06T13:04:19"
+  },
+  {
+   "cusip": "912797VX2",
+   "type": "Bill",
+   "securityType": "Bill",
+   "securityTerm": "4-Week",
+   "originalSecurityTerm": "17-Week",
+   "competitiveAuctionCloseDate": "2026-10-15T00:00:00",
+   "issueDate": "2026-10-20T00:00:00",
+   "bidToCoverRatio": "2.56",
+   "highYield": "",
+   "offeringAmount": "110000000000",
+   "primaryDealersCompetitiveParAwarded": "31666740000",
+   "directBiddersCompetitiveParAwarded": "5941030000",
+   "indirectBiddersCompetitiveParAwarded": "64874120000",
+   "subtotalCompetitiveParAwardedInsideOfOfferingAmount": "102481890000",
+   "updatedTimestamp": "2026-10-15T11:34:23"
+  },
+  {
+   "cusip": "91282CRR4",
+   "type": "TIPS",
+   "securityType": "Note",
+   "securityTerm": "5-Year",
+   "originalSecurityTerm": "5-Year",
+   "competitiveAuctionCloseDate": "2026-10-22T00:00:00",
+   "issueDate": "2026-10-30T00:00:00",
+   "bidToCoverRatio": "",
+   "highYield": "",
+   "offeringAmount": "26000000000",
+   "primaryDealersCompetitiveParAwarded": "",
+   "directBiddersCompetitiveParAwarded": "",
+   "indirectBiddersCompetitiveParAwarded": "",
+   "subtotalCompetitiveParAwardedInsideOfOfferingAmount": "",
+   "updatedTimestamp": "2026-10-15T11:02:13"
+  }
+ ]
+}

@@ -49,7 +49,7 @@ attribution:
     ai_share: "the AI complex's share of the index return: index weights are not stored, and eight of the nine names' closes are not in the price basket"
 
 # THE FORWARD SERIES (13 Oct 2026): S&P DJI's sp-500-eps-est.xlsx, read from the
-# operator's monthly drop (altdata/sources/spdji.py) -- the forward split and the
+# operator's monthly drop (altdata/sources/spdji.py; WITHDRAWN 17 Oct 2026, the lines print "not tracked (source withdrawn)") -- the forward split and the
 # index's revision line, "awaiting the first drop" until one is stored.
 forward:
   forward_key: spdji.fwd12m_op_eps

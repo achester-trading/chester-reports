@@ -142,6 +142,9 @@ if [[ "\${1:-}" == "-m" ]]; then
     exit 0
 fi
 echo "STUB run_eod.py invoked: \$*"
+case " \$* " in
+    *" --capture-only "*) exit "\${STUB_CAP_RC:-0}" ;;
+esac
 exit 0
 STUB
 chmod +x "$SANDBOX/bin/stub_python"
@@ -207,6 +210,18 @@ grep -q 'STUB run_eod.py' <<<"$WRAP_LOG" \
 grep -q '^rc=0' "$BOX/state/eod_status" 2>/dev/null \
     && ok "Tuesday: status records rc=0" \
     || bad "Tuesday: status is $(cat "$BOX/state/eod_status" 2>/dev/null)"
+
+# AUD-1 5a/5c: THE CHAINS RUN FIRST, the feeds under their own cap, and an
+# incomplete capture fails the night by name without touching the heartbeat.
+cap_line="$(grep -n 'run_eod.py invoked: run_eod.py --capture-only' <<<"$WRAP_LOG" | head -1 | cut -d: -f1)"
+feed_line="$(grep -n 'feeds: pull start' <<<"$WRAP_LOG" | head -1 | cut -d: -f1)"
+[[ -n "$cap_line" && -n "$feed_line" && $cap_line -lt $feed_line ]]     && ok "AUD-1 5a: the capture runs before the feeds"     || bad "AUD-1 5a: capture line ${cap_line:-none}, feeds line ${feed_line:-none}"
+grep -q 'run_eod.py invoked: run_eod.py --skip-fetch' <<<"$WRAP_LOG"     && ok "AUD-1 5a: the compute follows as --skip-fetch"     || bad "AUD-1 5a: no --skip-fetch compute pass"
+grep -q 'timeout 12m "$VENV_PY" -m altdata.feeds pull' "$REPO_ROOT/scripts/run_eod_cron.sh"     && ok "AUD-1 5a: the feeds step carries its own 12-minute cap"     || bad "AUD-1 5a: the feeds step has no 12-minute cap"
+STUB_CAP_RC=5 run_wrapper 2026-09-08
+[[ $WRAP_RC -eq 5 && ! -f "$BOX/state/eod_heartbeat" ]]     && grep -q 'run_eod.py invoked: run_eod.py --skip-fetch' <<<"$WRAP_LOG"     && ok "AUD-1 5c: an incomplete capture -> exit 5, compute still runs, heartbeat untouched"     || bad "AUD-1 5c: incomplete capture -> rc=$WRAP_RC heartbeat=$([[ -f "$BOX/state/eod_heartbeat" ]] && echo touched || echo absent)"
+STUB_CAP_RC=1 run_wrapper 2026-09-08
+[[ $WRAP_RC -eq 1 && ! -f "$BOX/state/eod_heartbeat" ]]     && ! grep -q 'run_eod.py invoked: run_eod.py --skip-fetch' <<<"$WRAP_LOG"     && grep -q 'feeds: pull start' <<<"$WRAP_LOG"     && ok "AUD-1 5a: no chains -> exit 1, feeds still run, compute skipped"     || bad "AUD-1 5a: no chains -> rc=$WRAP_RC"
 
 # The forced override, so a manual holiday rerun stays possible.
 rm -rf "$BOX/logs" "$BOX/state"; mkdir -p "$BOX/logs" "$BOX/state"

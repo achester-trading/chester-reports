@@ -1,0 +1,31 @@
+[Unit]
+Description=chester-meme packet ingest (21:45 ET) -- Book D drafts, never decisions
+Documentation=file:///%h/chester-reports/docs/interface/README-interface.md
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_meme_ingest.sh
+
+# CHESTER_MEME_DROP, if set, is .env's; else ~/chester-meme/drop. No key is read.
+EnvironmentFile=-%h/chester-reports/.env
+
+SuccessExitStatus=0
+TimeoutStartSec=10min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# The drafts land in the register's database (data/); the checkout for the
+# wrapper's git pull. chester-meme's drop is READ ONLY here: the ingest never
+# writes into it.
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports
+ReadOnlyPaths=-%h/chester-meme
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026: the box stays at 4 GB).
+MemoryHigh=10%
+MemoryMax=12%
+# THE OOM ORDER (AUD-2): an ingest can be run again.
+OOMScoreAdjust=500

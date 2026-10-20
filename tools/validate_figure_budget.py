@@ -379,7 +379,8 @@ def group_d() -> None:
 def group_e() -> None:
     print(f"\n{LINE}\nE. THE RETRIES STAY\n{LINE}")
     from monthly_macro import prose
-    check(prose.ATTEMPTS == 3, "three attempts for every Monthly section")
+    check(prose.ATTEMPTS == 2, "the draft and one revision for every Monthly "
+          "section (the stack's retry, the a47 chain; T3.3's three retired)")
     check(prose.CAP_RETRY == "your draft cited {n} figures; the cap is {m}; remove "
                              "figures, keep the reading",
           "the explicit retry line is unchanged")

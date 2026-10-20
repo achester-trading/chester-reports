@@ -47,8 +47,9 @@ from typing import Any, Optional
 from pathlib import Path
 
 from altdata import levels as levels_mod
+from altdata import model_meter
 
-from . import direction, readability
+from . import audit_retry, direction, readability
 from . import opener as opener_mod
 
 # The read's depth on every cadence (config `sections`): its opener band.
@@ -521,6 +522,40 @@ def excess_faults(text: str) -> list[str]:
             and not re.search(r"\bexcess\b|\brelative to\b", s, re.I)]
 
 
+# weekly-fixes-7 item 6: THE BOOK'S TIME WORD. Dry run 7's opener said "this week"
+# four times over figures that all ran since 5 Sep. A time word in the book's
+# paragraph must match a figure's window in its tables: "week" needs the week's
+# window (benchmark.week_line, "on the week (... to ...)") in the book's data.
+_WEEK_WORD = re.compile(r"\b(?:this|the|last) week\b|\bon the week\b|\bweek's\b|"
+                        r"\bweekly return\b", re.I)
+
+
+def na_signed_zero(text: str) -> list[str]:
+    """weekly-fixes-7 item 12: no signed zero in prose (numeral_audit's rule)."""
+    from altdata import numeral_audit                           # noqa: PLC0415
+    return numeral_audit.signed_zero_faults(text)
+
+
+_PERFORMANCE = re.compile(r"\b(?:return\w*|excess|relative to|outperform\w*|"
+                          r"underperform\w*|beat\w*|lagg?\w*|trail\w*|cash|SPY|"
+                          r"60-40|NAV|Book Z|gain\w*|lost|rose|fell|held its ground)"
+                          r"\b|%")
+
+
+def book_window_faults(text: str, ed: dict) -> list[str]:
+    """A sentence about the book's PERFORMANCE with a week word needs the week's
+    window in the book's data (benchmark.week_line); the tables' own week
+    figures (trades, sitting time) need nothing."""
+    bk = next((s for s in ed.get("sections") or [] if s.get("id") == "book"), {})
+    bz = str((bk.get("data") or {}).get("book_z") or "")
+    if "on the week (" in bz:
+        return []
+    return [f"a time word with no figure on that window in '{s[:100]}': every book "
+            f"figure runs since inception, so say 'since' and its date, not the week"
+            for s in _sentences(text)
+            if _WEEK_WORD.search(s) and _PERFORMANCE.search(s)]
+
+
 def venue_percents(ed: dict) -> set:
     """Every probability a VENUE or the futures put in front of the prose, in
     whole percent -- figures the prose may quote as the market's price."""
@@ -666,6 +701,42 @@ SECTION_NOTES = {
 }
 
 
+# THE THREE FIXED SENTENCES (6b part 2; brief v2 section 4): when Mechanics
+# carries the dealer block, its paragraph opens with them, from
+# `dealer_sentences` only, behind the numeral and flag-word audits.
+DEALER_SENTENCES_NOTE = (
+    "\n\nTHE THREE DEALER SENTENCES: your paragraph's body opens with exactly "
+    "three sentences, in this order, citing only the figures under "
+    "`dealer_sentences`, verbatim: (1) the regime with its net-to-gross, the "
+    "zero-gamma level and its distance from spot, and the asymmetry of net GEX "
+    "one percent either side of spot; (2) where the gamma concentrates -- the "
+    "OTM call wall, the OTM put gamma wall, the peak-gamma strike and which "
+    "expiry carries it, and the hedge rolling off at the next expiry, as a SIZE "
+    "with no direction; (3) the setups whose conditions hold for the session "
+    "named, each with its invalidating level, or that no setup holds. Every "
+    "level is inferred, not observed. Never write 'support' or 'resistance', "
+    "and never write pinned, held, amplified or dampened about a session.")
+
+
+# THE VOLATILITY EVENT'S PARAGRAPH (Batch 9 item 52): in the desk voice, from
+# `vol_event` only, behind the same audits.
+VOL_EVENT_NOTE = (
+    "\n\nTHE VOLATILITY EVENT: one passage, in the desk voice, on what is behind "
+    "the move, from `vol_event` only: the trigger, then which lenses carried it "
+    "and which did not, then the regime consequence and the base rate as "
+    "printed. The catalyst is the outlet's attribution when the data names one, "
+    "never ours; where it says 'not established', say so. The Book C line is "
+    "printed, not applied. No forecast beyond the base rate's own figures.")
+
+
+def dealer_flag_faults(text: str, ed: dict) -> list[str]:
+    """The flag-word audit over Mechanics: the Weekly's scored sessions
+    (`dealer_week`) are the flags; the close has none at prose time."""
+    from . import dealer_block                                  # noqa: PLC0415
+    mech = next((s for s in ed.get("sections") or [] if s.get("id") == "mechanics"), {})
+    return dealer_block.flag_word_faults(text, (mech.get("data") or {}).get("dealer_week"))
+
+
 # THE WEEKLY'S OWN NOTES (T2.2, ruled 4 Oct 2026), appended after SECTION_NOTES
 # on the Weekly only -- the daily close keeps its shape.
 WEEKLY_NOTES = {
@@ -737,19 +808,25 @@ def not_retried(r: dict) -> bool:
 
 
 def retry_prompt(system: str, reason: Optional[str], attempt: int = 2,
-                 attempts: int = 2) -> str:
+                 attempts: int = 2, draft: Optional[str] = None) -> str:
     """A retry's system prompt: the audit's WHOLE withhold message, the rule
     behind each kind of fault it names, and the instruction to fix exactly that
     (W-1.3c item 6 -- until then the message was cut at 600 characters, after
-    the first four faults, so a late fault never reached the writer)."""
-    return system + opener_mod.retry_note(reason, attempt, attempts).replace(
+    the first four faults, so a late fault never reached the writer). With the
+    `draft` (W8-1), the retry is a revision: the failing span and the draft
+    itself, to fix and change nothing else (daily_cascade/audit_retry.py)."""
+    note = (audit_retry.revision_note(reason, draft) if draft
+            else opener_mod.retry_note(reason, attempt, attempts))
+    return system + note.replace(
         "YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1)
 
 
 def attempts_of(cad: dict) -> int:
-    """Audited attempts per section at a cadence: `prose_attempts` (the Weekly's
-    is three, W-1.3c item 6), else two -- one draft and one retry."""
-    return max(1, int(cad.get("prose_attempts") or 2))
+    """Audited attempts per section: one draft and ONE revision at every cadence
+    (W8-1, 18 Oct 2026; the Weekly's three of W-1.3c item 6 are withdrawn --
+    the retry is now told the draft and the failing span, so a second retry
+    would only re-draw). `cad` is kept for the callers."""
+    return audit_retry.ATTEMPTS
 
 
 def cadence_of(cadence: str) -> dict:
@@ -790,6 +867,13 @@ def section_prompt(s: dict, cadence: str = "daily", base=None,
         figure_tail="")
     if s["id"] not in CADENCE_REPLACES_NOTES.get(cadence, ()):
         sys_prompt += SECTION_NOTES.get(s["id"], "")
+    if (s.get("data") or {}).get("dealer_sentences"):
+        sys_prompt += DEALER_SENTENCES_NOTE
+    if (s.get("data") or {}).get("vol_event"):
+        sys_prompt += VOL_EVENT_NOTE
+    if (s.get("data") or {}).get("dealer_week_vs_monday"):
+        from .dealer_weekly import FOURTH_NOTE                  # noqa: PLC0415
+        sys_prompt += FOURTH_NOTE
     sys_prompt += CADENCE_NOTES.get(cadence, {}).get(s["id"], "")
     sys_prompt += (extra_notes or {}).get(s["id"], "")
     if not claim_only and is_parent(s, cadence):
@@ -982,42 +1066,34 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
     depth_of = {s["id"]: (READ_DEPTH if s["id"] == "read" else s.get("depth"))
                 for s in ed["sections"]}
 
-    n_attempts = attempts_of(cad)
-
     def run(sid: str, payload: dict, system: str, max_chars: int) -> dict:
-        """One audited attempt; if the audit withholds it, a retry with the
-        audit's whole reason and its rules fed back (T2.1 ruling; W-1.3c item
-        6), up to the cadence's attempts, then withhold as before. A fault (the
-        API, the payload guard) is not retried: the reason is not the prose's
-        to fix."""
-        first = attempt(sid, payload, system, max_chars)
-        # A FAULT IS NOT RETRIED (Reader's Guide 5.3): until T2.6 only "fault"
-        # and the payload guard were excluded here, so a failed API call
-        # (`call_failed`) was sent a second time with an "audit" reason.
-        if first.get("published") or not_retried(first):
-            return {**first, "attempts": 1}
-        res, k = first, 1
-        while k < n_attempts and not res.get("published") and not not_retried(res):
-            k += 1
-            retry_sys = retry_prompt(system, res.get("retry_reason")
-                                     or res.get("reason"), k, n_attempts)
+        """One audited draft; if the audit withholds it, ONE revision (W8-1):
+        the same payload, the draft, the failing rule and span, fix that and
+        change nothing else; a second failure withholds with the second reason.
+        A fault (the API, the payload guard) is not retried: the reason is not
+        the prose's to fix (Reader's Guide 5.3). Both attempts are logged."""
+        def call(note: Optional[str]) -> dict:
+            if note is None:
+                return attempt(sid, payload, system, max_chars)
             # THE RETRY MAY KEEP A REPEATED SENTENCE (T2.5 item 4): the code
             # check after the prose withholds it in the later section, so a Read
             # that repeats one sentence is not lost whole.
-            res = attempt(sid, payload, retry_sys, max_chars, dup_ok=True)
-        res["attempts"] = k
-        if not res.get("published"):
-            res["first_reason"] = first.get("reason")
-        return res
+            return attempt(sid, payload, system + note.replace(
+                "YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1),
+                max_chars, dup_ok=True)
+        return audit_retry.run(call, report=cadence, section=sid,
+                               retryable=lambda r: not not_retried(r))
 
     def attempt(sid: str, payload: dict, system: str, max_chars: int,
                 dup_ok: bool = False) -> dict:
         try:
-            r = base.generate(payload, model=model, client=client,
-                              system_prompt=system, max_chars=max_chars,
-                              one_paragraph=False, citable_ids=[],
-                              unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
-                              market_states=market_states)
+            from altdata import model_meter  # noqa: PLC0415
+            with model_meter.scope(section=sid):
+                r = base.generate(payload, model=model, client=client,
+                                  system_prompt=system, max_chars=max_chars,
+                                  one_paragraph=False, citable_ids=[],
+                                  unit_constants=UNIT_CONSTANTS, guide_path=STACK_GUIDE,
+                                  market_states=market_states)
         except Exception as exc:                                # noqa: BLE001
             return {"state": "fault", "published": False,
                     "reason": f"FAULT {type(exc).__name__}: {exc}"}
@@ -1026,6 +1102,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         if text:
             faults = (style_faults(text, cfg) + id_faults(text)
                       + policy_word_faults(text, pm_cfg) + excess_faults(text)
+                      + (book_window_faults(text, ed) if sid == "book" else [])
+                      + na_signed_zero(text)
                       + outlook_misprints(text, outlooks or [], venue_percents(ed))
                       + (level_status_faults(text, lstatus, lrows)
                          if sid in ("tape", "read") else [])
@@ -1033,6 +1111,11 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                                       else section_figure_cap(sid, cadence),
                                       _groups(sid, ed, cadence))
                       + filler_faults(text, filler_names(payload))
+                      # THE FLAG WORDS (brief v2 section 4; 6b part 2): pinned,
+                      # held, amplified and dampened only where a named
+                      # session's flag is True. The close has no scored session
+                      # at prose time, so it carries none.
+                      + (dealer_flag_faults(text, ed) if sid == "mechanics" else [])
                       + tail_faults(text, stored_tails(ed))
                       # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
                       # Takeaway, last, carrying no figure.

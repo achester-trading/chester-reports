@@ -1,5 +1,6 @@
 """
-Monthly Statement of the Public Debt -- US Treasury Fiscal Data API.
+Monthly Statement of the Public Debt and the Monthly Treasury Statement's
+customs duties -- US Treasury Fiscal Data API.
 
     python -m altdata.sources.fiscaldata     # one pull, summary to stdout
 
@@ -59,6 +60,29 @@ measured the same thing. Excluding TIPS accrual needs the TIPS auction amounts, 
 the fiscaldata.mspd_tips level change (which mixes issuance and accrual); that is
 ST-4's call. Recorded in docs/signal-triage-register.md under SR-23.
 
+-----------------------------------------------------------------------------
+THE MTS CUSTOMS LINE (the GTM batch, part 2, ruling 3 of 17 Oct 2026)
+-----------------------------------------------------------------------------
+
+GTM-15's effective tariff rate goes monthly: FRED carries customs receipts only
+quarterly (B235RC1Q027SBEA), and the Monthly Treasury Statement carries them by
+month. https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/
+accounting/mts/mts_table_4, the line "Customs Duties", no key, amounts in
+DOLLARS as served (unlike MSPD's millions), one row per month-end:
+
+  fiscaldata.mts_customs_gross     current_month_gross_rcpt_amt -- collected
+  fiscaldata.mts_customs_refunds   current_month_refund_amt
+  fiscaldata.mts_customs_net       current_month_net_rcpt_amt -- gross less
+                                   refunds; NEGATIVE in months since mid-2026,
+                                   when refunds of IEEPA duties ran ahead of
+                                   collections (probed 17 Oct 2026: June 2026
+                                   net -25.6bn on gross 23.6bn)
+
+The rate reads the gross; the refunds print beside it. The MTS line is read in
+the same run but never fails the MSPD rows: a fault in it is logged and its keys
+come back empty in the summary. The MTS is published on the eighth business day
+of the following month.
+
 AVAILABILITY. MSPD is published around the fourth business day of the following
 month; Fiscal Data serves no publication timestamp per row, so available_at is the
 write instant (`ingest_instant`), an upper bound. The first pull backfills from
@@ -86,6 +110,13 @@ REFRESH_MONTHS = 14
 MILLIONS = 1_000_000.0
 PAGE = 10000
 
+MTS_URL = ("https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/"
+           "accounting/mts/mts_table_4")
+MTS_LINE = "Customs Duties"
+MTS_KEYS = {"current_month_gross_rcpt_amt": "fiscaldata.mts_customs_gross",
+            "current_month_refund_amt": "fiscaldata.mts_customs_refunds",
+            "current_month_net_rcpt_amt": "fiscaldata.mts_customs_net"}
+
 TOTAL_KEY = "fiscaldata.mspd_marketable_total"
 NET_KEY = "fiscaldata.mspd_net_marketable_issuance"
 CLASS_KEYS = {"bills": "fiscaldata.mspd_bills",
@@ -93,7 +124,7 @@ CLASS_KEYS = {"bills": "fiscaldata.mspd_bills",
               "bonds": "fiscaldata.mspd_bonds",
               "tips": "fiscaldata.mspd_tips",
               "frn": "fiscaldata.mspd_frn"}
-KEYS = [TOTAL_KEY, *CLASS_KEYS.values(), NET_KEY]
+KEYS = [TOTAL_KEY, *CLASS_KEYS.values(), NET_KEY, *MTS_KEYS.values()]
 
 
 def _bucket(cls: str) -> Optional[str]:
@@ -153,9 +184,67 @@ def rows_from_records(records: list[dict], available: str) -> list[dict]:
     return out
 
 
+def rows_from_mts(records: list[dict], available: str) -> list[dict]:
+    """Observation rows from MTS Table 4 records: the "Customs Duties" line's
+    gross, refunds and net for each month-end, in dollars as served."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for rec in records:
+        if str(rec.get("classification_desc") or "").strip() != MTS_LINE:
+            continue
+        day = str(rec.get("record_date") or "")[:10]
+        if len(day) != 10 or day in seen:
+            continue
+        seen.add(day)
+        for field, key in MTS_KEYS.items():
+            try:
+                v = float(rec.get(field))
+            except (TypeError, ValueError):
+                continue
+            out.append({"registry_key": key, "instrument": None, "observed_at": day,
+                        "value": v, "available_at": available,
+                        "availability_kind": "ingest_instant"})
+    return out
+
+
+def fetch_mts(start: Optional[str]) -> list[dict]:
+    records: list[dict] = []
+    page = 1
+    flt = f"classification_desc:eq:{MTS_LINE}"
+    if start:
+        flt += f",record_date:gte:{start}"
+    while True:
+        data = http_get_json(MTS_URL, params={
+            "filter": flt,
+            "fields": ("record_date,classification_desc," + ",".join(MTS_KEYS)),
+            "sort": "record_date", "page[size]": PAGE, "page[number]": page},
+            timeout=60)
+        records.extend(data.get("data") or [])
+        total_pages = int(((data.get("meta") or {}).get("total-pages")) or 1)
+        if page >= total_pages:
+            return records
+        page += 1
+
+
+def _mts_start(db: Optional[observations.ObservationStore]) -> Optional[str]:
+    """None (every month served) on the first pull; else the last REFRESH_MONTHS."""
+    own = db is None
+    store = db or observations.open_writer(__name__)
+    try:
+        held = pub.newest_observed(store, [MTS_KEYS["current_month_gross_rcpt_amt"]])
+    finally:
+        if own:
+            store.close()
+    if not any(held.values()):
+        return None
+    today = session.session_date_obj()
+    m = today.year * 12 + today.month - 1 - REFRESH_MONTHS
+    return dt.date(m // 12, m % 12 + 1, 1).isoformat()
+
+
 def _start(db: Optional[observations.ObservationStore]) -> str:
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, [TOTAL_KEY])
     finally:
@@ -188,9 +277,17 @@ def fetch_records(start: str) -> list[dict]:
 
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     def produce() -> list[dict]:
-        return rows_from_records(fetch_records(_start(db)),
-                                 session.utc_iso(timespec="microseconds"))
-    return pub.run(SOURCE, KEYS, produce, run_id=run_id, db=db)
+        now = session.utc_iso(timespec="microseconds")
+        rows = rows_from_records(fetch_records(_start(db)), now)
+        try:
+            rows += rows_from_mts(fetch_mts(_mts_start(db)), now)
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("fiscaldata: the MTS customs line failed, the MSPD rows "
+                        "stand: %s", exc)
+        return rows
+    # The MTS backfill reaches to its first month (2015): wider than the default
+    # write window, so the first run lands it whole.
+    return pub.run(SOURCE, KEYS, produce, run_id=run_id, db=db, window_days=4500)
 
 
 if __name__ == "__main__":

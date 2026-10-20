@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 1010" width="100%" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 924 1010" width="100%" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13">
   <defs>
     <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#5b5b5b"/>
     </marker>
   </defs>
-  <rect x="0" y="0" width="640" height="1010" fill="#fff"/>
+  <rect x="0" y="0" width="924" height="1010" fill="#fff"/>
   <text x="20" y="28" font-weight="600" font-size="15" fill="#1a1a1a">The reporting system: how a number becomes a lesson</text>
   <text x="20" y="48" fill="#5b5b5b" font-size="12">Each stage reads only from the one above it. Who acts at each stage is on the left.</text>
 
@@ -99,5 +99,41 @@
   <path d="M540,902 L600,902 L600,406 L548,406" stroke="#9c3b3b" stroke-width="1.6" fill="none" stroke-dasharray="6 4" marker-end="url(#ah)"/>
   <text x="612" y="660" fill="#9c3b3b" font-size="12" transform="rotate(-90 612 660)" text-anchor="middle">ratified changes return as configuration</text>
 
-  <text x="20" y="990" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5.</text>
+
+  <!-- the two side layers (Draft 3): each reaches the register only through the operator -->
+  <g fill="#eef3f7" stroke="#3a5f8a" stroke-width="1">
+    <rect x="652" y="150" width="232" height="132" rx="6"/>
+    <rect x="652" y="420" width="232" height="132" rx="6"/>
+  </g>
+  <g fill="#1a1a1a">
+    <text x="666" y="174" font-weight="600">The Alpha Lab</text>
+    <text x="666" y="194" font-size="12">A paper research layer: hypotheses</text>
+    <text x="666" y="210" font-size="12">registered before their tests, its</text>
+    <text x="666" y="226" font-size="12">own database and paper book. Reads</text>
+    <text x="666" y="242" font-size="12">the store read-only; writes no</text>
+    <text x="666" y="258" font-size="12">packet, dial, tell or narrative</text>
+
+    <text x="666" y="444" font-weight="600">chester-meme</text>
+    <text x="666" y="464" font-size="12">A separate repository and units.</text>
+    <text x="666" y="480" font-size="12">Reads the Security Master's export;</text>
+    <text x="666" y="496" font-size="12">writes packets to its drop, which</text>
+    <text x="666" y="512" font-size="12">enter as Book D drafts that only</text>
+    <text x="666" y="528" font-size="12">the operator confirms</text>
+  </g>
+  <g stroke="#3a5f8a" stroke-width="1.4" fill="none" marker-end="url(#ah)">
+    <path d="M540,204 L646,204"/>
+    <path d="M540,226 L620,226 L620,470 L646,470"/>
+    <path d="M652,536 L620,536 L620,560 L548,560"/>
+  </g>
+  <g stroke="#7a5c2e" stroke-width="1.4" fill="none" stroke-dasharray="3 3" marker-end="url(#ah)">
+    <path d="M884,240 L902,240 L902,578 L548,578"/>
+  </g>
+  <g font-size="11" fill="#3a5f8a">
+    <text x="548" y="198">reads only</text>
+    <text x="626" y="300" transform="rotate(-90 626 300)">the export</text>
+    <text x="556" y="576">drafts: the operator confirms</text>
+  </g>
+  <text x="918" y="420" font-size="11" fill="#7a5c2e" transform="rotate(-90 918 420)" text-anchor="middle">lab evidence: the operator may table it</text>
+
+  <text x="20" y="990" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5. The side layers (right) read and draft; neither decides.</text>
 </svg>

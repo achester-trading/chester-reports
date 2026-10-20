@@ -20,7 +20,9 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from . import events_block, state_block
+from altdata import crypto_blocks
+
+from . import es_read, events_block, opening_setup, signal_lines, state_block
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -300,8 +302,16 @@ def stories_block(payload: dict) -> str:
             f'never on the prose above.</p></div>')
 
 
+def es_section(payload: dict, read: Optional[dict] = None) -> str:
+    """THE ES BLOCK (ST-R6.45d): the read first, then the levels and windows."""
+    blk = payload.get("es_block")
+    if not blk:
+        return f'<p style="{NOTE}">ES block not built.</p>'
+    return es_read.html(blk, read)
+
+
 def render(payload: dict, delivery: Optional[dict] = None,
-           narrative: Optional[Any] = None) -> str:
+           narrative: Optional[Any] = None, es: Optional[dict] = None) -> str:
     warn = ""
     if payload.get("warnings"):
         items = "".join(f"<li>{esc(w)}</li>" for w in payload["warnings"])
@@ -315,7 +325,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
   Generated {esc(payload.get('generated_at'))} &middot;
   overnight fetched {esc(block.get('fetched_at') or 'n/a')} &middot;
   prior session {esc(payload.get('prior_session'))} &middot;
-  run <code>{esc(payload.get('run_id') or 'n/a')}</code>
+  run <code>{esc(payload.get('run_id') or 'n/a')}</code>{(' &middot; ' + esc(payload['meme_line'])) if payload.get('meme_line') else ''}
 </p>
 {warn}
 {narrative_scan_block(narrative)}
@@ -330,6 +340,8 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Exceptions</h2>
 {state_block.exceptions_block(payload)}
+{vol_event_html(payload)}
+{signal_lines.html(payload.get("signal_lines"))}
 
 <h2 style="{H2}">Stories</h2>
 {stories_block(payload)}
@@ -339,13 +351,23 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">Overnight</h2>
 {overnight_table(payload)}
+{crypto_blocks.daily_html(payload.get("crypto_paragraph"))}
 
 <h2 style="{H2}">Where it happened</h2>
 {dominant_line(payload)}
 {attribution_block(payload)}
 
+<h2 style="{H2}">{esc(es_read.TITLE)}</h2>
+{es_section(payload, es)}
+
 <h2 style="{H2}">Prior close &mdash; dealer surface</h2>
 {exposure_block(payload)}
+{opening_setup.gauge_html(payload.get("opening_gauge"))}
+{opening_setup.gauge_html(payload.get("opening_premarket"))}
+{opening_setup.vol_lines_html(payload.get("vol_regime_lines"))}
+{opening_setup.oi_builds_html(payload.get("oi_builds"))}
+{opening_setup.lines_html(payload.get("level_clusters"))}
+{opening_setup.vol_lines_html(payload.get("index_put_lines"))}
 
 <h2 style="{H2}">Prior close &mdash; pin verdicts</h2>
 {pin_table(payload)}
@@ -367,7 +389,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 </div>"""
 
 
-def text_fallback(payload: dict) -> str:
+def text_fallback(payload: dict, es: Optional[dict] = None) -> str:
     """Plain text for a client that will not render HTML. Deliberately terse."""
     block = payload.get("overnight") or {}
     lines = [f"Morning anchor -- {payload.get('session')}",
@@ -396,6 +418,27 @@ def text_fallback(payload: dict) -> str:
         lines.append(f"{r.get('symbol'):<10} tokyo {r.get('tokyo')}  "
                      f"europe {r.get('europe')}  other {r.get('other')}")
     lines.append("")
+    if payload.get("es_block"):
+        lines += es_read.text_lines(payload["es_block"], es)
+    if payload.get("meme_line"):
+        lines.append(payload["meme_line"])
     for w in payload.get("warnings") or []:
         lines.append(f"WARNING: {w}")
     return "\n".join(lines)
+
+
+def vol_event_html(payload: dict) -> str:
+    """BATCH 9 ITEM 52: the prior close's volatility event, as the close stored
+    it -- the trigger line, the lenses, the consequence and the base rate. Silent
+    on a session with no event."""
+    ev = payload.get("vol_event") or {}
+    if not ev.get("fired"):
+        return ""
+    rows = "".join(f"<tr><td style=\"padding:2px 8px 2px 0;vertical-align:top\">"
+                   f"<strong>{esc(r[0])}</strong></td><td>{esc(r[1])}</td></tr>"
+                   for r in (ev.get("table") or {}).get("rows") or [])
+    extra = "".join(f"<p>{esc(x)}</p>" for x in (ev.get("consequence"), ev.get("base_rate"),
+                                                  ev.get("complacency")) if x)
+    return (f'<h2 style="{H2}">Volatility event</h2><p>{esc(ev.get("trigger_line"))}</p>'
+            f'<table style="font-size:12.5px;border-collapse:collapse">{rows}</table>'
+            f"{extra}")

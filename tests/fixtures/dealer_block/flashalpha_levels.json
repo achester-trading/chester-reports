@@ -1,0 +1,16 @@
+{
+  "_fixture": "SYNTHETIC. The shape tools/cross_check.py has parsed from /v1/exposure/levels since 4 Sep 2026 (Basic tier); every number here is invented.",
+  "symbol": "SPY",
+  "underlying_price": 680.2,
+  "as_of": "2026-10-16T20:25:00Z",
+  "data_as_of": {"node": "fixture", "oi_feed": "2026-10-15T20:00:00Z"},
+  "levels": {
+    "gamma_flip": 674.5,
+    "call_wall": 690.0,
+    "put_wall": 670.0,
+    "max_positive_gamma": 685.0,
+    "max_negative_gamma": 675.0,
+    "zero_dte_magnet": 680.0,
+    "highest_oi_strike": 680.0
+  }
+}

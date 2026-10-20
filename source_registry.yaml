@@ -125,7 +125,10 @@ sources:
       moved, consistent with recompute over a settled OI base -- consistent
       with, not proof of.
     license: paid subscription, Basic plan
-    allowed_reports: []
+    # 6b part 3 (brief v2 section 5.6, ratified 16 Oct 2026): the vendor line
+    # prints in the Weekly's Mechanics, labelled a cross-check, read from the
+    # stored dealer.vendor_* series written by altdata/sources/flashalpha.py.
+    allowed_reports: [weekly_tactical]
     implemented_by: tools/cross_check.py
     status: live
     epistemic_note: >-
@@ -135,7 +138,10 @@ sources:
       gated above Basic, so the intended check -- recomputing from their own
       per-strike payload to catch a silent methodology change -- is impossible.
       What we run instead compares our profile against their aggregate: same
-      purpose, weaker evidence.
+      purpose, weaker evidence. From 6b part 3 the vendor writer stores their
+      levels and headline exposures (dealer.vendor_*), and the Weekly prints
+      the comparison as a cross-check line -- the one report it may reach, and
+      only as a gap against our own figure, never as a figure of its own.
     rate_limit: 250/day, verified live via X-RateLimit-Limit
 
   solver_derived:
@@ -375,6 +381,18 @@ sources:
     implemented_by: altdata/loggers/shielded.py
     status: retired
     caveats:
+      - >-
+        STAYS RETIRED (ruled 18 Oct 2026, on the ST-13 report). The terms as read
+        18 Oct 2026 (coingecko.com/en/api_terms): "We do not encourage caching or
+        storage of Data" (6.1); a cache refreshed "at least every 24 hours"
+        (6.1.1); "you are not allowed to duplicate, reproduce, copy, store, derive
+        from or translate any Data" (6.2). They forbid the point-in-time store the
+        signal-triage order's MW-4 asked for, so MW-4's CoinGecko clause is
+        superseded (the order's rulings addendum of 18 Oct 2026). The ST-13
+        fetcher and the ENABLED_SOURCES switch were removed rather than kept a
+        flag away from a breach. PRL reads Yahoo (price, 24h volume) and
+        DefiLlama's coin service (cap, circulating supply) at the crypto basket's
+        keys; its venue concentration (D5) is not tracked.
       - >-
         RETIRED 13 OCT 2026. Nothing reads CoinGecko now: ZEC's cap moved to
         defillama, and the total crypto cap and ZEC's share of it stopped at their
@@ -1020,7 +1038,7 @@ sources:
       - Not the ibkr.auction_* family, which is the equity closing auction.
 
   fiscaldata:
-    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I)
+    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I) and the Monthly Treasury Statement (Table 4, customs duties)
     tier: A0
     epistemic_role: primary_fact
     domain: [treasury_supply, sovereign]
@@ -1040,6 +1058,11 @@ sources:
         G-14: net marketable issuance is the month-end change in Total Marketable
         held by the public. It includes SOMA add-ons and TIPS accrual and is not
         the refunding's privately-held figure; see the module docstring.
+      - >-
+        The MTS customs lines (the GTM batch, part 2, ruling 3 of 17 Oct 2026) are
+        in dollars as served, gross, refunds and net; the effective tariff rate
+        reads the gross, since refunds of IEEPA duties turned net receipts
+        negative from mid-2026.
 
   manual_input:
     name: Operator-entered figures (tools/manual_input.py)
@@ -1277,7 +1300,7 @@ sources:
     timestamp_notes: >-
       No Last-Modified; available_at is the next weekday 12:00 Frankfurt by rule (reconstructed), never after the write instant.
     license: public, no key
-    allowed_reports: [monthly_macro, alt_asset]
+    allowed_reports: [monthly_macro, alt_asset, daily_cascade]
     implemented_by: altdata/sources/bundesbank.py
     status: live
     caveats:
@@ -1289,7 +1312,7 @@ sources:
     tier: A0
     epistemic_role: primary_fact
     domain: [rates]
-    geography: [DE, FR, IT]
+    geography: [DE, FR, IT, GR]
     latency: monthly, about six weeks after the month
     timestamp_reliability: medium
     timestamp_notes: >-
@@ -1301,6 +1324,54 @@ sources:
     caveats:
       - >-
         Monthly averages. A daily OAT or BTP is not published keyless (Banque de France's Webstat API needs a registered key).
+
+  census_vip:
+    name: US Census Bureau -- Construction Spending (VIP, value put in place), monthly workbooks
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [US]
+    latency: monthly, on the first business day, about a month after the reference month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each workbook (observed); one row per month, dated the month's first day.
+    license: >-
+      public workbooks, no key (census.gov/construction/c30/xlsx/privsatime.xlsx
+      and totsatime.xlsx, linked from the historical-data page, checked 16 Oct
+      2026); the time-series API now requires a key and is not used
+    allowed_reports: [monthly_macro]
+    implemented_by: altdata/sources/census_vip.py
+    status: live
+    caveats:
+      - >-
+        Live from the D1c ruling of 16 Oct 2026 (WAL and the busy timeout satisfy
+        D1c for an append-only writer); on feeds.EXTERNAL_WRITERS. Data center
+        from January 2014 only; detailed types in the total workbook from 2002.
+
+  cboe_indices:
+    name: Cboe Global Markets -- daily index history files (COR1M, COR3M, DSPX)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [equity_prices, volatility]
+    geography: [US]
+    latency: daily, after the close (Last-Modified 21:31 GMT on 16 Oct 2026)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per session, dated the session.
+    license: >-
+      public CSVs, no key (cdn.cboe.com/api/global/us_indices/daily_prices/<SYM>_History.csv,
+      linked from the index dashboards on www.cboe.com, checked 16 Oct 2026);
+      robots.txt on cdn.cboe.com and cdn-api.cboe.com answers 403 (no rules,
+      RFC 9309), checked on every pull
+    allowed_reports: [weekly_tactical, monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/cboe_indices.py
+    status: live
+    caveats:
+      - >-
+        The CLOSE only for COR1M and COR3M; DSPX's file carries one value column.
+        History from 2006 (COR1M, COR3M) and June 2014 (DSPX), stored with the
+        first pull's Last-Modified, so invisible to an as-of read before it. Live
+        under the D1c ruling of 16 Oct 2026; on feeds.EXTERNAL_WRITERS.
 
   nbs:
     name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)
@@ -1530,6 +1601,21 @@ sources:
     implemented_by: altdata/chain_metrics.py
     status: live
 
+  chain_capture:
+    name: Every captured option chain, per name, read by this system each session (yfinance)
+    tier: B
+    epistemic_role: derived
+    domain: [volatility, positioning]
+    geography: [US]
+    latency: the eod capture after the close; recorded by the 16:45 close
+    timestamp_reliability: high
+    timestamp_notes: >-
+      observed_at = the session; available_at = the capture's own fetched_at.
+    license: derived from our own capture
+    allowed_reports: [daily_cascade, weekly_tactical]
+    implemented_by: altdata/chain_metrics.py
+    status: live
+
   naaim:
     name: National Association of Active Investment Managers -- Exposure Index
     tier: B
@@ -1548,6 +1634,61 @@ sources:
     implemented_by: none
     status: not_yet_sourced
 
+  bitcoin_data:
+    name: bitcoin-data.com (BGeometrics) -- Bitcoin on-chain API, long- and short-term-holder supply
+    tier: C
+    epistemic_role: derived_estimate
+    domain: [crypto_network]
+    geography: [global]
+    latency: daily, 03:00 UTC
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each row carries its day ("d") and a unix time; most indicators update daily
+      at 03:00 UTC (the API's own description). available_at is the pull instant
+      (ingest_instant): the first pull's four years of history are knowable from
+      that pull, not from the days they describe.
+    license: >-
+      A FREE-KEY SOURCE (CD-12; ruling 2 of 19 Oct 2026: the operator registers the
+      free key; the fetcher reads BITCOIN_DATA_API_KEY from .env and fetches nothing
+      without it). Robots: neither bitcoin-data.com/robots.txt nor
+      api.bitcoin-data.com/robots.txt exists (404, verified 19 Oct 2026), so the
+      REP excludes nothing. Endpoints (the OpenAPI spec at
+      api.bitcoin-data.com/v3/api-docs): /v1/long-term-hodler-supply-btc,
+      /v1/short-term-hodler-supply-btc, /v1/supply-current, each with startday,
+      endday, page and size; the token "can be sent as a URL parameter (?token=...)
+      or in the header: Authorization: Bearer <token>" (the header is used, so the
+      key never reaches a URL or a log). The API's description: "Free plan: up to 10
+      requests per hour and 15 requests per day. Historical data is limited to the
+      last 4 years". THE TERMS, re-read 19 Oct 2026 (charts.bgeometrics.com/terms.html,
+      "Last updated: October 14, 2026"): "The BGeometrics Bitcoin Data API is
+      available with a free API key."; "Free tier: 8 requests per hour · 15 requests
+      per day · No payment required"; "Exceeding the limit returns HTTP 429 (Too Many
+      Requests) until the counter resets."; "Free-tier access is intended for
+      personal projects, research, and evaluation."; "Using bots or multiple API
+      keys to circumvent rate limits is strictly prohibited."; "Each API key is
+      linked to a single registered user and is intended for that user's own use
+      only."; "Using the same token from multiple IP addresses or systems not owned
+      by the key holder" "is treated as commercial redistribution and requires the
+      Professional plan." ON STORING: the terms contain no clause on storing,
+      caching or saving data, so nothing forbids the store. ON REDISTRIBUTING:
+      "BGeometrics data must not be provided to third parties through an API, data
+      feed or any other machine-readable access."; "End users must not be able to
+      download or export the historical data in any format"; "Resell, sublicense, or
+      redistribute API access or the underlying data to third parties" is
+      prohibited; "You may not reproduce, distribute, or create derivative works
+      from BGeometrics content without prior written permission". ON PUBLISHING:
+      "Publishing BGeometrics charts, current metric values, percentile positions or
+      analysis derived from our data" "requires the Commercial Publishing Add-on on
+      top of an active paid plan"; "Personal and non-commercial publishing does not
+      require the add-on."; "BGeometrics must be credited as the data source." So:
+      the key is used from the box only (one system, one key); no row is offered to
+      any third party (the chester-meme export carries no btcdata key, and the
+      backups are the operator's own encrypted copies); the reports are the
+      operator's personal, non-commercial reading, and every printed line credits
+      BGeometrics. The guard holds the stricter 8 an hour and 15 a day.
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/btcdata.py
+    status: built
   aaii:
     name: American Association of Individual Investors -- Sentiment Survey
     tier: B
@@ -1567,6 +1708,180 @@ sources:
     implemented_by: altdata/sources/aaii.py
     status: live
 
+  sp500_members:
+    name: S&P 500 constituents -- SPY's daily holdings (SSGA) and the members' daily closes (Yahoo)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [equities, breadth]
+    geography: [US]
+    latency: daily; the holdings file is dated the prior session, closes after 16:00 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Holdings: Last-Modified where sent (observed), else the write instant.
+      Closes: the write instant (ingest_instant), as yfinance_source's live pull.
+    license: >-
+      SSGA's public fund-data workbook, within www.ssga.com's robots.txt (read each
+      run; checked 16 Oct 2026); Yahoo through yfinance under the operator's
+      sanctioned exception, never passing for a browser
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/sp500_members.py
+    status: live
+    caveats:
+      - >-
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS.
+        SPY's weights are the S&P 500's float-adjusted shares, not total US
+        market capitalisation.
+
+  stat_jp_cpi:
+    name: Statistics Bureau of Japan -- national CPI, the published index files (zmi<BASE>aa.csv)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [JP]
+    latency: monthly; the national CPI at 08:30 JST on the release Friday, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per month, dated by its first day.
+    license: >-
+      public CSV at www.stat.go.jp, no key; robots.txt disallows only /library/opac/
+      (read each run with the wildcard-aware reader; checked 16 Oct 2026). Not the
+      e-Stat API, which needs an application id
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/stat_jp_cpi.py
+    status: live
+    caveats:
+      - >-
+        The change on the year is computed from the published index within one
+        base file, never chained across bases; it can differ from the release's
+        own rate by rounding.
+
+  ons_cpi:
+    name: Office for National Statistics -- CPI time series (MM23), the series pages' CSV download
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [GB]
+    latency: monthly; the CPI at 07:00 UK on its release day, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The file states its release date; every row of it is stamped at 07:00 UK that day (observed). On the first pull the history takes the same instant, later than the truth.
+    license: >-
+      public CSV at www.ons.gov.uk (the generator link on each series page), no key;
+      robots.txt answers 404, which is no rules (RFC 9309), read each run (checked 16 Oct 2026)
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/ons_cpi.py
+    status: live
+    caveats:
+      - >-
+        The rates are the ONS's own, to one decimal. The core is CPI excluding energy, food, alcoholic beverages and tobacco (DKO8).
+
+  statcan_cpi:
+    name: Statistics Canada -- Web Data Service, CPI table 18-10-0004-01 by vector
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [macro]
+    geography: [CA]
+    latency: monthly; 08:30 Ottawa on the release day, about three weeks after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each point carries its releaseTime (observed); history loaded before 2007 carries the database's load day, later than the truth.
+    license: >-
+      public JSON at www150.statcan.gc.ca/t1/wds/rest, no key; robots.txt has no rule
+      over /t1/wds/, read each run (checked 16 Oct 2026)
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/statcan_cpi.py
+    status: live
+    caveats:
+      - >-
+        The change on the year is computed from the published index (2002=100), to one decimal, as the agency rounds its own.
+
+  bdf_webstat:
+    name: Banque de France, Webstat -- one series' anonymous CSV export (the TEC 10)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [FR]
+    latency: the same business day, about 11:00-13:00 UTC
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each row carries updated_at, the instant its value as now stated was set (observed); rows reloaded on 2 Dec 2024 carry that instant, later than their first publication.
+    license: >-
+      public CSV at webstat.banque-france.fr/export/csv/fr/catalogue/FM/<series>, no key and
+      no login (Webstat's API proper needs a key; this is not it); robots.txt "Allow: /",
+      read each run (checked 16 Oct 2026). data.gouv.fr republishes the same export
+    allowed_reports: [weekly_tactical, monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/bdf_webstat.py
+    status: live
+    caveats:
+      - >-
+        The TEC 10 is a constant-maturity interpolation between two OATs, and the Bund leg it is set against is the Bundesbank's fitted zero-coupon 10-year: the spread's basis is neither benchmark screen's, which is why SR-30's daily crisis line is the series' own November 2011 peak.
+
+  wgc_stock:
+    name: World Gold Council -- above-ground stock of gold (the "how much gold" page)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [global]
+    latency: quarterly; the page names its quarter-end (end-Q2 2026 on 16 Oct 2026)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The page's Last-Modified is the serving instant, so the write instant stands
+      in (ingest_instant); observed_at is the quarter-end the page names.
+    license: >-
+      public page at www.gold.org, allowed by its robots.txt (read each run;
+      checked 16 Oct 2026)
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/sources/wgc_stock.py
+    status: live
+    caveats:
+      - >-
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. One
+        sentence of the page body, read by phrase; a changed sentence is refused.
+
+  redfin:
+    name: Redfin data center -- monthly housing market data (national and top-50 metros)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [housing]
+    geography: [US]
+    latency: monthly, about the second week after the month
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Last-Modified on each file (observed); one row per month, dated by PERIOD BEGIN.
+    license: >-
+      public CSV in Redfin's public S3 bucket, no key; the data center's
+      downloads page is allowed by robots.txt's wildcard group and the bucket
+      answers robots.txt with 403 (no rules, RFC 9309), checked 16 Oct 2026
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/redfin.py
+    status: live
+    caveats:
+      - >-
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Months of
+        supply is Redfin's definition, not NAR's.
+
+  mba:
+    name: Mortgage Bankers Association -- Weekly Mortgage Applications Survey, press-release headline
+    tier: B
+    epistemic_role: primary_fact
+    domain: [housing]
+    geography: [US]
+    latency: weekly, Wednesday 07:00 ET
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Last-Modified where sent (observed), else the write instant (ingest_instant); dated by the survey's week-ending date.
+    license: >-
+      public press release; robots.txt's wildcard group allows the newsroom
+      (read 16 Oct 2026 with the wildcard-aware reader); the site answers the
+      repo's own agent and refuses python-requests. Headline changes only: the
+      index level and its history are member-only
+    allowed_reports: [daily_cascade, monthly_macro]
+    implemented_by: altdata/sources/mba.py
+    status: live
+    caveats:
+      - >-
+        Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Forward-only: the newsroom pages no archive.
+
   nyfed_sce:
     name: Federal Reserve Bank of New York -- Survey of Consumer Expectations
     tier: A0
@@ -1580,6 +1895,256 @@ sources:
     license: public, no key; see the workbook's License sheet
     allowed_reports: [monthly_macro, daily_cascade]
     implemented_by: altdata/sources/nyfed_sce.py
+    status: live
+
+  rent_indices:
+    name: Zillow Observed Rent Index and Apartment List national rent (published files)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [inflation, real_estate]
+    geography: [US]
+    latency: monthly, mid-month
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each file's Last-Modified (observed) where sent, else the write instant.
+      Zillow's file is on files.zillowstatic.com (robots.txt carries no rule);
+      Apartment List's is linked from its research page (robots: Allow /) and
+      served from assets.ctfassets.net (robots.txt 404: no rules). Checked 16 Oct
+      2026. Batch 7 lens 7, the shelter lead.
+    license: public research files, no key; cite the publisher
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/rent_indices.py
+    status: live
+  hyperliquid:
+    name: Hyperliquid info API -- perp funding and open interest
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: funding hourly; open interest live (read once a day)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Funding prints carry their own epoch-millisecond time and are summed by UTC
+      day, complete days only; open interest is a snapshot filed under the pull's
+      UTC day. available_at is the pull instant. No robots.txt (404: no rules).
+      Weight limit 1,200 a minute per IP (documentation, read 17 Oct 2026); the
+      writer spends at most 600.
+    license: public info endpoint, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/hl.py
+    status: live
+  perp_venues:
+    name: OKX and Deribit public market APIs -- perp funding, open interest, long/short
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: funding eight-hourly (OKX) or hourly (Deribit); open interest live
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Funding by UTC day from each print's own time, complete days only; OKX's
+      daily OI and long/short buckets are stamped 16:00 UTC and filed under that
+      UTC date; Deribit's OI is a snapshot. available_at is the pull instant.
+      www.okx.com's robots.txt disallows nothing under /api/v5/; www.deribit.com
+      publishes none. Bybit's reader exists and is switched off: api.bybit.com
+      answers the US with 403 (17 Oct 2026).
+    license: public market-data endpoints, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fut.py
+    status: live
+  mempool_space:
+    name: mempool.space open API -- Bitcoin hashrate, difficulty, fees, mempool, pools
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_network]
+    geography: [global]
+    latency: hashrate daily; fees, mempool and pools live (read once a day)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Hashrate by UTC day (complete days), difficulty by adjustment; the rest are
+      snapshots filed under the pull's UTC day. available_at is the pull instant.
+      /robots.txt returns the site's app page (no rules).
+    license: open API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/mempool.py
+    status: live
+  pearl_explorer:
+    name: Pearl's block explorer (explorer.pearlresearch.ai)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [crypto_network]
+    geography: [global]
+    latency: the chain tip, read weekly (MW-4)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The tip's own time where the endpoint gives it, else the read's UTC day;
+      available_at is the pull instant. G-26: the JSON endpoint is not yet
+      discovered (unreachable from the session's machine 18 Oct 2026), so robots.txt
+      and the terms are not yet read and nothing is declared; until then the
+      derived layer prints the height ESTIMATED from the emission formula.
+    license: "not yet read (G-26): an endpoint is declared only where robots.txt and the site's terms allow it"
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/pearl_explorer.py
+    status: built
+  alternative_me:
+    name: alternative.me Crypto Fear & Greed Index
+    tier: C
+    epistemic_role: derived_index
+    domain: [crypto_sentiment]
+    geography: [global]
+    latency: daily, set at 00:00 UTC
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each value carries its day's epoch time; full history from 1 Feb 2018 in one
+      call. available_at is the pull instant. No robots.txt (404: no rules).
+    license: open API, no key; attribution to alternative.me
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fng.py
+    status: live
+  blockscout:
+    name: Blockscout Ethereum explorer API -- gas oracle, utilisation, daily transactions
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_network]
+    geography: [global]
+    latency: gas and utilisation live (read once a day); transactions daily
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Gas and utilisation are snapshots filed under the pull's UTC day; the
+      transaction chart is by UTC date (30 days served), complete days only.
+      robots.txt: Allow /. Its price and market cap are CoinGecko's and are not
+      stored (13 Oct 2026). The keyless path in place of Etherscan (no
+      ETHERSCAN_API_KEY; rule (b) of 16 Oct 2026).
+    license: public explorer API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/blockscout.py
+    status: live
+  deribit:
+    name: Deribit public API -- the DVOL volatility indices
+    tier: C
+    epistemic_role: primary_fact
+    domain: [crypto_derivatives]
+    geography: [global]
+    latency: daily candles; history from 24 Mar 2021
+    timestamp_reliability: high
+    timestamp_notes: >-
+      The 1D candle's close, filed under its UTC day, complete days only;
+      available_at is the pull instant. No robots.txt (404). Strike-level OI is
+      EL-12's (D-4), not fetched.
+    license: public market-data API, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/deribit.py
+    status: live
+  farside:
+    name: Farside Investors -- US spot bitcoin and ether ETF daily flows (HTML tables)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [US]
+    latency: US evening, the session's figures; issuers fill in over the evening
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Each row is a session's date; available_at is the pull instant. robots.txt
+      names only Twitterbot (no rule for this agent). On 17 Oct 2026 the site
+      answered the laptop 403 through Cloudflare; the writer is STALE with its last
+      good date on any refusal and scrapes nothing around it.
+    license: public web page; cite Farside Investors
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/farside.py
+    status: live
+  geckoterminal:
+    name: GeckoTerminal public API -- new pools and trending pools (the froth gauge)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: live (sampled once a day)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A daily sample under the pull's UTC day, no history. The host's robots.txt
+      disallows / for every agent; ruling 4 of 17 Oct 2026: a robots.txt governs
+      crawlers of pages, and the documented API is governed by its own terms.
+    license: >-
+      Public beta API, no key, "limited to approximately 10 calls/minute"; no
+      attribution or storage clause stated (the API's swagger, read 17 Oct 2026).
+      Ruling 4 of 17 Oct 2026. Re-read quarterly.
+    terms_url: https://api.geckoterminal.com/docs/v2/swagger.json
+    terms_read: 2026-10-17
+    terms_reread: quarterly
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/gt.py
+    status: built
+  dexscreener:
+    name: DexScreener public API -- pair search (the froth gauge's fallback)
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: live
+    timestamp_reliability: low
+    timestamp_notes: >-
+      Used only when GeckoTerminal fails; its rows carry source dexscreener:fallback
+      and are never scored (a search, not a census). No robots.txt (404).
+    license: public API, no key, 300 calls a minute
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/gt.py
+    status: live
+  coinpaprika:
+    name: CoinPaprika API, free plan -- total crypto market cap and bitcoin dominance
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_aggregate]
+    geography: [global]
+    latency: live (read once a day)
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A snapshot under the pull's UTC day, forward-only. No robots.txt (404).
+    license: >-
+      Free plan, keyless: personal and non-commercial use; attribution "Powered by
+      Coinpaprika" where displayed; no redistribution (API terms read 17 Oct 2026;
+      no clause on storage). Ruling 2 of 17 Oct 2026; ruling 3 of 17 Oct: the series
+      may be stored, terms re-read quarterly. The 13 Oct note on storage was about
+      CoinGecko's terms, not this source's.
+    terms_url: https://docs.coinpaprika.com/api-plans
+    terms_read: 2026-10-17
+    terms_reread: quarterly
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/paprika.py
+    status: live
+  treasury_companies:
+    name: Public bitcoin treasury companies -- holdings (BitcoinTreasuries.com), Strategy's share count (EDGAR), MSTR's captured spot
+    tier: C
+    epistemic_role: unofficial_mirror
+    domain: [crypto_flows]
+    geography: [global]
+    latency: holdings as the aggregator updates them; the share count per quarterly filing; the spot per captured chain
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Holdings are snapshots under the pull's UTC day (treasuries.bitbo.io; robots
+      allows it; no terms page). The share count is filed under the XBRL fact's end
+      date, read with the repo's EDGAR contact (CHESTER_SEC_CONTACT). The spot is the
+      newest captured MSTR chain's. www.strategy.com refuses this client (403);
+      bitcointreasuries.net's terms forbid automated extraction -- neither is read.
+    license: public web page and SEC filings; cite BitcoinTreasuries.com
+    allowed_reports: [monthly_macro, weekly_tactical]
+    implemented_by: altdata/sources/treasury.py
+    status: live
+
+  clevfed_rules:
+    name: Federal Reserve Bank of Cleveland -- simple monetary policy rules
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [US]
+    latency: quarterly, after the SEP and the GDP release
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The chart file's Last-Modified (observed) where sent, else the write
+      instant. www.clevelandfed.org robots.txt disallows /errors/* only (checked
+      16 Oct 2026). The rules' prescribed path, never read as market pricing.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/sources/clevfed_rules.py
     status: live
 
   wgc:
@@ -1679,12 +2244,16 @@ sources:
       The response's Last-Modified where sent (`observed`), else the ingest instant.
     license: >-
       BIS statistics: free reuse with attribution ('Source: BIS'), per the BIS terms of use.
-    allowed_reports: [monthly_macro, alt_asset]
+    allowed_reports: [monthly_macro, weekly_tactical, alt_asset]
     implemented_by: altdata/sources/bis_cbpol.py
     status: live
     caveats:
       - >-
         No row for Taiwan or the UAE (11 Oct 2026). Definition breaks are documented by the BIS in each series' COMPILATION field.
+      - >-
+        Extended 16 Oct 2026 (ST-R5.43a): a second request stores every area as
+        bis.policy_rate (49 areas, 38 current). The BIS sent no Last-Modified that
+        day, so those rows carry the ingest instant.
 
   wb_qeds:
     name: World Bank Quarterly External Debt Statistics (QEDS, SDDS; API source 22)
@@ -1786,12 +2355,13 @@ sources:
       the inbox file's modification time and is stored in spdji.eps_drop.
     license: >-
       S&P DJI's public workbook; its host refuses any non-browser client, and a
-      writer never passes for a browser. The operator downloads it in a browser
-      and drops it into Drive (chester-vendor-checks/spdji); the nightly sweep
-      copies it to ~/chester-data/inbox/spdji. Nothing is fetched.
+      writer never passes for a browser. WITHDRAWN (ruled 17 Oct 2026): the public
+      link 404s and the index page no longer lists the workbook, so there is
+      nothing to drop. Off the writer roster; the forward-EPS lines print "not
+      tracked (source withdrawn)". Nothing is fetched.
     allowed_reports: [weekly_tactical, monthly_macro]
     implemented_by: altdata/sources/spdji.py
-    status: built
+    status: retired
     caveats:
       - >-
         THE LAYOUT IS DECLARED, NOT SEEN (config/spdji_eps.yaml): written from the
@@ -1981,6 +2551,212 @@ sources:
     caveats:
       - >-
         Tier C mirror of A0 filings. Where EDGAR XBRL is ingested later, it wins.
+
+  edgar_xbrl:
+    name: SEC EDGAR XBRL frames -- annual operating cash flow and capex for the five hyperscalers
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [fundamentals]
+    geography: [US]
+    latency: after each 10-K; the annual frame aggregates each filer's latest filed fact
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The frames carry no publication instant per fact; available_at is the write
+      instant (ingest_instant), an upper bound. observed_at is the fiscal year's
+      end as filed.
+    license: >-
+      public, no key; EDGAR's fair-access rule asks for a User-Agent with a contact,
+      which edgar.user_agent() supplies from CHESTER_SEC_CONTACT and nowhere else
+    allowed_reports: [monthly_macro]
+    implemented_by: altdata/sources/edgar_xbrl.py
+    status: live
+    caveats:
+      - >-
+        The GTM batch, part 2 (17 Oct 2026; GTM-4). A calendar frame takes the
+        fiscal year whose larger part falls in that year, so Microsoft's (June)
+        and Oracle's (May) years sit in the frame before the one their year-end
+        names. Dormant, PENDING, until CHESTER_SEC_CONTACT is set.
+
+  # --- AUD-3a item 4 (14 Oct 2026): the string the computed rows carry -------
+  calc:
+    name: This system's own computations over the store (the calc.* rows)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [equity_prices, macro, rates, credit, fx]
+    geography: [US, global]
+    latency: one pass after each input's fetch
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Every calc.* row is written with source `calc` by altdata/market_features.py,
+      altdata/attribution.py, altdata/correlation.py and the shielded-pool and VX
+      loggers; its available_at is the maximum of its inputs'. Registered so the
+      store check can read the string as an id: a computed row inherits the tier of
+      what it read and never acquires more authority than its input.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/market_features.py
+    status: live
+
+  # INTERNAL WRITERS' SOURCE STRINGS (ruled 15 Oct 2026, AUD-3a follow-up 5).
+  # Each is the string one of this system's own passes writes today; registered
+  # as an internal source so the store check reads it as an id. The writers keep
+  # writing what they write; moving each to a single registered id comes after
+  # aud-1-data-fixes merges.
+  vol_event:
+    name: The volatility event flag and attribution (Batch 9 item 52)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/vol_event.py through daily_cascade/stack_close.py:
+      vol.event_day, calc.vol_compression and vol.event_ledger, each observed on
+      the session and available when written.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/vol_event.py
+    status: live
+
+  secondary_notes:
+    name: The secondary notes' fetch steps' own readings
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/note_fetch.py (the secondary-notes order, 19 Oct 2026):
+      calc.release_first_hour after 09:45 on an 08:30 release day, and
+      calc.after_hours_move at 21:30, each from the 5-minute bars the same pass
+      fetched. Available at the pass's instant.
+    license: own work
+    allowed_reports: [daily_cascade]
+    implemented_by: altdata/note_fetch.py
+    status: live
+
+  daily_close:
+    name: The 16:45 close pass's own records
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by daily_cascade/stack_close.py: the dealer scorecard row, dealer.scorecard_day, one per session.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: daily_cascade/stack_close.py
+    status: live
+
+  book_z:
+    name: Book Z's benchmark marks
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/benchmark.py: each paper ledger's daily mark, its units, cash and closes as JSON, instrument = the ledger.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/benchmark.py
+    status: live
+
+  narrative_register:
+    name: The narrative register's implied-outcome rows
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/narratives.py (LEDGER_SOURCE): a narrative's implied outcome as a probability-ledger row, resolved from the store.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/narratives.py
+    status: live
+
+  paper_bid_chain:
+    name: The paper bid's chain-derived series
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/paper_bid.py (SOURCE): the calc.paper_bid.* rows computed from the captured option chains.
+    license: own work
+    allowed_reports: [monthly_macro, daily_cascade]
+    implemented_by: altdata/paper_bid.py
+    status: live
+
+  alt_asset:
+    name: The Quarterly's thesis register
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US, global]
+    latency: written by its own pass
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/thesis_register.py as alt_asset:<family>; the family is a suffix and the id is alt_asset, the way <id>:backfill reads as <id> (altdata/source_ids.py).
+    license: own work
+    allowed_reports: [alt_asset]
+    implemented_by: altdata/thesis_register.py
+    status: live
+
+# STORED SOURCE STRINGS THAT ARE NOT IDS (AUD-3a item 4). A row's `source` is the
+# string its writer wrote and the store is append-only, so an old string is read
+# through altdata/source_ids.py: an id is itself, `<id>:<variant>` (kalshi:backfill,
+# fred:csv_migrated) is <id>, and a string listed here is the id beside it. Each
+# alias needs a reason; a string that is none of these is printed by
+# tools/check_store_registry.py rather than guessed at.
+#
+# An alias is either an id (the string always means it) or `by_key_family`: the
+# id depends on the row's registry key, matched by prefix (a trailing `*` marks a
+# family, so tools/validate_config_refs.py does not read it as a misspelled
+# metric id; an exact registered key needs none), first match wins, and a
+# key no line matches leaves the string off the list. Ruled 15 Oct 2026: a bare
+# `ibkr` resolves by the metric's family, to the id that family's writer writes
+# today (`ibkr_paper` or `ibkr_stock_loan`), so these lines read any row stored
+# under the bare string the way its family's current rows read. The costs and what-if paths
+# write no observation (their packets carry ibkr_<mode>, a registered id), so they
+# have no family here; the trade log's `executions.source` fallback `ibkr` is its
+# own table, which the store check does not read.
+stored_aliases:
+  ibkr:
+    by_key_family:
+      - prefix: ibkr.auction_*
+        source: ibkr_paper
+        reason: >-
+          The closing-auction rows: altdata/loggers/auction.py writes them as
+          ibkr_paper today, the Gateway session they are read through (the feed
+          behind it is the ibkr_md_nyse_imbalances subscription).
+      - prefix: ibkr.borrow_probe
+        source: ibkr_paper
+        reason: >-
+          The borrow probe tests the Gateway connection itself;
+          altdata/loggers/borrow.py writes it as ibkr_paper.
+      - prefix: ibkr.stock_loan_file_probe
+        source: ibkr_paper
+        reason: >-
+          The stock-loan file's reachability probe; altdata/loggers/borrow.py
+          writes it as ibkr_paper.
+      - prefix: ibkr.borrow_*
+        source: ibkr_stock_loan
+        reason: >-
+          The borrow fee and rebate rates come from IBKR's stock-loan file
+          (altdata/loggers/borrow.py writes them as ibkr_stock_loan).
+      - prefix: ibkr.shortable_shares
+        source: ibkr_stock_loan
+        reason: Shortable shares, from the same stock-loan file.
 
 # Which source wins when two describe the same fact. Tier order does the work;
 # this records the one live collision so it is not re-derived each time.

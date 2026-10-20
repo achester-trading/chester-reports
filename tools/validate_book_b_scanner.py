@@ -94,7 +94,11 @@ def paths() -> dict[str, dict]:
     Friday 9 Oct, 257 Wednesday 7 Oct."""
     out = {}
     # SPY, the benchmark: a smooth rise.
-    out["SPY"] = {"close": [400 * 1.0005 ** i for i in range(N)]}
+    # W8-7: the breakout template scans no instrument without stored volume, so
+    # the benchmark's breakout carries a volume series, 3x on its last session.
+    sv = [1e6] * N
+    sv[N - 1] = 3e6
+    out["SPY"] = {"close": [400 * 1.0005 ** i for i in range(N)], "volume": sv}
     # XLK, THE BREAKOUT: a trend, a 57-session base at 150 (+-1.5), cleared on
     # Wednesday on 3x volume; Thursday and Friday hold it on ordinary volume.
     c = [v + zz(i, 0.3) for i, v in enumerate(lin(100, 150, 200))]
@@ -119,11 +123,14 @@ def paths() -> dict[str, dict]:
     c = lin(180, 200, 200) + [200 + zz(i, 2.0) for i in range(54)] \
         + [195.0, 194.0, 199.0, 200.0, 200.5, 201.0]
     out["IWM"] = {"close": c, "volume": [1e6] * N}
-    # QQQ, AGAINST THE TAPE: a downtrend, a 25-session base, a long breakout;
-    # NO VOLUME STORED (the leg unconfirmed).
+    # QQQ, AGAINST THE TAPE: a downtrend, a 25-session base, a long breakout on
+    # 3x volume (W8-7: the breakout template needs stored volume; the case
+    # without it is checked on a copy with its volume removed).
     c = lin(400, 300, 230) + [300 + zz(i, 3.0) for i in range(25)] \
         + [305.0, 306.0, 307.0, 308.0, 309.0]
-    out["QQQ"] = {"close": c}
+    qv = [1e6] * N
+    qv[255] = 3e6
+    out["QQQ"] = {"close": c, "volume": qv}
     # XLY, THE SHORT: a downtrend, a base, broken on Wednesday on 3x volume.
     c = [v + zz(i, 0.3) for i, v in enumerate(lin(200, 150, 200))]
     c += [150 + zz(i, 1.5) for i in range(57)] + [144.0, 143.0, 142.0]
@@ -407,18 +414,30 @@ def main() -> int:
           "window F 5" in res["parameters"],
           "the block's parameters line states every value as set")
     qqq = by.get(("QQQ", "long"))
-    check(qqq and "volume not stored — the volume leg unconfirmed" in qqq["thesis"]
-          and "not testable (volume not stored)" in qqq["parameters"],
-          "no stored volume: the pivot fires 'unconfirmed' and says so")
+    # W8-7: without stored volume the breakout template does not scan at all.
+    from altdata import observations as _obs
+    with _obs.ObservationStore(db) as _st:
+        q0 = next(i for i in bbs.load_universe(_st, ENDING, cut, cfg)[0]
+                  if i["symbol"] == "QQQ")
+    q0 = {**q0, "volume": {}}
+    pv0 = [x for x in bbs.detect(q0, cfg) if x["setup"] == "breakout"]
+    check(qqq and "3.0× volume" in qqq["thesis"] and not pv0
+          and "no stored volume" in str(q0.get("breakout_skipped")),
+          "no stored volume: the breakout template does not scan it, and says why "
+          f"({q0.get('breakout_skipped')})")
     check(not any(c["instrument"] == "BN" for c in res["candidates"] + res["refused"])
           and "BN" in res["skipped"]["restricted"],
           "a restricted instrument never enters the universe (counted)")
     import copy
     strict = copy.deepcopy(cfg)
     strict["pivots"]["volume"]["when_absent"] = "strict"
-    rs = bbs.scan(ENDING, db, cutoff=cut, regime=ECP, cfg=strict)
-    check(not any(c["instrument"] == "QQQ" for c in rs["candidates"] + rs["refused"]),
-          "under `strict` an unconfirmable volume leg refuses the pivot")
+    g0 = {**next(i for i in bbs.load_universe(_obs.ObservationStore(db), ENDING, cut,
+                                                 cfg)[0] if i["symbol"] == "GLD"),
+          "volume": {}}
+    check(any(x["setup"] == "reclaim" for x in bbs.detect(g0, cfg))
+          and not any(x["setup"] == "reclaim" for x in bbs.detect(g0, strict)),
+          "the reclaim template still fires 'unconfirmed' without volume, and "
+          "`strict` refuses it")
     # XLK's Thursday and Friday closes clear the base too, on 1x volume: the
     # pivot is Wednesday's.
     one = bbs.detect(next(i for i in bbs.load_universe(
@@ -528,10 +547,25 @@ def main() -> int:
                                                     "regime", "liquidity"},
           f"the score is the weighted mean of its five components "
           f"(XLK {xlk and xlk['components']} -> {xlk and xlk['score']})")
+    # VP-1 item 9: every candidate carries the two daily-bar readings, printed as
+    # one clause on its line; the components (and so the score) are the same five.
+    vps = [c.get("volume_profile") or {} for c in res["candidates"]]
+    check(res["candidates"] and all(v.get("note") == "approximated from daily bars"
+                                    and v.get("base_text") and v.get("hvn_text")
+                                    for v in vps)
+          and "volume profile (approximated from daily bars): "
+              in book_b.candidate_line(1, xlk)
+          and "volume_profile" not in xlk["components"],
+          f"VP-1: each candidate's line carries the base's POC and the nearest HVN "
+          f"toward +1R, approximated from daily bars; the score does not read them "
+          f"(XLK: {xlk and xlk['volume_profile'].get('base_text')}; "
+          f"{xlk and xlk['volume_profile'].get('hvn_text')})")
     check(xlk and xlk["components"]["regime"] == 1.0 and xlk["components"]["trend"] == 0.75
-          and qqq and qqq["components"]["liquidity"] == 0.5,
+          and qqq and qqq["components"]["liquidity"] != 0.5
+          and 0 < qqq["components"]["liquidity"] <= 1.0,
           "regime alignment (Expansion, long: 1.0), the trend share (3 of 4), "
-          "liquidity unread at 0.5")
+          "liquidity read from QQQ's stored volume (W8-7: a breakout now needs it; "
+          "the 0.5 default stands for a name without it)")
     sc = [c["score"] for c in res["candidates"]]
     check(sc == sorted(sc, reverse=True) and [c["rank"] for c in res["candidates"]]
           == list(range(1, len(sc) + 1)),

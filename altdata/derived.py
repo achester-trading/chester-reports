@@ -96,8 +96,20 @@ DEFAULT_WINDOW_DAYS = 1826
 DELTA_UNITS: dict[str, str] = {
     # Rates and spreads: quoted in percent, moved in basis points.
     "%": "bps",
-    "percent": "bps",
+    "percent": "bps",    # the undivided unit; check_registry refuses it on an entry
     "bps": "bps",
+    # PERCENT, SPLIT BY MEANING (AUD-3a item 3, 14 Oct 2026). One word covered a
+    # yield, a percentile, a return and a share, so a percentile moving 40 -> 55
+    # read +1,500 bp. Each meaning is now its own unit, with its own delta rule:
+    "percent_rate": "bps",     # a yield, rate or spread level: 4.45 -> 4.52 is +7 bp
+    "percentile": "pts",       # an own-history rank, 0..100: 40 -> 55 is +15 pts
+    "percent_return": "pp",    # a return, growth rate or distance: 1.2 -> 1.5 is +0.3 pp
+    "percent_share": "pp",     # a share of a whole: 36% -> 45% of sectors is +9 pp
+    "vol_pct": "pts",          # an annualised volatility in percent: 18 -> 20 is +2 pts
+    "vol_index": "pts",        # a volatility index level (^VIX): 18 -> 20 is +2 pts
+    # An index level that is neither a price nor a volatility (^SKEW; ruled 15 Oct
+    # 2026): 140 -> 146 is +6 pts, where a percent change of it means nothing.
+    "index_points": "pts",
     # Prices and index levels: moved in percent of themselves.
     "$": "percent",
     "price": "percent",
@@ -119,10 +131,14 @@ DELTA_UNITS: dict[str, str] = {
     "N": "raw",          # a plain count (FRED "Number": IC4WSA, EXHOSLUSM495S)
     "B": "raw",
     "M": "raw",
+    # A EURO stock in millions (ECBASSETSW; 6e-releases, ruling (a)5 of 16 Oct
+    # 2026): "M" reads as dollars in the renderers, so the currency is the unit.
+    "EUR_M": "raw",
     "hrs": "raw",
     "count": "raw",
     "shares": "raw",
     "days": "raw",
+    "hours": "raw",
     "ratio": "raw",
     "fraction": "raw",
     "0/1": "raw",        # a 0/1 indicator (USREC); its change is the flip itself
@@ -141,7 +157,42 @@ DELTA_UNITS: dict[str, str] = {
 # written down per metric, and tools/validate_derived.py asserts that any value
 # here is one of the declared units rather than a typo that silently falls back.
 DELTA_UNIT_OVERRIDE = "delta_unit"
-DELTA_UNITS_ALL = ("bps", "percent", "raw", "pp")
+DELTA_UNITS_ALL = ("bps", "percent", "raw", "pp", "pts")
+
+# HOW A LEVEL PRINTS, which the split must not move (AUD-3a item 3). The
+# renderers format a level from its registry units -- "4.45%" for percent, a bare
+# number for a price -- and every one of them compares against the OLD words. So
+# each new unit names the word its level printed under before the split: the five
+# percent meanings still print as percent, and the VIX, a price until then, still
+# prints as one. A renderer reads `level_units()`, never the raw split unit.
+LEVEL_UNITS: dict[str, str] = {
+    "percent_rate": "percent",
+    "percentile": "percent",
+    "percent_return": "percent",
+    "percent_share": "percent",
+    "vol_pct": "percent",
+    "vol_index": "price",
+    "index_points": "price",
+}
+
+
+def level_units(units: Any) -> str:
+    """The units word a level is formatted under: the split units map back to the
+    word they printed as (LEVEL_UNITS); every other unit is itself."""
+    u = str(units or "")
+    return LEVEL_UNITS.get(u, u)
+
+
+def level_units_of(key_or_entry: Any) -> str:
+    """The units word one metric's level is formatted under. A block member whose
+    unit member_units overrode prints under the word it had before the override
+    (`level_as`: FRED's "%", the closes' "price"); every other entry under
+    level_units() of its units. Renderers call this, never the raw unit."""
+    e = (key_or_entry if isinstance(key_or_entry, dict)
+         else registry_entry(str(key_or_entry))) or {}
+    if e.get("level_as") is not None:
+        return str(e["level_as"])
+    return level_units(e.get("units"))
 
 # ---------------------------------------------------------------------------
 # STALENESS ALLOWANCE BY information_half_life, in SESSIONS.
@@ -198,20 +249,30 @@ def _load_registry() -> dict:
     global _REGISTRY
     if _REGISTRY is not None:
         return _REGISTRY
-    out: dict[str, dict] = {}
     try:
         import yaml  # noqa: PLC0415
         with (REPO / "metrics_registry.yaml").open(encoding="utf-8") as fp:
             reg = yaml.safe_load(fp) or {}
     except Exception:
-        _REGISTRY = out
-        return out
+        _REGISTRY = {}
+        return _REGISTRY
+    _REGISTRY = resolve_registry(reg)
+    return _REGISTRY
 
+
+def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
+    """Every key a registry dict declares, bulk members expanded, as
+    {key: entry}. Pure: tools/check_registry.py runs it over the real registry
+    and a gate over a synthetic one. `by_block`, given, collects
+    {block id: [keys it expanded to]} -- an empty list is a block that resolves
+    to nothing, the failure AUD-3a item 2 closes."""
+    import importlib  # noqa: PLC0415
+    out: dict[str, dict] = {}
     for key, m in (reg.get("metrics") or {}).items():
         if isinstance(m, dict):
             out[key] = dict(m)
 
-    for block in (reg.get("bulk_imports") or {}).values():
+    for bid, block in (reg.get("bulk_imports") or {}).items():
         if not isinstance(block, dict):
             continue
         members_from = block.get("members_from")
@@ -219,10 +280,11 @@ def _load_registry() -> dict:
         member_key = block.get("member_key")
         members_are = block.get("members_are")
         suffixes = list(block.get("member_suffixes") or [""])
-        if not members_from or not (member_key or members_are):
+        if not members_from:
             continue
+        if by_block is not None:
+            by_block.setdefault(bid, [])
         try:
-            import importlib  # noqa: PLC0415
             mod_path, attr = members_from.rsplit(".", 1)
             members = getattr(importlib.import_module(mod_path), attr)
         except Exception:
@@ -234,6 +296,13 @@ def _load_registry() -> dict:
             members = list(members.values())
         elif members_are == "keys" and isinstance(members, dict):
             members = list(members.keys())
+        # A PLAIN LIST OF NAMES (AUD-3a item 2). A block with neither member_key
+        # nor members_are names its members directly -- the overnight keys, the
+        # events table's columns, the pin log's -- and check_registry has always
+        # read it so. This resolver skipped it, so all 46 overnight.* keys and
+        # three column blocks resolved to no entry and their deltas fell to raw.
+        member_units = dict(block.get("member_units") or {})
+        member_families = dict(block.get("member_families") or {})
         for mem in members or []:
             name = (getattr(mem, member_key, None) if member_key
                     else (mem if isinstance(mem, str) else None))
@@ -244,21 +313,89 @@ def _load_registry() -> dict:
                                   "expected_members", "description",
                                   "members_are", "member_suffixes",
                                   "mechanism_group_from_member",
-                                  "mechanism_group_map")}
-            # `from_member` means "the member owns this field".
+                                  "mechanism_group_map", "member_units",
+                                  "member_families")}
+            entry["bulk_block"] = bid
+            # `from_member` means "the member owns this field". A member named as
+            # a string has no attributes: its units are the individually
+            # registered metric's whose leaf it is (the pin log's columns), as
+            # check_registry's coverage reads it -- or none, and the delta says so.
             for field in ("units", "native_horizon"):
                 if entry.get(field) == "from_member":
-                    entry[field] = getattr(mem, field, None) or getattr(
-                        mem, "freq" if field == "native_horizon" else field, None)
+                    if isinstance(mem, str):
+                        entry[field] = _leaf_field(reg, mem, field)
+                    else:
+                        entry[field] = getattr(mem, field, None) or getattr(
+                            mem, "freq" if field == "native_horizon" else field,
+                            None)
             entry["freq"] = getattr(mem, "freq", None)
             for suffix in suffixes:
-                out.setdefault(prefix + str(name) + suffix, dict(entry))
-    _REGISTRY = out
+                key = prefix + str(name) + suffix
+                e = dict(entry)
+                # ONE MEMBER'S OWN UNITS (AUD-3a item 3): ^TNX is a yield and ^VIX
+                # a volatility index inside a block of prices. Declared per store
+                # key in the block, so the exception is visible in the registry.
+                if key in member_families:            # 6e: a mixed block's member
+                    e["family"] = member_families[key]
+                if key in member_units:
+                    # A member that owns its units (`from_member`: FRED's "%")
+                    # keeps the word its level printed under before the override,
+                    # since "%" prints bare where a metric's "percent" prints with
+                    # its sign (15 Oct 2026). A block whose units are its own
+                    # (the closes' price) maps through LEVEL_UNITS: ^TNX with %,
+                    # as accepted on 15 Oct.
+                    if block.get("units") == "from_member":
+                        e["level_as"] = e.get("units")
+                    e["units"] = member_units[key]
+                out.setdefault(key, e)
+                if by_block is not None:
+                    by_block[bid].append(key)
+    # THE LENS FIELDS (6e). The `families` map names a family per key (over a
+    # block's, under a metric's own); `long_windows` the long percentile's window
+    # per key; `lens_excluded` the series that are not levels, by key or block.
+    inline = {k for k, m in (reg.get("metrics") or {}).items()
+              if isinstance(m, dict) and m.get("family")}
+    for key, fam in (reg.get("families") or {}).items():
+        if key in out and key not in inline:
+            out[key]["family"] = fam
+    for key, lw in (reg.get("long_windows") or {}).items():
+        if key in out:
+            out[key]["long_window"] = lw
+    excl = reg.get("lens_excluded") or {}
+    for key, e in out.items():
+        why = excl.get(key) or excl.get(e.get("bulk_block") or "\0")
+        if why and not e.get("family"):
+            e["lens_excluded"] = why
     return out
+
+
+def _leaf_field(reg: dict, name: str, field: str) -> Any:
+    """`field` of the one registered metric whose dotted id ends in `name`, or
+    None when no metric, or more than one, does."""
+    hits = [m.get(field) for k, m in (reg.get("metrics") or {}).items()
+            if isinstance(m, dict) and k.rsplit(".", 1)[-1] == name]
+    return hits[0] if len(hits) == 1 else None
 
 
 def registry_entry(metric_id: str) -> dict:
     return _load_registry().get(metric_id, {})
+
+
+_FORWARD: Optional[dict] = None
+
+
+def forward_dated(metric_id: str) -> Optional[str]:
+    """The registry's reason a series may be dated after its publication (an
+    effective date; W8-9), or None: metrics_registry.yaml `forward_dated`."""
+    global _FORWARD
+    if _FORWARD is None:
+        try:
+            import yaml  # noqa: PLC0415
+            with (REPO / "metrics_registry.yaml").open(encoding="utf-8") as fp:
+                _FORWARD = dict((yaml.safe_load(fp) or {}).get("forward_dated") or {})
+        except Exception:                                       # noqa: BLE001
+            _FORWARD = {}
+    return _FORWARD.get(metric_id)
 
 
 def delta_unit_for(metric_id: str) -> tuple[str, str]:
@@ -271,6 +408,9 @@ def delta_unit_for(metric_id: str) -> tuple[str, str]:
                            f"{DELTA_UNITS_ALL}; treated as raw")
         return override, f"registry delta_unit {override!r}"
     units = e.get("units")
+    if units is None and e:
+        return "raw", (f"{metric_id!r} is registered (bulk block "
+                       f"{e.get('bulk_block')!r}) with no units; treated as raw")
     if units is None:
         return "raw", (f"no registry entry for {metric_id!r}; treated as raw -- "
                        f"register the metric to give its deltas a meaning")
@@ -411,8 +551,14 @@ def rate_bp_change(level_pct: Optional[float], past_pct: Optional[float]
 
 def staleness_allowance(metric_id: str) -> tuple[Optional[int], str]:
     """How many sessions this metric may go unrefreshed before it is stale."""
-    e = registry_entry(metric_id)
-    hl = e.get("information_half_life")
+    return staleness_allowance_of(registry_entry(metric_id), metric_id)
+
+
+def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int], str]:
+    """The same rule over an entry already resolved (tools/check_store_registry.py
+    resolves a registry of its own and reads it here, so the store check and the
+    reports' confidence cannot hold two staleness rules)."""
+    hl = (e or {}).get("information_half_life")
     if hl == "until_next_release":
         freq = e.get("freq") or e.get("native_horizon")
         n = FREQ_SESSIONS.get(str(freq))
@@ -527,7 +673,9 @@ class RowCache:
         out: list[dict] = []
         for day in days:
             out.extend(by_day[day])
-        return out
+        # The source tier between rows at one instant (audit-leftovers-2), the
+        # same rule as_of() applies, so the cache still answers what the query does.
+        return observations.prefer_tier(out, metric_id)
 
 
 _CACHE: Optional[RowCache] = None
@@ -935,6 +1083,441 @@ def series_as_of(metric_id: str, as_of: Optional[str] = None,
            and _as_date(r["observed_at"]) >= start]
     out.sort()
     return out
+
+
+# ---------------------------------------------------------------------------
+# THE METRIC LENSES (6e; the brief of 1 Oct 2026, ratified at the Doctrine
+# monthly of 3-4 Oct, item 6). Each family of metrics is measured its own way:
+# a 20-session change on a monthly release is noise, a level percentile on a
+# quantity that trends says little, and a five-year percentile reads a 10-year
+# yield as "100th" while it sits far below its long history.
+#
+#   price       returns 1m / 3m / 12m / YTD; drawdown from the 52-week high
+#               with the correction and bear flags; 20-day realized volatility
+#               and its percentile; the percentile of the 12-month return
+#   rate        bp changes 1m / 3m / 12m; level percentiles
+#   spread      level percentiles; bp changes 1m / 3m; the widening flag
+#   release     year over year, 3- and 6-month annualized (6m: Batch 7 lens
+#               21); the surprise against
+#               consensus where one is held; a revision line when the latest
+#               vintage changed a prior print
+#   quantity    year-over-year change; the 3-month change in units; direction
+#   conditions  level percentile; z-score; spike against the 1-year average
+#   ratio       level percentile; 3-month trend
+#
+# THE RULES. Dual percentiles (five years and the family's long window, each
+# with its window and n); the move's own percentile through delta_percentile();
+# point-in-time only (every form reads the as-of join, and a revision line the
+# vintages knowable at the cutoff); units from the registry; a form that cannot
+# be computed carries its reason in `reasons`, never a blank or a zero; every
+# percentile carries its precomputed `_ordinal` (numeral_audit's one helper).
+# ---------------------------------------------------------------------------
+LENS_VERSION = "lenses-v1"
+FAMILIES = ("price", "rate", "spread", "release", "quantity", "conditions", "ratio")
+
+# RATIFIED 4 Oct 2026 (docs/briefs/doctrine-monthly-2026-10-minutes.md item 6).
+CORRECTION_PCT = -10.0                     # 6a: from the 52-week high
+BEAR_PCT = -20.0                           # 6a
+# 6b: per series, bp in three months -- config/metric_lenses.yaml, each with its
+# basis (ratified, or session-set under the 16 Oct ruling (d)4).
+LENS_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "metric_lenses.yaml"
+_LENS_CFG: Optional[dict] = None
+
+
+def lens_config() -> dict:
+    global _LENS_CFG
+    if _LENS_CFG is None:
+        import yaml  # noqa: PLC0415
+        with open(LENS_CONFIG_PATH, encoding="utf-8") as fh:
+            _LENS_CFG = yaml.safe_load(fh) or {}
+    return _LENS_CFG
+
+
+def widening_threshold(metric_id: str) -> tuple[Optional[float], Optional[str]]:
+    w = (lens_config().get("widening_bp_3m") or {}).get(metric_id)
+    return (float(w["bp"]), w.get("basis")) if w else (None, None)
+
+
+DISAGREEMENT_POINTS = 30.0                 # 6d: pctile_5y against pctile_long
+# 6c: the long window by family, in years or "full"; quantities carry none; the
+# registry's long_windows map overrides per series, with its reason.
+LONG_WINDOW = {"spread": 20, "conditions": 20, "rate": "full", "release": 20,
+               "ratio": 20, "price": "full", "quantity": None}
+INFLATION = re.compile(r"(^|\.)(cpi|core_cpi|pce|core_pce|sticky_cpi|sticky_core|flex_cpi"
+                       r"|breakeven)")   # 6c: inflation full history
+UNEMPLOYMENT = re.compile(r"(^|\.)(u3_rate|unemployment)")   # 6e: + a level percentile
+DIRECTION_RULE = ("rising when the 1-month and 3-month changes are both above zero, "
+                  "falling when both are below, turning otherwise (session-set, 15 Oct)")
+PCT_LEVEL_UNITS = ("%", "percent", "percent_rate", "percent_share", "fraction")
+NOT_LEVEL_UNITS = ("boolean", "label", "date", "0/1", "by_source", "None", "")
+
+
+def family_of(metric_id: str) -> tuple[Optional[str], str]:
+    """(family, why) from the registry: a family the entry carries, or None
+    with the reason (not a level series, or not registered)."""
+    e = registry_entry(metric_id)
+    if not e:
+        return None, f"{metric_id} is not registered"
+    if e.get("family") in FAMILIES:
+        if str(e.get("units")) in NOT_LEVEL_UNITS:
+            return None, (f"declared family {e['family']}, but units {e.get('units')!r}: "
+                          f"not a level series (listed for Ari)")
+        return e["family"], "registry family"
+    if e.get("lens_excluded"):
+        return None, f"not a level series: {e['lens_excluded']}"
+    return None, f"{metric_id} carries no family in the registry"
+
+
+def long_window_of(metric_id: str, family: Optional[str]) -> tuple[Any, str]:
+    """(years | "full" | None, why), the registry override first (6c)."""
+    e = registry_entry(metric_id)
+    v = e.get("long_window")
+    if v is not None and str(v) != "until_the_lenses":
+        m = re.fullmatch(r"(\d+)\s*([yd]?)", str(v).strip())
+        if str(v) == "full":
+            return "full", "the registry's long_window override"
+        if isinstance(v, (int, float)):
+            return float(v), "the registry's long_window override"
+        if m:
+            n = float(m.group(1)) / (365.25 if m.group(2) == "d" else 1.0)
+            return n, f"the registry's long_window override ({v})"
+        fam_lw = LONG_WINDOW.get(family or "")
+        return fam_lw, (f"the registry's long_window {v!r} is not a window; 6c's "
+                        f"{family} default (listed for Ari)")
+    if family == "release" and INFLATION.search(metric_id):
+        return "full", "6c: inflation, full history"
+    lw = LONG_WINDOW.get(family or "")
+    return lw, f"6c: the {family} family's long window"
+
+
+def _ord(p: Optional[float]) -> Optional[str]:
+    if p is None:
+        return None
+    from .numeral_audit import percentile_ordinal  # noqa: PLC0415
+    return percentile_ordinal(p)
+
+
+def _months_back(day: dt.date, n: int) -> dt.date:
+    y, m = divmod(day.year * 12 + (day.month - 1) - n, 12)
+    m += 1
+    last = (dt.date(y + (m == 12), m % 12 + 1, 1) - dt.timedelta(days=1)).day
+    return dt.date(y, m, min(day.day, last))
+
+
+def _at_or_before(days: list[str], vals: list[float], day: str) -> Optional[tuple[str, float]]:
+    i = _bisect.bisect_right(days, day) - 1
+    return (days[i], vals[i]) if i >= 0 else None
+
+
+def _pct_in_window(series: list[tuple[str, float]], level: float, as_of_day: dt.date,
+                   years: Any) -> dict:
+    if years is None:
+        return {"pct": None, "n": 0, "window": None,
+                "reason": "the family carries no long window (6c: quantities none)"}
+    if years == "full":
+        vals = [v for _, v in series]
+        start = series[0][0] if series else None
+        label = f"full history from {start}"
+    else:
+        lo = (as_of_day - dt.timedelta(days=int(round(365.25 * float(years))))).isoformat()
+        vals = [v for d, v in series if d >= lo]
+        label = f"{years}y"
+    if len(vals) < 2:
+        return {"pct": None, "n": len(vals), "window": label,
+                "reason": f"{len(vals)} observation(s) in the {label} window"}
+    return {"pct": percentile_of(vals, level), "n": len(vals), "window": label,
+            "reason": None}
+
+
+def _change(now: float, past: Optional[float], kind: str, bp_scale: float) -> Optional[float]:
+    if past is None:
+        return None
+    if kind == "pct":
+        return None if past == 0 else round(100.0 * (now / past - 1.0), 4)
+    if kind == "bp":
+        return round((now - past) * bp_scale, 4)
+    return round(now - past, 6)
+
+
+def lens_forms(metric_id: str, as_of: Optional[str] = None,
+               store: Optional[observations.ObservationStore] = None,
+               consensus: Optional[dict] = None) -> dict:
+    """The family's forms for one series at `as_of`, point-in-time.
+
+    `consensus`, given, is {period: value} for the release surprise; without it
+    the surprise reads a `consensus` value from the events table's release rows
+    where one is stored, and otherwise prints its reason."""
+    cutoff = as_of or session.utc_iso(timespec="microseconds")
+    fam, fam_why = family_of(metric_id)
+    e = registry_entry(metric_id)
+    units = level_units_of(e) or None
+    out: dict[str, Any] = {"metric_id": metric_id, "family": fam, "family_basis": fam_why,
+                           "as_of": cutoff, "lens_version": LENS_VERSION, "units": units,
+                           "level": None, "observed_at": None, "forms": {}, "reasons": {},
+                           "flags": {}}
+    if fam is None:
+        out["reasons"]["family"] = fam_why
+        return out
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        rows = _rows_as_of(metric_id, cutoff, st)
+        vint = ([r for r in st.all_vintages(metric_id)
+                 if str(r["available_at"]) <= observations.canonical_instant(cutoff)]
+                if fam == "release" else [])
+        mv = (delta_percentile(metric_id, as_of=cutoff, horizon=21, store=st)
+              if fam == "price" else {})
+    finally:
+        if own:
+            st.close()
+    series = sorted((str(r["observed_at"])[:10], float(r["value_num"]))
+                    for r in rows if r.get("value_num") is not None)
+    if not series:
+        out["reasons"]["level"] = f"no numeric observation knowable at {cutoff}"
+        return out
+    days = [d for d, _ in series]
+    vals = [v for _, v in series]
+    level_day, level = series[-1]
+    as_of_day = _as_date(cutoff)
+    ld = dt.date.fromisoformat(level_day)
+    out.update(level=level, observed_at=level_day)
+    F, R = out["forms"], out["reasons"]
+    bp_scale = 1.0 if str(e.get("units")) in ("bps", "bp") else 100.0
+
+    def back(months: int) -> Optional[float]:
+        hit = _at_or_before(days, vals, _months_back(ld, months).isoformat())
+        return hit[1] if hit and hit[0] < level_day else None
+
+    def put(name: str, value: Any, why: str) -> None:
+        F[name] = value
+        if value is None:
+            R[name] = why
+
+    def percentiles(long_years: Any, long_why: str) -> None:
+        p5 = _pct_in_window(series, level, as_of_day, 5)
+        pl = _pct_in_window(series, level, as_of_day, long_years)
+        for tag, p in (("pctile_5y", p5), ("pctile_long", pl)):
+            put(tag, p["pct"], p["reason"] or "")
+            F[f"{tag}_n"], F[f"{tag}_window"] = p["n"], p["window"]
+            F[f"{tag}_ordinal"] = _ord(p["pct"])
+        F["pctile_long_basis"] = long_why
+        if p5["pct"] is not None and pl["pct"] is not None:
+            out["flags"]["percentiles_disagree"] = abs(p5["pct"] - pl["pct"]) >= DISAGREEMENT_POINTS
+        else:
+            R["percentiles_disagree"] = "needs both percentiles"
+
+    lw, lw_why = long_window_of(metric_id, fam)
+    need = "no observation a full period before the latest"
+
+    if fam == "price":
+        for tag, m in (("return_1m", 1), ("return_3m", 3), ("return_12m", 12)):
+            put(tag, _change(level, back(m), "pct", 1), need)
+        ye = _at_or_before(days, vals, dt.date(ld.year - 1, 12, 31).isoformat())
+        put("return_ytd", _change(level, ye[1] if ye else None, "pct", 1),
+            "no close at the end of last year")
+        yr = [v for d, v in series if d >= (ld - dt.timedelta(days=365)).isoformat()]
+        hi = max(yr)
+        dd = round(100.0 * (level / hi - 1.0), 4) if hi else None
+        put("drawdown_52w", dd, "no 52-week high")
+        if dd is not None:
+            out["flags"]["correction"] = dd <= CORRECTION_PCT
+            out["flags"]["bear"] = dd <= BEAR_PCT
+        rets = [math.log(vals[i] / vals[i - 1]) for i in range(1, len(vals))
+                if vals[i] > 0 and vals[i - 1] > 0]
+        if len(rets) >= 21:
+            def rv(xs: list[float]) -> float:
+                return round(statistics.stdev(xs) * math.sqrt(252) * 100.0, 4)
+            cur = rv(rets[-20:])
+            lo5 = len(rets) - min(len(rets), 1260)
+            hist = [rv(rets[i - 20:i]) for i in range(max(20, lo5), len(rets) + 1)]
+            put("realized_vol_20d", cur, "")
+            F["realized_vol_20d_pctile"] = percentile_of(hist, cur)
+            F["realized_vol_20d_pctile_n"] = len(hist)
+            F["realized_vol_20d_pctile_ordinal"] = _ord(F["realized_vol_20d_pctile"])
+        else:
+            put("realized_vol_20d", None, f"{len(rets)} daily returns; 20 needed")
+        r12 = []
+        for i, d in enumerate(days):
+            hit = _at_or_before(days, vals, _months_back(dt.date.fromisoformat(d), 12).isoformat())
+            if hit and hit[0] < d and hit[1]:
+                r12.append(100.0 * (vals[i] / hit[1] - 1.0))
+        if F.get("return_12m") is not None and len(r12) >= 2:
+            F["return_12m_pctile"] = percentile_of(r12, F["return_12m"])
+            F["return_12m_pctile_n"] = len(r12)
+            F["return_12m_pctile_window"] = "full history (6c)"
+            F["return_12m_pctile_ordinal"] = _ord(F["return_12m_pctile"])
+        else:
+            R["return_12m_pctile"] = "needs a 12-month return and a history of them"
+        put("move_1m_pctile", mv.get("percentile"), mv.get("absent_reason") or "")
+        F["move_1m_pctile_n"] = mv.get("n")
+        F["move_1m_pctile_ordinal"] = _ord(mv.get("percentile"))
+    elif fam in ("rate", "spread"):
+        months = (1, 3, 12) if fam == "rate" else (1, 3)
+        for m in months:
+            put(f"change_{m}m_bp", _change(level, back(m), "bp", bp_scale), need)
+        percentiles(lw, lw_why)
+        if fam == "spread":
+            th, basis = widening_threshold(metric_id)
+            ch = F.get("change_3m_bp")
+            if th is None:
+                R["widening"] = "no widening threshold for this series in config/metric_lenses.yaml"
+            elif ch is None:
+                R["widening"] = need
+            else:
+                out["flags"]["widening"] = ch >= th
+                F["widening_threshold_bp"] = th
+                F["widening_threshold_basis"] = basis
+    elif fam == "release":
+        pct_like = str(e.get("units")) in PCT_LEVEL_UNITS or units in PCT_LEVEL_UNITS
+        kind = "pp" if pct_like else "pct"
+        put("yoy", _change(level, back(12), kind, 1), need)
+        F["yoy_unit"] = "pp" if pct_like else "%"
+        b3, b6 = back(3), back(6)
+        if pct_like:
+            put("change_3m", _change(level, b3, "pp", 1), need)
+            F["change_3m_unit"] = "pp"
+            # Batch 7 lens 21 (6e-releases): six months beside three, every release.
+            put("change_6m", _change(level, b6, "pp", 1), need)
+        else:
+            ann = (round(100.0 * ((level / b3) ** 4 - 1.0), 4)
+                   if b3 and b3 > 0 and level > 0 else None)
+            put("annualized_3m", ann, need)
+            ann6 = (round(100.0 * ((level / b6) ** 2 - 1.0), 4)
+                    if b6 and b6 > 0 and level > 0 else None)
+            put("annualized_6m", ann6, need)
+        if UNEMPLOYMENT.search(metric_id):
+            percentiles(lw, lw_why)            # 6e: a level percentile added
+        cons = (consensus or {}).get(level_day)
+        sc = lens_config().get("surprise") or {}
+        if cons is None and consensus is None:
+            # Ruling (d)6, 16 Oct 2026: no free consensus source; nothing guessed.
+            F["surprise_state"] = sc.get("state", "no consensus")
+            R["surprise"] = sc.get("reason", "no consensus")
+        elif cons is None:
+            R["surprise"] = f"no consensus held for {level_day}"
+        else:
+            F["surprise"] = round(level - float(cons), 6)
+            F["consensus"] = float(cons)
+        rev = _revision_line(vint, level_day, pct_like, units)
+        if rev:
+            F["revision"] = rev
+        else:
+            R["revision"] = "the latest vintage changed no prior print"
+    elif fam == "quantity":
+        put("yoy_pct", _change(level, back(12), "pct", 1), need)
+        put("change_3m_units", _change(level, back(3), "raw", 1), need)
+        F["change_3m_units_unit"] = units
+        c1 = _change(level, back(1), "raw", 1)
+        c3 = F.get("change_3m_units")
+        if c1 is None or c3 is None:
+            R["direction"] = need
+        else:
+            F["direction"] = ("rising" if c1 > 0 and c3 > 0 else
+                              "falling" if c1 < 0 and c3 < 0 else "turning")
+            F["direction_rule"] = DIRECTION_RULE
+    elif fam == "conditions":
+        percentiles(lw, lw_why)
+        lo5 = (as_of_day - dt.timedelta(days=1826)).isoformat()
+        w5 = [v for d, v in series if d >= lo5]
+        put("z_5y", z_of(w5, level), f"{len(w5)} observation(s) in five years")
+        yr = [v for d, v in series if d >= (ld - dt.timedelta(days=365)).isoformat()]
+        avg = statistics.fmean(yr) if yr else None
+        put("spike_vs_1y_avg_pct", round(100.0 * (level / avg - 1.0), 4) if avg else None,
+            "no 1-year average")
+    elif fam == "ratio":
+        percentiles(lw, lw_why)
+        put("trend_3m", _change(level, back(3), "raw", 1), need)
+        if F.get("trend_3m") is not None:
+            F["trend_3m_direction"] = ("up" if F["trend_3m"] > 0 else
+                                       "down" if F["trend_3m"] < 0 else "flat")
+    # THE LENSES OTHER ORDERS BIND TO 6e (16 Oct 2026). A gap whose sign is the
+    # finding (the core CPI less core PCE gap) flags the flip and dates it.
+    if metric_id in (lens_config().get("sign_flip") or []):
+        out["flags"]["sign_flipped"] = level < 0
+        since = None
+        for d, v in reversed(series):
+            if (v < 0) != (level < 0):
+                break
+            since = d
+        F["sign_since"] = since
+    # The 10-year's anchors and fair value (Batch 4 section 4.1, SR-43): read
+    # from altdata/rates_anchors.py, which owns the fits; printed as forms here.
+    if metric_id in (lens_config().get("anchored_rates") or []):
+        _anchor_forms(out, cutoff, store)
+    out["forms_shown"] = [k for k in F if not k.endswith(("_n", "_window", "_ordinal",
+                                                          "_basis", "_unit", "_rule"))]
+    return out
+
+
+def _anchor_forms(out: dict, cutoff: str,
+                  store: Optional[observations.ObservationStore]) -> None:
+    """The SR-43 inflation anchor and the 10-year's fair value as rate-family
+    forms: the gap to the trailing ten-year CPI average, the inflation fit's and
+    the twin-deficit fit's fitted yields and their gaps, the term premium. Each
+    absent part carries its reason; the tag says what the fits are."""
+    from . import rates_anchors  # noqa: PLC0415
+    F, R = out["forms"], out["reasons"]
+    own = store is None
+    st = store or observations.ObservationStore()
+    try:
+        r = rates_anchors.read(st, cutoff)
+    finally:
+        if own:
+            st.close()
+    F["anchors_tag"] = r.get("tag")
+    ia, fa, tp = r.get("inflation") or {}, r.get("fiscal") or {}, r.get("term_premium")
+    if ia.get("state") == "ok":
+        F["inflation_anchor_pct"] = round(ia["anchor_pct"], 4)
+        F["inflation_anchor_gap_bp"] = round(ia["gap_bp"], 1)
+        if ia.get("fitted_pct") is not None:
+            F["fair_value_inflation_pct"] = round(ia["fitted_pct"], 4)
+            F["fair_value_inflation_gap_bp"] = round(ia["residual_bp"], 1)
+        else:
+            R["fair_value_inflation_pct"] = ia.get("fit_note") or "no fit"
+    else:
+        R["inflation_anchor_gap_bp"] = ia.get("reason") or "absent"
+        R["fair_value_inflation_pct"] = ia.get("reason") or "absent"
+    if fa.get("state") == "ok" and fa.get("us_fitted_pct") is not None:
+        F["fair_value_fiscal_pct"] = round(fa["us_fitted_pct"], 4)
+        F["fair_value_fiscal_gap_bp"] = round(fa["gap_bp"], 1)
+        F["fair_value_fiscal_n"] = fa.get("n")
+    else:
+        R["fair_value_fiscal_pct"] = fa.get("reason") or "the US is not in the fit"
+    if tp:
+        F["term_premium_pct"] = tp["pct"]
+    else:
+        R["term_premium_pct"] = "the ACM term premium is not stored"
+
+
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _revision_line(vint: list[dict], latest_period: str, pct_like: bool,
+                   units: Optional[str]) -> Optional[str]:
+    """"Aug revised 3.1% -> 3.3%" when the vintage that brought the latest print
+    also changed a prior one. Reads only vintages knowable at the cutoff, and
+    never rewrites a published figure: both numbers are stored vintages."""
+    if not vint:
+        return None
+    first_avail = min((str(r["available_at"]) for r in vint
+                       if str(r["observed_at"])[:10] == latest_period), default=None)
+    if first_avail is None:
+        return None
+    by: dict[str, list[tuple[str, float]]] = {}
+    for r in vint:
+        if r.get("value_num") is not None:
+            by.setdefault(str(r["observed_at"])[:10], []).append(
+                (str(r["available_at"]), float(r["value_num"])))
+    lines = []
+    for period in sorted(by)[-4:-1]:
+        vs = sorted(by[period])
+        before = [v for a, v in vs if a < first_avail]
+        now = [v for a, v in vs if a >= first_avail]
+        if before and now and now[-1] != before[-1]:
+            mon = _MONTHS[int(period[5:7]) - 1]
+            fmt = (lambda x: f"{x:.1f}%") if pct_like else (lambda x: f"{x:,.1f}")
+            lines.append(f"{mon} revised {fmt(before[-1])} -> {fmt(now[-1])}")
+    return "; ".join(lines) or None
 
 
 def _main(argv: list[str]) -> int:

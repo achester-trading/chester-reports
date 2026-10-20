@@ -62,6 +62,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 from altdata import session                       # noqa: E402
+from altdata.ibkr_clients import CLIENT_IDS       # noqa: E402
 from register import instruments, manifest        # noqa: E402
 from register.store import (                      # noqa: E402
     BOOKS, CURRENCY_EXPOSURES, DIRECTIONS, EXPRESSION_FAMILIES, HORIZONS,
@@ -398,9 +399,44 @@ def packet_args(args) -> dict:
             "red_team_review_minutes": args.red_team_minutes}
 
 
+def meme_draft_for(reg, args) -> tuple:
+    """(the draft row, None) for `record --meme-packet`, or (None, why not).
+    The operator's confirm of a chester-meme draft (meme-ingest-ledgers-1): the
+    decision is written as every decision is, and must be the draft's own --
+    the same instrument, the same direction, Book D -- of a draft still awaiting
+    review."""
+    pid = getattr(args, "meme_packet", None)
+    if not pid:
+        return None, None
+    try:
+        row = reg.conn.execute("SELECT * FROM meme_drafts WHERE packet_id = ?",
+                               (pid,)).fetchone()
+    except Exception:                                           # noqa: BLE001
+        return None, "no meme draft table here (the ingest has not run)"
+    if row is None:
+        return None, f"no meme draft {pid}"
+    row = dict(row) if not isinstance(row, dict) else row
+    if row["review"] != "awaiting":
+        return None, f"meme draft {pid} is already {row['review']}"
+    if instruments.normalise(args.instrument) != row["instrument_norm"]:
+        return None, (f"--instrument {args.instrument} is not the draft's "
+                      f"{row['ticker']}")
+    if args.direction != row["direction"]:
+        return None, f"--direction {args.direction} is not the draft's {row['direction']}"
+    if (args.book or "D") != "D":
+        return None, "a meme draft is Book D"
+    return row, None
+
+
 def cmd_record(args) -> int:
     reg = Register(args.db)
     try:
+        meme_row, meme_why = meme_draft_for(reg, args)
+        if meme_why:
+            print(f"REFUSED: {meme_why}. Nothing written.")
+            return 2
+        if meme_row is not None and not args.book:
+            args.book = "D"
         norm = instruments.normalise(args.instrument)
         hit = reg.restrictions.check(args.instrument)
         run_id = args.run_id or session.new_run_id("decide")
@@ -661,6 +697,14 @@ def cmd_record(args) -> int:
                          refusal_source="decide.py",
                          **packet_args(args))
         pid = reg.attach_packet(did, pkt)
+        if meme_row is not None:
+            # The meme draft's review columns, and only them (its packet is
+            # immutable): confirmed, with the decision it became.
+            reg.conn.execute("UPDATE meme_drafts SET review = 'confirmed', reviewed_at = ?, "
+                             "decision_id = ? WHERE packet_id = ?",
+                             (session.utc_iso(), did, meme_row["packet_id"]))
+            reg.conn.commit()
+            print(f"    meme draft  : {meme_row['packet_id']} confirmed")
         print(f"\n  RECORDED{'  (DECISION_BLOCKED)' if blocked_reason else ''}")
         print(f"    decision id : {did}")
         print(f"    packet id   : {pid}  (immutable)")
@@ -718,6 +762,51 @@ def _expected_cost_line(raw) -> str:
             f"{bp} [{ec_.get('mode')}, {n} expression warning(s)]"
             + (f", INHERITED from {ec_['inherited_from']}"
                if ec_.get("inherited_from") else ""))
+
+
+def cmd_meme_drafts(args) -> int:
+    """The chester-meme drafts awaiting review, read-only."""
+    reg = Register(args.db)
+    try:
+        try:
+            rows = reg.conn.execute(
+                "SELECT packet_id, as_of, session, ticker, direction, phase, expires, "
+                "quality, review FROM meme_drafts WHERE review = ? OR ? ORDER BY as_of, "
+                "packet_id", ("awaiting", 1 if args.all else 0)).fetchall()
+        except Exception:                                       # noqa: BLE001
+            print("no meme drafts here (the ingest has not run)")
+            return 0
+        for r in rows:
+            r = dict(r)
+            print(f"  {r['packet_id']}  {r['as_of']} {r['session']}  {r['ticker']:<8} "
+                  f"{r['direction']:<5} {r['phase']:<8} expires {r['expires']}  "
+                  f"{r['quality']:<10} {r['review']}")
+        print(f"{len(rows)} draft(s)")
+        return 0
+    finally:
+        reg.close()
+
+
+def cmd_meme_reject(args) -> int:
+    """The operator's reject of a chester-meme draft: its review columns only."""
+    reg = Register(args.db)
+    try:
+        row = reg.conn.execute("SELECT review FROM meme_drafts WHERE packet_id = ?",
+                               (args.packet_id,)).fetchone()
+        if row is None:
+            print(f"REFUSED: no meme draft {args.packet_id}")
+            return 2
+        if row[0] != "awaiting":
+            print(f"REFUSED: meme draft {args.packet_id} is already {row[0]}")
+            return 2
+        reg.conn.execute("UPDATE meme_drafts SET review = 'rejected', reviewed_at = ?, "
+                         "review_note = ? WHERE packet_id = ?",
+                         (session.utc_iso(), args.reason, args.packet_id))
+        reg.conn.commit()
+        print(f"meme draft {args.packet_id} rejected: {args.reason}")
+        return 0
+    finally:
+        reg.close()
 
 
 def cmd_list(args) -> int:
@@ -1379,10 +1468,20 @@ def main() -> int:
     r.add_argument("--preview-port", type=int, default=4002,
                    help="4002 Gateway paper (default), 4001 live. The port is "
                         "the mode.")
-    r.add_argument("--preview-client-id", type=int, default=18)
+    r.add_argument("--preview-client-id", type=int, default=CLIENT_IDS["whatif"])
     r.add_argument("--allow-live", action="store_true",
                    help="Permit a preview against a LIVE port.")
+    r.add_argument("--meme-packet", default=None, metavar="PACKET_ID",
+                   help="Confirm a chester-meme draft (altdata/meme_ingest.py): the "
+                        "decision must be the draft's instrument and direction, Book D.")
     r.set_defaults(func=cmd_record)
+    md = sub.add_parser("meme-drafts", help="list chester-meme drafts (read-only)")
+    md.add_argument("--all", action="store_true", help="every review state")
+    md.set_defaults(func=cmd_meme_drafts)
+    mr = sub.add_parser("meme-reject", help="reject a chester-meme draft (the operator's)")
+    mr.add_argument("packet_id")
+    mr.add_argument("--reason", required=True)
+    mr.set_defaults(func=cmd_meme_reject)
 
     ss = sub.add_parser("set-status",
                         help="change a decision's status by superseding it")

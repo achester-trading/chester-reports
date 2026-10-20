@@ -272,7 +272,7 @@ if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     if len(sys.argv) > 1 and sys.argv[1] == "crosscheck":
-        with observations.ObservationStore() as _st:
+        with observations.open_writer(__name__) as _st:
             r = crosscheck(_st)
         for m in r["months"]:
             print(f"  {m['month']}  SAFE {m['safe']:>14,.0f}  IFS {m['ifs']:>14,.0f}  "

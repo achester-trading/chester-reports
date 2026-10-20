@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from altdata import observations, session
-from daily_cascade import readability
+from daily_cascade import audit_retry, readability
 
 from .narrative import TEMPLATE_PATH
 
@@ -133,6 +133,30 @@ DISPLAY_RULE = (" A level or change that carries a latest_level_display or "
                 "\"+42,984 contracts\", \"+29,000 jobs\") -- never as a raw number "
                 "and never without its noun: a change of 10,000 or more printed "
                 "without its unit, scale or noun withholds the paragraph.")
+# THE FRAME RULES OF T3.6 (the Monthly dry run of 13 Oct 2026), on every frame
+# that carries the display rule:
+#   M1  a figure's ROLE: "closed at" and "the close" bind to a close, never to an
+#       average -- the long frame's columns are averages beside the close;
+#   M7  a small count in words ("two of the next four meetings"): the numeral
+#       audit reads numerals only, so a count in words is exempt by construction
+#       and a bare "2" the data does not hold is withheld;
+#   M10 two dollar series print in the Monthly (the DXY and the Fed's broad
+#       index): name the one cited, never "the dollar" beside a level.
+ROLE_RULE = (" Every figure has a role -- a close, an average, a percentile, a "
+             "change, a level -- and the words beside it must fit that role: "
+             "\"closed at\", \"the close\" and \"ended the month at\" bind ONLY to "
+             "a close, never to an average; a 40-week, 10-month or 20-month figure "
+             "is an average and is written as one (\"its 40-week average of "
+             "...\").")
+COUNT_RULE = (" A small count -- of meetings, sessions, markets, gaps -- is written "
+              "in words (\"two of the next four meetings\"), never as a bare "
+              "numeral.")
+DOLLAR_RULE = (" Two dollar series print in this report -- the dollar index (DXY) "
+               "and the Fed's broad trade-weighted dollar index: a dollar level or "
+               "move names the series it is (\"the dollar index (DXY) at ...\", "
+               "\"the Fed's broad dollar index at ...\"), never a bare \"the "
+               "dollar\" beside a figure.")
+T36_RULES = ROLE_RULE + COUNT_RULE + DOLLAR_RULE
 ORDINAL_RULE = (" A percentile ordinal is copied exactly as it is printed -- from "
                 "the table, or from its _ordinal field -- never re-rounded from a "
                 "decimal: \"the 100th percentile\" stays 100th.")
@@ -153,7 +177,7 @@ def system_prompt(title: str, scope: str, paragraphs: str = "2 to 4") -> str:
     from daily_cascade import narrative as base
     return base.SYSTEM_PROMPT + SECTION_RULES.format(
         title=title, scope=scope, paragraphs=paragraphs, figure_cap=_cap_word(),
-        ordinals=ORDINAL_RULE, display=DISPLAY_RULE + vocab_frame())
+        ordinals=ORDINAL_RULE, display=DISPLAY_RULE + T36_RULES + vocab_frame())
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +393,8 @@ def plan(p: dict) -> list[dict]:
                      "is ONE short paragraph whose first sentence is a plain-English "
                      "headline, followed by what is happening, why it matters, and "
                      "what it means for positioning. Build them from the facts "
-                     "given; one takeaway per paragraph, in order of importance.",
+                     "given; one takeaway per paragraph, in order of importance. "
+                     "Say each thing once: no takeaway restates another.",
             "paragraphs": "exactly 5", "slice": takeaways_slice(p)}]
     for t in ((p.get("looking_back") or {}).get("themes") or []):
         out.append({"key": f"theme:{t['theme']}", "title": t["name"],
@@ -547,6 +572,12 @@ CLAIM_ONLY = ("narratives",)
 MONTHLY_FRAMES = ("the weeks of the month first, then the month as a whole, then "
                   "where the month sits in the long frame.")
 MONTHLY_NOTES = {
+    "tape": (
+        "\n\nTHE LONG FRAME'S COLUMNS AND THEIR ROLES: 'Month-end close' is the "
+        "close; the 40-week, 10-month and 20-month columns are AVERAGES of past "
+        "closes, never a close and never where a market ended the month; 'From "
+        "the 52-week high' is a percentage distance. A market 'closed' or "
+        "'ended' only at its month-end close."),
     "mechanics": (
         "\n\nTHE DEALER RETROSPECTIVE: how the market behaved against dealer "
         "positioning over the month, never what to do about it. Every figure "
@@ -653,7 +684,7 @@ def stack_plan(ed: dict) -> list[dict]:
         system += (sp.SECTION_NOTES.get(s["id"], "") + MONTHLY_NOTES.get(s["id"], "")
                    + parent_note(s)
                    + (policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                   + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE + vocab_frame())
+                   + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE + T36_RULES + vocab_frame())
         out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
                     "sid": s["id"], "system": system,
                     "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
@@ -721,7 +752,7 @@ def block_plan(ed: dict) -> list[dict]:
             sl = block_slice(s, ss, ed)
             system += ((spec.get("note") or "") + MONTHLY_NOTES.get(s["id"], "")
                        + (policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                       + DISPLAY_RULE + vocab_frame()
+                       + DISPLAY_RULE + T36_RULES + vocab_frame()
                        + (BLOCK_FRAME_NOTE.format(cap=_cap_word().lower(),
                                                   filler=sp.FILLER_RULE)
                           if "figures_you_may_cite" in sl else
@@ -792,6 +823,13 @@ or claim the section does not print. No headings, bullets, lists or bold. Write
 about the market, never about this report or its sections.
 """
 SUMMARY_WITHHELD = "(summary withheld — audit)"
+# THE NARRATIVES' SUMMARY CITES ITS SOURCES' DELTAS (T3.6 M8): withheld three
+# times on bare_delta, each a positioning or survey change without its noun.
+SOURCED_SUMMARIES = ("narratives",)
+SOURCE_RULE = (" EVERY CHANGE IN THIS PARAGRAPH CARRIES ITS SOURCE AND ITS NOUN "
+               "beside it, copied as the section prints it: \"+42,984 contracts "
+               "(CFTC)\", \"+3.1 points (AAII)\" -- never a bare number, never a "
+               "change without the publisher that reported it.")
 
 
 def voice(ed: Optional[dict]) -> tuple[str, str, str]:
@@ -846,9 +884,11 @@ def summary_plan(ed: dict, sections: Optional[list] = None) -> list[dict]:
         cite = "; ".join(f"{f['series']} {f.get('change') or f.get('level')}"
                          for f in frame["figures_you_may_cite"]) or "none"
         system += ((policy_word_frame() if s["id"] in POLICY_SECTIONS else "")
-                   + DISPLAY_RULE + vocab_frame()
+                   + DISPLAY_RULE + T36_RULES + vocab_frame()
                    + SUMMARY_CITE.format(n=_cap_word(len(frame["figures_you_may_cite"]))
                                          .lower(), figures=cite))
+        if s["id"] in SOURCED_SUMMARIES:
+            system += SOURCE_RULE
         out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
                     "kind": "stack", "sid": s["id"], "system": system,
                     "max_chars": 1400, "slice": reader_slice(frame),
@@ -921,10 +961,147 @@ def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
     # sign of the change the section prints in its month column, and "bullish on
     # inflation" is refused. Withheld on the same messages.
     out += direction_faults(text, sec, ed) + readability.stance_faults(text)
+    # T3.6: the role audit (M1), the display form (M9), the dollar's label (M10).
+    out += t36_faults(text, sec, ed)
     if sec["sid"] == "mechanics" and ed.get("_retro"):
         from . import dealer                                    # noqa: PLC0415
         out += dealer.flag_word_faults(text, ed["_retro"])
     return out
+
+
+def _payloads(sec: dict, ed: Optional[dict]) -> list:
+    """What a frame's figures are held to: its slice, its audit widening, and the
+    edition's sections as they print (their tables and data)."""
+    out = [sec.get("slice"), sec.get("audit_extra")]
+    for x in (ed or {}).get("sections") or []:
+        out.append({"table": x.get("table"), "data": x.get("data"),
+                    "subsections": [{"table": ss.get("table"), "data": ss.get("data")}
+                                    for ss in x.get("subsections") or []]})
+    return out
+
+
+def t36_faults(text: str, sec: dict, ed: Optional[dict]) -> list[str]:
+    """T3.6's checks on one frame: a figure's role (M1), the display form of a
+    large figure (M9), the dollar's name (M10)."""
+    from altdata import numeral_audit as na                     # noqa: PLC0415
+    pay = _payloads(sec, ed)
+    return (na.role_faults(text, pay) + na.separator_faults(text)
+            + dollar_label_faults(text, pay))
+
+
+_DOLLAR_LABEL = re.compile(r"dollar|\bdxy\b", re.I)
+_DOLLAR_NOT = re.compile(r"-(?:yen|yuan)|real|yen|yuan|cftc|speculator|net", re.I)
+_DOLLAR_KEYS = ("close", "level", "value", "end_level", "latest", "last")
+
+
+def dollar_series(payload, _out: Optional[dict] = None, _depth: int = 0) -> dict:
+    """{label: {values}} -- every dollar series the payload prints a level of
+    (the DXY, the Fed's broad index), by its own label."""
+    out = {} if _out is None else _out
+    if _depth > 12:
+        return out
+    if isinstance(payload, dict):
+        lab = next((str(payload[k]) for k in ("market", "name", "series", "label")
+                    if isinstance(payload.get(k), str)), "")
+        if lab and _DOLLAR_LABEL.search(lab) and not _DOLLAR_NOT.search(lab):
+            for k in _DOLLAR_KEYS:
+                v = payload.get(k)
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    out.setdefault(lab, set()).add(round(float(v), 2))
+        cols, rows = payload.get("columns"), payload.get("rows")
+        if isinstance(cols, list) and isinstance(rows, list):
+            for r in rows:
+                if not isinstance(r, (list, tuple)) or not r:
+                    continue
+                lab = str(r[0])
+                if not _DOLLAR_LABEL.search(lab) or _DOLLAR_NOT.search(lab):
+                    continue
+                for j, c in enumerate(r[1:], start=1):
+                    h = str(cols[j]).lower() if j < len(cols) else ""
+                    m = re.match(r"^\$?(\d[\d,]*\.\d+)$", str(c).strip())
+                    if m and ("close" in h or "level" in h or "last" in h):
+                        out.setdefault(lab, set()).add(
+                            round(float(m.group(1).replace(",", "")), 2))
+        for v in payload.values():
+            if isinstance(v, (dict, list, tuple)):
+                dollar_series(v, out, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            dollar_series(v, out, _depth + 1)
+    return out
+
+
+_BARE_DOLLAR = re.compile(r"\b(?:the\s+)?(?:US\s+)?dollar\b(?!\s+index|\s*\(|['’]s"
+                          r"\s+broad|-)", re.I)
+_NAMED_BEFORE = re.compile(r"(?:broad|trade-weighted|index|DXY)[\s\w'’]*$", re.I)
+
+
+def dollar_label_faults(text: str, payload) -> list[str]:
+    """[] or one fault line: "the dollar" bound to a level of one of TWO dollar
+    series the edition prints (W-1.1a item 6's label rule, the Monthly's). With
+    one dollar series, "the dollar" is its alias and passes."""
+    series = dollar_series(payload)
+    if len(series) < 2 or not text:
+        return []
+    from altdata import numeral_audit as na                     # noqa: PLC0415
+    bad = []
+    for sent in re.split(r"(?<=[.!?])\s+", text):
+        for m in _BARE_DOLLAR.finditer(sent):
+            if _NAMED_BEFORE.search(sent[max(0, m.start() - 25):m.start()]):
+                continue
+            tail = re.split(r"[;:,()—–]", sent[m.end():m.end() + 70])[0]
+            for f in na.extract(tail):
+                hit = [lab for lab, vals in series.items()
+                       if any(abs(abs(f.value) - v) <= 0.006 for v in vals)]
+                if hit and not f.is_percent:
+                    others = "; ".join(f"{lab} {', '.join(f'{v:,.2f}' for v in sorted(vs))}"
+                                       for lab, vs in sorted(series.items()))
+                    bad.append(f"'{m.group(0).strip()} ... {f.text}' is {hit[0]}; "
+                               f"the edition prints {others}")
+    if not bad:
+        return []
+    return ["a dollar level printed as 'the dollar' where two dollar series print -- "
+            "name the series: " + "; ".join(bad)]
+
+
+def gap_faults(text: str, ed: Optional[dict]) -> list[str]:
+    """T3.6 M5: a direction word about a GAP is held to that gap's direction over
+    the month (rising: its |z| grew; falling: it shrank), as the misfit section's
+    data carries it. A clause naming a gap is read against that gap; a clause
+    about "the gaps" in general against all of them when they agree."""
+    gaps = []
+    for x in (ed or {}).get("sections") or []:
+        if x.get("id") == "misfit":
+            gaps = [g for g in (x.get("data") or {}).get("gaps") or []
+                    if g.get("direction") in ("rising", "falling")]
+    if not gaps or not text:
+        return []
+    from daily_cascade import direction as dmod                 # noqa: PLC0415
+    lex = dmod._words(dmod.lexicon())
+    lex.update({"widened": 1, "widening": 1, "widens": 1, "grew": 1, "growing": 1,
+                "narrowed": -1, "narrowing": -1, "narrows": -1, "shrank": -1,
+                "shrinking": -1, "closing": -1})
+    sign = {"rising": 1, "falling": -1}
+    bad = []
+    for sent in re.split(r"(?<=[.!?])\s+", text):
+        low = sent.lower()
+        named = [g for g in gaps if str(g.get("gap") or "").lower() in low]
+        generic = not named and re.search(r"\bgaps?\b", low)
+        if not named and not generic:
+            continue
+        words_ = [(w, lex[w]) for w in re.findall(r"[a-z]+", low) if w in lex]
+        if not words_:
+            continue
+        word, d = words_[0]
+        targets = named or gaps
+        actual = {sign[g["direction"]] for g in targets}
+        if len(actual) == 1 and actual.pop() != d:
+            bad.append(f"'{sent.strip()[:90]}': '{word}' against "
+                       + ", ".join(f"{g['gap']} {g['direction']} (z {g.get('z')})"
+                                   for g in targets))
+    if not bad:
+        return []
+    return ["direction audit failed on the gaps: " + "; ".join(bad)]
 
 
 def direction_faults(text: str, sec: dict, ed: dict) -> list[str]:
@@ -934,41 +1111,55 @@ def direction_faults(text: str, sec: dict, ed: dict) -> list[str]:
     from daily_cascade import direction                         # noqa: PLC0415
     if not ed:
         return []
-    return direction.faults(text, direction.edition_moves(
+    out = direction.faults(text, direction.edition_moves(
         ed, sec.get("sid"), MONTH_COLUMN))
+    if sec.get("sid") in ("misfit", "read"):
+        out += gap_faults(text, ed)
+    return out
 
 
 # Withheld for a reason the prose cannot fix (Reader's Guide 5.3): no client, the
 # API call failed, a payload past its guard, an empty reply, a reply that overran
 # its length. Only an AUDIT's refusal is retried.
 #
-# THREE ATTEMPTS FOR EVERY SECTION (T3.3 item 4, the second box dry run): the
-# first, and two retries, each with the audit's reason fed back. Where the draft
-# ran over the figure cap the retry says exactly how far, in one fixed sentence
-# (CAP_RETRY) -- the 10 Oct retries were told only "at most 8" and came back over
-# it again. The caps themselves are not raised.
-ATTEMPTS = 3
+# ONE REVISION, THE STACK'S (the a47 chain, 19 Oct 2026; weekly-fixes-9's ruling
+# 1): the draft, then one revision told the rule it broke, the failing span and
+# the draft itself (audit_retry.revision_note), as the stack, the precis, the
+# close and the anchor are; a second failure is withheld with both reasons kept.
+# T3.3's three attempts are retired with it. Where the draft ran over the figure
+# cap the revision still says exactly how far, in one fixed sentence (CAP_RETRY)
+# -- the 10 Oct retries were told only "at most 8" and came back over it again.
+# The caps themselves are not raised.
+ATTEMPTS = audit_retry.ATTEMPTS
 CAP_RETRY = "your draft cited {n} figures; the cap is {m}; remove figures, keep the reading"
 
 
 def retry_prompt(system: str, prev: dict, sl: Optional[dict] = None) -> str:
-    """The prompt for the next attempt: the frame, the audit's reason, and --
-    when the draft ran over the cap -- the count and the cap; after the
-    numeral audit, the figures it refused and those `sl` allows (T3.5)."""
-    out = (system + "\n\nYOUR PREVIOUS DRAFT OF THIS SECTION WAS WITHHELD BY THE "
-           "AUDIT: " + str(prev.get("reason"))[:600])
+    """The prompt for the one revision: the frame, then the stack's revision note
+    (the withhold and the rule it broke, the failing span, the draft), with this
+    writer's own lines beside the rule -- the words refused, the count against the
+    cap, and after the numeral audit the figures it refused and those `sl` allows
+    (T3.5). Without a draft, the note and the lines, and the old closing line."""
+    note = audit_retry.revision_note(str(prev.get("reason")), prev.get("rejected_text"))
+    note = note.replace("YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1)
+    extra = ""
     if prev.get("vocab_words"):
-        out += "\n" + VOCAB_RETRY.format(
+        extra += "\n" + VOCAB_RETRY.format(
             words=", ".join(f'"{w}"' for w in prev["vocab_words"]), rule=VOCAB_RULE)
     if prev.get("figures_over"):
         n, m = prev["figures_over"]
-        out += "\n" + CAP_RETRY.format(n=n, m=m)
+        extra += "\n" + CAP_RETRY.format(n=n, m=m)
     if prev.get("unmatched"):
-        out += "\n" + FIGURE_RETRY.format(
+        extra += "\n" + FIGURE_RETRY.format(
             figures=", ".join(f'"{f}"' for f in prev["unmatched"][:12]),
             allowed=allowed_figures(sl) or "none -- write the reading without figures")
-    return out + ("\nWrite it again from the same data, fixing exactly that and "
-                  "changing nothing else.")
+    # The writer's own lines sit with the rule, before the note's closing line
+    # (and so before the span and the draft).
+    for cut in ("\nWrite it again from the same data", "\nTHE FAILING SPAN"):
+        if cut in note:
+            head, tail = note.split(cut, 1)
+            return system + head + extra + cut + tail
+    return system + note + extra
 
 
 # THE RETRY NAMES THE FIGURES (T3.5 (b), as W-1.1's did for the Weekly): after the
@@ -993,6 +1184,10 @@ def allowed_figures(sl: Optional[dict]) -> str:
     return "; ".join(rows)
 
 
+TIGHTER = 0.7
+TOO_LONG_RETRY = ("YOUR PREVIOUS DRAFT RAN PAST THE {n} CHARACTERS ALLOWED. Write it "
+                  "again in at most {cap} characters: fewer sentences, the same "
+                  "reading, every figure as the data gives it.")
 NOT_RETRIED = ("fault", "unavailable", "call_failed", "prompt_too_large",
                "payload_too_large", "empty", "too_long")
 
@@ -1008,8 +1203,8 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
               ed: Optional[dict] = None,
               secs: Optional[list[dict]] = None) -> dict:
     """{section key: result}, one audited call each -- and, for a section the
-    audit withholds, up to two retries (ATTEMPTS, T3.3) with the audit's reason
-    fed back (T3: the stack's retry, extended to the Monthly's section writer).
+    audit withholds, one revision (ATTEMPTS, the stack's: the rule, the failing span
+    and the draft fed back; audit_retry.revision_note). Withheld on a second failure.
     Never raises.
 
     With `ed` (the stacked edition, monthly_macro.stack), the stack's own
@@ -1029,6 +1224,12 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
         secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
 
     def attempt(sec: dict, system: str) -> dict:
+        """One call, metered under the section's key (AUD-2 item 4)."""
+        from altdata import model_meter                         # noqa: PLC0415
+        with model_meter.scope(section=sec.get("key")):
+            return _attempt(sec, system)
+
+    def _attempt(sec: dict, system: str) -> dict:
         stack = sec.get("kind") == "stack"
         try:
             if stack:
@@ -1051,8 +1252,10 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             tape = (_stack_faults(r.text, sec, ed or {}, pm_cfg)
                     if (published and stack) else
                     # A v2 section has no edition to hold directions to; the
-                    # stance check needs none.
-                    readability.stance_faults(r.text) if published else [])
+                    # stance check needs none, and T3.6's role, display and
+                    # dollar checks read its own slice.
+                    readability.stance_faults(r.text) + t36_faults(r.text, sec, ed)
+                    if published else [])
             # A count's or a small thousands change's own display form is
             # accepted (T3.4a): "+42,984" contracts, "+29,000" payrolls.
             accepted = na.accepted_deltas([sec.get("slice"),
@@ -1114,14 +1317,29 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
             continue
         system = sec.get("system") or system_prompt(sec["title"], sec["scope"],
                                                     sec["paragraphs"])
-        # THE RETRIES (Reader's Guide 5.3; three attempts from T3.3): the audit's
-        # reason goes back with the instruction to fix exactly that; a third
-        # failure is withheld as before, with every reason kept.
+        # THE ONE REVISION (Reader's Guide 5.3; the stack's since the a47 chain):
+        # the audit's rule, span and draft go back with the instruction to fix
+        # exactly that; a second failure is withheld, with both reasons kept.
         res = {**attempt(sec, system), "attempts": 1}
         reasons = [res.get("reason")]
+        audit_retry.log_attempt("monthly", sec["key"], 1, res["published"],
+                                res.get("reason"), res.get("rejected_text"))
         while (not res["published"] and not _not_retried(res)
                and res["attempts"] < ATTEMPTS):
             res = {**attempt(sec, retry_prompt(system, res, sec.get("slice"))),
+                   "attempts": res["attempts"] + 1}
+            reasons.append(res.get("reason"))
+            audit_retry.log_attempt("monthly", sec["key"], res["attempts"],
+                                    res["published"], res.get("reason"),
+                                    res.get("rejected_text"))
+        # TOO LONG IS RETRIED ONCE, TIGHTER (T3.6 M8): the Ahead summary failed
+        # "too_long" on its only attempt -- the length was never fed back. One
+        # more call, told the cap it overran and a tighter one to write to; it is
+        # the one revision, so a too-long revision is not called a third time.
+        if res.get("state") == "too_long" and res["attempts"] < ATTEMPTS:
+            cap = int(round(int(sec.get("max_chars") or SECTION_MAX_CHARS) * TIGHTER))
+            res = {**attempt(sec, system + "\n\n" + TOO_LONG_RETRY.format(
+                n=int(sec.get("max_chars") or SECTION_MAX_CHARS), cap=cap)),
                    "attempts": res["attempts"] + 1}
             reasons.append(res.get("reason"))
         if not res["published"] and len(reasons) > 1:
@@ -1130,4 +1348,142 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
         out[sec["key"]] = res
         log.info("section %s: %s (%s words, %d attempt(s))", sec["key"],
                  res["state"], res["words"], res["attempts"])
+    return out
+
+
+# ---------------------------------------------------------------------------
+# T3.6 M2: ONE DIRECTION PER INSTRUMENT ACROSS THE EXECUTIVE SUMMARY
+# ---------------------------------------------------------------------------
+# The direction audit holds each paragraph to the signs its section prints; it
+# could not see two paragraphs disagree with each other. The dry run's summary had
+# gold "pulling back" in one paragraph and "holding its level" in another, the
+# dollar "firmed" and "held". Each published summary paragraph's direction for
+# each instrument it names is read -- up, down, or flat -- and an instrument with
+# two directions has its paragraph(s) that disagree with the month's sign
+# rewritten once with the reason; a paragraph still in conflict is withheld.
+FLAT_WORDS = (r"held(?:\s+(?:its|their)\s+(?:level|ground|gains))?", r"holding",
+              r"steady", r"steadied", r"unchanged", r"flat", r"little\s+changed",
+              r"stable", r"sideways")
+_FLAT = re.compile(r"\b(?:" + "|".join(FLAT_WORDS) + r")\b", re.I)
+# Phrases the one-word lexicon cannot carry; a phrase is read before its words.
+_DOWN_PHRASE = re.compile(r"\b(?:pull(?:s|ed|ing)?\s+back|g(?:ave|ive|iving)\s+back|"
+                          r"gave\s+back|pared|backed\s+off|lost\s+ground)\b", re.I)
+_UP_PHRASE = re.compile(r"\b(?:push(?:es|ed|ing)?\s+higher|gained\s+ground|"
+                        r"extended\s+(?:its|their)\s+gains)\b", re.I)
+_CLASS_NAME = {1: "up", -1: "down", 0: "flat"}
+
+
+def summary_directions(text: str, moves: dict) -> dict[str, tuple[int, str]]:
+    """{instrument: (1 | -1 | 0, the word)} for each clause of `text` that names
+    exactly one instrument (a series the edition prints, or a currency) and
+    carries a direction word: up or down from the direction lexicon, or flat."""
+    from daily_cascade import direction as dmod                 # noqa: PLC0415
+    lex = dmod.lexicon()
+    words_ = dmod._words(lex)
+    cur = lex.get("currencies") or {}
+    out: dict[str, tuple[int, str]] = {}
+    for sent in re.split(r"(?<=[.!?])\s+", text or ""):
+        for clause in dmod._CLAUSE.split(sent):
+            if not clause or not clause.strip():
+                continue
+            low = clause.lower()
+            subjects = list(dmod._named(clause, moves))
+            for c, spec in cur.items():
+                if any(re.search(rf"(?<![\w/]){re.escape(str(w).lower())}(?![\w/])", low)
+                       for w in spec.get("words") or []):
+                    subjects.append(f"currency:{c}")
+            if len(set(subjects)) != 1:
+                continue
+            hits = []
+            taken: list[tuple[int, int]] = []
+            for rx, d in ((_DOWN_PHRASE, -1), (_UP_PHRASE, 1), (_FLAT, 0)):
+                for m in rx.finditer(clause):
+                    hits.append((m.start(), d, m.group(0)))
+                    taken.append((m.start(), m.end()))
+            for t in re.finditer(r"[A-Za-z][\w'-]*", clause):
+                d = words_.get(t.group(0).lower())
+                if d is not None and not any(a <= t.start() < b for a, b in taken):
+                    hits.append((t.start(), d, t.group(0)))
+            if hits:
+                _, d, w = min(hits)
+                out.setdefault(subjects[0], (d, w))
+    return out
+
+
+def _actual(subject: str, moves: dict) -> Optional[tuple[int, str]]:
+    from daily_cascade import direction as dmod                 # noqa: PLC0415
+    if subject.startswith("currency:"):
+        cur = dmod.lexicon().get("currencies") or {}
+        got = dmod._currency_actual(subject.split(":", 1)[1], "", moves, cur)
+        return got
+    v = moves.get(subject)
+    if not v:
+        return None
+    return dmod._sign(v[0]), f"{subject} {v[1]}"
+
+
+def summary_conflicts(written: dict, ed: dict) -> dict[str, str]:
+    """{summary key: why} -- the paragraphs to rewrite: for each instrument given
+    two directions across the published summary paragraphs, those whose
+    direction is not the month's sign (or, where the edition prints no sign for
+    it, every paragraph after the first that named it)."""
+    from daily_cascade import direction as dmod                 # noqa: PLC0415
+    moves = dmod.edition_moves(ed, None, MONTH_COLUMN)
+    order = [f"summary:{s['id']}" for s in ed.get("sections") or []]
+    titles = {f"summary:{s['id']}": s["title"] for s in ed.get("sections") or []}
+    seen: dict[str, list[tuple[str, int, str]]] = {}
+    for key in order:
+        r = written.get(key) or {}
+        if not (r.get("published") and r.get("text")):
+            continue
+        for subj, (d, w) in summary_directions(r["text"], moves).items():
+            seen.setdefault(subj, []).append((key, d, w))
+    out: dict[str, str] = {}
+    for subj, uses in seen.items():
+        if len({d for _, d, _ in uses}) < 2:
+            continue
+        act = _actual(subj, moves)
+        if act and act[0]:
+            bad = [u for u in uses if u[1] != act[0]]
+            fact = f"; the month's change is {act[1]}"
+        else:
+            bad = [u for u in uses[1:] if u[1] != uses[0][1]]
+            fact = ""
+        name = subj.split(":", 1)[-1]
+        for key, d, w in bad:
+            other = next(u for u in uses if u[0] != key or u[1] != d)
+            out[key] = (out.get(key, "") + ("; " if key in out else "") +
+                        f"one direction per instrument across the executive summary: "
+                        f"{name} is '{w}' ({_CLASS_NAME[d]}) here and '{other[2]}' "
+                        f"({_CLASS_NAME[other[1]]}) in the summary of "
+                        f"{titles.get(other[0], other[0])}{fact}")
+    return out
+
+
+def reconcile_summary(p: dict, written: dict, ed: dict, *, model=None,
+                      client=None) -> dict:
+    """The summary's consistency pass: each conflicting paragraph rewritten once
+    with the reason; one still in conflict is withheld."""
+    bad = summary_conflicts(written, ed)
+    if not bad:
+        return written
+    plan_ = {sec["key"]: sec for sec in summary_plan(ed)}
+    redo = []
+    for key, why in bad.items():
+        sec = plan_.get(key)
+        if sec is None:
+            continue
+        redo.append({**sec, "system": sec["system"] + "\n\nYOUR PREVIOUS DRAFT OF THIS "
+                     "PARAGRAPH WAS WITHHELD: " + why + ". Write it again with the "
+                     "month's direction, changing nothing else."})
+    again = write_all(p, model=model, client=client, ed=ed, secs=redo) if redo else {}
+    out = dict(written)
+    for key, r in again.items():
+        out[key] = {**r, "consistency_retry": bad[key]}
+    still = summary_conflicts(out, ed)
+    for key, why in still.items():
+        if key in bad:
+            out[key] = {**out[key], "published": False, "text": None,
+                        "state": "inconsistent",
+                        "reason": "withheld: " + why}
     return out

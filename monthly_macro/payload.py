@@ -627,6 +627,8 @@ def appendix_block(as_of: Optional[str] = None,
                 "extreme": d.get("extreme"),
                 "confidence": d.get("confidence"),
                 "staleness_sessions": d.get("staleness_sessions"),
+                # 6e: the family's own forms, computed in altdata/derived.py only.
+                "lens": derived.lens_forms(metric, as_of, store=db),
             })
         for num, rows in sorted(by_pillar.items()):
             try:
@@ -663,7 +665,7 @@ def appendix_block(as_of: Optional[str] = None,
             macro.append({
                 "metric": metric,
                 "what": mf.MACRO_FEATURES[metric],
-                "units": e.get("units"),
+                "units": derived.level_units_of(e) or None,
                 "level": d.get("level"),
                 "observed_at": d.get("observed_at"),
                 "delta_20d": d.get("delta_20d"),
@@ -678,6 +680,17 @@ def appendix_block(as_of: Optional[str] = None,
                                   f"this cutoff"),
             })
         out["derived_macro"] = macro
+        # 6E, THE REST (16 Oct 2026): the macro-completeness series -- Session 3's
+        # FRED legs and calc series, the CPI-PCE gap and the CPI lead composite --
+        # each by its family's lens, computed in altdata/derived.py only.
+        from altdata import macro_6e
+        out["completeness"] = [
+            {"metric": m, "lens": derived.lens_forms(m, as_of, store=db)}
+            for m in [f"fred.{x.key}" for x in config.FRED_6E_SERIES] + macro_6e.KEYS]
+        out["completeness_note"] = (
+            "Session 3's rates-and-policy and fiscal-and-demand series, the core "
+            "CPI less core PCE gap and the CPI lead composite (stated lags, "
+            "unvalidated), each measured its own way")
         out["derived_macro_read_from"] = reads_from
         out["derived_macro_note"] = (
             "Sahm, the year-over-year transforms, 2s10s, r-vs-g and net "
@@ -736,6 +749,11 @@ def v2_sections(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 # The payload
 # ---------------------------------------------------------------------------
+def _computed_dir() -> str:
+    from altdata import config as acfg                          # noqa: PLC0415
+    return str(acfg.COMPUTED_DIR)
+
+
 def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
           period: str = "month") -> dict:
     """Every section. Reads only; never raises on a missing one. `period`
@@ -753,6 +771,9 @@ def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
             "run_id": run_id,
             "sections": list(SECTIONS),
             "pillar_mapping_version": pillars.load()["version"],
+            # Where the computed dealer profiles live (6b part 2): M12 reads the
+            # month's last settled capture there.
+            "computed_dir": str(_computed_dir()),
         }
         out["regime"] = regime_block(cutoff, store=db)
         out["scenarios"] = scenarios_block()

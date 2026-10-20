@@ -329,7 +329,12 @@ RULES = (
      "THE TAKEAWAY RULE: the sentence beginning \"Takeaway:\" states the "
      "implication in words and carries NO figure -- no number, percentage, level "
      "or count. Move every figure into the sentences before it."),
-    (r"numeral audit|figures no commentary cites",
+    (r"is bound to",
+     "THE BINDING RULE: a figure in a sentence that names a series is that "
+     "series' own figure, from its own row, in the unit its column states -- "
+     "never another series' figure and never another column's (a z is not points "
+     "of open interest)."),
+    (r"numeral audit|figures no commentary cites|figures in no block",
      "THE NUMERAL RULE: every figure you print is one your data carries, copied "
      "exactly as printed there -- its sign, decimals and unit. Never derive, "
      "round, convert or recall a figure."),

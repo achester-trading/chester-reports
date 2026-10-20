@@ -505,6 +505,102 @@ def check_13_agents():
                 fail(13, f"AGENTS.md names {tok}, which does not exist")
 
 
+# ---------------------------------------------------------------------------
+# 14. Dated appendices (EL-4, 17 Oct 2026)
+# ---------------------------------------------------------------------------
+_MONTHS = ("January|February|March|April|May|June|July|August|September|October|"
+           "November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec")
+_MONTH_N = {m: i for i, m in enumerate(
+    "jan feb mar apr may jun jul aug sep oct nov dec".split(), 1)}
+_DATE = re.compile(rf"\b(\d{{1,2}}) ({_MONTHS})\b(?:,? (\d{{4}}))?")
+_DATED_HEAD = re.compile(r"^## Appendix [A-Z] — Dated: .*$")
+_AS_OF = re.compile(rf"\(.*\bas of (\d{{1,2}}) ({_MONTHS}) (\d{{4}})\)\s*$")
+# What a lesson entry may carry that is a number but not a figure: a date, an
+# incident or ruling id, an item, a section, a part, an appendix entry, a tier.
+_NOT_FIGURES = [re.compile(p) for p in (
+    r"`[^`]*`", rf"\b\d{{1,2}} (?:{_MONTHS})\b(?:,? \d{{4}})?", r"\bINC-\d+\b",
+    r"\bitems? \d+(?: (?:to|and) \d+)?", r"\bSections? \d+(?:\.\d+)*",
+    r"\bRules? \d+", r"\bPart [IVX]+\b", r"\b[A-Z]\.\d+\b", r"\btier \d\b")]
+
+
+def _ymd(day: str, month: str, year: str) -> tuple:
+    return (int(year), _MONTH_N[month[:3].lower()], int(day))
+
+
+def dated_appendix_faults(text: str, minutes: str = "") -> list[str]:
+    """The faults in one paper's dated appendices. A dated appendix's heading
+    carries "(... as of D Month YYYY)"; no entry heading inside it is dated
+    later than that; an entry about lessons carries no figures (the Doctrine monthly of 2
+    Oct 2026, item 8: "no figures"); and, where the paper quotes the sitting's
+    item-8 entries, each is the minutes' sentence verbatim (`minutes` is the
+    minutes' text)."""
+    out: list[str] = []
+    lines = text.split("\n")
+    starts = [i for i, ln in enumerate(lines) if _DATED_HEAD.match(ln)]
+    for s in starts:
+        head = lines[s]
+        end = next((j for j in range(s + 1, len(lines))
+                    if lines[j].startswith("## ")), len(lines))
+        m = _AS_OF.search(head)
+        if not m:
+            out.append(f"{head[:60]!r}: a dated appendix's heading carries "
+                       f"'(... as of D Month YYYY)'")
+            continue
+        as_of = _ymd(*m.groups())
+        body = lines[s + 1:end]
+        # An ENTRY's date is in its heading; a date in the text may be a
+        # scheduled one (the Reporting System paper names the next Monthly).
+        for ln in (x for x in body if x.startswith("### ")):
+            for d in _DATE.finditer(ln):
+                if d.group(3) and _ymd(d.group(1), d.group(2), d.group(3)) > as_of:
+                    out.append(f"{head[:40]!r}: an entry dated {d.group(0)} is later "
+                               f"than the heading's as-of ({m.group(1)} {m.group(2)} "
+                               f"{m.group(3)})")
+        sub, title = [], ""
+        for ln in body + ["### (end)"]:
+            if ln.startswith("### "):
+                if "lesson" in title.lower():
+                    for t in sub:
+                        rest = t
+                        for p in _NOT_FIGURES:
+                            rest = p.sub(" ", rest)
+                        if re.search(r"\d", rest):
+                            out.append(f"{title[:40]!r}: a figure in a lesson entry "
+                                       f"-- {t.strip()[:80]!r}")
+                title, sub = ln, []
+            else:
+                sub.append(ln)
+    if minutes and starts:
+        item8 = minutes.split("## Item 8", 1)[-1].split("## Item 9", 1)[0]
+        for q in re.findall(r"(?<!\*)\*(?!\*)([A-Z][^*]{40,})(?<!\*)\*(?!\*)", item8):
+            if q.strip() not in text:
+                out.append(f"the sitting's item-8 entry is not quoted as ruled: "
+                           f"{q.strip()[:60]!r}")
+    return out
+
+
+def check_14_dated_appendices(papers):
+    """Dated appendices: the as-of heading, no entry later than it, no figures in
+    a lesson entry, the ruled entries quoted as ruled; and the Doctrine's named
+    abstention reason is one the register knows."""
+    minutes_p = ROOT / "docs" / "briefs" / "doctrine-monthly-2026-10-minutes.md"
+    minutes = minutes_p.read_text(encoding="utf-8") if minutes_p.exists() else ""
+    for p in papers:
+        text = p.read_text(encoding="utf-8")
+        slug = p.name[: -len("-whitepaper.md")]
+        for f in dated_appendix_faults(text, minutes if slug == "operating-doctrine"
+                                       else ""):
+            fail(14, f"{p.name}: {f}")
+        if slug == "operating-doctrine":
+            store = (ROOT / "register" / "store.py").read_text(encoding="utf-8")
+            m = re.search(r"ABSTENTION_REASONS = \(([^)]*)\)", store)
+            known = set(re.findall(r'"([a-z_]+)"', m.group(1))) if m else set()
+            for r in set(re.findall(r"reason `([a-z_]+)`", text)):
+                if r not in known:
+                    fail(14, f"{p.name}: the abstention reason `{r}` is not in "
+                             f"register/store.py ABSTENTION_REASONS")
+
+
 def main():
     rows = guide_rows()
     papers = paper_files()
@@ -521,6 +617,7 @@ def main():
     check_11_wordcount(papers)
     check_12_stale(papers)
     check_13_agents()
+    check_14_dated_appendices(papers)
 
     for i in infos:
         print(f"info {i}")

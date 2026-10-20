@@ -44,6 +44,20 @@ Computed from ^GSPC (24,797 daily closes from 1927-12-30) and ^VIX (1990-):
     baserate.correlation_by_regime   stock/bond and pairwise, by volatility band
     baserate.vix_distribution        the VIX's own quantiles and move counts
 
+The GTM batch, part 1 (17 Oct 2026; altdata/gtm.py computes, config/gtm.yaml):
+
+    baserate.stock_bond_eras         GTM-7: three eras of the 24-month stock-bond
+                                     correlation and their inflation, Shiller's
+                                     monthly sheet (amends SR-9)
+    baserate.sentiment_turning_points GTM-8: Michigan's peaks and troughs and the
+                                     S&P 500's next 12 months, with n
+    baserate.all_time_highs          GTM-9: 1988 to 2025, the share of sessions,
+                                     floors and repeats within a week
+
+  No METHOD_VERSION bump for them: the six older tables are unchanged, and a
+  table not yet stored is itself a recompute trigger (should_recompute), so the
+  first overnight pass after the merge stores the three.
+
 ABSENT WITH A REASON, not approximated:
 
   * GAP STATISTICS. A gap is the open against the prior close, and the store holds
@@ -1044,6 +1058,26 @@ def table_midterm_from_election(data: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# The GTM batch, part 1 (altdata/gtm.py computes; this stores)
+# ---------------------------------------------------------------------------
+def table_stock_bond_eras(data: dict) -> dict:
+    from altdata import gtm
+    sh = data.get("shiller") or {}
+    return gtm.stock_bond_eras(sh.get("sp_price") or {}, sh.get("sp_dividend") or {},
+                               sh.get("cpi") or {}, sh.get("gs10") or {})
+
+
+def table_sentiment_turning_points(data: dict) -> dict:
+    from altdata import gtm
+    return gtm.sentiment_base_rate(data.get("sentiment") or [], data["gspc"])
+
+
+def table_all_time_highs(data: dict) -> dict:
+    from altdata import gtm
+    return gtm.ath_base_rate(data["gspc"])
+
+
+# ---------------------------------------------------------------------------
 # The roster
 # ---------------------------------------------------------------------------
 TABLE_BUILDERS: dict[str, Callable[[dict], dict]] = {
@@ -1054,6 +1088,9 @@ TABLE_BUILDERS: dict[str, Callable[[dict], dict]] = {
     "baserate.correlation_by_regime": table_correlation_by_regime,
     "baserate.vix_distribution": table_vix_distribution,
     "baserate.midterm_from_election": table_midterm_from_election,
+    "baserate.stock_bond_eras": table_stock_bond_eras,
+    "baserate.sentiment_turning_points": table_sentiment_turning_points,
+    "baserate.all_time_highs": table_all_time_highs,
 }
 TABLE_KEYS: tuple[str, ...] = tuple(sorted(TABLE_BUILDERS))
 
@@ -1082,6 +1119,8 @@ REVIEW_TOLERANCE: dict[str, float] = {
     "baserate.streaks_and_gaps|p_up_given_up": 0.01,
     "baserate.vix_distribution|level_distribution.median": 0.5,
     "baserate.vix_distribution|level_distribution.p75": 1.0,
+    "baserate.all_time_highs|share_floors": 2.0,
+    "baserate.all_time_highs|share_followed_within": 2.0,
 }
 
 # WHAT THE PAPER SAYS, so the gate can print both columns. Each entry is the
@@ -1224,6 +1263,10 @@ def load_inputs(db: observations.ObservationStore,
         "bond_yield": series(db, BOND_YIELD, as_of),
         "bond_etf": series(db, BOND_ETF, as_of),
         "sectors": {k: v for k, v in sectors.items() if v},
+        # The GTM batch's inputs: Shiller's monthly sheet and Michigan sentiment.
+        "shiller": {k: {d[:7]: v for d, v in series(db, f"shiller.{k}", as_of)}
+                    for k in ("sp_price", "sp_dividend", "cpi", "gs10")},
+        "sentiment": series(db, "fred.uoM_sent", as_of),
     }
 
 

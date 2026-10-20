@@ -85,8 +85,14 @@ PY_VALIDATORS := \
 	tools/validate_no_filler.py \
 	tools/validate_edition_consistency.py \
 	tools/validate_audit_fixes.py \
+	tools/validate_weekly_fixes_8.py \
+	tools/validate_weekly_fixes_9.py \
 	tools/validate_weekly_integrity.py \
 	tools/validate_batch3_a.py \
+	tools/validate_st_r5_rates.py \
+	tools/validate_st_r5_index.py \
+	tools/validate_st_r5_t1_rest.py \
+	tools/validate_by_hand_audit.py \
 	tools/validate_monthly_frames.py \
 	tools/validate_weekly_storyline.py \
 	tools/validate_weekly_opener.py \
@@ -94,13 +100,56 @@ PY_VALIDATORS := \
 	tools/validate_weekly_analytics.py \
 	tools/validate_book_b_scanner.py \
 	tools/validate_exposure_edges.py \
+	tools/validate_dealer_block.py \
+	tools/validate_vol_event.py \
+	tools/validate_dealer_vendor.py \
+	tools/validate_system_metrics.py \
+	tools/validate_gtm.py \
+	tools/validate_st_t1_rest.py \
+	tools/validate_st_t2_rates.py \
+	tools/validate_st_t3_calib.py \
+	tools/validate_library_st_l.py \
+	tools/validate_a43_render.py \
+	tools/validate_opening_setup.py \
+	tools/validate_a47_chain3.py \
+	tools/validate_a48_batch11.py \
+	tools/validate_secondary_notes.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \
 	tools/validate_ai_fcf.py \
 	tools/validate_sr38_inbox.py \
 	tools/validate_correlation_layer.py \
+	tools/validate_lenses.py \
+	tools/validate_6e_rest.py \
+	tools/validate_releases.py \
+	tools/validate_releases_b.py \
+	tools/validate_st_t5_prl.py \
+	tools/validate_st_t5_render.py \
+	tools/validate_b45_chain3.py \
+	tools/validate_digital_addendum.py \
+	tools/validate_crypto_sources.py \
+	tools/validate_audit_3a.py \
+	tools/validate_audit_2.py \
+	tools/validate_audit_1.py \
+	tools/validate_backups.py \
+	tools/validate_meme_ingest.py \
+	tools/validate_ledgers_b6.py \
+	tools/validate_outliers.py \
+	tools/validate_quality.py \
+	tools/validate_fred_history.py \
+	tools/validate_alpha.py \
+	tools/validate_alpha_no_orders.py \
+	tools/validate_alpha_proposer.py \
+	tools/validate_alpha_lab_3.py \
+	tools/validate_alpha_lab_4.py \
+	tools/validate_volume_profile.py \
+	tools/validate_es_block.py \
+	tools/validate_st_r4_t1.py \
+	tools/validate_st_r4_t1b.py \
+	tools/validate_security_master.py \
 	tools/check_library.py \
+	tools/check_master_guide.py \
 	tools/validate_gates.py
 
 # DATA GATES -- a DIFFERENT KIND OF CHECK, and the distinction is the point.
@@ -133,7 +182,9 @@ DATA_GATES := \
 	tools/validate_monthly_store.py \
 	tools/validate_regime_store.py \
 	tools/validate_weekly_store.py \
-	tools/validate_imf_china.py
+	tools/validate_imf_china.py \
+	tools/validate_vendor_divergence.py \
+	tools/validate_backup_crypt.py
 
 SH_VALIDATORS := \
 	tools/validate_ibgateway_watchdog.sh \
@@ -142,7 +193,7 @@ SH_VALIDATORS := \
 
 EXTRA := smoke_test.py
 
-.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures
+.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures mechanism-register
 
 # THE BUILT HTML EDITIONS. docs/html/ is output, not source: every file in it
 # is generated from the .md by tools/build_paper_html.py, figures embedded.
@@ -151,6 +202,11 @@ EXTRA := smoke_test.py
 # stale copy was canonical for reading. A built artifact cannot drift.
 html:
 	@$(PYTHON) tools/build_paper_html.py
+
+# THE MECHANISM-WATCH REGISTER'S RENDERED VIEW (ST-15): from the store's
+# mechanism_watch table; never edited by hand.
+mechanism-register:
+	@$(PYTHON) -m altdata.mechanism_watch render --out docs/mechanism-watch-register.md
 
 # THE CURRENCIES CHARTS, REDRAWN FROM DATA -- INTO build/, NOT INTO docs/.
 #

@@ -21,9 +21,16 @@ glyph ids in every figure it draws -- so every id in a figure is namespaced by
 its figure number before it goes in, or the eighth chart on a page renders
 with the first chart's glyphs.
 
+THE FONT. Every paper prints in the house serif, and a build with no font setting
+is byte for byte what it was. An edition may name its own font stack (ruling R16,
+19 Oct 2026): `--font` on the command line, or FONT_BY_SOURCE for an edition that
+always carries one. The Master Guide's is Aptos, with its fallbacks.
+
 Usage:
     python tools/build_paper_html.py                     # every roster paper
     python tools/build_paper_html.py docs/whitepapers/earnings-whitepaper.md
+    python tools/build_paper_html.py docs/master-guide.md            # Aptos, by FONT_BY_SOURCE
+    python tools/build_paper_html.py --font "Aptos, sans-serif" PATH # any edition
 """
 
 from __future__ import annotations
@@ -196,6 +203,11 @@ def embed_figures(html, md_path, report):
 
 
 # ------------------------------------------------------------------- render
+HOUSE_FONT = "Georgia, 'Iowan Old Style', 'Times New Roman', serif"
+APTOS = 'Aptos, "Segoe UI", Calibri, Arial, sans-serif'
+# An edition that always carries its own font, by its path from the repo root.
+FONT_BY_SOURCE = {"docs/master-guide.md": APTOS}
+
 CSS = """
 :root {
   --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
@@ -346,8 +358,12 @@ openTarget();
 """
 
 
-def build(md_path: Path) -> tuple[str, list[str]]:
+def build(md_path: Path, font: str | None = None) -> tuple[str, list[str]]:
+    """The edition's HTML. `font` replaces the house serif in the page body only;
+    None keeps it, and with it the edition, unchanged."""
     text = md_path.read_text(encoding="utf-8")
+    css = CSS if not font else CSS.replace(
+        "font-family: %s;" % HOUSE_FONT, "font-family: %s;" % font, 1)
     head_lines, body_lines = split_masthead(text)
     if not head_lines:  # no --- rule: the title line alone is the masthead
         head_lines, body_lines = body_lines[:1], body_lines[1:]
@@ -421,7 +437,7 @@ def build(md_path: Path) -> tuple[str, list[str]]:
 <script>%s</script>
 </body>
 </html>
-""" % (source_sha256(md_path), htmllib.escape(title), CSS,
+""" % (source_sha256(md_path), htmllib.escape(title), css,
        block("\n".join(head_lines)), toc_html,
        "\n".join(accordions), md_path.relative_to(ROOT).as_posix(), JS)
     return html, report
@@ -429,13 +445,19 @@ def build(md_path: Path) -> tuple[str, list[str]]:
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    font = None
+    if "--font" in argv:
+        i = argv.index("--font")
+        font = argv[i + 1]
+        del argv[i:i + 2]
     paths = [Path(a) for a in argv] or sorted(
         p for p in PAPERS.glob("*-whitepaper.md"))
     OUT.mkdir(parents=True, exist_ok=True)
     bad = 0
     for p in paths:
         p = p if p.is_absolute() else (ROOT / p)
-        html, report = build(p)
+        rel = p.relative_to(ROOT).as_posix()
+        html, report = build(p, font or FONT_BY_SOURCE.get(rel))
         dest = OUT / (p.stem + ".html")
         dest.write_text(html, encoding="utf-8")
         nfig = html.count('<figure class="fig">')

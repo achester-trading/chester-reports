@@ -1,0 +1,4 @@
+{"at": "2026-09-30T20:45:00+00:00", "edition": "daily_close_2026-09-30_stack.json", "reason": "numeral audit", "report": "daily_close", "section": "read"}
+{"at": "2026-10-19T20:45:00+00:00", "edition": "daily_close_2026-10-19_stack.json", "reason": "numeral audit failed on 1 figure(s)", "report": "daily_close", "section": "read"}
+{"at": "2026-10-19T20:46:00+00:00", "edition": "daily_close_2026-10-19_stack.json", "reason": "numeral audit failed on 1 figure(s)", "report": "daily_close", "section": "read"}
+{"at": "2026-10-25T09:05:00+00:00", "edition": "weekly_tactical_2026-10-23_stack.json", "reason": "flag word", "report": "weekly_tactical", "section": "mechanics"}

@@ -90,12 +90,17 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
         images, missing = charts_mod.inline_images(html, stamp, out_dir, prefix)
         if missing:
             print(f"charts missing from the archive: {', '.join(missing)}", flush=True)
+        from alpha.report import monthly_attachment, quarterly_attachment  # noqa: PLC0415
+        # X-2.8: the Lab report with the Monthly; X-3.7: the lab's quarter page
+        # with the Quarterly. Neither ever raises.
+        lab = (quarterly_attachment(stamp) if prefix == "alt_asset"
+               else monthly_attachment(stamp))
         state, detail = delivery.send_html(
             ("[DRY RUN] " if dry_run else "") + subject.format(date=stamp), html,
             text_fallback=md,
             attachments=[(md_name, md, "markdown"),
                          (html_name, charts_mod.self_contained(html, images),
-                          "html")],
+                          "html")] + ([lab] if lab else []),
             inline_images=images or None)
     ok = state == "sent"
     print(f"delivery=smtp {'ok' if ok else 'failed'} state={state} -- {detail}",

@@ -1,0 +1,69 @@
+# ai_buckets.yaml -- GTM-4, the AI five-bucket decomposition (the J.P. Morgan
+# Guide batch, part 2; change order of 3 Oct 2026, ruled ADOPT, "bucket
+# definitions by hand quarterly").
+#
+# REFERENCE DATA, SET EACH QUARTER FROM THE SCAN (ruled 17 Oct 2026: allowed under
+# the calendars ruling; not a recurring by-hand data line). Each bucket is the
+# Guide's own definition, copied from its slide with the slide and the as-of, and
+# refreshed when the next quarter's scan is filed. Nothing here is a weight, a
+# score or a right: the buckets are a table a human reads (a modifier on Factor I).
+#
+# MEMBERS. The Guide names its members for one bucket only -- the hyperscalers.
+# The other four are GICS industries, and the store holds no GICS industry
+# classification (SPY's holdings carry the sector, not the industry), so their
+# `members` are null with the reason. A bucket whose members are not ALL stored
+# prints the Guide's figure, labelled, never a partial computation presented as
+# the whole (altdata/gtm_equities.py).
+version: ai-buckets-v1
+scan_id: jpm-gtm-2026q4
+slide: 11
+as_of: 2026-09-30
+read_on: 2026-10-17
+refresh: quarterly, from each quarter's Guide scan
+
+buckets:
+  - id: hyperscalers
+    label: Hyperscalers
+    definition: "AMZN, GOOGL/GOOG, META, MSFT and ORCL, market-weighted"
+    members: [AMZN, GOOGL, GOOG, META, MSFT, ORCL]
+  - id: semiconductors
+    label: Semiconductors
+    definition: "GICS industry Semiconductors & Semiconductor Equipment"
+    members: null
+    members_reason: "a GICS industry; the store holds no GICS industry classification"
+  - id: hardware
+    label: Hardware
+    definition: >-
+      GICS industries Communications Equipment; Electronic Equipment, Instruments &
+      Components; and Technology Hardware, Storage & Peripherals, market-weighted
+    members: null
+    members_reason: "GICS industries; the store holds no GICS industry classification"
+  - id: power
+    label: Power
+    definition: "GICS industries Electrical Equipment and Electric Utilities, market-weighted"
+    members: null
+    members_reason: "GICS industries; the store holds no GICS industry classification"
+  - id: software
+    label: Software
+    definition: "GICS industry Software"
+    members: null
+    members_reason: "a GICS industry; the store holds no GICS industry classification"
+
+# THE HYPERSCALER CASH-FLOW BRIDGE: operating cash flow less capital expenditure,
+# from SEC EDGAR's XBRL frames (altdata/sources/edgar_xbrl.py, keyless, with the
+# SEC contact). The filers are the slide's five; Alphabet files once for both
+# share classes. CIKs are SEC's own identifiers. The capex tag differs by filer
+# (Amazon reports its purchases of property and equipment under
+# PaymentsToAcquireProductiveAssets), so each field lists the tags tried in order;
+# a filer with none of them for a year prints "not stored".
+bridge:
+  first_year: 2019
+  filers:
+    - {ticker: AMZN, cik: 1018724, name: Amazon}
+    - {ticker: GOOGL, cik: 1652044, name: Alphabet}
+    - {ticker: META, cik: 1326801, name: Meta}
+    - {ticker: MSFT, cik: 789019, name: Microsoft}
+    - {ticker: ORCL, cik: 1341439, name: Oracle}
+  tags:
+    operating_cash_flow: [NetCashProvidedByUsedInOperatingActivities]
+    capex: [PaymentsToAcquirePropertyPlantAndEquipment, PaymentsToAcquireProductiveAssets]

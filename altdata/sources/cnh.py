@@ -93,7 +93,7 @@ def fetch_frames(period: str) -> list[tuple[dt.datetime, float]]:
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     def produce() -> list[dict]:
         own = db is None
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             held = pub.newest_observed(store, KEYS).get(KEY)
         finally:

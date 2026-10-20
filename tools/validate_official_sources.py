@@ -42,8 +42,10 @@ same on a CI runner as on the laptop.
   J  manual_input. One observation with the note on the same row, the entry
      instant as available_at and a run_id; unregistered keys, out-of-range
      fractions, future dates, non-numbers and missing notes are refused; a
-     correction is a new vintage that supersedes, not an edit; the order's six
-     keys exist.
+     correction is a new vintage that supersedes, not an edit. Since the by-hand
+     audit (16 Oct 2026) the one key registered is manual.global_pmi; a dropped
+     key is refused, and the fraction and label rules are held on synthetic
+     keys.
   S  AAII (T2.7). The parser reads the bull-bear spread in percentage points
      from a sheet whose header row is found by name, skips undated and
      non-numeric rows, and refuses a sheet with no Bullish/Bearish header;
@@ -475,8 +477,11 @@ def group_g() -> None:
         getattr(feeds, "EXTERNAL_WRITERS", ()))
     alt = "|".join(re.escape(w) for w in writers + ["_publication"])
     units = [p.name for p in (REPO / "deploy" / "systemd").iterdir()]
+    # A WRITER'S NAME AS A WHOLE TOKEN of the unit's name (17 Oct 2026): the
+    # Hyperliquid writer is `hl`, which a plain substring finds inside "monthly".
     check(not [u for u in units if re.search(
-        rf"(?:{alt}|auction_results|official|external)", u.replace("-", "_"))],
+        rf"(?:^|_)(?:{alt}|auction_results|official|external)(?:_|\.|$)",
+        u.replace("-", "_"))],
           f"no systemd unit was added for any of the {len(writers)} writers -- "
           f"they ride the existing pull")
     pat = re.compile(r"sources\s*(import|\.)\s*\(?\s*[^\n]*\b(" + alt + r")\b")
@@ -534,9 +539,28 @@ def group_h() -> None:
           "high_yield on coupons only")
     edt = treasury_auctions.available_at("2020-09-24")
     est = treasury_auctions.available_at("2020-01-13")
-    check(edt == "2020-09-24T17:00:00.000000+00:00"
-          and est == "2020-01-13T18:00:00.000000+00:00",
-          f"available_at = 13:00 ET in EDT ({edt}) and EST ({est})")
+    check(edt == "2020-09-24T17:05:00.000000+00:00"
+          and est == "2020-01-13T18:05:00.000000+00:00",
+          f"G-30's fallback: available_at = 13:05 ET in EDT ({edt}) and EST ({est})")
+    rt = treasury_auctions.result_time({"auctionDate": "2026-09-24T00:00:00",
+                                        "updatedTimestamp": "2026-09-24T13:03:20"})
+    late = treasury_auctions.result_time({"auctionDate": "2026-09-24T00:00:00",
+                                          "updatedTimestamp": "2026-09-28T09:00:00"})
+    rows_t = treasury_auctions.apply_result_times(
+        [{"registry_key": "auction.cusip", "instrument": "Note:7-Year",
+          "observed_at": "2026-09-24", "value": "91282CXX0", "available_at": "x",
+          "availability_kind": "reconstructed"},
+         {"registry_key": "auction.bid_to_cover", "instrument": "Note:7-Year",
+          "observed_at": "2026-09-24", "value": 2.5, "available_at": "x",
+          "availability_kind": "reconstructed"}],
+        [{"auctionDate": "2026-09-24T00:00:00", "cusip": "91282CXX0",
+          "updatedTimestamp": "2026-09-24T13:03:20"}])
+    check(rt == "2026-09-24T17:03:20.000000+00:00" and late is None
+          and all(r["available_at"] == rt and r["availability_kind"] == "observed"
+                  for r in rows_t),
+          "G-30: the API's own result time (13:03:20 ET on the 24 Sep 7-year) is "
+          "the row's available_at, marked observed; a timestamp on a later day is "
+          "an edit and is not used")
     check({r["availability_kind"] for r in rows} == {"reconstructed"},
           "marked reconstructed")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(
@@ -638,24 +662,24 @@ def group_j() -> None:
         "manual_input", REPO / "tools" / "manual_input.py")
     mi = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mi)
-    required = {"manual.sep_median_next2", "manual.sep_median_12m",
-                "manual.fedwatch_next_meeting_prob", "manual.cbo_deficit_path",
-                "manual.ig_nic_median_bp", "manual.ig_cover_median"}
+    # The by-hand audit (16 Oct 2026): the order's six keys are dropped, and
+    # the one key standing is the global PMI (the operator's yes, Batch 6 item
+    # 43). The CLI's rules are held on it, and on synthetic keys for the units
+    # no registered key carries any more (fraction, label).
     keys = mi.manual_keys()
-    check(required <= set(keys),
-          f"the order's six keys are registered "
-          f"(missing {sorted(required - set(keys))})")
+    check(set(keys) == {"manual.global_pmi"},
+          f"one manual_input key stands, the global PMI ({sorted(keys)})")
+    K = "manual.global_pmi"
     fd, path = tempfile.mkstemp(suffix=".sqlite", dir=_TMP)
     os.close(fd)
     os.unlink(path)
-    mi.write("manual.sep_median_12m", "3.625", "2020-09-16",
-             "SEP Sep 2020 -- fixture", db_path=path)
+    mi.write(K, "50.2", "2020-09-01", "Global PMI Sep 2020 -- fixture", db_path=path)
     with observations.ObservationStore(path) as db:
         got = db.conn.execute(
             "SELECT value_num, value_text, run_id, source, available_at "
             "FROM observations").fetchall()
-        check(len(got) == 1 and got[0][0] == 3.625
-              and got[0][1] == "SEP Sep 2020 -- fixture",
+        check(len(got) == 1 and got[0][0] == 50.2
+              and got[0][1] == "Global PMI Sep 2020 -- fixture",
               "one observation, the number and its note on the same row")
         check(got[0][2].startswith("manual_input-")
               and got[0][3] == "manual_input",
@@ -665,22 +689,20 @@ def group_j() -> None:
               and got[0][4][:10] >= session.utc_iso()[:10],
               "available_at is the ENTRY instant, canonical microsecond UTC, "
               "not the observed date")
-        mi.write("manual.sep_median_12m", "3.375", "2020-09-16",
-                 "SEP Sep 2020 -- corrected", db_path=path)
-        last = db.latest_as_of("manual.sep_median_12m")
-        check(count(db, "manual.sep_median_12m") == 2
-              and last["value_num"] == 3.375,
+        mi.write(K, "50.4", "2020-09-01", "Global PMI Sep 2020 -- corrected",
+                 db_path=path)
+        last = db.latest_as_of(K)
+        check(count(db, K) == 2 and last["value_num"] == 50.4,
               "a correction is a second vintage that supersedes; the first "
               "stays on record")
     tomorrow = (session.session_date_obj() + dt.timedelta(days=1)).isoformat()
     cases = ((("manual.nope", "1", "2020-01-01", "n"), "an unregistered key"),
-             (("manual.fedwatch_next_meeting_prob", "72", "2020-01-01", "n"),
-              "a fraction entered as a percent"),
-             (("manual.sep_median_12m", "3.5", tomorrow, "n"), "a future date"),
-             (("manual.sep_median_12m", "3.5", "2020-01-01", "  "), "no note"),
-             (("manual.sep_median_12m", "abc", "2020-01-01", "n"),
-              "a non-number"),
-             (("manual.sep_median_12m", "nan", "2020-01-01", "n"), "NaN"))
+             (("manual.sep_median_12m", "3.5", "2020-01-01", "n"),
+              "a key the by-hand audit dropped"),
+             ((K, "50.1", tomorrow, "n"), "a future date"),
+             ((K, "50.1", "2020-01-01", "  "), "no note"),
+             ((K, "abc", "2020-01-01", "n"), "a non-number"),
+             ((K, "nan", "2020-01-01", "n"), "NaN"))
     for args, why in cases:
         try:
             mi.write(*args, db_path=path)
@@ -691,6 +713,23 @@ def group_j() -> None:
         check(count(db) == 2, "and a refusal writes nothing")
     check(mi.main(["manual.nope", "1", "2020-01-01", "n", "--db", path]) == 2,
           "the CLI exits 2 on a refusal")
+    # The unit rules, on synthetic keys (no registered key is a fraction or a
+    # label since the audit; the rules stay for the next ruled key).
+    syn = {"fixture.prob": {"units": "fraction"},
+           "fixture.label": {"units": "label", "codes": {"yes": 1, "no": 0, "unknown": -1}},
+           "fixture.nocodes": {"units": "label"}}
+    for args, why in ((("fixture.prob", "72"), "a fraction entered as a percent"),
+                      (("fixture.label", "maybe"), "a label outside its codes"),
+                      (("fixture.label", "1"), "a code typed in place of its label"),
+                      (("fixture.nocodes", "yes"), "a label key with no codes")):
+        try:
+            mi.validate(args[0], args[1], "2020-01-02", "n", syn)
+            bad(f"refuses {why}")
+        except mi.Refused:
+            ok(f"refuses {why}")
+    check(mi.validate("fixture.prob", "0.72", "2020-01-02", "n", syn)[0] == 0.72
+          and mi.validate("fixture.label", "Yes ", "2020-01-02", "n", syn)[0] == 1.0,
+          "a fraction in range stands, and a label stores its code (Yes -> 1)")
 
 
 # ===========================================================================
@@ -907,6 +946,12 @@ def group_n() -> None:
                 setattr(mod, attr, boom)
     saved_find = pub.find_link
     pub.find_link = boom
+    # The XBRL reader is PENDING without the SEC contact and fetches nothing; a
+    # placeholder contact here makes it reach its (failing) fetch, so the outage
+    # path is the one tested (the GTM batch, part 2).
+    from altdata.sources import edgar as _edgar
+    saved_contact = _edgar.contact
+    _edgar.contact = lambda: "placeholder-contact"
     db = temp_store()
     try:
         for name, mod in mods:
@@ -920,6 +965,7 @@ def group_n() -> None:
                   and count(db) == before,
                   f"{name}: an outage is {want} and writes nothing")
     finally:
+        _edgar.contact = saved_contact
         for (mod, attr), fn in saved.items():
             setattr(mod, attr, fn)
         pub.find_link = saved_find
@@ -1129,7 +1175,10 @@ def group_p() -> None:
         "manual_input", REPO / "tools" / "manual_input.py")
     mi = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mi)
-    want = {"manual.aaii_stocks_pct", "manual.aaii_bonds_pct", "manual.aaii_cash_pct",
+    # The by-hand audit (16 Oct 2026) drops the seventeen ST-2 keys: none is
+    # registered, and the label rules they carried are held on synthetic keys
+    # in group J. Their verdicts: docs/briefs/st-r5-audit-notes.md.
+    gone = {"manual.aaii_stocks_pct", "manual.aaii_bonds_pct", "manual.aaii_cash_pct",
             "manual.msci_em_usd", "manual.msci_em_local", "manual.msci_world_usd",
             "manual.msci_acwi_exus_usd", "manual.oecd_days_cover",
             "manual.global_visible_stocks_bbl", "manual.cofer_usd_share",
@@ -1138,31 +1187,9 @@ def group_p() -> None:
             "manual.g4_issuance_gap_gdp", "manual.panda_bond_issuance",
             "manual.state_bank_dollar_selling"}
     keys = mi.manual_keys()
-    check(want <= set(keys) and all(keys[k].get("units") and keys[k].get("description")
-                                    for k in want),
-          f"the 17 ST-2 manual keys are registered with units and a description "
-          f"(missing {sorted(want - set(keys))})")
-    check(keys["manual.aaii_stocks_pct"].get("delta_unit") == "pp",
-          "a share in percent moves in points (delta_unit pp), not basis points")
-    fd, path = tempfile.mkstemp(suffix=".sqlite", dir=_TMP)
-    os.close(fd)
-    os.unlink(path)
-    mi.write("manual.state_bank_dollar_selling", "Yes", "2020-01-02",
-             "fixture -- G-21 by hand", db_path=path)
-    mi.write("manual.dram_contract_dir", "down", "2020-01-31", "fixture", db_path=path)
-    with observations.ObservationStore(path) as db:
-        sb = db.latest_as_of("manual.state_bank_dollar_selling")
-        dr = db.latest_as_of("manual.dram_contract_dir")
-    check(sb["value_num"] == 1.0 and sb["value_text"] == "fixture -- G-21 by hand"
-          and dr["value_num"] == -1.0,
-          "a coded label stores its code (yes=1, down=-1) and keeps the note")
-    for bad_value in ("maybe", "1"):
-        try:
-            mi.write("manual.state_bank_dollar_selling", bad_value, "2020-01-02",
-                     "n", db_path=path)
-            bad(f"refuses the label {bad_value!r}")
-        except mi.Refused:
-            ok(f"refuses the label {bad_value!r} -- only yes / no / unknown")
+    check(not gone & set(keys),
+          f"the 17 ST-2 manual keys are dropped by the by-hand audit "
+          f"(still registered: {sorted(gone & set(keys)) or 'none'})")
 
 
 def group_q() -> None:
@@ -1584,11 +1611,163 @@ def group_t() -> None:
         db.close()
 
 
+# ---------------------------------------------------------------------------
+# U. WRITER-FIXES-1 (17 Oct 2026): the three official writers the first full pull
+# on the box broke on, and TreasuryDirect's renamed schema -- each against a
+# fixture cut from the real file (tests/fixtures/<writer>/), read 17 Oct 2026.
+# ---------------------------------------------------------------------------
+FX1 = REPO / "tests" / "fixtures"
+
+
+def group_u() -> None:
+    import json
+    from altdata.sources import fedboard, nyfed_sce, spdr_gld
+    print(f"{LINE}\nU. WRITER-FIXES-1: H.4.1, THE SCE, THE CIE, TREASURY AUCTIONS\n{LINE}")
+
+    # --- H.4.1 (fedboard_h41) ---------------------------------------------------
+    def h41(name):
+        return (FX1 / "fedboard_h41" / name).read_text(encoding="utf-8")
+    full = fedboard.h41_rows_from_csv(h41("package_2026-10-14.csv"), LM_CANON, "observed")
+    last = {r["registry_key"]: r for r in full if r["observed_at"] == "2026-10-14"}
+    sep = {r["registry_key"]: r["value"] for r in full if r["observed_at"] == "2026-09-16"}
+    check(len(full) == 40 and set(last) == {"tic.fima_repo", "tic.fima_repo_weekavg"}
+          and sep == {"tic.fima_repo": 1e6, "tic.fima_repo_weekavg": 1e6},
+          "H.4.1: the real package (20 Wednesdays to 14 Oct) carries both FIMA columns "
+          "under RESPPALGTRF_N.WW and _XAW_N.WW; millions stored as dollars")
+    check("lastobs=520&" in fedboard.URL_H41 and "lastobs=&" not in fedboard.URL_H41,
+          "the query asks for ten years: an empty `lastobs=` is answered with an "
+          "empty body, which is what failed on the box")
+    absent: dict = {}
+    part = fedboard.h41_rows_from_csv(h41("package_weekavg_only_2026-10-14.csv"),
+                                      LM_CANON, "observed", absent=absent)
+    check(len(part) == 20 and {r["registry_key"] for r in part} == {"tic.fima_repo_weekavg"}
+          and list(absent) == ["tic.fima_repo"] and "RESPPALGTRF_N.WW" in absent["tic.fima_repo"],
+          "a package without one FIMA column writes the other and marks the missing "
+          "key absent, with its reason")
+    for body, want, what in ((h41("package_no_fima_2026-10-14.csv"), "carries none of",
+                              "a package with no FIMA column at all"),
+                             ("", "no Unique Identifier row", "an empty body")):
+        try:
+            fedboard.h41_rows_from_csv(body, LM_CANON, "observed")
+            ok = False
+        except ValueError as exc:
+            ok = want in str(exc)
+        check(ok, f"{what} fails the run, saying so")
+    db = temp_store()
+    saved = fedboard.http_get_response
+    try:
+        fedboard.http_get_response = lambda *a, **k: (
+            h41("package_weekavg_only_2026-10-14.csv").encode("utf-8"),
+            {"Last-Modified": "Thu, 15 Oct 2026 20:30:00 GMT"})
+        out = fedboard.pull_h41(db=db)
+        check(out["status"] == pub.OK and out["written"] == 20
+              and "tic.fima_repo" in (out.get("absent") or {})
+              and "tic.fima_repo" in out.get("keys_without_rows", []),
+              f"through the publication runner: OK, 20 rows, the missing key absent in "
+              f"the summary and the roster ({out['status']}, {out.get('written')})")
+    finally:
+        fedboard.http_get_response = saved
+        db.close()
+
+    # --- the NY Fed SCE ---------------------------------------------------------
+    wb = json.loads((FX1 / "nyfed_sce" / "workbook_2026-10.json").read_text(encoding="utf-8"))
+    book = {n: [] for n in wb["sheets"]}
+    book["Inflation expectations"] = wb["Inflation expectations"]
+    check("Five-year ahead Infl Exp" not in wb["sheets"]
+          and "Inflation expectations" in wb["sheets"] and len(wb["sheets"]) == 43,
+          "the current workbook (43 sheets) has no 'Five-year ahead Infl Exp' sheet: "
+          "what failed on the box")
+    rows = nyfed_sce.rows_from_workbook(book, LM_CANON, "ingest_instant")
+    by: dict = {}
+    for r in rows:
+        by.setdefault(r["registry_key"], []).append(r)
+    check(set(by) == {"nyfed.sce_3y", "nyfed.sce_5y"}
+          and by["nyfed.sce_3y"][-1]["observed_at"] == "2026-09-01"
+          and abs(by["nyfed.sce_3y"][-1]["value"] - 3.25033) < 1e-5
+          and abs(by["nyfed.sce_5y"][-1]["value"] - 2.995079) < 1e-6,
+          "both keys read by pattern from 'Inflation expectations'; the three-year "
+          "keeps nyfed.sce_3y (Sep 2026 3.25%), the five-year is its column 10 "
+          "(2.995%)")
+    old = {"Inflation expectations": [["", "Median three-year ahead expected inflation rate"],
+                                      [202601.0, 3.1]],
+           "Five-year ahead Infl Exp": [["", "Median"], [202601.0, 2.9]]}
+    check(sorted(r["registry_key"] for r in nyfed_sce.rows_from_workbook(old, "x", "k"))
+          == ["nyfed.sce_3y", "nyfed.sce_5y"],
+          "the old layout still reads, should it return")
+    no5 = {"Inflation expectations": [["", "Median three-year ahead expected inflation rate"],
+                                      [202601.0, 3.1]],
+           "Inflation expectations Demo": [["", "Median five-year ahead expected "
+                                                "inflation rate"], [202601.0, 9.9]]}
+    a5: dict = {}
+    r5 = nyfed_sce.rows_from_workbook(no5, "x", "k", absent=a5)
+    check([r["registry_key"] for r in r5] == ["nyfed.sce_3y"] and list(a5) == ["nyfed.sce_5y"],
+          "a key found nowhere is absent and the rest is written; a Demo sheet never "
+          "stands in for the whole")
+    try:
+        nyfed_sce.rows_from_workbook({"Disclaimer": [], "Notes": []}, "x", "k")
+        ok = False
+    except ValueError as exc:
+        ok = "['Disclaimer', 'Notes']" in str(exc)
+    check(ok, "no inflation-expectations sheet at all raises, naming the sheets it found")
+
+    # --- the Board's CIE (frb_cie) ----------------------------------------------
+    cie = (FX1 / "frb_cie" / "cie_2026-10-16.csv").read_text(encoding="utf-8")
+    c = fedboard.rows_from_csv(cie, LM_CANON, "observed")
+    lastq = {r["instrument"]: r["value"] for r in c if r["observed_at"] == "2026-09-30"}
+    check(len(c) == 222 and c[0]["observed_at"] == "1999-03-31"
+          and lastq == {"spf": 2.22, "mich": 3.13},
+          "CIE: the 16 Oct 2026 file (YYYY-M-D periods, no BOM) reads 111 quarters to "
+          "2026Q3 (SPF 2.22, Michigan 3.13) -- the series continues, not withdrawn")
+    try:
+        fedboard.rows_from_csv("period,CIE_spf,CIE_mich\n2026Q3,2.2,3.1\n", "x", "k")
+        ok = False
+    except ValueError as exc:
+        ok = "'2026Q3'" in str(exc)
+    check(ok, "a file whose periods are unreadable raises, naming the first; never "
+              "'parsed to zero rows' in silence")
+
+    # --- TreasuryDirect (treasury_auctions) ---------------------------------------
+    recs = json.loads((FX1 / "treasury_auctions" / "search_2026-10.json")
+                      .read_text(encoding="utf-8"))["records"]
+    rows = treasury_auctions.rows_from_records(recs)
+    shares: dict = {}
+    for r in rows:
+        if r["registry_key"].endswith("_share"):
+            shares[r["instrument"]] = shares.get(r["instrument"], 0.0) + r["value"]
+    check(set(shares) == {"Note:3-Year", "Bill:4-Week"}
+          and all(abs(v - 1.0) < 1e-6 for v in shares.values())
+          and not any(r["instrument"].startswith("TIPS") for r in rows),
+          "the renamed schema (competitiveAuctionCloseDate, the *CompetitiveParAwarded "
+          "fields): dealer + direct + indirect is the competitive subtotal, on real "
+          "records; the unheld TIPS is skipped")
+    check(treasury_auctions.DATE_FIELD == "competitiveAuctionCloseDate",
+          "the query names the date field that exists: dateFieldName=auctionDate is "
+          "answered with 500 for every window, which is what failed on the box")
+    seen = {}
+    try:
+        def capture(url, params=None, **k):
+            seen.update(params or {})
+            return recs
+        treasury_auctions.http_get_json = capture
+        treasury_auctions.fetch_records("2026-09-02", "2026-10-17")
+    finally:
+        restore()
+    check(seen.get("dateFieldName") == "competitiveAuctionCloseDate",
+          f"and fetch_records sends it ({seen.get('dateFieldName')})")
+
+    # --- GLD (spdr_gld): the archive is a one-time anchor -------------------------
+    src = (REPO / "altdata" / "sources" / "spdr_gld.py").read_text(encoding="utf-8")
+    check("Needed ONCE, as the anchor" in src and "Never a recurring drop (rule 30)" in src,
+          "GLD: the archive's message asks for one browser download, once, as the "
+          "anchor -- never a recurring drop (rule 30)")
+
+
 def main() -> int:
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
-              group_p, group_n, group_q, group_r, group_s, group_t):
+              group_p, group_n, group_q, group_r, group_s, group_t,
+              group_u):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

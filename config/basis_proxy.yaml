@@ -68,6 +68,13 @@ unwind_watch:
   # The 10-year swap spread's two-week change beyond 2 sigma, either way. Not
   # stored: no source for the 10-year SOFR swap rate is in the store.
   swap_spread: {key: null, sessions: 10, history_days: 1826}
+  # Batch 5 item 27 (ST-R4.27a, 16 Oct 2026; the order: "a co-signal in ... SR-36's
+  # unwind-watch co-signals"): TLT's 20-session overnight leg (open less the prior
+  # close, cumulated) at -2 sigma on five years -- a rising-yield move carried
+  # overnight. Hooked by name; its settings are config/batch5_tranche_1b.yaml's.
+  # It COUNTS toward min_cosignals like the other four (session-set: listed for
+  # Ari in docs/briefs/st-r4-tranche-1b-notes.md).
+  overnight: {module: altdata.batch5b, function: cosignal}
 
 # THE FRAME'S FENCE: the directional reading the order rejects. Any of these in a
 # paragraph withholds it (daily_cascade.stack_prose.basis_faults).

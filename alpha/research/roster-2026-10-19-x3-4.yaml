@@ -1,0 +1,66 @@
+# The Alpha Lab's engine 7 as a hypothesis (X-3.4), for the register. The change
+# order's section 5 names it (docs/change-order-alpha-lab-2026-10-12.md, ruled 12
+# Oct 2026); b45-chain3 builds it (alpha/engines/intraday_dealer.py). Its every
+# rule is config/alpha_intraday_dealer.yaml's `spec`, quoted below by its sha256:
+# the engine refuses to run if the spec no longer hashes to it.
+#
+# NOT YET PRE-REGISTERED. A file in the repository is not a registration. On the
+# box, inside a window, after the third chain merges, the operator registers it BY
+# MANIFEST before any backtest:
+#
+#   python -m alpha.manifest register alpha/research/roster-2026-10-19-x3-4.yaml
+#
+# Every bucket prints "awaiting (n=k of 30)" until 30 completed sessions, counted
+# from the captures' first day; nothing runs or is counted until then.
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-19-roster-tranche-3-engine-7
+source: operator
+proposer: "the change order's Tranche 3 (section 5, X-3.4), built by session B"
+channel: workbench
+written_at: "2026-10-19T15:00:00-04:00"
+model_idea_rule: false
+inputs:
+  - "docs/change-order-alpha-lab-2026-10-12.md X-3.4 (ruled 12 Oct 2026)"
+  - "config/alpha_intraday_dealer.yaml spec (sha256 2efa781c6d525bf5b13abb0d95193a4e867e2e04c6b0f56e05722b6a9798f1c7)"
+  - "config/alpha_costs.yaml"
+hypotheses:
+  - local_id: E-7
+    title: "The 09:45 gamma regime and the opening move's sign predict the session to 12:30 or the close"
+    horizon_class: short
+    horizon_sessions: 1
+    family: intraday_dealer
+    mechanism: >-
+      The change order's X-3.4: intraday behaviour "conditioned on the gamma
+      regime and 0DTE flow". Where dealers are long gamma they sell rallies and
+      buy dips to stay hedged, which damps the session's move; where they are
+      short gamma they hedge with the move and extend it. So the sign of the
+      opening move, read beside the 09:45 regime, should tell whether the session
+      continues or reverses. Which, and to which exit, is each bucket's own
+      history's to say.
+    universe: [SPY, QQQ, IWM]
+    rule_text: >-
+      Per symbol, per 09:45 gamma regime (net GEX's sign where net-to-gross is at
+      least 0.10, from our own capture, computed by the 10:15 deadline; a later
+      capture is never read) and per sign of the open-to-09:45 move (the
+      capture's spot less the stored open, read at its market time): the bucket.
+      Entry at the open of the first stored 5-minute bar at or after the
+      decision, within 10 minutes, else no trade. The formation sample is the
+      bucket's first 30 completed sessions from the captures' first day; below 30
+      it prints "awaiting (n=k of 30)" and trades nothing. Then the side
+      (continuation or reversal) and the exit (12:30 or the close) with the best
+      formation mean net of costs is frozen, and later sessions trade only where
+      that mean is above 0. VWAP and a finer opening range are not tracked. Costs:
+      the etf class's round trip at the engine's capital. The 0DTE share of the
+      captured volume is recorded on every session, labelled no side.
+    conditioning: []
+    expected: {sign: positive_expectancy_after_costs}
+    sample: {min_independent_signals: 100}
+    data:
+      spec: config/alpha_intraday_dealer.yaml
+      spec_sha256: 2efa781c6d525bf5b13abb0d95193a4e867e2e04c6b0f56e05722b6a9798f1c7
+      in_store: ["the 09:45 captures' computed exposure profiles (data/computed)", "the daily open and close (yfinance.mkt_<sym>_open, yfinance.mkt_<sym>)", "the 5-minute bars (the bars table)"]
+      gaps: ["VWAP and a finer opening range: no intraday bars knowable at the decision; the writer is listed, not built", "no vendor value: no FlashAlpha key is read"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Built 19 Oct 2026; not run on the box's store before registration."
+    engine: intraday_dealer

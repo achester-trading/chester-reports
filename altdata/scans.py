@@ -44,6 +44,17 @@ cutoff.
 A stored figure is the record: rows are never edited or deleted. A corrected
 scan re-ingested writes new rows for the rows that changed, and the reader takes
 the newest ingest of each metric.
+
+-----------------------------------------------------------------------------
+THE GTM BATCH'S DECLARED FIGURES (17 Oct 2026)
+-----------------------------------------------------------------------------
+The GTM batch needs a few of the Guide's figures the scan states outside its
+reference table (the 10-year at the prior tops, in section 3; the sentiment base
+rate, in section 4). They are not parsed from prose: config/gtm.yaml declares
+each one with the scan's words quoted exactly, its section and its as-of, and
+`ingest` stores them under the metric `GTM-n · <label>` beside the table, by the
+same refusal rules (altdata/gtm.py sourced_figures). A declared figure whose
+quote the scan does not contain is refused.
 """
 
 from __future__ import annotations
@@ -320,6 +331,19 @@ def ingest(paths: Optional[Iterable[Path]] = None,
             out["added"] += added
             out["refused"] += [{"scan_id": parsed["scan_id"], **r}
                                for r in parsed["refused"]]
+        # THE GTM BATCH'S DECLARED FIGURES, when its scan is among the paths.
+        from . import gtm  # noqa: PLC0415
+        gcfg = gtm.config()
+        gp = next((Path(p) for p in paths if Path(p).stem == gcfg["scan_id"]), None)
+        if gp is not None:
+            figs, refused = gtm.sourced_figures(gcfg, gp)
+            added = sum(write(conn, f) for f in figs)
+            conn.commit()
+            out["scans"].append({"scan_id": f"{gcfg['scan_id']}:gtm",
+                                 "figures": len(figs), "added": added})
+            out["added"] += added
+            out["refused"] += [{"scan_id": f"{gcfg['scan_id']}:gtm", **r}
+                               for r in refused]
     finally:
         conn.close()
     return out

@@ -1,0 +1,16 @@
+[Unit]
+Description=Alpha Lab weekly loop at 06:00 ET on Sundays
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+[Timer]
+# Sunday 06:00 ET, AFTER THE WEEKLY's RUN: chester-weekly fires at 05:00 and its
+# TimeoutStartSec is 15 minutes, so the Weekly has printed the lab's line from
+# the week's ledger before this rebalances it.
+OnCalendar=Sun 06:00 America/New_York
+RandomizedDelaySec=60
+Persistent=false
+
+# NOT IN DEPLOY_TIMERS. Enabling is the operator's.
+
+[Install]
+WantedBy=timers.target

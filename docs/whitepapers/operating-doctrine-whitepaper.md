@@ -4,7 +4,7 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XVIII** — between *Portfolio Construction Across Regimes* (XVII) and *Building and Validating a Systematic Book* (XIX), per the library guide; cross-references in this paper are by name
-**Version:** 1.1 — 9 October 2026 (1.0, September 2026; 1.1 records the Doctrine monthly of 2 October 2026 and the incidents to date in the dated Appendix D, and amends the body only where it contradicted a ruling)
+**Version:** 1.2 — 17 October 2026 (1.0, September 2026; 1.1, 9 October 2026, recorded the Doctrine monthly of 2 October 2026 and the incidents to date in the dated Appendix D, and amended the body only where it contradicted a ruling; 1.2 writes that sitting's items 3, 4 and 5 into the body as Part X and words the October lessons as the minutes word them)
 **Status:** Doctrine. Governs how the reports are consumed and how capital is deployed. Changes only at the sitting its tier of the change ladder names (Rule 20; Appendix D).
 
 ---
@@ -871,6 +871,62 @@ The observer was always good. The doctrine is the risk manager. The book needs b
 
 ---
 
+## Part X — Change, Attention and the Intraday Rung
+
+*Ruled at the Doctrine monthly of 2 October 2026, items 3, 4 and 5 (`docs/briefs/doctrine-monthly-2026-10-minutes.md`), and written into the body by the Enterprise Layer's EL-4 on 17 October 2026. Appendix D.1 records the rulings with their dates. These three sections govern from the date of the ruling; nothing written in Parts I to IX before it moves because of them.*
+
+### 10.1 The change ladder
+
+A rule changes through one of five tiers, and the tier decides the evidence the change needs, who may make it, and at which sitting.
+
+| Tier | What changes | Evidence required | Authority | Reviewed |
+|---|---|---|---|---|
+| 1 Immediate tactical learning | A tactic, or a threshold inside a book | One graded outcome, recorded | The operator | Weekly |
+| 2 Regime-specific adaptation | A rule conditioned on a regime | At least **20** graded outcomes within the regime, the unconditional base rate printed beside the conditional | The operator, at the Doctrine monthly | Monthly |
+| 3 Medium-term relationship change | A signal's weight, a panel, a modifier's rights | An offline calibration study with a dated ledger, and the Red Team | Amendment | Quarterly |
+| 4 Structural market change | A market-state dimension, or a book's mandate | Two independent lines of evidence, a mechanism, and survival of one Annual Structural Review | Amendment with the Annual review | Annual |
+| 5 Durable market principle | A white-paper claim in a timeless body | The full ladder below it, and a dated premise-expiry line in the paper | The Annual review only | Annual |
+
+Tier 2's sample is twenty graded outcomes inside the regime the rule is conditioned on, and the conditional rate is never printed without the unconditional base rate beside it, by the Base Rates convention: a rule that wins 60% of the time in a regime in which everything wins 60% of the time has learned nothing about the regime.
+
+**The cadence clause.** A short-horizon anomaly cannot climb faster than one tier per review cadence, and the cadence is that of the tier being *entered*. A change reaches tier 3 only after a quarter at tier 2, and tier 4 only after a year at tier 3. A pattern that looked right for three weeks is a tier-1 observation for three weeks, however strong it looked.
+
+**Every change carries its tier.** From the ruling on, every change order names the tier of each change it makes and the date that change entered the tier. A change order without them is incomplete, whatever else it carries.
+
+The ladder governs changes from the date it was ruled. Nothing already in this paper moves because of it, and the September signal-triage items keep their calibration-study route as tier-3 proposals. Where Section 9.1's sample minima also apply, a change must meet both. Rule 20 is the ladder stated as a rule.
+
+### 10.2 The attention budget
+
+The operator's attention is the scarcest input the system has, so it is budgeted like risk: a rule, not a target.
+
+- **Seven packet approvals a week.** A packet beyond the seventh waits for the next week.
+- **One review sitting a week, of at most two hours.** The Doctrine monthly and the audit sittings count as their weeks' sittings.
+- **A deferred packet is an abstention.** A packet the budget defers is recorded on the register as an abstention with the reason `attention_budget`, and graded like any other abstention. The budget's cost is therefore measured, not assumed: if the deferred packets would have paid, the record says so.
+- **The Weekly prints three counts.** Packets approved against seven; sitting hours against two; and the rulings taken in chat that week. The third is measured, not capped, until the second Doctrine monthly sets a cap from a month's data.
+
+The budget counts approvals. It does not change the rhythm of Section 6.5, which defers to it where the two collide.
+
+### 10.3 The intraday rung
+
+**Books A to D stand, and there is no fifth book.** Intraday is a tactics layer for Books B and C, used for the execution timing of decisions those books have already approved, plus **at most two paper engines**.
+
+**What an engine carries before its first trade:**
+- a mechanism, in one paragraph;
+- the setup's unconditional base rate, printed beside the edge it claims;
+- a target sample size;
+- the fixed kill criterion: *retired when, after at least 40 graded paper trades, expectancy after modelled costs is zero or worse, or its Brier score is worse than the base rate's; never resized before that sample exists.*
+
+**The first engine, after the intraday captures are built,** is the dealer-positioning and zero-day regime engine of the Dealer's Hand, Part V. It registers on three conditions:
+1. its base rate is computed from at least 20 sessions of stored close verdicts before its first paper trade;
+2. it uses defined-risk structures only, spreads and never naked options, as Book C's tactics layer requires;
+3. its trades are **ledger entries graded against stored bars, never orders and never packets**. They carry the engine's identity, do not count against the attention budget, and are reviewed as an engine at the weekly sitting, not trade by trade.
+
+**The second engine**, for scheduled events (releases and earnings), follows an offline study of surprise reactions.
+
+An engine is an experiment. It reads what the system stores and is graded against what the market did; it has no order path and no packet, and the operator reviews it, never its individual trades.
+
+---
+
 ## Appendix A — The simulations
 
 All simulations draw weekly returns from a Student-t distribution with four degrees of freedom, scaled to the stated mean and volatility, over a fifty-two-week year, with equity compounding from $300,000. The fat tails are deliberate and make every drawdown figure in Part VII more conservative than a Gaussian assumption would. No kill switches are modeled in the return distribution, for the reason given in Section 7.2: switches make the realized distribution behave like the assumed one; they do not add expectancy. Forty thousand paths for the target-as-given tables; twenty thousand for the budget-first search, which finds the largest annualized volatility, in 2% steps, at which the probability of a maximum drawdown beyond the tolerance is at most 10%.
@@ -905,7 +961,7 @@ The three dials are read from: the Macro dial from the *Monthly Macro Working Ma
 
 The library guide is the canonical source of series numbering. This paper's masthead is to be relabelled on commit.
 
-## Appendix D — Dated: Rulings and Lessons (October 2026 entry, as of 9 October 2026)
+## Appendix D — Dated: Rulings and Lessons (October 2026 entry, as of 17 October 2026)
 
 *The body of this paper is timeless; this appendix is not. It records the sittings that ruled on the doctrine and the incidents that taught it something, each with its date, so that a reader can see not only what the rules are but when they were set and what set them. Entries are added at each sitting and are never rewritten; a later ruling that changes an earlier one is a new entry. The values here are as ruled. Where the configuration carries them, it is the operating copy, and the Reporting System paper's dated appendix prints it.*
 
@@ -954,9 +1010,11 @@ A short-horizon anomaly cannot climb faster than one tier per review cadence, an
 
 **The other items.** Items 6, 7, 9 and 10 ruled the metric lenses, the Monthly's content before its first stacked edition, the order of work and the reporting stack's values. They govern the reports rather than the book; the Reporting System paper records them.
 
+**Part X** *(written into the body 17 October 2026).* Items 3, 4 and 5 above are now also the body's Part X: the change ladder (Section 10.1), the attention budget (Section 10.2) and the intraday rung (Section 10.3). The rulings are unchanged; the body states them as rules, and this appendix keeps their dates.
+
 ### D.2 Incidents and their lessons, INC-1 to INC-9
 
-Incidents are logged by the system with what happened, the fix and the gate that holds it. The entries here keep only what bears on the doctrine: the lesson. They carry no figures, as the sitting of 2 October ruled for its entries.
+Incidents are logged by the system with what happened, the fix and the gate that holds it. The entries here keep only what bears on the doctrine: the lesson. They carry no figures, as the sitting of 2 October ruled for its entries. The three entries the sitting ruled (item 8, "stand as written", with no operator's note) are quoted from its minutes, `docs/briefs/doctrine-monthly-2026-10-minutes.md`, as ruled; they are not drafts.
 
 | Id | Date | What happened | Lesson |
 |---|---|---|---|
@@ -965,12 +1023,41 @@ Incidents are logged by the system with what happened, the fix and the gate that
 | INC-3 | 29 Sep 2026 | The backup stalled on a storage quota and was killed without writing how it ended | Every job records how it ended, including when it is killed |
 | INC-4 | 30 Sep 2026 | The overnight fetch died three mornings running while the heartbeat said healthy | Health is read from the supervisor's record, not from the job's own report |
 | INC-5 | 1 Oct 2026 | The volatility solver missed its accuracy bound on the index chain | A finding, not a fault: a measure that fails its own test stays out of the decision path until it passes |
-| INC-6 | 1 Oct 2026 | A foreign-listed index short was held on a draft decision and closed at a loss made mostly by the currency and the listing | **A foreign listing is a currency position.** A decision's expression must be in its thesis's currency; otherwise the FX leg is a second decision and is recorded as one. The gate refuses a mismatch at entry (built 2 October), and the expression currency is a required field on every packet *(ruled 2 October, item 8)* |
-| INC-7 | 1 Oct 2026 | Closed positions persisted in the broker record for a week | **An exit the system didn't see.** Every exit is a register event the same session it happens, including one made by hand at the broker; a divergence between broker state and the register is a heartbeat fault, not a Weekly footnote *(ruled 2 October, item 8)* |
+| INC-6 | 1 Oct 2026 | A foreign-listed index short was held on a draft decision and closed at a loss made mostly by the currency and the listing | **A foreign listing is a currency position.** *A decision's expression must be in its thesis's currency; otherwise the FX leg is a second decision and is recorded as one. The gate refuses a mismatch at entry (built 2 Oct), and `expression_currency` is a required field on every packet.* *(ruled 2 October, item 8)* |
+| INC-7 | 1 Oct 2026 | Closed positions persisted in the broker record for a week | **An exit the system didn't see.** *Every exit is a register event the same session it happens, including one made by hand at the broker; a divergence between broker state and the register is a heartbeat fault, not a Weekly footnote.* *(ruled 2 October, item 8)* |
 | INC-8 | 2 Oct 2026 | A fallback recorded a foreign-currency close as dollars | **A fallback that invents a value is worse than an empty field.** Unknown stays unknown, and one rule judges every write |
 | INC-9 | 6 Oct 2026 | For six sessions the point-in-time loggers ran nowhere, each schedule saying the other ran them; the captures cannot be recovered | **A feed is not scheduled until a gate says so.** A thing that does not run looks exactly like a quiet one |
 
-**The first graded decisions** *(ruled 2 October, item 8).* Decisions entered before the enforcement gate existed are graded like any other, recorded as pre-gate. From that date, a packet without a time stop and an invalidation level at entry is a rule break. The short side's extra confirmation stands as written.
+**The first graded decisions** *(ruled 2 October, item 8).* *Decisions entered before the enforcement gate existed are graded like any other, with `gate_outcome = pre-gate`; from now, a packet without a time stop and an invalidation level at entry is a rule break. The short side's extra confirmation stands as written.*
+
+### D.3 Layer X — the Alpha Lab (ruled 12 October 2026)
+
+Ruled on 12 October 2026: decisions 1 to 8 of the Alpha Lab brief were accepted as a list at 20:28 ET, and decision 9, the learning loop, at 20:40 ET. The change order of the same date records them. Decision 8 amends this paper with the one paragraph below. It is quoted as ruled, and nothing else in the body moved. "Part VIII" in it is the Enterprise Layer change order's part on engines, not this paper's Part VIII.
+
+> **Layer X — the Alpha Lab.** Beside the four books and the five reports there is one independent layer: a machine's book in ledger-paper that reads the observation store and writes nothing back to it, to the register, to the narrative ledger or to any report. It has four restraints and no others — the Brookfield blocklist; ledger entries against stored prices, with no order path of any kind before the Gate 3 ruling; a risk governor; an evidence gate — and inside them it searches, trades, learns and innovates on its own authority, without the sitting and outside the attention budget. Part VIII's limits on engines do not apply inside it and are unchanged outside it. Its results are tabled at sittings as evidence; each rung of the gate ladder is the operator's ruling. Its constitution — the four restraints, the governor's numbers, the validation standard, the kill criterion, the hold-out and the variant count — changes only by ruling.
+
+## Appendix E — Dated: Calibration ledgers (ST-L): the candidate rules' evidence (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-8 — the false-bottom audit: the bottom side, rally by rally (ledger of 18 October 2026)
+
+- **Ledger:** [false-bottom-audit-2026.md](../ledgers/false-bottom-audit-2026.md).
+- **As of:** S&P 500 2026-10-16; French CRSP 202608; FINRA margin 2026-09. **Window:** 1973-74 1973-01-11 to 1974-10-03; 2000-02 2000-03-24 to 2002-10-09; 2007-09 2007-10-09 to 2009-03-09; 2022 2022-01-03 to 2022-10-12; Nasdaq 2000-03-10 to 2002-10-09 (count only). **n:** 16.
+- **Verdict:** FAIL -- 1 element(s) discriminate (breadth_rsp_spy); 12 false bottoms and 4 true across the four bears (S&P 500); rule: >= 2 discriminate, each firing at >= 75% of testable true bottoms and <= one third of testable false ones
+- **Rights consequence (the ledger's):** PASS: the gate specification above is what ST-11 wires at T&B full, and the Doctrine proposal goes to the monthly. FAIL or INSUFFICIENT: the specification stands as written, with its gaps, and the monthly decides. Book A rule A-2 changes nothing until then. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** SR-8's candidate rule goes to the Doctrine monthly of 7-8 November as a proposal ([doctrine-2-proposals-st-l.md](../briefs/doctrine-2-proposals-st-l.md)); it is not a rule.
+
+### SR-22 — coupon auction absorption against the 10-year's next three months (ledger of 18 October 2026)
+
+- **Ledger:** [sr-22-ledger-2026-10-18.md](../ledgers/sr-22-ledger-2026-10-18.md).
+- **As of:** 2026-10-08 (latest auction); last with 63 sessions forward 2026-07-09. **Window:** 2009-01-06 to 2026-10-08. **n:** 1034.
+- **Verdict:** FAIL -- stress flag only: median 3m change -2.0 bp, falls in 51.8% of 1034 (rule: median < 0 and >= 60%)
+- **Rights consequence (the ledger's):** PASS: the contrarian read, the overlay queue's position #2 after the gate, and an input to rule A-3. FAIL: the stress flag only (narrow, display). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** SR-22's note (an ETF's record low is yield arithmetic) goes to the same monthly as a proposal; it is not a rule.
 
 ---
 

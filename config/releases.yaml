@@ -1,0 +1,351 @@
+# config/releases.yaml -- Batch 7 items 46 and 48, Group A, and the cross-cutting
+# lenses (docs/change-order-signal-triage-batch-7-2026-10-16.md on docs-batch-7;
+# 6e-releases, 16 Oct 2026, session B). Read by altdata/releases.py.
+#
+# RIGHTS: flags only where the order names them -- lens 2 (diffusion below 50),
+# lens 3 (persistent negative revisions), lens 4 (permanent job losers rising) and
+# item 46's pass-through flag. Everything else here is report-only. No flag is a
+# state, a modifier or a rule of the market-state object (R28): item 46's flag
+# switches the PRINTED STATE of item 32's report-only classifier (ruling (d) of
+# 16 Oct 2026), nothing more.
+#
+# Every value below is the order's where it gives one and SESSION-SET otherwise,
+# with its reason beside it; the session-set ones are listed in
+# docs/briefs/6e-releases-notes.md for Ari.
+version: 1
+
+# ---------------------------------------------------------------------------
+# ITEM 46a -- THE CPI DECOMPOSITION
+# ---------------------------------------------------------------------------
+decomposition:
+  headline: fred.cpi
+  core: fred.core_cpi
+  # The five pieces and their weights in the CPI-U basket: BLS relative
+  # importance, December 2025, rounded to sum to one -- the same weights as the
+  # CPI lead composite (config/macro_6e.yaml cpi_lead), so the two never
+  # disagree on the basket. A contribution is weight x the piece's own month-on-
+  # month change, in percentage points of the headline. Relative importance
+  # drifts month to month with relative prices, so the pieces sum to the
+  # headline only approximately; the residual prints.
+  pieces:
+    - {name: energy, key: fred.cpi_energy, weight: 0.064}
+    - {name: food, key: fred.cpi_food, weight: 0.136}
+    - {name: core goods, key: fred.cpi_core_goods, weight: 0.19}
+    - {name: shelter, key: fred.cpi_shelter, weight: 0.355}
+    - {name: core services ex shelter, key: supercore, weight: 0.255}
+  # Core services ex shelter (supercore) has no published index. It is built
+  # from core services (services less energy services) less shelter at their
+  # relative importance: core services 0.61 (= shelter 0.355 + supercore 0.255),
+  # shelter 0.355. supercore m/m = (0.61 x core services m/m - 0.355 x shelter
+  # m/m) / 0.255.
+  supercore:
+    core_services: fred.cpi_core_services
+    shelter: fred.cpi_shelter
+    core_services_weight: 0.61
+    shelter_weight: 0.355
+  median: fred.cpi_median
+  trimmed_mean: fred.cpi_trimmed_mean
+
+# THE DIFFUSION (item 46a): the share of categories whose month-on-month change,
+# annualised, is above the threshold. Unweighted: each category counts once
+# (a count of how many parts of the basket run hot, the breadth the median
+# cannot show). The 24 categories are expenditure classes that do not overlap,
+# read from FRED's CPI component series (CUSR0000..., SA); together they cover
+# most of the basket by weight, each listed in altdata/config.py
+# FRED_RELEASES_SERIES. A category without the month's print is left out of the
+# count and the n says so.
+diffusion:
+  threshold_annualised_pct: 4.0       # the order's
+  categories:
+    - fred.cpi_c_food_home
+    - fred.cpi_c_food_away
+    - fred.cpi_c_alcohol
+    - fred.cpi_c_gasoline
+    - fred.cpi_c_electricity
+    - fred.cpi_c_utility_gas
+    - fred.cpi_c_apparel
+    - fred.cpi_c_new_vehicles
+    - fred.cpi_used_cars
+    - fred.cpi_c_vehicle_parts
+    - fred.cpi_c_medical_goods
+    - fred.cpi_c_tobacco
+    - fred.cpi_c_household
+    - fred.cpi_c_personal_care
+    - fred.cpi_rent
+    - fred.cpi_oer
+    - fred.cpi_c_lodging
+    - fred.cpi_c_water_trash
+    - fred.cpi_c_professional_med
+    - fred.cpi_c_hospital
+    - fred.cpi_c_vehicle_repair
+    - fred.cpi_airline_fares
+    - fred.cpi_c_tuition
+    - fred.cpi_c_video_audio
+  min_categories: 18                  # session-set: three quarters of the 24, or the share is not printed
+
+# ---------------------------------------------------------------------------
+# ITEM 46b -- THE PASS-THROUGH BASKET AND FLAG
+# ---------------------------------------------------------------------------
+# "The energy-sensitive basket accelerating within three months of an energy
+# spike switches item 32's sub-state from 'supply shock, contained' to 'supply
+# shock, propagating'." The basket is the order's three series, equally weighted
+# (no weight is given and none of the three is the basket's anchor).
+pass_through:
+  basket: [fred.cpi_airline_fares, fred.cpi_transport_services, fred.ppi_truck_freight]
+  energy: fred.cpi_energy
+  # SESSION-SET. An ENERGY SPIKE is a month in which CPI energy rose at least
+  # this much month on month: 9.1% of months since 2000 (29 of 319, CPIENGSL,
+  # read 16 Oct 2026; the 90th percentile is +3.85%), and the order's September
+  # 2026 print (CPI energy +5.2%, gasoline +9.1%) clears it.
+  energy_spike_mm_pct: 4.0
+  # SESSION-SET. The basket ACCELERATES when its 3-month annualised change, at a
+  # month one to three months after the spike, exceeds its 3-month annualised
+  # change at the spike month by at least this many points: the order's "usual
+  # one-to-three-month lag". The basket is noisy (airline fares above all): the
+  # three-month change in its 3-month annualised rate has a standard deviation of
+  # 10.4 points outside 2020-22 (Apr 2004 - Sep 2026, read 16 Oct 2026), and 10
+  # points or more is reached in about one month in six (15.6%). One standard
+  # deviation, so a fire is a move the basket's own noise rarely makes.
+  acceleration_pp: 10.0
+  window_months: [1, 3]               # the order's: within three months of the spike
+  # The printed states of item 32's classifier (ruling (d)): the flag switches
+  # "contained" to "propagating" while item 32 reads a supply shock.
+  states: {contained: "supply shock, contained", propagating: "supply shock, propagating"}
+
+# ---------------------------------------------------------------------------
+# ITEM 48, LENSES 1-6 -- EMPLOYMENT
+# ---------------------------------------------------------------------------
+employment:
+  payrolls: fred.nfp
+  private: fred.payrolls_private
+  edu_health: fred.payrolls_edu_health
+  # LENS 2. The order's flag: diffusion below 50 for three months. The CES
+  # industry diffusion indexes are on api.bls.gov and data.bls.gov only, both of
+  # which disallow every agent in robots.txt; the keyless stand-in is FRED's
+  # State and Metro diffusion index (the share of STATES adding jobs), printed
+  # under that name. SESSION-SET: the flag reads the 1-month index (three
+  # consecutive monthly readings under 50 are the persistence; the 3-month span
+  # already averages, so applying "three months" to it would count months twice).
+  diffusion_1m: fred.diffusion_states_1m
+  diffusion_3m: fred.diffusion_states_3m
+  diffusion_flag_below: 50            # the order's
+  diffusion_flag_months: 3            # the order's
+  # LENS 3. The two-month net revision of payrolls, read from the stored
+  # vintages: the level of the prior month in this release's vintage less the
+  # level the previous release printed for it (the change in the two prior
+  # months' combined gains). SESSION-SET: "persistent" is negative in each of the
+  # last three releases -- one quarter of releases, the persistence the order's
+  # other employment flag uses.
+  revision_flag_releases: 3
+  # LENS 4. Permanent job losers, flag on a year-over-year rise. SESSION-SET: the
+  # 3-month average against the same three months a year earlier, rising at
+  # least 20%. Measured on LNS13026638 (read 16 Oct 2026): its month-on-month
+  # change has a standard deviation of 4.7% outside recessions, so the three-month
+  # average carries the reading; outside recessions a 10% rise is reached in 18%
+  # of months, 20% in 8%. At 20% it fired in Dec 2007 (+24.2%), at the
+  # recession's start, and not in Sep 2007 (+13.9%).
+  permanent_losers: fred.permanent_job_losers
+  permanent_losers_yoy_rise_pct: 20.0
+  lfpr_prime_age: fred.lfpr_prime_age
+  sahm: calc.sahm_rule
+  claims_initial: fred.claims_initial
+  claims_continuing: fred.claims_continuing
+  # The order's read "rising continuing with flat initial = hiring freeze"
+  # (report-only). SESSION-SET: over 13 weeks, continuing up at least 5% while
+  # initial is within 5% either way -- a quarter of weekly prints; 5% is about
+  # one standard deviation of the 13-week change in the 4-week averages outside
+  # recessions since 2000 (5.6% continuing, 6.1% initial, read 16 Oct 2026), and
+  # continuing claims rise 5% or more in 8% of those weeks.
+  claims_weeks: 13
+  claims_rising_pct: 5.0
+  claims_flat_pct: 5.0
+  temp_help: fred.temp_help
+  agg_hours: fred.agg_weekly_hours
+  quits_rate: fred.quits_rate
+  openings: fred.job_openings
+  unemployed: fred.unemployed_level
+  eci: fred.eci_wages
+  atl_wage: fred.atl_wage_tracker
+  ahe: fred.ahe_yoy                   # the stored LEVEL of average hourly earnings, despite the key's name
+  switchers: fred.atl_wage_switchers
+  stayers: fred.atl_wage_stayers
+
+# ---------------------------------------------------------------------------
+# ITEM 48, LENSES 7-11 -- CPI, BEYOND ITEM 46
+# ---------------------------------------------------------------------------
+cpi_lenses:
+  # LENS 7: the shelter lead. The order: "~12-month lead on CPI shelter".
+  shelter_lead_months: 12
+  shelter_leads:
+    - {key: zillow.zori_us, name: "Zillow observed rent index (ZORI)"}
+    - {key: aptlist.rent_us, name: "Apartment List national rent"}
+  shelter_cpi: [fred.cpi_shelter, fred.cpi_rent, fred.cpi_oer]
+  # LENS 9
+  sticky: fred.sticky_cpi
+  flexible: fred.flex_cpi
+  goods: fred.cpi_commodities
+  services: fred.cpi_services
+  # LENS 10: the base-effect ladder. The path of year-over-year over the next
+  # three months, if month on month runs at the pace named, given the months
+  # that drop out of the window. SESSION-SET: the pace is the trailing three-
+  # month average of the series' own month-on-month change (the most recent
+  # run-rate, the one a desk would assume), and each 0.1 point a month above or
+  # below it moves each rung by about 0.1 point a month cumulated.
+  ladder_months: 3
+  ladder_series: [fred.cpi, fred.core_cpi]
+  # LENS 11: the CPI-PCE wedge, with the weight differences named. The gap is
+  # calc.core_cpi_pce_gap (6e-rest). The weights are the published shares, as a
+  # reader would cite them; refresh with each annual reweighting.
+  wedge: calc.core_cpi_pce_gap
+  wedge_weights:
+    - {component: "shelter (rent and owners' equivalent rent)", cpi: "about 35%", pce: "about 15%"}
+    - {component: "medical care (PCE counts employer and government payments)", cpi: "about 7%", pce: "about 17%"}
+    - {component: "financial services (portfolio fees; PCE only)", cpi: "under 1%", pce: "about 8%"}
+
+# ---------------------------------------------------------------------------
+# GROUP B (item 48 lenses 12-20; lenses-group-b, 18 Oct 2026). REPORT-ONLY: the
+# order names flags in lenses 2-4 only (Group A's), so no lens here carries a
+# flag but the 30-point disagreement between its two percentiles, which every
+# lens figure carries (the metric-lenses brief). Each figure's percentiles are
+# over its OWN history (the figure computed at every period knowable at the
+# cutoff): five years, and the family's long window (derived.long_window_of on
+# the figure's source key -- release: 20 years). Nothing enters a composite.
+# ---------------------------------------------------------------------------
+ppi_lenses:
+  # Lens 12: intermediate demand stages 1-4 as pipeline pressure leading final
+  # demand. Stage 1 is furthest from final demand, stage 4 nearest (BLS's
+  # production-flow model). Read on the year (the percentile's figure) and
+  # three months annualised; the gap of each stage to final demand prints.
+  final_demand: {key: fred.ppi_final_demand, name: "Final demand"}
+  stages:
+    - {key: fred.ppi_stage1, name: "Stage 1 intermediate demand"}
+    - {key: fred.ppi_stage2, name: "Stage 2 intermediate demand"}
+    - {key: fred.ppi_stage3, name: "Stage 3 intermediate demand"}
+    - {key: fred.ppi_stage4, name: "Stage 4 intermediate demand"}
+  # Lens 13: the PCE-relevant components -- the PPI lines that enter PCE where
+  # CPI has none or a different measure. NOT seasonally adjusted: read on the
+  # year (the month's change prints, labelled NSA, never annualised).
+  pce_relevant:
+    - {key: fred.ppi_portfolio_mgmt, name: "Portfolio management and investment advice"}
+    - {key: fred.ppi_airline_passenger, name: "Scheduled passenger air transport"}
+    - {key: fred.ppi_hospitals, name: "Hospitals"}
+    - {key: fred.ppi_physicians, name: "Offices of physicians"}
+  # Lens 14: trade services separately (the margin proxy item 35 strips out),
+  # beside final demand less foods, energy and trade services.
+  trade_services: {key: fred.ppi_trade_services, name: "Trade services (margins)"}
+  core_ex_trade: {key: fred.ppi_fd_core_ex_trade, name: "Final demand less foods, energy and trade services"}
+
+gdp_lenses:
+  # Lens 15: final sales to private domestic purchasers as the core; the pieces
+  # outside it shown separately, government as the fiscal impulse. Contributions
+  # are BEA's own (pp of real growth at an annual rate); their sum against real
+  # GDP's growth prints with its residual (rounding and the chain's
+  # non-additivity).
+  real_growth: fred.gdp_real_growth
+  final_sales_pdp: fred.final_sales_pdp
+  contributions:
+    - {key: fred.gdp_contrib_pce, name: "Consumption"}
+    - {key: fred.gdp_contrib_nonres, name: "Nonresidential investment"}
+    - {key: fred.gdp_contrib_residential, name: "Residential investment"}
+    - {key: fred.gdp_contrib_inventories, name: "Inventories"}
+    - {key: fred.gdp_contrib_net_exports, name: "Net exports"}
+    - {key: fred.gdp_contrib_government, name: "Government (the fiscal impulse)"}
+  deflator: fred.gdp_deflator
+  # Lens 16: the investment split. AI-related (item 22) is information
+  # processing equipment plus software, nominal; structures ex data centers
+  # (item 23) is nonresidential structures less the Census's private data-center
+  # construction, read BY NAME (census.vip_data_center, st-r4-tranche-1b's
+  # writer, not on this line: "not stored" until the stitch); residential
+  # (item 36) is real residential investment.
+  ai_related: [fred.inv_info_equipment, fred.inv_software]
+  structures: fred.inv_nonres_structures
+  data_center: census.vip_data_center
+  # Census VIP is millions of dollars at a seasonally adjusted annual rate; the
+  # quarter's figure is the mean of its three months, in billions. A
+  # construction-spending series is not NIPA's structures concept, so the
+  # difference is an approximation, and the line says so.
+  data_center_to_billions: 0.001
+  residential: fred.inv_residential_real
+  # Lens 17: GDI less GDP, as a percent of GDP (the statistical discrepancy's
+  # sign flipped). A downturn tell in the order's words; report-only here.
+  gdi: fred.gdi_nominal
+  gdp_nominal: fred.gdp_nominal
+  # Lens 18: NIPA after-tax profits on the year against the S&P 500's trailing
+  # EPS on the year (Shiller's monthly series, read at the quarter's last month).
+  profits: fred.corp_profits_after_tax
+  sp_eps: shiller.sp_earnings
+  # Lens 19: real disposable income, real income ex transfers, the saving rate.
+  disp_income: fred.real_disp_income
+  income_ex_transfers: fred.real_income_ex_transfers
+  saving_rate: fred.saving_rate
+  k_shape_gap: "the consumption-by-income panel (the GTM K-shape): no consumption-by-income series is stored on this line"
+  # Lens 20: the nowcast path. GDPNow's updates are the vintages of fred.gdpnow
+  # (ALFRED's backfill and each later pull); the print is read against the last
+  # nowcast knowable before it.
+  gdpnow: fred.gdpnow
+  nyfed_gap: "the New York Fed Staff Nowcast: a listed gap. Its page (newyorkfed.org/research/policy/nowcast; robots allows it) serves the figures through a JavaScript application with no documented file, and FRED does not carry it (checked 18 Oct 2026)"
+
+# ---------------------------------------------------------------------------
+# ST-R6.48f -- THE SURPRISE INDEX (lens 23). Actual less consensus, in the
+# release's own units, standardised by the release's OWN history of surprises
+# (the surprise over the standard deviation of its previous surprises, and its
+# percentile among them). The order defines no composite, so none is built:
+# each release prints its own surprise. A release with no consensus stored
+# prints "no consensus" and the reason; nothing is guessed and no naive
+# expectation stands in (that is altdata/surprise.py's, labelled naive).
+#
+# THE SOURCE (ruled 18 Oct 2026: the consensus logger is the settled source).
+# altdata/loggers/consensus.py reads yfinance (Yahoo's .info, one read per name,
+# 0.6 s apart, nightly; 24 names, up to 39 with the GTM names) and the earnings
+# writer reads the same library's calendar: the ANALYST MEAN before each print.
+# yfinance as pinned (>=0.2.40,<1.0; 0.2.66 installed) has no economic-calendar
+# route, so the source carries no consensus for a macro release. Under ruling 5
+# of 18 Oct the payroll and FOMC surprises are therefore LISTED GAPS, as is
+# every other macro release; the machinery reads `consensus.<id>` by key name,
+# so a source that later writes one fills its row with no code change.
+# ---------------------------------------------------------------------------
+surprise_index:
+  min_prior: 8          # session-set: standardise only on 8 or more earlier surprises (two years of quarters)
+  window: 40            # the earlier surprises the standard deviation and percentile read (the latest 40)
+  macro:
+    - {id: cpi, name: "CPI", actual: fred.cpi, transform: mm_pct, units: "% m/m", consensus: consensus.cpi}
+    - {id: core_cpi, name: "Core CPI", actual: fred.core_cpi, transform: mm_pct, units: "% m/m", consensus: consensus.core_cpi}
+    - {id: payrolls, name: "Payrolls", actual: fred.nfp, transform: change, units: "thousands", consensus: consensus.payrolls}
+    - {id: unemployment, name: "Unemployment rate", actual: fred.u3_rate, transform: level, units: "%", consensus: consensus.unemployment}
+    - {id: ppi, name: "PPI final demand", actual: fred.ppi_final_demand, transform: mm_pct, units: "% m/m", consensus: consensus.ppi}
+    - {id: gdp, name: "Real GDP", actual: fred.gdp_real_growth, transform: level, units: "% SAAR", consensus: consensus.gdp}
+    - {id: fomc, name: "FOMC decision", actual: null, transform: level, units: "% (target midpoint)", consensus: consensus.fomc}
+  gap: "no consensus: the consensus logger's source (yfinance, pinned below 1.0) serves no macro consensus; listed under ruling 5 of 18 Oct 2026"
+  # THE FOMC SURPRISE, MARKET-IMPLIED (ruling 1 of 18 Oct 2026): the decision (the
+  # change in the target range's midpoint, bp) less the change the stored fed funds
+  # futures implied for the meeting at the prior session's close, standardised as
+  # above, under its own keys (calc.market_implied_surprise.fomc, _z.fomc) so no
+  # survey consensus is ever mixed with it. Labelled "market-implied, not a survey
+  # consensus" wherever it prints. The range moves the day after a decision, so
+  # the post-decision midpoint is the newest one within `effective_within_days`.
+  market_implied:
+    id: fomc
+    name: "FOMC decision"
+    target: [fred.fed_target_upper, fred.fed_target_lower]
+    decision_time: "14:00"          # ET; the futures read are those available before it
+    effective_within_days: 5
+  # Earnings: per name, the reported EPS less the analyst mean the same row
+  # carries (the events table's `earnings` rows, the earnings writer's), in
+  # dollars of EPS, standardised by the name's own earlier surprises.
+  earnings: {universe_from: events}
+
+# ---------------------------------------------------------------------------
+# LENSES 21-24 -- CROSS-CUTTING; THE RELEASE-DAY LINES
+# ---------------------------------------------------------------------------
+# A release's day is the ET date its headline series' newest print became
+# available (available_at) -- the store's own stamp, so the close prints the line
+# the day the print arrived and on no other day. Lens 24's line is one per
+# release, code-written from the release's own lens figures in item 46's voice
+# (what moved the print, in figures; no adjective the figures do not carry).
+releases:
+  - {id: cpi, name: "CPI", headline: fred.cpi}
+  - {id: employment, name: "The employment report", headline: fred.nfp}
+  - {id: jolts, name: "JOLTS", headline: fred.job_openings}
+  - {id: eci, name: "The employment cost index", headline: fred.eci_wages}
+  - {id: ppi, name: "PPI", headline: fred.ppi_final_demand}
+  - {id: gdp, name: "GDP", headline: fred.gdp_real_growth}

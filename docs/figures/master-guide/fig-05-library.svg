@@ -1,0 +1,270 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1408" role="img" aria-labelledby="t d">
+<title id="t">Figure 5. The library map</title><desc id="d">The 27 papers of the library in four groups by the decisions they support, each with the books (A to D) it serves. Generated from the library guide&#x27;s roster.</desc>
+<style>
+.bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
+.line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
+.touch{stroke:#16202e}.boxs{stroke:#0f5c9e}.chats{stroke:#c06a12}.onbox{fill:#ffffff}
+.pill{fill:#e6ecf3}.bA{fill:#2b6cb0}.bB{fill:#2f855a}.bC{fill:#b7791f}.bD{fill:#9b2c2c}
+@media (prefers-color-scheme: dark){
+.bg{fill:#121821}.panel{fill:#1b2330}.ink{fill:#e8edf3}.mute{fill:#a3adbb}
+.line{stroke:#5f6b7b}.grid{stroke:#2c3646}.box{fill:#5aa2e6}.chat{fill:#f0a14a}
+.touch{stroke:#e8edf3}.boxs{stroke:#5aa2e6}.chats{stroke:#f0a14a}.onbox{fill:#121821}
+.pill{fill:#243042}.bA{fill:#63a4ff}.bB{fill:#5cc28a}.bC{fill:#e8b04e}.bD{fill:#e07a7a}}
+text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
+</style>
+<rect class="bg" x="0" y="0" width="720" height="1408" rx="14"/>
+<text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 5. The library map</text>
+<text class="mute" x="24.0" y="74.0" font-size="16" text-anchor="start" font-weight="400">Grouped by what each paper helps you decide; filled letters are the books it serves.</text>
+<rect class="panel" x="16" y="100" width="688" height="242" rx="12"/>
+<text class="ink" x="32.0" y="132.0" font-size="19" text-anchor="start" font-weight="700">How to decide and judge evidence</text>
+<rect class="pill" x="32" y="142" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="164.0" font-size="15" text-anchor="start" font-weight="700">XVIII</text>
+<text class="ink" x="110.0" y="164.0" font-size="17" text-anchor="start" font-weight="400">the Doctrine</text>
+<circle class="bA" cx="552" cy="158" r="13"/>
+<text class="onbox" x="552.0" y="163.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="158" r="13"/>
+<text class="onbox" x="586.0" y="163.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="158" r="13"/>
+<text class="onbox" x="620.0" y="163.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle class="bD" cx="654" cy="158" r="13"/>
+<text class="onbox" x="654.0" y="163.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="178" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="200.0" font-size="15" text-anchor="start" font-weight="700">XXXIII</text>
+<text class="ink" x="110.0" y="200.0" font-size="17" text-anchor="start" font-weight="400">The Reporting System</text>
+<circle class="bA" cx="552" cy="194" r="13"/>
+<text class="onbox" x="552.0" y="199.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="194" r="13"/>
+<text class="onbox" x="586.0" y="199.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="194" r="13"/>
+<text class="onbox" x="620.0" y="199.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle class="bD" cx="654" cy="194" r="13"/>
+<text class="onbox" x="654.0" y="199.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="214" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="236.0" font-size="15" text-anchor="start" font-weight="700">XIX</text>
+<text class="ink" x="110.0" y="236.0" font-size="17" text-anchor="start" font-weight="400">Systematic Book</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="230" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="230" r="12"/>
+<circle class="bC" cx="620" cy="230" r="13"/>
+<text class="onbox" x="620.0" y="235.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="230" r="12"/>
+<rect class="pill" x="32" y="250" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="272.0" font-size="15" text-anchor="start" font-weight="700">XXIII</text>
+<text class="ink" x="110.0" y="272.0" font-size="17" text-anchor="start" font-weight="400">Evidence and Inference</text>
+<circle class="bA" cx="552" cy="266" r="13"/>
+<text class="onbox" x="552.0" y="271.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="266" r="13"/>
+<text class="onbox" x="586.0" y="271.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="266" r="13"/>
+<text class="onbox" x="620.0" y="271.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle class="bD" cx="654" cy="266" r="13"/>
+<text class="onbox" x="654.0" y="271.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="286" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="308.0" font-size="15" text-anchor="start" font-weight="700">XVII</text>
+<text class="ink" x="110.0" y="308.0" font-size="17" text-anchor="start" font-weight="400">Portfolio Construction</text>
+<circle class="bA" cx="552" cy="302" r="13"/>
+<text class="onbox" x="552.0" y="307.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="302" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="302" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="302" r="12"/>
+<rect class="panel" x="16" y="358" width="688" height="278" rx="12"/>
+<text class="ink" x="32.0" y="390.0" font-size="19" text-anchor="start" font-weight="700">The big frame (Book A, the Monthly)</text>
+<rect class="pill" x="32" y="400" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="422.0" font-size="15" text-anchor="start" font-weight="700">I</text>
+<text class="ink" x="110.0" y="422.0" font-size="17" text-anchor="start" font-weight="400">Foundations</text>
+<circle class="bA" cx="552" cy="416" r="13"/>
+<text class="onbox" x="552.0" y="421.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="416" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="416" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="416" r="12"/>
+<rect class="pill" x="32" y="436" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="458.0" font-size="15" text-anchor="start" font-weight="700">III</text>
+<text class="ink" x="110.0" y="458.0" font-size="17" text-anchor="start" font-weight="400">Monthly manual</text>
+<circle class="bA" cx="552" cy="452" r="13"/>
+<text class="onbox" x="552.0" y="457.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="452" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="452" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="452" r="12"/>
+<rect class="pill" x="32" y="472" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="494.0" font-size="15" text-anchor="start" font-weight="700">IV</text>
+<text class="ink" x="110.0" y="494.0" font-size="17" text-anchor="start" font-weight="400">Rates &amp; Liquidity</text>
+<circle class="bA" cx="552" cy="488" r="13"/>
+<text class="onbox" x="552.0" y="493.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="488" r="13"/>
+<text class="onbox" x="586.0" y="493.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="488" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="488" r="12"/>
+<rect class="pill" x="32" y="508" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="530.0" font-size="15" text-anchor="start" font-weight="700">II</text>
+<text class="ink" x="110.0" y="530.0" font-size="17" text-anchor="start" font-weight="400">The Twenty-Five</text>
+<circle class="bA" cx="552" cy="524" r="13"/>
+<text class="onbox" x="552.0" y="529.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="524" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="524" r="12"/>
+<circle class="bD" cx="654" cy="524" r="13"/>
+<text class="onbox" x="654.0" y="529.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="544" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="566.0" font-size="15" text-anchor="start" font-weight="700">XX</text>
+<text class="ink" x="110.0" y="566.0" font-size="17" text-anchor="start" font-weight="400">Base Rates</text>
+<circle class="bA" cx="552" cy="560" r="13"/>
+<text class="onbox" x="552.0" y="565.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="560" r="13"/>
+<text class="onbox" x="586.0" y="565.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="560" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="560" r="12"/>
+<rect class="pill" x="32" y="580" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="602.0" font-size="15" text-anchor="start" font-weight="700">X</text>
+<text class="ink" x="110.0" y="602.0" font-size="17" text-anchor="start" font-weight="400">Tops and Bottoms</text>
+<circle class="bA" cx="552" cy="596" r="13"/>
+<text class="onbox" x="552.0" y="601.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="596" r="13"/>
+<text class="onbox" x="586.0" y="601.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="596" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="596" r="12"/>
+<rect class="panel" x="16" y="652" width="688" height="386" rx="12"/>
+<text class="ink" x="32.0" y="684.0" font-size="19" text-anchor="start" font-weight="700">Asset classes (A&#x27;s sleeves, B&#x27;s non-equity)</text>
+<rect class="pill" x="32" y="694" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="716.0" font-size="15" text-anchor="start" font-weight="700">V</text>
+<text class="ink" x="110.0" y="716.0" font-size="17" text-anchor="start" font-weight="400">Currencies</text>
+<circle class="bA" cx="552" cy="710" r="13"/>
+<text class="onbox" x="552.0" y="715.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="710" r="13"/>
+<text class="onbox" x="586.0" y="715.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="710" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="710" r="12"/>
+<rect class="pill" x="32" y="730" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="752.0" font-size="15" text-anchor="start" font-weight="700">VI</text>
+<text class="ink" x="110.0" y="752.0" font-size="17" text-anchor="start" font-weight="400">Credit</text>
+<circle class="bA" cx="552" cy="746" r="13"/>
+<text class="onbox" x="552.0" y="751.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="746" r="13"/>
+<text class="onbox" x="586.0" y="751.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="746" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="746" r="12"/>
+<rect class="pill" x="32" y="766" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="788.0" font-size="15" text-anchor="start" font-weight="700">VII</text>
+<text class="ink" x="110.0" y="788.0" font-size="17" text-anchor="start" font-weight="400">Energy</text>
+<circle class="bA" cx="552" cy="782" r="13"/>
+<text class="onbox" x="552.0" y="787.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="782" r="13"/>
+<text class="onbox" x="586.0" y="787.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="782" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="782" r="12"/>
+<rect class="pill" x="32" y="802" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="824.0" font-size="15" text-anchor="start" font-weight="700">VIII</text>
+<text class="ink" x="110.0" y="824.0" font-size="17" text-anchor="start" font-weight="400">Metals</text>
+<circle class="bA" cx="552" cy="818" r="13"/>
+<text class="onbox" x="552.0" y="823.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="818" r="13"/>
+<text class="onbox" x="586.0" y="823.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="818" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="818" r="12"/>
+<rect class="pill" x="32" y="838" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="860.0" font-size="15" text-anchor="start" font-weight="700">IX</text>
+<text class="ink" x="110.0" y="860.0" font-size="17" text-anchor="start" font-weight="400">Digital Assets</text>
+<circle class="bA" cx="552" cy="854" r="13"/>
+<text class="onbox" x="552.0" y="859.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="854" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="854" r="12"/>
+<circle class="bD" cx="654" cy="854" r="13"/>
+<text class="onbox" x="654.0" y="859.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="874" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="896.0" font-size="15" text-anchor="start" font-weight="700">XXXIV</text>
+<text class="ink" x="110.0" y="896.0" font-size="17" text-anchor="start" font-weight="400">Emerging Markets</text>
+<circle class="bA" cx="552" cy="890" r="13"/>
+<text class="onbox" x="552.0" y="895.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="890" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="890" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="890" r="12"/>
+<rect class="pill" x="32" y="910" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="932.0" font-size="15" text-anchor="start" font-weight="700">XV</text>
+<text class="ink" x="110.0" y="932.0" font-size="17" text-anchor="start" font-weight="400">Equities</text>
+<circle class="bA" cx="552" cy="926" r="13"/>
+<text class="onbox" x="552.0" y="931.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="926" r="13"/>
+<text class="onbox" x="586.0" y="931.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="926" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="926" r="12"/>
+<rect class="pill" x="32" y="946" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="968.0" font-size="15" text-anchor="start" font-weight="700">XXI</text>
+<text class="ink" x="110.0" y="968.0" font-size="17" text-anchor="start" font-weight="400">International Equities</text>
+<circle class="bA" cx="552" cy="962" r="13"/>
+<text class="onbox" x="552.0" y="967.0" font-size="14" text-anchor="middle" font-weight="700">A</text>
+<circle class="bB" cx="586" cy="962" r="13"/>
+<text class="onbox" x="586.0" y="967.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle fill="none" class="grid" stroke-width="2" cx="620" cy="962" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="962" r="12"/>
+<rect class="pill" x="32" y="982" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1004.0" font-size="15" text-anchor="start" font-weight="700">XXIV</text>
+<text class="ink" x="110.0" y="1004.0" font-size="17" text-anchor="start" font-weight="400">Earnings</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="998" r="12"/>
+<circle class="bB" cx="586" cy="998" r="13"/>
+<text class="onbox" x="586.0" y="1003.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="998" r="13"/>
+<text class="onbox" x="620.0" y="1003.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="998" r="12"/>
+<rect class="panel" x="16" y="1054" width="688" height="314" rx="12"/>
+<text class="ink" x="32.0" y="1086.0" font-size="19" text-anchor="start" font-weight="700">Price, positioning, expression (B, C, D)</text>
+<rect class="pill" x="32" y="1096" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1118.0" font-size="15" text-anchor="start" font-weight="700">XXV</text>
+<text class="ink" x="110.0" y="1118.0" font-size="17" text-anchor="start" font-weight="400">Price, Time, and Edge</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1112" r="12"/>
+<circle class="bB" cx="586" cy="1112" r="13"/>
+<text class="onbox" x="586.0" y="1117.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="1112" r="13"/>
+<text class="onbox" x="620.0" y="1117.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="1112" r="12"/>
+<rect class="pill" x="32" y="1132" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1154.0" font-size="15" text-anchor="start" font-weight="700">XVI</text>
+<text class="ink" x="110.0" y="1154.0" font-size="17" text-anchor="start" font-weight="400">Positioning &amp; Flows</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1148" r="12"/>
+<circle class="bB" cx="586" cy="1148" r="13"/>
+<text class="onbox" x="586.0" y="1153.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="1148" r="13"/>
+<text class="onbox" x="620.0" y="1153.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle class="bD" cx="654" cy="1148" r="13"/>
+<text class="onbox" x="654.0" y="1153.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="1168" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1190.0" font-size="15" text-anchor="start" font-weight="700">XIII</text>
+<text class="ink" x="110.0" y="1190.0" font-size="17" text-anchor="start" font-weight="400">The Dealer&#x27;s Hand</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1184" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="1184" r="12"/>
+<circle class="bC" cx="620" cy="1184" r="13"/>
+<text class="onbox" x="620.0" y="1189.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="1184" r="12"/>
+<rect class="pill" x="32" y="1204" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1226.0" font-size="15" text-anchor="start" font-weight="700">XI</text>
+<text class="ink" x="110.0" y="1226.0" font-size="17" text-anchor="start" font-weight="400">Volatility</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1220" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="1220" r="12"/>
+<circle class="bC" cx="620" cy="1220" r="13"/>
+<text class="onbox" x="620.0" y="1225.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle class="bD" cx="654" cy="1220" r="13"/>
+<text class="onbox" x="654.0" y="1225.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="1240" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1262.0" font-size="15" text-anchor="start" font-weight="700">XXII</text>
+<text class="ink" x="110.0" y="1262.0" font-size="17" text-anchor="start" font-weight="400">Options as Expression</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1256" r="12"/>
+<circle class="bB" cx="586" cy="1256" r="13"/>
+<text class="onbox" x="586.0" y="1261.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="1256" r="13"/>
+<text class="onbox" x="620.0" y="1261.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle class="bD" cx="654" cy="1256" r="13"/>
+<text class="onbox" x="654.0" y="1261.0" font-size="14" text-anchor="middle" font-weight="700">D</text>
+<rect class="pill" x="32" y="1276" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1298.0" font-size="15" text-anchor="start" font-weight="700">XIV</text>
+<text class="ink" x="110.0" y="1298.0" font-size="17" text-anchor="start" font-weight="400">Technical Indicators</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1292" r="12"/>
+<circle class="bB" cx="586" cy="1292" r="13"/>
+<text class="onbox" x="586.0" y="1297.0" font-size="14" text-anchor="middle" font-weight="700">B</text>
+<circle class="bC" cx="620" cy="1292" r="13"/>
+<text class="onbox" x="620.0" y="1297.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="1292" r="12"/>
+<rect class="pill" x="32" y="1312" width="656" height="30" rx="15"/>
+<text class="mute" x="48.0" y="1334.0" font-size="15" text-anchor="start" font-weight="700">XII</text>
+<text class="ink" x="110.0" y="1334.0" font-size="17" text-anchor="start" font-weight="400">Daily Cascade paper</text>
+<circle fill="none" class="grid" stroke-width="2" cx="552" cy="1328" r="12"/>
+<circle fill="none" class="grid" stroke-width="2" cx="586" cy="1328" r="12"/>
+<circle class="bC" cx="620" cy="1328" r="13"/>
+<text class="onbox" x="620.0" y="1333.0" font-size="14" text-anchor="middle" font-weight="700">C</text>
+<circle fill="none" class="grid" stroke-width="2" cx="654" cy="1328" r="12"/>
+</svg>

@@ -122,6 +122,11 @@ def emitted_fields() -> dict[str, set[str]]:
             fields.update(prof.get(key) or {})
         for bucket in (prof.get("buckets") or {}).values():
             fields.update(bucket)
+        # 6b part 1: the horizon windows and the bands carry fields too.
+        for key in ("horizons", "bands"):
+            for win in (prof.get(key) or {}).values():
+                fields.update(win)
+        fields.update(prof.get("gamma_profile") or {})
         for rel in (prof.get("expiration_release") or [])[:1]:
             fields.update(rel)
         for strike in (prof.get("per_strike") or [])[:1]:
@@ -211,6 +216,73 @@ def registry_coverage(metrics: dict) -> set[str]:
 
     covered |= set((metrics.get("reserved") or {}).get("members") or [])
     return covered
+
+
+def aud3a_faults(metrics: dict, source_ids: set) -> list[tuple[str, str]]:
+    """THE RESOLVER, THE SPLIT UNITS AND THE SOURCES (AUD-3a items 2 to 4). Pure,
+    so tools/validate_audit_3a.py shows each fault caught on a synthetic registry.
+
+      - every bulk block expands to at least one key through altdata/derived.py's
+        resolver, and every member it names resolves to an entry there (the
+        resolver once skipped five blocks, the 46 overnight.* keys among them);
+      - no metric or bulk block uses the retired undivided `percent`;
+      - a bulk block's units, and each member_units value, are in the vocabulary,
+        and each member_units key is one of the block's members;
+      - `units: by_source` comes with units_by_source, whose sources the entry
+        declares and whose units are in the vocabulary;
+      - every id in an entry's `sources` is in source_registry.yaml and includes
+        its `source`.
+    """
+    from altdata import derived                                 # noqa: PLC0415
+    out: list[tuple[str, str]] = []
+    uvocab = set((metrics.get("vocabularies") or {}).get("units") or [])
+    by_block: dict = {}
+    resolved = derived.resolve_registry(metrics, by_block)
+    for bid, block in (metrics.get("bulk_imports") or {}).items():
+        block = block or {}
+        keys = by_block.get(bid, [])
+        if not keys:
+            out.append(("bulk block expands", f"{bid}: resolves to no key"))
+        missing = [k for k in keys if k not in resolved]
+        if missing:
+            out.append(("bulk member resolves",
+                        f"{bid}: {len(missing)} member(s) with no entry -> "
+                        f"{', '.join(missing[:6])}"))
+        u = block.get("units")
+        if u == "percent":
+            out.append(("percent is split", f"{bid}: units 'percent' -- use one of "
+                        f"percent_rate, percentile, percent_return, percent_share, "
+                        f"vol_pct, vol_index, index_points"))
+        elif u not in uvocab:
+            out.append(("units vocabulary", f"bulk {bid}: {u!r}"))
+        for k, mu in (block.get("member_units") or {}).items():
+            if k not in keys:
+                out.append(("member_units names a member", f"{bid}: {k} is no member"))
+            if mu not in uvocab or mu == "percent":
+                out.append(("units vocabulary", f"{bid}.member_units {k}: {mu!r}"))
+    for mid, m in (metrics.get("metrics") or {}).items():
+        m = m or {}
+        if m.get("units") == "percent":
+            out.append(("percent is split", f"{mid}: units 'percent' -- use one of "
+                        f"percent_rate, percentile, percent_return, percent_share, "
+                        f"vol_pct, vol_index, index_points"))
+        srcs = m.get("sources")
+        if srcs is not None:
+            bad = [s for s in srcs if s not in source_ids]
+            if bad or m.get("source") not in srcs:
+                out.append(("sources resolve",
+                            f"{mid}: sources {srcs} (unknown {bad}; must include "
+                            f"source {m.get('source')!r})"))
+        ubs = m.get("units_by_source")
+        if m.get("units") == "by_source" and not ubs:
+            out.append(("units_by_source declared", f"{mid}: units by_source, no map"))
+        for s, us in (ubs or {}).items():
+            if s not in (srcs or [m.get("source")]):
+                out.append(("units_by_source declared",
+                            f"{mid}: {s} is not among its sources"))
+            if us not in uvocab or us in ("by_source", "percent"):
+                out.append(("units vocabulary", f"{mid}.units_by_source {s}: {us!r}"))
+    return out
 
 
 def main() -> int:
@@ -323,6 +395,10 @@ def main() -> int:
                   f"Update the registry deliberately -- this is the drift check.")
         if block.get("source") not in src:
             f.add("source resolves", f"{bid}: source {block.get('source')!r} unknown")
+
+    # --- AUD-3a: the resolver, the split units, the sources -----------------
+    for check, detail in aud3a_faults(metrics, set(src)):
+        f.add(check, detail)
 
     # --- CODE vs REGISTRY on mechanism_group -------------------------------
     # The registry distinguished dealer_chain_derived from dealer_chain_oi

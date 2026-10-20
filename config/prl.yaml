@@ -1,0 +1,68 @@
+# THE PRL DATA LAYER (ST-13, signal-triage Tranche 5; st-t5-prl, 18 Oct 2026).
+# Constants from the order (docs/change-order-signal-triage-2026-09-25.md 2.7 and
+# Appendix E), each with where it comes from. Read by altdata/prl.py and
+# altdata/sources/pearl_explorer.py. Watch-level
+# rights only (MW-2): nothing here feeds a composite, an overlay, a dial or a
+# trigger; D6 is the one narrow flag.
+version: prl-v1
+
+# The instrument, by its Security Master entry (G-24): resolved by its
+# CoinGecko id, never by a ticker (MW-1).
+instrument: {crypto_id: "coingecko:pearl-2", coingecko_id: "pearl-2"}
+
+# THE EMISSION (Appendix E). No halvings.
+emission:
+  max_supply: 2.1e9
+  K: 650226                    # 194 s blocks in four years; half the supply at block K
+  target_seconds: 194
+  genesis_utc: "2026-04-27T09:00:00+00:00"
+  week_one_minted: 121.70e6    # minted by 2026-05-03 06:31 UTC (D2's numerator)
+  # The height estimate's anchor (G-26's fallback): Appendix E's block 113,770 at
+  # 2026-09-15 23:53 UTC, after which block pace matched the target. Estimating
+  # from genesis at 194 s would sit ~50,000 blocks low: the first 40,000 blocks
+  # arrived in 5.9 days. A stored observed height, where one exists, is the
+  # anchor instead (the newest at the cutoff).
+  anchor: {height: 113770, at: "2026-09-15T23:53:00+00:00"}
+
+# THE DERIVED METRICS D1-D6 (2.7.4) and the thesis rule (2.7.5). Initial
+# thresholds; calibrate after 90 days of stored data (2.7.8: January 2027).
+derived:
+  emission_to_volume: {large: 0.5, not_absorbed: 1.0, weeks_above: 4}
+  venue_conc: {improved_below_pct: 60.0}
+  idle_gpu: {difficulty_up_pct: 25.0, price_down_pct: 20.0, window_days: 30}
+  review_days: 7              # the thesis rule's review period: one week
+  # THE INPUTS (ruling 1 of 18 Oct 2026): what the crypto basket already reads
+  # within terms -- price and 24-hour volume from Yahoo at the symbol the basket
+  # config resolved (PRL41876-USD), market cap and circulating supply from
+  # DefiLlama's coin service where it serves them. CoinGecko is retired (the 13 Oct
+  # ruling stands; MW-4's CoinGecko clause superseded), so D5's venues are not
+  # tracked, and D3 is the formula against the explorer's supply.
+  price: [yfinance.crypto_prl]
+  volume: [yfinance.crypto_prl_volume]
+  market_cap: [llama.mcap_prl]
+  circulating: [llama.supply_prl]
+  not_tracked:
+    venue_conc: "not tracked (source retired): calc.prl_venue_conc's only input was CoinGecko's tickers"
+
+# COINGECKO: NOT A SOURCE. Retired 13 Oct 2026, and the retirement stands (ruling
+# 1 of 18 Oct 2026): its terms forbid the point-in-time store MW-4 asked for. The
+# ST-13 fetcher was removed; source_registry.yaml `coingecko` keeps the terms line.
+
+# THE EXPLORER (MW-4; G-26). explorer.pearlresearch.ai. CLOSED AS A LISTED GAP
+# (ruling 1 of 18 Oct 2026): the explorer has no robots file (/robots.txt and
+# /robots.txt?network=mainnet both return 404 with the app's own HTML page), and
+# no published API and no terms covering automated access were found on Pearl's
+# sites. Under the standing rule of 16 Oct nothing is traced or pursued, so
+# nothing is declared: the height stays ESTIMATED from Appendix E's anchor and D3
+# prints ESTIMATED. If Pearl publishes an API with terms, it is a one-line
+# declaration here -- the URL and the JSON paths of each field -- with the robots
+# and terms line in the fetcher's docstring.
+explorer:
+  status: "listed gap"
+  reason: "no robots file (404 with the app's HTML), no published API, no terms covering automated access; ruled 18 Oct 2026"
+  ruled: "2026-10-18"
+  host: "https://explorer.pearlresearch.ai"
+  robots: "https://explorer.pearlresearch.ai/robots.txt"
+  json_endpoint: null          # e.g. {url: ".../api/...", height: "path.to.height", difficulty: "...", supply: "...", time: "..."}
+  block_page: null             # the block-page fallback: {url, height_regex, difficulty_regex}
+  user_agent: "chester-reports/1.0 (research logging)"

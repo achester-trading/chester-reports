@@ -802,6 +802,46 @@ Central bank calendar: ECB September 10, Fed September 15–16 with projections,
 9. Is stablecoin supply still growing?
 10. Which Part IV outcome did this quarter's evidence support?
 
+## Appendix E — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-2 — the yen carry unwind: four episodes at ST-5's thresholds (ledger of 18 October 2026)
+
+- **Ledger:** [sr-2-ledger-2026-10-18.md](../ledgers/sr-2-ledger-2026-10-18.md).
+- **As of:** USDJPY 2026-10-09; CFTC 2026-10-13; JGB 2026-09-30. **Window:** 1998-01-01 to 2026-10-09 (flags); history from 1972-02-15. **n:** 6.
+- **Verdict:** FAIL -- 3 of 4 windows flagged (Oct 1998, 2007-08, Aug 2024), 3 false positives 1998-2026 (rule: all four, <= 2)
+- **Rights consequence (the ledger's):** PASS: the thresholds enter config/market_state.yaml with this ledger named beside them, and the flag becomes the T&B overlay input at queue position #1 after the gate. FAIL: the thresholds stay session-set in config/funding_currency.yaml; the flag stays narrow, display only. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-4 — the fix and the offshore gap on 2015-17 and 2022-23 (ledger of 18 October 2026)
+
+- **Ledger:** [sr-4-ledger-2026-10-18.md](../ledgers/sr-4-ledger-2026-10-18.md).
+- **As of:** fix 2026-10-16; CNY=X 2026-10-18; spot CNH 2026-10-16; GS10 2026-09. **Window:** fix 2015-01-05 to 2026-10-16; spot CNH 2024-01-01 on; base rate 1998-01 to 2022-12. **n:** 701.
+- **Verdict:** INSUFFICIENT -- spot CNH reaches neither window (Yahoo's hourly bars from 2024-01-01), so the gap leg cannot be calibrated on our n; the thresholds stay session-set. The CNH=F proxy (labelled, not the gate) reads FAIL
+- **Rights consequence (the ledger's):** PASS: ST-5's yuan thresholds enter config with this ledger named beside them. FAIL or INSUFFICIENT: they stay session-set in config/funding_currency.yaml; the tell prints as 2 of 3 legs tracked and never a verdict (ruling 6 of 18 Oct). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-14 — EM against the world after the trend flag, split by the dollar (ledger of 18 October 2026)
+
+- **Ledger:** [sr-14-ledger-2026-10-18.md](../ledgers/sr-14-ledger-2026-10-18.md).
+- **As of:** EEM/ACWI 2026-10; RTWEXBGS 2026-09. **Window:** 2008-03 to 2026-10 (EEM/ACWI); 2003-04 on (EEM/SPY, auxiliary). **n:** 3.
+- **Verdict:** INSUFFICIENT -- the dollar cell cannot be tested on our n: 1 completed episode(s) in the dollar-up cell and 2 in the dollar-down cell (floor 2 each; 3 completed in all, EEM/ACWI from 2008); the flag stays display only
+- **Rights consequence (the ledger's):** PASS: the narrow flag and the Book A tilt modifier conditioned on the dollar regime tag, SR-4's tell as exit; the US-vs-RoW block renders. FAIL or INSUFFICIENT: flag only, display; nothing new renders. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-20 — the reserve scorecard's first entry, from IMF COFER (ledger of 19 October 2026)
+
+- **Ledger:** [sr-20-ledger-2026-10-19.md](../ledgers/sr-20-ledger-2026-10-19.md).
+- **As of:** 2026-Q2 (COFER published 2026-09-30). **Window:** 1999-Q1 to 2026-Q2. **n:** 110.
+- **Verdict:** NO GATE IN THE ORDER -- scorecard entry recorded. SR-20 is a scorecard with no rights and the order states no pass rule.
+- **Rights consequence (the ledger's):** None (SR-20's ruling: a scorecard, the level rejected as a signal either way). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** Tranche H's first reserve-scorecard entry, from IMF COFER through the IMF module; the constant-FX share, the gold share and the holder split are listed not tracked, each with its reason.
+
 ---
 
 ## Closing Note

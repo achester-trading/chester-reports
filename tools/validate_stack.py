@@ -27,6 +27,9 @@ a real position or a real price:
   G LEDGER     outlooks are computed from stored closes, recorded before printing,
                recorded once per session, and NOT recorded on a dry run.
   H SCORECARD  the dealer-scorecard row the Monthly will read is stored.
+  I WARNINGS   the data check (AUD-3c): a clean fixture day prints no "Data
+               check:" line; a day with ^VIX and VIXCLS apart past their
+               tolerance prints it in the Warnings table, read-only.
 """
 
 from __future__ import annotations
@@ -188,6 +191,8 @@ class Resp:
         self.content = [types.SimpleNamespace(type="text", text=t)]
         self.model = "fixture-model"
         self.stop_reason = "end_turn"
+        # AUD-2 item 4: the reply's own token count, as the API returns it.
+        self.usage = types.SimpleNamespace(input_tokens=1200, output_tokens=80)
 
 
 def client(replies: dict, calls: list):
@@ -205,6 +210,120 @@ def client(replies: dict, calls: list):
 # ---------------------------------------------------------------------------
 # The groups
 # ---------------------------------------------------------------------------
+def group_m(db: str, out1: dict, n: int) -> None:
+    """AUD-2 item 4: every call counted, and the close's one footer line."""
+    import sqlite3
+    from altdata import model_meter, session
+    from daily_cascade import narrative
+    print(f"\n{LINE}\nM. THE MODEL METER (AUD-2 item 4)\n{LINE}")
+    con = sqlite3.connect(db)
+    rows = con.execute("SELECT run_id, report, section, attempt, model, input_tokens,"
+                       " output_tokens, called_at FROM model_calls ORDER BY id"
+                       ).fetchall()[:n]
+    con.close()
+    check(n > 0 and len(rows) == n
+          and all(r[1] == "daily_close" and r[4] == "fixture-model"
+                  and (r[5], r[6]) == (1200, 80) and r[7] for r in rows),
+          f"the close's {n} fake-model calls land as {len(rows)} rows in model_calls, "
+          f"each with its report, model id, tokens and time")
+    secs = {r[2] for r in rows}
+    check(bool(secs) and None not in secs and all(r[3] >= 1 for r in rows),
+          f"each row names its section and attempt ({sorted(secs)[:4]}...)")
+    want = (f"Model: {n:,} call{'' if n == 1 else 's'}, {1200 * n:,} input / "
+            f"{80 * n:,} output tokens today")
+    check(out1["edition"].get("model_line") == want and want in out1["html_email"],
+          f"the footer prints \"{out1['edition'].get('model_line')}\"")
+    day = out1["edition"].get("model_day")
+    check(bool(day) and model_meter.daily_line(db, day) == want,
+          f"and the line is the meter's own sum over the edition's own day ({day}), "
+          f"not over the gate's today, which a run across midnight ET moves")
+    # The ET day's bounds, at 23:59 and 00:01 ET (EDT, so 03:59 and 04:01 UTC).
+    mdb = str(Path(gate_mkdtemp("stack-meter-")) / "m.db")
+    with model_meter.scope(report="daily_close", run_id="midnight", db_path=mdb):
+        class _R:
+            model = "fixture-model"
+
+            class usage:
+                input_tokens, output_tokens = 10, 1
+        model_meter.record(_R(), now="2026-10-18T03:59:00+00:00")
+        model_meter.record(_R(), now="2026-10-18T04:01:00+00:00")
+    d1, d2 = (model_meter.daily_line(mdb, d) for d in ("2026-10-17", "2026-10-18"))
+    check(d1.startswith("Model: 1 call,") and d2.startswith("Model: 1 call,"),
+          f"a call at 23:59 ET counts on its own day and one at 00:01 ET on the next "
+          f"({d1!r}; {d2!r})")
+    body = narrative.build_prompt({"b": [1, 2], "a": {"x": "y"}}, None)
+    check('{"a":{"x":"y"},"b":[1,2]}' in body,
+          "the payload reaches the model compact: no indentation, no padding")
+
+
+def group_v(td: str, p: dict, out1: dict) -> None:
+    """VP-1 item 6: the close's value-area table and C1's shaded prior area."""
+    from altdata import bars as bars_mod, levels as levels_mod, session
+    from altdata import volume_profile as vp
+    from daily_cascade import charts as charts_mod, stack as stack_mod
+    print(f"\n{LINE}\nV. THE VOLUME PROFILE ON THE CLOSE (VP-1 item 6)\n{LINE}")
+    tape1 = next(s for s in out1["edition"]["sections"] if s["id"] == "tape")
+    t = (tape1.get("tables") or [None])[0]
+    check(t and t["columns"] == ["Market", "Value area (POC)", "Prior session",
+                                 "Migration", "Close vs value"]
+          and [r[0] for r in t["rows"]] == ["SPY", "QQQ", "IWM"],
+          f"the tape section carries the value-area table, one row per configured "
+          f"instrument ({t and t['rows']})")
+    spy_row = t["rows"][0] if t else []
+    check(spy_row[1:3] and spy_row[1].startswith("$") and spy_row[2] == "not computed"
+          and spy_row[3] == "—"
+          and any(x.startswith("SPY prior session: bars incomplete (n=0 of 78)")
+                  for x in tape1["not_tracked"]),
+          f"the fixture stores no prior-session bars: the prior area is not "
+          f"computed, no migration is claimed, and the reason is in the footnote "
+          f"({spy_row})")
+    check("Value area (POC)" in out1["html_archive"],
+          "and the table prints in the edition")
+    check(not any("value-area" in i["text"] for i in tape1["items"]),
+          "the tape's lines name the same levels as before the profile")
+    # With the prior session's bars stored too.
+    db = str(Path(td) / "vp.db")
+    seed(db)
+    prior = session.previous_trading_session(SESSION).isoformat()
+    first, _, n = bars_mod.session_window("spy", prior)
+    t0 = dt.datetime.fromisoformat(first)
+    with bars_mod.BarStore(db, create=True) as bst:
+        today = bars_mod.intraday(bst, "spy", SESSION)["bars"]
+        mid = sum(x["close"] for x in today) / len(today)
+        # The prior session traded a little lower, overlapping today's range.
+        bst.write_many([{"instrument": "spy", "symbol": "SPY", "interval": "5m",
+                         "observed_at": (t0 + dt.timedelta(minutes=5 * k)).isoformat(),
+                         "open": mid * 0.998, "high": mid * (0.999 + 0.0002 * (k % 9)),
+                         "low": mid * (0.997 - 0.0002 * (k % 7)), "close": mid * 0.998,
+                         "volume": 2000 + k,
+                         "available_at": f"{prior}T20:30:00+00:00"}
+                        for k in range(n)])
+    with bars_mod.BarStore(db) as bst:
+        bk = levels_mod.compute(SESSION, p["exposure"], store=bst)
+        bars5 = bars_mod.intraday(bst, "spy", SESSION)["bars"]
+    sec = stack_mod.tape_section(bk)
+    row = sec["tables"][0]["rows"][0]
+    check(row[2] != "not computed" and row[3] in vp.MIGRATIONS
+          and row[4] in ("above the VAH", "inside", "below the VAL"),
+          f"with both sessions stored: a migration and a close against value by "
+          f"the declared rules ({row})")
+    spy = next(i for i in bk["instruments"] if i["id"] == "spy")
+    pv = spy["volume_profile"]["prior_session"]
+    check(row[3] == vp.migration(spy["volume_profile"]["session"], pv),
+          "the row's migration is the module's rule over the two windows")
+    c1 = charts_mod.c1(bk, bars5, True, None, "c1_vp", None)
+    types = {d["type"]: d["value"] for d in c1.get("drawn") or []}
+    listed = {lv["type"]: lv["value"] for lv in spy["levels"]}
+    check(types.get("vp_prior_session_val") == pv["val"]
+          and types.get("vp_prior_session_vah") == pv["vah"],
+          f"C1 shades the prior session's value area and returns its VAL and VAH "
+          f"in drawn ({pv.get('val')}, {pv.get('vah')})")
+    check(all(listed.get(k) == v for k, v in types.items()),
+          "every level C1 draws is a listed level")
+    check("prior session's value-area high" in c1.get("caption", ""),
+          f"and its caption names them from the data ({c1.get('caption', '')[-90:]})")
+
+
 def main() -> int:
     from altdata import bars as bars_mod, config, levels as levels_mod, session
     from altdata import probability_ledger as pl
@@ -233,6 +352,7 @@ def main() -> int:
     print(f"\n{LINE}\nA. THE STACK\n{LINE}")
     out1 = stack_close.produce(p, archive_dir=arch, dry_run=False,
                                client=clean, db_path=db)
+    n_calls1 = len(calls)
     ed1 = out1["edition"]
     ids = [s["id"] for s in ed1["sections"]]
     check(ids == list(stack_mod.SECTION_ORDER),
@@ -673,6 +793,31 @@ def main() -> int:
     with observations.ObservationStore(db3) as st:
         check(st.latest_as_of(stack_close.SCORECARD_KEY, instrument="SPY") is None,
               "and a dry run stores none")
+
+    group_m(db, out1, n_calls1)
+    # --- I. WARNINGS: THE DATA CHECK (AUD-3c) -------------------------------------
+    print(f"\n{LINE}\nI. THE DATA CHECK IN THE WARNINGS TABLE\n{LINE}")
+    check(out1["report"].get("data_check") == [] and "Data check:" not in html1,
+          "a clean fixture day: no data-check line, and the Warnings table does "
+          "not print one")
+    db5 = str(Path(td) / "flagged.db")
+    s5 = seed(db5)
+    days5 = [d.isoformat() for d in weekdays_back(dt.date.fromisoformat(SESSION), 3)]
+    with observations.ObservationStore(db5) as st:
+        st.write_many([{"registry_key": k, "instrument": None, "observed_at": d,
+                        "available_at": f"{d}T21:00:00+00:00", "value": v,
+                        "source": "synthetic"}
+                       for d in days5 for k, v in (("yfinance.mkt_vix", 21.3),
+                                                   ("fred.vix", 22.1))])
+    o5 = stack_close.produce(payload(s5["market_state"]), archive_dir=None,
+                             dry_run=True, client=clean, db_path=db5)
+    dq = o5["report"].get("data_check") or []
+    check(len(dq) == 1 and dq[0].startswith("Data check: ^VIX 21.3 vs VIXCLS 22.1 on ")
+          and dq[0].endswith("beyond its 0.01-point tolerance"),
+          f"a flagged day: the pair's line ({dq})")
+    check(stack_render.esc(dq[0]) in o5["html_email"] if dq else False,
+          "printed in the close's Warnings table")
+    group_v(td, p, out1)
 
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

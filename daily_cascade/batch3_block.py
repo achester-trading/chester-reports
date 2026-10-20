@@ -25,6 +25,8 @@ from typing import Optional
 
 from altdata import batch3
 
+from . import readability as rd
+
 TITLE_JGB = "Japan's 30-year and the 4.5% line (SR-32, early line)"
 TITLE_EU = "EU sovereign stress: OAT–Bund and BTP–Bund (SR-30)"
 TITLE_BUYBACKS = "Treasury buybacks (SR-33)"
@@ -47,7 +49,8 @@ def _ord(p: Optional[float]) -> str:
 
 
 def _bp(v: Optional[float]) -> str:
-    return "—" if v is None else f"{v:+.1f} bp" if v else "0.0 bp"
+    # weekly-fixes-7 item 12: rounded before the sign (no "-0.0 bp").
+    return "—" if v is None else f"{v:+.1f} bp" if round(v, 1) else "0.0 bp"
 
 
 def _usd_bn(v: Optional[float], dp: int = 1) -> str:
@@ -57,6 +60,8 @@ def _usd_bn(v: Optional[float], dp: int = 1) -> str:
 def _usd_bn_signed(v: Optional[float]) -> str:
     if v is None:
         return "—"
+    if not round(v / 1e9, 1):
+        return "unch"                       # weekly-fixes-7 item 12: no "−$0.0bn"
     return f"{'+' if v > 0 else '−' if v < 0 else ''}${abs(v) / 1e9:,.1f}bn"
 
 
@@ -98,9 +103,8 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
         rows.append([p["label"], f"{p['bp']:.1f} bp", _bp(p["change_bp"]),
                      f"{_ord(pc.get(5, {}).get('pct'))} (n={pc.get(5, {}).get('n')})",
                      f"{_ord(pc.get(20, {}).get('pct'))} (n={pc.get(20, {}).get('n')})"]
-                    + ([{"watch": f"WATCH (≥ {e['watch_bp']:.0f} bp)", "crisis": "CRISIS",
-                         "none": "below the watch line"}.get(p.get("tier"), "—")
-                        if p.get("tier") else "untiered"] if live else [])
+                    + ([_tier_cell(p, e) if p.get("tier")
+                        else "untiered (monthly)"] if live else [])
                     + [p["as_of"]])
     if e.get("eurchf"):
         x = e["eurchf"]
@@ -109,27 +113,34 @@ def eu_subsection(st, now: str, cfg: Optional[dict] = None,
                      "—" if x["week_change_pct"] is None else f"{x['week_change_pct']:+.2f}%",
                      "—", "—"] + (["—"] if live else []) + [x["as_of"]])
     else:
-        lines.append("EUR/CHF: not yet stored (the price feed adds EURCHF=X from the "
-                     "next run).")
+        # weekly-fixes-7 item 11: the source and the date, no symbol string.
+        lines.append(f"EUR/CHF: not yet stored ({rd.starts_line('Yahoo Finance', now)}).")
     tier = e["tier"]
     flag = {"watch": f"OAT–Bund at the watch tier (≥ {e['watch_bp']:.0f} bp)",
             "crisis": f"OAT–Bund at the crisis tier (≥ {e['crisis_bp']:.0f} bp)"}.get(tier)
     if flag:
         lines.insert(0, f"{flag} {e['unvalidated']}.")
-    tiers = (f"Tiers on OAT–Bund only: watch {e['watch_bp']:.0f} bp, crisis "
-             f"{e['crisis_bp']:.0f} bp." if live else
-             "No tier prints: the tiers sit on a daily weekly close, which no free "
-             "official source publishes yet.")
+    tiers = (f"Tiers on OAT–Bund only, on its latest weekly close: watch "
+             f"{e['watch_bp']:.0f} bp, crisis {e['crisis_bp']:.1f} bp (the daily "
+             f"series' own November 2011 peak)." if live else
+             "No tier prints: the tiers sit on a daily weekly close, and the daily "
+             "OAT legs (the Banque de France's TEC 10, the Bundesbank's 10-year) are "
+             "not stored yet.")
+    if live:
+        oat = next(p for p in e["pairs"] if p["id"] == "oat_bund")
+        basis = (f"OAT–Bund is daily: {oat.get('source')}. BTP–Bund is the ECB's "
+                 f"monthly-average 10-year (the convergence series), Italy less "
+                 f"Germany: no keyless daily Italian 10-year was found.")
+    else:
+        basis = ("Spreads are the ECB's monthly-average 10-year yields (the "
+                 "convergence series), France or Italy less Germany.")
     return {"title": TITLE_EU,
             "table": {"columns": ["Spread", "Level", "Change on the prior period",
                                   "5-year percentile", "20-year percentile"]
                       + (["Tier"] if live else []) + ["As of"],
                       "rows": rows} if rows else None,
             "lines": lines, "paragraph_wanted": False,
-            "table_note": (f"Spreads are the ECB's monthly-average 10-year yields (the "
-                           f"convergence series), France or Italy less Germany: no free "
-                           f"official source publishes a daily OAT or BTP. {tiers} "
-                           f"{e['unvalidated']}"),
+            "table_note": f"{basis} {tiers} {e['unvalidated']}",
             "data": {"eu_stress": e}}
 
 
@@ -144,7 +155,8 @@ def buyback_subsection(st, now: str, then: str, cfg: Optional[dict] = None) -> d
              f"{_usd_bn(o['bought'], 2)} of {_usd_bn(o['max'], 2)}",
              "—" if o["ratio"] is None else f"{o['ratio']:.0%}",
              "not yet stored" if o["y30_next_bp"] is None
-             else f"{_bp(o['y30_next_bp'])} ({o['y30_next_day']})"]
+             else f"{_bp(o['y30_next_bp'])} ({o.get('y30_source') or 'FRED'}, "
+                  f"{_day_month(o['y30_next_day'])})"]
             for o in ops]
     lines = [] if rows else ["No buyback operation in the window."]
     if t:
@@ -155,8 +167,10 @@ def buyback_subsection(st, now: str, then: str, cfg: Optional[dict] = None) -> d
                       "rows": rows} if rows else None,
             "lines": lines, "paragraph_wanted": False,
             "table_note": ("Treasury's buyback operations (Fiscal Data); the 30-year's "
-                           "next-session change is the stored 30-year (DGS30) from the "
-                           "operation's date to the next session it carries. "
+                           "next-session change is the tape's 30-year (Yahoo Finance) "
+                           "from the operation's date to the next session, or FRED's "
+                           "DGS30 where the tape has no point; each cell names its "
+                           "source and the session it reads to. "
                            "Descriptive; unvalidated, n=0."),
             "data": {"buybacks": ops, "tga": t}}
 
@@ -178,8 +192,8 @@ def japan_subsection(st, now: str, cfg: Optional[dict] = None,
                         f"{_usd_bn_signed(sec['change'])} (to {sec['as_of']})" if sec else "")
                      + ".")
     else:
-        lines.append("Japan's reserves: not yet stored (altdata/sources/mof_reserves.py "
-                     "writes from its first run).")
+        lines.append("Japan's reserves: not yet stored "
+                     f"({rd.starts_line("Japan's Ministry of Finance", now)}).")
     f = j["fima"]
     if f:
         wa = j["fima_weekavg"]
@@ -190,8 +204,8 @@ def japan_subsection(st, now: str, cfg: Optional[dict] = None,
                      + (" — in use" if f["value"] > 0 or (wa and wa["value"] > 0)
                         else "") + " (H.4.1).")
     else:
-        lines.append("FIMA repo usage: not yet stored (the H.4.1 writer, "
-                     "altdata/sources/fedboard_h41.py, writes from its first run).")
+        lines.append("FIMA repo usage: not yet stored "
+                     f"({rd.starts_line("the Fed's H.4.1", now)}).")
     lines.append(f"Both are {(cfg.get('japan_reserves') or {}).get('lag_line')}.")
     return {"title": TITLE_JAPAN, "lines": lines, "paragraph_wanted": False,
             "data": {"japan_funding": j}}
@@ -212,11 +226,50 @@ def tenor_rows(lens: dict, window: str) -> list[list]:
                                    and r["real"] else "")
         acm = (r["acm_note"],) * 2 if r.get("acm_note") else (
             _cell(r["expected_rate"]), _cell(r["term_premium"]))
-        out.append([f"{r['tenor']}, {window}", _cell(nom), real,
+        # weekly-fixes-7 item 3: the window prints INLINE, so the table is six
+        # columns and the renderer's six-column rule no longer splits off a
+        # second table holding only the dates.
+        span = "" if not nom else f" ({_day_month(nom['from'])} to {_day_month(nom['to'])})"
+        out.append([f"{r['tenor']}, {window}{span}", _cell(nom), real,
                     "—" if r["breakeven_bp"] is None else _bp(r["breakeven_bp"]),
-                    acm[0], acm[1],
-                    "—" if not nom else f"{nom['from']} to {nom['to']}"])
+                    acm[0], acm[1]])
     return out
+
+
+def _day_month(d: str) -> str:
+    x = dt.date.fromisoformat(str(d)[:10])
+    return f"{x.day} {x:%b}"
+
+
+def fred_lag_line(fred_to: Optional[str], tape_to: Optional[str]) -> Optional[str]:
+    """Item 3: two "week" figures for the 10-year can sit in one edition -- the
+    tape's (Yahoo's ^TNX closes) and SR-6's (FRED's legs, which publish later).
+    The line names both windows' ends so a reader sees why they differ."""
+    if not fred_to or not tape_to or str(fred_to)[:10] >= str(tape_to)[:10]:
+        return None
+    from altdata import session                                 # noqa: PLC0415
+    a, b = dt.date.fromisoformat(str(fred_to)[:10]), dt.date.fromisoformat(str(tape_to)[:10])
+    n, d = 0, a
+    while d < b:
+        d += dt.timedelta(days=1)
+        try:
+            n += 1 if session.is_trading_session(d) else 0
+        except Exception:                                       # noqa: BLE001
+            n += 1 if d.weekday() < 5 else 0
+    words = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight",
+             "nine", "ten")
+    return (f"FRED's legs lag {words[n] if n < len(words) else n} "
+            f"session{'s' if n != 1 else ''} (to {_day_month(a)}); "
+            f"the nominal week in the tape runs to {_day_month(b)}.")
+
+
+def _tape_to(st, now: str) -> Optional[str]:
+    try:
+        from altdata import levels                              # noqa: PLC0415
+        rows, _ = levels.daily_bars(levels.tape_spec("y10"), now[:10], now, st)
+        return str(rows[-1]["observed_at"])[:10] if rows else None
+    except Exception:                                           # noqa: BLE001
+        return None
 
 
 def tenor_frame(lens: dict, window: str) -> Optional[str]:
@@ -243,10 +296,16 @@ def tenor_subsection(st, now: str, then_week: str, then_month: str,
     rows = (tenor_rows(wk, "week") if wk else []) + tenor_rows(mo, "month")
     lines = [x for x in ((tenor_frame(wk, "week") if wk else None),
                          tenor_frame(mo, "month")) if x]
+    if wk:
+        ten = next((r for r in wk["rows"] if r["tenor"] == "10y" and r["nominal"]), None)
+        lag = fred_lag_line(ten["nominal"]["to"] if ten else None, _tape_to(st, now))
+        if lag:
+            lines.append(lag)
     return {"title": TITLE_TENOR,
-            "table": {"columns": ["Tenor and window", "Nominal", "Real yield",
-                                  "Breakeven", "Expected short rate (ACM)",
-                                  "Term premium (ACM)", "From and to"], "rows": rows},
+            "table": {"columns": ["Tenor and window (from and to)", "Nominal",
+                                  "Real yield", "Breakeven",
+                                  "Expected short rate (ACM)",
+                                  "Term premium (ACM)"], "rows": rows},
             "lines": lines, "paragraph_wanted": False,
             "table_note": ("Breakeven is the nominal move less the real yield's, so the "
                            "two sum to the move; the 2-year has no TIPS series and reads "
@@ -254,7 +313,7 @@ def tenor_subsection(st, now: str, then_week: str, then_month: str,
                            "are ACM's (a model's split of its own fitted yield, not of "
                            "the quoted one); ACM does not publish past ten years. The "
                            "10-year attribution block's models (DKW, Kim-Wright, ACM) "
-                           "are altdata/rates_attribution.py's. Descriptive: which tenor "
+                           "are the rates attribution block's. Descriptive: which tenor "
                            "moved most and which leg was larger, nothing causal."),
             "data": {"tenor_week": wk, "tenor_month": mo}}
 
@@ -313,6 +372,16 @@ def monthly_subsections(st, now: str, then: str, cfg: Optional[dict] = None
         levers_subsection(st, now, then, cfg)]
 
 
+def _tier_cell(p: dict, e: dict) -> str:
+    """The tier, named with the weekly close it sits on."""
+    word = {"watch": f"WATCH (≥ {e['watch_bp']:.0f} bp)", "crisis": "CRISIS",
+            "none": "below the watch line"}.get(p.get("tier"))
+    wk = p.get("weekly_close")
+    if not word or not wk:
+        return "no weekly close yet"
+    return f"{word}, weekly close {wk['as_of']} at {wk['bp']:.1f} bp"
+
+
 def misfit_items(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
     """One sentence in the Monthly's "what doesn't fit" at SR-30's crisis tier,
     and none below it (decision 2)."""
@@ -320,8 +389,9 @@ def misfit_items(st, now: str, cfg: Optional[dict] = None) -> list[dict]:
     if e["tier"] != "crisis":
         return []
     p = next(x for x in e["pairs"] if x["id"] == "oat_bund")
+    wk = p["weekly_close"]
     return [_item("misfit:sr30_crisis",
-                  f"OAT–Bund at {p['bp']:.1f} bp (ECB monthly, {p['as_of']}) is at "
-                  f"SR-30's crisis tier, the November 2011 peak of its own series, "
-                  f"in the core rather than the periphery {e['unvalidated']}.", 1,
-                  (p["bp"], p["as_of"]))]
+                  f"OAT–Bund's weekly close at {wk['bp']:.1f} bp ({wk['as_of']}, "
+                  f"daily) is at SR-30's crisis tier, the November 2011 peak of its "
+                  f"own series, in the core rather than the periphery "
+                  f"{e['unvalidated']}.", 1, (wk["bp"], wk["as_of"]))]

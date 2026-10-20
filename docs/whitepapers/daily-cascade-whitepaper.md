@@ -1273,6 +1273,8 @@ For any conditional, in order: (1) the thesis grade — is the anchor holding? (
 | 6–14. Tier 2 items (charm/vanna, VIX1D, FedWatch, breadth internals, correlations, MOVE, CVD anchor, §15 thresholds, retail proxies) | Phases 6b, 6c, 6e; the retail proxies are 6a's RTAT10 logger |
 | 15–20. Tier 3 items (paid dark-pool feed, Cboe open-close, footprint delta, factor lens, volume profile, ERP methodology) | Phase 6h — gated on 150 graded decisions across two regimes |
 
+*14 Oct 2026 — the volume profile entered the reports as data only: the session and 20-session POC, VAH and VAL for SPY, QQQ and IWM, approximated where built from daily bars. The claims it invites are tested in the Alpha Lab as H-006 to H-008. The Globex overnight POC is not built, because v1 carries no ES.*
+
 The one item v1 could not place, and v2 puts first: **the outcome-logging layer is not a feature the Daily waits for; it is the reason the Daily can be trusted to exist.**
 
 ---

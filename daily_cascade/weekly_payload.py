@@ -936,6 +936,11 @@ def scheduled_run_utc(ending: str, now: Optional[str] = None) -> str:
     return min(run.astimezone(dt.timezone.utc), real).isoformat(timespec="seconds")
 
 
+def _computed_dir() -> str:
+    from altdata import config as acfg                          # noqa: PLC0415
+    return str(acfg.COMPUTED_DIR)
+
+
 def build(ending: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, fetch: bool = True) -> dict:
     """Every block. Reads only; never raises on a missing one."""
@@ -958,6 +963,9 @@ def build(ending: Optional[str] = None, as_of: Optional[str] = None,
             "as_of": cutoff,
             "run_id": run_id,
             "blocks": list(BLOCKS),
+            # Where the computed dealer profiles live (6b part 2): W12 reads the
+            # week's last settled capture there.
+            "computed_dir": str(_computed_dir()),
         }
         # H-1 item 4: a line declared for exactly this edition, if any.
         from .method_notes import for_edition                  # noqa: PLC0415

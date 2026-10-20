@@ -1,0 +1,12 @@
+symbol,name,exchange,market_category,etf,source,file_created
+AAPL,Apple Inc. - Common Stock,Q,Q,N,nasdaqlisted.txt,1014202607:00
+BAM,Brookfield Asset Management Inc Class A Limited Voting Shares,N,,N,otherlisted.txt,1014202607:00
+BN,Brookfield Corporation Class A Limited Voting Shares,N,,N,otherlisted.txt,1014202607:00
+BRK.B,Berkshire Hathaway Inc. New Common Stock,N,,N,otherlisted.txt,1014202607:00
+MEMEA,Meme Alpha Reborn Corp. - Common Stock,Q,S,N,nasdaqlisted.txt,1014202607:00
+NEWT,Newt Industries Inc. Common Stock,N,,N,otherlisted.txt,1014202607:00
+REUS,Reus Acquisition Corp. Class A Common Stock,A,,N,otherlisted.txt,1014202607:00
+SPCK,SPAC and New Issue ETF,Q,G,Y,nasdaqlisted.txt,1014202607:00
+SPCX,Space Exploration Technologies Corp. - Class A Common Stock,Q,Q,N,nasdaqlisted.txt,1014202607:00
+SPY,State Street SPDR S&P 500 ETF Trust,P,,Y,otherlisted.txt,1014202607:00
+ZZZZ,Unmappable Test Holdings Common Stock,F,,N,otherlisted.txt,1014202607:00

@@ -133,6 +133,10 @@ binary blob.
 - **(c) Parquet in the repo, partitioned by series.** Diffable-ish, no server,
   good for analysis in pandas. Weakest for concurrent writes.
 
+> **As built (14 Oct 2026):** none of the three. The store is SQLite on the box,
+> written by the box's own units and never committed; see Part 2, "The store as
+> built".
+
 **Resolved: (b) D1 as system of record, plus (c) as a snapshot.**
 
 D1 beats commit-back on every axis that matters — concurrent-write safety, no
@@ -180,6 +184,36 @@ analysis should almost never require touching an engine.
                               ↓
         five reports, each a query + a template
 ```
+
+> **The store as built (AUD-3a, 14 Oct 2026).** One SQLite database,
+> `data/chester.db` on the box, append-only. The `observations` table is keyed by
+> `(registry_key, instrument, observed_at, available_at, source)` and carries
+> `availability_kind`; the as-of join reads `available_at`, and a re-read of an
+> identical value writes no new vintage (`altdata/observations.py`). The `bars`
+> table holds 5-minute and daily OHLC per tape instrument (`altdata/bars.py`).
+> The FRED history is also a CSV store outside the checkout
+> (`~/chester-data/data_store`, `altdata/store.py`). There is no D1 and no parquet
+> snapshot: the system of record is the box's database, backed up nightly to Drive
+> (`scripts/rclone_sync.sh`). The registries are `metrics_registry.yaml` (units,
+> half-lives, bulk blocks resolved to code) and `source_registry.yaml`; what the
+> store holds is listed by `python -m altdata.catalogue` and checked against the
+> registry by `python -m tools.check_store_registry`.
+>
+> **Refreshed 19 Oct 2026 (the chain-2 stitch).** The pull walks 266 FRED series
+> (`config.FRED_PULL_SERIES`) and 115 market symbols
+> (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
+> Master (`config/security_master.yaml`). The scheduled roster is 31 official
+> writers, 37 external writers and 7 loggers. A scheduled writer opens the store
+> through `observations.open_writer()`; the append-only triggers refuse UPDATE
+> and DELETE once installed, and a row whose source is not a registered id (or
+> `<id>:<variant>`) is refused. Where two sources hold one period at one instant,
+> the as-of join keeps the higher tier of `source_registry.yaml`; its reach is
+> that one instant only, and since the store is append-only a lower tier never
+> overwrites anything (ruled 17 Oct 2026). After each
+> price and FRED pull, `altdata/quality.py` marks outliers and cross-source gaps
+> as rows in `data_quality_flags`, never altering a value. The backups go to an
+> encrypted rclone remote and are restored weekly (`docs/runbooks/restore.md`).
+> `tools/validate_audit_3a.py` holds these counts against the code.
 
 ## The provenance chain — how hallucination is actually prevented
 
@@ -255,7 +289,8 @@ add the registry conventions below.)*
 5. **[NEW] Stand up the store backend** — D1 as system of record, parquet
    snapshot to the repo each run, local SQLite mirror for development. Decision
    is made (Finding 7); this session just creates the D1 binding and confirms the
-   Worker can read and write it.
+   Worker can read and write it. *(As built, 14 Oct 2026: no D1. The store is
+   SQLite on the box; see Part 2, "The store as built".)*
 6. **[NEW] Pin the model string** and start recording `model_id`,
    `prompt_version`, `git_sha` on every run.
 
@@ -674,6 +709,12 @@ small, and it is exactly the kind of omission that eats a session.
 
 **Done when:** the report renders with networking off, and a revised series shows
 both vintages.
+
+> **As built (14 Oct 2026):** the vintage-aware store exists as SQLite, keyed on
+> `(registry_key, instrument, observed_at, available_at, source)` rather than
+> `(series_id, as_of, vintage_date)`; a revision is a new `available_at`, and an
+> unchanged re-read writes nothing. `store.py` is the CSV store's module and
+> `observations.py` the database's. D1 and the local-mirror sync were not built.
 
 ### **[NEW] Also in this session: the `election_odds` table**
 
@@ -2826,7 +2867,7 @@ reader should trust least and why. Same spirit as the gaps register, applied to
 what *is* built rather than what is not.
 
 **Artifacts to preserve from that chat before it is deleted:** Master Narrative
-v1.4 (superseded by the system-narrative document, but the lineage is worth
+v1.4 (superseded by the system-narrative document, now archived at `docs/archive/chester-reports-system-narrative-2026-09-30.md`, but the lineage is worth
 keeping) and **Translation Table v2.3** — the mapping of each report's score onto
 a common risk scale, which the precedence rules do not replace. Commit both to
 `docs/` first.

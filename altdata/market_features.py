@@ -257,6 +257,23 @@ for _w in MODEL_WINDOWS:
             f"ACM's 10-year term premium change over {_w} observations as a "
             f"share of ACM's own fitted 10-year yield change -- a NOMINAL split",
     })
+# THE THIRD CUT, SINCE THE LAST EVENT (ST-3's "1w/1m/since-event"; st-t1-rest,
+# 18 Oct 2026): the move since the close BEFORE the last FOMC decision day, so the
+# decision day's own reaction is in it. The decision days are the claims
+# registry's (config/claims.yaml cal.fomc_<year>, read by events_ingest's own
+# parser); a day before the first registered decision has no cut.
+RATES_FEATURES.update({
+    "calc.attr_d10y_since_fomc":
+        "the 10-year yield's change since the close before the last FOMC decision "
+        "day, in basis points",
+    "calc.attr_real_share_since_fomc":
+        "the 10-year TIPS real yield's change since the last FOMC decision as a "
+        "share of the nominal 10-year's (the real/breakeven cut). Written only when "
+        f"the 10-year moved {ATTR_MIN_MOVE_BP:g}bp",
+    "calc.attr_curve_share_since_fomc":
+        "the 2-year yield's change since the last FOMC decision as a share of the "
+        "10-year's (the curve cut)",
+})
 RATES_FEATURES.update({
     f"calc.corr_spy_tlt_{CORR_WINDOW}d":
         f"Pearson correlation of SPY and TLT daily log returns over "
@@ -557,6 +574,30 @@ def rates_rows(db: observations.ObservationStore,
                      (y2[day][0] - y2[p][0]) * 100.0 / d10,
                      base + [av(y2, day), av(y2, p)])
 
+    # --- THE THIRD CUT: SINCE THE LAST FOMC DECISION -------------------------
+    decisions = fomc_decision_days()
+    for day in days:
+        past = [d for d in decisions if d <= day]
+        if not past:
+            continue
+        before = [d for d in days if d < past[-1]]
+        if not before:
+            continue
+        p = before[-1]
+        d10 = (y10[day][0] - y10[p][0]) * 100.0
+        base = [av(y10, day), av(y10, p)]
+        emit("calc.attr_d10y_since_fomc", day, d10, base)
+        if abs(d10) < ATTR_MIN_MOVE_BP:
+            continue
+        if day in tips and p in tips:
+            emit("calc.attr_real_share_since_fomc", day,
+                 (tips[day][0] - tips[p][0]) * 100.0 / d10,
+                 base + [av(tips, day), av(tips, p)])
+        if day in y2 and p in y2:
+            emit("calc.attr_curve_share_since_fomc", day,
+                 (y2[day][0] - y2[p][0]) * 100.0 / d10,
+                 base + [av(y2, day), av(y2, p)])
+
     # --- KIM-WRIGHT: term premium over the nominal 10-year it decomposes -----
     acm_tp = _load(db, "acm.term_premium_10y", as_of)
     acm_fit = _load(db, "acm.fitted_yield_10y", as_of)
@@ -781,6 +822,14 @@ def compute_rows(db: observations.ObservationStore,
     rows += rates_rows(db, as_of=as_of, first_day=first_day)
     rows += aq3_rows(db, as_of=as_of, first_day=first_day)
     rows += aq3b_rows(db, as_of=as_of, first_day=first_day)
+    # 6E, THE REST (16 Oct 2026): S3a-S3c's calc series, the CPI-PCE gap and the
+    # CPI lead composite (altdata/macro_6e.py). Never fatal: a fault costs these
+    # rows, not the features above.
+    try:
+        from . import macro_6e                                   # noqa: PLC0415
+        rows += macro_6e.rows(db, as_of=as_of, first_day=first_day)
+    except Exception:                                            # noqa: BLE001
+        log.warning("6e macro-completeness rows failed", exc_info=True)
     return rows
 
 
@@ -993,12 +1042,55 @@ def aq3b_rows(db: observations.ObservationStore, as_of: Optional[str] = None,
     return rows
 
 
+def fomc_decision_days() -> list[str]:
+    """Every FOMC decision day the claims registry holds (cal.fomc_<year>),
+    sorted: the second day of each meeting, parsed by events_ingest's own reader.
+    Empty when the registry cannot be read."""
+    import re                                                   # noqa: PLC0415
+    from pathlib import Path                                    # noqa: PLC0415
+    import yaml                                                 # noqa: PLC0415
+    from .events_ingest import _fomc_dates                      # noqa: PLC0415
+    try:
+        path = Path(__file__).resolve().parent.parent / "config" / "claims.yaml"
+        reg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:                                           # noqa: BLE001
+        return []
+    claims = reg.get("claims", reg) if isinstance(reg, dict) else {}
+    out = []
+    for cid, c in (claims or {}).items():
+        m = re.fullmatch(r"cal\.fomc_(\d{4})", str(cid))
+        if m and isinstance(c, dict):
+            out += [d.isoformat() for d in _fomc_dates(str(c.get("value") or ""),
+                                                        int(m.group(1)))]
+    return sorted(set(out))
+
+
+RECOMPUTE_WINDOW_DAYS = 120
+
+
+def default_first_day(db) -> Optional[str]:
+    """The newest day this module has stored, less RECOMPUTE_WINDOW_DAYS; None
+    (compute everything) when it has stored nothing."""
+    import datetime as _dt                                       # noqa: PLC0415
+    last = db.last_observed(keys=list({**FEATURES, **MACRO_FEATURES, **RATES_FEATURES}))
+    if not last:
+        return None
+    return (_dt.date.fromisoformat(last)
+            - _dt.timedelta(days=RECOMPUTE_WINDOW_DAYS)).isoformat()
+
+
 def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None,
-            dry_run: bool = False) -> dict:
+            dry_run: bool = False, full: bool = False) -> dict:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
+        # AUD-1 4d: FROM A START DAY, NOT THE WHOLE HISTORY, EVERY RUN. Without
+        # --from, the recompute starts RECOMPUTE_WINDOW_DAYS before the newest day
+        # this module has stored -- wide enough for a late FRED revision to be
+        # re-derived -- and a store holding none of its rows computes everything.
+        if first_day is None and not full:
+            first_day = default_first_day(db)
         rows = compute_rows(db, as_of=as_of, first_day=first_day)
         written = 0 if dry_run else db.write_many(rows)
         by_key: dict[str, int] = {}
@@ -1016,8 +1108,26 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("correlation layer failed", exc_info=True)
             corr = {"error": f"{type(exc).__name__}: {exc}"}
+        # ST-4'S DURATION ABSORPTION FEATURES AND RATES FLAGS (st-t1-rest) ride
+        # the same pass, after everything they read is written. Never fatal.
+        try:
+            from . import absorption                             # noqa: PLC0415
+            absr = absorption.compute(as_of=as_of, first_day=first_day, store=db,
+                                      dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("absorption features failed", exc_info=True)
+            absr = {"error": f"{type(exc).__name__}: {exc}"}
+        # ST-5'S FUNDING-CURRENCY FEATURES (st-t2-rates), after ST-4's. Never fatal.
+        try:
+            from . import funding_currency                       # noqa: PLC0415
+            fcr = funding_currency.compute(as_of=as_of, first_day=first_day,
+                                           store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("funding-currency features failed", exc_info=True)
+            fcr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
-                "dry_run": dry_run, "correlation": corr}
+                "dry_run": dry_run, "correlation": corr, "absorption": absr,
+                "funding_currency": fcr}
     finally:
         if own:
             db.close()
@@ -1031,7 +1141,11 @@ def _main(argv: list[str]) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("compute")
     c.add_argument("--as-of", default=None)
-    c.add_argument("--from", dest="first", default=None)
+    c.add_argument("--from", dest="first", default=None,
+                   help="recompute from this day (default: the newest stored day "
+                        "less RECOMPUTE_WINDOW_DAYS)")
+    c.add_argument("--full", action="store_true",
+                   help="recompute the whole history")
     c.add_argument("--dry-run", action="store_true")
     sh = sub.add_parser("show")
     sh.add_argument("--as-of", default=None)
@@ -1040,7 +1154,8 @@ def _main(argv: list[str]) -> int:
                         format="%(levelname)s %(name)s: %(message)s")
 
     if a.cmd == "compute":
-        r = compute(as_of=a.as_of, first_day=a.first, dry_run=a.dry_run)
+        r = compute(as_of=a.as_of, first_day=a.first, dry_run=a.dry_run,
+                    full=a.full)
         print(f"{r['computed']} rows computed, {r['written']} written"
               + ("  (dry run)" if r["dry_run"] else ""))
         for k in sorted(r["by_key"]):

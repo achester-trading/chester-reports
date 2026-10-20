@@ -1,0 +1,9 @@
+2026-09-30T08:30:02-04:00 verdict=ok rc=0 heartbeat_age_h=1 backup=ok -- a September line, outside the window
+2026-10-01T08:30:01-04:00 verdict=ok rc=0 heartbeat_age_h=1 backup=ok feeds=ok -- all healthy
+2026-10-02T08:30:01-04:00 verdict=ok rc=0 heartbeat_age_h=1 backup=ok feeds=ok -- all healthy
+2026-10-03T08:30:01-04:00 verdict=stale rc=11 heartbeat_age_h=1 backup=ok feeds=stale -- fixture: one stale feed
+2026-10-04T08:30:01-04:00 verdict=ok rc=0 heartbeat_age_h=1 backup=ok feeds=ok -- all healthy
+2026-10-05T08:30:01-04:00 verdict=unit_failed rc=13 heartbeat_age_h=1 units=failed:chester-overnight -- fixture
+2026-10-06T08:30:01-04:00 verdict=ok rc=0 heartbeat_age_h=1 backup=ok feeds=ok -- all healthy
+2026-10-07T08:30:01-04:00 verdict=ok rc=0 heartbeat_age_h=1 backup=ok feeds=ok -- all healthy
+2026-10-08T08:30:01-04:00 delivery=sent -- a line without a verdict is not a check

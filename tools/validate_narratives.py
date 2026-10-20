@@ -261,6 +261,43 @@ def groups_abc() -> None:
                 "narrative_id='proposed_story'").fetchone()[0]
         check(n == 1, "after `confirm` it is evaluated like any active story")
 
+        print(f"{LINE}\nM. A COMMITTED PROPOSAL WAITS FOR CONFIRM (ruling (c), "
+              f"16 Oct 2026)\n{LINE}")
+        cp = dict(cfg["narratives"]["fixture_story"], name="Committed story",
+                  proposed_by="validator, as drafted")
+        bare = dict(cp, name="Unsigned story")
+        bare.pop("proposed_by")
+        cfg["proposals"] = {"committed_story": cp, "unsigned_story": bare}
+        with nr.NarrativeRegister() as reg:
+            s1 = reg.seed(cfg)
+            s2 = reg.seed(cfg)
+            row = reg.get("committed_story")
+        check(s1.get("proposed") == ["committed_story"] and not s2.get("proposed")
+              and row["status"] == "proposed" and row["state"] == "emerging"
+              and row["origin"] == "config_proposal",
+              "a `proposals:` entry enters once as proposed, emerging, origin "
+              "config_proposal -- never active")
+        check("unsigned_story" in s1["refused"]
+              and any("proposed_by" in e for e in s1["refused"]["unsigned_story"]),
+              "and one that does not say who proposed it is refused")
+        # A session already evaluated, so the active stories' record is untouched;
+        # the pass still walks the register and must not reach the proposal.
+        out = evaluate(nxt, cfg)
+        with nr.NarrativeRegister() as reg:
+            n = reg.conn.execute(
+                "SELECT COUNT(*) FROM narrative_evaluations WHERE "
+                "narrative_id='committed_story'").fetchone()[0]
+        check(n == 0 and "committed_story" not in out["evaluated"]
+              and "committed_story" not in out["skipped"],
+              "the close pass never reaches it: confirm is the operator's")
+        real = nr.load_config().get("proposals") or {}
+        errs = {k: nr.validate_config_story(k, v) for k, v in real.items()}
+        check(len(real) == 3 and not any(errs.values())
+              and all(str(v.get("proposed_by") or "").strip() for v in real.values()),
+              f"the three committed in config/narratives.yaml validate and say who "
+              f"proposed them ({sorted(real)})")
+        cfg.pop("proposals")
+
         print(f"{LINE}\nA. REPLAY FROM STORED EVENTS\n{LINE}")
         r = nr.replay(cfg=cfg)
         check(r["compared"] >= 11 and r["matched"] == r["compared"]

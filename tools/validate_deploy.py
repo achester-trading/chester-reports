@@ -25,7 +25,8 @@ which let it run unattended cannot be widened by accident.
      restart is denied, and `ssh vps cat *` is allowed while reading .env is
      denied.
   F  CLAUDE.md DOCUMENTS EVERY DENY CATEGORY, because a rule whose reason is
-     not written down is a rule the next person removes.
+     not written down is a rule the next person removes. And its standing
+     rules carry the by-hand rule (ruled 16 Oct 2026), word for word.
   G  EVERY make ENTRY IS REACHABLE WITHOUT make. `make` is absent on the authoring
      laptop, so an allow entry that only matches a make command grants nothing
      there -- the gate run or the deploy falls back to a prompt and the allowlist
@@ -79,6 +80,10 @@ DEPLOY_SERVICE = REPO / "deploy" / "systemd" / "chester-deploy.service"
 DEPLOY_TIMER = REPO / "deploy" / "systemd" / "chester-deploy.timer"
 SETTINGS = REPO / ".claude" / "settings.json"
 CLAUDE_MD = REPO / "CLAUDE.md"
+# Standing rule 3 as ruled (16 Oct 2026); group F holds CLAUDE.md to it.
+BY_HAND_RULE = ("No new recurring by-hand data line without the operator's explicit "
+                "yes in a filed order; prefer public, easy-to-access sources; "
+                "friction is a gap, not a key.")
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -127,6 +132,14 @@ MUST_DENY = {
         "rm -rf data/chains",
         "ssh vps rm /home/ari/state/morning_heartbeat",
         "rm data/pin_log.csv",
+        # AUD-2 item 1: the backups, the live CSV store and the state directory.
+        "ssh vps rm -rf ~/backups",
+        "ssh vps 'rm -rf ~/chester-data/data_store'",
+        "rm -rf $HOME/chester-data",
+        "ssh vps rm ~/.chester/eod_status",
+        "rm -rf /home/ari/backups/2026-10-01",
+        "git clean -fdx",
+        "cd ~/chester-reports && git clean -fdx",
     ],
     "register writes": [
         "python tools/decide.py record --instrument SPY --direction long",
@@ -138,6 +151,16 @@ MUST_DENY = {
         # register's one human gate, on the same argument as a decision write.
         "python -m altdata.narratives confirm dollar_funding_squeeze",
         "ssh vps '.venv/bin/python -m altdata.narratives reject some_story'",
+        # Ruling 5 of 19 Oct: promoting or rejecting a mechanism-watch candidate
+        # is the operator's write, as the narratives pair is.
+        "python -m altdata.mechanism_watch promote MW-0001 --reason x --confirm",
+        "ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.mechanism_watch reject MW-0001 --reason x --confirm'",
+        # X-2.6: the operator retires an Alpha Lab engine BY RULING; the loop
+        # retires by the kill rule alone, and a session never does either.
+        "python -m alpha.promote retire HYP-0004 --ruling 'x'",
+        # Ruling 6: only the operator lifts the lab's -15% halt.
+        "python -m alpha.governor resume --reason 'reviewed'",
+        "ssh vps 'cd ~/chester-reports && .venv/bin/python -m alpha.governor resume --reason x'",
     ],
     "privilege escalation": [
         "sudo apt install x",
@@ -156,6 +179,24 @@ MUST_DENY = {
         "ssh vps tail -5 /home/ari/chester-reports/.env",
         "ssh vps cat ~/ibc/config.ini",
         "echo $ANTHROPIC_API_KEY",
+        # AUD-2 item 1: the other secrets the box holds, by file and by name.
+        "ssh vps cat ~/.config/rclone/rclone.conf",
+        "rclone config show --config ~/.config/rclone/rclone.conf",
+        "ssh vps cat ~/.ssh/id_ed25519",
+        "ls ~/.ssh/",
+        "cat /proc/1234/environ",
+        "ssh vps 'strings /proc/self/environ'",
+        "echo $MASSIVE_API_KEY",
+        "printenv FLASHALPHA_API_KEY",
+        "python -c 'import os; print(os.getenv(\"NASDAQ_DATA_LINK_API_KEY\"))'",
+        "echo $OPENAI_API_KEY",
+        # R1 of 19 Oct 2026 (chain-3): the flat-file pair, the bitcoin-data key and
+        # the backup's crypt settings, each by its literal name.
+        "echo $MASSIVE_FLATFILES_ACCESS_KEY_ID",
+        "printenv MASSIVE_FLATFILES_SECRET_ACCESS_KEY",
+        "ssh vps 'grep BITCOIN_DATA_API_KEY ~/chester-reports/.env'",
+        "echo $CHESTER_RCLONE_CRYPT_PASSWORD",
+        "python -c 'import os; print(os.getenv(\"CHESTER_RCLONE_CRYPT_SALT\"))'",
     ],
 }
 
@@ -435,6 +476,12 @@ def group_f() -> None:
           "and states that deny takes precedence over allow")
     check("exit 3" in section or "exits 3" in section,
           "and documents the exit-3 handover")
+    # The by-hand rule (the by-hand audit, ruled 16 Oct 2026), in the standing
+    # rules and nowhere weaker: the sentence as ruled, one line or wrapped.
+    rules = " ".join(text.split("## Standing rules", 1)[-1].split())
+    check(BY_HAND_RULE in rules,
+          "CLAUDE.md's standing rules carry the by-hand rule, word for word: "
+          f"'{BY_HAND_RULE}'")
 
 
 def group_g() -> None:
@@ -875,10 +922,93 @@ def group_i() -> None:
               f"({len(calls())} calls: {bad_calls or 'read/reload/enable only'})")
 
 
+# AUD-2 item 1 (ruled 14 Oct 2026): the secrets are files as well as commands,
+# and an AI session reads files with Read, Grep, Glob and Edit -- tools the Bash
+# rules never see. Claude Code consults Read and Edit path rules (gitignore
+# syntax) and applies Read denies to Grep and Glob; a Grep(...) or Glob(...) path
+# rule is accepted but never consulted, so the Read rule is the one that bites.
+# `~/` is the home directory and `//` the filesystem root (a single `/` would be
+# this project's root). The `!` rule is a gitignore negation that carves
+# .env.example back out of the deny listed BEFORE it, in the same list -- an
+# allow rule cannot override a deny. Every rule here must be present: a missing
+# one fails.
+SECRET_PATHS = ("**/.env*", "~/ibc/**", "~/.config/rclone/**", "~/.ssh/**",
+                "//proc/*/environ")
+REQUIRED_PATH_DENY = [f"{tool}({p})" for p in SECRET_PATHS for tool in ("Read", "Edit")]
+CARVE_OUTS = {"Read(!.env.example)": "Read(**/.env*)",
+              "Edit(!.env.example)": "Edit(**/.env*)"}
+
+
+def path_deny_faults(deny: list) -> list[str]:
+    """Every required path rule that is missing, and every carve-out that is
+    absent or listed before the rule it carves from (where it carves nothing)."""
+    faults = [f"missing {r}" for r in REQUIRED_PATH_DENY if r not in deny]
+    for neg, rule in CARVE_OUTS.items():
+        if neg not in deny:
+            faults.append(f"missing {neg}")
+        elif rule in deny and deny.index(neg) < deny.index(rule):
+            faults.append(f"{neg} is listed before {rule} and carves nothing")
+    return faults
+
+
+def _gitignore_hit(path: str, pattern: str) -> bool:
+    """A small model of the rule's match, enough for the fixtures below: `**/x`
+    and a bare name match at any depth; `~/` and `//` are anchored."""
+    if pattern.startswith("**/") or "/" not in pattern:
+        name = pattern[3:] if pattern.startswith("**/") else pattern
+        return fnmatch.fnmatch(path.rsplit("/", 1)[-1], name)
+    if pattern.startswith("//"):
+        pattern = pattern[1:]
+    return fnmatch.fnmatch(path, pattern.replace("/**", "/*"))
+
+
+def path_denied(path: str, deny: list, tool: str = "Read") -> bool:
+    hit = False
+    for r in deny:
+        m = re.fullmatch(rf"{tool}\((.*)\)", r)
+        if not m:
+            continue
+        pat = m.group(1)
+        if pat.startswith("!"):
+            if hit and _gitignore_hit(path, pat[1:]):
+                hit = False
+        elif _gitignore_hit(path, pat):
+            hit = True
+    return hit
+
+
+def group_j() -> None:
+    print(f"\n{LINE}\nJ. THE SECRETS ARE DENIED TO EVERY FILE TOOL (AUD-2 item 1)\n{LINE}")
+    deny = list(settings()["permissions"]["deny"])
+    faults = path_deny_faults(deny)
+    check(not faults, f"every path rule is present, carve-outs after their rule "
+                      f"({faults or len(REQUIRED_PATH_DENY)} rules)")
+    for r in REQUIRED_PATH_DENY:
+        check(path_deny_faults([x for x in deny if x != r]) == [f"missing {r}"],
+              f"and removing {r} fails this gate")
+    swapped = [x for x in deny if x not in CARVE_OUTS]
+    swapped.insert(0, "Read(!.env.example)")
+    swapped.append("Edit(!.env.example)")
+    check(any("carves nothing" in f for f in path_deny_faults(swapped)),
+          "a carve-out listed before its rule is caught")
+    for path, want in (("~/chester-reports/.env", True), (".env", True),
+                       ("scripts/.env.local", True), ("~/chester-reports/.env.box", True),
+                       (".env.example", False), ("~/ibc/config.ini", True),
+                       ("~/.config/rclone/rclone.conf", True), ("~/.ssh/id_ed25519", True),
+                       ("/proc/4242/environ", True), ("docs/env.md", False),
+                       ("altdata/secrets.py", False)):
+        for tool in ("Read", "Edit"):
+            check(path_denied(path, deny, tool) is want,
+                  f"{tool} of {path} is {'denied' if want else 'allowed'}")
+    check(not any(r.startswith(("Grep(", "Glob(")) for r in deny),
+          "no Grep(...) or Glob(...) path rule: Claude Code never consults one, "
+          "and the Read rule already covers both tools")
+
+
 def main() -> int:
     print(f"{LINE}\nThe unattended deploy, and the permissions that allow it\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
-              group_h, group_i):
+              group_h, group_i, group_j):
         try:
             g()
         except FileNotFoundError as exc:

@@ -57,6 +57,7 @@ chester-auction.timer
 chester-deploy.timer
 chester-monthly.timer
 chester-crypto-basket.timer
+chester-prices-saturday.timer
 "
 
 deploy_main() {

@@ -979,6 +979,25 @@ For a brief periodic review, these cover most of what matters.
 9. Is Chilean production stabilising?
 10. Which scenario in Part VII did this quarter's evidence support?
 
+## Appendix E: Dated base-rate notes
+
+*Dated. Entries are added with their date and never rewritten.*
+
+**Gold against world equities (16 October 2026; Batch 6 item 38).** Gold's above-ground stock against world equity capitalisation has peaked three times since 1901, at roughly 80–90%: the First World War, the Second, and the end of the 1970s inflation decade. Each peak came in a regime of war finance or monetary disorder. It troughed near 5% around 2000 and stood near 20% in 2025 (Costa, Azuria Capital, a gold-fund manager). Three peaks in 125 years make it a secular frame, not a timing tool. The stack does not track the ratio: there is no free source for world equity capitalisation, so the line reads "not tracked" until one is found.
+
+## Appendix F — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-15 — cross-asset valuation z-scores: the rank test and gold's window (ledger of 18 October 2026)
+
+- **Ledger:** [sr-15-ledger-2026-10-18.md](../ledgers/sr-15-ledger-2026-10-18.md).
+- **As of:** 2026-09 (latest month with all four z); last paired month 2023-06. **Window:** 1971-01 to 2026-09 (z burn-in 60 months; the gold test also from 1994-01). **n:** 570.
+- **Verdict:** FAIL -- cheap beat rich in 55.8% of 570 paired months (rule >= 66.7%); gold window test FLIPS
+- **Rights consequence (the ledger's):** PASS: the Book A rebalancing modifier (toward the lowest-z diversifier, sized by |z|) and the Valuation confidence modifier; gold at zero rebalancing weight while Factor V is active, and at base-rate rights only if its test flips. FAIL: the strip is display only. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
 ---
 
 ## Closing Note

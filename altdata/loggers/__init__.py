@@ -107,7 +107,7 @@ def load_all() -> dict[str, LoggerSpec]:
     """
     from importlib import import_module
     for mod in ("rtat", "consensus", "auction", "borrow", "shielded",
-                "vxcurve"):
+                "vxcurve", "listings"):
         try:
             import_module(f"{__name__}.{mod}")
         except Exception as exc:                              # noqa: BLE001
@@ -120,7 +120,7 @@ def enough_history(key: str, minimum: int, store=None,
     """(has enough, how many). The gate every derived metric asks before computing."""
     from .. import observations
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         n = len(db.as_of(key, instrument=instrument))
         return n >= minimum, n
@@ -143,7 +143,7 @@ def enough_days(key: str, minimum: int, store=None) -> tuple[bool, int]:
     """
     from .. import observations
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         n = db.conn.execute(
             "SELECT COUNT(DISTINCT observed_at) FROM observations "

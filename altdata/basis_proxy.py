@@ -34,7 +34,9 @@ THE MEASURES.
   BASIS-UNWIND WATCH: a COINCIDENCE flag only -- a level flag on either series
   plus at least two of: SR-35 at 2 sigma; MOVE's one-month change at 2 sigma;
   SOFR-IORB widening at 2 sigma (or a sponsored-repo shock); the 10-year swap
-  spread's two-week change beyond 2 sigma. A co-signal not stored is absent and
+  spread's two-week change beyond 2 sigma; and, from Batch 5 item 27 (ST-R4.27a,
+  16 Oct 2026), TLT's 20-session overnight leg at -2 sigma (altdata.batch5b,
+  hooked by name). A co-signal not stored is absent and
   named. Every line it prints carries "(descriptive; unvalidated, n=0)".
 
 REPORT-ONLY. No overlay wiring, no trigger, no book rule.
@@ -253,7 +255,7 @@ def change_z(pts: list[tuple[str, float]], sessions: int, history_days: int
 
 
 def cosignals(st, day: str, cutoff: Optional[str], cfg: dict) -> dict[str, dict]:
-    """The four co-signals on report Tuesday `day`: each {state: True, False or
+    """The five co-signals on report Tuesday `day`: each {state: True, False or
     None (absent), why}."""
     u = cfg.get("unwind_watch") or {}
     sig = float(u.get("sigma") or 2.0)
@@ -302,6 +304,16 @@ def cosignals(st, day: str, cutoff: Optional[str], cfg: dict) -> dict[str, dict]
                               if z is None else {"state": abs(z) >= sig, "z": round(z, 2),
                                                  "why": f"10-year swap spread two-week "
                                                         f"change {z:+.1f} sigma"})
+    # Batch 5 item 27 (ST-R4.27a): TLT's overnight leg, by name, like SR-35.
+    o = u.get("overnight") or {}
+    if o:
+        try:
+            mod = importlib.import_module(o.get("module") or "altdata.batch5b")
+            out["overnight"] = getattr(mod, o.get("function") or "cosignal")(
+                st, day, cutoff)
+        except (ImportError, AttributeError):
+            out["overnight"] = {"state": None, "why": "absent: the overnight split is "
+                                                      "not on this build"}
     return out
 
 
@@ -319,7 +331,7 @@ def unwind_watch(st, day: str, cutoff: Optional[str], cfg: dict,
 # The two Weekly lines, code-written
 # ---------------------------------------------------------------------------
 NAMES = {"sr35": "SR-35", "move": "MOVE", "funding": "SOFR less IORB",
-         "swap_spread": "the swap spread"}
+         "swap_spread": "the swap spread", "overnight": "TLT's overnight leg"}
 
 
 def _ordinal(p: Optional[float]) -> str:

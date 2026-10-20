@@ -52,6 +52,10 @@ SECONDS_PER_CHART = 20
 
 READERS_GUIDE = "The Reporting System: A Reader's Guide"
 READERS_GUIDE_PATH = "docs/whitepapers/reporting-system-whitepaper.md"
+# The front door (the Master Guide's specification of 19 Oct 2026, section 7):
+# the footer names it beside the Reader's Guide.
+MASTER_GUIDE = "The Master Guide"
+MASTER_GUIDE_PATH = "docs/master-guide.md"
 
 # THE STANDING NOTES THAT LEFT THE BODY (item 3). Each was a sentence about the
 # system's own method -- how a count is read, why an empty table is not broken --
@@ -85,6 +89,49 @@ def prose_date(iso: str, year: Optional[int] = None) -> str:
     """'2026-09-28' -> '28 Sep'; the year only when it is not the edition's."""
     d = dt.date.fromisoformat(str(iso)[:10])
     return f"{d.day} {d:%b}" + ("" if year in (None, d.year) else f" {d.year}")
+
+
+def meeting_name(iso: str, year: Optional[int] = None) -> str:
+    """A meeting as prose names it (W8-3's template, weekly-fixes-8): '2026-12-09'
+    -> '9 December', '2027-03-17' -> '17 March 2027' when the edition's year is
+    another; printed as "the 9 December meeting"."""
+    d = dt.date.fromisoformat(str(iso)[:10])
+    return f"{d.day} {d:%B}" + ("" if year in (None, d.year) else f" {d.year}")
+
+
+# THE ONE MEETING TEMPLATE (W8-3, weekly-fixes-8): the Weekly of 18 Oct printed
+# "the December 9 Dec meeting" and "the March 17 Mar 2027 meeting" -- a month name
+# and the polished date side by side. Every form of a dated meeting in prose
+# becomes "the 9 December meeting", "the 17 March 2027 meeting".
+_MONTHS = ("January", "February", "March", "April", "May", "June", "July",
+           "August", "September", "October", "November", "December")
+_MON = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?"
+_MEETING_DMY = re.compile(
+    r"\bthe\s+(?:(?:" + "|".join(_MONTHS) + r")\s+)?(\d{1,2})\s+(" + _MON + r")"
+    r"(?:\s+(\d{4}))?\s+(FOMC\s+)?meeting\b")
+_MEETING_MDY = re.compile(
+    r"\bthe\s+(" + "|".join(_MONTHS) + r")\s+(\d{1,2})(?:,?\s+(\d{4}))?\s+(FOMC\s+)?"
+    r"meeting\b")
+
+
+def _month_of(word: str) -> Optional[str]:
+    w = word.rstrip(".")[:3].lower()
+    return next((m for m in _MONTHS if m[:3].lower() == w), None)
+
+
+def meeting_phrases(text: str) -> str:
+    """Every dated meeting in `text` in the one template."""
+    def dmy(m: re.Match) -> str:
+        mon = _month_of(m.group(2))
+        if not mon:
+            return m.group(0)
+        return (f"the {int(m.group(1))} {mon}" + (f" {m.group(3)}" if m.group(3) else "")
+                + f" {m.group(4) or ''}meeting")
+
+    def mdy(m: re.Match) -> str:
+        return (f"the {int(m.group(2))} {m.group(1)}"
+                + (f" {m.group(3)}" if m.group(3) else "") + f" {m.group(4) or ''}meeting")
+    return _MEETING_MDY.sub(mdy, _MEETING_DMY.sub(dmy, text))
 
 
 def stamp_et(iso: Optional[str]) -> str:
@@ -136,6 +183,7 @@ def polish(text: Optional[str], year: Optional[int] = None,
     out = _ASCII_MINUS.sub("−", out)
     if dates:
         out = _ISO.sub(lambda m: prose_date(m.group(0), year), out)
+        out = meeting_phrases(out)
     return out
 
 
@@ -462,6 +510,41 @@ def same_sentence(a: str, b: str) -> bool:
             and difflib.SequenceMatcher(None, na, nb).ratio() >= 0.85)
 
 
+# T3.6 M3: A REPEAT IN OTHER WORDS. same_sentence catches a sentence printed twice
+# or one inside another; the Monthly dry run of 13 Oct restated whole sentences in
+# new words ("The long end sold off on supply, and the curve steepened" against
+# "Supply pushed the long end lower and the curve steepened"). Two sentences whose
+# content words, lightly stemmed, overlap by SIMILAR_JACCARD or more are one
+# sentence said twice.
+SIMILAR_JACCARD = 0.5
+SIMILAR_MIN_WORDS = 5
+_STOP = frozenset("""a an the and or but as at by for from in into of on onto over
+through to with while even its it is was were be been this that these those than
+then there their which who what when where how so also still yet near""".split())
+
+
+def _stem(w: str) -> str:
+    for suf in ("ing", "ed", "es", "s"):
+        if w.endswith(suf) and len(w) - len(suf) >= 3:
+            return w[:-len(suf)]
+    return w
+
+
+def content_words(text: str) -> set[str]:
+    return {_stem(w) for w in re.findall(r"[a-z][a-z'-]+", _norm(text))
+            if w not in _STOP and len(w) >= 3}
+
+
+def similar_sentence(a: str, b: str) -> bool:
+    """The same sentence, or the same sentence in other words."""
+    if same_sentence(a, b):
+        return True
+    ca, cb = content_words(a), content_words(b)
+    if min(len(ca), len(cb)) < SIMILAR_MIN_WORDS:
+        return False
+    return len(ca & cb) / len(ca | cb) >= SIMILAR_JACCARD
+
+
 def read_sentences(ed: dict) -> list[str]:
     r = next((s for s in ed.get("sections") or [] if s["id"] == "read"), {})
     return [x for t in [r.get("claim")] + list(r.get("paragraphs") or [])
@@ -629,6 +712,8 @@ def _pct(p: Optional[float]) -> str:
 def _pts(v: Optional[float]) -> Optional[str]:
     if v is None:
         return None
+    if not round(v, 1):
+        return "0.0"                        # weekly-fixes-7 item 12: no "−0.0"
     sign = "+" if v > 0 else ("−" if v < 0 else "")
     return f"{sign}{abs(v):.1f}"
 
@@ -741,15 +826,23 @@ def _pm(pmb: Optional[dict], window: str) -> tuple[list, list, list]:
         w = wcfg.get(wid) or {}
         name = str(w.get("label") or wid)
         name = name[0].upper() + name[1:]
+        # weekly-fixes-7 item 5: a resolved question prints "resolved" with its
+        # outcome where the market gives one, else drops from the table.
+        wrows = [r for r in wrows if not r.get("resolved")
+                 or r["resolved"].get("outcome")]
+        if not wrows:
+            continue
         picked = side_rows(wrows, w)
         if w.get("compare") is False:
             for v, r in sorted(picked.items()):
                 q = str(r.get("question") or "")
                 q = q if len(q) <= 70 else q[:69].rsplit(" ", 1)[0] + "…"
+                res = r.get("resolved")
+                cell = (f"resolved: {res['outcome']}" if res else _pct(r["probability"]))
                 rows.append([f"{name}: \"{q}\"",
-                             _pct(r["probability"]) if v == "kalshi" else "—",
-                             _pct(r["probability"]) if v == "polymarket" else "—",
-                             _change_cell({v: r.get(key)}),
+                             cell if v == "kalshi" else "—",
+                             cell if v == "polymarket" else "—",
+                             "—" if res else _change_cell({v: r.get(key)}),
                              _pm_note([r])])
                 contracts += _contracts(rows[-1][0], {v: r.get(key)})
             continue
@@ -796,6 +889,11 @@ PRINT_CSS = """
                    color: #6b7785; } }
 body { margin: 0; }
 figure, img, svg { break-inside: avoid; page-break-inside: avoid; }
+/* weekly-fixes-7 item 13: no chart is taller than about a third of the page, so a
+   figure fits the rest of a page far more often and none forces a half-blank one;
+   the pair table prints whole. */
+figure img { max-height: 95mm; width: auto !important; max-width: 100%%; }
+table.chart-pair { break-inside: avoid; page-break-inside: avoid; }
 tr { break-inside: avoid; page-break-inside: avoid; }
 h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
 div { max-width: none !important; }
@@ -830,3 +928,114 @@ def pdf_bytes(html: str, inline_images: Optional[list] = None
         return None, (f"PDF is {len(pdf):,} bytes, over the {PDF_MAX_BYTES:,}-byte "
                       f"limit; not attached")
     return pdf, f"{len(pdf):,} bytes"
+
+
+# ---------------------------------------------------------------------------
+# weekly-fixes-7 item 11: NO INTERNAL NAMES IN THE READER'S EDITION. Dry run 7
+# printed a module path and a branch ("altdata/sources/ecb_irs.py, branch
+# aq-3-series-2"), two more module paths, a symbol string ("EURCHF=X from the
+# next run") and a Python exception ("HTTPError: HTTP Error 404: Not Found"). The
+# rule: a "not yet stored" line names the SOURCE and the DATE it starts, never a
+# file path, a branch, an exception or a symbol string. The archive line keeps
+# its path (the operator's), and the footer's run id prints to the second.
+# ---------------------------------------------------------------------------
+_INTERNAL = (
+    ("a file path", re.compile(r"(?<![\w.])(?:[\w-]+/)*[\w-]+\.(?:py|sh|ya?ml)\b")),
+    ("a branch", re.compile(r"\bbranch [\w.-]*\d[\w.-]*|\b[a-z]+(?:-[a-z0-9]+)+-\d+\b")),
+    ("a Python exception", re.compile(r"\b[A-Z][A-Za-z]*(?:Error|Exception)\b"
+                                      r"|\bTraceback\b|\bHTTP Error \d{3}\b")),
+    ("a symbol string", re.compile(r"(?<![\w])(?:[A-Z]{3,8}=X|[A-Z]{1,3}=F|\^[A-Z]{2,6})"
+                                   r"(?![\w])")),
+)
+
+
+def internal_name_faults(text: str) -> list[str]:
+    """Item 11's audit: each internal name in a reader-facing line."""
+    out = []
+    for what, rx in _INTERNAL:
+        for m in rx.finditer(str(text or "")):
+            out.append(f"{what}: {m.group(0)!r} in '{str(text)[:90]}'")
+    return out
+
+
+def reader_safe(text: str) -> str:
+    """The renderer's safety net for a not-yet-stored or not-tracked line built
+    from a stored reason (a feed's STALE text can carry an exception): an
+    exception becomes "the last read failed", and a parenthesis or clause naming
+    a file path or a branch is dropped. The lines this module's sections write
+    are already in the source-and-date form; this catches the rest."""
+    s = str(text or "")
+    s = re.sub(r"\b[A-Z][A-Za-z]*(?:Error|Exception)\b(?::[^;)]*)?",
+               "the last read failed", s)
+    s = re.sub(r"\s*\([^()]*(?:\.py\b|\bbranch )[^()]*\)", "", s)
+    s = re.sub(r"(?<![\w.])(?:[\w-]+/)+[\w-]+\.(?:py|sh|ya?ml)\b", "its writer", s)
+    s = re.sub(r",?\s*\bbranch [\w.-]+", "", s)
+    return s
+
+
+def next_pull_day(now: str) -> str:
+    """The date a not-yet-stored series' daily writer next runs: the first NYSE
+    session after the edition's as-of date ("20 Oct")."""
+    from altdata import session                                 # noqa: PLC0415
+    d = dt.date.fromisoformat(str(now)[:10])
+    for _ in range(10):
+        d += dt.timedelta(days=1)
+        try:
+            ok = session.is_trading_session(d)
+        except Exception:                                       # noqa: BLE001
+            ok = d.weekday() < 5
+        if ok:
+            break
+    return f"{d.day} {d:%b}"
+
+
+def starts_line(source: str, now: str) -> str:
+    """'<source>, from <date>' -- the parenthesis a not-yet-stored line carries."""
+    return f"{source}, from {next_pull_day(now)}"
+
+
+def fold_repeated_gaps(table: Optional[dict], phrases: dict) -> list[str]:
+    """weekly-fixes-7 item 12, THE FOOTNOTE RULE: a gap phrase printed in two or
+    more cells of a table ("revenue not stored" eight times, "release time not
+    captured" five) becomes ONE footnote and the cells go blank. A cell that is
+    the phrase alone blanks; a cell carrying the phrase after other text (Ahead's
+    "Mon 19 Oct, release time not captured") keeps the text before it. Returns
+    the footnotes, one per phrase that repeated; the table is edited in place."""
+    if not table or not table.get("rows"):
+        return []
+    notes = []
+    for phrase, note in phrases.items():
+        hits = [(i, j) for i, r in enumerate(table["rows"]) for j, c in enumerate(r)
+                if isinstance(c, str) and c.strip().endswith(phrase)]
+        if len(hits) < 2:
+            continue
+        for i, j in hits:
+            c = table["rows"][i][j]
+            table["rows"][i][j] = c[: len(c.rstrip()) - len(phrase)].rstrip(" ,;:")
+        notes.append(note)
+    return notes
+
+
+# weekly-fixes-7 item 14: A REFERENCE TABLE WHOSE EVERY CELL IS A GAP prints as one
+# line. Dry run 7 printed the crypto basket's two tables with every row "not
+# stored"; the rule holds for any reference table.
+GAP_CELLS = frozenset({"", "—", "-", "n/a", "not stored", "not measured",
+                       "not yet stored", "no prior print", "not yet", "no prior"})
+
+
+def is_gap_table(t: Optional[dict]) -> bool:
+    """Every cell after the row's name is a gap (the first column names the row)."""
+    rows = (t or {}).get("rows") or []
+    return bool(rows) and all(str(c).strip().lower() in GAP_CELLS
+                              for r in rows for c in list(r)[1:])
+
+
+def collapse_gap_detail(d: dict, line: Optional[str] = None) -> dict:
+    """A detail block whose every table is all gaps becomes its title and one
+    line; anything else passes through unchanged."""
+    tabs = [x for x in [d.get("table")] + list(d.get("tables") or []) if x]
+    if not tabs or not all(is_gap_table(t) for t in tabs):
+        return d
+    out = {k: v for k, v in d.items() if k not in ("table", "tables")}
+    out["lines"] = [line or f"{d.get('title')}: not stored."] + list(d.get("lines") or [])
+    return out

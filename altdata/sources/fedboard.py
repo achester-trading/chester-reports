@@ -10,9 +10,17 @@ DEANCHOR cross-checks beside UMich 5-10y and the NY Fed SCE.
 SOURCE. https://www.federalreserve.gov/econres/notes/feds-notes/
 FEDS-Note-2873-cie-data.csv -- linked from the "Research Data Series: Index of
 Common Inflation Expectations" note (not from the 2020 FEDS note, which carries
-no data link). No key. UTF-8 with a BOM; "period,CIE_spf,CIE_mich"; periods are
-M/D/YYYY quarter-ends from 1999Q1; PERCENT. Updated at noon ET on the third
-Friday of January, April, July and October.
+no data link). No key. "period,CIE_spf,CIE_mich"; periods are quarter-ends from
+1999Q1; PERCENT. Updated at noon ET on the third Friday of January, April, July
+and October.
+
+THE PERIOD'S FORMAT CHANGED (writer-fixes-1, 17 Oct 2026). Until the October 2026
+update the file was UTF-8 with a BOM and dated M/D/YYYY ("6/30/2026"); the update
+of 16 Oct 2026 (Last-Modified 16:00 GMT) dropped the BOM and dates YYYY-M-D
+("2026-9-30"). Every row failed the old parse, so the first full pull on the box
+read "the source parsed to zero rows". Both forms are read; a file with rows
+but no readable period raises, naming the first period it could not read. The
+series continues -- the Board has not withdrawn it.
 
   fedboard.cie   instrument "spf"  -- the index estimated with the SPF's
                                       long-run expectation
@@ -50,12 +58,12 @@ def rows_from_csv(text: str, available_at: str, kind: str) -> list[dict]:
     fields = [f.strip() for f in reader.fieldnames or []]
     if "period" not in fields or not set(COLUMNS) <= set(fields):
         raise ValueError(f"CIE file lacks period/CIE_spf/CIE_mich ({fields})")
-    out = []
+    out, bad = [], []
     for rec in reader:
         rec = {(k or "").strip(): (v or "").strip() for k, v in rec.items()}
-        try:
-            day = dt.datetime.strptime(rec["period"], "%m/%d/%Y").date().isoformat()
-        except (KeyError, ValueError):
+        day = _cie_period(rec.get("period", ""))
+        if day is None:
+            bad.append(rec.get("period", ""))
             continue
         for col, inst in COLUMNS.items():
             try:
@@ -65,7 +73,21 @@ def rows_from_csv(text: str, available_at: str, kind: str) -> list[dict]:
             out.append({"registry_key": KEY, "instrument": inst,
                         "observed_at": day, "available_at": available_at,
                         "value": v, "availability_kind": kind})
+    if not out and bad:
+        raise ValueError(f"CIE file: no period read; the first was {bad[0]!r} "
+                         f"(expected M/D/YYYY or YYYY-M-D)")
     return out
+
+
+def _cie_period(s: str) -> Optional[str]:
+    """A CIE period as an ISO date: "6/30/2026" (to Sep 2026) or "2026-9-30"
+    (from the 16 Oct 2026 update)."""
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+        try:
+            return dt.datetime.strptime(str(s).strip(), fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
 
 
 def _produce() -> list[dict]:
@@ -96,23 +118,45 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
 # in DOLLARS. Published Thursdays at 16:30 ET; available_at is Last-Modified
 # where sent, else the write instant.
 #
+# THE QUERY (writer-fixes-1, 17 Oct 2026). The first full pull on the box failed
+# "H.4.1 package lacks ['tic.fima_repo', 'tic.fima_repo_weekavg']". The package
+# still carries both columns under the same identifiers (read 17 Oct 2026); the
+# fault was the URL's empty `lastobs=`, which the Data Download Program now
+# answers with an EMPTY body (HTTP 200, text/html), so no identifier row was
+# there to find. `lastobs=520` (SESSION-SET: ten years of Wednesdays, which
+# covers the FIMA facility from its 2020 start; the program serves 1,000 and
+# refuses 1,200) returns the package; a date range (`from`/`to`) returns nothing.
+#
+# ONE MISSING KEY NEVER FAILS THE PACKAGE: what parsed is written, each missing
+# key is logged with its reason and returned in the summary's `absent`, and the
+# roster shows it absent (write_rows' keys_without_rows). Only a body with no
+# identifier row, or no FIMA column at all, fails the run.
+#
 #   tic.fima_repo          Wednesday level     (placed in tic.* by ruling,
 #   tic.fima_repo_weekavg  week average         decision 4, 6 Oct 2026)
 SOURCE_H41 = "frb_h41"
+H41_LASTOBS = 520
 URL_H41 = ("https://www.federalreserve.gov/datadownload/Output.aspx?rel=H41&"
-           "series=f52e72511be65e16f71d4f5858951312&lastobs=&from=&to=&"
+           f"series=f52e72511be65e16f71d4f5858951312&lastobs={H41_LASTOBS}&from=&to=&"
            "filetype=csv&label=include&layout=seriescolumn&type=package")
 H41_COLUMNS = {"H41/H41/RESPPALGTRF_N.WW": "tic.fima_repo",
                "H41/H41/RESPPALGTRF_XAW_N.WW": "tic.fima_repo_weekavg"}
 KEYS_H41 = ["tic.fima_repo", "tic.fima_repo_weekavg"]
 
 
-def h41_rows_from_csv(text: str, available_at: str, kind: str) -> list[dict]:
-    """Rows from the H.4.1 package. Raises when a FIMA column or its
-    multiplier is not what this reader expects."""
+def h41_rows_from_csv(text: str, available_at: str, kind: str,
+                      absent: Optional[dict] = None) -> list[dict]:
+    """Rows from the H.4.1 package. A FIMA column the package does not carry is
+    recorded in `absent` (key -> reason) and logged, and the rest is written;
+    raises only when the body carries no identifier row, no FIMA column at all,
+    or a multiplier this reader does not expect."""
     rows = list(csv.reader(io.StringIO(text.lstrip("﻿"))))
     meta = {(r[0] or "").strip().rstrip(":"): r for r in rows[:8] if r}
     ids = meta.get("Unique Identifier") or []
+    if not ids:
+        raise ValueError(f"H.4.1: the response carries no Unique Identifier row "
+                         f"({len(text)} bytes) -- an empty or non-CSV body, so the "
+                         f"query is wrong, not the package")
     mult = meta.get("Multiplier") or []
     cols = {}
     for i, ident in enumerate(ids):
@@ -121,8 +165,15 @@ def h41_rows_from_csv(text: str, available_at: str, kind: str) -> list[dict]:
             if (mult[i] if i < len(mult) else "").strip() != "1000000":
                 raise ValueError(f"H.4.1 {ident}: multiplier {mult[i]!r}, expected 1000000")
             cols[key] = i
-    if set(cols) != set(KEYS_H41):
-        raise ValueError(f"H.4.1 package lacks {sorted(set(KEYS_H41) - set(cols))}")
+    if not cols:
+        raise ValueError(f"H.4.1 package carries none of {sorted(H41_COLUMNS)}")
+    for ident, key in H41_COLUMNS.items():
+        if key not in cols:
+            why = f"the H.4.1 package carries no column {ident}"
+            log.warning("%s: %s; %s marked absent, the rest written",
+                        SOURCE_H41, why, key)
+            if absent is not None:
+                absent[key] = why
     out = []
     for r in rows:
         day = (r[0] if r else "").strip()
@@ -141,14 +192,19 @@ def h41_rows_from_csv(text: str, available_at: str, kind: str) -> list[dict]:
     return out
 
 
-def _produce_h41() -> list[dict]:
+def _produce_h41(absent: Optional[dict] = None) -> list[dict]:
     data, headers = http_get_response(URL_H41, timeout=90)
     return h41_rows_from_csv(data.decode("utf-8", errors="replace"),
-                             *pub.availability(headers))
+                             *pub.availability(headers), absent=absent)
 
 
 def pull_h41(run_id: Optional[str] = None, db=None) -> dict:
-    return pub.run(SOURCE_H41, KEYS_H41, _produce_h41, run_id=run_id, db=db)
+    absent: dict = {}
+    out = pub.run(SOURCE_H41, KEYS_H41, lambda: _produce_h41(absent),
+                  run_id=run_id, db=db)
+    if absent:
+        out["absent"] = absent
+    return out
 
 
 if __name__ == "__main__":

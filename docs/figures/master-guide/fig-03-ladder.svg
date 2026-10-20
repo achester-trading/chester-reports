@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1278" role="img" aria-labelledby="t d">
+<title id="t">Figure 3. The ladder</title><desc id="d">The eleven rungs of trading output, from a stored observation to a rule change, with who may produce each and where it appears.</desc>
+<style>
+.bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
+.line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
+.touch{stroke:#16202e}.boxs{stroke:#0f5c9e}.chats{stroke:#c06a12}.onbox{fill:#ffffff}
+.pill{fill:#e6ecf3}.bA{fill:#2b6cb0}.bB{fill:#2f855a}.bC{fill:#b7791f}.bD{fill:#9b2c2c}
+@media (prefers-color-scheme: dark){
+.bg{fill:#121821}.panel{fill:#1b2330}.ink{fill:#e8edf3}.mute{fill:#a3adbb}
+.line{stroke:#5f6b7b}.grid{stroke:#2c3646}.box{fill:#5aa2e6}.chat{fill:#f0a14a}
+.touch{stroke:#e8edf3}.boxs{stroke:#5aa2e6}.chats{stroke:#f0a14a}.onbox{fill:#121821}
+.pill{fill:#243042}.bA{fill:#63a4ff}.bB{fill:#5cc28a}.bC{fill:#e8b04e}.bD{fill:#e07a7a}}
+text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
+</style>
+<rect class="bg" x="0" y="0" width="720" height="1278" rx="14"/>
+<text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 3. The ladder</text>
+<text class="mute" x="24.0" y="72.0" font-size="16" text-anchor="start" font-weight="400">Every output sits on one rung; it climbs only by the rule beside it.</text>
+<rect class="panel" x="24" y="96" width="672" height="92" rx="12"/>
+<circle class="chat" cx="58" cy="142" r="22"/>
+<text class="onbox" x="58.0" y="149.0" font-size="20" text-anchor="middle" font-weight="700">10</text>
+<text class="ink" x="96.0" y="128.0" font-size="19" text-anchor="start" font-weight="700">Rule change</text>
+<text class="mute" x="96.0" y="152.0" font-size="15" text-anchor="start" font-weight="400">who: you, at a sitting</text>
+<text class="mute" x="96.0" y="174.0" font-size="15" text-anchor="start" font-weight="400">where: the sittings (change ladder)</text>
+<rect class="panel" x="24" y="198" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="244" r="22"/>
+<text class="onbox" x="58.0" y="251.0" font-size="20" text-anchor="middle" font-weight="700">9</text>
+<text class="ink" x="96.0" y="230.0" font-size="19" text-anchor="start" font-weight="700">Graded result</text>
+<text class="mute" x="96.0" y="254.0" font-size="15" text-anchor="start" font-weight="400">who: the grader</text>
+<text class="mute" x="96.0" y="276.0" font-size="15" text-anchor="start" font-weight="400">where: the Weekly&#x27;s book; the Monthly</text>
+<rect class="panel" x="24" y="300" width="672" height="92" rx="12"/>
+<circle class="chat" cx="58" cy="346" r="22"/>
+<text class="onbox" x="58.0" y="353.0" font-size="20" text-anchor="middle" font-weight="700">8</text>
+<text class="ink" x="96.0" y="332.0" font-size="19" text-anchor="start" font-weight="700">Decision</text>
+<text class="mute" x="96.0" y="356.0" font-size="15" text-anchor="start" font-weight="400">who: you alone (register write)</text>
+<text class="mute" x="96.0" y="378.0" font-size="15" text-anchor="start" font-weight="400">where: the register</text>
+<rect class="panel" x="24" y="402" width="672" height="92" rx="12"/>
+<circle class="chat" cx="58" cy="448" r="22"/>
+<text class="onbox" x="58.0" y="455.0" font-size="20" text-anchor="middle" font-weight="700">7</text>
+<text class="ink" x="96.0" y="434.0" font-size="19" text-anchor="start" font-weight="700">Decision Packet</text>
+<text class="mute" x="96.0" y="458.0" font-size="15" text-anchor="start" font-weight="400">who: you</text>
+<text class="mute" x="96.0" y="480.0" font-size="15" text-anchor="start" font-weight="400">where: R18: the only thing that permits a trade</text>
+<rect class="panel" x="24" y="504" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="550" r="22"/>
+<text class="onbox" x="58.0" y="557.0" font-size="20" text-anchor="middle" font-weight="700">6</text>
+<text class="ink" x="96.0" y="536.0" font-size="19" text-anchor="start" font-weight="700">Candidate</text>
+<text class="mute" x="96.0" y="560.0" font-size="15" text-anchor="start" font-weight="400">who: the Book B scanner; chester-meme (Book D drafts)</text>
+<text class="mute" x="96.0" y="582.0" font-size="15" text-anchor="start" font-weight="400">where: the Weekly; the close, the anchor</text>
+<rect class="pill" x="24" y="606" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="652" r="22"/>
+<text class="onbox" x="58.0" y="659.0" font-size="20" text-anchor="middle" font-weight="700">5</text>
+<text class="ink" x="96.0" y="638.0" font-size="19" text-anchor="start" font-weight="700">Tell or setup</text>
+<text class="mute" x="96.0" y="662.0" font-size="15" text-anchor="start" font-weight="400">who: declared config, with a base rate</text>
+<text class="mute" x="96.0" y="684.0" font-size="15" text-anchor="start" font-weight="400">where: the Weekly; the close&#x27;s dealer block</text>
+<rect class="pill" x="24" y="708" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="754" r="22"/>
+<text class="onbox" x="58.0" y="761.0" font-size="20" text-anchor="middle" font-weight="700">4</text>
+<text class="ink" x="96.0" y="740.0" font-size="19" text-anchor="start" font-weight="700">Modifier</text>
+<text class="mute" x="96.0" y="764.0" font-size="15" text-anchor="start" font-weight="400">who: only after a passing ledger and a ruling</text>
+<text class="mute" x="96.0" y="786.0" font-size="15" text-anchor="start" font-weight="400">where: none live today</text>
+<rect class="pill" x="24" y="810" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="856" r="22"/>
+<text class="onbox" x="58.0" y="863.0" font-size="20" text-anchor="middle" font-weight="700">3</text>
+<text class="ink" x="96.0" y="842.0" font-size="19" text-anchor="start" font-weight="700">Flag</text>
+<text class="mute" x="96.0" y="866.0" font-size="15" text-anchor="start" font-weight="400">who: declared conditions (display only until a ledger passes)</text>
+<text class="mute" x="96.0" y="888.0" font-size="15" text-anchor="start" font-weight="400">where: all reports</text>
+<rect class="pill" x="24" y="912" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="958" r="22"/>
+<text class="onbox" x="58.0" y="965.0" font-size="20" text-anchor="middle" font-weight="700">2</text>
+<text class="ink" x="96.0" y="944.0" font-size="19" text-anchor="start" font-weight="700">Lens</text>
+<text class="mute" x="96.0" y="968.0" font-size="15" text-anchor="start" font-weight="400">who: code: attributions, metric and vol lenses, the gauge</text>
+<text class="mute" x="96.0" y="990.0" font-size="15" text-anchor="start" font-weight="400">where: all reports</text>
+<rect class="pill" x="24" y="1014" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="1060" r="22"/>
+<text class="onbox" x="58.0" y="1067.0" font-size="20" text-anchor="middle" font-weight="700">1</text>
+<text class="ink" x="96.0" y="1046.0" font-size="19" text-anchor="start" font-weight="700">Reading</text>
+<text class="mute" x="96.0" y="1070.0" font-size="15" text-anchor="start" font-weight="400">who: code: a number with its window and n</text>
+<text class="mute" x="96.0" y="1092.0" font-size="15" text-anchor="start" font-weight="400">where: all reports</text>
+<rect class="pill" x="24" y="1116" width="672" height="92" rx="12"/>
+<circle class="box" cx="58" cy="1162" r="22"/>
+<text class="onbox" x="58.0" y="1169.0" font-size="20" text-anchor="middle" font-weight="700">0</text>
+<text class="ink" x="96.0" y="1148.0" font-size="19" text-anchor="start" font-weight="700">Data</text>
+<text class="mute" x="96.0" y="1172.0" font-size="15" text-anchor="start" font-weight="400">who: the feeds</text>
+<text class="mute" x="96.0" y="1194.0" font-size="15" text-anchor="start" font-weight="400">where: the store</text>
+<text class="ink" x="24.0" y="1232.0" font-size="16" text-anchor="start" font-weight="400">Rungs 1 to 3 never size a trade. A signal outside its regime is</text>
+<text class="ink" x="24.0" y="1254.0" font-size="16" text-anchor="start" font-weight="400">ignored, not discounted. Orange: the rungs only you can climb.</text>
+</svg>

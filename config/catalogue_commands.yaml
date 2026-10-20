@@ -1,0 +1,586 @@
+# THE PER-DOMAIN COMMANDS (AUD-3a item 5, 14 Oct 2026): every module under
+# altdata/, altdata/sources/ and altdata/loggers/ that runs as `python -m <module>`,
+# one line each. `python -m altdata.catalogue commands` prints this table, and
+# `show ID` names the command that produces a metric through `sources`.
+# tools/validate_audit_3a.py fails when a command module has no line here, or a
+# line names a module that is gone. The `line` is the module's own docstring's
+# first sentence, shortened; the domain is assigned here.
+commands:
+  altdata.ai_fcf:
+    domain: equity
+    line: SR-37 -- THE AI FCF-TRANSFER PANEL (signal-triage batch 4, ST4-01)
+  altdata.alt_scan:
+    domain: alternatives
+    line: The alternative-assets quarterly scan's ingest
+  altdata.attribution:
+    domain: computed
+    line: 'The gold residual, the driver attribution and the yields-up/dollar-down series, stored as calculated series for the Monthly'
+  altdata.bars:
+    domain: equity
+    line: 'OHLC bars for the tape set: 5-minute for the session, daily for the frames'
+  altdata.basis_proxy:
+    domain: rates
+    line: THE TREASURY BASIS-TRADE PROXY AND ITS CALIBRATION LEDGER
+  altdata.batch5:
+    domain: rates
+    line: 'Batch 5 Tranche 1: the term premium printed, the fiscal-bark and stock-bond flags, net liquidity attributed, construction spending real'
+  altdata.batch5b:
+    domain: rates
+    line: 'Batch 5 Tranche 1, part 2: the dispersion panel, the MOVE-VIX divergence flag, the expansion age and Factor I line, Treasury moves overnight against the session'
+  altdata.benchmark:
+    domain: portfolio
+    line: Book Z -- the benchmark ledgers
+  altdata.book_b_scanner:
+    domain: equity
+    line: THE BOOK B SCANNER -- the Weekly's candidate list
+  altdata.catalogue:
+    domain: reference
+    line: 'The catalogue: one place to list, search and read what the system holds'
+  altdata.chain_metrics:
+    domain: options
+    line: "Per-session readings from SPY's own captured option chain, and (OS-10) every captured name's options volume and front-month ATM IV, and (OS-8, OS-4, OS-5) its 25-delta put skew, IV against realised, front expiry and put shares of volume and OI build, and (Batch 11 item 56) its 30-day constant-maturity IV, 25-delta risk reversal and 20- and 60-session realised vol; backfill-names rebuilds the latter from the captures on disk"
+    sources: [spy_chain_capture, chain_capture]
+  altdata.claims:
+    domain: reference
+    line: 'The claims registry: cited figures the system may print and cannot compute'
+  altdata.compact_fred:
+    domain: macro
+    line: 'Compact the FRED re-stamps (AUD-1 item 4b): drop the identical re-stored vintages, dry run first, with a backup'
+    sources: [fred]
+  altdata.correlation:
+    domain: computed
+    line: 'The correlation layer: rolling return correlations across the alternative-asset universe, a shift flag per pair, and the breaks'
+  altdata.crypto_basket:
+    domain: crypto
+    line: The crypto long-shot basket -- measured, not narrated
+    sources: [saturday_scan]
+  altdata.dealer_capture:
+    domain: options
+    line: 'The intraday dealer captures, 09:45 and 12:30 ET: chains, the exposure JSON per capture, and the 12:30 gates'
+  altdata.vendor_chains:
+    domain: options
+    line: 'The vendor chains at 16:31 ET (M-3): Massive SPX and SPCX, the 16:16 data (a 15-minute delay), the same chain files as before and their own completeness record'
+  altdata.derived:
+    domain: computed
+    line: Standard derived forms -- ONE function, not one per report
+  altdata.em_scorecard:
+    domain: em
+    line: 'The EM vulnerability scorecard: a table of lenses, never a composite'
+  altdata.es_block:
+    domain: equity
+    line: 'The three-timeframe ES block and its level and lean ledger (ST-R6.45)'
+  altdata.events:
+    domain: events
+    line: 'The events table: what happened, what is scheduled, and when we could know it'
+  altdata.events_ingest:
+    domain: events
+    line: 'The ingest pass: every source into the events table, once'
+  altdata.fed_funds:
+    domain: rates
+    line: 'The rate path: fed funds futures to the implied rate after each FOMC meeting'
+  altdata.feeds:
+    domain: infrastructure
+    line: 'The scheduled feeds: one entry point, two timers'
+    sources: [fred, yfinance]
+  altdata.figi:
+    domain: reference
+    line: 'FIGIs for the US listings, from OpenFIGI (AUD-3b)'
+  altdata.fred_history:
+    domain: macro
+    line: 'The FRED history writer (AUD-3d): each value at the moment FRED first published it'
+    sources: [fred]
+  altdata.fx_charts:
+    domain: fx
+    line: FX long-history charts for the Currencies white paper (VIII)
+  altdata.grader:
+    domain: register
+    line: The grader -- Phase 3's closing link, and the reason the register exists
+    sources: [derived_grade]
+  altdata.macro_6e:
+    domain: computed
+    line: '6e macro completeness: Session 3a-3c calc series, the core CPI-PCE gap and the CPI lead composite (stated lags, unvalidated)'
+    sources: [calc]
+  altdata.listings:
+    domain: reference
+    line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
+  altdata.note_fetch:
+    domain: prices
+    line: 'the secondary notes'' fetch steps: `open` after 09:45, `evening` at 21:30; 5-minute bars, a targeted FRED pull, news, one voices pass; writes the store only'
+  altdata.meme_ingest:
+    domain: reference
+    line: 'chester-meme packets in as Book D drafts, never decisions; `status` prints the line the close and the anchor carry'
+  altdata.market_features:
+    domain: computed
+    line: 'Calculated features: breadth, trend, realized volatility -- and the macro transforms the Monthly used to compute privately'
+    sources: [calc]
+  altdata.move_screen:
+    domain: computed
+    line: 'THE STORE-WIDE MOVE SCREEN, AND THE EM SCREEN ON TOP OF IT. (Audit #4 Part III, Category 1 items 1 and 5; SR-46 b-d, ruled 6 Oct 2026.)'
+  altdata.narratives:
+    domain: narrative
+    line: The narrative register -- the stories the market is trading, as dated entities
+  altdata.observations:
+    domain: infrastructure
+    line: Point-in-time observation store (SQLite)
+  altdata.paper_bid:
+    domain: options
+    line: The two-bid decomposition, the parts that can start now
+  altdata.probability_ledger:
+    domain: register
+    line: The probability ledger -- every number this system states as a likelihood, scored
+    sources: [derived_probability]
+  altdata.quality:
+    domain: reference
+    line: 'The data-quality check, read-only, after each pull: outliers, revisions and cross-source pairs (AUD-3c)'
+  altdata.rates_anchors:
+    domain: rates
+    line: THE 10-YEAR ANCHORS LENS and the adjudication of the four voices on the 10-year top
+  altdata.rates_attribution:
+    domain: rates
+    line: The rates attribution block -- descriptive, no state (signal-triage ST-3, re-scoped)
+  altdata.rates_shape:
+    domain: rates
+    line: THE SELLOFF-SHAPE AXIS AND THE SELLOFF'S COMPOSITION, and the four voices adjudicated by the measures
+  altdata.releases:
+    domain: computed
+    line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'
+    sources: [fred, rent_indices, calc]
+  altdata.releases_b:
+    domain: computed
+    line: 'Batch 7 release lenses, Group B (item 48 lenses 12-20): the PPI pipeline, PCE-relevant and trade lines, the GDP core, investment split, GDI gap, profits, income and the GDPNow path, read as of a cutoff; writes nothing'
+    sources: [fred, shiller]
+  altdata.return_attribution:
+    domain: equity
+    line: SR-38 -- THE RETURN-ATTRIBUTION LENS, THE REVISION LINE, EY MINUS THE BILL (signal-triage batch 4, ST4-02)
+  altdata.scans:
+    domain: reference
+    line: The scans ingest -- a scan's reference table stored as SOURCED FIGURES
+  altdata.secrets:
+    domain: infrastructure
+    line: The one place a secret is read, and the one place one is redacted
+  altdata.security_master:
+    domain: reference
+    line: 'The Security Master, v1: instrument identity, the consistency check (AUD-3b)'
+  altdata.session:
+    domain: infrastructure
+    line: One source of truth for "what time is it" and "what day is this"
+  altdata.st_r5_index:
+    domain: equity
+    line: "What's carrying the index (Batch 6 items 40, 35 and Batch 5 item 29) and the allocation block (item 30)"
+  altdata.st_r5_rates:
+    domain: rates
+    line: 'The rates-transmission cluster (Batch 6 items 34, 36, 37, 41): the tightening flag, the G8 2-year panel, housing, the MBA line, the quality tail'
+  altdata.st_r5_t1_rest:
+    domain: macro
+    line: 'The rest of Batch 6 Tranche 1 (items 31, 32, 38, 39, 42, 43, 44): the peak-band flag, the oil-shock signature, the gold/equity ratio, real yields, the expectations composite, policy diffusion, the drawdown histogram'
+  altdata.surprise:
+    domain: events
+    line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.vol_event:
+    domain: computed
+    line: 'The volatility event flag and its attribution (Batch 9 item 52): show a session, seed the ledger, resolve its outcomes'
+  altdata.surprise_index:
+    domain: events
+    line: 'The surprise index (ST-R6.48f): actual less consensus, standardised by each release''s own surprises; no composite; its rows ride altdata.surprise compute'
+    sources: [calc, yfinance]
+  altdata.volume_profile:
+    domain: equity
+    line: 'The volume profile: where volume traded by price over a window (VP-1)'
+    sources: [calc]
+  altdata.voices:
+    domain: narrative
+    line: The voices register -- who said what about the market, where, and when
+  altdata.sources.aaii:
+    domain: sentiment
+    line: AAII Sentiment Survey -- the weekly bull-bear spread of individual investors
+    sources: [aaii]
+  altdata.sources.acm:
+    domain: rates
+    line: ACM Treasury term premium -- New York Fed (Adrian, Crump and Moench, 2013)
+    sources: [nyfed_acm]
+  altdata.sources.bis_cbpol:
+    domain: em
+    line: BIS central-bank policy rates -- the EM scorecard's eleven and every area for the global policy diffusion index
+    sources: [bis_cbpol]
+  altdata.sources.bot:
+    domain: thailand
+    line: Bank of Thailand -- the policy rate, decision by decision
+    sources: [bot]
+  altdata.sources.bundesbank:
+    domain: rates
+    line: Bundesbank -- the 10-year and 2-year Bund yields, daily, from the Bundesbank's open data API
+    sources: [bundesbank]
+  altdata.sources.census_vip:
+    domain: macro
+    line: 'Census construction spending (VIP) -- data centers, private nonresidential, power and total, monthly SAAR'
+    sources: [census_vip]
+  altdata.sources.cboe_indices:
+    domain: options
+    line: "Cboe's daily history files: COR1M, COR3M (implied correlation) and DSPX (dispersion), from 2006 and 2014"
+    sources: [cboe_indices]
+  altdata.sources.cfets:
+    domain: china
+    line: CFETS / China Money -- the USD/CNY central parity and the CGB 10-year and 2-year yields
+    sources: [cfets]
+  altdata.sources.cftc:
+    domain: positioning
+    line: CFTC Commitments of Traders -- legacy, disaggregated and TFF futures-only reports, Socrata API
+    sources: [cftc]
+  altdata.sources.clevfed_rules:
+    domain: macro
+    line: Cleveland Fed simple monetary policy rules -- the rules' prescribed funds-rate path, median and width (not market pricing)
+    sources: [clevfed_rules]
+  altdata.sources.cnh:
+    domain: fx
+    line: USD/CNH -- the offshore yuan's daily New York close, from Yahoo's hourly bars
+    sources: [yahoo_cnh]
+  altdata.sources.damodaran:
+    domain: reference
+    line: Damodaran industry multiples (NYU Stern) -- US industries, annual
+    sources: [damodaran]
+  altdata.sources.dkw:
+    domain: rates
+    line: DKW TIPS-based decomposition -- Federal Reserve Board (D'Amico, Kim and Wei 2018; updated by Kim, Walsh and Wei 2019)
+    sources: [frb_dkw]
+  altdata.sources.earnings:
+    domain: equity
+    line: Earnings dates, estimates and the real surprise, from yfinance
+  altdata.sources.ecb_irs:
+    domain: rates
+    line: 'ECB data portal -- the euro-area long-term interest rates: Bund, OAT, BTP and Greece, monthly'
+    sources: [ecb]
+  altdata.sources.edgar:
+    domain: events
+    line: 'SEC EDGAR: filings for the universe'
+    sources: [sec_edgar]
+  altdata.sources.edgar_xbrl:
+    domain: equity
+    line: "SEC EDGAR XBRL frames: the five hyperscalers' annual operating cash flow and capex (GTM-4's bridge; needs the SEC contact)"
+    sources: [edgar_xbrl]
+  altdata.sources.eia:
+    domain: commodities
+    line: EIA Weekly Petroleum Status Report -- US crude and product stocks
+    sources: [eia]
+  altdata.sources.eia_rigs:
+    domain: commodities
+    line: US rotary rigs in operation -- Baker Hughes' count, as the EIA republishes it
+    sources: [eia_rigs]
+  altdata.sources.em_lenses:
+    domain: em
+    line: The EM scorecard's derived lenses, from the stored inputs
+    sources: [em_lenses]
+  altdata.sources.fed_calendar:
+    domain: events
+    line: 'The Federal Reserve Board''s calendar: speeches, testimony and meetings, with times'
+  altdata.sources.fedboard:
+    domain: macro
+    line: Federal Reserve Board -- Index of Common Inflation Expectations (CIE), quarterly
+    sources: [frb_h41, frb_cie]
+  altdata.sources.fedboard_h41:
+    domain: rates
+    line: The Fed's H.4.1 FIMA repo line -- a writer entry for altdata/feeds.py
+  altdata.system_metrics:
+    domain: reference
+    line: "The system-metrics block (EL-6): uptime, feed completeness, incidents, model cost, withheld drafts for a month -- show --month YYYY-MM; read-only"
+  altdata.gtm:
+    domain: reference
+    line: "The J.P. Morgan Guide batch (part 1: GTM-1, 7, 8, 9, 13, 15, 21; part 2: GTM-12 and GTM-15 monthly): show prints every table as of a cutoff; check holds the declared sourced figures to the scan's words and slides -- read-only"
+  altdata.absorption:
+    domain: rates
+    line: "Signal-triage ST-4: Duration Absorption and the rates flags (net supply, the TIC absorber shares, ABS_STRESS, ABS_FRAGILITY, the fed-market gap and CRED_STRESS, DEANCHOR, the AI capex loop, central-bank gold); compute rides the features pass, show prints the block"
+  altdata.funding_currency:
+    domain: rates
+    line: "Signal-triage ST-5: the funding-currency features (the yen front differential and its velocity, CFTC yen positioning, the hedged carry, the unwind tell, the yuan fix against the close, the US-China 10-year spread, the devaluation tell's two tracked legs); compute rides the features pass, show prints the Factor IV and China lines"
+  altdata.gtm_equities:
+    domain: equity
+    line: "The J.P. Morgan Guide batch, part 2's equity items (GTM-3 the concentration twin, GTM-4 the AI buckets and the hyperscaler bridge, GTM-10 the sector rows): show prints them as of a cutoff -- read-only"
+  altdata.state_vector:
+    domain: options
+    line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"
+  altdata.sources.flashalpha:
+    domain: options
+    line: 'The FlashAlpha vendor writer (16:25 ET): their dealer levels and exposures beside the engine, labelled vendor, never in place of its figures; a daily budget of 60 requests, 57 planned across 16:25, 09:45 and 12:30 (config/flashalpha.yaml; writer v2, F-1 to F-4); on the freshness roster as family vendor; the key never printed'
+  altdata.sources.finra:
+    domain: positioning
+    line: FINRA margin statistics -- customer debit balances in margin accounts, monthly
+    sources: [finra_margin]
+  altdata.sources.fiscaldata:
+    domain: rates
+    line: Monthly Statement of the Public Debt and the MTS customs duties (GTM-15 monthly) -- US Treasury Fiscal Data API
+    sources: [fiscaldata]
+  altdata.sources.fred_releases:
+    domain: events
+    line: 'The FRED release calendar: when the tracked series print next, and when they did'
+  altdata.sources.french:
+    domain: reference
+    line: Kenneth French Data Library -- 49 industry portfolios and HML
+    sources: [ken_french]
+  altdata.sources.fundamentals:
+    domain: equity
+    line: Quarterly fundamentals for nine AI-capex names -- yfinance, stamped by SEC filing
+    sources: [yfinance_fundamentals]
+  altdata.sources.ibkr_costs:
+    domain: portfolio
+    line: Schedule-derived expression economics -- the Gate 1.5 fallback
+  altdata.sources.ibkr_portfolio:
+    domain: portfolio
+    line: Portfolio Truth -- read-only IBKR account state into the observation store
+    sources: [ibkr_paper, ibkr_live]
+  altdata.sources.ibkr_whatif:
+    domain: portfolio
+    line: Expression Intelligence -- What-If order previews
+  altdata.sources.imf_em:
+    domain: em
+    line: IMF reserves, imports and CPI for the EM scorecard
+    sources: [imf_em]
+  altdata.sources.imf_ifs:
+    domain: commodities
+    line: IMF International Financial Statistics -- central-bank gold, by country
+    sources: [imf_ifs]
+  altdata.sources.imf_weo:
+    domain: em
+    line: 'IMF World Economic Outlook: the EM scorecard''s annual lenses, every vintage'
+    sources: [imf_weo]
+  altdata.sources.ishares_trusts:
+    domain: commodities
+    line: iShares Gold (IAU), Silver (SLV) and Bitcoin (IBIT) trusts -- metal held, shares outstanding, and the share flow
+    sources: [ishares_trusts]
+  altdata.sources.lbma:
+    domain: commodities
+    line: LBMA Gold Price PM -- the daily London auction benchmark, via LBMA's own JSON
+    sources: [lbma]
+  altdata.sources.llama:
+    domain: crypto
+    line: DefiLlama -- the `llama.*` family
+    sources: [defillama]
+  altdata.sources.mba:
+    domain: housing
+    line: MBA Weekly Mortgage Applications Survey -- the purchase index's headline changes
+    sources: [mba]
+  altdata.sources.hl:
+    domain: crypto
+    line: Hyperliquid -- perp funding and open interest, the `hl.*` family (Tranche A, CD-2)
+    sources: [hyperliquid]
+  altdata.sources.fut:
+    domain: crypto
+    line: OKX and Deribit perps -- funding, open interest, long/short, the `fut.*` family (Tranche A, CD-2)
+    sources: [perp_venues]
+  altdata.sources.mempool:
+    domain: crypto
+    line: mempool.space -- Bitcoin hashrate, difficulty, fees, mempool, pools (Tranche A, CD-5)
+    sources: [mempool_space]
+  altdata.sources.pearl_explorer:
+    domain: crypto
+    line: Pearl's explorer -- chain height, difficulty, supply; JSON endpoint or block page where robots allow, else ESTIMATED downstream (ST-13, G-26)
+    sources: [pearl_explorer]
+  altdata.prl:
+    domain: crypto
+    line: PRL's emission calculator, D1-D6 and the thesis status with its trace; daily | weekly | compute | show, each with --dry-run (ST-13)
+    sources: [calc]
+  altdata.mechanism_scan:
+    domain: crypto
+    line: The emerging-mechanism scan -- feeds, DefiLlama's recently added, dedupe, the rule pre-filter, the gated model step; drafts only; run --dry-run (ST-15)
+    sources: [defillama, news_rss]
+  altdata.mechanism_watch:
+    domain: crypto
+    line: The mechanism-watch register -- review | render; promote | reject write only with the operator's --confirm (ST-15)
+    sources: [calc]
+  altdata.sources.btcdata:
+    domain: crypto
+    line: bitcoin-data.com (BGeometrics) -- BTC long- and short-term-holder supply and SR-29's share, with the operator's free key from .env; `budget` prints the requests spent (CD-12)
+    sources: [bitcoin_data]
+  altdata.sources.fng:
+    domain: crypto
+    line: alternative.me's Crypto Fear & Greed Index, full history (Tranche A, CD-5)
+    sources: [alternative_me]
+  altdata.sources.blockscout:
+    domain: crypto
+    line: Blockscout's Ethereum explorer -- gas, utilisation, daily transactions, keyless (Tranche A, CD-5)
+    sources: [blockscout]
+  altdata.sources.crypto_derived:
+    domain: crypto
+    line: The crypto data layer's derived series -- S-1 to S-5 and the three flags, stored never printed (Tranche A)
+    sources: [derived_state]
+  altdata.sources.deribit:
+    domain: crypto
+    line: Deribit DVOL for BTC and ETH, history from Mar 2021 (Tranche A, CD-3)
+    sources: [deribit]
+  altdata.sources.farside:
+    domain: crypto
+    line: Farside's US spot BTC and ETH ETF daily flows, total and by issuer (Tranche A, CD-4)
+    sources: [farside]
+  altdata.sources.gt:
+    domain: crypto
+    line: The froth gauge's sample -- GeckoTerminal new and trending pools, DexScreener fallback (Tranche A, CD-7)
+    sources: [geckoterminal, dexscreener]
+  altdata.sources.treasury:
+    domain: crypto
+    line: The treasury companies -- holdings, Strategy's share count, MSTR's spot; `show` reads mNAV (item 49)
+    sources: [treasury_companies]
+  altdata.sources.paprika:
+    domain: crypto
+    line: CoinPaprika's global figures -- total crypto market cap and BTC dominance (ruling 2 of 17 Oct)
+    sources: [coinpaprika]
+  altdata.sources.massive_chain:
+    domain: options
+    line: Option chain fetcher (Massive, ex-Polygon) -- the symbols yfinance cannot serve
+    sources: [massive]
+  altdata.sources.mof:
+    domain: japan
+    line: JGB constant-maturity yields -- Japan Ministry of Finance
+    sources: [mof_japan]
+  altdata.sources.mof_reserves:
+    domain: japan
+    line: Japan's international reserves -- Ministry of Finance, monthly
+    sources: [mof_reserves]
+  altdata.sources.mots:
+    domain: thailand
+    line: MOTS (Thailand's Ministry of Tourism and Sports) -- international tourist arrivals, monthly
+    sources: [mots]
+  altdata.sources.nbs:
+    domain: china
+    line: 'NBS -- China''s property: the 70-city new-home prices, starts and sales, from the National Bureau of Statistics'' English press releases'
+    sources: [nbs]
+  altdata.sources.nesdc:
+    domain: thailand
+    line: NESDC (Thailand's Office of the National Economic and Social Development Council) -- real GDP, quarterly, seasonally adjusted
+    sources: [nesdc]
+  altdata.sources.news:
+    domain: narrative
+    line: 'RSS: the agencies'' press feeds, and the declared story queries'
+    sources: [news_rss]
+  altdata.sources.nyfed_sce:
+    domain: macro
+    line: NY Fed Survey of Consumer Expectations -- 3-year and 5-year inflation expectations
+    sources: [nyfed_sce]
+  altdata.sources.options_chain:
+    domain: options
+    line: Option chain fetcher (yfinance)
+    sources: [yfinance]
+  altdata.sources.overnight:
+    domain: equity
+    line: The 06:45 ET overnight fetch -- the only thing in the morning chain that opens a socket
+  altdata.sources.prediction_markets:
+    domain: prediction_markets
+    line: 'Prediction markets: Kalshi and Polymarket, read-only, public endpoints'
+    sources: [kalshi, polymarket]
+  altdata.sources.proshares:
+    domain: positioning
+    line: Leveraged-ETF assets -- ProShares' daily NAV history files
+    sources: [proshares]
+  altdata.sources.redfin:
+    domain: housing
+    line: Redfin data center -- national pending sales, listings, months of supply and top-50 metros, monthly
+    sources: [redfin]
+  altdata.sources.rent_indices:
+    domain: macro
+    line: Zillow ZORI and Apartment List national rent -- the shelter lead (Batch 7 lens 7)
+    sources: [rent_indices]
+  altdata.sources.safe:
+    domain: china
+    line: China State Administration of Foreign Exchange (SAFE) -- reserves, BOP, IIP
+    sources: [safe_china]
+  altdata.sources.sffed:
+    domain: rates
+    line: Treasury yield premiums -- Federal Reserve Bank of San Francisco term-structure model
+    sources: [frbsf_term_premium]
+  altdata.sources.shfe:
+    domain: commodities
+    line: SHFE weekly warehouse stocks -- copper, aluminium and zinc
+    sources: [shfe]
+  altdata.sources.shiller:
+    domain: reference
+    line: Robert Shiller's stock market data -- CAPE and its inputs, monthly from 1871
+    sources: [shiller]
+  altdata.sources.sp500_members:
+    domain: equity
+    line: S&P 500 constituents -- SPY's daily holdings (SSGA) and the members' daily closes
+    sources: [sp500_members]
+  altdata.sources.spdji:
+    domain: equity
+    line: S&P Dow Jones Indices' S&P 500 EPS estimates -- the inbox reader
+    sources: [spdji]
+  altdata.sources.spdr_gld:
+    domain: commodities
+    line: SPDR Gold Trust (GLD) -- tonnes held, shares outstanding, and the share flow
+    sources: [spdr_gld]
+  altdata.sources.thai_set:
+    domain: thailand
+    line: The SET index (Stock Exchange of Thailand), daily close -- FORWARD-ONLY
+    sources: [yahoo_set]
+  altdata.sources.tic:
+    domain: fx
+    line: Treasury International Capital (TIC) -- foreign holdings of Treasuries, and the monthly cross-border flows table
+    sources: [treasury_tic]
+  altdata.sources.tpso:
+    domain: thailand
+    line: TPSO (Thailand's Trade Policy and Strategy Office, Ministry of Commerce) -- headline CPI, monthly
+    sources: [tpso]
+  altdata.sources.treasury_auctions:
+    domain: rates
+    line: Treasury auction results -- TreasuryDirect securities API
+    sources: [treasurydirect]
+  altdata.sources.treasury_buybacks:
+    domain: rates
+    line: Treasury buyback operations -- US Treasury Fiscal Data API
+    sources: [treasury_buybacks]
+  altdata.sources.umich:
+    domain: macro
+    line: University of Michigan Surveys of Consumers -- 5-to-10-year inflation expectations
+    sources: [umich_sca]
+  altdata.sources.upcoming_auctions:
+    domain: events
+    line: Treasury's announced and tentative auctions, as scheduled events
+  altdata.sources.voices_scan:
+    domain: narrative
+    line: 'The voices scan: desks'', strategists'' and officials'' published views, once a day'
+  altdata.sources.wb_qeds:
+    domain: em
+    line: World Bank Quarterly External Debt Statistics for the EM scorecard
+    sources: [wb_qeds]
+  altdata.sources.stat_jp_cpi:
+    domain: japan
+    line: Statistics Bureau of Japan -- the national CPI's change on the year (all items, core, less fresh food), monthly
+    sources: [stat_jp_cpi]
+  altdata.sources.ons_cpi:
+    domain: macro
+    line: Office for National Statistics -- the UK CPI's 12-month rate, headline and core, monthly
+    sources: [ons_cpi]
+  altdata.sources.statcan_cpi:
+    domain: macro
+    line: Statistics Canada -- the CPI's change on the year, headline and core (excluding food and energy), monthly
+    sources: [statcan_cpi]
+  altdata.sources.bdf_webstat:
+    domain: rates
+    line: Banque de France, Webstat -- the French 10-year (TEC 10), daily, SR-30's OAT leg
+    sources: [bdf_webstat]
+  altdata.sources.wgc_stock:
+    domain: commodities
+    line: World Gold Council -- the above-ground stock of gold, quarterly
+    sources: [wgc_stock]
+  altdata.sources.worldbank:
+    domain: commodities
+    line: World Bank Commodity Price Data ("Pink Sheet") -- monthly commodity indices
+    sources: [worldbank_cmo]
+  altdata.loggers.auction:
+    domain: equity
+    line: Closing-auction tick sampler
+  altdata.loggers.borrow:
+    domain: positioning
+    line: Borrow, short interest and mentions
+    sources: [finra, apewisdom, ibkr_stock_loan]
+  altdata.loggers.consensus:
+    domain: equity
+    line: "Nightly consensus and revision log. Budget: one Yahoo .info read per name, 0.6 s apart, nightly -- 24 names (13 options names, 11 sector ETFs), at most 39 with the GTM batch's (the newest top 12 issuers' lines and ORCL, GOOG; ruling 5 of 17 Oct 2026)"
+  altdata.loggers.rtat:
+    domain: sentiment
+    line: RTAT10 -- Nasdaq's Retail Trading Activity Tracker, top ten
+    sources: [nasdaq_data_link]
+  altdata.loggers.shielded:
+    domain: crypto
+    line: Zcash shielded-pool explorer probe, and the ZEC market series
+    sources: [blockchair, coingecko, zcashexplorer]
+  altdata.loggers.vxcurve:
+    domain: options
+    line: The VX futures curve from Cboe's public settlement files
+    sources: [cboe]

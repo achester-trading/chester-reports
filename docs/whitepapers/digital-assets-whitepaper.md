@@ -257,6 +257,10 @@ Hashrate has continued climbing to record levels despite the halving, driven by 
 
 **A worthwhile aside:** the AI datacenter boom has created a competing bid for exactly the power and land assets bitcoin miners assembled. Several public miners have pivoted partly or wholly to AI compute hosting, which is more profitable per megawatt. This is a genuine structural shift in the mining industry and a modest long-term security consideration for Bitcoin.
 
+### Proof-of-Useful-Work
+
+A proof-of-useful-work chain asks its miners for computation that has value outside the chain, typically the matrix arithmetic that trains or runs machine-learning models, and accepts that work as the cost of producing a block. The appeal is that the security budget stops being pure burn: the hardware and power that defend the ledger also produce something a third party would pay for. The mechanism has three consequences that follow from it rather than from any one project. First, the work must be cheap to verify and hard to fake, or the chain pays for computation nobody did; verification design is the protocol's real security assumption. Second, miners now hold an outside option: when the external market for the same computation pays more than the block reward, hashpower leaves, so the chain's security rises and falls with the compute market rather than only with its own token price, and a falling token with rising difficulty is a sign the hardware has nowhere better to go. Third, the token is still the reward, and miners with real costs sell it, so the emission must be absorbed by buyers at a pace the trading volume can bear; an emission large against volume is the same overhang any mined asset faces. The useful-work framing changes what the cost buys, not the arithmetic of who has to buy the coins.
+
 ### Proof-of-Stake Validators
 
 Validators on Ethereum, Solana, and similar chains lock capital as collateral and are selected to propose and attest blocks, earning issuance and transaction fees. Misbehavior is punished by "slashing" — destruction of staked capital.
@@ -1087,6 +1091,29 @@ If time permits only a brief periodic review, these ten questions cover most of 
 8. Has statutory regulatory clarity arrived, or is the framework still administrative?
 9. What is the current credible range on quantum timelines, and has migration progressed?
 10. Which ten-year scenario did this quarter's evidence support?
+
+## Appendix E: Dated Record
+
+*Added 17 October 2026 as a draft for the operator's accept-all (Batch 8, items 49 and 51).* One dated line a week from the Digital Assets addendum to the Sunday Weekly, first the week to 31 October 2026, and the dated base-rate notes item 49 calls for. Each weekly line is written by code from that week's page, never by a model, and enters here only once the operator has accepted it; until then it waits beside the week's addendum in the report archive. Item 49's base-rate note (the GBTC premium-to-discount of 2021–22 as the analogue, the reflexive loop written out, this event's outcome after 1 December) is written by hand.
+
+No line has been accepted yet.
+
+## Appendix F — Dated: Mechanism watch, Pearl and proof-of-useful-work (the order's 2026-09 entry, as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all. ST-L's appendix, the order's "Mechanism watch — Pearl and proof-of-useful-work, as of 2026-09" (MW-8).* It states only what the code on this line holds. The mechanism is the timeless subsection on proof-of-useful-work in section 7; this appendix is the one instance the stack watches.
+
+### What the stack watches (code of 18 October 2026)
+
+- **The instrument.** PRL is the Security Master's first `crypto.watch` instrument (SM00118), keyed by its CoinGecko id (`coingecko:pearl-2`) and never by a ticker. Its rights are watch-level only (MW-2): no composite, overlay, dial, band, tell or trigger reads it, and no Daily module names it.
+- **The emission (the order's Appendix E).** Maximum supply 2.1 billion, K = 650,226, no halvings: reward(h) = 2.1e9 · K / ((h + K)(h − 1 + K)) and supply(H) = 2.1e9 · H / (H + K); the target block time is 194 seconds. `altdata/prl.py` holds it, with the order's three unit tests.
+- **The height.** The explorer's observed height where one is stored; otherwise ESTIMATED from Appendix E's anchor (block 113,770 at 2026-09-15 23:53 UTC) at the 194-second target, and every figure computed from it carries ESTIMATED. The explorer's endpoint is G-26, not declared on this line.
+- **The derived metrics, D1 to D6** (`calc.prl_*`): D1 the code's supply at the height; D2 the week-one overhang (121.70 million minted in week one, over D1); D3 the supply gap, D1 less the explorer's supply, ESTIMATED until the explorer reads; D4 the day's emission against 24-hour volume at Yahoo's price; D5 venue concentration, **not tracked** (its only input was CoinGecko's tickers, and CoinGecko is retired); D6 the idle-GPU flag, ON when difficulty is up more than 25% over 30 days while price is down more than 20%, the one narrow flag. D6 is section 7's outside option, measured.
+- **The thesis status.** UNCHANGED, IMPROVED or DETERIORATED by rule, its trace beside it: an informational label with no decision rights.
+- **The thresholds** are the order's initial ones; they are calibrated after 90 days of stored data (January 2027).
+- **Where it prints.** The Monthly's Mechanism Watch part (`monthly_macro/prl_part.py`), in the slow layers: the thesis with its trace, the S1 to S8 table with "not tracked" and ESTIMATED where the inputs say so, and the register's month. Its one figure draws only once the explorer has read.
+- **The scan.** `altdata/mechanism_scan.py` runs the mechanism-watch queries over declared feeds under robots and writes drafts only; promotion and rejection are the operator's.
+
+No calibration ledger exists for any of this: the 90 days have not passed.
 
 ---
 

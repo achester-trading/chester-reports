@@ -161,7 +161,8 @@ CAP_SHARE_NOT_SOURCED = (
     "no free source of total crypto market cap permits stored vintages "
     "(CoinGecko's terms discourage storage and bar keyless use; ruled 13 Oct 2026)")
 
-UA = {"User-Agent": "chester-reports/1.0 (research logging)"}
+from ..sources.user_agent import generic as _generic_ua       # noqa: E402
+UA = {"User-Agent": _generic_ua()}
 TIMEOUT = 25
 VOL_WINDOW = 20
 BETA_WINDOW = 60
@@ -224,7 +225,7 @@ def probe(store: Optional[observations.ObservationStore] = None) -> dict:
                          "contain 'shield' are mempool counters. The shielded-pool "
                          "transaction share has no reachable source today.")
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -266,7 +267,7 @@ def probe_cap(store: Optional[observations.ObservationStore] = None,
         out["state"] = "error"
         out["reason"] = f"{type(exc).__name__}: {str(exc)[:120]}"
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(CAP_PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -337,19 +338,26 @@ def read_value_pools() -> dict:
     return out
 
 
-def _zec_closes() -> list[tuple[str, float]]:
+def _zec_closes(now=None) -> list[tuple[str, float]]:
     from ..sources import yfinance_source as yf_src
     parsed = yf_src._fetch_symbol(ZEC_SYMBOL, period="2y")     # noqa: SLF001
     # ZEC trades every day, so the session filter must not touch it -- the same
     # declaration BTC gets in the price basket.
-    return parsed["closes"]
+    # AUD-1 5d (the audit of 14 Oct 2026): but the UNFINISHED-BAR filter must.
+    # Yahoo's newest ZEC bar is today's UTC day still trading, and stored as a
+    # close it was a partial price written as final -- PB-1's fault, which the
+    # basket had been cured of and this logger had not.
+    kept, held = yf_src.drop_incomplete_bars(ZEC_SYMBOL, parsed["closes"], now)
+    if held:
+        log.info("  ZEC: held back unfinished bar(s) %s", ", ".join(held))
+    return kept
 
 
 def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None) -> dict:
     """The market series, logged whatever the explorer probe said."""
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     out: dict[str, Any] = {}
     try:
         # THE PROBE RUNS EVERY NIGHT, cheaply, because an explorer that gains the

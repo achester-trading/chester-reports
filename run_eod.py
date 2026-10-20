@@ -8,6 +8,12 @@ until then.
     python run_eod.py                    # full universe
     python run_eod.py --symbols SPY QQQ  # subset
     python run_eod.py --skip-fetch       # recompute from the last snapshot
+    python run_eod.py --capture-only     # stages 1 and 1b and the gate only
+
+Exit codes: 0 ok · 1 no chains · 2 compute failed · 3 pin scoring failed ·
+4 backup failed · 5 capture incomplete (AUD-1 5c: below 12 of 13 symbols or
+90% of the listed expiries; the gap is in <chain dir>/<day>/_completeness.json
+and the close prints it).
 
 STAGE ISOLATION. The fetch is the only irreplaceable stage -- yfinance serves
 no historical chains, so a night not captured is a night lost forever. Compute
@@ -34,8 +40,9 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from altdata import config
-from altdata import observations
 from altdata import session
+from altdata.chain_completeness import (EXIT_INCOMPLETE, completeness,
+                                        gap_lines, write_completeness)
 from altdata.sources import massive_chain
 from altdata.sources import options_chain
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
@@ -45,7 +52,7 @@ from state.emit import emit  # noqa: E402
 
 
 def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
-    """Zip the day's raw chains AND the databases, and copy them off the box.
+    """Zip the day's raw chains and the pin log, and copy them off the box.
 
     THE CHAINS WERE NEVER THE ONLY IRREPLACEABLE THING HERE. They were the
     first, and for a while the only one: yfinance serves no history, so a night
@@ -82,26 +89,18 @@ def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
 
     dest_dir = Path(backup_dir or config.BACKUP_DIR)
     tmp_zip = Path(tempfile.gettempdir()) / f"chains_{date_str}.zip"
-    tmp_db = Path(tempfile.gettempdir()) / f"chester_{date_str}.db"
     # Namespaced inside the archive so a restore cannot confuse a database with
     # a chain CSV, and so the chain files keep the flat layout every existing
     # restore assumes.
     extras: list[tuple[Path, str]] = []
     included: list[str] = []
-    try:
-        db_path = Path(observations.DEFAULT_DB)
-        if db_path.exists():
-            observations.snapshot_sqlite(db_path, tmp_db)
-            extras.append((tmp_db, f"db/{db_path.name}"))
-            included.append(db_path.name)
-        else:
-            out["db_note"] = f"no database at {db_path}"
-    except Exception as e:  # noqa: BLE001
-        # A database that could not be snapshotted must NOT quietly produce a
-        # zip that looks complete. Record it and let the caller's exit 4 fire.
-        out["error"] = f"database snapshot failed: {type(e).__name__}: {e}"
-        tmp_db.unlink(missing_ok=True)
-        return out
+    # THE DATABASE IS NO LONGER IN THE ZIP (AUD-1 item 1a, the audit of 14 Oct
+    # 2026). Every session's zip carried a full copy of chester.db and nothing
+    # pruned them, on the box or on Drive -- the space leak. The nightly sweep's
+    # verified db/ snapshot (scripts/rclone_sync.sh: online backup, integrity
+    # check, gzip round trip, dated, retained by rule) is the database's backup;
+    # this zip keeps what only it carries, the chains and the pin log.
+    out["db_note"] = "not zipped: the nightly sweep's db/ snapshot is its backup"
 
     pin = Path(config.PIN_LOG_PATH)
     if pin.exists():
@@ -130,7 +129,6 @@ def backup_chains(date_str: str, backup_dir: Optional[str] = None) -> dict:
         out["error"] = f"{type(e).__name__}: {e}"
     finally:
         tmp_zip.unlink(missing_ok=True)
-        tmp_db.unlink(missing_ok=True)
     return out
 
 
@@ -139,6 +137,10 @@ def main() -> int:
     ap.add_argument("--symbols", nargs="*", help="Override the configured universe")
     ap.add_argument("--skip-fetch", action="store_true",
                     help="Recompute from the newest stored snapshot")
+    ap.add_argument("--capture-only", action="store_true",
+                    help="AUD-1 5a: Stage 1 and 1b only (the irreplaceable "
+                         "capture), then the completeness gate; exit 0, 1 (no "
+                         "chains) or 5 (incomplete)")
     ap.add_argument("--max-expiries", type=int, default=None)
     ap.add_argument("--close-source", default="eod_chain_snapshot_spot",
                     help="Label recorded on every pin-log row")
@@ -170,7 +172,12 @@ def main() -> int:
     universe = args.symbols or config.options_universe()
     # The vendor-only symbols ride along unless --symbols narrowed the run.
     # They are captured but never computed; see Stage 1b.
-    vendor_universe = [] if args.symbols else config.massive_universe()
+    # M-3 (18 Oct 2026): NOT ANY MORE. Massive is 15-minute delayed and SPX trades
+    # to 16:15, so at 16:10 this leg read 15:55 data; the vendor chains are
+    # chester-vendor-chains' at 16:31 (altdata/vendor_chains.py). This pass skips
+    # them and says so.
+    vendor_skipped = [] if args.symbols else config.massive_universe()
+    vendor_universe: list[str] = []
     # The paper bid's four (AQ-8a) are captured with the universe and computed
     # by nothing below except stage 1c; --symbols narrows them away too.
     paper_universe = [] if args.symbols else [
@@ -183,10 +190,16 @@ def main() -> int:
              f"({', '.join(vendor_universe)})" if vendor_universe else "")
           + (f" + {len(paper_universe)} capture-only for the paper bid "
              f"({', '.join(paper_universe)})" if paper_universe else ""))
+    if vendor_skipped:
+        print(f"  vendor:     {', '.join(vendor_skipped)} skipped -- captured at "
+              f"16:31 ET by chester-vendor-chains (M-3: 15-minute delay, SPX to 16:15)")
+        log.info("Stage 1b skipped: the vendor universe (%s) is chester-vendor-chains' "
+                 "at 16:31 ET", ", ".join(vendor_skipped))
     print(f"  convention: {config.CONVENTION_VERSION}")
     print(f"  tolerance:  {config.PIN_TOLERANCE_BPS}bps\n")
 
     # ---- Stage 1: chains (the irreplaceable one) ------------------------
+    comp: Optional[dict] = None
     if args.skip_fetch:
         log.info("Stage 1 skipped -- using the newest stored snapshot")
     else:
@@ -200,6 +213,7 @@ def main() -> int:
             if not s["success"]:
                 print("\nERROR: no chains captured. Nothing downstream can run.",
                       file=sys.stderr)
+                write_completeness(completeness(s, universe), session.session_date())
                 return 1
         except Exception:
             log.exception("Stage 1 failed outright")
@@ -218,6 +232,7 @@ def main() -> int:
         if vendor_universe:
             log.info("Stage 1b: fetching vendor chains (%s)",
                      ", ".join(vendor_universe))
+            vs = None
             try:
                 vs = massive_chain.pull(symbols=vendor_universe)
                 log.info("  vendor chains: %d/%d symbols, %d rows",
@@ -227,6 +242,21 @@ def main() -> int:
                     log.warning("  %s not captured: %s", sym, why)
             except Exception:
                 log.exception("Stage 1b failed; the yfinance chains are safe")
+        else:
+            vs = None
+
+        # ---- the completeness gate (AUD-1 5c) ------------------------------
+        comp = completeness(s, universe, vs, vendor_universe)
+        where = write_completeness(comp, session.session_date())
+        log.info("  completeness: %d/%d symbols, %d/%d expiries (%.0f%%)%s -> %s",
+                 comp["symbols_captured"], comp["symbols_expected"],
+                 comp["expiries_captured"], comp["expiries_expected"],
+                 100 * comp["expiry_share"],
+                 "" if comp["ok"] else " -- INCOMPLETE", where)
+        for line in gap_lines(comp):
+            log.warning("  gap: %s", line)
+        if args.capture_only:
+            return 0 if comp["ok"] else EXIT_INCOMPLETE
 
     # ---- Stage 1c: the paper bid (AQ-8a) ----------------------------------
     # Net call-put OI and the 25-delta risk reversal for GLD, SLV, IBIT and USO,
@@ -355,6 +385,9 @@ def main() -> int:
     # on it instead of reporting a clean run.
     if backup is not None and not backup.get("ok"):
         return 4
+    # AUD-1 5c: the capture was short of its floor -- scored, but not healthy.
+    if comp is not None and not comp["ok"]:
+        return EXIT_INCOMPLETE
     return 0
 
 

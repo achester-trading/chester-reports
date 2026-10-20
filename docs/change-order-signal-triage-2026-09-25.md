@@ -819,6 +819,9 @@ Each surface is edited once, in the session that owns it. Surfaces that do not y
 | Prediction-market spec | Disagreement-layer test case, Kalshi vs. FedWatch on the same FOMC (SR-21) | Tranche H (spec note); PM-1 (data) |
 | Signal Triage Register; intake template | SR-1…SR-27; §1.3–1.6 rules | ST-0 |
 | Base Rates dated appendix; `docs/ledgers/` | Every calibration ledger | ST-7, ST-8, ST-9, ST-L |
+| Stacked Monthly, Plumbing & rates: the inflation block (`daily_cascade/inflation_block.py`) | **Added 16 Oct 2026 (Batch 7 items 46 and 48, filing note 6).** The CPI decomposition panel with the pass-through flag and item 32's printed state; CPI lenses 7-11. Tables and code-written lines after the six buckets; no paragraph, no chart. A reserved `ppi` slot for Group B (lenses 12-14). The Weekly's Plumbing carries the same panels. | 6e-releases (session B) |
+| Stacked Monthly: **a new section, Labour** (`daily_cascade/labour_block.py`; `config/reporting_stack.yaml` `sections`, Monthly only) | **Added 16 Oct 2026 (Batch 7 item 48 lenses 1-6, filing note 6).** After Plumbing & rates; two tables (payrolls; flows, leading pieces and wages) with the flags of lenses 2-4. Budget: its code-written claim only (at most 40 words, inside the 10,000); no chart (the 12 unchanged); displaces nothing beyond the claim's words, which `trim_to_budget` takes from the lowest-priority paragraph. The close and the Weekly keep the ten sections. | 6e-releases (session B) |
+| Daily close, Plumbing (`daily_cascade/stack.py`) | **Added 16 Oct 2026 (Batch 7 lens 24, item 46).** On a release's day (CPI, the employment report, JOLTS, the ECI), one "what moved the print" item, code-written, first priority; no new model call. | 6e-releases (session B) |
 
 ---
 
@@ -1138,3 +1141,22 @@ Ruled by the operator, 28 Sep 2026; docs only.
 - **SR-29 added (28 Sep, evening).** Bitcoin long-term-holder supply, Thread D, `ADOPTED — scorecard, no rights`: monthly by hand (≈5 min; ≈0 h build) from paid sources as `manual_input` (`manual.btc_lth_supply`, `manual.btc_lth_share`, `calc.btc_lth_3m_chg`). The post's supply-crunch reading is rejected; R30 added to §12.
 - **`fred.tips_30y` added (28 Sep, evening).** DFII30 (30-year TIPS real yield; percent, daily, confirmed on its FRED page 28 Sep) joins `FRED_SIGNAL_SERIES` in `altdata/config.py`; `metrics_registry.yaml`'s `fred_signal_triage` block now expects 20 members. Cited in SR-17's Data field and beside DFII10 in the §4 feeds table.
 - **Status vocabulary.** `ADOPTED — scorecard, no rights` added to the §1.2 table (SR-20, SR-29).
+
+## Rulings addendum — 18 Oct 2026
+
+Ruled by the operator, 18 Oct 2026, on the ST-13 report; docs only.
+
+- **MW-4's CoinGecko clause is superseded.** CoinGecko stays retired (the 13 Oct 2026 ruling stands): its terms as read on 18 Oct (6.1, 6.1.1, 6.2) forbid the point-in-time store MW-4 asked for. No CoinGecko fetcher or switch is kept. PRL's inputs are what the crypto basket already reads within terms: price and 24-hour volume from Yahoo at the symbol the basket config resolved (D4 from that volume); market cap and circulating supply from DefiLlama's coin service where it serves them; chain height and supply from the explorer once declared (G-26).
+- **D5 (venue concentration) is not tracked (source retired);** it prints so, with its key named.
+- **D3 (the supply gap) is the formula against the explorer's supply,** ESTIMATED until the explorer reads.
+- **Scheduling:** no new timer. The explorer read is a weekly step of the crypto runs; the D-series compute one line in the crypto basket's daily 17:25 run, after the basket's own writes; both on the roster.
+- **SM00118** stays reclassified in place as `crypto.watch` (one coin, one id).
+
+## Register note — 18 Oct 2026: G-26 closed as a listed gap
+
+*Accepted as drafted (rule 31), 19 Oct 2026:* drafted by the session under rule 31; it records the operator's ruling 1 of 18 Oct 2026 and changes no right.
+
+- **G-26 (the Pearl explorer's endpoint) is closed as a listed gap.** explorer.pearlresearch.ai has no robots file: `/robots.txt` and `/robots.txt?network=mainnet` both return 404 with the app's own HTML page. No published API, and no terms covering automated access, were found on Pearl's sites.
+- Under the standing rule of 16 Oct on sources (public and easy, else a gap) nothing is traced or pursued. `config/prl.yaml`'s `explorer` entry stays undeclared, with that reason and the date.
+- The chain height stays ESTIMATED from Appendix E's anchor at the 194 s target; D3 prints ESTIMATED; the Monthly part's supply figure (M13) is not drawn.
+- If Pearl ever publishes an API with terms, the endpoint is a one-line declaration in `config/prl.yaml`.

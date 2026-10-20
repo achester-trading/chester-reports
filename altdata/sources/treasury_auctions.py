@@ -9,9 +9,28 @@ by the ABS_STRESS candidate flag. NOT the `ibkr.auction_*` family: those are the
 EQUITY closing auction's imbalance feed. This family is `auction.*` -- Treasury.
 
 SOURCE. https://www.treasurydirect.gov/TA_WS/securities/search
-?startDate=..&endDate=..&dateFieldName=auctionDate&format=json -- no key. One
-record per auction, back to 2009 at least. A record with no bidToCoverRatio has
-not been held and is skipped.
+?startDate=..&endDate=..&dateFieldName=competitiveAuctionCloseDate&format=json --
+no key. One record per auction, back to 2009 at least. A record with no
+bidToCoverRatio has not been held and is skipped.
+
+THE SCHEMA CHANGED (writer-fixes-1, 17 Oct 2026). The first full pull on the box
+read "500 Server Error" after three retries. It was not transient: TreasuryDirect
+renamed its fields, and `dateFieldName=auctionDate` names a field that no longer
+exists, so EVERY window answers 500 (checked 17 Oct 2026 on a year of 2009, a
+year of 2025 and the 45-day refresh window; the same query without it answers
+200). The record's fields, then and now (the old names are still read, first
+non-empty wins):
+
+  the auction day       auctionDate               competitiveAuctionCloseDate
+  dealer award          primaryDealerAccepted     primaryDealersCompetitiveParAwarded
+  direct award          directBidderAccepted      directBiddersCompetitiveParAwarded
+  indirect award        indirectBidderAccepted    indirectBiddersCompetitiveParAwarded
+  competitive accepted  competitiveAccepted       subtotalCompetitiveParAwardedInside-
+                                                  OfOfferingAmount
+
+The identity holds under the new names (the 3-year of 8 Sep 2026: 6.285 + 15.525
++ 35.809 = 57.619bn); tests/fixtures/treasury_auctions/search_2026-10.json is
+three real records, trimmed.
 
 WHAT IS STORED, per auction, keyed instrument = "<type>:<original term>" (e.g.
 "Note:10-Year"; a 9-year-10-month reopening is still "Note:10-Year") and
@@ -38,8 +57,11 @@ not publish and no free source serves. It is registered as not_yet_sourced and
 prints NOT AVAILABLE until one is found. auction.high_yield is stored so a tail can
 be computed the day a when-issued source exists; nothing here approximates one.
 
-AVAILABILITY. available_at = 13:00 ET on the auction day, per the signal-triage
-order, marked `reconstructed` (a declared latency on the observation date).
+AVAILABILITY (G-30, ruled; applied by st-t1-rest, 18 Oct 2026). available_at is
+the API's own result timestamp (`updatedTimestamp`, Eastern) when it falls on the
+auction day; else 13:05 ET on the auction day (AVAILABLE_ET, the fallback), marked
+`reconstructed`. A timestamp on a LATER day is an edit of the record, not the
+result's publication, so it is not used. Before G-30 the constant was 13:00.
 Permitted because auction results are never revised (revision_policy: never).
 CAVEAT, measured: TreasuryDirect stamped the 24 Sep 2026 7-year's result
 updatedTimestamp 13:03:20 -- coupon results post a few minutes AFTER the 13:00
@@ -67,7 +89,7 @@ SOURCE = "treasurydirect"
 URL = "https://www.treasurydirect.gov/TA_WS/securities/search"
 BACKFILL_START = dt.date(2009, 1, 1)
 REFRESH_DAYS = 45
-AVAILABLE_ET = dt.time(13, 0)
+AVAILABLE_ET = dt.time(13, 5)        # G-30's fallback; the API's own time wins
 
 KEYS = ["auction.bid_to_cover", "auction.dealer_share", "auction.direct_share",
         "auction.indirect_share", "auction.high_yield",
@@ -75,6 +97,24 @@ KEYS = ["auction.bid_to_cover", "auction.dealer_share", "auction.direct_share",
 # Registered, never written: see NOT STORED above.
 NOT_SOURCED = ["auction.tail_bp"]
 COUPON_TYPES = ("Note", "Bond", "TIPS")
+DATE_FIELD = "competitiveAuctionCloseDate"
+# Each value: its field names, newest first (writer-fixes-1: TreasuryDirect's
+# rename of Oct 2026). The first non-empty one is read.
+FIELDS = {"day": ("competitiveAuctionCloseDate", "auctionDate"),
+          "dealer": ("primaryDealersCompetitiveParAwarded", "primaryDealerAccepted"),
+          "direct": ("directBiddersCompetitiveParAwarded", "directBidderAccepted"),
+          "indirect": ("indirectBiddersCompetitiveParAwarded", "indirectBidderAccepted"),
+          "competitive": ("subtotalCompetitiveParAwardedInsideOfOfferingAmount",
+                          "competitiveAccepted")}
+
+
+def field(rec: dict, name: str) -> Any:
+    """The record's value under the first of FIELDS[name] that is present."""
+    for k in FIELDS[name]:
+        v = rec.get(k)
+        if v not in (None, ""):
+            return v
+    return None
 
 
 def _num(v: Any) -> Optional[float]:
@@ -103,7 +143,7 @@ def _term(rec: dict, typ: str) -> str:
 
 
 def available_at(auction_day: str) -> str:
-    """13:00 America/New_York on the auction day, as canonical UTC."""
+    """AVAILABLE_ET (13:05) America/New_York on the auction day, canonical UTC."""
     et = session._eastern_tz()
     local = dt.datetime.combine(dt.date.fromisoformat(auction_day), AVAILABLE_ET,
                                 tzinfo=et)
@@ -117,7 +157,7 @@ def rows_from_records(records: list[dict]) -> list[dict]:
     seen: set[tuple[str, str]] = set()
     for rec in records:
         btc = _num(rec.get("bidToCoverRatio"))
-        day = str(rec.get("auctionDate") or "")[:10]
+        day = str(field(rec, "day") or "")[:10]
         if btc is None or len(day) != 10:
             continue
         typ = str(rec.get("type") or rec.get("securityType") or "").strip()
@@ -137,13 +177,12 @@ def rows_from_records(records: list[dict]) -> list[dict]:
         base = {"instrument": inst, "observed_at": day, "available_at": avail,
                 "availability_kind": "reconstructed"}
         vals: dict[str, Any] = {"auction.bid_to_cover": btc}
-        comp = _num(rec.get("competitiveAccepted"))
+        comp = _num(field(rec, "competitive"))
         if comp and comp > 0:
-            for key, field in (("auction.dealer_share", "primaryDealerAccepted"),
-                               ("auction.direct_share", "directBidderAccepted"),
-                               ("auction.indirect_share",
-                                "indirectBidderAccepted")):
-                x = _num(rec.get(field))
+            for key, name in (("auction.dealer_share", "dealer"),
+                              ("auction.direct_share", "direct"),
+                              ("auction.indirect_share", "indirect")):
+                x = _num(field(rec, name))
                 if x is not None:
                     vals[key] = round(x / comp, 8)
         if typ in COUPON_TYPES:
@@ -163,7 +202,7 @@ def rows_from_records(records: list[dict]) -> list[dict]:
 def _ranges(db: Optional[observations.ObservationStore]) -> list[tuple[str, str]]:
     today = session.session_date_obj()
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = pub.newest_observed(store, ["auction.bid_to_cover"])
     finally:
@@ -182,7 +221,7 @@ def _ranges(db: Optional[observations.ObservationStore]) -> list[tuple[str, str]
 
 def fetch_records(start: str, end: str) -> list[dict]:
     data = http_get_json(URL, params={"startDate": start, "endDate": end,
-                                      "dateFieldName": "auctionDate",
+                                      "dateFieldName": DATE_FIELD,
                                       "format": "json"}, timeout=60)
     if not isinstance(data, list):
         raise ValueError(f"TreasuryDirect returned {type(data).__name__}, "
@@ -190,12 +229,44 @@ def fetch_records(start: str, end: str) -> list[dict]:
     return data
 
 
+def result_time(rec: dict) -> Optional[str]:
+    """G-30: the record's own result timestamp, canonical UTC, when it is on the
+    auction day; None otherwise (the 13:05 fallback stands)."""
+    day = str(rec.get("competitiveAuctionCloseDate") or rec.get("auctionDate") or "")[:10]
+    ts = str(rec.get("updatedTimestamp") or "").strip()
+    if len(day) != 10 or len(ts) < 16 or ts[:10] != day:
+        return None
+    try:
+        local = dt.datetime.fromisoformat(ts[:19]).replace(tzinfo=session._eastern_tz())
+    except ValueError:
+        return None
+    return observations.canonical_instant(local.astimezone(dt.timezone.utc).isoformat())
+
+
+def apply_result_times(rows: list[dict], records: list[dict]) -> list[dict]:
+    """The rows with each auction's own result time (G-30) where its record
+    carries one. Keyed by (cusip, day): the rows carry the cusip as a value."""
+    times = {}
+    for rec in records:
+        t = result_time(rec)
+        if t and rec.get("cusip"):
+            day = str(rec.get("competitiveAuctionCloseDate") or rec.get("auctionDate"))[:10]
+            times[(str(rec["cusip"]).strip(), day)] = t
+    by_inst = {(r["instrument"], r["observed_at"]): r["value"] for r in rows
+               if r["registry_key"] == "auction.cusip"}
+    out = []
+    for r in rows:
+        t = times.get((by_inst.get((r["instrument"], r["observed_at"])), r["observed_at"]))
+        out.append(dict(r, available_at=t, availability_kind="observed") if t else r)
+    return out
+
+
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     def produce() -> list[dict]:
         records: list[dict] = []
         for start, end in _ranges(db):
             records.extend(fetch_records(start, end))
-        return rows_from_records(records)
+        return apply_result_times(rows_from_records(records), records)
     return pub.run(SOURCE, KEYS, produce, run_id=run_id, db=db)
 
 

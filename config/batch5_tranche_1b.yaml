@@ -1,0 +1,126 @@
+# Batch 5 Tranche 1, part 2 (signal-triage round 4, part 2; filed 9 Oct 2026):
+# items 18, 19, 22 and 27. Read by altdata/batch5b.py; printed by
+# daily_cascade/batch5b_block.py. Report-only: flags, a base-rate line and a
+# co-signal, never a state, a modifier or a rule.
+#
+# Every value below is the ORDER'S where the order gives one, and SESSION-SET
+# (16 Oct 2026, session B, branch st-r4-tranche-1b) where it does not, with its
+# reason beside it. The session-set ones are listed for Ari in
+# docs/briefs/st-r4-tranche-1b-notes.md.
+version: 1
+
+# ---------------------------------------------------------------------------
+# ST-R4.18a -- THE DISPERSION PANEL (Mechanics)
+# ---------------------------------------------------------------------------
+dispersion:
+  # Each index reads the FIRST key holding rows as of the cutoff: Cboe's own
+  # history file (altdata/sources/cboe_indices.py; ruling (e), 16 Oct 2026, "the
+  # COR1M and COR3M history is wanted"), then Yahoo's pull. One series is never
+  # spliced from two sources.
+  dspx: [cboe.dspx, yfinance.mkt_dspx]     # Cboe S&P 500 Dispersion Index
+  cor1m: [cboe.cor1m, yfinance.mkt_cor1m]  # Cboe 1-month implied correlation
+  cor3m: [cboe.cor3m, yfinance.mkt_cor3m]  # Cboe 3-month implied correlation
+  # "Dual percentiles" (the order): SESSION-SET at 1 and 5 years. Cboe's files
+  # start 2006 (COR1M, COR3M) and June 2014 (DSPX), so both windows are full from
+  # the first pull; on Yahoo's fallback the long window prints its real span and n.
+  windows_years: [1, 5]
+  # THE FLAG, "dispersion regime: high or low" (the order's words; threshold
+  # session-set): DSPX at or above its 80th percentile of the longest window it
+  # holds is high, at or below the 20th is low, between them no flag. The
+  # quintile edges, because the order asks for a regime, not a tail event.
+  high_pct: 80
+  low_pct: 20
+  # Below this many sessions the flag is withheld and says why (session-set: one
+  # trading year, the shortest window above).
+  min_n: 250
+  # The order's tactical pairing: high dispersion with LOW implied correlation
+  # is where single names carry the edge over the index. Printed as a line when
+  # DSPX is high and COR3M sits at or below this percentile (session-set, the
+  # same quintile edge).
+  cor_low_pct: 20
+  # THE FREE FALLBACK: realized cross-sectional dispersion from S&P 500
+  # constituent returns. The closes come from the writer session A builds for
+  # Batch 6 item 44, altdata/sources/sp500_members.py on st-r5-t1-rest (HELD for
+  # D1c): sp500.member_close, one registry key, instrument = the member's ticker
+  # in Yahoo's form, the daily close in USD, split-adjusted and dividend-
+  # unadjusted (session A, 16 Oct 2026). Until it has rows the panel prints
+  # "awaiting constituent prices".
+  realized:
+    key: sp500.member_close
+    sessions: 21                     # session-set: one trading month
+    min_names: 100                   # session-set: a day with fewer is skipped
+  # ST-R4.18b, the FlashAlpha cross-check, is NOT a by-hand key: the by-hand
+  # audit (ruled 16 Oct 2026; CLAUDE.md standing rule 3) leaves one manual key,
+  # manual.global_pmi, and this line has no explicit yes. Its two keys were
+  # dropped at the chain-2 stitch (19 Oct); with no `manual:` block the panel
+  # prints no FlashAlpha row. A yes would restore the block and the two keys.
+
+# ---------------------------------------------------------------------------
+# ST-R4.19a -- THE CROSS-ASSET VOL DIVERGENCE FLAG (Mechanics)
+# ---------------------------------------------------------------------------
+vol_divergence:
+  move: yfinance.mkt_move
+  vix: yfinance.mkt_vix
+  # THE ORDER'S: z over a one-year rolling window (verify item 3: as ruled, not
+  # re-read from Dashiell's post), percentile ranks beside z.
+  window_sessions: 252
+  # The window must be at least this full to compute (session-set: 90% of it).
+  min_sessions: 227
+  # THE ORDER'S TIERS: watch when MOVE's z > +0.5 and VIX's z < +0.4; strong
+  # when MOVE's z > +1.0 and VIX's z < +0.4. Strict inequalities, as written.
+  watch_move_z: 0.5
+  strong_move_z: 1.0
+  vix_z_below: 0.4
+  # THE CONDITIONER (the order's): the flag is discounted when the T&B bottom
+  # signal fired within the prior 12 months. T&B is not built, so `key` is null
+  # and the block prints "T&B not built; conditioner inactive". When T&B stores
+  # its bottom signal, set `key` to that series (a row with value 1 on a day it
+  # fired) and the path below is live.
+  tb_bottom:
+    key: null
+    months: 12
+
+# ---------------------------------------------------------------------------
+# ST-R4.22a / 22b -- THE SLOW LAYERS AND FACTOR I
+# ---------------------------------------------------------------------------
+expansion:
+  fixture: config/nber_expansions.yaml
+  # The hazard's horizon (the order's): the share of post-war expansions that
+  # reached this age and ended within the next 12 months.
+  horizon_months: 12
+
+factor_i:
+  info_equipment: fred.contrib_info_equipment   # Y034RY2Q224SBEA
+  software: fred.contrib_software                # B985RY2Q224SBEA
+  real_gdp: fred.real_gdp                        # GDPC1, the total's denominator
+  quarters: 4                                    # session-set: the table's rows
+
+# ---------------------------------------------------------------------------
+# ST-R4.27a -- OVERNIGHT VS SESSION (Positioning & flows; a co-signal)
+# ---------------------------------------------------------------------------
+overnight:
+  instruments:
+    - {label: "TLT (20+ year Treasury ETF)", close: yfinance.mkt_tlt,
+       open: yfinance.mkt_tlt_open, foreign_hours: true}
+    - {label: "ZN=F (10-year note future, front)", close: yfinance.mkt_zn_front,
+       open: yfinance.mkt_zn_front_open, foreign_hours: false}
+  # THE ORDER'S: each leg cumulated over 20 sessions.
+  sessions: 20
+  # THE CO-SIGNAL (SR-36's unwind watch and the Japan slow-money set). The order
+  # gives no threshold; SESSION-SET to the unwind watch's own rule for its other
+  # co-signals: TLT's 20-session overnight leg at 2 sigma against five years of
+  # 20-session overnight legs, on the falling-price (rising-yield) side only --
+  # "a rising-yield move carried mostly overnight is the foreign-hours-selling
+  # signature".
+  sigma: 2.0
+  history_days: 1826
+  # ZN=F'S CAVEAT, measured 16 Oct 2026 on two years of Yahoo daily bars: its
+  # daily bar opens at the 18:00 ET reopen, so its "overnight" leg is only the
+  # gap from the prior close to the reopen (sd 0.12% a day against 0.30% for the
+  # session leg) and Asian hours fall in its session leg. TLT's open is 09:30 ET,
+  # so its overnight leg holds Asia and Europe (sd 0.59% against 0.50%). The
+  # co-signal reads TLT; ZN=F prints beside it, with this note.
+  zn_note: >-
+    ZN=F's daily bar opens at the 18:00 ET reopen, so its overnight leg is only
+    the gap to the reopen and Asian hours fall in its session leg; TLT's split
+    is the one that reads foreign hours.

@@ -1,0 +1,27 @@
+# edgar_xbrl.yaml -- what the EDGAR XBRL reader (altdata/sources/edgar_xbrl.py)
+# reads beyond GTM-4's bridge (config/ai_buckets.yaml `bridge`). Signal-triage ST-4
+# (st-t1-rest, 18 Oct 2026): the inputs of calc.hs_netdebt_12m, calc.self_fund_ratio
+# and calc.mu_inv_days, which the order once fed from yfinance mirrors and manual
+# keys; EDGAR's filed facts replace them where a tag serves (rule 30: no by-hand
+# key). Each field lists its tags in order; the first one a filer carries wins, and
+# a filer with none writes nothing ("not stored" downstream).
+
+# The hyperscalers' balance sheets at each calendar year-end, from EDGAR's annual
+# INSTANT frames (CY<year>Q4I) -- the same filers as the bridge.
+balance:
+  first_year: 2019
+  tags:
+    long_term_debt: [LongTermDebt, LongTermDebtNoncurrent]
+    cash: [CashAndCashEquivalentsAtCarryingValue,
+           CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents]
+
+# Micron's quarterly inventory and cost of goods, from its own company-concept
+# files (one small file per tag, every period it has filed): two calls, not a
+# frame per quarter. Micron's fiscal quarters end late in Nov, Feb, May and Aug.
+memory:
+  ticker: MU
+  cik: 723125
+  quarters: 12
+  tags:
+    inventory: [InventoryNet]
+    cogs: [CostOfGoodsAndServicesSold, CostOfRevenue]

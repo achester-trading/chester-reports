@@ -92,6 +92,10 @@ KNOWN: dict[str, tuple[set[str], set[str] | None]] = {
     "ProtectKernelTunables":  ({"Service"}, BOOL),
     "ProtectControlGroups":   ({"Service"}, BOOL),
     "RestrictSUIDSGID":       ({"Service"}, BOOL),
+    # AUD-2 item 3: the cgroup memory caps, and item 2: the OOM killer's order.
+    "MemoryHigh":             ({"Service"}, None),
+    "MemoryMax":              ({"Service"}, None),
+    "OOMScoreAdjust":         ({"Service"}, None),
 
     # [Timer]
     "OnCalendar":             ({"Timer"}, None),
@@ -329,11 +333,413 @@ def check_environment_file() -> None:
                         f"without .env would fail to start the unit entirely")
     print()
 
+# AUD-2 (ruled 14 Oct 2026), sized for the 8 GB box (CX33, from 17 Oct). The
+# values are SESSION-SET; deploy/systemd/README.md and docs/briefs/aud-2-notes.md
+# carry them and why. (MemoryHigh, MemoryMax) per heavy unit.
+# THE CAPS FOLLOW THE MACHINE (6b part 3; ruled 17 Oct 2026: the rescale did not
+# happen, the box stays at 4 GB). Each cap is a PERCENTAGE of physical memory; the
+# 8 GB case each equals -- AUD-2's absolute figures -- is kept beside it, and the
+# rule is checked at 4 GB and at 8 GB. (MemoryHigh %, MemoryMax %, 8 GB high,
+# 8 GB max)
+MEMORY_CAPS = {
+    "chester-eod.service":         ("20%", "25%", "1.6G", "2G"),
+    "chester-daily-close.service": ("20%", "25%", "1.6G", "2G"),
+    "chester-weekly.service":      ("25%", "31%", "2G", "2.5G"),
+    "chester-monthly.service":     ("25%", "31%", "2G", "2.5G"),
+    "chester-voices.service":      ("10%", "12%", "0.8G", "1G"),
+    "chester-backup.service":      ("15%", "19%", "1.2G", "1.5G"),
+}
+MACHINES_GB = (4, 8)
+# The heavy units' caps may sum past the machine (they never all run at once) but
+# not past 1.5 times it -- AUD-2's plausibility bound, now in percent.
+CAP_SUM_LIMIT_PCT = 150.0
+
+
+def _pct(v: str) -> float:
+    m = re.fullmatch(r"([\d.]+)%", v or "")
+    return float(m.group(1)) if m else float("nan")
+
+
+def cap_at(v: str, gb: float) -> float:
+    """A cap in GiB on a machine of `gb`: a percentage scales, a size does not."""
+    return _pct(v) / 100.0 * gb if str(v).endswith("%") else _gib(v)
+# THE OOM ORDER (ruled 14 Oct 2026 evening). A report can be rendered again; a
+# day's chains cannot be fetched again; the Gateway needs Ari's supervised login.
+# So the kernel, if the caps are not enough, takes a report first, the EOD capture
+# next, the Gateway last. Raising a score needs no privilege, so the order holds
+# even if a --user unit is refused the Gateway's -500.
+OOM_SCORES = {
+    "ibgateway.service":             -500,
+    "chester-eod.service":            300,
+    "chester-daily-close.service":    500,
+    "chester-weekly.service":         500,
+    "chester-monthly.service":        500,
+    "chester-voices.service":         500,
+    "chester-backup.service":         500,
+    "chester-restore-test.service":   500,
+    # The secondary notes (19 Oct 2026): reports, rendered again at will.
+    "chester-open-note.service":      500,
+    "chester-evening-note.service":   500,
+}
+REPORT_UNITS = [u for u, v in OOM_SCORES.items()
+                if u not in ("ibgateway.service", "chester-eod.service")]
+# THE INTRADAY DEALER CAPTURES (6b part 2, session-set): capped and scored as
+# captures (a chain cannot be fetched again: 300, as the EOD pass), checked unit
+# by unit and kept OUT of the sum above -- they run at 09:45 and 12:30, when no
+# heavy unit runs. Their timers are not in DEPLOY_TIMERS: enabling them is the
+# operator's. (unit, (MemoryHigh, MemoryMax), timer's OnCalendar)
+CAPTURE_UNITS = {
+    "chester-dealer-0945.service": (("10%", "12%"), "Mon-Fri 09:45 America/New_York"),
+    "chester-dealer-1230.service": (("10%", "12%"), "Mon-Fri 12:30 America/New_York"),
+    # M-3 (18 Oct 2026): the vendor chains at 16:31, after SPX's 16:15 close with
+    # Massive's 15-minute delay, before the 16:45 close.
+    "chester-vendor-chains.service": (("10%", "12%"), "Mon-Fri 16:31 America/New_York"),
+}
+# THE VENDOR WRITER (6b part 3): 16:25 ET, a report's OOM score, not deployed.
+VENDOR_UNIT = ("chester-flashalpha.service", ("4%", "5%"), "Mon-Fri 16:25 America/New_York")
+SANDBOX = ("NoNewPrivileges=true", "PrivateTmp=true", "ProtectSystem=strict")
+
+
+def directives(path: Path) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith(("#", ";", "[")) or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        out.setdefault(k.strip(), []).append(v.strip())
+    return out
+
+
+def _gib(v: str) -> float:
+    m = re.fullmatch(r"([\d.]+)([KMG]?)", v)
+    if not m:
+        return float("nan")
+    return float(m.group(1)) * {"K": 1 / 1048576, "M": 1 / 1024, "G": 1.0, "": 1 / 2**30}[m.group(2)]
+
+
+def _minutes(span: str) -> float:
+    """A systemd time span (2h, 2h30min, 5min, 780) in minutes."""
+    total = 0.0
+    for n, u in re.findall(r"([\d.]+)\s*(h|min|m|s)?", span):
+        total += float(n) * {"h": 60, "min": 1, "m": 1, "s": 1 / 60, "": 1 / 60}[u or ""]
+    return total
+
+
+def check_aud2(unit_dir: Path = UNIT_DIR) -> list[str]:
+    """The AUD-2 unit rules; returns the faults (empty when all hold)."""
+    faults = []
+    for name, (high, mx, h8, m8) in MEMORY_CAPS.items():
+        d = directives(unit_dir / name)
+        if d.get("MemoryHigh") != [high] or d.get("MemoryMax") != [mx]:
+            faults.append(f"{name}: MemoryHigh/MemoryMax {d.get('MemoryHigh')}/"
+                          f"{d.get('MemoryMax')}, want {high}/{mx} (percentages: the "
+                          f"caps follow the machine)")
+        elif not _pct(high) < _pct(mx):
+            faults.append(f"{name}: MemoryHigh must sit below MemoryMax")
+        # The 8 GB case the percentages equal is AUD-2's, within a rounding step.
+        elif abs(cap_at(mx, 8) - _gib(m8)) > 0.05 or abs(cap_at(high, 8) - _gib(h8)) > 0.05:
+            faults.append(f"{name}: {high}/{mx} at 8 GB is not AUD-2's {h8}/{m8}")
+    for gb in MACHINES_GB:
+        total = sum(cap_at(mx, gb) for _, mx, _, _ in MEMORY_CAPS.values())
+        if total > gb * CAP_SUM_LIMIT_PCT / 100.0:
+            faults.append(f"the caps sum to {total:.2f}G, implausible on a {gb} GB box")
+    # No capped unit carries an absolute cap: the rule is that every cap follows
+    # the machine.
+    for p in sorted(unit_dir.glob("*.service")):
+        d = directives(p)
+        for k in ("MemoryHigh", "MemoryMax"):
+            for v in d.get(k, []):
+                if not str(v).endswith("%"):
+                    faults.append(f"{p.name}: {k}={v} is absolute; the caps follow "
+                                  f"the machine (a percentage)")
+    auc = directives(unit_dir / "chester-auction.service")
+    if any("ibgateway" in v for k in ("Wants", "Requires", "BindsTo")
+           for v in auc.get(k, [])):
+        faults.append("chester-auction.service still pulls in ibgateway.service")
+    for kv in SANDBOX:
+        k, v = kv.split("=")
+        if auc.get(k) != [v]:
+            faults.append(f"chester-auction.service lacks {kv}")
+    # The narrowest it can run with: its log, its status and lock (the state
+    # directory: ~/state on this box through its declared drop-in, ~/.chester by
+    # default; ruling 7, 19 Oct 2026), and the checkout (the wrapper's git pull;
+    # data/chester.db). Nothing else.
+    rw = " ".join(auc.get("ReadWritePaths", []))
+    if sorted(rw.split()) != sorted(["%h/logs", "%h/.chester", "-%h/state",
+                                     "%h/chester-reports"]):
+        faults.append(f"chester-auction.service ReadWritePaths not narrow ({rw!r})")
+    score: dict = {}
+    for name, want in OOM_SCORES.items():
+        got = directives(unit_dir / name).get("OOMScoreAdjust")
+        try:
+            score[name] = int(got[0]) if got and len(got) == 1 else None
+        except ValueError:
+            score[name] = None
+        if score[name] != want:
+            faults.append(f"{name}: OOMScoreAdjust {got}, want {want}")
+    # The order itself, so a re-tuned value cannot quietly invert it: the Gateway
+    # lowest of all, the EOD capture below every report.
+    gw, eod = score["ibgateway.service"], score["chester-eod.service"]
+    if gw is not None and any(v is not None and v <= gw for k, v in score.items()
+                              if k != "ibgateway.service"):
+        faults.append("the Gateway's OOM score is not the lowest")
+    if eod is not None and any(score[u] is not None and score[u] <= eod
+                               for u in REPORT_UNITS):
+        faults.append("the EOD capture's OOM score is not below every report's")
+    faults += check_captures(unit_dir, score)
+    bk = directives(unit_dir / "chester-backup.service")
+    bt = directives(unit_dir / "chester-backup.timer")
+    wk = directives(unit_dir / "chester-weekly.timer")
+    if bk.get("TimeoutStartSec") != ["2h"]:
+        faults.append(f"chester-backup.service TimeoutStartSec "
+                      f"{bk.get('TimeoutStartSec')}, want 2h")
+    start = re.search(r"(\d\d):(\d\d)", (bt.get("OnCalendar") or [""])[0])
+    wstart = re.search(r"(\d\d):(\d\d)", (wk.get("OnCalendar") or [""])[0])
+    if start and wstart:
+        end = (int(start[1]) * 60 + int(start[2])
+               + _minutes((bt.get("RandomizedDelaySec") or ["0"])[0])
+               + _minutes((bk.get("TimeoutStartSec") or ["0"])[0]))
+        if end >= int(wstart[1]) * 60 + int(wstart[2]):
+            faults.append(f"the backup can run to {int(end // 60):02d}:"
+                          f"{int(end % 60):02d}, into the Weekly at "
+                          f"{wstart[1]}:{wstart[2]}")
+    else:
+        faults.append("could not read the backup's or the Weekly's OnCalendar")
+    return faults
+
+
+def check_captures(unit_dir: Path, score: dict) -> list[str]:
+    """6b part 2's capture units: caps, the OOM order (below every report,
+    above the Gateway), the sandbox, the wrapper, the calendar, and their timers
+    left out of DEPLOY_TIMERS."""
+    faults = []
+    remote = (Path(__file__).resolve().parent.parent / "scripts" / "deploy_remote.sh")
+    timers = remote.read_text(encoding="utf-8") if remote.exists() else ""
+    for name, ((high, mx), cal) in CAPTURE_UNITS.items():
+        p = unit_dir / name
+        if not p.exists():
+            faults.append(f"{name}: missing")
+            continue
+        d = directives(p)
+        if d.get("MemoryHigh") != [high] or d.get("MemoryMax") != [mx]:
+            faults.append(f"{name}: MemoryHigh/MemoryMax {d.get('MemoryHigh')}/"
+                          f"{d.get('MemoryMax')}, want {high}/{mx}")
+        oom = d.get("OOMScoreAdjust")
+        try:
+            v = int(oom[0]) if oom and len(oom) == 1 else None
+        except ValueError:
+            v = None
+        gw = score.get("ibgateway.service")
+        if v is None or (gw is not None and v <= gw) or any(
+                score.get(u) is not None and score[u] <= v for u in REPORT_UNITS):
+            faults.append(f"{name}: OOMScoreAdjust {oom}: must sit above the Gateway "
+                          f"and below every report")
+        for kv in SANDBOX:
+            k, val = kv.split("=")
+            if d.get(k) != [val]:
+                faults.append(f"{name} lacks {kv}")
+        slot = name.split("-")[-1].split(".")[0]
+        if d.get("ExecStart") != [f"%h/chester-reports/scripts/run_dealer_capture.sh {slot}"]:
+            faults.append(f"{name}: ExecStart {d.get('ExecStart')}")
+        if d.get("EnvironmentFile") != ["-%h/chester-reports/.env"]:
+            faults.append(f"{name}: EnvironmentFile not the optional repo one")
+        t = directives(p.with_suffix(".timer"))
+        if t.get("OnCalendar") != [cal]:
+            faults.append(f"{name[:-8]}.timer: OnCalendar {t.get('OnCalendar')}, want {cal}")
+        if t.get("Persistent") != ["false"]:
+            faults.append(f"{name[:-8]}.timer: Persistent must be false")
+        if p.with_suffix(".timer").name in timers:
+            faults.append(f"{p.with_suffix('.timer').name} is in DEPLOY_TIMERS: enabling "
+                          f"it is the operator's")
+    vname, (vh, vm), vcal = VENDOR_UNIT
+    vp = unit_dir / vname
+    if not vp.exists():
+        faults.append(f"{vname}: missing")
+    else:
+        d = directives(vp)
+        t = directives(vp.with_suffix(".timer"))
+        if d.get("MemoryHigh") != [vh] or d.get("MemoryMax") != [vm]:
+            faults.append(f"{vname}: caps {d.get('MemoryHigh')}/{d.get('MemoryMax')}")
+        if d.get("OOMScoreAdjust") != ["500"]:
+            faults.append(f"{vname}: OOMScoreAdjust must be a report's 500")
+        if d.get("EnvironmentFile") != ["-%h/chester-reports/.env"]:
+            faults.append(f"{vname}: EnvironmentFile not the optional repo one")
+        if t.get("OnCalendar") != [vcal] or t.get("Persistent") != ["false"]:
+            faults.append(f"chester-flashalpha.timer: {t.get('OnCalendar')} / "
+                          f"Persistent {t.get('Persistent')}")
+        if "chester-flashalpha.timer" in timers:
+            faults.append("chester-flashalpha.timer is in DEPLOY_TIMERS")
+    return faults
+
+
+# ---------------------------------------------------------------------------
+# THE STATE DIRECTORY (ruling 7, 19 Oct 2026). This box keeps status files,
+# records and locks in ~/state through Environment drop-ins that box-config.allow
+# declares; a wrapper's default is ~/.chester. A unit that shares a file with the
+# heartbeat or another unit through that directory must point at the same one:
+# declared there, and able to write ~/state under ProtectSystem=strict. The
+# restore test was the case that was not (it reads the backup's record).
+ALLOW = UNIT_DIR / "box-config.allow"
+HEARTBEAT_SCRIPT = REPO / "scripts" / "check_heartbeat_cron.sh"
+# Records one unit reads that another unit writes, by file name -> the writer.
+STATE_READERS = {"chester-restore-test.service": {"backup_snapshot": "chester-backup.service"}}
+
+
+def declared_units(text: str) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line:
+            parts = line.split()
+            out[parts[0]] = parts[1:]
+    return out
+
+
+def _wrapper(unit: Path) -> str:
+    for v in directives(unit).get("ExecStart", []):
+        m = re.search(r"%h/chester-reports/(scripts/\S+\.sh)", v)
+        if m and (REPO / m.group(1)).exists():
+            return (REPO / m.group(1)).read_text(encoding="utf-8")
+    return ""
+
+
+def _state_files(wrapper: str) -> set[str]:
+    """The literal file names a wrapper keeps under $STATE_DIR."""
+    return set(re.findall(r'\$STATE_DIR/([A-Za-z0-9_.-]+)"', wrapper))
+
+
+def state_dir_faults(unit_dir: Path, allow_text: str, heartbeat_text: str,
+                     readers: dict) -> list[str]:
+    faults: list[str] = []
+    declared = declared_units(allow_text)
+    hb_reads = set(re.findall(r'\$STATE_DIR/([A-Za-z0-9_.-]+)', heartbeat_text))
+    for name in declared:
+        if not (unit_dir / name).exists():
+            faults.append(f"box-config.allow declares {name}, which deploy/systemd does not ship")
+    for unit in sorted(unit_dir.glob("*.service")):
+        wr = _wrapper(unit)
+        if "CHESTER_STATE_DIR" not in wr:
+            continue
+        shared = _state_files(wr) & hb_reads
+        if unit.name == "chester-heartbeat.service":
+            shared = set()
+        if shared and "Environment" not in declared.get(unit.name, []):
+            faults.append(f"{unit.name} writes {sorted(shared)}, which the heartbeat reads "
+                          f"from the state directory, and box-config.allow does not "
+                          f"declare its Environment drop-in")
+        d = directives(unit)
+        rw = " ".join(d.get("ReadWritePaths", [])).split()
+        if ("Environment" in declared.get(unit.name, []) and d.get("ProtectSystem") == ["strict"]
+                and "-%h/state" not in rw and "%h/state" not in rw):
+            faults.append(f"{unit.name} is declared for the state drop-in but cannot write "
+                          f"~/state under ProtectSystem=strict ({' '.join(rw)})")
+    for reader, recs in readers.items():
+        for rec, writer in recs.items():
+            for u in (reader, writer):
+                if "Environment" not in declared.get(u, []):
+                    faults.append(f"{u} shares {rec} through the state directory and "
+                                  f"box-config.allow does not declare its drop-in")
+            if rec not in _state_files(_wrapper(unit_dir / reader)) | set(
+                    re.findall(r'\$STATE_DIR/([A-Za-z0-9_.-]+)', _wrapper(unit_dir / reader))):
+                faults.append(f"{reader}'s wrapper no longer reads $STATE_DIR/{rec}")
+    return faults
+
+
+def state_dir() -> None:
+    print(f"\n{LINE}\nTHE STATE DIRECTORY (ruling 7, 19 Oct 2026): one directory per box\n{LINE}")
+    allow = ALLOW.read_text(encoding="utf-8")
+    hb = HEARTBEAT_SCRIPT.read_text(encoding="utf-8")
+    faults = state_dir_faults(UNIT_DIR, allow, hb, STATE_READERS)
+    if faults:
+        for f in faults:
+            bad(f)
+    else:
+        ok("every unit sharing a status, record or lock with the heartbeat or another "
+           "unit through the state directory is declared in box-config.allow and may "
+           "write ~/state; every declared unit is shipped")
+    # The check fires: without the restore test's line, its reading of the
+    # backup's record and its status the heartbeat reads are both caught.
+    cut = "\n".join(l for l in allow.splitlines()
+                    if not l.startswith("chester-restore-test.service"))
+    got = state_dir_faults(UNIT_DIR, cut, hb, STATE_READERS)
+    if any("chester-restore-test.service shares backup_snapshot" in f for f in got) and any(
+            "chester-restore-test.service writes ['restore_test_status']" in f for f in got):
+        ok("planted: the allow list without the restore test's line fails on both counts")
+    else:
+        bad(f"planted: removing the restore test's declaration was not caught ({got})")
+
+
+def aud2() -> None:
+    print(f"\n{LINE}\nAUD-2: memory caps, the auction unit, the Gateway's OOM order, "
+          f"the backup's end\n{LINE}")
+    faults = check_aud2()
+    if faults:
+        for f in faults:
+            bad(f)
+    else:
+        ok(f"the six heavy units carry their caps as percentages ({', '.join(f'{k.split('.')[0]} {h}/{m}' for k, (h, m, _, _) in MEMORY_CAPS.items())}); "
+           f"at 4 GB they sum to {sum(cap_at(m, 4) for _, m, _, _ in MEMORY_CAPS.values()):.2f}G "
+           f"and at 8 GB to {sum(cap_at(m, 8) for _, m, _, _ in MEMORY_CAPS.values()):.2f}G, "
+           f"each 8 GB figure AUD-2's; "
+           f"the auction unit neither wants nor starts the Gateway and runs "
+           f"sandboxed; the OOM order holds (Gateway -500 < EOD 300 < the reports "
+           f"500); the backup ends by 04:35, "
+           f"before the 05:00 Weekly")
+    # The rules are themselves checked: each defect, alone, is caught.
+    import shutil
+    import tempfile
+    for label, unit, old, new in (
+            ("a missing cap", "chester-weekly.service", "MemoryMax=31%", ""),
+            ("an absolute cap back", "chester-weekly.service", "MemoryMax=31%",
+             "MemoryMax=2.5G"),
+            ("a percentage off the 8 GB case", "chester-eod.service", "MemoryMax=25%",
+             "MemoryMax=40%"),
+            ("the Gateway wanted again", "chester-auction.service",
+             "[Unit]", "[Unit]\nWants=ibgateway.service"),
+            ("no OOM order", "ibgateway.service", "OOMScoreAdjust=-500", ""),
+            ("the Gateway above the capture", "ibgateway.service",
+             "OOMScoreAdjust=-500", "OOMScoreAdjust=400"),
+            ("the capture level with the reports", "chester-eod.service",
+             "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
+            ("a report below the capture", "chester-voices.service",
+             "OOMScoreAdjust=500", "OOMScoreAdjust=200"),
+            ("a report with no score", "chester-restore-test.service",
+             "OOMScoreAdjust=500", ""),
+            ("the old 2h30 timeout", "chester-backup.service",
+             "TimeoutStartSec=2h", "TimeoutStartSec=2h30min"),
+            # 6b part 2: the capture units.
+            ("a capture without its cap", "chester-dealer-0945.service",
+             "MemoryMax=12%", ""),
+            ("the vendor writer at the wrong minute", "chester-flashalpha.timer",
+             "OnCalendar=Mon-Fri 16:25", "OnCalendar=Mon-Fri 16:05"),
+            ("a capture level with the reports", "chester-dealer-1230.service",
+             "OOMScoreAdjust=300", "OOMScoreAdjust=500"),
+            ("a capture timer that catches up", "chester-dealer-1230.timer",
+             "Persistent=false", "Persistent=true"),
+            ("a capture at the wrong minute", "chester-dealer-0945.timer",
+             "OnCalendar=Mon-Fri 09:45", "OnCalendar=Mon-Fri 09:30")):
+        with tempfile.TemporaryDirectory() as td:
+            for f in UNIT_DIR.iterdir():
+                if f.is_file():
+                    shutil.copy(f, td)
+            p = Path(td) / unit
+            p.write_text(p.read_text(encoding="utf-8").replace(old, new, 1),
+                         encoding="utf-8")
+            check(bool(check_aud2(Path(td))), f"and {label} in {unit} is caught")
+
+
+def check(c: bool, m: str) -> None:
+    ok(m) if c else bad(m)
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     self_test()
     check_environment_file()
+    aud2()
+    state_dir()
     units = sorted(list(UNIT_DIR.glob("*.service")) + list(UNIT_DIR.glob("*.timer")))
     print(f"{LINE}\nsystemd units shipped in deploy/systemd/\n{LINE}")
     if not units:

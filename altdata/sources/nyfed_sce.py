@@ -8,11 +8,24 @@ UMich 5-10y and the Fed Board's CIE.
 
 SOURCE. https://www.newyorkfed.org/medialibrary/interactives/sce/sce/downloads/
 data/frbny-sce-data.xlsx -- one workbook, no key, read with the stdlib .xlsx reader.
-  "Inflation expectations"     column "Median three-year ahead expected inflation
-                               rate", monthly from June 2013
-  "Five-year ahead Infl Exp"   the five-year median, a shorter history (added to
-                               the survey in 2022)
 Dates are YYYYMM numbers; values are PERCENT.
+
+THE SHEETS ARE FOUND BY PATTERN (writer-fixes-1, 17 Oct 2026). The first full
+pull on the box failed "SCE workbook has no sheet 'Five-year ahead Infl Exp'":
+the NY Fed reshaped the workbook, and the five-year median is now a column of
+the "Inflation expectations" sheet beside the one- and three-year (read 17 Oct
+2026; tests/fixtures/nyfed_sce/workbook_2026-10.json holds every sheet name and
+that sheet's header). So each key names a pattern for its sheet and one for its
+column, and takes the first sheet that carries a matching column:
+
+  nyfed.sce_3y   "Median three-year ahead expected inflation rate", monthly from
+                 June 2013 (the key the report already prints, unchanged)
+  nyfed.sce_5y   "Median five-year ahead expected inflation rate"; the older
+                 "Five-year ahead Infl Exp" sheet still matches if it returns
+
+The demographic, distribution and uncertainty sheets never match. A key whose
+column is found nowhere is logged with the sheet list and left absent; the rest
+is written. No sheet matching at all raises, with the sheet list.
 
   nyfed.sce_3y, nyfed.sce_5y   observed_at = the survey month's first day (month_start)
 
@@ -25,6 +38,7 @@ is revised only rarely; revision_policy: revised, so a restatement is a vintage.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Optional
 
 from . import _publication as pub
@@ -35,8 +49,13 @@ log = logging.getLogger(__name__)
 SOURCE = "nyfed_sce"
 URL = ("https://www.newyorkfed.org/medialibrary/interactives/sce/sce/downloads/"
        "data/frbny-sce-data.xlsx")
-SHEETS = {"nyfed.sce_3y": ("Inflation expectations", "median three-year"),
-          "nyfed.sce_5y": ("Five-year ahead Infl Exp", "median")}
+# key -> (sheet-name pattern, column-header pattern), case-insensitive. A sheet
+# whose name says Demo, distr or uncertainty is never read.
+SHEETS = {"nyfed.sce_3y": (r"^inflation exp(ectations)?$|three-year ahead infl",
+                           r"^median three-year ahead expected inflation"),
+          "nyfed.sce_5y": (r"^inflation exp(ectations)?$|five-year ahead infl",
+                           r"^median five-year ahead expected inflation|^median$")}
+NEVER = re.compile(r"demo|distr|uncertain", re.I)
 KEYS = list(SHEETS)
 
 
@@ -51,23 +70,38 @@ def _yyyymm(v: Any) -> Optional[str]:
     return pub.month_start(y, m)
 
 
-def rows_from_workbook(book: dict[str, list[list[Any]]], available_at: str,
-                       kind: str) -> list[dict]:
-    out: list[dict] = []
-    for key, (sheet, needle) in SHEETS.items():
-        table = book.get(sheet)
-        if not table:
-            raise ValueError(f"SCE workbook has no sheet {sheet!r}")
-        col = hdr = None
+def find_column(book: dict[str, list[list[Any]]], sheet_rx: str, col_rx: str
+                ) -> Optional[tuple[str, int, int]]:
+    """(sheet, header row, column) of the first sheet whose name matches
+    `sheet_rx` and whose first twelve rows carry a header matching `col_rx`."""
+    for name, table in book.items():
+        if NEVER.search(name) or not re.search(sheet_rx, name.strip(), re.I):
+            continue
         for i, row in enumerate(table[:12]):
             for j, cell in enumerate(row):
-                if isinstance(cell, str) and needle in cell.lower():
-                    col, hdr = j, i
-                    break
-            if col is not None:
-                break
-        if col is None:
-            raise ValueError(f"SCE sheet {sheet!r} has no column matching {needle!r}")
+                if isinstance(cell, str) and re.search(col_rx, cell.strip(), re.I):
+                    return name, i, j
+    return None
+
+
+def rows_from_workbook(book: dict[str, list[list[Any]]], available_at: str,
+                       kind: str, absent: Optional[dict] = None) -> list[dict]:
+    out: list[dict] = []
+    if not any(re.search(sx, n.strip(), re.I) and not NEVER.search(n)
+               for sx, _ in SHEETS.values() for n in book):
+        raise ValueError(f"SCE workbook: no inflation-expectations sheet among "
+                         f"{list(book)}")
+    for key, (sheet_rx, col_rx) in SHEETS.items():
+        hit = find_column(book, sheet_rx, col_rx)
+        if hit is None:
+            why = f"no sheet carries a column matching {col_rx!r}"
+            log.warning("%s: %s; %s absent, the rest written. Sheets: %s",
+                        SOURCE, why, key, list(book))
+            if absent is not None:
+                absent[key] = why
+            continue
+        sheet, hdr, col = hit
+        table = book[sheet]
         for row in table[hdr + 1:]:
             day = _yyyymm(row[0] if row else None)
             v = row[col] if col < len(row) else None
@@ -78,13 +112,18 @@ def rows_from_workbook(book: dict[str, list[list[Any]]], available_at: str,
     return out
 
 
-def _produce() -> list[dict]:
+def _produce(absent: Optional[dict] = None) -> list[dict]:
     data, headers = http_get_response(URL, timeout=120)
-    return rows_from_workbook(pub.read_xlsx(data), *pub.availability(headers))
+    return rows_from_workbook(pub.read_xlsx(data), *pub.availability(headers),
+                              absent=absent)
 
 
 def pull(run_id: Optional[str] = None, db=None) -> dict:
-    return pub.run(SOURCE, KEYS, _produce, run_id=run_id, db=db)
+    absent: dict = {}
+    out = pub.run(SOURCE, KEYS, lambda: _produce(absent), run_id=run_id, db=db)
+    if absent:
+        out["absent"] = absent
+    return out
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+{
+  "_fixture": "SYNTHETIC values for tools/validate_gtm.py group N -- the shape of Fiscal Data's MTS Table 4 response (accounting/mts/mts_table_4), dollars as served. One non-customs line, which the reader must skip.",
+  "data": [
+    {"record_date": "2026-07-31", "classification_desc": "Customs Duties", "current_month_gross_rcpt_amt": "24000000000.00", "current_month_refund_amt": "1000000000.00", "current_month_net_rcpt_amt": "23000000000.00"},
+    {"record_date": "2026-08-31", "classification_desc": "Customs Duties", "current_month_gross_rcpt_amt": "25200000000.00", "current_month_refund_amt": "5000000000.00", "current_month_net_rcpt_amt": "20200000000.00"},
+    {"record_date": "2026-09-30", "classification_desc": "Customs Duties", "current_month_gross_rcpt_amt": "27000000000.00", "current_month_refund_amt": "20000000000.00", "current_month_net_rcpt_amt": "7000000000.00"},
+    {"record_date": "2026-09-30", "classification_desc": "Excise Taxes", "current_month_gross_rcpt_amt": "9000000000.00", "current_month_refund_amt": "0.00", "current_month_net_rcpt_amt": "9000000000.00"}
+  ],
+  "meta": {"total-pages": 1}
+}

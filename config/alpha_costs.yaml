@@ -1,0 +1,107 @@
+# alpha_costs.yaml -- the Alpha Lab's cost model (X-1.4), one block per cost
+# class. alpha/costs.py reads it; nothing writes it (the nightly loop's
+# calibration goes to alpha.db's cost_calibration, and a change here is a commit).
+#
+# CONSERVATIVE BY CONSTRUCTION, AND NEVER THE MID. A fill crosses half the quoted
+# spread where a quote is stored -- a buy at the ask, a sell at the bid -- and half
+# of `spread_estimate` where none is, so a round trip always pays a full spread.
+# On top of that, every fill pays:
+#
+#   slippage    impact_bps x sqrt(order notional / dollar ADV), never less than
+#               min_slippage_bps; `no_adv_slippage_bps` where no volume is stored
+#   commission  commission_bps of notional + commission_per_unit x units,
+#               never less than commission_min (lab dollars) a fill
+#
+# and a position pays, over the days it is held (charged on its exit fill):
+#
+#   borrow      borrow_bps_per_year of notional, shorts only
+#   roll        roll_bps per roll, one roll every roll_every_days (futures)
+#   funding     funding_bps_per_day of notional, either side (perps: charged
+#               whichever way funding runs -- conservative until the S-3 funding
+#               series can calibrate it)
+#   fx          fx_bps of notional each way, for a name whose currency is not USD
+#
+# spread_estimate is `bps` of price, or `abs` in the instrument's own price units
+# (a prediction-market contract's 0..1 price, an option's premium). `multiplier`
+# turns a unit's price into notional (100 for a listed option; a future's
+# contract multiplier comes from the instrument where it differs).
+version: 1
+classes:
+  etf:
+    spread_estimate: {bps: 3.0}
+    impact_bps: 10.0
+    min_slippage_bps: 1.0
+    no_adv_slippage_bps: 5.0
+    commission_bps: 0.5
+    commission_per_unit: 0.0
+    commission_min: 1.0
+    borrow_bps_per_year: 50.0
+    multiplier: 1
+  single_name:
+    spread_estimate: {bps: 10.0}
+    impact_bps: 25.0
+    min_slippage_bps: 2.0
+    no_adv_slippage_bps: 15.0
+    commission_bps: 0.5
+    commission_per_unit: 0.0
+    commission_min: 1.0
+    borrow_bps_per_year: 100.0
+    fx_bps: 20.0
+    multiplier: 1
+  index_option:
+    spread_estimate: {abs: 0.10}
+    impact_bps: 50.0
+    min_slippage_bps: 10.0
+    no_adv_slippage_bps: 50.0
+    commission_bps: 0.0
+    commission_per_unit: 0.0065
+    commission_min: 1.0
+    multiplier: 100
+  equity_option:
+    spread_estimate: {abs: 0.15}
+    impact_bps: 75.0
+    min_slippage_bps: 15.0
+    no_adv_slippage_bps: 100.0
+    commission_bps: 0.0
+    commission_per_unit: 0.0065
+    commission_min: 1.0
+    multiplier: 100
+  future:
+    spread_estimate: {bps: 2.0}
+    impact_bps: 10.0
+    min_slippage_bps: 1.0
+    no_adv_slippage_bps: 5.0
+    commission_bps: 0.0
+    commission_per_unit: 2.50
+    commission_min: 2.50
+    roll_bps: 3.0
+    roll_every_days: 63
+    multiplier: 1
+  perp:
+    spread_estimate: {bps: 3.0}
+    impact_bps: 20.0
+    min_slippage_bps: 2.0
+    no_adv_slippage_bps: 10.0
+    commission_bps: 5.0
+    commission_per_unit: 0.0
+    commission_min: 0.0
+    funding_bps_per_day: 1.0
+    multiplier: 1
+  prediction_market:
+    spread_estimate: {abs: 0.03}
+    impact_bps: 100.0
+    min_slippage_bps: 50.0
+    no_adv_slippage_bps: 200.0
+    commission_bps: 0.0
+    commission_per_unit: 0.02
+    commission_min: 0.0
+    multiplier: 1
+  fx_pair:
+    spread_estimate: {bps: 1.5}
+    impact_bps: 5.0
+    min_slippage_bps: 0.5
+    no_adv_slippage_bps: 2.0
+    commission_bps: 0.2
+    commission_per_unit: 0.0
+    commission_min: 1.0
+    multiplier: 1

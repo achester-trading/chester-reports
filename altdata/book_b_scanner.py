@@ -308,6 +308,21 @@ def _volume_ok(inst: dict, i: int, cfg: dict) -> tuple[bool, Optional[float], bo
     return ratio >= float(v.get("multiple") or 1.5), ratio, False
 
 
+def is_fx(symbol: str) -> bool:
+    """A currency pair, as the store names it (yfinance's =X)."""
+    return str(symbol or "").upper().endswith("=X")
+
+
+def breakout_skip(inst: dict) -> Optional[str]:
+    """Why the breakout template does not scan this instrument, or None (W8-7)."""
+    if is_fx(inst.get("symbol")):
+        return (f"{inst.get('symbol')}: a currency pair -- the breakout template "
+                f"scans no =X pair (managed currencies among them)")
+    if not any(v for v in (inst.get("volume") or {}).values()):
+        return f"{inst.get('symbol')}: no stored volume -- the breakout template needs it"
+    return None
+
+
 def _crossed(c, t, lvl, d) -> bool:
     """The close at t crossed the level in direction d (+1 up, -1 down)."""
     return (c[t] - lvl(t)) * d > 0 and (c[t - 1] - lvl(t - 1)) * d <= 0
@@ -324,9 +339,12 @@ def detect(inst: dict, cfg: dict, walls: Optional[list] = None) -> list[dict]:
     held = int((pv.get("reclaim") or {}).get("held_sessions") or 5)
     fast = int((cfg.get("trend") or {}).get("fast_ma") or 50)
     out: list[dict] = []
+    skip = breakout_skip(inst)
+    if skip:
+        inst["breakout_skipped"] = skip
     for t in range(E, max(E - fire, 1), -1):
         # BREAKOUT (long) / BREAKDOWN (short) from the base the close cleared.
-        for d in (1, -1):
+        for d in (() if skip else (1, -1)):
             b = base_before(inst, t, cfg, cap_high=c[t] if d > 0 else None,
                             floor_low=c[t] if d < 0 else None)
             if not b:
@@ -408,8 +426,8 @@ def _ratio_series(a: dict, b: dict) -> list[tuple[str, float]]:
 
 
 def rs_percentile(inst: dict, bench: Optional[dict], n: int) -> Optional[float]:
-    if not bench or inst["symbol"] == bench["symbol"]:
-        return None
+    if not bench or inst["symbol"] == bench["symbol"] or is_fx(inst["symbol"]):
+        return None              # W8-7: an FX pair takes no RS against SPY
     r = _ratio_series(inst, bench)
     if len(r) < n:
         return None
@@ -575,7 +593,9 @@ def confirm(c: dict, ctx: dict, cfg: dict) -> list[dict]:
     r = cc.get("relative_strength") or {}
     if rs is None:
         out.append({"family": "relative strength", "met": None,
-                    "text": "relative strength not read (the benchmark itself)"})
+                    "text": ("relative strength not read (a currency pair: no RS "
+                             "against SPY)" if is_fx(sym) else
+                             "relative strength not read (the benchmark itself)")})
     else:
         met = rs >= float(r.get("long_min_pct") or 80) if d > 0 \
             else rs <= float(r.get("short_max_pct") or 20)
@@ -716,6 +736,59 @@ def _catalyst(sym: str, calendar: Optional[list], ending: str) -> tuple:
     return None, None
 
 
+def volume_readings(inst: dict, E: int, base: Optional[dict], entry: float,
+                    risk: float, d: int, cfg: Optional[dict] = None) -> dict:
+    """VP-1 item 9: two readings from DAILY bars, printed beside the candidate
+    and used by nothing else -- the score, the gates, the timing and the grading
+    do not read them. Whether they matter is H-006's question, not this module's.
+
+      the base's POC        from the base's own N sessions
+      the nearest HVN       between the entry and the +1R target, from the last
+                            scanner_hvn_sessions sessions; its price and distance,
+                            or "none"
+
+    Both through altdata/volume_profile.py, at its daily bin width, and both
+    "approximated from daily bars"."""
+    from . import volume_profile as vp                          # noqa: PLC0415
+    vcfg = vp.load_config()
+    vol = inst.get("volume") or {}
+
+    def rows(a: int, b: int) -> list[dict]:
+        return [{"observed_at": inst["days"][j], "high": inst["high"][j],
+                 "low": inst["low"][j], "close": inst["close"][j],
+                 "volume": vol.get(inst["days"][j])} for j in range(max(0, a), b + 1)]
+    out: dict[str, Any] = {"note": vp.DAILY_NOTE, "base_poc": None, "hvn": None}
+    if not inst.get("has_range", True):
+        why = "no daily high and low stored"
+        out.update(base_text=f"base POC not computed ({why})",
+                   hvn_text=f"not computed ({why})")
+        return out
+    if base:
+        bp = vp.daily_profile(rows(base["end"] - base["n"] + 1, base["end"]), vcfg)
+        out["base_poc"] = bp.get("poc")
+        out["base_text"] = (f"base POC {_f(bp['poc'])}" if bp.get("poc") is not None
+                            else f"base POC not computed ({bp.get('absent')})")
+    else:
+        out["base_text"] = "base POC not computed (no base)"
+    n = int(vcfg.get("scanner_hvn_sessions", 252))
+    hp = vp.daily_profile(rows(E - n + 1, E), vcfg)
+    if hp.get("poc") is None:
+        out["hvn_text"] = f"not computed ({hp.get('absent')})"
+        return out
+    target = entry + d * risk
+    lo, hi = sorted((entry, target))
+    between = [h for h in hp["hvn"] if lo < h <= hi] if d > 0 else \
+        [h for h in hp["hvn"] if lo <= h < hi]
+    if not between:
+        out["hvn_text"] = "none"
+        return out
+    h = min(between, key=lambda x: abs(x - entry))
+    out["hvn"] = float(h)
+    out["hvn_distance_pct"] = round(100.0 * abs(h - entry) / entry, 2)
+    out["hvn_text"] = f"{_f(h)} ({out['hvn_distance_pct']:.1f}% from the entry)"
+    return out
+
+
 def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
     """One candidate in the register's draft shape, plus what prints beside it."""
     E = len(inst["close"]) - 1
@@ -730,7 +803,18 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
     tr = trend(inst, E, cfg)
     against = (tr["state"] == "down" and d > 0) or (tr["state"] == "up" and d < 0)
     target = pv["level"] + d * pv["move"]
-    r_mult = (target - entry) * d / risk if risk > 0 else None
+    # W8-7: no R off an invalidation nearer than the floor. Ruling 1 of 18 Oct:
+    # a pair the scanner reads (the free floats, EURUSD among them) takes half
+    # an ATR alone; equities and ETFs the larger of that and 0.5% of price.
+    fx = is_fx(inst["symbol"])
+    floor_atr = float(pcfg.get("r_floor_atr") or 0.5) * (a or 0.0)
+    floor = floor_atr if fx else max(
+        floor_atr, float(pcfg.get("r_floor_pct") or 0.5) / 100.0 * abs(entry))
+    r_note = (None if risk >= floor else
+              "R not computed: invalidation too near (within "
+              f"{_f(floor)}, " + ("half an ATR, a currency pair's floor)" if fx
+                                  else "the larger of half an ATR and 0.5% of price)"))
+    r_mult = (target - entry) * d / risk if risk > 0 and r_note is None else None
     dc = cfg.get("draft") or {}
     mult, mwhy = multiplier(ctx["regime"], cfg)
     risk_pct = float(dc.get("risk_pct") or 0.75) * mult
@@ -835,12 +919,16 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
         # Printed beside the candidate; not the register's fields.
         "pivot": setup, "entry": entry, "invalidation_level": inv,
         "expected_r": None if r_mult is None else round(r_mult, 2),
+        "r_note": r_note,
         "against_tape": against, "time_stop": ts, "no_add": against,
         "trend": tr["state"], "warnings": warns, "entry_timing": timing,
         "entry_timing_state": gamma or None,
         "parameters": params, "confirmations": confs, "components": comp,
         "met": len(met), "risk": risk, "key": inst["key"], "pivot_day":
-        inst["days"][pv["t"]]}
+        inst["days"][pv["t"]],
+        # VP-1 item 9: printed as one clause on the candidate line; the score,
+        # the gates, the timing and the grading never read it.
+        "volume_profile": volume_readings(inst, E, b, entry, risk, d)}
 
 
 def gate(c: dict, ctx: dict, cfg: dict) -> Optional[str]:
@@ -928,6 +1016,9 @@ def scan(ending: str, db_path: Optional[str] = None, *, cutoff: Optional[str] = 
     cands, refused, undeclared = [], [], 0
     for inst in insts:
         pvs = detect(inst, cfg, (walls or {}).get(inst["symbol"]))
+        if inst.get("breakout_skipped"):
+            skipped.setdefault("breakout_not_scanned", []).append(
+                {"symbol": inst["symbol"], "reason": inst["breakout_skipped"]})
         best: dict[int, dict] = {}
         # One pivot per direction: the latest; on the same session the more
         # specific -- a base cleared, then a base's edge failed, then a level.
@@ -980,7 +1071,12 @@ def parameters_line(cfg: dict) -> str:
             f"{(pv.get('failed_breakdown') or {}).get('window_sessions')}; "
             f"invalidation a quarter of the average true range beyond its level "
             f"(session-set from the Technical Indicators paper; "
-            f"{cfg.get('version')}).")
+            f"{cfg.get('version')}). Changed {pv.get('changed') or 'n/a'}: the "
+            f"breakout template scans no instrument without volume and no =X "
+            f"currency pair, and a pair takes no RS against SPY; R is computed only "
+            f"beyond an invalidation floor: for equities and ETFs the larger of "
+            f"{pv.get('r_floor_atr', 0.5):g} ATR and {pv.get('r_floor_pct', 0.5):g}% "
+            f"of price, for a currency pair {pv.get('r_floor_atr', 0.5):g} ATR alone.")
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+[Unit]
+Description=Run the chester-reports 09:45 ET dealer capture on weekdays
+Documentation=https://github.com/achester-trading/chester-reports
+
+[Timer]
+# Wall-clock ET (DST handled per firing); market holidays are the wrapper's
+# calendar guard, as for the EOD pass. 6b part 2.
+OnCalendar=Mon-Fri 09:45 America/New_York
+AccuracySec=1s
+RandomizedDelaySec=0
+# A catch-up run after downtime would file a later chain under this slot.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

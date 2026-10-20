@@ -16,6 +16,7 @@ dropped) and the gate fails on it, so a missing label is caught, not printed.
 from __future__ import annotations
 
 import functools
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -23,6 +24,19 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent
 PATH = REPO / "config" / "display_labels.yaml"
+
+# WHICH HY SERIES, AND FROM WHEN (ruled 18 Oct 2026; the register's SR-8 dated
+# note). FRED serves ICE BofA's high-yield OAS from 2023-10-17 only, so a chart or
+# lens printing HY names its series and the first day the store holds.
+# No internal id prints (the Weekly's id rule); the FRED code is the public name.
+HY_SERIES = "ICE BofA US High Yield OAS (FRED BAMLH0A0HYM2)"
+FRED_HY_FROM = "2023-10-17"
+
+
+def hy_source(first_day: Optional[str]) -> str:
+    held = f"stored from {first_day}" if first_day else "not stored"
+    return (f"series {HY_SERIES}, {held}; FRED's own history now starts "
+            f"{FRED_HY_FROM}")
 
 
 @functools.lru_cache(maxsize=1)
@@ -54,9 +68,82 @@ def plain(s: str) -> str:
 
 
 def metric(key: Optional[str]) -> str:
+    """A registry key in words: its declared display label, else a name the
+    repo already holds for it (W8-12), else the key made plain."""
     if not key:
         return ""
-    return (_cfg().get("metrics") or {}).get(key) or plain(key)
+    return (_cfg().get("metrics") or {}).get(key) or derived_label(key) or plain(key)
+
+
+# THE NAMES THE REPO ALREADY HOLDS (W8-12, weekly-fixes-9): the Weekly's detail
+# tables printed "mkt eido volume", "mkt vvix" -- the key made plain. A FRED key
+# takes its series description (altdata/config.py); a Yahoo key takes the
+# Security Master's name, with its ticker where the ticker is a plain one (a
+# ^ or =X symbol never prints: weekly-fixes-7 item 11), and the companion's
+# word (volume, high, low, open).
+_COMPANIONS = (("_volume", "volume"), ("_high", "high"), ("_low", "low"),
+               ("_open", "open"))
+_PLAIN_TICKER = re.compile(r"[A-Z][A-Z.]{0,5}")
+
+
+@functools.lru_cache(maxsize=1)
+def _fred_names() -> dict:
+    try:
+        from altdata import config                              # noqa: PLC0415
+        return {f"fred.{s.key}": s.description for s in config.FRED_PULL_SERIES}
+    except Exception:                                           # noqa: BLE001
+        return {}
+
+
+@functools.lru_cache(maxsize=1)
+def _tape_names() -> dict:
+    """The tape's own labels by daily store key ("10-year yield")."""
+    try:
+        from altdata import bars                                # noqa: PLC0415
+        return {t["daily"]: t["label"] for t in bars.tape()
+                if t.get("daily") and t.get("label")}
+    except Exception:                                           # noqa: BLE001
+        return {}
+
+
+_FX = re.compile(r"([A-Z]{3})([A-Z]{3})=X")
+
+
+@functools.lru_cache(maxsize=1)
+def _master():
+    try:
+        from altdata import security_master                     # noqa: PLC0415
+        return security_master.Master()
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
+@functools.lru_cache(maxsize=1024)
+def derived_label(key: str) -> Optional[str]:
+    if key in _fred_names():
+        return _fred_names()[key]
+    fam, _, rest = str(key).partition(".")
+    if fam != "yfinance" or not rest.startswith("mkt_"):
+        return None
+    base, word = rest, ""
+    for suf, w in _COMPANIONS:
+        if rest.endswith(suf):
+            base, word = rest[: -len(suf)], f" {w}"
+            break
+    tape = _tape_names().get(f"yfinance.{base}")
+    m = _master()
+    try:
+        e = m.resolve(f"yfinance.{base}", "store_key") if m else None
+    except Exception:                                           # noqa: BLE001
+        e = None
+    name = (e or {}).get("name") or tape
+    sym = str(((e or {}).get("identifiers") or {}).get("yahoo") or "")
+    fx = _FX.fullmatch(sym)
+    if not name and fx:
+        name = f"{fx.group(1)}/{fx.group(2)}"
+    tick = sym if _PLAIN_TICKER.fullmatch(sym) else None
+    label = (f"{name} ({tick})" if name and tick else name or tick)
+    return f"{label}{word}" if label else None
 
 
 def contradiction(cid: Optional[str]) -> str:

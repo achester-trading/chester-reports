@@ -143,19 +143,21 @@ def main() -> int:
     narr = None
     if not args.no_narrative:
         np_ = payload_mod.narrative_payload(p)
-        narr = narrative_mod.generate(
-            np_, model=args.narrative_model,
-            system_prompt=weekly_system_prompt(),
-            guide_path=TEMPLATE_PATH,
-            # LONG FORM, PER THE OPERATOR'S RULING. The ceiling is a runaway guard
-            # and not a length rule: about four times the close report's, which is
-            # room for the week without room for a model that lost the thread.
-            max_chars=MAX_CHARS,
-            one_paragraph=False,
-            # THE ARC CITES EVIDENCE BY EVENT ID (6c-2.4), and every id it cites
-            # must be one the week's arc actually carries.
-            citable_ids=(np_.get("narratives") or {}).get("citable_event_ids")
-            or [])
+        from altdata import model_meter  # noqa: PLC0415
+        with model_meter.scope(report="weekly_classic", run_id=run_id):
+            narr = narrative_mod.generate(
+                np_, model=args.narrative_model,
+                system_prompt=weekly_system_prompt(),
+                guide_path=TEMPLATE_PATH,
+                # LONG FORM, PER THE OPERATOR'S RULING. The ceiling is a runaway guard
+                # and not a length rule: about four times the close report's, which is
+                # room for the week without room for a model that lost the thread.
+                max_chars=MAX_CHARS,
+                one_paragraph=False,
+                # THE ARC CITES EVIDENCE BY EVENT ID (6c-2.4), and every id it cites
+                # must be one the week's arc actually carries.
+                citable_ids=(np_.get("narratives") or {}).get("citable_event_ids")
+                or [])
         if narr.published:
             log.info("narrative published: %d figures audited, model=%s",
                      narr.figures_checked, narr.model)
@@ -250,6 +252,14 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                          f"weekly_tactical_{ending}_payload.json", args.archive_dir)
     except Exception as exc:                                   # noqa: BLE001
         log.warning("payload archive failed (%s) -- the report continues", exc)
+    # THE DIGITAL ASSETS ADDENDUM (Batch 8 item 51, Phase 1): its own page, built
+    # before the Weekly so the Weekly's one link line knows its state; archived
+    # beside the Weekly and attached to its message. A failure costs the addendum,
+    # never the Weekly.
+    from daily_cascade import digital_addendum  # noqa: PLC0415
+    add = digital_addendum.produce(p, archive_dir=archive_dir,
+                                   narrative=not args.no_narrative,
+                                   model=args.narrative_model)
     from daily_cascade import consistency  # noqa: PLC0415
     try:
         out = weekly_stack.produce(p, archive_dir=archive_dir, dry_run=args.dry_run,
@@ -272,6 +282,10 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
     print(f"  stack      : {len(ed['sections'])} sections, {ed.get('words')} words "
           f"(budget {(ed.get('budget') or {}).get('words')}), "
           f"{ed.get('chart_count')} chart(s)")
+    from daily_cascade import precis as _precis  # noqa: PLC0415
+    prow = _precis.summary_row(ed)          # W8-1c: the précis's own row
+    if prow:
+        print(prow)
     for s in ed["sections"]:
         flag = ("collapsed" if s.get("collapsed") else
                 "withheld: " + str(s.get("withheld"))[:90] if s.get("withheld")
@@ -292,6 +306,12 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
     print(f"  subject    : {readability.subject('Weekly', when, ed)}")
     print(f"  pdf        : {'built, ' if out.get('pdf') else 'NOT built -- '}"
           f"{out.get('pdf_detail')}")
+    print(f"  addendum   : " + (f"{add['name']}, {add['edition']['words']} words, "
+                                f"the read {add['edition']['prose'].get('state')}"
+                                if add.get("state") == "built" else
+                                f"DRY RUN -- {add.get('reason')}"
+                                if add.get("state") == "dry_run"
+                                else f"NOT built -- {add.get('reason')}"))
     if args.dry_run:
         if getattr(args, "email", False):
             # THE DRY RUN, MAILED (PB-1): the same render, to the configured
@@ -304,7 +324,8 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                                    archive_dir=args.archive_dir,
                                    archive_html=out["html_archive"],
                                    inline_images=out["inline_images"],
-                                   pdf=out.get("pdf"))
+                                   pdf=out.get("pdf"),
+                                   attachments=digital_addendum.attachment(add))
             print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
             print(f"  pdf archive: {res.get('pdf_path') or 'none'}")
             print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})"
@@ -322,7 +343,8 @@ def _stacked(args, p: dict, run_id: str, ending: str) -> int:
                            archive_dir=args.archive_dir,
                            archive_html=out["html_archive"],
                            inline_images=out["inline_images"],
-                           pdf=out.get("pdf"))
+                           pdf=out.get("pdf"),
+                           attachments=digital_addendum.attachment(add))
     print(f"  archive    : {res.get('archive_path') or 'FAILED'}")
     print(f"  delivery   : {res.get('delivery')} ({res.get('delivery_detail')})")
     _emit(args, _status(p, res),

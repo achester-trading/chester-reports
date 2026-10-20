@@ -78,7 +78,8 @@ LIVE_AVAILABILITY_KIND = "ingest_instant"
 # chosen per run so every reconstructed row in the store means the same thing.
 RECONSTRUCTED_LATENCY_MINUTES = 20
 
-# symbol -> store key. 40 symbols: broad indices, 11 SPDR sectors, equal weight,
+# symbol -> store key: the basket in config (config/security_master.yaml resolves
+# it, and this map is its seed): broad indices, 11 SPDR sectors, equal weight,
 # rates/credit, commodities, dollar, international, crypto, the volatility indices,
 # ^GSPC, and ST-2's style, EM, producer and offshore-yuan additions.
 SYMBOLS: dict[str, str] = {
@@ -193,11 +194,18 @@ SYMBOLS: dict[str, str] = {
     # vol dial is a statement about today by its own definition. yfinance serves
     # both of these at the close.
     #
-    # ^VIX9D is also served and is deliberately NOT here: the order asked for
-    # these two, and a basket that grows on its own is a basket nobody reviewed.
-    # (^VVIX joined below by ruling, 4 Oct 2026.)
+    # ^VIX9D was left out until an order asked for it: a basket that grows on
+    # its own is a basket nobody reviewed. (^VVIX joined below by ruling, 4 Oct
+    # 2026.)
     "^VIX": "mkt_vix",
     "^VIX3M": "mkt_vix3m",
+    # BATCH 9 ITEM 52 (ruled 17 Oct 2026): the term-structure lens's ends, the
+    # order that asks for them. Under the basket's existing exception (yfinance,
+    # ruled 11 Oct 2026); Cboe's free daily files (cdn.cboe.com, VIX9D from
+    # 2011-01-04, VIX6M from 2008-01-02) are the verified alternative. A name
+    # added here needs tools/backfill_prices.py before its history reads.
+    "^VIX9D": "mkt_vix9d",
+    "^VIX6M": "mkt_vix6m",
     # THE WEEKLY'S GAUGES (T2.2, ruled 4 Oct 2026, item 16): bond-market implied
     # volatility (ICE BofA MOVE), the volatility of the VIX, and Cboe's SKEW. Added
     # by ruling -- the reviewed basket the note above asks for.
@@ -220,6 +228,17 @@ SYMBOLS: dict[str, str] = {
     "EURCHF=X": "mkt_eurchf",
     "^VVIX": "mkt_vvix",
     "^SKEW": "mkt_skew",
+    # ST-R4.18a (Batch 5 item 18, 16 Oct 2026): the dispersion panel. Cboe's S&P
+    # 500 Dispersion Index (^DSPX, daily on Yahoo from 22 May 2024) and the 1- and
+    # 3-month implied-correlation indices. CHECKED 16 Oct 2026: Yahoo serves
+    # ^COR1M and ^COR3M as today's quote only (period "1d"/"5d"; no history), so
+    # their history is what the daily pull accumulates from its first run, and the
+    # panel prints its real n. ST-R4.27a: ZN=F, the 10-year note front future,
+    # for the overnight-vs-session split beside TLT (both in OHLC_SYMBOLS).
+    "^DSPX": "mkt_dspx",
+    "^COR1M": "mkt_cor1m",
+    "^COR3M": "mkt_cor3m",
+    "ZN=F": "mkt_zn_front",
     # PHASE 5a: SINGLE NAMES THE HEAT VIEW MUST MEASURE. The cross-book view
     # computes each position's beta against SPY from stored daily returns, and a
     # name the store does not carry has no beta -- the gate then DELAYS rather than
@@ -231,6 +250,12 @@ SYMBOLS: dict[str, str] = {
     # and a ledger marked from the store needs AGG's closes in it. Like NVDA, a
     # name added here needs tools/backfill_prices.py before its history reads.
     "AGG": "mkt_agg",
+    # THE GTM BATCH, PART 2 (ruling 2 of 17 Oct 2026): the fixed-income scenario
+    # table's TIPS, municipal and MBS proxies (GTM-13). Like AGG, each needs
+    # tools/backfill_prices.py before its history reads.
+    "TIP": "mkt_tip",
+    "MUB": "mkt_mub",
+    "MBB": "mkt_mbb",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #
@@ -308,6 +333,8 @@ SPLIT_SUFFIX = "_split"
 # USD/CNH (ST-2) trades through US holidays too: a Labor Day CNH bar is a real
 # offshore quote, not an artefact, so it is declared here rather than filtered.
 # ETH, SOL and ZEC (AQ-5) trade every day for the same reason Bitcoin does.
+# ZEC-USD is also AUD-1 5d's: the shielded logger writes its closes through
+# the same unfinished-bar rule.
 CONTINUOUS_SYMBOLS: frozenset[str] = frozenset({"BTC-USD", "CNY=X", "JPY=X",
                                                 "EURUSD=X", "EURCHF=X", "ETH-USD",
                                                 "SOL-USD", "ZEC-USD"})
@@ -340,8 +367,12 @@ CONTINUOUS_SYMBOLS = CONTINUOUS_SYMBOLS | frozenset(CRYPTO_BASKET)
 # series for every symbol; for these nine the open, high and low are stored beside
 # it as `yfinance.<key>_open` / `_high` / `_low`, so the tape's daily frames and
 # the Weekly's candles (W1, W2) read the store and the bars table stays intraday.
+# ST-R4.27a (Batch 5 item 27, 16 Oct 2026) adds TLT and ZN=F: the overnight
+# (open less the prior close) and session (close less open) legs of a Treasury
+# move are read from their daily open (altdata/batch5b.py).
 OHLC_SYMBOLS: frozenset[str] = frozenset({"SPY", "QQQ", "IWM", "^TNX", "^TYX",
-                                          "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD"})
+                                          "DX-Y.NYB", "GC=F", "CL=F", "BTC-USD",
+                                          "TLT", "ZN=F"})
 OHLC_SUFFIXES = ("_open", "_high", "_low")
 # symbol -> store key, for the registry's market_ohlc block.
 OHLC_KEYS: dict[str, str] = {s: SYMBOLS[s] for s in sorted(OHLC_SYMBOLS)}
@@ -363,7 +394,9 @@ OHLC_KEYS: dict[str, str] = {s: SYMBOLS[s] for s in sorted(OHLC_SYMBOLS)}
 # any symbol, because 0 is the source saying it has none, not a session in which
 # nothing traded.
 # AQ-3 added RB=F and HO=F (the crack; Friday stitching).
-VOLUME_FUTURES: frozenset[str] = frozenset({"GC=F", "CL=F", "HG=F", "RB=F", "HO=F"})
+# ST-R4.27a added ZN=F (16 Oct 2026).
+VOLUME_FUTURES: frozenset[str] = frozenset({"GC=F", "CL=F", "HG=F", "RB=F", "HO=F",
+                                            "ZN=F"})
 # Every crypto pair in the basket (AQ-5 added ETH, SOL and ZEC; Friday stitching).
 VOLUME_USD: frozenset[str] = frozenset({"BTC-USD", "ETH-USD", "SOL-USD", "ZEC-USD"})
 
@@ -547,6 +580,50 @@ def parse_rows(rows: Iterable[dict]) -> dict:
             **{k: sorted(v) for k, v in ohlc.items()}}
 
 
+# THE BASKET THROUGH THE SECURITY MASTER (audit-leftovers-2; the 14 Oct audit's
+# item 15, aud-3b answer 9: the yfinance basket first). SYMBOLS, CRYPTO_BASKET and
+# CONTINUOUS_SYMBOLS above are the master's SEED now, not the source of truth:
+# pull() asks config/security_master.yaml's resolver for each Yahoo symbol's store
+# key, and instrument() for its asset class, currency and exchange.
+# tools/validate_security_master.py holds the seed and the master to agreement.
+# A symbol the master cannot resolve keeps its seed key and logs an error -- a
+# capture is never lost to a reference-data gap -- and the gate fails it first.
+# CONTINUOUS_SYMBOLS stays this module's rule: "trades every day" is not an asset
+# class (IDR=X and TRY=X are fx and are not continuous).
+def _master(on=None):
+    from .. import security_master as smm                       # noqa: PLC0415
+    return smm.Master()
+
+
+def resolve_basket(seed: dict[str, str], on=None) -> dict[str, str]:
+    """{Yahoo symbol: bare store key ('mkt_spy')} through the master's resolver."""
+    try:
+        m = _master()
+    except Exception as exc:                                    # noqa: BLE001
+        log.error("security master unavailable (%s: %s) -- the basket's seed keys "
+                  "are used", type(exc).__name__, exc)
+        return dict(seed)
+    out = {}
+    for sym, seed_key in seed.items():
+        try:
+            sk = m.resolve(sym, "yahoo", on)["identifiers"]["store_key"]
+            out[sym] = sk.split(".", 1)[1] if sk.startswith("yfinance.") else sk
+        except Exception as exc:                                # noqa: BLE001
+            log.error("security master: %s does not resolve (%s) -- seed key %s used",
+                      sym, type(exc).__name__, seed_key)
+            out[sym] = seed_key
+    return out
+
+
+def instrument(symbol: str, on=None) -> dict:
+    """The master's facts for a Yahoo symbol: id, store key, asset class,
+    currency and exchange (None where the master marks it unverified)."""
+    e = _master().resolve(symbol, "yahoo", on)
+    return {"id": e["id"], "store_key": e["identifiers"].get("store_key"),
+            "asset_class": e.get("asset_class"), "currency": e.get("currency"),
+            "exchange": e.get("exchange"), "continuous": symbol in CONTINUOUS_SYMBOLS}
+
+
 def pull_crypto_basket(period: Optional[str] = None,
                        run_id: Optional[str] = None) -> dict:
     """The crypto basket's daily closes (CRYPTO_BASKET) into the observation
@@ -565,9 +642,12 @@ def _fetch_symbol(symbol: str, period: Optional[str] = None) -> dict:
     from altdata import import_yfinance  # lazy import by design
     yf = import_yfinance()
 
+    from ._base import retry_call                               # noqa: PLC0415
     t = yf.Ticker(symbol)
-    df = t.history(period=period or LOOKBACK_PERIOD, interval="1d",
-                   auto_adjust=False, actions=True)
+    # AUD-1 5b: three tries, on an error or an empty frame.
+    df = retry_call(lambda: t.history(period=period or LOOKBACK_PERIOD, interval="1d",
+                                      auto_adjust=False, actions=True),
+                    empty=lambda d: d is None or d.empty)
     if df is None or df.empty:
         raise RuntimeError(f"yfinance returned no rows for {symbol}")
     rows = []
@@ -597,11 +677,11 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
     from .. import observations as obs
     from .. import session as sess
 
-    basket = symbols or SYMBOLS
+    basket = resolve_basket(symbols or SYMBOLS)
     summary: dict = {"total": len(basket), "success": 0, "failed": [],
                      "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND}
 
-    db = obs.ObservationStore()
+    db = obs.open_writer(__name__)
     try:
         for symbol, key in basket.items():
             try:

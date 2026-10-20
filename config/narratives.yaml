@@ -320,3 +320,120 @@ narratives:
           k: 10
         statement_cited: Base Rates, Chapter 3.1 (the presidential cycle)
         claims_cited: [cal.midterm_election_2026]
+
+# -----------------------------------------------------------------------------
+# DISAGREEMENTS (rule 31; the GTM change order of 3 Oct 2026)
+# -----------------------------------------------------------------------------
+# A disagreement is logged against a base rate's APPLICABILITY, never as a
+# signal. Each is drafted under rule 31 and carries the operator's ruling when it
+# has one (`status: accepted`). No code reads this block, and an accepted entry
+# reaches the narrative register only by the operator's own confirm.
+disagreements:
+  gtm8_sentiment_trough_at_high:
+    status: accepted
+    drafted: "2026-10-17"
+    accepted: "2026-10-17"   # accepted as drafted (the rulings of 17 Oct 2026)
+    base_rate: baserate.sentiment_turning_points
+    source: "J.P. Morgan Guide to the Markets 4Q 2026, scan section 4 (GTM-8)"
+    statement: >-
+      Michigan sentiment at 48.1 (Sep 2026) with the S&P 500 at an all-time high
+      has no precedent in the base rate's sample: every sampled trough coincided
+      with a price low; this one is at a high. Logged against the base rate's
+      applicability, not as a signal.
+
+# COMMITTED PROPOSALS -- PENDING THE OPERATOR'S CONFIRM
+# Ruling (c) of 16 Oct 2026: "Judgment drafts (narrative lines, appendix notes,
+# rule-table edits) are committed by the session as drafted and listed for Ari's
+# accept-all; the register's confirm step stays his." So these enter the register
+# at the next seed as `proposed` (origin config_proposal), emerging, never
+# evaluated, and the Weekly prints each beside its confirm and reject commands,
+# exactly as a model proposal waits. Nothing here can promote itself: until
+#     python -m altdata.narratives confirm <id>
+# is run, a story below makes no forecast and changes no state. No story_query:
+# a confirmed story earns attention only once a query is declared in
+# config/story_queries.yaml and the voices scan writes its rows, so each starts
+# with its evidence rule alone (a series move, which the store already answers).
+proposals:
+
+  bond_bull_end_active_era:
+    name: End of the bond bull, the active era
+    direction: >-
+      The 40-year bond bull compressed dispersion and rewarded passive investing;
+      its end returns the edge to stock-picking, so single-name dispersion rises.
+    proposed_by: >-
+      session B, as drafted from the Batch 5 change order item 18 (9 Oct 2026;
+      source arvy / Thierry, Macro Cycles, a product pitch; intensity low, one
+      source), committed 16 Oct 2026 under ruling (c)
+    linked_dimensions: {rates: "+", volatility: "+"}
+    linked_instruments: [cboe.dspx, cboe.cor3m]
+    prediction_market_contracts: []
+    evidence:
+      # The measure is the dispersion panel (Mechanics): DSPX's five-session
+      # change at or beyond its 10th percentile upward counts FOR.
+      series_moves:
+        cboe.dspx: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        The Cboe S&P 500 Dispersion Index (DSPX) is higher at the horizon than
+        when the forecast was emitted.
+      metrics: [cboe.dspx]
+      comparison: up
+      quorum: 1
+      horizon_days: 180
+
+  treasury_asian_hours_selling:
+    name: Treasury selling in Asian hours
+    direction: >-
+      The long end sells off in Asian and European hours and recovers in US hours
+      (framed by its sources as manipulation or Asian selling against US buying):
+      foreign-hours selling pushes long yields up.
+    proposed_by: >-
+      session B, as drafted from the Batch 5 change order item 27 (Monchau, Syz,
+      credible, relaying Bull Theory, an aggregator; two sessions, the 30-year
+      near 5.65%; intensity low), committed 16 Oct 2026 under ruling (c).
+      "Manipulation" is the narrative's word, never the report's
+    linked_dimensions: {rates: "+"}
+    linked_instruments: [yfinance.mkt_tlt, fred.yield_30y]
+    prediction_market_contracts: []
+    evidence:
+      # The measure is TLT's overnight leg against its session leg (Positioning
+      # & flows); the store answers TLT's close move, so a five-session fall at
+      # or beyond its 10th percentile counts FOR.
+      series_moves:
+        yfinance.mkt_tlt: {sign: "-", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        The 30-year Treasury yield (FRED DGS30) is higher at the horizon than when
+        the forecast was emitted.
+      metrics: [fred.yield_30y]
+      comparison: up
+      quorum: 1
+      horizon_days: 60
+
+  capital_competition:
+    name: Capital competition sets the long end
+    direction: >-
+      Private demand for capital, not fiscal supply, is repricing the long end:
+      the expected short-rate path and r* rise, and the term premium carries less
+      than half of the move. The other side of "what's driving 5.3%" -- fiscal
+      dominance, already a seeded story, is the first.
+    proposed_by: >-
+      session B, as drafted from the Batch 5 change order item 26 (Boivin,
+      BlackRock Investment Institute; Rai) as the disagreement pair "what's driving
+      5.3%" against fiscal_dominance (Kovač, TAAI; Hartnett, BofA); adjudicator the
+      fiscal-bark flag on the 10-year attribution, monthly. Committed 16 Oct 2026
+      under ruling (c)
+    linked_dimensions: {rates: "+", growth: "+"}
+    linked_instruments: [acm.risk_neutral_yield_10y, acm.term_premium_10y]
+    prediction_market_contracts: []
+    evidence:
+      series_moves:
+        acm.risk_neutral_yield_10y: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        ACM's 10-year expected short-rate path (the risk-neutral yield) is higher
+        at the horizon than when the forecast was emitted.
+      metrics: [acm.risk_neutral_yield_10y]
+      comparison: up
+      quorum: 1
+      horizon_days: 90

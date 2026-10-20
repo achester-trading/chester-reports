@@ -38,6 +38,7 @@ import yaml
 from altdata import derived, session
 from altdata.numeral_audit import ordinal as na_ordinal
 
+from . import readability as rd
 from .cadence import Period
 
 REPO = Path(__file__).resolve().parent.parent
@@ -175,7 +176,7 @@ def week_by_day(st, sessions: list[str], ending: str, now: str, then: str,
         data.append({"day": d, "spy_pct": rs, "ten_year_bp": ty,
                      "releases": rel_by.get(d) or [], "fed_or_auction": fed,
                      "most_cited_story": story})
-        for a in attrs:
+        for a in dedupe_attributions(attrs):
             if str(a["published_at"])[:10] == d:
                 lines.append(f"{_day(d)}: {attribution_text(a)} ({a['source_url']}).")
     return {"table": {"columns": ["Day", "SPY", "10-year", "Tier-1 release "
@@ -239,8 +240,10 @@ def edition_session(now: str) -> Optional[str]:
 
 
 def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
-    cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
-            "52-week high (distance)", "vs 20 / 50 / 200-day", "Gamma flip"]
+    # W8-3 (weekly-fixes-9): the Tape's flip is the session's CLOSE capture (the
+    # computed profile from the end-of-day chain), the NEXT session's level;
+    # Mechanics prints each MORNING's, which the session's level words and flags
+    # read (ruling 2 of 18 Oct). Two captures, each printed with its time.
     rows, gaps, ids = [], [], []
     # The edition's day: the latest bar among the session-traded instruments (a
     # continuous one, Bitcoin, trades on the weekend and would set it a day late).
@@ -248,6 +251,10 @@ def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
         days = [str((i.get("frame") or {}).get("as_of") or "")
                 for i in book.get("instruments") or [] if not i.get("continuous")]
         edition_day = max([d for d in days if d], default=None)
+    cols = ["Market", "Last", "Session", "Week", "Month", "YTD", "Week high / low",
+            "52-week high (distance)", "vs 20 / 50 / 200-day",
+            "Gamma flip (close capture" + (f", {_day(edition_day)}" if edition_day
+                                           else "") + ")"]
     # EVERY ROW CARRIES ITS UNIT (W-1.2 item 2.8): a price prints with the tape
     # config's `unit` -- "$668.40", "98.10 index"; a yield with its %.
     from altdata import bars as bars_mod                        # noqa: PLC0415
@@ -330,8 +337,12 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     implied = (spot * (iv / 100.0) * math.sqrt(1.0 / 252.0)
                if spot and iv else None)
     actual = (hi - lo) if None not in (hi, lo) else None
-    cw = card.get("call_wall_morning") or card.get("call_wall")
-    pw = card.get("put_wall_morning") or card.get("put_wall")
+    # THE WALLS ARE THE MORNING'S OTM WALLS (ruled 17 Oct 2026; audit F5): the
+    # put wall moves from the all-strike put peak to the OTM put gamma wall, and
+    # the call wall likewise. A card stored before 6b part 1 carries no OTM wall,
+    # so its held flags are None, never scored against a peak.
+    cw = card.get("call_wall_otm_morning")
+    pw = card.get("put_wall_otm_morning")
     mp = card.get("max_pain")
     out = {"implied_range": round(implied, 2) if implied else None,
            "iv_source": ("SPY ATM 30-day IV" if own_iv else
@@ -339,13 +350,22 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
            "actual_range": round(actual, 2) if actual is not None else None,
            "pinned": (None if close is None or mp is None
                       else _within(close, mp, pin_pct)),
-           "call_wall_held": (None if None in (hi, close, cw) else
-                              _within(hi, cw, wall_pct) and close < cw),
-           "put_wall_held": (None if None in (lo, close, pw) else
-                             _within(lo, pw, wall_pct) and close > pw),
+           # ELIGIBILITY BEFORE OUTCOME (brief v2 section 5.2): a wall the
+           # session never approached is None, never False.
+           "call_wall_held": (None if None in (hi, close, cw)
+                              or not _within(hi, cw, wall_pct) else close < cw),
+           "put_wall_held": (None if None in (lo, close, pw)
+                             or not _within(lo, pw, wall_pct) else close > pw),
            "amplified": (None if card.get("flip_crossed") is None or not implied
                          or actual is None else
                          bool(card["flip_crossed"]) and actual >= ratio * implied)}
+    # DAMPENED (6b part 2; the pre-registration's H1 outcome): a regime session
+    # (the morning's net-to-gross at the gate) in positive gamma whose range came
+    # in at or under the declared share of the implied range. Ineligible: None.
+    damp = float(fc.get("dampened_range_ratio", 0.8))
+    elig = (card.get("regime_eligible") and (card.get("net_gex_morning") or 0) > 0)
+    out["dampened"] = (None if not elig or not implied or actual is None
+                       else actual <= damp * implied)
     flip = card.get("flip_morning")
     out["close_vs_flip"] = (None if None in (close, flip) else
                             ("above" if close > flip else "below"))
@@ -354,7 +374,127 @@ def flags_for(card: dict, vix: Optional[float], cfg: dict) -> dict:
     gap = float((cfg.get("dealer_flags") or {}).get("iv_vix_check_points", 5.0))
     out["iv_check"] = bool(own_iv and vix and abs(own_iv - vix) > gap)
     out["spy_iv"], out["vix"] = own_iv, vix
+    # THE IV'S CAPTURE TIME (Part 0, 17 Oct 2026). The close reads the session's
+    # LAST stored chain; if the 16:10 capture is missing, that is a midday one,
+    # and the implied range would rest on a chain taken before the afternoon. A
+    # capture before 16:00 ET prints its time beside the figure.
+    out["iv_captured"] = (_capture_before_close(card.get("atm_iv_capture_at"),
+                                                card.get("session"))
+                          if own_iv else None)
+    # GAPPED THROUGH THE FLIP (Part 0, 17 Oct 2026; descriptive, not
+    # pre-registered): the prior close on one side of the morning flip and the
+    # whole cash session on the other -- the flip was crossed overnight, not in
+    # the session (14 Oct: prior close 778.04, flip 777.25, high 776.35).
+    pc = card.get("prior_close")
+    out["gapped_through_flip"] = (
+        None if None in (pc, flip, hi, lo) else
+        (not (lo <= flip <= hi)) and (pc > flip > hi or pc < flip < lo))
+    # THE PRE-REGISTRATION'S DEFINITIONS FROM 17 OCT 2026 (ruling 7 of 17 Oct):
+    # pinned, held, amplified and dampened are the registered outcomes
+    # (altdata/dealer_scorecard.py: H4 on the monthly expiry, H3 at the OTM walls,
+    # H2 and H1 on regime sessions). A session before the date keeps the
+    # descriptive definitions it was printed under -- not restated.
+    frm = str(fc.get("definitions_from") or "")
+    sess = str(card.get("session") or "")[:10]
+    if frm and sess and sess >= frm:
+        from altdata import dealer_scorecard as dsc             # noqa: PLC0415
+        sc = dsc.score_card(card, {}, dsc.config(cfg), vix)
+        for k in ("pinned", "call_wall_held", "put_wall_held", "amplified",
+                  "dampened"):
+            out[k] = sc[k]["outcome"]
+        out["definitions"] = "preregistration"
+    else:
+        out["definitions"] = "descriptive"
     return out
+
+
+def flip_words(sessions: list[dict], tol_bps: float = 25.0) -> Optional[dict]:
+    """THE WEEK'S FLIP WORDS (W8-3, weekly-fixes-9), from the close-vs-flip column
+    and never from the model. The Weekly of 18 Oct said "the gamma flip at
+    774.67 held" while Wednesday, Thursday and Friday closed below it: the Tape's
+    status was the last session's alone (its high touched, its close stayed
+    below), read as the week's.
+
+      crossed   a session closed on the other side of the flip from the first
+                session's close: "crossed on Wed 14 Oct, below since" (the last
+                crossing, and the side every close since has kept);
+      held      no close on the other side, and a session's range came within
+                the tolerance of that morning's flip: touched, not crossed;
+      untested  neither.
+
+    None when no session carries a close-vs-flip."""
+    rows = [s for s in sessions if s.get("close_vs_flip") in ("above", "below")]
+    if not rows:
+        return None
+    sides = [s["close_vs_flip"] for s in rows]
+    changes = [i for i in range(1, len(sides)) if sides[i] != sides[i - 1]]
+    if changes:
+        j = changes[-1]
+        words = f"crossed on {_day(rows[j]['session'])}, {sides[-1]} since"
+        if len(changes) > 1:
+            words = (f"crossed {len(changes)} times in the week; last on "
+                     f"{_day(rows[j]['session'])}, {sides[-1]} since")
+        return {"status": "crossed", "words": words, "side": sides[-1],
+                "sessions": [(s["session"], s["close_vs_flip"]) for s in rows]}
+
+    def touched(s: dict) -> bool:
+        f, hi, lo = s.get("flip"), s.get("high"), s.get("low")
+        if None in (f, hi, lo):
+            return False
+        t = abs(f) * tol_bps / 1e4
+        return lo <= f + t and hi >= f - t
+    held = any(touched(s) for s in rows)
+    return {"status": "held" if held else "untested",
+            "words": (f"held: touched, and every close {sides[-1]} it" if held
+                      else f"untested: every close {sides[-1]} it"),
+            "side": sides[-1],
+            "sessions": [(s["session"], s["close_vs_flip"]) for s in rows]}
+
+
+def apply_flip_words(tape: dict, mech: dict, symbol: str = "spy") -> Optional[dict]:
+    """The week's flip words onto the Tape's level status for `symbol`, so the
+    writer's level audit holds "held" and "broke" to the column (W8-3). A
+    crossing is neither: the prose may say "crossed", not "held"."""
+    fw = flip_words(((mech or {}).get("data") or {}).get("sessions") or [])
+    if not fw:
+        return None
+    for lv in ((tape.get("data") or {}).get("level_status") or {}).get(symbol) or []:
+        if lv.get("label") == "gamma flip":
+            lv["status"] = fw["status"]
+            lv["week_words"] = fw["words"]
+    tape.setdefault("data", {})["flip_week"] = fw
+    return fw
+
+
+def _capture_before_close(at: Optional[str], sess: Optional[str]) -> Optional[str]:
+    """The capture's time as "HH:MM ET" when it is before 16:00 ET on the
+    session; None when it is at or after the close, or either is unknown."""
+    if not at or not sess:
+        return None
+    try:
+        from zoneinfo import ZoneInfo                           # noqa: PLC0415
+        t = dt.datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=dt.timezone.utc)
+        et = t.astimezone(ZoneInfo("America/New_York"))
+    except (ValueError, KeyError):
+        return None
+    close = dt.datetime.combine(dt.date.fromisoformat(str(sess)[:10]),
+                                dt.time(16, 0), et.tzinfo)
+    return et.strftime("%H:%M ET") if et < close else None
+
+
+def _gated_regime(card: dict, cfg: dict) -> str:
+    """The close's regime word, gated on net-to-gross (6b; ruled 16 Oct 2026).
+    A card stored before the gate carries no net-to-gross: its sign prints
+    marked ungated, never as a regime."""
+    from . import dealer_block                                  # noqa: PLC0415
+    ntg = card.get("net_to_gross_close")
+    if ntg is None:
+        g = card.get("gamma_regime")
+        return f"{g} (ungated)" if g else "—"
+    return dealer_block.regime(card.get("net_gex_close"), ntg,
+                               cfg.get("dealer_block") or {})
 
 
 def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
@@ -375,7 +515,11 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
         return "—" if v is None else fmt.format(v)
 
     def bn(v):
-        return "—" if v is None else f"{v / 1e9:+,.2f}bn"
+        # weekly-fixes-7 item 1: both stored figures are DOLLARS (net GEX is
+        # gamma x OI x 100 x spot, $ of delta per $1 move; DEX is delta x OI x
+        # 100 x spot), so the cell says "$". Rounded before the sign is taken:
+        # no signed zero (item 12).
+        return "—" if v is None else money_bn_signed(v)
 
     def yn(v):
         return "—" if v is None else ("yes" if v else "no")
@@ -385,17 +529,24 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
         set_flags = [n for n, k in (("pinned", "pinned"), ("call wall held",
                                      "call_wall_held"), ("put wall held",
                                                          "put_wall_held"),
-                                    ("amplified", "amplified")) if f.get(k)]
-        rows.append([_day(c["session"]), c.get("gamma_regime") or "—",
+                                    ("amplified", "amplified"),
+                                    ("dampened", "dampened"),
+                                    ("gapped through the flip",
+                                     "gapped_through_flip")) if f.get(k)]
+        rows.append([_day(c["session"]), _gated_regime(c, cfg),
                      bn(c.get("net_gex_close")),
                      bn(c.get("dex_close")),
                      g(c.get("flip_morning")),
-                     f"{g(c.get('call_wall_morning') or c.get('call_wall'))} / "
-                     f"{g(c.get('put_wall_morning') or c.get('put_wall'))}",
+                     f"{g(c.get('call_wall_otm_morning'))} / "
+                     f"{g(c.get('put_wall_otm_morning'))}",
                      # -- the second table from here
                      _day(c["session"]), g(c.get("max_pain")),
                      (g(f["implied_range"])
-                      + (f" (SPY IV {f['spy_iv']:.1f}, VIX {f['vix']:.1f}: check)"
+                      + (f" (SPY IV {f['spy_iv']:.1f} captured {f['iv_captured']})"
+                         if f.get("iv_captured") and not f.get("iv_check") else "")
+                      + (f" (SPY IV {f['spy_iv']:.1f}"
+                         + (f" captured {f['iv_captured']}" if f.get("iv_captured") else "")
+                         + f", VIX {f['vix']:.1f}: check)"
                          if f.get("iv_check") else
                          " (VIX as proxy)" if f.get("iv_source") == "VIX as proxy"
                          else "")),
@@ -404,14 +555,18 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                      ", ".join(set_flags + (["check"] if f.get("iv_check") else []))
                      or "none"])
         scored.append({"session": c["session"], "flags": {k: f[k] for k in
-                       ("pinned", "call_wall_held", "put_wall_held", "amplified")},
+                       ("pinned", "call_wall_held", "put_wall_held", "amplified",
+                        "dampened")},
                        "implied_range": f["implied_range"],
                        "actual_range": f["actual_range"],
                        "close_vs_flip": f["close_vs_flip"],
-                       "gamma_regime": c.get("gamma_regime")})
+                       "gamma_regime": c.get("gamma_regime"),
+                       # W8-3: what the week's flip words are read from.
+                       "flip": c.get("flip_morning"), "close": c.get("close"),
+                       "high": c.get("session_high"), "low": c.get("session_low")})
     # TWO TABLES OF SIX (T2.3 mobile rule): the profile, then the ranges.
     return {"table": {"columns": ["Session", "Gamma regime", "Net GEX", "DEX",
-                                  "Flip", "Call / put wall"],
+                                  "Flip (morning capture)", "OTM call / put wall"],
                       "rows": [r[:6] for r in rows]},
             "ranges_table": {"columns": ["Session", "Max pain", "Implied range",
                                          "Actual range", "Close vs flip", "Flags"],
@@ -428,7 +583,15 @@ def dealer_week(st, sessions: list[str], cutoff: str, cfg: dict) -> dict:
                            "of it and the close inside; amplified = the flip "
                            "crossed and the actual range at least "
                            f"{(cfg.get('dealer_flags') or {}).get('amplified_range_ratio', 1.2)}"
-                           "× the implied."),
+                           "× the implied. From "
+                           + _day(str((cfg.get('dealer_flags') or {}).get('definitions_from')
+                                      or '2026-10-17'))
+                           + " 2026 the flags are the pre-registration's outcomes "
+                           "(pinned on the monthly expiry at the peak-gamma strike; "
+                           "amplified and dampened on regime sessions); earlier "
+                           "sessions keep the definitions they were printed under. "
+                           "Gapped through the flip: the flip crossed between the "
+                           "prior close and the open, not in the session; descriptive."),
             "data": {"sessions": scored}, "cards": cards}
 
 
@@ -763,15 +926,20 @@ def transition_expiry(st, now: str, limits: Optional[dict] = None) -> Optional[d
 
 
 def watching(st, now: str, opened: list[dict], pmb: Optional[dict],
-             fed: Optional[dict]) -> list[str]:
-    """Item 10: what the system is watching, in the config's words."""
+             fed: Optional[dict], dates: Optional[dict] = None) -> list[str]:
+    """Item 10: what the system is watching, in the config's words. A gap's age
+    is section 4's counter (`dates`, state_dates over the stored objects: the
+    sessions since the gap crossed its line), so the two can never disagree
+    (weekly-fixes-7 item 4: dry run 7 printed "open 9 sessions" for two gaps
+    section 4 aged 15 and 13); persistence_days only where no dates exist."""
     from altdata import labels                                  # noqa: PLC0415
     out = []
     for c in opened:
         plain = labels.contradiction_plain(c.get("id"))
         z = c.get("magnitude")
+        n = watch_sessions(c, dates)
         out.append(f"{labels.contradiction(c.get('id')).capitalize()}: open "
-                   f"{c.get('persistence_days')} session(s)"
+                   f"{n} session{'s' if n != 1 else ''}"
                    + (f" at z {float(z):+.1f}" if isinstance(z, (int, float)) else "")
                    + (f"; it closes when {plain['closes']}." if plain.get("closes")
                       else "."))
@@ -1040,8 +1208,12 @@ def _bn_change(v: Optional[float], scale: float = 1.0) -> str:
     if v is None:
         return "—"
     x = v * scale
-    sign = "+" if x >= 0 else "−"
-    return sign + _bn(abs(x))
+    mag = _bn(abs(x))
+    # weekly-fixes-7 item 12: RRP's "−$0bn" -- a change that rounds to zero is
+    # "unch", never a signed zero.
+    if not any(ch in "123456789" for ch in mag):
+        return "unch"
+    return ("+" if x > 0 else "−") + mag
 
 
 # THE AUCTION'S FIELDS (W-1.1 item 1.4, ruled 11 Oct 2026). Each of the week's
@@ -1223,7 +1395,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                      sio_asof or soa])
         data["sofr_iorb_bp"] = sp
     else:
-        nt.append("SOFR and IORB (the FRED pull adds them from the next run)")
+        nt.append(f"SOFR and IORB ({rd.starts_line('FRED', now)})")
     for key, name in (("fred.ig_oas", "Investment-grade OAS"),
                       ("fred.ccc_oas", "CCC OAS")):
         v, pv, asof = two(key)
@@ -1253,7 +1425,7 @@ def plumbing_rows(st, now: str, then: str, cadence: str = "weekly",
                          gc_asof])
             data["gold_copper"] = round(r, 1)
     else:
-        nt.append("copper (the price feed adds HG=F from the next run)")
+        nt.append(f"copper ({rd.starts_line('Yahoo Finance', now)})")
     # THE WEEK'S AUCTIONS: coupons only, with their own figures; the tail is not
     # stored (no when-issued yield).
     auctions = []
@@ -1294,7 +1466,7 @@ def global_fx(st, now: str, then: str, cadence: str = "weekly") -> dict:
         a = st.latest_as_of(key, now)
         b = st.latest_as_of(key, then)
         if not a:
-            nt.append(name.split(" (")[0] + " (the price feed adds it from the next run)")
+            nt.append(name.split(" (")[0] + f" ({rd.starts_line('Yahoo Finance', now)})")
             continue
         rows.append([name, with_stale(f"{a['value_num']:,.{dp}f}",
                                       str(a["observed_at"])[:10], edition_session(now)),
@@ -1338,21 +1510,22 @@ def volatility(st, now: str, wis: Optional[dict] = None,
             d *= 100.0                        # realized stored as a fraction
         d = round(d, 1)
         return f"{'+' if d > 0 else ('−' if d < 0 else '')}{abs(d):.1f} pts"
-    vix_hist = [v for d, v in _closes_of(st, "yfinance.mkt_vix", now) if d >= five]
+    vix_pts = [(d, v) for d, v in _closes_of(st, "yfinance.mkt_vix", now) if d >= five]
+    vix_hist = [v for _, v in vix_pts]
     vix = vix_hist[-1] if vix_hist else None
     rows, data = [], {}
     if vix is not None:
         pct = derived.percentile_of(vix_hist, vix) if len(vix_hist) > 20 else None
         rows.append(["VIX", f"{vix:.2f}",
                      f"{na_ordinal(pct)} percentile, five years" if pct is not None else "—",
-                     wk("yfinance.mkt_vix")])
+                     wk("yfinance.mkt_vix"), vix_pts[-1][0]])
         data["vix"] = vix
         data["vix_percentile_5y"] = None if pct is None else round(pct)
     vts = (wis or {}).get("vol_term_structure") or {}
     pub = vts.get(vts.get("published_by") or "") or {}
     if pub.get("ratio") is not None:
         rows.append(["VIX3M over VIX (term structure, published)",
-                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—"), "—"])
+                     f"{float(pub['ratio']):.2f}", str(pub.get("state") or "—"), "—", "—"])
     rv = st.latest_as_of("calc.vol_spy_realized_20d", now)
     rvv = rv.get("value_num") if rv else None
     if rvv is not None and rvv < 3:
@@ -1360,20 +1533,33 @@ def volatility(st, now: str, wis: Optional[dict] = None,
     if rvv is not None and vix is not None:
         rows.append(["SPY 20-day realized against the VIX", f"{rvv:.1f} vs {vix:.1f}",
                      f"implied {'above' if vix > rvv else 'below'} realized by "
-                     f"{abs(vix - rvv):.1f} points", wk("calc.vol_spy_realized_20d", True)])
+                     f"{abs(vix - rvv):.1f} points", wk("calc.vol_spy_realized_20d", True),
+                     str(rv["observed_at"])[:10]])
         data["implied_daily_move_pct"] = round(vix / 252 ** 0.5, 2)
         data["realized_daily_move_pct"] = round(rvv / 252 ** 0.5, 2)
         rows.append(["Daily move priced, and realized",
                      f"{data['implied_daily_move_pct']:.2f}% priced",
-                     f"{data['realized_daily_move_pct']:.2f}% realized", "—"])
+                     f"{data['realized_daily_move_pct']:.2f}% realized", "—", "—"])
     for key, name in (("yfinance.mkt_move", "MOVE (Treasury volatility)"),
                       ("yfinance.mkt_skew", "SKEW (tail-risk pricing)")):
+        # weekly-fixes-7 item 12: Context is the percentile, as the VIX's is;
+        # the as-of date has its own column (dry run 7 printed a date there).
         a = st.latest_as_of(key, now)
+        hist = [v for d, v in _closes_of(st, key, now) if d >= five]
+        pc = (derived.percentile_of(hist, a["value_num"])
+              if a and a.get("value_num") is not None and len(hist) > 20 else None)
         rows.append([name, f"{a['value_num']:.1f}" if a else "—",
-                     str(a["observed_at"])[:10] if a else "not yet stored", wk(key)])
+                     (f"{na_ordinal(pc)} percentile, five years" if pc is not None
+                      else "—") if a else "not yet stored", wk(key),
+                     str(a["observed_at"])[:10] if a else "—"])
+        if pc is not None:
+            data[f"{key.rsplit('_', 1)[-1]}_percentile_5y"] = round(pc)
     cols = ["Measure", "Level", "Context"] + ([Period.of("weekly").col] if then else [])
+    # The as-of column is last whatever the period column does.
+    rows = [r[:len(cols)] + [r[-1]] for r in rows]
+    cols = cols + ["As of"]
     return {"title": "Volatility",
-            "table": {"columns": cols, "rows": [r[:len(cols)] for r in rows[:6]]},
+            "table": {"columns": cols, "rows": rows[:6]},
             "data": data}
 
 
@@ -1567,8 +1753,69 @@ def earnings_block(st, ending: str, now: str, then: str,
         data.append({"symbol": sym, "eps": eps, "eps_estimate": est, "verdict": verdict,
                      "reaction_pct": react, "date": d})
     w = Period.of(cadence)
+    table = {"columns": ["Name", "EPS against consensus", "Verdict", "Revenue",
+                         "Next day", "Reported"], "rows": rows}
+    # weekly-fixes-7 item 12: one footnote, blank cells, for the repeated gap.
+    notes = rd.fold_repeated_gaps(table, {"revenue not stored": (
+        "Revenue: blank where it is not stored -- the earnings source carries the "
+        "reported EPS, not revenue.")})
     return {"title": f"Earnings {w.this}",
-            "table": {"columns": ["Name", "EPS against consensus", "Verdict", "Revenue",
-                                  "Next day", "Reported"], "rows": rows},
+            "table": table,
             "lines": [] if rows else [f"No universe name reported {w.this}."],
+            **({"table_note": " ".join(notes)} if notes else {}),
             "data": data}
+
+
+# ---------------------------------------------------------------------------
+# weekly-fixes-7 (dry run 7's faults, 17 Oct 2026)
+# ---------------------------------------------------------------------------
+def money_bn_signed(v: float, places: int = 2) -> str:
+    """A signed dollar figure in billions, "+$205.62bn" / "−$0.34bn". The value
+    is rounded BEFORE the sign is taken, so a figure that rounds to zero prints
+    "$0.00bn", never "−$0.00bn" (item 12, the signed-zero rule)."""
+    x = round(v / 1e9, places)
+    if x == 0:
+        return f"${0:.{places}f}bn"
+    return f"{'+' if x > 0 else '−'}${abs(x):,.{places}f}bn"
+
+
+def dealer_bounds(net_gex: float | None, dex: float | None, total_oi: float,
+                  spot: float) -> list[str]:
+    """ITEM 1's BOUNDS, in the units the series are stored in (dollars). With
+    |delta| <= 1, |DEX| <= sum of OI x 100 x spot; and net GEX per 1% in shares
+    (net_gex x 0.01 / spot x spot = net_gex x 0.01) is held to the paste's
+    bound, sum of OI x 100 x spot x 0.01, i.e. |net_gex| <= sum OI x 100 x spot.
+    A figure past its bound is in the wrong units (dry run 7 printed dollars
+    labelled shares: 205bn against a share bound near 2bn)."""
+    cap = abs(total_oi) * 100 * spot
+    out = []
+    if dex is not None and abs(dex) > cap:
+        out.append(f"|DEX| {abs(dex):,.0f} above sum(OI) x 100 x spot {cap:,.0f}")
+    if net_gex is not None and abs(net_gex) * 0.01 > cap * 0.01:
+        out.append(f"|net GEX per 1%| {abs(net_gex) * 0.01:,.0f} above "
+                   f"sum(OI) x 100 x spot x 0.01 {cap * 0.01:,.0f}")
+    return out
+
+
+def dedupe_attributions(attrs: list[dict]) -> list[dict]:
+    """ITEM 2: an attribution is stored once per story it supports, so the same
+    quote reached the read's "Also this week" once per story (dry run 7: six
+    bullets, three items). One bullet per (url, claim text), the first kept."""
+    seen, out = set(), []
+    for a in attrs:
+        k = (str(a.get("source_url") or "").strip(),
+             " ".join(str(a.get("claim") or "").split()).lower())
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(a)
+    return out
+
+
+def watch_sessions(c: dict, dates: Optional[dict]) -> Optional[int]:
+    """Item 4: the age Watching prints -- section 4's (`gap_table`'s) sessions
+    count for the gap where the stored objects give one, else the object's own
+    persistence_days (the gap table's own fallback)."""
+    d = (dates or {}).get(c.get("id")) or {}
+    return d.get("sessions") or c.get("persistence_days")
+

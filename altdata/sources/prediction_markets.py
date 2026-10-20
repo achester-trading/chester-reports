@@ -47,8 +47,32 @@ log = logging.getLogger(__name__)
 REPO = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = REPO / "config" / "prediction_markets.yaml"
 KEYS = ("pm.probability", "pm.volume", "pm.market")
-USER_AGENT = "chester-reports/1.0 (read-only research; no trading)"
+from .user_agent import generic as _generic_ua                 # noqa: E402
+USER_AGENT = _generic_ua()
 PACING_SECONDS = 0.25
+
+# EACH VENUE'S PRICE RANGE (AUD-3a item 7, 14 Oct 2026). Both quote a YES price as
+# a probability, 0..1, once Kalshi's cents are divided by 100. The mid is already
+# range-checked (price() below); the LAST TRADE, the fallback, was not, so a
+# malformed or mis-scaled last could be stored as a probability. Outside its
+# venue's range it is dropped and logged, and a market with no price is skipped.
+VENUE_PRICE_RANGE: dict[str, tuple[float, float]] = {
+    "kalshi": (0.0, 1.0),
+    "polymarket": (0.0, 1.0),
+}
+
+
+def in_range(x: Optional[float], venue: Optional[str], what: str = "last",
+             market: Optional[str] = None) -> Optional[float]:
+    """`x` if it lies inside the venue's price range, else None, logged."""
+    if x is None or venue not in VENUE_PRICE_RANGE:
+        return x
+    lo, hi = VENUE_PRICE_RANGE[venue]
+    if lo <= x <= hi:
+        return x
+    log.warning("prediction markets: %s %s price %r for %s is outside %s's range "
+                "%s..%s; dropped", venue, what, x, market or "a market", venue, lo, hi)
+    return None
 
 
 def load_config(path: Optional[Path] = None) -> dict:
@@ -105,6 +129,7 @@ def parse_kalshi_event(ev: dict, watch_id: str, match: str = "exact") -> list[di
         if last is None:
             last = _f(m.get("last_price"))
             last = last / 100.0 if last is not None and last > 1 else last
+        last = in_range(last, "kalshi", market=m.get("ticker"))
         bid, ask = _f(m.get("yes_bid_dollars")), _f(m.get("yes_ask_dollars"))
         p, basis = price(bid, ask, last)
         out.append({
@@ -148,14 +173,16 @@ def parse_polymarket_event(ev: dict, watch_id: str, match: str = "exact"
         # used only when that is the side stored.
         bid, ask = (_f(m.get("bestBid")), _f(m.get("bestAsk"))) if i == 0 \
             else (None, None)
-        p, basis = price(bid, ask, _f(prices[i]))
+        last = in_range(_f(prices[i]), "polymarket",
+                        market=m.get("conditionId") or m.get("id"))
+        p, basis = price(bid, ask, last)
         out.append({
             "venue": "polymarket", "market_id": m.get("conditionId") or m.get("id"),
             "event_id": ev.get("slug"), "watch_id": watch_id, "match": match,
             "question": m.get("question"),
             "outcome": m.get("groupItemTitle") or (outcomes[i] if outcomes else "Yes"),
             "event_title": ev.get("title"),
-            "probability": p, "price_basis": basis, "last": _f(prices[i]),
+            "probability": p, "price_basis": basis, "last": last,
             "bid": bid, "ask": ask,
             "volume": _f(m.get("volume")),
             "open_interest": _f(m.get("liquidity")),
@@ -321,7 +348,7 @@ def pull(store: Optional[observations.ObservationStore] = None,
     if dry_run:
         return out
     own = store is None
-    st = store or observations.ObservationStore()
+    st = store or observations.open_writer(__name__)
     try:
         # pm.market only when it changed: one description per market, not one a
         # pull, so its history is a list of real revisions.
@@ -370,6 +397,7 @@ def backfill_rows(meta: dict, get: Callable, days: int, end: dt.date) -> list[di
                     or (c.get("price") or {}).get("close"))
             if px is not None and px > 1:
                 px /= 100.0
+            px = in_range(px, "kalshi", "backfill close", tick)
             if px is None:
                 continue
             ts = int(c["end_period_ts"])
@@ -382,7 +410,8 @@ def backfill_rows(meta: dict, get: Callable, days: int, end: dt.date) -> list[di
         for h in d.get("history") or []:
             day = covered_session(int(h["t"]))
             if start <= day <= end:
-                rows.append({"day": day, "probability": _f(h.get("p")),
+                rows.append({"day": day, "probability": in_range(
+                    _f(h.get("p")), "polymarket", "backfill", meta.get("market_id")),
                              "available_at": dt.datetime.fromtimestamp(
                                  int(h["t"]), dt.timezone.utc).isoformat()})
     return [r for r in rows if r["probability"] is not None]
@@ -393,7 +422,7 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
     """Daily history for every market already stored, flagged as backfill."""
     get = get or http_get
     own = store is None
-    st = store or observations.ObservationStore()
+    st = store or observations.open_writer(__name__)
     out: dict[str, Any] = {"markets": 0, "rows": 0, "errors": {}, "dry_run": dry_run}
     try:
         # NEVER ZERO SILENTLY (T2 ruling 5): with no market stored there is
@@ -442,12 +471,14 @@ def backfill(days: int = 120, store: Optional[observations.ObservationStore] = N
             # previous backfill wrote for these markets -- and only those, by
             # their `<venue>:backfill` source -- go before the new ones are
             # written. Live snapshots are never touched.
+            # Through the store's one exception path (audit-leftovers-1): the
+            # append-only triggers are lifted inside this transaction only.
             n_del = 0
-            for inst, src in replace:
-                n_del += st.conn.execute(
-                    "DELETE FROM observations WHERE registry_key = 'pm.probability'"
-                    " AND instrument = ? AND source = ?", (inst, src)).rowcount
-            st.conn.commit()
+            with observations.maintenance(st.conn, "prediction_markets.backfill"):
+                for inst, src in replace:
+                    n_del += st.conn.execute(
+                        "DELETE FROM observations WHERE registry_key = 'pm.probability'"
+                        " AND instrument = ? AND source = ?", (inst, src)).rowcount
             out["replaced"] = n_del
             out["written"] = st.write_many(obs)
     finally:

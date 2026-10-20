@@ -1,0 +1,30 @@
+{
+ "jsonrpc": "2.0",
+ "result": [
+  {
+   "high": 82411.5,
+   "low": 80725.5,
+   "last": 81445.5,
+   "instrument_name": "BTC-PERPETUAL",
+   "bid_price": 81445.0,
+   "ask_price": 81445.5,
+   "open_interest": 838331890,
+   "mark_price": 81443.64,
+   "creation_timestamp": 1792240591980,
+   "current_funding": 0.0,
+   "estimated_delivery_price": 81428.2,
+   "funding_8h": 1.433e-05,
+   "price_change": -1.0305,
+   "volume": 11276.56657506,
+   "base_currency": "BTC",
+   "quote_currency": "USD",
+   "volume_usd": 919442340.0,
+   "volume_notional": 919442340.0,
+   "mid_price": 81445.25
+  }
+ ],
+ "usIn": 1792240591979368,
+ "usOut": 1792240591980150,
+ "usDiff": 782,
+ "testnet": false
+}

@@ -297,6 +297,10 @@ class NarrativeResult:
     citation_checked: bool = False
     misstated: list[str] = field(default_factory=list)
     states_checked: bool = False
+    # THE AUDIT RETRY (W8-1): how many drafts this result took (one, or the
+    # draft and its one revision) and, after a revision, the first one's reason.
+    attempts: int = 1
+    first_reason: Optional[str] = None
 
     @property
     def published(self) -> bool:
@@ -382,18 +386,12 @@ def _client():
     # altdata.secrets is the single loader Step 0(a) established: environment
     # always wins over .env, values are never logged, and both callers now resolve
     # the key identically.
-    from altdata import secrets  # noqa: PLC0415
-    key_name = "ANTHROPIC" + "_API_KEY"
-    if not secrets.present(key_name):
-        return None, f"{key_name} is not set (checked environment, then .env)"
-    try:
-        import anthropic  # noqa: PLC0415
-    except ImportError:
-        return None, "the anthropic package is not installed"
-    try:
-        return anthropic.Anthropic(), ""
-    except Exception as exc:  # noqa: BLE001
-        return None, f"client construction failed: {type(exc).__name__}: {exc}"
+    #
+    # AND THROUGH THE ONE CLIENT (AUD-2 item 4, 14 Oct 2026): altdata/model_meter.py
+    # builds it once, with a 90-second timeout and one retry, and resolves the key
+    # through altdata.secrets exactly as this did.
+    from altdata import model_meter  # noqa: PLC0415
+    return model_meter.client()
 
 
 def style_guide(path=None) -> str:
@@ -436,7 +434,9 @@ def build_prompt(payload: dict, guide_path=None) -> str:
     guide = style_guide(guide_path)
     # ensure_ascii=False: the model must see "−6.75%" as the characters it
     # is told to copy, not as a JSON escape it might reproduce literally.
-    body = json.dumps(payload, indent=2, default=str, sort_keys=True,
+    # COMPACT (AUD-2 item 4): no indentation and no padding after separators --
+    # the model reads the structure either way, and the whitespace was tokens.
+    body = json.dumps(payload, separators=(",", ":"), default=str, sort_keys=True,
                       ensure_ascii=False)
     if guide and len(guide) > MAX_GUIDE_CHARS:
         raise PromptTooLarge(f"the style guide is {len(guide)} characters, past "
@@ -747,16 +747,17 @@ def generate(payload: dict, *, model: Optional[str] = None,
         # ON by default here, and it consumed the entire budget.
         "thinking": {"type": "disabled"},
     }
+    from altdata import model_meter  # noqa: PLC0415
     try:
         try:
-            resp = client.messages.create(**kwargs)
+            resp = model_meter.create(client, **kwargs)
         except TypeError:
             # AN SDK THAT DOES NOT KNOW THE PARAMETER MUST NOT COST THE PARAGRAPH.
             # The raised cap alone is enough to reach the text when thinking stays
             # on, so falling back is a degradation in cost and not in outcome --
             # and the fallback is recorded on the result rather than silent.
             kwargs.pop("thinking")
-            resp = client.messages.create(**kwargs)
+            resp = model_meter.create(client, **kwargs)
             res.reason = "thinking parameter unsupported by this SDK; cap alone"
         text = "".join(b.text for b in resp.content
                        if getattr(b, "type", None) == "text").strip()

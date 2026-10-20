@@ -14,9 +14,17 @@ of its own -- no live store, no network, no model:
      printing no tier on the monthly series (ruled 13 Oct 2026). The tier rule
      as set for the daily series: 149 bp is below the 150 bp
      watch line, 151 bp is the watch tier, the stored November 2011 peak is the
-     crisis tier, recomputed from the store; the crisis tier and only it earns
-     the Monthly's "what doesn't fit" sentence; "(descriptive; unvalidated,
+     crisis tier, recomputed from the store; "(descriptive; unvalidated,
      n=0)"; EUR/CHF beside it; the legs absent print their reason.
+     DAILY (st-r5-audit, 16 Oct 2026): with the Banque de France's TEC 10 and
+     the Bundesbank's 10-year stored, OAT-Bund reads daily, its percentiles over
+     the daily series, its tier on the latest WEEKLY CLOSE (a later day above
+     the line does not move it until its week closes): 149 bp none, 151 bp
+     watch, the daily series' November 2011 peak (208.1 bp, recomputed from the
+     store) crisis, and the crisis tier and only it earns the Monthly's "what
+     doesn't fit" sentence; BTP-Bund stays the ECB's monthly average, labelled
+     and untiered; the Webstat export parses by column and refuses another
+     series or a missing column.
   C  ST-B3-04  SR-33. 10 Sep 2026's operation, $5.19bn of $6bn, bought/max 87%,
      the 30-year's next session +5.0 bp; the TGA in $bn from millions; the
      Monthly's lever table carries the modifier line; the Fiscal Data parser on
@@ -145,7 +153,9 @@ def eu_rows(oat_last: float) -> list[tuple]:
             oat = oat_last
         rows += [("ecb.irs_10y_de", None, day, f["de_level"]),
                  ("ecb.irs_10y_fr", None, day, f["de_level"] + oat / 100.0),
-                 ("ecb.irs_10y_it", None, day, f["de_level"] + btp / 100.0)]
+                 ("ecb.irs_10y_it", None, day, f["de_level"] + btp / 100.0),
+                 # Greece (ST-R4.21a): 120 bp over the Bund throughout.
+                 ("ecb.irs_10y_gr", None, day, f["de_level"] + 1.20)]
         d = (d.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
     rows += [(batch3.EURCHF_KEY, None, dd, v) for dd, v in f["eurchf"]]
     return rows
@@ -178,13 +188,6 @@ def group_b() -> None:
             check(peak == CFG["eu_stress"]["crisis_bp"] == 154.0,
                   f"the crisis level is recomputed from the stored November 2011 "
                   f"peak: {peak} bp = config {CFG['eu_stress']['crisis_bp']}")
-            live = {**CFG, "eu_stress": {**CFG["eu_stress"], "tiers_live": True}}
-            with open_store(db) as st:
-                mis = blk.misfit_items(st, cut, live)
-            check(mis and "(descriptive; unvalidated, n=0)" in mis[0]["text"]
-                  and "crisis tier" in mis[0]["text"],
-                  f"wired live, one sentence at the crisis tier "
-                  f"({mis and mis[0]['text'][:90]}...)")
         if case["tier"] == "watch":
             pc = oat["percentiles"]
             check(set(pc) == {5, 20} and pc[5]["n"] == 60 and pc[20]["n"] == 240
@@ -200,28 +203,164 @@ def group_b() -> None:
             btp = sub["table"]["rows"][1]
             check(btp[0] == "BTP-Bund, ECB monthly average" and len(btp) == 6,
                   "BTP-Bund under its own label beside it")
-            chf = sub["table"]["rows"][2]
+            gr = sub["table"]["rows"][2]
+            grp = next(p for p in e["pairs"] if p["id"] == "gr_bund")
+            check(gr[0] == "Greece-Bund, ECB monthly average (a watch spread)"
+                  and gr[1] == "120.0 bp" and grp["tier"] is None and len(gr) == 6
+                  and "(n=60)" in gr[3] and "(n=240)" in gr[4],
+                  f"Greece-Bund beside them (ST-R4.21a), a watch spread with its "
+                  f"dual percentiles and no tier ({gr})")
+            chf = sub["table"]["rows"][3]
             check(chf[0].startswith("EUR/CHF") and chf[1] == "0.9250"
                   and chf[2] == "-0.64%" and len(chf) == 6,
                   f"EUR/CHF daily, the transmission tell, with its week ({chf[1]}, {chf[2]})")
             check(not sub["lines"] and "(descriptive; unvalidated, n=0)" in sub["table_note"]
-                  and "No tier prints" in sub["table_note"],
-                  "no flag line; the note says why no tier prints, and keeps the "
-                  "unvalidated tag")
-            live = {**CFG, "eu_stress": {**CFG["eu_stress"], "tiers_live": True}}
-            with open_store(db) as st:
-                wl = blk.eu_subsection(st, cut, live)
-            check(wl["table"]["rows"][0][5] == "WATCH (≥ 150 bp)"
-                  and wl["lines"][0].startswith("OAT–Bund at the watch tier")
-                  and "(descriptive; unvalidated, n=0)" in wl["lines"][0],
-                  "wired live on a daily series, 151 bp prints the watch tier, "
-                  "labelled unvalidated")
+                  and "No tier prints" in sub["table_note"]
+                  and "not stored yet" in sub["table_note"],
+                  "no flag line; the note says why no tier prints (the daily legs "
+                  "not stored), and keeps the unvalidated tag")
     db = store([])
     with open_store(db) as st:
         sub = blk.eu_subsection(st, cut)
-    check(sub["table"] is None and any("not yet stored" in x and "aq-3-series-2" in x
-                                       for x in sub["lines"]),
-          "without the legs, the block says they are not yet stored and names the writer")
+    check(sub["table"] is None
+          and any("not yet stored (the ECB's data portal, from " in x
+                  for x in sub["lines"])
+          and not any("aq-3-series-2" in x or ".py" in x for x in sub["lines"]),
+          "without the legs, the block says they are not yet stored, naming the "
+          "source and the date it starts -- no file or branch (weekly-fixes-7 item 11)")
+    group_b_daily()
+
+
+DAILY_LEGS = {"fr": "bdf.oat_tec10", "de": "bbk.bund_10y"}
+
+
+def daily_rows(close_bp: float, after: tuple = ()) -> list[tuple]:
+    """Business days 2006-01-02 to Friday 2026-10-09: a flat 40 bp OAT-Bund,
+    November 2011's three days at 167.1, 162.0 and the peak 208.1 bp (the real
+    daily series' values), and the week of 5 Oct closing at `close_bp`; `after`
+    adds (day, bp) days past that close."""
+    de = 2.50
+    spikes = {"2011-11-15": 167.1, "2011-11-16": 162.0, "2011-11-17": 208.1}
+    rows = []
+    d = dt.date(2006, 1, 2)
+    while d <= dt.date(2026, 10, 9):
+        if d.weekday() < 5:
+            day = d.isoformat()
+            bp = spikes.get(day, close_bp if day >= "2026-10-05" else 40.0)
+            rows += [("bbk.bund_10y", None, day, de),
+                     ("bdf.oat_tec10", None, day, round(de + bp / 100.0, 6))]
+        d += dt.timedelta(days=1)
+    for day, bp in after:
+        rows += [("bbk.bund_10y", None, day, de),
+                 ("bdf.oat_tec10", None, day, round(de + bp / 100.0, 6))]
+    return rows
+
+
+def group_b_daily() -> None:
+    print(f"\n{LINE}\nB (daily). SR-30 ON THE DAILY OAT-BUND, KEYLESS (16 Oct 2026)\n{LINE}")
+    dc = (CFG["eu_stress"].get("daily") or {}).get("oat_bund") or {}
+    check(dc.get("legs") == DAILY_LEGS and dc.get("crisis_bp") == 208.1
+          and "btp_bund" not in (CFG["eu_stress"].get("daily") or {}),
+          "config: OAT-Bund's daily legs are the TEC 10 and the Bundesbank 10-year, "
+          "its crisis line the daily series' 208.1 bp; BTP-Bund has no daily entry")
+    cut = "2026-10-09T23:00:00+00:00"
+    for close, want in ((149.0, "none"), (151.0, "watch"), (208.1, "crisis")):
+        db = store(daily_rows(close) + eu_rows(96.7))
+        with open_store(db) as st:
+            e = batch3.eu_stress(st, cut)
+            sub = blk.eu_subsection(st, cut)
+            mis = blk.misfit_items(st, cut)
+            peak = batch3.crisis_level_daily(st, cut, DAILY_LEGS)
+        oat = next(p for p in e["pairs"] if p["id"] == "oat_bund")
+        btp = next(p for p in e["pairs"] if p["id"] == "btp_bund")
+        check(oat["cadence"] == "daily" and e["tiers_live"] and oat["tier"] == want
+              and e["tier"] == want and oat["weekly_close"] == {"bp": close,
+                                                                "as_of": "2026-10-09"},
+              f"weekly close {close} bp on 2026-10-09: the daily pair's tier is {want} "
+              f"({oat['tier']})")
+        check(bool(mis) == (want == "crisis")
+              and (not mis or ("weekly close at 208.1 bp (2026-10-09, daily)"
+                               in mis[0]["text"]
+                               and "(descriptive; unvalidated, n=0)" in mis[0]["text"])),
+              f"{want}: the Monthly's crisis sentence prints only at the crisis tier "
+              f"({mis and mis[0]['text'][:80]})")
+        if want == "watch":
+            pc = oat["percentiles"]
+            check(set(pc) == {5, 20} and pc[5]["n"] > 1200 and pc[20]["n"] > 5000,
+                  f"dual percentiles over the DAILY series, each with its n "
+                  f"({pc[5]['n']}, {pc[20]['n']})")
+            row = sub["table"]["rows"][0]
+            check(row[0].startswith("OAT-Bund, daily (Banque de France TEC 10")
+                  and row[1] == "151.0 bp"
+                  and row[5] == "WATCH (≥ 150 bp), weekly close 2026-10-09 at 151.0 bp"
+                  and len(row) == len(sub["table"]["columns"]) == 7,
+                  f"the daily row: its label, level, and the tier named with the "
+                  f"weekly close it sits on ({row[5]})")
+            brow = sub["table"]["rows"][1]
+            check(btp["cadence"] == "monthly average (ECB)" and btp["tier"] is None
+                  and brow[0] == "BTP-Bund, ECB monthly average"
+                  and brow[5] == "untiered (monthly)",
+                  "BTP-Bund stays the ECB's monthly average, labelled and untiered")
+            grow = next((r for r in sub["table"]["rows"] if r[0].startswith("Greece")), None)
+            check(grow is None or grow[5].startswith("untiered"),
+                  f"Greece-Bund stays untiered beside the daily OAT-Bund: the tier is "
+                  f"OAT-Bund's (ST-R4.21a; moved here from the monthly live-tier block "
+                  f"at the chain-2 stitch) ({grow and grow[5]})")
+            note = sub["table_note"]
+            check("OAT–Bund is daily" in note and "no keyless daily Italian" in note
+                  and "crisis 208.1 bp" in note and "latest weekly close" in note
+                  and "(descriptive; unvalidated, n=0)" in note,
+                  "the note names each spread's source and cadence and the tier rule")
+            check(sub["lines"][0].startswith("OAT–Bund at the watch tier"),
+                  "the flag line at the watch tier")
+        if want == "crisis":
+            check(peak == dc["crisis_bp"] == 208.1,
+                  f"the daily crisis line is recomputed from the stored November "
+                  f"2011 peak: {peak} bp = config {dc['crisis_bp']}")
+    # A day past the close, above the crisis line, does not move the tier until
+    # its own week closes.
+    later = "2026-10-14T23:00:00+00:00"
+    db = store(daily_rows(151.0, (("2026-10-12", 230.0), ("2026-10-13", 230.0),
+                                  ("2026-10-14", 230.0))))
+    with open_store(db) as st:
+        e = batch3.eu_stress(st, later)
+    oat = next(p for p in e["pairs"] if p["id"] == "oat_bund")
+    check(oat["bp"] == 230.0 and oat["as_of"] == "2026-10-14" and oat["tier"] == "watch"
+          and oat["weekly_close"]["as_of"] == "2026-10-09",
+          "Wednesday at 230 bp: the level prints, the tier stays on Friday's close "
+          "(watch) until the week closes")
+    # Without the daily legs the pair falls back to the monthly series, untiered.
+    db = store(eu_rows(151.0))
+    with open_store(db) as st:
+        e = batch3.eu_stress(st, cut)
+    oat = next(p for p in e["pairs"] if p["id"] == "oat_bund")
+    check(oat["cadence"] == "monthly average (ECB)" and e["tier"] == "untiered"
+          and not e["tiers_live"],
+          "no daily legs stored: the monthly fallback, labelled, untiered")
+    # The Webstat export: by column, refusing a changed layout.
+    from altdata.sources import bdf_webstat as bw                # noqa: PLC0415
+    series = "FM.D.FR.EUR.FR2.BB.FRMOYTEC10.HSTA"
+    head = ("series_key;time_period;time_period_start;time_period_end;obs_value;"
+            "updated_at;dataset_id;title_fr")
+    good = ("\ufeff" + head + "\n"
+            + f"{series};2026-10-16;2026-10-16;2026-10-16;4,794;2026-10-16T13:01:25+00:00;FM;TEC 10\n"
+            + f"{series};2026-10-15;2026-10-15;2026-10-15;;2026-10-15T11:01:49+00:00;FM;TEC 10\n"
+            + f"{series};2004-11-03;2004-11-03;2004-11-03;3,97;2024-12-02T09:40:32+00:00;FM;TEC 10\n")
+    rows = bw.rows_from({series: good}, now="2026-10-16T20:00:00.000000+00:00")
+    check([(r["observed_at"], r["value"], r["available_at"][:19], r["availability_kind"])
+           for r in rows] == [("2004-11-03", 3.97, "2024-12-02T09:40:32", "observed"),
+                              ("2026-10-16", 4.794, "2026-10-16T13:01:25", "observed")],
+          "the export: decimal comma read, a blank day skipped, each row stamped at "
+          "its own updated_at (history at its reload, later than the truth)")
+    for bad_text, why in ((good.replace("obs_value", "valeur"), "a renamed column"),
+                          (good.replace(series, "FM.D.FR.EUR.FR2.BB.FRMOYTEC5.HSTA", 1),
+                           "another series"),
+                          ("\ufeff" + head + "\n", "no row")):
+        try:
+            bw.rows_from({series: bad_text})
+            check(False, f"the export refuses {why}")
+        except ValueError:
+            check(True, f"the export refuses {why}")
 
 
 # ---------------------------------------------------------------------------
@@ -249,8 +388,9 @@ def group_c() -> None:
           f"{o['y30_next_bp']:+.1f} bp ({o['y30_next_day']})")
     r = sub["table"]["rows"][0]
     check(r == ["2026-09-10", "10Y to 20Y", "$5.19bn of $6.00bn", "86%",
-                "+5.0 bp (2026-09-11)"],
-          f"the events block's row: {r}")
+                "+5.0 bp (FRED, 11 Sep)"],
+          f"the events block's row, its source named (W8-13; no tape on this "
+          f"fixture, so FRED's): {r}")
     check("TGA $950.0bn (FRED, 2026-09-10)." in sub["lines"],
           "the TGA from the stored series, millions read as millions ($950.0bn)")
     m = lev["data"]["modifier"]
@@ -290,12 +430,14 @@ def group_c() -> None:
           f"the week of 26 Oct: the 27 Oct buyback, the BoJ, H.4.1, EIA, CFTC TFF "
           f"from config ({len(wk)} rows)")
     nov = calendar_config.rows(cal, "2026-11-02", "2026-11-07")
+    # weekly-fixes-7 item 12: a JST time prints in ET, so the release of Mon 9 Nov
+    # in Tokyo (08:50 JST) is Sun 8 Nov, 18:50 EST in New York, "the evening before".
     check(any(r["event"] == "Japan's international reserves (MoF)"
-              and r["date"] == "2026-11-09" for r in
-              calendar_config.rows(cal, "2026-11-09", "2026-11-14"))
+              and r["date"] == "2026-11-08" and r["time"] == "18:50 (08:50 JST)"
+              for r in calendar_config.rows(cal, "2026-11-09", "2026-11-14"))
           and any("1 month to 2 years" in r["event"] for r in nov),
-          "MoF reserves on the first weekday on or after the 7th (Mon 9 Nov); the "
-          "5 Nov operation")
+          "MoF reserves on the first weekday on or after the 7th (Mon 9 Nov in Tokyo, "
+          "Sun 8 Nov 18:50 EST); the 5 Nov operation")
     import inspect                                              # noqa: PLC0415
     check("calendar_config.rows(cal, mon, sat)" in
           inspect.getsource(weekly_sections.calendar_week),
@@ -378,12 +520,13 @@ def group_e() -> None:
               for r in lens["rows"]),
           "breakeven is the move less the real leg: the two sum to the move")
     r2 = sub["table"]["rows"][0]
-    check(r2[0] == "2y, week" and "(nearest: the 5-year TIPS)" in r2[2],
-          f"the 2-year's real leg names the nearest TIPS tenor ({r2[2]})")
-    r30 = next(r for r in sub["table"]["rows"] if r[0] == "30y, week")
+    check(r2[0].startswith("2y, week (") and len(r2) == 6 and "(nearest: the 5-year TIPS)" in r2[2],
+          f"the 2-year's real leg names the nearest TIPS tenor ({r2[2]}); the window "
+          f"prints inline, six columns (weekly-fixes-7 item 3: {r2[0]})")
+    r30 = next(r for r in sub["table"]["rows"] if r[0].startswith("30y, week"))
     check(r30[4] == r30[5] == "not published at this tenor",
           "ACM at the 30-year: not published at this tenor")
-    check(len(sub["table"]["rows"]) == 8 and any(r[0] == "10y, month"
+    check(len(sub["table"]["rows"]) == 8 and any(r[0].startswith("10y, month (")
                                                  for r in sub["table"]["rows"]),
           "the week's and the month's split, by tenor")
     fr = sub["lines"][0]

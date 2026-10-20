@@ -82,6 +82,16 @@ pivots:
   # range is the average absolute close-to-close change, and says so.
   invalidation_buffer_atr: 0.25
   atr_sessions: 14
+  # W8-7 (weekly-fixes-9, 18 Oct 2026). The breakout template does not scan an
+  # instrument with no stored volume, nor any =X currency pair (TRY=X and IDR=X
+  # are quoted in managed currencies, and a pair has no volume of its own); an
+  # FX pair takes no relative strength against SPY. And R is computed only when
+  # the invalidation lies at least max(`r_floor_atr` x the ATR, `r_floor_pct` %
+  # of price) from the entry -- EURUSD printed "7.9R" off an invalidation a few
+  # pips away. Session-set; `changed` is the date the Pivots line prints.
+  r_floor_atr: 0.5
+  r_floor_pct: 0.5          # equities and ETFs only; a pair takes the ATR leg alone (ruling 1 of 18 Oct)
+  changed: "18 Oct 2026"
 
 # The setup each pivot is graded under (EL-1's config/setups.yaml). A short is
 # the same pivot mirrored -- a breakdown from a base, a loss of a regained level,

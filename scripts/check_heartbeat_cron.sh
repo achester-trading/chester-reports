@@ -7,7 +7,7 @@
 # faithfully on every clean exit, and no process on the box ever reads it. The
 # inverted-heartbeat design says the ABSENCE of a signal raises the alarm, and
 # an absence nobody looks for is not an alarm, it is a silence. The EOD pass
-# could fail every night for six weeks exactly as the system narrative describes
+# could fail every night for six weeks exactly as the system narrative (docs/archive/chester-reports-system-narrative-2026-09-30.md) describes
 # and the first symptom would be a report with a hole in it.
 #
 # So this is deliberately thin. It runs the checker, and then does the three
@@ -80,6 +80,14 @@
 #                       succeeded (never), or the last success is older than
 #                       30h (stale:<h>h). Ranked ABOVE feed stale: a store with
 #                       no off-box copy is worse than a late feed. INC-1.
+#  15 disk alert     -> the pipeline is healthy AND the disk holding the store
+#                       is 85% used or more, or more than 1 GiB of swap is in
+#                       use, or MemAvailable is under 10% of MemTotal (AUD-1
+#                       item 1d, the audit of 14 Oct 2026: each EOD zip carried
+#                       a full copy of the database and nothing pruned them).
+#                       70% of the disk, or more than 512 MiB of swap, is a
+#                       warning on the verdict line (disk=warn:<n>%), not a
+#                       verdict. Ranked below the backup and above a stale feed.
 #  11 feed stale      -> the pipeline is healthy AND a scheduled feed has not
 #                       delivered: prices or FRED series older than the declared
 #                       allowance, or absent entirely. This is the channel a
@@ -619,6 +627,40 @@ else
     log "  backup: $BACKUP_STATE (latest=${b_latest:-none} last_ok=${b_ok_at:-none} allowance=${BACKUP_MAX_H}h)"
 fi
 
+# ---- the weekly restore test (audit-leftovers-1) ---------------------------
+# scripts/run_restore_test.sh writes restore_test_status (state=restore_ok|
+# restore_failed at= snapshot= detail=). A backup that does not restore is not a
+# backup, so a failed test is reported in the backup field as
+# failed:restore_test; a test that has stopped running (older than
+# CHESTER_RESTORE_MAX_DAYS, default 8: a weekly test and a day's grace) as
+# stale_restore:<d>d. No status file -- the test not yet enabled -- changes
+# nothing. Only an otherwise-ok backup is overridden: last night's failed sweep
+# is still the bigger news.
+RESTORE_STATE=none
+RESTORE_MAX_D="${CHESTER_RESTORE_MAX_DAYS:-8}"
+if [[ "$BACKUP_STATE" != "skipped" ]] && [[ -f "$STATE_DIR/restore_test_status" ]]; then
+    r_state="$(sed -n 's/^state=\([^ ]*\).*/\1/p' "$STATE_DIR/restore_test_status" | head -1)"
+    r_at="$(sed -n 's/.* at=\([^ ]*\).*/\1/p' "$STATE_DIR/restore_test_status" | head -1)"
+    r_s="$(date -d "$r_at" +%s 2>/dev/null || echo "")"
+    if [[ "$r_state" != "restore_ok" ]] || [[ -z "$r_s" ]]; then
+        RESTORE_STATE=failed
+    else
+        r_age_d=$(( ( $(date +%s) - r_s ) / 86400 ))
+        if (( r_age_d > RESTORE_MAX_D )); then
+            RESTORE_STATE="stale:${r_age_d}d"
+        else
+            RESTORE_STATE=ok
+        fi
+    fi
+    if [[ "$BACKUP_STATE" == "ok" ]]; then
+        case "$RESTORE_STATE" in
+            failed)  BACKUP_STATE="failed:restore_test" ;;
+            stale:*) BACKUP_STATE="stale_restore:${RESTORE_STATE#stale:}" ;;
+        esac
+    fi
+    log "  restore test: $RESTORE_STATE (state=${r_state:-none} at=${r_at:-none} allowance=${RESTORE_MAX_D}d)"
+fi
+
 # RANKED below the pipeline verdicts, drift and the state object -- each of those
 # is upstream of everything -- and ABOVE a stale feed: a store with no off-box
 # copy is worse than a late feed, because a late feed recovers on its own and a
@@ -628,6 +670,62 @@ if [[ "$STATE" == "ok" ]] && [[ "$BACKUP_STATE" != "ok" ]] \
     STATE=backup_failed
     RC=12
     HEADLINE="BACKUP $BACKUP_STATE the off-box copy is not current"
+fi
+
+# ---- the disk and the swap (AUD-1 item 1d) ---------------------------------
+#
+# The space leak the audit of 14 Oct found -- a full copy of chester.db in every
+# EOD zip, and nothing pruning them -- would have announced itself only as a
+# full disk, at which point SQLite cannot write its WAL and every pass fails at
+# once. So the verdict line carries the disk the store lives on, and the
+# memory: a box short of memory is a box whose next large pass (the backfill,
+# a VACUUM) may be killed.
+#   DISK  WARN at 70% used (the line says disk=warn:<n>%); ALERT, exit 15, at 85%.
+#   SWAP  WARN above 512 MiB in use; ALERT above 1 GiB. Not "any swap" (corrected
+#         14 Oct 2026): that day the box held 131 MiB of swap on an ordinary
+#         run with 2.7 GiB available, so "any" would alert on every run. A
+#         little swap is the kernel parking idle pages; a lot is pressure.
+#   MEM   ALERT when MemAvailable is under 10% of MemTotal -- the pressure
+#         itself, whatever the swap says.
+# Overridable for the gate: CHESTER_DISK_PATH, CHESTER_DISK_PCT,
+# CHESTER_SWAP_USED_KB, and its twins CHESTER_MEM_AVAILABLE_KB and
+# CHESTER_MEM_TOTAL_KB.
+DISK_PATH="${CHESTER_DISK_PATH:-$REPO/data}"
+[[ -d "$DISK_PATH" ]] || DISK_PATH="$HOME"
+DISK_PCT="${CHESTER_DISK_PCT:-$(df --output=pcent "$DISK_PATH" 2>/dev/null | tail -1 | tr -dc '0-9')}"
+SWAP_USED_KB="${CHESTER_SWAP_USED_KB:-$(awk '/^SwapTotal:/{t=$2} /^SwapFree:/{f=$2} END{if (t != "") print t - f}' /proc/meminfo 2>/dev/null)}"
+MEM_AVAIL_KB="${CHESTER_MEM_AVAILABLE_KB:-$(awk '/^MemAvailable:/{print $2}' /proc/meminfo 2>/dev/null)}"
+MEM_TOTAL_KB="${CHESTER_MEM_TOTAL_KB:-$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)}"
+SWAP_WARN_KB=524288     # 512 MiB
+SWAP_ALERT_KB=1048576   # 1 GiB
+MEM_ALERT_PCT=10
+DISK_STATE=unknown
+if [[ -n "$DISK_PCT" ]]; then
+    level=0                                   # 0 ok, 1 warn, 2 alert
+    (( DISK_PCT >= 70 )) && level=1
+    (( DISK_PCT >= 85 )) && level=2
+    swap_kb=${SWAP_USED_KB:-0}
+    (( swap_kb > SWAP_WARN_KB && level < 1 )) && level=1
+    (( swap_kb > SWAP_ALERT_KB )) && level=2
+    mem_low=0
+    if [[ -n "$MEM_AVAIL_KB" && -n "$MEM_TOTAL_KB" ]] && (( MEM_TOTAL_KB > 0 )) \
+            && (( MEM_AVAIL_KB * 100 < MEM_TOTAL_KB * MEM_ALERT_PCT )); then
+        mem_low=1
+        level=2
+    fi
+    case $level in
+        0) DISK_STATE=ok ;;
+        1) DISK_STATE="warn:${DISK_PCT}%" ;;
+        2) DISK_STATE="alert:${DISK_PCT}%" ;;
+    esac
+    (( swap_kb > SWAP_WARN_KB )) && DISK_STATE="${DISK_STATE}+swap:${swap_kb}kB"
+    (( mem_low )) && DISK_STATE="${DISK_STATE}+memavail:$(( MEM_AVAIL_KB * 100 / MEM_TOTAL_KB ))%"
+fi
+log "  disk: ${DISK_PCT:-?}% used of $DISK_PATH, swap ${SWAP_USED_KB:-?}kB in use, MemAvailable ${MEM_AVAIL_KB:-?} of ${MEM_TOTAL_KB:-?}kB -- $DISK_STATE"
+if [[ "$STATE" == "ok" ]] && [[ "$DISK_STATE" == alert:* ]]; then
+    STATE=disk_alert
+    RC=15
+    HEADLINE="DISK $DISK_STATE -- the store's disk is nearly full or the box is short of memory"
 fi
 
 # ---- the feeds' freshness: a DATA gate, not a CI job ------------------------
@@ -651,6 +749,11 @@ fi
 FEEDS_STATE=unknown
 FEEDS_LINE=""
 FEEDS_STALE_NAMES=""
+# THE DATA CHECK'S COUNT (audit-leftovers-2): `feeds check` ends on "data check: n
+# outliers on D", from the marks the pulls' `quality record` wrote. Logged, and
+# carried as quality=<n> (none before the first record). A WARNING AND NEVER A
+# VERDICT: a marked print is a prompt to look, and the value stands as stored.
+QUALITY_STATE=unknown
 if [[ -n "${CHESTER_SKIP_FEED_CHECK:-}" ]]; then
     FEEDS_STATE=skipped
 elif [[ -z "${STATE_PY:-}" ]]; then
@@ -668,6 +771,10 @@ else
     [[ -n "$FEEDS_LINE" ]] && log "  feeds: $FEEDS_LINE"
     printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(stale\|pending\) /\1 /p' \
         | while IFS= read -r ln; do log "    $ln"; done
+    DQ_LINE="$(printf '%s\n' "$FEEDS_OUT" | sed -n 's/^  \(data check: .*\)/\1/p' | head -n 1)"
+    QUALITY_STATE="$(printf '%s\n' "$DQ_LINE" | sed -n 's/^data check: \([0-9][0-9]*\) outlier.*/\1/p')"
+    [[ -z "$QUALITY_STATE" ]] && QUALITY_STATE=none
+    [[ -n "$DQ_LINE" ]] && log "  $DQ_LINE"
 fi
 
 # Ranked below the pipeline verdicts, below drift, and below the state object, on
@@ -825,8 +932,12 @@ fi
 # The allowances carry one period of slack each: nine days for a weekly (a Sunday the
 # box was down plus the Persistent=true catch-up that follows), and forty days for a
 # monthly.
+# The secondary notes (19 Oct 2026) ride the same table: warning only, never the
+# verdict. 100 hours spans a weekend and a holiday for either note.
 ANCHOR_TABLE="chester-weekly.timer:weekly_heartbeat:216:weekly
-chester-monthly.timer:monthly_heartbeat:960:monthly"
+chester-monthly.timer:monthly_heartbeat:960:monthly
+chester-open-note.timer:open_note_heartbeat:100:open note
+chester-evening-note.timer:evening_note_heartbeat:100:evening note"
 
 WEEKLY_STATE=not_enabled
 MONTHLY_STATE=not_enabled
@@ -861,6 +972,20 @@ while IFS=: read -r unit hb_file max_h label; do
         monthly) MONTHLY_STATE="$state" ;;
     esac
 done <<< "$ANCHOR_TABLE"
+
+# THE SECONDARY NOTES' LAST RUN (19 Oct 2026). Their wrappers exit 0 after a soft
+# failure (a note is secondary), so a failed run never fails its unit; the status
+# file carries the note's rc, and a non-zero one is named here the next morning
+# rather than after the 100-hour allowance above. WARNING ONLY: the verdict and
+# the exit code are untouched.
+for note in open_note evening_note; do
+    st="$STATE_DIR/${note}_status"
+    [[ -f "$st" ]] || continue
+    note_rc="$(sed -n 's/^rc=\([0-9]*\).*/\1/p' "$st" 2>/dev/null)"
+    if [[ -n "$note_rc" && "$note_rc" != "0" ]]; then
+        log "  WARNING ${note/_/ }: the last run returned rc=$note_rc ($(cut -c1-120 "$st")) -- see ~/logs/${note}-*.log. The verdict and exit code are untouched"
+    fi
+done
 
 # ---- the events ingest: declared sources, one allowance ---------------------
 #
@@ -917,21 +1042,50 @@ if [[ -n "${STATE_PY:-}" ]]; then
     fi
 fi
 
+# ---- the listings snapshot (AUD-3b; stitching, week of 19 Oct) --------------
+#
+# A WARNING AND NEVER A VERDICT, like the events ingest: the 06:45 listings step
+# (altdata/listings.py) writes one snapshot a session under data/reference/
+# listings/, and the meme scan's identity reads the newest. `listings age` counts
+# the SESSIONS since it by the session calendar, so a weekend or a holiday is
+# not a miss; past two (MAX_AGE_SESSIONS) it warns. A missing snapshot is
+# reference data going stale, not a lost capture -- Nasdaq Trader republishes
+# the whole directory every day -- so the verdict and exit code are untouched.
+LISTINGS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_LISTINGS_CHECK:-}" ]]; then
+    LISTINGS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    LISTINGS_STATE=no_python
+else
+    LISTINGS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.listings age \
+                     ${CHESTER_LISTINGS_TODAY:+--today "$CHESTER_LISTINGS_TODAY"} 2>/dev/null)"
+    case $? in
+        0) LISTINGS_STATE=fresh ;;
+        1) LISTINGS_STATE=stale ;;
+        2) LISTINGS_STATE=none ;;
+        *) LISTINGS_STATE=error ;;
+    esac
+    [[ -n "$LISTINGS_LINE" ]] && log "  $LISTINGS_LINE"
+    if [[ "$LISTINGS_STATE" != "fresh" ]]; then
+        log "  WARNING listings: the snapshot is $LISTINGS_STATE -- the meme scan's identity reads an old directory. Re-run: python -m altdata.listings pull. The verdict and exit code are untouched"
+    fi
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is
 # an uptime figure and `grep -v 'verdict=ok'` is the incident list. The
 # checker's full output follows, indented, for the check that found something.
 
-log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE -- $HEADLINE"
+log "verdict=$STATE rc=$RC heartbeat_age_h=$AGE_H unhealthy_since=${UNHEALTHY_SINCE:-n/a} drift=$DRIFT_STATE drift_since=${DRIFT_SINCE:-n/a} drift_days=${DRIFT_DAYS:-0} restart_pending=${RESTART_PENDING:-none} state_object=$STATE_OBJECT backup=$BACKUP_STATE disk=$DISK_STATE units=$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED} feeds=$FEEDS_STATE exceptions=$EXC_N claims_overdue=$CLAIMS_OVERDUE weekly=$WEEKLY_STATE monthly=$MONTHLY_STATE events=$EVENTS_STATE listings=$LISTINGS_STATE quality=$QUALITY_STATE -- $HEADLINE"
 if [[ "$STATE" != "ok" ]]; then
     printf '%s\n' "$OUT" | sed 's/^/    /' >>"$LOG"
 fi
 
 # ---- 2. the state files ----------------------------------------------------
 
-printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s at=%s\n' \
-    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$NOW_ISO" >"$STATUS"
+printf 'state=%s rc=%s heartbeat_age_h=%s drift=%s restart_pending=%s state_object=%s backup=%s units=%s feeds=%s exceptions=%s exc_delivery=%s claims_overdue=%s weekly=%s monthly=%s events=%s listings=%s quality=%s at=%s\n' \
+    "$STATE" "$RC" "$AGE_H" "$DRIFT_STATE" "${RESTART_PENDING:-none}" "$STATE_OBJECT" "$BACKUP_STATE" "$UNITS_STATE${UNITS_FAILED:+:$UNITS_FAILED}" "$FEEDS_STATE" "$EXC_N" "$EXC_DELIVERY" "$CLAIMS_OVERDUE" "$WEEKLY_STATE" "$MONTHLY_STATE" "$EVENTS_STATE" "$LISTINGS_STATE" "$QUALITY_STATE" "$NOW_ISO" >"$STATUS"
 
 if [[ "$STATE" == "ok" ]]; then
     printf 'state=ok rc=0 heartbeat_age_h=%s at=%s\n' "$AGE_H" "$NOW_ISO" >"$LAST_OK"
@@ -968,6 +1122,7 @@ python_json() {
     printf '  "unit_drift_days": %s,\n' "${DRIFT_DAYS:-0}"
     printf '  "restart_pending": "%s",\n' "$RESTART_PENDING"
     printf '  "backup": "%s",\n' "$BACKUP_STATE"
+    printf '  "restore_test": "%s",\n' "${RESTORE_STATE:-none}"
     printf '  "delivery": "%s"\n' "$1"
     printf '}\n'
 }

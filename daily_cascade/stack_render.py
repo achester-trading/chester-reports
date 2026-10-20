@@ -46,7 +46,7 @@ at most six columns; the chart with a small italic caption; the paragraph; the
 footnote, small and grey. Nothing prints as a list.
 
 The run's metadata -- stack version, word count, as-of cutoff, run id -- sits in a
-small footer with the one line that points to the Reader's Guide (item 7).
+small footer with the one line that points to the Reader's Guide (item 7) and the Master Guide.
 """
 
 from __future__ import annotations
@@ -125,15 +125,45 @@ def cid(chart_id: str) -> str:
     return f"{chart_id.lower()}@chester"
 
 
-def _chart_html(ch: dict, mode: str) -> str:
+def _chart_html(ch: dict, mode: str, width: int = 700) -> str:
     if ch.get("unavailable"):
-        return f'<p style="{FOOT}">Chart unavailable: {esc(ch["unavailable"])}</p>'
+        # weekly-fixes-7 item 11: no exception name on the page.
+        return (f'<p style="{FOOT}">Chart unavailable: '
+                f'{esc(rd.reader_safe(ch["unavailable"]))}</p>')
     src = (f"cid:{cid(ch['id'])}" if mode == "email" else
            esc(str(ch.get("svg_path") or "").replace("\\", "/").split("/")[-1]))
     return (f'<figure style="{FIG}">'
-            f'<img src="{src}" alt="{esc(ch.get("caption"))}" style="{IMG}" width="700">'
+            f'<img src="{src}" alt="{esc(ch.get("caption"))}" style="{IMG}" '
+            f'width="{width}">'
             f'<figcaption style="{CAPTION}">{esc(ch.get("caption"))}</figcaption>'
             f'</figure>')
+
+
+# weekly-fixes-7 item 13: charts printed as a pair, half width, side by side --
+# the two SPY charts (126 sessions, 104 weeks) sat back to back, each a page's
+# half, in dry run 7. A two-cell table, which every mail client lays out.
+SIDE_BY_SIDE = (("W1", "W2"),)
+
+
+def charts_seq_html(ids: list, charts: Optional[dict], mode: str) -> str:
+    """A section's drawn charts in order, a declared pair side by side."""
+    have = [c for c in ids if c in (charts or {})]
+    out, i = [], 0
+    while i < len(have):
+        a = have[i]
+        b = have[i + 1] if i + 1 < len(have) else None
+        if b and (a, b) in SIDE_BY_SIDE and not charts[a].get("unavailable")                 and not charts[b].get("unavailable"):
+            out.append('<table role="presentation" class="chart-pair" '
+                       'style="width:100%;border-collapse:collapse"><tr>'
+                       f'<td style="width:50%;vertical-align:top;padding-right:4px">'
+                       f'{_chart_html(charts[a], mode, 345)}</td>'
+                       f'<td style="width:50%;vertical-align:top;padding-left:4px">'
+                       f'{_chart_html(charts[b], mode, 345)}</td></tr></table>')
+            i += 2
+            continue
+        out.append(_chart_html(charts[a], mode))
+        i += 1
+    return "".join(out)
 
 
 def _split(t: dict) -> list[dict]:
@@ -169,7 +199,7 @@ def _table(t: Optional[dict], wrap: bool = False) -> str:
            else TBL)
     parts = _split(t)
     # A CELL'S LINK (W-1.2 item 2.4): `cell_links` [[row, column, href], ...] on
-    # the table, applied where the table prints whole -- "resolved by Plumbing"
+    # the table, applied where the table prints whole -- "read in Plumbing"
     # links to the section that holds the evidence.
     links = ({(int(r), int(c)): h for r, c, h in t.get("cell_links") or []}
              if len(parts) == 1 else {})
@@ -193,7 +223,8 @@ def lines_table(lines: list[str], head: str = "Readings",
     """Code-written lines as a one-column table -- never a list (item 1)."""
     if not lines:
         return ""
-    rows = [[(DIAMOND + " " if marks and marks[n] else "") + x]
+    # weekly-fixes-7 item 11: no file path, branch or exception reaches the page.
+    rows = [[(DIAMOND + " " if marks and marks[n] else "") + rd.reader_safe(x)]
             for n, x in enumerate(lines)]
     return _table({"columns": [head], "rows": rows}, wrap)
 
@@ -223,7 +254,7 @@ def foot_parts(s: dict, fold_subsections: bool = True,
     if fold_subsections:
         for ss in s.get("subsections") or []:
             nt += list(ss.get("not_tracked") or [])
-    nt = list(dict.fromkeys(nt))
+    nt = list(dict.fromkeys(rd.reader_safe(x) for x in nt))
     parts = []
     if s.get("empty"):
         parts.append(s.get("empty_note"))
@@ -347,7 +378,11 @@ def subsection_html(ss: dict, period: str, cad: dict, heading: str = H3,
                 + (f'<p style="{FOOT}">{esc(ss["divider_note"])}</p>'
                    if ss.get("divider_note") else ""))
     wrap = bool(cad.get("mobile_tables"))
-    body = (tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
+    # A LEAD (ST-R6.45d, the ES block): a paragraph printed BEFORE the tables --
+    # the block's read comes first on a phone, then its levels.
+    lead = (f'<p style="{PARA}" class="lead">{esc(ss["lead"])}</p>'
+            if ss.get("lead") else "")
+    body = (lead + tables_html(ss, wrap) + entries_html(ss) + points_html(ss)
             + lines_table(ss.get("lines") or [], f"This {period}", wrap=wrap))
     figs = charts_html(ss, charts, mode) if cad.get("subsection_charts") else ""
     paras = foot = ""
@@ -401,9 +436,7 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     if not cad.get("subsection_charts"):
         for ss in s.get("subsections") or []:
             ids += list(ss.get("charts_rendered") or [])
-    for c in ids:
-        if c in (charts or {}):
-            out.append(_chart_html(charts[c], mode))
+    out.append(charts_seq_html(ids, charts, mode))
     # THE PARAGRAPHS THE GUARD KEPT: one on the close and the Weekly.
     limit = cad.get("paragraphs")
     paras = s.get("paragraphs") or []
@@ -472,9 +505,7 @@ def opener_section_html(s: dict, out: list, charts: dict, mode: str, cad: dict,
     if not cad.get("subsection_charts"):
         for ss in s.get("subsections") or []:
             ids += list(ss.get("charts_rendered") or [])
-    for c in ids:
-        if c in (charts or {}):
-            out.append(_chart_html(charts[c], mode))
+    out.append(charts_seq_html(ids, charts, mode))
     for ln in s.get("closing_lines") or []:
         out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
     out.append(_foot(foot_parts({**s, "withheld": None}, not cad.get(
@@ -529,6 +560,15 @@ def reading_line(ed: dict) -> Optional[str]:
             f"{edition_minutes(ed)} min")
 
 
+def run_id_display(run_id: Optional[str]) -> str:
+    """weekly-fixes-7 item 11: the footer prints the run id to the second. The
+    stored id keeps its microseconds (session.new_run_id), which tell runs apart;
+    a reader needs only the second."""
+    if not run_id:
+        return "n/a"
+    return re.sub(r"(T\d{6})\.\d+(Z?)$", r"\1\2", str(run_id))
+
+
 def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
                 marks: str, pdf_note: Optional[str] = None) -> str:
     """The run's metadata, small, and the one line to the Reader's Guide."""
@@ -536,14 +576,20 @@ def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
             f"{esc(rd.plural(int(ed.get('words') or 0), 'word'))} &middot; "
             f"{esc(rd.plural(int(ed.get('chart_count') or 0), 'chart'))} &middot; "
             f"as-of cutoff {esc(rd.stamp_et(ed.get('as_of')))} &middot; run "
-            f"{esc(run_id or 'n/a')}")
+            f"{esc(run_id_display(run_id))}")
     lines = [meta, esc(marks)]
+    # AUD-2 item 4: the model meter -- the close's one line, the Monthly's month
+    # by report. Tokens, never dollars.
+    for x in ([ed["model_line"]] if ed.get("model_line") else []) + list(
+            ed.get("model_lines") or []):
+        lines.append(esc(x) + ("" if str(x).endswith(".") else "."))
     if archive_path:
         lines.append(f"Archived to {esc(archive_path)}.")
     if pdf_note:
         lines.append(esc(pdf_note))
     lines.append(f"How to read this report: {esc(rd.READERS_GUIDE)} "
-                 f"({esc(rd.READERS_GUIDE_PATH)}).")
+                 f"({esc(rd.READERS_GUIDE_PATH)}); the whole system: "
+                 f"{esc(rd.MASTER_GUIDE)} ({esc(rd.MASTER_GUIDE_PATH)}).")
     return (f'<div style="margin:24px 0 0 0;padding-top:8px;border-top:1px solid '
             f'#d5dde5">' + "".join(f'<p style="{FOOT}">{x}</p>' for x in lines)
             + "</div>")
@@ -667,7 +713,10 @@ def page_html(ed: dict, cadence: str, title: str, mode: str = "email",
                                    + (" for the read" if reading_line(ed) else "")
                                    if target else ""), wrap=wrap,
                        reading=reading_line(ed))
-    return (f'<div style="{WRAP}">{head}{summary_html(ed)}{secs}'
+    # EL-6: an edition's opening table (the Quarterly's system metrics), after
+    # the summary and before section 1.
+    opening = "".join(detail_html(d, cadence) for d in ed.get("opening") or [])
+    return (f'<div style="{WRAP}">{head}{summary_html(ed)}{opening}{secs}'
             f'{details_html(ed.get("detail"), cadence)}'
             f'{glossary_html(_glossary_entries(), ed, wrap)}'
             + page_footer(ed, ed.get("run_id"), ed.get("archive_path"),
@@ -772,7 +821,7 @@ def _md_sub(ss: dict, cad: dict, charts: Optional[dict], level: str = "###",
     if ss.get("divider"):
         return [f"{level} {ss['divider']}\n"] + (
             [f"<sub>{ss['divider_note']}</sub>\n"] if ss.get("divider_note") else [])
-    body = md_block(ss)
+    body = ([f"{ss['lead']}\n"] if ss.get("lead") else []) + md_block(ss)
     figs = (md_charts(list(ss.get("charts_rendered") or []), charts)
             if with_charts and cad.get("subsection_charts") else [])
     paras, foot = [], []
@@ -802,6 +851,9 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
         out.append(f"**{changed_head}**\n")
         out += [f"- {x}" for x in ed["changed_since"]] + [""]
     out += md_summary(ed)
+    for d in ed.get("opening") or []:
+        out.append(f"## {d['title']}\n")
+        out += md_block(d)
     limit = cad.get("paragraphs")
     for n, s in enumerate(ed["sections"], start=1):
         out.append(f"## {n} · {s['title']}" + (f" — *{s['subtitle']}*"
@@ -865,7 +917,9 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email",
     events = state_block.session_events_line(p)
     head = page_header(f"Close — {dow} {day}".strip(), rd.stamp_et(ed.get("as_of")),
                        rd.reading_minutes(ed, int(ed.get("chart_count") or 0)),
-                       extra_html=f" &middot; {events}")
+                       extra_html=f" &middot; {events}" + (
+                           f' &middot; {esc(ed["alpha_lab"])}' if ed.get("alpha_lab") else "")
+                       + (f' &middot; {esc(ed["meme_line"])}' if ed.get("meme_line") else ""))
     try:
         gl = labels.glossary()
     except Exception:                                           # noqa: BLE001

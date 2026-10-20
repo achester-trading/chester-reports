@@ -4,10 +4,15 @@
 stored chain `data/chains/2026-09-30/SPY_201420Z.csv`, captured 16:14 ET. Nothing
 was written to any store. Dated; never edited.*
 
+*Vendor figures removed, 19 Oct 2026, under the standing rule (no vendor figure in
+any committed file). The dates, the agreement words and the verdict are unchanged;
+our own figures stay.*
+
 **The question.** Our 30 Sep SPY close printed $γ/1% **−9.92bn** and DEX
-**+199bn**. FlashAlpha Basic printed **≈ −$1.0bn per 1%** (1.3M shares) and DEX
-**+33.7bn** at 10:01 ET. The gaps are 9.9× and 5.9×, in the same direction. Sign,
-regime, flip (768.92 vs 767.79) and max pain (760) all agree.
+**+199bn**. FlashAlpha Basic printed a GEX "per 1%" and a DEX at 10:01 ET that
+were each several times smaller than ours, in the same direction (figures
+removed). Sign, regime, flip (ours 768.92; theirs within a point) and max pain all
+agree.
 
 ## Verdict: not a units fault. GEX is a definition difference; DEX is undetermined, most likely coverage.
 
@@ -27,13 +32,13 @@ regime, flip (768.92 vs 767.79) and max pain (760) all agree.
   - The two differ by S × 0.01 = **7.62×** at spot 762.48.
   - FlashAlpha's quantity is this repo's `net_gex`: **−1.30bn** with 0DTE excluded,
     as the box computes a settled capture, and **−0.79bn** with 0DTE alive.
-    FlashAlpha's −1.0bn sits between the two. That is consistent with their 10:01
+    FlashAlpha's figure sits between the two. That is consistent with their 10:01
     ET capture, when 0DTE still had six hours of life; ours was settled.
-  - The residual 1.3× is coverage and timing.
+  - The residual is coverage and timing.
 - **DEX — undetermined.** DEX has no per-1% factor, so the definition above does
   not reach it.
   - Under our convention (dealers long calls, short puts), DEX accumulated to
-    **≤ 14 DTE is $32.6bn**, against FlashAlpha's $33.7bn. All expiries give $209bn.
+    **≤ 14 DTE is $32.6bn**, close to FlashAlpha's figure. All expiries give $209bn.
   - That points to a front-weighted coverage window on their side, but their DEX
     window and convention are not documented in what was checked, so it is not
     settled.
@@ -47,7 +52,7 @@ regime, flip (768.92 vs 767.79) and max pain (760) all agree.
 | ≤ 45 DTE | −5,025,826,739 | −6,591,421 | −659,142,124 | 74,967,984,717 |
 | ≤ 7 DTE | +1,042,426,639 | +1,367,153 | +136,715,280 | 23,447,220,058 |
 | 0DTE only (t floored 1h) | +3,915,331,496 | +5,134,996 | +513,499,580 | 10,043,934,941 |
-| FlashAlpha Basic, 10:01 ET | ≈ −1.0bn (labelled per 1%) | ≈ −1.3M | — | 33.7bn |
+| FlashAlpha Basic, 10:01 ET | (figure removed; labelled per 1%) | (removed) | — | (removed) |
 
 DEX in $bn, cumulative by DTE cutoff:
 

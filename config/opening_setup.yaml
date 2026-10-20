@@ -1,0 +1,118 @@
+# THE OPENING SETUP, first half (decision D-3 of 18 Oct 2026; a44-opening-setup):
+# OS-2, OS-3, OS-10 and OS-11, read by daily_cascade/opening_setup.py (and OS-3 by
+# altdata/vol_event.py's lens table). REPORT-ONLY: no 0-100 score and no weights
+# (D-4); every rank prints its window and n until a year of captures exists; the
+# vendor is never read by these builders. Every number is SESSION-SET with its
+# reason. The second half (OS-8, OS-9, OS-4, OS-5) is a later paste.
+version: opening-setup-v1
+
+# OS-2 -- the expected-movement gauge, in the 07:00 anchor's dealer-surface block.
+gauge:
+  symbol: SPY
+  # The pre-market line beneath it (ruling 4, 19 Oct 2026): ES's overnight print
+  # at the 23-hour chart's session basis; one line, nothing else displaced.
+  # The typical realised range: over the 5 sessions from each stored scorecard
+  # session of the same gated regime, (the highest high less the lowest low) over
+  # the prior close; the median, printed once n is 20 (the scorecard's own floor
+  # for a count), else "awaiting (n=k of 20)".
+  sessions: 5
+  n_min: 20
+  # ITEM 54 (Batch 11, ruled 19 Oct 2026): like for like. The implied move at
+  # each horizon (the close x the 30-day ATM IV x sqrt(h/252)) beside the
+  # realised |close-to-close| move over h sessions in the gated regime (median,
+  # 80th, 95th, n); the high-low range only against the implied expected range of
+  # a high-low range; net GEX's own-history percentile beside the regime word.
+  # ITEM 55: the one- and five-session bands, around the last close and around
+  # the pre-market price. Every count splits the test sample from the rest.
+  horizons: [1, 5]
+  displaces: >-
+    nothing: five short lines under the dealer-surface table (the head, two
+    like-for-like lines, the high-low line and the bands; six with the
+    pre-market centre), which keeps its rows; the ST-10 signal-lines block and
+    its budget are unchanged
+
+# OS-3 every day (ruling 2 of 18 Oct on the a44 report): three short lines beside
+# the gauge, each its level, percentile and window, from item 52's lens functions.
+vol_lines:
+  # ITEM 53 (Batch 11): one more line beside the realised lens, the VIX premium
+  # split into the at-the-money part and the wings ("SPY's ATM IV as SPX's
+  # proxy"). It displaces nothing.
+  displaces: >-
+    nothing: three short lines under the gauge; item 52's full lens table stays
+    event-day only, and the dealer-surface table and the ST-10 block keep their
+    budgets
+
+# OS-10 -- the most-active names, in the Weekly's Mechanics.
+most_active:
+  top: 10
+  # Front-month ATM IV: the nearest third-Friday expiry at least 7 days out,
+  # else the first expiry 7 or more days out (labelled "nearest"), from each
+  # session's last capture, solved by the chain solver as SPY's 30-day IV is.
+  front_min_dte: 7
+  # The implied one-week move: spot x front IV x sqrt(5/252); the realised week:
+  # the week's highest close less its lowest, over the first close.
+  week_sessions: 5
+  displaces: >-
+    nothing: one table in Mechanics after the vendor line, no chart and no
+    paragraph, so the Weekly's chart cap and word budget are unchanged
+
+# OS-11 -- the earnings rows' pricing, in the Ahead matrix.
+earnings:
+  # Batch 11 item 57: up to eight reactions, n printed; the word on the median of
+  # those available, from 3 (else "n=k, no word"). The 20% band is unchanged (D5).
+  reactions: 8
+  word_min_n: 3
+  # "elevated" when the implied move exceeds the median of the last three
+  # absolute reactions by a fifth or more; "muted" a fifth or more below; else
+  # "in line". Never a recommendation.
+  band: 0.20
+  # The reaction: the close before the report date to the close after it, the
+  # Weekly's earnings block's own rule (it spans a before-the-open and an
+  # after-the-close report alike).
+
+# OS-8 -- the setup profiles, in the Weekly's Mechanics (a45-opening-setup-2).
+profiles:
+  displaces: >-
+    nothing: one four-row table after the most-active names, no chart and no
+    paragraph
+
+# OS-9 -- "Largest OI builds, side unknown", in the 07:00 anchor's mechanics.
+oi_builds:
+  rows: 8
+  # BATCH 11 ITEM 58, D6 (provisional, session-set): the size floor, and the OI
+  # change as a share of the session's volume printed as a column instead of a
+  # 70% filter. The premium is unchanged: the mid at the later capture.
+  floor:
+    index: 2000
+    single: 500
+    index_names: [SPY, QQQ, IWM, SPX]
+  # THE TAGS' HISTORY THRESHOLDS ARE SESSION-SET (ruling 4, 19 Oct 2026): they
+  # stand as written, the table's note labels them so, and they are reviewed at
+  # the 25 Oct dry run. The decile cut-offs (top 90th, bottom 10th) are
+  # decile_tag's.
+  tags:
+    label: "session-set, reviewed at the 25 Oct 2026 dry run"
+    earnings_days: 14       # EARNINGS: a report within 14 days
+    extreme_sessions: 21    # 1M HIGH / 1M LOW: within extreme_pct of the 21-session close extreme
+    extreme_pct: 1.0
+    move_sessions: 5        # MOMENTUM / SELLOFF: an 8% move over 5 sessions
+    move_pct: 8.0
+    decile_n_min: 10        # HIGH SKEW, CHEAP VOL, VOL CRUSH: a decile needs 10 stored readings
+  displaces: >-
+    nothing: an eight-row table under the vol-regime lines; the dealer-surface
+    table, the gauge and the ST-10 block keep their budgets
+
+# OS-4 -- the index put-volume proxy, in the anchor (SPY and SPX, one line each).
+index_puts:
+  symbols: [SPY, SPX]
+  displaces: >-
+    nothing: two lines under the OI-build table, labelled "put volume and OI
+    build, no side"
+
+# OS-5 -- the single-name put-volume proxy, in the Weekly.
+single_name_puts:
+  n_min: 5                  # a name's z needs 5 stored sessions
+  displaces: >-
+    nothing: one line and a six-row table after the setup profiles; it feeds
+    nothing but its own rows (OS-5 reaches the overlay only through the intake
+    queue after a ledger)

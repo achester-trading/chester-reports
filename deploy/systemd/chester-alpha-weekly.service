@@ -1,0 +1,28 @@
+[Unit]
+Description=Alpha Lab weekly loop (Sunday 06:00 ET: walk-forward, bounded re-fit, rebalance, agenda, verdicts; X-2.4)
+Documentation=file:///%h/chester-reports/docs/alpha-lab.md
+
+# After= the Weekly, ordering only: the Weekly prints the lab's line from alpha.db
+# read-only, and the rebalance follows it rather than racing it.
+After=chester-weekly.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_alpha_weekly.sh
+
+# NO EnvironmentFile: the lab reads no secret.
+
+SuccessExitStatus=0
+TimeoutStartSec=20min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+# -%h/chester-data/outbox/lab (X-2.11): the weekly loop writes lab-verdicts-*.md
+# there for the sweep to copy up to Drive; the leading - lets the unit start
+# before the directory exists (mkdir -p it once).
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/chester-data/outbox/lab
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

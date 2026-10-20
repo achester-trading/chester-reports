@@ -28,8 +28,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import bars as bars_mod, levels as levels_mod, observations, session
+from altdata import es_block, model_meter
 
 from . import charts as charts_mod
+from . import es_read
 from . import outlooks as outlooks_mod
 from . import stack as stack_mod
 from . import stack_prose, stack_render
@@ -150,27 +152,46 @@ def scorecard_row(p: dict, book: dict, bstore, prior_profile: Optional[dict],
            # (the prior session's close); the held flags read these.
            "call_wall_morning": morning.get("call_wall"),
            "put_wall_morning": morning.get("put_wall")}
-    # DEALER AUDIT F6, FIELDS ONLY (9 Oct 2026). Eligibility before outcome:
-    # whether each flag's hypothesis was even testable on this session. Stored
-    # here and read by nothing yet -- weekly_sections.flags_for keeps its
-    # semantics until the 6b pre-registration changes them.
+    # DEALER AUDIT F6, FIELDS ONLY (9 Oct 2026), NAMED AS THE BRIEF NAMES THEM
+    # (6b part 1, brief v2 sections 5 and 6, ratified 16 Oct 2026). Eligibility
+    # before outcome: whether each flag's hypothesis was even testable on this
+    # session; an ineligible session is None, never False. The walls are the
+    # morning's OTM walls -- THE walls (audit F5) -- not the all-strike peaks.
+    # Stored here and read by nothing yet: weekly_sections.flags_for keeps its
+    # semantics until part 2's pre-registration ledger changes them.
     wall_pct = float((bars_mod.load_config().get("dealer_flags") or {})
                      .get("wall_pct", 0.25))
     cp = close_profile or {}
+    ntg_min = float((stack_mod.config().get("dealer_block") or {})
+                    .get("net_to_gross_min", 0.10))
+    ntg_m = morning.get("net_to_gross")
+    from altdata import dealer_scorecard as dsc                 # noqa: PLC0415
     row.update({
-        "is_expiry_session": _carried_0dte(cp),
-        "call_wall_approached": _within_pct(hi, morning.get("call_wall"), wall_pct),
-        "put_wall_approached": _within_pct(lo, morning.get("put_wall"), wall_pct),
+        # The monthly third Friday (ruled 17 Oct 2026, the pinned hypothesis's
+        # eligibility); `carried_0dte` keeps the capture's own fact.
+        "is_expiry_session": dsc.is_monthly_expiry(sess),
+        "carried_0dte": _carried_0dte(cp),
+        "call_wall_otm_morning": morning.get("call_wall_otm"),
+        "put_wall_otm_morning": morning.get("put_wall_otm"),
+        "wall_approached_call": _within_pct(hi, morning.get("call_wall_otm"), wall_pct),
+        "wall_approached_put": _within_pct(lo, morning.get("put_wall_otm"), wall_pct),
+        # The session's range contained the morning flip: the flip-crossing
+        # hypothesis's eligibility (the same test as flip_crossed, named for it).
+        "flip_in_range": (bool(lo <= flip <= hi) if None not in (lo, hi, flip)
+                          else None),
+        # A regime session: the morning's net-to-gross at or above the gate.
+        "regime_eligible": (None if ntg_m is None else ntg_m >= ntg_min),
         "peak_gex_strike_morning": morning.get("peak_abs_gex_strike"),
-        "net_to_gross_morning": morning.get("net_to_gross"),
+        "net_to_gross_morning": ntg_m,
         "net_to_gross_close": (cp.get("overall") or {}).get("net_to_gross"),
     })
     return row
 
 
+@model_meter.metered("daily_close")
 def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
-            client=None, model: Optional[str] = None, narrative: bool = True,
-            db_path: Optional[str] = None) -> dict:
+             client=None, model: Optional[str] = None, narrative: bool = True,
+             db_path: Optional[str] = None) -> dict:
     sess = p["session"]
     cutoff = p.get("as_of") or session.utc_iso()
     cfg = bars_mod.load_config()
@@ -187,6 +208,19 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 report["outlooks_resolved"] = {"error": f"{type(exc).__name__}: {exc}"}
         prior = load_prior(sess, archive_dir)
         ed = stack_mod.build(p, book, outs, prior, db_path)
+        # THE ES BLOCK (ST-R6.45, Batch 6 item 45): the three timeframes from the
+        # bars table as of the cutoff -- the full session, what changed, the
+        # levels for tomorrow -- in Mechanics. Its read is written in the prose
+        # step below, through the same narrative.generate().
+        es_blk = es_block.compute(bst, sess, cutoff, slot="close")
+        # WHAT CHANGED SINCE 07:00: the morning's print, scored in memory on the
+        # bars since -- the ledger's own outcome is resolve_due's, below.
+        try:
+            es_blk["since_morning"] = es_block.since_morning(bst, sess, cutoff,
+                                                             es_blk.get("last"))
+        except Exception:                                       # noqa: BLE001
+            log.warning("ES since-morning review unavailable", exc_info=True)
+        es_rd = None
         if narrative:
             ms = None
             try:
@@ -196,6 +230,24 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 pass
             stack_prose.write(ed, market_states=ms, client=client, model=model,
                               outlooks=outs)
+            with model_meter.scope(section="es_block"):
+                es_rd = es_read.write(es_blk, slot="close", client=client, model=model)
+        mech = next(s for s in ed["sections"] if s["id"] == "mechanics")
+        mech["subsections"].append(es_read.subsection(es_blk, es_rd))
+        mech["data"]["es_block"] = {"state": es_blk.get("state"),
+                                    "lean": (es_rd or {}).get("lean"),
+                                    "read_state": (es_rd or {}).get("state")}
+        report["es_block"] = mech["data"]["es_block"]
+        # THE ES LEDGER (45e): the due rows scored first (this session's 07:00
+        # prints among them), then tonight's levels and lean logged unscored.
+        if not dry_run:
+            try:
+                report["es_ledger"] = {
+                    "resolved": es_block.resolve_due(cutoff, db_path, store=bst),
+                    "recorded": es_block.record(es_blk, (es_rd or {}).get("lean"),
+                                                p.get("run_id"), db_path)}
+            except Exception as exc:                            # noqa: BLE001
+                report["es_ledger"] = {"error": f"{type(exc).__name__}: {exc}"}
         # THE CHARTS, from the same level list the prose was audited against.
         plan = stack_mod.chart_plan(ed, {})
         charts: dict[str, dict] = {}
@@ -234,6 +286,14 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                         "charts_rendered"] = ["C3"]
             tape = next(s for s in ed["sections"] if s["id"] == "tape")
             tape["charts_rendered"] = [c for c in ("C1", "C2") if c in charts]
+            if "D2" in plan:
+                from . import dealer_block                      # noqa: PLC0415
+                prof = dealer_block.newest_settled(sess, "SPY", ed["dealer_computed_dir"],
+                                                   lookback_days=0)
+                charts["D2"] = charts_mod.dealer_chart("D2", prof, f"{base_name}_d2",
+                                                       out_dir)
+                next(s for s in ed["sections"] if s["id"] == "mechanics")[
+                    "charts_rendered"] = ["D2"]
             # THE DEALER SCORECARD ROW (1.2), for the Monthly's retrospective.
             import pin_log                                      # noqa: PLC0415
             prev = session.previous_trading_session(sess).isoformat()
@@ -248,8 +308,45 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             cur = ((pin_log.load_computed(date=sess) or {}).get("SPY") or {})
             card = scorecard_row(p, book, bst, (prof.get("overall") or {}), cur)
             card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
+            # The chain's own capture instant (Part 0, 17 Oct 2026): the Weekly
+            # prints it beside the IV when it is before the close.
+            card["atm_iv_capture_at"] = chain.get("fetched_at")
             card["put_call_volume"] = (chain.get("put_call_volume") or {}).get("ratio")
             report["scorecard"] = card
+            # BATCH 9 ITEM 52: the session's volatility read, stored point in
+            # time -- the event day, the compression flag, and a ledger row for
+            # a fired event (altdata/vol_event.py).
+            mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})
+            vol_ev = (mech.get("data") or {}).pop("_vol_event", None)
+            # 6b PART 3: each capture's per-window $/1%, T3's percentile history.
+            profs = (mech.get("data") or {}).pop("_dealer_profiles", None) or []
+            if profs and not dry_run:
+                from . import dealer_block as _dbk              # noqa: PLC0415
+                st.write_many([r for pr in profs
+                               for r in _dbk.window_rows(pr, session.utc_iso())])
+            # EL-5: each capture's state vector, stored for the Weekly.
+            svs = (mech.get("data") or {}).pop("_state_vectors", None) or []
+            if svs and not dry_run:
+                from altdata import state_vector as _sv          # noqa: PLC0415
+                st.write_many([r for g in svs for r in _sv.rows(g, session.utc_iso())])
+            if vol_ev and vol_ev.get("trigger") and not dry_run:
+                from altdata import vol_event as ve             # noqa: PLC0415
+                st.write_many(ve.event_rows(vol_ev, session.utc_iso()))
+            # BATCH 11 ITEM 55 (H6): the next session's level clusters, from the
+            # levels known after the 16:10 capture, frozen 30 days once stored.
+            if not dry_run:
+                from altdata import level_clusters as _lc        # noqa: PLC0415
+                for _sym in _lc.INSTRUMENTS:
+                    try:
+                        _lc.store_for_next(st, bst, _sym, sess, session.utc_iso(),
+                                           ed.get("dealer_computed_dir"))
+                    except Exception:                           # noqa: BLE001
+                        log.warning("level clusters for %s faulted", _sym, exc_info=True)
+                # BATCH 11 ITEM 57: one implied-against-realised record per earnings
+                # print, written once by the close after the report.
+                from altdata import earnings_moves as _em        # noqa: PLC0415
+                report["earnings_moves"] = _em.record_due(st, sess, session.utc_iso(),
+                                                          db_path)
             if not dry_run:
                 st.write_many([{"registry_key": SCORECARD_KEY, "instrument": "SPY",
                                 "observed_at": sess, "available_at": session.utc_iso(),
@@ -278,6 +375,35 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     # the budget may rewrite the edition's prose.
     stack_mod.enforce_budget(ed)
     ed["run_id"] = p.get("run_id")
+    # THE MODEL METER'S LINE (AUD-2 item 4): every report's calls today, ET.
+    # (model_meter is the module-level import: a local import here made the
+    # name local to produce(), and the ES read's scope above failed on it.)
+    try:
+        # The day is read once and kept with the edition, so a check of the line
+        # sums the same ET day the footer did, even across midnight.
+        ed["model_day"] = session.to_eastern().date().isoformat()
+        ed["model_line"] = model_meter.daily_line(db_path, ed["model_day"])
+    except Exception:                                           # noqa: BLE001
+        log.warning("model meter line unavailable", exc_info=True)
+    # THE DATA CHECK (AUD-3c, 15 Oct 2026): the day's outlier and cross-source
+    # flags, read-only, after the EOD capture, as Warnings lines -- at most five
+    # and a count, nothing on a clean day. A prompt to look: it never blocks the
+    # close or withholds a number, and a check that cannot run prints nothing.
+    from altdata import quality                                 # noqa: PLC0415
+    dq = quality.close_warnings(sess, db_path)
+    report["data_check"] = dq
+    if dq:
+        p = dict(p, warnings=list(p.get("warnings") or []) + dq)
+    from alpha.lab_line import daily_line                       # noqa: PLC0415
+    # 10.2 d: the lab's one line -- alpha.db, beside the store, read-only.
+    ed["alpha_lab"] = daily_line(cutoff, db_path and Path(db_path).with_name("alpha.db"))
+    # chester-meme's drafts (meme-ingest-ledgers-1): one line, read-only, and
+    # nothing else about a draft until the operator confirms it with decide.py.
+    try:
+        from altdata import meme_ingest                         # noqa: PLC0415
+        ed["meme_line"] = meme_ingest.status_line(db_path)
+    except Exception:                                           # noqa: BLE001
+        log.warning("meme draft line unavailable", exc_info=True)
     html_email = stack_render.render(p, ed, charts, mode="email")
     html_archive = stack_render.render(p, ed, charts, mode="archive")
     images = [(stack_render.cid(k), c["png"]) for k, c in charts.items()
@@ -290,6 +416,8 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
 
 
 def save_edition(ed: dict, sess: str, archive_dir: Optional[str]) -> Optional[str]:
+    from altdata import withheld_log                            # noqa: PLC0415
     from . import deliver                                       # noqa: PLC0415
+    withheld_log.record_edition("daily_close", edition_name(sess), ed, archive_dir)
     return deliver.archive(json.dumps(ed, indent=2, default=str, sort_keys=True),
                            edition_name(sess), archive_dir)

@@ -48,6 +48,7 @@ from typing import Optional
 from .. import observations, session
 from . import _publication as pub
 from ._base import http_get_text
+from .user_agent import browser_like
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ TRUSTS = {
 FIELD_NAMES = {"oz": "ounces", "tonnes": "tonnes", "shares": "sharesOutstanding"}
 KEYS = [f"etf.{t}_{f}" for t, (_u, fields) in TRUSTS.items() for f in fields] + [
     f"etf.{t}_share_flow" for t in TRUSTS]
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; chester-reports)"}
+HEADERS = {"User-Agent": browser_like()}
 
 
 def fact(page: str, name: str) -> tuple[float, str]:
@@ -115,7 +116,7 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
         pages = {t: http_get_text(url, timeout=60, headers=HEADERS)
                  for t, (url, _f) in TRUSTS.items()}
         own = db is None
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             rows: list[dict] = []
             for t, page in pages.items():

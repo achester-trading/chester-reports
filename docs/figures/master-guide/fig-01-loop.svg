@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1062" role="img" aria-labelledby="t d">
+<title id="t">Figure 1. The loop</title><desc id="d">Inputs flow into the point-in-time store, which feeds one market state; the reports read it and their output climbs the ladder to your Decision Packet; the paper book and grader score it; ledgers collect the evidence; sittings change the rules. The Alpha Lab reads the store, runs its own paper book and sends verdicts back as evidence only.</desc>
+<style>
+.bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
+.line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
+.touch{stroke:#16202e}.boxs{stroke:#0f5c9e}.chats{stroke:#c06a12}.onbox{fill:#ffffff}
+.pill{fill:#e6ecf3}.bA{fill:#2b6cb0}.bB{fill:#2f855a}.bC{fill:#b7791f}.bD{fill:#9b2c2c}
+@media (prefers-color-scheme: dark){
+.bg{fill:#121821}.panel{fill:#1b2330}.ink{fill:#e8edf3}.mute{fill:#a3adbb}
+.line{stroke:#5f6b7b}.grid{stroke:#2c3646}.box{fill:#5aa2e6}.chat{fill:#f0a14a}
+.touch{stroke:#e8edf3}.boxs{stroke:#5aa2e6}.chats{stroke:#f0a14a}.onbox{fill:#121821}
+.pill{fill:#243042}.bA{fill:#63a4ff}.bB{fill:#5cc28a}.bC{fill:#e8b04e}.bD{fill:#e07a7a}}
+text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
+</style>
+<rect class="bg" x="0" y="0" width="720" height="1062" rx="14"/>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mute" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 1. The loop</text>
+<text class="mute" x="24.0" y="72.0" font-size="16" text-anchor="start" font-weight="400">From a feed to a rule change, and the lab beside it.</text>
+<rect class="pill" x="24" y="96" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="135.0" font-size="18" text-anchor="middle" font-weight="700">Inputs</text>
+<text class="mute" x="254.0" y="153.0" font-size="15" text-anchor="middle" font-weight="400">the feeds: official, prices, chains, crypto, scans</text>
+<line class="line" stroke-width="3" x1="254.0" y1="174" x2="254.0" y2="200" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="200" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="239.0" font-size="18" text-anchor="middle" font-weight="700">The point-in-time store</text>
+<text class="mute" x="254.0" y="257.0" font-size="15" text-anchor="middle" font-weight="400">every row with its available_at</text>
+<line class="line" stroke-width="3" x1="254.0" y1="278" x2="254.0" y2="304" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="304" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="343.0" font-size="18" text-anchor="middle" font-weight="700">One market state</text>
+<text class="mute" x="254.0" y="361.0" font-size="15" text-anchor="middle" font-weight="400">three dials, eight dimensions; the close writes it</text>
+<line class="line" stroke-width="3" x1="254.0" y1="382" x2="254.0" y2="408" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="408" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="447.0" font-size="18" text-anchor="middle" font-weight="700">The reports</text>
+<text class="mute" x="254.0" y="465.0" font-size="15" text-anchor="middle" font-weight="400">07:00 anchor · 12:30 alert · 16:45 close · Weekly · Monthly</text>
+<line class="line" stroke-width="3" x1="254.0" y1="486" x2="254.0" y2="512" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="512" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="551.0" font-size="18" text-anchor="middle" font-weight="700">The ladder</text>
+<text class="mute" x="254.0" y="569.0" font-size="15" text-anchor="middle" font-weight="400">readings and lenses → flags → tells and setups → candidates</text>
+<line class="line" stroke-width="3" x1="254.0" y1="590" x2="254.0" y2="616" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="616" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="655.0" font-size="18" text-anchor="middle" font-weight="700">Your Decision Packet</text>
+<text class="mute" x="254.0" y="673.0" font-size="15" text-anchor="middle" font-weight="400">you decide; the register records it (R18)</text>
+<line class="line" stroke-width="3" x1="254.0" y1="694" x2="254.0" y2="720" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="720" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="759.0" font-size="18" text-anchor="middle" font-weight="700">The paper book and the grader</text>
+<text class="mute" x="254.0" y="777.0" font-size="15" text-anchor="middle" font-weight="400">scored at the horizon</text>
+<line class="line" stroke-width="3" x1="254.0" y1="798" x2="254.0" y2="824" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="824" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="863.0" font-size="18" text-anchor="middle" font-weight="700">Ledgers and the scorecard</text>
+<text class="mute" x="254.0" y="881.0" font-size="15" text-anchor="middle" font-weight="400">evidence by book and regime</text>
+<line class="line" stroke-width="3" x1="254.0" y1="902" x2="254.0" y2="928" marker-end="url(#ah)"/>
+<rect class="pill" x="24" y="928" width="460" height="78" rx="12"/>
+<text class="ink" x="254.0" y="967.0" font-size="18" text-anchor="middle" font-weight="700">Sittings</text>
+<text class="mute" x="254.0" y="985.0" font-size="15" text-anchor="middle" font-weight="400">weekly · monthly · quarterly · annual: rule changes</text>
+<path fill="none" class="line" stroke-width="3" marker-end="url(#ah)" d="M454,1006 q 30,0 30,-30 L484,542 q 0,-20 -16,-20"/>
+<text class="mute" x="492.0" y="912.0" font-size="15" text-anchor="start" font-weight="400">rules</text>
+<rect class="panel" x="500" y="430" width="200" height="150" rx="12"/>
+<text class="ink" x="600.0" y="505.0" font-size="18" text-anchor="middle" font-weight="700">Alpha Lab</text>
+<text class="mute" x="600.0" y="523.0" font-size="15" text-anchor="middle" font-weight="400">its own paper book</text>
+<text class="mute" x="600.0" y="543.0" font-size="15" text-anchor="middle" font-weight="400">engines, search,</text>
+<text class="mute" x="600.0" y="563.0" font-size="15" text-anchor="middle" font-weight="400">hypotheses</text>
+<path fill="none" class="line" stroke-width="3" stroke-dasharray="6 6" marker-end="url(#ah)" d="M484,239 C 600,239 600,320 600,426"/>
+<text class="mute" x="604.0" y="320.0" font-size="15" text-anchor="start" font-weight="400">reads</text>
+<path fill="none" class="line" stroke-width="3" stroke-dasharray="6 6" marker-end="url(#ah)" d="M675,584 C 675,900 540,967 490,967"/>
+<text class="mute" x="580.0" y="680.0" font-size="15" text-anchor="start" font-weight="400">verdicts as</text>
+<text class="mute" x="580.0" y="700.0" font-size="15" text-anchor="start" font-weight="400">evidence only</text>
+<text class="mute" x="600.0" y="610.0" font-size="15" text-anchor="middle" font-weight="400">never touches</text>
+<text class="mute" x="600.0" y="630.0" font-size="15" text-anchor="middle" font-weight="400">your books</text>
+</svg>

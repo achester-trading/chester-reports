@@ -56,6 +56,7 @@ from urllib.parse import urljoin
 from .. import session
 from . import _publication as pub
 from ._base import http_get_response, http_get_text
+from .user_agent import browser_like
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ BOP_PAGE = HOST + "/en/2019/0329/1496.html"
 IIP_PAGE = HOST + "/en/2018/0928/1459.html"
 HUNDRED_MILLION = 1e8
 TEN_THOUSAND = 1e4
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; chester-reports)"}
+HEADERS = {"User-Agent": browser_like()}
 
 RESERVE_ROWS = {"safe.fx_reserves": "外汇储备", "safe.gold_reserves_usd": "黄金",
                 "safe.official_reserves_total": "合计"}
@@ -250,7 +251,7 @@ def _produce(backfill: bool) -> list[dict]:
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     from .. import observations
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         backfill = not pub.newest_observed(store, ["safe.fx_reserves"]).get(
             "safe.fx_reserves")

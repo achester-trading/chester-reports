@@ -119,6 +119,30 @@ def _draw_levels(ax, lvls: list[dict], lo: float, hi: float) -> list[dict]:
     return drawn
 
 
+VALUE_AREA = "#f59e0b"
+
+
+def shade_value_area(ax, book: dict, iid: str, window: str, lo: float,
+                     hi: float) -> list[dict]:
+    """VP-1: a window's value area shaded between its VAL and VAH -- both listed
+    levels (altdata/levels.py), returned for `drawn` -- when it overlaps the
+    chart's range; the shading is clipped to the range so it never rescales the
+    candles."""
+    from altdata import volume_profile as vp                    # noqa: PLC0415
+    keys = (vp.level_key(window, "val"), vp.level_key(window, "vah"))
+    lv = {x["type"]: x for x in _levels_of(book, iid, keys)}
+    if len(lv) < 2:
+        return []
+    val, vah = lv[keys[0]]["value"], lv[keys[1]]["value"]
+    span = hi - lo
+    a, b = max(val, lo - 0.15 * span), min(vah, hi + 0.15 * span)
+    if a >= b:
+        return []
+    ax.axhspan(a, b, color=VALUE_AREA, alpha=0.12, zorder=0, linewidth=0)
+    return [{"type": x["type"], "label": x["label"], "value": x["value"]}
+            for x in (lv[keys[0]], lv[keys[1]])]
+
+
 def _base(title: str):
     plt = _plt()
     fig, ax = plt.subplots(figsize=(CHART_W, 3.3))
@@ -151,6 +175,7 @@ def c1(book: dict, intraday_bars: list[dict], complete: bool, reason: Optional[s
         drawn = _draw_levels(ax, _levels_of(book, "spy", (
             "vwap", "prior_close", "gamma_flip", "call_wall", "put_wall",
             "max_pain")), lo, hi)
+        drawn += shade_value_area(ax, book, "spy", "prior_session", lo, hi)
         ticks = list(range(0, len(intraday_bars), 12))
         ax.set_xticks(ticks)
         ax.set_xticklabels([_et(intraday_bars[t]["observed_at"]) for t in ticks])
@@ -382,6 +407,28 @@ def banded_chart(cid: str, series: dict, title: str, name: str,
         return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
 
 
+def meeting_label(d: str) -> str:
+    """Item 13: an FOMC meeting's tick, "Oct 28"."""
+    x = dt.date.fromisoformat(str(d)[:10])
+    return f"{x:%b} {x.day}"
+
+
+def bar_label_inside(v: float, span: float, frac: float = 0.7) -> bool:
+    """Item 13: a bar within `frac` of the longest is labelled inside itself --
+    outside, its label would run past the axis into the tick labels."""
+    return bool(span) and abs(v) >= frac * span
+
+
+def short_title(k: str, limit: int = 24) -> str:
+    """Item 13: a small multiple's panel title -- the series' name before any
+    parenthesis, cut at a word to `limit` characters. The long name goes to the
+    caption (dry run 7: three panel titles collided)."""
+    s = str(k).split(" (")[0].strip()
+    if len(s) <= limit:
+        return s
+    return s[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
 def bars_chart(cid: str, rows: list, title: str, name: str,
                out_dir: Optional[str]) -> dict:
     """Sorted horizontal bars: the week's sector and style-pair returns (W5)."""
@@ -399,10 +446,18 @@ def bars_chart(cid: str, rows: list, title: str, name: str,
         ax.set_yticklabels([k for k, _ in rows], fontsize=7)
         ax.axvline(0, color="#94a3b8", linewidth=0.6)
         ax.tick_params(labelsize=7)
+        # weekly-fixes-7 item 13: a label that would overrun the axis (dry run 7:
+        # XLK's ran into the tick labels) prints INSIDE its bar, in white.
+        span = max(abs(v) for _, v in rows) or 1.0
         for i, (_, v) in enumerate(rows):
-            ax.annotate(f"{v:+.2f}%", xy=(v, i), xytext=(3 if v >= 0 else -3, 0),
+            inside = bar_label_inside(v, span)
+            out_dir_sign = 1 if v >= 0 else -1
+            ax.annotate(f"{v:+.2f}%", xy=(v, i),
+                        xytext=((-3 if inside else 3) * out_dir_sign, 0),
                         textcoords="offset points", va="center",
-                        ha="left" if v >= 0 else "right", fontsize=6.5)
+                        ha=(("right" if v >= 0 else "left") if inside else
+                            ("left" if v >= 0 else "right")),
+                        fontsize=6.5, color="white" if inside else "black")
         out = _finish(fig, name, out_dir)
         top, bot = rows[-1], rows[0]
         return {"id": cid, "drawn": [], "caption": f"{title}; highest {top[0]} "
@@ -484,6 +539,7 @@ def pct_band(vals: list, lo: float = 10, hi: float = 90) -> Optional[tuple]:
 
 def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
              asof: str) -> dict:
+    from altdata import labels                                  # noqa: PLC0415
     """Item 12: 2x2 -- yields (2, 10, 30) over one year and over ten; HY OAS over
     one year and over ten with the 5- and 20-year 10th-90th percentile bands."""
     try:
@@ -540,7 +596,8 @@ def w3_panel(yields: dict, hy: list, name: str, out_dir: Optional[str],
         last = "; ".join(f"{k} {v[-1][1]:.2f}% (FRED, {v[-1][0]})"
                          for k, v in yields.items() if v)
         cap = ("Treasury yields and high-yield OAS, one year and ten years; " + last
-               + (f"; HY OAS {hy[-1][1]:.2f}% (FRED, {hy[-1][0]})" if hy else "")
+               + (f"; HY OAS {hy[-1][1]:.2f}% (FRED, {hy[-1][0]}; "
+                  f"{labels.hy_source(hy[0][0])})" if hy else "")
                + ("; spans: " + "; ".join(spans) if spans else ""))
         return {"id": "W3", "drawn": [], "caption": cap, **out, "panels": drawn,
                 "titles": titles}
@@ -564,19 +621,19 @@ def z_panel(cid: str, series: dict, title: str, name: str,
         for ax, k in zip(axes.flat, keys):
             pts = series.get(k) or []
             if len(pts) < min_points:
-                _untracked(ax, k)
+                _untracked(ax, short_title(k))
                 untracked.append(k)
                 continue
             z = zscores(pts)
             if not z:
-                _untracked(ax, k, "no variation stored")
+                _untracked(ax, short_title(k), "no variation stored")
                 untracked.append(k)
                 continue
             ax.plot(range(len(z)), [v for _, v in z], color="#0d2b45", linewidth=0.9)
             for y, c in ((0, "#94a3b8"), (1, "#d97706"), (-1, "#d97706"),
                          (2, "#b3261e"), (-2, "#b3261e")):
                 ax.axhline(y, color=c, linewidth=0.5, linestyle="--" if y else "-")
-            ax.set_title(k, fontsize=7, loc="left")
+            ax.set_title(short_title(k), fontsize=7, loc="left")
             _dated_ticks(ax, [d for d, _ in z], 2)
             stats[k] = {"z": round(z[-1][1], 2), "as_of": z[-1][0], "n": len(z)}
         for ax in list(axes.flat)[len(keys):]:
@@ -588,7 +645,8 @@ def z_panel(cid: str, series: dict, title: str, name: str,
                            for k, v in stats.items())
                + (f"; not yet tracked: {', '.join(untracked)}" if untracked else ""))
         return {"id": cid, "drawn": [], "caption": cap, **out, "stats": stats,
-                "not_drawn": untracked, "titles": [title] + keys}
+                "not_drawn": untracked, "titles": [title] + keys,
+                "panel_titles": [short_title(k) for k in keys]}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
 
@@ -662,6 +720,7 @@ def w7(bars5: list, levels_by_day: dict, name: str,
     try:
         fig, ax = _base(span_title("SPY, 23-hour sessions", len(days), "sessions",
                                    days[0], days[-1], "two weeks"))
+        side = _side_panel(fig, ax)
         x0 = 0
         drawn, with_es = [], 0
         cols = {"flip": LEVEL_COLOURS["gamma_flip"], "call_wall": LEVEL_COLOURS["call_wall"],
@@ -701,6 +760,7 @@ def w7(bars5: list, levels_by_day: dict, name: str,
             x0 = end
         ax.set_xticks([t for t, _ in ticks])
         ax.set_xticklabels([lab for _, lab in ticks])
+        vap = volume_at_price_panel(side, bars5, days)
         out = _finish(fig, name, out_dir)
         cap = (f"SPY over {len(days)} sessions ({days[0]} to {days[-1]}): the cash "
                f"session in 65-minute candles (shaded), "
@@ -708,13 +768,98 @@ def w7(bars5: list, levels_by_day: dict, name: str,
                   f"({with_es} of {len(days)} sessions)" if with_es else
                   "the overnight not drawn (no ES=F bars stored)")
                + f"; VWAP per session; flip, walls and max pain as of each morning "
-                 f"where stored ({len({x['session'] for x in drawn})} of {len(days)})")
+                 f"where stored ({len({x['session'] for x in drawn})} of {len(days)})"
+               + f"; beside it, {vap['caption']}")
         return {"id": "W7", "drawn": drawn, "caption": cap, **out,
-                "overnight_sessions": with_es,
+                "overnight_sessions": with_es, "volume_at_price": vap["data"],
                 "series": [{k: b[k] for k in ("session", "slot", "open", "high", "low",
                                                "close")} for b in b65]}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W7", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+VAP_WEEK = "#1d4ed8"       # this week's sessions: the darker step of one hue
+VAP_EARLIER = "#93c5fd"    # the earlier sessions: the lighter step
+
+
+def _side_panel(fig, ax):
+    """W7's volume-at-price panel (VP-1 item 7): a narrow axis on the main
+    chart's right, sharing its price axis -- still one figure, one chart."""
+    from mpl_toolkits.axes_grid1 import make_axes_locatable    # noqa: PLC0415
+    side = make_axes_locatable(ax).append_axes("right", size="22%", pad=0.08,
+                                               sharey=ax)
+    side.tick_params(labelsize=7, labelleft=False)
+    for k in ("top", "right"):
+        side.spines[k].set_visible(False)
+    side.set_xticks([])
+    return side
+
+
+def volume_at_price_panel(side, bars5: list, days: list) -> dict:
+    """Volume at price over the sessions W7 draws, through
+    altdata/volume_profile.py: this week's sessions a darker step of one hue,
+    the earlier a lighter step, stacked on one grid; the week's POC marked and
+    its value area shaded when the week is computed; a legend; and a caption
+    written from the data."""
+    from altdata import bars as bars_mod, volume_profile as vp  # noqa: PLC0415
+    from matplotlib.patches import Patch                        # noqa: PLC0415
+    from matplotlib.lines import Line2D                         # noqa: PLC0415
+    cfg = vp.load_config()
+    last = dt.date.fromisoformat(days[-1])
+    monday = (last - dt.timedelta(days=last.weekday())).isoformat()
+    per: dict[str, list] = {d: [] for d in days}
+    counts = {}
+    for d in days:
+        first, end, expected = bars_mod.session_window("spy", d)
+        per[d] = [b for b in bars5 if first <= str(b["observed_at"]) <= end]
+        counts[d] = (len(per[d]), expected)
+    week_days = [d for d in days if d >= monday]
+    allb = [b for d in days for b in per[d]]
+    srcs = sorted({str(b.get("source") or "unknown") for b in allb})
+    # Rule 7: the panel is one window of bars, and a window never mixes sources.
+    grid = ({"absent": "no 5-minute bars"} if not allb else
+            {"absent": f"bars from more than one source ({', '.join(srcs)})"}
+            if len(srcs) > 1 else
+            vp.profile(allb, float((cfg.get("bin_bps") or {}).get("five_minute", 5)),
+                       cfg))
+    if "absent" in grid:
+        side.text(0.5, 0.5, "volume at price\nnot drawn", ha="center",
+                  va="center", transform=side.transAxes, fontsize=7,
+                  color="#64748b")
+        return {"caption": f"volume at price not drawn ({grid['absent']})",
+                "data": {"absent": grid["absent"]}}
+    w = grid["bin_width"]
+    early = vp.volume_at_price([b for d in days if d < monday for b in per[d]], w)
+    week = vp.volume_at_price([b for d in week_days for b in per[d]], w)
+    ks = sorted(set(early) | set(week))
+    ys = [(k + 0.5) * w for k in ks]
+    ev = [early.get(k, 0.0) for k in ks]
+    wv = [week.get(k, 0.0) for k in ks]
+    side.barh(ys, ev, height=w, color=VAP_EARLIER, linewidth=0)
+    side.barh(ys, wv, left=ev, height=w, color=VAP_WEEK, linewidth=0)
+    wp = vp.from_bars([b for d in week_days for b in per[d]],
+                      {d: counts[d] for d in week_days}, cfg)
+    handles = [Patch(color=VAP_WEEK, label=f"this week ({len(week_days)})"),
+               Patch(color=VAP_EARLIER, label=f"earlier ({len(days) - len(week_days)})")]
+    if wp.get("poc") is not None:
+        side.axhspan(wp["val"], wp["vah"], color=VALUE_AREA, alpha=0.22, zorder=3,
+                     linewidth=0)
+        side.axhline(wp["poc"], color="#b45309", linewidth=1.0)
+        handles += [Line2D([], [], color="#b45309", label="week's POC"),
+                    Patch(color=VALUE_AREA, alpha=0.3, label="week's value area")]
+        week_txt = (f"the week's POC {wp['poc']:,.2f} and value area "
+                    f"{wp['val']:,.2f} to {wp['vah']:,.2f} marked")
+    else:
+        week_txt = f"the week's profile not marked ({wp.get('absent')})"
+    side.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.04),
+                fontsize=6, frameon=False, ncol=1)
+    cap = (f"volume at price over the {len(days)} sessions in {w:g} bins: this "
+           f"week's {len(week_days)} darker, the earlier {len(days) - len(week_days)} "
+           f"lighter; {week_txt}")
+    return {"caption": cap,
+            "data": {"bin_width": w, "sessions": len(days),
+                     "week_sessions": week_days,
+                     "week": vp.summary(wp) if wp else None}}
 
 
 def _candles_at(ax, x: int, b: dict) -> None:
@@ -797,7 +942,9 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
     fed-funds implied path today, a week ago and a month ago."""
     try:
         plt = _plt()
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(CHART_W, 3.2))
+        # weekly-fixes-7 item 13: taller, so the odds legend sits BELOW its plot
+        # (dry run 7: a six-entry legend covered the lines).
+        fig, (a1, a2) = plt.subplots(1, 2, figsize=(CHART_W, 3.8))
         for ax in (a1, a2):
             ax.tick_params(labelsize=6.5)
             for side in ("top", "right"):
@@ -816,7 +963,8 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
             a1.set_title(W10_TITLES[0], fontsize=7.5, loc="left")
             w10_span = span_title("prediction-market odds", len(alld), "days",
                                   alld[0], alld[-1], "ninety days")
-            a1.legend(fontsize=5.5, frameon=False)
+            a1.legend(fontsize=5.5, frameon=False, loc="upper center",
+                      bbox_to_anchor=(0.5, -0.14), ncol=1)
             _dated_ticks(a1, alld, 3)
         else:
             _untracked(a1, "Prediction-market odds, ninety days")
@@ -831,7 +979,8 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
                         marker="o", markersize=2.5, linewidth=0.9, label=lab)
             ms = paths[0][1]["meetings"][:6]
             a2.set_xticks(range(len(ms)))
-            a2.set_xticklabels([m["meeting"][2:10] for m in ms], fontsize=6)
+            # Item 13: meeting labels "Oct 28", not "26-10-28" (they overlapped).
+            a2.set_xticklabels([meeting_label(m["meeting"]) for m in ms], fontsize=6)
             a2.set_title(W10_TITLES[1], fontsize=7.5, loc="left")
             a2.legend(fontsize=5.5, frameon=False)
         else:
@@ -848,3 +997,104 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
                 "titles": list(W10_TITLES)}
     except Exception as exc:                                    # noqa: BLE001
         return {"id": "W10", "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
+# ---------------------------------------------------------------------------
+# W11 / M11: WHAT'S CARRYING THE INDEX (signal-triage Batch 6 item 40, 16 Oct
+# 2026). The standing decomposition: the S&P 500, EPS and the P/E, each indexed
+# to 100 at the anchor (the Weekly's twelve months, the Monthly's 12 Oct 2022
+# low), one point per earnings observation. Price = EPS x P/E, so the price
+# line is the product of the other two (in logs, their sum). Forward EPS where
+# S&P DJI's drops reach the anchor, else trailing; the title says which.
+# ---------------------------------------------------------------------------
+def index_carry(cid: str, cs: dict, plain: str, name: str,
+                out_dir: Optional[str]) -> dict:
+    if not cs or cs.get("absent"):
+        return {"id": cid, "unavailable": (cs or {}).get("reason")
+                or "the decomposition is not read"}
+    title = span_title(f"What's carrying the index: the S&P 500, {cs['version']} EPS "
+                       f"and the {cs['version']} P/E, indexed to 100",
+                       cs["n"], "observations", cs["first"], cs["last"], plain)
+    out = lines_chart(cid, cs["series"], title, name, out_dir, min_points=3)
+    return {**out, "title": title, "version": cs["version"],
+            "anchor_day": cs["anchor_day"]}
+
+
+# ---------------------------------------------------------------------------
+# THE DEALER CHARTS (6b part 2; brief v2 section 3, ratified 16 Oct 2026)
+# ---------------------------------------------------------------------------
+# Drawn by tools/dealer_charts.py's draw_* functions, imported here, from one
+# computed profile (the engine's exposure JSON): every value a chart draws is
+# returned in `drawn`, so the gate reconciles it with the dealer block's tables.
+# Each is stamped with the capture time, settled or intraday, and "OI as of prior
+# close". No chart draws a direction for DEX or the roll-off (audit F3).
+#   D2   the close's one dealer chart: figure 2, the gamma profile across spot
+#   W12  the Weekly's dealer panel: figures 2, 1 and 3
+#   M12  the Monthly's dealer panel: figures 2, 1, 3 and 4
+DEALER_FIGURES = {"D2": (2,), "W12": (2, 1, 3, 5), "M12": (2, 1, 3, 4, 5)}
+FIGURE_TITLES = {2: "Gamma profile across spot", 1: "Gamma by strike, OTM walls",
+                 3: "Gamma by days to expiry", 4: "The hedge book by horizon",
+                 5: "The scorecard (registered hypotheses)"}
+
+
+def _dealer_charts():
+    import sys                                                  # noqa: PLC0415
+    tools = str(Path(__file__).resolve().parent.parent / "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import dealer_charts                                        # noqa: PLC0415
+    return dealer_charts
+
+
+def dealer_chart(cid: str, profile: Optional[dict], name: str,
+                 out_dir: Optional[str], rates: Optional[list] = None) -> dict:
+    """D2, W12 or M12 from one profile. Unavailable, with its reason, when the
+    profile is missing, errored, or predates the stored gamma profile."""
+    figs = DEALER_FIGURES[cid]
+    if not profile or profile.get("error"):
+        return {"id": cid, "unavailable": ((profile or {}).get("error")
+                                           or "no computed dealer profile")}
+    if not (profile.get("gamma_profile") or {}).get("spots"):
+        return {"id": cid, "unavailable": "the profile predates the stored gamma "
+                                          "profile (6b part 2); the next capture has it"}
+    dc = _dealer_charts()
+    plt = _plt()
+    rows = sum(2 if f == 3 else 1 for f in figs)
+    drawn: dict[str, Any] = {}
+    with plt.rc_context(dc.RC):
+        fig, axes = plt.subplots(rows, 1, figsize=(CHART_W, 2.9 * rows + 0.4),
+                                 squeeze=False)
+        k = 0
+        for f in figs:
+            ax = axes[k][0]
+            if f == 2:
+                drawn["figure_2"] = dc.draw_profile([profile], ax=ax)
+            elif f == 1:
+                drawn["figure_1"] = dc.draw_per_strike(profile, ax=ax)
+            elif f == 3:
+                drawn["figure_3"] = dc.draw_buckets_release([profile], ax=ax,
+                                                            ax2=axes[k + 1][0])
+                axes[k + 1][0].set_title("", loc="center")
+                axes[k + 1][0].set_title("The hedge rolling off by expiry (size)",
+                                         fontsize=9, loc="left")
+                k += 1
+            elif f == 4:
+                drawn["figure_4"] = dc.draw_dex_horizon([profile], ax=ax)
+            elif f == 5:
+                # Figure 5 (6b part 3): k/n with intervals, base rate, baseline.
+                drawn["figure_5"] = dc.draw_scorecard(rates or [], ax=ax)
+            ax.set_title("", loc="center")
+            ax.set_title(FIGURE_TITLES[f], fontsize=9, loc="left")
+            if f == 1 and ax.get_legend():
+                ax.legend(loc="lower right", frameon=False, fontsize=7)
+            k += 1
+        stamp = dc._stamp(profile)
+        fig.suptitle(f"{profile.get('symbol')} dealer positioning — inferred, not observed",
+                     fontsize=9, x=0.02, ha="left")
+        fig.tight_layout()
+        out = _finish(fig, name, out_dir)
+    cap = (f"{profile.get('symbol')}, {stamp}. Figures "
+           f"{', '.join(str(f) for f in figs)} of the dealer-positioning brief; "
+           "inferred, not observed (dealers-hand-v1).")
+    return {"id": cid, "title": f"{profile.get('symbol')} dealer positioning",
+            "caption": cap, "drawn": drawn, "figures": list(figs), **out}

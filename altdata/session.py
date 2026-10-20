@@ -548,6 +548,10 @@ def _main(argv) -> int:
         python -m altdata.session is-session [DATE]    exit 0 session, 1 not
         python -m altdata.session prev-session [DATE]  print the prior session
         python -m altdata.session last-session [DATE]  print DATE or the prior
+        python -m altdata.session evening-before [DATE] exit 0 when the day
+                                                       after DATE is a session
+                                                       (the 21:30 evening note's
+                                                       guard), 1 not
         python -m altdata.session describe             print both clocks
 
     DATE defaults to today in ET. Every subcommand prints one line; is-session
@@ -568,6 +572,10 @@ def _main(argv) -> int:
         if cmd == "last-session":
             print(last_trading_session(arg).isoformat())
             return 0
+        if cmd == "evening-before":
+            nxt = _as_date(arg) + dt.timedelta(days=1)
+            print(f"{nxt.isoformat()}: {session_reason(nxt)}")
+            return 0 if is_trading_session(nxt) else 1
         if cmd == "describe":
             print(describe())
             return 0

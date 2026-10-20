@@ -126,6 +126,13 @@ class FakeWeb:
         raise urllib.error.HTTPError(url, 404, "nf", {}, None)
 
 
+def _mock_contact(value):
+    """edgar.contact() patched to `value` (None: unset)."""
+    import unittest.mock as _m  # noqa: PLC0415
+    from altdata.sources import edgar as _e  # noqa: PLC0415
+    return _m.patch.object(_e, "contact", lambda: value)
+
+
 class StubClient:
     """Answers like the model: a JSON voices list keyed by the title."""
 
@@ -340,14 +347,15 @@ def main() -> int:
     web = FakeWeb(pages, fail={"down.example"})
     client = StubClient(replies)
     cfg = scan_cfg()
-    ua = "chester-reports/1.0 (fixture@example.invalid)"
+    ua = vsn.user_agent()
     r1 = vsn.run(DB, ua=ua, client=client, fetcher=vsn.Fetcher(ua, 0, opener=web),
                  today=today, cfg=cfg)
     S = r1["sources"]
     check(client.calls == 2, f"one model call per new, dated, in-window item "
                              f"({client.calls} calls)")
     check(all(h == ua for _, h in web.calls),
-          "every request carries the EDGAR contact User-Agent")
+          "every non-SEC request carries the generic project User-Agent (ruled "
+          "17 Oct 2026), never the SEC contact")
     check(not any("/private/" in u for u, _ in web.calls),
           "a path robots.txt disallows is never requested")
     check(S["fx_blocked"]["state"] == "robots_disallowed"
@@ -414,12 +422,36 @@ def main() -> int:
                   for i in r3["sources"]["fx_desk"]["items"]),
           "past the day's cap no call is made and the item waits, unseen, for "
           "tomorrow")
-    r4 = vsn.run(str(Path(TMP) / "nc.db"), ua=None, cfg=cfg)
-    with vmod.VoicesStore(str(Path(TMP) / "nc.db")) as vs:
-        nc = {r["state"] for r in vs.latest_runs().values()}
-    check(r4["state"] == "not_configured" and nc == {"not_configured"},
-          "without the EDGAR contact the scan is dormant and says so; no anonymous "
-          "fallback")
+    # RULED 17 OCT 2026: the SEC contact goes to sec.gov only. Without it an SEC
+    # URL is refused before any request; every other host gets the generic one.
+    web4 = FakeWeb({"https://desk.example/x": b"ok"})
+    f4 = vsn.Fetcher(ua, 0, opener=web4, sec_ua=None)
+    try:
+        f4.get("https://www.sec.gov/cgi-bin/browse-edgar")
+        refused = False
+    except PermissionError:
+        refused = True
+    check(refused and not any("sec.gov" in u for u, _ in web4.calls),
+          "without CHESTER_SEC_CONTACT an SEC URL is refused and never requested "
+          "(no anonymous or generic User-Agent reaches EDGAR)")
+    sec_ua = "chester-reports/1.0 (sec-fixture@example.invalid)"
+    f5 = vsn.Fetcher(ua, 0, opener=web4, sec_ua=sec_ua)
+    for u in ("https://data.sec.gov/submissions/CIK0000000001.json",
+              "https://desk.example/x"):
+        try:
+            f5.get(u)
+        except Exception:                                 # noqa: BLE001
+            pass
+    hdr = {u: h for u, h in web4.calls}
+    check(hdr.get("https://data.sec.gov/submissions/CIK0000000001.json") == sec_ua
+          and hdr.get("https://desk.example/x") == ua and "@" not in ua,
+          "with it, sec.gov alone gets the contact form; desk.example gets the "
+          "generic string, which carries no address")
+    with _mock_contact(None):
+        r4 = vsn.pull_13f(str(Path(TMP) / "nc.db"), ua=None, getter=lambda u: b"",
+                          lines=[], cfg=cfg)
+    check(r4["state"] == "not_configured",
+          "13F (sec.gov) without the contact is dormant and says so")
 
     # --- D. UNREACHABLE -------------------------------------------------------
     print(f"\n{LINE}\nD. AN UNREACHABLE SOURCE IS NAMED, NEVER PRINTED STALE\n{LINE}")
@@ -676,10 +708,14 @@ def main() -> int:
     from altdata.sources import edgar as _edgar
     with _mock.patch.object(_edgar, "contact", lambda: "ops@example.invalid"):
         ua2 = vsn.user_agent()
-    check(ua2 == "Mozilla/5.0 (compatible; chester-reports/1.0; +mailto:ops@example.invalid)",
-          f"3: a browser-like User-Agent carrying the contact ({ua2})")
-    with _mock.patch.object(_edgar, "contact", lambda: None):
-        check(vsn.user_agent() is None, "3: no contact, no User-Agent: no anonymous fallback")
+        sec2 = vsn.sec_user_agent()
+    check(ua2 == "Mozilla/5.0 (compatible; chester-reports/1.0; "
+                 "+https://github.com/achester-trading/chester-reports)"
+          and "@" not in ua2,
+          f"3: a browser-like User-Agent naming the project and its repository, "
+          f"never the contact, even when one is set ({ua2})")
+    check(sec2 == "chester-reports/1.0 (ops@example.invalid)",
+          "3: the SEC form carries the contact, for sec.gov only")
     full = vmod.load_config()
     off = {x["id"]: x for x in full["sources"] if x.get("enabled") is False}
     check(set(off) == {"cnbc_market_insider", "cnbc_investing", "goldman_insights",

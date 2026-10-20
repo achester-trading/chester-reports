@@ -92,10 +92,14 @@ class Store:
         observations: Iterable[tuple[str, Optional[float]]],
         source: str,
         dual_write: bool = True,
+        merge: bool = False,
     ) -> int:
         """
         Write a batch of (date, value) tuples for one series.
-        Overwrites any existing file for this key.
+        Overwrites any existing file for this key -- or, with `merge`, keeps the
+        file's rows for dates the batch does not carry (with their own as_of) and
+        replaces the rest: an incremental fetch (audit-leftovers-1) carries only
+        the recent window, and must never truncate the history.
 
         Returns count of rows written.
         """
@@ -103,17 +107,26 @@ class Store:
         path = self._path(key)
         n = 0
         rows_written: list[tuple] = []
+        batch = list(observations)
+        kept: list[list[str]] = []
+        if merge and path.exists():
+            new_dates = {d for d, _ in batch}
+            with path.open(newline="") as fp:
+                for rec in csv.DictReader(fp):
+                    if rec.get("date") and rec["date"] not in new_dates:
+                        kept.append([rec["date"], rec.get("value") or "",
+                                     rec.get("source") or source,
+                                     rec.get("as_of") or ""])
+        out_rows = list(kept)
+        for date, value in batch:
+            rows_written.append((date, value))
+            out_rows.append([date, "" if value is None else f"{value}", source, as_of])
+            n += 1
+        out_rows.sort(key=lambda r: r[0])
         with path.open("w", newline="") as fp:
             w = csv.writer(fp)
             w.writerow(["date", "value", "source", "as_of"])
-            for date, value in observations:
-                rows_written.append((date, value))
-                if value is None:
-                    val_str = ""
-                else:
-                    val_str = f"{value}"
-                w.writerow([date, val_str, source, as_of])
-                n += 1
+            w.writerows(out_rows)
 
         # DUAL WRITE, this week. The SQLite point-in-time store is a migration,
         # not a cutover: the CSV above stays the human-readable copy and the
@@ -131,8 +144,13 @@ class Store:
             return n
         try:
             from . import observations as _obs
-            with _obs.ObservationStore() as db:
-                db.write_many([
+            # AUD-1 4a: THROUGH drop_unchanged. Every FRED pull re-reads five
+            # years, and without this each unchanged value landed as a new
+            # vintage stamped today -- about 33,000 rows a session, and every
+            # series derived from them inherited the new stamps. An unchanged
+            # re-read now writes nothing; a revised value writes one vintage.
+            with _obs.open_writer(__name__) as db:
+                db.write_many(_obs.drop_unchanged(db, [
                     {"registry_key": f"{source}.{key}", "instrument": None,
                      "observed_at": d, "available_at": as_of,
                      "value": v, "source": source,
@@ -143,7 +161,7 @@ class Store:
                      # migrated history predates this column and is null, which is
                      # the honest reading of a migration instant.
                      "availability_kind": "ingest_instant"}
-                    for d, v in rows_written if v is not None])
+                    for d, v in rows_written if v is not None]))
         except Exception as exc:  # noqa: BLE001 -- never break the CSV path
             # THIS USED TO BE `pass`, AND THAT WAS THE WORST LINE IN THE REPO.
             #

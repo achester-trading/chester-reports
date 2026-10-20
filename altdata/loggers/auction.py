@@ -49,10 +49,14 @@ from __future__ import annotations
 import datetime as dt
 import json
 import logging
+import os
+import socket
 import time
+from pathlib import Path
 from typing import Any, Optional
 
 from .. import observations, session
+from ..ibkr_clients import CLIENT_IDS
 from . import LoggerSpec, register
 
 log = logging.getLogger(__name__)
@@ -87,9 +91,46 @@ PROBE_KEY = "ibkr.auction_probe"
 NOT_ENTITLED_CODES = {354, 10089, 10090, 10091, 10197}
 
 
-def _connect(port: int = 4002, client_id: int = 23):
+def _connect(port: int = 4002, client_id: int = CLIENT_IDS["auction"]):
     from ..sources import ibkr_portfolio as ibkr
     return ibkr.connect(port=port, client_id=client_id)
+
+
+# THE SAMPLER NEVER STARTS THE GATEWAY (AUD-2 item 2, 14 Oct 2026). Its unit used
+# to Want ibgateway.service, which started a stopped Gateway at 15:49 every weekday
+# and, through the Gateway's ExecStartPre, deleted the operator's stop marker. The
+# unit no longer Wants it, and the sampler itself steps aside: with the marker
+# present, or nothing listening on the port, it logs why and returns before any
+# connection is attempted. The marker path is the watchdog's own
+# (scripts/ibgateway_watchdog.sh, GATEWAY_INTENT_FILE).
+STOPPED_BY_OPERATOR = "Gateway stopped by operator"
+
+
+def intent_file() -> Path:
+    return Path(os.getenv("GATEWAY_INTENT_FILE")
+                or Path.home() / "state" / "gateway.stopped_by_operator")
+
+
+def gateway_listening(port: int, host: str = "127.0.0.1",
+                      timeout: float = 2.0) -> bool:
+    """Is anything accepting on the Gateway's API port? A plain TCP connect: it
+    opens no API session and starts nothing."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def gateway_gate(port: int = 4002, marker: Optional[Path] = None,
+                 listening=None) -> Optional[str]:
+    """None when the sampler may connect; else why it steps aside."""
+    if (marker or intent_file()).exists():
+        return STOPPED_BY_OPERATOR
+    if not (listening or gateway_listening)(port):
+        return (f"Gateway not up (nothing listening on port {port}); the sampler "
+                f"never starts it")
+    return None
 
 
 def in_window(now_et: Optional[dt.datetime] = None) -> bool:
@@ -176,7 +217,7 @@ def probe(port: int = 4002, seconds: float = 12.0,
                 pass
 
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         db.write(PROBE_KEY, None, session.session_date(),
                  session.utc_iso(timespec="microseconds"),
@@ -191,7 +232,7 @@ def probe(port: int = 4002, seconds: float = 12.0,
 def last_probe(store: Optional[observations.ObservationStore] = None
                ) -> Optional[dict]:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         rows = db.as_of(PROBE_KEY)
         if not rows:
@@ -204,8 +245,14 @@ def last_probe(store: Optional[observations.ObservationStore] = None
 
 def sample(port: int = 4002, seconds: Optional[float] = None,
            store: Optional[observations.ObservationStore] = None,
-           run_id: Optional[str] = None, force: bool = False) -> dict:
-    """The 15:50-16:00 sampler. Refuses to run until a probe says entitled."""
+           run_id: Optional[str] = None, force: bool = False,
+           marker: Optional[Path] = None, listening=None) -> dict:
+    """The 15:50-16:00 sampler. Refuses to run until a probe says entitled, and
+    never while the operator has the Gateway stopped or it is not up."""
+    why = gateway_gate(port, marker, listening)
+    if why:
+        log.info("auction: %s -- exiting cleanly without connecting", why)
+        return {"skipped": why, "written": 0}
     probe_result = last_probe(store=store)
     if not force and (probe_result or {}).get("state") != "entitled":
         state = (probe_result or {}).get("state", "never_probed")
@@ -219,7 +266,7 @@ def sample(port: int = 4002, seconds: Optional[float] = None,
         return {"skipped": "not a session", "written": 0}
 
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     ib = None
     written = samples = 0
     try:

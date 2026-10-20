@@ -116,6 +116,30 @@ def newest_observed(db: observations.ObservationStore,
     return out
 
 
+def since(keys: Iterable[str], revision_days: int,
+          db: Optional[observations.ObservationStore] = None) -> Optional[str]:
+    """INCREMENTAL PULLS (audit-leftovers-1): the day a writer's source query may
+    start from -- the EARLIEST of its keys' newest stored days, less
+    `revision_days` -- or None, meaning the full history, when any key has
+    nothing stored (a new key gets its history) or the store cannot be read."""
+    keys = list(keys)
+    own = db is None
+    try:
+        store = db or observations.open_writer(__name__)
+        try:
+            held = newest_observed(store, keys)
+        finally:
+            if own:
+                store.close()
+    except Exception as exc:                                  # noqa: BLE001
+        log.warning("since: could not read the store (%s); the full history", exc)
+        return None
+    if not keys or any(not held.get(k) for k in keys):
+        return None
+    first = min(str(held[k])[:10] for k in keys)
+    return (dt.date.fromisoformat(first) - dt.timedelta(days=revision_days)).isoformat()
+
+
 def stale(source: str, keys: Iterable[str], reason: str,
           db: Optional[observations.ObservationStore] = None,
           run_id: Optional[str] = None) -> dict:
@@ -126,7 +150,7 @@ def stale(source: str, keys: Iterable[str], reason: str,
     held: dict[str, Optional[str]] = {}
     own = db is None
     try:
-        store = db or observations.ObservationStore()
+        store = db or observations.open_writer(__name__)
         try:
             held = newest_observed(store, keys)
         finally:
@@ -169,7 +193,7 @@ def write_rows(source: str, rows: list[dict], keys: Iterable[str],
                      f"{future[0]['observed_at']}) -- a parse error, not data",
                      db=db, run_id=run_id)
     own = db is None
-    store = db or observations.ObservationStore()
+    store = db or observations.open_writer(__name__)
     try:
         held = newest_observed(store, keys)
         cutoff = (session.session_date_obj()
@@ -265,6 +289,28 @@ def find_link(page_url: str, pattern: str, headers: Optional[dict] = None) -> st
             url = urljoin(page_url, href.strip())
             return "https:" + url if url.startswith("//") else url
     raise ValueError(f"no link matching {pattern!r} on {page_url}")
+
+
+def robots_allows(site: str, url: str) -> tuple[bool, str]:
+    """(allowed, the deciding rule) for `url` under `site`'s robots.txt, read now
+    with the wildcard-aware reader (altdata/sources/aaii.robots_verdict).
+
+    A robots.txt answered 404 or 410 means NO RULES (RFC 9309, section 2.3.1.3:
+    an unavailable file allows all) -- ons.gov.uk answers so. Any other failure
+    to read it raises: a writer does not guess at rules it could not read (the
+    by-hand audit, 16 Oct 2026: a source whose robots or terms forbid it is
+    dropped, never a guess).
+    """
+    from ._base import FetchError, http_get_text
+    from .aaii import robots_verdict
+    try:
+        text = http_get_text(site.rstrip("/") + "/robots.txt", timeout=30)
+    except FetchError as exc:
+        if re.match(r"HTTP 4(04|10)\b", str(exc)):
+            return True, "no robots.txt (HTTP 404): no rules"
+        raise
+    allowed, rule = robots_verdict(text, url)
+    return allowed, rule or "no matching rule"
 
 
 VINTAGE_KEY = "reference.file_vintage"

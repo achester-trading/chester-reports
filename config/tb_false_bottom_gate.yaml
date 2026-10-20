@@ -1,0 +1,43 @@
+# The T&B false-bottom gate -- a STUB (signal-triage ST-9; SR-8; st-t3-calib,
+# 18 Oct 2026). INERT: read by no module until T&B full, when ST-11 wires Book A
+# rule A-2. tools/validate_st_t3_calib.py fails if any module names this file.
+#
+# It records what the audit (docs/ledgers/false-bottom-audit-2026.md, a laptop
+# first edition that the box re-run supersedes) specified. The audit FAILed its
+# pre-registered rule: one element discriminates, and the register's gate asks two
+# of the set. So nothing here is admitted as a whole; the one element that
+# discriminates carries its parameters with the ledger named beside them, the
+# dropped elements carry none, and the number required is the Doctrine monthly's.
+version: tb-false-bottom-gate-stub-1
+status: inert
+ledger: docs/ledgers/false-bottom-audit-2026.md
+audit_verdict: FAIL
+
+state:
+  # "Once the T&B top side has fired and price is below a falling 200-day".
+  top_side_fired: required          # T&B's own signal; not built in this repo
+  below_falling_200d:
+    sma_sessions: 200
+    slope_sessions: 20
+
+then:
+  bottom_threshold: raised          # its level is T&B's, set at T&B full
+  read_at_sessions_after_trough: 30
+  confirmations_required: null      # the register says two; the audit found one
+
+elements:
+  breadth_rsp_spy:
+    word: DISCRIMINATES             # 2 of 2 true bottoms, 2 of 6 false
+    key: calc.breadth_rsp_over_spy
+    rule: RSP over SPY higher at the read than at the trough
+    admitted_by: docs/ledgers/false-bottom-audit-2026.md
+  breadth_industries: {word: DOES NOT DISCRIMINATE}
+  breadth_sectors: {word: DOES NOT DISCRIMINATE}
+  new_leadership: {word: DOES NOT DISCRIMINATE}
+  credit_tightening: {word: DOES NOT DISCRIMINATE}
+  vix_contango: {word: DOES NOT DISCRIMINATE}
+  retest: {word: DOES NOT DISCRIMINATE}
+  margin_spent: {word: DOES NOT DISCRIMINATE}
+  time_prior: {word: DOES NOT DISCRIMINATE}
+  short_fuel: {word: NOT TESTABLE}  # FINRA's history begins 2017-12-29
+  leveraged_etf_aum: {word: LISTED GAP}

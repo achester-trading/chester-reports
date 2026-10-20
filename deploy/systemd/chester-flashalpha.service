@@ -1,0 +1,38 @@
+[Unit]
+Description=chester-reports FlashAlpha vendor writer (16:25 ET): dealer.vendor_* beside the engine
+Documentation=https://github.com/achester-trading/chester-reports
+# 6b part 3 (brief v2 sections 5.6 and 8, ruled 16 Oct 2026): the vendor's dealer
+# readings stored point in time for the Weekly's vendor line and the divergence
+# data gate. Quota-guarded (config/flashalpha.yaml daily_call_budget); the key
+# is read through altdata.secrets and never printed.
+# NOT in scripts/deploy_remote.sh DEPLOY_TIMERS: enabling its timer is the
+# operator's (docs/briefs/6b-dealer-3-notes.md, box commands).
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/chester-reports
+ExecStart=%h/chester-reports/scripts/run_flashalpha.sh
+# FLASHALPHA_API_KEY and FLASHALPHA_BASE_URL reach this run through .env.
+EnvironmentFile=-%h/chester-reports/.env
+TimeoutStartSec=10min
+# No retry: a second run would spend the vendor quota on the same reading.
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# THE CAPS FOLLOW THE MACHINE (ruled 17 Oct 2026): six REST calls and a store
+# write. The 8 GB case is 0.32G/0.4G; on the 4 GB box half that.
+MemoryHigh=4%
+MemoryMax=5%
+# THE OOM ORDER: a vendor reading can be taken again tomorrow -- a report's 500.
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=default.target

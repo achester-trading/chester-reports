@@ -49,6 +49,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 import regime  # noqa: E402
+from altdata import bars as bars_mod, es_block     # noqa: E402
 from altdata import observations, session          # noqa: E402
 from altdata.sources import overnight as on        # noqa: E402
 from . import events_block                         # noqa: E402
@@ -203,6 +204,29 @@ def overnight_block(as_of: Optional[str] = None,
     return block
 
 
+def stored_vol_event(day: str, cutoff: str, db_path: Optional[str] = None) -> Optional[dict]:
+    """The close's stored volatility read for `day` (Batch 9 item 52), or None."""
+    import json as _json                                        # noqa: PLC0415
+    try:
+        from altdata import vol_event                           # noqa: PLC0415
+        with observations.ObservationStore(db_path) as st:
+            rows = [r for r in st.as_of(vol_event.EVENT_KEY, cutoff)
+                    if str(r["observed_at"])[:10] == day]
+        return _json.loads(rows[-1]["value_text"]) if rows else None
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
+def _meme_line(db_path: Optional[str]) -> Optional[str]:
+    """chester-meme's drafts awaiting review (meme-ingest-ledgers-1), one line,
+    read-only; None before the ingest has run."""
+    try:
+        from altdata import meme_ingest                         # noqa: PLC0415
+        return meme_ingest.status_line(db_path)
+    except Exception:                                           # noqa: BLE001
+        return None
+
+
 def build(sess: Optional[str] = None, as_of: Optional[str] = None,
           run_id: Optional[str] = None, db_path: Optional[str] = None) -> dict:
     """The whole morning payload. Reads only; never raises on a missing block."""
@@ -240,6 +264,10 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
                                 ahead_days=EVENTS_AHEAD_DAYS)
 
 
+    # BATCH 9 ITEM 52: the prior close's volatility read, as stored (vol.event_day),
+    # never recomputed -- the same rule as the object below.
+    vol_event = stored_vol_event(prior, cutoff, db_path)
+
     state_obj = regime.latest(session_day=prior)
     changed = None
     if state_obj is not None:
@@ -253,7 +281,46 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     stories = story_block.build(prior, cutoff, market_state=state_obj,
                                 what_changed=changed, db_path=db_path)
 
+    # ST-10 (a43-render, 18 Oct 2026): the signal lines -- the auction, the FOMC-week
+    # gap, the yen flag and the rally inside a bear -- each only on its trigger.
+    from . import signal_lines                                  # noqa: PLC0415
+    signals = signal_lines.build(this_session, prior, cutoff, db_path)
+    # OS-2 (a44-opening-setup): the expected-movement gauge, under the dealer surface.
+    from . import opening_setup                                 # noqa: PLC0415
+    # Ruling 4 of 19 Oct: the pre-market line under the gauge -- ES's overnight
+    # print at the 23-hour chart's session basis, from the stored bars. Read
+    # first: item 55 centres the gauge's bands on it too.
+    premarket = opening_setup.premarket_from_store(this_session, cutoff, db_path)
+    gauge = opening_setup.gauge_from_store(
+        prior, cutoff, db_path,
+        premarket=(premarket.get("values") or {}).get("spy"))
+    vol_regime = opening_setup.vol_lines_from_store(prior, cutoff, db_path)
+    # OS-9 and OS-4 (a45-opening-setup-2): the OI builds, side unknown, and the
+    # index put lines, no side.
+    oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
+    index_puts = opening_setup.index_put_lines_from_store(cutoff, db_path)
+    # BATCH 11 ITEM 55 (H6): at most two level clusters in force today, read only.
+    from altdata import level_clusters as _lc, observations as _obs  # noqa: PLC0415
+    try:
+        with _obs.ObservationStore(db_path) as _st:
+            clusters = _lc.anchor_block(_st, str(this_session)[:10], cutoff, db_path)
+    except Exception:                                           # noqa: BLE001
+        clusters = None
+    # CD-9's daily part (the a47 chain): the crypto paragraph, None while its
+    # switch is off (config/crypto_sources.yaml blocks.daily.enabled).
+    from altdata import crypto_blocks                           # noqa: PLC0415
+    crypto = crypto_blocks.daily_paragraph_from_store(cutoff, db_path)
+
+    # THE ES BLOCK (ST-R6.45): the overnight session so far, the prior full
+    # session's value area and POC as reference, the day's levels -- from the
+    # bars the 06:45 job stored, read as of the cutoff. Never a fetch (30.4).
+    with bars_mod.BarStore(db_path) as bst:
+        es = es_block.compute(bst, this_session, cutoff, slot="morning")
+
     warnings: list[str] = []
+    if es.get("state") != "ok":
+        warnings.append(f"ES block {es.get('state')}: "
+                        + (es.get("reason") or "; ".join(es.get("reasons") or [])))
     if state_obj is None:
         warnings.append(
             f"no market_state object for the prior session {prior} -- the close "
@@ -298,6 +365,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "generated_at": session.utc_iso(),
         "run_id": run_id,
         "overnight": overnight,
+        "es_block": es,
         "events": events,
         "stories": stories,
         "exposure": exposure,
@@ -308,5 +376,15 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "portfolio": portfolio,
         "market_state": state_obj,
         "what_changed": changed,
+        "vol_event": vol_event,
+        "signal_lines": signals,
+        "opening_gauge": gauge,
+        "opening_premarket": premarket,
+        "vol_regime_lines": vol_regime,
+        "oi_builds": oi_builds,
+        "index_put_lines": index_puts,
+        "level_clusters": clusters,
+        "crypto_paragraph": crypto,
         "warnings": warnings,
+        "meme_line": _meme_line(db_path),
     }

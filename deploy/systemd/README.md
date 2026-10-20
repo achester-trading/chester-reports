@@ -540,9 +540,14 @@ day costs the delivery and never the report.
 
 **The archives are gitignored.** 32.3 puts them in the checkout; committing one
 HTML file per session forever, from a box whose standing rule is that it runs
-code and never edits it, is a separate decision. They live on the box and are
-swept up by the off-box backup (D1a). Revisit if the archive belongs in git
-history.
+code and never edits it, is a separate decision. They live on the box, in
+`CHESTER_REPORTS_DIR` (default `reports/` in the checkout).
+
+**Until AUD-1 they were NOT swept.** This paragraph said the off-box backup
+(D1a) swept them; it did not. The sweep copied `data/`, `backups/`, `state/` and
+`~/chester-data`, and `reports/` is none of them. Since AUD-1 (item 1e) the
+archive is the sweep's own copy tree, `reports/` on the remote (section 10).
+Revisit if the archive belongs in git history.
 
 ### Exit codes, and why 2 is a success
 
@@ -602,87 +607,175 @@ freshness on the dashboard.
 
 `data/chester.db` holds the observation history, the decision register and the
 immutable packets. It is gitignored, so git has never seen it, and before this
-it existed in exactly one place. The EOD zip now carries it; this copies
-everything off the box nightly.
+it existed in exactly one place. The sweep copies everything off the box nightly
+(`chester-backup.timer`, 02:30 ET), **encrypted, to a Google account used only for
+backups** (audit-leftovers-1, 17 Oct 2026; the 14 Oct audit found the backups
+unencrypted in a Drive the box's own token could wipe, and the fix ruled 15 Oct
+is rclone crypt under a separate account).
+
+### Where it goes, and how it is encrypted
+
+Three settings, **all in `.env` on the box** (Ari's write; their values never
+appear in this repo, in `rclone.conf`, or in a transcript):
+
+| Variable | What it is |
+|---|---|
+| `CHESTER_RCLONE_BACKUP_REMOTE` | the Drive remote on the **separate backup account**, and its folder, e.g. `chesterbak:chester-backups` |
+| `CHESTER_RCLONE_CRYPT_PASSWORD` | the crypt password (also in Ari's password manager, off the box) |
+| `CHESTER_RCLONE_CRYPT_SALT` | the crypt salt, rclone's "password2" (likewise) |
+| `CHESTER_RCLONE_INBOX_REMOTE` | the remote the inbound files are read from: Ari's **main** Drive, through a **read-only** token |
+
+`scripts/rclone_crypt_env.sh` builds the crypt remote, `chestercrypt:`, from
+those settings. It uses rclone's `RCLONE_CONFIG_<NAME>_<KEY>` environment
+variables, so the remote exists only in the environment of the processes the
+sweep starts and is written nowhere on disk. The password and salt reach
+`rclone obscure` on stdin, so they never appear in a process list. File
+contents, **file names and directory names** are all encrypted, so the backup
+account shows neither what is backed up nor when.
+
+The only thing in `rclone.conf` is the backup account's Drive OAuth token (as
+for any Drive remote), for an account that holds nothing but ciphertext.
+**There is no plaintext fallback:** without the three settings the sweep exits 1
+(`no_crypt`) and copies nothing.
+
+The old plaintext remote (`CHESTER_RCLONE_REMOTE`, `gdrive:chester-backups` on the
+main account) is **no longer written**. Its full-scope token is revoked after the
+first verified encrypted snapshot (the box steps are in
+`docs/briefs/audit-leftovers-1-notes.md`). The inbound files still come from the
+main Drive, where the chat-side tasks write them, through a separate remote
+with the `drive.readonly` scope. A read-only token cannot wipe anything.
 
 ```bash
-sudo apt install -y rclone
-rclone config                       # create a remote, e.g. `b2` or `drive`
-rclone lsd <remote>:                # prove it authenticates
-
-cp ~/chester-reports/deploy/systemd/chester-backup.{service,timer} ~/.config/systemd/user/
-mkdir -p ~/.config/systemd/user/chester-backup.service.d
-# the box-local drop-in, remote.conf -- exactly these two lines:
-cat > ~/.config/systemd/user/chester-backup.service.d/remote.conf <<'EOF'
-[Service]
-Environment=CHESTER_RCLONE_REMOTE=gdrive:chester-backups
-EOF
-systemctl --user daemon-reload
-
-cd ~/chester-reports && scripts/rclone_sync.sh; echo "exit=$?"   # prove it once, from the repo
-systemctl --user enable --now chester-backup.timer
+# one-time, on the box (the OAuth consent itself is a browser step, run with
+# `rclone authorize` on the laptop and pasted back):
+rclone config        # new Drive remote on the BACKUP account, your own client ID
+                     # (below), scope "drive"; e.g. chesterbak
+rclone config        # new Drive remote on the MAIN account, scope "drive.readonly",
+                     # your own client ID; e.g. gdrive_ro
+rclone lsd chesterbak: && rclone lsd gdrive_ro:     # prove both authenticate
+# then the four .env lines above, by name; then one sweep by hand:
+cd ~/chester-reports && scripts/rclone_sync.sh; echo "exit=$?"
 ```
 
-**Without `CHESTER_RCLONE_REMOTE` the script exits 1 and copies nothing** — it
-refuses to look like it ran. That is the failure mode a backup must not have.
-
 ### What it copies, and what it deliberately does not do
+
+All under the crypt remote's `chester/` folder:
 
 | Remote path | Source |
 |---|---|
 | `db/` | a dated, consistent snapshot of `chester.db`, integrity-checked and gzipped: `chester-YYYY-MM-DD.db.gz` |
 | `data/` | chains, computed profiles, the pin log — **not** `chester.db*` (excluded; `db/` is the only database copy) |
-| `backups/` | the EOD zips |
-| `state/` | heartbeat, status files, the brief's alert — **not** `backup_stage/` (excluded; it is what `db/` uploads) |
 | `chester-data/` | `~/chester-data`, the live CSV store since 30 Sep (section 11); skipped where absent |
+| `state/` | heartbeat, status files, the brief's alert — **not** `backup_stage/` (excluded; it is what `db/` uploads) |
+| `reports/` | the report archive (`CHESTER_REPORTS_DIR`, else `reports/` in the checkout; AUD-1 item 1e) |
+| `backups/` | the EOD zips, last, because they repeat what `data/` holds — **not** the compaction's raw safety copy, which stays on the box |
 
 **`rclone copy`, never `rclone sync`.** `sync` makes the remote match the
 source, so a local deletion — a bad restore, an `rm -rf` on the wrong path, a
 disk that comes back empty — is faithfully replicated and the backup is gone at
-the exact moment it was needed. `copy` only ever adds. Pruning the remote is a
-deliberate human act, never a side effect of the thing that protects you.
+the exact moment it was needed. `copy` only ever adds.
 
 **The database is snapshotted, not copied.** A live SQLite file read mid-write
 produces a database that opens cleanly and is missing rows — a backup that
 looks valid and is not, which is worse than none because it is trusted. Both
 the EOD zip and this sweep go through `altdata.observations.snapshot_sqlite`,
 so the two cannot drift. The staged copy is dated, so the remote accumulates
-history: a corruption found on Thursday needs Tuesday's file, and copy
-semantics only help if the names differ.
+history: a corruption found on Thursday needs Tuesday's file.
 
-**`db/` is the one tree anything is removed from.** A full dated snapshot a
-night grows without bound, so `db/` keeps every snapshot of the last 14 days,
-the newest of each of the last 8 ISO weeks, and the newest of every month
-forever (`scripts/backup_retention.py`). Removal is `rclone deletefile` on one
-named file at a time, each name matching `chester-YYYY-MM-DD.db[.gz]`, inside
-`db/` only, and only once tonight's snapshot is listed on the remote. A failed
-prune is logged and named in the status line; it does not fail the backup.
-Drive moves deleted files to its trash, where they stay 30 days.
+**The record for the restore test.** At snapshot time the sweep writes
+`~/.chester/backup_snapshot`: `name= observations= at=`, the snapshot's own row
+count.
 
-**Two files come back (AAII 10 Oct, S&P DJI 13 Oct 2026).** After the trees and
-the prune, the sweep copies exactly two named files the other way, each through
-`pull_inbox_file <folder> <name>`: `<remote>:chester-vendor-checks/<folder>/<name>`,
-where `<remote>` is `CHESTER_RCLONE_REMOTE`'s remote name with its path replaced,
-into `~/chester-data/inbox/<folder>/<name>`.
+**Retention, by exact name, one file at a time** (`scripts/backup_retention.py`).
+Removal is always `rclone deletefile` on one named file, never `delete`, `purge`
+or `sync`. A failed prune is logged and named in the status line; it does not
+fail the backup.
 
-| Folder | File | What it is |
+- **`db/`** keeps every snapshot of the last 14 days, the newest of each of the
+  last 8 ISO weeks, and the newest of every month forever. Nothing is deleted
+  unless tonight's snapshot is listed on the remote.
+- **The chain zips** keep **the newest 14 on each side**, the box's
+  `~/backups/chains` and the remote's `backups/chains/` by the same rule, so the
+  mirror no longer outgrows the box. The box goes first: an older zip is
+  deleted locally only when the remote holds that exact file (name and size).
+  Drive then deletes the same names. (Until audit-leftovers-1, Drive kept 30
+  days to the box's 14.)
+
+**One file comes back (AAII, 10 Oct 2026).** After the trees and the prunes, the
+sweep copies one named file the other way, from the inbox remote:
+`<inbox remote>:chester-vendor-checks/aaii/aaii-weekly.csv`, the row the chat-side
+task appends each Thursday (`docs/scheduled-tasks.md`). It goes into
+`~/chester-data/inbox/aaii/`, along with GLD's archive and the X pilot's ledgers
+and digests (sections below). S&P DJI's workbook is no longer pulled; it was
+withdrawn 17 Oct 2026. Each is an `rclone copyto` of named files and nothing
+else. An absent file is a logged skip, and no inbox outcome touches the sweep's
+exit code.
+
+**The Alpha Lab's inbox and outbox (X-2.11, 14 Oct 2026).** After the AAII file,
+two more folder copies, neither touching the exit code. The inbox is read through `CHESTER_RCLONE_INBOX_REMOTE` (read-only); the outbox is written through `CHESTER_RCLONE_OUTBOX_REMOTE`, its own `drive.file` remote on the main account, which can write only the files it makes (ruling 1 of 17 Oct 2026). Because it sees only what its own app made, it writes to its own top-level folder, `chester-lab-outbox`, never under `chester-vendor-checks`: there it would make a second folder of that name, and rclone could then resolve the inbox pulls to either one (ruling 8, 19 Oct 2026). Neither goes near the crypt remote:
+
+| Direction | From | To |
 |---|---|---|
-| `aaii` | `aaii-weekly.csv` | the AAII weekly row the chat-side task appends each Thursday (`docs/scheduled-tasks.md`) |
-| `spdji` | `sp-500-eps-est.xlsx` | S&P DJI's EPS workbook, which Ari downloads in a browser and drops monthly (`altdata/sources/spdji.py`) |
+| in | `<inbox remote>:chester-vendor-checks/lab-inbox` (the Saturday brief's batches) | `~/chester-data/inbox/lab/` |
+| out | `~/chester-data/outbox/lab/` (the weekly loop's `lab-verdicts-YYYY-MM-DD.md`) | `<outbox remote>:chester-lab-outbox/`, a top-level folder of its own (ruling 8, 19 Oct 2026) |
 
-Each is an `rclone copyto` of that file and nothing else, so an inbox only gains
-or overwrites it; `copyto` carries Drive's modification time over, which the S&P
-DJI reader takes as the drop time. An absent remote file is a logged skip, and
-neither outcome touches the sweep's exit code. The unit lets the sweep write
-`~/chester-data/inbox/aaii` and `~/chester-data/inbox/spdji` and nothing else
-under `~/chester-data`; both directories must exist before the sweep starts
-(`mkdir -p` each once).
+- **The manifest is listed first.** `rclone lsjson --metadata --hash` of the Drive
+  folder is written to `inbox/lab/manifest-drive.json`. Each entry's
+  `Metadata.btime` is the file's Drive creation time, and `Metadata.mtime` its
+  last modification (rclone's Drive metadata, RFC 3339 to the millisecond);
+  `Hashes.md5` lets the ingestion check the bytes. The created time is the
+  batch's pre-registration instant.
+- **Then the copy**, of the `.yaml` and `.md` files only. It is `rclone copy`,
+  never `sync`, so the inbox only gains and the daily proposer's own files and
+  manifest are never touched.
+- The outbox goes up with `rclone copy` too, so the Drive folder only gains.
+- Each copy runs under its own 5-minute cap and the stall limits, and
+  under the sweep's 105-minute budget: with under 3 minutes left it is
+  skipped and named in the status line (`lab-inbox(budget)`,
+  `lab-outbox(budget)`), and its cap is cut to the minutes left less 2.
+  The alpha-* snapshot prune is deferred to the next night like the
+  other prunes when under 10 minutes are left.
+- The unit may write `~/chester-data/inbox/lab`; the outbox is only read.
 
-Exit codes: `0` all trees copied · `1` environment (no rclone, no remote, no
-venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
+Both directories must exist before the sweep starts (section 14).
+
+Exit codes: `0` all trees copied · `1` environment (no rclone, no crypt settings,
+no venv) · `2` the snapshot, its integrity check or its compression failed · `3` at
 least one tree did not copy or hit its time cap · `4` terminated mid-sweep
-(TimeoutStartSec or a stop; the script traps it and writes `state=killed`). The
-unit declares no `SuccessExitStatus`, so anything but a completed sweep shows red.
+(TimeoutStartSec or a stop; the script traps it and writes `state=killed`) · `5`
+`disk_low`. The unit declares no `SuccessExitStatus`, so anything but a completed
+sweep shows red.
+
+### The restore test, and the heartbeat's backup field
+
+`chester-restore-test.timer` (Sundays 10:15 ET, after the 02:30 sweep; **not in
+`DEPLOY_TIMERS`**, enabled by hand after the first restore test) runs
+`scripts/run_restore_test.sh`. It:
+
+1. pulls the newest `db/` snapshot through the crypt remote into a private
+   temporary directory and decompresses it;
+2. runs `PRAGMA integrity_check`;
+3. compares the restored `observations` count with the count recorded at
+   snapshot time;
+4. writes `restore_test_status` in the state directory (`state=restore_ok` or
+   `state=restore_failed`, with the reason): `~/state` on this box, through the
+   unit's declared drop-in (ruling 7, 19 Oct 2026), `~/.chester` by default.
+
+**It is the one restore check** (ruling 6, 19 Oct 2026). The monthly AUD-2 drill it
+superseded read the old plaintext remote, which gets no new snapshot after the
+migration; its units and wrapper are retired, and `tools/restore_drill.py` stays,
+run by this test through the crypt remote.
+
+The 08:30 heartbeat's `backup=` field reads three files:
+
+- `rclone_sync_status`, the latest sweep;
+- `rclone_sync_last_ok`, the latest success;
+- `restore_test_status`.
+
+A failed restore test reads `backup=failed:restore_test`, and one not passed
+within 8 days (`CHESTER_RESTORE_MAX_DAYS`) reads `backup=stale_restore:<d>d`.
+Either exits 12 (`backup_failed`). The alert JSON carries `restore_test` beside
+`backup`.
 
 ### The 29 Sep failure, and what changed
 
@@ -698,7 +791,16 @@ killed script wrote no status line. Two more faults were found on the way: the
 - **Stalls fail, they do not hang.** rclone runs with `--timeout 2m
   --contimeout 60s --low-level-retries 10 --retries 2 --retries-sleep 30s
   --tpslimit 8`, and every tree runs under its own `timeout` (db 20m, data 40m,
-  backups 30m, state 10m). `TimeoutStartSec=2h30min` sits above them all.
+  backups 30m, state 10m, chester-data 15m, reports 15m since AUD-1).
+  Since 14 Oct 2026 the sweep also has ONE budget, 105 minutes from its start:
+  each cap is cut to the minutes left less 2, a tree with under 3 left is
+  skipped and named `<tree>(budget)` (rc 3), and the prunes and inbox pulls
+  start only with 10 left, else they wait for the next night. The budget, the
+  kill-after and 10 minutes fit inside `TimeoutStartSec`, so the sweep writes
+  its own status line before systemd's ceiling. The trees run db, data,
+  chester-data, state, reports, then backups (the zips repeat data/), and
+  backups/ never uploads `chester-pre-compact-*.db`, the compaction's raw
+  safety copy.
 - **One log per run** at `~/logs/rclone_sync-YYYY-MM-DD.log`, with a one-line
   transfer stats entry every minute, so a stall shows as a flat line.
 - **The durable quota fix is your own OAuth client** (next subsection). The
@@ -899,6 +1001,155 @@ wrapper pulls first. Unit files used to wait for somebody to run
 **Install, once.** The first laptop deploy after the merge copies both units
 and enables `chester-deploy.timer`, which is in `DEPLOY_TIMERS`. From then on the
 box keeps its own unit files current.
+
+## 13. Memory caps, the Gateway's OOM order, the auction unit and the restore test (AUD-2, 14 Oct 2026)
+
+The box moves from 4 GB to 8 GB (CX33) on Saturday 17 Oct 2026. The IB Gateway's
+Java shares that RAM with every report, and until AUD-2 no unit had a memory cap.
+
+**The caps follow the machine (6b part 3; ruled 17 Oct 2026: the rescale did not
+happen and the box stays at 4 GB).** Each cap is a percentage of physical memory,
+equal on 8 GB to AUD-2's absolute figure (kept in each unit's comment), so on the
+4 GB box it reads half that. `tools/validate_systemd_units.py` holds the rule at
+4 GB and at 8 GB, and refuses an absolute cap on any unit.
+
+| Unit | MemoryHigh | MemoryMax | at 4 GB | at 8 GB (AUD-2) | Why this size |
+|---|---|---|---|---|---|
+| chester-eod | 20% | 25% | 0.8G / 1.0G | 1.6G / 2G | the chain fetch, GEX and the pin log for the whole universe, pandas-heavy |
+| chester-daily-close | 20% | 25% | 0.8G / 1.0G | 1.6G / 2G | the stacked close: levels, charts, the PDF |
+| chester-weekly | 25% | 31% | 1.0G / 1.24G | 2G / 2.48G | ten sections, ten charts, the PDF, the précis |
+| chester-monthly | 25% | 31% | 1.0G / 1.24G | 2G / 2.48G | the longest edition: twelve charts, the Monthly's tables |
+| chester-voices | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | fetch-and-extract, one article at a time |
+| chester-backup | 15% | 19% | 0.6G / 0.76G | 1.2G / 1.52G | the online snapshot, gzip, rclone's buffers |
+| chester-restore-test | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one snapshot, gunzipped |
+| chester-dealer-0945, -1230 (6b part 2) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | one capture and one compute |
+| chester-flashalpha (6b part 3) | 4% | 5% | 0.16G / 0.2G | 0.32G / 0.4G | six REST calls and a store write |
+| chester-vendor-chains (M-3, 16:31) | 10% | 12% | 0.4G / 0.48G | 0.8G / 0.96G | the two vendor chains, no compute |
+| chester-open-note, -evening-note (secondary notes) | 8% | 10% | 0.32G / 0.4G | 0.64G / 0.8G | a short bar fetch, one model call, one small chart |
+
+`MemoryHigh` throttles and reclaims, so a report over it slows down rather than
+dies. `MemoryMax` is the hard ceiling, where the kernel kills inside the unit's
+own cgroup and nowhere else. The big reports never run together: the close is
+16:45 weekdays, the Weekly 05:00 Sunday, the Monthly 07:30 on the 1st. So the
+caps bound each report rather than sum to the box. What is left for the Gateway
+(about 1.5 GB of heap and native memory) and the OS is never borrowed by a
+runaway report.
+
+**The OOM order (ruled 14 Oct 2026).** If memory runs out anyway, the kernel kills
+the highest `oom_score_adj` first. A report can be rendered again; a day's chains
+cannot be fetched again; the Gateway needs Ari's supervised login. So:
+
+| Unit | OOMScoreAdjust |
+|---|---|
+| chester-daily-close, -weekly, -monthly, -voices, -backup, -restore-test | 500 |
+| chester-eod (the chain capture) | 300 |
+| ibgateway | -500 |
+
+Raising a score needs no privilege, so the 500s and the 300 apply on `--user`
+units without root, and they alone keep the order. Lowering one below the user
+manager's own does need privilege, and systemd ignores a refused adjustment at
+debug level, so the Gateway's -500 may not apply; that is harmless. After the
+restart, read what applied:
+
+    cat /proc/$(systemctl --user show -p MainPID --value ibgateway)/oom_score_adj
+
+`tools/validate_systemd_units.py` holds the values and the order (the Gateway
+lowest, the capture below every report) and shows each defect caught on a copy.
+
+**The auction unit no longer starts the Gateway.** `Wants=ibgateway.service`
+started a stopped Gateway every weekday at 15:49, and the Gateway's
+`ExecStartPre` deleted the operator's stop marker. The unit now only orders after
+it. The sampler steps aside, exit 0, logging "Gateway stopped by operator", when
+the marker exists; it also steps aside when nothing is listening on 4002. The
+unit is sandboxed as the EOD unit is.
+
+**The backup ends by 04:35.** The sweep's own 105-minute budget
+(`scripts/rclone_sync.sh`, AUD-1) ends it; `TimeoutStartSec=2h` is the backstop:
+02:30, plus up to 5 minutes of jitter, plus 2 hours. It can no longer run into the
+Sunday 05:00 Weekly.
+
+**The restore test**, `chester-restore-test.{service,timer}`, Sundays at 10:15 ET
+(section 10). It superseded the monthly AUD-2 drill, whose units are retired
+(ruling 6, 19 Oct 2026). It is not in `DEPLOY_TIMERS`, so the operator enables it,
+with its state-directory drop-in. The procedure is in `docs/runbooks/restore.md`.
+
+## 14. The Alpha Lab's loops (X-1.10, 13 Oct 2026)
+
+Two units, neither in `DEPLOY_TIMERS`: the deploy (or the self-deploy) copies
+them, and **enabling them is the operator's**. Neither reads a secret, so neither
+loads `.env`. Each writes `~/chester-reports/data/alpha.db` only and opens the
+observation store read-only (`docs/alpha-lab.md`).
+
+| Unit | When | What |
+|---|---|---|
+| `chester-alpha-nightly` | weekdays 17:40 ET | `scripts/run_alpha_nightly.sh` → `python -m alpha.loops.nightly`: fill, mark, grade, govern, learn |
+| `chester-alpha-weekly` | Sunday 06:00 ET | `scripts/run_alpha_weekly.sh` → `python -m alpha.loops.weekly`: walk-forward, the bounded re-fit, the rebalance, the agenda, the verdicts |
+
+**Why 17:40.** After the daily close's capture: `chester-daily-close` fires at
+16:45 (+60 s jitter) and finishes inside its 10-minute `TimeoutStartSec`,
+settling the prices and computing the market-state object the lab fills against
+and keys its attribution on. The Portfolio Truth sync's last slot is 17:30, and
+the self-deploy's next tick is 17:50.
+
+**Why Sunday 06:00.** After the Weekly (05:00, a 15-minute cap), which prints the
+lab's line from the week's ledger before the rebalance changes it.
+
+**Enable, once, after the merge, inside the windows:**
+
+```bash
+systemctl --user enable --now chester-alpha-nightly.timer chester-alpha-weekly.timer
+systemctl --user list-timers 'chester-alpha-*'
+```
+
+**The inbox and the outbox (Tranche 2, X-2.11).** The nightly loop ingests new
+batches from `~/chester-data/inbox/lab/`, and the weekly loop writes its verdicts
+to `~/chester-data/outbox/lab/`. Both directories are created once, by hand,
+before the sweep or either loop runs:
+
+```bash
+mkdir -p ~/chester-data/inbox/lab ~/chester-data/outbox/lab
+```
+
+The unit changes that let the units reach them come with the merge. The
+self-deploy copies them and reloads; no restart is needed, because all three
+are oneshot units that are not running between their timers:
+
+- `chester-backup.service` may write `~/chester-data/inbox/lab`;
+- `chester-alpha-weekly.service` may write `~/chester-data/outbox/lab`.
+
+**The daily proposer (X-2.10b).** `chester-alpha-proposer` fires at 18:10 ET on
+weekdays, after the nightly loop's whole budget:
+- it runs `scripts/run_alpha_proposer.sh`, which runs `python -m alpha_proposer`;
+- it makes one model call over a code-built observation packet;
+- it writes at most three hypotheses as one batch file, plus a manifest line, into
+  `~/chester-data/inbox/lab/`, and the next nightly loop ingests them.
+
+It is the one lab unit that loads `.env`, because the model call needs the key.
+It may write only its logs, its status file and the inbox. It is not in
+`DEPLOY_TIMERS`, and enabling it is yours:
+
+```bash
+systemctl --user enable --now chester-alpha-proposer.timer
+systemctl --user list-timers 'chester-alpha-*'
+```
+
+Its decision log is `~/logs/alpha_proposer-YYYY-MM.jsonl` and its status file
+`~/.chester/alpha_proposer_status`.
+
+**Check once that the box's rclone reports the Drive creation time.** The
+ingestion refuses a batch without it. Run this inside a window, as a read only:
+
+```bash
+rclone lsjson --metadata --files-only gdrive:chester-vendor-checks/lab-inbox | head -c 600
+```
+
+It should print `"btime"` inside each `"Metadata"` object.
+
+Status files: `~/.chester/alpha_nightly_status`, `~/.chester/alpha_weekly_status`.
+Logs: `~/logs/alpha_nightly-YYYY-MM.log`, `~/logs/alpha_weekly-YYYY-MM.log`. The
+loop's own record of every change, and of every failure, is alpha.db's
+`loop_events`. The nightly sweep snapshots alpha.db beside chester.db
+(section 10).
 
 ## Timezone note
 
@@ -1117,3 +1368,39 @@ group H holds the one-connection shape.
 the self-deploy enables it after the merge. Backfill first, once, by hand —
 the commands are in `docs/briefs/crypto-basket-notes.md`. The quarterly odds
 restatement is not a timer; it runs inside the Quarterly's own run.
+
+## The Saturday price pull (weekly-fixes-7, 17 Oct 2026)
+
+`chester-prices-saturday.timer` runs `scripts/run_prices_saturday.sh` on
+Saturdays at 06:00 ET: `git pull --ff-only`, then
+`python -m altdata.feeds pull --only prices`. **Why:** the continuous symbols
+(`CONTINUOUS_SYMBOLS` in `altdata/sources/yfinance_source.py`: Bitcoin, Ether and
+the FX crosses) store a daily bar only once its UTC day has ended (the
+bar-finished rule, PB-1). The Friday 16:45 ET pull is before Friday's UTC day
+ends at 20:00 ET, and the next weekday pull is Monday 06:45, so the Sunday Weekly
+printed Friday's FX and Bitcoin as "stale since Thursday" every week (dry run 7).
+Saturday 06:00 ET is after that day has ended, inside the open weekend window and
+clear of Sunday 05:00's Weekly. No key. Caps as percentages (the 4 GB ruling of
+17 Oct), `OOMScoreAdjust=500`: a price pull can be run again. It is in
+`DEPLOY_TIMERS`, so the self-deploy enables it after the merge; nobody enables it
+by hand.
+
+## The secondary notes (19 Oct 2026)
+
+`chester-open-note.timer` runs `scripts/run_open_note.sh` at 09:50 ET on weekdays
+and `chester-evening-note.timer` runs `scripts/run_evening_note.sh` at 21:30 ET
+Sunday to Thursday (docs/change-order-secondary-notes-2026-10-19.md). Each wrapper
+pulls main, checks the calendar (the open note: today a session; the evening
+note: `python -m altdata.session evening-before`, tomorrow a session), runs its
+fetch (`python -m altdata.note_fetch open|evening`, which writes the store) and
+then its note (`python -m daily_cascade.open_note|evening_note`, which reads it).
+Before `live_from` in config/reporting_stack.yaml `secondary_notes` every run is a
+dry run, archived under `dryrun/` and mailed with "[DRY RUN]" in the subject.
+
+**Neither timer is in `DEPLOY_TIMERS`.** Ari enables both by hand after the merge,
+with the state drop-in each is declared for in `box-config.allow`. **A note is
+secondary:** its wrapper exits 0 after a soft failure, and the heartbeat warns on
+a stale `open_note_heartbeat` or `evening_note_heartbeat` (100 hours, which spans
+a weekend and a holiday) without changing the verdict. The meme ingest moved from
+21:45 to 21:15 in the same order so the evening note can show tonight's Book D
+drafts; the move takes effect when Ari reloads and restarts its timer.

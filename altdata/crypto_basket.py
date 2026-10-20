@@ -363,7 +363,7 @@ def write_dilution(store: Any = None, as_of: Optional[str] = None) -> dict:
     """calc.crypto_dilution_<sym> for every measurable name, at the latest day."""
     from . import observations as obs, session  # noqa: PLC0415
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     rows, out = [], {}
     try:
         now = session.utc_iso(timespec="microseconds")
@@ -388,7 +388,7 @@ def write_stable_impulse(store: Any = None) -> dict:
     input's own available_at."""
     from . import observations as obs  # noqa: PLC0415
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     try:
         raw = [r for r in db.as_of("llama.stable_total") if r.get("value_num")]
         pts = [(str(r["observed_at"])[:10], float(r["value_num"]),
@@ -468,7 +468,7 @@ def ingest_scan_items(path: Path, store: Any = None, dry_run: bool = False) -> d
     if dry_run:
         return {"written": 0, "would_write": len(rows)}
     own = store is None
-    db = store or obs.ObservationStore()
+    db = store or obs.open_writer(__name__)
     try:
         return {"written": db.write_many(rows)}
     finally:
@@ -535,6 +535,21 @@ def weekly_line(events: list[dict]) -> Optional[str]:
     return "Crypto basket: " + "; ".join(e["text"] for e in events) + "."
 
 
+MCAP_NOT_STORED = ("Market cap: not stored for any name yet (DefiLlama's coin "
+                   "service, written by the 17:25 ET basket run); the column "
+                   "prints once a cap is stored.")
+
+
+def drop_column(table: dict, name: str) -> None:
+    """Remove one column, by its head, from a table and every row."""
+    cols = table.get("columns") or []
+    if name not in cols:
+        return
+    i = cols.index(name)
+    table["columns"] = cols[:i] + cols[i + 1:]
+    table["rows"] = [r[:i] + r[i + 1:] for r in table.get("rows") or []]
+
+
 def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
                  cfg: Optional[dict] = None) -> dict:
     """{detail, line, events, data}: the reference tier's two tables (each at
@@ -573,6 +588,21 @@ def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
                         "the Quarterly."]}
     tag_moves(detail["table"], data, 2, "week_pct", "week")
     tag_moves(detail["table"], data, 3, "d30_pct", "30d")
+    # W8-11 (weekly-fixes-9): the market-cap column printed "—" for all twelve.
+    # No column of dashes: until a cap is stored the column is dropped, with one
+    # line saying so.
+    if not any(x.get("market_cap") is not None for x in data):
+        drop_column(detail["tables"][0], "Market cap")
+        detail["notes"].insert(0, MCAP_NOT_STORED)
+    # weekly-fixes-7 item 14: every row of both tables "not stored" -> one line,
+    # with the date of the first pull (the basket's writers run daily, 17:25 ET).
+    if not any(x.get("price") is not None or x.get("market_cap") is not None
+               or x.get("measurable_latest") is not None for x in data):
+        first = (dt.date.fromisoformat(str(as_of or ending)[:10])
+                 + dt.timedelta(days=1))
+        detail = {"title": detail["title"],
+                  "lines": [f"crypto basket: not stored; first pull "
+                            f"{first.day} {first:%b}"]}
     return {"detail": detail, "line": weekly_line(events), "events": events,
             "data": data}
 
@@ -611,13 +641,17 @@ def monthly_block(st: Any, now: str, cfg: Optional[dict] = None) -> dict:
     table = {"columns": ["Name", "Price", "Month", "Market cap", "From its high",
                          "Dilution"], "rows": prows}
     tag_moves(table, data, 2, "month_pct", "30d")
+    mcap_note = []
+    if not any(r[3] != "—" for r in prows):            # W8-11
+        drop_column(table, "Market cap")
+        mcap_note = [MCAP_NOT_STORED]
     return {"title": "Themes: digital — the crypto basket",
             "phase": "block:slow:crypto_basket",
             "table": table,
             "tables": [{"columns": ["Name", "What pays the token", "Latest (30 days)",
                                     "Change", "As of"], "rows": mrows}],
             "lines": lines, "not_tracked": [],
-            "notes": ["Dilution is a year's issuance (the change in stored "
+            "notes": mcap_note + ["Dilution is a year's issuance (the change in stored "
                       "circulating supply, at today's price) over the value "
                       "returned to holders (DefiLlama's holders revenue: buybacks, "
                       "burns and distributions); not measured where a leg is "
@@ -827,10 +861,13 @@ def model_proposer(model: Optional[str] = None) -> Callable[..., dict]:
             f"only on one of those changes. Answer JSON only: "
             f'{{"10x": "a-b%", "100x": "a-b%", "change": "<one of the changes, '
             f'verbatim>", "reason": "<one clause>"}}.')
-        resp = client.messages.create(
-            model=model or os.environ.get("CRYPTO_BASKET_MODEL",
-                                          narrative.DEFAULT_MODEL),
-            max_tokens=300, messages=[{"role": "user", "content": prompt}])
+        from . import model_meter                                # noqa: PLC0415
+        with model_meter.scope(section="crypto_basket"):
+            resp = model_meter.create(
+                client,
+                model=model or os.environ.get("CRYPTO_BASKET_MODEL",
+                                              narrative.DEFAULT_MODEL),
+                max_tokens=300, messages=[{"role": "user", "content": prompt}])
         text = "".join(b.text for b in resp.content
                        if getattr(b, "type", None) == "text")
         m = re.search(r"\{.*\}", text, re.S)
@@ -997,7 +1034,7 @@ def _main(argv: list[str]) -> int:
         r = ingest_scan_items(Path(a.file), dry_run=a.dry_run)
         print(r)
         return 1 if r.get("refused") else 0
-    with obs.ObservationStore() as st:
+    with obs.open_writer(__name__) as st:
         for sym, n in names().items():
             g = grade(sym, n, st)
             print(f"  {sym:<7} {g['status']:<13} {g['detail']}")

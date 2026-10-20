@@ -114,3 +114,20 @@ chester-monthly.service       Environment
 # a watchdog whose state lands somewhere the operator does not look is a watchdog
 # reporting into a drawer.
 ibgateway-watchdog.service    Environment
+
+
+# THE WEEKLY RESTORE TEST (ruling 7, 19 Oct 2026). It reads the record the backup
+# writes (backup_snapshot) and writes the status the heartbeat reads
+# (restore_test_status), both in the state directory -- ~/state on this box, where
+# chester-backup's drop-in puts them. Without its own drop-in it would read
+# ~/.chester, find no record, fail every week, and report where nothing looks.
+# Environment only; the drop-in goes on with the enable, as the Weekly's and the
+# Monthly's do.
+chester-restore-test.service  Environment
+
+# THE SECONDARY NOTES (19 Oct 2026). Each wrapper writes its status, lock and
+# heartbeat to the state directory, and the heartbeat's anchor table reads the
+# heartbeat (a warning only). Environment only; the drop-in goes on with the
+# enable, as the Weekly's and the Monthly's do.
+chester-open-note.service     Environment
+chester-evening-note.service  Environment

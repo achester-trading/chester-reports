@@ -1,0 +1,76 @@
+# THE DIGITAL-ASSET CALENDAR -- hand-seeded (Batch 8, item 49c and item 51's
+# section 8; docs/change-order-signal-triage-batch-8-2026-10-17.md, filed on
+# docs-batch-8; 6e-digital, 17 Oct 2026, session B).
+#
+# Read twice: by the Weekly's Ahead as one of its hand calendars
+# (config/weekly_ahead.yaml `hand_calendars`, class crypto_index_event: an entry
+# prints in the week it falls in), and by the Digital Assets addendum's section
+# 8, which prints every entry inside its own look-ahead window
+# (config/digital_addendum.yaml `ahead.window_days`).
+#
+# One entry per event, each with its source. `marker` prints after the event in
+# brackets and says what is not yet confirmed at its source ("15 Nov, to verify").
+# Remove the marker, and correct the date if it moved, once it is verified: MSCI's
+# came off on 17 Oct 2026 when Ari read MSCI's schedule (ruling (f)).
+#
+#   - date:   YYYY-MM-DD
+#     body:   "MSCI"                  # who
+#     event:  "..."                   # what, in the source's words
+#     time:   "after the US close"    # optional; "time not stated" otherwise
+#     marker: "to verify ..."         # optional
+#     kind:   index | company | regulation | expiry
+#     source: "https://..." or the order that dated it
+#
+# `watch_undated`: the broad-exclusion watch's providers whose next review date
+# is not published where a keyless client may read it. Each prints as "date not
+# published" with its reason, never a guessed date (Batch 8 item 49.4).
+#
+# Seeded 17 Oct 2026 by session B; edited by hand from here on.
+version: 1
+entries:
+  - date: 2026-10-28
+    body: "Strategy (MSTR)"
+    event: "STRC shareholder vote on daily dividends (12% annual rate for November if it passes)"
+    kind: company
+    source: "https://www.strategy.com/press/strategy-declares-conditional-daily-dividends-on-strc-for-november-2026_10-16-2026 (via the X digest of 17 Oct; the order's item 49)"
+  - date: 2026-10-30
+    body: "FTSE Russell"
+    event: "Russell US indexes: rank day for the December reconstitution"
+    kind: index
+    source: "https://www.lseg.com/en/ftse-russell/russell-reconstitution (read 17 Oct 2026)"
+  - date: 2026-11-11
+    body: "MSCI"
+    event: "November 2026 Index Review announced, the first under the non-operating company rules (Strategy's inclusion decided)"
+    time: "after the US close"
+    kind: index
+    source: "the Batch 8 order, item 49 (The Block, 15 Oct 2026)"
+  - date: 2026-11-13
+    body: "FTSE Russell"
+    event: "Russell US December reconstitution: preliminary lists published (updates 20 Nov, 27 Nov, 4 Dec)"
+    kind: index
+    source: "https://www.lseg.com/en/ftse-russell/russell-reconstitution (read 17 Oct 2026)"
+  - date: 2026-11-15
+    body: "SEC"
+    event: "VanEck JitoSOL ETF decision"
+    marker: "15 Nov, to verify"
+    kind: regulation
+    source: "the Batch 8 order, item 51 (section 8 of the addendum); not yet read at the SEC (ruling (e) of 17 Oct 2026: keeps its marker)"
+  - date: 2026-11-30
+    body: "MSCI"
+    event: "November 2026 Index Review implemented at the close of 30 Nov, effective 1 Dec"
+    time: "at the US close"
+    kind: index
+    source: "MSCI's index review schedule, read by Ari on 17 Oct 2026 (ruling (f); verify item 2 closed)"
+  - date: 2026-12-11
+    body: "FTSE Russell"
+    event: "Russell US December reconstitution takes effect"
+    time: "after the US close"
+    kind: index
+    source: "https://www.lseg.com/en/ftse-russell/russell-reconstitution (read 17 Oct 2026)"
+watch_undated:
+  - body: "S&P Dow Jones Indices"
+    event: "next S&P 500 rebalance (the broad-exclusion watch)"
+    reason: "www.spglobal.com refuses a keyless client (403, robots.txt included)"
+  - body: "Nasdaq"
+    event: "next Nasdaq-100 review (the broad-exclusion watch)"
+    reason: "no review calendar on nasdaq.com or indexes.nasdaqomx.com"

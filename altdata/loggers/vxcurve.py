@@ -70,6 +70,7 @@ from typing import Any, Optional
 
 from .. import observations, session
 from ..sources._base import http_get_json                      # noqa: F401
+from ..sources.user_agent import generic as _generic_ua
 from . import LoggerSpec, register
 
 log = logging.getLogger(__name__)
@@ -169,7 +170,7 @@ def expiries_around(day: Optional[dt.date] = None, ahead: int = PULL_CONTRACTS,
 def _get(url: str) -> bytes:
     import urllib.request
     req = urllib.request.Request(
-        url, headers={"User-Agent": "chester-reports/1.0 (+market-state)"})
+        url, headers={"User-Agent": _generic_ua()})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
         return r.read()
 
@@ -360,7 +361,7 @@ def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None,
          months: int = PULL_CONTRACTS, behind: int = 1) -> dict:
     own = store is None
-    db = store or observations.ObservationStore()
+    db = store or observations.open_writer(__name__)
     try:
         exps = expiries_around(ahead=months, behind=behind)
         contracts, failed = [], []
@@ -460,7 +461,7 @@ def _main(argv: list[str]) -> int:
     if a.cmd == "backfill":
         print(json.dumps(backfill(months=a.months), indent=2, sort_keys=True))
         return 0
-    db = observations.ObservationStore()
+    db = observations.open_writer(__name__)
     try:
         day = a.session or session.last_completed_session().isoformat()
         out = {}

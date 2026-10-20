@@ -213,6 +213,71 @@ For the record, so the update is scoped in advance:
 6. An energy section, once the Energy paper exists and the instrument set is in the store.
 7. Cross-references to the Credit paper, which will change the hedge taxonomy's treatment of credit-sensitive proxies.
 
+## Appendix A — Dated: Calibration ledgers (ST-L): the Book A rule table's gates (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### A-3, SR-12 — investor bond allocation, by inflation and stock-bond correlation (ledger of 18 October 2026)
+
+- **Ledger:** [sr-12-ledger-2026-10-18.md](../ledgers/sr-12-ledger-2026-10-18.md).
+- **As of:** 2026-04 (latest Z.1 quarter); last completed entry 2021-06. **Window:** Z.1 from 1945-10 to 2026-04; returns from 1953-05 on. **n:** 3.
+- **Verdict:** INSUFFICIENT -- 3 completed episode(s) in the cell, below the floor of 5; no rate prints
+- **Rights consequence (the ledger's):** PASS: a confidence modifier for Book A duration sizing and an input to rule A-3. FAIL: the conditional base-rate table only. INSUFFICIENT: neither. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### A-3, SR-15 — cross-asset valuation z-scores: the rank test and gold's window (ledger of 18 October 2026)
+
+- **Ledger:** [sr-15-ledger-2026-10-18.md](../ledgers/sr-15-ledger-2026-10-18.md).
+- **As of:** 2026-09 (latest month with all four z); last paired month 2023-06. **Window:** 1971-01 to 2026-09 (z burn-in 60 months; the gold test also from 1994-01). **n:** 570.
+- **Verdict:** FAIL -- cheap beat rich in 55.8% of 570 paired months (rule >= 66.7%); gold window test FLIPS
+- **Rights consequence (the ledger's):** PASS: the Book A rebalancing modifier (toward the lowest-z diversifier, sized by |z|) and the Valuation confidence modifier; gold at zero rebalancing weight while Factor V is active, and at base-rate rights only if its test flips. FAIL: the strip is display only. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### A-3, SR-21 — Fed-market divergence episodes, conceded or refused (ledger of 18 October 2026)
+
+- **Ledger:** [sr-21-ledger-2026-10-18.md](../ledgers/sr-21-ledger-2026-10-18.md).
+- **As of:** 2026-10-15 (latest gap); last completed 2025-12-11. **Window:** 1982-09-27 to 2026-10-15. **n:** 46.
+- **Verdict:** FAIL -- refused median -17.5 bp vs conceded +45.5 bp (rule: refused exceeds conceded by >= 25 bp)
+- **Rights consequence (the ledger's):** The register grants SR-21 no Book rights either way: a derived metric, the CRED_STRESS narrow flag, the Warsh-matrix scenario and the PM disagreement record. A PASS lets the Rate machine quote this split as the base rate for the 28 Oct live test; a FAIL keeps it a table. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### A-3, SR-22 — coupon auction absorption against the 10-year's next three months (ledger of 18 October 2026)
+
+- **Ledger:** [sr-22-ledger-2026-10-18.md](../ledgers/sr-22-ledger-2026-10-18.md).
+- **As of:** 2026-10-08 (latest auction); last with 63 sessions forward 2026-07-09. **Window:** 2009-01-06 to 2026-10-08. **n:** 1034.
+- **Verdict:** FAIL -- stress flag only: median 3m change -2.0 bp, falls in 51.8% of 1034 (rule: median < 0 and >= 60%)
+- **Rights consequence (the ledger's):** PASS: the contrarian read, the overlay queue's position #2 after the gate, and an input to rule A-3. FAIL: the stress flag only (narrow, display). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### A-3, SR-23 — net Treasury supply against the term premium (ledger of 18 October 2026)
+
+- **Ledger:** [sr-23-ledger-2026-10-18.md](../ledgers/sr-23-ledger-2026-10-18.md).
+- **As of:** 2026-09 (latest month with supply and ACM). **Window:** 2003-12 to 2026-09; pre-2008 to 2007-12, post-2008 from 2009-01. **n:** 262.
+- **Verdict:** FAIL -- not significant post-2008: descriptive, no modifier (pre-2008 b -34.1, t -3.47; post-2008 b +5.1, t +1.29; rule b > 0, t >= 1.96)
+- **Rights consequence (the ledger's):** PASS: a confidence modifier on the rates-cell assignment (no cell is live: the driver stays withdrawn, so it waits for one), the Factor IV panel input, and Book A's duration-timing modifier via the projection (not tracked: CBO). FAIL: descriptive, no modifier. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### A-4, ST-R5.30b — investor equity allocation and the S&P's 10-year forward return (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.30b-ledger-2026-10-17.md](../ledgers/st-r5.30b-ledger-2026-10-17.md).
+- **As of:** 2026-04. **Window:** 1945-10 to 2016-07 (forward decades); allocation history 1945-10 to 2026-04. **n:** 266.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.
+- **Rights consequence (the ledger's):** Book A modifier (the rule-table line drafted 16 Oct, 'inactive until ST-R5.30b's ledger is filed') and the T&B intake queue (ST-R5.30c, after this ledger and 'T&B full', part 2). With no gate in the order, neither is granted here: activating either is the operator's ruling.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### A-5, ST-R5.32b — the oil-shock classifier: supply-shock episodes and what followed (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.32b-ledger-2026-10-17.md](../ledgers/st-r5.32b-ledger-2026-10-17.md).
+- **As of:** 2026-10-14. **Window:** 2000-06-21 to 2026-10-14 (classifier); trailing 5,040 sessions for the percentiles, from 2,520 until 20 years exist. **n:** 3.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.
+- **Rights consequence (the ledger's):** A sub-state (inflation.driver) and a Book A rule-table modifier: oil and commodities to the hedge sleeve while the regime is on. With no gate in the order, the sub-state stays as built in Tranche 1 and this ledger grants no modifier.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
 ---
 
 *Draft 1 · 31 August 2026 · Companion to the five-report stack · Not investment advice. Illustrative constructions only; no recommendation for any specific instrument, and no instrument in the Brookfield complex under any circumstances.*

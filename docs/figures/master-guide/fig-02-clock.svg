@@ -1,0 +1,237 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1886" role="img" aria-labelledby="t d">
+<title id="t">Figure 2. The clock</title><desc id="d">The box&#x27;s timers and the chat-side tasks on a 24-hour weekday dial, with the week and the month below. Generated from deploy/systemd and docs/master-guide/chat-tasks.yaml.</desc>
+<style>
+.bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
+.line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
+.touch{stroke:#16202e}.boxs{stroke:#0f5c9e}.chats{stroke:#c06a12}.onbox{fill:#ffffff}
+.pill{fill:#e6ecf3}.bA{fill:#2b6cb0}.bB{fill:#2f855a}.bC{fill:#b7791f}.bD{fill:#9b2c2c}
+@media (prefers-color-scheme: dark){
+.bg{fill:#121821}.panel{fill:#1b2330}.ink{fill:#e8edf3}.mute{fill:#a3adbb}
+.line{stroke:#5f6b7b}.grid{stroke:#2c3646}.box{fill:#5aa2e6}.chat{fill:#f0a14a}
+.touch{stroke:#e8edf3}.boxs{stroke:#5aa2e6}.chats{stroke:#f0a14a}.onbox{fill:#121821}
+.pill{fill:#243042}.bA{fill:#63a4ff}.bB{fill:#5cc28a}.bC{fill:#e8b04e}.bD{fill:#e07a7a}}
+text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
+</style>
+<rect class="bg" x="0" y="0" width="720" height="1886" rx="14"/>
+<text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 2. The clock (ET)</text>
+<text class="mute" x="24.0" y="72.0" font-size="16" text-anchor="start" font-weight="400">Blue: the box&#x27;s timers. Orange: chat-side tasks. Ringed: a report you read.</text>
+<circle class="panel" cx="360" cy="420" r="280"/>
+<circle fill="none" class="line" stroke-width="2" cx="360" cy="420" r="230"/>
+<line class="line" stroke-width="2" x1="360.0" y1="198.0" x2="360.0" y2="182.0"/>
+<text class="mute" x="360.0" y="166.0" font-size="17" text-anchor="middle" font-weight="600">00</text>
+<line class="line" stroke-width="2" x1="417.5" y1="205.6" x2="419.5" y2="197.8"/>
+<line class="line" stroke-width="2" x1="471.0" y1="227.7" x2="475.0" y2="220.8"/>
+<line class="line" stroke-width="2" x1="517.0" y1="263.0" x2="528.3" y2="251.7"/>
+<text class="mute" x="543.8" y="242.2" font-size="17" text-anchor="middle" font-weight="600">03</text>
+<line class="line" stroke-width="2" x1="552.3" y1="309.0" x2="559.2" y2="305.0"/>
+<line class="line" stroke-width="2" x1="574.4" y1="362.5" x2="582.2" y2="360.5"/>
+<line class="line" stroke-width="2" x1="582.0" y1="420.0" x2="598.0" y2="420.0"/>
+<text class="mute" x="620.0" y="426.0" font-size="17" text-anchor="middle" font-weight="600">06</text>
+<line class="line" stroke-width="2" x1="574.4" y1="477.5" x2="582.2" y2="479.5"/>
+<line class="line" stroke-width="2" x1="552.3" y1="531.0" x2="559.2" y2="535.0"/>
+<line class="line" stroke-width="2" x1="517.0" y1="577.0" x2="528.3" y2="588.3"/>
+<text class="mute" x="543.8" y="609.8" font-size="17" text-anchor="middle" font-weight="600">09</text>
+<line class="line" stroke-width="2" x1="471.0" y1="612.3" x2="475.0" y2="619.2"/>
+<line class="line" stroke-width="2" x1="417.5" y1="634.4" x2="419.5" y2="642.2"/>
+<line class="line" stroke-width="2" x1="360.0" y1="642.0" x2="360.0" y2="658.0"/>
+<text class="mute" x="360.0" y="686.0" font-size="17" text-anchor="middle" font-weight="600">12</text>
+<line class="line" stroke-width="2" x1="302.5" y1="634.4" x2="300.5" y2="642.2"/>
+<line class="line" stroke-width="2" x1="249.0" y1="612.3" x2="245.0" y2="619.2"/>
+<line class="line" stroke-width="2" x1="203.0" y1="577.0" x2="191.7" y2="588.3"/>
+<text class="mute" x="176.2" y="609.8" font-size="17" text-anchor="middle" font-weight="600">15</text>
+<line class="line" stroke-width="2" x1="167.7" y1="531.0" x2="160.8" y2="535.0"/>
+<line class="line" stroke-width="2" x1="145.6" y1="477.5" x2="137.8" y2="479.5"/>
+<line class="line" stroke-width="2" x1="138.0" y1="420.0" x2="122.0" y2="420.0"/>
+<text class="mute" x="100.0" y="426.0" font-size="17" text-anchor="middle" font-weight="600">18</text>
+<line class="line" stroke-width="2" x1="145.6" y1="362.5" x2="137.8" y2="360.5"/>
+<line class="line" stroke-width="2" x1="167.7" y1="309.0" x2="160.8" y2="305.0"/>
+<line class="line" stroke-width="2" x1="203.0" y1="263.0" x2="191.7" y2="251.7"/>
+<text class="mute" x="176.2" y="242.2" font-size="17" text-anchor="middle" font-weight="600">21</text>
+<line class="line" stroke-width="2" x1="249.0" y1="227.7" x2="245.0" y2="220.8"/>
+<line class="line" stroke-width="2" x1="302.5" y1="205.6" x2="300.5" y2="197.8"/>
+<path fill="none" class="boxs" stroke-width="6" opacity="0.55" d="M498.6,558.6 A196,196 0 0 1 165.7,445.6"/>
+<path fill="none" class="boxs" stroke-width="6" opacity="0.55" stroke-dasharray="4 6" d="M360.0,236.0 A184,184 0 1 1 359.5,236.0"/>
+<path fill="none" class="boxs" stroke-width="6" opacity="0.55" stroke-dasharray="4 6" d="M481.6,541.6 A172,172 0 0 1 219.0,518.5"/>
+<path fill="none" class="boxs" stroke-width="6" opacity="0.55" stroke-dasharray="4 6" d="M202.5,447.9 A160,160 0 0 1 339.1,261.4"/>
+<text class="mute" x="360.0" y="412.0" font-size="18" text-anchor="middle" font-weight="400">weekdays</text>
+<text class="mute" x="360.0" y="438.0" font-size="15" text-anchor="middle" font-weight="400">inner arcs: sync,</text>
+<text class="mute" x="360.0" y="458.0" font-size="15" text-anchor="middle" font-weight="400">deploy windows, watchdog</text>
+<circle class="box" cx="419.5" cy="197.8" r="13"/>
+<text class="onbox" x="419.5" y="202.8" font-size="14" text-anchor="middle" font-weight="700">1</text>
+<circle class="box" cx="500.0" cy="237.5" r="13"/>
+<text class="onbox" x="500.0" y="242.5" font-size="14" text-anchor="middle" font-weight="700">2</text>
+<circle class="chat" cx="590.0" cy="420.0" r="13"/>
+<text class="onbox" x="590.0" y="425.0" font-size="14" text-anchor="middle" font-weight="700">3</text>
+<circle class="box" cx="559.6" cy="433.1" r="13"/>
+<text class="onbox" x="559.6" y="438.1" font-size="14" text-anchor="middle" font-weight="700">4</text>
+<circle class="box" cx="585.6" cy="464.9" r="13"/>
+<text class="onbox" x="585.6" y="469.9" font-size="14" text-anchor="middle" font-weight="700">5</text>
+<circle class="chat" cx="555.3" cy="463.3" r="13"/>
+<text class="onbox" x="555.3" y="468.3" font-size="14" text-anchor="middle" font-weight="700">6</text>
+<circle class="box" cx="524.2" cy="464.0" r="13"/>
+<circle fill="none" class="touch" stroke-width="3" cx="524.2" cy="464.0" r="18"/>
+<text class="onbox" x="524.2" y="469.0" font-size="14" text-anchor="middle" font-weight="700">7</text>
+<circle class="box" cx="542.5" cy="560.0" r="13"/>
+<text class="onbox" x="542.5" y="565.0" font-size="14" text-anchor="middle" font-weight="700">8</text>
+<circle class="box" cx="487.8" cy="611.2" r="13"/>
+<text class="onbox" x="487.8" y="616.2" font-size="14" text-anchor="middle" font-weight="700">9</text>
+<circle class="box" cx="467.5" cy="588.7" r="13"/>
+<text class="onbox" x="467.5" y="593.7" font-size="14" text-anchor="middle" font-weight="700">10</text>
+<circle class="box" cx="330.0" cy="648.0" r="13"/>
+<circle fill="none" class="touch" stroke-width="3" cx="330.0" cy="648.0" r="18"/>
+<text class="onbox" x="330.0" y="653.0" font-size="14" text-anchor="middle" font-weight="700">11</text>
+<circle class="box" cx="166.6" cy="544.4" r="13"/>
+<text class="onbox" x="166.6" y="549.4" font-size="14" text-anchor="middle" font-weight="700">12</text>
+<circle class="box" cx="182.6" cy="512.3" r="13"/>
+<text class="onbox" x="182.6" y="517.3" font-size="14" text-anchor="middle" font-weight="700">13</text>
+<circle class="box" cx="204.4" cy="488.5" r="13"/>
+<text class="onbox" x="204.4" y="493.5" font-size="14" text-anchor="middle" font-weight="700">14</text>
+<circle class="box" cx="147.1" cy="507.1" r="13"/>
+<text class="onbox" x="147.1" y="512.1" font-size="14" text-anchor="middle" font-weight="700">15</text>
+<circle class="box" cx="170.6" cy="484.3" r="13"/>
+<circle fill="none" class="touch" stroke-width="3" cx="170.6" cy="484.3" r="18"/>
+<text class="onbox" x="170.6" y="489.3" font-size="14" text-anchor="middle" font-weight="700">16</text>
+<circle class="box" cx="132.7" cy="455.0" r="13"/>
+<text class="onbox" x="132.7" y="460.0" font-size="14" text-anchor="middle" font-weight="700">17</text>
+<circle class="box" cx="160.8" cy="437.4" r="13"/>
+<text class="onbox" x="160.8" y="442.4" font-size="14" text-anchor="middle" font-weight="700">18</text>
+<circle class="box" cx="130.2" cy="410.0" r="13"/>
+<text class="onbox" x="130.2" y="415.0" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<circle class="box" cx="208.4" cy="247.1" r="13"/>
+<text class="onbox" x="208.4" y="252.1" font-size="14" text-anchor="middle" font-weight="700">20</text>
+<text class="ink" x="24.0" y="760.0" font-size="20" text-anchor="start" font-weight="700">Weekdays, by time</text>
+<circle class="box" cx="36" cy="790" r="11"/>
+<text class="onbox" x="36.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">1</text>
+<text class="ink" x="54.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">01:00  IB Gateway restart</text>
+<circle class="box" cx="36" cy="820" r="11"/>
+<text class="onbox" x="36.0" y="825.0" font-size="13" text-anchor="middle" font-weight="700">2</text>
+<text class="ink" x="54.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">02:30  Backup sweep</text>
+<circle class="chat" cx="36" cy="850" r="11"/>
+<text class="onbox" x="36.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">3</text>
+<text class="ink" x="54.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">06:00  Grok X digest (Ari&#x27;s automation)</text>
+<circle class="box" cx="36" cy="880" r="11"/>
+<text class="onbox" x="36.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">4</text>
+<text class="ink" x="54.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">06:15  Voices scan</text>
+<circle class="box" cx="36" cy="910" r="11"/>
+<text class="onbox" x="36.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">5</text>
+<text class="ink" x="54.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">06:45  Overnight fetch</text>
+<circle class="chat" cx="36" cy="940" r="11"/>
+<text class="onbox" x="36.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">6</text>
+<text class="ink" x="54.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">06:50  X digest triage</text>
+<circle class="box" cx="36" cy="970" r="11"/>
+<text class="onbox" x="36.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">7</text>
+<text class="ink" x="54.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">07:00  Morning anchor ◉</text>
+<circle class="box" cx="36" cy="1000" r="11"/>
+<text class="onbox" x="36.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">8</text>
+<text class="ink" x="54.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">08:30  Heartbeat</text>
+<circle class="box" cx="36" cy="1030" r="11"/>
+<text class="onbox" x="36.0" y="1035.0" font-size="13" text-anchor="middle" font-weight="700">9</text>
+<text class="ink" x="54.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">09:45  Dealer capture</text>
+<circle class="box" cx="36" cy="1060" r="11"/>
+<text class="onbox" x="36.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">10</text>
+<text class="ink" x="54.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">09:50  chester-open-note</text>
+<circle class="box" cx="396" cy="790" r="11"/>
+<text class="onbox" x="396.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">11</text>
+<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">12:30  Capture + 12:30 alert gates ◉</text>
+<circle class="box" cx="396" cy="820" r="11"/>
+<text class="onbox" x="396.0" y="825.0" font-size="13" text-anchor="middle" font-weight="700">12</text>
+<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
+<circle class="box" cx="396" cy="850" r="11"/>
+<text class="onbox" x="396.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">13</text>
+<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
+<circle class="box" cx="396" cy="880" r="11"/>
+<text class="onbox" x="396.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">14</text>
+<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
+<circle class="box" cx="396" cy="910" r="11"/>
+<text class="onbox" x="396.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">15</text>
+<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
+<circle class="box" cx="396" cy="940" r="11"/>
+<text class="onbox" x="396.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">16</text>
+<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
+<circle class="box" cx="396" cy="970" r="11"/>
+<text class="onbox" x="396.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">17</text>
+<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
+<circle class="box" cx="396" cy="1000" r="11"/>
+<text class="onbox" x="396.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">18</text>
+<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
+<circle class="box" cx="396" cy="1030" r="11"/>
+<text class="onbox" x="396.0" y="1035.0" font-size="13" text-anchor="middle" font-weight="700">19</text>
+<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
+<circle class="box" cx="396" cy="1060" r="11"/>
+<text class="onbox" x="396.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">20</text>
+<text class="ink" x="414.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">21:15  Meme ingest</text>
+<text class="ink" x="24.0" y="1120.0" font-size="20" text-anchor="start" font-weight="700">The week</text>
+<rect class="panel" x="26.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="72.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Mon</text>
+<rect class="panel" x="122.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="168.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Tue</text>
+<rect class="panel" x="218.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="264.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Wed</text>
+<circle class="chat" cx="230.0" cy="1182" r="6"/>
+<rect class="panel" x="314.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="360.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Thu</text>
+<circle class="chat" cx="326.0" cy="1182" r="6"/>
+<circle class="chat" cx="342.0" cy="1182" r="6"/>
+<rect class="panel" x="410.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="456.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Fri</text>
+<rect class="panel" x="506.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="552.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Sat</text>
+<circle class="box" cx="518.0" cy="1182" r="6"/>
+<circle class="chat" cx="534.0" cy="1182" r="6"/>
+<circle class="chat" cx="550.0" cy="1182" r="6"/>
+<rect class="panel" x="602.0" y="1136" width="92.0" height="34" rx="6"/>
+<text class="ink" x="648.0" y="1159.0" font-size="16" text-anchor="middle" font-weight="700">Sun</text>
+<circle class="box" cx="614.0" cy="1182" r="6"/>
+<circle class="box" cx="630.0" cy="1182" r="6"/>
+<circle class="box" cx="646.0" cy="1182" r="6"/>
+<circle class="box" cx="662.0" cy="1182" r="6"/>
+<rect class="chat" x="24" y="1203" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1218.0" font-size="16" text-anchor="start" font-weight="400">Wed 16:25  FlashAlpha vendor pull (Wednesday close)</text>
+<rect class="chat" x="24" y="1231" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1246.0" font-size="16" text-anchor="start" font-weight="400">Thu 07:05  FlashAlpha vendor reconcile (Thursday morning)</text>
+<rect class="chat" x="24" y="1259" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1274.0" font-size="16" text-anchor="start" font-weight="400">Thu 12:10  AAII weekly read</text>
+<rect class="box" x="24" y="1287" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1302.0" font-size="16" text-anchor="start" font-weight="400">Sat 06:00  Saturday prices</text>
+<rect class="chat" x="24" y="1315" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1330.0" font-size="16" text-anchor="start" font-weight="400">Sat 07:50  Alpha Lab Saturday brief</text>
+<rect class="chat" x="24" y="1343" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1358.0" font-size="16" text-anchor="start" font-weight="400">Sat 08:00  Weekly crypto tech scan (Pearl and new mechanisms)</text>
+<rect class="box" x="24" y="1371" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1386.0" font-size="16" text-anchor="start" font-weight="400">Sun 05:00  The Weekly ◉</text>
+<rect class="box" x="24" y="1399" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1414.0" font-size="16" text-anchor="start" font-weight="400">Sun 06:00  Alpha weekly</text>
+<rect class="box" x="24" y="1427" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1442.0" font-size="16" text-anchor="start" font-weight="400">Sun 10:15  Restore test</text>
+<rect class="box" x="24" y="1455" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1470.0" font-size="16" text-anchor="start" font-weight="400">Sun 21:30  chester-evening-note</text>
+<text class="ink" x="24.0" y="1514.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
+<rect class="panel" x="24" y="1530" width="672" height="34" rx="6"/>
+<text class="mute" x="34.8" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
+<text class="mute" x="186.6" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
+<text class="mute" x="338.3" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
+<text class="mute" x="490.1" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
+<text class="mute" x="641.8" y="1553.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
+<circle class="box" cx="34.8" cy="1576" r="6"/>
+<circle class="chat" cx="273.3" cy="1576" r="6"/>
+<circle class="chat" cx="446.7" cy="1576" r="6"/>
+<circle class="chat" cx="555.1" cy="1576" r="6"/>
+<rect class="box" x="24" y="1597" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1612.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
+<rect class="chat" x="24" y="1625" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1640.0" font-size="16" text-anchor="start" font-weight="400">day 12, 06:58  Publication watch (also the 27th)</text>
+<rect class="chat" x="24" y="1653" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1668.0" font-size="16" text-anchor="start" font-weight="400">day 20, 09:00  AI-risk drift (even months)</text>
+<rect class="chat" x="24" y="1681" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1696.0" font-size="16" text-anchor="start" font-weight="400">day 25, 06:57  Monthly signal scan</text>
+<rect class="chat" x="24" y="1709" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1724.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:30  Alt assets scan (planned)</text>
+<rect class="chat" x="24" y="1737" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1752.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:56  JPM Guide read (6th, quarterly)</text>
+<rect class="chat" x="24" y="1765" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1780.0" font-size="16" text-anchor="start" font-weight="400">by event, 07:10  MSTR / MSCI watch (2-30 Nov, 1 Dec)</text>
+<rect class="box" x="24" y="1793" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1808.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:00  Alt Assets Quarterly (not enabled)</text>
+<text class="mute" x="24.0" y="1846.0" font-size="15" text-anchor="start" font-weight="400">Times are ET. A task held in UTC moves an hour</text>
+<text class="mute" x="24.0" y="1868.0" font-size="15" text-anchor="start" font-weight="400">when daylight saving ends on 1 Nov.</text>
+</svg>

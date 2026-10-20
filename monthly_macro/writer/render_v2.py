@@ -621,6 +621,69 @@ def register_section(p: dict) -> str:
     return "\n".join(out) + "\n---\n"
 
 
+# THE LENSES (6e). Each family prints its own forms (altdata/derived.py's
+# lens_forms; the brief of 1 Oct, ratified 4 Oct): a monthly release never shows a
+# 20-session change, a quantity shows its direction of travel, a level shows its
+# five-year AND long percentile with each one's n. A form that cannot be computed
+# prints n/a, and its reason goes in the table's footnote.
+# The columns and cells live in daily_cascade/lens_cells.py (6e, the rest), so the
+# Weekly and the close print the same cells as these tables.
+from daily_cascade.lens_cells import LENS_COLUMNS, LENS_ORDER  # noqa: E402
+from daily_cascade.lens_cells import anchor_line as _anchor_line  # noqa: E402
+from daily_cascade.lens_cells import cell as _lens_cell  # noqa: E402
+from daily_cascade.lens_cells import flags as _lens_flags  # noqa: E402
+from daily_cascade.lens_cells import reason_for as _reason_for  # noqa: E402
+
+
+def lens_tables(rows: list[dict]) -> list[str]:
+    """One table per family present in `rows`, in LENS_ORDER; rows with no lens
+    (no family) in a short closing list with the reason."""
+    out: list[str] = []
+    by: dict[str, list[dict]] = {}
+    none: list[dict] = []
+    for r in rows:
+        fam = (r.get("lens") or {}).get("family")
+        (by.setdefault(fam, []) if fam else none).append(r)
+    for fam in LENS_ORDER:
+        group = by.get(fam) or []
+        if not group:
+            continue
+        cols = LENS_COLUMNS[fam]
+        out.append(f"**{fam}**\n")
+        out.append("| Series | Level | " + " | ".join(c for c, _ in cols) + " | Flags |")
+        out.append("|---|---|" + "---|" * len(cols) + "---|")
+        notes, anchors = [], []
+        for r in group:
+            lens = r["lens"]
+            cells = []
+            for title, key in cols:
+                c = _lens_cell(lens, key)
+                if c is None and key == "p5opt" and "pctile_5y" not in (lens.get("forms") or {}):
+                    cells.append("—")            # not one of this release's forms (6e: U-3)
+                    continue
+                if c is None:
+                    cells.append("n/a")
+                    why = _reason_for(lens, key)
+                    notes.append(f"`{r['metric']}` {title}: {why or 'not computed'}")
+                else:
+                    cells.append(c)
+            out.append(f"| `{r['metric']}` | {_v(lens.get('level'))} | " + " | ".join(cells)
+                       + f" | {_lens_flags(lens)} |")
+            al = _anchor_line(lens)
+            if al:
+                anchors.append(al)
+        out.append("")
+        if notes:
+            out.append("*n/a: " + "; ".join(notes) + ".*\n")
+        for al in anchors:
+            out.append(f"*{al}*\n")
+    if none:
+        out.append("*No lens: " + "; ".join(
+            f"`{r['metric']}` ({((r.get('lens') or {}).get('reasons') or {}).get('family', 'no family')})"
+            for r in none) + ".*\n")
+    return out
+
+
 def appendix_section(p: dict, prose: Optional[dict] = None) -> str:
     b = p.get("appendix") or {}
     if b.get("state") != "ok":
@@ -694,17 +757,27 @@ def appendix_section(p: dict, prose: Optional[dict] = None) -> str:
         # it moved, what to watch -- above its table.
         if prose is not None and prose.get(f"pillar:{num}"):
             out += _prose(prose, f"pillar:{num}")
-        out.append("| Series | Level | 20d change | Pctile | Conf | Stale |")
-        out.append("|---|---|---|---|---|---|")
-        for r in v.get("series") or []:
-            out.append(
-                f"| `{r['metric']}` | {_v(r.get('level'))} | "
-                f"{_delta(r.get('delta_20d'), r.get('delta_unit'))} | "
-                f"{_v(r.get('percentile'), 1)}"
-                f"{' **!**' if r.get('extreme') else ''} | "
-                f"{r.get('confidence') or '—'} | "
-                f"{_v(r.get('staleness_sessions'), 0)} |")
-        out.append("")
+        rows = v.get("series") or []
+        if any(r.get("lens") for r in rows):
+            out += lens_tables(rows)             # 6e: each family its own forms
+        else:                                    # a payload built before the lenses
+            out.append("| Series | Level | 20d change | Pctile | Conf | Stale |")
+            out.append("|---|---|---|---|---|---|")
+            for r in rows:
+                out.append(
+                    f"| `{r['metric']}` | {_v(r.get('level'))} | "
+                    f"{_delta(r.get('delta_20d'), r.get('delta_unit'))} | "
+                    f"{_v(r.get('percentile'), 1)}"
+                    f"{' **!**' if r.get('extreme') else ''} | "
+                    f"{r.get('confidence') or '—'} | "
+                    f"{_v(r.get('staleness_sessions'), 0)} |")
+            out.append("")
+    comp = b.get("completeness") or []
+    if comp:
+        # 6e, the rest: the macro-completeness series, each by its family's lens.
+        out.append("### Macro completeness (6e): each series by its family\n")
+        out.append(f"*{b.get('completeness_note')}*\n")
+        out += lens_tables(comp)
     return "\n".join(out) + "\n---\n"
 
 

@@ -68,6 +68,8 @@ run() {
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
+        CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         "$@" \
@@ -515,6 +517,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -535,6 +538,7 @@ env CHECKER_RC=1 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -571,6 +575,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -600,6 +605,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -638,6 +644,7 @@ env CHECKER_RC=2 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -697,6 +704,8 @@ run_exc() {                      # run_exc <checker_rc>
         CHESTER_STATE_DIR="$STATE_DIR" \
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_BACKUP_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
+        CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
@@ -775,6 +784,7 @@ run_backup() {                   # run_backup <checker_rc> [extra env...]
         CHESTER_CHECKER="$SANDBOX/bin/checker" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
+        CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         "$@" \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
@@ -819,6 +829,38 @@ else
     bad "never case -> backup=$(backup_of) state=$(state_of) exit=$RC"
 fi
 
+# 5-7. THE WEEKLY RESTORE TEST (audit-leftovers-1): restore_test_status, which
+# scripts/run_restore_test.sh writes. A failed test fails an otherwise-ok backup;
+# one past CHESTER_RESTORE_MAX_DAYS (8) is stale; a passing one changes nothing.
+R_STATUS="$STATE_DIR/restore_test_status"
+iso_days_ago() { date -u -d "@$(( $(date +%s) - $1 * 86400 ))" --iso-8601=seconds; }
+printf 'state=ok rc=0 at=%s detail=swept\n' "$(iso_hours_ago 2)" >"$B_STATUS"
+printf 'state=ok at=%s\n' "$(iso_hours_ago 2)" >"$B_LAST_OK"
+printf 'state=restore_failed at=%s snapshot=chester-x.db.gz detail=observations: 9 restored against 10 recorded\n' \
+    "$(iso_days_ago 1)" >"$R_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "failed:restore_test" ]] && [[ "$(state_of)" == "backup_failed" ]] \
+        && [[ "$RC" == "12" ]] && grep -q '"restore_test": "failed"' "$ALERT"; then
+    ok "a failed weekly restore test -> backup=failed:restore_test, exit 12, restore_test in the JSON"
+else
+    bad "restore failed case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+printf 'state=restore_ok at=%s snapshot=chester-x.db.gz detail=ok\n' "$(iso_days_ago 10)" >"$R_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "stale_restore:10d" ]] && [[ "$RC" == "12" ]]; then
+    ok "a restore test last passed 10 days ago -> backup=stale_restore:10d, exit 12"
+else
+    bad "restore stale case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+printf 'state=restore_ok at=%s snapshot=chester-x.db.gz detail=ok\n' "$(iso_days_ago 2)" >"$R_STATUS"
+rm -f "$STATUS"; run_backup 0
+if [[ "$(backup_of)" == "ok" ]] && [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]]; then
+    ok "a restore test passed 2 days ago -> backup=ok, exit 0"
+else
+    bad "restore ok case -> backup=$(backup_of) state=$(state_of) exit=$RC"
+fi
+rm -f "$R_STATUS" "$B_STATUS" "$B_LAST_OK"; rm -f "$STATUS"; run_backup 0
+
 # The field travels on the log's verdict line and in the alert JSON.
 if grep -q 'verdict=backup_failed rc=12 .* backup=never ' $LOG_GLOB \
         && grep -q '"backup": "never"' "$ALERT"; then
@@ -843,6 +885,7 @@ env CHECKER_RC=0 \
     CHESTER_STATE_DIR="$STATE_DIR" \
     CHESTER_CHECKER="$SANDBOX/bin/checker" \
     CHESTER_SKIP_STATE_CHECK=1 \
+    CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty-feeds-b.db" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
@@ -1063,6 +1106,111 @@ else
 fi
 rm -f "$STATE_DIR/monthly_heartbeat" "$STATE_DIR/weekly_heartbeat"
 rm -f "$UNITS"/*.service "$UNITS"/*.timer
+
+printf '\n%s\nThe disk and the swap (AUD-1 item 1d)\n%s\n' "$LINE" "$LINE"
+GATE_DISK_PCT=72 run 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]] && grep -q 'disk=warn:72%' $LOG_GLOB; then
+    ok "72% used -> healthy, and the verdict line warns (disk=warn:72%)"
+else
+    bad "72% used -> state=$(state_of) rc=$RC (wanted ok/0 with disk=warn:72%)"
+fi
+GATE_DISK_PCT=86 run 0
+if [[ "$(state_of)" == "disk_alert" ]] && [[ "$RC" == "15" ]]; then
+    ok "86% used -> state=disk_alert exit=15"
+else
+    bad "86% used -> state=$(state_of) rc=$RC (wanted disk_alert/15)"
+fi
+# The swap rule, corrected 14 Oct 2026: that day's box -- 131 MiB of swap,
+# 2.7 GiB available of 3.7 GiB -- is clean, not an alert.
+rm -f $LOG_GLOB
+GATE_SWAP_KB=134144 GATE_MEMAVAIL_KB=2831155 GATE_MEMTOTAL_KB=3879731 run 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]] && grep -q 'disk=ok ' $LOG_GLOB; then
+    ok "131 MiB of swap with 2.7 GiB available -> clean (disk=ok), not an alert"
+else
+    bad "131 MiB swap -> state=$(state_of) rc=$RC (wanted ok/0, disk=ok)"
+fi
+rm -f $LOG_GLOB
+GATE_SWAP_KB=614400 run 0
+if [[ "$(state_of)" == "ok" ]] && [[ "$RC" == "0" ]] && grep -q 'disk=warn:10%+swap:614400kB' $LOG_GLOB; then
+    ok "600 MiB of swap -> healthy, and the verdict line warns (disk=warn:10%+swap:614400kB)"
+else
+    bad "600 MiB swap -> state=$(state_of) rc=$RC (wanted ok/0 with a swap warning)"
+fi
+GATE_SWAP_KB=1153434 run 0
+if [[ "$(state_of)" == "disk_alert" ]] && [[ "$RC" == "15" ]] && grep -q 'swap:1153434kB' $LOG_GLOB; then
+    ok "1.1 GiB of swap -> disk_alert exit=15, the swap named"
+else
+    bad "1.1 GiB swap -> state=$(state_of) rc=$RC (wanted disk_alert/15)"
+fi
+GATE_MEMAVAIL_KB=320000 GATE_MEMTOTAL_KB=4000000 run 0
+if [[ "$(state_of)" == "disk_alert" ]] && [[ "$RC" == "15" ]] && grep -q 'memavail:8%' $LOG_GLOB; then
+    ok "8% of memory available -> disk_alert exit=15 (memavail:8%), no swap needed"
+else
+    bad "8% available -> state=$(state_of) rc=$RC (wanted disk_alert/15)"
+fi
+GATE_DISK_PCT=95 run 1
+if [[ "$RC" == "1" ]]; then
+    ok "a stale pipeline still wins the verdict over a full disk"
+else
+    bad "stale + full disk -> rc=$RC (wanted 1)"
+fi
+GATE_SWAP_KB=1153434 GATE_MEMAVAIL_KB=320000 run 1
+if [[ "$RC" == "1" ]]; then
+    ok "a stale pipeline still wins the verdict over swap and low memory"
+else
+    bad "stale + swap + low memory -> rc=$RC (wanted 1)"
+fi
+
+# ---- THE LISTINGS SNAPSHOT (stitching, week of 19 Oct; meeting c) ----------
+printf '\n%s\nThe listings snapshot: counted in sessions, a warning only\n%s\n' "$LINE" "$LINE"
+listings_of() { sed -n 's/.* listings=\([a-z_]*\).*/\1/p' "$STATUS"; }
+LDIR="$SANDBOX/listings"
+mkdir -p "$LDIR"
+# listings_run <newest snapshot day or ""> <today> -> RC, and the status line
+listings_run() {
+    rm -f "$LDIR"/*.csv "$STATUS"
+    [[ -n "$1" ]] && printf 'symbol,name\nAAA,Fixture\n' >"$LDIR/$1.csv"
+    run 0 CHESTER_LISTINGS_DIR="$LDIR" CHESTER_LISTINGS_TODAY="$2"
+}
+listings_run 2026-10-16 2026-10-19      # Fri -> Mon: one session (the weekend is not a miss)
+if [[ "$(listings_of)" == "fresh" ]] && [[ "$RC" == "0" ]]; then
+    ok "a Friday snapshot read on Monday is one session old: fresh (a weekend is not a miss)"
+else
+    bad "Fri -> Mon reported listings=$(listings_of) exit=$RC"
+fi
+listings_run 2026-11-25 2026-11-27      # Wed -> Fri over Thanksgiving: one session
+if [[ "$(listings_of)" == "fresh" ]]; then
+    ok "a Wednesday snapshot read the Friday after Thanksgiving is one session old: fresh (a holiday is not a miss)"
+else
+    bad "over Thanksgiving reported listings=$(listings_of)"
+fi
+listings_run 2026-10-15 2026-10-19      # Thu -> Mon: Fri and Mon, two sessions
+if [[ "$(listings_of)" == "fresh" ]]; then
+    ok "two sessions old is still fresh (one failed 06:45 pull is not yet a warning)"
+else
+    bad "two sessions reported listings=$(listings_of)"
+fi
+listings_run 2026-10-13 2026-10-19      # Tue -> Mon: Wed, Thu, Fri, Mon
+if [[ "$(listings_of)" == "stale" ]] && [[ "$RC" == "0" ]] && [[ "$(state_of)" == "ok" ]] \
+        && grep -q 'WARNING listings: the snapshot is stale' $LOG_GLOB \
+        && grep -q 'newest snapshot 2026-10-13, 4 session(s) old (allowed 2)' $LOG_GLOB; then
+    ok "four sessions old warns -- logged with the date and the count -- and the verdict stays ok, exit 0"
+else
+    bad "four sessions reported listings=$(listings_of) state=$(state_of) exit=$RC"
+fi
+listings_run "" 2026-10-19
+if [[ "$(listings_of)" == "none" ]] && [[ "$RC" == "0" ]]; then
+    ok "no snapshot at all warns as none, and still never moves the exit code"
+else
+    bad "no snapshot reported listings=$(listings_of) exit=$RC"
+fi
+rm -f "$STATUS"
+run 0 CHESTER_SKIP_LISTINGS_CHECK=1
+if [[ "$(listings_of)" == "skipped" ]]; then
+    ok "CHESTER_SKIP_LISTINGS_CHECK records skipped rather than fresh"
+else
+    bad "skip switch reported listings=$(listings_of)"
+fi
 
 printf '\n%s\nThe log line is greppable by verdict\n%s\n' "$LINE" "$LINE"
 if grep -q 'verdict=ok ' $LOG_GLOB && grep -q 'verdict=stale ' $LOG_GLOB; then

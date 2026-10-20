@@ -71,3 +71,12 @@ durations:
   SHY: {years: 1.9, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
   LQD: {years: 8.3, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
   HYG: {years: 3.2, proposed: false, source: approximate iShares effective duration, as_of: 2026-09}
+  # GTM-13 (ruling 2 of 17 Oct 2026): AGG's duration, and TIP, MUB and MBB as the
+  # scenario table's TIPS, municipal and MBS proxies. Each is the issuer's own
+  # figure, the effective duration on the fund's iShares product page, with the
+  # page's as-of date and the date it was read. Reference data, refreshed at the
+  # Quarterly Structural like the rest.
+  AGG: {years: 5.70, proposed: false, source: "iShares product page, effective duration (read 2026-10-17)", as_of: 2026-10-15}
+  TIP: {years: 6.19, proposed: false, source: "iShares product page, effective duration (read 2026-10-17)", as_of: 2026-10-15}
+  MUB: {years: 7.13, proposed: false, source: "iShares product page, effective duration (read 2026-10-17)", as_of: 2026-10-15}
+  MBB: {years: 5.75, proposed: false, source: "iShares product page, effective duration (read 2026-10-17)", as_of: 2026-10-15}

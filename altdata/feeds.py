@@ -56,6 +56,7 @@ show up as the data going stale, not as a crash.
 from __future__ import annotations
 
 import logging
+import traceback
 from typing import Any, Optional
 
 from . import observations, secrets, session
@@ -126,7 +127,10 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # Signal-triage batch 3, Tranche A (13 Oct 2026): Treasury's
                     # buyback operations (SR-33), Japan's reserves and the Fed's
                     # FIMA repo line (SR-34, both in tic.*)
-                    "treasury_buybacks", "mof_reserves", "fedboard_h41")
+                    "treasury_buybacks", "mof_reserves", "fedboard_h41",
+                    # 6e-releases (16 Oct 2026, ruling (a)5): the Cleveland Fed's
+                    # simple-policy-rules path, keyless
+                    "clevfed_rules")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -151,18 +155,60 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "finra", "proshares",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
+                    # The GTM batch, part 2 (17 Oct 2026): the hyperscalers'
+                    # annual cash flow and capex from EDGAR's XBRL frames
+                    # (GTM-4's bridge); PENDING until the SEC contact is set
+                    "edgar_xbrl",
                     # T2.2 (4 Oct 2026): the AAII bull-bear spread, a W9 gauge
                     "aaii",
-                    # SR-38 (13 Oct 2026): S&P DJI's EPS workbook, from the
-                    # operator's monthly drop (inbox only)
-                    "spdji",
+                    # SR-38's S&P DJI EPS workbook ("spdji") left the roster on
+                    # 17 Oct 2026: the source is withdrawn (item 40's forward leg).
                     # AQ-3 part 1 (11 Oct 2026), the Quarterly's structure rows:
                     # GLD's archive (inbox; its API host disallows robots), the
                     # iShares gold, silver and bitcoin trusts' share counts, SHFE
                     # weekly metal stocks, and USD/CNH's New York close
                     "spdr_gld", "ishares_trusts", "shfe", "cnh",
                     # AQ-3 part 2: the SET index, forward-only (Thailand, isolated)
-                    "thai_set")
+                    "thai_set",
+                    # ST-R5 (lifted 16 Oct 2026, D1c ruled met by WAL and the busy
+                    # timeout for an append-only writer): Redfin's housing files,
+                    # the MBA weekly headline, the S&P 500's constituents (SPY's
+                    # holdings and member closes), the WGC's above-ground stock
+                    "redfin", "mba", "sp500_members", "wgc_stock",
+                    # ST-R5 fixes (16 Oct 2026): Japan's national CPI from the
+                    # Statistics Bureau's own files (item 39's US-JP gap)
+                    "stat_jp_cpi",
+                    # The by-hand audit (16 Oct 2026): the UK's and Canada's CPI
+                    # from the ONS and Statistics Canada (the real-yield panel's
+                    # gaps), and SR-30's daily OAT from the Banque de France's
+                    # keyless Webstat export
+                    "ons_cpi", "statcan_cpi", "bdf_webstat",
+                    # ST-R4.23a: Census construction spending, live from the D1c
+                    # ruling of 16 Oct 2026 (WAL and the busy timeout suffice
+                    # for an append-only writer)
+                    "census_vip",
+                    # ST-R4.18a: Cboe's COR1M, COR3M and DSPX daily history
+                    "cboe_indices",
+                    # 6e-releases (16 Oct 2026, Batch 7 lens 7): Zillow's and
+                    # Apartment List's national rent indices, the shelter lead
+                    "rent_indices",
+                    # Batch 4 Tranche A part 1 (17 Oct 2026): perp funding and OI
+                    # (Hyperliquid; OKX and Deribit), Bitcoin's network state, the
+                    # fear-and-greed index, Ethereum's gas (keyless), then the S-1
+                    # and S-3 derived series, which read what those just wrote --
+                    # the order of the tuple is the order they run in. DefiLlama
+                    # (llama) stays on the crypto basket's own timer.
+                    "hl", "fut", "mempool", "fng", "blockscout",
+                    # Tranche A part 2 (17 Oct 2026): DVOL, the ETF flow tables
+                    # (Farside; also the 06:45 run for the T-1 figure), the froth
+                    # gauge's sample, CoinPaprika's global figures -- all before
+                    # the derived writer, which reads them.
+                    "deribit", "farside", "gt", "paprika",
+                    # Item 49 (digital-49-51b): treasury holdings, Strategy's
+                    # share count, MSTR's captured spot -- before the derived
+                    # writer, which computes mNAV and net purchases from them.
+                    "treasury",
+                    "crypto_derived")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:
@@ -172,7 +218,7 @@ def _writer_modules(names: tuple[str, ...]) -> list:
         try:
             out.append((name, import_module(f"{__package__}.sources.{name}")))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("writer %s failed to import: %s", name, exc)
+            log.warning("writer %s failed to import: %s", name, secrets.redact(str(exc)))
             out.append((name, None))
     return out
 
@@ -273,7 +319,8 @@ def logger_rosters() -> list[tuple[str, list[str]]]:
             probes = set(getattr(spec, "probe_keys", ()) or ())
             out.append((name, [k for k in spec.keys() if k not in probes]))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("logger %s could not list its keys: %s", name, exc)
+            log.warning("logger %s could not list its keys: %s", name,
+                        secrets.redact(str(exc)))
     return out
 
 
@@ -439,7 +486,7 @@ def pull_prices(run_id: Optional[str] = None) -> dict:
     log.info("prices: %d/%d symbols, %d failed", summary["success"],
              summary["total"], len(summary["failed"]))
     for key, err in summary["failed"]:
-        log.warning("prices: %s failed -- %s", key, err)
+        log.warning("prices: %s failed -- %s", key, secrets.redact(str(err)))
     return summary
 
 
@@ -467,7 +514,7 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     log.info("fred: %d/%d series, %d failed", summary.get("success", 0),
              summary.get("total", 0), len(summary.get("failed") or []))
     for key, err in summary.get("failed") or []:
-        log.warning("fred: %s failed -- %s", key, err)
+        log.warning("fred: %s failed -- %s", key, secrets.redact(str(err)))
     return summary
 
 
@@ -511,8 +558,8 @@ def _pull_writers(mods: list, run_id: Optional[str]) -> dict:
         try:
             r = mod.pull(run_id=run_id)
         except Exception as exc:                              # noqa: BLE001
-            log.exception("%s raised", name)
-            r = {"status": "STALE", "reason": f"{type(exc).__name__}: {exc}",
+            log.error("%s raised: %s", name, secrets.redact(traceback.format_exc()))
+            r = {"status": "STALE", "reason": secrets.redact(f"{type(exc).__name__}: {exc}"),
                  "written": 0}
         out[name] = r
         out["written"] += int(r.get("written") or 0)
@@ -538,7 +585,8 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
         try:
             record_attempted(name, list(spec.keys()))
         except Exception as exc:                              # noqa: BLE001
-            log.warning("logger %s could not list its keys: %s", name, exc)
+            log.warning("logger %s could not list its keys: %s", name,
+                        secrets.redact(str(exc)))
 
     for name, spec in sorted(load_all().items()):
         if spec.requires_key and not secrets.present(spec.requires_key):
@@ -554,8 +602,8 @@ def pull_loggers(run_id: Optional[str] = None) -> dict:
             out[name] = r
             out["written"] += int(r.get("written") or 0)
         except Exception as exc:                              # noqa: BLE001
-            log.exception("%s raised", name)
-            out[name] = {"error": f"{type(exc).__name__}: {exc}"}
+            log.error("%s raised: %s", name, secrets.redact(traceback.format_exc()))
+            out[name] = {"error": secrets.redact(f"{type(exc).__name__}: {exc}")}
         _attempted(name, spec)
         out["ran"].append(name)
         out["total"] += 1
@@ -595,7 +643,7 @@ def pull_prediction_markets(run_id: Optional[str] = None) -> dict:
     out = pm_src.pull(run_id=run_id)
     record_attempted("prediction_markets", list(PREDICTION_KEYS))
     for k, v in (out.get("errors") or {}).items():
-        log.warning("prediction_markets: %s -- %s", k, v)
+        log.warning("prediction_markets: %s -- %s", k, secrets.redact(str(v)))
     log.info("prediction_markets: %s markets, %s written", out.get("markets"),
              out.get("written"))
     return out
@@ -655,8 +703,8 @@ def pull(only: Optional[str] = None, run_id: Optional[str] = None,
         except Exception as exc:                              # noqa: BLE001
             # ONE FEED NEVER TAKES THE OTHER DOWN. The whole point of running
             # both from one step is that the step is not all-or-nothing.
-            log.exception("%s pull raised", name)
-            out[name] = {"error": f"{type(exc).__name__}: {exc}"}
+            log.error("%s pull raised: %s", name, secrets.redact(traceback.format_exc()))
+            out[name] = {"error": secrets.redact(f"{type(exc).__name__}: {exc}")}
             out["ran"].append(name)
     return out
 
@@ -691,9 +739,24 @@ def freshness(as_of: Optional[str] = None,
         from . import fed_funds as _ff                         # noqa: PLC0415
         rosters += [("prediction_markets", list(PREDICTION_KEYS)),
                     ("fed_funds", [_ff.KEY])]
+        # THE VENDOR WRITER (ruling 3 of 17 Oct 2026): its own 16:25 unit; pending
+        # until its first run records an attempt.
+        from .sources import flashalpha as _fa                 # noqa: PLC0415
+        rosters += [("vendor", list(_fa.ROSTER_KEYS))]
+        # ST-13 (ruling 3 of 18 Oct 2026): the PRL steps of the crypto basket's
+        # run -- the daily D-series compute and the weekly explorer read -- so the
+        # heartbeat sees them; the explorer's keys are PENDING until it reads.
+        from . import prl as _prl                              # noqa: PLC0415
+        rosters += [(_prl.ROSTER, list(_prl.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
+        # ONE GROUPED QUERY for every roster (audit-leftovers-1): the newest day per
+        # key, with instrument NULL and under any instrument, where this read one
+        # indexed query per key, twice for an instrument-keyed one. The verdicts
+        # are unchanged (validate_backups holds the equivalence on a fixture).
+        newest_map = db.newest_observed_map([k for _, ks in rosters for k in ks],
+                                            as_of=as_of)
         for name, keys in rosters:
             absent, stale, fresh, pending = [], [], [], []
             detail, pdetail = {}, {}
@@ -707,20 +770,18 @@ def freshness(as_of: Optional[str] = None,
                                       "note": "declares no keys yet"}
                 continue
             for k in keys:
-                rows = db.as_of(k, as_of=as_of)
+                # AUD-1 4c, then audit-leftovers-1: from the one grouped read.
+                null_newest, any_newest = newest_map.get(k, (None, None))
+                rows = [{"observed_at": null_newest}] if null_newest else []
                 if not rows:
                     # INSTRUMENT-KEYED SERIES. as_of() matches instrument exactly
                     # and most macro rows carry NULL, so a per-ticker logger looks
                     # empty on the default join. Ask which instruments exist and
                     # take the freshest of them: the question here is "did this
                     # logger write last night", not "did it write for SPY".
-                    insts = db.instruments(k)
-                    newest_any = None
-                    for inst in insts:
-                        r2 = db.as_of(k, as_of=as_of, instrument=inst)
-                        if r2:
-                            d = str(r2[-1]["observed_at"])[:10]
-                            newest_any = max(newest_any or d, d)
+                    # One indexed MAX across instruments (AUD-1 3: thousands
+                    # of them now, asked one at a time until then).
+                    newest_any = any_newest
                     if newest_any is None:
                         absent.append(k)
                         # ABSENT IS NOT STALE until the family's pull has tried.
@@ -902,6 +963,10 @@ def _main(argv: list[str]) -> int:
         print(format_freshness(r))
         for ln in named_keys(r):
             print(f"  {ln}")
+        # THE DATA CHECK'S COUNT (audit-leftovers-2): "n outliers" from the marks
+        # the pulls' `quality record` wrote. Information, never the exit code.
+        from . import quality                                   # noqa: PLC0415
+        print(f"  {quality.outliers_line(quality.outliers_count(quality.default_db()))}")
     return 0 if r["ok"] else 1
 
 

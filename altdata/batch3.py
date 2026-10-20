@@ -26,6 +26,16 @@ written by the ECB writer on `aq-3-series-2` (altdata/sources/ecb_irs.py, keys
 ecb.irs_10y_{fr,it,de}); `sr-36-basis-proxy` and `sr-43-49-rates-anchor` carry
 it too. This branch does not duplicate that writer: until it merges the block
 prints that the legs are not yet stored.
+
+DAILY OAT-BUND (st-r5-audit, 16 Oct 2026). Where config `eu_stress.daily`
+names a pair's daily legs and both are stored -- the Banque de France's TEC 10
+(altdata/sources/bdf_webstat.py, keyless) less the Bundesbank's fitted 10-year
+(altdata/sources/bundesbank.py) -- the pair reads daily, its percentiles are
+over the daily series, and its tier sits on the latest WEEKLY CLOSE (the last
+stored day of the latest ISO week whose Friday has passed; ruled 13 Oct 2026,
+Batch 5 item 28) against the daily crisis line. A pair without daily legs stays
+the ECB's monthly average, labelled so and untiered: BTP-Bund, since no keyless
+daily Italian 10-year was found (docs/briefs/st-r5-audit-notes.md).
 """
 
 from __future__ import annotations
@@ -42,9 +52,14 @@ REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "config" / "batch3_tranche_a.yaml"
 
 # SR-30's legs: the ECB's monthly convergence 10-year yields (aq-3-series-2).
-EU_LEGS = {"fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it", "de": "ecb.irs_10y_de"}
-EU_PAIRS = (("oat_bund", "OAT–Bund", "fr"), ("btp_bund", "BTP–Bund", "it"))
-EU_WRITER = "the ECB writer (altdata/sources/ecb_irs.py, branch aq-3-series-2)"
+EU_LEGS = {"fr": "ecb.irs_10y_fr", "it": "ecb.irs_10y_it", "de": "ecb.irs_10y_de",
+           "gr": "ecb.irs_10y_gr"}
+# Greece-Bund (ST-R4.21a, Batch 5 item 21): a WATCH spread beside OAT-Bund, no
+# tiers -- the tier applies to OAT-Bund only, whatever tiers_live says.
+EU_PAIRS = (("oat_bund", "OAT–Bund", "fr"), ("btp_bund", "BTP–Bund", "it"),
+            ("gr_bund", "Greece–Bund (watch)", "gr"))
+# weekly-fixes-7 item 11: the source by name; the date is the edition's (eu_stress).
+EU_WRITER = "the ECB's data portal"
 EURCHF_KEY = "yfinance.mkt_eurchf"
 
 BUYBACK_KEYS = ("treasury.buyback_max", "treasury.buyback_accepted")
@@ -63,6 +78,22 @@ def _pts(st, key: str, cutoff: str, instrument: Optional[str] = None
             for r in st.as_of(key, cutoff, instrument)
             if r.get("value_num") is not None]
     return sorted(rows)
+
+
+def _next_pull(cutoff: str) -> str:
+    """weekly-fixes-7 item 11: the date a not-yet-stored leg's daily writer next
+    runs, the first NYSE session after the cutoff ("20 Oct")."""
+    from . import session                                       # noqa: PLC0415
+    d = dt.date.fromisoformat(str(cutoff)[:10])
+    for _ in range(10):
+        d += dt.timedelta(days=1)
+        try:
+            if session.is_trading_session(d):
+                break
+        except Exception:                                       # noqa: BLE001
+            if d.weekday() < 5:
+                break
+    return f"{d.day} {d:%b}"
 
 
 def _on_or_before(pts: list[tuple[str, float]], day: str) -> Optional[tuple[str, float]]:
@@ -155,6 +186,36 @@ def dual_percentiles(series: list[tuple[str, float]], years: tuple[int, ...]
     return out
 
 
+def daily_spread(st, cutoff: str, legs: dict) -> list[tuple[str, float]]:
+    """The daily spread in bp from config's legs {fr|it: key, de: key}, per day
+    both carry."""
+    leg = next(k for k in legs if k != "de")
+    a = dict(_pts(st, legs[leg], cutoff))
+    b = dict(_pts(st, legs["de"], cutoff))
+    return [(d, _bp(a[d], b[d])) for d in sorted(set(a) & set(b))]
+
+
+def weekly_closes(series: list[tuple[str, float]], cutoff_day: str
+                  ) -> list[tuple[str, float]]:
+    """The last stored day of each ISO week whose Friday is on or before the
+    cutoff's day: a week still trading has no close yet."""
+    out: dict[tuple[int, int], tuple[str, float]] = {}
+    for d, v in series:
+        day = dt.date.fromisoformat(d)
+        friday = day + dt.timedelta(days=4 - day.weekday())
+        if friday.isoformat() <= cutoff_day[:10]:
+            out[day.isocalendar()[:2]] = (d, v)
+    return [out[k] for k in sorted(out)]
+
+
+def crisis_level_daily(st, cutoff: str, legs: dict,
+                       month: str = "2011-11") -> Optional[float]:
+    """The daily spread's peak in November 2011: what config
+    `eu_stress.daily.<pair>.crisis_bp` is set from, recomputable here."""
+    vals = [v for d, v in daily_spread(st, cutoff, legs) if d.startswith(month)]
+    return max(vals) if vals else None
+
+
 def crisis_level_from_store(st, cutoff: str, month: str = "2011-11") -> Optional[float]:
     """The OAT-Bund spread for November 2011 in the stored series: what
     config `eu_stress.crisis_bp` is set from (decision 2), recomputable here."""
@@ -168,17 +229,39 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
     cfg = cfg or config()
     c = cfg.get("eu_stress") or {}
     years = tuple(int(y) for y in c.get("windows_years") or (5, 20))
-    # The tiers sit on the daily weekly close (ruled 13 Oct 2026): on the
-    # monthly series every pair is untiered, and the label says which series.
-    live = bool(c.get("tiers_live"))
+    # The tiers sit on the daily weekly close (ruled 13 Oct 2026): a pair with
+    # its daily legs stored is tiered on it; on the monthly series every pair is
+    # untiered, and the label says which series.
     labels = c.get("series_labels") or {}
+    daily_cfg = c.get("daily") or {}
     pairs = []
     for pid, label, leg in EU_PAIRS:
+        dc = daily_cfg.get(pid) or {}
+        dser = daily_spread(st, cutoff, dc["legs"]) if dc.get("legs") else []
+        if dser:
+            day, bp = dser[-1]
+            prior = dser[-2] if len(dser) > 1 else None
+            closes = weekly_closes(dser, cutoff)
+            wk = closes[-1] if closes else None
+            crisis = float(dc.get("crisis_bp", c.get("crisis_bp", 190)))
+            pairs.append({"id": pid, "label": dc.get("label") or label, "bp": bp,
+                          "as_of": day,
+                          "change_bp": None if not prior else round(bp - prior[1], 1),
+                          "prior_as_of": prior[0] if prior else None,
+                          "percentiles": dual_percentiles(dser, years),
+                          "weekly_close": ({"bp": wk[1], "as_of": wk[0]} if wk else None),
+                          "tier": (tier_of(wk[1], {"eu_stress": {**c, "crisis_bp": crisis}})
+                                   if wk and pid == "oat_bund" else
+                                   "absent" if pid == "oat_bund" else None),
+                          "crisis_bp": crisis, "source": dc.get("source"),
+                          "cadence": "daily"})
+            continue
         label = labels.get(pid) or label
         ser = spread_series(st, cutoff, leg)
         if not ser:
             pairs.append({"id": pid, "label": label, "absent": True,
-                          "reason": f"not yet stored — the legs come from {EU_WRITER}"})
+                          "reason": f"not yet stored ({EU_WRITER}, from "
+                                    f"{_next_pull(cutoff)})"})
             continue
         day, bp = ser[-1]
         prior = ser[-2] if len(ser) > 1 else None
@@ -186,8 +269,7 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
                       "change_bp": None if not prior else round(bp - prior[1], 1),
                       "prior_as_of": prior[0] if prior else None,
                       "percentiles": dual_percentiles(ser, years),
-                      "tier": tier_of(bp, cfg) if pid == "oat_bund" and live
-                      else None,
+                      "tier": None,
                       "cadence": "monthly average (ECB)"})
     chf = _pts(st, EURCHF_KEY, cutoff)
     tell = None
@@ -198,11 +280,12 @@ def eu_stress(st, cutoff: str, cfg: Optional[dict] = None, tell_days: int = 7) -
         tell = {"level": v, "as_of": d, "since": wk[0] if wk else None,
                 "week_change_pct": None if not wk else round((v / wk[1] - 1) * 100, 2)}
     oat = next((p for p in pairs if p["id"] == "oat_bund"), {})
+    live = oat.get("cadence") == "daily"
     return {"pairs": pairs, "eurchf": tell, "tiers_live": live,
-            "tier": (oat.get("tier", "absent") if live
+            "tier": (oat.get("tier") or "absent" if live
                      else "absent" if not oat or oat.get("absent") else "untiered"),
             "watch_bp": float(c.get("watch_bp", 150)),
-            "crisis_bp": float(c.get("crisis_bp", 190)),
+            "crisis_bp": float(oat["crisis_bp"] if live else c.get("crisis_bp", 190)),
             "unvalidated": c.get("unvalidated")}
 
 
@@ -216,12 +299,28 @@ def _sector(instrument: str) -> str:
 def buyback_operations(st, cutoff: str, since: str, until: Optional[str] = None,
                        cfg: Optional[dict] = None) -> list[dict]:
     """Every stored operation dated in (since, until]: bought, maximum, the
-    ratio, and the stored 30-year's change to the next session it carries."""
+    ratio, and the 30-year's change to the next session it carries -- the tape's
+    30-year first (W8-13: FRED's DGS30 lags a session), DGS30 where the tape has
+    no point, each with its source named (`y30_source`)."""
     cfg = cfg or config()
     c = cfg.get("buybacks") or {}
     until = until or cutoff[:10]
     long_end = set(c.get("long_end_buckets") or [])
-    y30 = _pts(st, c.get("thirty_year_key", "fred.yield_30y"), cutoff)
+    legs = [(_pts(st, k, cutoff), name) for k, name in (
+        (c.get("thirty_year_tape"), "Yahoo Finance"),
+        (c.get("thirty_year_key", "fred.yield_30y"), "FRED"))
+        if k]
+
+    def leg(d: str):
+        """(next (day, value), on (day, value), source) from the first leg that
+        holds both the operation's day and a session after it."""
+        for pts, name in legs:
+            nxt = next(((dd, v) for dd, v in pts if dd > d), None)
+            on = _on_or_before(pts, d)
+            if nxt and on and on[0] == d:
+                return nxt, on, name
+        pts = legs[-1][0] if legs else []
+        return next(((dd, v) for dd, v in pts if dd > d), None), None, None
     ops = []
     for inst in st.instruments(BUYBACK_KEYS[0]):
         mx = dict(_pts(st, BUYBACK_KEYS[0], cutoff, inst))
@@ -229,8 +328,7 @@ def buyback_operations(st, cutoff: str, since: str, until: Optional[str] = None,
         for d in sorted(set(mx) & set(acc)):
             if not (since < d <= until):
                 continue
-            nxt = next(((dd, v) for dd, v in y30 if dd > d), None)
-            on = _on_or_before(y30, d)
+            nxt, on, src = leg(d)
             ops.append({"date": d, "instrument": inst, "sector": _sector(inst),
                         "type": inst.split(" | ")[0],
                         "long_end": _sector(inst) in long_end,
@@ -238,7 +336,8 @@ def buyback_operations(st, cutoff: str, since: str, until: Optional[str] = None,
                         "ratio": round(acc[d] / mx[d], 4) if mx[d] else None,
                         "y30_next_bp": (_bp(nxt[1], on[1]) if nxt and on and on[0] == d
                                         else None),
-                        "y30_next_day": nxt[0] if nxt else None})
+                        "y30_next_day": nxt[0] if nxt else None,
+                        "y30_source": src})
     return sorted(ops, key=lambda o: (o["date"], o["sector"]))
 
 

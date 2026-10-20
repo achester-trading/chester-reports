@@ -31,7 +31,9 @@ classes:
   growth_print:       {tier: 1, playbook: true, channel: "growth for the quarter: cyclical equities and the curve's slope", amplifiers: [SP500, RUSSELL2000, UST10Y]}
   refunding:          {tier: 1, channel: "coupon supply, and so the term premium and the long end", amplifiers: [UST30Y, UST10Y]}
   opex_quarterly:     {tier: 1, channel: "a quarterly expiry: dealers' hedges roll off at once, so the index's damping can change overnight", amplifiers: [VIX, SP500]}
-  earnings_mega:      {tier: 1, channel: "an index-weight leader: its move is the index's move, and its capital spending is the AI trade's", amplifiers: [NDX100, SP500]}
+  # W8-6 (weekly-fixes-8): the AI-capex clause is the AI names' only (`ai_clause`
+  # below); TSLA and every other leader gets the plain channel.
+  earnings_mega:      {tier: 1, channel: "an index-weight leader: its move is the index's move", ai_clause: ", and its capital spending is the AI trade's", amplifiers: [NDX100, SP500]}
   fomc_minutes:       {tier: 2, channel: "how the committee argued its last decision: the rate path beyond the next meeting", amplifiers: [UST10Y, USD_INDEX]}
   fed_chair:          {tier: 2, channel: "the Chair's words move the rate path between meetings", amplifiers: [UST10Y, USD_INDEX]}
   inflation_data:     {tier: 2, channel: "an inflation input the CPI and PCE prints will echo", amplifiers: [UST10Y]}
@@ -50,6 +52,10 @@ classes:
   earnings_tracked:   {tier: 3, channel: "a name a tracked story turns on", amplifiers: []}
   prediction_family:  {tier: 3, channel: "a prediction market's resolution: the outcome its traders have priced", amplifiers: []}
   thailand_political: {tier: 3, channel: "Thailand's policy calendar: the baht and Thai rates", amplifiers: []}
+  # Batch 8 item 49c (6e-digital, 17 Oct 2026): index events for the crypto
+  # proxies -- MSCI's November review and Strategy (MSTR), the STRC vote, the
+  # other providers' reviews as the broad-exclusion watch. SESSION-SET tier 2.
+  crypto_index_event: {tier: 2, channel: "passive flows in the crypto proxies (MSTR first), and through Strategy's financing the largest corporate bitcoin buyer", amplifiers: []}
   # Signal-triage batch 3, Tranche A's own calendar rows (config/release_calendar.yaml
   # `scheduled` / `recurring`; Friday stitching, 13 Oct).
   boj_decision:       {tier: 2, channel: "the yen's funding rate and the JGB curve", amplifiers: [USD_INDEX, UST10Y]}
@@ -90,6 +96,10 @@ earnings:
                       JPM, LLY, V, NFLX, XOM, MA, COST, WMT, ORCL, JNJ, HD, PG, ABBV,
                       BAC, UNH]
   hyperscalers: [MSFT, AMZN, GOOGL, GOOG, META, ORCL]
+  # THE AI NAMES (W8-6): the AI-capex clause applies to these only. Read from
+  # config/ai_buckets.yaml when that file exists; else this list, which is the
+  # forward-EPS block's own (config/ai_fcf.yaml `names`), GOOG beside GOOGL.
+  ai_names: [AMZN, GOOGL, GOOG, META, MSFT, ORCL, NVDA, MU, AVGO, AMAT]
   banks: [JPM, BAC, C, WFC, GS, MS]
 
 # THE HAND-SEEDED CALENDARS (by hand; no session writes an entry). A file not
@@ -98,6 +108,7 @@ hand_calendars:
   - {path: config/em_calendar.yaml, class: em_event, who: country}
   - {path: config/china_political_calendar.yaml, class: china_political, who: body}
   - {path: config/thailand_political_calendar.yaml, class: thailand_political, who: body}
+  - {path: config/digital_asset_calendar.yaml, class: crypto_index_event, who: body}
 
 # THE CLAIMS REGISTER'S DATED EVENTS (config/claims.yaml): a claim whose value is
 # an ISO date inside the coming week prints as an event.

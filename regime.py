@@ -139,7 +139,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "ee0bb0593afccf35"
+METHOD_SOURCE_SHA = "9a9404d42ced31c6"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -530,7 +530,7 @@ def _ratio_leg(spec: dict, which: str, as_of: str,
     """
     metric = str(spec.get("metric") or "")
     need = list(spec.get("requires_store_keys") or [])
-    have = [k for k in need if store.as_of(k, as_of=as_of)]
+    have = [k for k in need if store.latest_as_of(k, as_of=as_of) is not None]
     out: dict[str, Any] = {
         "leg": which,
         "state": None,
@@ -944,7 +944,9 @@ def latest(as_of: Optional[str] = None,
             rows = [r for r in st.as_of(STORE_KEY)
                     if str(r["observed_at"])[:10] == session_day]
         else:
-            rows = st.as_of(STORE_KEY, as_of=as_of)
+            # AUD-1 4c: the newest object, one row -- not every session since 1990.
+            last = st.latest_as_of(STORE_KEY, as_of=as_of)
+            rows = [last] if last else []
         if not rows:
             return None
         return json.loads(rows[-1]["value_text"])
