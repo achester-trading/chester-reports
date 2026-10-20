@@ -148,6 +148,12 @@ def regime_band(store: Any, as_of: Optional[str] = None,
     THE CROSSING RULE: a Macro dial state that changed within the last
     `transition_sessions` objects maps to Transition -- the lower half of the band
     it is leaving. Read from stored objects, never recomputed.
+
+    THE OTHER TWO DIALS (B49, ruled 20 Oct 2026). The Volatility and Gamma dials'
+    states are read from the same newest stored object -- the one the anchor
+    prints -- and returned as `vol_state` and `gamma_state` with the object's
+    session, so the order gate stamps them into the decision's record at entry.
+    Read, never computed: an absent dial is None with its reason.
     """
     import regime  # noqa: PLC0415
     lim = limits or load_limits()
@@ -164,13 +170,26 @@ def regime_band(store: Any, as_of: Optional[str] = None,
                              limit=n + 1)
     import json  # noqa: PLC0415
     states = []
+    newest: Optional[dict] = None
     for r in rows:
         try:
             o = json.loads(r["value_text"])
         except Exception:                                     # noqa: BLE001
             continue
+        newest = o
         states.append((o.get("session"),
                        ((o.get("dials") or {}).get("macro") or {}).get("state")))
+    dials = (newest or {}).get("dials") or {}
+    out["dials_session"] = (newest or {}).get("session")
+    for name, key in (("vol", "vol_state"), ("gamma", "gamma_state")):
+        d = dials.get(name) or {}
+        out[key] = d.get("state")
+        if d.get("state") is None:
+            out[key + "_reason"] = (d.get("absent_reason") or d.get("reason")
+                                    or ("no market-state object stored" if newest is None
+                                        else f"no {name} dial state on the object"))
+    if (dials.get("gamma") or {}).get("provisional"):
+        out["gamma_provisional"] = True
     if not states or states[-1][1] is None:
         out.update({"regime": None, "band": None, "cap_pct": None,
                     "absent": True,

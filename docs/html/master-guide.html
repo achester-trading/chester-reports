@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="97fa9817533b4b7c5f57aa5fe70713770967be18af50ec66922cb8093ea73bfd">
+<meta name="source-sha256" content="45c7be4bd5aff2a83cb3e4021cfab5206f77e690f8156500ba8537d042c1df7a">
 <title>The Master Guide</title>
 <style>
 :root {
@@ -2381,7 +2381,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Size untested and accruing signals at the Card's minimum, or not at all.</strong> The minimum is the Card's standard risk for the book (0.75% for Book B, 0.35% for Book C, 0.25% at most for Book D), never the exceptional tier.</li>
 <li><strong>Only rungs 5 to 7 lead to trades, and only through packets.</strong> A reading, lens or flag is context for a packet; it never sizes one.</li>
 <li><strong>The score is rolling thirteen-week expectancy by book and by regime, plus the count of rules broken, benchmarked over four quarters against Book A alone and a static 60/40</strong> (the Card). What prints today:</li>
-<li><strong>expectancy:</strong> the rolling thirteen-week cut, by book and by the regime stamped at entry, in ruled R with n and the interval first: at the Weekly's top and beside the Monthly's overall figure (built, b48-scoreboard; measurement only; "accruing (n=k)" below ten);</li>
+<li><strong>expectancy:</strong> the rolling thirteen-week cut, by book, by the regime stamped at entry and by each dial stamped at entry (Volatility and Gamma, from B49; an earlier decision prints "not stamped"), in ruled R with n and the interval first: at the Weekly's top and beside the Monthly's overall figure (built, b48-scoreboard; measurement only; "accruing (n=k)" below ten);</li>
 <li><strong>rule breaks:</strong> the Weekly's top prints the week's and the total;</li>
 <li><strong>heat and net exposure:</strong> at the Weekly's top, from the register's heat view over the open decisions (built, b48-scoreboard);</li>
 <li><strong>benchmarks:</strong> Book Z marks three static ledgers (cash, SPY, and a 60/40 of SPY and AGG). The active books and <strong>Book A alone</strong> are set against the 60/40 over four quarters, in percentages (built, b48-scoreboard); a book with an open decision prints "not built", because the register cannot mark an open position.</li>
@@ -2406,7 +2406,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
    - the <strong>instrument</strong>: the ETF itself (the thesis and the instrument are two decisions, Doctrine Rule 11; Options as Expression is where an option would be weighed);
    - the <strong>size</strong>: 0.75% of the account at risk (the Card's standard for Book B), because the setup is untested;
    - the <strong>exit, written first</strong>: the invalidation at the reclaimed level less one ATR, a 15-session time stop, and a profit plan at 2R;
-   - the <strong>regime stamp</strong>: the three dials and the volatile-day flag off.</li>
+   - the <strong>regime stamp</strong>: the three dials and the volatile-day flag off. As built, the order gate stamps the Doctrine regime from the Macro dial and, from B49 (20 Oct 2026), the Volatility and Gamma dials as the newest stored object holds them, into the decision's record at entry; the volatile-day flag joins once a50-dealer-store is on main.</li>
 <li><strong>Your approval and the register write.</strong> You approve it (one of seven approvals this week) and record it with the register's command, which is yours alone. The register checks it at entry: every required field present, the instrument not restricted.</li>
 <li><strong>The paper book.</strong> It is paper today; live trading waits for the IBKR gates.</li>
 <li><strong>The 07:00 anchor</strong> on Monday confirms the bracket still stands against the overnight move; <strong>the close</strong> records the day.</li>
@@ -2606,7 +2606,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>13</td>
 <td>"The score is rolling thirteen-week expectancy by book and by regime" (the Card, Doctrine Rule 22)</td>
-<td><strong>Built (b48-scoreboard), measurement only; Doctrine #2 may amend.</strong> <code>expectancy_13w</code>: ruled R over graded paper decisions taken, by book and by the regime stamped at entry (never recomputed), n and the interval first, "accruing (n=k)" below 10; the Weekly's top and the Monthly's register month read the one function</td>
+<td><strong>Built (b48-scoreboard), measurement only; Doctrine #2 may amend.</strong> <code>expectancy_13w</code>: ruled R over graded paper decisions taken, by book, by the regime stamped at entry and by the Volatility and Gamma dials stamped at entry (never recomputed; "not stamped" before B49), n and the interval first, "accruing (n=k)" below 10; the Weekly's top and the Monthly's register month read the one function</td>
 <td>The minimum n (session-set at 10) and how the cut is used: Doctrine #2</td>
 </tr>
 <tr>
@@ -3336,7 +3336,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Packet (Decision Packet):</strong> the immutable record of your decision; the only thing that permits a trade.</li>
 <li><strong>Point in time:</strong> reading only what was knowable then, by <code>available_at</code>.</li>
 <li><strong>Register:</strong> the decision register, the record you are graded against; its writes are yours alone.</li>
-<li><strong>Regime stamp:</strong> the three dials and the volatile-day flag, recorded on every packet.</li>
+<li><strong>Regime stamp:</strong> the three dials and the volatile-day flag, recorded on every packet. As built: the Macro dial's Doctrine regime and (B49) the Volatility and Gamma dials, read from the stored market-state object at entry and never recomputed; the volatile-day flag is not yet stamped (it joins after a50-dealer-store).</li>
 <li><strong>Scorecard:</strong> the dealer scorecard, six pre-registered tests of the dealer regime's claims.</li>
 <li><strong>Setup:</strong> a pre-specified pattern for a book, with a base rate (rung 5).</li>
 <li><strong>Stack:</strong> the ten-section layout every report shares, at its own depth.</li>

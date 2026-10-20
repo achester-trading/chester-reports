@@ -440,7 +440,10 @@ regime:
 - `expectancy_13w()` is the score: the rolling thirteen-week expectancy in ruled R
   over graded paper decisions the operator took, by the decision's `book` and by
   the regime the order gate stamped at entry (`gate_detail.regime.regime`, never
-  recomputed), n and the interval first, "accruing (n=k)" below
+  recomputed) and by the Volatility and Gamma dials the gate stamps beside it at
+  entry (B49, 20 Oct 2026: `heat.regime_band` reads them from the newest stored
+  object; an earlier decision prints "not stamped"; the volatile-day flag joins
+  after a50-dealer-store), n and the interval first, "accruing (n=k)" below
   `config/scoreboard.yaml`'s session-set `min_n`. The Weekly and the Monthly both
   read it.
 - `benchmarks_4q()` sets the active books (B, C, D) and Book A alone, each as

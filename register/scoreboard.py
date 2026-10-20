@@ -53,6 +53,12 @@ REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "config" / "scoreboard.yaml"
 ACTIVE_BOOKS = ("B", "C", "D")
 NO_STAMP = "(no regime stamp at entry)"
+NOT_STAMPED = "not stamped"
+ABSENT_AT_ENTRY = "(dial absent at entry)"
+# The two dials the order gate stamps at entry from B49 (20 Oct 2026), by the key
+# in gate_detail.regime. The volatile-day flag joins once a50-dealer-store is on
+# main.
+DIALS = (("vol", "vol_state"), ("gamma", "gamma_state"))
 NO_BOOK = "(no book recorded)"
 
 
@@ -121,6 +127,27 @@ def regime_stamp(decision: dict) -> str:
     return str(reg) if reg else NO_STAMP
 
 
+def _gate_regime(decision: dict) -> Optional[dict]:
+    raw = decision.get("gate_detail")
+    if not raw:
+        return None
+    try:
+        gd = json.loads(raw) if isinstance(raw, str) else dict(raw)
+    except (ValueError, TypeError):
+        return None
+    return gd.get("regime") or {}
+
+
+def dial_stamp(decision: dict, key: str) -> str:
+    """One dial's state as stamped at entry. A decision entered before the stamp
+    existed carries no such key and prints "not stamped"; one stamped while the
+    dial was absent says so. Never read from today's object."""
+    reg = _gate_regime(decision)
+    if reg is None or key not in reg:
+        return NOT_STAMPED
+    return str(reg[key]) if reg[key] else ABSENT_AT_ENTRY
+
+
 # ---------------------------------------------------------------------------
 # The score: rolling thirteen-week expectancy, by book and by regime
 # ---------------------------------------------------------------------------
@@ -168,7 +195,8 @@ def expectancy_13w(as_of: Optional[str] = None, db_path: Optional[str] = None,
     start, end = _window(as_of, 7 * weeks)
     out: dict[str, Any] = {"window": [start, end], "weeks": weeks, "min_n": min_n,
                            "unit": "R (ruled)", "overall": None, "by_book": {},
-                           "by_regime": {}, "by_book_regime": {}}
+                           "by_regime": {}, "by_book_regime": {},
+                           **{f"by_{d}": {} for d, _ in DIALS}}
     conn = _ro(db_path)
     if conn is None or not _has(conn, "grades") or not _has(conn, "decisions"):
         out["not_built"] = "no grades table on the store yet"
@@ -190,9 +218,11 @@ def expectancy_13w(as_of: Optional[str] = None, db_path: Optional[str] = None,
             continue
         d = decs.get(str(g.get("decision_id"))) or {}
         rows.append({"r": float(r), "book": d.get("book") or NO_BOOK,
-                     "regime": regime_stamp(d)})
+                     "regime": regime_stamp(d),
+                     **{dial: dial_stamp(d, key) for dial, key in DIALS}})
     out["overall"] = _cell([x["r"] for x in rows], min_n)
-    for key, field in (("by_book", "book"), ("by_regime", "regime")):
+    for key, field in (("by_book", "book"), ("by_regime", "regime"),
+                       *((f"by_{d}", d) for d, _ in DIALS)):
         groups: dict[str, list[float]] = {}
         for x in rows:
             groups.setdefault(x[field], []).append(x["r"])
@@ -202,6 +232,15 @@ def expectancy_13w(as_of: Optional[str] = None, db_path: Optional[str] = None,
         pairs.setdefault(f"{x['book']} | {x['regime']}", []).append(x["r"])
     out["by_book_regime"] = {k: _cell(v, min_n) for k, v in sorted(pairs.items())}
     return out
+
+
+def dial_line(e: dict, dial: str) -> str:
+    """The cut by one stamped dial, for the Monthly's register month."""
+    name = {"vol": "volatility", "gamma": "gamma"}[dial]
+    cells = e.get(f"by_{dial}") or {}
+    return (f"By the {name} dial at entry: "
+            + ("; ".join(f"{k}: {cell_text(v, e['min_n'])}" for k, v in cells.items())
+               or "none graded") + ".")
 
 
 def expectancy_line(e: dict) -> str:

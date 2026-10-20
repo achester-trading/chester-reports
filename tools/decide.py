@@ -351,9 +351,16 @@ def _gate_detail(g: dict) -> dict:
             "concentrations": v.get("concentrations"),
             "breaches": [c["limit"] for c in v.get("breaches") or []],
             "missing": v.get("missing"),
+            # The regime stamp at entry: the Doctrine regime from the Macro
+            # dial, and (B49, 20 Oct 2026) the Volatility and Gamma dials as the
+            # newest stored object holds them -- read by heat.regime_band, never
+            # computed. The volatile-day flag joins once a50-dealer-store is on
+            # main.
             "regime": {k: (v.get("regime") or {}).get(k) for k in
                        ("dial_state", "regime", "band", "cap_pct",
-                        "mapping_version", "mapping_proposed")},
+                        "mapping_version", "mapping_proposed",
+                        "vol_state", "gamma_state", "gamma_provisional",
+                        "dials_session")},
             "limits_version": v.get("limits_version"),
             "reference_version": v.get("reference_version")}
 

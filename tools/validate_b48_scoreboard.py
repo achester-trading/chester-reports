@@ -24,6 +24,11 @@ and the store are seeded in a temporary database of the gate's own.
      registers by manifest as superseding each of the five (named by
      <batch_id>:<local_id>), is not screened out as their duplicate, and each
      original moves to refined with its successor named.
+  F  B49 PART 3: THE DIALS STAMPED AT ENTRY. The order gate's regime read carries
+     the Volatility and Gamma dials from the newest stored object (an absent dial
+     None, with its reason), and its entry record keeps them; the score cuts by
+     each stamped dial, and a decision entered before the stamp prints "not
+     stamped". Read, never computed.
 
     python tools/validate_b48_scoreboard.py
 """
@@ -380,6 +385,90 @@ def group_e() -> None:
         st.close() if hasattr(st, "close") else None
 
 
+def group_f() -> None:
+    from altdata import observations                            # noqa: PLC0415
+    from register import heat, scoreboard as sb                 # noqa: PLC0415
+    import decide                                               # noqa: PLC0415
+    head("F. B49 PART 3: THE VOLATILITY AND GAMMA DIALS, STAMPED AT ENTRY")
+    db = TD / "dials.sqlite"
+    with observations.ObservationStore(str(db)) as st:
+        for day, macro, vol, gamma in (("2026-12-29", "expansion", "normal", "negative"),
+                                       ("2026-12-30", "expansion", "elevated", "positive")):
+            obj = {"session": day, "dials": {"macro": {"state": macro},
+                                             "vol": {"state": vol},
+                                             "gamma": {"state": gamma}}}
+            st.write("market_state", None, day, day + "T21:00:00+00:00",
+                     json.dumps(obj), "regime")
+        rb = heat.regime_band(st, AS_OF)
+    check(rb.get("vol_state") == "elevated" and rb.get("gamma_state") == "positive"
+          and rb.get("dials_session") == "2026-12-30" and rb.get("regime") == "Expansion",
+          f"the gate reads the newest stored object's dials, as the anchor prints them ({rb})")
+    db2 = TD / "dials_absent.sqlite"
+    with observations.ObservationStore(str(db2)) as st:
+        st.write("market_state", None, "2026-12-30", "2026-12-30T21:00:00+00:00",
+                 json.dumps({"session": "2026-12-30",
+                             "dials": {"macro": {"state": "expansion"},
+                                       "vol": {"state": "normal"},
+                                       "gamma": {"state": None,
+                                                 "absent_reason": "no settled profile"}}}),
+                 "regime")
+        rb2 = heat.regime_band(st, AS_OF)
+    check(rb2.get("gamma_state") is None and rb2.get("gamma_state_reason") == "no settled profile",
+          "an absent dial is None with its reason, never filled in")
+    gd = decide._gate_detail({"outcome": "approve", "reasons": [],
+                              "view_after": {"regime": rb}})
+    check(gd["regime"].get("vol_state") == "elevated"
+          and gd["regime"].get("gamma_state") == "positive"
+          and gd["regime"].get("dials_session") == "2026-12-30",
+          "the entry record (gate_detail) keeps both dials and the object's session")
+    src = (REPO / "register" / "heat.py").read_text(encoding="utf-8")
+    seg = src[src.index("def regime_band("):src.index("def _sign(")]
+    check("regime.latest(" not in seg and "compute(" not in seg and "rows_before(" in seg,
+          "the dials are read from the stored objects, never computed")
+    # The cut: two stamped decisions and one entered before the stamp.
+    from altdata import grader                                  # noqa: PLC0415
+    from register.store import Register                         # noqa: PLC0415
+    db3 = TD / "dial_cut.sqlite"
+    Register(str(db3)).close()
+    grader.GradeStore(str(db3)).conn.close()
+    conn = sqlite3.connect(str(db3))
+    stamp = {"outcome": "approve", "regime": {"regime": "Expansion",
+                                              "vol_state": "elevated", "gamma_state": None}}
+    for i, g, r in (("S1", json.dumps(stamp), 1.0), ("S2", json.dumps(stamp), -0.5),
+                    ("O1", _gd("Expansion"), 0.25)):
+        conn.execute("INSERT INTO decisions (id, created_at, decision_time, instrument,"
+                     " instrument_norm, direction, thesis, edge_type, horizon, invalidation,"
+                     " status, operator_action, book, gate_detail) VALUES"
+                     " (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (i, "2026-12-01T14:00:00+00:00", "2026-12-01T14:00:00+00:00", "SYNTH",
+                      "SYNTH", "long", "synthetic", "synthetic", "swing", "synthetic",
+                      "closed", "TAKE", "B", g))
+        conn.execute("INSERT INTO grades (decision_id, horizon, graded_at, horizon_date,"
+                     " operator_action, r_multiple_ruled, observations_json, price_source,"
+                     " method_version) VALUES (?,?,?,?,?,?,?,?,?)",
+                     (i, "swing", "2026-12-20T21:00:00+00:00", "2026-12-20", "TAKE", r,
+                      "[]", "synthetic", grader.METHOD_VERSION))
+    conn.commit()
+    conn.close()
+    e = sb.expectancy_13w(AS_OF, str(db3))
+    check(set(e["by_vol"]) == {"elevated", sb.NOT_STAMPED} and e["by_vol"]["elevated"]["n"] == 2
+          and e["by_vol"][sb.NOT_STAMPED]["n"] == 1,
+          f"by the volatility dial: the stamped state, and 'not stamped' for the earlier "
+          f"decision ({sorted(e['by_vol'])})")
+    check(set(e["by_gamma"]) == {sb.ABSENT_AT_ENTRY, sb.NOT_STAMPED},
+          f"by the gamma dial: absent at entry is named as such ({sorted(e['by_gamma'])})")
+    ln = sb.dial_line(e, "vol")
+    check(ln == "By the volatility dial at entry: elevated: accruing (n=2); not stamped: "
+                "accruing (n=1).", ln)
+    p = {"register_month": {"state": "ok", "graded_total": 3, "graded_this_month": 3,
+                            "cuts": {"overall": {}}, "scoreboard": {"expectancy": e}}}
+    from monthly_macro import stack as ms                       # noqa: PLC0415
+    reg = [x for x in ms.detail_tables(p, set()) if x.get("id") == "register"][0]
+    check(any(x.startswith("By the volatility dial at entry: ") for x in reg["lines"])
+          and any(x.startswith("By the gamma dial at entry: ") for x in reg["lines"]),
+          "the Monthly's register month prints the cut by each stamped dial")
+
+
 def main() -> int:
     try:
         seed(DB)
@@ -388,6 +477,7 @@ def main() -> int:
         group_c()
         group_d()
         group_e()
+        group_f()
     finally:
         import shutil                                           # noqa: PLC0415
         shutil.rmtree(TD, ignore_errors=True)
