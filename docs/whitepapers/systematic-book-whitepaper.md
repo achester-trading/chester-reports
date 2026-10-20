@@ -5,6 +5,7 @@
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XIX** — after *The Operating Doctrine* (XVIII), per the library guide. Cross-references in this paper are by name.
 **Version:** 1.0 — Draft, 6 September 2026
+**Change record:** 20 Oct 2026: the 4 September entry's comparison with the vendor's walls and flip removed, under the standing rule (no vendor figure in a committed file, nor one given by equality).
 **Status:** As-built with a forward section. Written after IBKR Gate 1 closed (5 September 2026) and the first tracked paper decision entered the register. Reread when Gate 2 (order construction) opens and again when the first hundred closed decisions exist.
 
 ---
@@ -304,7 +305,7 @@ The paper is as-built, and as-built changes. Three events would require a revisi
 
 For the record, and because the paper's examples should be reproducible:
 
-- **Fri 4 Sep, 16:10 ET** — settled chain capture; SPY close 770.24; gamma flip 770.63, put wall 760, call wall 780 (both walls matching the vendor exactly; flip within 0.13%).
+- **Fri 4 Sep, 16:10 ET** — settled chain capture; SPY close 770.24; gamma flip 770.63, put wall 760, call wall 780.
 - **Sat 5 Sep, 20:40 UTC** — `decide.py record`: SPY long, swing, positioning edge, invalidation "settled close below put wall 760," three exposure signals declared. Restriction check clear. Freshness: all three signals inside their session half-life against the most recent completed session. Packet `42806b99…` pinned Friday's SPY chain by hash; `code_dirty = 0`. Status `draft`.
 - **Sat 5 Sep, ~21:00 UTC** — `set-status` supersedes to `active`/TAKE; freshness re-checked and passed; successor packet inherits the manifest by content, records fresh commit and `code_dirty = 1` (the CLI itself uncommitted). Expression check: one warning, *positioning edge outlives its structure* — the walls are made of open interest that expires with the September cycle.
 - **Sat 5 Sep, 21:14 ET** — order placed by hand in the paper account after standing the Gateway down for the session: Buy 100 SPY, Limit 773.17, GTC, `PreSubmitted`, order 1009493520, account DUP735780. Gateway restarted; port 4002 listening; watchdog `state=ok`.
