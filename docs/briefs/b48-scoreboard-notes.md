@@ -6,7 +6,7 @@
 - **The Weekly's top:** heat, net exposure, the score and the rule-break count, above anything about the market.
 - **The Monthly:** the register month prints the by-book-and-regime cut beside its overall figure.
 
-**Branch.** `b48-scoreboard`, from chain-3's final tip (its STITCH COMPLETE commit). It merges on its own, after chain-3. Branch-only: pushed, not merged, not deployed, nothing run on the box, no unit touched.
+**Branch.** `b48-scoreboard`, from chain-3's final tip, `4f004a4` (its STITCH COMPLETE commit). It merges on its own, after chain-3. Branch-only: pushed, not merged, not deployed, nothing run on the box, no unit touched.
 
 **Rules kept.**
 - The register, the grades, the trade ledgers and the store are opened read-only. `register/scoreboard.py` opens every database `mode=ro` and holds no write statement, and the gate holds both.
@@ -98,4 +98,4 @@ Read from `register/store.py` (the `decisions`, `rule_breaks` and `decision_pack
 
 ## CI
 
-@@CI@@
+Round 1: pending.
