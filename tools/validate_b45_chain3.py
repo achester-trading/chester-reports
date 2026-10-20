@@ -14,6 +14,11 @@ no existing gate is the home. On fixtures; no network, no model, no live store.
      explorer's pearl.chain_* and the basket's PRL price directly -- and no
      calc.prl_* key copies them.
   B  X-3.4, ENGINE 7 (alpha/engines/intraday_dealer.py): see its section below.
+  C  R7 (19 Oct 2026): the posting templates accepted, and a posted story's base
+     rate beside its grade -- the share of the stored history's 182-day windows in
+     which the linked instrument closed higher, with the span and n, as of the
+     grade; on a synthetic close series counted by hand, the point-in-time cut,
+     no clause on a pending entry, and both render paths.
 
     python tools/validate_b45_chain3.py
 """
@@ -353,10 +358,87 @@ def group_b() -> None:
           "captures only")
 
 
+# ---------------------------------------------------------------------------
+# C. R7: a posted story's base rate
+# ---------------------------------------------------------------------------
+# SYNTHETIC closes, not market data: six "NVDA" closes two months apart. By hand,
+# with the grade on 2026-01-15 and a 182-day horizon, four windows have ended:
+#   2025-01-01 100 -> 2025-07-02, last close 2025-07-01  95   lower
+#   2025-03-01  90 -> 2025-08-30, last close 2025-07-01  95   higher
+#   2025-05-01 110 -> 2025-10-30, last close 2025-09-01 120   higher
+#   2025-07-01  95 -> 2025-12-30, last close 2025-11-01 105   higher
+# 2025-09-01's window ends 2026-03-02, after the grade. 3 of 4: 75%.
+# A 2025-12-01 close of 50 made available on 2026-02-01 (after the grade) would
+# turn the last window lower if it were read.
+SYNTH_CLOSES = (("2025-01-01", 100.0), ("2025-03-01", 90.0), ("2025-05-01", 110.0),
+                ("2025-07-01", 95.0), ("2025-09-01", 120.0), ("2025-11-01", 105.0))
+
+
+def group_c() -> None:
+    from altdata import mechanism_watch as mw, observations
+    from monthly_macro import prl_part
+    head("C. R7: A POSTED STORY'S BASE RATE BESIDE ITS GRADE")
+    db = str(TD / "c.sqlite")
+    with observations.ObservationStore(db) as st:
+        st.write_many([{"registry_key": "yfinance.mkt_nvda", "instrument": None,
+                        "observed_at": d, "available_at": f"{d}T21:00:00+00:00",
+                        "value": v, "source": "yfinance"} for d, v in SYNTH_CLOSES]
+                      + [{"registry_key": "yfinance.mkt_nvda", "instrument": None,
+                          "observed_at": "2025-12-01",
+                          "available_at": "2026-02-01T21:00:00+00:00",
+                          "value": 50.0, "source": "yfinance"}])
+    graded = "2026-01-15T15:00:00+00:00"
+    with mw.Register(db) as r:
+        mid = r.add_candidate({"name": "Lumen", "stage": "mainnet",
+                               "mechanism_class": "proof of useful work"},
+                              origin="llm_draft", prefilter={"hits": ["fixture"]},
+                              at="2026-01-15T14:00:00+00:00")
+        e1 = r.add_entry("Lumen: a useful-work chain reached mainnet.", "I",
+                         "https://example.org/lumen", mid, "2026-01-15T14:00:00+00:00")
+        e2 = r.add_entry("Ferrum: a reserve token backed by a commodity basket.", "V",
+                         "the scan", None, "2026-01-15T14:00:00+00:00")
+        r.mark_posted(e1, "mwatch_fixture_e1", graded)
+    t = mw.posting_config()["factors"]["I"]
+    with mw.Register(db, readonly=True) as reg:
+        br = mw.base_rate(reg.conn, t, graded)
+        late = mw.base_rate(reg.conn, t, "2026-02-02T15:00:00+00:00")
+        ents = reg.month("0000-00-00", "9999-12-31")["entries"]
+        clause = mw.entry_base_rate(reg.conn, [e for e in ents if e["id"] == e1][0])
+        pending = mw.entry_base_rate(reg.conn, [e for e in ents if e["id"] == e2][0])
+        md = mw.render(reg.all(), ents, as_of="2026-01-31", conn=reg.conn)
+    check(br["n"] == 4 and br["higher"] == 3 and br["share"] == 0.75
+          and br["first"] == "2025-01-01" and br["last"] == "2025-07-01"
+          and br["instrument"] == "NVDA" and br["horizon_days"] == 182,
+          f"the share, n and span are the hand count: 3 of 4 windows, 75%, starts "
+          f"2025-01-01 to 2025-07-01 ({br})")
+    check(late["n"] == 4 and late["higher"] == 2,
+          "point in time: the close made available after the grade is not read as of "
+          "the grade, and is read once it is knowable (2 of 4 then)")
+    want = ("base rate: NVDA closed higher over 182 days in 75% of 4 windows "
+            "(starts 2025-01-01 to 2025-07-01; as of 2026-01-15)")
+    check(clause == want, f"the clause is code-written: {clause}")
+    check(pending is None and md.count(want) == 2,
+          "a pending entry prints no base rate; the register view prints it beside the "
+          "posted entry's grade and the candidate's Grade cell")
+    with observations.ObservationStore(db) as st:
+        part = prl_part.build(st, "2026-01-31T21:00:00+00:00",
+                              "2025-12-31T21:00:00+00:00", db_path=db)
+    lines = [l for p in part if p.get("title") == prl_part.TITLE_ENTRIES
+             for l in p["lines"]]
+    check(any(f"proposed ({want}) as mwatch_fixture_e1" in l for l in lines)
+          and not any("base rate" in l for l in lines if "Ferrum" in l),
+          "the Monthly's entries list prints it beside the posted entry's grade, and not "
+          "beside the pending one")
+    empty = mw.base_rate(None, t, graded)
+    check(mw.base_rate_clause(empty).startswith("base rate: awaiting history (NVDA"),
+          f"with no stored window it says so: {mw.base_rate_clause(empty)}")
+
+
 def main() -> int:
     try:
         group_a()
         group_b()
+        group_c()
     finally:
         import shutil                                           # noqa: PLC0415
         shutil.rmtree(TD, ignore_errors=True)

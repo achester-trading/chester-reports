@@ -145,7 +145,12 @@ mechanism_watch:
   # reject, and is graded on outcome as Audit #3 section I grades that register.
   # Its implied outcome and horizon are its factor's template below: the entry's
   # own text is the story's direction, and these say what it claims about a
-  # stored series. SESSION-SET, a rule-31 draft for the operator's accept-all.
+  # stored series. SESSION-SET, a rule-31 draft for the operator's accept-all:
+  # ACCEPTED as drafted, 19 Oct 2026 (R7), with one addition -- wherever a posted
+  # story's grade prints, its base rate prints beside it: the share of the stored
+  # history's windows of the template's horizon in which the linked instrument
+  # closed higher, with the windows' span and n, point in time as of the grade
+  # (altdata/mechanism_watch.py base_rate; code-written, nothing stored).
   posting:
     factors:
       I:

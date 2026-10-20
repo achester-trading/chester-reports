@@ -297,9 +297,18 @@ def _text(v: Any) -> Optional[str]:
 # The rendered view (`make mechanism-register`)
 # ---------------------------------------------------------------------------
 def render(rows: list[dict], entries: Optional[list[dict]] = None,
-           as_of: Optional[str] = None) -> str:
+           as_of: Optional[str] = None, conn: Optional[sqlite3.Connection] = None,
+           cfg: Optional[dict] = None) -> str:
     """docs/mechanism-watch-register.md: the register as a table, then the drafted
-    entries. A rendered view; never edited by hand."""
+    entries. A rendered view; never edited by hand. With `conn` (the register's
+    own connection, read-only from the CLI), a posted entry's grade carries its
+    base rate (R7)."""
+    rates = {int(e["id"]): entry_base_rate(conn, e, cfg) for e in (entries or [])} \
+        if conn is not None else {}
+    by_mw = {}
+    for e in entries or []:
+        if rates.get(int(e["id"])) and e.get("mw_id"):
+            by_mw.setdefault(e["mw_id"], rates[int(e["id"])])
     out = ["# Mechanism-watch register", "",
            f"A rendered view of the `mechanism_watch` store table (`make "
            f"mechanism-register`; as of {as_of or _now()[:10]}). Never edited by hand: "
@@ -314,13 +323,90 @@ def render(rows: list[dict], entries: Optional[list[dict]] = None,
                 "|---|---|---|---|---|---|---|---|"]
         for r in rows:
             out.append(f"| {r['id']} | {r['name']} | {r.get('mechanism_class') or '-'} | "
-                       f"{r.get('stage') or '-'} | {r['status']} | {r['grade']} | "
+                       f"{r.get('stage') or '-'} | {r['status']} | {r['grade']}"
+                       f"{' (' + by_mw[r['id']] + ')' if by_mw.get(r['id']) else ''} | "
                        f"{r['first_seen'][:10]} | {'yes' if r.get('draft') else 'no'} |")
     if entries:
         out += ["", "## Draft narrative-register entries", ""]
         out += [f"- {e['at'][:10]} · class={e['cls']} · factor={e['factor']} · "
-                f"{e['grade']} · {e['text']} · {e['source']}" for e in entries]
+                f"{e['grade']}"
+                + (f" ({rates[int(e['id'])]})" if rates.get(int(e["id"])) else "")
+                + f" · {e['text']} · {e['source']}" for e in entries]
     return "\n".join(out) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# A posted story's base rate (R7, ruled 19 Oct 2026, accepting the posting
+# templates): wherever a posted entry's grade prints, the share of the stored
+# history's windows of its template's horizon in which the linked instrument
+# closed higher prints beside it, with the windows' span and n. Point in time as
+# of the grade (the entry's posted_at), through the store's own as-of join. A
+# statistic beside the grade: no flag, no tell, no decision, nothing stored.
+# ---------------------------------------------------------------------------
+def base_rate(conn, factor_cfg: dict, as_of: str) -> dict:
+    """{instrument, metric, horizon_days, as_of, n, higher, share, first, last}
+    over every stored close d whose window [d, d + horizon calendar days] has
+    ended by `as_of`; the window's close is the last close on or before its end.
+    `conn` is a connection to the observation store's database (or a store)."""
+    from bisect import bisect_right                             # noqa: PLC0415
+    from . import observations                                  # noqa: PLC0415
+    io = factor_cfg.get("implied_outcome") or {}
+    metric = (io.get("metrics") or [None])[0]
+    horizon = int(io.get("horizon_days") or 182)
+    inst = (factor_cfg.get("linked_instruments") or [metric])[0]
+    out = {"instrument": inst, "metric": metric, "horizon_days": horizon,
+           "as_of": str(as_of)[:10], "n": 0, "higher": 0, "share": None,
+           "first": None, "last": None}
+    if conn is None or not metric:
+        return out
+    cutoff = observations.canonical_instant(as_of)
+    try:
+        if hasattr(conn, "as_of"):
+            rows = conn.as_of(metric, as_of=cutoff)
+        else:
+            cur = conn.execute(observations.AS_OF_SQL, {"key": metric, "instrument": None,
+                                                        "as_of": cutoff})
+            names = [c[0] for c in cur.description]
+            rows = observations.prefer_tier([dict(zip(names, r)) for r in cur.fetchall()],
+                                            metric)
+    except sqlite3.Error:                                       # no store table yet
+        return out
+    px = sorted((str(r["observed_at"])[:10], float(r["value_num"])) for r in rows
+                if r.get("value_num") is not None)
+    days = [d for d, _ in px]
+    end_ok = dt.date.fromisoformat(out["as_of"])
+    for d, v in px:
+        end = dt.date.fromisoformat(d) + dt.timedelta(days=horizon)
+        if end > end_ok:
+            break
+        j = bisect_right(days, end.isoformat()) - 1
+        out["n"] += 1
+        out["higher"] += px[j][1] > v
+        out["first"] = out["first"] or d
+        out["last"] = d
+    if out["n"]:
+        out["share"] = out["higher"] / out["n"]
+    return out
+
+
+def base_rate_clause(br: dict) -> str:
+    if not br["n"]:
+        return (f"base rate: awaiting history ({br['instrument']}: no {br['horizon_days']}-"
+                f"day window completes in the store as of {br['as_of']})")
+    return (f"base rate: {br['instrument']} closed higher over {br['horizon_days']} days "
+            f"in {round(100 * br['share'])}% of {br['n']:,} windows (starts {br['first']} "
+            f"to {br['last']}; as of {br['as_of']})")
+
+
+def entry_base_rate(conn, entry: dict, cfg: Optional[dict] = None) -> Optional[str]:
+    """The clause for a POSTED entry (its grade proposed, its posted_at the grade's
+    instant), None for one still pending or whose factor has no template."""
+    if not (entry.get("narrative_id") and entry.get("posted_at")):
+        return None
+    t = ((cfg if cfg is not None else posting_config()).get("factors") or {}).get(entry["factor"])
+    if not t:
+        return None
+    return base_rate_clause(base_rate(conn, t, entry["posted_at"]))
 
 
 
@@ -424,10 +510,10 @@ def _main(argv: list[str]) -> int:
         with reg:
             rows = reg.all()
             ents = reg.month("0000-00-00", "9999-12-31")["entries"]
-        if a.cmd == "review":
-            print(json.dumps(rows, indent=2, default=str))
-            return 0
-        md = render(rows, ents)
+            if a.cmd == "review":
+                print(json.dumps(rows, indent=2, default=str))
+                return 0
+            md = render(rows, ents, conn=reg.conn)
         if a.out:
             Path(a.out).write_text(md, encoding="utf-8")
             print(f"wrote {a.out}")

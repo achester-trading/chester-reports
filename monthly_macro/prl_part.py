@@ -318,6 +318,9 @@ def build(st, now: str, then: str, db_path: Optional[str] = None) -> list[dict]:
         from altdata import mechanism_watch as mw              # noqa: PLC0415
         with mw.Register(db_path, readonly=True) as reg:
             m = reg.month(start, end)
+            # R7: a posted entry's base rate, read through the register's own
+            # read-only connection, as of the entry's posting (its grade).
+            rates = {int(e["id"]): mw.entry_base_rate(reg.conn, e) for e in m["entries"]}
     except Exception:                                           # noqa: BLE001
         m = None
     if m is None:
@@ -338,6 +341,7 @@ def build(st, now: str, then: str, db_path: Optional[str] = None) -> list[dict]:
     out.append({"title": TITLE_ENTRIES, "paragraph_wanted": False,
                 "lines": [f"{e['at'][:10]} · class={e['cls']} · factor={e['factor']} · "
                           f"{e['grade']}"
+                          + (f" ({rates[int(e['id'])]})" if rates.get(int(e["id"])) else "")
                           + (f" as {e['narrative_id']}" if e.get("narrative_id") else "")
                           + f" · {e['text']} · {e['source']} (draft)"
                           for e in m["entries"]] or ["No entry drafted this month."]})
