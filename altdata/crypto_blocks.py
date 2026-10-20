@@ -288,7 +288,7 @@ def daily_enabled(cfg: Optional[dict] = None) -> bool:
 
 
 def fng_word(v: Optional[float], cfg: dict) -> Optional[str]:
-    """Fear & Greed as ONE word, by the session-set bands (`blocks.daily.fng_words`:
+    """Fear & Greed in the publisher's own label, by the session-set bands (`blocks.daily.fng_words`:
     [upper bound, word], ascending)."""
     if v is None:
         return None
@@ -364,7 +364,7 @@ def daily_paragraph(st, now: str, cfg: Optional[dict] = None) -> dict:
             d0 = max(d0 or "", d)
     lines.append("Implied vol (DVOL): " + ("; ".join(parts) + f" ({short(d0)})."
                                           if parts else f"{NOT_TRACKED}."))
-    # 6. Fear & Greed, one word
+    # 6. Fear & Greed, in the publisher's label
     fg = _pts(st, "fng.value", now)
     w = fng_word(fg[-1][1], cfg) if fg else None
     lines.append(f"Fear & Greed: {w} ({short(fg[-1][0])})." if w else
