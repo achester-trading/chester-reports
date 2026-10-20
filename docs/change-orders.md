@@ -22,3 +22,4 @@ An index of every ruled change order in `docs/`, oldest first. Each order is fil
 | 17 Oct 2026 | [change-order-signal-triage-batch-9-2026-10-17.md](change-order-signal-triage-batch-9-2026-10-17.md) | Signal triage item 52, the volatility event |
 | 19 Oct 2026 | [change-order-signal-triage-batch-11-2026-10-19.md](change-order-signal-triage-batch-11-2026-10-19.md) | Signal triage items 53–58: the opening setup and the dealer scorecard amended |
 | 19 Oct 2026 | [change-order-secondary-notes-2026-10-19.md](change-order-secondary-notes-2026-10-19.md) | The secondary notes: the 09:50 open note and the 21:30 evening note |
+| 20 Oct 2026 | [change-order-signal-triage-batch-13-2026-10-20.md](change-order-signal-triage-batch-13-2026-10-20.md) | Signal triage item 61: relative options volume (OS-12a–d) |
