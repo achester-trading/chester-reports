@@ -661,6 +661,8 @@ Deeper: the Doctrine 6.5 and 10.2; the Reader's Guide Part X (reading targets, r
 
 ### Table 8
 
+**Table 8 is the agenda for Doctrine #2 (7–8 November), with none of its rows ruled** (R14, 19 October 2026). Where a row says a direction is already set, that is the order's, not this table's.
+
 | # | What the Doctrine says | What exists | The choice for you |
 |---|---|---|---|
 | 1 | "Daily Cascade — the eight reports" (6.2) | Three daily touches: the 07:00 anchor, the 12:30 alert, the 16:45 close | Rename to the three as-built reports, or build the missing ones |
