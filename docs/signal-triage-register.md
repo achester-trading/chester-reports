@@ -808,6 +808,8 @@ above changes.
 
 *Accepted as drafted (rule 31), 19 Oct 2026 (R3):* **H6, the level clusters' prior-session family** (Batch 11; `docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md`). The prior session's family is read with the overnight that led into that session, as a48-batch11 drafted it. H6 stays pre-registered and accruing; nothing prints as a verdict until its sample is met.
 
+*Accepted as drafted (rule 31), 19 Oct 2026 (R4):* **SPX in OS-9's index floor** (Batch 11; `docs/ledgers/os-9-ledger-2026-10-19.md`). SPX is held to the index floor of 2,000 contracts, as drafted. OS-9's outcome ledger's first edition stays **INSUFFICIENT** (0 resolved builds against a floor of 30); report-only.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
