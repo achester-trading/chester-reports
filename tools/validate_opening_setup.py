@@ -301,7 +301,7 @@ def group_c() -> None:
           and not (TD / "absent.db").exists(),
           "no store file: 'not stored', and nothing is created (read only)")
     src = (REPO / "daily_cascade" / "ahead.py").read_text(encoding="utf-8")
-    check("r = opening_setup.with_pricing(r, now)" in src,
+    check("r = opening_setup.with_pricing(r, now, db_path)" in src,
           "the Ahead matrix's earnings rows carry it; the implied move stays the "
           "matrix's own (its expiry rule arrives with weekly-fixes-8's merge)")
 

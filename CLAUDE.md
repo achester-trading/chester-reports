@@ -224,7 +224,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and twenty-one code gates (one hundred and eighteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty-two code gates (one hundred and nineteen Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -640,6 +640,21 @@ anchor, the 12:30 alert and the 16:45 close remain the reports of record.
   scripts `tools/calibration/sn1_release_first_hour.py` and
   `tools/calibration/sn2_after_hours_earnings.py`.
 - **The gate.** `tools/validate_secondary_notes.py` holds all of it.
+
+**The dealer captures are stored (decision 9, 19 Oct 2026; a50-dealer-store).**
+`altdata/dealer_store.py` turns each of our engine's exposure files under the
+computed directory (the 09:45 and 12:30 captures, the 16:10 profiles) into rows of `exposure.net_gex`, `net_to_gross`,
+`regime_word` (the gate's word: net-to-gross at least 0.10, else
+"indeterminate"), `gamma_flip`, `call_wall_otm`, `put_wall_otm` and `spot`:
+instrument the symbol, observed_at the slot's ET instant, available_at the file's
+own computed_at, source `dealer_capture:<the capture's id>`. It runs inside the
+capture and the EOD pass (Stage 2b), after compute and never fatally; a run given
+its own out_dir without a store path stores nothing. A vendor-gamma profile is
+never read. `python -m altdata.dealer_store backfill --dry-run` is the operator's.
+`alpha/event_rates.py`'s dealer bucket reads the stored word. The open fetch's
+5-minute bars carry QQQ and IWM beside SPY (decision 10), and
+`opening_setup.with_pricing` reads only the store it is named.
+`tools/validate_a50_dealer_store.py` holds it.
 
 **The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
 Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,

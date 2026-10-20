@@ -7,8 +7,11 @@ the fetch writes, the payload reads the store, a report never fetches (30.4).
     python -m altdata.note_fetch evening [--date D] [--dry-run]   # 21:30, Sun-Thu
 
 THE OPEN FETCH (after the 09:45 capture):
-  bars       today's 5-minute bars from 08:00 ET for SPY, ES=F, ZN=F, ZT=F (where
-             Yahoo serves it), ^TNX, DX-Y.NYB and ^VIX
+  bars       today's 5-minute bars from 08:00 ET for SPY, QQQ, IWM, ES=F, ZN=F,
+             ZT=F (where Yahoo serves it), ^TNX, DX-Y.NYB and ^VIX. QQQ and IWM
+             (decision 10 of 19 Oct 2026) give all three of engine 7's
+             instruments decision-time bars stored at about 09:47; they are the
+             tape's own qqq and iwm, registered in its bars_prices block
   fred       a targeted pull of ONLY the series behind today's 08:30 tier-1 and
              tier-2 releases, through the existing FRED writer (vintage-keyed,
              append-only); FRED's full daily pull stays at 16:10
@@ -45,7 +48,7 @@ from typing import Callable, Optional
 
 log = logging.getLogger("altdata.note_fetch")
 
-OPEN_IDS = ("spy", "es", "zn", "zt", "y10", "dxy", "vix")
+OPEN_IDS = ("spy", "qqq", "iwm", "es", "zn", "zt", "y10", "dxy", "vix")
 EVENING_IDS = ("es", "nq", "rty", "zn", "usdjpy", "cnh", "btc", "eth")
 # Asia's indices are read from four days back: their prior close is the last bar
 # before tonight's open, which closed in the early ET morning (or on Friday).

@@ -294,7 +294,8 @@ def group_c() -> None:
     n = con.execute("SELECT COUNT(*), COUNT(DISTINCT instrument) FROM bars").fetchone()
     tabs = {t for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     con.close()
-    check(n == (7, 7) and r["fred"]["state"] == "no 08:30 release",
+    k = len(note_fetch.OPEN_IDS)
+    check(n == (k, k) and r["fred"]["state"] == "no 08:30 release",
           f"a live fetch writes one bar per instrument, and pulls no FRED series on a day "
           f"with no 08:30 release ({n}; {r['fred']['state']})")
     check("observations" not in tabs or True, "the open fetch on a quiet day writes no "

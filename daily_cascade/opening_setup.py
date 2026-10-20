@@ -20,7 +20,8 @@ single_name_puts() (the Weekly). No side is ever inferred.
         captures, in the Weekly's Mechanics
     with_pricing(row, now, db_path)
         OS-11, an Ahead earnings row's last three reactions and its pricing word
-        against the matrix's own implied move
+        against the matrix's own implied move; it reads only the store it is
+        named (None reads nothing: a50-dealer-store, A48's local-run note)
 
 REPORT-ONLY (D-4): no 0-100 score and no weights; every rank prints its window
 and n; the regime word and the numbers, never CALM / NORMAL / WILD; a pricing word
@@ -692,7 +693,11 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
     the pricing word on their median (n of 3 or more; else "n=k, no word"),
     appended to its consensus cell, the implied move being the matrix's own (Batch
     11 item 57); the stored implied-against-realised records beside them; and,
-    for MSTR, the MSCI index events stored in the digital-asset calendar."""
+    for MSTR, the MSCI index events stored in the digital-asset calendar.
+
+    `db_path` is the store to read, passed by the caller; None reads nothing and
+    prints "not stored" -- never the default store (A48's local-run note: a gate
+    run must never open, or leave behind, data/chester.db)."""
     cfg = cfg or config()
     e = cfg["earnings"]
     n_max, n_min = int(e["reactions"]), int(e.get("word_min_n", 3))
@@ -700,7 +705,7 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
     m = MOVE_RE.search(str(r.get("implied_move") or ""))
     implied = float(m.group(1)) if m else None
     try:
-        conn = _ro(db_path)
+        conn = _ro(db_path) if db_path else None
     except sqlite3.Error:
         conn = None
     reacts, moves = [], []

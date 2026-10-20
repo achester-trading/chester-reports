@@ -2582,6 +2582,26 @@ sources:
     implemented_by: altdata/note_fetch.py
     status: live
 
+  dealer_capture:
+    name: Our own engine's exposure profiles, stored per capture
+    tier: derived
+    epistemic_role: own_computation
+    domain: [positioning, volatility]
+    geography: [US]
+    latency: written after compute by the 09:45 and 12:30 captures and the 16:10 EOD pass
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Written by altdata/dealer_store.py (decision 9, 19 Oct 2026): one row per
+      field per data/computed/<session>/<SYM>_*_exposure.json. observed_at = the
+      slot's ET instant on the session; available_at = the file's own
+      computed_at, never the write instant. The stored string is
+      dealer_capture:<the capture's run id, else the file's stem>. Our own
+      engine's files only: no vendor value.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/dealer_store.py
+    status: live
+
   daily_close:
     name: The 16:45 close pass's own records
     tier: derived

@@ -397,7 +397,11 @@ def amplifier(cls_cfg: dict, pos: Optional[dict], z_min: float) -> str:
 # ---------------------------------------------------------------------------
 def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
           cfg: Optional[dict] = None, chain_base: Optional[Path] = None,
-          min_outcomes: int = 2, repo: Optional[Path] = None) -> dict:
+          min_outcomes: int = 2, repo: Optional[Path] = None,
+          db_path: Optional[str] = None) -> dict:
+    """The ranked table. `db_path` is the store the earnings rows' reactions are
+    read from, passed explicitly by the caller (the Weekly passes the store it
+    opened); None reads none, never the default store."""
     cfg = cfg if cfg is not None else load_config()
     classes = cfg.get("classes") or {}
     cal = cal or {}
@@ -414,7 +418,7 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
             r = earnings_row(r, cfg, now, chain_base)
             # OS-11 (a44-opening-setup): the last three reactions and the pricing word.
             from . import opening_setup                         # noqa: PLC0415
-            r = opening_setup.with_pricing(r, now)
+            r = opening_setup.with_pricing(r, now, db_path)
         rows.append(dict(r))
     hrows, absent = hand_rows(cfg, mon, sat, repo)
     rows += hrows + register_rows(cfg, mon, sat) + rebalance_rows(p, mon, sat)
