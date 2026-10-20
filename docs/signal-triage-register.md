@@ -824,6 +824,8 @@ above changes.
 
 *Accepted as drafted (rule 31), 19 Oct 2026 (R11):* **library-st-l's drafts**: the twelve dated calibration appendices and the Digital Assets paper's timeless paragraph; the Warsh matrix's section 2.1.5 entry (`docs/warsh-matrix-lines.md`); the five Doctrine #2 proposals (`docs/briefs/doctrine-2-proposals-st-l.md`, for the sitting of 7-8 Nov, none ruled by this acceptance); and the three ledgers: the hiking-cycle table (`docs/ledgers/fed-cycles-ledger-2026-10-19.md`, NO GATE IN THE ORDER, n 21), SR-20's first COFER entry and SR-24's Livingston note (each under its entry above). Each states that it grants nothing.
 
+*Ruled 19 Oct 2026 (R12):* **no rethink of the dials' history before November.** The grammar search's coverage rule stands as written: the macro and volatility dials join a run only once their point-in-time history clears five years before the holdout, and the box's coverage at the first run decides. Nothing is backfilled or reinterpreted to make them pass.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
