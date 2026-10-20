@@ -9,11 +9,11 @@ Cloudflare Worker so one dashboard can show the health of all five at a glance.
 
 | Report | State key | Status in this repo |
 |---|---|---|
-| Monthly Macro | `monthly_macro` | **Built** — the only implemented pipeline |
-| Disruptive Themes | `disruptive_themes` | Not yet built |
-| Top & Bottom | `top_bottom` | Not yet built |
-| Alternative Asset | `alt_asset` | Not yet built |
-| Daily Cascade | `daily_cascade` | Not yet built |
+| Monthly Macro | `monthly_macro` | **Built** — the stacked Monthly |
+| Disruptive Themes | `disruptive_themes` | Not built — re-cadenced to the Quarterly Structural, itself not built |
+| Top & Bottom | `top_bottom` | Not built — no writer stores `top_bottom.composite` or `.verdict` |
+| Alternative Asset | `alt_asset` | **Built, disabled** — the Alternative Assets Quarterly (`chester-quarterly.timer` ships disabled) |
+| Daily Cascade | `daily_cascade` | **Built** — the 07:00 anchor, the 12:30 alert, the 16:45 close, the 09:50 open note and the 21:30 evening note |
 
 The state keys are already reserved in `state/emit.py:VALID_KEYS` (which also
 carries `gamma_weekly`, the EOD options pass, and `weekly_tactical`, the Weekly,
@@ -471,9 +471,10 @@ Config `config/crypto_sources.yaml`; `tools/validate_crypto_sources.py` holds it
 - Deribit's DVOL (`deribit.py`, from March 2021);
 - Farside's ETF flow tables (`farside.py`), with a column-change detector, STALE
   with its last good date on any refusal, and a 06:45 read for the T-1 figure;
-- the froth gauge's sample (`gt.py`), which reads nothing while GeckoTerminal's
-  robots.txt disallows its API, with a DexScreener fallback marked in the row and
-  never scored;
+- the froth gauge's sample (`gt.py`), which reads GeckoTerminal's documented API
+  under its own published terms (ruling 4 of 17 Oct 2026: robots.txt governs
+  crawlers of pages, not that API), with a DexScreener fallback marked in the row
+  and never scored;
 - CoinPaprika's total market cap and BTC dominance (`paprika.py`), in place of
   CoinGecko.
 

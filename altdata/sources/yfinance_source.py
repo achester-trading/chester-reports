@@ -78,7 +78,8 @@ LIVE_AVAILABILITY_KIND = "ingest_instant"
 # chosen per run so every reconstructed row in the store means the same thing.
 RECONSTRUCTED_LATENCY_MINUTES = 20
 
-# symbol -> store key. 40 symbols: broad indices, 11 SPDR sectors, equal weight,
+# symbol -> store key: the basket in config (config/security_master.yaml resolves
+# it, and this map is its seed): broad indices, 11 SPDR sectors, equal weight,
 # rates/credit, commodities, dollar, international, crypto, the volatility indices,
 # ^GSPC, and ST-2's style, EM, producer and offshore-yuan additions.
 SYMBOLS: dict[str, str] = {

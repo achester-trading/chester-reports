@@ -11,8 +11,10 @@ Ruled 12 October 2026: the brief `docs/briefs/alpha-lab-brief-2026-10-12.md`
 (decisions 1–9) and the change order `docs/change-order-alpha-lab-2026-10-12.md`.
 The amendments of 14 October were ruled in chat at 04:13 and 04:22 CT.
 
-Four engines are registered, all candidates until their hypotheses pass:
-`trend_ts`, `trend_xs`, `pm_futures` and `vrp_dealer`. The branch notes are
+Eleven engines are registered (`config/alpha_engines.yaml`), all candidates
+until their hypotheses pass: `trend_ts`, `trend_xs`, `pm_futures`, `vrp_dealer`,
+`events_macro`, `events_fomc`, `events_pead`, `events_crush`, `crypto_carry`,
+`reversion` and `intraday_dealer`. The branch notes are
 `docs/briefs/alpha-lab-1-notes.md` and `docs/briefs/alpha-lab-2-notes.md`.
 
 ## 1. What it is
