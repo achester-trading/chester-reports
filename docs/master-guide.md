@@ -691,7 +691,7 @@ Deeper: the Doctrine 6.5 and 10.2; the Reader's Guide Part X (reading targets, r
 
 ### Table 9. Every paper, and what to use it for
 
-The numeral, status and size are the library guide's; the grouping is this Guide's, refined against each paper's "Companion to" column.
+The numeral, status and size are the library guide's; the grouping is this Guide's, refined against each paper's "Companion to" column, and was accepted on 19 October 2026 (R13).
 
 <!-- table:papers -->
 | # | Paper | Shelf | Status and size | Group | Books | Use it for |
@@ -727,7 +727,7 @@ The numeral, status and size are the library guide's; the grouping is this Guide
 
 ### The trading track
 
-Eight steps, aimed at turning the reports into trades. It is a subset of the library guide's core track (Audit 2's reading plan), reordered for the desk:
+Eight steps, aimed at turning the reports into trades, accepted on 19 October 2026 (R13). It is a subset of the library guide's core track (Audit 2's reading plan), reordered for the desk:
 
 1. **The Doctrine's Card and Part VI** (the books, the map from report to book, the rhythm).
 2. **The Reporting System, Part X** (how to read the reports).
