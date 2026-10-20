@@ -688,6 +688,8 @@ Deeper: the Doctrine 6.5 and 10.2; the Reader's Guide Part X (reading targets, r
 
 **In three lines.** The Doctrine was written for the five original reports; the build has three daily touches, a Weekly and a Monthly. Each row says what the Doctrine says, what exists, and the choice for you at Doctrine #2 (7–8 November). This Guide lists; it does not rule.
 
+**The preparation pack:** every open Doctrine #2 item, these seventeen rows and the rest, each with a rule-31 draft, is in [the Doctrine #2 pack](briefs/doctrine-2-pack-2026-11.md).
+
 ### Table 8
 
 **Table 8 is the agenda for Doctrine #2 (7–8 November), with none of its rows ruled** (R14, 19 October 2026). Where a row says a direction is already set, that is the order's, not this table's.
