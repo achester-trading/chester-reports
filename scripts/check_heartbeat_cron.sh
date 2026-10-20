@@ -933,7 +933,8 @@ fi
 # box was down plus the Persistent=true catch-up that follows), and forty days for a
 # monthly.
 # The secondary notes (19 Oct 2026) ride the same table: warning only, never the
-# verdict. 100 hours spans a weekend and a holiday for either note.
+# verdict. 100 hours spans a weekend and a holiday for either note. Kept 19 Oct
+# 2026 as a starting value; reviewed after the first two live weeks.
 ANCHOR_TABLE="chester-weekly.timer:weekly_heartbeat:216:weekly
 chester-monthly.timer:monthly_heartbeat:960:monthly
 chester-open-note.timer:open_note_heartbeat:100:open note

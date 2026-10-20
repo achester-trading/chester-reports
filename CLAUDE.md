@@ -113,8 +113,9 @@ altdata/                  Shared ingestion package — used by every report
                           Session 3b-3c and the CPI lead's components);
                           45 in FRED_RELEASES_SERIES (Batch 7's release
                           lenses, Group A); 29 in FRED_GROUP_B_SERIES
-                          (Group B, the PPI and GDP lenses);
-                          FRED_PULL_SERIES, 266, is the union the
+                          (Group B, the PPI and GDP lenses); 1 in
+                          FRED_NOTES_SERIES (the open note's retail sales);
+                          FRED_PULL_SERIES, 267, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -655,6 +656,16 @@ never read. `python -m altdata.dealer_store backfill --dry-run` is the operator'
 5-minute bars carry QQQ and IWM beside SPY (decision 10), and
 `opening_setup.with_pricing` reads only the store it is named.
 `tools/validate_a50_dealer_store.py` holds it.
+
+**The volatile-day flag has all four of Doctrine 5.5's arms (A51, 19 Oct 2026).**
+`daily_cascade/volatile_day.py` prints, at the 07:00 anchor, the VIX arm, ES's
+overnight range against its 20-day average true range, the gap (provisional from
+the pre-market price), the Gamma dial as the market-state object reads it, and
+the calendar's tier-1 events (FOMC, CPI, the employment report, an index mover's
+earnings; `config/vol_event.yaml` `volatile_day`), each with its reading and
+as-of. The 09:50 open note settles the gap from the 09:30 open and its prose gate
+reads the completed flag. Printed, never applied: nothing halves a size or
+refuses a packet until Doctrine #2 and Book C's activation.
 
 **The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
 Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,

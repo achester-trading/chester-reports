@@ -13,10 +13,13 @@ list is not built"), so block 5 says so.
 
 SIX BLOCKS, each with its as-of time: the 08:30 releases; the reaction (release
 days); the open against the gauge and the levels; news since 07:00; Book C; what
-the close will check. Every line is code-written. Prose (at most 250 words) is
-written only when the gate opens: a tier-1 08:30 release, a gap or first-fifteen-
-minute range beyond the gauge's implied one-session move, or a volatile-day
-trigger the 07:00 anchor printed.
+the close will check. Then the volatile-day flag (A51): the 07:00
+anchor's flag with all four of Doctrine 5.5's arms, its provisional gap settled
+from SPY's 09:30 open, and whether the flag is now raised -- printed, never
+applied. Every line is code-written. Prose (at most 250 words) is written only
+when the gate opens: a tier-1 08:30 release, a gap or first-fifteen-minute range
+beyond the gauge's implied one-session move, the close's stored volatility
+trigger, or the completed volatile-day flag.
 
 READS THE STORE ONLY: altdata/note_fetch.py `open` wrote it after the 09:45
 capture. Before `live_from` (config secondary_notes) every run is a dry run.
@@ -292,16 +295,29 @@ def build(day: Optional[str] = None, as_of: Optional[str] = None, db_path=None,
           "lines": [close_check(b2, b3)]}
     vol = morning_payload.stored_vol_event(prior, nc.iso(nc.et(day, "07:00")), db_path)
     v3 = b3["values"]
+    # A51: the 07:00 volatile-day flag, its gap settled from the 09:30 open; the
+    # prose gate reads the completed flag. Printed, never applied.
+    from . import volatile_day                                  # noqa: PLC0415
+    try:
+        vday = volatile_day.for_open_note(day, prior, cutoff, v3.get("open"),
+                                          v3.get("prior_close"), db_path)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the volatile-day flag faulted", exc_info=True)
+        vday = None
+    b7 = ({"title": "Volatile-day flag", "as_of": nc.hm_et(cutoff),
+           "lines": vday["lines"]} if vday else None)
     gate = {"tier1_release": any(r["tier"] == 1 for r in b1["releases"]),
             "gap_outside": bool(v3.get("gap_outside")),
             "range_outside": bool(v3.get("range_outside")),
-            "vol_trigger": bool((vol or {}).get("fired"))}
-    blocks = [b for b in (b1, b2, b3, b4, b5, b6) if b]
+            "vol_trigger": bool((vol or {}).get("fired")),
+            "volatile_day": bool((vday or {}).get("raised"))}
+    blocks = [b for b in (b1, b2, b3, b4, b5, b6, b7) if b]
     return {"report": REPORT, "session": day, "prior_session": prior, "as_of": cutoff,
             "run_id": run_id, "blocks": blocks, "releases": b1["releases"],
             "reaction": (b2 or {}).get("moves") or {}, "open": v3, "news": nw,
             "gate": gate, "gate_open": any(gate.values()),
             "vol_trigger_line": (vol or {}).get("trigger_line") if gate["vol_trigger"] else None,
+            "volatile_day": vday,
             "budget": (cfg.get("budget") or {}).get("open_note") or {"words": 250, "charts": 1},
             "reading_target_minutes": (cfg.get("reading") or {}).get("open_note", 2)}
 

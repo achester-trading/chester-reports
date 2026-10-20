@@ -22,7 +22,7 @@ from typing import Any, Optional
 
 from altdata import crypto_blocks
 
-from . import es_read, events_block, opening_setup, signal_lines, state_block
+from . import es_read, events_block, opening_setup, signal_lines, state_block, volatile_day
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -365,6 +365,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 {opening_setup.gauge_html(payload.get("opening_gauge"))}
 {opening_setup.gauge_html(payload.get("opening_premarket"))}
 {opening_setup.vol_lines_html(payload.get("vol_regime_lines"))}
+{volatile_day.html(payload.get("volatile_day"))}
 {opening_setup.oi_builds_html(payload.get("oi_builds"))}
 {opening_setup.lines_html(payload.get("level_clusters"))}
 {opening_setup.vol_lines_html(payload.get("index_put_lines"))}
@@ -420,6 +421,7 @@ def text_fallback(payload: dict, es: Optional[dict] = None) -> str:
     lines.append("")
     if payload.get("es_block"):
         lines += es_read.text_lines(payload["es_block"], es)
+    lines += (payload.get("volatile_day") or {}).get("lines") or []
     if payload.get("meme_line"):
         lines.append(payload["meme_line"])
     for w in payload.get("warnings") or []:

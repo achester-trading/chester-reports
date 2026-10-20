@@ -16059,6 +16059,33 @@ bulk_imports:
       "2": macro_momentum
       "4": macro_inflation
 
+  fred_notes:
+    description: >-
+      The secondary notes' release forms (A49's answer (b), ruled 19 Oct 2026;
+      a50-dealer-store, session A): advance retail sales, retail trade and food
+      services (RSAFS), millions of dollars, SA, monthly -- read by the open note
+      month on month (config/release_calendar.yaml tier2_headlines). PPI final
+      demand is the store's fred.ppi_final_demand (FRED_6E_SERIES) and is not
+      repeated here. See altdata/config.py FRED_NOTES_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_NOTES_SERIES
+    member_families:
+      fred.retail_sales: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each

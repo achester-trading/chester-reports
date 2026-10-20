@@ -163,7 +163,9 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # fees, and BTC's and ETH's caps and supply in the coin blocks
                   "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply",
                   # the secondary notes (19 Oct 2026): their own 5-minute bars
-                  "note_bars_prices"}
+                  "note_bars_prices",
+                  # A51 (19 Oct 2026): the open note's retail sales form (RSAFS)
+                  "fred_notes"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).

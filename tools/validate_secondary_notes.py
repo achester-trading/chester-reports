@@ -408,6 +408,17 @@ def group_d() -> None:
               "what the close will check, one line")
         check(p["gate"]["tier1_release"] and p["gate_open"], "the gate opens on a tier-1 release")
         check(all(b.get("as_of") for b in p["blocks"]), "every block prints its as-of time")
+        vd = p.get("volatile_day") or {}
+        gap = next((a for a in vd.get("arms") or [] if a["arm"] == "gap"), {})
+        check(p["blocks"][-1]["title"] == "Volatile-day flag"
+              and gap.get("provisional") is False and gap.get("holds") is True
+              and "SPY's 09:30 open 672.00" in gap.get("reading", "")
+              and vd.get("settled_line") in p["blocks"][-1]["lines"]
+              and p["gate"]["volatile_day"] is True and vd.get("raised") is True
+              and vd.get("applied") is False,
+              "A51: the open note settles the 07:00 flag's gap from the 09:30 open "
+              "(+1.05%: the arm holds), prints whether the flag is now raised, and its "
+              f"prose gate reads the completed flag ({vd.get('settled_line')})")
         p2 = open_note.build("2026-10-20", "2026-10-20T13:50:00+00:00", db,
                              str(TD / "comp-none"), rels=[])
         check(p2["blocks"][0]["lines"] == ["No 08:30 release."] and not p2["reaction"]

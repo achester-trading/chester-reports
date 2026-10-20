@@ -40,6 +40,18 @@ and the fix from A48's local-run note.
      holds rows; the Ahead matrix passes its path and the Weekly passes the store
      it opened. A gate run never creates data/chester.db.
 
+  H  A51 PART 1 (A49's three answers, ruled 19 Oct 2026, late evening). (a) the
+     notes' session-set values carry "kept 19 Oct 2026 as a starting value;
+     reviewed after the first two live weeks" where they live, the voices pass's
+     120 seconds read from config; (b) PPI final demand (PPIFIS) and advance retail
+     sales (RSAFS, new and registered) in tier2_headlines, a fixture each through
+     the open note; (c) nothing built, the merge-sheet check in the notes.
+
+  I  A51 PART 2: THE VOLATILE-DAY FLAG with all four of Doctrine 5.5's arms,
+     worded as 5.5 words them: each arm alone, none, two; each arm from its inputs
+     at its threshold; the Gamma arm read from the object; the open gap settling
+     a provisional flag both ways; printed, never applied.
+
 Synthetic fixtures only: no live store, no network, no model, no real names.
 """
 
@@ -429,8 +441,198 @@ def group_g() -> None:
           "every caller names its store: the Weekly passes the store it opened")
 
 
+MARK = "kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks"
+
+
+def group_h() -> None:
+    head("H. A51 PART 1: A49'S THREE ANSWERS")
+    import yaml
+    from altdata import config as acfg, derived, note_fetch, observations
+    raw = (REPO / "config" / "reporting_stack.yaml").read_text(encoding="utf-8")
+    sn = raw[raw.find("secondary_notes:"):raw.find("# CONDITIONAL DEPTH")]
+    flat = re.sub(r"\s*\n\s*#\s*", " ", sn).lower()
+    marks = flat.count(MARK.lower())
+    check(marks >= 6 and "voices_budget_seconds: 120" in sn and note_fetch.voices_budget() == 120,
+          f"(a) the notes' session-set values carry the mark ({marks}): the evening "
+          f"thresholds, the capture wait, both news_max, the voices pass (120 s, now "
+          f"read from config)")
+    hb = (REPO / "scripts" / "check_heartbeat_cron.sh").read_text(encoding="utf-8")
+    units = [(REPO / "deploy" / "systemd" / f"chester-{n}-note.service")
+             .read_text(encoding="utf-8") for n in ("open", "evening")]
+    check(MARK.lower() in hb.lower().replace("\n# ", " ")
+          and all(u.lower().count(MARK.lower()) == 2 for u in units),
+          "(a) and where they live: the heartbeat allowance, each unit's memory caps and "
+          "timeout")
+    src = (REPO / "altdata" / "note_fetch.py").read_text(encoding="utf-8")
+    check("voices_pass)(db_path, 120" not in src, "no fetch hard-codes the 120 seconds")
+    cal = yaml.safe_load((REPO / "config" / "release_calendar.yaml").read_text(encoding="utf-8"))
+    t2 = cal.get("tier2_headlines") or {}
+    check(t2.get("Producer Price") == [{"key": "fred.ppi_final_demand", "form": "mom",
+                                        "label": "PPI final demand, month on month"}]
+          and t2.get("Advance Monthly Sales")[0]["key"] == "fred.retail_sales"
+          and t2.get("Retail Sales")[0]["form"] == "mom",
+          "(b) PPI final demand and advance retail sales, month on month, beside the "
+          "tier-1 forms")
+    ids = {s.key: s.fred_id for s in acfg.FRED_PULL_SERIES}
+    check(ids.get("ppi_final_demand") == "PPIFIS" and ids.get("retail_sales") == "RSAFS"
+          and [s.key for s in acfg.FRED_NOTES_SERIES] == ["retail_sales"]
+          and derived.registry_entry("fred.retail_sales")
+          and derived.registry_entry("fred.ppi_final_demand"),
+          "(b) PPIFIS is the store's own; RSAFS is new, registered (fred_notes) and pulled "
+          "by the existing FRED writer")
+    db = TD / "h.db"
+    today = "2026-10-20"
+
+    def obs(key, month, v, avail):
+        return {"registry_key": key, "instrument": None, "observed_at": f"{month}-01",
+                "available_at": avail, "value": v, "source": "fred"}
+    rows = []
+    for key, vals in (("fred.ppi_final_demand", (148.0, 148.3, 148.9)),
+                      ("fred.retail_sales", (700000.0, 703500.0, 701400.0))):
+        for m, v in zip(("2026-07", "2026-08", "2026-09"), vals):
+            av = (f"{today}T12:31:00+00:00" if m == "2026-09"
+                  else f"{m[:5]}{int(m[5:]) + 1:02d}-15T12:30:00+00:00")
+            rows.append(obs(key, m, v, av))
+    with observations.ObservationStore(str(db)) as st:
+        st.write_many(rows)
+    from daily_cascade import open_note
+    rels = [{"title": "Producer Price Index", "label": "PPI", "tier": 2,
+             "match": "Producer Price"},
+            {"title": "Advance Monthly Sales for Retail and Food Services",
+             "label": "Retail sales", "tier": 2, "match": "Advance Monthly Sales"}]
+    b = open_note.releases_block(today, f"{today}T13:50:00+00:00", str(db), rels)
+    txt = "\n".join(b["lines"])
+    check("PPI final demand, month on month +0.4" in txt
+          and "(prior +0.2" in txt,
+          f"(b) a PPI fixture: the print in its form, +0.40% on +0.20% "
+          f"({[x for x in b['lines'] if 'PPI' in x][:1]})")
+    check("advance retail sales, month on month -0.3" in txt and "(prior +0.5" in txt,
+          f"(b) a retail sales fixture: -0.30% on +0.50% "
+          f"({[x for x in b['lines'] if 'retail' in x][:1]})")
+    check("no declared form" not in txt, "(b) neither release reads 'no declared form'")
+    notes = (REPO / "docs" / "briefs" / "a50-dealer-store-notes.md").read_text(encoding="utf-8")
+    check("Friday 16:10" in notes and "Saturday news pull" in notes,
+          "(c) nothing built: the Sunday edition's reach-back check is in the notes")
+
+
+def _arms(**holds) -> list[dict]:
+    from daily_cascade import volatile_day as vd
+    return [vd._arm(a, holds.get(a, False), f"fixture {a}", "2026-10-20 07:00 ET")  # noqa: SLF001
+            for a in vd.ARMS]
+
+
+def group_i() -> None:
+    head("I. A51 PART 2: THE VOLATILE-DAY FLAG, ALL FOUR ARMS")
+    from daily_cascade import volatile_day as vd
+    cfg = vd.config()
+    check(cfg["book_c"]["vix_level"] == 25.0 and cfg["book_c"]["vix_up_pct"] == 20.0
+          and cfg["overnight_atr_multiple"] == 1.5 and cfg["atr_sessions"] == 20
+          and cfg["gap_pct"] == 1.0
+          and cfg["tier1_events"] == ["FOMC statement", "Consumer Price Index",
+                                      "Employment Situation"],
+          "Doctrine 5.5's thresholds: VIX 25 or +20%, 1.5 times the 20-day ATR, a 1% gap, "
+          "FOMC, CPI, the employment report")
+    doc = (REPO / "docs" / "whitepapers" / "operating-doctrine-whitepaper.md").read_text(
+        encoding="utf-8")
+    para = doc[doc.find("**Triggers.**"):doc.find("**Automatic actions.**")]
+    check(all(w.split(" — ")[0] in para for w in vd.WORDING.values()),
+          "each arm is worded as 5.5 words it")
+    # Each arm alone, then none, then two.
+    for a in vd.ARMS:
+        f = vd.flag(_arms(**{a: True}))
+        check(f["raised"] and f["held"] == [a] and f["applied"] is False,
+              f"the {a} arm alone raises the flag, printed and not applied")
+    none = vd.flag(_arms())
+    two = vd.flag(_arms(gamma=True, calendar=True))
+    check(not none["raised"] and none["lines"][0].startswith("Volatile-day flag not raised")
+          and two["raised"] and two["held"] == ["gamma", "calendar"],
+          "a day with no arm leaves it down; a day with two names both")
+    check(all(any(vd.WORDING[a][1:30] in x and "fixture" in x and "07:00 ET" in x
+                  for x in none["lines"]) for a in vd.ARMS)
+          and vd.NOT_APPLIED in none["lines"],
+          "every arm prints with its reading and its as-of time; 'Printed, not applied'")
+    # The arms from their inputs.
+    v = vd.vix_arm([("2026-10-16", 20.0), ("2026-10-19", 24.5)], cfg)
+    v2 = vd.vix_arm([("2026-10-16", 20.0), ("2026-10-19", 24.0)], cfg)
+    v3 = vd.vix_arm([("2026-10-16", 24.0), ("2026-10-19", 25.0)], cfg)
+    check(v["holds"] and v2["holds"] and v3["holds"]
+          and not vd.vix_arm([("a", 20.0), ("b", 23.9)], cfg)["holds"],
+          "the VIX arm: +22.5%, +20.0% and a 25.0 close hold; 23.9 on 20.0 (+19.5%) does not")
+    daily = [{"high": 101.0 + (i % 2), "low": 99.0, "close": 100.0} for i in range(21)]
+    ok = vd.overnight_arm(110.0, 105.0, daily, "2026-10-20T11:00:00+00:00", cfg)
+    no = vd.overnight_arm(103.0, 99.0, daily, "2026-10-20T11:00:00+00:00", cfg)
+    thin = vd.overnight_arm(110.0, 105.0, daily[:10], "2026-10-20T11:00:00+00:00", cfg)
+    check(ok["holds"] and ok["atr_n"] == 20 and abs(ok["atr"] - 2.5) < 1e-9
+          and no["holds"] and thin["holds"] is None and "07:00 ET" in ok["as_of"],
+          f"the overnight arm: 5.00 points on a 20-day ATR of 2.50 holds (2.0 times), as "
+          f"does 4.00 (1.6); ten sessions is 'not read' ({ok['reading']})")
+    lo = vd.overnight_arm(102.5, 99.0, daily, "2026-10-20T11:00:00+00:00", cfg)
+    check(not lo["holds"] and lo["ratio"] == 1.4,
+          f"and 3.50 points (1.4 times) does not ({lo['reading']})")
+    g = vd.gap_arm(673.0, 665.0, "2026-10-20T11:00:00+00:00", cfg)
+    gd = vd.gap_arm(659.0, 665.0, "2026-10-20T11:00:00+00:00", cfg)
+    check(g["holds"] and g["provisional"] and "provisional" in g["reading"]
+          and not gd["holds"] and not vd.gap_arm(670.0, 665.0, None, cfg)["holds"]
+          and vd.gap_arm(None, 665.0, None, cfg)["holds"] is None
+          and vd.gap_arm(658.0, 665.0, None, cfg)["holds"],
+          "the gap arm, provisional at 07:00: +1.20% and -1.05% hold; -0.90% and +0.75% "
+          "do not; no pre-market price is 'not read'")
+    neg = vd.gamma_arm({"session_date": "2026-10-19", "dials": {"gamma": {"state": "negative"}}})
+    pos = vd.gamma_arm({"session_date": "2026-10-19", "dials": {"gamma": {"state": "positive"}}})
+    check(neg["holds"] and "reads Negative" in neg["reading"] and not pos["holds"]
+          and vd.gamma_arm(None)["holds"] is None,
+          "the Gamma arm reads the object's dial: Negative holds, Positive does not, no "
+          "object is 'not read'")
+    vsrc = (REPO / "daily_cascade" / "volatile_day.py").read_text(encoding="utf-8")
+    check("regime.compute" not in vsrc and "grader" not in vsrc and "gamma_sign" not in vsrc
+          and "regime.latest(" in vsrc,
+          "the Gamma arm is read from the market-state object (regime.latest), never "
+          "computed here")
+    names = vd.movers(cfg)
+    rows = [{"observed_at": "2026-10-20T12:30:00+00:00", "title": "Consumer Price Index",
+             "type": "release", "payload": {}},
+            {"observed_at": "2026-10-19T20:15:00+00:00", "title": "NVDA earnings",
+             "type": "scheduled", "payload": {"kind": "earnings", "symbol": "NVDA"}},
+            {"observed_at": "2026-10-20T20:15:00+00:00", "title": "HD earnings",
+             "type": "scheduled", "payload": {"kind": "earnings", "symbol": "HD"}}]
+    c = vd.calendar_arm(rows, "2026-10-20", "2026-10-20T11:00:00+00:00", cfg)
+    c0 = vd.calendar_arm(rows[2:], "2026-10-20", "2026-10-20T11:00:00+00:00", cfg)
+    check(c["holds"] and c["events"] == ["Consumer Price Index", "NVDA earnings"]
+          and not c0["holds"] and "NVDA" in names and "HD" not in names
+          and not any(s in names for s in ("BN", "BAM", "BEP")),
+          f"the calendar arm: CPI today and NVDA after last night's close hold; HD (rank "
+          f"21) is not an index mover; no Brookfield name ({sorted(names)})")
+    # The open gap settling a provisional flag, both ways.
+    seven = vd.flag([*_arms()[:2], g, *_arms()[3:]], "2026-10-20T11:00:00+00:00")
+    down = vd.settle_gap(seven, 668.0, 665.0, "2026-10-20T13:50:00+00:00", cfg)
+    quiet = vd.flag([*_arms()[:2], vd.gap_arm(668.0, 665.0, None, cfg), *_arms()[3:]])
+    up = vd.settle_gap(quiet, 672.0, 665.0, "2026-10-20T13:50:00+00:00", cfg)
+    check(seven["raised"] and seven["gap_provisional"] and not down["raised"]
+          and "no longer raised" in down["settled_line"]
+          and "settled" in next(a for a in down["arms"] if a["arm"] == "gap")["reading"],
+          f"a provisional gap of +1.20% raises it at 07:00; the open at +0.45% settles it "
+          f"down ({down['settled_line']})")
+    check(not quiet["raised"] and up["raised"] and "now raised" in up["settled_line"]
+          and up["was_raised_at_0700"] is False and up["held"] == ["gap"],
+          f"a provisional +0.45% leaves it down; the open at +1.05% settles it up "
+          f"({up['settled_line']})")
+    mp = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
+    mr = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
+    on = (REPO / "daily_cascade" / "open_note.py").read_text(encoding="utf-8")
+    check("volatile_day.from_store(" in mp and "state_obj=state_obj" in mp
+          and "volatile_day.html(" in mr and '"volatile_day": bool((vday or {}).get("raised"))' in on,
+          "the anchor prints the flag from the object it read; the open note's gate reads "
+          "the completed flag")
+    bad = re.compile(r"halve|size_multiplier|refuse_packet|register\.|ledger|place_?order",
+                     re.I)
+    check(not bad.search(re.sub(r'"""[\s\S]*?"""', "", vsrc).replace(
+        "no size is halved", "")),
+          "rights unchanged: nothing halves a size, refuses a packet or writes the register")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
+              group_i):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
