@@ -209,7 +209,7 @@ The flags are read from each module's argument parser (`--series` takes register
 | Round | Run | Result |
 |---|---|---|
 | A53 | 39495721438 | failed 3 of 135:<br>• `validate_numeral_audit`: an ordinal suffix written by hand, `bank_stress.py:223`; now `numeral_audit.ordinal`;<br>• `validate_narratives`: the proposals pinned at three, now five with the pair;<br>• `validate_stack_cadence`: the Weekly's one-line status also printed at the Monthly's cadence, carrying "4 weeks"; now added at "weekly" only, since the Monthly prints the full panel |
-| A53 round 1 | (below) | the three fixed; run locally: numeral audit 172/0, narratives 103/0, stack cadence 99/0, Batch 12 57/0 |
+| A53 round 1 | 39497773952 | **green, 136/136 jobs** (`5b898cb`): the three fixed; run locally: numeral audit 172/0, narratives 103/0, stack cadence 99/0, Batch 12 57/0 |
 
 ## 11. Needs you
 
