@@ -619,11 +619,13 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     rt_sub = rates_transmission_block.subsection(st, now, cadence)
     if rt_sub:
         subs.append(rt_sub)
-    # SIGNAL-TRIAGE BATCH 12 item 59 (a53): the bank-stress panel's one-line status.
-    from . import bank_stress_block                             # noqa: PLC0415
-    bs_sub = bank_stress_block.weekly_subsection(st, now)
-    if bs_sub:
-        subs.append(bs_sub)
+    # SIGNAL-TRIAGE BATCH 12 item 59 (a53): the bank-stress panel's one-line status,
+    # the Weekly's only (the Monthly prints the full panel in its own Plumbing).
+    if cadence == "weekly":
+        from . import bank_stress_block                         # noqa: PLC0415
+        bs_sub = bank_stress_block.weekly_subsection(st, now)
+        if bs_sub:
+            subs.append(bs_sub)
     # SIGNAL-TRIAGE BATCH 6, items 42 and 39: the expectations composite and the
     # cross-country real yields; the US-DE and US-JP real differentials print in
     # the Currencies read, "Global rates and FX".

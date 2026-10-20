@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import st_r5_rates as rt
+from .numeral_audit import ordinal
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG = REPO / "config" / "bank_stress.yaml"
@@ -220,7 +221,7 @@ def funding_line(f: dict) -> str:
         return (f"Funding-stress flag: not read ({len(f['read'])} of {len(f['members'])} "
                 f"members stored; it needs {f['need']}).")
     return (f"Funding-stress flag {f['state'].upper()}: {len(f['above'])} of "
-            f"{len(f['read'])} read above their {f['percentile']:.0f}th five-year "
+            f"{len(f['read'])} read above their {ordinal(f['percentile'])} five-year "
             f"percentile ({names}); it needs {f['need']}.")
 
 
