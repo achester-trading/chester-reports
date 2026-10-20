@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="39f900cab90a3738027c5ced87fde104aa8a69ae3631f007f2eab885676d31eb">
+<meta name="source-sha256" content="d82b031fc942789f54bcb520766b0d2d46bf35424704715fa6ef46973a46681f">
 <title>The Rate and Liquidity Machine</title>
 <style>
 :root {
@@ -141,7 +141,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     <button id="collapseAll">Collapse all</button>
   </div>
 
-  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-preamble">Preamble</a></li><li><a href="#s2-part-i-historical-context">Part I — Historical Context</a></li><li><a href="#s3-part-ii-the-levers">Part II — The Levers</a></li><li><a href="#s4-part-iii-the-transmission-map">Part III — The Transmission Map</a></li><li><a href="#s5-part-iii-b-five-case-studies-the-machine-in-action">Part III-B — Five Case Studies: The Machine in Action</a></li><li><a href="#s6-part-iv-forward-scenarios">Part IV — Forward Scenarios</a></li><li><a href="#s7-part-v-the-tactical-signal-map">Part V — The Tactical Signal Map</a></li><li><a href="#s8-coda">Coda</a></li></ol></nav>
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-preamble">Preamble</a></li><li><a href="#s2-part-i-historical-context">Part I — Historical Context</a></li><li><a href="#s3-part-ii-the-levers">Part II — The Levers</a></li><li><a href="#s4-part-iii-the-transmission-map">Part III — The Transmission Map</a></li><li><a href="#s5-part-iii-b-five-case-studies-the-machine-in-action">Part III-B — Five Case Studies: The Machine in Action</a></li><li><a href="#s6-part-iv-forward-scenarios">Part IV — Forward Scenarios</a></li><li><a href="#s7-part-v-the-tactical-signal-map">Part V — The Tactical Signal Map</a></li><li><a href="#s8-coda">Coda</a></li><li><a href="#s9-appendix-a-dated-calibration-ledgers-st-l-as-of-19-october-2">Appendix A — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)</a></li></ol></nav>
 
     <details class="section" id="s1-preamble" open>
       <summary class="section-head">
@@ -978,6 +978,78 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p><strong>The two most consequential numbers in this paper are the thirty-year yield and the high yield spread</strong>, because their relationship contains a contradiction that must resolve. A thirty-year at 5.2 percent says the cost of capital has risen materially. High yield at 251 basis points, the fifth percentile of its five-year range, says the market perceives no additional risk in lending to leveraged borrowers. Both cannot be correct. Either credit is mispricing the refinancing arithmetic facing issuers approaching maturity walls, or the long end is overstating the marginal borrower's actual cost. <strong>Which way that resolves is the most actionable single question in the current market, and the signals in Tier 5 are where it will show up first.</strong></p>
 <p><strong>Everything in Part IV rests on assumptions about mechanism that could break.</strong> The scenarios assume the Fed retains operational independence, that the Treasury market clears without official intervention, that the dollar retains its funding role, and that the political system tolerates the arithmetic without a rupture. Each of those has held for decades. None is guaranteed, and the historical section exists specifically to demonstrate that the current arrangement is a negotiated settlement from 1951 rather than a law of nature.</p>
 <p>The framework's value is not that it predicts which scenario arrives. It is that it specifies, in advance, what each one would look like on the way in — so that when the signals start firing in the cascade order described above, the recognition is fast rather than retrospective.</p>
+      </div>
+    </details>
+
+    <details class="section" id="s9-appendix-a-dated-calibration-ledgers-st-l-as-of-19-october-2">
+      <summary class="section-head">
+        <span class="section-title">Appendix A — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p><em>Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.</em> Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.</p>
+<h3>SR-6, SR-9 and SR-17 — the rates driver (ledgers of September 2026)</h3>
+<ul>
+<li><strong>Ledgers:</strong> <a href="../ledgers/rates-driver-2026-09.md">rates-driver-2026-09.md</a> (the first run) and <a href="../ledgers/rates-driver-2026-09-30-r2.md">rates-driver-2026-09-30-r2.md</a> (rerun 2, judged against <a href="../ledgers/rates-driver-2026-09-30-r2-preregistration.md">its pre-registration</a>).</li>
+<li><strong>Verdict:</strong> the gate FAILS twice: 0 of 5 episodes in the first run; in rerun 2, 2 of 5 under the pre-registered rule (c), which needs all five (models agree in 2 episodes, 0 of which pass; disagree in 3, 2 of which pass).</li>
+<li><strong>Rights consequence:</strong> the register holds SR-6 and SR-17 DEFERRED, the gate failed. The four-cell driver is withdrawn: what prints instead is the rates attribution, each model's path and premium split, dated, with a models-agree flag, and it decides nothing.</li>
+<li><strong>Edition:</strong> run 2026-09-30 by <code>tools/calibration/sr06_09_17_driver.py</code>; dated, never edited.</li>
+</ul>
+<h3>SR-21 — Fed-market divergence episodes, conceded or refused (ledger of 18 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-21-ledger-2026-10-18.md">sr-21-ledger-2026-10-18.md</a>.</li>
+<li><strong>As of:</strong> 2026-10-15 (latest gap); last completed 2025-12-11. <strong>Window:</strong> 1982-09-27 to 2026-10-15. <strong>n:</strong> 46.</li>
+<li><strong>Verdict:</strong> FAIL -- refused median -17.5 bp vs conceded +45.5 bp (rule: refused exceeds conceded by &gt;= 25 bp)</li>
+<li><strong>Rights consequence (the ledger's):</strong> The register grants SR-21 no Book rights either way: a derived metric, the CRED_STRESS narrow flag, the Warsh-matrix scenario and the PM disagreement record. A PASS lets the Rate machine quote this split as the base rate for the 28 Oct live test; a FAIL keeps it a table. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Register:</strong> the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+<li><strong>Note:</strong> the register's dated note of 18 October records the sign reversal: on the keyless legs the split separates the opposite way to the entry's mechanism.</li>
+</ul>
+<h3>SR-22 — coupon auction absorption against the 10-year's next three months (ledger of 18 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-22-ledger-2026-10-18.md">sr-22-ledger-2026-10-18.md</a>.</li>
+<li><strong>As of:</strong> 2026-10-08 (latest auction); last with 63 sessions forward 2026-07-09. <strong>Window:</strong> 2009-01-06 to 2026-10-08. <strong>n:</strong> 1034.</li>
+<li><strong>Verdict:</strong> FAIL -- stress flag only: median 3m change -2.0 bp, falls in 51.8% of 1034 (rule: median &lt; 0 and &gt;= 60%)</li>
+<li><strong>Rights consequence (the ledger's):</strong> PASS: the contrarian read, the overlay queue's position #2 after the gate, and an input to rule A-3. FAIL: the stress flag only (narrow, display). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Register:</strong> the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+<li><strong>Note:</strong> the second edition of the same day, <a href="../ledgers/sr-22-ledger-2026-10-18-r2.md">sr-22-ledger-2026-10-18-r2.md</a>, adds a labelled variant for the Doctrine monthly; the verdict is the first edition's.</li>
+</ul>
+<h3>SR-23 — net Treasury supply against the term premium (ledger of 18 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-23-ledger-2026-10-18.md">sr-23-ledger-2026-10-18.md</a>.</li>
+<li><strong>As of:</strong> 2026-09 (latest month with supply and ACM). <strong>Window:</strong> 2003-12 to 2026-09; pre-2008 to 2007-12, post-2008 from 2009-01. <strong>n:</strong> 262.</li>
+<li><strong>Verdict:</strong> FAIL -- not significant post-2008: descriptive, no modifier (pre-2008 b -34.1, t -3.47; post-2008 b +5.1, t +1.29; rule b &gt; 0, t &gt;= 1.96)</li>
+<li><strong>Rights consequence (the ledger's):</strong> PASS: a confidence modifier on the rates-cell assignment (no cell is live: the driver stays withdrawn, so it waits for one), the Factor IV panel input, and Book A's duration-timing modifier via the projection (not tracked: CBO). FAIL: descriptive, no modifier. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Register:</strong> the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+</ul>
+<h3>ST-R4.17b — net liquidity's 13-week change against the S&amp;P (ledger of 17 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/st-r4.17b-ledger-2026-10-17.md">st-r4.17b-ledger-2026-10-17.md</a>.</li>
+<li><strong>As of:</strong> 2026-10-14. <strong>Window:</strong> 2003-03-19 to 2026-07-15 (weeks with a full next 13 weeks); the series to 2026-10-14. <strong>n:</strong> 1218.</li>
+<li><strong>Verdict:</strong> NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.</li>
+<li><strong>Rights consequence (the ledger's):</strong> Report-only until the ledger; modifier after (the order). The order states no pass rule, so this ledger grants no modifier: the series stays report-only in Plumbing until the operator rules a gate.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+</ul>
+<h3>SR-24 — the Livingston 1965-80 base-rate note (ledger of 19 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/sr-24-ledger-2026-10-19.md">sr-24-ledger-2026-10-19.md</a>.</li>
+<li><strong>As of:</strong> 2025-06 (latest survey with its 12 months realised); CPIAUCNS to 2026-09. <strong>Window:</strong> 1965-06 to 1980-12 (the note); 1984-06 to 2019-12 (the control); surveys from 1946-12. <strong>n:</strong> 32.</li>
+<li><strong>Verdict:</strong> NO GATE IN THE ORDER -- base rate recorded. Tranche H asks for a base-rate note and states no pass rule; none is supplied here.</li>
+<li><strong>Rights consequence (the ledger's):</strong> None: SR-24 is a definition-only flag with no gate possible on market data; this note is the base rate its register entry names and it grants nothing. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+<li><strong>Note:</strong> Tranche H's Livingston 1965-80 note: the survey's twelve-month CPI forecast against realised inflation, with 1984-2019 as the control.</li>
+</ul>
+<h3>SR-7 and SR-21 — the hiking-cycle table, computed by rule (ledger of 19 October 2026)</h3>
+<ul>
+<li><strong>Ledger:</strong> <a href="../ledgers/fed-cycles-ledger-2026-10-19.md">fed-cycles-ledger-2026-10-19.md</a>.</li>
+<li><strong>As of:</strong> 2026-10 (latest month of the policy rate). <strong>Window:</strong> 1954-07 to 2026-10. <strong>n:</strong> 21.</li>
+<li><strong>Verdict:</strong> NO GATE IN THE ORDER -- base rate recorded. The order adopts the table and states no pass rule; none is supplied here.</li>
+<li><strong>Rights consequence (the ledger's):</strong> None: a base-rate table (SR-7's row grants no right). It is quoted beside the Warsh matrix and in the Base Rates paper's dated appendix as a table, never as a forecast. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.</li>
+<li><strong>Edition:</strong> a laptop first edition from public sources; the box edition supersedes it.</li>
+<li><strong>Note:</strong> Tranche H's hiking-cycle table, computed by rule, with SR-21's conceded and refused rows inside each cycle.</li>
+</ul>
 <hr />
 <p><em>End of white paper.</em></p>
       </div>

@@ -496,3 +496,33 @@ response_ratio(stimulus, response, window, baseline_history):
 ```
 
 Callers as of this draft: closing-auction absorption (stimulus = normalized imbalance; response = indicative-price displacement); yen carry (stimulus = yen appreciation × positioning percentile; response = risk-asset and credit move); leveraged-ETF program (stimulus = computed rebalance; response = auction displacement); Speculative Cohort (stimulus = revision velocity; response = price velocity — inverted sense); meme lifecycle (stimulus = attention velocity; response = price); prediction-market divergence (stimulus = probability change; response = mapped-asset move). One function. The paper's claim is that positioning analysis is, at bottom, this function applied to the mechanical holders' calendars.
+
+## Appendix A — Dated: Calibration ledgers (ST-L): the fuel metrics (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-8 — the false-bottom audit: the bottom side, rally by rally (ledger of 18 October 2026)
+
+- **Ledger:** [false-bottom-audit-2026.md](../ledgers/false-bottom-audit-2026.md).
+- **As of:** S&P 500 2026-10-16; French CRSP 202608; FINRA margin 2026-09. **Window:** 1973-74 1973-01-11 to 1974-10-03; 2000-02 2000-03-24 to 2002-10-09; 2007-09 2007-10-09 to 2009-03-09; 2022 2022-01-03 to 2022-10-12; Nasdaq 2000-03-10 to 2002-10-09 (count only). **n:** 16.
+- **Verdict:** FAIL -- 1 element(s) discriminate (breadth_rsp_spy); 12 false bottoms and 4 true across the four bears (S&P 500); rule: >= 2 discriminate, each firing at >= 75% of testable true bottoms and <= one third of testable false ones
+- **Rights consequence (the ledger's):** PASS: the gate specification above is what ST-11 wires at T&B full, and the Doctrine proposal goes to the monthly. FAIL or INSUFFICIENT: the specification stands as written, with its gaps, and the monthly decides. Book A rule A-2 changes nothing until then. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** the audit's fuel inputs (margin debt, short interest, breadth, the VIX term structure) are the paper's fuel metrics; one element, breadth, discriminates.
+
+### ST-R5.30b — investor equity allocation and the S&P's 10-year forward return (ledger of 17 October 2026)
+
+- **Ledger:** [st-r5.30b-ledger-2026-10-17.md](../ledgers/st-r5.30b-ledger-2026-10-17.md).
+- **As of:** 2026-04. **Window:** 1945-10 to 2016-07 (forward decades); allocation history 1945-10 to 2026-04. **n:** 266.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.
+- **Rights consequence (the ledger's):** Book A modifier (the rule-table line drafted 16 Oct, 'inactive until ST-R5.30b's ledger is filed') and the T&B intake queue (ST-R5.30c, after this ledger and 'T&B full', part 2). With no gate in the order, neither is granted here: activating either is the operator's ruling.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-12 — investor bond allocation, by inflation and stock-bond correlation (ledger of 18 October 2026)
+
+- **Ledger:** [sr-12-ledger-2026-10-18.md](../ledgers/sr-12-ledger-2026-10-18.md).
+- **As of:** 2026-04 (latest Z.1 quarter); last completed entry 2021-06. **Window:** Z.1 from 1945-10 to 2026-04; returns from 1953-05 on. **n:** 3.
+- **Verdict:** INSUFFICIENT -- 3 completed episode(s) in the cell, below the floor of 5; no rate prints
+- **Rights consequence (the ledger's):** PASS: a confidence modifier for Book A duration sizing and an input to rule A-3. FAIL: the conditional base-rate table only. INSUFFICIENT: neither. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.

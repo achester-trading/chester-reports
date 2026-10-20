@@ -979,6 +979,72 @@ Three closing observations.
 
 The framework's value is not that it predicts which scenario arrives. It is that it specifies, in advance, what each one would look like on the way in — so that when the signals start firing in the cascade order described above, the recognition is fast rather than retrospective.
 
+## Appendix A — Dated: Calibration ledgers (ST-L) (as of 19 October 2026)
+
+*Rule-31 draft (library-st-l, 19 October 2026), for the operator's accept-all.* Each entry states only what its ledger records: the as-of, the window, n, the verdict and the rights consequence as the ledger words them, and the register's acceptance where the register records one. A ledger grants nothing by appearing here; a right changes only by the operator's ruling. A study the slot names that has no ledger on this line says so.
+
+### SR-6, SR-9 and SR-17 — the rates driver (ledgers of September 2026)
+
+- **Ledgers:** [rates-driver-2026-09.md](../ledgers/rates-driver-2026-09.md) (the first run) and [rates-driver-2026-09-30-r2.md](../ledgers/rates-driver-2026-09-30-r2.md) (rerun 2, judged against [its pre-registration](../ledgers/rates-driver-2026-09-30-r2-preregistration.md)).
+- **Verdict:** the gate FAILS twice: 0 of 5 episodes in the first run; in rerun 2, 2 of 5 under the pre-registered rule (c), which needs all five (models agree in 2 episodes, 0 of which pass; disagree in 3, 2 of which pass).
+- **Rights consequence:** the register holds SR-6 and SR-17 DEFERRED, the gate failed. The four-cell driver is withdrawn: what prints instead is the rates attribution, each model's path and premium split, dated, with a models-agree flag, and it decides nothing.
+- **Edition:** run 2026-09-30 by `tools/calibration/sr06_09_17_driver.py`; dated, never edited.
+
+### SR-21 — Fed-market divergence episodes, conceded or refused (ledger of 18 October 2026)
+
+- **Ledger:** [sr-21-ledger-2026-10-18.md](../ledgers/sr-21-ledger-2026-10-18.md).
+- **As of:** 2026-10-15 (latest gap); last completed 2025-12-11. **Window:** 1982-09-27 to 2026-10-15. **n:** 46.
+- **Verdict:** FAIL -- refused median -17.5 bp vs conceded +45.5 bp (rule: refused exceeds conceded by >= 25 bp)
+- **Rights consequence (the ledger's):** The register grants SR-21 no Book rights either way: a derived metric, the CRED_STRESS narrow flag, the Warsh-matrix scenario and the PM disagreement record. A PASS lets the Rate machine quote this split as the base rate for the 28 Oct live test; a FAIL keeps it a table. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** the register's dated note of 18 October records the sign reversal: on the keyless legs the split separates the opposite way to the entry's mechanism.
+
+### SR-22 — coupon auction absorption against the 10-year's next three months (ledger of 18 October 2026)
+
+- **Ledger:** [sr-22-ledger-2026-10-18.md](../ledgers/sr-22-ledger-2026-10-18.md).
+- **As of:** 2026-10-08 (latest auction); last with 63 sessions forward 2026-07-09. **Window:** 2009-01-06 to 2026-10-08. **n:** 1034.
+- **Verdict:** FAIL -- stress flag only: median 3m change -2.0 bp, falls in 51.8% of 1034 (rule: median < 0 and >= 60%)
+- **Rights consequence (the ledger's):** PASS: the contrarian read, the overlay queue's position #2 after the gate, and an input to rule A-3. FAIL: the stress flag only (narrow, display). Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** the second edition of the same day, [sr-22-ledger-2026-10-18-r2.md](../ledgers/sr-22-ledger-2026-10-18-r2.md), adds a labelled variant for the Doctrine monthly; the verdict is the first edition's.
+
+### SR-23 — net Treasury supply against the term premium (ledger of 18 October 2026)
+
+- **Ledger:** [sr-23-ledger-2026-10-18.md](../ledgers/sr-23-ledger-2026-10-18.md).
+- **As of:** 2026-09 (latest month with supply and ACM). **Window:** 2003-12 to 2026-09; pre-2008 to 2007-12, post-2008 from 2009-01. **n:** 262.
+- **Verdict:** FAIL -- not significant post-2008: descriptive, no modifier (pre-2008 b -34.1, t -3.47; post-2008 b +5.1, t +1.29; rule b > 0, t >= 1.96)
+- **Rights consequence (the ledger's):** PASS: a confidence modifier on the rates-cell assignment (no cell is live: the driver stays withdrawn, so it waits for one), the Factor IV panel input, and Book A's duration-timing modifier via the projection (not tracked: CBO). FAIL: descriptive, no modifier. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### ST-R4.17b — net liquidity's 13-week change against the S&P (ledger of 17 October 2026)
+
+- **Ledger:** [st-r4.17b-ledger-2026-10-17.md](../ledgers/st-r4.17b-ledger-2026-10-17.md).
+- **As of:** 2026-10-14. **Window:** 2003-03-19 to 2026-07-15 (weeks with a full next 13 weeks); the series to 2026-10-14. **n:** 1218.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order names this study but states no pass rule; none is supplied here, by judgment or otherwise. A gate, if one is wanted, is the operator's to pre-register.
+- **Rights consequence (the ledger's):** Report-only until the ledger; modifier after (the order). The order states no pass rule, so this ledger grants no modifier: the series stays report-only in Plumbing until the operator rules a gate.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+### SR-24 — the Livingston 1965-80 base-rate note (ledger of 19 October 2026)
+
+- **Ledger:** [sr-24-ledger-2026-10-19.md](../ledgers/sr-24-ledger-2026-10-19.md).
+- **As of:** 2025-06 (latest survey with its 12 months realised); CPIAUCNS to 2026-09. **Window:** 1965-06 to 1980-12 (the note); 1984-06 to 2019-12 (the control); surveys from 1946-12. **n:** 32.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. Tranche H asks for a base-rate note and states no pass rule; none is supplied here.
+- **Rights consequence (the ledger's):** None: SR-24 is a definition-only flag with no gate possible on market data; this note is the base rate its register entry names and it grants nothing. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** Tranche H's Livingston 1965-80 note: the survey's twelve-month CPI forecast against realised inflation, with 1984-2019 as the control.
+
+### SR-7 and SR-21 — the hiking-cycle table, computed by rule (ledger of 19 October 2026)
+
+- **Ledger:** [fed-cycles-ledger-2026-10-19.md](../ledgers/fed-cycles-ledger-2026-10-19.md).
+- **As of:** 2026-10 (latest month of the policy rate). **Window:** 1954-07 to 2026-10. **n:** 21.
+- **Verdict:** NO GATE IN THE ORDER -- base rate recorded. The order adopts the table and states no pass rule; none is supplied here.
+- **Rights consequence (the ledger's):** None: a base-rate table (SR-7's row grants no right). It is quoted beside the Warsh matrix and in the Base Rates paper's dated appendix as a table, never as a forecast. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
+- **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+- **Note:** Tranche H's hiking-cycle table, computed by rule, with SR-21's conceded and refused rows inside each cycle.
+
 ---
 
 *End of white paper.*
