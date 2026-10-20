@@ -126,8 +126,9 @@ altdata/                  Shared ingestion package — used by every report
                           Session 3b-3c and the CPI lead's components);
                           45 in FRED_RELEASES_SERIES (Batch 7's release
                           lenses, Group A); 29 in FRED_GROUP_B_SERIES
-                          (Group B, the PPI and GDP lenses);
-                          FRED_PULL_SERIES, 266, is the union the
+                          (Group B, the PPI and GDP lenses); 1 in
+                          FRED_NOTES_SERIES (the open note's retail sales);
+                          FRED_PULL_SERIES, 267, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -679,6 +680,31 @@ anchor, the 12:30 alert and the 16:45 close remain the reports of record.
   scripts `tools/calibration/sn1_release_first_hour.py` and
   `tools/calibration/sn2_after_hours_earnings.py`.
 - **The gate.** `tools/validate_secondary_notes.py` holds all of it.
+
+**The dealer captures are stored (decision 9, 19 Oct 2026; a50-dealer-store).**
+`altdata/dealer_store.py` turns each of our engine's exposure files under the
+computed directory (the 09:45 and 12:30 captures, the 16:10 profiles) into rows of `exposure.net_gex`, `net_to_gross`,
+`regime_word` (the gate's word: net-to-gross at least 0.10, else
+"indeterminate"), `gamma_flip`, `call_wall_otm`, `put_wall_otm` and `spot`:
+instrument the symbol, observed_at the slot's ET instant, available_at the file's
+own computed_at, source `dealer_capture:<the capture's id>`. It runs inside the
+capture and the EOD pass (Stage 2b), after compute and never fatally; a run given
+its own out_dir without a store path stores nothing. A vendor-gamma profile is
+never read. `python -m altdata.dealer_store backfill --dry-run` is the operator's.
+`alpha/event_rates.py`'s dealer bucket reads the stored word. The open fetch's
+5-minute bars carry QQQ and IWM beside SPY (decision 10), and
+`opening_setup.with_pricing` reads only the store it is named.
+`tools/validate_a50_dealer_store.py` holds it.
+
+**The volatile-day flag has all four of Doctrine 5.5's arms (A51, 19 Oct 2026).**
+`daily_cascade/volatile_day.py` prints, at the 07:00 anchor, the VIX arm, ES's
+overnight range against its 20-day average true range, the gap (provisional from
+the pre-market price), the Gamma dial as the market-state object reads it, and
+the calendar's tier-1 events (FOMC, CPI, the employment report, an index mover's
+earnings; `config/vol_event.yaml` `volatile_day`), each with its reading and
+as-of. The 09:50 open note settles the gap from the 09:30 open and its prose gate
+reads the completed flag. Printed, never applied: nothing halves a size or
+refuses a packet until Doctrine #2 and Book C's activation.
 
 **The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
 Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,

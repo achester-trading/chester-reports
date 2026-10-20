@@ -15,6 +15,7 @@ ExecStart=%h/chester-reports/scripts/run_evening_note.sh
 EnvironmentFile=-%h/chester-reports/.env
 # The fetch (bars, the fix, news, earnings, one voices pass of 120 s) and the
 # note; it stops a hung HTTP call holding the lock.
+# Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
 TimeoutStartSec=15min
 # No retry: a note missed at its time is not recovered later; the 07:00 anchor
 # re-reads everything material.
@@ -30,6 +31,7 @@ RestrictSUIDSGID=true
 # MEMORY CAPS (AUD-2 conventions, session-set): a short fetch and one model call,
 # never beside a heavy unit. Percentages of physical memory: the caps follow the
 # machine (ruled 17 Oct 2026, the box stays at 4 GB).
+# Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
 MemoryHigh=8%
 MemoryMax=10%
 # THE OOM ORDER: a note is a report and can be rendered again -- 500.

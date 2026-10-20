@@ -103,6 +103,9 @@ commands:
   altdata.listings:
     domain: reference
     line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
+  altdata.dealer_store:
+    domain: options
+    line: 'the dealer captures stored: `backfill [--from D] [--to D] [--dry-run]` stores net GEX, net-to-gross, the gate''s regime word, the flip, the OTM walls and the spot from our engine''s exposure files already on disk (decision 9); the capture and EOD runs store each new file after compute'
   altdata.note_fetch:
     domain: prices
     line: 'the secondary notes'' fetch steps: `open` after 09:45, `evening` at 21:30; 5-minute bars, a targeted FRED pull, news, one voices pass; writes the store only'

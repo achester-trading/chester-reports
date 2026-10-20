@@ -1615,7 +1615,7 @@ def source_label(src: str) -> str:
 
 def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
                watch: Optional[list] = None, pos: Optional[dict] = None,
-               now: Optional[str] = None) -> dict:
+               now: Optional[str] = None, db_path: Optional[str] = None) -> dict:
     wa = p.get("week_ahead") or {}
     items = []
     # THE WEEK-AHEAD CALENDAR, IN FULL (T2.1 item 11, folded from the old Detail
@@ -1683,7 +1683,8 @@ def ahead_week(p: dict, calls: dict, cal: Optional[dict] = None,
     try:
         ah = ahead.build(cal, p, pos, now or p.get("as_of") or session.utc_iso(),
                          min_outcomes=int((stack_mod.config().get("storyline") or {})
-                                          .get("family_min_outcomes") or 2))
+                                          .get("family_min_outcomes") or 2),
+                         db_path=db_path)
     except Exception:                                           # noqa: BLE001
         log.warning("the ranked calendar is unavailable", exc_info=True)
         ah = None
@@ -2091,7 +2092,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                                                   _voices_week(ending, now, st),
                                                   st=st, now=now, db_path=db_path),
             "ahead": ahead_week(p, graded_calls(now, db_path), cal, watch,
-                                pos=pos.get("data"), now=now),
+                                pos=pos.get("data"), now=now, db_path=str(st.path)),
             "book": book_week(p, attention_counts(ending, now, db_path, log_path),
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),

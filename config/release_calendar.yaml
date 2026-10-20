@@ -91,6 +91,21 @@ tier1_headlines:
   "Unemployment Insurance Weekly Claims":
     - {key: fred.claims_4wk, form: level, label: "jobless claims, four-week average"}
 
+# THE READING FORMS OF TWO TIER-2 RELEASES (A49's answer (b), ruled 19 Oct 2026),
+# beside the tier-1 headlines and in the same declared forms: the 09:50 open note
+# reads their prints (altdata/note_fetch.release_series), and lens 24's line where
+# it has one (PPI's). Matched by the release rows' `match` above (a stored name
+# starting with the key also matches). The Weekly's tier-1 tables do not read this
+# block. Series: PPIFIS (fred.ppi_final_demand, already held) and RSAFS
+# (fred.retail_sales, FRED_NOTES_SERIES), both through the existing FRED writer.
+tier2_headlines:
+  "Producer Price":
+    - {key: fred.ppi_final_demand, form: mom, label: "PPI final demand, month on month"}
+  "Retail Sales":
+    - {key: fred.retail_sales, form: mom, label: "advance retail sales, month on month"}
+  "Advance Monthly Sales":
+    - {key: fred.retail_sales, form: mom, label: "advance retail sales, month on month"}
+
 # THE EARNINGS SEASONS (T2.3 item 9): the Weekly's earnings block prints only
 # inside these windows ([month, day] to [month, day]); outside them it prints
 # nothing at all.

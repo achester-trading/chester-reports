@@ -654,12 +654,22 @@ GLD_EXPENSE_RATIO = {
     "read": "2026-10-12",
 }
 
+# THE SECONDARY NOTES' RELEASE FORMS (A49's answer (b), ruled 19 Oct 2026): the
+# advance retail sales print the open note reads month on month
+# (config/release_calendar.yaml tier2_headlines). RSAFS is FRED's "Advance Retail
+# Sales: Retail Trade and Food Services", millions of dollars, SA, monthly. PPI
+# final demand is already held as ppi_final_demand (PPIFIS, FRED_6E_SERIES).
+FRED_NOTES_SERIES: list[SeriesSpec] = [
+    SeriesSpec("retail_sales", "RSAFS", "Advance retail sales: retail trade and food services, millions, SA", "2", "M", "monthly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
-                                      + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES)
+                                      + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
+                                      + FRED_NOTES_SERIES)
 
 
 # Quick lookup by key

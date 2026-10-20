@@ -648,6 +648,25 @@ metrics:
     description: >-
       |net_gex| / gross_gex_abs; None when gross is zero. Computed and stored
       only (dealer audit F1); the regime-word gate on it arrives with 6b.
+  # THE CAPTURES, STORED (decision 9 of 19 Oct 2026; a50-dealer-store).
+  # altdata/dealer_store.py writes exposure.net_gex, net_to_gross, gamma_flip,
+  # call_wall_otm, put_wall_otm, spot and this word from every one of our
+  # engine's exposure files (09:45, 12:30, 16:10): instrument the symbol,
+  # observed_at the slot's ET instant, available_at the file's computed_at,
+  # source dealer_capture:<the capture's id>.
+  exposure.regime_word:
+    source: dealer_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      The regime word as the capture's own gate reads it (daily_cascade/dealer_block.regime): "positive gamma" or "negative gamma" where net-to-gross is at least dealer_block.net_to_gross_min (0.10, RULED 16 Oct 2026), otherwise "indeterminate"; no row without both inputs. One row per capture, keyed by symbol and slot. A stored reading of the gate as the close prints it, never a regime of its own, and never an input to the market-state object or a composite.
   exposure.gamma_flip:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -16096,6 +16115,33 @@ bulk_imports:
       "2": macro_momentum
       "4": macro_inflation
 
+  fred_notes:
+    description: >-
+      The secondary notes' release forms (A49's answer (b), ruled 19 Oct 2026;
+      a50-dealer-store, session A): advance retail sales, retail trade and food
+      services (RSAFS), millions of dollars, SA, monthly -- read by the open note
+      month on month (config/release_calendar.yaml tier2_headlines). PPI final
+      demand is the store's fred.ppi_final_demand (FRED_6E_SERIES) and is not
+      repeated here. See altdata/config.py FRED_NOTES_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_NOTES_SERIES
+    member_families:
+      fred.retail_sales: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -18491,6 +18537,7 @@ reserved:
 # names every member of the block; a key names one series.
 lens_excluded:
   calc.release_first_hour: "units 'label': a JSON record per release day and instrument (the secondary notes)"
+  exposure.regime_word: "units 'label': the capture's gate word per symbol and slot, not a level series (decision 9)"
   calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"
   calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
   calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
