@@ -241,8 +241,9 @@ def main() -> int:
           "NVDA's implied move from its captured chain, to the first expiry after "
           "the report")
     mv = ahead.implied_move("NVDA", day(2), f"{W.ENDING}T22:00:00+00:00", chain_dir)
-    check(mv == "implied move ±7.5% (straddle to 2026-10-09)",
-          f"the move is the ATM straddle's mid over spot: (7.0 + 6.5) / 181 ({mv})")
+    check(mv == "implied move ±7.5% (straddle to 2026-10-09; includes non-event days)",
+          f"the move is the ATM straddle's mid over spot: (7.0 + 6.5) / 181, labelled as "
+          f"including non-event days, no expiry before the report (Batch 11 item 57) ({mv})")
     ms = by.get("MSFT earnings") or {}
     check(ms.get("cls") == "earnings_mega"
           and ms.get("time") == "release time not captured"

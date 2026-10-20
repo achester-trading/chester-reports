@@ -211,6 +211,26 @@ blocks:
   z_from: 2026-12-15             # ruling 5: the aggregate's z prints from mid-December
   froth_from: 2027-01-15         # S-5: 90 days of store after a first sample
   watch_triple_window_days: 1825
+  # CD-9's DAILY PART (the a47 chain, 19 Oct 2026): the 07:00 anchor's and the
+  # 16:45 close's crypto paragraph, at most six computed lines. The order wires
+  # it only after Track D's D4/D6, which nothing records as done (TODO.md shows
+  # both open; a43's notes record no such precondition for ST-10, which is wired
+  # unconditionally) -- so it is built and switched OFF. Ari's yes turns it on.
+  # Displaces nothing: in the close it is a Positioning & flows sub-section of
+  # data lines, which the 1,000-word budget does not count (stack.py: prose
+  # only); in the anchor, six lines under the overnight table.
+  daily:
+    enabled: false
+    max_lines: 6
+    stale_days: 4                # T-1 by the order; four calendar days covers a weekend
+    # SESSION-SET: Fear & Greed's 0-100 value as one word, by upper bound.
+    fng_words: [[24, panic], [44, fear], [55, neutral], [75, greed], [100, euphoria]]
+  # The 12:30 alert-only line (daily_cascade/crypto_gate.py): CLOSED until the S-3
+  # ledger passes. A ruling admits it by naming the passing ledger here; until
+  # then the gate prints and writes nothing, and reads no flag.
+  midday_leverage:
+    admitted_by: null
+    admitted_verdict: null
 
 # ===========================================================================
 # ITEM 49 (digital-49-51b, 17 Oct 2026): the treasury companies.

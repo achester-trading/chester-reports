@@ -231,7 +231,7 @@ def score(cards: list[dict], closes: dict[str, float], cfg: Optional[dict] = Non
     rows = []
     for card in sorted(cards, key=lambda x: str(x.get("session"))):
         day = str(card.get("session"))[:10]
-        rows.append({"session": day,
+        rows.append({"session": day, "backfilled": bool(card.get("backfilled")),
                      "h": score_card(card, closes, c, (vix or {}).get(day))})
     for prev, cur in zip(rows, rows[1:]):
         for h in ("dampened", "amplified"):
@@ -294,7 +294,51 @@ def from_store(st, cutoff: str, cfg: Optional[dict] = None,
         if r.get("value_num") is not None:
             closes[str(r["observed_at"])[:10]] = float(r["value_num"])
     rows = score(list(by.values()), closes, c)
-    return {"rows": rows, **rates_table(rows, c)}
+    return split_tables(rows, c)
+
+
+# BATCH 11 ITEM 54 (ruled 19 Oct 2026): THE TEST SAMPLE AND THE REST. Rows are
+# scored together (H1/H2's baseline and H5's outcome read their neighbours), then
+# split: the test sample is the live rows from the registration date; every
+# earlier row, and every backfilled row whatever its date, is printed beside it as
+# "before registration, descriptive" -- counts and a share, no interval, never a
+# decision. The registration file is not edited.
+BEFORE = "before registration, descriptive"
+
+
+def in_test(row: dict, reg: str) -> bool:
+    return not row.get("backfilled") and str(row["session"])[:10] >= reg
+
+
+def descriptive_line(r: dict) -> str:
+    share = f"{r['k'] / r['n'] * 100:.0f}%" if r["n"] else "n/a"
+    bf = r.get("backfilled_n", 0)
+    return (f"{r['label']}, {BEFORE}: {r['k']}/{r['n']} ({share}); {r['n']} sessions "
+            f"({bf} backfilled), {r['episodes']} episodes.")
+
+
+def split_tables(rows: list[dict], cfg: Optional[dict] = None) -> dict:
+    """The rates on the test sample, each followed by its descriptive line on the
+    rest. `rates` and `lines` keep their meaning for every reader (the test
+    sample's); `before` and `before_lines` are the rest."""
+    c = cfg or {}
+    reg = str(c.get("registered_on") or "2026-10-17")[:10]
+    test = [r for r in rows if in_test(r, reg)]
+    rest = [r for r in rows if not in_test(r, reg)]
+    t = rates_table(test, c)
+    before = [rate(rest, h, c) for h in HYPOTHESES]
+    for b in before:
+        el = [r for r in rest if r["h"][b["hypothesis"]]["eligible"]
+              and r["h"][b["hypothesis"]]["outcome"] is not None]
+        b["backfilled_n"] = sum(1 for r in el if r.get("backfilled"))
+    lines = []
+    for tl, b in zip(t["lines"], before):
+        lines += [tl, descriptive_line(b)]
+    return {"rows": rows, "rates": t["rates"], "lines": lines,
+            "test_lines": t["lines"], "before": before,
+            "before_lines": [descriptive_line(b) for b in before],
+            "registered": t["registered"], "promoted": t["promoted"],
+            "registered_on": reg, "test_n": len(test), "before_n": len(rest)}
 
 
 def rate_line(r: dict) -> str:

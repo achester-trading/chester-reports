@@ -287,12 +287,29 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     signals = signal_lines.build(this_session, prior, cutoff, db_path)
     # OS-2 (a44-opening-setup): the expected-movement gauge, under the dealer surface.
     from . import opening_setup                                 # noqa: PLC0415
-    gauge = opening_setup.gauge_from_store(prior, cutoff, db_path)
+    # Ruling 4 of 19 Oct: the pre-market line under the gauge -- ES's overnight
+    # print at the 23-hour chart's session basis, from the stored bars. Read
+    # first: item 55 centres the gauge's bands on it too.
+    premarket = opening_setup.premarket_from_store(this_session, cutoff, db_path)
+    gauge = opening_setup.gauge_from_store(
+        prior, cutoff, db_path,
+        premarket=(premarket.get("values") or {}).get("spy"))
     vol_regime = opening_setup.vol_lines_from_store(prior, cutoff, db_path)
     # OS-9 and OS-4 (a45-opening-setup-2): the OI builds, side unknown, and the
     # index put lines, no side.
     oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
     index_puts = opening_setup.index_put_lines_from_store(cutoff, db_path)
+    # BATCH 11 ITEM 55 (H6): at most two level clusters in force today, read only.
+    from altdata import level_clusters as _lc, observations as _obs  # noqa: PLC0415
+    try:
+        with _obs.ObservationStore(db_path) as _st:
+            clusters = _lc.anchor_block(_st, str(this_session)[:10], cutoff, db_path)
+    except Exception:                                           # noqa: BLE001
+        clusters = None
+    # CD-9's daily part (the a47 chain): the crypto paragraph, None while its
+    # switch is off (config/crypto_sources.yaml blocks.daily.enabled).
+    from altdata import crypto_blocks                           # noqa: PLC0415
+    crypto = crypto_blocks.daily_paragraph_from_store(cutoff, db_path)
 
     # THE ES BLOCK (ST-R6.45): the overnight session so far, the prior full
     # session's value area and POC as reference, the day's levels -- from the
@@ -362,9 +379,12 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "vol_event": vol_event,
         "signal_lines": signals,
         "opening_gauge": gauge,
+        "opening_premarket": premarket,
         "vol_regime_lines": vol_regime,
         "oi_builds": oi_builds,
         "index_put_lines": index_puts,
+        "level_clusters": clusters,
+        "crypto_paragraph": crypto,
         "warnings": warnings,
         "meme_line": _meme_line(db_path),
     }

@@ -478,7 +478,7 @@ Expect no stored key the registry does not know, and the new keys present. Paste
 - **The Weekly of Sunday 25 Oct:** the most-active table, the setup profiles, the single-name put share, the Sunday line, GTM-13 and the ES panel.
 - **The Monthly of 1 Nov** (`python -m monthly_macro.run --dry-run`): the PPI and GDP panels, the style panel, the Factor IV lines, the PRL part, and the metrics block last.
 
-**E6. ⚑ The chat-side FlashAlpha tasks:** on Thu 29 Oct, if the divergence gate was clean through Wed 28 Oct, delete the two scheduled FlashAlpha tasks (ruling 4 of 17 Oct).
+**E6. The chat-side FlashAlpha tasks are retired at chain-2's merge** (Batch 11's D7, ruled 19 Oct 2026; it replaces the 29 Oct date of ruling 4 of 17 Oct). Their only runs, 14 and 15 Oct, failed on the usage limit, and once the backup is encrypted they cannot read the box's files from Drive. From the merge, the box's 16:25 vendor writer and its divergence gate are the check. The chat deletes both tasks on the morning after the merge; nothing here for the box.
 
 ---
 

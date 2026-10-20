@@ -170,6 +170,11 @@ safely:
 It never writes to the remote. Its exit code is 0 for restorable, 1 for no remote
 or no rclone, and 2 for no snapshot or a failed check.
 
-`chester-restore-drill.timer` runs it on the 3rd of each month at 10:30 ET once
-the operator enables it. It is deliberately not in `DEPLOY_TIMERS`. The output is
-in `journalctl --user -u chester-restore-drill`.
+**The weekly restore test runs it** (`chester-restore-test.timer`, Sundays at
+10:15 ET, once the operator enables it; deliberately not in `DEPLOY_TIMERS`).
+`scripts/run_restore_test.sh` passes the crypt remote, the sweep's recorded count
+(`backup_snapshot`) and the status file, both in the state directory, and the
+heartbeat's `backup=` field reads the result. It superseded the monthly
+`chester-restore-drill` timer, which read the old plaintext remote and is retired
+(ruling 6, 19 Oct 2026). The output is in `journalctl --user -u
+chester-restore-test` and `~/logs/restore_test-YYYY-MM.log`.

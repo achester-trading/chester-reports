@@ -86,7 +86,8 @@
 
 **F-4.**
 - `plan_ends: 2027-03-31`. From 1 April the writer makes no call and the Weekly's vendor row reads "vendor: plan ended".
-- The Weekly's mechanics table gets one vendor row: flip, walls, max pain, regime, and net GEX in both units. On 16 Oct those were −6.61bn per 1% and −0.87bn per point.
+- The Weekly's mechanics table gets one vendor row: flip, walls, max pain, regime, and net GEX in both units. (The 16 Oct values this line quoted are removed under Batch 11's D2: no vendor figure in a committed file.)
+- **The two chat-side FlashAlpha tasks retire at chain-2's merge** (Batch 11's D7, 19 Oct 2026), not on 29 Oct: the 16:25 writer and its divergence gate are the check from then.
 - The divergence gate now flags a flip more than **0.5%** of spot from ours (it was 1.0%) or a regime word that disagrees with our sign.
 
 **F-3, the conventions.** They are in the Weekly's technical appendix (four rows) and the writer's notes:

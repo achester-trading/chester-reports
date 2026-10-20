@@ -9,19 +9,34 @@ version: opening-setup-v1
 # OS-2 -- the expected-movement gauge, in the 07:00 anchor's dealer-surface block.
 gauge:
   symbol: SPY
+  # The pre-market line beneath it (ruling 4, 19 Oct 2026): ES's overnight print
+  # at the 23-hour chart's session basis; one line, nothing else displaced.
   # The typical realised range: over the 5 sessions from each stored scorecard
   # session of the same gated regime, (the highest high less the lowest low) over
   # the prior close; the median, printed once n is 20 (the scorecard's own floor
   # for a count), else "awaiting (n=k of 20)".
   sessions: 5
   n_min: 20
+  # ITEM 54 (Batch 11, ruled 19 Oct 2026): like for like. The implied move at
+  # each horizon (the close x the 30-day ATM IV x sqrt(h/252)) beside the
+  # realised |close-to-close| move over h sessions in the gated regime (median,
+  # 80th, 95th, n); the high-low range only against the implied expected range of
+  # a high-low range; net GEX's own-history percentile beside the regime word.
+  # ITEM 55: the one- and five-session bands, around the last close and around
+  # the pre-market price. Every count splits the test sample from the rest.
+  horizons: [1, 5]
   displaces: >-
-    nothing: one line under the dealer-surface table, which keeps its rows; the
-    ST-10 signal-lines block and its budget are unchanged
+    nothing: five short lines under the dealer-surface table (the head, two
+    like-for-like lines, the high-low line and the bands; six with the
+    pre-market centre), which keeps its rows; the ST-10 signal-lines block and
+    its budget are unchanged
 
 # OS-3 every day (ruling 2 of 18 Oct on the a44 report): three short lines beside
 # the gauge, each its level, percentile and window, from item 52's lens functions.
 vol_lines:
+  # ITEM 53 (Batch 11): one more line beside the realised lens, the VIX premium
+  # split into the at-the-money part and the wings ("SPY's ATM IV as SPX's
+  # proxy"). It displaces nothing.
   displaces: >-
     nothing: three short lines under the gauge; item 52's full lens table stays
     event-day only, and the dealer-surface table and the ST-10 block keep their
@@ -43,7 +58,10 @@ most_active:
 
 # OS-11 -- the earnings rows' pricing, in the Ahead matrix.
 earnings:
-  reactions: 3
+  # Batch 11 item 57: up to eight reactions, n printed; the word on the median of
+  # those available, from 3 (else "n=k, no word"). The 20% band is unchanged (D5).
+  reactions: 8
+  word_min_n: 3
   # "elevated" when the implied move exceeds the median of the last three
   # absolute reactions by a fifth or more; "muted" a fifth or more below; else
   # "in line". Never a recommendation.
@@ -61,7 +79,19 @@ profiles:
 # OS-9 -- "Largest OI builds, side unknown", in the 07:00 anchor's mechanics.
 oi_builds:
   rows: 8
+  # BATCH 11 ITEM 58, D6 (provisional, session-set): the size floor, and the OI
+  # change as a share of the session's volume printed as a column instead of a
+  # 70% filter. The premium is unchanged: the mid at the later capture.
+  floor:
+    index: 2000
+    single: 500
+    index_names: [SPY, QQQ, IWM, SPX]
+  # THE TAGS' HISTORY THRESHOLDS ARE SESSION-SET (ruling 4, 19 Oct 2026): they
+  # stand as written, the table's note labels them so, and they are reviewed at
+  # the 25 Oct dry run. The decile cut-offs (top 90th, bottom 10th) are
+  # decile_tag's.
   tags:
+    label: "session-set, reviewed at the 25 Oct 2026 dry run"
     earnings_days: 14       # EARNINGS: a report within 14 days
     extreme_sessions: 21    # 1M HIGH / 1M LOW: within extreme_pct of the 21-session close extreme
     extreme_pct: 1.0

@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import math
 import re
 from pathlib import Path
 from typing import Any, Optional
@@ -157,6 +158,42 @@ def straddle_expiry(expiries, event_date: str,
     return ok[0] if ok else None
 
 
+STRADDLE_K = math.sqrt(2.0 / math.pi)   # straddle / spot = this x sigma x sqrt(T)
+
+
+def atm_straddle(rows: list[dict], ex: str) -> Optional[tuple[float, float]]:
+    """(the at-the-money straddle's mid, spot) on expiry `ex`, or None."""
+    leg = [r for r in rows if str(r.get("expiry")) == ex]
+    spot = next((r["spot"] for r in leg if r.get("spot")), None)
+    if not spot:
+        return None
+    by: dict[float, dict] = {}
+    for r in leg:
+        if r.get("strike") is not None and _mid(r) is not None:
+            by.setdefault(r["strike"], {})[r["right"]] = _mid(r)
+    both = [k for k, v in by.items() if "C" in v and "P" in v]
+    if not both:
+        return None
+    atm = min(both, key=lambda k: abs(k - spot))
+    return by[atm]["C"] + by[atm]["P"], float(spot)
+
+
+def event_move(pre_frac: float, pre_days: int, post_frac: float,
+               post_days: int) -> Optional[float]:
+    """The event-only move, percent, on the straddle convention: each straddle's
+    fraction of spot is turned into total variance ((frac / sqrt(2/pi))^2), the
+    pre-event expiry's variance RATE is applied over the post-event expiry's time,
+    and the remainder, if positive, is turned back into a straddle fraction."""
+    if pre_days <= 0 or post_days <= pre_days:
+        return None
+    v_post = (post_frac / STRADDLE_K) ** 2
+    rate_pre = (pre_frac / STRADDLE_K) ** 2 / (pre_days / 365.0)
+    ev = v_post - rate_pre * (post_days / 365.0)
+    if ev <= 0:
+        return None
+    return 100.0 * STRADDLE_K * math.sqrt(ev)
+
+
 def implied_move(symbol: str, report_date: str, now: str,
                  base: Optional[Path] = None, days_back: int = 5,
                  time: Optional[str] = None) -> Optional[str]:
@@ -180,20 +217,30 @@ def implied_move(symbol: str, report_date: str, now: str,
                                  report_date, time)
             if not ex:
                 return None
-            leg = [r for r in rows if r["expiry"] == ex]
-            spot = next((r["spot"] for r in leg if r.get("spot")), None)
-            if not spot:
+            post = atm_straddle(rows, ex)
+            if not post:
                 return None
-            by: dict[float, dict] = {}
-            for r in leg:
-                if r.get("strike") is not None and _mid(r) is not None:
-                    by.setdefault(r["strike"], {})[r["right"]] = _mid(r)
-            both = [k for k, v in by.items() if "C" in v and "P" in v]
-            if not both:
-                return None
-            atm = min(both, key=lambda k: abs(k - spot))
-            mv = 100.0 * (by[atm]["C"] + by[atm]["P"]) / spot
-            return f"implied move ±{mv:.1f}% (straddle to {ex})"
+            strad, spot = post
+            mv = 100.0 * strad / spot
+            # BATCH 11 ITEM 57 (ruled 19 Oct 2026): THE EVENT-ONLY MOVE, where an
+            # expiry before the report exists -- the expiry before the post-event
+            # one, which settles before the report. On the straddle convention
+            # (straddle / spot = sqrt(2/pi) x sigma x sqrt(T)): the post-event
+            # expiry's total variance less the pre-event expiry's variance rate
+            # over the same time; else the full straddle, labelled.
+            pre_ex = max((str(r["expiry"]) for r in rows if r.get("expiry")
+                          and str(r["expiry"]) < ex
+                          and str(r["expiry"])[:10] > day), default=None)
+            pre = atm_straddle(rows, pre_ex) if pre_ex else None
+            if pre:
+                ev = event_move(pre[0] / pre[1], (dt.date.fromisoformat(pre_ex[:10])
+                                                   - dt.date.fromisoformat(day)).days,
+                                strad / spot, (dt.date.fromisoformat(ex[:10])
+                                               - dt.date.fromisoformat(day)).days)
+                if ev is not None:
+                    return (f"implied move ±{ev:.1f}% (event-only: the straddle to {ex} "
+                            f"less the {pre_ex} expiry's variance rate over the same time)")
+            return f"implied move ±{mv:.1f}% (straddle to {ex}; includes non-event days)"
     except Exception:                                           # noqa: BLE001
         log.warning("implied move unavailable for %s", symbol, exc_info=True)
     return None

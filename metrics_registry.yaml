@@ -3855,6 +3855,45 @@ metrics:
       morning's flip and whether the session crossed it, the session's range and
       return, the pin verdicts, and 5-minute realized volatility. The Monthly's
       dealer retrospective reads these and never recomputes them.
+  calc.earnings_move:
+    source: derived_state
+    mechanism_group: equity_tape
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 57: one JSON record per earnings print of a captured name -- the
+      implied move at the close before the report (the Ahead matrix's own: the
+      event-only move where an expiry before the report exists, else the full
+      straddle, labelled) and the realised close-to-close move after it. Written
+      once by the 16:45 close of the first session after the report; read by the
+      Ahead rows; offered to the Alpha Lab's engine 4. Report-only.
+  calc.level_zones:
+    source: derived_state
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    freq: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 55, the dealer scorecard's H6 (registered 19 Oct 2026,
+      docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md): one JSON row per
+      instrument (SPY, QQQ, IWM) per session, written by the 16:45 close for the
+      NEXT session -- its new level-cluster zones (three or more families within
+      0.2%, frozen 30 days) with every member level beside them for the base rate.
+      Our own levels only; no vendor level. Read by the 07:00 anchor, the close's
+      outcome line and the Weekly's rates; never a decision.
   paper.benchmark:
     source: derived_state
     mechanism_group: paper_benchmark
@@ -6556,6 +6595,58 @@ metrics:
     added_date: "2026-10-18"
     description: >-
       One name's front-month 25-delta put skew, in vol points: the solved put IV at -25 delta (Black-Scholes delta on each put's solved IV) less the ATM IV, on the expiry chain.front_expiry names. OS-8 and OS-9's HIGH SKEW tag: report-only (a45-opening-setup-2).
+  chain.iv30_atm:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's 30-day constant-maturity ATM IV, percent, by SPY's method (total variance between the two expiries bracketing 30 days, else the nearest). Written by the close and by backfill-names from the stored chains; the Weekly's per-name table and OS-8 read it; report-only.
+  chain.rr_25d:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's front-month 25-delta risk reversal, vol points: the 25-delta put IV less the 25-delta call IV (Black-Scholes delta on each solved IV), on the expiry chain.front_expiry names. Report-only.
+  chain.rv20:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's 20-session close-to-close realised volatility, annualised percent, from its stored daily closes. Report-only.
+  chain.rv60:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: inferred
+    revision_policy: never
+    units: vol_pct
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      Batch 11 item 56: one name's 60-session close-to-close realised volatility, annualised percent, from its stored daily closes. Report-only.
   chain.iv_minus_rv20:
     source: chain_capture
     mechanism_group: dealer_chain_derived
@@ -17575,6 +17666,10 @@ families:
   chain.options_volume: quantity
   chain.atm_iv_front: conditions
   chain.skew_25d_put: conditions
+  chain.iv30_atm: conditions
+  chain.rr_25d: conditions
+  chain.rv20: conditions
+  chain.rv60: conditions
   chain.iv_minus_rv20: conditions
   chain.put_share_volume: ratio
   chain.put_share_oi_build: ratio
@@ -18119,6 +18214,10 @@ series_kinds:
   chain.spy_atm_iv_30d: volatility
   chain.atm_iv_front: volatility
   chain.skew_25d_put: volatility
+  chain.iv30_atm: volatility
+  chain.rr_25d: volatility
+  chain.rv20: volatility
+  chain.rv60: volatility
   chain.iv_minus_rv20: volatility
   calc.vol_spy_realized_20d: volatility
   yfinance.mkt_spy: price
@@ -18277,6 +18376,8 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
+  calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).
   state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"
   state.net_gex_sign: "a sign (+1, -1 or 0), not a level series (EL-5)"

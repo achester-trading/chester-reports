@@ -115,9 +115,6 @@ chester-monthly.service       Environment
 # reporting into a drawer.
 ibgateway-watchdog.service    Environment
 
-# The restore drill (AUD-2 item 5) reads the backup's remote from the same
-# box-local drop-in the backup does: CHESTER_RCLONE_REMOTE, one Environment= line.
-chester-restore-drill.service Environment
 
 # THE WEEKLY RESTORE TEST (ruling 7, 19 Oct 2026). It reads the record the backup
 # writes (backup_snapshot) and writes the status the heartbeat reads

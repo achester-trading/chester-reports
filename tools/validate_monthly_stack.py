@@ -79,7 +79,7 @@ T3.3, THE FIXES FROM THE SECOND BOX DRY RUN (10 Oct 2026, 20:53 UTC):
                 Millions; the FRED units corrected); every delta a pillar or theme
                 hands the writer carries its signed display form and no bare
                 delta above 9,999 publishes; a summary paragraph audited against
-                the sections it summarises; the parent frames, the three attempts
+                the sections it summarises; the parent frames, the one revision
                 and the count-and-cap retry line; each prediction-market change
                 a signed figure in points; a series printed with $ or % never a
                 count; no percentile below n=20; the policy words in the frame;
@@ -1621,7 +1621,7 @@ def t31_summary_group(ed: dict, out: dict) -> None:
     tape = next(e for e in summ if e["id"] == "tape")
     check(not tape["text"] and tape["note"] == prose_mod.SUMMARY_WITHHELD
           and "999" in str(sw["summary:tape"].get("first_reason"))
-          and sw["summary:tape"]["attempts"] == 3,
+          and sw["summary:tape"]["attempts"] == 2,
           "a paragraph the audit withholds, after its retries, prints \"(summary "
           "withheld — audit)\" rather than an unaudited sentence")
     plan = {x["key"]: x for x in prose_mod.summary_plan(ed)}
@@ -1949,7 +1949,7 @@ def t33_group(ed: dict, out: dict) -> None:
     w = prose_mod.write_all({}, client=client(calls, {
         "THE SECTION: Probe pillar": ["Bank reserves rose +23,154 over the month."]}),
         secs=probe)["probe"]
-    check(not w["published"] and w["state"] == "bare_delta" and w["attempts"] == 3
+    check(not w["published"] and w["state"] == "bare_delta" and w["attempts"] == 2
           and "change_display" in str(w["reason"]),
           f"in the pipeline a paragraph printing a bare delta above 9,999 is "
           f"withheld, after its retries, naming the display form "
@@ -2002,10 +2002,13 @@ def t33_group(ed: dict, out: dict) -> None:
           and prose_mod.SUMMARY_FIGURES == 3,
           "the summary keeps its own figure cap (three per paragraph)")
 
-    # P4 -- the cap honoured: parent frames, three attempts, the retry line.
-    check(prose_mod.ATTEMPTS == 3 and prose_mod.figure_cap() == 8,
-          "P4 item 4: three attempts for every section; the caps are not raised "
-          "(8; the summary 3)")
+    # P4 -- the cap honoured: parent frames, the one revision, the retry line.
+    # The a47 chain (19 Oct 2026): T3.3's three attempts became the stack's one
+    # revision (audit_retry.ATTEMPTS).
+    from daily_cascade import audit_retry as _ar
+    check(prose_mod.ATTEMPTS == _ar.ATTEMPTS == 2 and prose_mod.figure_cap() == 8,
+          "P4 item 4: the draft and one revision for every section, the stack's "
+          "count; the caps are not raised (8; the summary 3)")
     parents = [x for x in prose_mod.stack_plan(ed)
                if next(s for s in ed["sections"] if s["id"] == x["sid"])
                .get("subsections")]
@@ -2025,9 +2028,12 @@ def t33_group(ed: dict, out: dict) -> None:
         "sid": "plumbing", "system": "OVERCAP", "max_chars": 1400,
         "slice": {"section": "Plumbing & rates"}}], ed={})["summary:probe"]
     line = prose_mod.CAP_RETRY.format(n=n, m=8)
-    check(n > 8 and len(calls2) == 3 and line not in calls2[0]
-          and all(line in c for c in calls2[1:]) and w2["attempts"] == 3,
-          f"the second and third attempts say exactly \"{line}\"")
+    check(n > 8 and len(calls2) == 2 and line not in calls2[0]
+          and line in calls2[1] and w2["attempts"] == 2
+          and "THE FAILING SPAN" in calls2[1] and "YOUR DRAFT:\n<<<\n" in calls2[1]
+          and calls2[1].index(line) < calls2[1].index("YOUR DRAFT:"),
+          f"the revision says exactly \"{line}\", beside the rule and before the "
+          f"draft it revises")
 
     # P5 -- prediction-market changes as signed figures in points (item 5).
     pmb = {"legs_sum_band": [0.95, 1.05],
@@ -2475,10 +2481,10 @@ def main() -> int:
     out3 = ms.produce(p, archive_dir=None, db_path=DB,
                       client=client(calls3, {"THE SECTION: Mechanics": [bad]}))
     w3 = out3["written"]["stack:mechanics"]
-    check(not w3["published"] and w3["attempts"] == 3
+    check(not w3["published"] and w3["attempts"] == 2
           and "flag is not set" in str(w3["reason"]),
           "in the pipeline, Mechanics prose that calls an unflagged session "
-          "pinned is withheld, after its two retries (T3.3: three attempts)")
+          "pinned is withheld, after its one revision")
 
     # --- D. PHASE A, ONCE ----------------------------------------------------------
     print(f"\n{LINE}\nD. MONTHLY v2 PHASE A: NOTHING LOST, NOTHING TWICE\n{LINE}")
@@ -2587,10 +2593,16 @@ def main() -> int:
           and "because" in retry_prompt[1],
           "with the audit's reason fed back")
     cc = written.get("theme:credit_cycle") or {}
-    check(not cc.get("published") and cc.get("attempts") == 3
+    check(not cc.get("published") and cc.get("attempts") == 2
           and "999" in str(cc.get("first_reason")) and "998" in str(cc.get("reason"))
-          and len(cc.get("reasons") or []) == 3,
-          "a Phase A section that fails three times is withheld, every reason kept")
+          and len(cc.get("reasons") or []) == 2,
+          "a Phase A section that fails its draft and its revision is withheld, "
+          "both reasons kept")
+    cc_calls = [x for x in calls if "THE SECTION: Credit Cycle" in x]
+    check(len(cc_calls) == 2 and "Credit widened by 999 basis points." in cc_calls[1]
+          and "YOUR DRAFT:" in cc_calls[1] and "THE RULE" in cc_calls[1],
+          "the revision carries the rule it broke, the failing span and the draft "
+          "(the stack's revision note)")
     pos = written.get("stack:positioning") or {}
     check(pos.get("state") == "call_failed" and pos.get("attempts") == 1
           and sum(1 for x in calls if "THE SECTION: Positioning & flows" in x) == 1,

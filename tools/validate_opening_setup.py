@@ -25,6 +25,10 @@ group OS-3. On fixtures; no network, no model, no live store.
   E  THE RULINGS ON THE A44 REPORT: the three vol-regime lines every day (level,
      percentile, window, as-of; the numeral audit); "of 17 captured names"; no
      pre-market line while the ES conversion runs only SPY to ES.
+  G  RULING 4 OF 19 OCT: the pre-market line (an ES overnight bar converted at
+     the 23-hour chart's session basis to the SPY figure worked by hand; no bar
+     prints "not available"); SPX's and SPCX's cells "awaiting the solver gate";
+     the tags' thresholds labelled session-set.
   F  THE SECOND HALF: OS-8 profiles, OS-9 OI builds (the premium and the chance
      in the money by hand, the spread rule, each tag fired and silent), OS-4 and
      OS-5 put shares by hand; the budgets; no score, weight or side word.
@@ -54,7 +58,8 @@ from gate_tmp import mkdtemp                                    # noqa: E402
 LINE = "=" * 78
 PASS = FAIL = 0
 TD = Path(mkdtemp("opening-setup-gate-"))
-NEW = ["daily_cascade/opening_setup.py"]
+# Batch 11 (item 55, D3): the H6 detector is held to the same vendor grep.
+NEW = ["daily_cascade/opening_setup.py", "altdata/level_clusters.py"]
 
 
 def check(c: bool, m: str) -> bool:
@@ -90,44 +95,86 @@ def days(n: int, end: str = "2026-10-16") -> list[str]:
     return out
 
 
-def card(day: str, net=-1e9, ntg=0.30):
+def card(day: str, net=-1e9, ntg=0.30, i: int = 0):
+    """A stored scorecard row. Batch 11: `close` steps 100.0 + (i mod 5) x 0.5 over
+    a 100 prior close, and net GEX at the close is -1e9 - i x 1e8, so the
+    like-for-like distribution and the net-GEX percentile can be worked by hand."""
     return {"session": day, "net_gex_morning": net, "net_to_gross_morning": ntg,
-            "session_high": 102.0, "session_low": 98.0, "prior_close": 100.0}
+            "session_high": 102.0, "session_low": 98.0, "prior_close": 100.0,
+            "close": 100.0 + (i % 5) * 0.5, "net_gex_close": -1e9 - i * 1e8}
+
+
+def cards(n: int) -> list[dict]:
+    return [card(d, i=i) for i, d in enumerate(days(n))]
 
 
 # ---------------------------------------------------------------------------
 def group_a() -> None:
-    head("A. OS-2: THE EXPECTED-MOVEMENT GAUGE")
+    head("A. OS-2: THE EXPECTED-MOVEMENT GAUGE, LIKE FOR LIKE (BATCH 11 ITEM 54)")
     from altdata import numeral_audit as NA
     from daily_cascade import dealer_block as DB, opening_setup as OS
     cd = DB.config()
-    med, n = OS.typical_range([card(d) for d in days(24)], "negative", cd, 5)
-    med19, n19 = OS.typical_range([card(d) for d in days(23)], "negative", cd, 5)
+    med, n = OS.typical_range(cards(24), "negative", cd, 5)
+    med19, n19 = OS.typical_range(cards(23), "negative", cd, 5)
     check(close(med, 4.0) and n == 20 and n19 == 19
-          and OS.typical_range([card(d) for d in days(24)], "positive", cd, 5) == (None, 0),
+          and OS.typical_range(cards(24), "positive", cd, 5) == (None, 0),
           "the typical realised range by hand: each five-session window spans 102 less "
           "98 over a 100 prior close, 4.0%; 24 stored sessions make n=20, 23 make n=19; "
           "the other regime's sessions are not counted")
     prof = {"symbol": "SPY", "session_date": "2026-10-16",
             "overall": {"net_gex": -2.0e9, "net_to_gross": 0.30}}
     iv = (18.2, "SPY ATM 30-day IV")
-    g20 = OS.gauge(prof, ("2026-10-16", 761.10), iv, [card(d) for d in days(24)])
-    g19 = OS.gauge(prof, ("2026-10-16", 761.10), iv, [card(d) for d in days(23)])
-    r = 761.10 * 0.182 * math.sqrt(1 / 252)
-    check("negative gamma (net-to-gross 30%)" in g20["line"]
-          and f"{761.10 - r:,.2f} to {761.10 + r:,.2f}" in g20["line"]
-          and f"±{r:.2f}" in g20["line"] and close(r, 8.7255, 1e-3)
-          and "typical realised range at this reading: 4.0% over 5 sessions (n=20)" in g20["line"]
-          and "typical realised range at this reading: awaiting (n=19 of 20)" in g19["line"],
-          f"the gauge by hand: negative gamma at 30% net-to-gross; 761.10 ± {r:.2f} "
-          f"(18.2% x sqrt(1/252)); 4.0% over 5 sessions at n=20, awaiting at n=19")
+    g20 = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(24))
+    g19 = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(23))
+    r1 = 761.10 * 0.182 * math.sqrt(1 / 252)
+    r5 = 761.10 * 0.182 * math.sqrt(5 / 252)
+    exp5 = math.sqrt(8 / math.pi) * 18.2 * math.sqrt(5 / 252)
+    L = g20["lines"]
+    check("negative gamma (net-to-gross 30%)" in L[0]
+          and close(r1, 8.7255, 1e-3) and f"Implied one-session move: ±{r1:.2f}" in L[1]
+          and f"Implied 5-session move: ±{r5:.2f}" in L[2],
+          f"the implied moves by hand: 761.10 x 18.2% x sqrt(1/252) = ±{r1:.2f}; "
+          f"x sqrt(5/252) = ±{r5:.2f}")
+    # One session: |close/prior - 1| over 24 gated rows = 0, 0.5, 1, 1.5% five times
+    # each and 2% four times: median 1.00, 80th 1.50 (rank 18.4), 95th 2.00.
+    # Five sessions: the fifth row's close over the first row's prior close, 20 of
+    # them, each of 0, 0.5, 1, 1.5, 2% four times: median 1.00, 80th 1.60 (rank
+    # 15.2, between 1.5 and 2.0), 95th 2.00.
+    check("median 1.00%, 80th 1.50%, 95th 2.00% (n=24: 0 since registration, 24 before "
+          "registration, descriptive)" in L[1]
+          and "median 1.00%, 80th 1.60%, 95th 2.00% (n=20: 0 since registration, 20 "
+          "before registration, descriptive)" in L[2],
+          "the realised |close-to-close| distribution by hand, at the same horizons as "
+          "the implied moves, each count split by sample")
+    check("5-session high-low range: median 4.0% (n=20: 0 since registration, 20 before "
+          "registration, descriptive)" in L[3] and f"{exp5:.1f}%" in L[3]
+          and "sqrt(8/pi)" in L[3]
+          and "5-session high-low range: awaiting (n=19 of 20" in " ".join(g19["lines"]),
+          f"the high-low range stays only against its implied expected range "
+          f"(sqrt(8/pi) x 18.2% x sqrt(5/252) = {exp5:.1f}%), and says which measure")
+    # Net GEX -2.0e9 against -1.0e9 ... -3.3e9: at or below it, rows 10 to 23 and
+    # itself, 15 of 25: the 60th percentile.
+    check("net GEX at the 60th percentile of its own history (2026-09-15 to 2026-10-16, "
+          "n=25)" in L[0],
+          f"net GEX's own-history percentile by hand, with window and n ({L[0][:160]})")
+    check(f"±1σ bands around the last close 761.10: one-session {761.10 - r1:,.2f} to "
+          f"{761.10 + r1:,.2f}; 5-session {761.10 - r5:,.2f} to {761.10 + r5:,.2f}." == L[-1],
+          "item 55: the one- and five-session bands around the last close, each labelled")
+    gp = OS.gauge(prof, ("2026-10-16", 761.10), iv, cards(24), premarket=764.0)
+    p1 = 764.0 * 0.182 * math.sqrt(1 / 252)
+    check(gp["lines"][-1].startswith("±1σ bands around the pre-market 764.00: one-session "
+                                     f"{764.0 - p1:,.2f} to {764.0 + p1:,.2f}")
+          and gp["lines"][-2].startswith("±1σ bands around the last close"),
+          "and both again around the pre-market price, labelled by centre")
     ind = OS.gauge({**prof, "overall": {"net_gex": -2e9, "net_to_gross": 0.05}},
-                   ("2026-10-16", 761.10), iv, [card(d) for d in days(24)])
+                   ("2026-10-16", 761.10), iv, cards(24))
     check("indeterminate (net is 5% of gross)" in ind["line"]
-          and "not read (the regime is not gated)" in ind["line"],
-          "under the net-to-gross gate the word is indeterminate and no typical range "
-          "prints (the engine's 0.10 rule)")
-    audits = [NA.audit(g["line"], g["values"], extra_values=g["constants"]) for g in (g20, g19)]
+          and "realised: not read (the regime is not gated)" in ind["line"]
+          and "high-low range" not in ind["line"],
+          "under the net-to-gross gate the word is indeterminate and no realised "
+          "distribution prints (the engine's 0.10 rule); no new regime word")
+    audits = [NA.audit(ln, g["values"], extra_values=g["constants"] + [1, 5, 8, 252, 30])
+              for g in (g20, g19) for ln in g["lines"]]
     check(all(a.passed for a in audits),
           f"the numeral audit passes on the gauge ({[a.reason() for a in audits if not a.passed]})")
     check(not re.search(r"\b(CALM|NORMAL|WILD)\b", g20["line"] + g19["line"] + ind["line"]),
@@ -135,13 +182,16 @@ def group_a() -> None:
     pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
     ren = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
     cfg = OS.config()
-    html = OS.gauge_html(g20)
-    check("opening_setup.gauge_from_store(prior, cutoff, db_path)" in pay
+    html = OS.gauge_html(gp)
+    check("opening_setup.gauge_from_store(" in pay and "premarket=(premarket.get(" in pay
+          and pay.index("premarket = opening_setup.premarket_from_store")
+          < pay.index("gauge = opening_setup.gauge_from_store(")
           and "{exposure_block(payload)}\n{opening_setup.gauge_html(" in ren
-          and html.count("<p") == 1 and cfg["gauge"]["displaces"]
-          and len(g20["line"].split()) <= 80,
-          "the anchor's hook: one line under the dealer-surface table, its displacement "
-          "declared (config/opening_setup.yaml), the ST-10 block's budget untouched")
+          and html.count("<p") == len(gp["lines"]) <= 6 and cfg["gauge"]["displaces"]
+          and all(len(x.split()) <= 60 for x in gp["lines"]),
+          f"the anchor's hook: at most six short lines under the dealer-surface table "
+          f"({len(gp['lines'])}), each under 60 words, its displacement declared, the "
+          f"ST-10 block's budget untouched")
 
 
 def group_b() -> None:
@@ -240,14 +290,14 @@ def group_c() -> None:
     out = OS.with_pricing(row, "2026-10-17T21:00:00+00:00", db)
     c = out["consensus"]
     check([round(x["reaction_pct"], 1) for x in out["pricing"]["reactions"]] == [5.0, -4.0, 3.0]
-          and "last three reactions: +5.0%, -4.0%, +3.0%" in c
+          and "reactions (n=3, up to 8): +5.0%, -4.0%, +3.0%" in c
           and "pricing elevated: implied ±6.0% against a median absolute reaction of 4.0%" in c
           and "not a recommendation" in c and c.startswith(row["consensus"]),
           "the reactions from stored events and closes (the close before each report to "
           "the close after it: +5.0%, -4.0%, +3.0%); the row prints them, the word and "
           "its figures, never a recommendation, after the matrix's own figure")
     none = OS.with_pricing(row, "2026-10-17T21:00:00+00:00", str(TD / "absent.db"))
-    check("last three reactions: not stored" in none["consensus"]
+    check("reactions: not stored" in none["consensus"]
           and not (TD / "absent.db").exists(),
           "no store file: 'not stored', and nothing is created (read only)")
     src = (REPO / "daily_cascade" / "ahead.py").read_text(encoding="utf-8")
@@ -344,6 +394,7 @@ def group_e() -> None:
     cfg = OS.config()
     check("opening_setup.vol_lines_from_store(prior, cutoff, db_path)" in pay
           and "{opening_setup.gauge_html(payload.get(\"opening_gauge\"))}\n"
+              "{opening_setup.gauge_html(payload.get(\"opening_premarket\"))}\n"
               "{opening_setup.vol_lines_html(payload.get(\"vol_regime_lines\"))}" in ren
           and cfg["vol_lines"]["displaces"],
           "the three lines sit beside the gauge in the anchor, their displacement declared; "
@@ -355,12 +406,8 @@ def group_e() -> None:
         sub = OS.most_active(st, days(5), "2026-10-17T21:00:00+00:00", names=names)
     check("of 17 captured names" in sub["lines"][0],
           "ruling 1: the most-active table says 'of 17 captured names'")
-    src = (REPO / "altdata" / "dealer_es.py").read_text(encoding="utf-8")
-    check(OS.PREMARKET_LINE is None
-          and not re.search(r"def\s+\w*(es_to_spy|to_spy|spy_from)", src)
-          and "pre-market implies SPY" not in pay + ren,
-          "ruling 3: the ES conversion runs SPY to ES only, so no pre-market line prints "
-          "(listed in the notes)")
+    # Ruling 3 of 18 Oct (no pre-market line) is superseded by ruling 4 of 19 Oct:
+    # group G holds the line.
 
 
 SIDE_WORDS = re.compile(r"\b(bought|sold|buyers?|sellers?|bullish|bearish|long|short|"
@@ -441,8 +488,14 @@ def group_f() -> None:
     _csv(base / d_cur / "N00_201000Z.csv", rows_cur)
     cm._solver = lambda: _FakeSolver                            # noqa: SLF001
     try:
+        # The table's shape with no size floor; Batch 11's floor is checked below.
+        import copy
+        cfg0 = copy.deepcopy(OS.config())
+        cfg0["oi_builds"]["floor"]["single"] = 0
         ob = OS.oi_builds_from_store(d_cur, "2026-10-17T11:00:00+00:00",
-                                     str(TD / "ob.db"), base, names=["N00"])
+                                     str(TD / "ob.db"), base, names=["N00"], cfg=cfg0)
+        obf = OS.oi_builds_from_store(d_cur, "2026-10-17T11:00:00+00:00",
+                                      str(TD / "ob.db"), base, names=["N00"])
     finally:
         cm._solver = saved                                      # noqa: SLF001
     rows = ob["table"]["rows"]
@@ -453,6 +506,15 @@ def group_f() -> None:
           f"the table: 'Largest OI builds, side unknown', eight rows of ten builds, the "
           f"largest first (+1,000); the two equal +500 builds on one expiry print as one "
           f"line, 'spread (legs equal)' ({len(rows)} rows)")
+    floor_rows = obf["table"]["rows"]
+    check(floor_rows and all(int(r[4].split()[0].replace("+", "").replace(",", "")) >= 500
+                             for r in floor_rows)
+          and len(floor_rows) < len(rows)
+          and OS.oi_floor("SPY") == 2000 and OS.oi_floor("IWM") == 2000
+          and OS.oi_floor("NVDA") == 500,
+          f"Batch 11 item 58: the size floor -- 500 contracts for a single name drops the "
+          f"smaller builds ({len(floor_rows)} of {len(rows)} rows), 2,000 for SPY, QQQ "
+          f"and IWM")
     txt = json.dumps({"c": ob["table"]["columns"], "r": rows}) + ob["note"]
     check(not SIDE_WORDS.search(txt.replace("side unknown", "")),
           f"no side word anywhere in the table or its note ({SIDE_WORDS.findall(txt)})")
@@ -485,8 +547,11 @@ def group_f() -> None:
     srows = []
     for s, sk, ir in (("N00", 2.0, 8.0), ("N01", 6.0, -3.0), ("N02", 4.0, 1.0)):
         for j, d in enumerate(hist):
+            # Batch 11 item 56: the IV rows read the 30-day IV less RV20 (here
+            # 20 + ir less 20, so the same figures as before).
             srows += [obs(cm.SKEW_KEY, d, sk + 0.1 * (j - 11), s),
-                      obs(cm.IV_RV_KEY, d, ir + 0.1 * (j - 11), s)]
+                      obs(cm.IV30_KEY, d, 20.0 + ir + 0.1 * (j - 11), s),
+                      obs(cm.RV20_KEY, d, 20.0, s)]
         srows.append({**obs(cm.FRONT_EXP_KEY, hist[-1], "2026-11-20 (third Friday)", s)})
     with observations.ObservationStore(str(TD / "os8.db")) as st:
         st.write_many(srows)
@@ -494,8 +559,8 @@ def group_f() -> None:
     rr = {r[0]: r for r in pr["table"]["rows"]}
     check(len(rr) == 4 and rr["Flattest 25-delta put skew"][1] == "N00"
           and rr["Steepest 25-delta put skew"][1] == "N01"
-          and rr["Highest IV against 20-day realised"][1] == "N00"
-          and rr["Lowest IV against 20-day realised"][1] == "N01"
+          and rr["Highest 30-day IV against 20-day realised"][1] == "N00"
+          and rr["Lowest 30-day IV against 20-day realised"][1] == "N01"
           and rr["Flattest 25-delta put skew"][2] == "+2.0 vol points"
           and rr["Flattest 25-delta put skew"][3] == f"rank 100, 100th percentile ({hist[0]} to {hist[-1]}, n=12)"
           and rr["Steepest 25-delta put skew"][4] == "2026-11-20 (third Friday)",
@@ -567,9 +632,111 @@ def group_f() -> None:
           "the profiles and the single-name table in the Weekly's Mechanics")
 
 
+def _bar(inst: str, sym: str, utc: str, o: float, c: float) -> dict:
+    return {"instrument": inst, "symbol": sym, "interval": "5m", "observed_at": utc,
+            "open": o, "high": max(o, c) + 0.5, "low": min(o, c) - 0.5, "close": c,
+            "volume": 100.0, "available_at": utc,
+            "source": "fixture"}
+
+
+def group_g() -> None:
+    head("G. RULING 4 OF 19 OCT: THE PRE-MARKET LINE, SPX AND SPCX, THE TAGS")
+    from altdata import bars as bars_mod
+    from daily_cascade import opening_setup as OS
+    # By hand. The basis session is Fri 16 Oct (EDT, UTC-4): SPY's 09:30 open
+    # 660.00 over ES's 09:30 open 6,650.00 = 0.0992481... Mon 19 Oct's overnight
+    # (18:00 ET Sun 18 Oct to 09:30) ends with ES's 06:55 ET bar closing at
+    # 6,700.00, so SPY is about 6,700 x 660 / 6,650 = 664.962..., printed 664.96.
+    es5 = [_bar("es", "ES=F", "2026-10-16T13:30:00+00:00", 6650.0, 6652.0),
+           _bar("es", "ES=F", "2026-10-18T22:05:00+00:00", 6690.0, 6691.0),
+           _bar("es", "ES=F", "2026-10-19T10:55:00+00:00", 6699.0, 6700.0)]
+    spy5 = [_bar("spy", "SPY", "2026-10-16T13:30:00+00:00", 660.0, 660.2),
+            _bar("spy", "SPY", "2026-10-16T19:55:00+00:00", 661.0, 661.5)]
+    pm = OS.premarket(es5, spy5, "2026-10-19")
+    v = pm["values"]
+    check(close(v.get("spy"), 6700.0 * 660.0 / 6650.0, 1e-9)
+          and v.get("basis_session") == "2026-10-16" and close(v.get("basis"), 660.0 / 6650.0, 1e-12)
+          and "6,700.00" in pm["line"] and "about 664.96" in pm["line"]
+          and "2026-10-16 session's basis" in pm["line"],
+          f"an ES overnight bar converts at the session's basis to the SPY figure "
+          f"worked by hand ({pm['line']})")
+    none = OS.premarket([_bar("es", "ES=F", "2026-10-16T13:30:00+00:00", 6650.0, 6652.0)],
+                        spy5, "2026-10-19")
+    check(none["line"] == "Pre-market (ES): not available (ES has no overnight bar)."
+          and not none["values"], f"no ES overnight bar prints 'not available' ({none['line']})")
+    nob = OS.premarket(es5, [], "2026-10-19")
+    check("not available" in nob["line"] and "09:30 opens" in nob["line"],
+          "no session with both opens prints 'not available' with its reason")
+    # The same through the store the 06:45 job fills, read as of the cutoff.
+    path = str(TD / "bars-premarket.db")
+    st = bars_mod.BarStore(path, create=True)
+    st.write_many(es5 + spy5)
+    st.close()
+    fs = OS.premarket_from_store("2026-10-19", "2026-10-19T11:00:00+00:00", path)
+    check(fs["line"] == pm["line"], "the anchor's reader prints the same line from the bars store")
+    early = OS.premarket_from_store("2026-10-19", "2026-10-19T10:00:00+00:00", path)
+    check("6,691.00" in early["line"],
+          "read as of the cutoff: a bar after it is not seen (06:00 ET reads the 18:05 ET bar)")
+    src = (REPO / "daily_cascade" / "charts.py").read_text(encoding="utf-8")
+    os_src = (REPO / "daily_cascade" / "opening_setup.py").read_text(encoding="utf-8")
+    check("from .charts import es_at_open, es_overnight" in os_src
+          and 'basis = (seg[0]["open"] / es_open)' in src,
+          "no new conversion method: the line reads W7's own es_overnight and es_at_open")
+    pay = (REPO / "daily_cascade" / "morning_payload.py").read_text(encoding="utf-8")
+    ren = (REPO / "daily_cascade" / "morning_render.py").read_text(encoding="utf-8")
+    check("opening_setup.premarket_from_store(this_session, cutoff, db_path)" in pay
+          and '"opening_premarket": premarket' in pay
+          and 'gauge_html(payload.get("opening_premarket"))' in ren
+          and ren.index('payload.get("opening_gauge")') < ren.index('payload.get("opening_premarket")'),
+          "the anchor prints it beneath the gauge")
+
+    # SPX and SPCX: their cells await the solver gate.
+    builds = [{"symbol": "SPX", "expiry": "2026-11-20", "strike": 6700.0, "right": "C",
+               "oi_change": 500, "mid": 10.0, "premium": 500000.0, "iv": None,
+               "spot": 6650.0, "dte": 32, "solver_gated": True, "p_itm": None},
+              {"symbol": "N00", "expiry": "2026-11-20", "strike": 100.0, "right": "P",
+               "oi_change": 300, "mid": 1.0, "premium": 30000.0, "iv": 0.2,
+               "spot": 100.0, "dte": 32, "solver_gated": False, "p_itm": 0.45}]
+    tab = OS.oi_build_table(builds, {}, OS.config())
+    spx = next(r for r in tab["rows"] if r[0] == "SPX")
+    n00 = next(r for r in tab["rows"] if r[0] == "N00")
+    check(spx[7] == "awaiting the solver gate" and n00[7] == "45%",
+          f"OS-9: SPX's chance in the money reads 'awaiting the solver gate'; a solved "
+          f"name's prints its figure ({spx[7]}, {n00[7]})")
+    from altdata import observations, chain_metrics as cm, config as acfg
+    with observations.ObservationStore(str(TD / "spx.db")) as st2:
+        st2.write_many([obs(cm.VOL_KEY, d, 50.0, "SPX") for d in days(5)]
+                       + [obs(cm.VOL_KEY, d, 10.0, "N00") for d in days(5)]
+                       + [obs(cm.FRONT_IV_KEY, d, 20.0, "N00") for d in days(5)])
+        ma = OS.most_active(st2, days(5), "2026-10-17T21:00:00+00:00",
+                            names=["N00", "SPX"])
+    row = next(r for r in ma["table"]["rows"] if r[0] == "SPX")
+    check(row[2] == row[3] == "awaiting the solver gate"
+          and next(r for r in ma["table"]["rows"] if r[0] == "N00")[2] == "20.0%",
+          f"OS-10: SPX's IV and IV-rank cells read 'awaiting the solver gate' ({row})")
+    check(set(acfg.massive_universe()) == {"SPX", "SPCX"}
+          and "acfg.chain_universe() + sorted(gated)" in os_src
+          and "gated=s in gated" in os_src,
+          "SPX and SPCX join both tables' universes from the vendor's chains, gated")
+    import inspect
+    bsrc = inspect.getsource(OS.builds_for)
+    check("if not gated:" in bsrc and "_solver()" in bsrc.split("if not gated:", 1)[1],
+          "a gated name's chain is never sent to the solver")
+
+    # The tags' thresholds: session-set, labelled.
+    cfg = OS.config()
+    lab = cfg["oi_builds"]["tags"].get("label") or ""
+    note = OS.oi_builds_from_store("2026-10-16", "2026-10-17T11:00:00+00:00",
+                                   str(TD / "spx.db"), base=TD / "no-chains")["note"]
+    check(lab.startswith("session-set") and "25 Oct" in lab
+          and f"history thresholds are {lab}" in note,
+          f"the tags' history thresholds are labelled session-set in the table's note "
+          f"({lab})")
+
+
 def main() -> int:
     print(f"{LINE}\nthe opening setup, first half\n{LINE}")
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

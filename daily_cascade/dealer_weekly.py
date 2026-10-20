@@ -44,6 +44,22 @@ def week_vs_monday(cards: list[dict], cfg: dict) -> Optional[dict]:
     return out
 
 
+def vendor_zone_notes(vend: dict, zones: list[dict]) -> list[str]:
+    """BATCH 11 ITEM 55's vendor annotation, the Weekly's vendor line only: for
+    each of the week's SPY cluster zones, whether the vendor's flip and walls fall
+    inside it. Words only, no vendor figure; NEVER COUNTED (D3)."""
+    out = []
+    for z in zones:
+        inside = [lab for lab, k in (("flip", "flip"), ("call wall", "call_wall"),
+                                     ("put wall", "put_wall"))
+                  if isinstance(vend.get(k), (int, float)) and z["low"] <= vend[k] <= z["high"]]
+        out.append(f"The vendor's levels against our cluster {z['low']:,.2f} to "
+                   f"{z['high']:,.2f}: " + (", ".join(inside) + " inside" if inside
+                                             else "none inside")
+                   + " (an annotation; never counted).")
+    return out
+
+
 FOURTH_NOTE = (
     "\n\nTHE FOURTH DEALER SENTENCE (the Weekly): after the three, one sentence on "
     "the week against the Monday read, from `dealer_week_vs_monday` only -- the "
@@ -97,8 +113,20 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
                                   "the horizon matrix: the profiles are not read here")
     from altdata import dealer_scorecard as dsc                 # noqa: PLC0415
     sc = dsc.from_store(st, cutoff)
+    # BATCH 11 ITEM 55: H6's running rates beside H1-H5's, as they print.
+    from altdata import bars as _bars, level_clusters as _lc   # noqa: PLC0415
+    h6_lines, week_zones = [], []
+    try:
+        day = str(cutoff)[:10]
+        with _bars.BarStore(str(st.path)) as _bst:
+            h6 = _lc.rates_from_store(st, _bst, cutoff,
+                                      _lc.sessions_between("2026-09-01", day))
+        h6_lines = h6["lines"]
+        week_zones = _lc.in_force(st, "SPY", day, cutoff)
+    except Exception:                                           # noqa: BLE001
+        out["not_tracked"].append("H6, the level clusters: its rates faulted")
     out["subsections"].append({"title": "Registered hypotheses (the scorecard)",
-                               "table": None, "lines": sc["lines"],
+                               "table": None, "lines": sc["lines"] + h6_lines,
                                "paragraph_wanted": False})
     out["data"]["dealer_hypotheses"] = sc["lines"]
     out["data"]["_dealer_rates"] = sc["rates"]
@@ -115,7 +143,8 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
     day = str(cutoff)[:10]
     out["subsections"].append({"title": "Vendor line (FlashAlpha)",
                                "table": fa.mechanics_row(vend, day),
-                               "lines": fa.vendor_line(vend, prof, day=day),
+                               "lines": fa.vendor_line(vend, prof, day=day)
+                               + vendor_zone_notes(vend, week_zones),
                                "paragraph_wanted": False})
     if most:
         out["subsections"].append(most)

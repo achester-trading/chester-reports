@@ -25,6 +25,9 @@ THE GATES (registered in GATES; a later order adds its own):
                      and SR-4's tell's two tracked legs on today's fix and the
                      12:30 CNH and CNY quotes (no verdict word while a leg is
                      not tracked); daily_cascade/funding_hooks.py
+  crypto_leverage    CD-9: S-3's "crypto leverage -- crowded" line, information
+                     only; CLOSED, reading nothing, until config names a passing
+                     S-3 ledger; daily_cascade/crypto_gate.py
   dealer_flip_cross  by 12:30 spot is at least `confirm_pct` (0.10%, the
                      continuation setup's confirmation) through the morning
                      zero-gamma level, and both captures' regimes pass the
@@ -97,10 +100,17 @@ def _deval_trip(ctx: dict) -> dict:
     return funding_hooks.deval_trip(ctx)
 
 
+def _crypto_leverage(ctx: dict) -> dict:
+    from . import crypto_gate                                   # noqa: PLC0415
+    return crypto_gate.leverage_gate(ctx)
+
+
 # The registry. Batch 9 item 52 adds the VIX gate (upward only); ST-10 (a43-render,
 # 18 Oct 2026) adds ST-5's two tells, alert-only (daily_cascade/funding_hooks.py).
+# CD-9's daily part (the a47 chain, 19 Oct 2026) adds S-3's leverage line, closed
+# until the S-3 ledger passes (daily_cascade/crypto_gate.py).
 GATES: list[Callable[[dict], dict]] = [dealer_flip_cross, _vol_gate, _yen_unwind,
-                                       _deval_trip]
+                                       _deval_trip, _crypto_leverage]
 
 
 def context(day: str, base_dir: Optional[str] = None, symbol: str = "SPY") -> dict:

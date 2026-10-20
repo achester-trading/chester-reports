@@ -44,6 +44,7 @@ from typing import Any, Optional
 import yaml
 
 log = logging.getLogger(__name__)
+REPO = Path(__file__).resolve().parent.parent
 
 CONFIG = Path(__file__).resolve().parent.parent / "config" / "opening_setup.yaml"
 
@@ -84,52 +85,198 @@ def typical_range(cards: list[dict], sign: Optional[str], cfg_dealer: dict,
     return (statistics.median(out) if out else None), len(out)
 
 
+# ITEM 54 (Batch 11, ruled 19 Oct 2026): LIKE FOR LIKE. The implied move and the
+# realised distribution on the same horizon and the same measure -- the close x the
+# 30-day ATM IV x sqrt(h/252) beside the absolute close-to-close move over h
+# sessions in the gated regime (median, 80th, 95th, n). The high-low range stays
+# only against the implied EXPECTED range of a high-low range (a random walk's,
+# sqrt(8/pi) x sigma x sqrt(h/252)), and says so. Every sample is split: the test
+# sample (live rows from the registration date) and the rest, "before
+# registration, descriptive" -- the backfilled rows among them.
+RW_RANGE = math.sqrt(8.0 / math.pi)
+BEFORE = "before registration, descriptive"
+
+
+def registered_on(cfg_scorecard: Optional[dict] = None) -> str:
+    """The scorecard's registration date (its test sample starts here)."""
+    if cfg_scorecard is None:
+        from altdata import dealer_scorecard as dsc               # noqa: PLC0415
+        cfg_scorecard = dsc.config()
+    return str(cfg_scorecard.get("registered_on") or "2026-10-17")[:10]
+
+
+def in_test(card: dict, reg: str) -> bool:
+    """A live row on or after the registration date. A backfilled row never is."""
+    return not card.get("backfilled") and str(card.get("session"))[:10] >= reg
+
+
+def quantile(xs: list[float], q: float) -> float:
+    """Linear interpolation between closest ranks (q in [0, 1])."""
+    s = sorted(xs)
+    if len(s) == 1:
+        return s[0]
+    pos = q * (len(s) - 1)
+    lo = int(math.floor(pos))
+    hi = min(lo + 1, len(s) - 1)
+    return s[lo] + (s[hi] - s[lo]) * (pos - lo)
+
+
+def _gated(cards: list[dict], sign: Optional[str], cd: dict) -> list[int]:
+    from . import dealer_block                                  # noqa: PLC0415
+    return [i for i, c in enumerate(cards)
+            if sign is not None and dealer_block.regime_sign(
+                c.get("net_gex_morning"), c.get("net_to_gross_morning"), cd) == sign]
+
+
+def realised_moves(cards: list[dict], sign: Optional[str], cd: dict, h: int,
+                   reg: str) -> list[tuple[float, bool]]:
+    """[(|close-to-close move| %, in the test sample)] over h sessions from each
+    gated session: the h-th session's close over the first session's prior close."""
+    cs = sorted((c for c in cards if c.get("session")), key=lambda c: str(c["session"]))
+    out = []
+    for i in _gated(cs, sign, cd):
+        win = cs[i:i + h]
+        p0, c1 = cs[i].get("prior_close"), (win[-1] if len(win) == h else {}).get("close")
+        if len(win) < h or not p0 or c1 is None:
+            continue
+        out.append((100.0 * abs(float(c1) / float(p0) - 1.0), in_test(cs[i], reg)))
+    return out
+
+
+def realised_ranges(cards: list[dict], sign: Optional[str], cd: dict, h: int,
+                    reg: str) -> list[tuple[float, bool]]:
+    """[(high-low range %, in the test sample)] over h sessions from each gated
+    session, over its prior close (the typical range, split by sample)."""
+    cs = sorted((c for c in cards if c.get("session")), key=lambda c: str(c["session"]))
+    out = []
+    for i in _gated(cs, sign, cd):
+        win = cs[i:i + h]
+        if len(win) < h or not cs[i].get("prior_close"):
+            continue
+        hs, ls = [w.get("session_high") for w in win], [w.get("session_low") for w in win]
+        if any(x is None for x in hs + ls):
+            continue
+        out.append((100.0 * (max(hs) - min(ls)) / float(cs[i]["prior_close"]),
+                    in_test(cs[i], reg)))
+    return out
+
+
+def _counts(xs: list[tuple[float, bool]]) -> str:
+    t = sum(1 for _, x in xs if x)
+    return f"n={len(xs)}: {t} since registration, {len(xs) - t} {BEFORE}"
+
+
+def net_gex_percentile(net: Optional[float], cards: list[dict]) -> Optional[dict]:
+    """Net GEX's own-history percentile against the stored closes' net GEX (every
+    scorecard row, either sample): the share at or below, with window and n."""
+    hist = sorted(((str(c["session"])[:10], float(c["net_gex_close"])) for c in cards
+                   if c.get("session") and c.get("net_gex_close") is not None))
+    if net is None or not hist:
+        return None
+    vals = [v for _, v in hist] + [float(net)]
+    pct = 100.0 * sum(1 for v in vals if v <= net) / len(vals)
+    return {"pct": pct, "n": len(vals), "first": hist[0][0], "last": hist[-1][0]}
+
+
 def gauge(profile: Optional[dict], last_close: Optional[tuple], iv: tuple,
           cards: list[dict], cfg: Optional[dict] = None,
-          cfg_dealer: Optional[dict] = None) -> dict:
-    """{line, values, constants}: the gauge as one line."""
+          cfg_dealer: Optional[dict] = None, premarket: Optional[float] = None,
+          reg: Optional[str] = None) -> dict:
+    """{line, lines, values, constants}: the gauge, a few short lines (item 54)."""
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
     from . import dealer_block                                  # noqa: PLC0415
     cfg = cfg or config()
     g = cfg["gauge"]
     cd = cfg_dealer if cfg_dealer is not None else dealer_block.config()
+    reg = reg or registered_on()
     if not profile:
-        return {"line": "Expected-movement gauge: no settled dealer profile for the prior "
-                        "session.", "values": {}, "constants": []}
+        msg = "Expected-movement gauge: no settled dealer profile for the prior session."
+        return {"line": msg, "lines": [msg], "values": {}, "constants": []}
     o = profile.get("overall") or {}
     net, ntg = o.get("net_gex"), o.get("net_to_gross")
     word = dealer_block.regime(net, ntg, cd)
     sign = dealer_block.regime_sign(net, ntg, cd)
     vals: dict[str, Any] = {"session": profile.get("session_date")}
-    head = f"Expected-movement gauge ({profile.get('symbol', 'SPY')}, the {profile.get('session_date')} settle): {word}"
+    head = (f"Expected-movement gauge ({profile.get('symbol', 'SPY')}, the "
+            f"{profile.get('session_date')} settle): {word}")
     if ntg is not None and sign:
         head += f" (net-to-gross {ntg * 100:.0f}%)"
         vals["ntg_pct"] = ntg * 100
+    pg = net_gex_percentile(net, cards)
+    if pg:
+        vals.update(net_gex_pct=pg["pct"], net_gex_pct_ordinal=ordinal(pg["pct"]),
+                    net_gex_n=pg["n"], net_gex_first=pg["first"], net_gex_last=pg["last"])
+        head += (f"; net GEX at the {ordinal(pg['pct'])} percentile of its own history "
+                 f"({pg['first']} to {pg['last']}, n={pg['n']})")
+    lines = [head + ". Inferred, not observed; OI as of prior close."]
     iv_pct, iv_src = iv or (None, None)
-    rng_s = "the one-sigma range: not read (no last close or no implied vol stored)"
-    if last_close and iv_pct:
-        d, c = last_close
-        r = dealer_block.implied_range(c, iv_pct)
-        vals.update(close=c, close_day=d, sigma=r, lower=c - r, upper=c + r, iv=iv_pct)
-        if iv_src and "30-day" in iv_src:
-            vals["iv_tenor_days"] = 30
-        rng_s = (f"the one-sigma range from our implied range: {c - r:,.2f} to {c + r:,.2f} "
-                 f"around the last close {c:,.2f} of {d} (±{r:.2f}, {iv_src} {iv_pct:.1f}%)")
-    n_min, k = int(g["n_min"]), int(g["sessions"])
-    med, n = typical_range(cards, sign, cd, k)
-    vals.update(n=n, n_min=n_min, sessions=k)
-    if sign is None:
-        typ = "typical realised range at this reading: not read (the regime is not gated)"
-    elif n >= n_min and med is not None:
+    n_min = int(g["n_min"])
+    horizons = [int(x) for x in g.get("horizons") or [1, 5]]
+    vals.update(n_min=n_min, iv=iv_pct)
+    if not (last_close and iv_pct):
+        lines.append("Implied moves: not read (no last close or no implied vol stored).")
+        return {"line": " ".join(lines), "lines": lines, "values": vals, "constants": [1]}
+    d, c = last_close
+    vals.update(close=c, close_day=d)
+    sig = {h: c * iv_pct / 100.0 * math.sqrt(h / 252.0) for h in horizons}
+    for h in horizons:
+        s_pct = 100.0 * sig[h] / c
+        vals.update({f"sigma_{h}": sig[h], f"sigma_{h}_pct": s_pct})
+        lab = "one-session" if h == 1 else f"{h}-session"
+        imp = (f"Implied {lab} move: ±{sig[h]:.2f} (±{s_pct:.2f}%; the close {c:,.2f} x "
+               f"{iv_src} {iv_pct:.1f}% x sqrt({h}/252))")
+        mv = realised_moves(cards, sign, cd, h, reg)
+        vals[f"realised_{h}_n"] = len(mv)
+        vals[f"realised_{h}_n_test"] = sum(1 for _, x in mv if x)
+        vals[f"realised_{h}_n_before"] = sum(1 for _, x in mv if not x)
+        if sign is None:
+            rl = "realised: not read (the regime is not gated)"
+        elif len(mv) >= n_min:
+            xs = [x for x, _ in mv]
+            m, p80, p95 = quantile(xs, 0.5), quantile(xs, 0.8), quantile(xs, 0.95)
+            vals.update({f"realised_{h}_median": m, f"realised_{h}_p80": p80,
+                         f"realised_{h}_p95": p95})
+            rl = (f"realised |close-to-close| over {h} session{'s' if h > 1 else ''} in "
+                  f"{sign} gamma: median {m:.2f}%, 80th {p80:.2f}%, 95th "
+                  f"{p95:.2f}% ({_counts(mv)})")
+        else:
+            rl = f"realised: awaiting (n={len(mv)} of {n_min}; {_counts(mv)})"
+        lines.append(f"{imp}; {rl}.")
+    # The high-low range, against the implied expected range of that measure.
+    k = int(g["sessions"])
+    rr = realised_ranges(cards, sign, cd, k, reg)
+    exp_rng = RW_RANGE * iv_pct * math.sqrt(k / 252.0)
+    vals.update(expected_range_pct=exp_rng, sessions=k, n=len(rr),
+                range_n_test=sum(1 for _, x in rr if x),
+                range_n_before=sum(1 for _, x in rr if not x))
+    if sign is not None and len(rr) >= n_min:
+        med = statistics.median(x for x, _ in rr)
         vals["typical"] = med
-        typ = f"typical realised range at this reading: {med:.1f}% over {k} sessions (n={n})"
-    else:
-        typ = f"typical realised range at this reading: awaiting (n={n} of {n_min})"
-    return {"line": f"{head}; {rng_s}; {typ}. Inferred, not observed; OI as of prior close.",
-            "values": vals, "constants": [1]}
+        lines.append(f"{k}-session high-low range: median {med:.1f}% ({_counts(rr)}) against "
+                     f"an implied expected high-low range of {exp_rng:.1f}% (a random walk's "
+                     f"at the same IV: sqrt(8/pi) x IV x sqrt({k}/252)).")
+    elif sign is not None:
+        lines.append(f"{k}-session high-low range: awaiting (n={len(rr)} of {n_min}; "
+                     f"{_counts(rr)}); its implied expected range {exp_rng:.1f}%.")
+    # The bands (item 55): each labelled by its horizon and its centre.
+    centres = [("the last close", c)] + ([("the pre-market", premarket)] if premarket else [])
+    for cname, cv in centres:
+        parts = []
+        for h in horizons:
+            sh = cv * iv_pct / 100.0 * math.sqrt(h / 252.0)
+            tag = "pm" if cname != "the last close" else "close"
+            vals[f"band_{h}_{tag}_lower"], vals[f"band_{h}_{tag}_upper"] = cv - sh, cv + sh
+            parts.append(f"{'one-session' if h == 1 else f'{h}-session'} {cv - sh:,.2f} to "
+                         f"{cv + sh:,.2f}")
+        lines.append(f"±1σ bands around {cname} {cv:,.2f}: " + "; ".join(parts) + ".")
+    # The quantile labels and the formula's constants are printed numbers too.
+    return {"line": " ".join(lines), "lines": lines, "values": vals,
+            "constants": [1, 5, 8, 80, 95, 252]}
 
 
 def gauge_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
-                     computed_dir: Optional[str] = None) -> dict:
+                     computed_dir: Optional[str] = None,
+                     premarket: Optional[float] = None) -> dict:
     """The gauge for the 07:00 anchor, read only. Never raises."""
     from altdata import observations                            # noqa: PLC0415
     from . import dealer_block                                  # noqa: PLC0415
@@ -150,11 +297,11 @@ def gauge_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
             last = (str(lc["observed_at"])[:10], float(lc["value_num"])) if lc and \
                 lc.get("value_num") is not None else None
             iv = dealer_block.implied_vol(st, cutoff)
-        return gauge(profile, last, iv, cards)
+        return gauge(profile, last, iv, cards, premarket=premarket)
     except Exception:                                           # noqa: BLE001
         log.warning("the expected-movement gauge faulted", exc_info=True)
-        return {"line": "Expected-movement gauge: not read (its inputs faulted).",
-                "values": {}, "constants": []}
+        msg = "Expected-movement gauge: not read (its inputs faulted)."
+        return {"line": msg, "lines": [msg], "values": {}, "constants": []}
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +345,9 @@ def vol_lines(series: dict, day: Optional[str]) -> list[dict]:
     else:
         out.append({"line": f"VIX against 20-day realised: {rl.get('line', 'awaiting')}.",
                     "values": {}, "constants": [20]})
+    sp_line = premium_split(series, day, rl.get("vrp"))
+    if sp_line:
+        out.append(sp_line)
     if tm.get("state") == "computed":
         p3, p6 = tm.get("percentiles_3m") or [], tm.get("percentiles_6m") or []
         out.append({"line": f"Term-structure stress: VIX3M/VIX {tm['ratio_3m']:.3f} ("
@@ -221,11 +371,38 @@ def vol_lines(series: dict, day: Optional[str]) -> list[dict]:
     return out
 
 
+# ITEM 53 (Batch 11, ruled 19 Oct 2026): THE VIX PREMIUM, SPLIT. One line in
+# OS-3's realised lens: VIX less RV20 = (SPY's 30-day ATM IV less RV20), the
+# at-the-money part, + (VIX less SPY's 30-day ATM IV), the wings. SPY's ATM IV
+# stands for SPX's, labelled. It displaces nothing.
+SPLIT_LABEL = "SPY's ATM IV as SPX's proxy"
+
+
+def premium_split(series: dict, day: str, vrp: Optional[float]) -> Optional[dict]:
+    """The split line, or None when the VIX premium or SPY's IV is not stored."""
+    vix = dict(series.get("vix") or []).get(day)
+    iv = dict(series.get("spy_iv30") or []).get(day)
+    if vrp is None or vix is None or iv is None:
+        return None
+    rv20 = vix - vrp
+    atm, wings = iv - rv20, vix - iv
+    return {"line": f"The VIX premium, split: VIX less RV20 {vrp:+.1f} = the at-the-money "
+                    f"part {atm:+.1f} (SPY's 30-day ATM IV {iv:.1f} less RV20 {rv20:.1f}) + "
+                    f"the wings {wings:+.1f} (VIX {vix:.1f} less SPY's ATM IV); "
+                    f"{SPLIT_LABEL}, as of {day}.",
+            "values": {"vrp": vrp, "atm": atm, "wings": wings, "iv": iv, "rv20": rv20,
+                       "vix": vix, "as_of": day},
+            "constants": [20, 30]}
+
+
 def vol_lines_from_store(prior: str, cutoff: str, db_path: Optional[str] = None) -> list[dict]:
     from altdata import observations, vol_event as ve           # noqa: PLC0415
     try:
         with observations.ObservationStore(db_path) as st:
             series = ve.read_series(st, cutoff)
+            series["spy_iv30"] = [(str(r["observed_at"])[:10], float(r["value_num"]))
+                                  for r in st.as_of("chain.spy_atm_iv_30d", cutoff)
+                                  if r.get("value_num") is not None]
         days = [d for d, _ in series.get("vix") or [] if d <= prior]
         return vol_lines(series, days[-1] if days else None)
     except Exception:                                           # noqa: BLE001
@@ -242,28 +419,95 @@ def vol_lines_html(lines: Optional[list]) -> str:
                    for x in lines)
 
 
-# Ruling 3 of 18 Oct: the pre-market line ("ES pre-market implies SPY about x")
-# prints only if 6b part 3's ES conversion already ran from ES to SPY without new
-# code. It does not -- altdata/dealer_es.py carries SPY's levels TO ES -- so the
-# line prints nothing, and the notes list it.
-PREMARKET_LINE = None
+# THE PRE-MARKET LINE (ruling 4 of 19 Oct 2026; ruling 3 of 18 Oct had held it
+# back). ES's overnight print, put in SPY's terms through the SAME session basis
+# the 23-hour chart (W7, daily_cascade/charts.py) uses -- SPY's 09:30 open over
+# ES's 09:30 open -- applied the other way, ES to SPY. No new conversion method:
+# the basis is W7's, read from the newest session before this one that has both
+# opens (at 07:00 the day's own 09:30 has not happened). "Not available" when ES
+# has no overnight bar, or no session carries both opens.
+PREMARKET_LINE = "Pre-market (ES)"
+# SPX AND SPCX (ruling 4 of 19 Oct 2026): their rows print, from the vendor's
+# 16:31 chains, but every cell that needs a solved IV -- the chance in the money
+# and the IV itself -- prints this, until tools/validate_iv_solver.py admits them.
+SOLVER_GATED = "awaiting the solver gate"
+PREMARKET_NA = "Pre-market (ES): not available ({why})."
+
+
+def premarket(es5: list, spy5: list, session_day: str) -> dict:
+    """{line, values}: ES's latest overnight print for `session_day` in SPY's
+    terms at W7's session basis. Never raises on missing data."""
+    from .charts import es_at_open, es_overnight                # noqa: PLC0415
+    on = es_overnight(es5 or [], session_day)
+    if not on:
+        return {"line": PREMARKET_NA.format(why="ES has no overnight bar"), "values": {}}
+    es_last = on[-1]["close"]
+    days = sorted({str(b["observed_at"])[:10] for b in (spy5 or [])
+                   if str(b["observed_at"])[:10] < session_day}, reverse=True)
+    for d in days:
+        # es_at_open reads the 09:30 ET bar's open of any 5-minute series.
+        s_open, e_open = es_at_open(spy5, d), es_at_open(es5 or [], d)
+        if s_open and e_open:
+            basis = s_open / e_open
+            spy = es_last * basis
+            return {"line": (f"{PREMARKET_LINE}: ES's overnight print {es_last:,.2f} "
+                             f"puts SPY at about {spy:,.2f}, at the {d} session's "
+                             f"basis (SPY's 09:30 open over ES's, as the 23-hour chart "
+                             f"scales it). Inferred, not a SPY trade."),
+                    "values": {"es": es_last, "spy": spy, "basis": basis,
+                               "basis_session": d}}
+    return {"line": PREMARKET_NA.format(
+        why="no session before this one carries both SPY's and ES's 09:30 opens"),
+        "values": {"es": es_last}}
+
+
+def premarket_from_store(session_day: str, cutoff: str,
+                         db_path: Optional[str] = None) -> dict:
+    """The pre-market line for the 07:00 anchor, from the bars the 06:45 job
+    stored, read as of the cutoff. Never a fetch; never raises."""
+    import datetime as dt                                       # noqa: PLC0415
+    from altdata import bars as bars_mod                        # noqa: PLC0415
+    try:
+        session_day = str(session_day)[:10]
+        first = (dt.date.fromisoformat(session_day) - dt.timedelta(days=10)).isoformat()
+        with bars_mod.BarStore(db_path) as bst:
+            es5 = bst.read("es", "5m", first, cutoff, cutoff)
+            spy5 = bst.read("spy", "5m", first, cutoff, cutoff)
+        return premarket(es5, spy5, session_day)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the pre-market line faulted", exc_info=True)
+        return {"line": PREMARKET_NA.format(why="its inputs faulted"), "values": {}}
+
+
+def lines_html(b: Optional[dict]) -> str:
+    """A small titled block of code-written lines (H6's clusters)."""
+    from html import escape                                     # noqa: PLC0415
+    if not b or not b.get("lines"):
+        return ""
+    return (f'<p style="font-size:12px;margin:6px 0 2px 0"><b>{escape(b["title"])}</b></p>'
+            + "".join(f'<p style="font-size:12px;margin:2px 0">{escape(x)}</p>'
+                      for x in b["lines"]))
 
 
 def gauge_html(g: Optional[dict]) -> str:
     from html import escape                                     # noqa: PLC0415
     if not g or not g.get("line"):
         return ""
-    return f'<p style="font-size:13px;margin:6px 0">{escape(g["line"])}</p>'
+    # Item 54: the gauge is a few short lines; the pre-market line one.
+    return "".join(f'<p style="font-size:13px;margin:6px 0">{escape(x)}</p>'
+                   for x in (g.get("lines") or [g["line"]]))
 
 
 # ---------------------------------------------------------------------------
 # OS-10 -- the most-active names
 # ---------------------------------------------------------------------------
 def _series(st, key: str, now: str, inst=None) -> list[tuple[str, float]]:
-    out: dict[str, float] = {}
-    for r in st.as_of(key, now, inst) or []:
-        if r.get("value_num") is not None:
-            out[str(r["observed_at"])[:10]] = float(r["value_num"])
+    """A name's stored readings, oldest first. D4 (Batch 11): rows from the
+    flat-file backfill join only where altdata.flatfile_history admits them (their
+    overlap with our captures agrees within the pre-registered tolerance); a
+    captured reading wins on a shared session."""
+    from altdata import flatfile_history as ffh                 # noqa: PLC0415
+    out, _ = ffh.merged(ffh.rows_both(st, key, now, inst), key)
     return sorted(out.items())
 
 
@@ -283,7 +527,8 @@ def most_active(st, sessions: list[str], now: str, cfg: Optional[dict] = None,
     from altdata.numeral_audit import ordinal                   # noqa: PLC0415
     cfg = cfg or config()
     m = cfg["most_active"]
-    syms = names or acfg.chain_universe()
+    gated = set(acfg.massive_universe())
+    syms = names or (acfg.chain_universe() + sorted(gated))
     week = set(sessions)
     vol: dict[str, float] = {}
     for s in syms:
@@ -304,6 +549,13 @@ def most_active(st, sessions: list[str], now: str, cfg: Optional[dict] = None,
         imp = (100.0 * cur[1] / 100.0 * math.sqrt(int(m["week_sessions"]) / 252.0)
                if cur else None)
         real = (100.0 * (max(px) - min(px)) / px[0]) if len(px) > 1 and px[0] else None
+        if s in gated:
+            # SPX and SPCX (ruling 4 of 19 Oct 2026): volume from the vendor's
+            # chains; every IV cell awaits the solver gate.
+            rows.append([s, f"{vol[s]:,.0f}", SOLVER_GATED, SOLVER_GATED, "n/a", "n/a"])
+            data.append({"symbol": s, "volume": vol[s], "iv": None,
+                         "solver_gated": True})
+            continue
         rows.append([s, f"{vol[s]:,.0f}",
                      f"{cur[1]:.1f}%" if cur else "not stored",
                      (f"rank {rank:.0f}, {ordinal(pctl)} percentile ({window})"
@@ -316,7 +568,8 @@ def most_active(st, sessions: list[str], now: str, cfg: Optional[dict] = None,
                      "implied_week_pct": imp, "realised_week_pct": real})
     first = min((d for s in syms for d, _ in _series(st, cm.FRONT_IV_KEY, now, s)), default=None)
     lines = ([f"The week's most active names by options volume, of {len(syms)} captured "
-              f"names (our own captures; the universe's names and SPY, QQQ, IWM). Ranks and percentiles are over "
+              f"names (our own captures; the universe's names and SPY, QQQ, IWM; SPX and SPCX "
+              f"from the vendor's chains, their IV awaiting the solver gate). Ranks and percentiles are over "
               f"our stored history only, which starts {first}: each prints its window and "
               f"n. Report-only: no score, no weight."]
              if top else ["No options volume stored for the week's sessions."])
@@ -344,10 +597,14 @@ def _ro(db_path: Optional[str]) -> Optional[sqlite3.Connection]:
 def reactions(conn, symbol: str, before: str, now: str, n: int = 3) -> list[dict]:
     """The last `n` reports before `before` with their next-session reaction: the
     close before the report date to the close after it (the Weekly's earnings
-    block's rule); "not stored" where a close is missing."""
-    rows = conn.execute(
-        "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
-        "observed_at < ? AND available_at <= ?", (before, now)).fetchall()
+    block's rule); "not stored" where a close is missing. A store without the
+    events table reads as nothing stored, never a fault."""
+    try:
+        rows = conn.execute(
+            "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
+            "observed_at < ? AND available_at <= ?", (before, now)).fetchall()
+    except sqlite3.Error:
+        return []
     reps = []
     for obs, payload in rows:
         try:
@@ -358,10 +615,14 @@ def reactions(conn, symbol: str, before: str, now: str, n: int = 3) -> list[dict
                 pl.get("reported_eps") is not None:
             reps.append(str(obs)[:10])
     reps = sorted(set(reps))[-n:]
-    closes = dict(conn.execute(
-        "SELECT substr(observed_at, 1, 10), value_num FROM observations WHERE "
-        "registry_key = ? AND available_at <= ? AND value_num IS NOT NULL "
-        "ORDER BY observed_at, available_at", (f"yfinance.mkt_{symbol.lower()}", now)).fetchall())
+    try:
+        closes = dict(conn.execute(
+            "SELECT substr(observed_at, 1, 10), value_num FROM observations WHERE "
+            "registry_key = ? AND available_at <= ? AND value_num IS NOT NULL "
+            "ORDER BY observed_at, available_at",
+            (f"yfinance.mkt_{symbol.lower()}", now)).fetchall())
+    except sqlite3.Error:
+        closes = {}
     days = sorted(closes)
     out = []
     for d in reps:
@@ -391,12 +652,50 @@ def pricing_word(implied: Optional[float], reacts: list[Optional[float]],
 MOVE_RE = re.compile(r"±\s*([\d.]+)%")
 
 
+def stored_moves(conn, symbol: str, now: str, n: int = 3) -> list[dict]:
+    """Item 57's records (calc.earnings_move): the implied move at the close before
+    each past report and the realised move after it, newest last."""
+    try:
+        rows = conn.execute(
+            "SELECT observed_at, value_text FROM observations WHERE registry_key = ? "
+            "AND instrument = ? AND available_at <= ? ORDER BY observed_at",
+            ("calc.earnings_move", symbol.upper(), now)).fetchall()
+    except sqlite3.Error:
+        return []
+    out = []
+    for d, txt in rows:
+        try:
+            out.append({"date": str(d)[:10], **json.loads(txt or "{}")})
+        except ValueError:
+            continue
+    return out[-n:]
+
+
+def msci_events(now: str) -> list[str]:
+    """Item 57 (item 49): the MSCI index events in the hand-seeded digital-asset
+    calendar from `now` on, each its date and the event's first clause."""
+    try:
+        doc = yaml.safe_load((REPO / "config" / "digital_asset_calendar.yaml")
+                             .read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return []
+    out = []
+    for e in doc.get("entries") or []:
+        if str(e.get("body")) == "MSCI" and str(e.get("date")) >= now[:10]:
+            out.append(f"{e['date']} ({str(e.get('event') or '').split(',')[0]})")
+    return out
+
+
 def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
                  cfg: Optional[dict] = None) -> dict:
-    """An Ahead earnings row with its last three reactions and pricing word
-    appended to its consensus cell, the implied move being the matrix's own."""
+    """An Ahead earnings row with up to eight reactions (config), n printed, and
+    the pricing word on their median (n of 3 or more; else "n=k, no word"),
+    appended to its consensus cell, the implied move being the matrix's own (Batch
+    11 item 57); the stored implied-against-realised records beside them; and,
+    for MSTR, the MSCI index events stored in the digital-asset calendar."""
     cfg = cfg or config()
     e = cfg["earnings"]
+    n_max, n_min = int(e["reactions"]), int(e.get("word_min_n", 3))
     sym = r.get("symbol") or str(r.get("event") or "").split(" ")[0]
     m = MOVE_RE.search(str(r.get("implied_move") or ""))
     implied = float(m.group(1)) if m else None
@@ -404,28 +703,41 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
         conn = _ro(db_path)
     except sqlite3.Error:
         conn = None
-    if conn is None:
-        txt = "; last three reactions: not stored"
-        return {**r, "pricing": {"reactions": [], "word": None},
-                "consensus": f"{r.get('consensus') or '—'}{txt}"}
-    try:
-        reacts = reactions(conn, sym, str(r.get("date"))[:10], now, int(e["reactions"]))
-    finally:
-        conn.close()
+    reacts, moves = [], []
+    if conn is not None:
+        try:
+            reacts = reactions(conn, sym, str(r.get("date"))[:10], now, n_max)
+            moves = stored_moves(conn, sym, now)
+        finally:
+            conn.close()
     figs = [x["reaction_pct"] for x in reacts]
-    cells = [f"{x:+.1f}%" if x is not None else "not stored" for x in figs]
-    cells += ["not stored"] * (int(e["reactions"]) - len(cells))
-    word, med = pricing_word(implied, figs, float(e["band"]))
-    txt = f"; last three reactions: {', '.join(cells)}"
-    if word:
+    avail = [x for x in figs if x is not None]
+    k = len(avail)
+    if avail:
+        txt = (f"; reactions (n={k}, up to {n_max}): "
+               + ", ".join(f"{x:+.1f}%" for x in avail))
+    else:
+        txt = "; reactions: not stored"
+    word, med = pricing_word(implied, avail, float(e["band"]))
+    if word and k >= n_min:
         txt += (f"; pricing {word}: implied ±{implied:.1f}% against a median absolute "
-                f"reaction of {med:.1f}% (a fifth either way is in line; not a "
+                f"reaction of {med:.1f}% (n={k}; a fifth either way is in line; not a "
                 f"recommendation)")
     elif implied is not None:
-        txt += "; pricing: not read (three reactions are not stored)"
+        txt += f"; pricing: n={k}, no word"
+    if moves:
+        txt += "; implied against realised at past prints: " + ", ".join(
+            f"{x['date']} ±{x['implied_pct']:.1f}% vs {x['realised_pct']:+.1f}%"
+            for x in moves if x.get("implied_pct") is not None
+            and x.get("realised_pct") is not None)
+    if sym.upper() == "MSTR":
+        ev = msci_events(now)
+        if ev:
+            txt += "; MSCI index events: " + "; ".join(ev)
     return {**r, "consensus": f"{r.get('consensus') or '—'}{txt}",
-            "pricing": {"reactions": reacts, "word": word, "median": med,
-                        "implied": implied}}
+            "pricing": {"reactions": reacts, "word": word if k >= n_min else None,
+                        "median": med, "implied": implied, "n": k,
+                        "stored_moves": moves}}
 
 
 # ===========================================================================
@@ -461,23 +773,36 @@ def _latest_text(st, key: str, now: str, inst: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # OS-8 -- the setup profiles
 # ---------------------------------------------------------------------------
+def iv30_less_rv20(st, now: str, sym: str) -> list[tuple[str, float]]:
+    """Item 56: the 30-day IV less 20-session realised, matched by date."""
+    from altdata import chain_metrics as cm                     # noqa: PLC0415
+    rv = dict(_series(st, cm.RV20_KEY, now, sym))
+    return [(d, v - rv[d]) for d, v in _series(st, cm.IV30_KEY, now, sym) if d in rv]
+
+
+IV30_RV = "iv30_less_rv20"
+
+
 def profiles(st, now: str, names: Optional[list[str]] = None,
              cfg: Optional[dict] = None) -> dict:
     """The Weekly's four-row table: the flattest and the steepest 25-delta put
-    skew, the highest and the lowest IV against 20-day realised."""
+    skew, the highest and the lowest 30-day IV against 20-day realised (Batch 11
+    item 56: the 30-day constant-maturity IV, no longer the front month's)."""
     from altdata import chain_metrics as cm, config as acfg     # noqa: PLC0415
     syms = names or acfg.chain_universe()
     reads: dict[str, dict] = {}
-    for key in (cm.SKEW_KEY, cm.IV_RV_KEY):
-        for s in syms:
-            last, hist = _hist_read(st, key, now, s)
-            if last:
-                reads.setdefault(key, {})[s] = (last, hist)
+    for s in syms:
+        last, hist = _hist_read(st, cm.SKEW_KEY, now, s)
+        if last:
+            reads.setdefault(cm.SKEW_KEY, {})[s] = (last, hist)
+        hist = iv30_less_rv20(st, now, s)
+        if hist:
+            reads.setdefault(IV30_RV, {})[s] = (hist[-1], hist)
     rows, data = [], []
     spec = (("Flattest 25-delta put skew", cm.SKEW_KEY, min),
             ("Steepest 25-delta put skew", cm.SKEW_KEY, max),
-            ("Highest IV against 20-day realised", cm.IV_RV_KEY, max),
-            ("Lowest IV against 20-day realised", cm.IV_RV_KEY, min))
+            ("Highest 30-day IV against 20-day realised", IV30_RV, max),
+            ("Lowest 30-day IV against 20-day realised", IV30_RV, min))
     for label, key, pick in spec:
         got = reads.get(key) or {}
         if not got:
@@ -493,11 +818,60 @@ def profiles(st, now: str, names: Optional[list[str]] = None,
                                   "(window, n)", "Front-month expiry used"], "rows": rows},
             "lines": [f"Across {len(syms)} captured names (our own captures; SPY, QQQ and "
                       f"IWM among them): the 25-delta put skew is the solved put IV at -25 "
-                      f"delta less the ATM IV, and IV against realised is the front ATM IV "
-                      f"less 20-session realised, both in vol points. Each rank is over the "
+                      f"delta less the ATM IV, and IV against realised is the 30-day "
+                      f"constant-maturity ATM IV less 20-session realised, both in vol points. Each rank is over the "
                       f"name's own stored history, its window and n printed. Report-only."],
             "paragraph_wanted": False, "data": {"setup_profiles": data},
             "table_note": "Read from the store; nothing fetched. No chart, no paragraph (OS-8)."}
+
+
+# ---------------------------------------------------------------------------
+# ITEM 56 -- the per-name volatility table (the Weekly's technical appendix)
+# ---------------------------------------------------------------------------
+def _rank_pct(hist: list[tuple[str, float]], x: float) -> str:
+    from altdata.numeral_audit import ordinal                   # noqa: PLC0415
+    vals = [v for _, v in hist]
+    if len(vals) < 2:
+        return "one reading"
+    return f"{ordinal(iv_pctile(vals, x))}"
+
+
+def per_name_table(st, now: str, names: Optional[list[str]] = None) -> dict:
+    """Batch 11 item 56: one row per captured name (17): the 30-day IV with its IV
+    rank and IV percentile, the 25-delta put skew and the risk reversal with their
+    percentiles, IV less RV20, RV20 and RV60, each against the name's own stored
+    history, window and n printed. Descriptive words only; no strategy label."""
+    from altdata import chain_metrics as cm, config as acfg     # noqa: PLC0415
+    syms = names or acfg.chain_universe()
+    rows = []
+    for s in syms:
+        iv = _series(st, cm.IV30_KEY, now, s)
+        sk = _series(st, cm.SKEW_KEY, now, s)
+        rr = _series(st, cm.RR_KEY, now, s)
+        ivr = iv30_less_rv20(st, now, s)
+        rv20 = _series(st, cm.RV20_KEY, now, s)
+        rv60 = _series(st, cm.RV60_KEY, now, s)
+        if not any((iv, sk, rr, rv20)):
+            rows.append([s, "not stored", "—", "—", "—", "—", "—", "—"])
+            continue
+        win = f"{iv[0][0]} to {iv[-1][0]}, n={len(iv)}" if iv else "—"
+        ivc = (f"{iv[-1][1]:.1f}% (rank {iv_rank([v for _, v in iv], iv[-1][1]):.0f}, "
+               f"{_rank_pct(iv, iv[-1][1])} percentile)" if len(iv) > 1 else
+               f"{iv[-1][1]:.1f}% (one reading)" if iv else "—")
+        f = lambda ser: (f"{ser[-1][1]:+.1f} ({_rank_pct(ser, ser[-1][1])}, n={len(ser)})"  # noqa: E731
+                         if ser else "—")
+        rows.append([s, ivc, win, f(sk), f(rr), f(ivr),
+                     f"{rv20[-1][1]:.1f}%" if rv20 else "—",
+                     f"{rv60[-1][1]:.1f}%" if rv60 else "—"])
+    return {"title": "Per-name volatility (the 30-day IV)",
+            "table": {"columns": ["Name", "30-day IV (IV rank, IV percentile)",
+                                  "Window, n", "25-delta put skew (percentile, n)",
+                                  "Risk reversal (percentile, n)", "IV less RV20 (percentile, n)",
+                                  "RV20", "RV60"], "rows": rows},
+            "lines": [f"{len(syms)} captured names; each figure against the name's own "
+                      f"stored history (our captures), its window and n printed; vol points "
+                      f"for the skew, the risk reversal and IV less RV20. Descriptive only."],
+            "paragraph_wanted": False}
 
 
 # ---------------------------------------------------------------------------
@@ -563,17 +937,32 @@ def name_tags(sym: str, day: str, closes: list[float], skew: list[float],
     return out
 
 
-def builds_for(sym: str, prev: list[dict], cur: list[dict], r: float) -> list[dict]:
-    """Every positive OI change with its premium estimate and ITM probability."""
+def oi_floor(sym: str, cfg: Optional[dict] = None) -> int:
+    """Batch 11 item 58, D6 (provisional, session-set): 2,000 contracts for SPY,
+    QQQ and IWM (and SPX, an index), 500 for a single name."""
+    f = ((cfg or config()).get("oi_builds") or {}).get("floor") or {}
+    idx = [str(x).upper() for x in f.get("index_names") or ["SPY", "QQQ", "IWM", "SPX"]]
+    return int(f.get("index", 2000) if sym.upper() in idx else f.get("single", 500))
+
+
+def builds_for(sym: str, prev: list[dict], cur: list[dict], r: float,
+               gated: bool = False, floor: int = 0) -> list[dict]:
+    """Every positive OI change with its premium estimate and ITM probability.
+    `gated` (SPX, SPCX): no IV is solved and no probability computed; the row
+    carries `solver_gated` and its cell prints SOLVER_GATED."""
     from altdata import chain_metrics as cm                     # noqa: PLC0415
-    ch = [c for c in cm.oi_changes(prev, cur) if c["oi_change"] > 0]
+    ch = [c for c in cm.oi_changes(prev, cur) if c["oi_change"] > 0
+          and c["oi_change"] >= floor]
     if not ch:
         return []
-    try:
-        solved = cm._solver().solve_chain(cur, r)["rows"]       # noqa: SLF001
-        ivs = {(x["expiry"], x["strike"], x["right"]): x.get("solved_iv") for x in solved}
-    except Exception:                                           # noqa: BLE001
-        ivs = {}
+    ivs: dict = {}
+    if not gated:
+        try:
+            solved = cm._solver().solve_chain(cur, r)["rows"]   # noqa: SLF001
+            ivs = {(x["expiry"], x["strike"], x["right"]): x.get("solved_iv")
+                   for x in solved}
+        except Exception:                                       # noqa: BLE001
+            ivs = {}
     out = []
     for c in ch:
         mid = _mid(c)
@@ -583,6 +972,9 @@ def builds_for(sym: str, prev: list[dict], cur: list[dict], r: float) -> list[di
                     "right": c["right"], "oi_change": c["oi_change"], "mid": mid,
                     "premium": None if mid is None else mid * c["oi_change"] * 100.0,
                     "iv": iv, "spot": c.get("spot"), "dte": c.get("dte"),
+                    "solver_gated": gated, "volume_day": c.get("volume_before"),
+                    "oi_vol_pct": (100.0 * c["oi_change"] / c["volume_before"]
+                                   if c.get("volume_before") else None),
                     "p_itm": bs_itm_prob(c.get("spot"), c["strike"], iv, t, r, c["right"])
                     if iv else None})
     return out
@@ -616,26 +1008,33 @@ def oi_build_table(builds: list[dict], tags: dict[str, list[str]], cfg: dict) ->
         typ = " / ".join("call" if x["right"] == "C" else "put" for x in legs)
         prem = [x["premium"] for x in legs if x["premium"] is not None]
         pit = [x["p_itm"] for x in legs if x["p_itm"] is not None]
+        ov = [x.get("oi_vol_pct") for x in legs]
         rows.append([b["symbol"] + (" -- spread (legs equal)" if b["spread"] else ""),
                      b["expiry"], strike, typ, f"{b['oi_change']:+,.0f}"
                      + (" each" if b["spread"] else ""),
+                     " / ".join(f"{v:.0f}%" if v is not None else "n/a" for v in ov),
                      f"${sum(prem) / 1e6:,.2f}m" if prem else "n/a",
+                     SOLVER_GATED if b.get("solver_gated") else
                      " / ".join(f"{p * 100:.0f}%" for p in pit) if pit else "n/a",
                      str(b.get("dte")), ", ".join(tags.get(b["symbol"]) or []) or "—"])
     return {"columns": ["Name", "Expiry", "Strike", "Type", "OI change",
-                        "Premium (est.)", "Chance in the money", "Days", "Context"],
+                        "OI change, % of the day's volume", "Premium (est.)",
+                        "Chance in the money", "Days", "Context"],
             "rows": rows}
 
 
 def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
                          base: Optional[Path] = None, names: Optional[list[str]] = None,
                          cfg: Optional[dict] = None) -> dict:
-    """OS-9 for the 07:00 anchor: our own two most recent captures per name."""
+    """OS-9 for the 07:00 anchor: our own two most recent captures per name --
+    the 17 names, and SPX and SPCX from the vendor's chains (ruling 4 of 19 Oct
+    2026), whose chance in the money awaits the solver gate."""
     import datetime as dt                                       # noqa: PLC0415
     from altdata import chain_metrics as cm, config as acfg, events as ev_mod, \
         observations                                            # noqa: PLC0415
     cfg = cfg or config()
-    syms = names or acfg.chain_universe()
+    gated = set(acfg.massive_universe())
+    syms = names or (acfg.chain_universe() + sorted(gated))
     root = Path(base) if base else cm.chain_dir()
     builds, tags = [], {}
     try:
@@ -650,7 +1049,8 @@ def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
                 if not prev_p:
                     continue
                 builds += builds_for(s, cm.load_rows(prev_p), cm.load_rows(cur_p),
-                                     acfg.RISK_FREE_RATE)
+                                     acfg.RISK_FREE_RATE, gated=s in gated,
+                                     floor=oi_floor(s, cfg))
                 closes = [v for _, v in _series(st, f"yfinance.mkt_{s.lower()}", cutoff)]
                 skew = [v for _, v in _series(st, cm.SKEW_KEY, cutoff, s)]
                 ivrv = [v for _, v in _series(st, cm.IV_RV_KEY, cutoff, s)]
@@ -680,8 +1080,14 @@ def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
             "note": ("From our own two most recent captures per name; open interest is "
                      "each capture's prior settlement, so a build is yesterday's. The "
                      "premium is the later mid x the OI change x 100; the chance in the "
-                     "money is Black-Scholes on our solver's IV. Who opened the position "
-                     "is not known: side unknown.")}
+                     "money is Black-Scholes on our solver's IV; SPX's and SPCX's read "
+                     f"\"{SOLVER_GATED}\" until the IV solver's gate admits them. The "
+                     "Context tags' history thresholds are "
+                     f"{cfg['oi_builds']['tags'].get('label') or 'session-set'} "
+                     "(config/opening_setup.yaml). Only builds of 2,000 contracts or more "
+                     "(SPY, QQQ, IWM, SPX) or 500 (single names) print (provisional), and "
+                     "each shows its OI change as a share of the session's volume in that "
+                     "contract. Who opened the position is not known: side unknown.")}
 
 
 def oi_builds_html(b: Optional[dict]) -> str:
