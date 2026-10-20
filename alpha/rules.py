@@ -1,5 +1,6 @@
 """
-The rule grammar v1 (X-2.10a) -- an INTERPRETER, not code generation.
+The rule grammar v1 (X-2.10a) and v2 (alpha-lab-4) -- an INTERPRETER, not code
+generation.
 
 A hypothesis whose rule is written in this grammar (`rule_dsl`, documented for a
 reader without the code in docs/alpha-lab-rules.md) runs through the harness
@@ -22,6 +23,24 @@ with no code written for it. A rule is DATA: this module reads it, checks it
                   [{name, replace: {instrument|entry|exits|direction}}]
                                                      the rule with one part swapped
                   -- each value one counted variant
+
+GRAMMAR v2 (alpha-lab-rules/v2; alpha-lab-4, 19 Oct 2026) is v1 plus one key:
+
+    when          a list of state conditions, ALL of which must read a value
+                  knowable at the decision and take one of the listed values,
+                  or the rule does not trade that day:
+                    {kind: state, path: <market-state path>, values: [...]}
+                    {kind: zscore, key, instrument?, window, min_rows,
+                     bands: {crowded_long, crowded_short},
+                     values: [crowded_long|neutral|crowded_short]}
+                    {kind: mean_band, key, instrument?, window,
+                     bands: {on, off}, values: [on|between|off]}
+
+A missing value is no trade, never a guess. `when` is the grammar search's
+conditioning, read by ONE function here (when_value), which the search calls for
+its own conditioning (alpha/search.py), so a conditioned candidate is exactly its
+v2 rule. Every v1 rule is a v2 rule with no `when` and backtests to the same
+trades; a v1 rule may not carry `when`.
 
 POINT-IN-TIME, ALWAYS. A rule decides at an instant (the nightly loop's hour on
 its cadence day, or 15:50 ET for a this_close entry) and reads only the vintages
@@ -58,10 +77,15 @@ from . import config as acfg
 
 REPO = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = REPO / "config" / "alpha_rules.yaml"
-GRAMMAR = "alpha-lab-rules/v1"
+GRAMMAR = "alpha-lab-rules/v1"           # the proposer writes this one (X-2.10)
+GRAMMAR_V2 = "alpha-lab-rules/v2"        # v1 plus `when` (alpha-lab-4)
+GRAMMARS = (GRAMMAR, GRAMMAR_V2)
 
 KEYS = {"grammar", "universe", "cadence", "trigger", "direction", "instrument",
-        "entry", "exits", "cooldown", "conditioning", "cost_class", "note"}
+        "entry", "exits", "cooldown", "conditioning", "cost_class", "note", "when"}
+WHEN_KINDS = ("state", "zscore", "mean_band")
+WHEN_VALUES = {"zscore": ("crowded_long", "neutral", "crowded_short"),
+               "mean_band": ("on", "between", "off")}
 TRANSFORMS = ("level", "change", "pct_change", "zscore", "percentile", "rank",
               "crosses_above", "crosses_below", "max", "min")
 OPS = {">": operator.gt, ">=": operator.ge, "<": operator.lt, "<=": operator.le,
@@ -223,6 +247,7 @@ class Compiled:
     variants: list           # [{name, kind, value}] -- each one counted
     horizon: str             # the constitution's horizon class for min_signals
     holding: int             # sessions, the time stop
+    when: list = field(default_factory=list)   # v2's state conditions
 
 
 def _check_condition(c: Any, where: str, err: list[str], keys: set,
@@ -298,9 +323,14 @@ def compile_rule(dsl: Any, store=None) -> Compiled:
     for k in dsl:
         if k not in KEYS:
             err.append(f"unknown key {k}")
-    if dsl.get("grammar") != GRAMMAR:
-        err.append(f"grammar is {dsl.get('grammar')!r}, not {GRAMMAR}")
+    if dsl.get("grammar") not in GRAMMARS:
+        err.append(f"grammar is {dsl.get('grammar')!r}, not one of {GRAMMARS}")
     keys: set = set()
+    when_series: list[tuple[str, Optional[str]]] = []
+    if "when" in dsl:
+        if dsl.get("grammar") != GRAMMAR_V2:
+            err.append(f"when is grammar v2's ({GRAMMAR_V2}); a v1 rule has no when")
+        _check_when(dsl.get("when"), err, when_series)
     uni = dsl.get("universe")
     if not isinstance(uni, list) or not uni:
         err.append("universe is not a list of symbols")
@@ -436,11 +466,70 @@ def compile_rule(dsl: Any, store=None) -> Compiled:
         for k in sorted(keys):
             if not store.all_vintages(k):
                 err.append(f"data gap: the store holds no rows for {k}")
+        for k, inst in when_series:
+            if not store.all_vintages(k, inst):
+                err.append(f"data gap: the store holds no rows for {k}"
+                           + (f" ({inst})" if inst else ""))
     if err:
         raise RuleError(err)
     weekly = (cad == "friday_close" or isinstance(cad, dict) or holding >= 5)
     return Compiled(dsl=dsl, keys=keys, instruments=legs, variants=variants,
-                    horizon="weekly" if weekly else "daily", holding=holding)
+                    horizon="weekly" if weekly else "daily", holding=holding,
+                    when=list(dsl.get("when") or []))
+
+
+def _num(x: Any) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _check_when(when: Any, err: list[str], series: list) -> None:
+    """Grammar v2's `when`: every item one of WHEN_KINDS, with its values."""
+    if not isinstance(when, list) or not when:
+        err.append("when is a non-empty list of state conditions")
+        return
+    for i, it in enumerate(when):
+        where = f"when[{i}]"
+        if not isinstance(it, dict) or it.get("kind") not in WHEN_KINDS:
+            err.append(f"{where}: kind is one of {WHEN_KINDS}")
+            continue
+        vals = it.get("values")
+        if not isinstance(vals, list) or not vals:
+            err.append(f"{where}: values is a non-empty list")
+            continue
+        kind = it["kind"]
+        if kind == "state":
+            if not isinstance(it.get("path"), str) or not it["path"].strip():
+                err.append(f"{where}: a state condition names its path in the stored "
+                           f"market-state object")
+            continue
+        key = it.get("key")
+        if not isinstance(key, str) or key not in registry_keys():
+            err.append(f"{where}: key {key!r} is not in metrics_registry.yaml")
+        else:
+            inst = it.get("instrument")
+            if inst is not None and not isinstance(inst, str):
+                err.append(f"{where}: instrument is a string")
+            series.append((key, inst))
+        bad = [v for v in vals if v not in WHEN_VALUES[kind]]
+        if bad:
+            err.append(f"{where}: values {bad} are not among {WHEN_VALUES[kind]}")
+        w = it.get("window")
+        b = it.get("bands") or {}
+        if kind == "zscore":
+            mr = it.get("min_rows", w)
+            if not (isinstance(w, int) and w >= 10):
+                err.append(f"{where}: a zscore's window is at least 10 observations")
+            elif not (isinstance(mr, int) and 2 <= mr <= w):
+                err.append(f"{where}: min_rows is between 2 and the window")
+            if not (_num(b.get("crowded_long")) and _num(b.get("crowded_short"))
+                    and b["crowded_short"] < b["crowded_long"]):
+                err.append(f"{where}: bands are {{crowded_long, crowded_short}}, numbers, "
+                           f"short below long")
+        else:
+            if not (isinstance(w, int) and w >= 1):
+                err.append(f"{where}: a mean_band's window is at least 1 observation")
+            if not (_num(b.get("on")) and _num(b.get("off")) and b["off"] <= b["on"]):
+                err.append(f"{where}: bands are {{on, off}}, numbers, off at or below on")
 
 
 def release_labels() -> set[str]:
@@ -534,10 +623,13 @@ class Data:
         self._ms: Optional[Series] = None
         self._ms_text: dict[str, list] = {}
 
-    def series(self, key: str) -> Series:
-        if key not in self._s:
-            self._s[key] = Series(self.store.all_vintages(key))
-        return self._s[key]
+    def series(self, key: str, instrument: Optional[str] = None) -> Series:
+        k = key if instrument is None else f"{key}\x00{instrument}"
+        if k not in self._s:
+            self._s[k] = Series(self.store.all_vintages(key, instrument)
+                                if instrument is not None
+                                else self.store.all_vintages(key))
+        return self._s[k]
 
     def ref(self, ref: Any, fld: str = "close"):
         if isinstance(ref, dict):
@@ -550,23 +642,28 @@ class Data:
     def state(self, day: str, t: str, path: str) -> Optional[str]:
         """A value from the stored market-state object for `day`, knowable at
         `t` -- read, never recomputed."""
+        return self.state_vintage(day, t, path)[0]
+
+    def state_vintage(self, day: str, t: str, path: str) -> tuple[Optional[str], str]:
+        """(the value, its available_at): the latest vintage of `day`'s stored
+        object knowable at `t`. A vintage stored after `t` is never read."""
         if not self._ms_text:
             for r in self.store.all_vintages("market_state"):
                 if r.get("value_text"):
                     self._ms_text.setdefault(str(r["observed_at"])[:10], []).append(
                         (str(r["available_at"]), r["value_text"]))
         vs = sorted(self._ms_text.get(day) or [])
-        ok = [v for a, v in vs if a <= t]
+        ok = [(a, v) for a, v in vs if a <= t]
         if not ok:
-            return None
+            return None, ""
         import json                                             # noqa: PLC0415
         try:
-            cur: Any = json.loads(ok[-1])
+            cur: Any = json.loads(ok[-1][1])
         except ValueError:
-            return None
+            return None, ""
         for part in str(path).split("."):
             cur = cur.get(part) if isinstance(cur, dict) else None
-        return None if cur is None else str(cur)
+        return (None, "") if cur is None else (str(cur), ok[-1][0])
 
     def release_days(self, label: str, t_last: str) -> list[tuple[str, str]]:
         """(release date, available_at) of each scheduled release matching the
@@ -726,6 +823,73 @@ def holds(c: dict, data: Data, day: str, t: str) -> tuple[Optional[bool], str, s
 
 
 # ---------------------------------------------------------------------------
+# Grammar v2's `when` -- THE ONE READER of a state condition, the search's too
+# ---------------------------------------------------------------------------
+def when_label(it: dict) -> str:
+    if it.get("name"):
+        return str(it["name"])
+    if it["kind"] == "state":
+        return f"state:{it['path']}"
+    return f"{it['kind']}:{it['key']}" + (f"@{it['instrument']}" if it.get("instrument") else "")
+
+
+def when_value(it: dict, data: Data, day: str, t: str) -> tuple[Optional[str], str]:
+    """(the condition's value on `day`, read as knowable at `t`, and the latest
+    availability among what it read), or (None, "") where nothing is knowable.
+
+      state      the stored market-state object's value at `path`
+      zscore     the series' (and instrument's) last `window` observations: the
+                 newest one's z against them, given at least `min_rows`;
+                 crowded_long at or above bands.crowded_long, crowded_short at or
+                 below bands.crowded_short, else neutral
+      mean_band  the mean of the last `window` observations: on at or above
+                 bands.on, off below bands.off, else between
+    """
+    kind = it["kind"]
+    if kind == "state":
+        return data.state_vintage(day, t, it["path"])
+    w = int(it["window"])
+    xs = data.series(it["key"], it.get("instrument")).known(day, t, w)
+    vals = [x[1] for x in xs]
+    b = it["bands"]
+    if kind == "zscore":
+        if len(xs) < int(it.get("min_rows") or w) or len(xs) < 2:
+            return None, ""
+        sd = statistics.stdev(vals)
+        if not sd:
+            return None, ""
+        z = (vals[-1] - statistics.fmean(vals)) / sd
+        v = ("crowded_long" if z >= float(b["crowded_long"]) else
+             "crowded_short" if z <= float(b["crowded_short"]) else "neutral")
+        return v, max(x[2] for x in xs)
+    if kind == "mean_band":
+        if len(xs) < w:
+            return None, ""
+        m = statistics.fmean(vals)
+        v = "on" if m >= float(b["on"]) else ("off" if m < float(b["off"]) else "between")
+        return v, max(x[2] for x in xs)
+    raise ValueError(f"when kind {kind!r}")
+
+
+def when_ok(cmp: Compiled, data: Data, day: str,
+            t: str) -> tuple[bool, str, str, dict]:
+    """(every `when` item holds?, the latest availability read, why not, the
+    values read). A v1 rule has no `when` and always holds."""
+    vals: dict = {}
+    av = ""
+    for it in cmp.when:
+        v, a = when_value(it, data, day, t)
+        lab = when_label(it)
+        vals[lab] = v
+        if v is None:
+            return False, av, "when: no value knowable at the decision", vals
+        if str(v) not in [str(x) for x in it["values"]]:
+            return False, av, "when: not in the rule's state", vals
+        av = max(av, a)
+    return True, av, "", vals
+
+
+# ---------------------------------------------------------------------------
 # The backtest
 # ---------------------------------------------------------------------------
 def cadence_days(cmp: Compiled, data: Data, first: str, last: str) -> list[str]:
@@ -881,6 +1045,13 @@ def backtest(cmp: Compiled, store, first: str, last: str,
         if not ok:
             skipped[why] = skipped.get(why, 0) + 1
             continue
+        wv: dict = {}
+        if cmp.when:
+            okw, aw, whyw, wv = when_ok(cmp, data, day, t)
+            if not okw:
+                skipped[whyw] = skipped.get(whyw, 0) + 1
+                continue
+            avail = max(avail, aw)
         d = dsl["direction"]
         if isinstance(d, dict):
             hit, a2, why2 = holds(d["if"], data, day, t)
@@ -912,6 +1083,8 @@ def backtest(cmp: Compiled, store, first: str, last: str,
         tr.update({"signal_day": day, "day": day, "decided_at": t,
                    "available_at": avail, "direction": direction,
                    "conditioning": cond})
+        if cmp.when:
+            tr["when"] = wv
         trades.append(tr)
         busy_until = tr["exit_day"]
         if cooldown:

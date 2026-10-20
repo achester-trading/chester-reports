@@ -48,15 +48,19 @@ derived:
 # 1 of 18 Oct 2026): its terms forbid the point-in-time store MW-4 asked for. The
 # ST-13 fetcher was removed; source_registry.yaml `coingecko` keeps the terms line.
 
-# THE EXPLORER (MW-4; G-26). explorer.pearlresearch.ai. The JSON endpoint is NOT
-# YET DISCOVERED: on 18 Oct 2026 neither the explorer nor pearlresearch.ai
-# answered from the session's machine (TLS closed on /robots.txt; connections
-# refused), so its robots and terms could not be read and nothing is declared.
-# When an endpoint is found where robots.txt and the site's terms allow it, it
-# is declared here -- the URL and the JSON paths of each field -- with the robots
-# and terms line in the fetcher's docstring. Until then the fetcher reads
-# nothing and the derived layer prints ESTIMATED from the emission formula.
+# THE EXPLORER (MW-4; G-26). explorer.pearlresearch.ai. CLOSED AS A LISTED GAP
+# (ruling 1 of 18 Oct 2026): the explorer has no robots file (/robots.txt and
+# /robots.txt?network=mainnet both return 404 with the app's own HTML page), and
+# no published API and no terms covering automated access were found on Pearl's
+# sites. Under the standing rule of 16 Oct nothing is traced or pursued, so
+# nothing is declared: the height stays ESTIMATED from Appendix E's anchor and D3
+# prints ESTIMATED. If Pearl publishes an API with terms, it is a one-line
+# declaration here -- the URL and the JSON paths of each field -- with the robots
+# and terms line in the fetcher's docstring.
 explorer:
+  status: "listed gap"
+  reason: "no robots file (404 with the app's HTML), no published API, no terms covering automated access; ruled 18 Oct 2026"
+  ruled: "2026-10-18"
   host: "https://explorer.pearlresearch.ai"
   robots: "https://explorer.pearlresearch.ai/robots.txt"
   json_endpoint: null          # e.g. {url: ".../api/...", height: "path.to.height", difficulty: "...", supply: "...", time: "..."}

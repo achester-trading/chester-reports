@@ -1,0 +1,59 @@
+# alpha_intraday_dealer.yaml -- engine 7, intraday dealer regimes (X-3.4; alpha/
+# engines/intraday_dealer.py). Read by the engine, written by no loop.
+#
+# THE SPEC IS PRE-REGISTERED, as engine 6's is. Everything under `spec:` is the
+# engine's pre-registration; its sha256 (alpha/manifest.batch_sha256 of `spec`) is
+# `spec_sha256` below and is quoted in the roster's E-7
+# (alpha/research/roster-2026-10-19-x3-4.yaml), which the operator registers BY
+# MANIFEST before the first backtest. The engine refuses a spec that no longer
+# hashes to spec_sha256.
+#
+# THE LAB'S ENGINE, NOT THE DOCTRINE'S. The Enterprise Layer's dealer engine stays
+# the Doctrine's, under Part VIII's rules. This one reads only our own stored data:
+# the 09:45 captures' computed exposure profiles, their spot prints, the session's
+# open and close, the 5-minute bars, and the 0DTE share of the captured volume. No
+# vendor value: no FlashAlpha key is read and no data/vendor file is opened.
+#
+# THE CLOCKS. A capture is a computation: it is knowable at its computed_at, and a
+# capture computed after the slot's decision deadline is never read. A price is a
+# market fact: it is read at its market time (a bar at its start, the open at 09:30
+# ET, a 15-minute-delayed print at its market time), though the store records the
+# bars and the daily open after the close. That is why engine 7 is a research
+# engine: the nightly loop cannot act at 09:45, so it queues no signal, and its
+# record is its point-in-time backtest through the harness.
+version: 1
+spec:
+  family: intraday_dealer             # the variant_counts family
+  instruments: [SPY, QQQ, IWM]        # captured at 09:45 with Greeks, 5-minute bars stored, cost class etf
+  captures: "the 09:45 capture's computed exposure profile (altdata/dealer_capture.py; tools/exposure_compute.py), a file <session>/<SYM>_<HHMMSSZ>_exposure.json under the computed directory"
+  slot: {at_et: "09:45", window_et: ["09:40", "10:15"], decision_deadline_et: "10:15"}
+  decision: "the capture's computed_at; a capture computed after the slot's decision deadline is never read, and the session has no decision"
+  gamma_regime:
+    source: "the capture's overall.net_gex and overall.net_to_gross (6b's keys, as alpha/event_rates.py reads them)"
+    min_net_to_gross: 0.10
+    positive: "net_gex > 0 with net_to_gross at or above the minimum"
+    negative: "net_gex < 0 with net_to_gross at or above the minimum"
+    otherwise: "indeterminate: no bucket, no trade"
+  move: "the capture's spot, observed at the capture's fetched_at (Yahoo's last price, read as real time), less the session's stored open (a market fact fixed at 09:30 ET, read at its market time); its sign, zero no bucket"
+  bucket: "the symbol x the 09:45 gamma regime x the sign of the open-to-09:45 move, e.g. SPY:negative:+"
+  sides: [continuation, reversal]     # continuation trades the move's sign, reversal against it
+  exits:
+    exit_1230: "the open of the first stored 5-minute bar starting at or after 12:30 ET"
+    exit_close: "the session's stored close"
+  entry: "the open of the first stored 5-minute bar starting at or after the decision instant, within max_entry_wait_minutes of it; else no trade (no stored price near the decision)"
+  max_entry_wait_minutes: 10
+  completed: "a session with a decision, an entry, a stored 12:30 bar and a stored close"
+  data_gate:
+    min_formation_sessions: 30        # completed sessions; below it "awaiting (n=k of 30)", no trade
+    counted_from: "the captures' first day"
+    formation_sample: "the bucket's first 30 completed sessions, in session order"
+  choice_rule: "per bucket, from the formation sample only: the side and the exit with the highest mean return net of costs (ties: reversal before continuation, exit_1230 before exit_close), frozen when the formation completes; trades only sessions after it, and only where the frozen mean is above 0"
+  zero_dte_share: "the 0DTE share of the capture's volume (its chain's dte-0 rows' volume over all its rows' volume), labelled 'no side': recorded on every session and trade, never a condition and never a direction"
+  not_tracked:
+    vwap: "not tracked: VWAP needs intraday bars knowable at the decision, and the bars table is written after the close"
+    opening_range: "not tracked: a finer opening range needs the same"
+    writer_needed: "an intraday bar writer at the 09:45 slot (listed, not built)"
+  costs: "config/alpha_costs.yaml class etf: half the spread, slippage and the commission each way at the engine's own capital; no holding cost (one session)"
+  paper: "no signal is queued: the nightly loop cannot act at 09:45, so the record is the point-in-time backtest through the harness until an intraday fill path exists (listed, not built)"
+  vendor: "none: no FlashAlpha key, no data/vendor file, no vendor value in any figure"
+spec_sha256: "2efa781c6d525bf5b13abb0d95193a4e867e2e04c6b0f56e05722b6a9798f1c7"

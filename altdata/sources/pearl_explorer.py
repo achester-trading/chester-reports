@@ -19,15 +19,17 @@ Each of legs 1 and 2 is read only where robots.txt allows its path (the REP's
 reading with wildcards, altdata/sources/aaii.robots_verdict) and the site's terms
 allow it.
 
-THE ENDPOINT IS NOT YET DISCOVERED (G-26). On 18 Oct 2026 neither
-explorer.pearlresearch.ai nor pearlresearch.ai answered from the session's
-machine (the TLS connection closed on /robots.txt; later connections refused), so
-no robots.txt or terms line could be read and no endpoint is declared. When one
-is found, its URL goes in config/prl.yaml and its robots and terms line here:
+G-26 IS CLOSED AS A LISTED GAP (ruling 1 of 18 Oct 2026). The explorer has no
+robots file: /robots.txt and /robots.txt?network=mainnet both return 404 with the
+app's own HTML page. No published API, and no terms covering automated access,
+were found on Pearl's sites. Under the standing rule of 16 Oct nothing is traced
+or pursued, so no endpoint is declared and this module reads nothing. If Pearl
+publishes an API with terms, its URL goes in config/prl.yaml (one line) and its
+robots and terms line here:
 
-    robots:  (not read: unreachable 18 Oct 2026)
-    terms:   (not read: unreachable 18 Oct 2026)
-    endpoint: (none declared)
+    robots:  none (404, the app's HTML page; 18 Oct 2026)
+    terms:   none covering automated access (18 Oct 2026)
+    endpoint: (none declared: a listed gap)
 
     pearl.chain_height       the chain-tip height              count
     pearl.chain_difficulty   the tip's difficulty              ratio
@@ -50,8 +52,9 @@ log = logging.getLogger(__name__)
 
 SOURCE = "pearl_explorer"
 KEYS = ["pearl.chain_height", "pearl.chain_difficulty", "pearl.chain_supply"]
-NOT_DECLARED = ("no explorer endpoint is declared (G-26: not yet discovered); the "
-                "derived layer prints ESTIMATED from the emission formula")
+NOT_DECLARED = ("no explorer endpoint is declared (G-26: a listed gap, ruled 18 Oct "
+                "2026 -- no robots file, no published API, no terms); the derived "
+                "layer prints ESTIMATED from the emission formula")
 
 
 def _cfg() -> dict:

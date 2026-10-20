@@ -420,6 +420,15 @@ st-t5-render, 18 Oct 2026).**
     read verbatim from the order.
   - It writes drafts only, into the `mechanism_watch` tables of
     `altdata/mechanism_watch.py`.
+  - Each assessed entry is then posted to the narrative register as a PROPOSED
+    story through its existing proposal path (`post_entries`; ruling 6 of 19 Oct
+    2026): its source stored as a headline event, its factor's implied outcome
+    and horizon from `config/story_queries.yaml` `mechanism_watch.posting`. It
+    is graded on outcome once the operator confirms it; nothing here confirms.
+  - The seven feeds carry their `terms_read` dates, re-read every quarter; the
+    Monthly part names any feed read more than 92 days before its as-of. The
+    part reads `calc.prl_*`, and `pearl.chain_*` and the basket's PRL price
+    directly; nothing is copied into a `calc.prl_*` key.
   - `promote` and `reject` write only with the operator's `--confirm`.
   - It is a Saturday step of the crypto basket's run; `make mechanism-register`
     renders the register. `tools/validate_st_t5_render.py` holds it.
@@ -473,6 +482,22 @@ Config `config/crypto_sources.yaml`; `tools/validate_crypto_sources.py` holds it
 crypto flows block (at most 12 lines, a table in Positioning & flows) and the
 Monthly's network-health and data-layer rows, every Monthly row in the triple form
 with dual percentiles. The daily paragraph and the 12:30 line are Tranche B.
+
+**CD-12 (Tranche C; alpha-lab-4, 19 Oct 2026; ruling 2 of 19 Oct): SR-29 reads
+the operator's free key.** bitcoin-data.com serves the long- and short-term-holder
+supply and has no robots file; its terms (14 Oct 2026) make the API a free-key
+service and forbid redistribution, not the store (`source_registry.yaml`
+`bitcoin_data` quotes them). `altdata/sources/btcdata.py` reads
+`BITCOIN_DATA_API_KEY` from `.env`, sends it as a Bearer header, and writes
+`btcdata.lth_supply`, `.sth_supply`, `.supply_current` and
+`btcdata.lth_supply_share` (computed, LTH over current x 100), available at the
+pull. Its guard counts every request in a state file and refuses the 9th in an
+hour and the 16th in a day; no retry. One request per series a day, in the
+crypto basket's 17:25 run (no new timer, not on the external roster). Without the
+key it fetches nothing and the Monthly and the addendum print "not tracked
+(btcdata.lth_supply_share): no key in .env (BITCOIN_DATA_API_KEY)". No by-hand
+line (rule 30). CD-11 (Dune) stays unbuilt, a listed gap (ruling 3).
+`tools/validate_crypto_sources.py` group O holds it.
 
 **Item 49 and the addendum's Phase 2 (digital-49-51b, 17 Oct 2026).**
 `altdata/sources/treasury.py` stores three inputs:
@@ -1127,10 +1152,83 @@ changes nothing. The Quarterly mails the lab's page
 `monthly_macro/run.py`), which prints "no quarter closed yet" until a whole
 quarter exists.
 
+**Engine 6, extremes reversion (X-3.3; alpha-lab-4, 19 Oct 2026).**
+`alpha/engines/reversion.py` fades a 2.5-sigma print only where that bucket's
+own point-in-time history reverses.
+- A bucket is a series and the sign of its print.
+- A print is identified against its own trailing window as known on its day,
+  never against the move screen's in-sample "false flag k/N".
+- Below 30 completed formation prints a bucket prints "awaiting (n=k of 30)"
+  and trades nothing.
+- At 30, the horizon (1, 5, 10 or 20 sessions) with the highest reversal share
+  in the formation sample is frozen, and only later prints are traded.
+
+Every rule is `config/alpha_reversion.yaml`'s `spec`. Its sha256 is quoted by
+the roster's E-6 (`alpha/research/roster-2026-10-19-x3-3.yaml`), and the engine
+refuses a spec that no longer hashes to it. `tools/validate_alpha_lab_4.py`
+group A holds it.
+
+**The grammar search (X-3.5; alpha-lab-4, 19 Oct 2026).** `alpha/search.py`
+enumerates `config/alpha_search.yaml`'s family: signal families x
+conditioning options x horizons x instruments x exits, 3,840 candidates, each
+a rule in grammar v2 (`docs/alpha-lab-rules.md` section 14: v1 plus a rule-level `when` list of
+state, zscore and mean_band conditions, each read as knowable at the decision
+by the one reader `rules.when_value`, a missing value meaning no trade; v1
+rules replay unchanged and the proposer stays on v1). A conditioned candidate is
+its base rule plus one `when` item, backtested as that rule, and a conditioned
+survivor registers that rule. The conditioning variables are the macro dial, the volatility
+dial, the CFTC net's z and calc.funding_agg. A variable joins a run only if its
+point-in-time history (the first day a value was knowable) starts at least five
+years before the holdout's first day (ruling 5(a) of 19 Oct 2026); one that
+fails is pending with "history from <date>" and its options are not
+candidates. The dealer regime is pending on its captures' history and is not
+in search-v1. A run goes in this order:
+1. coverage, then its manifest (the family's sha256, each variable's first date
+   and verdict, the count, the split, the deflation and the survivor rule)
+   before the first backtest;
+2. the family's variant count raised by every candidate;
+3. formation against the constitution's deflated gate;
+4. the survivor list frozen, and only then the holdout backtested;
+5. the survivors of both registered as `systematic` hypotheses of the
+   `search` channel, at the manifest's instant.
+
+A step is capped at 400 candidates and resumes from its progress file. A
+resumed run refuses a changed family. While a run is unfinished, its next step
+is the nightly loop's last (ruling 5(c)): its wall clock is the unit's 20
+minutes less 3 spare less what the unit has spent, at most 600 s, and under
+120 s it skips and says why. A new run begins only in a month's first week,
+once the previous run is complete; one lock (`files.lock`) covers every step.
+No new timer; the Monthly's Lab report prints its line, naming the variables
+that passed and failed coverage. `tools/validate_alpha_lab_4.py` groups B and C
+hold it.
+
+**Engine 7, intraday dealer regimes (X-3.4; b45-chain3, 19 Oct 2026).**
+`alpha/engines/intraday_dealer.py` buckets each session by the symbol (SPY, QQQ,
+IWM), the 09:45 gamma regime and the sign of the open-to-09:45 move, and asks
+whether the session continues or reverses to 12:30 or the close. It reads only
+our own data:
+- the 09:45 captures' computed profiles: net GEX's sign where net-to-gross is at
+  least 0.10, knowable at their computed_at, and never read when computed after
+  the 10:15 deadline;
+- each capture's spot, and the session's stored open and close, read at their
+  market time;
+- the 5-minute bars, for the entry (the first bar at or after the decision,
+  within 10 minutes) and the 12:30 exit;
+- the 0DTE share of the captured volume, recorded and labelled no side.
+
+VWAP and a finer opening range print "not tracked": they need intraday bars
+knowable at the decision, and that writer is listed, not built. A bucket
+"awaits (n=k of 30)" until 30 completed sessions; then the side and exit with the
+best formation mean net of costs is frozen, and only later sessions trade. Every
+rule is `config/alpha_intraday_dealer.yaml`'s spec, whose sha256 the roster's E-7
+quotes (`alpha/research/roster-2026-10-19-x3-4.yaml`). It is a research engine:
+it queues no signal, because the nightly loop cannot act at 09:45. No vendor
+value is read. `tools/validate_b45_chain3.py` group B holds it.
+
 Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
-crypto_carry, all candidates until they pass); a promoted grammar rule is named by
-its register id in `alpha.db`. No gate reads the live store.
+crypto_carry, reversion, intraday_dealer, all candidates until they pass); a promoted grammar
+rule is named by its register id in `alpha.db`. No gate reads the live store.
 
 ### Known cleanup
 

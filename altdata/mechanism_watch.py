@@ -17,10 +17,17 @@ database (the "mechanism_watch store table"):
   mechanism_watch_status   every status change: who, when, from, to, why
   mechanism_watch_entries  the narrative-register entries the scan drafts
                            (date, class mechanism-watch, factor I or V, grade,
-                           <= 60 words, source), held here as DRAFTS: the
-                           narrative register's grade scale is not in the repo
-                           (G-29), so nothing is posted to it and the grade
-                           reads "awaiting G-29"
+                           <= 60 words, source), and the narrative they were
+                           posted as
+
+G-29 NEEDS NO NEW SCALE (ruling 6 of 19 Oct 2026). An assessed entry is POSTED to
+the narrative register as a PROPOSED story through altdata.narratives' existing
+proposal path (post_entries): its source item is stored as a headline event, which
+the proposal cites; its implied outcome and horizon are its factor's declared
+template (config/story_queries.yaml `mechanism_watch.posting`). The entry's grade
+moves from "awaiting its posting" to "proposed". It is graded on outcome as Audit
+#3 section I grades that register, once the operator confirms it; nothing here
+confirms or rejects (the narrative register's gate is the operator's).
 
 ONLY A HUMAN CHANGES A STATUS (MW-6). `promote` (to WATCH) and `reject` print what
 they would do and write only with `--confirm`, which is the operator's flag, as the
@@ -43,7 +50,8 @@ log = logging.getLogger(__name__)
 
 STATUSES = ("CANDIDATE", "WATCH", "REJECTED", "PROMOTED")
 STAGES = ("paper", "testnet", "mainnet")
-GRADE_PENDING = "awaiting G-29"
+GRADE_PENDING = "awaiting its posting"
+GRADE_PROPOSED = "proposed"
 MAX_ENTRY_WORDS = 60
 FIELDS = ("name", "canonical_id", "mechanism_class", "whats_new", "team_or_paper",
           "stage", "materiality_evidence", "key_risk", "grade", "status",
@@ -91,6 +99,9 @@ CREATE TABLE IF NOT EXISTS mechanism_watch_entries (
     draft   INTEGER NOT NULL DEFAULT 1
 );
 """
+# Ruling 6 of 19 Oct 2026: the narrative an entry was posted as, and when. Added to
+# a table created before the ruling without rewriting a row.
+POSTED_COLUMNS = (("narrative_id", "TEXT"), ("posted_at", "TEXT"), ("post_note", "TEXT"))
 
 
 def _now() -> str:
@@ -109,6 +120,13 @@ class Register:
         else:
             self.conn = sqlite3.connect(self.path)
             self.conn.executescript(SCHEMA)
+            have = {r[1] for r in self.conn.execute(
+                "PRAGMA table_info(mechanism_watch_entries)").fetchall()}
+            for col, typ in POSTED_COLUMNS:
+                if col not in have:
+                    self.conn.execute(
+                        f"ALTER TABLE mechanism_watch_entries ADD COLUMN {col} {typ}")
+            self.conn.commit()
         self.conn.row_factory = sqlite3.Row
         self.readonly = readonly
 
@@ -203,7 +221,7 @@ class Register:
     def add_entry(self, text: str, factor: str, source: str, mw_id: Optional[str] = None,
                   at: Optional[str] = None) -> int:
         """A DRAFT narrative-register entry (2.7.6 item 5): <= 60 words, factor I
-        or V, the pending grade until G-29 is confirmed."""
+        or V, "awaiting its posting" until post_entries posts it."""
         n = len(str(text).split())
         if n > MAX_ENTRY_WORDS:
             raise ValueError(f"an entry runs {n} words; at most {MAX_ENTRY_WORDS}")
@@ -215,6 +233,28 @@ class Register:
             (at or _now(), mw_id, factor, GRADE_PENDING, str(text).strip(), source))
         self.conn.commit()
         return int(cur.lastrowid)
+
+    def unposted(self) -> list[dict]:
+        return [dict(r) for r in self.conn.execute(
+            "SELECT * FROM mechanism_watch_entries WHERE narrative_id IS NULL "
+            "ORDER BY id").fetchall()]
+
+    def mark_posted(self, entry_id: int, nid: str, at: str) -> None:
+        """The entry, and its candidate, move from the pending grade to proposed."""
+        r = self.conn.execute("SELECT mw_id FROM mechanism_watch_entries WHERE id=?",
+                              (entry_id,)).fetchone()
+        self.conn.execute(
+            "UPDATE mechanism_watch_entries SET grade=?, narrative_id=?, posted_at=?, "
+            "post_note=NULL WHERE id=?", (GRADE_PROPOSED, nid, at, entry_id))
+        if r and r["mw_id"]:
+            self.conn.execute("UPDATE mechanism_watch SET grade=? WHERE id=? AND grade=?",
+                              (GRADE_PROPOSED, r["mw_id"], GRADE_PENDING))
+        self.conn.commit()
+
+    def note_refused(self, entry_id: int, why: str) -> None:
+        self.conn.execute("UPDATE mechanism_watch_entries SET post_note=? WHERE id=?",
+                          (str(why)[:300], entry_id))
+        self.conn.commit()
 
     def set_status(self, mw_id: str, to: str, by: str, reason: str,
                    confirm: bool = False, at: Optional[str] = None) -> dict:
@@ -281,6 +321,83 @@ def render(rows: list[dict], entries: Optional[list[dict]] = None,
         out += [f"- {e['at'][:10]} · class={e['cls']} · factor={e['factor']} · "
                 f"{e['grade']} · {e['text']} · {e['source']}" for e in entries]
     return "\n".join(out) + "\n"
+
+
+
+# ---------------------------------------------------------------------------
+# Posting (ruling 6 of 19 Oct 2026): each assessed entry as a PROPOSED story
+# ---------------------------------------------------------------------------
+def posting_config() -> dict:
+    from .sources import news                                   # noqa: PLC0415
+    return (news.load_queries().get("mechanism_watch") or {}).get("posting") or {}
+
+
+def proposal_of(entry: dict, candidate: Optional[dict], cfg: dict) -> tuple[str, dict]:
+    """(narrative id, spec) for one entry: its factor's declared template, the
+    entry's own text as the story's direction, the candidate's name in its name."""
+    t = cfg["factors"][entry["factor"]]
+    who = (candidate or {}).get("name") or (entry.get("mw_id") or f"entry {entry['id']}")
+    mw = str(entry.get("mw_id") or "mw").lower().replace("-", "_")
+    nid = f"mwatch_{mw}_e{int(entry['id'])}"
+    spec = {"name": f"Mechanism watch: {who} (Factor {entry['factor']}, entry "
+                    f"{int(entry['id'])})",
+            "direction": f"{entry['text']} -- {t['direction']}",
+            "linked_dimensions": dict(t["linked_dimensions"]),
+            "linked_instruments": list(t.get("linked_instruments") or []),
+            "prediction_market_contracts": [],
+            "implied_outcome": {**t["implied_outcome"]}}
+    return nid, spec
+
+
+def post_entries(register: "Register", db_path: Optional[str] = None,
+                 at: Optional[str] = None, cfg: Optional[dict] = None) -> dict:
+    """Post every unposted entry to the narrative register as a PROPOSED story,
+    through NarrativeRegister.propose -- the existing path, its validation and its
+    human gate. The entry's source is stored first as a headline event, which the
+    proposal cites (a proposal must cite stored events). A refusal leaves the entry
+    at its pending grade, with the reason. Confirms and rejects nothing."""
+    from . import events as ev_mod, narratives as nr            # noqa: PLC0415
+    cfg = cfg or posting_config()
+    at = at or _now()
+    out = {"posted": [], "refused": []}
+    if not cfg.get("factors"):
+        return {**out, "skipped": "no posting templates declared"}
+    for e in register.unposted():
+        cand = None
+        if e.get("mw_id"):
+            r = register.conn.execute("SELECT * FROM mechanism_watch WHERE id=?",
+                                      (e["mw_id"],)).fetchone()
+            cand = dict(r) if r else None
+        if e["factor"] not in cfg["factors"]:
+            register.note_refused(int(e["id"]), f"no posting template for Factor {e['factor']}")
+            out["refused"].append({"entry": int(e["id"]),
+                                   "why": f"no posting template for Factor {e['factor']}"})
+            continue
+        nid, spec = proposal_of(e, cand, cfg)
+        src = str(e.get("source") or "")
+        url = src if src.startswith("http") else None
+        ev = ev_mod.Event("headline", str(e["at"])[:10], "mechanism_scan",
+                          str(e["text"]), url=url,
+                          payload={"mechanism_watch_entry": int(e["id"]),
+                                   "mw_id": e.get("mw_id"), "factor": e["factor"]},
+                          key=f"mechanism_watch_entry:{int(e['id'])}")
+        try:
+            with ev_mod.EventStore(db_path) as es:
+                es.write_many([ev], available_at=at)
+                row = es.conn.execute("SELECT id FROM events WHERE content_hash=?",
+                                      (ev.content_hash,)).fetchone()
+            with nr.NarrativeRegister(db_path) as reg:
+                reg.propose(nid, spec, [int(row[0])],
+                            proposed_by=f"mechanism_scan:{str(at)[:10]}",
+                            events_db=db_path)
+        except Exception as exc:                                # noqa: BLE001
+            register.note_refused(int(e["id"]), f"{type(exc).__name__}: {exc}")
+            out["refused"].append({"entry": int(e["id"]), "why": str(exc)[:200]})
+            continue
+        register.mark_posted(int(e["id"]), nid, at)
+        out["posted"].append({"entry": int(e["id"]), "narrative": nid,
+                              "confirm": nr.CONFIRM_COMMAND.format(id=nid)})
+    return out
 
 
 def _main(argv: list[str]) -> int:

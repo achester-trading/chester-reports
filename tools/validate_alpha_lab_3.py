@@ -68,6 +68,9 @@ os.environ.pop("ALPHA_DB", None)
 for _k, _d in (("ALPHA_INBOX", "inbox"), ("ALPHA_OUTBOX", "outbox"),
                ("ALPHA_RESEARCH_DIR", "research"), ("ALPHA_REPORTS_DIR", "reports")):
     os.environ[_k] = os.path.join(_TMP, _d)
+# The nightly loop's last step, the grammar search, is validate_alpha_lab_4's: the
+# unit is told it started at the epoch, so here the step skips with its reason.
+os.environ["CHESTER_UNIT_STARTED"] = "0"
 
 import yaml  # noqa: E402
 

@@ -112,6 +112,18 @@ fng:
 blockscout:
   base: https://eth.blockscout.com/api/v2
 
+# SR-29 (CD-12; ruling 2 of 19 Oct 2026): bitcoin-data.com's free-key API, the key
+# BITCOIN_DATA_API_KEY in .env; without it nothing is fetched. The guard holds the
+# terms' stricter 8 an hour and 15 a day (the API's description says 10 an hour);
+# the free tier's history is 4 years; one page per series a day (3 requests).
+bitcoin_data:
+  per_hour: 8
+  per_day: 15
+  history_years: 4
+  page_size: 2000
+  margin_days: 7
+  max_pages: 3
+
 # ---------------------------------------------------------------------------
 # GAPS, named (each printed by its writer's summary and in the notes).
 gaps:

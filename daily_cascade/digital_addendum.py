@@ -257,6 +257,10 @@ def cell(st, c: dict, cutoff: str, week_end: str, awaiting: str) -> dict:
         return {"label": c["label"], "text": absent, "value": None, "as_of": None}
     pts = [p for p in _pts(st, key, cutoff, c.get("instrument")) if p[0] <= week_end]
     if not pts:
+        if key == "btcdata.lth_supply_share":
+            # SR-29: not tracked without the key, awaiting the first pull with it
+            from altdata import crypto_blocks                   # noqa: PLC0415
+            absent = crypto_blocks.sr29_absent()
         return {"label": c["label"], "text": absent, "value": None, "as_of": None}
     agg = c.get("agg")
     if agg == "sum_week":
@@ -998,8 +1002,10 @@ def build(ending: str, *, as_of: Optional[str] = None, db_path: Optional[str] = 
         secs["mechanics"] = mechanics_section(st, cutoff, sat, cfg, chain_base)
         secs["onchain"] = plain_section(
             st, cutoff, sat, cfg.get("onchain") or [], cfg,
-            "SR-29's share is computed once CD-12 lands; the froth gauge is "
-            "unscored until its gate (not before January 2027).")
+            "SR-29's share is BGeometrics' (bitcoin-data.com), read with the "
+            "operator's free key; until the key is in .env it prints not tracked "
+            "(CD-12). The froth gauge is unscored until its gate (not before "
+            "January 2027).")
         secs["attention"] = attention_section(st, cutoff, sun, sat, cfg, inbox)
     first = cutoff[:10]
     last = _plus(first, int((cfg.get("ahead") or {}).get("window_days") or 45))

@@ -28,6 +28,10 @@ live store read, no model called.
                 catalogue; the gaps named; no key read
   H WATCH       the watch names' slugs resolved at run time from /protocols and
                 /overview/fees, never written down; an ambiguous name is refused
+  O CD-12       bitcoin-data.com with the operator's free key (ruling 2 of 19 Oct
+                2026): a fixture response parses; with no key nothing is fetched;
+                the guard refuses a 9th request in an hour and a 16th in a day;
+                the terms quoted; no gate fetches
 """
 
 from __future__ import annotations
@@ -99,6 +103,155 @@ def day_of(ms) -> str:
 def store(path: str):
     from altdata import observations
     return observations.ObservationStore(path)
+
+
+# CD-12's key is never this gate's: an empty value is "absent" to altdata.secrets,
+# and the environment always wins over .env, so the laptop's .env cannot change
+# the verdict. The rate guard's state file lives in this gate's temp directory.
+os.environ["BITCOIN_DATA_API_KEY"] = ""
+os.environ["CHESTER_STATE_DIR"] = str(TD / "state")
+
+# bitcoin-data.com's response shape: rows carrying their day ("d") and a unix time
+# (the API's description; source_registry.yaml `bitcoin_data`), plus the one value
+# field. Synthetic figures.
+BD_LTH = [{"d": "2026-10-14", "unixTs": "1760400000", "lthSupply": 14_800_000.0},
+          {"d": "2026-10-15", "unixTs": "1760486400", "lthSupply": 14_810_000.0},
+          {"d": "2026-10-16", "unixTs": "1760572800", "lthSupply": 14_820_000.0}]
+BD_STH = {"content": [{"d": "2026-10-15", "unixTs": "1760486400", "sthSupply": 5_130_000.0},
+                      {"d": "2026-10-16", "unixTs": "1760572800", "sthSupply": 5_121_000.0}]}
+BD_CUR = [{"d": "2026-10-15", "unixTs": "1760486400", "supplyCurrent": 19_940_000.0},
+          {"d": "2026-10-16", "unixTs": "1760572800", "supplyCurrent": 19_941_000.0},
+          {"d": "2026-10-18", "unixTs": "1760745600", "supplyCurrent": 19_943_000.0}]
+
+
+def cd12() -> None:
+    """CD-12 (ruling 2 of 19 Oct 2026): bitcoin-data.com with the operator's free
+    key. A fixture response parses; with no key nothing is fetched; the guard
+    refuses a 16th request in a day and a 9th in an hour; no gate fetches."""
+    import yaml as _yaml                                        # noqa: PLC0415
+    from altdata import secrets                                 # noqa: PLC0415
+    from altdata.sources import btcdata as B                    # noqa: PLC0415
+    head("O. CD-12, BITCOIN-DATA.COM (SR-29), WITH THE OPERATOR'S FREE KEY")
+    real_http = B._http                                         # noqa: SLF001
+    fetched: list = []
+
+    def no_fetch(*a, **k):
+        fetched.append(a)
+        raise AssertionError("a gate never fetches")
+    B._http = no_fetch                                          # noqa: SLF001
+    try:
+        check(B.parse(BD_LTH, "2026-10-17") == [("2026-10-14", 14_800_000.0),
+                                               ("2026-10-15", 14_810_000.0),
+                                               ("2026-10-16", 14_820_000.0)]
+              and B.parse(BD_STH, "2026-10-17")[-1] == ("2026-10-16", 5_121_000.0)
+              and B.parse(BD_CUR, "2026-10-17")[-1] == ("2026-10-16", 19_941_000.0),
+              "a fixture response parses: the day from d, the one value field, a page "
+              "object's content, nothing dated after today")
+        try:
+            B.parse([{"d": "2026-10-15", "lthSupply": 1.0, "other": 2.0}], "2026-10-17")
+            refused = False
+        except ValueError:
+            refused = True
+        check(refused, "a row with two value fields is refused, not guessed")
+
+        st_path = TD / "state" / "btcdata_requests.json"
+        clock = [1_000_000.0]
+        g = B.RateGuard(st_path, per_hour=8, per_day=15, clock=lambda: clock[0])
+        pages = {B.BASE + p: d for p, d in (("/v1/long-term-hodler-supply-btc", BD_LTH),
+                                            ("/v1/short-term-hodler-supply-btc", BD_STH),
+                                            ("/v1/supply-current", BD_CUR))}
+        asked: list = []
+
+        def fake(url, params):
+            asked.append((url, dict(params)))
+            return pages[url]
+        rows, notes = B.collect(get=fake, guard=g, today="2026-10-17", now=NOW)
+        share = {r["observed_at"]: r["value"] for r in rows
+                 if r["registry_key"] == "btcdata.lth_supply_share"}
+        want = {d: round(100 * lth / cur, 6) for d, lth, cur in
+                (("2026-10-15", 14_810_000.0, 19_940_000.0),
+                 ("2026-10-16", 14_820_000.0, 19_941_000.0))}
+        check(share == want and not notes
+              and all(r["available_at"] == NOW and r["availability_kind"] == "ingest_instant"
+                      and r["source"] == "bitcoin_data" for r in rows),
+              f"btcdata.lth_supply_share is the long-term-holder supply over the current "
+              f"supply, on the days both are read ({share}); every row available at the "
+              f"pull instant")
+        check(len(asked) == 3 and all(a[1]["startday"] == "2022-10-17" and a[1]["size"] == 2000
+                                      for a in asked),
+              "the first run reads the free tier's four years in one page per series: "
+              "3 requests")
+        for _ in range(5):                                      # 8 in the hour now
+            g.charge()
+        try:
+            g.charge()
+            nine = False
+        except B.RateExceeded:
+            nine = True
+        clock[0] += 3601
+        for _ in range(7):                                      # 15 in the day
+            g.charge()
+        clock[0] += 3601
+        try:
+            g.charge()
+            sixteen = False
+        except B.RateExceeded as exc:
+            sixteen = "would make 16 in a day" in str(exc)
+        reread = B.RateGuard(st_path, per_hour=8, per_day=15, clock=lambda: clock[0])
+        check(nine and sixteen and reread.counts()[1] == 15,
+              "the rate guard refuses a 9th request in an hour and a 16th in a day, and "
+              "a second run reads the first's count from the state file")
+        clock[0] += 86401
+        rows2, notes2 = B.collect(get=fake, guard=B.RateGuard(st_path, 8, 2,
+                                                              clock=lambda: clock[0]),
+                                  today="2026-10-17", now=NOW)
+        check(len(notes2) == 1 and "waits for the next run" in notes2[0]
+              and len(asked) == 5,
+              "a request the guard refuses is not sent; that series waits for the next run")
+
+        n0 = len(asked)
+        out = B.pull(get=fake)
+        check(out["status"] == "NOT_TRACKED" and out["written"] == 0 and len(asked) == n0
+              and out["reason"] == "not tracked (btcdata.lth_supply_share): no key in .env "
+                                   "(BITCOIN_DATA_API_KEY)"
+              and not secrets.present("BITCOIN_DATA_API_KEY"),
+              "with no key nothing is fetched, and the summary names the key")
+        check(not fetched, "no gate fetches: the HTTP call was never reached")
+    finally:
+        B._http = real_http                                     # noqa: SLF001
+
+    src = (REPO / "altdata" / "sources" / "btcdata.py").read_text(encoding="utf-8")
+    check('"Authorization": f"Bearer {key}"' in src and "token=" not in src.replace(
+        "?token=...", "") and "max_retries" not in src and "@" not in src.split('"""')[2],
+          "the key goes in the Authorization header, never a URL; one attempt, no retry; "
+          "no address in the User-Agent")
+    _src = _yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    _reg = _yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    bd = (_src.get("sources") or _src).get("bitcoin_data") or {}
+    M = _reg.get("metrics") or {}
+    lic = str(bd.get("license"))
+    check(bd.get("status") == "built" and bd.get("implemented_by") == "altdata/sources/btcdata.py"
+          and all(q in lic for q in ("available with a free API key", "robots.txt",
+                                     "no clause on storing", "must not be provided to third "
+                                     "parties", "must be credited", "October 14, 2026")),
+          "source_registry quotes the terms, re-read: the free key, robots, the storing "
+          "clause (none), redistribution and credit")
+    keys = ("btcdata.lth_supply", "btcdata.sth_supply", "btcdata.supply_current",
+            "btcdata.lth_supply_share")
+    check(all(M.get(k, {}).get("source") == "bitcoin_data" and M[k].get("family")
+              and M[k].get("long_window") and M[k].get("units") for k in keys)
+          and M["btcdata.lth_supply_share"]["units"] == "percent_share"
+          and "tracked" not in M["btcdata.lth_supply_share"]
+          and "manual_input" not in M["btcdata.lth_supply_share"],
+          "the four keys are registered with family, long window and units; no by-hand line")
+    wrap = (REPO / "scripts" / "run_crypto_basket.sh").read_text(encoding="utf-8")
+    cat = _yaml.safe_load((REPO / "config" / "catalogue_commands.yaml").read_text(
+        encoding="utf-8"))["commands"]
+    from altdata import feeds                                   # noqa: PLC0415
+    check("altdata.sources.btcdata" in wrap and "altdata.sources.btcdata" in cat
+          and "btcdata" not in feeds.EXTERNAL_WRITERS,
+          "it rides the crypto basket's daily run (no new timer, not a second roster "
+          "pull that would spend the budget twice) and has its catalogue line")
 
 
 def main() -> int:
@@ -773,8 +926,11 @@ def part2(cfg: dict) -> None:
           and "unscored until 15 Jan 2027" in next(k for k in lines if k.startswith("Froth")),
           "the froth line prints unscored, and says why it has no sample")
     check(any("ETHERSCAN_API_KEY" in x for x in mm["lines"])
-          and any("SR-29" in x for x in mm["lines"]),
-          "the Monthly's mechanics: the ETH supply-and-burn gap named, SR-29 as today")
+          and any("SR-29" in x and "not tracked (btcdata.lth_supply_share)" in x
+                  for x in mm["lines"]),
+          "the Monthly's mechanics: the ETH supply-and-burn gap named, SR-29 not "
+          "tracked with its key named")
+    cd12()
     fv = next(x for x in ms if x["title"].startswith("Factor V"))
     check(fv["table"]["columns"][-2:] == ["Percentile, 5 years", "Percentile, full history"]
           and fv["table"]["rows"][0][0] == "Stablecoin supply, total",

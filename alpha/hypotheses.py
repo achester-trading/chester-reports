@@ -61,10 +61,13 @@ SCHEMA_ID = "alpha-lab-hypotheses/v1"
 SOURCES = ("model", "operator", "chat", "sitting", "systematic", "tell")
 FILE_SOURCES = ("model", "operator", "chat")
 CHANNELS = ("daily-proposer", "weekly-brief", "workbench", "chat", "sitting",
-            "importer")
+            "importer", "search")
 # X-3.6: the reports' tells enter through the importer (alpha/tells.py) only,
 # as source `tell`; no file from Drive or the proposer may claim that source.
 IMPORTER_SOURCES = ("tell",)
+# X-3.5: the grammar search's survivors enter through alpha/search.py only, as
+# source `systematic`, pre-registered by the search's own manifest.
+SEARCH_SOURCES = ("systematic",)
 HORIZON_CLASSES = ("short", "medium", "long")
 STATUSES = ("registered", "needs_code", "data_gap", "screened_out", "testing",
             "passed", "failed", "refined", "promoted", "retired")
@@ -144,6 +147,10 @@ def validate_batch(doc: Any) -> list[str]:
     if doc.get("channel") == "importer":
         if doc.get("source") not in IMPORTER_SOURCES:
             err.append(f"the importer's source is one of {IMPORTER_SOURCES}, not "
+                       f"{doc.get('source')!r}")
+    elif doc.get("channel") == "search":
+        if doc.get("source") not in SEARCH_SOURCES:
+            err.append(f"the search's source is one of {SEARCH_SOURCES}, not "
                        f"{doc.get('source')!r}")
     elif doc.get("source") not in FILE_SOURCES:
         err.append(f"source {doc.get('source')!r} is not one of {FILE_SOURCES}")

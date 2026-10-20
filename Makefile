@@ -124,6 +124,7 @@ PY_VALIDATORS := \
 	tools/validate_releases_b.py \
 	tools/validate_st_t5_prl.py \
 	tools/validate_st_t5_render.py \
+	tools/validate_b45_chain3.py \
 	tools/validate_digital_addendum.py \
 	tools/validate_crypto_sources.py \
 	tools/validate_audit_3a.py \
@@ -139,6 +140,7 @@ PY_VALIDATORS := \
 	tools/validate_alpha_no_orders.py \
 	tools/validate_alpha_proposer.py \
 	tools/validate_alpha_lab_3.py \
+	tools/validate_alpha_lab_4.py \
 	tools/validate_volume_profile.py \
 	tools/validate_es_block.py \
 	tools/validate_st_r4_t1.py \

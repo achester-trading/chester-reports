@@ -204,7 +204,7 @@ the operator to overrule.
 
 | Loop | When | Tranche 1 |
 |---|---|---|
-| Nightly | weekdays 17:40 ET (`chester-alpha-nightly.timer`), after the 16:45 close's capture | ingest the inbox; run the harness on what was registered; fill, mark, grade; the governor; posteriors; kill; cost calibration; weights proposed; attribution by regime key; drift; signals; promote |
+| Nightly | weekdays 17:40 ET (`chester-alpha-nightly.timer`), after the 16:45 close's capture | ingest the inbox; run the harness on what was registered; fill, mark, grade; the governor; posteriors; kill; cost calibration; weights proposed; attribution by regime key; drift; signals; promote; last, the grammar search's capped step while a run is unfinished (section 11) |
 | Proposer | weekdays 18:10 ET (`chester-alpha-proposer.timer`), after the nightly loop | one model call; at most three hypotheses into the inbox, for the next night |
 | Weekly | Sunday 06:00 ET (`chester-alpha-weekly.timer`), after the Weekly | walk-forward extended; the bounded re-fit; the rebalance; the agenda; the verdicts to the outbox |
 | Fortnightly | the research sitting | X-2.7 |
@@ -410,3 +410,24 @@ It is mailed with the Quarterly through `quarterly_attachment`, which never
 raises. Its prose stays within the Quarterly's medium depth and it draws no
 chart. It prints "no quarter closed yet" until a whole quarter exists.
 `tools/validate_alpha_lab_3.py` group F holds it.
+
+## 11. Tranche 3, part 2 (alpha-lab-4, 19 Oct 2026)
+
+*Accepted as amended (rule 31), 19 Oct 2026:* X-3.3 engine 6 built (alpha-lab-4, 19 Oct 2026): spec sha256 `91100c551b3c30e55854d5905064ba9059bb6ba1d904c5ee513fe7b473a3a26e`, hypothesis E-6 to be registered by manifest on the box after the third chain merges. X-3.5 the grammar search built: family search-v1, at most 3,840 candidates. A conditioning variable joins a run only if its point-in-time history starts at least five years before the holdout's first day; that is evaluated at the run's start, before the manifest, which records each variable's first date and whether it passed, and N counts only the candidates the run tests. Expected: positioning (the CFTC net, each report reconstructed at its Friday release) passes; the macro and volatility dials (the market-state object's stored vintages, each available when it was computed) and the funding regime (calc.funding_agg, from October 2026) fail; the box's first run prints the answer. The dealer regime is pending on its history (our captures' first date) under the same rule and does not join search-v1. While a run is unfinished, its next step runs as the last step of the nightly loop (Mon-Fri 17:40), its wall clock capped so the unit ends inside its 20-minute timeout with 3 minutes spare (at most 600 s; under 120 s it skips and prints why), under one lock for every search step; a new run begins only in the first week of a month, and only once the previous run is complete.
+
+## 12. Engine 7, intraday dealer regimes (X-3.4; b45-chain3, 19 Oct 2026)
+
+`alpha/engines/intraday_dealer.py`, registered as `intraday_dealer`.
+
+- **Pre-registered:** every rule is `config/alpha_intraday_dealer.yaml`'s spec, sha256 `2efa781c6d525bf5b13abb0d95193a4e867e2e04c6b0f56e05722b6a9798f1c7`, quoted by the roster's E-7 (`alpha/research/roster-2026-10-19-x3-4.yaml`). It is registered on the box by manifest after the third chain merges.
+- **The bucket:** the symbol (SPY, QQQ, IWM), times the 09:45 gamma regime (net GEX's sign where net-to-gross is at least 0.10, from our own capture), times the sign of the open-to-09:45 move.
+- **The data gate:** 30 completed sessions, counted from the captures' first day; below that, "awaiting (n=k of 30)".
+- **The choice:** at 30, the side (continuation or reversal) and the exit (12:30 or the close) with the best formation mean net of costs, frozen; only later sessions trade.
+- **The clocks:**
+  - a capture is knowable at its computed_at, and one computed after the 10:15 deadline is never read;
+  - a price is read at its market time;
+  - the entry is the first stored 5-minute bar at or after the decision, within 10 minutes, else no trade.
+- **Not tracked:** VWAP and a finer opening range (no intraday bars knowable at the decision; the writer is listed, not built).
+- **A research engine:** it queues no signal, because the nightly loop cannot act at 09:45.
+- **No vendor value:** no FlashAlpha key, no vendor file.
+- **The 0DTE share** of the captured volume is recorded on every session, labelled no side.
