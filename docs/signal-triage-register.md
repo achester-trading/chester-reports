@@ -816,6 +816,8 @@ above changes.
 
 *Accepted as drafted with one addition (rule 31), 19 Oct 2026 (R7):* **the mechanism watch's posting templates** (`config/story_queries.yaml` `mechanism_watch.posting`): Factor I, NVDA's close higher in 182 days, linked to trend +; Factor V, BTC-USD's close higher in 182 days, linked to liquidity +. **The addition:** wherever a posted story's grade prints, its base rate prints beside it, code-written: the share of 182-day windows in the stored history in which the linked instrument closed higher, with the window and n, point in time as of the grade (`altdata/mechanism_watch.base_rate`). No key was added. Confirm and reject stay the operator's.
 
+*Accepted as frozen (rule 31), 19 Oct 2026 (R8):* **engine 7's seven session-set choices** (`alpha/engines/intraday_dealer.py`; its spec `config/alpha_intraday_dealer.yaml`, sha256 quoted by the roster's E-7): the 10:15 decision deadline, the 10-minute entry wait, the 0.10 net-to-gross floor, the capture's spot read as real time, SPY, QQQ and IWM, the tie order, and the 30-session floor. They are accepted as its spec freezes them; registering E-7 (`python -m alpha.manifest register alpha/research/roster-2026-10-19-x3-4.yaml`) stays the operator's box command.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
