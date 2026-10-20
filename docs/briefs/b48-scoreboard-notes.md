@@ -38,7 +38,7 @@ Read from `register/store.py` (the `decisions`, `rule_breaks` and `decision_pack
 | `config/scoreboard.yaml` | The session-set values below |
 | `daily_cascade/weekly_stack.py` | `produce()` stores `ed["scoreboard"]`. `render()` prints `scoreboard_html()` at the very top, above the précis, which is about the market. The block is code-written and sits outside the word budget |
 | `monthly_macro/payload.py`, `monthly_macro/stack.py` | The register month carries the score and the benchmarks. Its detail table prints the thirteen-week line, the cut by regime at entry and the four-quarter line beside the overall figure, plus a book-and-regime table |
-| `tools/validate_b48_scoreboard.py` | The gate, on synthetic fixtures (36/0). In the Makefile: one hundred and twenty-six code gates, one hundred and twenty-three Python. CLAUDE.md's count follows (`validate_audit_3a` 88/0) |
+| `tools/validate_b48_scoreboard.py` | The gate, on synthetic fixtures (37/0). In the Makefile: one hundred and twenty-six code gates, one hundred and twenty-three Python. CLAUDE.md's count follows (`validate_audit_3a` 88/0) |
 | CLAUDE.md | One paragraph |
 | `docs/master-guide.md` and its HTML | Table 8's rows 5, 12 and 13 read "Built (b48-scoreboard), measurement only; Doctrine #2 may amend". Part 5's score bullets, Part 7's Sunday line and one Table 7b row ("measurement", not a signal, so in none of the headline counts). `check_master_guide` passes. The HTML is rebuilt with Aptos |
 
@@ -98,4 +98,7 @@ Read from `register/store.py` (the `decisions`, `rule_breaks` and `decision_pack
 
 ## CI
 
-Round 1: pending.
+| Round | Run | On | Result | Fix |
+|---|---|---|---|---|
+| 1 | 39369182460 | `6982dd4` | 135 of 136 jobs green; `validate_readability` failed: "Weekly: no '(s)', no '+-', no ISO date outside a table". The scoreboard's lines printed "open decision(s)" and ISO window dates | The lines print "1 open decision" / "3 open decisions" and dates as "1 Oct 2026"; the gate gains the same check (37/0) |
+| 2 | @@RUN2@@ | @@SHA2@@ | @@RES2@@ | |

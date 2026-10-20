@@ -87,6 +87,17 @@ def _window(as_of: str, days: int) -> tuple[str, str]:
     return (end - dt.timedelta(days=days)).isoformat(), end.isoformat()
 
 
+def _plural(n: int, word: str) -> str:
+    """'1 open decision', '3 open decisions' -- the reports print no '(s)'."""
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def _date(iso: str) -> str:
+    """'2026-10-01' -> '1 Oct 2026': a printed line carries no ISO date."""
+    d = dt.date.fromisoformat(str(iso)[:10])
+    return f"{d.day} {d:%b} {d.year}"
+
+
 def _now() -> str:
     from altdata import session  # noqa: PLC0415
     return session.utc_iso()
@@ -200,7 +211,8 @@ def expectancy_line(e: dict) -> str:
     books = "; ".join(f"Book {k}: {cell_text(v, m)}" if k != NO_BOOK
                       else f"{k}: {cell_text(v, m)}"
                       for k, v in e["by_book"].items()) or "no book graded"
-    return (f"Thirteen-week expectancy ({e['window'][0]} to {e['window'][1]}, "
+    return (f"Thirteen-week expectancy ({_date(e['window'][0])} to "
+            f"{_date(e['window'][1])}, "
             f"ruled R, interval first): all books {cell_text(e['overall'], m)}; "
             f"{books}.")
 
@@ -225,9 +237,9 @@ def _book_return(decisions: list[dict], book_set: tuple, start: str, end: str,
     open_ = [d for d in mine if d.get("status") == "active"]
     if open_:
         return {"pct": None, "n": len(mine),
-                "not_built": (f"{len(open_)} open decision(s) have no mark: the "
-                              f"register stores no entry fill per decision, so an "
-                              f"open position cannot be marked from it")}
+                "not_built": (f"{_plural(len(open_), 'open decision')} held, and "
+                              f"the register stores no entry fill per decision, so "
+                              f"an open position cannot be marked from it")}
     closed = [d for d in mine if d.get("status") == "closed"
               and start < _day(d.get("exit_time") or d.get("outcome_at")
                                or d.get("decision_time")) <= end]
@@ -286,9 +298,11 @@ def benchmarks_line(b: dict) -> str:
             return f"{name} not built ({(x or {}).get('not_built') or 'no figure'})"
         return f"{name} {x['pct']:+.2f}%"
     six = b.get("sixty_forty") or {}
-    span = (f", Book Z marked {six.get('from')} to {six.get('through')}"
-            if six.get("pct") is not None else "")
-    return (f"Four quarters ({b['window'][0]} to {b['window'][1]}{span}), as a share "
+    span = (f", Book Z marked {_date(six['from'])} to {_date(six['through'])}"
+            if six.get("pct") is not None and six.get("from") and six.get("through")
+            else "")
+    return (f"Four quarters ({_date(b['window'][0])} to {_date(b['window'][1])}{span}), "
+            f"as a share "
             f"of capital: {f(b['active'], 'the active books (B, C, D)')}; "
             f"{f(b['book_a'], 'Book A alone')}; {f(six, 'the static 60/40')}.")
 
@@ -365,7 +379,7 @@ def top_lines(t: dict) -> list[str]:
     h, n, rb = t["heat"], t["net_exposure"], t["rule_breaks"]
     lines = [
         _pct_line("Heat", h, f"open risk to invalidation across Books B, C and D "
-                             f"({h.get('open', 0)} open decision(s))"),
+                             f"({_plural(h.get('open', 0), 'open decision')})"),
         _pct_line("Net exposure", n, "Book A's net beta plus the beta-equivalent of "
                                      "Books B, C and D, from stored betas"
                   + (f", {n['regime']} band" if n.get("regime") else "")),

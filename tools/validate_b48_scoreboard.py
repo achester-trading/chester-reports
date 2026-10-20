@@ -208,7 +208,7 @@ def group_a() -> None:
     check("regime.latest" not in regime_src and "import regime" not in regime_src,
           "the stamp is read from the decision, never recomputed from the object")
     ln = sb.expectancy_line(e)
-    check(ln.startswith("Thirteen-week expectancy (2026-10-01 to 2026-12-31, ruled R")
+    check(ln.startswith("Thirteen-week expectancy (1 Oct 2026 to 31 Dec 2026, ruled R")
           and "Book C: accruing (n=3)" in ln, ln)
     empty = sb.expectancy_13w(AS_OF, str(TD / "absent.sqlite"))
     check(empty.get("not_built") and "not built" in sb.expectancy_line(empty),
@@ -225,7 +225,7 @@ def group_b() -> None:
     # (110 - 100) x 100 = 1,000 on a declared capital of 300,000: 0.33%.
     check(b["active"]["pct"] == 0.33, f"the active books: realised, 0.33% ({b['active']})")
     check(b["book_a"]["pct"] is None
-          and "open decision(s) have no mark" in b["book_a"]["not_built"],
+          and "1 open decision held" in b["book_a"]["not_built"],
           f"Book A open: not built, naming what is missing ({b['book_a'].get('not_built')})")
     check(b["sixty_forty"]["pct"] == 5.0, f"the static 60/40 from Book Z: +5.00% "
           f"({b['sixty_forty']})")
@@ -258,6 +258,10 @@ def group_c() -> None:
     check(t["heat"].get("pct") == 0.0 and "0.00% of capital" in ln[0],
           f"no open decision: heat 0.00% of capital ({ln[0]})")
     check(all("$" not in x for x in ln), "percentages only, never dollars")
+    import re                                                   # noqa: PLC0415
+    printed = ln + [sb.benchmarks_line(sb.benchmarks_4q(AS_OF, str(DB)))]
+    check(not any("(s)" in x or re.search(r"\d{4}-\d{2}-\d{2}", x) for x in printed),
+          "the house's readability: no '(s)' and no ISO date in a printed line")
     html = ws.scoreboard_html(t)
     check(html.startswith('<div id="scoreboard"') and "The ledger, first" in html
           and all(x.split(":")[0] in html for x in ln), "the block renders every line")
