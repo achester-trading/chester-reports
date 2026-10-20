@@ -101,4 +101,4 @@ Read from `register/store.py` (the `decisions`, `rule_breaks` and `decision_pack
 | Round | Run | On | Result | Fix |
 |---|---|---|---|---|
 | 1 | 39369182460 | `6982dd4` | 135 of 136 jobs green; `validate_readability` failed: "Weekly: no '(s)', no '+-', no ISO date outside a table". The scoreboard's lines printed "open decision(s)" and ISO window dates | The lines print "1 open decision" / "3 open decisions" and dates as "1 Oct 2026"; the gate gains the same check (37/0) |
-| 2 | @@RUN2@@ | @@SHA2@@ | @@RES2@@ | |
+| 2 | 39370760251 | `551ebe9` | **green**, 136/136 jobs | — |
