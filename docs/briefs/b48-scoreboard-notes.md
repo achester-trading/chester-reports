@@ -102,3 +102,49 @@ Read from `register/store.py` (the `decisions`, `rule_breaks` and `decision_pack
 |---|---|---|---|---|
 | 1 | 39369182460 | `6982dd4` | 135 of 136 jobs green; `validate_readability` failed: "Weekly: no '(s)', no '+-', no ISO date outside a table". The scoreboard's lines printed "open decision(s)" and ISO window dates | The lines print "1 open decision" / "3 open decisions" and dates as "1 Oct 2026"; the gate gains the same check (37/0) |
 | 2 | 39370760251 | `551ebe9` | **green**, 136/136 jobs | — |
+
+## B49: the rulings of 20 Oct 2026 on the chain-3 and b48 notes
+
+Ruled 20 Oct 2026, "accept all" on decisions 1 to 8 of that morning's list. Applied on this branch, so one pull request carries both. chain-3 is frozen at STITCH COMPLETE (`4f004a4`) and was not touched.
+
+### Every change, with its commit
+
+| Part | Commit | What changed |
+|---|---|---|
+| 1(a) | `8cb3182` | The volatility paper's 16 Oct worked example (Appendix E) takes Cboe's published closes, named as Cboe's: VIX9D 20.12, VIX3M 20.50, VIX6M 21.67, VVIX 109.91, SKEW 168.59, from its daily index files. The S&P 500 and MOVE are not Cboe's indexes, so their changes become words, for the ledger's first row to confirm. VVIX's and SKEW's one-day changes become words for the same reason. The clause placing the index against the vendor's gamma flip is removed. The masthead gains "Change record: 20 Oct 2026: vendor figures replaced with Cboe's published values, under the standing rule." The HTML is rebuilt |
+| 1(b) | `f911c91` | The systematic-book paper's 4 September entry drops "(both walls matching the vendor exactly; flip within 0.13%)". A change-record line under the masthead; the HTML rebuilt |
+| 1(c) | `96b1bc8` | The Batch 9 order's worked example: each vendor figure is redacted in place with "[vendor figure removed 20 Oct 2026 under the standing rule]". That covers VVIX's and SKEW's changes, the S&P 500's level and change, MOVE's level and change, the VIX future, the vendor's own VIX spot and the gamma flip. Kept: Cboe's published closes and CNN's Fear & Greed reading. Every other word stands. A dated note under the example says what was removed and why |
+| 1(d) | `26b9b6b` | `alpha/research/hypotheses-2026-10-20-supersedes-2026-10-14.yaml` supersedes each of the five 14 Oct hypotheses, with the vendor figures (the inputs line and H-001's state at registration) written in words. Each hypothesis names its original as `2026-10-14-claude-weekly-01:H-00n`. The original file is not edited, and its eight pins (two gates, five translations, plus its byte count) stand. Two small intake changes let the correction register: `supersedes` may be written `<batch_id>:<local_id>` (a file cannot know the box's register ids), and a correction is exempt from the duplicate screen against the one hypothesis it supersedes only. The committed translations' rules (H-002, H-004, H-005) are carried inline. `validate_b48_scoreboard` group E |
+| 2 | `1159d0e` | Fear & Greed keeps its bands and takes the publisher's own labels (extreme fear, fear, neutral, greed, extreme greed); `validate_a47_chain3` 42/0. S-3's next edition states that the May 2026 rush is read as an unwind |
+| 2 (record) | `301f38f` | The register's rule-31 acceptances: S-2, S-3, SN-1 and SN-2 FAIL, accepted as drafted (nothing prints, nothing gains a right); S-3's May window; Fear & Greed's labels; `score.min_n` 10 and the benchmark basis, accepted |
+| 3 | `3717b65` | The Volatility and Gamma dials are stamped at entry, below. `validate_b48_scoreboard` group F (55/0); the Master Guide's stamp lines; `check_master_guide` and `check_library` pass |
+
+### Part 3, the stamp
+
+- **Where it is read.** `heat.regime_band()`, which the order gate already calls at entry, reads the Volatility and Gamma dials' states from the newest stored market-state object, the one the anchor prints. It also reads the gamma dial's provisional mark and the object's session. Nothing is computed: an absent dial is None with its reason.
+- **Where it is written.** The order gate's existing entry write: `decide.py record` puts the gate's detail in the decision's own `gate_detail` field, and its `regime` part now carries `vol_state`, `gamma_state`, `gamma_provisional` and `dials_session` beside the Doctrine regime. No other register write, and no new decision right.
+- **No schema change, so no migration.** `gate_detail` is the decision's existing JSON field, so the register needs no new column and Ari has no migration command to run.
+- **The score.** `expectancy_13w()` cuts by each stamped dial (`by_vol`, `by_gamma`). A decision entered before B49 prints "not stamped"; one stamped while the dial was absent prints "(dial absent at entry)". The Monthly's register month prints both cuts.
+- **The volatile-day flag** joins the stamp only once a50-dealer-store, which carries it, is on main. That is listed for the merge after it (needs-you 3).
+
+### Box command (Ari's; inside a window)
+
+The superseding batch registers by manifest, from the checkout after the merge:
+```
+.venv/bin/python -m alpha.manifest register alpha/research/hypotheses-2026-10-20-supersedes-2026-10-14.yaml
+```
+- **Expect** five registrations, none screened out, each taking its original's status.
+- **Expect** each original to move to `refined` with its successor named.
+- The manifest is written first, under the research directory, at the run's instant.
+
+### Doctrine #2's list (7-8 Nov), for session A's a52 pack
+
+1. Marking open positions: an entry fill stored per decision, so the benchmarks need not be withheld while a book holds an open decision.
+2. A risk-adjusted and after-tax comparison of the books against Book A alone and the 60/40.
+3. Long against short, printed separately (Doctrine D:816).
+
+### Needs you
+
+1. **The superseding batch's registration:** the box command above.
+2. **The Doctrine #2 list's three items:** for a52's pack.
+3. **After a50-dealer-store is on main:** the volatile-day flag joins the entry stamp and the score's cuts. That is a follow-up branch from main once a50 lands.
