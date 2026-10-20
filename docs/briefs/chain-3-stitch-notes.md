@@ -1,4 +1,4 @@
-STITCH IN PROGRESS: pushed, CI pending (this line becomes STITCH COMPLETE when CI is green)
+STITCH COMPLETE c454830 2026-10-20 00:21 ET
 
 # chain-3: the third chain stitched into one branch (session B, 19-20 Oct 2026)
 
@@ -119,7 +119,11 @@ Every other gate, and anything that renders a PDF, was left to CI.
 
 ## The CI rounds
 
-Round 1: pending.
+| Round | Run | On | Result |
+|---|---|---|---|
+| 1 | 39367719024 | `c454830` (the rulings, the Guide, these notes and the box sheet) | **green**, 134/134 jobs: every code gate, the data gates (each reports, never sets the exit code), the shell gates and the smoke test |
+
+One round. Nothing failed where the lines meet: the one failure the merges would have shipped, `validate_a43_render` reading its fixture store as of a fixed 20 Oct 00:00 UTC (so every run from that minute failed, the same fault session A fixed on a50-dealer-store in `bb33cd5`), was fixed before the push, in R2's commit `32d8baa`.
 
 ## What stayed out, and why
 
