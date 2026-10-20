@@ -798,6 +798,16 @@ Book A's rule table reads it as a modifier (Appendix C, row A-7); nothing automa
 
 ---
 
+## Rule-31 acceptances outside the SR entries
+
+Acceptances of drafts that belong to no SR entry: the Batch 11 studies and the
+mechanism watch's posting, ruled on 19 Oct 2026 at 15:59 ET ("accept all",
+decisions 1 to 19) and applied on the third chain (`chain-3`). Each acceptance
+grants what its draft says and nothing more; none is a gate's pass, and no status
+above changes.
+
+*Accepted as drafted (rule 31), 19 Oct 2026 (R3):* **H6, the level clusters' prior-session family** (Batch 11; `docs/ledgers/dealer-scorecard-preregistration-2026-10-h6.md`). The prior session's family is read with the overnight that led into that session, as a48-batch11 drafted it. H6 stays pre-registered and accruing; nothing prints as a verdict until its sample is met.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
