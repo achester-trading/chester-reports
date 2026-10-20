@@ -810,6 +810,8 @@ above changes.
 
 *Accepted as drafted (rule 31), 19 Oct 2026 (R4):* **SPX in OS-9's index floor** (Batch 11; `docs/ledgers/os-9-ledger-2026-10-19.md`). SPX is held to the index floor of 2,000 contracts, as drafted. OS-9's outcome ledger's first edition stays **INSUFFICIENT** (0 resolved builds against a floor of 30); report-only.
 
+*Accepted as drafted (rule 31), 19 Oct 2026 (R5):* **OS-6's first edition, FAIL** (`docs/ledgers/os-6-ledger-2026-10-19.md`: 0 of 12 tests survive Benjamini-Hochberg at q = 0.10 on 498 sampled sessions). Display only, no rights: no component flag, composite or weight follows from it.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.
