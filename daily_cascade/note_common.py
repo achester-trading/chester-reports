@@ -213,10 +213,25 @@ def words(text: Optional[str]) -> int:
     return len(re.findall(r"\S+", text or ""))
 
 
+# THE LENGTH TARGET (a55, 20 Oct 2026). The cap is the order's and stays (250 words
+# for the open note, 150 for a weekday evening, 400 on Sunday); a paragraph past it
+# is withheld, never trimmed, and the order's one revision is for an audit refusal,
+# not for length, so nothing re-asks. On 20 Oct an evening draft ran 170 words
+# against 150 (13% over) and the note went out without its paragraph. So the prompt
+# AIMS below the cap: TARGET_SHARE of it (120 of 150; 200 of 250; 320 of 400), which
+# leaves the observed overrun inside the cap.
+TARGET_SHARE = 0.8
+
+
+def target_words(cap: int) -> int:
+    return int(cap * TARGET_SHARE)
+
+
 NOTE_RULES = (
     "\n\nTHIS IS A SECONDARY NOTE, not the close and not the 07:00 anchor. Write ONE "
-    "paragraph of at most {words} words over the payload's blocks, the most material "
-    "first. Every block's lines are already printed beneath your paragraph: say what "
+    "paragraph of about {target} words over the payload's blocks, the most material "
+    "first. {words} words is a hard cap: a paragraph past it is withheld, not "
+    "printed. Every block's lines are already printed beneath your paragraph: say what "
     "they add up to, not each figure again. State no cause: a move is consistent or "
     "inconsistent with an item, never caused by it ('attributions, not causes'). No "
     "recommendation, no flag, no tell, no regime of your own: the regime is the one "
@@ -230,7 +245,9 @@ def prose(payload: dict, *, report: str, words_cap: int, run_id: str,
     reply past the word cap is withheld, never trimmed."""
     from altdata import model_meter                             # noqa: PLC0415
     from . import audit_retry, narrative as nm                  # noqa: PLC0415
-    system = nm.SYSTEM_PROMPT + NOTE_RULES.format(words=words_cap, extra=extra)
+    system = nm.SYSTEM_PROMPT + NOTE_RULES.format(words=words_cap,
+                                                  target=target_words(words_cap),
+                                                  extra=extra)
     try:
         with model_meter.scope(report=report, run_id=run_id):
             r = audit_retry.generate(
