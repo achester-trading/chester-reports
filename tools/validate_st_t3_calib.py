@@ -301,8 +301,10 @@ EDITION = "2026-10-18"
 # The order's decision rows for SR-1, 2, 4, 5, 8, 13, 14 and Book A's rule A-2, as
 # they stood at the branch point (docs/change-order-signal-triage-2026-09-25.md).
 DECISION_ROWS_SHA = "2514063b3513dc305604552b06e2134ec225e7210339dfb2da8bbd54cb8a0298"
-# The register's Index table at the branch point.
-REGISTER_INDEX_SHA = "c30323daabb6897fc9d1ab84a49ee7e547ea08d7cc56c9bce67432b63dd6e747"
+# The register's Index table at the branch point. Re-pinned 21 Oct 2026, when
+# chain-4 fix 2 corrected SR-8's row to its ledger's verdict (a factual
+# correction; no other row changed).
+REGISTER_INDEX_SHA = "111b4584a885f2253f4d7cfe1890c6b0be82acad76be0b318e6394615c64f349"
 
 
 def obs(key, day, value, inst=None):
@@ -710,7 +712,10 @@ STUB = REPO / "config" / "tb_false_bottom_gate.yaml"
 # The register's SR-8 entry with its one dated source note (HY OAS, ruled 18 Oct;
 # a43-render): no draft of the audit's is written there. Re-pinned 19 Oct 2026,
 # when the note gained its acceptance (ruling 3 of 19 Oct; the chain-2 stitch).
-SR8_ENTRY_SHA = "999f9249276f126bfe0686bebf9d63de462ab017e4d22c3ac16debd92370db60"
+# Re-pinned 21 Oct 2026, when chain-4 fix 2 corrected the status line to the
+# ledger's FAIL and added its dated correction line: still no draft of the
+# audit's is written there.
+SR8_ENTRY_SHA = "3cdc2da15dfd76c69e4f57a909996fcbe41686dc527c16b96486b2e6adc1f874"
 
 
 def _path(levels: list[float], start: str = "2000-01-03") -> list[tuple[str, float]]:
