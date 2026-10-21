@@ -12105,6 +12105,28 @@ metrics:
     trigger_eligible: false
     description: >-
       SHFE weekly warranted stock (期货 -- registered against futures), TONNES; instrument = COPPER | ALUMINIUM | ZINC.
+  yfinance.mkt_usdcnh:
+    source: yfinance
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    status_extra: superseded
+    superseded_by: cnh.usdcnh
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-21"
+    description: >-
+      SUPERSEDED (5 Oct 2026, PB-1) and registered on 21 Oct 2026 (b51), when the
+      box's store check listed its rows as unregistered. USD/CNH's daily close
+      from Yahoo's CNH=X in the price basket, written from ST-2 until PB-1
+      replaced it with CNY=X (yfinance.mkt_usdcny, onshore), because Yahoo serves
+      one daily bar for CNH=X whatever the period. The offshore rate is now
+      cnh.usdcnh, built from CNH=X's hourly bars (altdata/sources/cnh.py). Kept
+      as a name so its stored history resolves; never written.
   cnh.usdcnh:
     source: yahoo_cnh
     mechanism_group: macro_global_fx
@@ -17529,6 +17551,7 @@ families:
   cftc.tff_other_rept_short_oi: ratio
   chain.spy_put_call_volume: ratio
   cnh.usdcnh: price
+  yfinance.mkt_usdcnh: price
   contradiction.magnitude: ratio
   contradiction.persistence_days: quantity   # ambiguous: a duration in days; alternative: ratio
   crypto.total_market_cap_usd: quantity
@@ -18436,6 +18459,19 @@ non_metrics:
     # record has to carry, so these are declared rather than unregistered.
     - error
     - deferred
+  stored_objects:
+    # Store keys whose rows are one JSON object each, not a series (b51, 21 Oct
+    # 2026: the box's store check listed both as unregistered).
+    # market_state: the market-state object, one per session, written by the
+    #   16:45 close only (regime.STORE_KEY; regime.store_object) and read by every
+    #   report through regime.latest(). Its freshness is the heartbeat's.
+    - market_state
+    # fred.series_release_map: FRED's series-to-release map, written by the
+    #   Weekly (daily_cascade/weekly_payload.py) until 6c-1.6 (25 Sep 2026)
+    #   removed the Weekly's fetch. The map now lives in data/fred_release_map.json
+    #   (altdata/sources/fred_releases.py); the stored rows are its history, read
+    #   by nothing and never written again.
+    - series_release_map
   containers:
     # Structural keys that hold metrics rather than being ones. Declared so the
     # drift check does not mistake a new section for a new number.

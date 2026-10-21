@@ -129,6 +129,9 @@ commands:
     domain: register
     line: The probability ledger -- every number this system states as a likelihood, scored
     sources: [derived_probability]
+  altdata.purge_synthetic:
+    domain: reference
+    line: "Remove the smoke test's old synthetic.* rows (b51): dry run first; --apply makes and checks a NEW backup first; the operator's, on the box"
   altdata.quality:
     domain: reference
     line: 'The data-quality check, read-only, after each pull: outliers, revisions and cross-source pairs (AUD-3c)'
