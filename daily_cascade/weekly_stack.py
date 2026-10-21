@@ -2523,6 +2523,16 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     from alpha.lab_line import weekly_line                      # noqa: PLC0415
     # X-1.11: the lab's one line -- alpha.db, beside the store, read-only.
     ed["alpha_lab"] = weekly_line(now, db_path and Path(db_path).with_name("alpha.db"))
+    # THE CARD'S SCOREBOARD (b48-scoreboard; Doctrine 6.5): heat, net exposure,
+    # the thirteen-week expectancy and the rule-break count, "at the top of the
+    # weekly reflection report, above anything about the market". Code-written,
+    # read only from the register, the grades and the store; outside the budget.
+    try:
+        from register import scoreboard                         # noqa: PLC0415
+        ed["scoreboard"] = scoreboard.weekly_top(now, db_path)
+    except Exception as exc:                                    # noqa: BLE001
+        ed["scoreboard"] = {"lines": [f"The scoreboard: not built "
+                                      f"({type(exc).__name__}: {exc})."]}
     ed["archive_path"] = (str(Path(archive_dir) / f"{base}.html")
                           if archive_dir else None)
     html_email = render(p, ed, charts, mode="email")
@@ -2601,6 +2611,9 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
         head += f'<p style="{stack_render.SUB}">{stack_render.esc(link)}</p>'
     # W-1.2: the précis opens the edition (page 1), the terms box is page 2,
     # then the ten sections; the reference tables after the last section.
+    # The scoreboard sits above the précis: 6.5 puts it above anything about the
+    # market, and the précis is about the market.
+    head += scoreboard_html(ed.get("scoreboard"))
     from . import precis                                        # noqa: PLC0415
     return (f'<div style="{stack_render.WRAP}">{head}{precis.precis_html(ed)}'
             f'{precis.terms_box_html()}{secs}'
@@ -2610,6 +2623,18 @@ def render(p: dict, ed: dict, charts: dict, mode: str = "email") -> str:
                                        ed.get("archive_path"),
                                        stack_render._marks(ed, "Weekly"))
             + "</div>")
+
+
+def scoreboard_html(sb: Optional[dict]) -> str:
+    """The Card's four figures, one line each, before anything about the market."""
+    lines = (sb or {}).get("lines") or []
+    if not lines:
+        return ""
+    body = "".join(f'<p style="{stack_render.SUB};margin:0 0 4px 0">'
+                   f'{stack_render.esc(ln)}</p>' for ln in lines)
+    return (f'<div id="scoreboard" style="margin:0 0 14px 0">'
+            f'<p style="{stack_render.SUB};margin:0 0 4px 0"><b>The ledger, first</b> '
+            f'(the Card; Doctrine 6.5). Measurement only.</p>{body}</div>')
 
 
 def changed_html(ed: dict) -> str:

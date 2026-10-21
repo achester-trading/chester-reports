@@ -471,7 +471,7 @@ Deeper: the Reader's Guide Part II (the data) and Part VI (the scans); the crypt
 
 ## Part 5. What is proven so far
 
-**In three lines.** Of twenty-one gated signals with a verdict, one passed, twelve failed and eight are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime, and only part of it prints today.
+**In three lines.** Of twenty-one gated signals with a verdict, one passed, twelve failed and eight are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.
 
 ### The headline counts
 
@@ -575,6 +575,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | S-1, S-4 | lenses | Untested | Print as readings |
 | The crypto paragraph (anchor and close) | readings | Untested | Built behind a switch that ships off |
 | The mechanism watch's posted stories | narrative proposals | Untested | Each posted as PROPOSED, its base rate beside its grade; confirm or reject is yours |
+| The Card's scoreboard: heat, net exposure, the 13-week expectancy by book and regime, the rule-break count, the four-quarter benchmarks (b48-scoreboard) | measurement | Not a signal | Prints at the Weekly's top and in the Monthly's register month; grants nothing; accruing below ten graded decisions a cell; Doctrine #2 may amend how it is used |
 | The eleven Alpha Lab engines (engine 6, extremes reversion, and engine 7, intraday dealer regimes, join the nine) | engines | Untested | Candidates; nothing passed or promoted; engine 6 prints "awaiting (n=k of 30)" per bucket |
 
 **OS-6** (the opening setup's positioning components) has its first ledger on the third chain, and FAILs: display only, no rights (accepted 19 October, R5).
@@ -584,9 +585,10 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 - **Size untested and accruing signals at the Card's minimum, or not at all.** The minimum is the Card's standard risk for the book (0.75% for Book B, 0.35% for Book C, 0.25% at most for Book D), never the exceptional tier.
 - **Only rungs 5 to 7 lead to trades, and only through packets.** A reading, lens or flag is context for a packet; it never sizes one.
 - **The score is rolling thirteen-week expectancy by book and by regime, plus the count of rules broken, benchmarked over four quarters against Book A alone and a static 60/40** (the Card). What prints today:
-  - **expectancy:** the Monthly's register month prints expectancy, interval first, across all graded decisions. **Not built:** the cut by book and regime on a rolling thirteen weeks;
-  - **rule breaks:** the Weekly's book prints the week's and the total;
-  - **benchmarks:** Book Z marks three static ledgers (cash, SPY, and a 60/40 of SPY and AGG), printed in the Weekly and the Monthly. **Not built:** the benchmark of Book A alone.
+  - **expectancy:** the rolling thirteen-week cut, by book, by the regime stamped at entry and by each dial stamped at entry (Volatility and Gamma, from B49; an earlier decision prints "not stamped"), in ruled R with n and the interval first: at the Weekly's top and beside the Monthly's overall figure (built, b48-scoreboard; measurement only; "accruing (n=k)" below ten);
+  - **rule breaks:** the Weekly's top prints the week's and the total;
+  - **heat and net exposure:** at the Weekly's top, from the register's heat view over the open decisions (built, b48-scoreboard);
+  - **benchmarks:** Book Z marks three static ledgers (cash, SPY, and a 60/40 of SPY and AGG). The active books and **Book A alone** are set against the 60/40 over four quarters, in percentages (built, b48-scoreboard); a book with an open decision prints "not built", because the register cannot mark an open position.
 
 Deeper: the Reader's Guide Part IX (how the system learns), 9.4 (the dealer scorecard) and 9.9 (the ledgers); Evidence and Inference; Base Rates.
 
@@ -604,7 +606,7 @@ Deeper: the Reader's Guide Part IX (how the system learns), 9.4 (the dealer scor
    - the **instrument**: the ETF itself (the thesis and the instrument are two decisions, Doctrine Rule 11; Options as Expression is where an option would be weighed);
    - the **size**: 0.75% of the account at risk (the Card's standard for Book B), because the setup is untested;
    - the **exit, written first**: the invalidation at the reclaimed level less one ATR, a 15-session time stop, and a profit plan at 2R;
-   - the **regime stamp**: the three dials and the volatile-day flag off.
+   - the **regime stamp**: the three dials and the volatile-day flag off. As built, the order gate stamps the Doctrine regime from the Macro dial and, from B49 (20 Oct 2026), the Volatility and Gamma dials as the newest stored object holds them, into the decision's record at entry; the volatile-day flag joins once a50-dealer-store is on main.
 3. **Your approval and the register write.** You approve it (one of seven approvals this week) and record it with the register's command, which is yours alone. The register checks it at entry: every required field present, the instrument not restricted.
 4. **The paper book.** It is paper today; live trading waits for the IBKR gates.
 5. **The 07:00 anchor** on Monday confirms the bracket still stands against the overnight move; **the close** records the day.
@@ -648,7 +650,7 @@ Deeper: the Doctrine Appendix B (the packet by book) and 6.4; Options as Express
 - [ ] The Digital Assets addendum (from 1 November).
 - [ ] The lab line.
 - [ ] Saturday's lab brief and the crypto tech scan (read on Saturday or Sunday).
-- [ ] Note the week's tier-1 events; confirm heat and net exposure. *Not built:* the heat and net-exposure figures the Doctrine wants "at the top of the weekly reflection report"; the Weekly prints the attention counts and rule breaks.
+- [ ] Note the week's tier-1 events; confirm heat and net exposure, the first two lines at the top of the Weekly (b48-scoreboard).
 
 ### The first weekend of the month, 90 minutes
 
@@ -698,15 +700,15 @@ Deeper: the Doctrine 6.5 and 10.2; the Reader's Guide Part X (reading targets, r
 | 2 | "The 0700 report … publishes the setup list"; Book C enters "from the 0700 list" (the Card, 4.3, 5.5) | The anchor prints no setup list; Book C drafts are not built. The close's dealer block proposes setups | Name the close's dealer block as Book C's list (a day early), or build the 0700 list |
 | 3 | "The 1000 report … veto and confirmation rights" (the Card, 4.3, 5.5, Appendix B's "1000-report confirmation status") | **Built on the order of 19 Oct:** the 09:50 open note takes the 1000 report's role (confirm or cancel Book C's 07:00 drafts, never add); dry runs until 26 October | No longer unruled. For Doctrine #2: the Doctrine's 1000 report becomes the open note's text (the order does not edit the Doctrine) |
 | 4 | "Weekly reflection report (Daily Cascade)" owns Book B (the Card, 6.2, 6.5) | The Weekly (Sunday 05:00), a report of its own, not part of the daily cascade | Rename |
-| 5 | The weekly report carries heat, net exposure, 13-week expectancy and the rule-break count "at the top … above anything about the market" (6.5) | The Weekly's book prints rule breaks, Book Z and the attention counts, in section 10, not at the top. Heat, net exposure and the 13-week expectancy by book are not built | Move them to the top and build the missing figures, or amend the obligation |
+| 5 | The weekly report carries heat, net exposure, 13-week expectancy and the rule-break count "at the top … above anything about the market" (6.5) | **Built (b48-scoreboard), measurement only; Doctrine #2 may amend.** The Weekly opens, above the précis, on heat, net exposure (from the register's heat view and stored betas), the 13-week expectancy and the rule-break count (`register/scoreboard.py` `weekly_top`) | How the four figures are used: Doctrine #2 |
 | 6 | "Top & Bottom (monthly, ten triggers, three overlays)": Book A's override (6.2) | No harness, no writer; the Monthly prints a not-built line | Keep the override in the Doctrine as dormant, or build the harness |
 | 7 | "Alternative Asset (eighteen assets…)", its "surveillance tab" and "signals tab" (6.2, 6.5) | The Monthly's slow layers; the Alternative Assets Quarterly (eleven chapters, disabled until January) | Rename to the Quarterly and the Monthly's slow layers |
 | 8 | "Monthly Macro (monthly, ten pillars, tail scan in Part 16)" (6.2) | The stacked Monthly (ten sections; slow layers); no "Part 16" | Rename; locate the tail scan in the as-built Monthly or drop the part number |
 | 9 | Disruptive Themes "refreshed several times a year", a composite that holds Book A in the lower half of a band (4.1, 6.2) | Not built; folded into the Quarterly Structural, which is not built | Mark dormant until the Quarterly Structural, or build |
 | 10 | The alert layer for Book D: "meme monitor, the prediction-market engine, the overhang tracker, the tail scan" (the Card, 4.4) | chester-meme's drafts (the ingest), the prediction-market lines; no overhang tracker | Rename to the as-built sources; drop or build the overhang tracker |
 | 11 | "Exceptional tier … Phase 2 onward" and the Phase 2 drawdown levels | Paper only; no phase is recorded in code | Confirm the phase is a ruling, not a build item |
-| 12 | Benchmarks: the active books against **Book A alone** and a 60/40 over four quarters (the Card) | Book Z marks cash, SPY and a 60/40; no Book A-alone ledger | Build Book A's ledger, or benchmark against SPY |
-| 13 | "The score is rolling thirteen-week expectancy by book and by regime" (the Card, Doctrine Rule 22) | The Monthly's expectancy is across all graded decisions | Build the cut, or accept the overall figure until the sample allows |
+| 12 | Benchmarks: the active books against **Book A alone** and a 60/40 over four quarters (the Card) | **Built (b48-scoreboard), measurement only; Doctrine #2 may amend.** `benchmarks_4q`: the active books and Book A alone as realised P&L over the declared capital, against Book Z's 60/40, over four quarters, in percentages. A book holding an open decision prints "not built": the register stores no entry fill per decision, so it cannot mark one | How the comparison is used (the active budgets cut by a third if they beat neither): Doctrine #2 |
+| 13 | "The score is rolling thirteen-week expectancy by book and by regime" (the Card, Doctrine Rule 22) | **Built (b48-scoreboard), measurement only; Doctrine #2 may amend.** `expectancy_13w`: ruled R over graded paper decisions taken, by book, by the regime stamped at entry and by the Volatility and Gamma dials stamped at entry (never recomputed; "not stamped" before B49), n and the interval first, "accruing (n=k)" below 10; the Weekly's top and the Monthly's register month read the one function | The minimum n (session-set at 10) and how the cut is used: Doctrine #2 |
 | 14 | "The Weekly prints three counts" (10.2) | Built: the attention line's three counts | No difference |
 | 15 | The intraday rung's first engine, the Dealer's Hand's zero-day regime engine (10.3) | Not built as such; the Alpha Lab's engine 7 (intraday dealer regimes, built; its registration is your box command) is a research engine of the lab, not the Doctrine's | Say whether engine 7 informs 10.3, or keep them apart |
 | 16 | The 1000 touch is mandatory on volatile-protocol days, and Book C may not enter after 10:30 without the 1000 report's confirmation (4.3, 5.5) | Book C is inactive (Gate C not passed, no drafts), so the open note is optional today; once Book C activates, the Doctrine as written makes it mandatory on those days | Say whether the mandatory touch stands for the open note |
@@ -841,7 +843,7 @@ Read from: the branch's own commits; its notes are its own. None of it is built 
 - **Packet (Decision Packet):** the immutable record of your decision; the only thing that permits a trade.
 - **Point in time:** reading only what was knowable then, by `available_at`.
 - **Register:** the decision register, the record you are graded against; its writes are yours alone.
-- **Regime stamp:** the three dials and the volatile-day flag, recorded on every packet.
+- **Regime stamp:** the three dials and the volatile-day flag, recorded on every packet. As built: the Macro dial's Doctrine regime and (B49) the Volatility and Gamma dials, read from the stored market-state object at entry and never recomputed; the volatile-day flag is not yet stamped (it joins after a50-dealer-store).
 - **Scorecard:** the dealer scorecard, six pre-registered tests of the dealer regime's claims.
 - **Setup:** a pre-specified pattern for a book, with a base rate (rung 5).
 - **Stack:** the ten-section layout every report shares, at its own depth.

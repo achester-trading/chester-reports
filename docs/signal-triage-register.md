@@ -826,6 +826,14 @@ above changes.
 
 *Ruled 19 Oct 2026 (R12):* **no rethink of the dials' history before November.** The grammar search's coverage rule stands as written: the macro and volatility dials join a run only once their point-in-time history clears five years before the holdout, and the box's coverage at the first run decides. Nothing is backfilled or reinterpreted to make them pass.
 
+*Accepted as drafted (rule 31), 20 Oct 2026 (B49, decision 2):* **S-2 and S-3, the crypto flags' first editions, FAIL** (a47-chain3; `docs/ledgers/s-2-ledger-2026-10-19.md`: 22 completed episodes, Welch t +1.14; `docs/ledgers/s-3-ledger-2026-10-19.md`: 0 of 4 evaluable windows caught). Nothing prints and nothing gains a right: S-2's and S-3's flags stay stored "not passed", and the 12:30 crypto line stays closed. **S-3's "May 2026 rush" is read as an unwind**, like the other three windows, as the first edition read it; the verdict is unchanged.
+
+*Accepted as drafted (rule 31), 20 Oct 2026 (B49, decision 2):* **SN-1 and SN-2, the secondary notes' two studies, FAIL** (a49-secondary-notes; `docs/ledgers/sn-1-ledger-2026-10-19.md`: none of 4 cells with 20 days or more passes; `docs/ledgers/sn-2-ledger-2026-10-19.md`: continuation 107 of 193, its Wilson interval including 50%). Nothing prints and nothing gains a right.
+
+*Ruled 20 Oct 2026 (B49, decision 2):* **Fear & Greed's words.** The session-set bands stay (to 24, 44, 55, 75 and 100), and each takes the publisher's own label in place of the session-set word: extreme fear, fear, neutral, greed, extreme greed (`config/crypto_sources.yaml` `blocks.daily.fng_words`). The reading is CNN's public index, not a vendor's.
+
+*Accepted, 20 Oct 2026 (B49, decision 2):* **b48-scoreboard's values.** `score.min_n` 10 (`config/scoreboard.yaml`) is accepted. The four-quarter benchmarks on realised P&L, withheld while a book holds an open decision, are accepted for now. Three items go on the Doctrine #2 list (7-8 Nov), which session A's a52 pack collects: marking open positions (an entry fill stored per decision); a risk-adjusted and after-tax comparison; long against short.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.

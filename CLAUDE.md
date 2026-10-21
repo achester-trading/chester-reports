@@ -238,7 +238,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and twenty-five code gates (one hundred and twenty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty-six code gates (one hundred and twenty-three Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -433,6 +433,29 @@ st-t5-render, 18 Oct 2026).**
   - `promote` and `reject` write only with the operator's `--confirm`.
   - It is a Saturday step of the crypto basket's run; `make mechanism-register`
     renders the register. `tools/validate_st_t5_render.py` holds it.
+
+**The Card's scoreboard is measurement only (b48-scoreboard; ruled 19 Oct 2026,
+"accept all" on the four decisions of 23:35 ET).** `register/scoreboard.py` reads,
+never writes, the register, the grades and the store (`mode=ro`), and computes no
+regime:
+- `expectancy_13w()` is the score: the rolling thirteen-week expectancy in ruled R
+  over graded paper decisions the operator took, by the decision's `book` and by
+  the regime the order gate stamped at entry (`gate_detail.regime.regime`, never
+  recomputed) and by the Volatility and Gamma dials the gate stamps beside it at
+  entry (B49, 20 Oct 2026: `heat.regime_band` reads them from the newest stored
+  object; an earlier decision prints "not stamped"; the volatile-day flag joins
+  after a50-dealer-store), n and the interval first, "accruing (n=k)" below
+  `config/scoreboard.yaml`'s session-set `min_n`. The Weekly and the Monthly both
+  read it.
+- `benchmarks_4q()` sets the active books (B, C, D) and Book A alone, each as
+  realised P&L over the declared capital, against Book Z's stored 60/40 over four
+  quarters; a book with an open decision prints "not built" (the register stores
+  no entry fill per decision, so it cannot mark one). Percentages, never dollars.
+- `weekly_top()` is the Weekly's top, above the précis (Doctrine 6.5): heat and net
+  exposure from `heat.view()` (`register/heat.py`) over the open decisions, the score, and the
+  `rule_breaks` count. The Monthly's register month prints the cut beside its
+  overall figure. Doctrine #2 (7-8 Nov) may amend how they are used.
+  `tools/validate_b48_scoreboard.py` holds it.
 
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a

@@ -1947,6 +1947,33 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                      f"{_v(ov.get('hi'), 3)}R, mean {_v(ov.get('mean'), 3)}R.")
     else:
         lines.append(f"Grades: {rm.get('reason') or 'unavailable'}")
+    # THE CARD'S CUT BESIDE THE OVERALL FIGURE (b48-scoreboard): by book and by
+    # the regime stamped at entry, over the rolling thirteen weeks, interval first.
+    sb = rm.get("scoreboard") or {}
+    sb_tables = []
+    try:
+        from register import scoreboard as _sb
+        if sb.get("expectancy"):
+            ex = sb["expectancy"]
+            lines.append(_sb.expectancy_line(ex))
+            if not ex.get("not_built"):
+                sb_tables.append({
+                    "columns": ["Book | regime at entry (13 weeks)", "Expectancy, ruled R"],
+                    "rows": [[k, _sb.cell_text(v, ex["min_n"])]
+                             for k, v in (ex.get("by_book_regime") or {}).items()]})
+                lines.append("By regime at entry: " + ("; ".join(
+                    f"{k}: {_sb.cell_text(v, ex['min_n'])}"
+                    for k, v in (ex.get("by_regime") or {}).items()) or "none graded")
+                    + ".")
+                # B49: by each dial the order gate stamped at entry; a decision
+                # entered before the stamp prints "not stamped".
+                lines += [_sb.dial_line(ex, d) for d, _ in _sb.DIALS]
+        if sb.get("benchmarks"):
+            lines.append(_sb.benchmarks_line(sb["benchmarks"]))
+        if sb.get("fault"):
+            lines.append(f"The scoreboard: not built ({sb['fault']}).")
+    except Exception as exc:                                   # noqa: BLE001
+        lines.append(f"The scoreboard: not built ({type(exc).__name__}: {exc}).")
     dec = [[d.get("instrument"), d.get("direction"), d.get("status"),
             d.get("expression_family") or "—", str(d.get("created_at"))[:10]]
            for d in rm.get("decisions_opened") or []]
@@ -1956,7 +1983,8 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                                         "On"], "rows": dec},
                            {"columns": ["Book", "Paper equity"],
                             "rows": [[f"Book {k}", v] for k, v in
-                                     sorted((bz.get("books") or {}).items())]}],
+                                     sorted((bz.get("books") or {}).items())]},
+                           *[t for t in sb_tables if t["rows"]]],
                 "lines": lines,
                 "not_tracked": list((rm.get("rule_breaks") or {}).get("not_yet_sourced")
                                     or []),
