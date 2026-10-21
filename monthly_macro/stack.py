@@ -1972,8 +1972,9 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                     f"{k}: {_sb.cell_text(v, ex['min_n'])}"
                     for k, v in (ex.get("by_regime") or {}).items()) or "none graded")
                     + ".")
-                # B49: by each dial the order gate stamped at entry; a decision
-                # entered before the stamp prints "not stamped".
+                # B49: by each dial the order gate stamped at entry, and (chain-4)
+                # the volatile-day flag as printed; a decision entered before the
+                # stamp prints "not stamped".
                 lines += [_sb.dial_line(ex, d) for d, _ in _sb.DIALS]
         if sb.get("benchmarks"):
             lines.append(_sb.benchmarks_line(sb["benchmarks"]))

@@ -55,10 +55,14 @@ ACTIVE_BOOKS = ("B", "C", "D")
 NO_STAMP = "(no regime stamp at entry)"
 NOT_STAMPED = "not stamped"
 ABSENT_AT_ENTRY = "(dial absent at entry)"
-# The two dials the order gate stamps at entry from B49 (20 Oct 2026), by the key
-# in gate_detail.regime. The volatile-day flag joins once a50-dealer-store is on
-# main.
-DIALS = (("vol", "vol_state"), ("gamma", "gamma_state"))
+FLAG_NOT_PRINTED = "(flag not printed at entry)"
+# What the order gate stamps at entry, by the key in gate_detail.regime: the two
+# dials from B49 (20 Oct 2026), and the volatile-day flag from chain-4, as the
+# day's live edition printed it.
+DIALS = (("vol", "vol_state"), ("gamma", "gamma_state"),
+         ("volatile_day", "volatile_day"))
+DIAL_NAMES = {"vol": "the volatility dial", "gamma": "the gamma dial",
+              "volatile_day": "the volatile-day flag"}
 NO_BOOK = "(no book recorded)"
 
 
@@ -145,7 +149,9 @@ def dial_stamp(decision: dict, key: str) -> str:
     reg = _gate_regime(decision)
     if reg is None or key not in reg:
         return NOT_STAMPED
-    return str(reg[key]) if reg[key] else ABSENT_AT_ENTRY
+    if not reg[key]:
+        return FLAG_NOT_PRINTED if key == "volatile_day" else ABSENT_AT_ENTRY
+    return str(reg[key])
 
 
 # ---------------------------------------------------------------------------
@@ -235,10 +241,10 @@ def expectancy_13w(as_of: Optional[str] = None, db_path: Optional[str] = None,
 
 
 def dial_line(e: dict, dial: str) -> str:
-    """The cut by one stamped dial, for the Monthly's register month."""
-    name = {"vol": "volatility", "gamma": "gamma"}[dial]
+    """The cut by one stamped dial (or the volatile-day flag), for the
+    Monthly's register month."""
     cells = e.get(f"by_{dial}") or {}
-    return (f"By the {name} dial at entry: "
+    return (f"By {DIAL_NAMES[dial]} at entry: "
             + ("; ".join(f"{k}: {cell_text(v, e['min_n'])}" for k, v in cells.items())
                or "none graded") + ".")
 

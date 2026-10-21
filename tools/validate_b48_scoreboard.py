@@ -29,6 +29,12 @@ and the store are seeded in a temporary database of the gate's own.
      None, with its reason), and its entry record keeps them; the score cuts by
      each stamped dial, and a decision entered before the stamp prints "not
      stamped". Read, never computed.
+  G  CHAIN-4: THE VOLATILE-DAY FLAG STAMPED AT ENTRY. Read from the day's live
+     edition as printed (the 09:50 open note's settled flag first, else the
+     07:00 anchor's archived flag), never computed and never from a dry run; an
+     edition archived after the entry is not read; absent, None with its reason.
+     The entry record keeps it, the score cuts by it, and the Monthly prints the
+     cut.
 
     python tools/validate_b48_scoreboard.py
 """
@@ -469,6 +475,117 @@ def group_f() -> None:
           "the Monthly's register month prints the cut by each stamped dial")
 
 
+def group_g() -> None:
+    from altdata import observations                            # noqa: PLC0415
+    from daily_cascade import volatile_day as vd                # noqa: PLC0415
+    from register import heat, scoreboard as sb                 # noqa: PLC0415
+    import decide                                               # noqa: PLC0415
+    head("G. CHAIN-4: THE VOLATILE-DAY FLAG, AS PRINTED, STAMPED AT ENTRY")
+    arch = TD / "archive"
+    (arch / "dryrun").mkdir(parents=True)
+    day = "2026-12-31"
+    anchor = vd.flag([{"arm": "gap", "wording": "the gap at the open is 1% or more",
+                       "holds": True, "reading": "+1.20% provisional", "as_of": "07:00",
+                       "provisional": True}], "2026-12-31T12:00:00+00:00")
+    side = vd.sidecar_json(anchor, "sent")
+    (arch / vd.ANCHOR_SIDECAR.format(day=day)).write_text(side, encoding="utf-8")
+    p = vd.printed(day, AS_OF, str(arch))
+    check(p["state"] == "raised" and p["source"] == "morning_anchor" and not p["settled"]
+          and p["held"] == ["gap"],
+          f"the anchor's archived flag is read as printed, unsettled ({p})")
+    settled = vd.settle_gap(anchor, 100.45, 100.0, "2026-12-31T14:50:00+00:00")
+    (arch / "dryrun" / vd.OPEN_NOTE_PAYLOAD.format(day=day)).write_text(
+        json.dumps({"volatile_day": settled}), encoding="utf-8")
+    p = vd.printed(day, AS_OF, str(arch))
+    check(p["source"] == "morning_anchor",
+          "an open note's dry run (under dryrun/) is never read")
+    (arch / vd.OPEN_NOTE_PAYLOAD.format(day=day)).write_text(
+        json.dumps({"volatile_day": settled}), encoding="utf-8")
+    p = vd.printed(day, AS_OF, str(arch))
+    check(p["state"] == "not raised" and p["source"] == "open_note" and p["settled"],
+          f"the open note's settled flag wins over the anchor's ({p})")
+    late = 2_000_000_000                                        # 2033: after AS_OF
+    os.utime(arch / vd.OPEN_NOTE_PAYLOAD.format(day=day), (late, late))
+    p = vd.printed(day, AS_OF, str(arch))
+    check(p["source"] == "morning_anchor" and p["state"] == "raised",
+          "an edition archived after the entry is not read; the earlier one is")
+    p = vd.printed("2026-12-30", AS_OF, str(arch))
+    check(p["state"] is None and "2026-12-30" in (p["reason"] or ""),
+          f"no edition for the day: None with its reason ({p['reason']})")
+    src = (REPO / "daily_cascade" / "volatile_day.py").read_text(encoding="utf-8")
+    seg = src[src.index("def printed("):src.index("def html(")]
+    check(all(x not in seg for x in ("from_store(", "_arm(", "flag(", "ObservationStore",
+                                     "settle_gap(")),
+          "printed() reads the archive only: it re-reads no arm and opens no store")
+    msrc = (REPO / "daily_cascade" / "morning_anchor.py").read_text(encoding="utf-8")
+    i, j = msrc.index("if args.dry_run:"), msrc.index("volatile_day.sidecar_json(")
+    check("else:" in msrc[i:j] and "ANCHOR_SIDECAR" in msrc[j:j + 300],
+          "the anchor archives its printed flag on the live path only")
+    db = TD / "vday.sqlite"
+    with observations.ObservationStore(str(db)) as st:
+        st.write("market_state", None, "2026-12-30", "2026-12-30T21:00:00+00:00",
+                 json.dumps({"session": "2026-12-30",
+                             "dials": {"macro": {"state": "expansion"},
+                                       "vol": {"state": "normal"},
+                                       "gamma": {"state": "negative"}}}), "regime")
+        rb = heat.regime_band(st, AS_OF, archive_dir=str(arch))
+        rb0 = heat.regime_band(st, AS_OF, archive_dir=str(TD / "no_archive"))
+    check(rb.get("volatile_day") == "raised" and rb.get("volatile_day_source") == "morning_anchor"
+          and rb.get("volatile_day_settled") is False and rb.get("regime") == "Expansion",
+          f"the order gate's regime read carries the flag as printed ({rb.get('volatile_day')})")
+    check(rb0.get("volatile_day") is None and bool(rb0.get("volatile_day_reason")),
+          "no edition: the stamp is None with its reason, never filled in")
+    gd = decide._gate_detail({"outcome": "approve", "reasons": [],
+                              "view_after": {"regime": rb}})
+    check(gd["regime"].get("volatile_day") == "raised"
+          and gd["regime"].get("volatile_day_source") == "morning_anchor"
+          and gd["regime"].get("vol_state") == "normal",
+          "the entry record (gate_detail) keeps the flag beside the dials")
+    from altdata import grader                                  # noqa: PLC0415
+    from register.store import Register                         # noqa: PLC0415
+    db3 = TD / "vday_cut.sqlite"
+    Register(str(db3)).close()
+    grader.GradeStore(str(db3)).conn.close()
+    conn = sqlite3.connect(str(db3))
+    raised = json.dumps({"outcome": "approve", "regime": {"regime": "Expansion",
+                                                          "volatile_day": "raised"}})
+    absent = json.dumps({"outcome": "approve", "regime": {"regime": "Expansion",
+                                                          "volatile_day": None}})
+    for i, g, r in (("V1", raised, 1.0), ("V2", raised, -0.5), ("V3", absent, 0.5),
+                    ("O1", _gd("Expansion"), 0.25)):
+        conn.execute("INSERT INTO decisions (id, created_at, decision_time, instrument,"
+                     " instrument_norm, direction, thesis, edge_type, horizon, invalidation,"
+                     " status, operator_action, book, gate_detail) VALUES"
+                     " (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (i, "2026-12-01T14:00:00+00:00", "2026-12-01T14:00:00+00:00", "SYNTH",
+                      "SYNTH", "long", "synthetic", "synthetic", "swing", "synthetic",
+                      "closed", "TAKE", "B", g))
+        conn.execute("INSERT INTO grades (decision_id, horizon, graded_at, horizon_date,"
+                     " operator_action, r_multiple_ruled, observations_json, price_source,"
+                     " method_version) VALUES (?,?,?,?,?,?,?,?,?)",
+                     (i, "swing", "2026-12-20T21:00:00+00:00", "2026-12-20", "TAKE", r,
+                      "[]", "synthetic", grader.METHOD_VERSION))
+    conn.commit()
+    conn.close()
+    e = sb.expectancy_13w(AS_OF, str(db3))
+    cut = e.get("by_volatile_day") or {}
+    check(set(cut) == {"raised", sb.FLAG_NOT_PRINTED, sb.NOT_STAMPED}
+          and cut["raised"]["n"] == 2,
+          f"the score cuts by the flag at entry; absent and earlier decisions named "
+          f"({sorted(cut)})")
+    ln = sb.dial_line(e, "volatile_day")
+    check(ln == "By the volatile-day flag at entry: (flag not printed at entry): accruing "
+                "(n=1); not stamped: accruing (n=1); raised: accruing (n=2).", ln)
+    check(sb.dial_line(e, "vol").startswith("By the volatility dial at entry: "),
+          "the dials' lines keep their wording")
+    pm = {"register_month": {"state": "ok", "graded_total": 4, "graded_this_month": 4,
+                             "cuts": {"overall": {}}, "scoreboard": {"expectancy": e}}}
+    from monthly_macro import stack as ms                       # noqa: PLC0415
+    reg = [x for x in ms.detail_tables(pm, set()) if x.get("id") == "register"][0]
+    check(any(x.startswith("By the volatile-day flag at entry: ") for x in reg["lines"]),
+          "the Monthly's register month prints the cut by the flag")
+
+
 def main() -> int:
     try:
         seed(DB)
@@ -478,6 +595,7 @@ def main() -> int:
         group_d()
         group_e()
         group_f()
+        group_g()
     finally:
         import shutil                                           # noqa: PLC0415
         shutil.rmtree(TD, ignore_errors=True)

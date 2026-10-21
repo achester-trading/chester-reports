@@ -375,6 +375,64 @@ def for_open_note(day: str, prior: str, at: str, open_price: Optional[float],
                       open_price, prior_close, at)
 
 
+# ---------------------------------------------------------------------------
+# As printed (chain-4, 20 Oct 2026): the flag the entry stamp reads
+# ---------------------------------------------------------------------------
+ANCHOR_SIDECAR = "morning_anchor_{day}_volatile_day.json"
+OPEN_NOTE_PAYLOAD = "open_note_{day}_payload.json"
+
+
+def sidecar_json(f: Optional[dict], delivery: Optional[str] = None) -> Optional[str]:
+    """The 07:00 anchor's flag exactly as it printed it, archived beside its HTML
+    (a live edition only), so the order gate can stamp it at entry."""
+    if not f:
+        return None
+    return json.dumps(dict(f, delivery=delivery), indent=1, default=str, sort_keys=True)
+
+
+def printed(day: str, at: Optional[str] = None,
+            archive_dir: Optional[str] = None) -> dict:
+    """The volatile-day flag for session `day` AS A LIVE EDITION PRINTED IT and
+    archived it by `at`: the 09:50 open note's settled flag first, else the
+    07:00 anchor's. Read from the archive, never computed here -- the arms are
+    not re-read and no store is opened. Dry runs archive under dryrun/ and are
+    never read. Absent: state None with its reason.
+
+    Returns {"state": "raised" | "not raised" | None, "settled", "held",
+    "source", "reason"}."""
+    import datetime as _dt                                      # noqa: PLC0415
+    from pathlib import Path                                    # noqa: PLC0415
+    from . import deliver                                       # noqa: PLC0415
+    root = Path(archive_dir or deliver.ARCHIVE_DIR)
+    cut = None
+    if at:
+        try:
+            cut = _dt.datetime.fromisoformat(str(at).replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            cut = None
+    late = []
+    for source, name in (("open_note", OPEN_NOTE_PAYLOAD), ("morning_anchor", ANCHOR_SIDECAR)):
+        p = root / name.format(day=day)
+        if not p.is_file():
+            continue
+        if cut is not None and p.stat().st_mtime > cut:
+            late.append(source)
+            continue
+        try:
+            doc = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        f = doc.get("volatile_day") if source == "open_note" else doc
+        if not isinstance(f, dict) or "raised" not in f:
+            continue
+        return {"state": "raised" if f["raised"] else "not raised",
+                "settled": source == "open_note",
+                "held": list(f.get("held") or []), "source": source, "reason": None}
+    return {"state": None, "settled": False, "held": [], "source": None,
+            "reason": (f"no live edition had printed the flag for {day} by entry"
+                       + (f" ({', '.join(late)} archived after it)" if late else ""))}
+
+
 def html(f: Optional[dict]) -> str:
     from html import escape                                     # noqa: PLC0415
     if not f or not f.get("lines"):

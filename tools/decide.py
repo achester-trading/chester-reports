@@ -354,13 +354,14 @@ def _gate_detail(g: dict) -> dict:
             # The regime stamp at entry: the Doctrine regime from the Macro
             # dial, and (B49, 20 Oct 2026) the Volatility and Gamma dials as the
             # newest stored object holds them -- read by heat.regime_band, never
-            # computed. The volatile-day flag joins once a50-dealer-store is on
-            # main.
+            # computed. The volatile-day flag joins on chain-4: as the day's live
+            # edition printed it (volatile_day.printed), never computed.
             "regime": {k: (v.get("regime") or {}).get(k) for k in
                        ("dial_state", "regime", "band", "cap_pct",
                         "mapping_version", "mapping_proposed",
                         "vol_state", "gamma_state", "gamma_provisional",
-                        "dials_session")},
+                        "dials_session", "volatile_day", "volatile_day_settled",
+                        "volatile_day_source", "volatile_day_reason")},
             "limits_version": v.get("limits_version"),
             "reference_version": v.get("reference_version")}
 

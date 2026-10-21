@@ -145,6 +145,14 @@ def main() -> int:
         out = delivery.deliver(subject, html, name,
                                text_fallback=render_mod.text_fallback(p, es_rd),
                                archive_dir=args.archive_dir)
+        # THE FLAG AS PRINTED (chain-4): the volatile-day flag this edition
+        # printed, archived beside it, which the order gate stamps at entry
+        # (volatile_day.printed). A live edition only; a dry run writes none.
+        from daily_cascade import volatile_day                  # noqa: PLC0415
+        side = volatile_day.sidecar_json(p.get("volatile_day"), out.get("delivery"))
+        if side:
+            delivery.archive(side, volatile_day.ANCHOR_SIDECAR.format(day=sess),
+                             args.archive_dir)
 
     # THE ES LEDGER (ST-R6.45e): the levels printed and the read's lean, logged
     # unscored; the 16:45 close scores them against this session's bars.
