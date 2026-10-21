@@ -237,7 +237,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and twenty-five code gates (one hundred and twenty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty-six code gates (one hundred and twenty-three Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -692,6 +692,28 @@ the seven, so each says so and none is invented. The pass rule is pre-registered
 says so at its head; `write_ledger` refuses a re-run that changes it. Each states its rights consequence
 and grants nothing; the package never opens the register. A ledger without its
 as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
+
+**Batch 14, Part A2: the AI capex chain and the loosening leg (items 63 and 66,
+ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
+- **Item 63.** `config/capex_chain.yaml` holds BNP Paribas's $100 of AI capex
+  (August 2026) as a standing, dated reference table with BNP's caveat, and each
+  bucket's keyless proxies with their reasons (SMH; NVDA, AVGO, MU, AMD; GRID with
+  XLU; ANET; VRT; PAVE; ASML for lithography; the single names are
+  `yfinance_source.CAPEX_CHAIN_SYMBOLS`, not earnings names).
+  `altdata/capex_chain.py` prints the table in the Monthly's slow layers (Factor I)
+  and the relative line in what's priced: each bucket against SPY over three
+  months, lead to lag, beside the hyperscalers' filed capex (EDGAR); guidance is
+  not tracked.
+- **Item 66.** `altdata/transmission.py`: the wealth-effect impulse (Z.1's household
+  equity share times SPX on the year; between releases the share is marked to SPX,
+  labelled, ICI's proxy being refused) and the net-transmission line, the
+  tightening legs (items 34, 36, 41) beside it, each scaled on its own and never
+  weighted or summed, in the Monthly's Plumbing & rates. Its ledger, ST-R6.66c, is
+  pre-registered (`docs/ledgers/wealth-effect-preregistration-2026-10.md`, held by
+  SHA-256); the laptop first edition FAILs (n 65).
+- JDI Research's own feed joins the voices scan (F4).
+
+`tools/validate_batch14_a2.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
