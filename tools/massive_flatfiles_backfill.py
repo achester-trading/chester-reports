@@ -27,6 +27,9 @@ S3 backend (configured from the environment, never in rclone.conf), keeps only t
   chain.iv30_atm           the 30-day ATM IV (SPY's method)
   chain.skew_25d_put       the front month's 25-delta put skew
   chain.rr_25d             the front month's 25-delta risk reversal
+  chain.options_volume     the day's total options volume, contracts (Batch 13 D5)
+  chain.call_volume        the day's call volume, contracts (Batch 13 D5)
+  chain.put_volume         the day's put volume, contracts (Batch 13 D5)
 under the source `chain_capture:flatfiles`, every IV figure "from last-trade
 closes, not mids" (the day bar's close is the solver's price; bid and ask are
 absent). availability_kind "reconstructed": a file is published at 11:00 ET the
@@ -122,7 +125,12 @@ def readings(rows: list[dict]) -> dict:
     from altdata import chain_metrics as cm                     # noqa: PLC0415
     pv = sum(r["volume"] for r in rows if r["right"] == "P")
     tv = sum(r["volume"] for r in rows)
-    out = {"chain.put_share_volume": 100.0 * pv / tv if tv else None}
+    out = {"chain.put_share_volume": 100.0 * pv / tv if tv else None,
+           # Batch 13 D5 (a54): the day's total, call and put volume, contracts,
+           # read apart from the captures (altdata/flatfile_history.py).
+           "chain.options_volume": tv if tv else None,
+           "chain.call_volume": (tv - pv) if tv else None,
+           "chain.put_volume": pv if tv else None}
     if rows and rows[0].get("spot"):
         try:
             iv = cm.atm_iv_30d(rows)
@@ -212,7 +220,10 @@ def main(argv=None) -> int:
     ap.add_argument("--db")
     a = ap.parse_args(argv)
     state = load_state()
-    todo = [d for d in sessions(dt.date.today()) if d not in state["done"]]
+    # Batch 13 D5 (a54): a session done before the volume rows existed is done
+    # again; the writes are idempotent, so only its volume rows are new.
+    todo = [d for d in sessions(dt.date.today())
+            if d not in state["done"] or not state["done"][d].get("volume")]
     if a.status:
         print(f"{len(state['done'])} sessions done, {len(todo)} to do; state {STATE}")
         return 0
@@ -230,7 +241,7 @@ def main(argv=None) -> int:
     with observations.open_writer("tools.massive_flatfiles_backfill", a.db) as st:
         for day in todo[:a.max_days]:
             if not exists(day, env):
-                state["done"][day] = {"rows": 0, "note": "no file"}
+                state["done"][day] = {"rows": 0, "note": "no file", "volume": True}
                 save_state(state)
                 print(f"{day}: no file")
                 continue
@@ -246,7 +257,7 @@ def main(argv=None) -> int:
             rows = store_rows(day, kept)
             if rows:
                 st.write_many(rows)
-            state["done"][day] = {"rows": len(rows)}
+            state["done"][day] = {"rows": len(rows), "volume": True}
             save_state(state)
             print(f"{day}: {len(rows)} rows")
     print(f"{len([d for d in todo[:a.max_days]])} sessions this run; "

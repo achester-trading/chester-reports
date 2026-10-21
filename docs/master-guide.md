@@ -497,12 +497,14 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `fed-cycles-ledger-2026-10-19.md` | NO GATE | n 21 | FED-CYCLES ledger -- the hiking-cycle table, computed by rule |
 | `gex-scale-flashalpha-2026-09-30.md` | diagnostic | n — | GEX / DEX scale against FlashAlpha — 30 Sep 2026 SPY (read-only diagnostic) |
 | `gex-scale-flashalpha-2026-10-09.md` | diagnostic | n — | GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic) |
+| `os-12c-ledger-2026-10-20.md` | INSUFFICIENT | n 0 | OS-12c ledger -- relative options volume against the next five sessions' movement (item 61) |
 | `os-6-ledger-2026-10-19.md` | FAIL | n 498 | OS-6 ledger -- the positioning components against SPX's forward path (item 53) |
 | `os-9-ledger-2026-10-19.md` | INSUFFICIENT | n 0 | OS-9 ledger -- the OI builds' chance in the money, against the outcome at expiry (item 58) |
 | `os-9-vendor-month-comparison-spec-2026-10.md` | diagnostic | n — | OS-9 against the vendor's large-activity table: the December comparison, pre-registered (item 58) |
 | `rates-driver-2026-09-30-r2-preregistration.md` | diagnostic | n — | Rates driver — pre-registration for rerun 2 (SR-6, SR-17) |
 | `rates-driver-2026-09-30-r2.md` | FAIL | n — | Rates driver — calibration ledger, rerun 2 (SR-6, SR-9, SR-17) |
 | `rates-driver-2026-09.md` | FAIL | n — | Rates driver — calibration ledger (SR-6, SR-9, SR-17) |
+| `relative-volume-preregistration-2026-10.md` | diagnostic | n — | The relative-volume ledger — pre-registration (OS-12c, Batch 13 item 61) |
 | `release-first-hour-preregistration-2026-10.md` | diagnostic | n — | The release-day first hour — pre-registration (SN-1, October 2026) |
 | `s-2-ledger-2026-10-19.md` | FAIL | n 22 | S-2 ledger -- spot bitcoin ETF flow extremes and BTC's forward return |
 | `s-3-ledger-2026-10-19.md` | FAIL | n 4 | S-3 ledger -- the crypto leverage extreme (funding z with open interest at a 90-day high) |

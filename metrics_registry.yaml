@@ -6607,6 +6607,32 @@ metrics:
     added_date: "2026-10-18"
     description: >-
       One name's session options volume, calls and puts, summed over the session's last captured chain (instrument = the symbol; the captured universe and SPY, QQQ, IWM). OS-10, the Weekly's most-active table: report-only (a44-opening-setup).
+  chain.call_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-20"
+    description: >-
+      One name's session call volume, contracts, from the Massive day aggregates (Batch 13 item 61, D5; tools/massive_flatfiles_backfill.py, source chain_capture:flatfiles), read apart from the captures under altdata/flatfile_history.py's relative tolerance. Report-only.
+  chain.put_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-20"
+    description: >-
+      One name's session put volume, contracts, from the Massive day aggregates (Batch 13 item 61, D5; tools/massive_flatfiles_backfill.py, source chain_capture:flatfiles), read apart from the captures under altdata/flatfile_history.py's relative tolerance. Report-only.
   chain.atm_iv_front:
     source: chain_capture
     mechanism_group: dealer_chain_derived
@@ -17778,6 +17804,8 @@ families:
   calc.attr_real_share_since_fomc: ratio
   calc.attr_curve_share_since_fomc: ratio
   chain.options_volume: quantity
+  chain.call_volume: quantity
+  chain.put_volume: quantity
   chain.atm_iv_front: conditions
   chain.skew_25d_put: conditions
   chain.iv30_atm: conditions
