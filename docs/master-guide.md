@@ -531,7 +531,9 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `st-r5.36b-ledger-2026-10-17.md` | NO GATE | n 0 | ST-R5.36b ledger -- months-of-supply crossings and the real house price 12 months on |
 | `st-r5.43b-ledger-2026-10-17.md` | NO GATE | n 492 | ST-R5.43b ledger -- the global policy-diffusion index's lead on the OECD CLI |
 | `st-r5.44b-ledger-2026-10-17.md` | INSUFFICIENT | n 0 | ST-R5.44b ledger -- how wide average-member vs index drawdown gaps resolved |
+| `st-r6.66c-ledger-2026-10-21.md` | FAIL | n 65 | ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth (Batch 14 item 66; report only) |
 | `vendor-divergence-notes.md` | diagnostic | n — | Vendor divergence notes -- FlashAlpha against the engine |
+| `wealth-effect-preregistration-2026-10.md` | diagnostic | n — | The wealth-effect impulse against real consumption -- pre-registration (ST-R6.66c, Batch 14 item 66) |
 <!-- /table -->
 
 ### Table 7b. Every flag, tell, setup, overlay, engine and composite
