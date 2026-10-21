@@ -1071,6 +1071,30 @@ else
     fi
 fi
 
+# ---- the venv against requirements.txt (a55, 20 Oct 2026) -----------------------
+#
+# A WARNING AND NEVER A VERDICT. `make deploy` does not pip install, so a package a
+# merge adds to requirements.txt (jsonschema, on chain-3's merge night) is absent
+# until it is installed by hand. altdata/requirements_check.py compares the venv
+# with requirements.txt through importlib.metadata -- no network, no install -- and
+# exits 1 with one line naming what is missing or out of range.
+REQS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_REQUIREMENTS_CHECK:-}" ]]; then
+    REQS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    REQS_STATE=no_python
+else
+    REQS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.requirements_check 2>/dev/null)"
+    case $? in
+        0) REQS_STATE=satisfied ;;
+        1) REQS_STATE=unmet ;;
+        *) REQS_STATE=error ;;
+    esac
+    if [[ "$REQS_STATE" != "satisfied" ]]; then
+        log "  WARNING ${REQS_LINE:-requirements: the check could not run} -- fix: .venv/bin/pip install -r requirements.txt. The verdict and exit code are untouched"
+    fi
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is

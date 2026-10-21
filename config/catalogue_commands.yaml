@@ -100,6 +100,9 @@ commands:
     domain: computed
     line: '6e macro completeness: Session 3a-3c calc series, the core CPI-PCE gap and the CPI lead composite (stated lags, unvalidated)'
     sources: [calc]
+  altdata.requirements_check:
+    domain: reference
+    line: 'does the venv satisfy requirements.txt? importlib.metadata only, no network, no install; the heartbeat warns, never fails (a55); fix: .venv/bin/pip install -r requirements.txt'
   altdata.listings:
     domain: reference
     line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
