@@ -28,6 +28,14 @@ REPO_URL = "https://github.com/achester-trading/chester-reports"
 # The hosts whose fair-access rule asks for a contact: sec.gov and its
 # subdomains (www., data., efts.).
 SEC_HOSTS = ("sec.gov",)
+# THE HOSTS THAT REFUSE AN UNIDENTIFIED BOT (a55, 20 Oct 2026). bls.gov answers
+# every request without a contact with "Access Denied ... bot activity that
+# doesn't conform to BLS usage policy is prohibited" -- robots.txt included -- and
+# answers 200 to the same request carrying a contact; its robots.txt allows /feed/.
+# Those hosts get the same contact form as the SEC, read from the environment at
+# run time (CHESTER_SEC_CONTACT, never written in the tree); without it the request
+# is not made.
+CONTACT_HOSTS = SEC_HOSTS + ("bls.gov",)
 
 
 def generic() -> str:
@@ -38,6 +46,18 @@ def generic() -> str:
 def browser_like() -> str:
     """The same identity in the compatible-browser shape some hosts require."""
     return f"Mozilla/5.0 (compatible; {PROJECT}/{VERSION}; +{REPO_URL})"
+
+
+def _host(url_or_host: str) -> str:
+    s = str(url_or_host or "")
+    host = urllib.parse.urlsplit(s).hostname if "//" in s else s.split(":")[0]
+    return (host or "").lower().rstrip(".")
+
+
+def is_contact_host(url_or_host: str) -> bool:
+    """True for a host that asks automated clients for a contact (CONTACT_HOSTS)."""
+    host = _host(url_or_host)
+    return any(host == h or host.endswith("." + h) for h in CONTACT_HOSTS)
 
 
 def is_sec_host(url_or_host: str) -> bool:
@@ -52,7 +72,7 @@ def for_url(url: str, *, browser: bool = False) -> Optional[str]:
     """The User-Agent for one request: the SEC's contact form for an SEC host
     (None when CHESTER_SEC_CONTACT is unset -- never a guess), else the generic
     project string."""
-    if is_sec_host(url):
+    if is_contact_host(url):
         from . import edgar  # noqa: PLC0415
         return edgar.user_agent()
     return browser_like() if browser else generic()
