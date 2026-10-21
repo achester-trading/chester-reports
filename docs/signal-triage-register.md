@@ -41,7 +41,7 @@
 | 5 | E | Consumer credit impulse (deGraaf/RenMac, 8 Sep) | Adopt bull side as trigger candidate, RS tell; bear side as tilt | Trigger candidate / modifier | ST-8; wired ST-11 | ADOPTED — gate pending |
 | 6 | R | Yield move attribution (Runkevicius, 15 Sep) | Adopt block as `rates.driver` evidence; reject single-model reading | Confidence modifier | ST-3 | DEFERRED — gate failed (rerun 2: 2 of 5 episodes under the pre-registered rule, agree 0/2, disagree 2/3; [ledger 2026-09-30 r2](ledgers/rates-driver-2026-09-30-r2.md); rerun 1: 0 of 5, [ledger 2026-09](ledgers/rates-driver-2026-09.md)) |
 | 7 | E | Hiking-cycle conditional table (Macrobond) | Adopt table by hand; reject unconditional average | None (base rate) | Tranche H | ADOPTED — base rate, by hand |
-| 8 | E/A | Bear-market rally structure (Lemand, 19 Sep) | Adopt audit + bottom gate + Doctrine rule candidate | Gate | ST-9; wired ST-11 | ADOPTED — audit pending |
+| 8 | E/A | Bear-market rally structure (Lemand, 19 Sep) | Adopt audit + bottom gate + Doctrine rule candidate | Gate | ST-9; wired ST-11 | ADOPTED — audit failed (ledger 2026-10-18) |
 | 9 | R/A | 5.25% and stock-bond correlation (Simon White, Sep) | Adopt as `rates.driver` correlation member and Book A rule A-1; reject level | Confidence modifier | ST-3 | ADOPTED — regression in backlog |
 | 10 | D | Digital Asset Mechanism Watch — Pearl (PRL) signposts S1–S8 and the emerging-mechanism scan (19 Sep order, integrated 26 Sep) | Adopt; watch-level rights only (MW-2) | Narrow flag (idle-GPU D6); discovery/attention otherwise | ST-13, ST-14, ST-15; Sunday block at ST-10 | ADOPTED — watch-level rights only (MW-2) |
 | 11 | — | *Reserved:* Consensus drift (19 Sep batch Part C) | Backlog | — | Appendix C | RESERVED — backlog (Appendix C) |
@@ -200,7 +200,9 @@
 
 ### SR-8 Bear-market rallies as structure (Lemand, Nasdaq 2000–02, 19 Sep 2026) — Threads E and A
 
-**Register status.** ADOPTED — audit pending · **Built in.** ST-9; wired ST-11
+**Register status.** ADOPTED — audit failed (1 element discriminates, breadth_rsp_spy, against the pre-registered rule of at least 2; n 16; [ledger 2026-10-18](ledgers/false-bottom-audit-2026.md)) · **Built in.** ST-9; wired ST-11
+
+*Factual correction, 20 Oct 2026 (chain-4):* this line read "audit pending" after the audit's first edition had recorded its FAIL. The ledger's verdict is the record. Book A rule A-2 changes nothing until the monthly decides (the ledger's rights consequence).
 
 **Ruling.** Adopt a T&B false-bottom audit, a bottom-side gate and a Doctrine rule candidate. The bottom side was calibrated on real bottoms; the false ones (five rallies of 12–45% inside a 78% decline, each a "bottom" in real time) are the untaken test. *[integ.]* The audit is offline (ST-9) and produces the gate spec; wiring waits for T&B full (ST-11). The gate is Book A rule A-2 (§2.4) and precedes SR-5's trigger in the bottom-side queue.
 
