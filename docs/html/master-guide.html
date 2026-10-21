@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="601a3735c40a1b04bbc9d8e19b006e4258942b290cf5b4a47d82b516b2f6927e">
+<meta name="source-sha256" content="e3919422580247573eef0586937a959e20e61a6a49ca3e8b935ffea24d2ab351">
 <title>The Master Guide</title>
 <style>
 :root {
@@ -131,7 +131,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   <div class="masthead">
 <h1>The Master Guide</h1>
 <h3>How the whole system fits together, what each part may do, and how to use it</h3>
-<p><strong>As of:</strong> 20 October 2026 · <strong>As built:</strong> chain-3 (the third chain, stitched 19–20 Oct 2026: chain-2 via library-draft-3, then a48-batch11 with a47-chain3, b45-chain3 with alpha-lab-4, library-st-l and a49-secondary-notes) · <strong>Refreshed:</strong> at every chain merge</p>
+<p><strong>As of:</strong> 20 October 2026 · <strong>As built:</strong> chain-4 (the fourth chain, stitched 20 Oct 2026 onto main after chain-3's merge: a50-dealer-store, b48-scoreboard and a52-doctrine-2-pack) · <strong>Refreshed:</strong> at every chain merge</p>
   </div>
 
   <div class="controls">
@@ -153,7 +153,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li><strong>The Operating Doctrine</strong> (<a href="whitepapers/operating-doctrine-whitepaper.md">operating-doctrine-whitepaper.md</a>) is the rulebook. This Guide quotes its rules and never restates them differently.</li>
 <li><strong>The library guide</strong> (<a href="white-paper-library-guide.md">white-paper-library-guide.md</a>) catalogues the 27 papers.</li>
 </ul>
-<p>Everything below is checked against the code and config on chain-3. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under <strong>Landing next</strong>, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.</p>
+<p>Everything below is checked against the code and config on chain-4. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under <strong>Landing next</strong>, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.</p>
 <p><strong>The one picture to keep in mind is a newsroom with a research lab and a trading desk.</strong> The feeds are the wires. The market-state object is the single editor's view of the market. The reports are the editions. The Alpha Lab is the research lab next door. You are the desk, with four books. The Doctrine's rules and switches are compliance. The register, the grader and the ledgers are the scorekeeper.</p>
 <hr />
       </div>
@@ -237,7 +237,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p><strong>In three lines.</strong> Feeds land in a store where every row carries the instant it became knowable. One market state is computed from it each evening, and every report reads that state rather than computing its own. The reports raise readings, flags and candidates; only your Decision Packet permits a trade, and every decision is graded so the rules can change at a sitting.</p>
 <h3>The loop, in words</h3>
 <ol>
-<li><strong>Inputs.</strong> About seventy writers (31 official, 37 external, the yfinance basket of 115 symbols, the option chains, the crypto layer, the scans) land in <strong>the point-in-time store</strong>. Every row carries <code>available_at</code>, the instant the system could have known it, so a replay of an old day sees only what existed then.</li>
+<li><strong>Inputs.</strong> About seventy writers (33 official, 37 external, the yfinance basket of 116 symbols, the option chains, the crypto layer, the scans) land in <strong>the point-in-time store</strong>. Every row carries <code>available_at</code>, the instant the system could have known it, so a replay of an old day sees only what existed then.</li>
 <li><strong>One market state.</strong> The 16:45 close computes the <strong>market-state object</strong>: three dials (Macro, Volatility, Gamma) and eight dimensions, from the declared rules in <code>config/market_state.yaml</code>. It is the only writer. Every other report reads it through <code>regime.latest()</code>; none recomputes it.</li>
 <li><strong>The reports</strong> read the store and the state. They raise outputs on <strong>the ladder</strong> (Part 3): readings and lenses, flags, tells and setups, candidates. None of them may place a trade or write a decision.</li>
 <li><strong>Your Decision Packet.</strong> You decide. A packet carries the edge, the counterparty, the instrument, the size by the Card's percentage, the exit written before entry and the regime stamp. "No Decision Packet, no trade" (Doctrine Rule 18). The register records it; the register's commands are yours alone.</li>
@@ -265,7 +265,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>about 10 minutes (no configured target)</td>
 <td>C (and B's brackets)</td>
 <td>Flag; setups proposed in the dealer block</td>
-<td>Read the dials, the volatile-day context, the gauge, the pre-market line and the signal lines. No Book C drafts exist yet.</td>
+<td>Read the dials, the volatile-day flag (all four arms, printed, never applied), the gauge, the pre-market line and the signal lines. No Book C drafts exist yet.</td>
 </tr>
 <tr>
 <td>The 12:30 alert</td>
@@ -388,9 +388,9 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tbody>
 </table>
 <h3>What is proven so far</h3>
-<p><strong>Very little, and the system says so.</strong> Twenty-one signals have a gate that has given a verdict.
+<p><strong>Very little, and the system says so.</strong> Twenty-two signals have a gate that has given a verdict.
 - <strong>One has passed:</strong> SR-1's style regime (value against growth after a growth extreme). Even that is display only until the Doctrine monthly of 7–8 November rules on its rights.
-- <strong>Twelve have failed:</strong> the rates driver, the yen unwind, the false-bottom gate, the valuation strip, the Fed–market divergence split, the auction-stress flag, net supply against the term premium, the two crypto flags (S-2's ETF flows and S-3's leverage), the opening setup's positioning composite (OS-6), and the two secondary-note studies (SN-1, the release-day first hour; SN-2, after-hours earnings).
+- <strong>Thirteen have failed:</strong> the rates driver, the yen unwind, the false-bottom gate, the valuation strip, the Fed–market divergence split, the auction-stress flag, net supply against the term premium, the two crypto flags (S-2's ETF flows and S-3's leverage), the opening setup's positioning composite (OS-6), the two secondary-note studies (SN-1, the release-day first hour; SN-2, after-hours earnings), and the bank-stress classifier's base rate (ST-R6.59c, the fourth chain).
 - <strong>Eight are insufficient:</strong> too few episodes to judge, OS-9's outcome ledger among them.</p>
 <p>Twelve more are <strong>accruing</strong> a sample: the dealer scorecard's seven tests (H6, the level clusters, pre-registered on the third chain), the three Book B pivot setups, the prediction-market archive and the crypto froth gauge. Everything else, about sixty flags, lenses, setups, engines and composites, is <strong>untested context</strong>. Nothing in the Alpha Lab's eleven engines has passed. The full table is Part 5.</p>
 <h3>The one rule that matters most</h3>
@@ -893,7 +893,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 - The 16:10 EOD pass and the 06:45 pass are the two main feed runs; the 16:45 close re-pulls the day's prices before it writes the market state.
 - The self-deploy copies unit files only. A changed unit that was running is named in the heartbeat as <code>restart pending</code>, and <strong>you</strong> run the restart: no session or timer ever does.
 - The Gateway's restart and watchdog wait behind one witnessed clean start; until then IB Gateway is not running on a timer.
-- The old monthly restore drill is retired (a47-chain3, ruling 6): its unit files are gone, and the weekly restore test is the one restore check.</p>
+- The old monthly restore drill is retired (a47-chain3, ruling 6): its unit files are gone, and the weekly restore test is the one restore check.
+- The fourth chain adds no timer and changes none: the open and evening notes' services gain one comment each (their limits kept as starting values), and the dealer store and Batch 12's two writers ride units that already run.</p>
 <h3>Table 2. The chat-side tasks, and your own automation</h3>
 <p>The repo's record of these is <code>docs/master-guide/chat-tasks.yaml</code> (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and <strong>planned</strong> (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. <strong>A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November</strong>: 12:00 UTC is 08:00 ET until then and 07:00 ET after.</p>
 <!-- table:chat-tasks -->
@@ -1084,7 +1085,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <thead>
 <tr>
 <th>Then (the original five)</th>
-<th>Now, as built on chain-3</th>
+<th>Now, as built on chain-4</th>
 </tr>
 </thead>
 <tbody>
@@ -1125,12 +1126,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>What changed</strong>, with every magnitude stamped with its percentile;</li>
 <li><strong>Market state</strong> and <strong>Contradictions</strong>: the three dials as the close left them;</li>
 <li><strong>Signal lines</strong> (auction, FOMC-week gap, yen flag, "rally inside a bear");</li>
+<li>the <strong>volatile-day flag</strong> with all four of the Doctrine 5.5's arms (the VIX; the ES overnight range against 1.5 times its 20-day ATR; the gap, provisional at 07:00 from the pre-market price; the Gamma dial; a tier-1 event), each with its reading and as-of, "printed, not applied"; a live edition archives the flag as printed, which the order gate stamps at entry;</li>
 <li><strong>Prior close — dealer surface</strong>, then the <strong>opening setup</strong>: the gauge (OS-2) with the <strong>pre-market line</strong> under it (ES's newest overnight bar in SPY's terms), the vol lines (OS-3), the largest OI builds (OS-9, side unknown; SPX and SPCX included, their chance cells "awaiting the solver gate"), the index puts (OS-4), and the level clusters (H6, pre-registered);</li>
 <li>the <strong>crypto paragraph</strong> (six computed lines), built behind a switch that ships <strong>off</strong> (<code>config/crypto_sources.yaml</code> <code>blocks.daily.enabled</code>): your yes turns it on;</li>
 <li>the <strong>meme drafts line</strong> in the header ("meme drafts awaiting review: n (refused: m)").</li>
 <li><strong>Highest rung:</strong> flags and readings, and two audited model calls (the narrative scan and the ES read). It may write a story <strong>proposal</strong> to the narrative register, which waits for your confirm. "No figure here is a recommendation and nothing in this edition enters the decision register."</li>
 <li><strong>Not allowed:</strong> to recompute the market state, to draft a Book C packet or to write the register. <strong>Book C drafts are not built</strong>: there is no 0700 setup list in code.</li>
-<li><strong>What you do with it:</strong> read the dials and the volatile-day context; note the gauge and the OI builds; confirm that open Book B brackets still make sense; if a story proposal appears, confirm or reject it later (your command). Then nothing until the close.</li>
+<li><strong>What you do with it:</strong> read the dials and the volatile-day flag; note the gauge and the OI builds; confirm that open Book B brackets still make sense; if a story proposal appears, confirm or reject it later (your command). Then nothing until the close.</li>
 <li><strong>What it reads:</strong> the store as of the cutoff, which the 06:45 pass has just refreshed (Part 4: official data, prices, chains, voices, crypto).</li>
 <li><strong>Deeper:</strong> the Reader's Guide 4.7; the Doctrine 4.3 (Book C) and 5.5 (the volatile-day protocol); the Daily Cascade paper.</li>
 </ul>
@@ -1152,7 +1154,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Purpose:</strong> the day's record. It is the <strong>only writer of the market-state object</strong>, and it writes each outlook to the ledger before it prints it.</li>
 <li><strong>Horizon and books:</strong> every book, as record (fills, carry, switches).</li>
 <li><strong>When and how long:</strong> weekdays 16:45, email plus PDF. Target <strong>five minutes</strong>, 1,000 words and three charts (<code>config/reporting_stack.yaml</code>).</li>
-<li><strong>The sections that matter most:</strong> the ten-section stack at daily depth: the read, the tape, <strong>mechanics</strong> (the dealer block), what doesn't fit, plumbing and rates, positioning, what's priced, narratives, <strong>ahead</strong>, <strong>the book</strong>. Then the detail tables (the state, the contradictions, moves past 2.5σ) and the glossary. The Alpha Lab line and the meme drafts line print near the book.</li>
+<li><strong>The sections that matter most:</strong> the ten-section stack at daily depth: the read (with the bank-stress classifier's line, only when it prints), the tape, <strong>mechanics</strong> (the dealer block), what doesn't fit, plumbing and rates (with the bank-stress item beside item 34's cluster, priority 1 when a flag is on), positioning, what's priced, narratives, <strong>ahead</strong>, <strong>the book</strong>. Then the detail tables (the state, the contradictions, moves past 2.5σ) and the glossary. The Alpha Lab line and the meme drafts line print near the book.</li>
 <li><strong>Highest rung:</strong> a <strong>setup proposed</strong> by the dealer block (pin fade, negative-gamma continuation, forced flow), which ends "The block proposes; the books decide; nothing here writes the register."</li>
 <li><strong>Not allowed:</strong> to write the register or to size anything.</li>
 <li><strong>What you do with it:</strong> check what held and what broke against the morning's gauge; read the dealer block; note the meme line; check the book's state and whether any switch has tripped.</li>
@@ -1167,7 +1169,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>When and how long:</strong> Sunday 05:00, email plus PDF. Target <strong>twenty minutes</strong>, 3,500 words, ten charts. The addendum: five minutes, 1,100 words, two charts, its own PDF on the same email.</li>
 <li><strong>The sections that matter most:</strong></li>
 <li>the <strong>précis</strong> (its stance is written to the ledger) and "Changed since last Weekly";</li>
-<li><strong>positioning</strong> and <strong>mechanics</strong> (the dealer week, the scorecard rates, OS-8 and OS-10, the vendor line);</li>
+<li><strong>positioning</strong> and <strong>mechanics</strong> (the dealer week, the scorecard rates, OS-8 and OS-10, the vendor line); <strong>plumbing and rates</strong> carries the bank-stress line (Batch 12);</li>
 <li><strong>ahead</strong> (earnings with OS-11);</li>
 <li><strong>the book</strong>: open decisions and drafts, rule breaks, Book Z (cash, SPY, 60/40), the attention line's three counts, and <strong>"Candidates for the sitting (paper)"</strong>: the Book B scanner's top ten, with the rest below.</li>
 <li><strong>The addendum</strong> (nine sections: the read, tape, flows, mechanics, on-chain, narratives and attention, incidents and regulation, ahead, the book) is report-only. Its mNAV line carries item 49's one flag at 1.0. Before 1 November it builds as a dry run only.</li>
@@ -1183,7 +1185,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Purpose:</strong> the regime and the allocation: Book A's stance for the month.</li>
 <li><strong>Horizon and books:</strong> <strong>Book A</strong> owns it; context for the rest.</li>
 <li><strong>When and how long:</strong> the 1st, 07:30. Email with the HTML and Markdown attached, and the Lab report. <strong>No PDF.</strong> Target <strong>55 minutes</strong>, 10,000 words, twelve charts.</li>
-<li><strong>The sections that matter most:</strong> the executive summary, written last; the ten sections at Monthly depth, with two of its own (<strong>Labour</strong>, tables only, after plumbing; <strong>Reading</strong>, the stored summaries); then the <strong>slow layers</strong> (the GDP and PPI lenses, the digital-assets material and the Mechanism Watch part, Top &amp; Bottom's not-built line, Disruptive Themes' line) and the detail tables: the regime, the scenario record, <strong>the register's month</strong> (graded to date, expectancy with its interval first, Book Z), the appendix.</li>
+<li><strong>The sections that matter most:</strong> the executive summary, written last; the ten sections at Monthly depth, with two of its own (<strong>Labour</strong>, tables only, after plumbing; <strong>Reading</strong>, the stored summaries); in plumbing and rates, the <strong>bank-stress panel</strong> (Batch 12: the funding and deposit-flight flags and the classifier, the unrealised losses beside the 10-year, the listed gaps); in "What's carrying the index", the hyperscalers' P/E dispersion lines; then the <strong>slow layers</strong> (the GDP and PPI lenses, the digital-assets material and the Mechanism Watch part, Top &amp; Bottom's not-built line, Disruptive Themes' line) and the detail tables: the regime, the scenario record, <strong>the register's month</strong> (graded to date, expectancy with its interval first, cut by regime and by each dial and the volatile-day flag as stamped at entry, Book Z), the appendix.</li>
 <li><strong>Highest rung:</strong> readings and flags. <strong>No packet is generated from the Monthly alone</strong> (Doctrine 6.2). It may not write scenario weights.</li>
 <li><strong>What you do with it:</strong> at the monthly sitting, read the Macro dial and set Book A's stance within its band; approve the rebalance packet; review the ledger by book and regime.</li>
 <li><strong>What it reads:</strong> the whole store, the market state's month, the register read-only, the lab's report.</li>
@@ -1205,7 +1207,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Purpose:</strong> what changed between the 07:00 anchor and the first fifteen minutes of the cash session. <strong>It takes the Doctrine's 1000-report role:</strong> it may confirm or cancel Book C's 07:00 drafts, and never add to them.</li>
 <li><strong>When and how long:</strong> every trading day, after the 09:45 capture, landing by 09:55, before the Doctrine's 10:30 cutoff. Two minutes.</li>
 <li><strong>The blocks, each with its as-of time:</strong> the 08:30 releases (the first print, the surprise against the naive expectation, "no consensus" with the gap named); the reaction from 08:30 to 09:45 (ES, the 10-year, the 2-year where served, the dollar, VIX); the open (SPY's gap and first fifteen minutes against the gauge, and against our own engine's flip and walls); news since 07:00 (at most five items, each with its outlet and time); <strong>Book C</strong> (each 07:00 draft confirmed or cancelled; until drafts exist, "No Book C drafts: the 07:00 setup list is not built"); one line on what the close will check. There is no macro consensus, so a release prints "no consensus" with the naive surprise beside it, labelled.</li>
-<li><strong>Prose:</strong> at most 250 words, only when its gate opens (a tier-1 release, a gap or range beyond the gauge's implied move, or a volatile-day trigger). One chart at most.</li>
+<li><strong>The volatile-day flag:</strong> its last block, the 07:00 flag with the gap settled from SPY's 09:30 open ("now raised", "still raised", "no longer raised"). Printed, never applied; a live edition's settled flag is the one the order gate stamps at entry.</li>
+<li><strong>Prose:</strong> at most 250 words, only when its gate opens (a tier-1 release, a gap or range beyond the gauge's implied move, a volatile-day trigger, or the completed volatile-day flag). One chart at most.</li>
 <li><strong>Highest rung:</strong> confirm or cancel (rung 7's veto side) for Book C's drafts only. <strong>Not allowed:</strong> to create a packet, candidate, flag or tell; to write the register; to enter or compute the market state.</li>
 <li><strong>What you do with it:</strong> on a normal day, read it or skip it. Once Book C is active, the Doctrine makes this touch <strong>mandatory on volatile-protocol days</strong>; Doctrine #2 decides whether that stands.</li>
 <li><strong>Its study:</strong> SN-1, the release-day first hour (pre-registered; first edition FAIL, report-only).</li>
@@ -1665,15 +1668,15 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p>Each section says what the family is, how often it arrives, the most it may do, what it never does, and who owns it. "Code" means a writer runs on a timer; "you" means a ruling or a command is yours.</p>
 <h3>1. Official and macro data</h3>
 <ul>
-<li><strong>What:</strong> FRED (the live pull, and ALFRED's first prints for history, <code>altdata/fred_history.py</code>), the Fed's H.4.1 (the FIMA repo line; the balance-sheet legs come through FRED), TreasuryDirect auctions and buybacks, CFTC positioning, TIC holdings and flows, the ECB's yields, Japan's MoF (there is <strong>no BoJ writer</strong>), the IMF and BIS tables, and the rest of the <strong>31 official writers</strong> and <strong>37 external writers</strong> (<code>altdata/feeds.py</code>).</li>
+<li><strong>What:</strong> FRED (the live pull, and ALFRED's first prints for history, <code>altdata/fred_history.py</code>), the Fed's H.4.1 (the FIMA repo line; the balance-sheet legs come through FRED), TreasuryDirect auctions and buybacks, CFTC positioning, TIC holdings and flows, the ECB's yields, Japan's MoF (there is <strong>no BoJ writer</strong>), the IMF and BIS tables, Batch 12's <strong>OFR Financial Stress Index</strong> and the <strong>FDIC's unrealised securities losses</strong> (two new writers; ICI's money-fund file refuses the client, so FRED's retail series stands in, labelled), and the rest of the <strong>33 official writers</strong> and <strong>37 external writers</strong> (<code>altdata/feeds.py</code>). FRED's pull walks 277 series: Batch 12's ten bank-stress legs and the open note's retail sales (RSAFS) join on the fourth chain.</li>
 <li><strong>When:</strong> the 16:10 EOD pass; the 06:45 pass for the early writers and the loggers.</li>
-<li><strong>The most it may do:</strong> readings and lenses; flags that are display only (the yen unwind, the devaluation tell's two legs, ABS_STRESS, OAT–Bund's tiers).</li>
+<li><strong>The most it may do:</strong> readings and lenses; flags that are display only (the yen unwind, the devaluation tell's two legs, ABS_STRESS, OAT–Bund's tiers, Batch 12's funding-stress and deposit-flight flags and the correction-vs-crisis classifier, which prints only when KRE is down more than 10% over 20 sessions; its CDS/AT1 arm is "not tracked"). The bank-stress flags open the 12:30 slot only on the session one turns on.</li>
 <li><strong>Never:</strong> writes a regime of its own, opens a packet or blocks a decision.</li>
 <li><strong>Owner:</strong> code writes; thresholds and rulings are yours.</li>
 </ul>
 <h3>2. Market prices</h3>
 <ul>
-<li><strong>What:</strong> the yfinance basket (<strong>115 symbols</strong>, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
+<li><strong>What:</strong> the yfinance basket (<strong>116 symbols</strong>; KRE joins for Batch 12's bank-equity leg, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
 <li><strong>When:</strong> 16:10 and 06:45; the close's re-pull; Saturday 06:00; IBKR every 30 minutes in the session; Massive at 16:31 and in the intraday captures; the secondary notes' own 5-minute bars at 09:50 and 21:30.</li>
 <li><strong>History from Massive's flat files</strong> (D4, <code>tools/massive_flatfiles_backfill.py</code>): the chains' history reconstructed from last-trade closes, stored labelled <code>reconstructed</code>, and read by the ranks only within the pre-registered agreement tolerances (accepted 19 October, R6). It runs by hand on the box once its two credentials are in <code>.env</code>.</li>
 <li><strong>The most it may do:</strong> readings and lenses; the volatility-event flag (no modifier right before 30 events).</li>
@@ -1688,6 +1691,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li>the engine's <strong>GEX, DEX, VEX and CHEX</strong> by horizon, the walls, the flip, peak gamma and max pain (<code>tools/exposure_compute.py</code>);</li>
 <li>the <strong>opening-setup block</strong> (<code>config/opening_setup.yaml</code>: OS-2 gauge, OS-3 vol lines, OS-4 index puts, OS-5 single-name puts, OS-8 profiles, OS-9 OI builds, OS-10 most active, OS-11 earnings pricing); report-only, no score, no weights;</li>
 <li>the <strong>dealer scorecard</strong> (H1 to H5, pre-registered 17 October; H6, the level clusters, pre-registered on the third chain, its prior-session family read with the overnight that led into it, accepted 19 October, R3), with its history rebuilt from the settled captures by <code>daily_cascade.scorecard_backfill</code> (rows labelled backfilled);</li>
+<li><strong>the dealer captures stored</strong> (a50-dealer-store, decision 9): each computed profile written to the store (<code>altdata/dealer_store.py</code>) by the capture and the EOD pass, never fatal, a vendor-supplied profile refused; the history from the profiles on disk is your box command;</li>
+<li><strong>the 09:45 bars</strong> (decision 10): SPY's, QQQ's and IWM's 5-minute bars stored at about 09:47 by the open note's fetch, which engine 7 reads going forward;</li>
 <li>Batch 11's additions: the like-for-like gauge, the per-name volatility table, the earnings event-only implied move, the OI-build floor (SPX in the index floor, R4) and the share-of-volume column.</li>
 <li><strong>The sign convention, stated once:</strong> "dealers are assumed long calls and short puts, so call gamma counts positive and put gamma negative. An assumption about who holds the options, not an observation; under the opposite reading every net sign inverts." Every dealer table is stamped "inferred, not observed", and the regime word prints only where net-to-gross is at least 0.10.</li>
 <li><strong>The most it may do:</strong> setup proposals in the close's dealer block (rung 5, proposed); flag words (pinned, held, amplified, dampened).</li>
@@ -1801,7 +1806,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>What prints:</strong> the Weekly's lab line ("Alpha Lab: not yet live" today), the close's line, the Monthly's Lab report, the Quarterly's page.</li>
 <li><strong>It never trades your books.</strong> Its value is evidence. A lab verdict can reach a book only one way: as evidence you table at a sitting, through the gate ladder and the change ladder.</li>
 <li><strong>The grammar search and grammar v2:</strong> a rule-level state condition (grammar v2), and the grammar search under the coverage rule (five years of point-in-time history before the holdout), run as the nightly loop's last step from a month's first week. The dials' history is not rethought before November: the box's coverage decides (R12).</li>
-<li><strong>Engines 6 and 7 register by your box command</strong> (their manifests); engine 7's seven session-set choices are accepted as its spec freezes them (R8).</li>
+<li><strong>Engines 6 and 7 register by your box command</strong> (their manifests); engine 7's seven session-set choices are accepted as its spec freezes them (R8). From the fourth chain the 09:45 bars are stored, so engine 7's "bars only after the close" limit applies to its backtest only; its frozen spec is unchanged.</li>
+<li><strong>The superseding batch</strong> (B49): the 14 October pre-registration's five hypotheses re-registered with the vendor figures in words, each naming what it supersedes; the original file stands unedited. Registering it is your box command.</li>
 </ul>
 <h3>11. The by-hand inputs that remain</h3>
 <p>Rule 30 (16 October) ends new by-hand data lines; only those ruled remain.
@@ -1821,7 +1827,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><strong>In three lines.</strong> Of twenty-one gated signals with a verdict, one passed, twelve failed and eight are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.</p>
+<p><strong>In three lines.</strong> Of twenty-two gated signals with a verdict, one passed, thirteen failed and eight are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.</p>
 <h3>The headline counts</h3>
 <table>
 <thead>
@@ -1839,8 +1845,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td><strong>Failed</strong></td>
-<td>12</td>
-<td>The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger; the register's status line still reads "audit pending"), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings). Each prints display only, or not at all.</td>
+<td>13</td>
+<td>The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings); and from the fourth chain, ST-R6.59c, the bank-stress classifier's base rate (n 18: both crises caught, but 6 of 16 corrections stayed correction against a two-thirds rule). Each prints display only, or not at all.</td>
 </tr>
 <tr>
 <td><strong>Insufficient</strong></td>
@@ -2218,6 +2224,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Report-only; the notes print their readings and claim nothing from them</td>
 </tr>
 <tr>
+<td>ST-R6.59b bank-stress flags (funding stress, deposit flight) and the correction-vs-crisis classifier (Batch 12 item 59)</td>
+<td>flags and classifier</td>
+<td><strong>Failed</strong> (ST-R6.59c)</td>
+<td>Display only: the panel, the flags and the classifier print; nothing is granted; the T&amp;B intake waits for a passing ledger and T&amp;B full</td>
+</tr>
+<tr>
 <td>SR-4 devaluation tell</td>
 <td>flag</td>
 <td><strong>Insufficient</strong></td>
@@ -2368,13 +2380,25 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Built behind a switch that ships off</td>
 </tr>
 <tr>
+<td>The volatile-day flag, all four of the Doctrine 5.5's arms (A51)</td>
+<td>flag</td>
+<td>Untested</td>
+<td>Printed at 07:00 and settled at 09:50; never applied (no size halved, no packet refused) until Doctrine #2 and Book C's activation; stamped at entry as printed</td>
+</tr>
+<tr>
+<td>Batch 12 item 60: implied forward growth, the realised forecast error, the overshoot flag</td>
+<td>flag</td>
+<td>Not built (listed gap, F3)</td>
+<td>No keyless source with vintages passes the source rule; the P/E dispersion lines print in its place; the narrative pair enters as PROPOSED</td>
+</tr>
+<tr>
 <td>The mechanism watch's posted stories</td>
 <td>narrative proposals</td>
 <td>Untested</td>
 <td>Each posted as PROPOSED, its base rate beside its grade; confirm or reject is yours</td>
 </tr>
 <tr>
-<td>The Card's scoreboard: heat, net exposure, the 13-week expectancy by book and regime, the rule-break count, the four-quarter benchmarks (b48-scoreboard)</td>
+<td>The Card's scoreboard: heat, net exposure, the 13-week expectancy by book and regime (and by each dial and the volatile-day flag as stamped at entry), the rule-break count, the four-quarter benchmarks (b48-scoreboard)</td>
 <td>measurement</td>
 <td>Not a signal</td>
 <td>Prints at the Weekly's top and in the Monthly's register month; grants nothing; accruing below ten graded decisions a cell; Doctrine #2 may amend how it is used</td>
@@ -2418,7 +2442,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
    - the <strong>instrument</strong>: the ETF itself (the thesis and the instrument are two decisions, Doctrine Rule 11; Options as Expression is where an option would be weighed);
    - the <strong>size</strong>: 0.75% of the account at risk (the Card's standard for Book B), because the setup is untested;
    - the <strong>exit, written first</strong>: the invalidation at the reclaimed level less one ATR, a 15-session time stop, and a profit plan at 2R;
-   - the <strong>regime stamp</strong>: the three dials and the volatile-day flag off. As built, the order gate stamps the Doctrine regime from the Macro dial and, from B49 (20 Oct 2026), the Volatility and Gamma dials as the newest stored object holds them, into the decision's record at entry; the volatile-day flag joins once a50-dealer-store is on main.</li>
+   - the <strong>regime stamp</strong>: the three dials and the volatile-day flag off. As built, the order gate stamps the Doctrine regime from the Macro dial and, from B49 (20 Oct 2026), the Volatility and Gamma dials as the newest stored object holds them, into the decision's record at entry, and from the fourth chain the volatile-day flag as the day's live edition printed it (the open note's settled flag, else the anchor's), never computed.</li>
 <li><strong>Your approval and the register write.</strong> You approve it (one of seven approvals this week) and record it with the register's command, which is yours alone. The register checks it at entry: every required field present, the instrument not restricted.</li>
 <li><strong>The paper book.</strong> It is paper today; live trading waits for the IBKR gates.</li>
 <li><strong>The 07:00 anchor</strong> on Monday confirms the bracket still stands against the overnight move; <strong>the close</strong> records the day.</li>
@@ -2473,7 +2497,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <h3>Every trading day</h3>
 <ul>
 <li>[ ] <strong>06:50, optional, one minute:</strong> the X triage push. Attention only; never act on it.</li>
-<li>[ ] <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day context; the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list. <em>Off until your yes:</em> the crypto paragraph (built behind a switch that ships off).</li>
+<li>[ ] <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day flag (four arms, the gap provisional); the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list. <em>Off until your yes:</em> the crypto paragraph (built behind a switch that ships off).</li>
 <li>[ ] <strong>09:50, optional, two minutes:</strong> the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.</li>
 <li>[ ] <strong>12:30, only if it arrives, two minutes:</strong> read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.</li>
 <li>[ ] <strong>16:45, five minutes:</strong> the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.</li>
@@ -3228,39 +3252,49 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><strong>In three lines.</strong> Everything the third chain carries is now described above as built. What is still on its own branch is session A's, and it merges on its own after chain-3. The calendar after it runs to January.</p>
+<p><strong>In three lines.</strong> Everything the fourth chain carries is now described above as built: the dealer store and the 09:45 bars, the volatile-day flag's four arms, the scoreboard with the stamped dials and flag, Batch 12 and the Doctrine #2 pack. No branch is waiting to land. The calendar after it runs to January.</p>
 <table>
 <thead>
 <tr>
 <th>Item</th>
-<th>Branch</th>
-<th>What it brings</th>
+<th>As built on chain-4</th>
+<th>Where above</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>The dealer captures stored (decision 9 of 19 Oct, R9)</td>
-<td>a50-dealer-store (session A)</td>
-<td>The dealer captures written to the store</td>
+<td>The dealer captures stored; the 09:45 bars (a50-dealer-store, decisions 9 and 10)</td>
+<td>Built; the backfill from the profiles on disk is your box command</td>
+<td>Part 4.3; Part 4.10</td>
 </tr>
 <tr>
-<td>The 09:45 bars for engine 7 (decision 10, R10)</td>
-<td>a50-dealer-store (session A)</td>
-<td>The bars engine 7 reads; on chain-3 its legs are not tracked</td>
+<td>The volatile-day flag, all four of the Doctrine 5.5's arms (A51)</td>
+<td>Built: printed at 07:00, settled at 09:50, never applied</td>
+<td>The anchor's and the open note's cards; Table 7b</td>
 </tr>
 <tr>
-<td>The Ahead matrix's store path</td>
-<td>a50-dealer-store (session A)</td>
-<td>The store path for the Ahead matrix (A48's note)</td>
+<td>The scoreboard; the Volatility and Gamma dials and the volatile-day flag stamped at entry (b48-scoreboard, B49)</td>
+<td>Built, measurement only; the stamp is the order gate's existing write, no schema change</td>
+<td>Part 5; Part 6; Table 8 rows 5, 12, 13</td>
 </tr>
 <tr>
-<td>A49's three answers and the volatile-day flag with all four of the Doctrine 5.5's arms</td>
-<td>a50-dealer-store (session A; ruled 19 Oct, late evening)</td>
-<td>On chain-3 the open note's volatile-day trigger reads the VIX arms only</td>
+<td>Batch 12, item 59: the bank-stress panel, its flags and the classifier</td>
+<td>Built; its base-rate ledger FAILs (n 18), display only</td>
+<td>The close's, the Weekly's and the Monthly's cards; Part 4.1; Tables 7a and 7b</td>
+</tr>
+<tr>
+<td>Batch 12, item 60</td>
+<td>The P/E dispersion lines and the narrative pair built; implied forward growth, the forecast error, the flag and its ledger listed gaps (F3); SR-16's neocloud line "not tracked"</td>
+<td>The Monthly's card; Table 7b</td>
+</tr>
+<tr>
+<td>The Doctrine #2 preparation pack (a52-doctrine-2-pack)</td>
+<td>Written: every open item with a rule-31 draft</td>
+<td>Part 8</td>
 </tr>
 </tbody>
 </table>
-<p>Read from: the branch's own commits; its notes are its own. None of it is built on chain-3.</p>
+<p>Read from: the branches' own notes (<code>docs/briefs/a50-dealer-store-notes.md</code>, <code>b48-scoreboard-notes.md</code>, <code>a52-doctrine-2-pack-notes.md</code>, <code>a53-batch12-notes.md</code>) and the code on chain-4.</p>
 <h3>The calendar ahead</h3>
 <table>
 <thead>
@@ -3277,6 +3311,10 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>Monday 26 October</td>
 <td>The secondary notes' <code>live_from</code> (moved later if chain-3 merges after Thursday 22 October)</td>
+</tr>
+<tr>
+<td>Wednesday 28 October</td>
+<td>The 1 November Monthly's last dry run: chain-4, with Batch 12's panel, on main before it</td>
 </tr>
 <tr>
 <td>Sunday 25 October</td>
@@ -3304,7 +3342,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td>Saturday 7 – Sunday 8 November</td>
-<td>Doctrine #2: SR-1's rights; this Guide's Part 8; the Tranche H proposals</td>
+<td>Doctrine #2, from <a href="briefs/doctrine-2-pack-2026-11.md">the preparation pack</a>: SR-1's rights; this Guide's Part 8; the Tranche H proposals; the volatile-day flag's actions; the scoreboard's items</td>
 </tr>
 <tr>
 <td>December</td>
@@ -3328,7 +3366,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       <div class="section-body">
 <ul>
 <li><strong>Anchor:</strong> the 07:00 morning report; it reads the close's market state and says what changed.</li>
-<li><strong>As-built:</strong> what the code and config on the chain this Guide is as built on (chain-3) do, as opposed to what a plan or the Doctrine specifies.</li>
+<li><strong>As-built:</strong> what the code and config on the chain this Guide is as built on (chain-4) do, as opposed to what a plan or the Doctrine specifies.</li>
 <li><strong>available_at:</strong> the instant a row could have been known; every as-of read filters on it.</li>
 <li><strong>Attention budget:</strong> seven packet approvals a week and one sitting of at most two hours (Doctrine 10.2); a deferred packet is graded as an abstention.</li>
 <li><strong>Base rate:</strong> how often an outcome happens unconditionally, the yardstick a conditional signal must beat.</li>
@@ -3349,12 +3387,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Packet (Decision Packet):</strong> the immutable record of your decision; the only thing that permits a trade.</li>
 <li><strong>Point in time:</strong> reading only what was knowable then, by <code>available_at</code>.</li>
 <li><strong>Register:</strong> the decision register, the record you are graded against; its writes are yours alone.</li>
-<li><strong>Regime stamp:</strong> the three dials and the volatile-day flag, recorded on every packet. As built: the Macro dial's Doctrine regime and (B49) the Volatility and Gamma dials, read from the stored market-state object at entry and never recomputed; the volatile-day flag is not yet stamped (it joins after a50-dealer-store).</li>
-<li><strong>Scorecard:</strong> the dealer scorecard, six pre-registered tests of the dealer regime's claims.</li>
+<li><strong>Regime stamp:</strong> the three dials and the volatile-day flag, recorded on every packet. As built: the Macro dial's Doctrine regime and (B49) the Volatility and Gamma dials, read from the stored market-state object at entry and never recomputed, and (chain-4) the volatile-day flag as the day's live edition printed it.</li>
+<li><strong>Scorecard:</strong> the dealer scorecard, seven pre-registered tests of the dealer regime's claims (H1, H2, H3a, H3b, H4 and H5, registered 17 October; H6, the level clusters, registered 19 October and scored in the session and over five sessions).</li>
 <li><strong>Setup:</strong> a pre-specified pattern for a book, with a base rate (rung 5).</li>
 <li><strong>Stack:</strong> the ten-section layout every report shares, at its own depth.</li>
 <li><strong>Tell:</strong> a pre-specified pattern that confirms or generates a candidate (rung 5).</li>
-<li><strong>Volatile-day protocol:</strong> the machine-set flag that halves sizes and narrows what may be traded that day (Doctrine 5.5).</li>
+<li><strong>Volatile-day protocol:</strong> the machine-set flag that halves sizes and narrows what may be traded that day (Doctrine 5.5). As built: all four arms are read and printed at 07:00 and settled at 09:50, and nothing is applied until Doctrine #2 and Book C's activation.</li>
 </ul>
       </div>
     </details>
