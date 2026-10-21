@@ -878,6 +878,13 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     rt_sub = rates_transmission_block.subsection(st, now, "monthly")
     if rt_sub:
         b["subsections"].append(rt_sub)
+    # SIGNAL-TRIAGE BATCH 14, ITEM 66 (b52): the loosening leg -- the wealth-effect
+    # impulse -- and the net-transmission line, right after the cluster it
+    # completes. Lines only; report only.
+    from daily_cascade import transmission_block                # noqa: PLC0415
+    tr_sub = transmission_block.subsection(st, now)
+    if tr_sub:
+        b["subsections"].append(tr_sub)
     # Items 42 and 39 after it; the real differentials in the global bucket.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     b["subsections"] += t1_rest_block.plumbing_subsections(st, now, "monthly")
@@ -1109,6 +1116,12 @@ def priced_section(st, now: str, then: str, cfg: dict, pmb, fed, fed_then) -> di
     if att:
         out.append(att)
         b.setdefault("data", {})["return_attribution"] = att_data
+    # SIGNAL-TRIAGE BATCH 14, ITEM 63 (b52): the capex-chain relative line --
+    # which bucket of the AI capex chain leads or lags SPY. Report only.
+    from daily_cascade import capex_chain_block                 # noqa: PLC0415
+    cc_sub = capex_chain_block.priced_subsection(st, now)
+    if cc_sub:
+        out.append(cc_sub)
     b["subsections"] = out
     b["claim_only"] = True
     return b
@@ -1841,6 +1854,12 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         # hazard, and Factor I's information-processing dependency line.
         from daily_cascade import batch5b_block                  # noqa: PLC0415
         subs += batch5b_block.slow_subsections(st, now)
+        # SIGNAL-TRIAGE BATCH 14, ITEM 63 (b52): Factor I's capex-chain exhibit,
+        # BNP Paribas's $100 (August 2026), the standing dated table.
+        from daily_cascade import capex_chain_block              # noqa: PLC0415
+        cc_ref = capex_chain_block.slow_subsection()
+        if cc_ref:
+            subs.append(cc_ref)
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]

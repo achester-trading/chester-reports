@@ -1,0 +1,43 @@
+# THE WEALTH-EFFECT IMPULSE AND THE NET-TRANSMISSION LINE (signal-triage Batch 14,
+# item 66 -- written as 59; ST-R6.66a and 66c; ruled 20 Oct 2026, filed with F1-F8;
+# b52-batch14-a2). Read by altdata/transmission.py, laid out by
+# daily_cascade/transmission_block.py in the Monthly's Plumbing & rates, after the
+# rates-transmission sub-section. Report only until and beyond the ledger (the
+# order's Rights; a verdict grants nothing by itself).
+version: 1
+
+impulse:
+  # Z.1's households-and-nonprofits share of financial assets held in corporate
+  # equities, directly and indirectly (FRED BOGZ1FL153064486Q; stored for item 30).
+  # FRED dates a quarter by its first day; the level is the quarter's end.
+  share_key: fred.hh_equity_share
+  # SPX's year-on-year price return, from the basket's ^GSPC close (Yahoo).
+  index_key: yfinance.mkt_gspc
+  windows_years: [5]
+  # BETWEEN Z.1 RELEASES. The order names ICI's allocation data as the proxy; ICI
+  # refuses an identified client (b52's check of 21 Oct 2026: 403 to the generic
+  # User-Agent on robots.txt and on the statistics pages, as a53 found on 20 Oct),
+  # so it fails the standing rule on sources and is a listed gap. In its place,
+  # keyless and code-written (session-set, b52): the latest Z.1 share MARKED TO
+  # SPX from its quarter's end to the month's end, the rest of the household
+  # balance sheet held flat -- s' = s(1+r) / (1 + s r) -- labelled "marked"
+  # wherever it stands in.
+  proxy: marked_to_spx
+  ici_gap: "ICI's allocation data: refused (403 to an identified client, 20 and 21 Oct 2026); the Z.1 share is marked to SPX between releases in its place, labelled"
+
+net:
+  # The legs, each in its own units and on its own scale: no rule puts a flag, a
+  # sales growth rate, a spread and a wealth gain on one scale, so none is
+  # weighted or summed (the paste: "where the legs cannot be put on one scale by
+  # rule, print them side by side"). Where a leg is a level series it is placed by
+  # its own-history percentile; the tightening flag is a flag.
+  # Session-set (b52): a leg "reads tight" (or the impulse "reads loose") past
+  # these percentile bands, its own history -- the tails the stack's lenses
+  # already call extreme (the 20th and 80th).
+  tight_low_pctile: 20
+  tight_high_pctile: 80
+  k_shape_gap: "the K-shape panel (consumption by income): a listed gap (Group B; no consumption-by-income series is stored), so the line prints without it"
+
+ledger:
+  item: ST-R6.66c
+  preregistration: docs/ledgers/wealth-effect-preregistration-2026-10.md

@@ -33,6 +33,10 @@ commands:
   altdata.book_b_scanner:
     domain: equity
     line: THE BOOK B SCANNER -- the Weekly's candidate list
+  altdata.capex_chain:
+    domain: equity
+    line: "The AI capex chain (Batch 14 item 63): BNP Paribas's $100 reference table (August 2026) and the buckets' relative line; report only"
+    sources: [yfinance, edgar_xbrl]
   altdata.catalogue:
     domain: reference
     line: 'The catalogue: one place to list, search and read what the system holds'
@@ -176,6 +180,10 @@ commands:
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.transmission:
+    domain: rates
+    line: 'The wealth-effect impulse and the net-transmission line (Batch 14 item 66): the loosening leg beside the tightening legs, side by side; report only'
+    sources: [fred, yfinance]
   altdata.vol_event:
     domain: computed
     line: 'The volatility event flag and its attribution (Batch 9 item 52): show a session, seed the ledger, resolve its outcomes'
