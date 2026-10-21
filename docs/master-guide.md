@@ -848,7 +848,7 @@ Read from: the branch's own commits; its notes are its own. None of it is built 
 - **Point in time:** reading only what was knowable then, by `available_at`.
 - **Register:** the decision register, the record you are graded against; its writes are yours alone.
 - **Regime stamp:** the three dials and the volatile-day flag, recorded on every packet. As built: the Macro dial's Doctrine regime and (B49) the Volatility and Gamma dials, read from the stored market-state object at entry and never recomputed; the volatile-day flag is not yet stamped (it joins after a50-dealer-store).
-- **Scorecard:** the dealer scorecard, six pre-registered tests of the dealer regime's claims.
+- **Scorecard:** the dealer scorecard, seven pre-registered tests of the dealer regime's claims (H1, H2, H3a, H3b, H4 and H5, registered 17 October; H6, the level clusters, registered 19 October and scored in the session and over five sessions).
 - **Setup:** a pre-specified pattern for a book, with a base rate (rung 5).
 - **Stack:** the ten-section layout every report shares, at its own depth.
 - **Tell:** a pre-specified pattern that confirms or generates a candidate (rung 5).
