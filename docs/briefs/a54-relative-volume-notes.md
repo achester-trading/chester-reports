@@ -124,6 +124,12 @@ Run it inside the windows, never 16:00–17:20. Re-run `--max-days 25` until `--
 - **Changed and run locally:** `validate_batch13` 33/0; `validate_opening_setup` 61/0; `validate_audit_3a` 88/0; `check_registry` OK; `check_master_guide` 0/0 (Table 7a gains the ledger and its registration); `check_library` 0/0.
 - **The count:** 126 code gates (123 Python, three shell), counted on main's base; CLAUDE.md updated. Batch 12's gate arrives with chain-4, so the count will need its recount at the merge from main.
 
+## The CI rounds
+
+| Round | Run | Result |
+|---|---|---|
+| A54 | 39522896623 | **green, 136/136 jobs** (`f2651e4`), in one round |
+
 ## Files shared with chain-4
 
 Chain-4 is main plus `a52-doctrine-2-pack` at A53's tip. Both change:
