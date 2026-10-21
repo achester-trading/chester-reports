@@ -192,14 +192,14 @@ def group_c() -> None:
 
 def group_d() -> None:
     head("D. PAGING, AND NO VINTAGE INVENTED AT A WINDOW'S EDGE")
-    saved = (fh.MAX_VINTAGES, fh.OBS_PAGE, fh.VINTAGE_PAGE)
-    fh.MAX_VINTAGES, fh.OBS_PAGE, fh.VINTAGE_PAGE = 2, 2, 2
+    saved = (fh.MAX_VINTAGES, fh.WINDOW_VINTAGES, fh.OBS_PAGE, fh.VINTAGE_PAGE)
+    fh.MAX_VINTAGES, fh.WINDOW_VINTAGES, fh.OBS_PAGE, fh.VINTAGE_PAGE = 3, 2, 2, 2
     try:
         get = FakeAlfred()
         db = store("d")
         run([Spec("rev1", "REV1")], db, get=get)
     finally:
-        fh.MAX_VINTAGES, fh.OBS_PAGE, fh.VINTAGE_PAGE = saved
+        fh.MAX_VINTAGES, fh.WINDOW_VINTAGES, fh.OBS_PAGE, fh.VINTAGE_PAGE = saved
     vd = [c for c in get.calls if c[0] == "series/vintagedates"]
     ob = [c for c in get.calls if c[0] == "series/observations"]
     wins = sorted({(c[1]["realtime_start"], c[1]["realtime_end"]) for c in ob})
