@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 204
+next_id: 213
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -4175,6 +4175,166 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; equity = EARNINGS_SYMBOLS
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00205
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: SMH
+    store_key: yfinance.mkt_smh
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00206
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: MU
+    store_key: yfinance.mkt_mu
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00207
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: AMD
+    store_key: yfinance.mkt_amd
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00208
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: GRID
+    store_key: yfinance.mkt_grid
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00209
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ANET
+    store_key: yfinance.mkt_anet
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00210
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: VRT
+    store_key: yfinance.mkt_vrt
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00211
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: PAVE
+    store_key: yfinance.mkt_pave
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00212
+  name: null
+  asset_class: equity
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: ASML
+    store_key: yfinance.mkt_asml
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
   unverified:
   - currency
   - exchange

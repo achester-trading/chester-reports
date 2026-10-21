@@ -1,0 +1,95 @@
+# THE AI CAPEX CHAIN (signal-triage Batch 14, item 63 -- written as 56; ST-R6.63a;
+# ruled 20 Oct 2026, filed with F1-F8; b52-batch14-a2). Read by altdata/capex_chain.py
+# and laid out by daily_cascade/capex_chain_block.py. Report only (the order's
+# Rights): no flag, no composite, nothing into the market-state object.
+version: 1
+
+# -----------------------------------------------------------------------------
+# THE REFERENCE TABLE -- a standing, dated table, never updated by hand (F2): a new
+# edition of the source is a new dated table beside this one.
+# -----------------------------------------------------------------------------
+reference:
+  title: "Following $100 of AI capex"
+  dated: "2026-08"
+  source: >-
+    BNP Paribas Equity Research, an illustrative $100 of AI capex mapped across the
+    supply chain (August 2026), as published by a16z and reposted by a voice
+    already in the register;
+    the change order's item 63 (written as 56)
+  caveat: >-
+    BNP calls the weights high-level estimates: an illustrative split of one
+    dollar of spending, not a measurement and not a forecast.
+  per: 100
+  unit: usd
+  buckets:
+    - {id: semis, label: "Semiconductors", usd: 50.0,
+       parts: [{id: accelerators, label: "Accelerators", usd: 25.0},
+               {id: memory, label: "Memory", usd: 15.0},
+               {id: cpus_servers, label: "CPUs and server production", usd: 10.0}]}
+    - {id: power, label: "Power", usd: 20.0,
+       parts: [{id: grid_generation, label: "Grid and independent generation", usd: 10.0},
+               {id: distribution, label: "Distribution", usd: 6.5},
+               {id: onsite_routing, label: "On-site routing", usd: 3.5}]}
+    - {id: networking, label: "Networking", usd: 15.0}
+    - {id: cooling, label: "Cooling", usd: 7.5}
+    - {id: facilities, label: "Facilities and construction", usd: 7.5}
+  # Inside semis, not a sixth bucket: BNP's own memo line.
+  memo:
+    - {id: wfe, label: "Wafer-fab equipment (inside semis)", usd: 8.0, approx: true,
+       note: "roughly half of it lithography"}
+
+# -----------------------------------------------------------------------------
+# THE PROXIES -- each bucket mapped to liquid, keyless price series (Yahoo, through
+# the price basket). Session-set (b52), every choice with its reason; no Brookfield
+# instrument (the blocklist stands; tools/validate_batch14_a2.py checks it).
+# -----------------------------------------------------------------------------
+proxies:
+  semis:
+    keys: [yfinance.mkt_smh]
+    reason: "SMH, the most liquid semiconductor ETF (the order names SMH or SOXX; one is enough, and SMH's history is the longer)"
+    parts:
+      accelerators: {keys: [yfinance.mkt_nvda, yfinance.mkt_avgo],
+                     reason: "the two accelerator makers already in the basket (merchant GPUs; custom silicon)"}
+      memory: {keys: [yfinance.mkt_mu],
+               reason: "Micron, the one US-listed memory maker of size; SK Hynix and Samsung trade abroad only"}
+      cpus_servers: {keys: [yfinance.mkt_amd],
+                     reason: "AMD, server CPUs; server assembly has no liquid pure play"}
+  power:
+    keys: [yfinance.mkt_grid, yfinance.mkt_xlu]
+    reason: "GRID (grid and electrification equipment) and XLU (the utilities that generate and distribute): the order's 'power equipment and utilities'"
+  networking:
+    keys: [yfinance.mkt_anet]
+    reason: "Arista, data-centre switching, the networking name most exposed to AI clusters"
+  cooling:
+    keys: [yfinance.mkt_vrt]
+    reason: "Vertiv, data-centre power and thermal management, the listed cooling pure play"
+  facilities:
+    keys: [yfinance.mkt_pave]
+    reason: "PAVE, US infrastructure construction and its suppliers: the order's 'construction'"
+  memo:
+    wfe: {keys: [yfinance.mkt_asml],
+          reason: "ASML, lithography: half of wafer-fab equipment by BNP's memo"}
+
+# -----------------------------------------------------------------------------
+# THE RELATIVE LINE -- monthly, in what's priced. Session-set (b52):
+#   window_months  the bucket's return over this many months, the one window the
+#                  line ranks on ("which bucket leads or lags"); 3 months, the
+#                  quarter a capex print covers
+#   benchmark      what each bucket is measured against: SPY, the index the
+#                  chain's spending sits inside
+#   basket         equal weight across a bucket's proxies, each its own price
+#                  return (closes, dividends not added: the basket's stored close)
+#   min_sessions   a proxy needs this many sessions in the window, else the
+#                  bucket prints "not enough history"
+# -----------------------------------------------------------------------------
+relative:
+  window_months: 3
+  benchmark: yfinance.mkt_spy
+  min_sessions: 55
+  # The capex series the line is read against. The order says "item 26's
+  # capex-guidance series"; item 26 is ST-R4.26, the fiscal-bark flag, and no
+  # guidance series is stored, so the line reads the hyperscalers' FILED capex
+  # (EDGAR's XBRL frames, annual) and says guidance is not tracked.
+  capex_key: edgar.xbrl_capex
+  capex_names: [AMZN, GOOGL, META, MSFT, ORCL]
+  guidance_gap: "hyperscaler capex GUIDANCE is not tracked (no stored series; item 26 is the fiscal-bark flag): the line reads filed capex, annual, from EDGAR"
