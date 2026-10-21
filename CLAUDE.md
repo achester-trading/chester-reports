@@ -128,7 +128,8 @@ altdata/                  Shared ingestion package — used by every report
                           lenses, Group A); 29 in FRED_GROUP_B_SERIES
                           (Group B, the PPI and GDP lenses); 1 in
                           FRED_NOTES_SERIES (the open note's retail sales);
-                          FRED_PULL_SERIES, 267, is the union the
+                          10 in FRED_BANK_STRESS_SERIES (item 59's panel);
+                          FRED_PULL_SERIES, 277, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -144,7 +145,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    115 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    116 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -1055,10 +1056,40 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 31 official writers, 37 external writers and 7
+**The scheduled roster is 33 official writers, 37 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
+
+**Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
+59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s
+panel. Its series:
+- SOFR less IORB (IOER before 29 Jul 2021) and SOFR's 99th percentile;
+- financial CP less the bill;
+- H.4.1's discount window and other credit;
+- Z.1's FHLB advances;
+- H.8 deposits by bank size;
+- FRED's retail money funds (ICI refuses an identified client and is parked,
+  `altdata/sources/ici_mmf.py`);
+- KRE against XLF;
+- SLOOS;
+- the FDIC's unrealised securities losses (`altdata/sources/fdic_qbp.py`);
+- STLFSI and the OFR FSI (`altdata/sources/ofr_fsi.py`).
+
+Each prints dual percentiles. The flags:
+- **funding stress:** any two of four members above their 95th;
+- **deposit flight:** small-bank deposits down while money funds are up, over 4
+  weeks.
+
+The correction-vs-crisis classifier prints only past KRE -10% over 20 sessions,
+its CDS/AT1 arm "not tracked". `daily_cascade/bank_stress_block.py` lays it out:
+the close's Plumbing and The read, the Weekly's one line, the Monthly's full
+panel. The 12:30 gate (`midday_gate._bank_stress`) opens only on the session a
+flag turns on. Item 60's forward-EPS legs are listed gaps while
+`config/eps_overshoot.yaml` names no source (`altdata/eps_overshoot.py` holds
+both branches). The hyperscaler P/E dispersion (`altdata/pe_dispersion.py`)
+prints with the Monthly's index decomposition. `tools/validate_batch12.py` holds
+it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

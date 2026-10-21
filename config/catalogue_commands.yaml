@@ -233,6 +233,22 @@ commands:
     domain: macro
     line: Cleveland Fed simple monetary policy rules -- the rules' prescribed funds-rate path, median and width (not market pricing)
     sources: [clevfed_rules]
+  altdata.sources.ici_mmf:
+    domain: rates
+    line: 'ICI weekly money-market fund assets -- PARKED, on no roster: ici.org refuses an identified client (a listed gap, a53); the deposit-flight flag reads FRED''s retail series'
+    sources: [ici_mmf]
+  altdata.sources.ofr_fsi:
+    domain: rates
+    line: 'OFR Financial Stress Index -- the headline and its funding and credit categories, daily, keyless (the bank-stress panel)'
+    sources: [ofr_fsi]
+  altdata.sources.fdic_qbp:
+    domain: rates
+    line: 'FDIC BankFind -- the banking system''s unrealised securities gains (losses), AFS and HTM, quarterly, keyless (`--since 2007-03-31` for the history)'
+    sources: [fdic_qbp]
+  altdata.bank_stress:
+    domain: computed
+    line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'
+    sources: [calc]
   altdata.sources.cnh:
     domain: fx
     line: USD/CNH -- the offshore yuan's daily New York close, from Yahoo's hourly bars

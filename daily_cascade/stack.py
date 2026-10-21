@@ -1047,6 +1047,13 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         if built.get("plumbing") is not None:
             built["plumbing"]["items"] += rates_transmission_block.close_items(
                 st, cutoff, p["session"])
+        # SIGNAL-TRIAGE BATCH 12 item 59 (a53, 20 Oct 2026): the bank-stress flags
+        # beside item 34's cluster, and the correction-vs-crisis classifier in The
+        # read when it prints (KRE down more than 10% over 20 sessions).
+        from . import bank_stress_block                         # noqa: PLC0415
+        if built.get("plumbing") is not None:
+            built["plumbing"]["items"] += bank_stress_block.close_items(st, cutoff)
+        built["read"]["items"] += bank_stress_block.read_items(st, cutoff)
         # CD-9's daily part (the a47 chain, 19 Oct 2026): the crypto paragraph as
         # a Positioning & flows sub-section of data lines, which the word budget
         # does not count -- only while its switch is on.

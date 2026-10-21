@@ -878,6 +878,13 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     rt_sub = rates_transmission_block.subsection(st, now, "monthly")
     if rt_sub:
         b["subsections"].append(rt_sub)
+    # SIGNAL-TRIAGE BATCH 12 item 59 (a53): the bank-stress panel in full, beside
+    # the cluster: every series with its dual percentiles, both flags, the
+    # classifier, and the unrealised losses beside the 10-year.
+    from daily_cascade import bank_stress_block                 # noqa: PLC0415
+    bs_sub = bank_stress_block.monthly_subsection(st, now)
+    if bs_sub:
+        b["subsections"].append(bs_sub)
     # Items 42 and 39 after it; the real differentials in the global bucket.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     b["subsections"] += t1_rest_block.plumbing_subsections(st, now, "monthly")

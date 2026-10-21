@@ -130,7 +130,11 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     "treasury_buybacks", "mof_reserves", "fedboard_h41",
                     # 6e-releases (16 Oct 2026, ruling (a)5): the Cleveland Fed's
                     # simple-policy-rules path, keyless
-                    "clevfed_rules")
+                    "clevfed_rules",
+                    # Signal-triage Batch 12, item 59 (a53, 20 Oct 2026): the
+                    # bank-stress panel's OFR Financial Stress Index and the
+                    # FDIC's unrealised securities losses, both keyless
+                    "ofr_fsi", "fdic_qbp")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that

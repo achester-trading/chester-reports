@@ -95,6 +95,10 @@ SYMBOLS: dict[str, str] = {
     # The eleven SPDR sectors
     "XLK": "mkt_xlk",
     "XLF": "mkt_xlf",
+    # Signal-triage Batch 12, item 59 (a53, 20 Oct 2026): the regional banks, the
+    # bank-stress panel's equity leg (KRE against XLF) and the classifier's
+    # 20-session drawdown. Needs tools/backfill_prices.py before its history reads.
+    "KRE": "mkt_kre",
     "XLE": "mkt_xle",
     "XLV": "mkt_xlv",
     "XLI": "mkt_xli",
