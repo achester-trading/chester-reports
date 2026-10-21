@@ -237,7 +237,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and twenty-five code gates (one hundred and twenty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty-six code gates (one hundred and twenty-three Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -692,6 +692,23 @@ the seven, so each says so and none is invented. The pass rule is pre-registered
 says so at its head; `write_ledger` refuses a re-run that changes it. Each states its rights consequence
 and grants nothing; the package never opens the register. A ledger without its
 as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
+
+**The store check counts on the ET calendar, with each source's publication lag
+(b51-registry-html, 21 Oct 2026).** `tools/check_store_registry.py` counts a key's
+age up to `session.last_completed_session()` of its as-of, never to the UTC date,
+so an evening run no longer counts the next session. `config/publication_lags.yaml`
+states each late or batched source's real lag (H.10, EIA's spot prices, the
+term-premium models, Z.1, TIC, the IMF, the EM legs, the Pink Sheet, NBS, and
+FRED's monthly and quarterly releases), each session-set with its reason and a
+bound; `derived.staleness_allowance_of`, the one staleness rule, adds it to the
+cadence's allowance. A key past three times its allowance prints "dead?" whatever
+its lag. `market_state` and `fred.series_release_map` are declared stored objects
+and `yfinance.mkt_usdcnh` a superseded name. `altdata/purge_synthetic.py` removes
+the smoke test's old `synthetic.*` rows through the store's maintenance path,
+dry run first, backup made and checked first (the operator's, on the box).
+`tools/build_paper_html.py` renders CommonMark's two- and three-space nested
+lists, prints a checkbox for `- [ ]`, and namespaces each figure's ids by its own
+number. `tools/validate_b51_registry_html.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
