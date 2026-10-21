@@ -132,6 +132,14 @@ Commit `4f22c0e`, in `tools/build_paper_html.py`:
   - `check_master_guide` 0/0.
 - **Left to CI:** every other gate. The publication lags change the reports' confidence wherever a monthly, quarterly or H.10 key is read, so CI is the test of that.
 
+## The CI rounds
+
+| Round | Run | On | Result |
+|---|---|---|---|
+| 1 | 39543993552 | `1265645` (Parts 1 to 3 and these notes) | **green**, 136/136 jobs: every code gate (the new `validate_b51_registry_html` among them, and every gate the publication lags reach through the reports' confidence), the data gates (each reports, never sets the exit code), the shell gates and the smoke test |
+
+One round.
+
 ## Where the paste and the code differ
 
 1. **"Apply them where the registry declares allowances."** The registry declares cadences (`freq`, `information_half_life`), not allowances. The lags therefore live in one config file, read by the one rule that turns a cadence into an allowance, rather than spread over hundreds of registry entries.
