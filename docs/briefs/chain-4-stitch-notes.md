@@ -1,4 +1,4 @@
-STITCH PENDING CI
+STITCH COMPLETE 65b242c 2026-10-21 00:16 ET
 
 # chain-4: the fourth chain stitched into one branch (session B, 20 Oct 2026)
 
@@ -139,7 +139,7 @@ Every other gate, and anything that renders a PDF (the Monthly stack among them)
 | Round | Run | On | Result |
 |---|---|---|---|
 | 1 | 39523575613 | `ea68f77` (the fixes, the Guide, these notes and the box sheet) | **failed**, 136 of 138 jobs green: `validate_st_t3_calib` (and the summary job `gates-passed`). Two of its pins hash the signal-triage register's Index table (35 rows) and SR-8's entry, and fix 2 had corrected both. Re-pinned with a dated note in `784da5d` (the correction stands; no other row or entry changed), 88/0 locally |
-| 2 | — | — | — |
+| 2 | 39541999251 | `65b242c` (fix 5, the re-pin, these notes) | **green**, 138/138 jobs: every code gate, the data gates (each reports, never sets the exit code), the shell gates and the smoke test. `validate_systemd_units` 199/0 on the runner, where `systemd-analyze calendar` parsed all 33 `OnCalendar=` specs under `deploy/systemd/`, the evening note's `Mon..Thu,Sun 21:30 America/New_York` among them |
 
 ## What stayed out, and why
 
