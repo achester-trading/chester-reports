@@ -2327,7 +2327,7 @@ sources:
         Current edition only; archives are read by calibration scripts.
 
   shiller:
-    name: Robert J. Shiller -- U.S. stock market data (ie_data.xls)
+    name: Robert J. Shiller -- U.S. stock market data (ie_data.xls) and U.S. home prices (Fig3-1.xls, a56)
     tier: B
     epistemic_role: primary_fact
     domain: [valuation]

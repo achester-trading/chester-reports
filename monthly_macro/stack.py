@@ -1841,6 +1841,12 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         # hazard, and Factor I's information-processing dependency line.
         from daily_cascade import batch5b_block                  # noqa: PLC0415
         subs += batch5b_block.slow_subsections(st, now)
+        # BATCH 14 ITEMS 64 AND 69 (a56): the excess CAPE yield and real home
+        # prices since 1890, report only.
+        from daily_cascade import batch14_a1_block               # noqa: PLC0415
+        b14 = batch14_a1_block.slow_subsection(st, now)
+        if b14:
+            subs.append(b14)
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]

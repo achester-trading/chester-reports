@@ -59,6 +59,10 @@ def panel_rows(rows: list[dict]) -> list[list[str]]:
 def lines(b: dict) -> list[str]:
     out = [rt.tightening_line(b["tightening"])]
     out += rt.housing_lines(b["housing"])
+    if b.get("footprint"):
+        # Batch 14 item 69 (a56): the purchase programme's measurable footprint.
+        from altdata import batch14_a1                          # noqa: PLC0415
+        out += batch14_a1.footprint_lines(b["footprint"])
     out.append(rt.mba_line(b["mba"]))
     out += rt.quality_tail_lines(b["quality_tail"])
     return out
@@ -74,7 +78,12 @@ def subsection(st, now: str, cadence: str = "weekly",
     except Exception:                                           # noqa: BLE001
         log.warning("rates transmission block faulted", exc_info=True)
         return None
-    gaps = [r["label"] for r in b["panel"] if r["state"] == "gap"]
+    try:
+        from altdata import batch14_a1                          # noqa: PLC0415
+        b["footprint"] = batch14_a1.footprint(st, now)
+    except Exception:                                           # noqa: BLE001
+        log.warning("batch 14 housing footprint faulted", exc_info=True)
+    gaps =[r["label"] for r in b["panel"] if r["state"] == "gap"]
     note = (f"Item 34's 2-year panel stands in for 12-month swaps pricing, which is "
             f"proprietary; the US leg of the flag reads 100 less the fed funds future "
             f"twelve months ahead. Gaps, each with its reason in the table: "

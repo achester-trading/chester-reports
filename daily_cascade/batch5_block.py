@@ -116,6 +116,14 @@ def _attribution(st, now: str, cfg: Optional[dict] = None) -> dict:
             lines.append(f"The quoted 10-year (FRED DGS10) moved {fb['quoted_bp']:+.0f} bp "
                          f"over the same months; the split is ACM's of its own fitted "
                          f"yield.")
+    # BATCH 14 ITEM 70 (a56): the nominal-growth anchor, beside SR-43's
+    # twin-deficit fit as a fair-value range. Report only.
+    try:
+        from altdata import batch14_a1                          # noqa: PLC0415
+        anc = batch14_a1.nominal_growth_anchor(st, now)
+        lines += batch14_a1.anchor_lines(anc, batch14_a1.fiscal_anchor(st, now))
+    except Exception:                                           # noqa: BLE001
+        log.warning("batch 14 nominal-growth anchor faulted", exc_info=True)
     return {"title": TITLE_ATTR,
             "table": {"columns": ["Series", "Level or move", "Change or legs"]
                       + [f"{y}-year percentile" for y in years] + ["As of"],
