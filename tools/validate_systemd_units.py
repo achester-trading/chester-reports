@@ -40,6 +40,8 @@ review step whose absence produced the four above.
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -169,8 +171,58 @@ def scan(text: str) -> tuple[int, list[str]]:
             problems.append(
                 f"line {n}: {key}={value!r} is not one of "
                 f"{sorted(values)} -- systemd ignores or rejects it")
+        if key == "OnCalendar":
+            for a, b in backwards_ranges(value):
+                problems.append(
+                    f"line {n}: OnCalendar={value!r} has the weekday range {a}..{b}, "
+                    f"which runs backwards: systemd orders the week Monday to Sunday "
+                    f"and refuses it (\"bad unit file setting\"); write it as two "
+                    f"pieces, e.g. Mon..Thu,Sun")
 
     return seen, problems
+
+
+# A WEEKDAY RANGE RUNS MONDAY TO SUNDAY (chain-4 fix 5, 21 Oct 2026). systemd 255
+# refused `OnCalendar=Sun..Thu 21:30` on the box with "bad unit file setting":
+# its week starts on Monday, so a range from Sunday runs backwards. The gates
+# pinned the string and passed it.
+WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+
+def backwards_ranges(value: str) -> list[tuple[str, str]]:
+    """Every weekday range in an OnCalendar value whose start is after its end."""
+    head = value.strip().split(" ", 1)[0]
+    out = []
+    for piece in head.split(","):
+        m = re.fullmatch(r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*(?:\.\.|-)(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*",
+                         piece)
+        if m and WEEKDAYS.index(m.group(1)) > WEEKDAYS.index(m.group(2)):
+            out.append((m.group(1), m.group(2)))
+    return out
+
+
+def calendar_check() -> None:
+    """Where the machine has systemd-analyze (CI's ubuntu-24.04 runner does; the
+    Windows laptop does not), every OnCalendar= under deploy/systemd/ is parsed by
+    systemd itself. Absent, it says so and counts nothing."""
+    print(f"{LINE}\nOnCalendar, parsed by systemd-analyze calendar\n{LINE}")
+    exe = shutil.which("systemd-analyze")
+    if not exe:
+        print("  NOT RUN  systemd-analyze is not on this machine; the weekday-range "
+              "check above still runs")
+        return
+    for t in sorted(UNIT_DIR.glob("*.timer")):
+        for ln in t.read_text(encoding="utf-8").splitlines():
+            if not ln.startswith("OnCalendar="):
+                continue
+            spec = ln.split("=", 1)[1].strip()
+            for part in [s.strip() for s in spec.split(";") if s.strip()]:
+                r = subprocess.run([exe, "calendar", part], capture_output=True,
+                                   text=True, timeout=30)
+                check(r.returncode == 0,
+                      f"{t.name}: systemd-analyze calendar {part!r}"
+                      + ("" if r.returncode == 0 else f" -- {(r.stderr or r.stdout).strip()}"))
+    print()
 
 
 def check_unit(path: Path) -> None:
@@ -210,6 +262,18 @@ SELF_TESTS: list[tuple[str, str, str]] = [
     ('a directive before any section header is not silently accepted',
      "ExecStart=/bin/true\n",
      'IGNORED here'),
+    ('a backwards weekday range is refused (Sun..Thu, the box\'s refusal of 20 Oct)',
+     "[Unit]\nDescription=x\n[Timer]\nOnCalendar=Sun..Thu 21:30 America/New_York\n",
+     'runs backwards'),
+    ('the same five evenings written forwards pass (Mon..Thu,Sun)',
+     "[Unit]\nDescription=x\n[Timer]\nOnCalendar=Mon..Thu,Sun 21:30 America/New_York\n",
+     ''),
+    ('Mon..Fri,Sun passes (the meme ingest\'s form)',
+     "[Unit]\nDescription=x\n[Timer]\nOnCalendar=Mon..Fri,Sun *-*-* 21:15 America/New_York\n",
+     ''),
+    ('a backwards dash range (Fri-Mon) is refused too',
+     "[Unit]\nDescription=x\n[Timer]\nOnCalendar=Fri-Mon 09:00\n",
+     'runs backwards'),
     ('a correct unit produces no problems at all',
      "[Unit]\nDescription=x\nStartLimitBurst=4\n[Service]\nType=oneshot\nExecStart=/bin/true\nProtectHome=no\n",
      ''),
@@ -747,6 +811,8 @@ def main() -> int:
         return 1
     for u in units:
         check_unit(u)
+    print()
+    calendar_check()
 
     # Every .timer must name a .service that exists, or it fires into nothing.
     print(f"\n{LINE}\nTimer -> service pairing\n{LINE}")

@@ -18,17 +18,31 @@ Each step names its source. It leaves out everything chain-3's sheet (`docs/brie
 
 ## Timers: what the self-deploy enables, and what is yours
 
-**The fourth chain adds no unit and no timer, and does not change `DEPLOY_TIMERS`.** It changes two unit files by comment only (a50-dealer-store, A51's "kept as a starting value" lines):
+**The fourth chain adds no unit and no timer, and does not change `DEPLOY_TIMERS`.** It fixes one timer's schedule (fix 5) and changes two unit files by comment only (a50-dealer-store, A51's "kept as a starting value" lines):
 
 | Unit | Change | Schedule | Who acts | Step |
 |---|---|---|---|---|
 | `chester-open-note.service` | comment only: `TimeoutStartSec` and the memory caps "kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks" | unchanged (Mon–Fri 09:50) | nothing; the self-deploy copies it | — |
 | `chester-evening-note.service` | the same comment | unchanged (Sun–Thu 21:30) | nothing; the self-deploy copies it | — |
+| `chester-evening-note.timer` | **fix 5:** `OnCalendar=Sun..Thu 21:30` → `OnCalendar=Mon..Thu,Sun 21:30 America/New_York`. The same five evenings; systemd 255 refused the old range ("bad unit file setting") because its week runs Monday to Sunday | Sun–Thu 21:30 ET | **you enable it by hand**, after the self-deploy has copied it | T1 |
 
 - Both are oneshot services, so neither is running when the self-deploy copies it, and no `restart_pending` should follow. If the heartbeat names either one anyway, `systemctl --user daemon-reload` is enough (the unit's behaviour is unchanged).
 - `scripts/check_heartbeat_cron.sh` changes by one comment (the same line).
 - The dealer store (A50) runs inside the existing capture and EOD units: **no unit of its own**, and the units already allow writes under `%h/chester-reports`.
 - Batch 12's two new writers (`ofr_fsi`, `fdic_qbp`) are on `OFFICIAL_WRITERS`, so they ride the 16:10 EOD pass from the first session after the merge. No timer.
+
+**T1. Enable the evening note's timer, after the merge** (chain-4 fix 5; it replaces chain-3's sheet C4 for this one timer, which the box refused on 20 Oct). The state drop-in from chain-3's C1 stays as it is.
+```
+git pull --ff-only && grep OnCalendar deploy/systemd/chester-evening-note.timer
+grep OnCalendar ~/.config/systemd/user/chester-evening-note.timer
+systemctl --user daemon-reload
+systemctl --user enable --now chester-evening-note.timer
+systemctl --user list-timers chester-evening-note.timer
+```
+- **Expect** both `grep` lines to read `OnCalendar=Mon..Thu,Sun 21:30 America/New_York`. If the second still reads `Sun..Thu`, the self-deploy has not run yet: wait for its next tick (every 30 minutes inside the windows), or run `bash scripts/deploy.sh` from the laptop.
+- **Expect** `enable --now` to print the `Created symlink` line and no "bad unit file setting".
+- **Expect** `list-timers` to show the next run at 21:30 ET on the next Sunday-to-Thursday evening. The box's clock is UTC, so while EDT lasts (to 1 Nov) it shows **01:30 UTC the next day**: an enable on Wednesday evening shows Thursday 21:30 ET as Fri 01:30 UTC. From 1 Nov (EST) it shows 02:30 UTC.
+- Before `live_from` (26 Oct) each run is a dry run under `reports/dryrun/`, mailed "[DRY RUN]".
 
 ---
 
@@ -89,7 +103,8 @@ Run them one at a time, after A1, on the merge evening or the next one. **Before
 .venv/bin/python -m altdata.sources.fdic_qbp --since 2007-03-31
 ```
 - **`--backfill` is added here** to a53's line: on a first pull, with nothing yet held, the writer writes its whole history anyway, but if the 16:10 pass has already run once, only the last 400 days would be written without it. With it, the order does not matter.
-- **Expect** each to print its JSON summary, `"status": "OK"`, with `written` in the thousands for the OFR FSI (daily from 2000) and about 78 quarters' rows for the FDIC (from Q1 2007).
+- **Expect** each to print its JSON summary with `"status": "OK"` and a non-zero `written`: the OFR FSI daily from 2000 (`ofr.fsi`, `ofr.fsi_funding`, `ofr.fsi_credit`), and the FDIC's aggregate by quarter from Q1 2007 (`fdic.unrealised_total`, `_afs`, `_htm`).
+- **Paste back** a STALE status: its reason names the refusal.
 
 *B3d. The read, once they are in* (read-only).
 ```
@@ -132,13 +147,13 @@ bash scripts/check_heartbeat_cron.sh; echo "exit $?"
 **E2. The volatile-day flag, all four arms** (a50-dealer-store, A51 Part 2).
 - In the next 07:00 anchor (its email, or its archive `reports/morning_anchor_<session>.html`): the flag under the gauge, each arm with its reading and as-of, "Printed, not applied" at the end.
 - In the next open note's dry run (`reports/dryrun/open_note_<session>.html`, until `live_from`): the "Volatile-day flag" block, with the gap settled from SPY's 09:30 open.
-- **New on chain-4:** each live anchor also archives `reports/morning_anchor_<session>_volatile_day.json`, the flag exactly as printed, which the order gate reads at entry (below, E3). Check it exists after the first live anchor:
+- **New on chain-4:** each live anchor also archives `reports/morning_anchor_<session>_volatile_day.json` (under `$CHESTER_REPORTS_DIR` if it is set), the flag exactly as printed, which the order gate reads at entry (below, E3). Check it exists after the first live anchor:
   ```
   ls -t reports/morning_anchor_*_volatile_day.json | head -2
   ```
 - ⚑ A51's two session-set values (the index-mover rule; `min_atr_sessions` 15) wait for your confirm.
 
-**E3. The entry stamp** (b48-scoreboard, B49 Part 3; chain-4 fix 4). Nothing to run, and **no migration**: the stamp lives in the decision's existing `gate_detail` JSON field. Your next `decide.py record` writes the Volatility and Gamma dials and the volatile-day flag as printed (`volatile_day`, `volatile_day_settled`, `volatile_day_source`) beside the Doctrine regime. A decision entered before 07:00 ET, or on a day no live edition printed the flag, stamps it absent with its reason.
+**E3. The entry stamp** (b48-scoreboard, B49 Part 3; chain-4 fix 4). Nothing to run, and **no migration**: the stamp lives in the decision's existing `gate_detail` JSON field. Your next `decide.py record` writes the Volatility and Gamma dials and the volatile-day flag as printed (`volatile_day`, `volatile_day_settled`, `volatile_day_source`) beside the Doctrine regime. A decision entered before 07:00 ET, or on a day no live edition printed the flag, stamps it absent with its reason. The reader looks in the same archive the reports write (`$CHESTER_REPORTS_DIR`, else `reports/` from the checkout), so run `decide.py` from the checkout, as every step here is.
 
 **E4. The scoreboard** (b48-scoreboard). Read it at the top of Sunday's Weekly, above the précis:
 ```

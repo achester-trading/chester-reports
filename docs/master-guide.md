@@ -122,7 +122,7 @@ Read from `deploy/systemd/*.timer`. "Enabled" says who turns it on: the deploy e
 | `chester-quarterly` | `Sat *-01,04,07,10-08..14 06:00 America/New_York` | second Saturday after quarter-end, 06:00 | the Alternative Assets Quarterly | you read it (from January) | **disabled** (ships off; first edition Sat 9 Jan 2027) |
 | `chester-deploy` | `Mon-Fri *-*-* 09..15:05,35:00 America/New_York; Mon-Fri *-*-* 17..22:20,50:00 America/New_York; Mon-Fri *-*-* 23:20:00 America/New_York; Sat *-*-* *:05,35:00 America/New_York; Sun *-*-* 00..03:05,35:00 America/New_York; Sun *-*-* 07..23:05,35:00 America/New_York` | every 30 minutes inside the operating windows | the self-deploy: unit files, never a restart | background | by the deploy |
 | `chester-open-note` | `Mon-Fri 09:50 America/New_York` | weekdays 09:50 | **the open note**: the 1000 report's role; dry runs until `live_from` 2026-10-26 | you read it (optional; mandatory on volatile days once Book C is active) | by hand |
-| `chester-evening-note` | `Sun..Thu 21:30 America/New_York` | Sunday to Thursday 21:30 | **the evening note**: no rights; dry runs until `live_from` 2026-10-26 | you read it (optional) | by hand |
+| `chester-evening-note` | `Mon..Thu,Sun 21:30 America/New_York` | Sunday to Thursday 21:30 | **the evening note**: no rights; dry runs until `live_from` 2026-10-26 | you read it (optional) | by hand |
 <!-- /table -->
 
 Three things the table does not show:

@@ -589,7 +589,7 @@ def group_g() -> None:
     sd = REPO / "deploy" / "systemd"
     for name, cal, wrapper, guard in (
             ("open", "Mon-Fri 09:50 America/New_York", "run_open_note.sh", "is-session"),
-            ("evening", "Sun..Thu 21:30 America/New_York", "run_evening_note.sh",
+            ("evening", "Mon..Thu,Sun 21:30 America/New_York", "run_evening_note.sh",
              "evening-before")):
         tm = (sd / f"chester-{name}-note.timer").read_text(encoding="utf-8")
         sv = (sd / f"chester-{name}-note.service").read_text(encoding="utf-8")
