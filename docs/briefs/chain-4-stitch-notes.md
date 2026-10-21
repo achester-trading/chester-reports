@@ -2,7 +2,7 @@ STITCH PENDING CI
 
 # chain-4: the fourth chain stitched into one branch (session B, 20 Oct 2026)
 
-**What it is.** One branch, `chain-4`, carrying the fourth chain on top of main after chain-3's merge, so it merges as ONE pull request (chain-4 into main) on Wednesday evening. It carries `a50-dealer-store` (A50 and A51), `b48-scoreboard` (B48 and B49) and `a52-doctrine-2-pack` (A52 and A53, Batch 12), plus three small fixes and a fourth where a50 and b48 meet, the Master Guide refreshed to "as built", and one box sheet (`docs/briefs/chain-4-box-sheet.md`).
+**What it is.** One branch, `chain-4`, carrying the fourth chain on top of main after chain-3's merge, so it merges as ONE pull request (chain-4 into main) on Wednesday evening. It carries `a50-dealer-store` (A50 and A51), `b48-scoreboard` (B48 and B49) and `a52-doctrine-2-pack` (A52 and A53, Batch 12), plus three small fixes, a fourth where a50 and b48 meet and a fifth for the evening note's timer (fix 5, pasted 21 Oct after the box refused it), the Master Guide refreshed to "as built", and one box sheet (`docs/briefs/chain-4-box-sheet.md`).
 
 **All three branches are in.** `a52-doctrine-2-pack` was final at `cf59056` (the commit that fills A53's notes' CI table green: run 39497773952, 136/136) when its step came, and was still `cf59056` when checked again before Part 4.
 
@@ -61,6 +61,7 @@ Branch-only: I pushed `chain-4` and nothing else, ran nothing on the box, and en
 | 2 | `7dce016` | SR-8: the register's status line (and its summary-table row) read "ADOPTED — audit pending" after `false-bottom-audit-2026.md` recorded **FAIL** (1 element discriminates, the rule needs 2; n 16). Corrected to "ADOPTED — audit failed (…)", linking the ledger, with a dated line under it: "*Factual correction, 20 Oct 2026 (chain-4):* … The ledger's verdict is the record." The Guide's Part 5 loses its "still reads audit pending" parenthetical. No right changes: Book A rule A-2 waits for the monthly, as the ledger says |
 | 3 | `cdcca98` | `config/setups.yaml`, `b_style_regime_pair`: the comment "SR-1's ledger (Base Rates) is not yet stored" now reads that it is stored (`sr-1-ledger-2026-10-18.md`, PASS, n 6), the base rate completed at Doctrine #2. A comment only; `base_rate: not yet` unchanged |
 | 4 | `2c60f9a` | **The volatile-day flag joins the entry stamp and the score's cuts** (B49's needs-you 3), below |
+| 5 | `3be1d7c` | **The evening note's timer** (pasted 21 Oct 2026). On the box (systemd 255) on 20 Oct, `systemctl --user enable chester-evening-note.timer` refused the unit with "bad unit file setting": `OnCalendar=Sun..Thu 21:30` runs backwards, because systemd orders the week Monday to Sunday. `validate_secondary_notes` pinned the same string, so the gates passed it. **The timer** now reads `OnCalendar=Mon..Thu,Sun 21:30 America/New_York`, the same five evenings the secondary-notes order rules (its Description and comments unchanged). **The same line** in `validate_secondary_notes`'s pin (88/0) and the Master Guide's Table 1 row; figure 2 regenerated (the evening note now reads as a five-evening job on the clock, as the meme ingest's `Mon..Fri,Sun` does); the HTML edition rebuilt; `check_master_guide` 0/0. a49's dated notes stay as the record they are. **`validate_systemd_units`** refuses a backwards weekday range (`..` or `-`) in any `OnCalendar=` under `deploy/systemd/`, with four self-test fixtures (`Sun..Thu` and `Fri-Mon` refused; `Mon..Thu,Sun` and `Mon..Fri,Sun` pass), 166/0 on the laptop. **systemd-analyze:** CI's runner is `ubuntu-24.04`, which ships systemd and `systemd-analyze`, so the gate also runs `systemd-analyze calendar` on every `OnCalendar=` there; where the tool is absent (the Windows laptop) it prints NOT RUN and counts nothing. **The box sheet** gains T1, the enable step after the merge |
 
 ### Fix 4, the volatile-day flag at entry
 
@@ -137,7 +138,8 @@ Every other gate, and anything that renders a PDF (the Monthly stack among them)
 
 | Round | Run | On | Result |
 |---|---|---|---|
-| 1 | — | — | — |
+| 1 | 39523575613 | `ea68f77` (the fixes, the Guide, these notes and the box sheet) | **failed**, 136 of 138 jobs green: `validate_st_t3_calib` (and the summary job `gates-passed`). Two of its pins hash the signal-triage register's Index table (35 rows) and SR-8's entry, and fix 2 had corrected both. Re-pinned with a dated note in `784da5d` (the correction stands; no other row or entry changed), 88/0 locally |
+| 2 | — | — | — |
 
 ## What stayed out, and why
 
@@ -148,7 +150,7 @@ Every other gate, and anything that renders a PDF (the Monthly stack among them)
 
 ## Needs you
 
-1. **The box sheet,** `docs/briefs/chain-4-box-sheet.md`, for the merge evening. It covers the dealer-store backfill, the RSAFS history, Batch 12's first pulls and the superseding batch's registration, dry runs first. If chain-3's sheet has not run yet, run it first.
+1. **The box sheet,** `docs/briefs/chain-4-box-sheet.md`, for the merge evening, with T1: enable the evening note's timer once the fixed unit has been copied. It covers the dealer-store backfill, the RSAFS history, Batch 12's first pulls and the superseding batch's registration, dry runs first. If chain-3's sheet has not run yet, run it first.
 2. **The pull request** (base main, compare chain-4), to open on Wednesday afternoon. a53 asks that it land before the Monthly's last dry run on 28 October.
 3. **Fix 4's new archive file:** a live 07:00 anchor now writes `reports/morning_anchor_<session>_volatile_day.json` beside its HTML. That is the flag as printed, which the order gate reads at entry. Say if it should live elsewhere.
 4. **A51's session-set values:** the index-mover rule and `min_atr_sessions` 15. Confirm or replace.
