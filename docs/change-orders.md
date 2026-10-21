@@ -21,4 +21,5 @@ An index of every ruled change order in `docs/`, oldest first. Each order is fil
 | 17 Oct 2026 | [change-order-signal-triage-batch-8-2026-10-17.md](change-order-signal-triage-batch-8-2026-10-17.md) | Signal triage items 49–51, digital assets |
 | 17 Oct 2026 | [change-order-signal-triage-batch-9-2026-10-17.md](change-order-signal-triage-batch-9-2026-10-17.md) | Signal triage item 52, the volatility event |
 | 19 Oct 2026 | [change-order-signal-triage-batch-11-2026-10-19.md](change-order-signal-triage-batch-11-2026-10-19.md) | Signal triage items 53–58: the opening setup and the dealer scorecard amended |
+| 20 Oct 2026 | [change-order-signal-triage-batch-14-2026-10-20.md](change-order-signal-triage-batch-14-2026-10-20.md) | Signal triage items 62–71 (Batch 14, filing amendments F1–F8): Part A, the 1 Nov Monthly candidates (63, 64, 66, 69, 70); Part B after the Monthly |
 | 19 Oct 2026 | [change-order-secondary-notes-2026-10-19.md](change-order-secondary-notes-2026-10-19.md) | The secondary notes: the 09:50 open note and the 21:30 evening note |
