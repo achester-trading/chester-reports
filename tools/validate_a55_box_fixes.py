@@ -19,6 +19,19 @@ a55-box-fixes (session A, 20-21 Oct 2026): five defects the box evening of 20 Oc
      of range is named with its version, a satisfied one is not; the heartbeat
      block warns and never changes the verdict or the exit code.
 
+Round 2 (21 Oct 2026, Ari's rulings of 00:41 ET):
+
+  F  THE FOMC HISTORY. cal.fomc_history's rows: dated, kinded, each citing the
+     Board page it was read from and its statement; ascending and unique, from the
+     first statement (4 Feb 1994); no notation vote; the June 2007 statement at
+     its printed date; the claims writer emits one event per row.
+  G  THE FOMC AUDIT, on a synthetic calendar page: a missing meeting, a changed
+     date, an unreadable page (the six-month line still printed from the file),
+     the six-month warning; a clean page is clean; the heartbeat runs it on the
+     first of the month only and never touches the verdict or the exit code.
+  H  EVENT_RATES COUNTS FOMC EVENTS from a synthetic claims file, through the
+     claims writer into a scratch events table.
+
 Synthetic fixtures only: no live store, no network, no model, no real names.
 """
 
@@ -234,8 +247,121 @@ def group_e() -> None:
           "the exit code")
 
 
+def group_f() -> None:
+    head("F. THE FOMC HISTORY")
+    from altdata import claims, events_ingest
+    c = claims.load(reload=True)["claims"]["cal.fomc_history"]
+    rows = c["detail"]["statements"]
+    ds = [str(r["date"]) for r in rows]
+    check(len(rows) == 239 and ds == sorted(set(ds)) and ds[0] == "1994-02-04"
+          and ds[-1] == "2025-12-10",
+          f"239 statements, ascending and unique, 1994-02-04 to 2025-12-10 ({len(rows)})")
+    check(all(r["kind"] in ("scheduled", "unscheduled") for r in rows)
+          and sum(r["kind"] == "unscheduled" for r in rows) == 14
+          and all(str(r["page"]).startswith("https://www.federalreserve.gov/monetarypolicy/fomc")
+                  for r in rows)
+          and all(str(r["statement"]).startswith("/") for r in rows),
+          "each row carries its kind (14 unscheduled), the Board page it was read from, "
+          "and its statement")
+    check("2007-06-28" in ds and "2007-06-18" not in ds
+          and not {"2020-03-19", "2020-03-23", "2020-03-31", "2025-08-22"} & set(ds)
+          and "conference calls and meetings with no" in c["detail"]["note"].replace("\n", " ")
+          and c["source_class"] == "cited",
+          "the June 2007 statement at its printed date; notation votes left out; the "
+          "claim says what it leaves out")
+    evs, _ = events_ingest.claims_events()
+    hist = [e for e in evs if (e.payload or {}).get("cited_as") == "cal.fomc_history"]
+    check(len(hist) == 239 and all(e.source == "claims_registry" for e in hist)
+          and {e.observed_at[:10] for e in hist} == set(ds),
+          "the claims writer emits one claims_registry event per statement")
+
+
+PAGE = """<h4><a id="1">2031 FOMC Meetings</a></h4>
+<div class="row fomc-meeting"><div class="fomc-meeting__month"><strong>January</strong></div>
+<div class="fomc-meeting__date">27-28</div>
+<a href="/newsevents/pressreleases/monetary20310128a.htm">HTML</a></div>
+<div class="row fomc-meeting"><div class="fomc-meeting__month"><strong>March</strong></div>
+<div class="fomc-meeting__date">18-19</div></div>
+<div class="row fomc-meeting"><div class="fomc-meeting__month"><strong>May</strong></div>
+<div class="fomc-meeting__date">4 (notation vote)</div></div>
+<h4><a id="2">2032 FOMC Meetings</a></h4>
+<div class="row fomc-meeting"><div class="fomc-meeting__month"><strong>Jan/Feb</strong></div>
+<div class="fomc-meeting__date">31-1</div></div>
+"""
+
+
+def group_g() -> None:
+    head("G. THE FOMC AUDIT")
+    from altdata import fomc_audit as fa
+    syn = {"cal.fomc_2031": {"detail": {"decision_days": [dt.date(2031, 1, 28),
+                                                          dt.date(2031, 3, 18)]}}}
+    page = fa.parse_page(PAGE)
+    check(sorted(page) == [2031, 2032] and len(page[2031]) == 2
+          and page[2032][0]["date"] == dt.date(2032, 2, 1),
+          "the page parses: a statement's own date, a meeting's last day across a "
+          "month, a notation vote skipped")
+    rc, lines = fa.run(dt.date(2031, 1, 1), get=lambda u: PAGE.encode(), claims=syn)
+    txt = "\n".join(lines)
+    check(rc == 1 and "MISSING 2032-02-01" in txt,
+          "a published meeting the file lacks is named (the next year's calendar)")
+    check("CHANGED the file holds 2031-03-18, the Board's calendar 2031-03-19" in txt,
+          "a date that differs is named, file and page")
+    check("SOON the file's last meeting is 2031-03-18, 76 days away" in txt,
+          "the six-month warning prints when the file's last meeting is near")
+
+    def boom(u):
+        raise OSError("connection refused")
+    rc2, l2 = fa.run(dt.date(2031, 1, 1), get=boom, claims=syn)
+    check(rc2 == 2 and l2[0].startswith("fomc audit: UNREADABLE")
+          and any("SOON" in x for x in l2),
+          "an unreadable page is said so, and the six-month line still prints from "
+          "the file alone")
+    syn_ok = {"cal.fomc_2031": {"detail": {"decision_days": [
+        dt.date(2031, 1, 28), dt.date(2031, 3, 19), dt.date(2032, 2, 1)]}}}
+    rc3, l3 = fa.run(dt.date(2031, 1, 1), get=lambda u: PAGE.encode(), claims=syn_ok)
+    check(rc3 == 0 and l3[0].startswith("fomc audit: clean"),
+          f"a page the file matches, with the last meeting over six months away, is clean")
+    sh = (REPO / "scripts" / "check_heartbeat_cron.sh").read_text(encoding="utf-8")
+    blk = sh[sh.find("# ---- the FOMC calendar audit"):sh.find("# ---- 1. the distinct log line")]
+    check("altdata.fomc_audit check" in blk and '"${FOMC_AUDIT_DAY:8:2}" != "01"' in blk
+          and "WARNING" in blk and not re.search(r"^\s*exit\b|\bRC=|VERDICT=", blk, re.M),
+          "the heartbeat runs it on the first of the month only, as a WARNING, never "
+          "touching the verdict or the exit code")
+    src = (REPO / "altdata" / "fomc_audit.py").read_text(encoding="utf-8")
+    check(not re.search(r"\.write\(|write_many|INSERT|open\([^)]*['\"]w", src),
+          "the audit writes no data row")
+
+
+def group_h() -> None:
+    head("H. EVENT_RATES COUNTS FOMC EVENTS FROM A SYNTHETIC CLAIMS FILE")
+    from altdata import claims as claims_mod, events as ev_mod, events_ingest, observations
+    from alpha import event_rates as er
+    syn = {"version": 1, "defaults": {}, "warnings": {}, "claims": {
+        "cal.fomc_history": {"value": "FOMC policy statements: fixture",
+                             "detail": {"statements": [
+                                 {"date": dt.date(2001, 1, 3), "kind": "unscheduled"},
+                                 {"date": dt.date(2001, 1, 31), "kind": "scheduled"},
+                                 {"date": dt.date(2010, 5, 9), "kind": "unscheduled"}]}},
+        "cal.fomc_2030": {"value": "2030 FOMC meeting dates: Jan 29-30, Mar 19-20"}}}
+    saved = claims_mod.load
+    claims_mod.load = lambda *a, **k: syn
+    try:
+        evs, _ = events_ingest.claims_events()
+    finally:
+        claims_mod.load = saved
+    db = TD / "fomc.db"
+    with ev_mod.EventStore(str(db)) as ev:
+        ev.write_many(evs, available_at="2026-10-21T12:00:00+00:00")
+    with observations.ObservationStore(str(db)) as st:
+        days = [d["day"] for d in er.release_days(st, {"claims_kind": "fomc"},
+                                                  "2030-12-31T22:00:00+00:00")]
+    check(days == ["2001-01-03", "2001-01-31", "2030-01-30", "2030-03-20"],
+          f"history rows and a year's calendar both reach event_rates; a Sunday "
+          f"statement is skipped by its session rule ({days})")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001
