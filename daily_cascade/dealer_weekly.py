@@ -148,6 +148,13 @@ def mechanics(st, cutoff: str, ending: str, cards: list[dict],
                                "paragraph_wanted": False})
     if most:
         out["subsections"].append(most)
+    # OS-12 (Batch 13 item 61, a54): the week's relative-volume flags per name and
+    # the ledger to date, beside OS-10; report-only, no chart, no paragraph.
+    try:
+        from . import relative_volume as _rv                    # noqa: PLC0415
+        out["subsections"].append(_rv.weekly_subsection(st, week, cutoff))
+    except Exception:                                           # noqa: BLE001
+        out["not_tracked"].append("relative options volume: its table faulted")
     # OS-8 and OS-5 (a45-opening-setup-2): the setup profiles and the single-name
     # put share, no side; report-only, no chart, no paragraph.
     for build, why in ((lambda: opening_setup.profiles(st, cutoff), "the setup profiles"),
