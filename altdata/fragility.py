@@ -277,11 +277,11 @@ def flag(depth: dict, flow: dict, cfg: dict) -> dict:
                                   f"{STAND_IN}, {_ord(am['lens'].get('percentile_window'))} "
                                   f"percentile of {f['window_years']} years "
                                   f"({'at or above' if arm_d else 'below'} the "
-                                  f"{f['amihud_pct']}th)"))
+                                  f"{_ord(f['amihud_pct'])})"))
     parts.append("forced-flow arm: " + ("not read" if arm_f is None else
                                         f"{_ord(fo['lens'].get('percentile_window'))} "
                                         f"percentile ({'above' if arm_f else 'not above'} "
-                                        f"the {f['forced_flow_pct']}th"
+                                        f"the {_ord(f['forced_flow_pct'])}"
                                         + ("" if fo.get("dealer_read") else
                                            "; the leveraged-ETF arm alone, no dealer gamma "
                                            "stored for the session") + ")"))

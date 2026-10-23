@@ -224,7 +224,8 @@ mkdir -p ~/chester-data/ledgers
 
 | Round | Run | On | Result |
 |---|---|---|---|
-| 1 | (in the closing message) | | |
+| 1 | 40041135514 | `6bdc628` | **134 of 138 gates green; 4 failed, each this branch's**: <br>• `validate_numeral_audit`: two ordinal suffixes written by hand in `fragility.py`'s flag line, now `ordinal()`. <br>• `validate_weekly_edits`: the proxy's absent reason printed its store keys in the Weekly, now the symbols only. <br>• `validate_st_r5_t1_rest`: pinned FRED_PULL_SERIES at 277, now 281. <br>• `validate_6e_rest`: pinned five inflation panels, now six. <br>Locally after the fix: 172/0, 34/0, 103/0, and `validate_batch14_b1` 67/0 |
+| 2 | (in the closing message) | | |
 
 ## Needs you
 

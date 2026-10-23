@@ -114,7 +114,7 @@ def proxy_read(ai: list[tuple[str, float]], ex: list[tuple[str, float]],
     out: dict[str, Any] = {"label": p["label"], "title": p["title"],
                            "ai": p["ai"]["symbol"], "ex_ai": p["ex_ai"]["symbol"],
                            "caveat": " ".join(str(p.get("caveat") or "").split())}
-    gaps = [f"{leg['symbol']} ({leg['key']}): {len(pts)} session(s) stored"
+    gaps = [f"{leg['symbol']}: {len(pts)} session(s) stored"
             for leg, pts in ((p["ai"], ai), (p["ex_ai"], ex))
             if len(pts) < int(p["min_sessions"])]
     if gaps:
