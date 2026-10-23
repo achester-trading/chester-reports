@@ -1072,6 +1072,63 @@ else
     fi
 fi
 
+# ---- the venv against requirements.txt (a55, 20 Oct 2026) -----------------------
+#
+# A WARNING AND NEVER A VERDICT. `make deploy` does not pip install, so a package a
+# merge adds to requirements.txt (jsonschema, on chain-3's merge night) is absent
+# until it is installed by hand. altdata/requirements_check.py compares the venv
+# with requirements.txt through importlib.metadata -- no network, no install -- and
+# exits 1 with one line naming what is missing or out of range.
+REQS_STATE=unknown
+if [[ -n "${CHESTER_SKIP_REQUIREMENTS_CHECK:-}" ]]; then
+    REQS_STATE=skipped
+elif [[ -z "${STATE_PY:-}" ]]; then
+    REQS_STATE=no_python
+else
+    REQS_LINE="$(cd "$REPO" && "$STATE_PY" -m altdata.requirements_check 2>/dev/null)"
+    case $? in
+        0) REQS_STATE=satisfied ;;
+        1) REQS_STATE=unmet ;;
+        *) REQS_STATE=error ;;
+    esac
+    if [[ "$REQS_STATE" != "satisfied" ]]; then
+        log "  WARNING ${REQS_LINE:-requirements: the check could not run} -- fix: .venv/bin/pip install -r requirements.txt. The verdict and exit code are untouched"
+    fi
+fi
+
+# ---- the FOMC calendar audit (a55 round 2; ruled 21 Oct 2026) --------------------
+#
+# A WARNING AND NEVER A VERDICT, and MONTHLY: on the first of the month only.
+# altdata/fomc_audit.py reads the Board's meeting calendar and compares it with
+# config/claims.yaml's FOMC dates: a meeting the file lacks, a date that differs,
+# the file's last meeting under six months away. It writes no data row. An
+# unreadable page is said so, and the six-month line still prints from the file.
+FOMC_AUDIT_STATE=not_due
+FOMC_AUDIT_DAY="${CHESTER_FOMC_AUDIT_TODAY:-$(TZ=America/New_York date +%F)}"
+if [[ -n "${CHESTER_SKIP_FOMC_AUDIT:-}" ]]; then
+    FOMC_AUDIT_STATE=skipped
+elif [[ "${FOMC_AUDIT_DAY:8:2}" != "01" ]]; then
+    FOMC_AUDIT_STATE=not_due
+elif [[ -z "${STATE_PY:-}" ]]; then
+    FOMC_AUDIT_STATE=no_python
+else
+    FOMC_AUDIT_OUT="$(cd "$REPO" && timeout 120 "$STATE_PY" -m altdata.fomc_audit check \
+                      --today "$FOMC_AUDIT_DAY" 2>/dev/null)"
+    case $? in
+        0) FOMC_AUDIT_STATE=clean ;;
+        1) FOMC_AUDIT_STATE=findings ;;
+        2) FOMC_AUDIT_STATE=unreadable ;;
+        *) FOMC_AUDIT_STATE=error ;;
+    esac
+    if [[ "$FOMC_AUDIT_STATE" == "clean" ]]; then
+        log "  $FOMC_AUDIT_OUT"
+    else
+        while IFS= read -r l; do
+            [[ -n "$l" ]] && log "  WARNING $l -- the verdict and exit code are untouched"
+        done <<< "${FOMC_AUDIT_OUT:-fomc audit: the check could not run ($FOMC_AUDIT_STATE)}"
+    fi
+fi
+
 # ---- 1. the distinct log line ---------------------------------------------
 #
 # One line per check, verdict first, so `grep -c 'verdict=ok'` over a month is

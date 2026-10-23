@@ -35,7 +35,7 @@ THE EVENTS. Release days come from the events table (rows of type release or
 scheduled carrying the series' entity, at or before the cutoff) and, for the
 history before the table, from the first vintage of the series' ALFRED rows
 (availability_kind observed: the first publication's instant). FOMC days come
-from the claims rows (kind fomc). Each event's inputs are read as they were
+from the claims rows (kind fomc, source claims_registry). Each event's inputs are read as they were
 first published; its decision instant is the first nightly loop at or after all
 of them were knowable (alpha/pit.py), and an event whose inputs became knowable
 more than `stale_sessions` sessions after it (a backfill ingested later) is left
@@ -86,9 +86,13 @@ def release_days(store, ev: dict, cutoff: str) -> list[dict]:
     c = pit.canon(cutoff)
     out: dict[str, dict] = {}
     if ev.get("claims_kind"):
+        # The claims writer stores the meetings under source `claims_registry`
+        # (altdata/events_ingest.py claims_events); reading only `claims` found no
+        # FOMC event on the box (a55, 20 Oct 2026: n = 0 in every bucket). Both are
+        # read: the writer's id and the older spelling a fixture may carry.
         for r in _events(store, "SELECT observed_at, available_at, payload FROM events "
-                         "WHERE type='scheduled' AND source='claims' AND "
-                         "observed_at<=?", (c,)):
+                         "WHERE type='scheduled' AND source IN ('claims_registry', "
+                         "'claims') AND observed_at<=?", (c,)):
             try:
                 kind = (json.loads(r["payload"] or "{}") or {}).get("kind")
             except ValueError:
