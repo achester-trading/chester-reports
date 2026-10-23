@@ -129,7 +129,8 @@ altdata/                  Shared ingestion package — used by every report
                           (Group B, the PPI and GDP lenses); 1 in
                           FRED_NOTES_SERIES (the open note's retail sales);
                           10 in FRED_BANK_STRESS_SERIES (item 59's panel);
-                          FRED_PULL_SERIES, 277, is the union the
+                          4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
+                          FRED_PULL_SERIES, 281, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -145,7 +146,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    116 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    118 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).

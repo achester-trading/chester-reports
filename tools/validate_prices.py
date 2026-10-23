@@ -192,7 +192,7 @@ def group_d_backfill() -> None:
 def group_d() -> None:
     print(f"\n{LINE}\nD. THE BASKET IS DECLARED AND REGISTERED\n{LINE}")
     syms = yf_src.SYMBOLS
-    check(len(syms) == 116, f"116 symbols declared (got {len(syms)}) -- KRE (Batch 12 item 59), ^DSPX ^COR1M ^COR3M ZN=F (ST-R4 Tranche 1 part 2), TIP MUB MBB (the GTM batch, part 2: GTM-13's proxies), ^VIX9D and ^VIX6M (Batch 9 item 52), the tape's "
+    check(len(syms) == 118, f"118 symbols declared (got {len(syms)}) -- AIQ SPXT (Batch 14 item 65, the AI proxy pair), KRE (Batch 12 item 59), ^DSPX ^COR1M ^COR3M ZN=F (ST-R4 Tranche 1 part 2), TIP MUB MBB (the GTM batch, part 2: GTM-13's proxies), ^VIX9D and ^VIX6M (Batch 9 item 52), the tape's "
                            f"five (^TNX ^TYX DX-Y.NYB GC=F CL=F, T2.1) and 31, plus "
           f"ST-2's nine, NVDA for the Phase 5a heat view, AGG for Book Z's "
           f"60/40 (P5-B), the Weekly's gauges ^MOVE ^VVIX ^SKEW (T2.2), HG=F, "
@@ -484,7 +484,7 @@ def group_volume() -> None:
           "the unit is declared per kind: shares, contracts (count), dollars")
     check(set(yf_src.VOLUME_SHARE_KEYS) | set(yf_src.VOLUME_CONTRACT_KEYS)
           | set(yf_src.VOLUME_USD_KEYS) == set(yf_src.VOLUME_UNITS)
-          and len(yf_src.VOLUME_UNITS) == 96,      # + KRE (Batch 12 item 59)
+          and len(yf_src.VOLUME_UNITS) == 98,      # + KRE (Batch 12 item 59) + AIQ SPXT (Batch 14 item 65)
           f"the three registry blocks cover the {len(yf_src.VOLUME_UNITS)} symbols "
           f"with volume, each once")
     spy = dict(yf_src.companion_series("SPY", parsed, ["2026-10-02"]))

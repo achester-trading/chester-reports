@@ -1,0 +1,47 @@
+# ai_trade.yaml -- signal-triage Batch 14 item 65 (written as 58; ST-R6.65b-d),
+# "one big AI trade", ruled 20 Oct 2026 with filing amendments F1-F8
+# (docs/change-order-signal-triage-batch-14-2026-10-20.md). Read by
+# altdata/ai_trade.py; laid out by daily_cascade/batch14_b1_block.py.
+# Report only: nothing here enters a composite or the market-state object.
+version: ai-trade-v1
+updated: 2026-10-23
+
+# ST-R6.65b: THE AI-BOTTLENECK PPI LINE, in item 46's pipeline (the inflation
+# block's panels, the Monthly). BLS's PPI by industry through FRED (F3; section 5
+# check 1, run 23 Oct 2026). Indexes, not seasonally adjusted, so the line reads
+# each on the year; each year-on-year change carries dual percentiles (five years
+# and the full stored history, st_r5_rates.lens).
+ppi:
+  - {key: fred.ppi_pcb_assembly, name: "printed circuit assemblies", fred_id: PCU334418334418}
+  - {key: fred.ppi_storage_devices, name: "computer storage devices", fred_id: PCU334112334112}
+  - {key: fred.ppi_semiconductors, name: "semiconductors", fred_id: PCU334413334413}
+
+# ST-R6.65c: BROAD AI AGAINST THE S&P WITHOUT THE AI ENABLERS, as a relative
+# series in the concentration cluster (items 30, 31, 44). F2: a free proxy pair
+# whose holdings are public, labelled "proxy" everywhere it prints, and never
+# given the name of the index it stands in for (section 5 check 2, 23 Oct 2026).
+proxy:
+  label: "proxy"
+  title: "Broad AI against the S&P without its technology sector (proxy)"
+  ai: {symbol: AIQ, key: yfinance.mkt_aiq,
+       what: "an AI-and-technology ETF; its issuer publishes the full holdings daily"}
+  ex_ai: {symbol: SPXT, key: yfinance.mkt_spxt,
+          what: "the S&P 500 without its information-technology sector; its issuer publishes the holdings"}
+  # Session-set: the pair's cumulative return is read from the first session of
+  # 2023, the base the order's comparison uses ("since 2023").
+  base_date: "2023-01-03"
+  # Session-set: the relative return's window (one year of sessions), the series
+  # the dual percentiles rank, and the fewest sessions a window may hold.
+  window_sessions: 252
+  min_sessions: 200
+  caveat: >-
+    A proxy: the technology sector is not the AI enablers (the communication and
+    consumer names among them stay in SPXT), and AIQ is not the index the post
+    cites.
+
+# THE AI-CREDIT WATCH (F2): CoreWeave, Oracle and SpaceX CDS and spreads have no
+# keyless source; a listed gap beside SR-16's neocloud line, with no by-hand path.
+credit_watch_gap: >-
+  AI credit (the CDS and bond spreads of CoreWeave, Oracle and SpaceX): NOT TRACKED
+  (item 65, F2: no keyless source; a listed gap beside SR-16's neocloud line, no
+  by-hand line)

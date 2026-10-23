@@ -253,6 +253,10 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     from . import gtm_block                                     # noqa: PLC0415
     subs = gtm_block.place_mechanics(subs, gtm_block.mechanics_subsections(
         st, cutoff, "weekly"))
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from . import batch14_b1_block                              # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, cutoff)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}

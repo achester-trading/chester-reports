@@ -103,6 +103,9 @@ class Fetcher:
         self.ua = ua
         self.sec_ua = sec_ua
         self.pause = pause
+        # A host's own longer pause (a source's `pause_seconds`: its robots.txt
+        # crawl-delay, a57 23 Oct 2026); never shorter than `pause`.
+        self.host_pause: dict[str, float] = {}
         self._last: dict[str, float] = {}
         self._robots: dict[str, Any] = {}
         self._open = opener or self._urlopen
@@ -114,10 +117,11 @@ class Fetcher:
 
     def _wait(self, host: str) -> None:
         last = self._last.get(host)
+        pause = max(self.pause, self.host_pause.get(host, 0.0))
         if last is not None:
             gap = time.monotonic() - last
-            if gap < self.pause:
-                time.sleep(self.pause - gap)
+            if gap < pause:
+                time.sleep(pause - gap)
         self._last[host] = time.monotonic()
 
     def get(self, url: str) -> bytes:
@@ -535,6 +539,9 @@ def _run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                 vs.record_run(run_id, s["id"], s["name"], "unreachable", why)
                 rep.update(state="unreachable", reason=why)
                 continue
+            hp = getattr(f, "host_pause", None)
+            if hp is not None and s.get("pause_seconds"):
+                hp[urllib.parse.urlsplit(s["url"]).netloc] = float(s["pause_seconds"])
             if not f.allowed(s["url"]):
                 rp = f.robots(s["url"])
                 state = "unreachable" if rp is None else "robots_disallowed"

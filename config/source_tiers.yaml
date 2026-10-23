@@ -91,6 +91,9 @@ tiers:
     - Nuveen
     - Bridgewater Associates
     - GMO
+    # Batch 14 item 65 (a57, 23 Oct 2026): a wealth manager's research, a desk of
+    # the voices scan (config/voices_sources.yaml carson_group).
+    - Carson Group
     - Federal Reserve Board
     - Federal Reserve Bank of San Francisco
     - Federal Reserve Bank of Dallas
