@@ -119,6 +119,7 @@ PY_VALIDATORS := \
 	tools/validate_batch12.py \
 	tools/validate_batch13.py \
 	tools/validate_a55_box_fixes.py \
+	tools/validate_b51_registry_html.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \

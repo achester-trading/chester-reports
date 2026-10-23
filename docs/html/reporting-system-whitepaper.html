@@ -81,6 +81,8 @@ details[open] summary.section-head { background: var(--navy-2); }
 .section-body em { color: var(--muted); }
 .section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
 .section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
 .section-body blockquote {
   margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
   color: var(--muted);
@@ -466,10 +468,11 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - <strong>Every row names its source.</strong> Each row carries a registered source id. A check lists any stored source string that is not registered, and any stored key the registry does not know.
 - <strong>Tiers decide ties.</strong> Where two sources hold the same series, the as-of read honours the source's tier.
 - <strong>A bad print is marked, never corrected.</strong> After each price and FRED pull, a check lists three things:
-  - an outlier: a new print past a declared number of standard deviations of its recent changes;
-  - a revision: a FRED value restated for the same date, listed and never flagged;
-  - a cross-source gap: the Treasury yield indices against FRED's yields, and the VIX against FRED's copy, past each pair's measured tolerance.</p>
-<p>The close prints the day's marks in its warnings table. A mark never blocks a report and never changes a value.</p>
+    - an outlier: a new print past a declared number of standard deviations of its recent changes;
+    - a revision: a FRED value restated for the same date, listed and never flagged;
+    - a cross-source gap: the Treasury yield indices against FRED's yields, and the VIX against FRED's copy, past each pair's measured tolerance.</p>
+<pre><code>The close prints the day's marks in its warnings table. A mark never blocks a report and never changes a value.
+</code></pre>
 <h3>2.7 Backups and the restore test</h3>
 <p>The nightly backup copies the database snapshot and the store's trees <strong>encrypted</strong>, through an rclone crypt remote on a separate Google account used only for backups. The sweep never syncs or deletes; retention is pruned on both sides. The report archive is in the sweep. Without its encryption settings the sweep exits rather than copying in the clear.</p>
 <p>Every Sunday a <strong>restore test</strong> pulls the newest snapshot back through the encrypted remote into a private directory. It checks the snapshot's integrity, compares its row count with the count the sweep recorded when it wrote it, and writes a status the morning heartbeat reads. A failed test, or none within eight days, turns the heartbeat's backup field red. The weekly test superseded the monthly restore drill of 14 October, which read the old plaintext remote; the drill is never enabled.</p>
@@ -706,8 +709,8 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - The Factor lines and the Rate machine summary.
 - The dealer retrospective with its figures.
 - The PPI and GDP lenses, and a surprise index that standardises each release by its own history:
-  - its FOMC leg is market-implied: the decision less what fed funds futures priced at the prior close;
-  - no other release's consensus is stored, so those legs print "no consensus".
+    - its FOMC leg is market-implied: the decision less what fed funds futures priced at the prior close;
+    - no other release's consensus is stored, so those legs print "no consensus".
 - The GTM tables and the crypto rows.
 - The Lab report, attached from the Alpha Lab.
 - The <strong>system-metrics block</strong>: uptime, feed completeness, incidents, model calls and withheld drafts, printed only as recorded.</p>
@@ -720,10 +723,10 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - the signal lines: the auction, the FOMC-week gap, the yen flag and the rally inside a bear, each only on its trigger;
 - the meme-drafts line;
 - <strong>the opening setup</strong>, under the prior close's dealer surface:
-  - the expected-movement gauge;
-  - three daily volatility lines (the VIX against realised volatility, the term structure's stress, and the short end's spike);
-  - "Largest OI builds, side unknown", with each build's estimated premium, its chance in the money and its context tags;
-  - two put-volume proxies, for SPY and SPX, each labelled no side.</p>
+    - the expected-movement gauge;
+    - three daily volatility lines (the VIX against realised volatility, the term structure's stress, and the short end's spike);
+    - "Largest OI builds, side unknown", with each build's estimated premium, its chance in the money and its context tags;
+    - two put-volume proxies, for SPY and SPX, each labelled no side.</p>
 <p>None of these says who opened a position, because the chains cannot tell. A pre-market line on the gauge, from the e-mini's overnight print, is ruled and not built on this chain (Appendix E).</p>
 <p><strong>The 12:30 slot</strong> is alert-only. After the 12:30 capture it evaluates a list of gates:
 - the dealer flip crossed by a confirmed margin;
@@ -2025,12 +2028,12 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p><em>So that the next draft can be checked against it. "Not built" means not on the second stitched chain; an item on a branch that merges later says so.</em></p>
 <p><strong>On branches that merge after the second chain.</strong>
 - <strong>On the third chain (session A's <code>a47-chain3</code>):</strong>
-  - the gauge's pre-market line;
-  - SPX's and SPCX's cells reading "awaiting the solver gate";
-  - the Monthly storyline writer's one revision;
-  - the crypto daily paragraph and its 12:30 leverage line, built behind a switch that is off;
-  - the S-2 and S-3 calibration ledgers;
-  - the retirement of the monthly restore drill's units.
+    - the gauge's pre-market line;
+    - SPX's and SPCX's cells reading "awaiting the solver gate";
+    - the Monthly storyline writer's one revision;
+    - the crypto daily paragraph and its 12:30 leverage line, built behind a switch that is off;
+    - the S-2 and S-3 calibration ledgers;
+    - the retirement of the monthly restore drill's units.
 - <strong>On the Alpha Lab's next branches:</strong> engine 6, the grammar search and its appendices (ST-L).</p>
 <p><strong>Decisions of 18 October that are plans.</strong>
 - <strong>The December vendor month:</strong> one month of FlashAlpha's Growth plan (or Alpha, for its history) beside one month of SpotGamma's Essential plan, judged on a page of the January Monthly.

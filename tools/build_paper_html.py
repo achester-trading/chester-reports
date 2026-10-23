@@ -174,9 +174,30 @@ def inline_svg(path, tag):
     return namespace_ids(svg, tag)
 
 
-def embed_figures(html, md_path, report):
-    """Replace <img src="../figures/..."> with the figure itself."""
-    n = [0]
+FIG_NUMBER = re.compile(r"\bFigure\s+(\d+)([a-z]?)\b")
+
+
+def figure_tag(caption, seen):
+    """A figure's id namespace, from its own number ("Figure 3" -> f03; "Figure
+    12b" -> f12b), unique across the whole edition (b51, 21 Oct 2026). The
+    counter used to restart in every section, so the Master Guide's five
+    figures all carried f01. A caption with no number, or a number already
+    used, takes the next free sequence tag."""
+    m = FIG_NUMBER.search(caption or "")
+    tag = f"f{int(m.group(1)):02d}{m.group(2)}" if m else None
+    if tag is None or tag in seen:
+        k = len(seen) + 1
+        while f"f{k:02d}" in seen or (tag and f"{tag}-{k}" in seen):
+            k += 1
+        tag = f"{tag}-{k}" if tag else f"f{k:02d}"
+    seen.add(tag)
+    return tag
+
+
+def embed_figures(html, md_path, report, seen=None):
+    """Replace <img src="../figures/..."> with the figure itself. `seen` is the
+    edition's set of figure tags, shared across its sections."""
+    seen = set() if seen is None else seen
 
     def sub(m):
         tag = m.group(0)
@@ -189,9 +210,8 @@ def embed_figures(html, md_path, report):
         if not target.exists():
             report.append(f"missing figure {src.group(1)}")
             return tag
-        n[0] += 1
         if target.suffix == ".svg":
-            art = inline_svg(target, f"f{n[0]:02d}")
+            art = inline_svg(target, figure_tag(caption, seen))
         else:
             data = base64.b64encode(target.read_bytes()).decode("ascii")
             art = ('<img alt="%s" src="data:%s;base64,%s">'
@@ -200,6 +220,51 @@ def embed_figures(html, md_path, report):
         return '<figure class="fig">%s%s</figure>' % (art, cap)
 
     return re.sub(r"<img\b[^>]*>", sub, html)
+
+
+# ------------------------------------------------------------------- lists
+# THE PAPERS ARE WRITTEN TO COMMONMARK (b51, 21 Oct 2026): a nested item sits
+# under its parent's content column, two or three spaces in. Python-Markdown
+# nests only at four, so those items rendered flat, or as literal "- " text
+# inside the parent. Each list line is re-indented to four spaces a level
+# before rendering; fenced code is left as written.
+LIST_ITEM = re.compile(r"^( *)([-*+]|\d{1,9}[.)])( +)(\S.*)?$")
+FENCE = re.compile(r"^ *(```|~~~)")
+
+
+def commonmark_lists(text):
+    out, stack, fence = [], [], False
+    for line in text.split("\n"):
+        stripped = line.lstrip(" ")
+        ind = len(line) - len(stripped)
+        if fence or FENCE.match(line):
+            if FENCE.match(line):
+                fence = not fence
+            out.append((" " * (4 * len(stack)) + stripped) if stack and ind >= stack[-1] else line)
+            continue
+        if not stripped:
+            out.append(line)
+            continue
+        while stack and ind < stack[-1]:
+            stack.pop()
+        m = LIST_ITEM.match(line)
+        if m:
+            out.append(" " * (4 * len(stack)) + stripped)
+            stack.append(ind + len(m.group(2)) + len(m.group(3)))
+        elif stack:
+            out.append(" " * (4 * len(stack)) + stripped)
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+# A "- [ ]" or "- [x]" item prints a checkbox mark, not the brackets.
+TASK = re.compile(r"<li>(\s*<p>)?\[([ xX])\]\s+")
+
+
+def task_marks(html):
+    return TASK.sub(lambda m: '<li class="task">%s<span class="box" aria-hidden="true">%s</span> '
+                    % (m.group(1) or "", "&#9745;" if m.group(2) in "xX" else "&#9744;"), html)
 
 
 # ------------------------------------------------------------------- render
@@ -284,6 +349,8 @@ details[open] summary.section-head { background: var(--navy-2); }
 .section-body em { color: var(--muted); }
 .section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
 .section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
 .section-body blockquote {
   margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
   color: var(--muted);
@@ -378,12 +445,13 @@ def build(md_path: Path, font: str | None = None) -> tuple[str, list[str]]:
 
     def render(t):
         md.reset()
-        return md.convert(t)
+        return task_marks(md.convert(commonmark_lists(t)))
 
     report: list[str] = []
+    seen: set[str] = set()
 
     def block(t):
-        return embed_figures(render(t), md_path, report)
+        return embed_figures(render(t), md_path, report, seen)
 
     if "\n".join(pre_lines).strip():
         secs.insert(0, ("Front matter", "\n".join(pre_lines)))

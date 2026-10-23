@@ -554,10 +554,75 @@ def staleness_allowance(metric_id: str) -> tuple[Optional[int], str]:
     return staleness_allowance_of(registry_entry(metric_id), metric_id)
 
 
+PUBLICATION_LAGS_PATH = REPO / "config" / "publication_lags.yaml"
+_LAGS: Optional[list[dict]] = None
+
+
+def publication_lags(path: Optional[Path] = None) -> list[dict]:
+    """config/publication_lags.yaml's families (b51, 21 Oct 2026), loaded once."""
+    global _LAGS
+    if path is not None:
+        import yaml  # noqa: PLC0415
+        return list((yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {})
+                    .get("families") or [])
+    if _LAGS is None:
+        try:
+            _LAGS = publication_lags(PUBLICATION_LAGS_PATH)
+        except OSError:
+            _LAGS = []
+    return _LAGS
+
+
+_FRED_IDS: Optional[dict[str, str]] = None
+
+
+def _fred_ids() -> dict[str, str]:
+    global _FRED_IDS
+    if _FRED_IDS is None:
+        from . import config  # noqa: PLC0415
+        _FRED_IDS = {f"fred.{s.key}": s.fred_id for s in config.FRED_PULL_SERIES}
+    return _FRED_IDS
+
+
+def publication_lag(e: dict, metric_id: str,
+                    families: Optional[list[dict]] = None) -> tuple[int, Optional[str]]:
+    """(sessions, family id) of the first family that matches the key: by its
+    FRED id or its store key, globbed, and by the entry's freq where the family
+    names one. (0, None) when none does."""
+    import fnmatch  # noqa: PLC0415
+    fams = publication_lags() if families is None else families
+    if not fams or not metric_id:
+        return 0, None
+    freq = str((e or {}).get("freq") or (e or {}).get("native_horizon") or "")
+    fid = _fred_ids().get(metric_id) if metric_id.startswith("fred.") else None
+    for f in fams:
+        if f.get("freq") and f["freq"] != freq:
+            continue
+        if (fid and any(fnmatch.fnmatchcase(fid, g) for g in f.get("fred_ids") or [])) \
+                or any(fnmatch.fnmatchcase(metric_id, g) for g in f.get("keys") or []):
+            return int(f.get("lag_sessions") or 0), f.get("id")
+    return 0, None
+
+
 def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int], str]:
     """The same rule over an entry already resolved (tools/check_store_registry.py
     resolves a registry of its own and reads it here, so the store check and the
-    reports' confidence cannot hold two staleness rules)."""
+    reports' confidence cannot hold two staleness rules).
+
+    A SOURCE'S PUBLICATION LAG (b51, 21 Oct 2026) is added to the cadence's
+    allowance where config/publication_lags.yaml names its family: the age of a
+    key is counted from its observation date, and a source that publishes a
+    week or two months after it is not stale for doing so."""
+    base, why = _cadence_allowance(e)
+    if base is None:
+        return base, why
+    lag, fam = publication_lag(e, metric_id)
+    if lag:
+        return base + lag, f"{why}, plus {lag} sessions' publication lag ({fam})"
+    return base, why
+
+
+def _cadence_allowance(e: dict) -> tuple[Optional[int], str]:
     hl = (e or {}).get("information_half_life")
     if hl == "until_next_release":
         freq = e.get("freq") or e.get("native_horizon")

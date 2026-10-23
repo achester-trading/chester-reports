@@ -81,6 +81,8 @@ details[open] summary.section-head { background: var(--navy-2); }
 .section-body em { color: var(--muted); }
 .section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
 .section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
 .section-body blockquote {
   margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
   color: var(--muted);
@@ -407,7 +409,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       </summary>
       <div class="section-body">
 <p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1888" role="img" aria-labelledby="t d">
-<title id="f01-t">Figure 2. The clock</title><desc id="f01-d">The box&#x27;s timers and the chat-side tasks on a 24-hour weekday dial, with the week and the month below. Generated from deploy/systemd and docs/master-guide/chat-tasks.yaml.</desc>
+<title id="f02-t">Figure 2. The clock</title><desc id="f02-d">The box&#x27;s timers and the chat-side tasks on a 24-hour weekday dial, with the week and the month below. Generated from deploy/systemd and docs/master-guide/chat-tasks.yaml.</desc>
 <style>
 .bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
 .line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
@@ -1124,7 +1126,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Purpose:</strong> to tell you what changed overnight against the last close's market state, before the open. It reads the state; it does not recompute it.</li>
 <li><strong>Horizon and books:</strong> Book C's day (the Doctrine's 0700 report) and Book B's brackets.</li>
 <li><strong>When and how long:</strong> weekdays 07:00, by email. No reading target is configured; it is short, about ten minutes.</li>
-<li><strong>The sections that matter most:</strong></li>
+<li><strong>The sections that matter most:</strong><ul>
 <li><strong>What changed</strong>, with every magnitude stamped with its percentile;</li>
 <li><strong>Market state</strong> and <strong>Contradictions</strong>: the three dials as the close left them;</li>
 <li><strong>Signal lines</strong> (auction, FOMC-week gap, yen flag, "rally inside a bear");</li>
@@ -1132,6 +1134,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Prior close — dealer surface</strong>, then the <strong>opening setup</strong>: the gauge (OS-2) with the <strong>pre-market line</strong> under it (ES's newest overnight bar in SPY's terms), the vol lines (OS-3), the largest OI builds (OS-9, side unknown; SPX and SPCX included, their chance cells "awaiting the solver gate"), the index puts (OS-4), and the level clusters (H6, pre-registered);</li>
 <li>the <strong>crypto paragraph</strong> (six computed lines), built behind a switch that ships <strong>off</strong> (<code>config/crypto_sources.yaml</code> <code>blocks.daily.enabled</code>): your yes turns it on;</li>
 <li>the <strong>meme drafts line</strong> in the header ("meme drafts awaiting review: n (refused: m)").</li>
+</ul>
+</li>
 <li><strong>Highest rung:</strong> flags and readings, and two audited model calls (the narrative scan and the ES read). It may write a story <strong>proposal</strong> to the narrative register, which waits for your confirm. "No figure here is a recommendation and nothing in this edition enters the decision register."</li>
 <li><strong>Not allowed:</strong> to recompute the market state, to draft a Book C packet or to write the register. <strong>Book C drafts are not built</strong>: there is no 0700 setup list in code.</li>
 <li><strong>What you do with it:</strong> read the dials and the volatile-day flag; note the gauge and the OI builds; confirm that open Book B brackets still make sense; if a story proposal appears, confirm or reject it later (your command). Then nothing until the close.</li>
@@ -1169,11 +1173,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Purpose:</strong> the week's read and Book B's candidates, for the Sunday sitting.</li>
 <li><strong>Horizon and books:</strong> <strong>Book B</strong> owns it; Book A for context; Book D through the addendum's book section.</li>
 <li><strong>When and how long:</strong> Sunday 05:00, email plus PDF. Target <strong>twenty minutes</strong>, 3,500 words, ten charts. The addendum: five minutes, 1,100 words, two charts, its own PDF on the same email.</li>
-<li><strong>The sections that matter most:</strong></li>
+<li><strong>The sections that matter most:</strong><ul>
 <li>the <strong>précis</strong> (its stance is written to the ledger) and "Changed since last Weekly";</li>
 <li><strong>positioning</strong> and <strong>mechanics</strong> (the dealer week, the scorecard rates, OS-8 and OS-10, the vendor line); <strong>plumbing and rates</strong> carries the bank-stress line (Batch 12);</li>
 <li><strong>ahead</strong> (earnings with OS-11);</li>
 <li><strong>the book</strong>: open decisions and drafts, rule breaks, Book Z (cash, SPY, 60/40), the attention line's three counts, and <strong>"Candidates for the sitting (paper)"</strong>: the Book B scanner's top ten, with the rest below.</li>
+</ul>
+</li>
 <li><strong>The addendum</strong> (nine sections: the read, tape, flows, mechanics, on-chain, narratives and attention, incidents and regulation, ahead, the book) is report-only. Its mNAV line carries item 49's one flag at 1.0. Before 1 November it builds as a dry run only.</li>
 <li><strong>Highest rung:</strong> <strong>candidate</strong> (Book B). Each candidate is written as a ledger forecast (<code>book_b_candidate</code>, p = 0.5 over 42 days) so it is graded even when you decline it. Each carries the draft terms: 0.75% risk, one to six weeks, a 15-session time stop.</li>
 <li><strong>Not allowed:</strong> to write the register (every candidate's <code>decision_id</code> is empty) or to print a restricted instrument.</li>
@@ -1246,7 +1252,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       </summary>
       <div class="section-body">
 <p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1278" role="img" aria-labelledby="t d">
-<title id="f01-t">Figure 3. The ladder</title><desc id="f01-d">The eleven rungs of trading output, from a stored observation to a rule change, with who may produce each and where it appears.</desc>
+<title id="f03-t">Figure 3. The ladder</title><desc id="f03-d">The eleven rungs of trading output, from a stored observation to a rule change, with who may produce each and where it appears.</desc>
 <style>
 .bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
 .line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
@@ -1557,7 +1563,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       </summary>
       <div class="section-body">
 <p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1156" role="img" aria-labelledby="t d">
-<title id="f01-t">Figure 4. The input map</title><desc id="f01-d">Eleven input families, each with the highest rung its output may reach, flow into the point-in-time store; the reports and the lab read the store.</desc>
+<title id="f04-t">Figure 4. The input map</title><desc id="f04-d">Eleven input families, each with the highest rung its output may reach, flow into the point-in-time store; the reports and the lab read the store.</desc>
 <style>
 .bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
 .line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}
@@ -1571,7 +1577,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
 </style>
 <rect class="bg" x="0" y="0" width="720" height="1156" rx="14"/>
-<defs><marker id="f01-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mute" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<defs><marker id="f04-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mute" d="M0,0 L10,5 L0,10 z"/></marker></defs>
 <text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 4. The input map</text>
 <text class="mute" x="24.0" y="72.0" font-size="16" text-anchor="start" font-weight="400">Families → the store → the reports. The rung is the most it may do.</text>
 <text class="ink" x="24.0" y="100.0" font-size="18" text-anchor="start" font-weight="700">Sources (and their highest rung)</text>
@@ -1580,73 +1586,73 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="mute" x="38.0" y="166.0" font-size="15" text-anchor="start" font-weight="400">FRED, 31 official and 37 external writers</text>
 <rect class="box" x="470" y="134" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="154.0" font-size="15" text-anchor="middle" font-weight="700">flag</text>
-<line class="line" stroke-width="3" x1="570" y1="148" x2="600" y2="148" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="148" x2="600" y2="148" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="186" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="212.0" font-size="17" text-anchor="start" font-weight="700">Market prices</text>
 <text class="mute" x="38.0" y="234.0" font-size="15" text-anchor="start" font-weight="400">the yfinance basket, IBKR truth, Massive</text>
 <rect class="box" x="470" y="202" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="222.0" font-size="15" text-anchor="middle" font-weight="700">flag</text>
-<line class="line" stroke-width="3" x1="570" y1="216" x2="600" y2="216" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="216" x2="600" y2="216" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="254" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="280.0" font-size="17" text-anchor="start" font-weight="700">Option chains, dealer engine</text>
 <text class="mute" x="38.0" y="302.0" font-size="15" text-anchor="start" font-weight="400">16:10, 09:45, 12:30 captures</text>
 <rect class="box" x="470" y="270" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="290.0" font-size="15" text-anchor="middle" font-weight="700">setup</text>
-<line class="line" stroke-width="3" x1="570" y1="284" x2="600" y2="284" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="284" x2="600" y2="284" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="322" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="348.0" font-size="17" text-anchor="start" font-weight="700">Vendor cross-checks</text>
 <text class="mute" x="38.0" y="370.0" font-size="15" text-anchor="start" font-weight="400">FlashAlpha writer: never a source</text>
 <rect class="box" x="470" y="338" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="358.0" font-size="15" text-anchor="middle" font-weight="700">none</text>
-<line class="line" stroke-width="3" x1="570" y1="352" x2="600" y2="352" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="352" x2="600" y2="352" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="390" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="416.0" font-size="17" text-anchor="start" font-weight="700">News, voices, narratives</text>
 <text class="mute" x="38.0" y="438.0" font-size="15" text-anchor="start" font-weight="400">06:15 voices scan; register</text>
 <rect class="box" x="470" y="406" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="426.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
-<line class="line" stroke-width="3" x1="570" y1="420" x2="600" y2="420" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="420" x2="600" y2="420" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="458" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="484.0" font-size="17" text-anchor="start" font-weight="700">Prediction markets</text>
 <text class="mute" x="38.0" y="506.0" font-size="15" text-anchor="start" font-weight="400">discovery, attention, disagreement; no packet</text>
 <rect class="box" x="470" y="474" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="494.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
-<line class="line" stroke-width="3" x1="570" y1="488" x2="600" y2="488" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="488" x2="600" y2="488" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="526" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="552.0" font-size="17" text-anchor="start" font-weight="700">The crypto layer</text>
 <text class="mute" x="38.0" y="574.0" font-size="15" text-anchor="start" font-weight="400">Tranche A writers, basket, addendum</text>
 <rect class="box" x="470" y="542" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="562.0" font-size="15" text-anchor="middle" font-weight="700">flag</text>
-<line class="line" stroke-width="3" x1="570" y1="556" x2="600" y2="556" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="556" x2="600" y2="556" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="594" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="620.0" font-size="17" text-anchor="start" font-weight="700">Social attention (X pilot)</text>
 <text class="mute" x="38.0" y="642.0" font-size="15" text-anchor="start" font-weight="400">Grok digest, 06:50 triage</text>
 <rect class="box" x="470" y="610" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="630.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
-<line class="line" stroke-width="3" x1="570" y1="624" x2="600" y2="624" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="624" x2="600" y2="624" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="662" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="688.0" font-size="17" text-anchor="start" font-weight="700">Meme layer (chester-meme)</text>
 <text class="mute" x="38.0" y="710.0" font-size="15" text-anchor="start" font-weight="400">packets → Book D drafts</text>
 <rect class="box" x="470" y="678" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="698.0" font-size="15" text-anchor="middle" font-weight="700">candidate</text>
-<line class="line" stroke-width="3" x1="570" y1="692" x2="600" y2="692" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="692" x2="600" y2="692" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="730" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="756.0" font-size="17" text-anchor="start" font-weight="700">The Alpha Lab</text>
 <text class="mute" x="38.0" y="778.0" font-size="15" text-anchor="start" font-weight="400">its own paper book</text>
 <rect class="box" x="470" y="746" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="766.0" font-size="15" text-anchor="middle" font-weight="700">evidence</text>
-<line class="line" stroke-width="3" x1="570" y1="760" x2="600" y2="760" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="760" x2="600" y2="760" marker-end="url(#f04-ah)"/>
 <rect class="pill" x="24" y="798" width="430" height="60" rx="10"/>
 <text class="ink" x="38.0" y="824.0" font-size="17" text-anchor="start" font-weight="700">By-hand inputs (rule 30)</text>
 <text class="mute" x="38.0" y="846.0" font-size="15" text-anchor="start" font-weight="400">only those ruled</text>
 <rect class="box" x="470" y="814" width="98" height="28" rx="14"/>
 <text class="onbox" x="519.0" y="834.0" font-size="15" text-anchor="middle" font-weight="700">reading</text>
-<line class="line" stroke-width="3" x1="570" y1="828" x2="600" y2="828" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="570" y1="828" x2="600" y2="828" marker-end="url(#f04-ah)"/>
 <rect class="panel" x="604" y="118" width="92" height="740" rx="12"/>
 <text class="ink" x="650.0" y="462.0" font-size="17" text-anchor="middle" font-weight="700">the</text>
 <text class="ink" x="650.0" y="486.0" font-size="17" text-anchor="middle" font-weight="700">point-</text>
 <text class="ink" x="650.0" y="510.0" font-size="17" text-anchor="middle" font-weight="700">in-time</text>
 <text class="ink" x="650.0" y="534.0" font-size="17" text-anchor="middle" font-weight="700">store</text>
-<line class="line" stroke-width="3" x1="650" y1="866" x2="650" y2="900" marker-end="url(#f01-ah)"/>
+<line class="line" stroke-width="3" x1="650" y1="866" x2="650" y2="900" marker-end="url(#f04-ah)"/>
 <text class="ink" x="24.0" y="914.0" font-size="18" text-anchor="start" font-weight="700">Consumers (they read the store)</text>
 <rect class="pill" x="24" y="928" width="328" height="42" rx="10"/>
 <text class="ink" x="40.0" y="955.0" font-size="17" text-anchor="start" font-weight="400">07:00 anchor</text>
@@ -1687,7 +1693,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </ul>
 <h3>3. Option chains and the dealer engine</h3>
 <ul>
-<li><strong>What:</strong></li>
+<li><strong>What:</strong><ul>
 <li>the <strong>16:10 settled capture</strong> (13 names with exposures, plus 4 capture-only names; same-day contracts excluded from the settled profile);</li>
 <li>the <strong>09:45 and 12:30 intraday captures</strong> (the 13 and Massive; open interest is the prior close's);</li>
 <li>the engine's <strong>GEX, DEX, VEX and CHEX</strong> by horizon, the walls, the flip, peak gamma and max pain (<code>tools/exposure_compute.py</code>);</li>
@@ -1696,6 +1702,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>the dealer captures stored</strong> (a50-dealer-store, decision 9): each computed profile written to the store (<code>altdata/dealer_store.py</code>) by the capture and the EOD pass, never fatal, a vendor-supplied profile refused; the history from the profiles on disk is your box command;</li>
 <li><strong>the 09:45 bars</strong> (decision 10): SPY's, QQQ's and IWM's 5-minute bars stored at about 09:47 by the open note's fetch, which engine 7 reads going forward;</li>
 <li>Batch 11's additions: the like-for-like gauge, the per-name volatility table, the earnings event-only implied move, the OI-build floor (SPX in the index floor, R4) and the share-of-volume column.</li>
+</ul>
+</li>
 <li><strong>The sign convention, stated once:</strong> "dealers are assumed long calls and short puts, so call gamma counts positive and put gamma negative. An assumption about who holds the options, not an observation; under the opposite reading every net sign inverts." Every dealer table is stamped "inferred, not observed", and the regime word prints only where net-to-gross is at least 0.10.</li>
 <li><strong>The most it may do:</strong> setup proposals in the close's dealer block (rung 5, proposed); flag words (pinned, held, amplified, dampened).</li>
 <li><strong>Never:</strong> writes the register; becomes a promoted rate before the scorecard's test window.</li>
@@ -2430,11 +2438,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <ul>
 <li><strong>Size untested and accruing signals at the Card's minimum, or not at all.</strong> The minimum is the Card's standard risk for the book (0.75% for Book B, 0.35% for Book C, 0.25% at most for Book D), never the exceptional tier.</li>
 <li><strong>Only rungs 5 to 7 lead to trades, and only through packets.</strong> A reading, lens or flag is context for a packet; it never sizes one.</li>
-<li><strong>The score is rolling thirteen-week expectancy by book and by regime, plus the count of rules broken, benchmarked over four quarters against Book A alone and a static 60/40</strong> (the Card). What prints today:</li>
+<li><strong>The score is rolling thirteen-week expectancy by book and by regime, plus the count of rules broken, benchmarked over four quarters against Book A alone and a static 60/40</strong> (the Card). What prints today:<ul>
 <li><strong>expectancy:</strong> the rolling thirteen-week cut, by book, by the regime stamped at entry and by each dial stamped at entry (Volatility and Gamma, from B49; an earlier decision prints "not stamped"), in ruled R with n and the interval first: at the Weekly's top and beside the Monthly's overall figure (built, b48-scoreboard; measurement only; "accruing (n=k)" below ten);</li>
 <li><strong>rule breaks:</strong> the Weekly's top prints the week's and the total;</li>
 <li><strong>heat and net exposure:</strong> at the Weekly's top, from the register's heat view over the open decisions (built, b48-scoreboard);</li>
 <li><strong>benchmarks:</strong> Book Z marks three static ledgers (cash, SPY, and a 60/40 of SPY and AGG). The active books and <strong>Book A alone</strong> are set against the 60/40 over four quarters, in percentages (built, b48-scoreboard); a book with an open decision prints "not built", because the register cannot mark an open position.</li>
+</ul>
+</li>
 </ul>
 <p>Deeper: the Reader's Guide Part IX (how the system learns), 9.4 (the dealer scorecard) and 9.9 (the ledgers); Evidence and Inference; Base Rates.</p>
 <hr />
@@ -2451,12 +2461,14 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p><strong>Every figure below is invented for illustration.</strong> None is a real position, a real price or a real result.</p>
 <ol>
 <li><strong>Why it was drafted.</strong> Sunday's Weekly prints, among its ten Book B candidates, a reclaim setup in an index ETF (call it ETF-X). The Book B scanner found it on Friday's close: price back above a level it lost, with the trend tell on. The setup's base rate is "not yet" (it is accruing), so the candidate says so. The dials read Expansion, Normal volatility, Positive gamma; the candidate is inside its regime.</li>
-<li><strong>The packet.</strong> At the sitting you select it, one of your three. The packet carries:
-   - the <strong>edge</strong>: trend continuation after a failed breakdown; the <strong>counterparty</strong>: late shorts covering;
-   - the <strong>instrument</strong>: the ETF itself (the thesis and the instrument are two decisions, Doctrine Rule 11; Options as Expression is where an option would be weighed);
-   - the <strong>size</strong>: 0.75% of the account at risk (the Card's standard for Book B), because the setup is untested;
-   - the <strong>exit, written first</strong>: the invalidation at the reclaimed level less one ATR, a 15-session time stop, and a profit plan at 2R;
-   - the <strong>regime stamp</strong>: the three dials and the volatile-day flag off. As built, the order gate stamps the Doctrine regime from the Macro dial and, from B49 (20 Oct 2026), the Volatility and Gamma dials as the newest stored object holds them, into the decision's record at entry, and from the fourth chain the volatile-day flag as the day's live edition printed it (the open note's settled flag, else the anchor's), never computed.</li>
+<li><strong>The packet.</strong> At the sitting you select it, one of your three. The packet carries:<ul>
+<li>the <strong>edge</strong>: trend continuation after a failed breakdown; the <strong>counterparty</strong>: late shorts covering;</li>
+<li>the <strong>instrument</strong>: the ETF itself (the thesis and the instrument are two decisions, Doctrine Rule 11; Options as Expression is where an option would be weighed);</li>
+<li>the <strong>size</strong>: 0.75% of the account at risk (the Card's standard for Book B), because the setup is untested;</li>
+<li>the <strong>exit, written first</strong>: the invalidation at the reclaimed level less one ATR, a 15-session time stop, and a profit plan at 2R;</li>
+<li>the <strong>regime stamp</strong>: the three dials and the volatile-day flag off. As built, the order gate stamps the Doctrine regime from the Macro dial and, from B49 (20 Oct 2026), the Volatility and Gamma dials as the newest stored object holds them, into the decision's record at entry, and from the fourth chain the volatile-day flag as the day's live edition printed it (the open note's settled flag, else the anchor's), never computed.</li>
+</ul>
+</li>
 <li><strong>Your approval and the register write.</strong> You approve it (one of seven approvals this week) and record it with the register's command, which is yours alone. The register checks it at entry: every required field present, the instrument not restricted.</li>
 <li><strong>The paper book.</strong> It is paper today; live trading waits for the IBKR gates.</li>
 <li><strong>The 07:00 anchor</strong> on Monday confirms the bracket still stands against the overnight move; <strong>the close</strong> records the day.</li>
@@ -2510,42 +2522,42 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p><strong>In three lines.</strong> This is the as-built version of the Doctrine's operating rhythm (6.5). The Doctrine's 10:00 report does not exist; the 09:50 open note takes its role (built; dry runs until 26 October), and the 12:30 alert has no veto right. The as-built rhythm comes to about two and a half to three hours a week, inside the Doctrine's three to four.</p>
 <h3>Every trading day</h3>
 <ul>
-<li>[ ] <strong>06:50, optional, one minute:</strong> the X triage push. Attention only; never act on it.</li>
-<li>[ ] <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day flag (four arms, the gap provisional); the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list. <em>Off until your yes:</em> the crypto paragraph (built behind a switch that ships off).</li>
-<li>[ ] <strong>09:50, optional, two minutes:</strong> the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.</li>
-<li>[ ] <strong>12:30, only if it arrives, two minutes:</strong> read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.</li>
-<li>[ ] <strong>16:45, five minutes:</strong> the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.</li>
-<li>[ ] <strong>21:30 Sunday to Thursday, optional, one minute (three on Sunday):</strong> the evening note (once you enable its timer). Never act on it at night; the 07:00 anchor re-reads all of it.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>06:50, optional, one minute:</strong> the X triage push. Attention only; never act on it.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day flag (four arms, the gap provisional); the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list. <em>Off until your yes:</em> the crypto paragraph (built behind a switch that ships off).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>09:50, optional, two minutes:</strong> the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>12:30, only if it arrives, two minutes:</strong> read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>16:45, five minutes:</strong> the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>21:30 Sunday to Thursday, optional, one minute (three on Sunday):</strong> the evening note (once you enable its timer). Never act on it at night; the 07:00 anchor re-reads all of it.</li>
 </ul>
 <h3>Sunday, 45 to 60 minutes</h3>
 <ul>
-<li>[ ] The Weekly: the précis, what changed, the read and the book.</li>
-<li>[ ] The scorecard rates (they say "no rate is a decision" until the sample is in).</li>
-<li>[ ] <strong>Book B:</strong> select up to three candidates, within the attention budget of seven approvals a week. Write each packet, exit first.</li>
-<li>[ ] Post-mortems on the week's packets, against the six questions.</li>
-<li>[ ] The Digital Assets addendum (from 1 November).</li>
-<li>[ ] The lab line.</li>
-<li>[ ] Saturday's lab brief and the crypto tech scan (read on Saturday or Sunday).</li>
-<li>[ ] Note the week's tier-1 events; confirm heat and net exposure, the first two lines at the top of the Weekly (b48-scoreboard).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Weekly: the précis, what changed, the read and the book.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The scorecard rates (they say "no rate is a decision" until the sample is in).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>Book B:</strong> select up to three candidates, within the attention budget of seven approvals a week. Write each packet, exit first.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> Post-mortems on the week's packets, against the six questions.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Digital Assets addendum (from 1 November).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The lab line.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> Saturday's lab brief and the crypto tech scan (read on Saturday or Sunday).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> Note the week's tier-1 events; confirm heat and net exposure, the first two lines at the top of the Weekly (b48-scoreboard).</li>
 </ul>
 <h3>The first weekend of the month, 90 minutes</h3>
 <ul>
-<li>[ ] The Monthly.</li>
-<li>[ ] The monthly sitting: read the Macro dial; set <strong>Book A's stance within its band</strong>; approve the rebalance packet.</li>
-<li>[ ] Rulings on the 25th's signal scan and the reading watch.</li>
-<li>[ ] The ledger by book and regime. <em>Partly built:</em> the Monthly prints expectancy across all graded decisions, not yet by book and regime.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Monthly.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The monthly sitting: read the Macro dial; set <strong>Book A's stance within its band</strong>; approve the rebalance packet.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> Rulings on the 25th's signal scan and the reading watch.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The ledger by book and regime. <em>Partly built:</em> the Monthly prints expectancy across all graded decisions, not yet by book and regime.</li>
 </ul>
 <h3>Quarterly</h3>
 <ul>
-<li>[ ] The Alternative Assets Quarterly (from January 2027).</li>
-<li>[ ] The JPM Guide to the Markets read (the 6th of January, April, July, October).</li>
-<li>[ ] The lab's quarterly page.</li>
-<li>[ ] The change ladder's quarterly tier (signal weights, panels, modifiers' rights).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Alternative Assets Quarterly (from January 2027).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The JPM Guide to the Markets read (the 6th of January, April, July, October).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The lab's quarterly page.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The change ladder's quarterly tier (signal weights, panels, modifiers' rights).</li>
 </ul>
 <h3>Event-driven</h3>
 <ul>
-<li>[ ] The MSTR / MSCI watch, weekdays 2–30 November and 1 December.</li>
-<li>[ ] Earnings in the Weekly's Ahead; volatility events; FOMC and refunding weeks (the anchor's signal lines).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The MSTR / MSCI watch, weekdays 2–30 November and 1 December.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> Earnings in the Weekly's Ahead; volatility events; FOMC and refunding weeks (the anchor's signal lines).</li>
 </ul>
 <h3>What not to do</h3>
 <ul>
@@ -2697,7 +2709,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       </summary>
       <div class="section-body">
 <p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1408" role="img" aria-labelledby="t d">
-<title id="f01-t">Figure 5. The library map</title><desc id="f01-d">The 27 papers of the library in four groups by the decisions they support, each with the books (A to D) it serves. Generated from the library guide&#x27;s roster.</desc>
+<title id="f05-t">Figure 5. The library map</title><desc id="f05-d">The 27 papers of the library in four groups by the decisions they support, each with the books (A to D) it serves. Generated from the library guide&#x27;s roster.</desc>
 <style>
 .bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
 .line{stroke:#9aa5b4}.grid{stroke:#d5dbe3}.box{fill:#0f5c9e}.chat{fill:#c06a12}

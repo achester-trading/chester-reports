@@ -269,9 +269,15 @@ def group_e(store) -> None:
           "and NOT zero, which would claim it was measured and did not move")
     check(d["delta_20d"] is not None,
           f"while its 20-session change IS measured ({d['delta_20d']})")
-    check(d["staleness_allowance_sessions"] == derived.FREQ_SESSIONS["monthly"],
-          f"and its staleness allowance is the monthly cadence, not the daily "
-          f"one ({d['staleness_allowance_sessions']} sessions)")
+    # b51 (21 Oct 2026): plus its family's publication lag (config/
+    # publication_lags.yaml; FRED's monthly releases), still never the daily one.
+    lag, fam = derived.publication_lag(derived.registry_entry("fred.core_pce"),
+                                       "fred.core_pce")
+    check(d["staleness_allowance_sessions"] == derived.FREQ_SESSIONS["monthly"] + lag
+          and fam == "fred_monthly_release"
+          and d["staleness_allowance_sessions"] > derived.FREQ_SESSIONS["daily"],
+          f"and its staleness allowance is the monthly cadence plus its release's "
+          f"lag ({fam}), not the daily one ({d['staleness_allowance_sessions']} sessions)")
 
 
 def group_f(store) -> None:
