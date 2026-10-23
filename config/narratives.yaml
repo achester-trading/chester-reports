@@ -488,3 +488,39 @@ proposals:
       comparison: down
       quorum: 1
       horizon_days: 180
+
+  gse_mbs_purchase_floor:
+    name: Mortgage-bond purchases as a floor under house prices
+    direction: >-
+      Purchases of mortgage bonds through Fannie Mae and Freddie Mac, instructed
+      to force mortgage rates lower, keep a housing market at record real prices
+      from correcting: the mortgage rate and its spread over the 10-year fall,
+      and the house-price-decline watch is held off by policy.
+    proposed_by: >-
+      session A, as drafted from the Batch 14 change order item 69 (filed as 69;
+      written as 62). Tag, as F6 rules it: verified (announcement of 8 Jan
+      2026); the post's source is a promoter (an X account, Batch 14's
+      promoter tag). Primary check: no FHFA news release or statement on the
+      purchases was found for Dec 2025 to Feb 2026; the date and terms rest on
+      the announcement as reported that day and the FHFA director's confirmation
+      that Fannie Mae and Freddie Mac would make the purchases. The size and pace
+      actually bought would be the GSE retained-portfolio line, which is a
+      listed gap. Committed 21 Oct 2026 as PROPOSED; confirming or rejecting is
+      the operator's
+    linked_dimensions: {rates: "-"}
+    linked_instruments: [fred.mortgage_30y, fred.yield_10y]
+    prediction_market_contracts: []
+    evidence:
+      # The measure is the housing block's mortgage spread over the 10-year
+      # (Batch 14 item 69); the store answers PMMS itself, weekly, so a fall over
+      # the next four releases at or beyond its 10th percentile counts FOR.
+      series_moves:
+        fred.mortgage_30y: {sign: "-", horizon: 4, percentile: 10, max_age_sessions: 10}
+    implied_outcome:
+      claim: >-
+        Freddie Mac's 30-year PMMS rate (FRED MORTGAGE30US) is lower at the
+        horizon than when the forecast was emitted.
+      metrics: [fred.mortgage_30y]
+      comparison: down
+      quorum: 1
+      horizon_days: 90

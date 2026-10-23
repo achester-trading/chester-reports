@@ -10380,6 +10380,22 @@ metrics:
     trigger_eligible: false
     description: >-
       Cyclically adjusted P/E (P/E10).
+  shiller.real_home_price:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-21"
+    description: >-
+      Shiller's real home price index, 1890 = 100 (Fig3-1.xls, Irrational
+      Exuberance's Figure 3.1 as updated by the author): annual 1890-1952, monthly
+      from January 1953. Batch 14 item 69's percentile since 1890 (a56).
   worldbank.cmo_total:
     source: worldbank_cmo
     mechanism_group: commodity_prices
@@ -18241,6 +18257,7 @@ families:
   shfe.warrants_t: quantity
   shiller.cape: ratio
   shiller.cpi: price
+  shiller.real_home_price: price
   shiller.gs10: rate
   shiller.sp_dividend: price
   shiller.sp_earnings: price
@@ -18537,6 +18554,7 @@ long_windows:
 # stays strict. check_registry holds every kind to the vocabulary and every key
 # to a registered series.
   shiller.cape: full
+  shiller.real_home_price: full
   index.forward_pe: full
   yf.forward_pe: full
 series_kinds:
