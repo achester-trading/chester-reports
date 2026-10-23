@@ -56,6 +56,30 @@ most_active:
     nothing: one table in Mechanics after the vendor line, no chart and no
     paragraph, so the Weekly's chart cap and word budget are unchanged
 
+# OS-12 -- relative options volume (signal-triage Batch 13, item 61, ruled 20 Oct
+# 2026; daily_cascade/relative_volume.py). Each name's session options volume
+# against its trailing average; report-only, volume with no side.
+relative_volume:
+  window: 20                 # RULED (D2): the trailing 20-session average
+  # RULED (D2): at least 1.5 times the average. Provisional and session-set,
+  # frozen for 30 days, then reviewed.
+  threshold: 1.5
+  label: "session-set, provisional, frozen 30 days from 2026-10-20"
+  max_rows: 5                # RULED: the close prints flagged names only, five rows at most
+  earnings_sessions: 10      # RULED: a report within 10 sessions is shown (OS-11)
+  # SESSION-SET (D4): the flag day's flags are recomputed as of this close cutoff
+  # (ET) for the next morning's tag and the next close's line, so both match the
+  # table the close printed (the close writes the day's volume rows by then).
+  close_cutoff_et: "16:45"
+  # SESSION-SET (D4): a flagged name "became an OI build" when OS-9 finds at least
+  # one build for it, at or over its floor (oi_builds.floor), on the pair made of
+  # the flag day's settled capture and the next session's.
+  became_build: "at least one OS-9 build at or over the name's floor, on the flag day's and the next session's captures"
+  displaces: >-
+    nothing: one data table among the close's detail tables (flagged names only,
+    outside the word budget), one tag in the anchor's OS-9 table, one data line at
+    the next close and one Weekly table; no chart and no paragraph
+
 # OS-11 -- the earnings rows' pricing, in the Ahead matrix.
 earnings:
   # Batch 11 item 57: up to eight reactions, n printed; the word on the median of

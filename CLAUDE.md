@@ -780,6 +780,25 @@ value. The numbers live in `config/data_quality.yaml`, each with its reason.
 `tools/validate_outliers.py` holds the marks, the source refusal and the tier
 rule; `tools/validate_security_master.py` group M holds the basket.
 
+**Relative options volume is a flag, never a side (OS-12, Batch 13 item 61, 20 Oct
+2026).** `daily_cascade/relative_volume.py` divides each of the 19 names' session
+options volume (`chain.options_volume`) by its trailing 20-session average,
+"provisional (n sessions)" under 20, and flags at 1.5x (`config/opening_setup.yaml`
+`relative_volume`, session-set and provisional, frozen 30 days from 2026-10-20).
+It prints in four places:
+- the 16:45 close's detail tables, after `chain_metrics.record_session` (five rows
+  at most);
+- the 07:00 anchor's OS-9 tag, "volume flag yesterday";
+- the next close's Mechanics line, against OS-9's builds on the two captures;
+- the Weekly's flags per name.
+
+The tag and the line recompute the flag as of the flag day's 16:45 cutoff; no
+flag is stored. Every row says "volume, no side". The OS-12c ledger is
+pre-registered (`docs/ledgers/relative-volume-preregistration-2026-10.md`). The
+flat-file backfill's daily volume joins under `flatfile_history`'s dated relative
+tolerance, beside A48's four, which are unchanged. `tools/validate_batch13.py`
+holds it.
+
 **The volume profile is data, never a claim (VP-1, 14 Oct 2026).**
 `altdata/volume_profile.py` is the one module that bins volume by price, and every
 reader calls it: the level list (POC, VAH and VAL of six windows for spy, qqq and

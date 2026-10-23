@@ -1071,6 +1071,22 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                 import logging                                  # noqa: PLC0415
                 logging.getLogger(__name__).warning(
                     "the cluster outcome line faulted", exc_info=True)
+        # BATCH 13 ITEM 61 (OS-12, D4; a54): what became of yesterday's flagged
+        # volume -- the prior session's flags recomputed as of its close cutoff,
+        # against OS-9's builds on the two sessions' captures. A Mechanics item
+        # (data, outside the word budget); nothing when yesterday flagged nothing.
+        if built.get("mechanics") is not None:
+            try:
+                from . import relative_volume as _rv            # noqa: PLC0415
+                _prev = session.previous_trading_session(
+                    dt.date.fromisoformat(str(p["session"])[:10])).isoformat()
+                _ln = _rv.next_close_line(st, _prev, str(p["session"])[:10])
+                if _ln:
+                    built["mechanics"]["items"].append(item("mech:os12_outcome", _ln, 3))
+            except Exception:                                   # noqa: BLE001
+                import logging                                  # noqa: PLC0415
+                logging.getLogger(__name__).warning(
+                    "the OS-12 outcome line faulted", exc_info=True)
         from altdata import crypto_blocks                       # noqa: PLC0415
         if built.get("positioning") is not None and crypto_blocks.daily_enabled():
             built["positioning"].setdefault("subsections", []).append(

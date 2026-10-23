@@ -305,6 +305,15 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             chain = (chain_metrics.readings(sess) if dry_run
                      else chain_metrics.record_session(sess, st))
             report["chain_readings"] = chain
+            # OS-12 (Batch 13 item 61, a54): the relative-volume table, read now
+            # that the session's volume rows are stored (the sections were built
+            # before them); it prints among the detail tables, as of the 16:45
+            # cutoff the next morning's tag and the next close's line recompute.
+            try:
+                from . import relative_volume as _rv            # noqa: PLC0415
+                report["_os12"] = _rv.close_table(st, sess, _rv.close_cutoff(sess))
+            except Exception:                                   # noqa: BLE001
+                log.warning("the OS-12 table faulted", exc_info=True)
             cur = ((pin_log.load_computed(date=sess) or {}).get("SPY") or {})
             card = scorecard_row(p, book, bst, (prof.get("overall") or {}), cur)
             card["atm_iv_30d"] = (chain.get("atm_iv_30d") or {}).get("iv_pct")
@@ -367,6 +376,11 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
     ref = (mis.get("data") or {}).get("_move_screen_reference")
     if ref and ref.get("rows"):
         ed["detail"].append({"title": "Moves past 2.5σ", "table": ref})
+    # OS-12's table (Batch 13 item 61): flagged names only, five rows at most; data,
+    # outside the word budget. Absent on a session with no flag.
+    os12 = report.pop("_os12", None)
+    if os12:
+        ed["detail"].append(os12)
     # THE FORMATTING PASS (T2.5 item 6), over every string the edition prints.
     from . import readability                                   # noqa: PLC0415
     readability.polish_edition(ed, charts)
