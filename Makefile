@@ -117,6 +117,7 @@ PY_VALIDATORS := \
 	tools/validate_a50_dealer_store.py \
 	tools/validate_b48_scoreboard.py \
 	tools/validate_batch12.py \
+	tools/validate_batch14_b1.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \

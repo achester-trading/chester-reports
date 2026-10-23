@@ -240,7 +240,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and twenty-eight code gates (one hundred and twenty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty-nine code gates (one hundred and twenty-six Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1091,6 +1091,33 @@ flag turns on. Item 60's forward-EPS legs are listed gaps while
 both branches). The hyperscaler P/E dispersion (`altdata/pe_dispersion.py`)
 prints with the Monthly's index decomposition. `tools/validate_batch12.py` holds
 it.
+
+**The speed flag's attribution and the fragility flag are reports and a flag, never
+a regime (Batch 14 items 65 and 71, a57, 23 Oct 2026; merges after the 1 Nov
+Monthly).** On a day SR-35's 10-year companion prints, `altdata/speed_attribution.py`
+splits the 10-year's move into expected short rates and the term premium by KW and
+ACM, each read only when its input for the day is stored (F5: "awaiting"
+otherwise). The close prints it in Mechanics after item 52's block and stores
+`rates.speed_event_ledger`; the EOD pass's `resolve` writes the attribution and
+the outcomes as they land. `altdata/ai_trade.py` carries:
+- the AI-bottleneck PPI line, in item 46's inflation block (Monthly);
+- AIQ against SPXT, labelled proxy, after item 31's concentration table;
+- the AI-credit gap beside SR-16's neocloud line.
+
+`altdata/fragility.py` is item 71's panel (`config/fragility.yaml`):
+- SPY's Amihud measure and range per volume, with ES depth "not tracked";
+- margin debt and its share of Z.1's equity market value;
+- the leveraged-ETF rebalance over ProShares' seven;
+- 6b's stored dealer gamma.
+
+Its flag is the Amihud stand-in at its 90th with forced flow above its 90th: flag
+rights only. Its lens is a report-only row in item 52's table, and its line sits
+in item 45's levels read. `daily_cascade/batch14_b1_block.py` lays both out.
+Both ledgers are pre-registered:
+- ST-R6.65a: INSUFFICIENT, n 28;
+- ST-R6.71d: FAIL, n 2965.
+
+`tools/validate_batch14_b1.py` holds it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
