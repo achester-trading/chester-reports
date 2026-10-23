@@ -13,8 +13,8 @@ updated: 2026-10-23
 # prints it beside these two).
 yield_key: fred.yield_10y
 models:
-  - {id: kw, label: "Kim-Wright", key: fred.term_premium_kw}
-  - {id: acm, label: "ACM", key: acm.term_premium_10y}
+  - {id: kw, label: "KW (Federal Reserve Board)", key: fred.term_premium_kw}
+  - {id: acm, label: "ACM (New York Fed)", key: acm.term_premium_10y}
 
 # F5: a model is read only when its observation ON the flag day is stored; a
 # model without one is "awaiting", and with none of them the attribution prints
