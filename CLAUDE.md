@@ -145,7 +145,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    116 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    124 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -759,6 +759,28 @@ dry run first, backup made and checked first (the operator's, on the box).
 `tools/build_paper_html.py` renders CommonMark's two- and three-space nested
 lists, prints a checkbox for `- [ ]`, and namespaces each figure's ids by its own
 number. `tools/validate_b51_registry_html.py` holds it.
+
+**Batch 14, Part A2: the AI capex chain and the loosening leg (items 63 and 66,
+ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
+- **Item 63.** `config/capex_chain.yaml` holds BNP Paribas's $100 of AI capex
+  (August 2026) as a standing, dated reference table with BNP's caveat, and each
+  bucket's keyless proxies with their reasons (SMH; NVDA, AVGO, MU, AMD; GRID with
+  XLU; ANET; VRT; PAVE; ASML for lithography; the single names are
+  `yfinance_source.CAPEX_CHAIN_SYMBOLS`, not earnings names).
+  `altdata/capex_chain.py` prints the table in the Monthly's slow layers (Factor I)
+  and the relative line in what's priced: each bucket against SPY over three
+  months, lead to lag, beside the hyperscalers' filed capex (EDGAR); guidance is
+  not tracked.
+- **Item 66.** `altdata/transmission.py`: the wealth-effect impulse (Z.1's household
+  equity share times SPX on the year; between releases the share is marked to SPX,
+  labelled, ICI's proxy being refused) and the net-transmission line, the
+  tightening legs (items 34, 36, 41) beside it, each scaled on its own and never
+  weighted or summed, in the Monthly's Plumbing & rates. Its ledger, ST-R6.66c, is
+  pre-registered (`docs/ledgers/wealth-effect-preregistration-2026-10.md`, held by
+  SHA-256); the laptop first edition FAILs (n 65).
+- JDI Research's own feed joins the voices scan (F4).
+
+`tools/validate_batch14_a2.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store

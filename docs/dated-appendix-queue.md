@@ -158,3 +158,21 @@ December 2025 to February 2026 carry no release on the purchases, so the date an
 terms are confirmed against the day's reporting and the director's own post, not
 against an FHFA release; the GSE documents above are primary for the purchases
 but were not machine-readable here, so no figure from them is quoted.*
+
+## For XV, Equities: A Structural Framework, its AI-rings section (Batch 14 item 63)
+
+The order adopts BNP Paribas's capex-chain weights "as a standing reference table
+in Factor I and in the Equities paper's AI-rings section, dated August 2026". The
+paper's body is not edited (b52); the table stands in `config/capex_chain.yaml` and
+prints in the Monthly's slow layers (Factor I), and this entry is the paper's
+citation until its next revision.
+
+> *Dated August 2026 (BNP Paribas Equity Research, as published by a16z).* Of an
+> illustrative $100 of AI capex: semiconductors $50 (accelerators 25, memory 15,
+> CPUs and server production 10), power $20 (grid and independent generation 10,
+> distribution 6.5, on-site routing 3.5), networking $15, cooling $7.5, facilities
+> and construction $7.5; wafer-fab equipment about $8 of the semis share, roughly
+> half of it lithography. BNP calls the weights high-level estimates: an
+> illustrative split of one dollar, not a measurement. Half of every capex dollar
+> stays with the chipmakers; power is the second-largest bucket and the slowest to
+> build.

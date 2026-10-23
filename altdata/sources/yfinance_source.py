@@ -250,6 +250,19 @@ SYMBOLS: dict[str, str] = {
     # a name added here needs a backfill (tools/backfill_prices.py) before its beta
     # reads anything.
     "NVDA": "mkt_nvda",
+    # SIGNAL-TRIAGE BATCH 14, ITEM 63 (b52-batch14-a2, 21 Oct 2026): the AI capex
+    # chain's bucket proxies (config/capex_chain.yaml, each with its reason): SMH
+    # for semis, MU memory, AMD CPUs, GRID power equipment (with XLU), ANET
+    # networking, VRT cooling, PAVE construction, ASML lithography. Each needs
+    # tools/backfill_prices.py before its history reads.
+    "SMH": "mkt_smh",
+    "MU": "mkt_mu",
+    "AMD": "mkt_amd",
+    "GRID": "mkt_grid",
+    "ANET": "mkt_anet",
+    "VRT": "mkt_vrt",
+    "PAVE": "mkt_pave",
+    "ASML": "mkt_asml",
     # P5-B, EL-3: BOOK Z'S BOND LEG. The 60/40 benchmark is 60% SPY / 40% AGG,
     # and a ledger marked from the store needs AGG's closes in it. Like NVDA, a
     # name added here needs tools/backfill_prices.py before its history reads.
@@ -316,6 +329,12 @@ EARNINGS_SYMBOLS: frozenset[str] = frozenset({
     "AAPL", "ABBV", "AMZN", "AVGO", "BAC", "BRK-B", "C", "COST", "GOOG", "GOOGL",
     "GS", "HD", "JNJ", "JPM", "LLY", "MA", "META", "MS", "MSFT", "NFLX", "NVDA",
     "ORCL", "PG", "TSLA", "UNH", "V", "WFC", "WMT", "XOM"})
+
+# THE CAPEX CHAIN'S SINGLE NAMES (b52, Batch 14 item 63): equities in the basket
+# that are NOT earnings names. The Security Master's gate holds the basket's
+# equities to EARNINGS_SYMBOLS | CAPEX_CHAIN_SYMBOLS, so a proxy is not quietly
+# made an earnings name.
+CAPEX_CHAIN_SYMBOLS: frozenset[str] = frozenset({"MU", "AMD", "ANET", "VRT", "ASML"})
 
 # The eleven sectors, in the order the breadth reading uses them. Named here
 # because it is a property of this basket, and regime's config points at it.

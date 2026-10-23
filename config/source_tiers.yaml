@@ -91,6 +91,9 @@ tiers:
     - Nuveen
     - Bridgewater Associates
     - GMO
+    # Batch 14 item 66 (b52, 21 Oct 2026): independent research, a desk of the
+    # voices scan (config/voices_sources.yaml jdi_research).
+    - JDI Research
     - Federal Reserve Board
     - Federal Reserve Bank of San Francisco
     - Federal Reserve Bank of Dallas
