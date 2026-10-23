@@ -2130,6 +2130,60 @@ sources:
     implemented_by: altdata/sources/treasury.py
     status: live
 
+  ofr_fsi:
+    name: Office of Financial Research -- Financial Stress Index
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [credit, rates]
+    geography: [US, global]
+    latency: daily, the next US morning
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The CSV's Last-Modified (observed) where sent, else the write instant.
+      www.financialresearch.gov robots.txt disallows /error/, /test/,
+      /this-page-has-moved/ and /about/introduction/ only (checked 20 Oct 2026).
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/ofr_fsi.py
+    status: live
+
+  fdic_qbp:
+    name: FDIC -- BankFind Suite API, the banking system's securities (the Quarterly Banking Profile's basis)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [credit]
+    geography: [US]
+    latency: quarterly, about eight weeks after the quarter-end
+    timestamp_reliability: low
+    timestamp_notes: >-
+      The API carries no publication time per quarter: available_at is the write
+      instant (ingest_instant). api.fdic.gov answers robots.txt 404, no rules
+      (checked 20 Oct 2026). One aggregated call a quarter, keyless.
+    license: public, no key
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fdic_qbp.py
+    status: live
+
+  ici_mmf:
+    name: Investment Company Institute -- weekly money-market fund assets
+    tier: B
+    epistemic_role: primary_fact
+    domain: [rates]
+    geography: [US]
+    latency: weekly, Thursday
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Would be the file's Last-Modified. ici.org answers HTTP 403 to every client
+      that names itself, robots.txt included (20 Oct 2026).
+    license: free to view
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/ici_mmf.py      # parked: parser retained, not scheduled
+    status: retired
+    caveats:
+      - >-
+        A LISTED GAP FROM ITS FIRST DAY (a53, 20 Oct 2026): a writer never passes
+        for a browser. The deposit-flight flag reads FRED's retail money funds.
+
   clevfed_rules:
     name: Federal Reserve Bank of Cleveland -- simple monetary policy rules
     tier: A0
@@ -2635,6 +2689,26 @@ sources:
     license: own work
     allowed_reports: [daily_cascade]
     implemented_by: altdata/note_fetch.py
+    status: live
+
+  dealer_capture:
+    name: Our own engine's exposure profiles, stored per capture
+    tier: derived
+    epistemic_role: own_computation
+    domain: [positioning, volatility]
+    geography: [US]
+    latency: written after compute by the 09:45 and 12:30 captures and the 16:10 EOD pass
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Written by altdata/dealer_store.py (decision 9, 19 Oct 2026): one row per
+      field per data/computed/<session>/<SYM>_*_exposure.json. observed_at = the
+      slot's ET instant on the session; available_at = the file's own
+      computed_at, never the write instant. The stored string is
+      dealer_capture:<the capture's run id, else the file's stem>. Our own
+      engine's files only: no vendor value.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/dealer_store.py
     status: live
 
   daily_close:

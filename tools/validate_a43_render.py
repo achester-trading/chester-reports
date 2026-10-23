@@ -56,6 +56,10 @@ from gate_tmp import mkdtemp                                    # noqa: E402
 LINE = "=" * 78
 PASS = FAIL = 0
 TD = Path(mkdtemp("a43-render-gate-"))
+# A cutoff after this run: the vendor pull's fixture rows are available at the
+# wall clock's instant.
+import datetime as _dt                                          # noqa: E402
+AFTER_RUN = (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(days=1)).isoformat()
 CAL = REPO / "tools" / "calibration"
 LEDGERS = REPO / "docs" / "ledgers"
 
@@ -323,10 +327,9 @@ def group_c() -> None:
         for slot in ("0945", "1230", "1625", "1625"):
             runs.append(fa.pull(db=st, get=get, cfg=cfg, day=day, quota_path=q,
                                 slot=slot, blob_dir=TD / "fa_blobs"))
-        # pull() stamps each row at the real instant it writes, so the read is
-        # taken after any instant this gate can run at: a fixed 20 Oct cutoff
-        # failed every run from 00:00 UTC that day on.
-        cut = "2099-01-01T00:00:00+00:00"
+        # The pull stamps its rows with the wall clock, so the read's cutoff is
+        # after the run (a fixed 2026-10-20 cutoff failed every run after it, A50).
+        cut = AFTER_RUN
         v = fa.stored(st, cut, "SPY")
         iv20 = st.as_of("vendor.atm_iv_20dte", cut, "SPY")
         iv20_intraday = st.as_of("vendor.atm_iv_20dte", cut, "SPY@1230")
@@ -625,7 +628,7 @@ def group_e() -> None:
         with observations.ObservationStore(str(TD / f"em{status}.db")) as st:
             out = fa.pull(db=st, get=get(status), cfg=cfg, day="2026-10-19",
                           quota_path=TD / f"emq{status}.json", blob_dir=TD / f"emb{status}")
-            iv = st.as_of("vendor.atm_iv_20dte", "2099-01-01T00:00:00+00:00", "SPY")  # after the pull's real instant
+            iv = st.as_of("vendor.atm_iv_20dte", AFTER_RUN, "SPY")
         runs[status] = (out, iv)
     ok200 = runs[200][1] and float(runs[200][1][-1]["value_num"]) == 16.8 \
         and not runs[200][0].get("expected_move")

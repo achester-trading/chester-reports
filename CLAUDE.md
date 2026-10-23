@@ -126,8 +126,10 @@ altdata/                  Shared ingestion package — used by every report
                           Session 3b-3c and the CPI lead's components);
                           45 in FRED_RELEASES_SERIES (Batch 7's release
                           lenses, Group A); 29 in FRED_GROUP_B_SERIES
-                          (Group B, the PPI and GDP lenses);
-                          FRED_PULL_SERIES, 266, is the union the
+                          (Group B, the PPI and GDP lenses); 1 in
+                          FRED_NOTES_SERIES (the open note's retail sales);
+                          10 in FRED_BANK_STRESS_SERIES (item 59's panel);
+                          FRED_PULL_SERIES, 277, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -143,7 +145,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    115 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    116 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -237,7 +239,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and twenty-five code gates (one hundred and twenty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and twenty-eight code gates (one hundred and twenty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -432,6 +434,29 @@ st-t5-render, 18 Oct 2026).**
   - `promote` and `reject` write only with the operator's `--confirm`.
   - It is a Saturday step of the crypto basket's run; `make mechanism-register`
     renders the register. `tools/validate_st_t5_render.py` holds it.
+
+**The Card's scoreboard is measurement only (b48-scoreboard; ruled 19 Oct 2026,
+"accept all" on the four decisions of 23:35 ET).** `register/scoreboard.py` reads,
+never writes, the register, the grades and the store (`mode=ro`), and computes no
+regime:
+- `expectancy_13w()` is the score: the rolling thirteen-week expectancy in ruled R
+  over graded paper decisions the operator took, by the decision's `book` and by
+  the regime the order gate stamped at entry (`gate_detail.regime.regime`, never
+  recomputed) and by the Volatility and Gamma dials the gate stamps beside it at
+  entry (B49, 20 Oct 2026: `heat.regime_band` reads them from the newest stored
+  object; an earlier decision prints "not stamped"; the volatile-day flag joins
+  after a50-dealer-store), n and the interval first, "accruing (n=k)" below
+  `config/scoreboard.yaml`'s session-set `min_n`. The Weekly and the Monthly both
+  read it.
+- `benchmarks_4q()` sets the active books (B, C, D) and Book A alone, each as
+  realised P&L over the declared capital, against Book Z's stored 60/40 over four
+  quarters; a book with an open decision prints "not built" (the register stores
+  no entry fill per decision, so it cannot mark one). Percentages, never dollars.
+- `weekly_top()` is the Weekly's top, above the précis (Doctrine 6.5): heat and net
+  exposure from `heat.view()` (`register/heat.py`) over the open decisions, the score, and the
+  `rule_breaks` count. The Monthly's register month prints the cut beside its
+  overall figure. Doctrine #2 (7-8 Nov) may amend how they are used.
+  `tools/validate_b48_scoreboard.py` holds it.
 
 **The Digital Assets addendum (Batch 8 item 51, Phase 1, and item 49c; 6e-digital,
 17 Oct 2026).** Not a sixth report: `daily_cascade/digital_addendum.py` builds a
@@ -679,6 +704,31 @@ anchor, the 12:30 alert and the 16:45 close remain the reports of record.
   scripts `tools/calibration/sn1_release_first_hour.py` and
   `tools/calibration/sn2_after_hours_earnings.py`.
 - **The gate.** `tools/validate_secondary_notes.py` holds all of it.
+
+**The dealer captures are stored (decision 9, 19 Oct 2026; a50-dealer-store).**
+`altdata/dealer_store.py` turns each of our engine's exposure files under the
+computed directory (the 09:45 and 12:30 captures, the 16:10 profiles) into rows of `exposure.net_gex`, `net_to_gross`,
+`regime_word` (the gate's word: net-to-gross at least 0.10, else
+"indeterminate"), `gamma_flip`, `call_wall_otm`, `put_wall_otm` and `spot`:
+instrument the symbol, observed_at the slot's ET instant, available_at the file's
+own computed_at, source `dealer_capture:<the capture's id>`. It runs inside the
+capture and the EOD pass (Stage 2b), after compute and never fatally; a run given
+its own out_dir without a store path stores nothing. A vendor-gamma profile is
+never read. `python -m altdata.dealer_store backfill --dry-run` is the operator's.
+`alpha/event_rates.py`'s dealer bucket reads the stored word. The open fetch's
+5-minute bars carry QQQ and IWM beside SPY (decision 10), and
+`opening_setup.with_pricing` reads only the store it is named.
+`tools/validate_a50_dealer_store.py` holds it.
+
+**The volatile-day flag has all four of Doctrine 5.5's arms (A51, 19 Oct 2026).**
+`daily_cascade/volatile_day.py` prints, at the 07:00 anchor, the VIX arm, ES's
+overnight range against its 20-day average true range, the gap (provisional from
+the pre-market price), the Gamma dial as the market-state object reads it, and
+the calendar's tier-1 events (FOMC, CPI, the employment report, an index mover's
+earnings; `config/vol_event.yaml` `volatile_day`), each with its reading and
+as-of. The 09:50 open note settles the gap from the 09:30 open and its prose gate
+reads the completed flag. Printed, never applied: nothing halves a size or
+refuses a packet until Doctrine #2 and Book C's activation.
 
 **The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
 Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,
@@ -1006,10 +1056,40 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 31 official writers, 37 external writers and 7
+**The scheduled roster is 33 official writers, 37 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
+
+**Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
+59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s
+panel. Its series:
+- SOFR less IORB (IOER before 29 Jul 2021) and SOFR's 99th percentile;
+- financial CP less the bill;
+- H.4.1's discount window and other credit;
+- Z.1's FHLB advances;
+- H.8 deposits by bank size;
+- FRED's retail money funds (ICI refuses an identified client and is parked,
+  `altdata/sources/ici_mmf.py`);
+- KRE against XLF;
+- SLOOS;
+- the FDIC's unrealised securities losses (`altdata/sources/fdic_qbp.py`);
+- STLFSI and the OFR FSI (`altdata/sources/ofr_fsi.py`).
+
+Each prints dual percentiles. The flags:
+- **funding stress:** any two of four members above their 95th;
+- **deposit flight:** small-bank deposits down while money funds are up, over 4
+  weeks.
+
+The correction-vs-crisis classifier prints only past KRE -10% over 20 sessions,
+its CDS/AT1 arm "not tracked". `daily_cascade/bank_stress_block.py` lays it out:
+the close's Plumbing and The read, the Weekly's one line, the Monthly's full
+panel. The 12:30 gate (`midday_gate._bank_stress`) opens only on the session a
+flag turns on. Item 60's forward-EPS legs are listed gaps while
+`config/eps_overshoot.yaml` names no source (`altdata/eps_overshoot.py` holds
+both branches). The hyperscaler P/E dispersion (`altdata/pe_dispersion.py`)
+prints with the Monthly's index decomposition. `tools/validate_batch12.py` holds
+it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

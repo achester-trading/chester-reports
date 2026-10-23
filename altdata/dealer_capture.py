@@ -73,9 +73,13 @@ def compute_written(summary: dict, symbols: list[str], out_dir: Optional[str] = 
 
 
 def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=None,
-        out_dir: Optional[str] = None, quotes: Optional[dict] = None) -> dict:
+        out_dir: Optional[str] = None, quotes: Optional[dict] = None,
+        db_path: Optional[str] = None) -> dict:
     """One capture. `pull` and `vendor_pull` default to the box's two sources
-    (altdata.sources.options_chain and .massive_chain); the gate passes fakes."""
+    (altdata.sources.options_chain and .massive_chain); the gate passes fakes.
+    The profiles' regime readings are stored after compute (altdata/
+    dealer_store.py, decision 9), never fatally; a run given `out_dir` without
+    `db_path` stores nothing."""
     if slot not in SLOTS:
         raise ValueError(f"slot must be one of {SLOTS}")
     universe = symbols or config.options_universe()
@@ -88,6 +92,9 @@ def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=N
     if slot == "1230" and quotes is None:
         quotes = fetch_quotes()
     computed = compute_written(summary, universe, out_dir, run_id)
+    from . import dealer_store                                  # noqa: PLC0415
+    stored = dealer_store.store_after_compute(
+        [v for v in computed.values() if str(v).endswith(".json")], db_path, out_dir)
     vendor_summary = None
     if vendor:
         if vendor_pull is None:
@@ -100,7 +107,7 @@ def run(slot: str, symbols: Optional[list[str]] = None, pull=None, vendor_pull=N
             log.exception("vendor capture failed; the Yahoo chains are safe")
             vendor_summary = {"error": f"{type(exc).__name__}: {exc}"}
     out = {"slot": slot, "run_id": run_id, "captured": summary.get("success"),
-           "total": summary.get("total"), "computed": computed,
+           "total": summary.get("total"), "computed": computed, "stored": stored,
            "vendor": (None if vendor_summary is None else
                       vendor_summary.get("error") or vendor_summary.get("success"))}
     if slot == "1230":

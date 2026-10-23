@@ -878,6 +878,13 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     rt_sub = rates_transmission_block.subsection(st, now, "monthly")
     if rt_sub:
         b["subsections"].append(rt_sub)
+    # SIGNAL-TRIAGE BATCH 12 item 59 (a53): the bank-stress panel in full, beside
+    # the cluster: every series with its dual percentiles, both flags, the
+    # classifier, and the unrealised losses beside the 10-year.
+    from daily_cascade import bank_stress_block                 # noqa: PLC0415
+    bs_sub = bank_stress_block.monthly_subsection(st, now)
+    if bs_sub:
+        b["subsections"].append(bs_sub)
     # Items 42 and 39 after it; the real differentials in the global bucket.
     from daily_cascade import t1_rest_block                     # noqa: PLC0415
     b["subsections"] += t1_rest_block.plumbing_subsections(st, now, "monthly")
@@ -1947,6 +1954,34 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                      f"{_v(ov.get('hi'), 3)}R, mean {_v(ov.get('mean'), 3)}R.")
     else:
         lines.append(f"Grades: {rm.get('reason') or 'unavailable'}")
+    # THE CARD'S CUT BESIDE THE OVERALL FIGURE (b48-scoreboard): by book and by
+    # the regime stamped at entry, over the rolling thirteen weeks, interval first.
+    sb = rm.get("scoreboard") or {}
+    sb_tables = []
+    try:
+        from register import scoreboard as _sb
+        if sb.get("expectancy"):
+            ex = sb["expectancy"]
+            lines.append(_sb.expectancy_line(ex))
+            if not ex.get("not_built"):
+                sb_tables.append({
+                    "columns": ["Book | regime at entry (13 weeks)", "Expectancy, ruled R"],
+                    "rows": [[k, _sb.cell_text(v, ex["min_n"])]
+                             for k, v in (ex.get("by_book_regime") or {}).items()]})
+                lines.append("By regime at entry: " + ("; ".join(
+                    f"{k}: {_sb.cell_text(v, ex['min_n'])}"
+                    for k, v in (ex.get("by_regime") or {}).items()) or "none graded")
+                    + ".")
+                # B49: by each dial the order gate stamped at entry, and (chain-4)
+                # the volatile-day flag as printed; a decision entered before the
+                # stamp prints "not stamped".
+                lines += [_sb.dial_line(ex, d) for d, _ in _sb.DIALS]
+        if sb.get("benchmarks"):
+            lines.append(_sb.benchmarks_line(sb["benchmarks"]))
+        if sb.get("fault"):
+            lines.append(f"The scoreboard: not built ({sb['fault']}).")
+    except Exception as exc:                                   # noqa: BLE001
+        lines.append(f"The scoreboard: not built ({type(exc).__name__}: {exc}).")
     dec = [[d.get("instrument"), d.get("direction"), d.get("status"),
             d.get("expression_family") or "—", str(d.get("created_at"))[:10]]
            for d in rm.get("decisions_opened") or []]
@@ -1956,7 +1991,8 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                                         "On"], "rows": dec},
                            {"columns": ["Book", "Paper equity"],
                             "rows": [[f"Book {k}", v] for k, v in
-                                     sorted((bz.get("books") or {}).items())]}],
+                                     sorted((bz.get("books") or {}).items())]},
+                           *[t for t in sb_tables if t["rows"]]],
                 "lines": lines,
                 "not_tracked": list((rm.get("rule_breaks") or {}).get("not_yet_sourced")
                                     or []),

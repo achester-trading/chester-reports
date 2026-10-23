@@ -57,11 +57,14 @@ surprise_size: {window: 24, large_sd: 1.0, min_prior: 8}
 positioning: {key: cftc.noncomm_net, instrument: SP500, window_days: 730,
               crowded_z: 1.5, min_rows: 52}
 
-# The dealer regime, read BY NAME from 6b's keys (session A's 6b-dealer-1: net
-# GEX's sign, gated on net-to-gross >= 0.10). Where a key has no row the bucket
-# prints "awaiting".
-dealer: {net_gex: exposure.net_gex, net_to_gross: exposure.net_to_gross,
-         instrument: SPY, min_net_to_gross: 0.10, max_age_days: 3}
+# The dealer regime, read BY NAME from 6b's stored rows (decision 9 of 19 Oct
+# 2026; altdata/dealer_store.py): the regime word each capture's own gate stored
+# (net GEX's sign, gated on net-to-gross >= 0.10, dealer_block.net_to_gross_min),
+# the newest knowable at the decision. The bucket computes no regime. Where the
+# key has no row the bucket prints "awaiting". net_gex and net_to_gross name the
+# gate's inputs, stored beside the word.
+dealer: {regime_word: exposure.regime_word, net_gex: exposure.net_gex,
+         net_to_gross: exposure.net_to_gross, instrument: SPY, max_age_days: 3}
 
 # Earnings in the 29-name universe (altdata/sources/yfinance_source.py
 # EARNINGS_SYMBOLS): the post-announcement drift by the sign of the real

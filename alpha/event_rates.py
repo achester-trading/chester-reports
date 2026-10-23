@@ -18,8 +18,9 @@ CPI, payrolls and FOMC (config/alpha_events.yaml):
                             before it, in points: the volatility crush is a fall
 
 each over every event and again by bucket: the surprise's sign and size, stored
-positioning (the CFTC speculative net's two-year z), and the dealer regime (6b's
-keys, read by name; "awaiting" where the key has no row). And for earnings in the
+positioning (the CFTC speculative net's two-year z), and the dealer regime (the
+regime word each capture's gate stored, exposure.regime_word, read by name;
+"awaiting" where the key has no row). And for earnings in the
 29-name universe: the drift 1 and 20 sessions after, by the sign of the real
 (vs consensus) surprise, and the realised reaction; the implied move against it
 prints "awaiting" (no implied move is stored).
@@ -188,20 +189,39 @@ def positioning_bucket(cot: pit.Series, cutoff: str, cfg: dict) -> str:
     return "crowded long" if z >= cz else ("crowded short" if z <= -cz else "neutral")
 
 
-def dealer_bucket(gex: pit.Series, ntg: pit.Series, cutoff: str, cfg: dict) -> str:
+DEALER_WORDS = ("positive gamma", "negative gamma", "indeterminate")
+
+
+def regime_words(store, key: Optional[str], instrument: Optional[str]) -> dict:
+    """{day: [(available_at, word)]}: the regime word as the capture's gate stored
+    it (altdata/dealer_store.py, decision 9 of 19 Oct 2026), every vintage by
+    day in availability order. The bucket reads the word; it computes none."""
+    out: dict[str, list[tuple[str, str]]] = {}
+    if store is None or not key:
+        return out
+    for r in store.all_vintages(key, instrument):
+        w = r.get("value_text")
+        if w:
+            out.setdefault(str(r["observed_at"])[:10], []).append(
+                (pit.canon(r["available_at"]), str(w)))
+    for v in out.values():
+        v.sort(key=lambda x: x[0])
+    return out
+
+
+def dealer_bucket(words: dict, cutoff: str, cfg: dict) -> str:
+    """The newest stored regime word knowable at `cutoff`, within max_age_days;
+    "awaiting" where none is."""
     d = cfg.get("dealer") or {}
-    if not gex or not ntg:
+    c = pit.canon(cutoff)
+    known = [(day, ok[-1][1]) for day in sorted(words)
+             for ok in [[x for x in words[day] if x[0] <= c]] if ok]
+    if not known:
         return AWAITING
-    g, r = gex.known(cutoff, 1), ntg.known(cutoff, 1)
-    if not g or not r:
+    day, w = known[-1]
+    if (_d(pit.et_date(cutoff)) - _d(day)).days > int(d.get("max_age_days", 3)):
         return AWAITING
-    age = int(d.get("max_age_days", 3))
-    today = _d(pit.et_date(cutoff))
-    if (today - _d(g[0][0])).days > age or (today - _d(r[0][0])).days > age:
-        return AWAITING
-    if abs(r[0][1]) < float(d.get("min_net_to_gross", 0.10)):
-        return "indeterminate"
-    return "positive gamma" if g[0][1] > 0 else "negative gamma"
+    return w if w in DEALER_WORDS else AWAITING
 
 
 # ---------------------------------------------------------------------------
@@ -229,8 +249,7 @@ def macro_rows(store, cfg: dict, cutoff: str, prices: Optional[Prices] = None) -
     pc = cfg.get("positioning") or {}
     dc = cfg.get("dealer") or {}
     cot = pit.Series(store, pc.get("key"), pc.get("instrument")) if pc else None
-    gex = pit.Series(store, dc.get("net_gex"), dc.get("instrument")) if dc else None
-    ntg = pit.Series(store, dc.get("net_to_gross"), dc.get("instrument")) if dc else None
+    words = regime_words(store, dc.get("regime_word"), dc.get("instrument")) if dc else {}
     out: dict[str, list] = {}
     for name in MACRO:
         ev = (cfg.get("events") or {}).get(name)
@@ -262,7 +281,7 @@ def macro_rows(store, cfg: dict, cutoff: str, prices: Optional[Prices] = None) -
                 "surprise": s["value"] if s else None, "surprise_bucket": sb,
                 "surprise_kind": sur_kind,
                 "positioning_bucket": positioning_bucket(cot, decided, cfg),
-                "dealer_bucket": dealer_bucket(gex, ntg, decided, cfg),
+                "dealer_bucket": dealer_bucket(words, decided, cfg),
                 "first_session_drift_pct": px.oc(first),
                 "next_session_drift_pct": px.oc(trade),
                 "trade_open": px.open.latest(trade),
@@ -359,7 +378,8 @@ def base_rates(store, cfg: dict, cutoff: str) -> list[dict]:
                 if not rs or buckets == [AWAITING]:
                     why = {"surprise": ev.get("surprise_kind"),
                            "positioning": "no CFTC speculative net with two years of rows",
-                           "dealer": "6b's dealer keys have no row (read by name)"}[kind]
+                           "dealer": "6b's stored regime word (exposure.regime_word) has no row "
+                                     "knowable at the decision"}[kind]
                     out.append({**_rate(name, kind, AWAITING, m, []), "note": why})
                     continue
                 for b in buckets:

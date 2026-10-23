@@ -95,7 +95,7 @@ setups:
     name: Style-regime pair -- value against growth after a growth extreme breaks
     doctrine: "SR-1 (signal-triage register) -- Book B pair trade; the Monthly style-regime panel"
     mechanism: "STUB, drafted from SR-1 for the operator to complete. When the log Growth/Value total-return ratio stretches more than two standard deviations above its ten-year trend, leadership is crowded into one style; a break -- the ratio below its 40-week average, or more than 8% off its 52-week high -- marks the crowd unwinding, and the pair (long IVE / short IVW, or IWD / IWF) is positioned for the rotation, with a hard stop on a new ratio high."
-    base_rate: not yet           # SR-1's ledger (Base Rates) is not yet stored
+    base_rate: not yet           # SR-1's ledger is stored (docs/ledgers/sr-1-ledger-2026-10-18.md, PASS, n 6); the stub's base rate is completed at Doctrine #2
     claimed_edge: "SR-1's rule to test: positive expectancy after costs at 6 and 12 months across at least six non-overlapping episodes; gate pending (ST-8), so unclaimed until it passes"
     target_n: 40
     kill: fixed

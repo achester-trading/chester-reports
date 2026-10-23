@@ -290,6 +290,19 @@ def main() -> int:
         return 2
     log.info("  computed: %d symbols", len(computed))
 
+    # ---- Stage 2b: the profiles' regime readings into the store ----------
+    # Decision 9 (19 Oct 2026; altdata/dealer_store.py): net GEX, net-to-gross,
+    # the gate's regime word, the flip, the OTM walls and the spot, keyed by
+    # symbol and the 16:10 slot, available at each file's computed_at. Never
+    # fatal: the profiles are on disk and the backfill can store them later.
+    from altdata import dealer_store                           # noqa: PLC0415
+    ds = dealer_store.store_after_compute(
+        [r.get("computed_path") for r in computed.values() if r.get("computed_path")])
+    if ds.get("error"):
+        log.warning("Stage 2b: dealer readings not stored: %s", ds["error"])
+    else:
+        log.info("Stage 2b: dealer readings, %s rows written", ds.get("written", 0))
+
     # ---- Stage 3: pin log ------------------------------------------------
     log.info("Stage 3: scoring pin levels")
     try:

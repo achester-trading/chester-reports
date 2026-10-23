@@ -103,6 +103,9 @@ commands:
   altdata.listings:
     domain: reference
     line: 'The listings layer: every US listing by day, for the meme scan identity (AUD-3b)'
+  altdata.dealer_store:
+    domain: options
+    line: 'the dealer captures stored: `backfill [--from D] [--to D] [--dry-run]` stores net GEX, net-to-gross, the gate''s regime word, the flip, the OTM walls and the spot from our engine''s exposure files already on disk (decision 9); the capture and EOD runs store each new file after compute'
   altdata.note_fetch:
     domain: prices
     line: 'the secondary notes'' fetch steps: `open` after 09:45, `evening` at 21:30; 5-minute bars, a targeted FRED pull, news, one voices pass; writes the store only'
@@ -230,6 +233,22 @@ commands:
     domain: macro
     line: Cleveland Fed simple monetary policy rules -- the rules' prescribed funds-rate path, median and width (not market pricing)
     sources: [clevfed_rules]
+  altdata.sources.ici_mmf:
+    domain: rates
+    line: 'ICI weekly money-market fund assets -- PARKED, on no roster: ici.org refuses an identified client (a listed gap, a53); the deposit-flight flag reads FRED''s retail series'
+    sources: [ici_mmf]
+  altdata.sources.ofr_fsi:
+    domain: rates
+    line: 'OFR Financial Stress Index -- the headline and its funding and credit categories, daily, keyless (the bank-stress panel)'
+    sources: [ofr_fsi]
+  altdata.sources.fdic_qbp:
+    domain: rates
+    line: 'FDIC BankFind -- the banking system''s unrealised securities gains (losses), AFS and HTM, quarterly, keyless (`--since 2007-03-31` for the history)'
+    sources: [fdic_qbp]
+  altdata.bank_stress:
+    domain: computed
+    line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'
+    sources: [calc]
   altdata.sources.cnh:
     domain: fx
     line: USD/CNH -- the offshore yuan's daily New York close, from Yahoo's hourly bars

@@ -83,9 +83,24 @@ def priced_subsection(st, now: str, cadence: str = "weekly", margin: bool = True
     d = b["decomposition"]
     lines = [ix.read_line(d)]
     lines += ix.r_minus_g_lines(b["r_minus_g"])
+    # Item 60.1-60.3 (F3; a53): implied forward growth, the realised forecast
+    # error and the overshoot flag in item 29's r-g print -- listed gaps while no
+    # keyless forward-EPS source is named (config/eps_overshoot.yaml).
+    try:
+        from altdata import eps_overshoot as eo                 # noqa: PLC0415
+        lines += eo.lines(eo.read(st, now, b["r_minus_g"].get("flag")))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the eps-overshoot lines faulted", exc_info=True)
     lines += ix.price_ulc_lines(b["price_ulc"])
     if margin:
         lines.append(ix.margin_line(b["price_ulc"]))
+    if cadence == "monthly":
+        # Item 60.4 (F4; a53): the hyperscaler P/E dispersion, with M11.
+        try:
+            from altdata import pe_dispersion                   # noqa: PLC0415
+            lines += pe_dispersion.lines(pe_dispersion.rows(st, now))
+        except Exception:                                       # noqa: BLE001
+            log.warning("the P/E dispersion line faulted", exc_info=True)
     note = ("Price = EPS × P/E, so the log change of the S&P 500 splits exactly "
             "into the log change of EPS and of the P/E; each share is that leg's "
             "part of the move, printed when the move is at least 1% in logs. "

@@ -139,16 +139,28 @@ secondary_notes:
   # with "[DRY RUN]" in the subject (the order, section 6). The merge sheet moves
   # it later if the third chain merges after Thursday 22 Oct.
   live_from: "2026-10-26"
+  # THE SESSION-SET VALUES BELOW (A49's answer (a), ruled 19 Oct 2026): each one
+  # marked "kept 19 Oct 2026 as a starting value; reviewed after the first two
+  # live weeks". The heartbeat allowance (scripts/check_heartbeat_cron.sh), the
+  # memory caps and the timeouts (deploy/systemd/chester-open-note.service and
+  # chester-evening-note.service) carry the same mark where they live.
+  # The voices pass's time budget in each fetch, inside the scan's own daily cap.
+  # Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
+  voices_budget_seconds: 120
   open:
+    # Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
     capture_wait_minutes: 4    # SESSION-SET: the bounded wait for the 09:45 capture; the note must land by 09:55
     news_after: "07:00"        # news published after 07:00 ET, by the source's own time
-    news_max: 5
+    # Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
+    news_max: 5                # SESSION-SET: the open note's news block, at most five items
     model: null                # null: narrative.MORNING_MODEL
   evening:
     news_after: "16:45"
-    news_max: 8
+    # Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
+    news_max: 8                # SESSION-SET: the evening note's news block, at most eight items
     # THE WEEKDAY PROSE GATE (the order, section 2). SESSION-SET starting values,
-    # not measured; listed for Ari:
+    # not measured; listed for Ari. Kept 19 Oct 2026 as a starting value; reviewed
+    # after the first two live weeks.
     es_nq_pct: 0.75     # ES or NQ beyond 0.75% from the 16:00 close: about half the
                         # gauge's typical one-session sigma, a move worth a sentence
     usdjpy_pct: 1.0     # dollar-yen beyond 1%: the carry-unwind order of magnitude

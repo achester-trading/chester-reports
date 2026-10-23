@@ -949,7 +949,7 @@ def group_n() -> None:
           and mg.GATES[0] is mg.dealer_flip_cross
           and [g.__name__ for g in mg.GATES] == ["dealer_flip_cross", "_vol_gate",
                                                  "_yen_unwind", "_deval_trip",
-                                                 "_crypto_leverage"],
+                                                 "_bank_stress", "_crypto_leverage"],
           "the 12:30 slot imports no model path; the dealer gate first, Batch 9 item "
           "52's VIX gate beside it")
     os.environ.pop("CHESTER_ALERT_DIR", None)

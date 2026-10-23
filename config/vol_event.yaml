@@ -73,6 +73,31 @@ book_c:
   vix_level: 25.0
   vix_up_pct: 20.0
   rule: "the volatile-day protocol (Doctrine 5.5): all sizes halved on top of the dial multipliers, Book C only from the 0700 list and only defined-risk"
+# THE VOLATILE-DAY FLAG, ALL FOUR OF DOCTRINE 5.5'S ARMS (A51, ruled 19 Oct 2026,
+# late evening; daily_cascade/volatile_day.py). The VIX arm reads book_c above.
+# The 07:00 anchor prints every arm with its reading and its as-of time; the 09:50
+# open note settles the gap and its prose gate reads the completed flag. PRINTED,
+# NEVER APPLIED: no size is halved and no packet is refused until Doctrine #2 and
+# Book C's activation.
+volatile_day:
+  overnight_atr_multiple: 1.5   # RULED (Doctrine 5.5): "1.5 times the 20-day average true range"
+  atr_sessions: 20              # RULED (Doctrine 5.5)
+  # SESSION-SET: fewer complete ES futures sessions stored than this and the arm
+  # is "not read" -- three-quarters of the window, so one missed week does not
+  # blank it and a fresh store does not pass a thin average for a 20-day one.
+  min_atr_sessions: 15
+  gap_pct: 1.0                  # RULED (Doctrine 5.5): "the gap at the open is 1% or more", either way
+  # RULED (Doctrine 5.5): an FOMC decision, CPI, the employment report -- by the
+  # events calendar's stored titles, as triggers.plumbing.tier1_events names them.
+  tier1_events: ["FOMC statement", "Consumer Price Index", "Employment Situation"]
+  # SESSION-SET, listed for Ari: "a name large enough to move the index" is
+  # config/weekly_ahead.yaml's earnings_mega class -- the ten largest S&P 500
+  # index weights the ranking holds (weights_as_of there) and the hyperscalers
+  # wherever they rank. Reason: the largest index weights are the names whose
+  # own earnings move carries through to the index's open, and the ranking the
+  # Ahead matrix already keeps is the one list of them the store holds. A report
+  # on the session's ET day counts, and one after the prior session's 16:00 close.
+  index_movers: {class: earnings_mega}
 # The 12:30 gate (RULED, upward only): a one-day rise of 15% or 3 points by 12:30.
 midday:
   up_pct: 15.0
