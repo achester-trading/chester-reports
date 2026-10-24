@@ -537,6 +537,10 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     subs = gtm_block.place_mechanics(
         subs, gtm_block.mechanics_subsections(st, now, "monthly"),
         after_panel=fcf["title"] if fcf else None)
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from daily_cascade import batch14_b1_block                   # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, now)
     # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
     from daily_cascade import batch5_block                       # noqa: PLC0415
     sb = batch5_block.mechanics_subsection(st, now)
@@ -2297,7 +2301,12 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 at = max((i for i, x in enumerate(subs)
                           if str(x.get("title") or "").startswith("Themes: digital")),
                          default=at)
-                subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
+                cb_subs = crypto_blocks.monthly_slow(st, now)
+                # SIGNAL-TRIAGE BATCH 15, ITEM 78 (b56): DefiLlama's active-
+                # protocol count, after the network-health rows.
+                from daily_cascade import batch15_b2_block      # noqa: PLC0415
+                pbs = batch15_b2_block.protocol_subsection(st, now)
+                subs[at + 1:at + 1] = cb_subs + ([pbs] if pbs else [])
             except Exception:                                   # noqa: BLE001
                 log.warning("crypto data layer unavailable", exc_info=True)
             # THE DIGITAL ASSET MECHANISM WATCH PART (ST-14, 2.7.6; st-t5-render,

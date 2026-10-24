@@ -47,6 +47,21 @@ commands:
   altdata.cma_table:
     domain: reference
     line: "The cross-house capital-market-assumptions table (Batch 14 item 62): each asset's median, high less low and count across the houses' stored CMA editions; show prints it as of a cutoff -- read-only, report only"
+  altdata.ai_lab_ledger:
+    domain: equity
+    line: "The AI-lab financials ledger (Batch 15 item 75): the latest row's computed ratios for item 47's unit-economics line and SR-16's entry, and the mega-IPO watch; show prints them -- reads files only, report only"
+  altdata.cyber_pressure:
+    domain: reference
+    line: "The weekly cyber-pressure line (Batch 15 item 77): CISA KEV additions and NVD's critical CVEs per week, dual percentiles and the joint flag; weekly is the Saturday step of the crypto basket's run, backfill the operator's, show read-only"
+    sources: [cisa_kev, nvd]
+  altdata.hf_positioning:
+    domain: positioning
+    line: "The hedge-fund positioning line and the squeeze-risk flag (Batch 15 item 74): CFTC TFF leveraged funds in ES and NQ with dual percentiles, against item 71's depth stand-in; show prints them -- read-only, report only"
+    sources: [cftc]
+  altdata.protocol_breadth:
+    domain: crypto
+    line: "DefiLlama's active-protocol count (Batch 15 item 78): a daily snapshot from the first pull; daily is a step of the crypto basket's run, show read-only"
+    sources: [defillama]
   altdata.claims:
     domain: reference
     line: 'The claims registry: cited figures the system may print and cannot compute'
@@ -265,6 +280,18 @@ commands:
     domain: rates
     line: 'FDIC BankFind -- the banking system''s unrealised securities gains (losses), AFS and HTM, quarterly, keyless (`--since 2007-03-31` for the history)'
     sources: [fdic_qbp]
+  altdata.speed_attribution:
+    domain: computed
+    line: 'The 10-year attribution on speed-flag days and its event ledger (Batch 14 item 65): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
+    sources: [speed_attribution]
+  altdata.ai_trade:
+    domain: computed
+    line: 'One big AI trade (Batch 14 item 65): the AI-bottleneck PPI line, the Broad-AI proxy pair (AIQ against SPXT, labelled proxy) and the AI-credit gap; `show [--as-of ISO]`; reads only'
+    sources: [fred, yfinance]
+  altdata.fragility:
+    domain: computed
+    line: 'The liquidity-fragility panel and flag (Batch 14 item 71): SPY Amihud and range per volume, margin debt and its share, the leveraged-ETF rebalance, 6b dealer gamma; `show [--date D]`; reads only'
+    sources: [calc]
   altdata.bank_stress:
     domain: computed
     line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'

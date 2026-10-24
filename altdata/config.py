@@ -707,6 +707,26 @@ FRED_HOUSEHOLDS_SERIES: list[SeriesSpec] = [
     SeriesSpec("households", "TTLHHM156N", "Household estimates, total, thousands, NSA (Census)", "2", "K", "monthly"),
 ]
 
+# SIGNAL-TRIAGE BATCH 14, PART B1 (items 65 and 71; a57-batch14-b1, 23 Oct 2026,
+# session A). Ids, first observations and units read off fredgraph.csv on 23 Oct
+# 2026 (F3: BLS's PPI detail through FRED, BLS having refused the box's reads):
+#   PCU334418334418     PPI by industry: printed circuit assembly (electronic
+#                       assembly) manufacturing, INDEX Dec 2003 = 100, NSA, monthly,
+#                       from 2003-12 (item 65's AI-bottleneck line)
+#   PCU334112334112     PPI by industry: computer storage device manufacturing,
+#                       INDEX, NSA, monthly, from 1992-12
+#   PCU334413334413     PPI by industry: semiconductor and related device
+#                       manufacturing, INDEX, NSA, monthly, from 1967-01
+#   BOGZ1LM893064105Q   Z.1 all sectors: corporate equities, liability, MARKET
+#                       VALUE, MILLIONS, quarterly, from 1945 (item 71: the
+#                       capitalisation margin debt is a share of)
+FRED_BATCH14_B1_SERIES: list[SeriesSpec] = [
+    SeriesSpec("ppi_pcb_assembly", "PCU334418334418", "PPI by industry: printed circuit assembly (electronic assembly) manufacturing, index Dec 2003 = 100, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_storage_devices", "PCU334112334112", "PPI by industry: computer storage device manufacturing, index, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_semiconductors", "PCU334413334413", "PPI by industry: semiconductor and related device manufacturing, index, NSA", "4", "idx", "monthly"),
+    SeriesSpec("z1_equities_mv", "BOGZ1LM893064105Q", "Z.1 all sectors: corporate equities, liability, market value, millions", "6", "M", "quarterly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
@@ -714,7 +734,7 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
                                       + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
-                                      + FRED_HOUSEHOLDS_SERIES)
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES)
 
 
 # Quick lookup by key

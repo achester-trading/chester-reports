@@ -233,7 +233,26 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             with model_meter.scope(section="es_block"):
                 es_rd = es_read.write(es_blk, slot="close", client=client, model=model)
         mech = next(s for s in ed["sections"] if s["id"] == "mechanics")
-        mech["subsections"].append(es_read.subsection(es_blk, es_rd))
+        es_sub = es_read.subsection(es_blk, es_rd)
+        # Batch 14 item 71 (a57): the fragility flag's line in item 45's levels read.
+        try:
+            from . import batch14_b1_block                      # noqa: PLC0415
+            with observations.ObservationStore(db_path) as _fst:
+                _fl = batch14_b1_block.levels_line(_fst, sess, cutoff)
+            if _fl:
+                es_sub["lines"] = list(es_sub.get("lines") or []) + [_fl]
+        except Exception:                                       # noqa: BLE001
+            log.warning("the fragility line in the levels read faulted", exc_info=True)
+        # Batch 15 item 74 (b56): the squeeze-risk context line, after item 71's.
+        try:
+            from . import batch15_b2_block                      # noqa: PLC0415
+            with observations.ObservationStore(db_path) as _sst:
+                _sq = batch15_b2_block.es_squeeze_line(_sst, sess, cutoff)
+            if _sq:
+                es_sub["lines"] = list(es_sub.get("lines") or []) + [_sq]
+        except Exception:                                       # noqa: BLE001
+            log.warning("the squeeze line in the levels read faulted", exc_info=True)
+        mech["subsections"].append(es_sub)
         mech["data"]["es_block"] = {"state": es_blk.get("state"),
                                     "lean": (es_rd or {}).get("lean"),
                                     "read_state": (es_rd or {}).get("state")}
@@ -341,6 +360,12 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             if vol_ev and vol_ev.get("trigger") and not dry_run:
                 from altdata import vol_event as ve             # noqa: PLC0415
                 st.write_many(ve.event_rows(vol_ev, session.utc_iso()))
+            # BATCH 14 ITEM 65: a speed-flag day's ledger row, its attribution
+            # "awaiting" until the models' inputs land (the EOD resolve).
+            spd = (mech.get("data") or {}).pop("_speed_event", None)
+            if spd and spd.get("fired") and not dry_run:
+                from altdata import speed_attribution as sa     # noqa: PLC0415
+                st.write_many([sa.ledger_row(spd, session.utc_iso())])
             # BATCH 11 ITEM 55 (H6): the next session's level clusters, from the
             # levels known after the 16:10 capture, frozen 30 days once stored.
             if not dry_run:

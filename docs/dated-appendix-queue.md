@@ -193,3 +193,40 @@ item 36's ledger, ST-R5.36b, at its next edition; until then it waits here.
 > beside the raw level. Source: NAR, "Pending Home Sales Decreased 7.3% in
 > September" (20 Oct 2026),
 > https://www.nar.realtor/newsroom/pending-home-sales-decreased-7-3-percent-in-september
+
+## For the positioning record (Batch 15 item 74)
+
+G3: the prime-brokerage figures are a dated record from public reporting, never a
+line; the positioning line runs on the CFTC's TFF report. Its home is the paper
+that next carries the positioning chapter; until then it waits here.
+
+> *Dated 22 Oct 2026.* A bank's prime-brokerage desk reported that short sales
+> had outpaced long purchases across global equities by about five to one in
+> October, that short leverage in its prime book stood at the 99th percentile of
+> its five-year history, that global fundamental long-short funds lost 2.9% in
+> the week through 15 Oct, and that Asia-focused stock pickers were down 6.8% for
+> the first half of October. These are the bank's proprietary figures as
+> reported, not measured here. Sources: Bloomberg, "Hedge Funds Pile Into Shorts
+> as Goldman Flags Stock Squeeze Risk" (22 Oct 2026),
+> https://www.bloomberg.com/news/articles/2026-10-22/hedge-funds-pile-into-shorts-as-goldman-flags-stock-squeeze-risk;
+> as republished on Yahoo Finance (22 Oct 2026),
+> https://finance.yahoo.com/markets/stocks/articles/hedge-funds-ramping-stock-shorts-195628440.html
+
+## For the AI-lab financials ledger (Batch 15 item 75)
+
+G3: the S-1 figures are one dated record, provisional until the filing is on
+EDGAR; the ledger's first row (docs/ledgers/ai-lab-financials-ledger.md) carries
+the same figures and is replaced by a filed row then.
+
+> *Dated 20 Oct 2026, PROVISIONAL.* As the Wall Street Journal reported Anthropic's
+> draft S-1: revenue of $16.3 billion in the first half of 2026, from $1.1 billion
+> a year earlier; a net loss of $80.7 billion, of which $72 billion came from
+> non-cash accounting adjustments related to convertible notes and financing
+> instruments; nearly $9 billion spent on computing capacity and infrastructure in
+> the half; roughly $450 billion of cloud compute agreements over the next decade;
+> and approximately 20% of the half's revenue from two customers. The S-1 was not
+> public on EDGAR in public reporting to 22 Oct 2026. Disclosure: item 75 concerns
+> Anthropic, the company that builds Claude, which drafted the order; this record
+> takes no view on the company. Source: Investing.com, "Anthropic revenue hits
+> $16.3 billion as preliminary S-1 outlines IPO risks - WSJ" (20 Oct 2026),
+> https://www.investing.com/news/stock-market-news/anthropic-revenue-hits-163-billion-as-preliminary-s1-outlines-ipo-risks--wsj-4960928

@@ -1007,11 +1007,17 @@ def build(ending: str, *, as_of: Optional[str] = None, db_path: Optional[str] = 
             "(CD-12). The froth gauge is unscored until its gate (not before "
             "January 2027).")
         secs["attention"] = attention_section(st, cutoff, sun, sat, cfg, inbox)
+        # Batch 15 items 77 and 78 (b56): the cyber cross-reference and the
+        # active-protocol count, in the incidents section's footnote so the
+        # page's 52-line budget holds.
+        from daily_cascade import batch15_b2_block               # noqa: PLC0415
+        b15_note = batch15_b2_block.incidents_note(st, cutoff)
     first = cutoff[:10]
     last = _plus(first, int((cfg.get("ahead") or {}).get("window_days") or 45))
     secs["incidents"] = incidents_section(cutoff, sun, sat, cfg,
                                           calendar_window(cal, first, last),
                                           inbox)
+    secs["incidents"]["footnote"] = (secs["incidents"]["footnote"] + " " + b15_note)
     secs["ahead"] = ahead_section(cutoff, cfg, cal, events_db)
     secs["book"] = book_section(cfg, register)
     secs["read"] = {"tables": [], "lines": [], "paragraphs": [], "data": {},

@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 213
+next_id: 215
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -4355,6 +4355,46 @@ instruments:
   sources:
     identifiers: yfinance_source.SYMBOLS
     asset_class: the symbol's form; added by b52 (Batch 14 item 63, 21 Oct 2026; SM00204 left to chain-4's KRE)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00213
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: AIQ
+    store_key: yfinance.mkt_aiq
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by a57 (Batch 14 item 65, 23 Oct 2026; SM00205-SM00212 left to b52's capex-chain proxies)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00214
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: SPXT
+    store_key: yfinance.mkt_spxt
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by a57 (Batch 14 item 65, 23 Oct 2026; SM00205-SM00212 left to b52's capex-chain proxies)
   unverified:
   - currency
   - exchange

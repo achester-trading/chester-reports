@@ -131,7 +131,8 @@ altdata/                  Shared ingestion package — used by every report
                           10 in FRED_BANK_STRESS_SERIES (item 59's panel);
                           1 in FRED_HOUSEHOLDS_SERIES (item 68's
                           per-household deflator);
-                          FRED_PULL_SERIES, 278, is the union the
+                          4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
+                          FRED_PULL_SERIES, 282, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -147,7 +148,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    124 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    126 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -241,7 +242,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-four code gates (one hundred and thirty-one Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-five code gates (one hundred and thirty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -809,6 +810,36 @@ Report only.
 
 `tools/validate_batch14_b2.py` holds it.
 
+**Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
+breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the
+1 Nov Monthly (G4).** Report only.
+- **Item 74.** The TFF pull adds ES and NQ. `altdata/hf_positioning.py`
+  (`config/hf_positioning.yaml`) prints leveraged funds' net in each, with the
+  net short share's dual percentiles, in the Weekly's Positioning & flows. The
+  squeeze-risk flag pairs ES's net short at or above its 90th with item 71's
+  Amihud stand-in at or above its 90th; it prints there and as a context line
+  in item 45's levels read. FINRA's share of float and a performance proxy are
+  listed gaps; the prime-book figures are a dated record. The ledger, ST-R6.74b,
+  is pre-registered (`docs/ledgers/short-extremes-preregistration-2026-10.md`,
+  held by SHA-256), reads stored history only, and its laptop first edition is
+  INSUFFICIENT (n 0: no ES rows stored yet).
+- **Item 75.** `docs/ledgers/ai-lab-financials-ledger.md` is the template, its
+  first row the provisional, WSJ-reported draft S-1. `altdata/ai_lab_ledger.py`
+  computes the ratios; Factor I's lines print item 47's unit-economics line,
+  SR-16's commitments entry ("no ledger entry" otherwise) and the mega-IPO watch
+  ("not yet public").
+- **Item 77.** `altdata/cyber_pressure.py` stores CISA KEV additions and NVD's
+  critical CVEs per week (a Saturday step of the crypto basket's run) and prints
+  them, with their joint flag, in the Weekly's Ahead as the tail register's cyber
+  line, never a tripwire.
+- **Item 78.** `altdata/protocol_breadth.py` stores DefiLlama's active-protocol
+  count daily from its first pull (the endpoint serves today's list only) for the
+  Monthly's digital chapter. Items 77 and 78 cross-reference in the addendum's
+  incidents footnote. The base rate is
+  `docs/base-rate-notes/crypto-winters-protocol-shutdowns-2026-10.md`.
+
+`tools/validate_batch15_2.py` holds it.
+
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
 read-only after each pull and lists three things: an outlier (a price's or a FRED
@@ -1175,6 +1206,33 @@ flag turns on. Item 60's forward-EPS legs are listed gaps while
 both branches). The hyperscaler P/E dispersion (`altdata/pe_dispersion.py`)
 prints with the Monthly's index decomposition. `tools/validate_batch12.py` holds
 it.
+
+**The speed flag's attribution and the fragility flag are reports and a flag, never
+a regime (Batch 14 items 65 and 71, a57, 23 Oct 2026; merges after the 1 Nov
+Monthly).** On a day SR-35's 10-year companion prints, `altdata/speed_attribution.py`
+splits the 10-year's move into expected short rates and the term premium by KW and
+ACM, each read only when its input for the day is stored (F5: "awaiting"
+otherwise). The close prints it in Mechanics after item 52's block and stores
+`rates.speed_event_ledger`; the EOD pass's `resolve` writes the attribution and
+the outcomes as they land. `altdata/ai_trade.py` carries:
+- the AI-bottleneck PPI line, in item 46's inflation block (Monthly);
+- AIQ against SPXT, labelled proxy, after item 31's concentration table;
+- the AI-credit gap beside SR-16's neocloud line.
+
+`altdata/fragility.py` is item 71's panel (`config/fragility.yaml`):
+- SPY's Amihud measure and range per volume, with ES depth "not tracked";
+- margin debt and its share of Z.1's equity market value;
+- the leveraged-ETF rebalance over ProShares' seven;
+- 6b's stored dealer gamma.
+
+Its flag is the Amihud stand-in at its 90th with forced flow above its 90th: flag
+rights only. Its lens is a report-only row in item 52's table, and its line sits
+in item 45's levels read. `daily_cascade/batch14_b1_block.py` lays both out.
+Both ledgers are pre-registered:
+- ST-R6.65a: INSUFFICIENT, n 28;
+- ST-R6.71d: FAIL, n 2965.
+
+`tools/validate_batch14_b1.py` holds it.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

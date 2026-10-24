@@ -519,8 +519,14 @@ def vol_event_for(p: dict, st, cutoff: str) -> Optional[dict]:
             from . import dealer_block                          # noqa: PLC0415
             prof = dealer_block.newest_settled(p["session"], "SPY", p["computed_dir"],
                                                lookback_days=0)
-        return ve.evaluate(ve.read_series(st, cutoff), p["session"], profile=prof,
-                           attributions=ve.attributions_for(p["session"], cutoff))
+        ev = ve.evaluate(ve.read_series(st, cutoff), p["session"], profile=prof,
+                         attributions=ve.attributions_for(p["session"], cutoff))
+        # Batch 14 item 71 (F5): the "liquidity" lens, a report-only row.
+        if ev.get("fired"):
+            from . import batch14_b1_block                      # noqa: PLC0415
+            ve.with_liquidity(ev, batch14_b1_block.liquidity_lens(st, p["session"],
+                                                                  cutoff))
+        return ev
     except Exception as exc:                                    # noqa: BLE001
         return {"day": p["session"], "fired": False, "trigger": {},
                 "trigger_line": f"Volatility: the read faulted ({type(exc).__name__})"}
@@ -1032,6 +1038,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "book": book_section(p),
         }
         em_extras(built, screen, p["session"])
+        # SIGNAL-TRIAGE BATCH 14, PART B1 (a57, 23 Oct 2026): item 65's speed-flag
+        # attribution on a flag day and item 71's fragility panel, in Mechanics
+        # (daily_cascade/batch14_b1_block.py; tables and lines only).
+        from . import batch14_b1_block                          # noqa: PLC0415
+        batch14_b1_block.close_extras(built, st, p["session"], cutoff, screen)
         # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
         # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
         from . import batch3_block                              # noqa: PLC0415

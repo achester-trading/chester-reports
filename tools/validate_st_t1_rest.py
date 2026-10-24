@@ -343,7 +343,10 @@ def group_e() -> None:
           and all(("NOT AVAILABLE (" in x or "NOT TRACKED (" in x or "not determinable"
                    in x or "withdrawn" in x or "deferred" in x or "zero rebalancing" in x
                    or "not assessable" in x or "not rendered" in x
-                   or "(as of the ledger)" in x)
+                   or "(as of the ledger)" in x
+                   # Batch 15 item 75 (b56): the AI-lab ledger's lines read its
+                   # committed file, not the store, and the IPO watch its config.
+                   or "the AI-lab ledger)" in x or "not yet public" in x)
                   for x in data_lines),
           f"every one of the {len(data_lines)} block lines on an empty store names its "
           f"key and source (NOT AVAILABLE / NOT TRACKED), or says why it is not read")

@@ -752,6 +752,12 @@ def freshness(as_of: Optional[str] = None,
         # heartbeat sees them; the explorer's keys are PENDING until it reads.
         from . import prl as _prl                              # noqa: PLC0415
         rosters += [(_prl.ROSTER, list(_prl.ROSTER_KEYS))]
+        # Batch 15 items 77 and 78 (b56): the cyber feeds' Saturday step and the
+        # daily protocol count, both steps of the crypto basket's run.
+        from . import cyber_pressure as _cyb                   # noqa: PLC0415
+        from . import protocol_breadth as _pb                  # noqa: PLC0415
+        rosters += [(_cyb.ROSTER, list(_cyb.ROSTER_KEYS)),
+                    (_pb.ROSTER, list(_pb.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
