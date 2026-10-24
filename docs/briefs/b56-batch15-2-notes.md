@@ -1,5 +1,7 @@
 # b56-batch15-2: signal triage Batch 15, session B -- items 74, 75, 77 and 78 (23-24 Oct 2026)
 
+**CI green at `c9b7247`** (run 40053101584, 144/144 jobs). Merges after the 1 Nov Monthly (G4).
+
 **What it is.** Session B's four items from the Batch 15 order (items 72-78, filing amendments G1-G6 ruled 23 Oct 2026, 19:13 ET):
 - **Item 74** (written as 67): hedge-fund positioning and the squeeze-risk flag;
 - **Item 75** (written as 68): the AI-lab financials ledger;
@@ -29,7 +31,10 @@ Section 0 governs, and items are cited by their filed numbers. **It merges after
 |---|---|
 | `c48c8a1` | The merge of a57 into chain-5 (above) |
 | `eacd60d` | Item 74's ledger pre-registration, committed alone before any scoring code |
-| (next) | Items 74, 75, 77 and 78, the gate, the first ledger edition, the notes |
+| `6daeaff` | Items 74, 75, 77 and 78, the gate, the first ledger edition, the notes |
+| `603643b` | `validate_st_t1_rest` admits the AI-lab ledger's lines (they read the committed file, not the store) |
+| `bc2906f` | The ledger lines carry their as-of; `validate_monthly` admits "not yet public" and "no ledger entry" (CI round 1) |
+| `c9b7247` | `validate_weekly_edits`' Positioning list gains the new sub-section (CI round 1) |
 
 ## Part 0: the source checks (run 23 Oct 2026, from the laptop, before building)
 
@@ -148,6 +153,10 @@ Section 0 governs, and items are cited by their filed numbers. **It merges after
 
 The stack gates are left to CI.
 
+**The writers' dry runs against the live endpoints** (laptop, 23 Oct 2026, nothing written):
+- `python -m altdata.cyber_pressure weekly --dry-run --force`: 267 rows, no failure. These are KEV's 259 complete weeks (9 in the week of 12 Oct) and NVD's 8 re-read weeks. NVD reads 17 critical CVEs in the week of 12 Oct against 22 to 39 in the weeks before: the scoring lag, labelled provisional.
+- `python -m altdata.protocol_breadth daily --dry-run`: 8,813 protocols, 7,904 listed, 5,486 active.
+
 ## Every listed gap
 
 1. **FINRA short interest as a share of float** for the S&P 500 (74): no constituent list or float source.
@@ -225,7 +234,8 @@ The ES and NQ rows are existing keys (`cftc.tff_lev_money_*`) under new instrume
 
 | Round | Run | On | Result |
 |---|---|---|---|
-| 1 | — | — | — |
+| 1 | 40052440736 | `6daeaff` | **141 of 144 jobs green; 3 gates failed, each this branch's:** <br>• `validate_st_t1_rest` and `validate_monthly`: the Factor I rule that every data line on an empty store carries an as-of, a NOT TRACKED mark or its reason. The AI-lab ledger's lines read the committed file, so they now carry their as-of, and the IPO watch's "not yet public" and an empty ledger's "no ledger entry" are admitted as reasons. <br>• `validate_weekly_edits`: its Positioning title list gains the new sub-section (eleven). <br>• The stack gates (`validate_stack`, `validate_monthly_stack`) and `smoke_test` passed. <br>Locally after the fixes: 34/0, 359/0, 91/0 |
+| 2 | 40053101584 | `c9b7247` | **Green: 144 of 144 jobs.** The two intermediate runs (40052584083 and 40052890171) were cancelled as superseded. Also run locally on the final tree: `validate_daily_close` 102/0, `validate_quarterly_stack` 94/0, `validate_figure_budget` 123/0, `validate_weekly_complete` 96/0, `validate_lenses` 49/0, `validate_secrets` 58/0, `validate_deploy` 154/0, `validate_gates` 32/0 |
 
 ## Needs you
 
