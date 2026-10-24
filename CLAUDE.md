@@ -303,8 +303,9 @@ The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` 
 `stack_render.markdown` print a whole edition at any cadence; at "monthly" a
 sub-section carries its own charts and notes, a Reading entry's stored summary
 prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
-never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
-words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
+never in the budget). The Monthly's 10,000 words (T3.1 item 22; 7,000 before) are
+a target: since D19/D20 (24 Oct 2026) nothing is cut to fit, and an edition over
+its reading target prints one foot line (`stack.target_line`). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
 
 **Each family of metrics is measured its own way (6e, the metric lenses; ruled
@@ -469,8 +470,8 @@ the Weekly (`weekly_digital_<ending>.html` and `.pdf`, its edition JSON and its
 appendix line) and attaches it to the Weekly's own email as a second PDF (ruled
 17 Oct 2026); the Weekly prints one line naming
 it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
-the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
-minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
+the ruling's order (`config/digital_addendum.yaml`, its targets, never caps:
+about seven minutes, about 1,500 words, two charts; D19/D20, 24 Oct 2026); every Batch 4 Tranche A cell prints "awaiting
 Tranche A" until its key has a row; the read is one paragraph through the
 existing narrative step and its audits, from the page's figures only. The X
 pilot's ledgers and digests are read from the box's inbox, which the nightly
@@ -547,8 +548,9 @@ panels read Tranche A by key:
 - an absent series prints "awaiting the first pull", "not tracked" or "awaiting
   EL-12".
 
-The page holds Phase 1's 52-line budget, and the read's audits gain a flag-word
-check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
+Phase 1's 52-line budget is retired (D19/D20, 24 Oct 2026): items 77 and 78 print
+in the incidents section's body with their tables, and a page over its target prints
+one foot line. The read's audits gain a flag-word check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
 watch, read-only.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is

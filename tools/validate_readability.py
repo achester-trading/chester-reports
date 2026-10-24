@@ -269,15 +269,16 @@ def main() -> int:
                             if name == "Weekly" else f"{rd.PARAGRAPH_WORDS}")
                          + " words, none under a sub-section "
                          f"({long_})")
-    big = {"sections": [{"id": "tape", "paragraphs": [
-        " ".join(f"Sentence {n} has exactly seven words here." for n in range(30)),
-        "A second paragraph."], "subsections": [{"paragraph": "x"}]}]}
+    long_para = " ".join(f"Sentence {n} has exactly seven words here." for n in range(30))
+    big = {"sections": [{"id": "tape", "paragraphs": [long_para, "A second paragraph."],
+                         "subsections": [{"paragraph": "x"}]}]}
     rd.finalize(big)
     tp = big["sections"][0]
-    check(len(tp["paragraphs"]) == 1 and len(tp["paragraphs"][0].split()) <= 120
-          and tp["trimmed"] and "paragraph" not in tp["subsections"][0],
-          f"the guard keeps one paragraph, cut at a sentence to 120 words "
-          f"({len(tp['paragraphs'][0].split())} words)")
+    check(tp["paragraphs"] == [long_para, "A second paragraph."] and tp.get("over_target")
+          and not tp.get("trimmed") and "paragraph" not in tp["subsections"][0],
+          f"the guard cuts nothing past the 120-word, one-paragraph target (D19/D20): "
+          f"both paragraphs print in full ({len(long_para.split())} words), over_target "
+          f"recorded")
     # THE GUARD IS THE LAST STEP (A-4). The formatting pass rewrites every
     # sub-section's `paragraph` with ss[k] = P(ss.get(k)), so run after the
     # guard it wrote back the key the guard had popped.

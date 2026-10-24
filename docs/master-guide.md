@@ -225,7 +225,7 @@ The live cards follow. Each names its entry point, so the gate can hold it to th
 - **Entry point:** `daily_cascade/close_report.py` (`chester-daily-close.timer`, weekdays 16:45), building through `daily_cascade/stack_close.py`.
 - **Purpose:** the day's record. It is the **only writer of the market-state object**, and it writes each outlook to the ledger before it prints it.
 - **Horizon and books:** every book, as record (fills, carry, switches).
-- **When and how long:** weekdays 16:45, email plus PDF. Target **five minutes**, 1,000 words and three charts (`config/reporting_stack.yaml`).
+- **When and how long:** weekdays 16:45, email plus PDF. Target **ten minutes**, about 2,250 words and three charts (`config/reporting_stack.yaml`; D19/D20, 24 Oct 2026: a target, never a cap, with one foot line when over).
 - **The sections that matter most:** the ten-section stack at daily depth: the read (with the bank-stress classifier's line, only when it prints), the tape, **mechanics** (the dealer block), what doesn't fit, plumbing and rates (with the bank-stress item beside item 34's cluster, priority 1 when a flag is on), positioning, what's priced, narratives, **ahead**, **the book**. Then the detail tables (the state, the contradictions, moves past 2.5σ, and **relative options volume**: the names at 1.5 times their 20-session average, five at most, "volume, no side", OS-12) and the glossary; the next close's mechanics says how many of yesterday's flagged names became OI builds. The Alpha Lab line and the meme drafts line print near the book.
 - **Highest rung:** a **setup proposed** by the dealer block (pin fade, negative-gamma continuation, forced flow), which ends "The block proposes; the books decide; nothing here writes the register."
 - **Not allowed:** to write the register or to size anything.
@@ -238,7 +238,7 @@ The live cards follow. Each names its entry point, so the gate can hold it to th
 - **Entry point:** `daily_cascade/weekly_report.py` (`chester-weekly.timer`, Sunday 05:00), building through `daily_cascade/weekly_stack.py`; the addendum is `daily_cascade/digital_addendum.py`.
 - **Purpose:** the week's read and Book B's candidates, for the Sunday sitting.
 - **Horizon and books:** **Book B** owns it; Book A for context; Book D through the addendum's book section.
-- **When and how long:** Sunday 05:00, email plus PDF. Target **twenty minutes**, 3,500 words, ten charts. The addendum: five minutes, 1,100 words, two charts, its own PDF on the same email.
+- **When and how long:** Sunday 05:00, email plus PDF. Target **thirty-five minutes**, about 7,900 words, ten charts. The addendum: about seven minutes, about 1,500 words, two charts, its own PDF on the same email. Targets, never caps (D19/D20, 24 Oct 2026): nothing is cut for length, and an edition over its target prints one foot line.
 - **The sections that matter most:**
   - the **précis** (its stance is written to the ledger) and "Changed since last Weekly";
   - **positioning** and **mechanics** (the dealer week, the scorecard rates, OS-8 and OS-10 with the week's relative-volume flags per name and OS-12c's ledger to date, the vendor line); **plumbing and rates** carries the bank-stress line (Batch 12), and Batch 14's PMMS-10y spread in the housing block and the nominal-growth anchor in the 10-year attribution (a56, report only);
@@ -665,7 +665,7 @@ Deeper: the Doctrine Appendix B (the packet by book) and 6.4; Options as Express
 - [ ] **07:00, ten minutes:** the anchor. The dials as the close left them; what changed; the volatile-day flag (four arms, the gap provisional); the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. *Not built:* Book C drafts and the 0700 setup list. *Off until your yes:* the crypto paragraph (built behind a switch that ships off).
 - [ ] **09:50, optional, two minutes:** the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.
 - [ ] **12:30, only if it arrives, two minutes:** read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.
-- [ ] **16:45, five minutes:** the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.
+- [ ] **16:45, ten minutes:** the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.
 - [ ] **21:30 Sunday to Thursday, optional, one minute (three on Sunday):** the evening note (once you enable its timer). Never act on it at night; the 07:00 anchor re-reads all of it.
 
 ### Sunday, 45 to 60 minutes

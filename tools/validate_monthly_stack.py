@@ -23,7 +23,7 @@ monthly_macro.stack with a fake model client:
                 themes' first sentences not repeated as a summary.
   E BUDGET      10,000 prose words (T3.1 item 22; 7,000 before) and 10 charts;
                 words count prose only (a table
-                adds none); over budget, paragraphs go, "(trimmed)" prints, and no
+                adds none); over its target nothing is cut and one foot line prints, and no
                 claim, item or table is cut.
   F RETRY       a section the audit withholds is retried once with the reason fed
                 back; a second failure is withheld with both reasons; a fault is
@@ -1096,12 +1096,12 @@ def reading_group(cfg: dict) -> None:
           and rd.stored_words(e2) > 50,
           f"the summaries are not this edition's prose: no budget word "
           f"({rd.stored_words(e2)} stored words counted in the reading time instead)")
+    e2["reading_target_minutes"] = 1
     ms.enforce_budget(e2)
-    sm.trim_to_budget(e2, 10)
     rs2 = next(s for s in e2["sections"] if s["id"] == "reading")
     check([ss.get("entries") for ss in rs2["subsections"]]
           == [ss.get("entries") for ss in sec["subsections"]],
-          "over budget, the budget never cuts or trims a stored summary")
+          "over its target, the budget step never cuts or trims a stored summary")
     check(ed["reading_minutes"] == max(1, math.ceil(
               (ed["words"] + rd.stored_words(ed)) / 250.0 + ed["chart_count"] / 3.0)),
           "and the reading time counts them")
@@ -2566,23 +2566,25 @@ def main() -> int:
     check(stack_mod.edition_words(e) == before, "a 200-row table adds no words: tables "
                                          "are data")
     deep = next(s for s in e["sections"] if s["id"] == "narratives")
-    deep["subsections"][0]["paragraphs"] = ["Prose for the budget to take. " * 8] * 4
+    deep["subsections"][0]["paragraphs"] = ["Prose printed in full past the target. "
+                                            * 900] * 4
+    paras = list(deep["subsections"][0]["paragraphs"])
     n_items = sum(len(s["items"]) for s in e["sections"])
     n_rows = len(printed_rows(e))
     claims = [s.get("claim") for s in e["sections"]]
-    e["budget"] = {"words": stack_mod.edition_words(e) - 40, "charts": 10}
     ms.enforce_budget(e)
-    stack_mod.trim_to_budget(e, e["budget"]["words"])
-    e["words"] = stack_mod.edition_words(e)
-    check(e["words"] <= e["budget"]["words"]
-          and any(s.get("trimmed") for s in e["sections"] + e["detail"]),
-          f"over budget, paragraphs go until it fits ({e['words']} of "
-          f"{e['budget']['words']})")
+    check(e["words"] > 10000 and deep["subsections"][0]["paragraphs"] == paras
+          and not any(s.get("trimmed") for s in e["sections"] + e["detail"]),
+          f"over its 10,000 words and 55 minutes nothing is cut (D19/D20): every "
+          f"paragraph prints ({e['words']} words)")
     check(sum(len(s["items"]) for s in e["sections"]) == n_items
           and len(printed_rows(e)) == n_rows
           and [s.get("claim") for s in e["sections"]] == claims,
           "and no item, table row or claim line is cut")
-    check("(trimmed)" in ms.html(e), "the cut section prints \"(trimmed)\"")
+    html_e = ms.html(e)
+    check("(trimmed)" not in html_e and str(e.get("target_line") or "").endswith(
+              "against a 55-minute target.") and e["target_line"] in html_e,
+          f"the page prints one foot line instead: {e.get('target_line')!r}")
 
     # --- F. THE ONE RETRY --------------------------------------------------------------
     print(f"\n{LINE}\nF. THE ONE RETRY, IN THE MONTHLY'S SECTION WRITER\n{LINE}")

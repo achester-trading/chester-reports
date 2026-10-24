@@ -292,10 +292,10 @@ def main() -> int:
           "on-chain; narratives and attention; incidents and regulation; ahead; "
           "the book")
     b = cfg["budget"]
-    check(b["reading_minutes"] == 5 and b["words"] == 1100 and b["charts"] == 2
-          and b["read_words"] == 120,
-          "the session-set budgets: five minutes, 1,100 words, two charts, a read "
-          "of 120 words")
+    check(b["reading_minutes"] == 7 and b["words"] == 1500 and b["charts"] == 2
+          and b["read_words"] == 120 and "max_lines" not in cfg,
+          "the targets (D19/D20, 24 Oct 2026): about seven minutes, about 1,500 "
+          "words, two charts, a read of about 120 words; the 52-line cap retired")
     cal = da.load_calendar(cfg=cfg)
     ents = {(e["date"].isoformat() if hasattr(e["date"], "isoformat") else str(e["date"]),
              e["body"]): e for e in cal["entries"]}
@@ -575,11 +575,19 @@ def main() -> int:
           and sec(ed_b, "read")["lines"][0].startswith("The read is withheld:"),
           f"a figure not on the page withholds the read, with its reason "
           f"({str(ed_b['prose'].get('reason'))[:90]})")
-    long_ = " ".join([good] * 4)
+    long_ = " ".join([good] * 5)
     ed_long = da.build(ENDING, as_of=AS_OF, db_path=db_a, inbox=TD / "empty-inbox",
                        narrative=True, client=client(long_, []), cfg=cfg, **kw)
-    check(not ed_long["prose"]["published"],
-          "a read past its words or figures is withheld")
+    check(len(long_.split()) > 120 and ed_long["prose"]["published"]
+          and sec(ed_long, "read")["paragraphs"] == [long_],
+          f"a read past its 120 words prints in full, never withheld for length "
+          f"(D20; {len(long_.split())} words)")
+    runaway = " ".join([good] * 40)
+    ed_run = da.build(ENDING, as_of=AS_OF, db_path=db_a, inbox=TD / "empty-inbox",
+                      narrative=True, client=client(runaway, []), cfg=cfg, **kw)
+    check(not ed_run["prose"]["published"] and ed_run["prose"].get("state") == "too_long",
+          "a reply past the runaway guard (a model that lost the thread) is still "
+          "withheld")
     check(sec(ed_a, "read")["lines"] == ["The read was not written (no narrative on "
                                          "this run)."],
           "with no narrative, the read says so")
@@ -588,18 +596,41 @@ def main() -> int:
     head("H. BUDGETS")
     for name, e in (("empty inbox", ed_a), ("full fixture week", ed_d),
                     ("with the read", ed_g)):
-        check(e["words"] <= 1100 and e["minutes"] <= 5 and e["chart_count"] <= 2
-              and not e["over_budget"],
+        check(e["words"] <= 1500 and e["minutes"] <= 7 and e["chart_count"] <= 2
+              and not e["over_budget"] and not e.get("target_line"),
               f"{name}: {e['words']} words, about {e['minutes']} minutes, "
-              f"{e['chart_count']} charts -- inside 1,100 / 5 / 2")
-    cap = ed_d["words"] - 40
-    tight = {**cfg, "budget": {**cfg["budget"], "words": cap}}
+              f"{e['chart_count']} charts -- inside the 1,500 / 7 / 2 targets, no foot "
+              f"line")
+    # D19/D20: OVER THE TARGET THE PAGE RENDERS IN FULL, plus one foot line.
+    tight = {**cfg, "budget": {**cfg["budget"], "words": 100, "reading_minutes": 1}}
     ed_t = da.build(ENDING, as_of=AS_OF, db_path=db_a, inbox=inbox, narrative=False,
                     cfg=tight, **kw)
-    check(ed_t["words"] <= cap and any(s.get("trimmed") for s in ed_t["sections"])
-          and "(trimmed)" in da.render(ed_t),
-          f"over a {cap}-word budget the page is trimmed back inside ({ed_t['words']}) "
-          f"and the trimmed section says so")
+    rows = lambda e: [len(t.get("rows") or []) for s in e["sections"]   # noqa: E731
+                      for t in s.get("tables") or []]
+    lines_ = lambda e: [len(s.get("lines") or []) for s in e["sections"]]  # noqa: E731
+    html_t = da.render(ed_t)
+    check(rows(ed_t) == rows(ed_d) and lines_(ed_t) == lines_(ed_d)
+          and ed_t["words"] == ed_d["words"] and ed_t["over_budget"]
+          and not any(s.get("trimmed") for s in ed_t["sections"])
+          and "(trimmed)" not in html_t,
+          f"over a 100-word, 1-minute target nothing is cut: every row and line as "
+          f"on the full week ({ed_t['words']} words)")
+    check(ed_t["target_line"] == (f"This page runs about {ed_t['minutes']} minutes "
+                                  f"against a 1-minute target.")
+          and ed_t["target_line"] in html_t,
+          f"and the page prints one foot line: {ed_t['target_line']!r}")
+    inc = sec(ed_d, "incidents")
+    titles = [t.get("title") for t in inc["tables"]]
+    check("Cyber pressure (item 77)" in titles and "Protocol breadth (item 78)" in titles
+          or ("Cyber pressure (item 77)" in titles
+              and any("DefiLlama active protocols" in x for x in inc["lines"])),
+          "items 77 and 78 in the incidents section's body, each with its table and "
+          "read (D20), not its footnote")
+    check(any("Cyber-pressure flag" in x for x in inc["lines"])
+          and "Cyber pressure (the Weekly" not in inc["footnote"]
+          and "DefiLlama" not in inc["footnote"],
+          "the cyber read's three lines print in the body; the footnote no longer "
+          "carries them")
 
     # --- I --------------------------------------------------------------------
     head("I. PUBLISH: THE SECOND PAGE ON A FIXTURE SUNDAY")
@@ -793,12 +824,12 @@ def phase2(cfg: dict, kw: dict) -> None:
           and rr["Residual: the two buyers beyond new supply"].startswith("withheld"),
           "a leg with no reading prints \"not tracked\" and the residual is withheld")
 
-    head("M. THE LINE BUDGET AND THE READ'S AUDITS")
+    head("M. THE LINES AND THE READ'S AUDITS")
     full = kw["full"]
     n = sum(len(t.get("rows") or []) for s_ in full["sections"] for t in s_.get("tables") or []) \
         + sum(len(s_.get("lines") or []) + len(s_.get("paragraphs") or [])
               for s_ in full["sections"])
-    check(cfg["max_lines"] == 52 and n <= cfg["max_lines"],
+    check("max_lines" not in cfg and n > 0,
           f"the panels hold Phase 1's line budget: {n} lines against 52 on the full "
           f"fixture week")
     check(full["words"] <= 1100 and full["minutes"] <= 5,

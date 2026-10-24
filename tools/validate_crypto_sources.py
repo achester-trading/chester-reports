@@ -910,9 +910,10 @@ def part2(cfg: dict) -> None:
         ms = B.monthly_slow(st, NOW, cfg)
     text = json.dumps([wb, mm, ms]).lower()
     lines = {r_[0]: r_ for r_ in wb["table"]["rows"]}
-    check(len(wb["table"]["rows"]) <= 12 and all(r_[2] for r_ in wb["table"]["rows"]),
-          f"the Weekly block: {len(wb['table']['rows'])} lines, at most 12, each with its "
-          f"data-as-of")
+    check(len(wb["table"]["rows"]) == 12 and all(r_[2] for r_ in wb["table"]["rows"])
+          and "weekly_max_lines" not in (cfg.get("blocks") or {}),
+          f"the Weekly block: all {len(wb['table']['rows'])} measures print, each with "
+          f"its data-as-of (the 12-line cap retired by D19/D20)")
     check(lines["BTC spot ETF flows, the week"][1] == "STALE: last good 1 Oct 2026",
           "THE STALE RENDER: a stale Farside table prints STALE with its last good "
           "date -- never an empty cell, never a zero")
