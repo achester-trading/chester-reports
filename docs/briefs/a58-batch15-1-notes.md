@@ -178,7 +178,10 @@ Section 0 governs, and items are cited by their filed numbers. Items 74, 75, 77 
 
 | Run | On | Result |
 |---|---|---|
-| (filled below) | | |
+| 40049193630 | `4e5a8af` (the build and the gate) | queued when read once, 23 Oct about 21:20 ET; result not read in this session |
+| 40049341156 | `c198e46` (these notes) | queued when read; the branch tip's run is the one that counts |
+
+The run was read once, as the brief asks; no command waited on it. Its result is the next session's (or the operator's) to read: `gh run list --branch a58-batch15-1 --limit 3`.
 
 ## Every listed gap
 
