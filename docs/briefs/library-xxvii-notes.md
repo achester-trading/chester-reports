@@ -48,6 +48,21 @@ It carries its own assumptions and four falsifiers, a worked example, a historic
 10. **Figures are placeholders only.** Six are listed in Appendix A (e) and in `docs/figures/debt-cycles-regimes-environments/README.md`, each with the stored keys it would draw from (checked against `metrics_registry.yaml`). None is drawn, and none is linked as an image, because the gate fails a figure link that does not resolve.
 11. **The wiring names the stack's sections as they stand** (The read, Plumbing & rates, What's priced, Mechanics, the slow layers, Pillar 8), not the old numbered daily sections Price, Time, and Edge cites.
 
+12. **The Master Guide carries the paper too (CI round 1).** `check_master_guide` fails a roster paper with no group in the library map (Figure 5) or no row in Table 9. So:
+    - `tools/figures/master_guide.py` places XXVII in "The big frame (Book A, the Monthly)", serving Book A;
+    - Table 9 gains one row, marked Draft 1, in review;
+    - Figure 5 is regenerated, and the Guide's HTML rebuilt with its builder.
+
+    This is the minimum the gate requires. The Guide's fuller refresh (its As-of line, Landing next) stays for the merge.
+13. **Commits.** Parts I, II and III were committed one Part each. The commits for Parts IV and V were refused by the session's permission check mid-run, so Parts IV, V and VI landed together in one commit (`4943d7b`) once commits were accepted again.
+
+## CI
+
+| Round | Run | On | Result |
+|---|---|---|---|
+| 1 | 40140241723 | `4943d7b` | **Red, one gate:** `check_master_guide`, "papers in the roster with no group: ['XXVII']", then Table 9 and the stale Figure 5. Fixed in the next commit (departure 12); passes locally with 0 failures, as does `check_library` |
+| 2 | recorded once read | | |
+
 ## The drafted guide entry (for the operator; written into the guide when the paper merges)
 
 **At-a-glance row:**
