@@ -139,7 +139,7 @@ Tranche 2 (calibration) is A63. Tranche 4 (`alignment_weekly`) waits for the reg
 | Round | Run | On | Result |
 |---|---|---|---|
 | 1 | 40117517223 | `1309c81` | **failure, four gates, all this branch's** (fixed in round 2) |
-| 2 | read once after the push | the fix | see the report |
+| 2 | 40119480977 | `5e3f6f57` | **success** (read once, A64, 24 Oct evening) |
 
 Round 1's four failures, all this branch's:
 
