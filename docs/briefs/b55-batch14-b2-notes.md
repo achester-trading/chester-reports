@@ -1,5 +1,7 @@
 # b55-batch14-b2: signal triage Batch 14, Part B2 -- items 62, 67 and 68 (session B, 23 Oct 2026)
 
+**CI green at `eb22e79`** (run 40050394809, 144/144 jobs). Merges after the 1 Nov Monthly.
+
 **What it is.** Three of Part B's items from the Batch 14 order (ruled 20 Oct 2026 with filing amendments F1 to F8). Part B **merges after the 1 Nov Monthly**, whatever CI says (F8).
 - **Item 62** (written as 55): the cross-house CMA table, through the reading shelf;
 - **Item 67** (written as 60): the PEG/LTEG gap line, the base-rate note and the narrative entry;
@@ -179,7 +181,8 @@ a56-batch14-a1 is already in chain-5, so nothing is shared with it beyond the ba
 
 | Round | Run | On | Result |
 |---|---|---|---|
-| 1 | — | — | — |
+| 1 | 40049628718 | `63ff1be` | **142 of 144 jobs green; 1 gate failed, this branch's**: `validate_st_r5_t1_rest` pins `FRED_PULL_SERIES` (277), and the Census household estimates make it 278. It was found from a57's CI round 1, which hit the same pin, and fixed before this run finished. (`gates-passed` is the summary job.) |
+| 2 | 40050394809 | `eb22e79` | **Green: 144 of 144 jobs.** The pin at 278; the PEG gap line without the note's path. Locally: `validate_st_r5_t1_rest` 103/0 |
 
 ## Needs you
 
