@@ -30,6 +30,7 @@ STITCH PENDING (CI round 1 not yet read)
 | 3 | a57-batch14-b1 | `711631b` | green, run 40042147115 at `ccac489` (its notes) | **none: a no-op** ("Already up to date": `711631b` is an ancestor through b56's merge `c48c8a1`) | — |
 | 4 | a58-batch15-1 | `e219bc8` | **red**: its latest run, 40049370749, failed `validate_secrets` and `validate_st_t2_rates` (a58's own; recorded, not fixed here). A had pushed no fix when it was merged | `9614a68` | CLAUDE.md, Makefile, `altdata/config.py`, the architecture document, the queue, the Master Guide and its HTML, `metrics_registry.yaml`, `tools/validate_prices.py`, `tools/validate_st_r5_t1_rest.py` |
 | fix 1 | — | — | — | `d9e0da9` | `tools/validate_batch14_b2.py` (below) |
+| 4b | a58-batch15-1, again | `1194a12` (A59: the fix of its two red gates; it moved between the first merge and the final push) | its run 40054872472 queued when merged | `9bc67c0` | none: a clean merge (`validate_secrets`, `dm_drawdown`, its config and notes) |
 
 ## Every conflict and its resolution
 
@@ -76,6 +77,7 @@ STITCH PENDING (CI round 1 not yet read)
 | `validate_batch14_b2` | 55/0, after fix 1 |
 | `validate_batch15_2` | 57/0 |
 | `validate_batch15_1` | 69/1 |
+| `validate_secrets`, `validate_st_t2_rates` (after a58's fix) | 58/0, 71/0 |
 
 `validate_batch15_1`'s one failure is local only. It holds the Batch 15 order at its SHA-256, and the laptop's checkout converts the file to CRLF (`git ls-files --eol`: index LF, working tree CRLF); CI reads the LF bytes. The stack gates are left to CI.
 
@@ -91,6 +93,5 @@ STITCH PENDING (CI round 1 not yet read)
 
 ## Needs you
 
-1. **a58's red gates** (`validate_secrets`, `validate_st_t2_rates` on its own run 40049370749): yes or no to session A fixing them on a58 and this chain taking the fix with a merge of a58's new tip before the post-Monthly pull request.
-2. **The post-Monthly pull request**: yes or no to opening chain-6 into main after the 1 Nov Monthly, once chain-5 is on main and chain-6's CI is green.
-3. **The box sheet**: yes or no to running it, in its order, after that merge.
+1. **The post-Monthly pull request**: yes or no to opening chain-6 into main after the 1 Nov Monthly, once chain-5 is on main and chain-6's CI is green.
+2. **The box sheet**: yes or no to running it, in its order, after that merge.
