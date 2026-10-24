@@ -181,7 +181,7 @@ Section 0 governs, and items are cited by their filed numbers. Items 74, 75, 77 
 | 1 | 40049193630 | `4e5a8af` (the build and the gate) | failure: the same two gates as the tip's run |
 | 1 | 40049341156 | `c198e46` (these notes) | failure: the same two gates |
 | 1 | 40049370749 | `e219bc8` (the notes' CI line) | failure, read 23 Oct (A59): 2 code gates failed, every other passed |
-| 2 | see below | the A59 fix | read once after the push (A59) |
+| 2 | 40054872472 | `1194a12` (the A59 fix) | **green, 145/145** jobs (read 23 Oct, about 22:49 ET) |
 
 **Round 1's two failures were both this branch's, and A59 fixed them:**
 
