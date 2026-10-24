@@ -82,7 +82,7 @@ ABSENT (`validate_st_t5_render.NAME_RX`, `validate_batch15_1.PEOPLE` and its
 Kept: `validate_by_hand_audit.py:197`'s pinned quotation `"weights stay Ari's" in text`.
 It checks the Warsh-matrix document under `docs/`, a filed text, which keeps its words.
 
-**Other people's names: 10 lines.**
+**Other people's names: 9 lines.**
 
 | File | Was | Now |
 |---|---|---|
@@ -91,7 +91,6 @@ It checks the Warsh-matrix document under `docs/`, a filed text, which keeps its
 | `altdata/sources/fed_calendar.py:13` | an example title naming a Fed governor | "Speech - Governor <name>" |
 | `altdata/sources/shiller.py:2`, `config/catalogue_commands.yaml:591` | "Robert Shiller's stock market data" | "Shiller's online stock market data (Yale)" |
 | `source_registry.yaml:2462` | "Aswath Damodaran -- industry datasets (NYU Stern)" | "Damodaran Online -- industry datasets (NYU Stern)" |
-| `config/crypto_basket.yaml:374` (VVV's thesis) | "founded by" and the founder's name | the clause removed |
 | `config/narratives.yaml:421-423` (a story's `proposed_by`) | four strategists named beside their firms | the firms only: "(BlackRock Investment Institute, and a second desk)", "(TAAI; BofA)" |
 | `config/rates_anchors.yaml:46` | "Courtial's fit excluded China" | "The twin-deficit fit excluded China" |
 
@@ -105,6 +104,7 @@ It checks the Warsh-matrix document under `docs/`, a filed text, which keeps its
   106-108). They are data that prints, beside the anchor each one tests, and
   `validate_rates_anchors` pins them. Changing what prints is a rendering change,
   not a comment.
+- **`config/crypto_basket.yaml:374`, VVV's thesis** (it names the founder). The thesis is a verbatim quotation of the filed basket document, which `validate_crypto_basket` holds word for word. The strip changed it, and CI round 1 caught it; it is restored in the round-1 fix. Filed text stays verbatim.
 - **`altdata/report/`**, the vendored Alternative Asset content (officials, founders
   and analysts in its narrative prose). It is content, not a pipeline, and nothing
   imports it.
@@ -136,7 +136,10 @@ The Monthly's and the Weekly's full gates (`validate_monthly_stack`, `validate_m
 
 ## The CI rounds
 
-**Round 1:** recorded once read.
+| Round | Run | On | Result |
+|---|---|---|---|
+| 1 | 40132670483 | `bd6a307` | **Red, one gate:** `validate_crypto_basket` (92/1). The strip had edited VVV's thesis, a verbatim quotation of the filed basket document. Fixed in the next commit by restoring the line; 93/0 locally. Every other job passed |
+| 2 | recorded once read | | |
 
 ## The box sheet
 
