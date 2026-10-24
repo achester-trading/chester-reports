@@ -447,6 +447,8 @@ approximated here:
 | `debt_cycle_branch` | §K's two mutually exclusive branches, architecture 31.2. Still listed as not-built in the close payload. |
 | VIX term structure | Gated on the CFE Enhanced subscription; the dial names the store keys it needs. |
 
+**The 6f specification is drafted, not ruled:** [6f spec draft, 24 Oct 2026](briefs/6f-spec-draft-2026-10-24.md) (the v2 proposals, the work order and twelve decisions for the operator). Until it is ruled, this section stands.
+
 One nearer-term item, outside Phase 2's scope and blocking more than it costs:
 
 **Ingest ALFRED vintages.** Both fetches are scheduled now — FRED on the 16:10 pass

@@ -9,9 +9,11 @@ financials ledger and its links -- report only.
     python -m altdata.ai_lab_ledger show
 
 THE LEDGER is a Markdown table under docs/ledgers/, one row per lab and period,
-its figures entered as published with the row's source and URL (G3: the first
-row is a provisional dated record; later quarterly rows wait on the operator's
-yes). THE RATIOS ARE COMPUTED HERE from the entered figures, never typed:
+its figures entered as published with the row's source and URL (G3; ruling D21
+of 24 Oct 2026: quarterly rows from filings only -- the S-1 and amendments, a
+10-Q, a 10-K or an equivalent public filing, cited by URL -- entered by a session
+about once a quarter, never from a press report; the first row stays a
+provisional dated record until the S-1 is on EDGAR). THE RATIOS ARE COMPUTED HERE from the entered figures, never typed:
 
   revenue growth             revenue / revenue a year earlier - 1
   compute share of revenue   compute and infrastructure / revenue

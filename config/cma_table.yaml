@@ -18,8 +18,10 @@
 # (nominal or real) are each edition's own, read from its scan's reference
 # table, because they differ by house and change between editions.
 #
-# Report only: the median is printed and read by one line; nothing enters a
-# composite, the market-state object or a decision.
+# Report only: the medians are printed and read by one line; nothing enters a
+# composite, the market-state object or a decision. RULING D17 (24 Oct 2026):
+# two medians, nominal and real, each with its count of houses, never mixed;
+# each house prints on its own basis and horizon beside them.
 version: cma-table-v1
 updated: 2026-10-23
 title: "Capital market assumptions across houses: 10-year expected returns"
@@ -58,7 +60,9 @@ assets:
 horizon_metric: "Horizon"
 basis_metric: "Basis"
 
-# Item 30's Book A long-horizon expected-return line reads this asset's median.
+# Item 30's Book A long-horizon expected-return line reads this asset's NOMINAL
+# median, or the real one when fewer than two nominal houses have a current
+# edition, labelled which (ruling D17, 24 Oct 2026).
 book_a_asset: us_equity
 
 no_edition: "no edition stored"

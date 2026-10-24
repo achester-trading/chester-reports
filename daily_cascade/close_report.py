@@ -136,6 +136,22 @@ def main() -> int:
         try:
             obj = regime.compute(as_of=args.as_of, session_day=args.session)
             n = regime.store_object(obj)
+            # 6f TRANCHE 2 (a63; ruling 8a): the calibrated DIAL rows to the
+            # probability ledger (none until a row has 30 independent starts),
+            # and each due row resolved against its stored object. A failure here
+            # is printed and the report continues.
+            try:
+                from altdata import probability_ledger as _pl
+                from altdata import state_calibration as _sc
+                from altdata import observations as _obs
+                with _obs.ObservationStore() as _st, _pl.ProbabilityLedger() as _lg:
+                    _m = _sc.matrices(_st, args.as_of, dimensions=False)
+                    _w = _sc.write_ledger(obj, _m, _lg)
+                    _r = _sc.resolve_due(_st, _lg, args.as_of)
+                print(f"market state calibration -- {_w} ledger row(s) written, "
+                      f"{_r} resolved")
+            except Exception as exc:  # noqa: BLE001
+                print(f"market state calibration -- FAILED ({type(exc).__name__}: {exc})")
             print(f"market state -- session {obj['session']}: "
                   f"{len(obj.get('absent_dimensions') or [])} of "
                   f"{len(obj.get('dimensions') or {})} dimensions absent, "

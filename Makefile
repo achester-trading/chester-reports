@@ -46,6 +46,7 @@ PY_VALIDATORS := \
 	tools/validate_horizon_charts.py \
 	tools/validate_secrets.py \
 	tools/validate_regime.py \
+	tools/validate_6f_calibration.py \
 	tools/validate_base_rates.py \
 	tools/validate_claims.py \
 	tools/validate_structure_compare.py \

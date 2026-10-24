@@ -335,21 +335,40 @@ def group_c() -> None:
     print(f"\n{LINE}\nC. EVERY DIMENSION HAS A DECLARED RULE\n{LINE}")
     cfg = regime.load_config()
     dims = cfg.get("dimensions") or {}
-    check(len(dims) == 8, f"v1 declares eight dimensions (got {len(dims)})")
+    # v2.0 (6f, D27): the eight v1 dimensions, five new ones and two declared
+    # not buildable -- fifteen.
+    check(len(dims) == 15, f"v2 declares fifteen dimensions (got {len(dims)})")
     for name in ("growth", "inflation", "rates", "liquidity", "credit", "trend",
-                 "breadth", "volatility"):
+                 "breadth", "volatility", "positioning", "sentiment", "valuation",
+                 "funding_stress", "policy", "earnings", "geopolitical"):
         check(name in dims, f"{name} is declared")
 
     for name, spec in dims.items():
+        if spec.get("buildable") is False:
+            # NOT BUILDABLE (rulings 1a, 5a): states and a reason, no rule yet.
+            check(bool(spec.get("states")) and bool(spec.get("not_buildable_reason"))
+                  and not spec.get("members"),
+                  f"{name}: declared not buildable, with its states and what it waits for")
+            continue
         bands = spec.get("bands") or []
         check(bool(bands), f"{name}: declares bands")
-        mins = [float(b.get("min_percentile", -1)) for b in bands]
+        absolute = spec.get("band_mode") == "absolute"
+        key = "min_value" if absolute else "min_percentile"
+        mins = [float(b.get(key, -1)) for b in bands]
         check(mins == sorted(mins, reverse=True),
               f"{name}: bands are ordered high to low, so the first match wins "
               f"deterministically ({mins})")
-        check(mins and min(mins) == 0.0,
-              f"{name}: the lowest band starts at 0, so no percentile falls "
-              f"through with no state")
+        if absolute:
+            mb = [float(b.get("min_percentile", -1)) for b in spec.get("member_bands") or []]
+            check(mins and min(mins) <= -1e8 and mb and min(mb) == 0.0
+                  and {b.get("state") for b in spec.get("member_bands") or []}
+                  == {b.get("state") for b in bands},
+                  f"{name}: absolute bands end in a floor no level falls through, and "
+                  f"its members are judged on percentile bands of the same states")
+        else:
+            check(mins and min(mins) == 0.0,
+                  f"{name}: the lowest band starts at 0, so no percentile falls "
+                  f"through with no state")
         check(bool(spec.get("horizon")), f"{name}: declares a horizon")
         members = spec.get("members") or []
         check(bool(members), f"{name}: declares at least one member")
@@ -1516,11 +1535,238 @@ def group_l(store) -> None:
           f"({len(cal)} script(s) checked; offenders {opens})")
 
 
+# ---------------------------------------------------------------------------
+# V2. The object v2 (6f tranches 1, 3 and 5; ruled D27, 24 Oct 2026)
+# ---------------------------------------------------------------------------
+def _months_back(end: dt.date, n: int) -> list[dt.date]:
+    out, y, m = [], end.year, end.month
+    for _ in range(n):
+        out.append(dt.date(y, m, 1))
+        y, m = (y, m - 1) if m > 1 else (y - 1, 12)
+    return list(reversed(out))
+
+
+def _dim_keys(cfg: dict) -> list[tuple[str, str, object]]:
+    """(where, metric, instrument) for every dimension member, dial leg and
+    horizon read the config declares."""
+    out = []
+    for name, spec in (cfg.get("dimensions") or {}).items():
+        for m in spec.get("members") or []:
+            out.append((f"dimension {name}", m.get("metric"), m.get("instrument")))
+
+    def walk(node, where):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k in ("metric", "primary", "basis_metric") and isinstance(v, str):
+                    out.append((where, v, None))
+                elif k == "requires_store_keys" and isinstance(v, list):
+                    out.extend((where, x, None) for x in v)
+                else:
+                    walk(v, where)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v, where)
+    for d, spec in (cfg.get("dials") or {}).items():
+        walk(spec, f"dial {d}")
+    for h, spec in (cfg.get("horizons") or {}).items():
+        out.append((f"horizon {h}", spec.get("metric"), None))
+    return out
+
+
+def barred_members(cfg: dict) -> list[str]:
+    """Every member, dial leg or horizon read whose key (or instrument) an order
+    bars from the object (ruling 12a)."""
+    bad_ = []
+    for where, metric, inst in _dim_keys(cfg):
+        by = derived.market_state_barred(derived.registry_entry(str(metric)), inst)
+        if by:
+            bad_.append(f"{where}: {metric}{'[' + str(inst) + ']' if inst else ''} ({by})")
+    return bad_
+
+
+def group_v2(store) -> None:
+    print(f"\n{LINE}\nV2. THE OBJECT v2: FIVE DIMENSIONS, HORIZONS, TAIL FAMILIES, "
+          f"THE DEBT-CYCLE BRANCH, THE BAR\n{LINE}")
+    import yaml
+    cfg = regime.load_config()
+    dims = cfg["dimensions"]
+    defaults = cfg.get("defaults") or {}
+    cut = f"{END.isoformat()}T22:00:00+00:00"
+    check(regime.SCHEMA_VERSION == "market-state-v2"
+          and regime.METHOD_VERSION == "market-state-method-11"
+          and cfg.get("version") == "market-state-v2.0",
+          f"schema market-state-v2, method-11, config v2.0 ({regime.METHOD_VERSION})")
+    days = weekdays_back(END, 400)
+
+    # funding_stress: ABSOLUTE bands on the primary's level (ruling 3a).
+    seed(store, "calc.sofr_iorb_bp", days, [-5.0 + 0.01 * i for i in range(399)] + [12.0])
+    fs = regime.compute_dimension("funding_stress", dims["funding_stress"], cut,
+                                  defaults, store)
+    check(fs.get("band_mode") == "absolute" and fs.get("raw_state") == "stressed"
+          and fs.get("level") == 12.0,
+          f"funding_stress: SOFR-IORB at 12 bp is stressed on the absolute bands "
+          f"(10 and over), whatever its percentile ({fs.get('raw_state')}, "
+          f"{fs.get('percentile')})")
+    check(regime.band_state_value(-3.0, dims["funding_stress"]["bands"]) == "calm"
+          and regime.band_state_value(0.0, dims["funding_stress"]["bands"]) == "watch",
+          "and -3 bp is calm, 0 bp watch: a series below zero for years is not "
+          "'stressed' at -3 bp")
+    # policy: +/-25 bp.
+    seed(store, "calc.policy_2y_minus_effr_bp", days, [0.0] * 399 + [30.0])
+    po = regime.compute_dimension("policy", dims["policy"], cut, defaults, store)
+    check(po.get("raw_state") == "tightening_priced"
+          and regime.band_state_value(-30.0, dims["policy"]["bands"]) == "easing_priced"
+          and regime.band_state_value(10.0, dims["policy"]["bands"]) == "on_hold",
+          f"policy: +30 bp is tightening priced, -30 easing, +10 on hold "
+          f"({po.get('raw_state')})")
+
+    # valuation: the FULL history, with the five-year read beside it (4a).
+    months = _months_back(dt.date(2026, 9, 1), 360)
+    cape = [10.0 + 0.05 * i for i in range(300)] + [25.0 - 0.1 * i for i in range(60)]
+    seed(store, "shiller.cape", months, cape)
+    va = regime.compute_dimension("valuation", dims["valuation"], cut, defaults, store)
+    full_pct = derived.percentile_of(cape, cape[-1])
+    check(va.get("window_days") == "full" and va.get("percentile") == full_pct
+          and va.get("percentile_5y") is not None
+          and va["percentile_5y"] != va["percentile"],
+          f"valuation: banded on all 360 months (the {full_pct}th percentile, "
+          f"{va.get('raw_state')}), the five-year read beside it "
+          f"({va.get('percentile_5y')})")
+
+    # positioning: margin debt's twelve-month change (the transform).
+    mm = _months_back(dt.date(2026, 8, 31), 84)
+    debt = [5e11 * (1.0 + 0.004 * i) for i in range(83)] + [5e11 * 1.6]
+    seed(store, "finra.margin_debit", mm, debt)
+    ch = regime.change_12m(list(zip([d.isoformat() for d in mm], debt)))
+    pz = regime.compute_dimension("positioning", dims["positioning"], cut, defaults, store)
+    prim = pz["members"][0] if pz.get("members") else {}
+    check(ch and abs(ch[-1][1] - (debt[-1] / debt[-13] - 1) * 100) < 1e-6
+          and prim.get("transform") == "change_12m_pct"
+          and abs((prim.get("level") or 0) - ch[-1][1]) < 1e-6
+          and pz.get("raw_state") == "crowded",
+          f"positioning: the last twelve-month change {ch[-1][1]:.2f}% by hand is the "
+          f"primary's level, ranked crowded ({pz.get('raw_state')}, "
+          f"{prim.get('percentile')})")
+
+    # sentiment: a percentile primary.
+    wk = [END - dt.timedelta(days=7 * i) for i in range(260)][::-1]
+    seed(store, "aaii.bull_bear_spread", wk, [0.0] * 259 + [-40.0])
+    se = regime.compute_dimension("sentiment", dims["sentiment"], cut, defaults, store)
+    check(se.get("raw_state") == "fearful",
+          f"sentiment: AAII's spread at its five-year low reads fearful ({se.get('raw_state')})")
+
+    # earnings and geopolitical: declared, absent, not buildable (1a, 5a).
+    for n in ("earnings", "geopolitical"):
+        d = regime.compute_dimension(n, dims[n], cut, defaults, store)
+        check(d.get("not_buildable") and d.get("state") is None
+              and str(d.get("absent_reason", "")).startswith("not buildable yet"),
+              f"{n}: absent, not buildable, saying what it waits for "
+              f"({str(d.get('absent_reason'))[:70]}...)")
+    check(not any(n == "tail" for n in dims)
+          and any(m.get("metric") == "yfinance.mkt_skew"
+                  for m in dims["volatility"]["members"]),
+          "no tail dimension; SKEW is a member of volatility (ruling 2a)")
+
+    # horizons: the trend members at the three book horizons, persistence 2.
+    for k, v in (("calc.trend_spy_ma20_slope", 5.0), ("calc.trend_spy_vs_50d", -5.0),
+                 ("calc.trend_spy_vs_200d", 0.0)):
+        seed(store, k, days, [0.0] * 399 + [v])
+    hz = regime.compute_horizons(cfg, cut, END.isoformat(), defaults, [], store)
+    check(set(hz) == {"daily", "weekly", "monthly"}
+          and hz["daily"]["state"] == "up" and hz["weekly"]["state"] == "down"
+          and hz["monthly"]["book"] == "A",
+          f"horizons: daily up, weekly down, each its own read, never collapsed "
+          f"({ {h: x['state'] for h, x in hz.items()} })")
+    hist = [{"horizons": {"weekly": {"state": "up", "raw_state": "up",
+                                     "last_changed": "2026-09-01"}}}]
+    hz2 = regime.compute_horizons(cfg, cut, END.isoformat(), defaults, hist, store)
+    check(hz2["weekly"]["state"] == "up" and hz2["weekly"].get("pending_state") == "down",
+          "and a turn waits its two sessions, as a dimension's does")
+
+    # tail_families: seven, never summed, probability none (10a).
+    seed(store, "fred.hy_oas", days, [3.0] * 399 + [9.0])
+    tf = regime.tail_families(cfg, cut, store)
+    fb = next(f for f in tf if f["family"] == "B")
+    check(len(tf) == 7 and all(f["probability"] is None and f["rights"] == "report_only"
+                               and f["probability_reason"].startswith("none")
+                               and f["brier_to_date"] is None for f in tf),
+          "tail_families: the Twenty-Five's seven, probability none with its reason, "
+          "Brier none, report only")
+    check(fb["state"] == "watch" and any(x["extreme"] for x in fb["first_movers"]),
+          f"family B reads watch on an extreme first mover (HY OAS at its five-year "
+          f"high) ({fb['state']})")
+    obj_keys = set(regime.compute(cut, END.isoformat(), store=store, cfg=cfg,
+                                  computed_at="2026-09-18T22:00:00+00:00"))
+    check({"horizons", "tail_families", "debt_cycle_branch"} <= obj_keys
+          and not {"tail_index", "tail_score", "tail_probability"} & obj_keys,
+          "the object carries the three blocks and no tail index (the Twenty-Five, 0.2)")
+
+    # debt_cycle_branch: state none, observables read-only (11a).
+    dc = regime.debt_cycle_branch(cfg, cut, store)
+    check(dc["state"] is None and dc["confidence"] is None
+          and "Paper XXVII" in dc["reason"] and len(dc["observables"]) >= 4
+          and dc["rights"] == "report_only",
+          f"debt_cycle_branch: state none, awaiting Paper XXVII; "
+          f"{len(dc['observables'])} observables printed read-only")
+
+    # the symmetric close (ruled for v1.13; config v2.0).
+    open_row = {"condition_met": True, "open": True, "since": "2026-09-10",
+                "persistence_days": 4}
+    r1 = contra.apply_persistence({"condition_met": False}, [open_row], "2026-09-17", 2, 5)
+    r2 = contra.apply_persistence({"condition_met": False},
+                                  [open_row, dict(r1, condition_met=False)], "2026-09-18", 2, 5)
+    check(r1["open"] and r1["open_state"] == "closing" and r1["since"] == "2026-09-10"
+          and not r2["open"] and r2["open_state"] == "closed",
+          "the symmetric close: one failing session leaves the row open and closing, "
+          "two close it")
+
+    # the bar (ruling 12a): no barred key is a member, a dial leg or a horizon read.
+    reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    bars = reg.get("market_state_barred") or []
+    res = derived.resolve_registry(reg)
+    nbar = sum(1 for e in res.values() if e.get("market_state") == "barred")
+    check(bars and all(b.get("order") and b.get("rule") and b.get("keys") for b in bars)
+          and nbar >= 100,
+          f"{len(bars)} barring orders seeded, each with its order, rule and keys; "
+          f"{nbar} keys carry market_state: barred")
+    check(not barred_members(cfg),
+          f"no barred key is a member of any dimension, a dial's leg or a horizon "
+          f"read ({barred_members(cfg) or 'none'})")
+    trap = json.loads(json.dumps(cfg))
+    trap["dimensions"]["sentiment"]["members"].append(
+        {"metric": "fred.nikkei225", "polarity": 1, "because": "a trap"})
+    trap["dimensions"]["positioning"]["members"].append(
+        {"metric": "cftc.tff_lev_money_net", "instrument": "ES", "polarity": 1,
+         "because": "a trap"})
+    caught = barred_members(trap)
+    check(len(caught) == 2 and any("nikkei225" in c for c in caught)
+          and any("[ES]" in c for c in caught),
+          "and the check fires on a barred key and on a barred instrument of an "
+          "otherwise admitted key")
+
+    # the blocks print where the spec says, from the object, never recomputed.
+    from daily_cascade import state_v2_block as sv
+    obj = regime.compute(cut, END.isoformat(), store=store, cfg=cfg,
+                         computed_at="2026-09-18T22:00:00+00:00")
+    ts, ds = sv.tail_subsection(obj), sv.debt_subsection(obj)
+    wl = sv.weekly_line(obj)
+    check(ts and len(ts["table"]["rows"]) == 7 and all(r[-1] == "none" for r in ts["table"]["rows"])
+          and ds and ds["lines"][0].startswith("State: none")
+          and wl and wl.startswith("Tail families on watch:") and "B (Credit" in wl and "report only" in wl,
+          f"the Monthly's families table (seven rows, probability none) and debt-cycle "
+          f"block, and the Weekly's one line ({wl[:70] if wl else wl})")
+    ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
+    ws = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
+    check("state_v2_block.slow_subsections(st, now)" in ms
+          and "state_v2_block.weekly_subsection(st, cutoff)" in ws,
+          "the Monthly's slow layers and the Weekly carry them")
+
+
 def main() -> int:
     print(f"{LINE}\nThe market-state object and the contradiction table\n{LINE}")
     group_c()
     for g in (group_a, group_b, group_d, group_e, group_f, group_f2, group_g,
-              group_h, group_i, group_j, group_k, group_l):
+              group_h, group_i, group_j, group_k, group_l, group_v2):
         with tempfile.TemporaryDirectory() as td:
             store = observations.ObservationStore(str(Path(td) / "regime.db"))
             try:

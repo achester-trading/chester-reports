@@ -655,7 +655,9 @@ def main() -> int:
                      r"|\b(?:equities_vs_credit|long_bond_vs_hy|fixture_pair|"
                      r"narrative_register|daily_close_outlook)\b", every)
     check(not ids, f"3: no internal id in any section's text or table ({ids[:4]})")
-    ms_ids = re.findall(r"\b(?:fred|calc|yfinance|dial|pm)\.[a-z0-9_]+",
+    # Capitals admitted (6f, a62): fred.uoM_sent is a stored key, and a
+    # lower-case class read it as "fred.uo".
+    ms_ids = re.findall(r"\b(?:fred|calc|yfinance|dial|pm)\.[A-Za-z0-9_]+",
                         (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8"))
     check(not _labels.missing(sorted(set(ms_ids))),
           f"3: every metric the market state can name has a display label "

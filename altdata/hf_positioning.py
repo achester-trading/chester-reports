@@ -14,9 +14,11 @@ THE LINE. The CFTC's Traders in Financial Futures, leveraged funds, net, in the
 E-mini S&P 500 (ES) and Nasdaq-100 (NQ) futures, weekly, as altdata/sources/cftc.py
 stores them: net contracts, the net as a share of open interest, and the NET SHORT
 share's dual percentiles (five years and the full stored history, each with its
-n). FINRA's short interest as a share of float and a performance proxy failed the
-source checks and print as listed gaps; the prime-book figures are a dated record,
-never a line (G3).
+n). Beside it, hedge-fund performance through QAI, a replication ETF labelled as a
+proxy (ruling D22, 24 Oct 2026): the week's and the four weeks' price return,
+each with its dual percentiles. FINRA's short interest as a share of float failed
+the source checks and prints as a listed gap; the prime-book figures are a dated
+record, never a line (G3).
 
 THE FLAG. ES's net short at or above its 90th percentile of five years while item
 71's depth is below its 10th -- its stand-in, SPY's Amihud illiquidity, at or
@@ -77,6 +79,29 @@ def contract_read(net: list, net_oi: list, years: int) -> dict:
             "lens_text": rt.lens_text(lz)}
 
 
+def returns(closes: list[tuple[str, float]], n: int) -> list[tuple[str, float]]:
+    """Every rolling n-session price return, percent, dated by its last close."""
+    return [(closes[i][0], (closes[i][1] / closes[i - n][1] - 1.0) * 100.0)
+            for i in range(n, len(closes)) if closes[i - n][1]]
+
+
+def performance_read(closes: list[tuple[str, float]], pc: dict, years: int) -> dict:
+    """QAI's week and four weeks: the latest return and its dual percentiles."""
+    ses = pc.get("sessions") or {"week": 5, "four_weeks": 20}
+    if len(closes) <= max(ses.values()):
+        return {"state": "absent", "label": pc["label"],
+                "reason": ("not stored yet (its history arrives with the basket's "
+                           "backfill)" if not closes else
+                           f"{len(closes)} closes stored, fewer than {max(ses.values()) + 1}")}
+    legs = {}
+    for name, n in ses.items():
+        rs = returns(closes, int(n))
+        lz = rt.lens(rs, years)
+        legs[name] = {"sessions": int(n), "pct": rs[-1][1], "lens": lz,
+                      "lens_text": rt.lens_text(lz)}
+    return {"state": "computed", "label": pc["label"], "as_of": closes[-1][0], "legs": legs}
+
+
 def read(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     cfg = cfg or config()
     years = int(cfg.get("lens_years", 5))
@@ -85,7 +110,10 @@ def read(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         net = rt._pts(st, cfg["net_key"], cutoff, c["instrument"])       # noqa: SLF001
         oi = rt._pts(st, cfg["net_oi_key"], cutoff, c["instrument"])     # noqa: SLF001
         out.append({**c, **contract_read(net, oi, years)})
-    return {"as_of": cutoff, "contracts": out, "years": years,
+    pc = cfg.get("performance")
+    perf = (performance_read(rt._pts(st, pc["key"], cutoff), pc, years)  # noqa: SLF001
+            if pc else None)
+    return {"as_of": cutoff, "contracts": out, "years": years, "performance": perf,
             "gaps": {k: _gap(v) for k, v in (cfg.get("gaps") or {}).items()},
             "squeeze_cfg": cfg.get("squeeze") or {}}
 
@@ -99,10 +127,20 @@ def contract_line(c: dict) -> str:
             f"the net short share at the {c['lens_text']}.")
 
 
+def performance_line(p: dict) -> str:
+    if p["state"] != "computed":
+        return f"{p['label']}: {p['reason']}."
+    wk, fw = p["legs"]["week"], p["legs"]["four_weeks"]
+    return (f"{p['label']}: the week {wk['pct']:+.2f}% (the {wk['lens_text']}); "
+            f"four weeks {fw['pct']:+.2f}% (the {fw['lens_text']}); price return to "
+            f"the close of {p['as_of']}. Report only.")
+
+
 def lines(r: dict) -> list[str]:
     out = [contract_line(c) for c in r["contracts"]]
+    if r.get("performance"):
+        out.append(performance_line(r["performance"]))
     out.append(r["gaps"]["short_interest"] + ".")
-    out.append(r["gaps"]["performance"] + ".")
     return out
 
 

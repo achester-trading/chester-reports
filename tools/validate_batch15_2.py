@@ -5,8 +5,10 @@ Signal triage Batch 15, session B (b56): items 74, 75, 77 and 78.
      fixture record's leveraged-fund net and its share of open interest by hand;
      the net short share's dual percentiles by hand (five years and the full
      history, each with its n); an unstored contract prints its reason.
-  B  THE GAP PATHS. FINRA's share of float and the performance proxy print as
-     listed gaps; the prime-book figures never print as a line.
+  B  THE GAP PATHS AND QAI. FINRA's share of float prints as a listed gap; the
+     prime-book figures never print as a line. Hedge-fund performance through
+     QAI (ruling D22, 24 Oct 2026): unstored it prints its reason; on a fixture,
+     the week's and four weeks' return and their dual percentiles by hand.
   C  THE SQUEEZE FLAG. On, off and not read on fixtures (ES's net short at or
      above its 90th with the Amihud stand-in at or above its 90th); its line in
      item 45's levels read and the Weekly's Positioning; report only.
@@ -151,8 +153,36 @@ def group_b() -> None:
     ls = hf.lines(r)
     check(any(l.startswith("FINRA short interest as a share of float for the S&P 500: "
                            "NOT TRACKED") for l in ls)
-          and any(l.startswith("A hedge-fund performance proxy: NOT TRACKED") for l in ls),
-          "FINRA's share of float and the performance proxy print as listed gaps")
+          and not any("performance proxy: NOT TRACKED" in l for l in ls),
+          "FINRA's share of float prints as a listed gap; the performance gap is gone (D22)")
+    check(any(l.startswith("Hedge-fund performance (QAI, replication proxy): not stored yet")
+              for l in ls),
+          "QAI unstored: the performance line prints its reason")
+    # QAI: 1,600 sessions, a gentle drift, the last session a 3% jump.
+    days = [(dt.date(2020, 1, 1) + dt.timedelta(days=i)).isoformat() for i in range(1600)]
+    px = [100.0 * (1 + 0.0002 * i + 0.002 * ((i % 7) - 3)) for i in range(1599)]
+    px.append(px[-1] * 1.03)
+    with observations.ObservationStore(store([obs("yfinance.mkt_qai", d, p)
+                                              for d, p in zip(days, px)])) as st:
+        rq = hf.read(st, NOW)
+    p = rq["performance"]
+    closes = list(zip(days, px))
+    wk = [(closes[i][0], (closes[i][1] / closes[i - 5][1] - 1) * 100) for i in range(5, 1600)]
+    fw = [(closes[i][0], (closes[i][1] / closes[i - 20][1] - 1) * 100) for i in range(20, 1600)]
+    start = rt._years_back(days[-1], 5)                         # noqa: SLF001
+    w5 = [v for d, v in wk if d > start]
+    check(p["state"] == "computed" and abs(p["legs"]["week"]["pct"] - wk[-1][1]) < 1e-9
+          and abs(p["legs"]["four_weeks"]["pct"] - fw[-1][1]) < 1e-9
+          and p["legs"]["week"]["lens"]["percentile_window"] == derived.percentile_of(w5, wk[-1][1])
+          and p["legs"]["week"]["lens"]["n_full"] == len(wk)
+          and p["legs"]["four_weeks"]["lens"]["n_full"] == len(fw),
+          f"QAI: the week {wk[-1][1]:+.2f}% and four weeks {fw[-1][1]:+.2f}%, each ranked "
+          f"against every rolling return of its length (five years and n={len(wk):,} full), by hand")
+    pl = hf.performance_line(p)
+    check(pl.startswith("Hedge-fund performance (QAI, replication proxy): the week +")
+          and "four weeks" in pl and pl.endswith("Report only.")
+          and pl in hf.lines(rq),
+          "the line is labelled a replication proxy, report only, beside the CFTC line")
     joined = " ".join(ls)
     check("five to one" not in joined and "prime" not in joined.lower()
           and "99th" not in joined,
@@ -301,8 +331,12 @@ def group_e() -> None:
           "so commitments over TTM revenue is not computed, and says why")
     check("**Disclosure.**" in t and "the company that builds Claude" in t
           and "takes no view on the company" in t
-          and "Quarterly entries after that are a listed gap" in t,
-          "the template carries the order's disclosure and G3's status")
+          and "Entries come from filings only" in t
+          and "Press reports are never a source for an entry" in t
+          and "listed gap" not in t
+          and "stays a provisional dated record until\n  the S-1 is on EDGAR" in t.replace("\r\n", "\n"),
+          "the template carries the order's disclosure and ruling D21's status (filings "
+          "only, press never, the first row provisional until the S-1 is on EDGAR)")
     ipo = al.ipo_watch_lines()
     check(ipo and all(s.count("not yet public") == 3 for s in ipo) and "SPCX" in ipo[0],
           "the mega-IPO watch beside SPCX: float, inclusion and lock-ups \"not yet public\"")

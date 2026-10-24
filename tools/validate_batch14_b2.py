@@ -6,16 +6,18 @@ Signal triage Batch 14, Part B2 (b55, session B): items 62, 67 and 68.
      schema (every key its neighbours carry, a declared group and depth, months
      and a window), and the Reading chapter's due list names them.
   B  ITEM 62, THE CMA TABLE. Fixture CMA scans ingested by the scans ingest
-     into a scratch store, each row with its own URL, idempotently; the median,
-     the high less low and the count by hand; an edition older than 15 months
+     into a scratch store, each row with its own URL, idempotently; the two
+     medians (nominal and real, ruling D17), each high less low and count by
+     hand, never mixed; an edition older than 15 months
      dropped and counted; a house with nothing stored printing "no edition
      stored"; a scan not yet read at the cutoff not counted; the real scans
      directory carrying no CMA edition, so nothing is recalled.
   C  PLACEMENT. The Monthly's slow layers carry the table (its read first, as a
      lead, then the table, then each edition's line) and the CMA families are
      left out of the sourced figures so each figure prints once; item 30's Book
-     A line reads the median, and says "no CMA edition stored" otherwise, and
-     reads no store it was not given.
+     A line reads the nominal US-equity median, the real one (labelled) when
+     fewer than two nominal houses are current, says "no CMA edition stored"
+     otherwise, and reads no store it was not given.
   D  ITEM 67, PEG AND LTEG. No PEG or LTEG value anywhere: no key, no source;
      the one listed-gap line closes every branch of item 60's lines.
   E  THE LTEG NOTE. Every claim carries a title and a URL; the 2021 figure is
@@ -149,30 +151,43 @@ def group_b() -> None:
     check(r["floor"] == "2025-07-31" and r["dropped"] == ["gmo"] and r["current"] == 3,
           "the 15-month floor is 31 Jul 2025 and the drop is counted")
     a = {x["id"]: x for x in r["assets"]}
-    us_vals = [5.0, 4.0, 4.6]
-    em_vals = [8.0, 7.0, 6.4]
-    check(a["us_equity"]["median"] == statistics.median(us_vals) == 4.6
-          and a["us_equity"]["dispersion"] == round(max(us_vals) - min(us_vals), 2) == 1.0
-          and a["us_equity"]["n"] == 3,
-          "US equity: median of 5.0, 4.0, 4.6 is 4.6; high less low 1.0; n=3 (GMO's "
+    us_nom, us_real = [5.0, 4.0], [4.6]
+    check(a["us_equity"]["nominal"]["median"] == statistics.median(us_nom) == 4.5
+          and a["us_equity"]["nominal"]["dispersion"] == round(max(us_nom) - min(us_nom), 2) == 1.0
+          and a["us_equity"]["nominal"]["n"] == 2
+          and a["us_equity"]["real"]["median"] == 4.6 and a["us_equity"]["real"]["n"] == 1
+          and a["us_equity"]["real"]["dispersion"] is None and "median" not in a["us_equity"],
+          "US equity, two medians never mixed (D17): nominal median of 5.0 (HSBC) and "
+          "4.0 (Vanguard) is 4.5, high less low 1.0, n=2; real 4.6 (AQR), n=1 (GMO's "
           "-1.0 dropped)")
-    check(a["em_equity"]["median"] == 7.0 and a["em_equity"]["dispersion"] == 1.6,
-          "EM equity: median 7.0, high less low 1.6 (8.0 - 6.4)")
-    check(a["sixty_forty"]["median"] == 4.5 and a["sixty_forty"]["n"] == 3,
-          "60/40: median of 5.0, 4.4, 4.5 is 4.5")
+    check(a["em_equity"]["nominal"]["median"] == 7.5 and a["em_equity"]["nominal"]["dispersion"] == 1.0
+          and a["em_equity"]["real"]["median"] == 6.4,
+          "EM equity: nominal median 7.5 (8.0, 7.0), high less low 1.0; real 6.4")
+    check(a["sixty_forty"]["nominal"]["median"] == 4.7 and a["sixty_forty"]["nominal"]["n"] == 2
+          and a["sixty_forty"]["real"]["median"] == 4.5,
+          "60/40: nominal median of 5.0 and 4.4 is 4.7; real 4.5")
+    check(cma.basis_of("real") == "real" and cma.basis_of("Nominal, USD") == "nominal"
+          and cma.basis_of("in local currency") is None,
+          "an edition's basis is read as a word; neither word is in neither median")
     t = cma.table(r)
     jpm_col = t["columns"].index("JPM")
     gmo_col = t["columns"].index("GMO")
+    hsbc_col = t["columns"].index("HSBC")
+    aqr_col = t["columns"].index("AQR")
     check(all(row[jpm_col] == "no edition stored" for row in t["rows"])
           and all(row[gmo_col] == "dropped (stale)" for row in t["rows"])
-          and t["rows"][0][-3:] == ["4.6%", "1.0 pp", "3"],
-          "the table: JPM 'no edition stored', GMO 'dropped (stale)', US equity's "
-          "median, spread and count")
+          and t["rows"][0][hsbc_col] == "5.0% (nominal, 10 years)"
+          and t["rows"][0][aqr_col] == "4.6% (real, 5 to 10 years)"
+          and t["columns"][-4:] == ["Median, nominal", "Houses, nominal", "Median, real",
+                                    "Houses, real"]
+          and t["rows"][0][-4:] == ["4.5% (1.0 pp high less low)", "2", "4.6%", "1"],
+          "the table: JPM 'no edition stored', GMO 'dropped (stale)', each house on its "
+          "own basis and horizon, US equity's two medians, spreads and counts")
     lead = cma.lead(r)
-    check("3 of 6 houses" in lead and "1 dropped" in lead and "+2.0 pp" in lead
-          and "no conversion" in lead,
-          f"the read names the count, the drop and the ex-US gap (6.6 less 4.6) "
-          f"({lead[:90]}...)")
+    check("3 of 6 houses" in lead and "1 dropped" in lead and "2 nominal, 1 real" in lead
+          and "+2.3 pp" in lead and "never mixed" in lead,
+          f"the read names the count by basis, the drop and the nominal ex-US gap "
+          f"(6.8 less 4.5) ({lead[:120]}...)")
     ed = cma.edition_lines(r)
     check(any(l.startswith("J.P. Morgan AM") and "no edition stored" in l for l in ed)
           and any("5 to 10 years; real" in l for l in ed)
@@ -210,8 +225,14 @@ def group_c() -> None:
           "no CMA edition prints again among the sourced figures")
     r = cma.read(NOW, db)
     line = cma.book_a_line(r)
-    check("4.6%" in line and "n=3 houses" in line and "report only" in line,
-          f"item 30's Book A line reads the US-equity median ({line})")
+    check("US equity, nominal): 4.5%" in line and "n=2 houses" in line
+          and "report only" in line,
+          f"item 30's Book A line reads the nominal US-equity median ({line})")
+    early = cma.book_a_line(cma.read("2026-10-15T12:00:00+00:00", db))
+    check("US equity, real): 4.6%" in early and "fewer than two nominal houses" in early
+          and "(n=1)" in early,
+          f"with one nominal house current (Vanguard unread at 15 Oct) it reads the real "
+          f"median, labelled ({early})")
     check(cma.book_a_line(None).endswith("no CMA edition stored.")
           and cma.book_a_line(cma.read(NOW, scratch("b14b2e2_"))).endswith(
               "no CMA edition stored."),

@@ -836,6 +836,14 @@ above changes.
 
 *Accepted, 20 Oct 2026 (B49, decision 2):* **b48-scoreboard's values.** `score.min_n` 10 (`config/scoreboard.yaml`) is accepted. The four-quarter benchmarks on realised P&L, withheld while a book holds an open decision, are accepted for now. Three items go on the Doctrine #2 list (7-8 Nov), which session A's a52 pack collects: marking open positions (an entry fill stored per decision); a risk-adjusted and after-tax comparison; long against short.
 
+*Accepted as drafted (rule 31), 24 Oct 2026 (D9):* **ST-R6.66c's first edition, FAIL** (b52; `docs/ledgers/st-r6.66c-ledger-2026-10-21.md`, n 65: rho +0.06 against the rule's 0.2). Nothing prints differently and no right is granted: the wealth-effect impulse stays report-only.
+
+*Accepted as drafted (rule 31), 24 Oct 2026 (D9):* **ST-R6.65a's first edition, INSUFFICIENT** (a57; `docs/ledgers/st-r6.65a-ledger-2026-10-23.md`, n 28: 14 term-premium and 14 expected-short-rate episodes against the rule's 15 each). Nothing prints differently and no right is granted: the speed flag keeps its rights and the attribution stays a report.
+
+*Accepted as drafted (rule 31), 24 Oct 2026 (D9):* **ST-R6.71d's first edition, FAIL** (a57; `docs/ledgers/st-r6.71d-ledger-2026-10-23.md`: on before 0 of 3 air pockets against the rule's 2). Nothing prints differently and no right is granted: the fragility flag keeps a flag's rights.
+
+*Accepted as drafted (rule 31), 24 Oct 2026 (D9):* **ST-R6.74b's first edition, INSUFFICIENT** (b56; `docs/ledgers/st-r6.74b-ledger-2026-10-23.md`, n 0: no ES rows in the store yet). Nothing prints differently and no right is granted: the squeeze-risk flag keeps a flag's rights.
+
 ## Explicit rejections (do not re-propose)
 
 Copied from §12 of the order.

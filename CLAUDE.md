@@ -149,7 +149,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    126 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    127 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-seven code gates (one hundred and thirty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-eight code gates (one hundred and thirty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -277,8 +277,10 @@ paper that now exists.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in
-`config/market_state.yaml` — eight dimensions, three dials and an eight-row
-contradiction table — and the 16:45 close pass is its only writer. Every report
+`config/market_state.yaml` — fifteen dimensions, three dials and an eight-row
+contradiction table (v2, 6f: thirteen of the dimensions computed, two declared not
+buildable; plus the report-only horizons, tail families and debt-cycle branch) —
+and the 16:45 close pass is its only writer. Every report
 reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
 because an anchor computing its own object could disagree with the close report's,
 and then the system holds two regimes with no way to say which one a decision was

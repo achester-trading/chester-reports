@@ -1848,6 +1848,12 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         # after item 38's gold/equity ratio, report only.
         from daily_cascade import batch15_a_block                # noqa: PLC0415
         subs = batch15_a_block.place_slow(subs, st, now)
+        # 6f TRANCHE 3 (a62): the tail families and the debt-cycle branch, read
+        # from the stored object; report only.
+        from daily_cascade import state_v2_block                 # noqa: PLC0415
+        subs += state_v2_block.slow_subsections(st, now)
+        # 6f TRANCHE 2 (a63): the dials' transitions, and the dimensions' unledgered.
+        subs += state_v2_block.calibration_subsection(st, now, dimensions=True)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)

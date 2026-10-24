@@ -1048,6 +1048,9 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # fired day only (daily_cascade/batch15_a_block.py; lines only).
         from . import batch15_a_block                           # noqa: PLC0415
         batch15_a_block.close_extras(built, st, p["session"], cutoff)
+        # 6f TRANCHE 2 (a63): the dials' transition reads, one line.
+        from . import state_v2_block                            # noqa: PLC0415
+        state_v2_block.close_extras(built, st, cutoff)
         # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
         # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
         from . import batch3_block                              # noqa: PLC0415
