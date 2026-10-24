@@ -136,7 +136,10 @@ def _calibration(st, cutoff: str):
 
 def calibration_subsection(st, cutoff: str, dimensions: bool = False) -> list[dict]:
     """The Weekly's and the Monthly's table (dial x horizon); the Monthly adds the
-    dimensions' table, unledgered."""
+    dimensions' table, unledgered. With no store, nothing."""
+    if st is None:
+        return []
+
     def build():
         sc, m, obj = _calibration(st, cutoff)
         out = [{"title": CAL_TITLE, "paragraph_wanted": False, "table": sc.table(m, obj),
@@ -154,8 +157,9 @@ def calibration_subsection(st, cutoff: str, dimensions: bool = False) -> list[di
 def close_extras(built: dict, st, cutoff: str) -> None:
     """The daily close's one line, in the mechanics section."""
     mech = built.get("mechanics")
-    if mech is None:
+    if mech is None or st is None:
         return
+
     def build():
         sc, m, obj = _calibration(st, cutoff)
         return sc.close_line(m, obj)
