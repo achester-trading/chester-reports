@@ -115,6 +115,7 @@ DELTA_UNITS: dict[str, str] = {
     "price": "percent",
     "idx": "percent",
     "usd": "percent",
+    "usd_bn": "percent",      # US dollars in billions (A66, the capex guidance)
     "contract_ccy": "percent",
     "JPY": "percent",
     "CNY": "percent",

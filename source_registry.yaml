@@ -2727,6 +2727,33 @@ sources:
         and Oracle's (May) years sit in the frame before the one their year-end
         names. Dormant, PENDING, until CHESTER_SEC_CONTACT is set.
 
+  edgar_guidance:
+    name: SEC EDGAR 10-Q and 10-K primary documents -- the five hyperscalers' capex guidance sentences
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [fundamentals]
+    geography: [US]
+    latency: after each 10-Q and 10-K (within 40 and 60 days of the period's end)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      available_at is the filing's acceptanceDateTime from EDGAR's submissions
+      index -- the instant the document became public; observed_at is the filing
+      date.
+    license: >-
+      public, no key; EDGAR's fair-access rule asks for a User-Agent with a contact,
+      which edgar.user_agent() supplies from CHESTER_SEC_CONTACT and nowhere else,
+      at most 10 requests a second (this reader pauses a second between requests)
+    allowed_reports: [monthly_macro, alt_asset, weekly_tactical]
+    implemented_by: altdata/sources/edgar_guidance.py
+    status: live
+    caveats:
+      - >-
+        A66 (24 Oct 2026; signal-triage items 26 and 63). Rule 30: a figure is
+        stored only beside its filing's sentence, quoted, with URL, accession and
+        filing date; extraction is by declared rule (config/edgar_guidance.yaml)
+        with a confidence label. Earnings calls are not filings and are not read.
+        Dormant, PENDING, until CHESTER_SEC_CONTACT is set.
+
   # --- AUD-3a item 4 (14 Oct 2026): the string the computed rows carry -------
   calc:
     name: This system's own computations over the store (the calc.* rows)
