@@ -295,6 +295,16 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         prior, cutoff, db_path,
         premarket=(premarket.get("values") or {}).get("spy"))
     vol_regime = opening_setup.vol_lines_from_store(prior, cutoff, db_path)
+    # A51 (ruled 19 Oct 2026): the volatile-day flag with all four of Doctrine
+    # 5.5's arms, each with its reading and as-of; the Gamma arm reads the object
+    # above, never recomputed. Printed, never applied.
+    from . import volatile_day                                  # noqa: PLC0415
+    try:
+        vday = volatile_day.from_store(this_session, prior, cutoff, db_path,
+                                       state_obj=state_obj, premarket=premarket)
+    except Exception:                                           # noqa: BLE001
+        log.warning("the volatile-day flag faulted", exc_info=True)
+        vday = None
     # OS-9 and OS-4 (a45-opening-setup-2): the OI builds, side unknown, and the
     # index put lines, no side.
     oi_builds = opening_setup.oi_builds_from_store(prior, cutoff, db_path)
@@ -377,6 +387,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "market_state": state_obj,
         "what_changed": changed,
         "vol_event": vol_event,
+        "volatile_day": vday,
         "signal_lines": signals,
         "opening_gauge": gauge,
         "opening_premarket": premarket,

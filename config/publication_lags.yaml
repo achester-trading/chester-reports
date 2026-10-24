@@ -1,0 +1,175 @@
+# THE PUBLICATION LAGS (b51-registry-html, 21 Oct 2026; session-set, every value
+# with its reason). Read by altdata/derived.py's staleness_allowance_of, the ONE
+# staleness rule (the store check, the reports' confidence and the freshness
+# roster all read it), which adds a family's lag to its cadence's allowance:
+#
+#     allowance = FREQ_SESSIONS[freq] (or HALF_LIFE_SESSIONS[half_life]) + lag_sessions
+#
+# WHY. A key's age is counted from its observation date. A source that publishes
+# late, or in batches, has a newest observation older than its cadence even when
+# it is working: H.10's daily rates arrive once a week, a monthly print dated the
+# 1st arrives weeks after the month ends. On 20 Oct 2026 the box's store check
+# listed such keys stale beside keys that had really stopped.
+#
+# THE RULE THAT BOUNDS THIS FILE: a lag is the source's own publication delay, as
+# its publisher documents it, with a holiday's slack -- never a number chosen to
+# clear a key off the stale list. A key past three times its allowance prints as
+# "dead?" in the store check whatever this file says, and tools/
+# validate_b51_registry_html.py refuses a lag above its family's `max_lag` (the
+# bound stated beside it) or a family that matches nothing.
+#
+# MATCHING. A family matches by `fred_ids` (the FRED series ids, globbed, read
+# through altdata.config.FRED_PULL_SERIES) and/or `keys` (store keys, globbed).
+# The first family that matches a key wins; order is most specific first.
+version: 1
+families:
+  - id: fred_h10
+    fred_ids: ["DEX*", "DTWEXBGS"]
+    keys: ["calc.naive_expectation.dxy", "calc.naive_expectation.usd_*",
+           "calc.*hedged*"]
+    lag_sessions: 6
+    max_lag: 7
+    source: "Federal Reserve H.10 (foreign exchange rates), through FRED"
+    reason: >-
+      H.10 is released weekly, on Monday afternoon, carrying the previous week's
+      daily rates. Just before a release the newest rate is the Friday a week
+      and a half back: 6 sessions over the daily allowance's 2, 7 when a Monday
+      holiday moves the release to Tuesday. The naive expectations and the
+      hedged yields read these rates, so they inherit the lag.
+  - id: eia_spot
+    fred_ids: ["DCOILWTICO", "DCOILBRENTEU", "DHHNGSP"]
+    keys: ["calc.naive_expectation.wti", "calc.naive_expectation.brent",
+           "calc.naive_expectation.natgas"]
+    lag_sessions: 6
+    max_lag: 7
+    source: "EIA spot prices (WTI, Brent, Henry Hub), through FRED"
+    reason: >-
+      EIA posts its daily spot prices once a week (Wednesday), through the
+      previous few sessions; FRED mirrors them after. The newest print is up to
+      a week old before the next posting, 6 sessions with a holiday's slack.
+  - id: term_premium_models
+    keys: ["calc.attr_kw_tp_share_*", "calc.attr_acm_tp_share_*",
+           "calc.attr_dkw_path_share_*"]
+    fred_ids: ["THREEFYTP10"]
+    lag_sessions: 5
+    max_lag: 6
+    source: "Kim-Wright (Federal Reserve Board, through FRED), ACM (NY Fed), DKW (SF Fed)"
+    reason: >-
+      The three term-premium models' files are republished weekly or
+      irregularly, a week's data at a time (the registry's own note on the
+      blocks: weekly allowance); the attribution's shares read them, so they
+      are a week behind at worst.
+  - id: z1_quarterly
+    fred_ids: ["BOGZ1*"]
+    lag_sessions: 85
+    max_lag: 90
+    source: "Federal Reserve Z.1 (financial accounts), through FRED"
+    reason: >-
+      Z.1 is published about ten weeks after the quarter ends (a53's check:
+      Q2 2026, dated 2026-04-01, was the newest print on 20 Oct). A quarter is
+      dated its first day, so before the next print its newest is about 180
+      sessions old: the quarterly allowance's 95 plus 85.
+  - id: tic
+    keys: ["tic.*"]
+    lag_sessions: 45
+    max_lag: 50
+    source: "Treasury International Capital (TIC), US Treasury"
+    reason: >-
+      TIC's monthly holdings and flows are released around the 18th of the
+      second month after the reference month (August's in mid-October). A month
+      is dated its first day, so its newest is about 75 sessions old before the
+      next release: the monthly allowance's 32 plus 45.
+  - id: imf
+    keys: ["imf.*"]
+    lag_sessions: 65
+    max_lag: 70
+    source: "IMF International Financial Statistics and COFER"
+    reason: >-
+      IFS posts each country's monthly series two to three months after the
+      reference month, by country, and some later; COFER is quarterly with a
+      quarter's lag. Three months' delay on a month dated its first day.
+  - id: em_monthly
+    keys: ["em.*"]
+    freq: monthly
+    lag_sessions: 45
+    max_lag: 50
+    source: "The emerging-markets scorecard's monthly legs (central banks, statistics offices, IMF)"
+    reason: >-
+      The national monthly prints the scorecard reads (reserves, CPI, policy
+      rates, trade) arrive four to eight weeks after the month; dated the 1st.
+  - id: em_quarterly
+    keys: ["em.*"]
+    freq: quarterly
+    lag_sessions: 65
+    max_lag: 70
+    source: "The emerging-markets scorecard's quarterly legs (GDP, current account, external debt)"
+    reason: >-
+      National accounts and balance-of-payments quarters arrive about a quarter
+      after they end; dated the quarter's first day.
+  - id: worldbank_pink_sheet
+    keys: ["worldbank.*"]
+    lag_sessions: 15
+    max_lag: 18
+    source: "World Bank Pink Sheet (commodity prices, monthly)"
+    reason: >-
+      Published in the first days of the following month; a month dated its
+      first day is about 45 sessions old before the next sheet: 32 plus 15.
+  - id: nbs
+    keys: ["nbs.*"]
+    lag_sessions: 25
+    max_lag: 28
+    source: "National Bureau of Statistics of China (monthly)"
+    reason: >-
+      The monthly activity, price and PMI prints are released between the
+      last day of the month (PMI) and the 15th-20th of the next; dated the 1st.
+  - id: fred_h8_weekly
+    fred_ids: ["DPSSCBW027SBOG", "DPSLCBW027SBOG"]
+    lag_sessions: 5
+    max_lag: 6
+    source: "Federal Reserve H.8 (assets and liabilities of commercial banks), through FRED"
+    reason: >-
+      Added at the chain-5 stitch (23 Oct 2026), as b51's notes asked once
+      chain-4's bank-stress panel (a53) was beside this file. H.8's weekly
+      deposits are dated the week's Wednesday and released on the Friday of the
+      following week, nine days later. Just before the next release the newest
+      week is sixteen days old, about 12 sessions: the weekly allowance's 8 plus
+      4, and one more for a holiday. (H.4.1's two credit lines, WLCFLPCL and
+      WLCFOCEL, are Wednesday levels released the next day, so the weekly
+      allowance holds them and they are not named here.)
+  - id: shiller_housing
+    keys: ["shiller.real_home_price"]
+    lag_sessions: 56
+    max_lag: 60
+    source: "Shiller's real home price index (Fig3-1.xls), after the S&P CoreLogic Case-Shiller national index"
+    reason: >-
+      Added at the chain-5 stitch (23 Oct 2026) for a56's new key (Batch 14 item
+      69). The national index it extends is published on the last Tuesday of
+      the month, two months after the reference month, and the sheet follows it:
+      the file of 6 Oct 2026 carried July 2026 as its last month (a56's Part 0).
+      A month is dated its first day, so the newest is about three months old
+      when the sheet updates and about four before the next, near 88 sessions:
+      the monthly allowance's 32 plus 56.
+  - id: fred_quarterly_release
+    fred_ids: ["*"]
+    keys: ["calc.naive_expectation.*"]
+    freq: quarterly
+    lag_sessions: 60
+    max_lag: 65
+    source: "BEA and other quarterly releases, through FRED"
+    reason: >-
+      A quarter is dated its first day; BEA's advance estimate comes about 30
+      days after the quarter ends and the third about 90. Before the next
+      quarter's first print the newest is about 155 sessions old: 95 plus 60.
+      The naive expectations of quarterly series read the same prints.
+  - id: fred_monthly_release
+    fred_ids: ["*"]
+    keys: ["calc.naive_expectation.*"]
+    freq: monthly
+    lag_sessions: 22
+    max_lag: 25
+    source: "BLS, BEA, Census and the Fed's monthly releases, through FRED"
+    reason: >-
+      A month is dated its first day and published one to six weeks after it
+      ends (the jobs report first, PCE and the Census series last). Before the
+      next print the newest is about 54 sessions old: 32 plus 22. The naive
+      expectations of monthly series read the same prints.

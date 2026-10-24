@@ -20,7 +20,8 @@ single_name_puts() (the Weekly). No side is ever inferred.
         captures, in the Weekly's Mechanics
     with_pricing(row, now, db_path)
         OS-11, an Ahead earnings row's last three reactions and its pricing word
-        against the matrix's own implied move
+        against the matrix's own implied move; it reads only the store it is
+        named (None reads nothing: a50-dealer-store, A48's local-run note)
 
 REPORT-ONLY (D-4): no 0-100 score and no weights; every rank prints its window
 and n; the regime word and the numbers, never CALM / NORMAL / WILD; a pricing word
@@ -431,6 +432,8 @@ PREMARKET_LINE = "Pre-market (ES)"
 # 16:31 chains, but every cell that needs a solved IV -- the chance in the money
 # and the IV itself -- prints this, until tools/validate_iv_solver.py admits them.
 SOLVER_GATED = "awaiting the solver gate"
+# OS-12's tag in OS-9's Context column (Batch 13 item 61, D4).
+VOLUME_FLAG_TAG = "volume flag yesterday"
 PREMARKET_NA = "Pre-market (ES): not available ({why})."
 
 
@@ -692,7 +695,11 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
     the pricing word on their median (n of 3 or more; else "n=k, no word"),
     appended to its consensus cell, the implied move being the matrix's own (Batch
     11 item 57); the stored implied-against-realised records beside them; and,
-    for MSTR, the MSCI index events stored in the digital-asset calendar."""
+    for MSTR, the MSCI index events stored in the digital-asset calendar.
+
+    `db_path` is the store to read, passed by the caller; None reads nothing and
+    prints "not stored" -- never the default store (A48's local-run note: a gate
+    run must never open, or leave behind, data/chester.db)."""
     cfg = cfg or config()
     e = cfg["earnings"]
     n_max, n_min = int(e["reactions"]), int(e.get("word_min_n", 3))
@@ -700,7 +707,7 @@ def with_pricing(r: dict, now: str, db_path: Optional[str] = None,
     m = MOVE_RE.search(str(r.get("implied_move") or ""))
     implied = float(m.group(1)) if m else None
     try:
-        conn = _ro(db_path)
+        conn = _ro(db_path) if db_path else None
     except sqlite3.Error:
         conn = None
     reacts, moves = [], []
@@ -1055,6 +1062,14 @@ def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
                 skew = [v for _, v in _series(st, cm.SKEW_KEY, cutoff, s)]
                 ivrv = [v for _, v in _series(st, cm.IV_RV_KEY, cutoff, s)]
                 tags[s] = (closes, skew, ivrv, day)
+            # OS-12 (Batch 13 item 61, D4; a54): the names the prior session's close
+            # flagged on relative volume, recomputed as of its close cutoff.
+            try:
+                from . import relative_volume as _rv            # noqa: PLC0415
+                vol_flags = _rv.flagged_yesterday(st, prior, syms=syms)
+            except Exception:                                   # noqa: BLE001
+                log.warning("OS-12's tag faulted", exc_info=True)
+                vol_flags = set()
         earn: dict[str, list[str]] = {}
         try:
             d0 = dt.date.fromisoformat(prior)
@@ -1072,6 +1087,8 @@ def oi_builds_from_store(prior: str, cutoff: str, db_path: Optional[str] = None,
             earn = {}
         tg = {s: name_tags(s, v[3], v[0], v[1], v[2], earn.get(s, []), cfg)
               for s, v in tags.items()}
+        for s in vol_flags:
+            tg.setdefault(s, []).append(VOLUME_FLAG_TAG)
         tab = oi_build_table(builds, tg, cfg)
     except Exception:                                           # noqa: BLE001
         log.warning("the OI-build table faulted", exc_info=True)

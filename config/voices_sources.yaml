@@ -243,6 +243,24 @@ sources:
     # the page's other dates belong to related items.
     date_pattern: ['article-banner__caption">[^|<]*\|\s*([A-Z][a-z]+ \d{1,2}, 20\d\d)']
 
+  # --- Added 21 Oct 2026 (signal-triage Batch 14, item 66 -- written as 59 -- and
+  # F4; b52-batch14-a2): JDI Research's own public blog, read through its RSS
+  # feed. robots.txt (www.jdiresearch.com, read 21 Oct 2026) allows / for every
+  # agent bar PetalBot; the feed served dated items without a login to the
+  # project's generic User-Agent. The ruled tag is "research seller with open
+  # positions": the vocabulary has no such kind, so the kind is `independent` and
+  # the tag rides in the note. Its LinkedIn posts are not read (F4). The firm is
+  # the default voice; the model names the author when the post does.
+  - id: jdi_research
+    group: desk
+    name: "JDI Research: blog"
+    outlet: "JDI Research"
+    method: rss
+    url: "https://www.jdiresearch.com/blog-feed.xml"
+    default_voice: "JDI Research"
+    default_kind: independent
+    note: "tag (ruled 20 Oct 2026, Batch 14 item 66): research seller with open positions -- a view here may be a position's case"
+
   # --- Added 4 Oct 2026 (Phase B ruling 5): the regional Feds, Treasury, the ECB
   # and the Bank of England, and Yahoo Finance. Each robots.txt read and the path
   # allowed on 4 Oct; what was asked for and not allowed is under `not_used`.

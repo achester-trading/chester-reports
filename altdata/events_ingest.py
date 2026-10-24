@@ -165,6 +165,26 @@ def claims_events() -> tuple[list[ev_mod.Event], dict]:
         year_m = re.search(r"(20\d\d)", cid + " " + value)
         year = int(year_m.group(1)) if year_m else dt.date.today().year
         if "fomc" in cid:
+            # cal.fomc_history (a55 round 2) carries one dated row per statement,
+            # 1994-2025, with its kind and page; a year's calendar is parsed from
+            # its value as before.
+            detail = claim.get("detail") if isinstance(claim.get("detail"), dict) else {}
+            rows = detail.get("statements")
+            if rows:
+                for r in rows:
+                    d = r["date"] if isinstance(r["date"], dt.date) else \
+                        dt.date.fromisoformat(str(r["date"]))
+                    out.append(ev_mod.Event(
+                        type="scheduled",
+                        observed_at=f"{d.isoformat()}T18:00:00+00:00",
+                        source="claims_registry",
+                        title=f"FOMC statement -- {d.isoformat()}",
+                        entities=["fred.fed_funds"], key=f"fomc-{d.isoformat()}",
+                        payload={"claim_id": cid, "kind": "fomc",
+                                 "cited_as": cid, "meeting": r.get("kind"),
+                                 "page": r.get("page"),
+                                 "note": claim.get("unit")}))
+                continue
             for d in _fomc_dates(value, year):
                 # 18:00 UTC = 14:00 ET, the statement release.
                 out.append(ev_mod.Event(

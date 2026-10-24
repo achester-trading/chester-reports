@@ -112,3 +112,67 @@ conflict). Side B is also committed as a pending register proposal,
 > flag on the 10-year attribution, monthly -- side A when the term premium
 > carried at least half of the six-month rise, side B when the expected short
 > rate did; review: monthly.`
+
+## The dated record of the 10-year and the real 10-year (Batch 14 item 64)
+
+> *Dated 21 Oct 2026, read from FRED.* The 10-year Treasury yield (FRED DGS10)
+> closed at 5.31% on 5 Oct 2026, its highest close of 2026 and the highest since
+> 14 May 2002 (5.32%). The 10-year TIPS yield (FRED DFII10) closed at 2.95% the
+> same day, the highest since 24 Nov 2008 (3.11%). The post that carried them
+> (an aggregator's charts) dated both "as of 9 Oct 2026"; on 9 Oct DGS10 closed
+> 5.24% and DFII10 2.91%, so the levels are 5 Oct's and the "highest since 2002
+> and 2008" holds for them.
+
+*Batch 14 Part 0 also checked the order's check 5 (Part B's item 65): no DGS10
+close reached 5.33% in 2026, and no session in September or October 2026 fell
+25 bp (the largest fall in mid-October was 9 bp, 5.19% to 5.10% on 15 Oct), so
+"5.33% to 5.08% in a single day" does not match FRED's closes; it may be an
+intraday range. Read from fredgraph.csv by session A, 21 Oct 2026.*
+
+## The 10-year at 8%, a forecast (Batch 14 item 70)
+
+> *Dated 19 Oct 2026, appendix only.* A newsletter writer charted the 10-year
+> yield against the 10-year CAGR of US nominal GDP from 1970 (a stated 93%
+> correlation of two trending levels) and forecast that the 10-year could reach
+> 8%. The chart's own reading, nominal growth near 6%, implies a 10-year near
+> 6%, not 8%. The measure the order builds is the gap: the 10-year less the 10-
+> and 5-year nominal GDP CAGR, in the 10-year attribution, as the US macro r-g.
+
+## For item 20's Treasury reaction-function ledger: a housing intervention (Batch 14 item 69)
+
+Item 20's ledger (ST-R4.20a, 20b) is listed, not built, so its first line waits
+here and moves into the ledger when it exists. As F6 rules it:
+
+> *Dated 8 Jan 2026: a housing intervention.* The President announced that he
+> was instructing purchases of $200bn of mortgage bonds to bring mortgage rates
+> down; the FHFA director confirmed that Fannie Mae and Freddie Mac would make
+> the purchases, with what he called ample liquidity. Instrument: the GSEs'
+> retained portfolios (the cap was reported raised to $225bn each by an FHFA
+> email of 12 Jan 2026). Citations: the announcement as reported on 8 Jan 2026
+> (https://www.cnn.com/2026/01/08/business/mortgage-bonds-trump-purchase-rates);
+> the GSEs' own monthly volume summaries and quarterly filings for the purchases
+> (Freddie Mac, https://www.freddiemac.com/investors/financials/pdf/0126mvs.pdf).
+
+*Primary check, 21 Oct 2026 (session A): FHFA's news releases and statements for
+December 2025 to February 2026 carry no release on the purchases, so the date and
+terms are confirmed against the day's reporting and the director's own post, not
+against an FHFA release; the GSE documents above are primary for the purchases
+but were not machine-readable here, so no figure from them is quoted.*
+
+## For XV, Equities: A Structural Framework, its AI-rings section (Batch 14 item 63)
+
+The order adopts BNP Paribas's capex-chain weights "as a standing reference table
+in Factor I and in the Equities paper's AI-rings section, dated August 2026". The
+paper's body is not edited (b52); the table stands in `config/capex_chain.yaml` and
+prints in the Monthly's slow layers (Factor I), and this entry is the paper's
+citation until its next revision.
+
+> *Dated August 2026 (BNP Paribas Equity Research, as published by a16z).* Of an
+> illustrative $100 of AI capex: semiconductors $50 (accelerators 25, memory 15,
+> CPUs and server production 10), power $20 (grid and independent generation 10,
+> distribution 6.5, on-site routing 3.5), networking $15, cooling $7.5, facilities
+> and construction $7.5; wafer-fab equipment about $8 of the semis share, roughly
+> half of it lithography. BNP calls the weights high-level estimates: an
+> illustrative split of one dollar, not a measurement. Half of every capex dollar
+> stays with the chipmakers; power is the second-largest bucket and the slowest to
+> build.

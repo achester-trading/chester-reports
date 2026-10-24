@@ -163,11 +163,28 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # fees, and BTC's and ETH's caps and supply in the coin blocks
                   "llama_watch_daily", "llama_coin_mcap", "llama_coin_supply",
                   # the secondary notes (19 Oct 2026): their own 5-minute bars
-                  "note_bars_prices"}
+                  "note_bars_prices",
+                  # A51 (19 Oct 2026): the open note's retail sales form (RSAFS)
+                  "fred_notes",
+                  # Batch 12 item 59 (a53, 20 Oct 2026): the bank-stress panel's FRED legs
+                  "fred_bank_stress"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).
 NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
+                     # Batch 12 item 59 (a53, 20 Oct 2026): KRE joins the basket.
+                     "yfinance.mkt_kre", "yfinance.mkt_kre_dividend",
+                     "yfinance.mkt_kre_split", "yfinance.mkt_kre_volume",
+                     # Batch 14 item 63 (b52, 21 Oct 2026): the capex chain's eight
+                     # proxies join the basket, with their action and volume series.
+                     "yfinance.mkt_smh", "yfinance.mkt_smh_dividend", "yfinance.mkt_smh_split", "yfinance.mkt_smh_volume",
+                     "yfinance.mkt_mu", "yfinance.mkt_mu_dividend", "yfinance.mkt_mu_split", "yfinance.mkt_mu_volume",
+                     "yfinance.mkt_amd", "yfinance.mkt_amd_dividend", "yfinance.mkt_amd_split", "yfinance.mkt_amd_volume",
+                     "yfinance.mkt_grid", "yfinance.mkt_grid_dividend", "yfinance.mkt_grid_split", "yfinance.mkt_grid_volume",
+                     "yfinance.mkt_anet", "yfinance.mkt_anet_dividend", "yfinance.mkt_anet_split", "yfinance.mkt_anet_volume",
+                     "yfinance.mkt_vrt", "yfinance.mkt_vrt_dividend", "yfinance.mkt_vrt_split", "yfinance.mkt_vrt_volume",
+                     "yfinance.mkt_pave", "yfinance.mkt_pave_dividend", "yfinance.mkt_pave_split", "yfinance.mkt_pave_volume",
+                     "yfinance.mkt_asml", "yfinance.mkt_asml_dividend", "yfinance.mkt_asml_split", "yfinance.mkt_asml_volume",
                      # Batch 9 item 52 (17 Oct 2026): ^VIX9D and ^VIX6M join the
                      # basket, with their action series.
                      "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",

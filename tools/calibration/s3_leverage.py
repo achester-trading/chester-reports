@@ -265,8 +265,8 @@ def study(d: dict, mode: str) -> dict:
                         "the order's OI-weighted aggregate, whose other legs are served "
                         "forward only; the store's aggregate (calc.funding_agg, "
                         "calc.oi_mcap) matures from mid-December 2026.",
-                        "The May 2026 'rush' is read by the same rule as the unwinds; "
-                        "if the order meant a rally, a ruling says so before a re-run."]}
+                        "The May 2026 'rush' is read by the same rule as the unwinds "
+                        "(ruled 20 Oct 2026: an unwind, like the other three windows)."]}
 
 
 if __name__ == "__main__":

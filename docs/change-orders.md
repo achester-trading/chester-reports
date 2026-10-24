@@ -22,3 +22,6 @@ An index of every ruled change order in `docs/`, oldest first. Each order is fil
 | 17 Oct 2026 | [change-order-signal-triage-batch-9-2026-10-17.md](change-order-signal-triage-batch-9-2026-10-17.md) | Signal triage item 52, the volatility event |
 | 19 Oct 2026 | [change-order-signal-triage-batch-11-2026-10-19.md](change-order-signal-triage-batch-11-2026-10-19.md) | Signal triage items 53–58: the opening setup and the dealer scorecard amended |
 | 19 Oct 2026 | [change-order-secondary-notes-2026-10-19.md](change-order-secondary-notes-2026-10-19.md) | The secondary notes: the 09:50 open note and the 21:30 evening note |
+| 20 Oct 2026 | [change-order-signal-triage-batch-12-2026-10-20.md](change-order-signal-triage-batch-12-2026-10-20.md) | Signal triage items 59–60: the bank-stress panel and classifier; the earnings-estimate overshoot (filing amendments F1–F6) |
+| 20 Oct 2026 | [change-order-signal-triage-batch-13-2026-10-20.md](change-order-signal-triage-batch-13-2026-10-20.md) | Signal triage item 61: relative options volume (OS-12a–d) |
+| 20 Oct 2026 | [change-order-signal-triage-batch-14-2026-10-20.md](change-order-signal-triage-batch-14-2026-10-20.md) | Signal triage items 62–71 (Batch 14, filing amendments F1–F8): Part A, the 1 Nov Monthly candidates (63, 64, 66, 69, 70); Part B after the Monthly |

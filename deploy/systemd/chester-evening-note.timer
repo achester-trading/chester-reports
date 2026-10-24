@@ -6,7 +6,7 @@ Documentation=https://github.com/achester-trading/chester-reports
 # Wall-clock ET (DST handled per firing). The wrapper's calendar guard reads the
 # NEXT day (altdata.session evening-before): the note runs on an evening before a
 # session, so a holiday eve is skipped and a half day's evening runs as usual.
-OnCalendar=Sun..Thu 21:30 America/New_York
+OnCalendar=Mon..Thu,Sun 21:30 America/New_York
 AccuracySec=1s
 RandomizedDelaySec=0
 # A catch-up run after downtime would print a stale window under tonight's name.

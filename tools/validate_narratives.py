@@ -292,10 +292,12 @@ def groups_abc() -> None:
               "the close pass never reaches it: confirm is the operator's")
         real = nr.load_config().get("proposals") or {}
         errs = {k: nr.validate_config_story(k, v) for k, v in real.items()}
-        check(len(real) == 3 and not any(errs.values())
+        # Five since Batch 12 item 60.6 (a53, 20 Oct 2026) seeded its pair; six
+        # since a56 (Batch 14 item 69) added gse_mbs_purchase_floor (chain-5).
+        check(len(real) == 6 and not any(errs.values())
               and all(str(v.get("proposed_by") or "").strip() for v in real.values()),
-              f"the three committed in config/narratives.yaml validate and say who "
-              f"proposed them ({sorted(real)})")
+              f"the six committed in config/narratives.yaml validate and say who "
+              f"proposed them ({sorted(real)}; {errs})")
         cfg.pop("proposals")
 
         print(f"{LINE}\nA. REPLAY FROM STORED EVENTS\n{LINE}")

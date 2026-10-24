@@ -29,6 +29,13 @@ log = logging.getLogger(__name__)
 
 NA = "NOT AVAILABLE"
 NT = "NOT TRACKED"
+# SR-16's amendment (signal-triage Batch 12, item 60.5; a53, 20 Oct 2026): the
+# neocloud / AI-infrastructure credit watch line, a listed gap under F2 -- the bond
+# prices of the neoclouds and their peers have no keyless source, and no by-hand
+# line is added.
+NEOCLOUD_LINE = ("Neocloud / AI-infrastructure credit (the neoclouds' bonds and "
+                 "peers): NOT TRACKED (item 60, F2: no keyless source; a listed gap "
+                 "beside the hyperscaler anchors)")
 CAPS = {"Duration Absorption": 18, "Cheap-and-Unloved": 10}
 RATE_TITLE = "Rate machine summary"
 DA_TITLE = "Duration Absorption"
@@ -239,6 +246,7 @@ def factor_lines(st, now: str) -> list[str]:
                     "EDGAR XBRL instant frames"),
         "  " + line(st, now, "BBB less AA OAS", "calc.aa_bbb_oas_diff", bp, "FRED ICE BofA"),
         f"  {nt('AI share of long IG issuance', 'calc.ai_long_share')}",
+        f"  {NEOCLOUD_LINE}",
         "  " + line(st, now, "Memory line: Micron inventory days", "calc.mu_inv_days",
                     lambda v: f"{v:.0f} days", "EDGAR company concepts"),
         "Factor III: " + na("the oil buffer", "calc.oil_buffer_state",

@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) and [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d) and [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -41,7 +41,7 @@
 | 5 | E | Consumer credit impulse (deGraaf/RenMac, 8 Sep) | Adopt bull side as trigger candidate, RS tell; bear side as tilt | Trigger candidate / modifier | ST-8; wired ST-11 | ADOPTED — gate pending |
 | 6 | R | Yield move attribution (Runkevicius, 15 Sep) | Adopt block as `rates.driver` evidence; reject single-model reading | Confidence modifier | ST-3 | DEFERRED — gate failed (rerun 2: 2 of 5 episodes under the pre-registered rule, agree 0/2, disagree 2/3; [ledger 2026-09-30 r2](ledgers/rates-driver-2026-09-30-r2.md); rerun 1: 0 of 5, [ledger 2026-09](ledgers/rates-driver-2026-09.md)) |
 | 7 | E | Hiking-cycle conditional table (Macrobond) | Adopt table by hand; reject unconditional average | None (base rate) | Tranche H | ADOPTED — base rate, by hand |
-| 8 | E/A | Bear-market rally structure (Lemand, 19 Sep) | Adopt audit + bottom gate + Doctrine rule candidate | Gate | ST-9; wired ST-11 | ADOPTED — audit pending |
+| 8 | E/A | Bear-market rally structure (Lemand, 19 Sep) | Adopt audit + bottom gate + Doctrine rule candidate | Gate | ST-9; wired ST-11 | ADOPTED — audit failed (ledger 2026-10-18) |
 | 9 | R/A | 5.25% and stock-bond correlation (Simon White, Sep) | Adopt as `rates.driver` correlation member and Book A rule A-1; reject level | Confidence modifier | ST-3 | ADOPTED — regression in backlog |
 | 10 | D | Digital Asset Mechanism Watch — Pearl (PRL) signposts S1–S8 and the emerging-mechanism scan (19 Sep order, integrated 26 Sep) | Adopt; watch-level rights only (MW-2) | Narrow flag (idle-GPU D6); discovery/attention otherwise | ST-13, ST-14, ST-15; Sunday block at ST-10 | ADOPTED — watch-level rights only (MW-2) |
 | 11 | — | *Reserved:* Consensus drift (19 Sep batch Part C) | Backlog | — | Appendix C | RESERVED — backlog (Appendix C) |
@@ -200,7 +200,9 @@
 
 ### SR-8 Bear-market rallies as structure (Lemand, Nasdaq 2000–02, 19 Sep 2026) — Threads E and A
 
-**Register status.** ADOPTED — audit pending · **Built in.** ST-9; wired ST-11
+**Register status.** ADOPTED — audit failed (1 element discriminates, breadth_rsp_spy, against the pre-registered rule of at least 2; n 16; [ledger 2026-10-18](ledgers/false-bottom-audit-2026.md)) · **Built in.** ST-9; wired ST-11
+
+*Factual correction, 20 Oct 2026 (chain-4):* this line read "audit pending" after the audit's first edition had recorded its FAIL. The ledger's verdict is the record. Book A rule A-2 changes nothing until the monthly decides (the ledger's rights consequence).
 
 **Ruling.** Adopt a T&B false-bottom audit, a bottom-side gate and a Doctrine rule candidate. The bottom side was calibrated on real bottoms; the false ones (five rallies of 12–45% inside a 78% decline, each a "bottom" in real time) are the untaken test. *[integ.]* The audit is offline (ST-9) and produces the gate spec; wiring waits for T&B full (ST-11). The gate is Book A rule A-2 (§2.4) and precedes SR-5's trigger in the bottom-side queue.
 
@@ -825,6 +827,14 @@ above changes.
 *Accepted as drafted (rule 31), 19 Oct 2026 (R11):* **library-st-l's drafts**: the twelve dated calibration appendices and the Digital Assets paper's timeless paragraph; the Warsh matrix's section 2.1.5 entry (`docs/warsh-matrix-lines.md`); the five Doctrine #2 proposals (`docs/briefs/doctrine-2-proposals-st-l.md`, for the sitting of 7-8 Nov, none ruled by this acceptance); and the three ledgers: the hiking-cycle table (`docs/ledgers/fed-cycles-ledger-2026-10-19.md`, NO GATE IN THE ORDER, n 21), SR-20's first COFER entry and SR-24's Livingston note (each under its entry above). Each states that it grants nothing.
 
 *Ruled 19 Oct 2026 (R12):* **no rethink of the dials' history before November.** The grammar search's coverage rule stands as written: the macro and volatility dials join a run only once their point-in-time history clears five years before the holdout, and the box's coverage at the first run decides. Nothing is backfilled or reinterpreted to make them pass.
+
+*Accepted as drafted (rule 31), 20 Oct 2026 (B49, decision 2):* **S-2 and S-3, the crypto flags' first editions, FAIL** (a47-chain3; `docs/ledgers/s-2-ledger-2026-10-19.md`: 22 completed episodes, Welch t +1.14; `docs/ledgers/s-3-ledger-2026-10-19.md`: 0 of 4 evaluable windows caught). Nothing prints and nothing gains a right: S-2's and S-3's flags stay stored "not passed", and the 12:30 crypto line stays closed. **S-3's "May 2026 rush" is read as an unwind**, like the other three windows, as the first edition read it; the verdict is unchanged.
+
+*Accepted as drafted (rule 31), 20 Oct 2026 (B49, decision 2):* **SN-1 and SN-2, the secondary notes' two studies, FAIL** (a49-secondary-notes; `docs/ledgers/sn-1-ledger-2026-10-19.md`: none of 4 cells with 20 days or more passes; `docs/ledgers/sn-2-ledger-2026-10-19.md`: continuation 107 of 193, its Wilson interval including 50%). Nothing prints and nothing gains a right.
+
+*Ruled 20 Oct 2026 (B49, decision 2):* **Fear & Greed's words.** The session-set bands stay (to 24, 44, 55, 75 and 100), and each takes the publisher's own label in place of the session-set word: extreme fear, fear, neutral, greed, extreme greed (`config/crypto_sources.yaml` `blocks.daily.fng_words`). The reading is CNN's public index, not a vendor's.
+
+*Accepted, 20 Oct 2026 (B49, decision 2):* **b48-scoreboard's values.** `score.min_n` 10 (`config/scoreboard.yaml`) is accepted. The four-quarter benchmarks on realised P&L, withheld while a book holds an open decision, are accepted for now. Three items go on the Doctrine #2 list (7-8 Nov), which session A's a52 pack collects: marking open positions (an entry fill stored per decision); a risk-adjusted and after-tax comparison; long against short.
 
 ## Explicit rejections (do not re-propose)
 

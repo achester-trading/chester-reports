@@ -141,13 +141,47 @@ def beta_vs_spy(root: str, store: Any, as_of: Optional[str] = None,
 # ---------------------------------------------------------------------------
 # The regime band: Macro dial -> Doctrine regime -> Book A band
 # ---------------------------------------------------------------------------
+def _volatile_day_stamp(out: dict, as_of: Optional[str],
+                        archive_dir: Optional[str]) -> None:
+    import datetime as _dt  # noqa: PLC0415
+    from zoneinfo import ZoneInfo  # noqa: PLC0415
+    try:
+        from daily_cascade import volatile_day  # noqa: PLC0415
+        t = (_dt.datetime.fromisoformat(str(as_of).replace("Z", "+00:00"))
+             if as_of else _dt.datetime.now(_dt.timezone.utc))
+        day = t.astimezone(ZoneInfo("America/New_York")).date().isoformat()
+        vd = volatile_day.printed(day, as_of, archive_dir)
+    except Exception as exc:                                  # noqa: BLE001
+        vd = {"state": None, "settled": False, "source": None,
+              "reason": f"the archive could not be read ({type(exc).__name__})"}
+    out["volatile_day"] = vd["state"]
+    if vd["state"] is None:
+        out["volatile_day_reason"] = vd["reason"]
+    else:
+        out["volatile_day_settled"] = vd["settled"]
+        out["volatile_day_source"] = vd["source"]
+
+
 def regime_band(store: Any, as_of: Optional[str] = None,
-                limits: Optional[dict] = None) -> dict:
+                limits: Optional[dict] = None,
+                archive_dir: Optional[str] = None) -> dict:
     """The Doctrine regime, Book A's band and the net-beta cap, or why not.
 
     THE CROSSING RULE: a Macro dial state that changed within the last
     `transition_sessions` objects maps to Transition -- the lower half of the band
     it is leaving. Read from stored objects, never recomputed.
+
+    THE OTHER TWO DIALS (B49, ruled 20 Oct 2026). The Volatility and Gamma dials'
+    states are read from the same newest stored object -- the one the anchor
+    prints -- and returned as `vol_state` and `gamma_state` with the object's
+    session, so the order gate stamps them into the decision's record at entry.
+    Read, never computed: an absent dial is None with its reason.
+
+    THE VOLATILE-DAY FLAG (chain-4, 20 Oct 2026) joins them as `volatile_day`
+    ("raised" / "not raised"), read through volatile_day.printed from the day's
+    archived live edition, with `volatile_day_settled` and `_source`; None with
+    its reason where no edition had printed it by `as_of`. `archive_dir`
+    overrides the reports archive (a gate's fixture).
     """
     import regime  # noqa: PLC0415
     lim = limits or load_limits()
@@ -164,13 +198,30 @@ def regime_band(store: Any, as_of: Optional[str] = None,
                              limit=n + 1)
     import json  # noqa: PLC0415
     states = []
+    newest: Optional[dict] = None
     for r in rows:
         try:
             o = json.loads(r["value_text"])
         except Exception:                                     # noqa: BLE001
             continue
+        newest = o
         states.append((o.get("session"),
                        ((o.get("dials") or {}).get("macro") or {}).get("state")))
+    dials = (newest or {}).get("dials") or {}
+    out["dials_session"] = (newest or {}).get("session")
+    for name, key in (("vol", "vol_state"), ("gamma", "gamma_state")):
+        d = dials.get(name) or {}
+        out[key] = d.get("state")
+        if d.get("state") is None:
+            out[key + "_reason"] = (d.get("absent_reason") or d.get("reason")
+                                    or ("no market-state object stored" if newest is None
+                                        else f"no {name} dial state on the object"))
+    if (dials.get("gamma") or {}).get("provisional"):
+        out["gamma_provisional"] = True
+    # THE VOLATILE-DAY FLAG (chain-4, B49's needs-you 3, now that a50-dealer-store
+    # is on the branch): as the day's live edition printed it -- the open note's
+    # settled flag, else the anchor's -- read from the archive, never computed.
+    _volatile_day_stamp(out, as_of, archive_dir)
     if not states or states[-1][1] is None:
         out.update({"regime": None, "band": None, "cap_pct": None,
                     "absent": True,

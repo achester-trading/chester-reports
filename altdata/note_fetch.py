@@ -7,8 +7,11 @@ the fetch writes, the payload reads the store, a report never fetches (30.4).
     python -m altdata.note_fetch evening [--date D] [--dry-run]   # 21:30, Sun-Thu
 
 THE OPEN FETCH (after the 09:45 capture):
-  bars       today's 5-minute bars from 08:00 ET for SPY, ES=F, ZN=F, ZT=F (where
-             Yahoo serves it), ^TNX, DX-Y.NYB and ^VIX
+  bars       today's 5-minute bars from 08:00 ET for SPY, QQQ, IWM, ES=F, ZN=F,
+             ZT=F (where Yahoo serves it), ^TNX, DX-Y.NYB and ^VIX. QQQ and IWM
+             (decision 10 of 19 Oct 2026) give all three of engine 7's
+             instruments decision-time bars stored at about 09:47; they are the
+             tape's own qqq and iwm, registered in its bars_prices block
   fred       a targeted pull of ONLY the series behind today's 08:30 tier-1 and
              tier-2 releases, through the existing FRED writer (vintage-keyed,
              append-only); FRED's full daily pull stays at 16:10
@@ -45,7 +48,7 @@ from typing import Callable, Optional
 
 log = logging.getLogger("altdata.note_fetch")
 
-OPEN_IDS = ("spy", "es", "zn", "zt", "y10", "dxy", "vix")
+OPEN_IDS = ("spy", "qqq", "iwm", "es", "zn", "zt", "y10", "dxy", "vix")
 EVENING_IDS = ("es", "nq", "rty", "zn", "usdjpy", "cnh", "btc", "eth")
 # Asia's indices are read from four days back: their prior close is the last bar
 # before tonight's open, which closed in the early ET morning (or on Friday).
@@ -166,14 +169,16 @@ def todays_0830(day: str, db_path=None, now: Optional[str] = None) -> list[dict]
 
 def release_series(rel: dict, cfg_notes: Optional[dict] = None) -> list[dict]:
     """[{key, form, label}] behind a release: the calendar's declared form
-    (tier1_headlines), else the notes' own declared form; [] where none."""
+    (tier1_headlines, then tier2_headlines: PPI and retail sales, A49's answer
+    (b)), else the notes' own declared form; [] where none."""
     import yaml                                                  # noqa: PLC0415
     from pathlib import Path                                     # noqa: PLC0415
     repo = Path(__file__).resolve().parent.parent
     cal = yaml.safe_load((repo / "config" / "release_calendar.yaml").read_text(encoding="utf-8"))
-    for name, rows in (cal.get("tier1_headlines") or {}).items():
-        if str(rel.get("title") or "").startswith(name) or rel.get("match") == name:
-            return list(rows)
+    for block in ("tier1_headlines", "tier2_headlines"):
+        for name, rows in (cal.get(block) or {}).items():
+            if str(rel.get("title") or "").startswith(name) or rel.get("match") == name:
+                return list(rows)
     extra = ((cfg_notes or {}).get("open") or {}).get("release_forms") or {}
     for name, rows in extra.items():
         if name.lower() in str(rel.get("title") or "").lower():
@@ -327,6 +332,14 @@ def after_hours(names: list[str], day: str, now: dt.datetime, db_path=None,
     return out
 
 
+def voices_budget() -> int:
+    """The voices pass's time budget in seconds (config secondary_notes
+    voices_budget_seconds; kept 19 Oct 2026 as a starting value)."""
+    from . import bars as bars_mod                               # noqa: PLC0415
+    cfg = bars_mod.load_config().get("secondary_notes") or {}
+    return int(cfg.get("voices_budget_seconds") or 120)
+
+
 def open_fetch(day: str, now: Optional[dt.datetime] = None, db_path=None, dry_run=False,
                fetcher=None, steps: Optional[dict] = None) -> dict:
     """The open note's fetch. `steps` replaces any step (the gate's fakes)."""
@@ -341,7 +354,7 @@ def open_fetch(day: str, now: Optional[dt.datetime] = None, db_path=None, dry_ru
     out["fred"] = (s.get("fred") or fred_targeted)(keys, dry_run) if keys else \
         {"state": "no 08:30 release" if not rels else "no series behind today's releases"}
     out["news"] = (s.get("news") or news_pull)(["news"], dry_run)
-    out["voices"] = (s.get("voices") or voices_pass)(db_path, 120, dry_run)
+    out["voices"] = (s.get("voices") or voices_pass)(db_path, voices_budget(), dry_run)
     out["first_hour"] = release_first_hour(day, out["releases"], now, db_path, dry_run)         if rels else "no 08:30 release"
     return out
 
@@ -363,7 +376,7 @@ def evening_fetch(day: str, now: Optional[dt.datetime] = None, db_path=None,
     names = (s.get("ah_names") or after_hours_names)(day, db_path)
     out["after_hours"] = after_hours(names, day, now, db_path, dry_run, fetcher) \
         if names else "no captured name reports after the close today"
-    out["voices"] = (s.get("voices") or voices_pass)(db_path, 120, dry_run)
+    out["voices"] = (s.get("voices") or voices_pass)(db_path, voices_budget(), dry_run)
     return out
 
 

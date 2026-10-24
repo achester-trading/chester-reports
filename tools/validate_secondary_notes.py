@@ -294,7 +294,8 @@ def group_c() -> None:
     n = con.execute("SELECT COUNT(*), COUNT(DISTINCT instrument) FROM bars").fetchone()
     tabs = {t for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     con.close()
-    check(n == (7, 7) and r["fred"]["state"] == "no 08:30 release",
+    k = len(note_fetch.OPEN_IDS)
+    check(n == (k, k) and r["fred"]["state"] == "no 08:30 release",
           f"a live fetch writes one bar per instrument, and pulls no FRED series on a day "
           f"with no 08:30 release ({n}; {r['fred']['state']})")
     check("observations" not in tabs or True, "the open fetch on a quiet day writes no "
@@ -407,6 +408,17 @@ def group_d() -> None:
               "what the close will check, one line")
         check(p["gate"]["tier1_release"] and p["gate_open"], "the gate opens on a tier-1 release")
         check(all(b.get("as_of") for b in p["blocks"]), "every block prints its as-of time")
+        vd = p.get("volatile_day") or {}
+        gap = next((a for a in vd.get("arms") or [] if a["arm"] == "gap"), {})
+        check(p["blocks"][-1]["title"] == "Volatile-day flag"
+              and gap.get("provisional") is False and gap.get("holds") is True
+              and "SPY's 09:30 open 672.00" in gap.get("reading", "")
+              and vd.get("settled_line") in p["blocks"][-1]["lines"]
+              and p["gate"]["volatile_day"] is True and vd.get("raised") is True
+              and vd.get("applied") is False,
+              "A51: the open note settles the 07:00 flag's gap from the 09:30 open "
+              "(+1.05%: the arm holds), prints whether the flag is now raised, and its "
+              f"prose gate reads the completed flag ({vd.get('settled_line')})")
         p2 = open_note.build("2026-10-20", "2026-10-20T13:50:00+00:00", db,
                              str(TD / "comp-none"), rels=[])
         check(p2["blocks"][0]["lines"] == ["No 08:30 release."] and not p2["reaction"]
@@ -577,7 +589,7 @@ def group_g() -> None:
     sd = REPO / "deploy" / "systemd"
     for name, cal, wrapper, guard in (
             ("open", "Mon-Fri 09:50 America/New_York", "run_open_note.sh", "is-session"),
-            ("evening", "Sun..Thu 21:30 America/New_York", "run_evening_note.sh",
+            ("evening", "Mon..Thu,Sun 21:30 America/New_York", "run_evening_note.sh",
              "evening-before")):
         tm = (sd / f"chester-{name}-note.timer").read_text(encoding="utf-8")
         sv = (sd / f"chester-{name}-note.service").read_text(encoding="utf-8")

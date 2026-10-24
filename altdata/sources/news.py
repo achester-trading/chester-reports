@@ -241,8 +241,17 @@ def press_events(now: Optional[str] = None) -> tuple[list[ev_mod.Event], dict]:
             report[name] = {"state": "disabled",
                             "reason": spec.get("absent_reason")}
             continue
+        # A host that refuses an unidentified bot (bls.gov, a55) gets the contact
+        # form from the environment; without one the request is not made.
+        from .user_agent import for_url, is_contact_host        # noqa: PLC0415
+        ua = for_url(spec["url"])
+        if ua is None and is_contact_host(spec["url"]):
+            report[name] = {"state": "pending",
+                            "reason": "the host asks for a contact in the User-Agent, "
+                                      "and CHESTER_SEC_CONTACT is not set"}
+            continue
         try:
-            xml = http_get_bytes(spec["url"])
+            xml = http_get_bytes(spec["url"], headers={"User-Agent": ua} if ua else None)
         except (FetchError, Exception) as exc:                  # noqa: BLE001
             report[name] = {"state": "failed",
                             "reason": f"{type(exc).__name__}: {exc}"[:200]}

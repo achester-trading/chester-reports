@@ -804,9 +804,12 @@ def group_m(m: Master) -> None:
     check("resolve_basket(symbols or SYMBOLS)" in inspect.getsource(yf.pull),
           "pull() takes its keys from the master's resolver, not the map")
     eq = {s for s in yf.SYMBOLS if m.resolve(s, "yahoo")["asset_class"] == "equity"}
-    check(eq == set(yf.EARNINGS_SYMBOLS),
-          f"EARNINGS_SYMBOLS is exactly the basket's equities by the master "
-          f"({len(eq)}; differ {sorted(eq ^ set(yf.EARNINGS_SYMBOLS))})")
+    # b52 (Batch 14 item 63): the capex chain's single names are equities that are
+    # not earnings names, declared apart so neither set absorbs the other.
+    want = set(yf.EARNINGS_SYMBOLS) | set(yf.CAPEX_CHAIN_SYMBOLS)
+    check(eq == want and not (set(yf.EARNINGS_SYMBOLS) & set(yf.CAPEX_CHAIN_SYMBOLS)),
+          f"EARNINGS_SYMBOLS and CAPEX_CHAIN_SYMBOLS are exactly the basket's "
+          f"equities by the master, apart ({len(eq)}; differ {sorted(eq ^ want)})")
     cont = {s: m.resolve(s, "yahoo")["asset_class"] for s in yf.CONTINUOUS_SYMBOLS}
     # ST-13: a crypto.watch coin (PRL) trades round the clock like any coin.
     check(all(c in ("crypto", "crypto.watch", "fx") for c in cont.values()),

@@ -654,12 +654,57 @@ GLD_EXPENSE_RATIO = {
     "read": "2026-10-12",
 }
 
+# THE SECONDARY NOTES' RELEASE FORMS (A49's answer (b), ruled 19 Oct 2026): the
+# advance retail sales print the open note reads month on month
+# (config/release_calendar.yaml tier2_headlines). RSAFS is FRED's "Advance Retail
+# Sales: Retail Trade and Food Services", millions of dollars, SA, monthly. PPI
+# final demand is already held as ppi_final_demand (PPIFIS, FRED_6E_SERIES).
+FRED_NOTES_SERIES: list[SeriesSpec] = [
+    SeriesSpec("retail_sales", "RSAFS", "Advance retail sales: retail trade and food services, millions, SA", "2", "M", "monthly"),
+]
+
+# THE BANK-STRESS PANEL'S FRED LEGS (signal-triage Batch 12, item 59, ST-R6.59a;
+# ruled 20 Oct 2026, F2 and F6). Ids, titles and units read off FRED on 20 Oct 2026:
+#   DCPF3M              90-day AA financial commercial paper rate, PERCENT, daily
+#                       (from 1997); the spread is taken against DTB3 (tbill_3m)
+#   SOFR99              SOFR's 99th percentile (the NY Fed's distribution), PERCENT,
+#                       daily, from April 2018
+#   IOER                interest on excess reserves, PERCENT, 2008-10 to 2021-07-28
+#                       (IORB from 29 Jul 2021 is fred.iorb): the spread's history
+#   WLCFLPCL            H.4.1 primary credit (the discount window), Wednesday level,
+#                       MILLIONS, weekly, from December 2002
+#   WLCFOCEL            H.4.1 other credit extensions (any emergency facility),
+#                       Wednesday level, MILLIONS, weekly
+#   BOGZ1FL403069330Q   Z.1 FHLB advances, MILLIONS, quarterly (F2: in place of the
+#                       Office of Finance and press reports; one quarter's lag)
+#   DPSSCBW027SBOG      H.8 deposits, small domestically chartered banks, BILLIONS,
+#                       SA, weekly, from 1973
+#   DPSLCBW027SBOG      H.8 deposits, large domestically chartered banks, BILLIONS,
+#                       SA, weekly, from 1985
+#   WRMFNS              retail money-market funds, BILLIONS, weekly, from 1980 (the
+#                       deposit-flight ledger's history; ICI's weekly file carries
+#                       recent weeks only)
+#   STLFSI4             the St. Louis Fed Financial Stress Index, INDEX, weekly, 1993
+FRED_BANK_STRESS_SERIES: list[SeriesSpec] = [
+    SeriesSpec("fin_cp_3m", "DCPF3M", "90-day AA financial commercial paper interest rate", "3", "%", "daily"),
+    SeriesSpec("sofr_p99", "SOFR99", "SOFR, 99th percentile of the transaction distribution", "3", "%", "daily"),
+    SeriesSpec("ioer", "IOER", "Interest rate on excess reserves (discontinued 28 Jul 2021; IORB after)", "3", "%", "daily"),
+    SeriesSpec("dw_primary_credit", "WLCFLPCL", "H.4.1 loans: primary credit, Wednesday level, millions", "3", "M", "weekly"),
+    SeriesSpec("fed_other_credit", "WLCFOCEL", "H.4.1 loans: other credit extensions, Wednesday level, millions", "3", "M", "weekly"),
+    SeriesSpec("fhlb_advances", "BOGZ1FL403069330Q", "Z.1 government-sponsored enterprises: FHLB advances, asset level, millions", "3", "M", "quarterly"),
+    SeriesSpec("h8_dep_small", "DPSSCBW027SBOG", "H.8 deposits, small domestically chartered commercial banks, billions, SA", "3", "B", "weekly"),
+    SeriesSpec("h8_dep_large", "DPSLCBW027SBOG", "H.8 deposits, large domestically chartered commercial banks, billions, SA", "3", "B", "weekly"),
+    SeriesSpec("mmf_retail", "WRMFNS", "Retail money market funds, billions, weekly", "3", "B", "weekly"),
+    SeriesSpec("stlfsi", "STLFSI4", "St. Louis Fed Financial Stress Index", "6", "idx", "weekly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
-                                      + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES)
+                                      + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
+                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES)
 
 
 # Quick lookup by key

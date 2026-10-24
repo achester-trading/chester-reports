@@ -1,0 +1,24 @@
+# The Card's scoreboard (register/scoreboard.py; b48-scoreboard, ruled 19 Oct 2026,
+# "accept all" on the four decisions sent at 23:35 ET). Measurement only: rows 5,
+# 12 and 13 of the Master Guide's Table 8. Doctrine #2 (7-8 Nov) may amend how
+# they are used. Every value here is SESSION-SET, listed for Ari with its reason.
+
+version: scoreboard-v1
+
+score:
+  # The Card: "rolling thirteen-week expectancy". Calendar weeks to the as-of,
+  # read on the grade's own date (a decision counts in the window it was graded in).
+  weeks: 13
+  # SESSION-SET. Below this many graded decisions a cell prints "accruing (n=k)"
+  # and no figure. At a per-decision spread near 1R, n=10 gives a 95% interval of
+  # about +/-0.6R -- already wider than any edge the Doctrine expects, so a figure
+  # below it would be read as a result when it is noise. The Doctrine's own 30 (a
+  # regime) and 50 (a book) are thresholds for CHANGING a trust level or a size
+  # tier (Part VIII), not for printing; a cell between 10 and those counts prints,
+  # interval first, and changes nothing.
+  min_n: 10
+
+benchmarks:
+  # The Card: "over four quarters". 365 calendar days to the as-of; where Book Z
+  # began later (1 Sep 2026), the 60/40 is read from its first mark and says so.
+  window_days: 365

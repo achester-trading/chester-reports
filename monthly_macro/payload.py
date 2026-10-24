@@ -514,6 +514,15 @@ def register_month_block(as_of: Optional[str] = None) -> dict:
         }
     except Exception as exc:                                   # noqa: BLE001
         out["register_reason"] = f"{type(exc).__name__}: {exc}"
+    # THE CARD'S SCORE (b48-scoreboard): the rolling thirteen-week expectancy by
+    # book and by regime, and the four-quarter benchmarks -- the same function the
+    # Weekly's top reads, so the two cannot print different figures.
+    try:
+        from register import scoreboard
+        out["scoreboard"] = {"expectancy": scoreboard.expectancy_13w(as_of),
+                             "benchmarks": scoreboard.benchmarks_4q(as_of)}
+    except Exception as exc:                                   # noqa: BLE001
+        out["scoreboard"] = {"fault": f"{type(exc).__name__}: {exc}"}
     # EL-3: one line beside each book -- "vs cash / SPY / 60-40". Read, never
     # computed here: the marks are Book Z's, written by the close pass.
     try:
@@ -857,6 +866,7 @@ def narrative_payload(full: dict) -> dict:
             "open_now": rm.get("open_now"),
             "decisions_opened": rm.get("decisions_opened"),
             "rule_breaks": rm.get("rule_breaks"),
+            "scoreboard": rm.get("scoreboard"),
             "absent_reason": rm.get("reason"),
         },
         # THE DERIVED MACRO SERIES TRAVEL, the 59 raw rows do not. These five

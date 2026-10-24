@@ -5,7 +5,7 @@ The a47 chain (session A's third chain, 19 Oct 2026): what has no other home.
   A  CD-9'S DAILY PARAGRAPH, BY HAND: six computed lines on a fixture store -- the
      T-1 ETF flows with streak and percentile (S-2), a stale ETF line with its
      date, aggregate funding with the z's date (ruling 5 of 17 Oct), the open
-     interest's change on the day, the DVOL band, Fear & Greed as one word.
+     interest's change on the day, the DVOL band, Fear & Greed in the publisher's label.
   B  THE SWITCH: off by default (the order's D4/D6 precondition is not recorded
      as met), so the anchor prints nothing and the close adds no sub-section; on,
      both carry it. BTC dominance is never in it.
@@ -126,9 +126,10 @@ def group_a(db: str) -> None:
           "six computed lines under Positioning and flows; no model paragraph")
     cfg = _cfg(True)
     words = [CB.fng_word(v, cfg) for v in (0, 24, 25, 50, 60, 90)]
-    check(words == ["panic", "panic", "fear", "neutral", "greed", "euphoria"]
-          and all(" " not in w for w in words),
-          f"Fear & Greed as one word, by the session-set bands ({words})")
+    check(words == ["extreme fear", "extreme fear", "fear", "neutral", "greed",
+                    "extreme greed"],
+          f"Fear & Greed in the publisher's labels, by the session-set bands "
+          f"(ruled 20 Oct 2026) ({words})")
 
 
 def group_b(db: str) -> None:

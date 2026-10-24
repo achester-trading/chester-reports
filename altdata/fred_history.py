@@ -16,7 +16,8 @@ WHAT IT WRITES, per registered FRED series (altdata.config.FRED_PULL_SERIES):
 
   - ALFRED's vintage history: every observation with its realtime_start, paged
     as FRED requires (vintage dates in pages of 10,000; observations over at most
-    MAX_VINTAGES vintage dates a request, in pages of 100,000). A value is
+    WINDOW_VINTAGES (1,900, a margin under FRED's 2,000) vintage dates a request,
+    in pages of 100,000). A value is
     written once per vintage in which it CHANGED, so a revised value gets its own
     row from its own vintage date, and a window boundary never invents one.
   - available_at = the vintage's first publication: its date at the series'
@@ -60,6 +61,20 @@ REPO = Path(__file__).resolve().parent.parent
 BASE = "https://api.stlouisfed.org/fred"
 SOURCE = "fred:backfill"
 MAX_VINTAGES = 2000              # FRED refuses more vintage dates in one request
+# THE WINDOW (a55, 20 Oct 2026). A window of exactly MAX_VINTAGES of the series'
+# vintage dates, ending the day before the next window's first, was refused on the
+# box: "There are 2001 vintage dates in the specified real-time period: 2005-06-28
+# to 2014-04-21. This exceeds the maximum" (yield_30y). FRED counts one more date
+# in a real-time period than the window's own list holds -- the vintage in force at
+# the period's start, it seems -- so a window sized to the limit is always one
+# over. The split therefore keeps a MARGIN under the limit rather than reproducing
+# FRED's count: WINDOW_VINTAGES dates a request, 100 under the limit, which covers
+# that one and any lag between the vintagedates list and the observations endpoint.
+# The boundary rule is unchanged: a window ends the day before the next window's
+# first vintage, so the windows partition the vintages and a value unchanged across
+# a boundary is not a new row.
+WINDOW_MARGIN = 100
+WINDOW_VINTAGES = MAX_VINTAGES - WINDOW_MARGIN
 OBS_PAGE = 100000
 VINTAGE_PAGE = 10000
 PACING_SECONDS = 0.6             # under FRED's 120 requests a minute
@@ -175,21 +190,33 @@ def _num(v) -> Optional[float]:
         return None
 
 
+def windows(vintages: list[str], size: Optional[int] = None) -> list[tuple[str, str, int]]:
+    """(realtime_start, realtime_end, the window's own count of vintage dates):
+    consecutive windows of at most `size` dates, each ending the day before the
+    next one's first vintage, the last open-ended. They partition the vintages:
+    every vintage date falls in exactly one window."""
+    size = size or WINDOW_VINTAGES          # read at call time (a gate shrinks it)
+    out = []
+    for i in range(0, len(vintages), size):
+        win = vintages[i:i + size]
+        nxt = vintages[i + size] if i + size < len(vintages) else None
+        end = ((dt.date.fromisoformat(nxt) - dt.timedelta(days=1)).isoformat()
+               if nxt else REALTIME_END)
+        out.append((win[0], end, len(win)))
+    return out
+
+
 def vintage_history(series_id: str, get: Get, vintages: list[str],
                     obs_from: Optional[str] = None) -> list[tuple[str, float, str]]:
     """(observation date, value, first-publication vintage date), one row per
-    vintage in which the value changed. Requests at most MAX_VINTAGES vintage
-    dates at a time; a period carried across a window boundary (FRED clips its
-    realtime_start to the window) is not a new vintage because its value is
-    unchanged."""
+    vintage in which the value changed. Requests at most WINDOW_VINTAGES vintage
+    dates at a time (a margin under FRED's MAX_VINTAGES); a period carried across a
+    window boundary (FRED clips its realtime_start to the window) is not a new
+    vintage because its value is unchanged."""
     last: dict[str, float] = {}
     rows: list[tuple[str, float, str]] = []
-    for i in range(0, len(vintages), MAX_VINTAGES):
-        win = vintages[i:i + MAX_VINTAGES]
-        nxt = vintages[i + MAX_VINTAGES] if i + MAX_VINTAGES < len(vintages) else None
-        end = ((dt.date.fromisoformat(nxt) - dt.timedelta(days=1)).isoformat()
-               if nxt else REALTIME_END)
-        obs = _observations(series_id, get, win[0], end, obs_from)
+    for start, end, _n in windows(vintages):
+        obs = _observations(series_id, get, start, end, obs_from)
         for o in sorted(obs, key=lambda o: (o["date"], o["realtime_start"])):
             v = _num(o.get("value"))
             if v is None:

@@ -235,8 +235,9 @@ blocks:
     enabled: false
     max_lines: 6
     stale_days: 4                # T-1 by the order; four calendar days covers a weekend
-    # SESSION-SET: Fear & Greed's 0-100 value as one word, by upper bound.
-    fng_words: [[24, panic], [44, fear], [55, neutral], [75, greed], [100, euphoria]]
+    # Fear & Greed's 0-100 value in words, by upper bound. The bands are the
+    # session's; the labels are the publisher's own (ruled 20 Oct 2026, B49).
+    fng_words: [[24, extreme fear], [44, fear], [55, neutral], [75, greed], [100, extreme greed]]
   # The 12:30 alert-only line (daily_cascade/crypto_gate.py): CLOSED until the S-3
   # ledger passes. A ruling admits it by naming the passing ledger here; until
   # then the gate prints and writes nothing, and reads no flag.

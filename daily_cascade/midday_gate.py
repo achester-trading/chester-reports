@@ -100,6 +100,11 @@ def _deval_trip(ctx: dict) -> dict:
     return funding_hooks.deval_trip(ctx)
 
 
+def _bank_stress(ctx: dict) -> dict:
+    from altdata import bank_stress                             # noqa: PLC0415
+    return bank_stress.gate(ctx)
+
+
 def _crypto_leverage(ctx: dict) -> dict:
     from . import crypto_gate                                   # noqa: PLC0415
     return crypto_gate.leverage_gate(ctx)
@@ -108,9 +113,11 @@ def _crypto_leverage(ctx: dict) -> dict:
 # The registry. Batch 9 item 52 adds the VIX gate (upward only); ST-10 (a43-render,
 # 18 Oct 2026) adds ST-5's two tells, alert-only (daily_cascade/funding_hooks.py).
 # CD-9's daily part (the a47 chain, 19 Oct 2026) adds S-3's leverage line, closed
-# until the S-3 ledger passes (daily_cascade/crypto_gate.py).
+# until the S-3 ledger passes (daily_cascade/crypto_gate.py). Batch 12 item 59 (a53,
+# 20 Oct 2026, F5) adds the bank-stress gate: open only on the session a flag turns
+# on (altdata/bank_stress.py); the slot still sends at most one message.
 GATES: list[Callable[[dict], dict]] = [dealer_flip_cross, _vol_gate, _yen_unwind,
-                                       _deval_trip, _crypto_leverage]
+                                       _deval_trip, _bank_stress, _crypto_leverage]
 
 
 def context(day: str, base_dir: Optional[str] = None, symbol: str = "SPY") -> dict:

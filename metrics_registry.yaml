@@ -648,6 +648,25 @@ metrics:
     description: >-
       |net_gex| / gross_gex_abs; None when gross is zero. Computed and stored
       only (dealer audit F1); the regime-word gate on it arrives with 6b.
+  # THE CAPTURES, STORED (decision 9 of 19 Oct 2026; a50-dealer-store).
+  # altdata/dealer_store.py writes exposure.net_gex, net_to_gross, gamma_flip,
+  # call_wall_otm, put_wall_otm, spot and this word from every one of our
+  # engine's exposure files (09:45, 12:30, 16:10): instrument the symbol,
+  # observed_at the slot's ET instant, available_at the file's computed_at,
+  # source dealer_capture:<the capture's id>.
+  exposure.regime_word:
+    source: dealer_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: intraday
+    information_half_life: session
+    invalidated_by: expiry_rewrite
+    observation_type: inferred
+    revision_policy: recomputed
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-19"
+    description: >-
+      The regime word as the capture's own gate reads it (daily_cascade/dealer_block.regime): "positive gamma" or "negative gamma" where net-to-gross is at least dealer_block.net_to_gross_min (0.10, RULED 16 Oct 2026), otherwise "indeterminate"; no row without both inputs. One row per capture, keyed by symbol and slot. A stored reading of the gate as the close prints it, never a regime of its own, and never an input to the market-state object or a composite.
   exposure.gamma_flip:
     source: yfinance
     mechanism_group: dealer_chain_derived
@@ -6607,6 +6626,32 @@ metrics:
     added_date: "2026-10-18"
     description: >-
       One name's session options volume, calls and puts, summed over the session's last captured chain (instrument = the symbol; the captured universe and SPY, QQQ, IWM). OS-10, the Weekly's most-active table: report-only (a44-opening-setup).
+  chain.call_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-20"
+    description: >-
+      One name's session call volume, contracts, from the Massive day aggregates (Batch 13 item 61, D5; tools/massive_flatfiles_backfill.py, source chain_capture:flatfiles), read apart from the captures under altdata/flatfile_history.py's relative tolerance. Report-only.
+  chain.put_volume:
+    source: chain_capture
+    mechanism_group: dealer_chain_derived
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-20"
+    description: >-
+      One name's session put volume, contracts, from the Massive day aggregates (Batch 13 item 61, D5; tools/massive_flatfiles_backfill.py, source chain_capture:flatfiles), read apart from the captures under altdata/flatfile_history.py's relative tolerance. Report-only.
   chain.atm_iv_front:
     source: chain_capture
     mechanism_group: dealer_chain_derived
@@ -10335,6 +10380,22 @@ metrics:
     trigger_eligible: false
     description: >-
       Cyclically adjusted P/E (P/E10).
+  shiller.real_home_price:
+    source: shiller
+    mechanism_group: reference_library
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-21"
+    description: >-
+      Shiller's real home price index, 1890 = 100 (Fig3-1.xls, Irrational
+      Exuberance's Figure 3.1 as updated by the author): annual 1890-1952, monthly
+      from January 1953. Batch 14 item 69's percentile since 1890 (a56).
   worldbank.cmo_total:
     source: worldbank_cmo
     mechanism_group: commodity_prices
@@ -10400,6 +10461,106 @@ metrics:
     trigger_eligible: false
     description: >-
       World Bank commodity price index, Precious metals, nominal US dollars, 2010 = 100, monthly average.
+  # --- Signal-triage Batch 12, item 59 (a53, 20 Oct 2026): the bank-stress panel ---
+  ofr.fsi:
+    source: ofr_fsi
+    mechanism_group: macro_valuation_credit
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    family: conditions
+    trigger_eligible: false
+    description: >-
+      The OFR Financial Stress Index (www.financialresearch.gov/financial-stress-index/data/fsi.csv, checked 20 Oct 2026), daily from 2000: the headline index, zero average stress. A composite of the bank-stress panel (altdata/bank_stress.py); flags only.
+  ofr.fsi_funding:
+    source: ofr_fsi
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    family: conditions
+    trigger_eligible: false
+    description: >-
+      The OFR Financial Stress Index (www.financialresearch.gov/financial-stress-index/data/fsi.csv, checked 20 Oct 2026), daily from 2000: the funding category's contribution to the index.
+  ofr.fsi_credit:
+    source: ofr_fsi
+    mechanism_group: macro_valuation_credit
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: index_points
+    family: conditions
+    trigger_eligible: false
+    description: >-
+      The OFR Financial Stress Index (www.financialresearch.gov/financial-stress-index/data/fsi.csv, checked 20 Oct 2026), daily from 2000: the credit category's contribution to the index.
+  fdic.unrealised_afs:
+    source: fdic_qbp
+    mechanism_group: macro_valuation_credit
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      The banking system's unrealised securities gains (losses), from the FDIC's BankFind API (api.fdic.gov/banks/financials, aggregated by REPDTE, checked 20 Oct 2026), DOLLARS, observed_at the quarter-end, available_at the write instant (ingest_instant): available-for-sale securities at fair value less amortised cost (SCAF less SCAA).
+  fdic.unrealised_htm:
+    source: fdic_qbp
+    mechanism_group: macro_valuation_credit
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      The banking system's unrealised securities gains (losses), from the FDIC's BankFind API (api.fdic.gov/banks/financials, aggregated by REPDTE, checked 20 Oct 2026), DOLLARS, observed_at the quarter-end, available_at the write instant (ingest_instant): held-to-maturity securities at fair value less amortised cost (SCHF less SCHA).
+  fdic.unrealised_total:
+    source: fdic_qbp
+    mechanism_group: macro_valuation_credit
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      The banking system's unrealised securities gains (losses), from the FDIC's BankFind API (api.fdic.gov/banks/financials, aggregated by REPDTE, checked 20 Oct 2026), DOLLARS, observed_at the quarter-end, available_at the write instant (ingest_instant): AFS and HTM together: the 2023 mechanism, the panel's balance-sheet line, printed in the Monthly beside the 10-year (the order's cross-item note 1).
+  ici.mmf_total:
+    source: ici_mmf
+    mechanism_group: macro_liquidity
+    native_horizon: weekly
+    freq: weekly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      NOT AVAILABLE. ICI's weekly total money-market fund assets (www.ici.org/mm_summary_data_<year>.xls). ici.org answers HTTP 403 to every client that names itself, robots.txt included (20 Oct 2026), and a writer never passes for a browser; declared, never written (the parser altdata/sources/ici_mmf.py is retained, unscheduled). The deposit-flight flag reads fred.mmf_retail.
   lbma.gold_pm_usd:
     source: lbma
     mechanism_group: commodity_prices
@@ -12105,6 +12266,28 @@ metrics:
     trigger_eligible: false
     description: >-
       SHFE weekly warranted stock (期货 -- registered against futures), TONNES; instrument = COPPER | ALUMINIUM | ZINC.
+  yfinance.mkt_usdcnh:
+    source: yfinance
+    mechanism_group: macro_global_fx
+    native_horizon: daily
+    freq: daily
+    status_extra: superseded
+    superseded_by: cnh.usdcnh
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: price
+    trigger_eligible: false
+    added_date: "2026-10-21"
+    description: >-
+      SUPERSEDED (5 Oct 2026, PB-1) and registered on 21 Oct 2026 (b51), when the
+      box's store check listed its rows as unregistered. USD/CNH's daily close
+      from Yahoo's CNH=X in the price basket, written from ST-2 until PB-1
+      replaced it with CNY=X (yfinance.mkt_usdcny, onshore), because Yahoo serves
+      one daily bar for CNH=X whatever the period. The offshore rate is now
+      cnh.usdcnh, built from CNH=X's hourly bars (altdata/sources/cnh.py). Kept
+      as a name so its stored history resolves; never written.
   cnh.usdcnh:
     source: yahoo_cnh
     mechanism_group: macro_global_fx
@@ -16096,6 +16279,77 @@ bulk_imports:
       "2": macro_momentum
       "4": macro_inflation
 
+  fred_notes:
+    description: >-
+      The secondary notes' release forms (A49's answer (b), ruled 19 Oct 2026;
+      a50-dealer-store, session A): advance retail sales, retail trade and food
+      services (RSAFS), millions of dollars, SA, monthly -- read by the open note
+      month on month (config/release_calendar.yaml tier2_headlines). PPI final
+      demand is the store's fred.ppi_final_demand (FRED_6E_SERIES) and is not
+      repeated here. See altdata/config.py FRED_NOTES_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_NOTES_SERIES
+    member_families:
+      fred.retail_sales: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
+  fred_bank_stress:
+    description: >-
+      Signal-triage Batch 12, item 59 (ST-R6.59a; a53, 20 Oct 2026): the
+      bank-stress panel's FRED legs -- the 90-day AA financial CP rate (DCPF3M),
+      SOFR's 99th percentile (SOFR99), IOER (the SOFR spread's history before
+      IORB), H.4.1's primary credit and other credit extensions (WLCFLPCL,
+      WLCFOCEL; millions), Z.1's FHLB advances (quarterly, millions; F2), H.8
+      deposits at small and large domestic banks (billions, SA), retail money
+      funds (WRMFNS, billions; the deposit-flight ledger's history) and STLFSI4.
+      Ids and units read off FRED 20 Oct 2026; see altdata/config.py
+      FRED_BANK_STRESS_SERIES. Read by altdata/bank_stress.py; flags only.
+    source: fred
+    members_from: altdata.config.FRED_BANK_STRESS_SERIES
+    member_families:
+      fred.fin_cp_3m: rate
+      fred.sofr_p99: rate
+      fred.ioer: rate
+      fred.dw_primary_credit: quantity
+      fred.fed_other_credit: quantity
+      fred.fhlb_advances: quantity
+      fred.h8_dep_small: quantity
+      fred.h8_dep_large: quantity
+      fred.mmf_retail: quantity
+      fred.stlfsi: conditions
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 10
+    units: from_member
+    # STLFSI is an index level around zero: its change is in points, never a
+    # percent of itself.
+    member_units:
+      fred.stlfsi: index_points
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "3": macro_liquidity
+      "6": macro_valuation_credit
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -16258,7 +16512,7 @@ bulk_imports:
       yfinance.mkt_dspx: vol_index
       yfinance.mkt_cor1m: index_points
       yfinance.mkt_cor3m: index_points
-    expected_members: 115   # + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -16315,7 +16569,7 @@ bulk_imports:
     family: quantity
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 85   # + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
+    expected_members: 94   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -16476,7 +16730,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 115   # + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -17529,6 +17783,7 @@ families:
   cftc.tff_other_rept_short_oi: ratio
   chain.spy_put_call_volume: ratio
   cnh.usdcnh: price
+  yfinance.mkt_usdcnh: price
   contradiction.magnitude: ratio
   contradiction.persistence_days: quantity   # ambiguous: a duration in days; alternative: ratio
   crypto.total_market_cap_usd: quantity
@@ -17778,6 +18033,8 @@ families:
   calc.attr_real_share_since_fomc: ratio
   calc.attr_curve_share_since_fomc: ratio
   chain.options_volume: quantity
+  chain.call_volume: quantity
+  chain.put_volume: quantity
   chain.atm_iv_front: conditions
   chain.skew_25d_put: conditions
   chain.iv30_atm: conditions
@@ -18000,6 +18257,7 @@ families:
   shfe.warrants_t: quantity
   shiller.cape: ratio
   shiller.cpi: price
+  shiller.real_home_price: price
   shiller.gs10: rate
   shiller.sp_dividend: price
   shiller.sp_earnings: price
@@ -18131,6 +18389,16 @@ families:
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:
+  # Signal-triage Batch 12, item 59 (a53): the bank-stress panel's quantities
+  # and its new composites take their whole stored history as the long window
+  # (config/bank_stress.yaml states each family's).
+  fred.dw_primary_credit: full
+  fred.fed_other_credit: full
+  fred.fhlb_advances: full
+  fred.h8_dep_small: full
+  fred.h8_dep_large: full
+  fred.mmf_retail: full
+  fred.stlfsi: full
   # Signal-triage Batch 6, the rest of Tranche 1: each long window is its whole
   # stored history (the constituent closes hold two years by design).
   sp500.member_weight: full
@@ -18286,6 +18554,7 @@ long_windows:
 # stays strict. check_registry holds every kind to the vocabulary and every key
 # to a registered series.
   shiller.cape: full
+  shiller.real_home_price: full
   index.forward_pe: full
   yf.forward_pe: full
 series_kinds:
@@ -18436,6 +18705,19 @@ non_metrics:
     # record has to carry, so these are declared rather than unregistered.
     - error
     - deferred
+  stored_objects:
+    # Store keys whose rows are one JSON object each, not a series (b51, 21 Oct
+    # 2026: the box's store check listed both as unregistered).
+    # market_state: the market-state object, one per session, written by the
+    #   16:45 close only (regime.STORE_KEY; regime.store_object) and read by every
+    #   report through regime.latest(). Its freshness is the heartbeat's.
+    - market_state
+    # fred.series_release_map: FRED's series-to-release map, written by the
+    #   Weekly (daily_cascade/weekly_payload.py) until 6c-1.6 (25 Sep 2026)
+    #   removed the Weekly's fetch. The map now lives in data/fred_release_map.json
+    #   (altdata/sources/fred_releases.py); the stored rows are its history, read
+    #   by nothing and never written again.
+    - series_release_map
   containers:
     # Structural keys that hold metrics rather than being ones. Declared so the
     # drift check does not mistake a new section for a new number.
@@ -18491,6 +18773,7 @@ reserved:
 # names every member of the block; a key names one series.
 lens_excluded:
   calc.release_first_hour: "units 'label': a JSON record per release day and instrument (the secondary notes)"
+  exposure.regime_word: "units 'label': the capture's gate word per symbol and slot, not a level series (decision 9)"
   calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"
   calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
   calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"

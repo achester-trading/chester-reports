@@ -1,0 +1,97 @@
+# bank_stress.yaml -- signal-triage Batch 12, item 59 (ST-R6.59a/b; ruled 20 Oct
+# 2026 with filing amendments F1-F6): the bank-stress panel, the funding-stress and
+# deposit-flight flags, and the correction-vs-crisis classifier. Read by
+# altdata/bank_stress.py; laid out by daily_cascade/bank_stress_block.py.
+#
+# RIGHTS: flags and the classifier only. Nothing here enters a composite, a trigger,
+# a dial or the market-state object; T&B rights come only through the intake queue,
+# after the base-rate ledger (ST-R6.59c) and "T&B full" (ST-R6.59d, listed, not
+# added).
+#
+# EVERY SERIES PRINTS DUAL PERCENTILES: the five-year window and its family's long
+# window, each with its real window and n (the metric-lens rule). The long window is
+# stated per family below. Where the store holds less than five years, one
+# percentile prints with the window it really covers.
+version: 1
+lens_years: 5                       # RULED (item 59): "five years, plus a long window per family"
+long_windows:                       # the family's long window, stated (item 59)
+  funding_rates: "the full stored history: SOFR from April 2018 (IOER before IORB, 2008-10 to 2021-07), financial CP from January 1997"
+  facilities: "the full stored history: H.4.1's primary credit from December 2002"
+  fhlb: "the full stored history: Z.1 quarterly from 1945"
+  deposits: "the full stored history: H.8 small banks from 1973, large banks from 1985"
+  money_funds: "the full stored history: FRED's retail series from 1980"
+  bank_equity: "the full stored history: KRE from 2006"
+  credit: "the full stored history: SLOOS from 1990"
+  balance_sheet: "the full stored history: the FDIC's aggregate from the quarters the backfill stores"
+  composites: "the full stored history: STLFSI from 1993, the OFR FSI from 2000"
+
+series:
+  # id: {key, label, family, unit, source}
+  sofr_iorb: {derived: "fred.sofr less IORB (IOER before 29 Jul 2021)", label: "SOFR less IORB", family: funding_rates, unit: bp, source: "FRED (SOFR, IORB, IOER)"}
+  sofr99_iorb: {derived: "fred.sofr_p99 less IORB (IOER before 29 Jul 2021)", label: "SOFR's 99th percentile less IORB", family: funding_rates, unit: bp, source: "FRED (the NY Fed's SOFR distribution)"}
+  fin_cp_spread: {derived: "fred.fin_cp_3m less fred.tbill_3m", label: "90-day AA financial CP less the 3-month bill", family: funding_rates, unit: bp, source: "FRED (DCPF3M, DTB3)"}
+  dw_primary_credit: {key: fred.dw_primary_credit, label: "Discount window: primary credit (H.4.1)", family: facilities, unit: usd_m, source: "FRED (H.4.1, WLCFLPCL)"}
+  fed_other_credit: {key: fred.fed_other_credit, label: "Other credit extensions, any emergency facility (H.4.1)", family: facilities, unit: usd_m, source: "FRED (H.4.1, WLCFOCEL)"}
+  fhlb_advances: {key: fred.fhlb_advances, label: "FHLB advances (Z.1, quarterly)", family: fhlb, unit: usd_m, source: "FRED (Z.1, BOGZ1FL403069330Q)"}
+  h8_dep_small: {key: fred.h8_dep_small, label: "Deposits, small domestic banks (H.8)", family: deposits, unit: usd_b, source: "FRED (H.8, DPSSCBW027SBOG)"}
+  h8_dep_large: {key: fred.h8_dep_large, label: "Deposits, large domestic banks (H.8)", family: deposits, unit: usd_b, source: "FRED (H.8, DPSLCBW027SBOG)"}
+  mmf_retail: {key: fred.mmf_retail, label: "Retail money-market fund assets (weekly)", family: money_funds, unit: usd_b, source: "FRED (WRMFNS)"}
+  kre_xlf: {derived: "yfinance.mkt_kre over yfinance.mkt_xlf, 20-session change", label: "KRE against XLF, 20 sessions", family: bank_equity, unit: pct, source: "yfinance (KRE, XLF)"}
+  sloos_ci_large: {key: fred.sloos_ci_large, label: "SLOOS: C&I tightening, large and middle firms", family: credit, unit: pct, source: "FRED (SLOOS)"}
+  sloos_ci_small: {key: fred.sloos_ci_small, label: "SLOOS: C&I tightening, small firms", family: credit, unit: pct, source: "FRED (SLOOS)"}
+  unrealised_losses: {key: fdic.unrealised_total, label: "Unrealised securities gains (losses), AFS and HTM (FDIC)", family: balance_sheet, unit: usd, source: "FDIC BankFind API"}
+  stlfsi: {key: fred.stlfsi, label: "St. Louis Fed Financial Stress Index", family: composites, unit: index, source: "FRED (STLFSI4)"}
+  ofr_fsi: {key: ofr.fsi, label: "OFR Financial Stress Index", family: composites, unit: index, source: "OFR"}
+
+keys:
+  sofr: fred.sofr
+  sofr_p99: fred.sofr_p99
+  iorb: fred.iorb
+  ioer: fred.ioer
+  iorb_from: "2021-07-29"           # IORB replaced IOER on 29 Jul 2021 (FRED: IOER ends 2021-07-28)
+  fin_cp: fred.fin_cp_3m
+  tbill: fred.tbill_3m
+  kre: yfinance.mkt_kre
+  xlf: yfinance.mkt_xlf
+  ten_year: fred.yield_10y          # the unrealised-loss line prints beside it (cross-item note 1)
+
+# ST-R6.59b -- THE FLAGS (RULED, item 59).
+funding_flag:
+  members: [sofr_iorb, fin_cp_spread, dw_primary_credit, fhlb_advances]
+  min_on: 2                         # RULED: "any two of"
+  percentile: 95                    # RULED: "above their 95th percentile"
+  # SESSION-SET: the percentile read is the five-year window's (the lens's first
+  # figure), so a level is judged against the regime the store spans now, not
+  # against 1997 or 1945; where the store holds less than five years it is the
+  # window it covers. Stated in the notes.
+  window: five_year
+deposit_flag:
+  small_deposits: fred.h8_dep_small
+  # ICI's weekly file refuses any client that names itself (HTTP 403 to every
+  # identified User-Agent, 20 Oct 2026), and a writer never passes for a browser
+  # (the AAII rule): ICI is a listed gap. FRED's weekly retail money-fund series
+  # stands in, labelled "retail" wherever it prints.
+  money_funds: fred.mmf_retail
+  weeks: 4                          # RULED: "both over 4 weeks"
+
+# THE CLASSIFIER (RULED, item 59): printed whenever bank equity is down more than
+# 10% over 20 sessions. KRE is the bank-equity leg; BKX is not in the price basket.
+classifier:
+  equity: yfinance.mkt_kre
+  sessions: 20
+  drawdown_pct: 10.0
+  states: {0: correction, 1: funding watch, 2: banking stress}
+  cds_at1: "not tracked (F2: bank CDS and AT1 spreads have no keyless source; a listed gap)"
+
+# THE LISTED GAPS (F2, F6), printed with the panel.
+gaps:
+  bank_cds: "Bank CDS: not tracked (F2, no keyless source)"
+  at1: "AT1 spreads: not tracked (F2, no keyless source)"
+  cmbs_office: "CMBS office delinquency: not tracked (F2, no keyless source)"
+  kre_iv: "KRE implied vol: not built (Yahoo serves KRE's chain free; KRE is not in the 13-name capture universe, which is the universe's ruling)"
+  ici: "ICI's weekly money-fund assets: a listed gap (its file refuses an identified client; FRED's retail series stands in)"
+  fra_ois: "FRA-OIS and the cross-currency basis: not in item 59's ruled panel"
+
+# THE 12:30 GATE (F5): opens only on the session a flag turns on -- on at 12:30,
+# off as of the prior session's close -- with one code-written line.
+midday: {prior_cutoff_et: "17:00"}

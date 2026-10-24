@@ -74,6 +74,12 @@ def admit(ledger, store, doc: dict, pre_registered_at: str, as_of: str,
             out["refused"].append({"local_id": lid, "reason": why})
             continue
         status, reason, dsl, origin = "registered", None, None, None
+        # A CORRECTION names what it supersedes, as a register id or as
+        # <batch_id>:<local_id>; it is resolved here, and exempt from the
+        # duplicate screen against that one hypothesis only (B49).
+        sup = reg.resolve_ref(h.get("supersedes"))
+        if h.get("supersedes"):
+            h = {**h, "supersedes": sup}
         if lid in over:
             status, reason = "screened_out", over[lid]
         elif doc["channel"] == "daily-proposer" and reg.family_week_count(
@@ -88,7 +94,7 @@ def admit(ledger, store, doc: dict, pre_registered_at: str, as_of: str,
             from . import engine as engine_mod                  # noqa: PLC0415
             ids = {e["id"] for e in engine_mod.registered()}
             origin = "engine"
-            dup = reg.duplicate_of(h)
+            dup = reg.duplicate_of(h, exempt=sup)
             if dup:
                 status, reason = "screened_out", f"duplicate: {dup[1]}"
             elif h["engine"] not in ids:
@@ -103,7 +109,7 @@ def admit(ledger, store, doc: dict, pre_registered_at: str, as_of: str,
                                          translations_root)
                 if tr and isinstance(tr.get("rule_dsl"), dict):
                     dsl, origin = tr["rule_dsl"], "translation"
-            dup = reg.duplicate_of({**h, "rule_dsl": dsl})
+            dup = reg.duplicate_of({**h, "rule_dsl": dsl}, exempt=sup)
             if dup:
                 status, reason = "screened_out", f"duplicate: {dup[1]}"
             elif dsl is not None:
