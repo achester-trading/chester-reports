@@ -343,7 +343,7 @@ disagreements:
 
 # COMMITTED PROPOSALS -- PENDING THE OPERATOR'S CONFIRM
 # Ruling (c) of 16 Oct 2026: "Judgment drafts (narrative lines, appendix notes,
-# rule-table edits) are committed by the session as drafted and listed for Ari's
+# rule-table edits) are committed by the session as drafted and listed for the operator's
 # accept-all; the register's confirm step stays his." So these enter the register
 # at the next seed as `proposed` (origin config_proposal), emerging, never
 # evaluated, and the Weekly prints each beside its confirm and reject commands,
@@ -418,9 +418,9 @@ proposals:
       than half of the move. The other side of "what's driving 5.3%" -- fiscal
       dominance, already a seeded story, is the first.
     proposed_by: >-
-      session B, as drafted from the Batch 5 change order item 26 (Boivin,
-      BlackRock Investment Institute; Rai) as the disagreement pair "what's driving
-      5.3%" against fiscal_dominance (Kovač, TAAI; Hartnett, BofA); adjudicator the
+      session B, as drafted from the Batch 5 change order item 26 (BlackRock
+      Investment Institute, and a second desk) as the disagreement pair "what's driving
+      5.3%" against fiscal_dominance (TAAI; BofA); adjudicator the
       fiscal-bark flag on the 10-year attribution, monthly. Committed 16 Oct 2026
       under ruling (c)
     linked_dimensions: {rates: "+", growth: "+"}

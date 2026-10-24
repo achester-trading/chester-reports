@@ -18102,7 +18102,7 @@ families:
   edgar.xbrl_mu_inventory: quantity
   edgar.xbrl_mu_cogs_q: quantity
   # 6e (15 Oct 2026): every other individually registered level series,
-  # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari.
+  # by tools/assign_families.py; `# ambiguous:` marks one listed for the operator.
   aaii.bull_bear_spread: ratio
   acm.fitted_yield_10y: rate
   acm.risk_neutral_yield_10y: rate

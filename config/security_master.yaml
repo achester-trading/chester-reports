@@ -1,5 +1,5 @@
 # security_master.yaml -- the Security Master, v1 (AUD-3b). THE SOURCE OF TRUTH
-# for instrument identity: reviewed by Ari, served by altdata/security_master.py.
+# for instrument identity: reviewed by the operator, served by altdata/security_master.py.
 #
 # Seeded once by tools/seed_security_master.py from the code's own maps; edit it
 # by hand from here, by review. Ids are SM + five digits, never reused: close an

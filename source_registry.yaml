@@ -2459,7 +2459,7 @@ sources:
     status: live
 
   damodaran:
-    name: Aswath Damodaran -- industry datasets (NYU Stern)
+    name: Damodaran Online -- industry datasets (NYU Stern)
     tier: C
     epistemic_role: primary_fact
     domain: [valuation]
@@ -2548,7 +2548,7 @@ sources:
       the venue's statement of a belief, never a fact about the event.
     license: >-
       Public market-data endpoints, read without a key or an account (probed 2 Oct
-      2026). If a key is ever required it goes in the box .env by Ari.
+      2026). If a key is ever required it goes in the box .env by the operator.
     allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
     implemented_by: altdata/sources/prediction_markets.py
     status: active

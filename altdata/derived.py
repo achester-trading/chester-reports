@@ -1247,7 +1247,7 @@ def family_of(metric_id: str) -> tuple[Optional[str], str]:
     if e.get("family") in FAMILIES:
         if str(e.get("units")) in NOT_LEVEL_UNITS:
             return None, (f"declared family {e['family']}, but units {e.get('units')!r}: "
-                          f"not a level series (listed for Ari)")
+                          f"not a level series (listed for the operator)")
         return e["family"], "registry family"
     if e.get("lens_excluded"):
         return None, f"not a level series: {e['lens_excluded']}"
@@ -1269,7 +1269,7 @@ def long_window_of(metric_id: str, family: Optional[str]) -> tuple[Any, str]:
             return n, f"the registry's long_window override ({v})"
         fam_lw = LONG_WINDOW.get(family or "")
         return fam_lw, (f"the registry's long_window {v!r} is not a window; 6c's "
-                        f"{family} default (listed for Ari)")
+                        f"{family} default (listed for the operator)")
     if family == "release" and INFLATION.search(metric_id):
         return "full", "6c: inflation, full history"
     lw = LONG_WINDOW.get(family or "")

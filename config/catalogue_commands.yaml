@@ -588,7 +588,7 @@ commands:
     sources: [shfe]
   altdata.sources.shiller:
     domain: reference
-    line: Robert Shiller's stock market data -- CAPE and its inputs, monthly from 1871
+    line: Shiller's online stock market data (Yale) -- CAPE and its inputs, monthly from 1871
     sources: [shiller]
   altdata.sources.sp500_members:
     domain: equity

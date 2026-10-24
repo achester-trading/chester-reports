@@ -172,7 +172,7 @@ secondary_notes:
     # Kept 19 Oct 2026 as a starting value; reviewed after the first two live weeks.
     news_max: 8                # SESSION-SET: the evening note's news block, at most eight items
     # THE WEEKDAY PROSE GATE (the order, section 2). SESSION-SET starting values,
-    # not measured; listed for Ari. Kept 19 Oct 2026 as a starting value; reviewed
+    # not measured; listed for the operator. Kept 19 Oct 2026 as a starting value; reviewed
     # after the first two live weeks.
     es_nq_pct: 0.75     # ES or NQ beyond 0.75% from the 16:00 close: about half the
                         # gauge's typical one-session sigma, a move worth a sentence

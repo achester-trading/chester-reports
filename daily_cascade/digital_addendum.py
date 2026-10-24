@@ -944,7 +944,7 @@ def enforce_budget(ed: dict) -> None:
 
 def appendix_line(ed: dict) -> str:
     """One dated line for the paper's dated appendix, from the page's figures:
-    a draft for Ari's accept-all, never the model's."""
+    a draft for the operator's accept-all, never the model's."""
     sat = ed["crypto_week"][1]
     tape = next(s for s in ed["sections"] if s["id"] == "tape")
     coins = (tape.get("data") or {}).get("coins") or []
@@ -1074,7 +1074,7 @@ def render(ed: dict, archive_path: Optional[str] = None) -> str:
         out.append(f'<h2 style="{sr.H2}">For the Digital Assets paper</h2>'
                    f'<p style="{sr.PARA}">{esc(ed["appendix_line"].replace("**", ""))}'
                    f'</p><p style="{sr.FOOT}">One dated line for the paper\'s dated '
-                   f'appendix, written by code from this page: a draft for Ari\'s '
+                   f'appendix, written by code from this page: a draft for the operator\'s '
                    f'accept-all.</p>')
     meta = (f"Addendum v{esc(ed.get('config_version'))} &middot; "
             f"{esc(rd.plural(int(ed.get('words') or 0), 'word'))} against a "
@@ -1096,7 +1096,7 @@ def render(ed: dict, archive_path: Optional[str] = None) -> str:
 
 
 def appendix_md(ed: dict) -> str:
-    return (f"<!-- Draft for Ari's accept-all: one dated line for the Digital Assets "
+    return (f"<!-- Draft for the operator's accept-all: one dated line for the Digital Assets "
             f"paper's dated appendix ({(config().get('appendix') or {}).get('heading')})."
             f" Written by code from the addendum of {ed['week_ending']}; never the "
             f"model's. -->\n- {ed['appendix_line']}\n")

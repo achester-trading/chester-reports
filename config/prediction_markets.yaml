@@ -4,7 +4,7 @@
 #
 # THE SPEC OF RECORD. `docs/prediction-market-spec-v1.1.md` is TO BE FILED; the
 # brief's section 4 reference to it stands pending that. Until it is, the rules
-# below are the spec's rules as Ari recorded them on 2 Oct 2026 (in chat, with the
+# below are the spec's rules as the operator recorded them on 2 Oct 2026 (in chat, with the
 # 6d instruction), plus Part 27 of the architecture document where it is stricter.
 #
 #   RIGHTS: discovery, attention shock (>= 10 points in a day) and disagreement,
@@ -16,7 +16,7 @@
 #   OUTPUTS are blocks inside the existing reports, not a new report.
 #   A one-time historical BACKFILL is allowed and is flagged on every row.
 #   Public endpoints only; if a key is ever required it goes in the box .env by
-#   Ari, never in a file or a chat.
+#   the operator, never in a file or a chat.
 version: prediction-markets-v1
 ratified: 2026-10-02
 updated: 2026-10-02

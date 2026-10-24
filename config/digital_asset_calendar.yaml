@@ -11,7 +11,7 @@
 # One entry per event, each with its source. `marker` prints after the event in
 # brackets and says what is not yet confirmed at its source ("15 Nov, to verify").
 # Remove the marker, and correct the date if it moved, once it is verified: MSCI's
-# came off on 17 Oct 2026 when Ari read MSCI's schedule (ruling (f)).
+# came off on 17 Oct 2026 when the operator read MSCI's schedule (ruling (f)).
 #
 #   - date:   YYYY-MM-DD
 #     body:   "MSCI"                  # who
@@ -60,7 +60,7 @@ entries:
     event: "November 2026 Index Review implemented at the close of 30 Nov, effective 1 Dec"
     time: "at the US close"
     kind: index
-    source: "MSCI's index review schedule, read by Ari on 17 Oct 2026 (ruling (f); verify item 2 closed)"
+    source: "MSCI's index review schedule, read by the operator on 17 Oct 2026 (ruling (f); verify item 2 closed)"
   - date: 2026-12-11
     body: "FTSE Russell"
     event: "Russell US December reconstitution takes effect"

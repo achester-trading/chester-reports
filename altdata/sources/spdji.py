@@ -17,7 +17,7 @@ estimates. Its host answers any non-browser client with a 403, and a writer
 never passes for a browser (the AAII ruling, altdata/sources/aaii.py), so this
 writer FETCHES NOTHING. It reads the operator's monthly drop:
 
-    Ari downloads the workbook in a browser and drops it into the Drive folder
+    The operator downloads the workbook in a browser and drops it into the Drive folder
     chester-vendor-checks/spdji; the box's nightly sweep (scripts/rclone_sync.sh)
     copies that one named file to ~/chester-data/inbox/spdji/sp-500-eps-est.xlsx,
     which this reads ($SPDJI_EPS_FILE overrides the path).

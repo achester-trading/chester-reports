@@ -512,7 +512,7 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
             refused.append({**row, "refused_because":
                             "no stored, dated signpost -- a weight with nothing "
                             "that would change it is not printed"})
-    # SPLIT BY WINDOW (Ari's second round): the rest of this month, then the two
+    # SPLIT BY WINDOW (the operator's second round): the rest of this month, then the two
     # after it -- "October" and "November–December" on 1 Oct.
     wins = calendar_windows(cutoff)
     windows = [{"name": n, "first": f, "last": l,
@@ -550,7 +550,7 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# THE MONTH IN MARKETS -- the opening scorecard (Ari's revision, 1 Oct)
+# THE MONTH IN MARKETS -- the opening scorecard (the operator's revision, 1 Oct)
 # ---------------------------------------------------------------------------
 def _quarter_start(d: dt.date) -> dt.date:
     return d.replace(month=3 * ((d.month - 1) // 3) + 1, day=1)
@@ -649,7 +649,7 @@ def month_in_markets(p: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# EVERYTHING THE STORE HOLDS FOR A THEME (Ari's second round, 1 Oct)
+# EVERYTHING THE STORE HOLDS FOR A THEME (the operator's second round, 1 Oct)
 # ---------------------------------------------------------------------------
 # A print older than this before the month-end is not "this month's" -- it goes
 # to the footnote with its date instead of into the prose as if it were current.

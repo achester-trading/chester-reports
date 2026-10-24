@@ -160,7 +160,7 @@ gold_equity:
   gold_key: yfinance.mkt_gold_front   # GC=F, $/oz
   # NO DENOMINATOR. World equity capitalisation has no free source: WFE's portal
   # needs a login and MSCI's ACWI figure is in a PDF factsheet. The by-hand ACWI
-  # key is dropped (ruled 16 Oct 2026: no recurring by-hand line without Ari's
+  # key is dropped (ruled 16 Oct 2026: no recurring by-hand line without the operator's
   # yes), so the ratio is not tracked; the by-hand audit, queued, looks for a
   # free source. Set cap_key to a stored key (USD bn) and the ratio reads again.
   cap_key: null

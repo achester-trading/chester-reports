@@ -156,7 +156,7 @@ book:
   engine_note: "the paper engine's view joins this section from mid-November"
 
 # THE DATED LINE for the Digital Assets paper's dated appendix: one a week,
-# code-written from the page's own figures, a draft for Ari's accept-all. Never
+# code-written from the page's own figures, a draft for the operator's accept-all. Never
 # the model's.
 appendix:
   paper: docs/whitepapers/digital-assets-whitepaper.md

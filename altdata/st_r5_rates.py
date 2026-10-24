@@ -328,7 +328,7 @@ def housing(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     pend = _pts(st, c.get("pending_key", "redfin.pending_sales"), cutoff)
     mort = _pts(st, c.get("mortgage_key", "fred.mortgage_30y"), cutoff)
     # Redfin alone, single-source (ruled 16 Oct 2026: no recurring by-hand line
-    # without Ari's yes, so NAR's index, which has no free series, is dropped).
+    # without the operator's yes, so NAR's index, which has no free series, is dropped).
     out: dict[str, Any] = {
         "single_source": True,
         "mortgage": None if not mort else {"rate": mort[-1][1], "as_of": mort[-1][0],

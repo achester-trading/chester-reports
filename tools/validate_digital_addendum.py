@@ -712,10 +712,10 @@ def main() -> int:
           "a failed addendum costs only the addendum: the link line says it was not "
           "built and nothing is attached")
     al = (arch / f"weekly_digital_{ENDING}_appendix.md").read_text(encoding="utf-8")
-    check("Draft for Ari's accept-all" in al and "**Week to 31 Oct 2026.** BTC $" in al
+    check("Draft for the operator's accept-all" in al and "**Week to 31 Oct 2026.** BTC $" in al
           and "never the model's" in al,
           "the appendix line: dated, code-written from the page, a draft for "
-          "Ari's accept-all")
+          "the operator's accept-all")
 
     # --- J --------------------------------------------------------------------
     head("J. ISOLATION")
