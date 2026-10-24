@@ -348,7 +348,7 @@ The read is refreshed when the paper is revised and, between revisions, by the M
 
 **How long a top takes to form, and what being early costs.** The four instances span the range. In 1929 the diagnostics led by about two years; in 1989 by two to four; in 2000 by three, and the valuation reader underperformed throughout; in 2007 by two, but the credit reader had the timing within a season. The general base rates are those at the head of this Part: breadth leads by months to years, curve inversion by six to eighteen months, credit acceleration by a season, valuation not at all. The implication is that a long-cycle diagnostic read today, if it reads late-cycle, says almost nothing about the next year and a good deal about the distribution of the next decade — and that sizing a position as if it said something about the next year is the mistake each earlier instance punished.
 
-**What would resolve it.** Each earlier top was resolved by the lever its currency and its politics permitted: in 1933 by removing the gold constraint, in Japan by a decade of balance-sheet repair and state borrowing, in 2001 by moving debt to households, in 2008 by moving it to the state. The present question is which levers remain: the state's balance sheet has absorbed the last resolution, so the next one's mix is the long-cycle question of Part I, decided between the deflationary and inflationary branches by the readings Chapter 19's proposed rule uses.
+**What would resolve it.** Each earlier top was resolved by the lever its currency and its politics permitted: in 1933 by removing the gold constraint, in Japan by a decade of balance-sheet repair and state borrowing, in 2001 by moving debt to households, in 2008 by moving it to the state. The present question is which levers remain: the state's balance sheet has absorbed the last resolution, so the next one's mix is the long-cycle question of Part I, decided between the deflationary and inflationary branches by the readings Chapter 17.4's proposed rule uses.
 
 **What it implies for stance.** That the long-cycle read sets the distribution and not the timing; that a reader who finds the present late in the cycle expresses it through the composition of protection — which branch's hedges are held — rather than through a net short; and that the Doctrine's ruling that a tail thesis is a hedge budget, not a position, is the stance each earlier instance would have rewarded.
 
@@ -364,4 +364,469 @@ Read together, the five instances say three things this Part exists to say. **Th
 | 1989 (Japan) | Bank lending against land | Two to four years | About four-fifths, then a generation | A decade of balance-sheet repair | Deflationary, prolonged |
 | 2000 | Equity valuation; telecom debt | Two to three years (breadth, valuation) | A doubling to a quadrupling | Rate cuts; debt moved to households | A repricing, no deleveraging |
 | 2007 | Mortgage credit through shadow banks | Two years (housing); a season (credit) | About a quarter | Rescue; debt moved to the state | Deflationary, met by monetization |
-| Now | The search of Chapter 5 | Dated read, Appendix B | — | The branch question of Chapter 19 | — |
+| Now | The search of Chapter 5 | Dated read, Appendix B | — | The branch question of Chapter 17.4 | — |
+
+---
+
+# Part IV — The environments
+
+**The eighteen environments are the library's common vocabulary for "the regime."** Every markets paper carries an Environments section that says how its subject behaves in each; this Part owns the master definitions and the cross-cutting matrices, and the other papers' sections are its rows. The environments are not mutually exclusive — a banking crisis happens inside a recession, financial repression inside an inflation — and they are not equally sampled. Several have no modern instance in a developed market, and those say so.
+
+## Chapter 13 — The eighteen defined
+
+The definitions are grouped by the mechanism that produces them, because the mechanism is what carries across instances. For each family the paper gives one worked example with numbers, one historical instance, and what it looked like on the day; each environment then carries its own mechanism and instances.
+
+### 13.1 The cycle environments: expansion, recession, inflation, disinflation, deflation, stagnation
+
+**Expansion** is credit and income growing together with the policy rate at or below neutral — Chapter 1's first phase. *Instances:* most of the post-war record; the long expansions of the 1960s, 1990s and 2010s. **Recession** is the loop running downward: debt service rising faster than income, spending cut to service it, one participant's cut another's lost income. *Instances:* the post-war recessions, NBER-dated. **Inflation** is a sustained rise in the price level beyond what the policy authority targets, produced by demand outrunning capacity, a supply shock, or monetization — and it becomes a regime when expectations follow it. *Instances:* 1966–82; 2021–23. **Disinflation** is inflation falling while remaining positive, usually after a tightening has broken it; it is the regime in which bonds and equities rise together. *Instances:* 1982–2020, the longest regime in the modern record. **Deflation** is a falling price level, which raises the real burden of nominal debt — Fisher's mechanism. *Instances:* 1929–33 in the United States; Japan for much of 1998–2012. **Stagnation** is low growth with low inflation and no policy traction, the regime of Koo's balance-sheet recession and of secular-stagnation arguments: savings exceed the investment demand at any attainable rate. *Instances:* Japan after 1990; the euro area after 2011.
+
+**A worked example, with illustrative numbers.** In a disinflation, inflation falls from 6% to 2% across five years and the ten-year yield falls with it from 8% to 4%. A long bond's price rises substantially as its yield falls, and an equity multiple expands as the discount rate falls. In the inflation that follows, inflation rises from 2% to 6% and the yield from 4% to 8%: the same bond loses about a quarter of its price *(conceptual; rounded; a duration of about seven years)*, and the equity multiple compresses at the same time. The regime, not the asset, decided the sign.
+
+**A historical instance.** The turn from disinflation to inflation in 2021–22: inflation rose from below 2% to above 8% in eighteen months, the policy rate rose by more than four points in a year, and stocks and bonds fell together for the first time since the 1970s *(The Rate and Liquidity Machine, the 2021–2023 era; Tops and Bottoms, the 2022 episode; last verified October 2026)*.
+
+**What it looked like on the day.** Through 2021 each high inflation print was described by the central bank as transitory, and the bond market largely agreed: the ten-year yield stayed below 2% while inflation passed 5%. The regime had changed in the data before it changed in the price.
+
+### 13.2 The market environments: bubble, crash
+
+**Bubble** is a price rising far above any value its income can support, sustained by a narrative that explains why old measures do not apply and by financing that depends on the price continuing to rise — Kindleberger's displacement, boom and euphoria, and Minsky's migration to Ponzi finance. *Instances:* 1929; Japan 1986–89; 1998–2000; housing 2004–06. **Crash** is a fall too fast for the participants who would ordinarily buy to absorb it, produced by forced selling into a withdrawn bid. *Instances:* October 1929; October 1987; March 2020.
+
+**A worked example, with illustrative numbers.** A stock financed half with margin falls 20%. The borrower's equity falls 40%, below the maintenance level, and the broker sells. If a tenth of the float is held on such terms and the book is thin, the forced sale moves the price another 10%, which triggers the next tier of calls *(conceptual; rounded)*. The crash is the loop, not the news.
+
+**A historical instance.** 19 October 1987: the index fell about 20% in a day with no recession and no change in earnings, driven by portfolio-insurance selling into futures that dealers could not absorb *(Volatility, Chapter 16; Tops and Bottoms, the 1987 episode; last verified October 2026)*.
+
+**What it looked like on the day.** The market had fallen for several days on rising rates and a trade figure; on the morning of the crash, quotes were stale, the futures traded at a discount the arbitrage could not close, and the specialists' books emptied. The cause was mechanical and the commentary searched for a fundamental one.
+
+### 13.3 The crisis environments: liquidity crisis, banking crisis, fiscal crisis, currency crisis
+
+**Liquidity crisis** is a sudden rise in the demand for cash and the safest collateral, in which even sound assets cannot be sold at a fair price because every holder is selling to raise cash. *Instances:* 1907; September 2008; March 2020, when even Treasuries could not be sold freely *(The Rate and Liquidity Machine, the March 2020 case; last verified October 2026)*. **Banking crisis** is a run on institutions whose assets are long and illiquid and whose funding is short — depositors, or wholesale lenders — and it becomes systemic when the run spreads to institutions that were sound. *Instances:* 1930–33; 2008; March 2023. **Fiscal crisis** is the state's debt market refusing to absorb its issuance at a yield the state can bear, usually set off by an auction, a budget or a rating action. *Instances:* Greece 2010–12; the United Kingdom's gilt market in September 2022, where a budget and leveraged pension hedges produced a spiral the central bank stopped by buying *(The Rate and Liquidity Machine, the September 2022 case; last verified October 2026)*. **Currency crisis** is a sudden fall in a currency when holders flee faster than the central bank's reserves or rates can defend it. *Instances:* sterling in 1992; Asia in 1997–98; Argentina and Turkey repeatedly.
+
+**A worked example, with illustrative numbers.** A pension scheme hedges its liabilities with leveraged long-bond swaps, posting collateral of a fifth of the exposure. Long yields rise one percentage point in three days. The swaps lose roughly a fifth of their notional value *(conceptual; rounded; a duration of about twenty years)*, the scheme must post collateral equal to its whole buffer, and it sells long bonds to raise it, which raises yields further. The fiscal crisis is a liquidity crisis in the state's own market.
+
+**A historical instance.** Sterling on 16 September 1992: the Bank of England raised its rate twice in a day and spent reserves defending the currency's band in the European exchange-rate mechanism, and withdrew from the mechanism that evening. The currency fell sharply in the following weeks, and the economy recovered from the release.
+
+**What it looked like on the day.** In each crisis family the day reads the same: an authority states that the position is sound, the market tests the statement at the point where the authority's resources are finite, and the statement is withdrawn within hours or days.
+
+### 13.4 The structural environments: war, technological revolution, financial repression, capital controls, monetary-system change, structural break
+
+**War** is the state becoming the marginal buyer, seller and rule-maker at once: production directed, prices controlled, debt issued at capped yields, capital controlled. *Instances:* 1914–18; 1939–45; for most modern developed markets, none since, so n≈0. **Technological revolution** is a general-purpose technology drawing capital ahead of the income it will produce — railways, electricity, the internet — with a bubble in the financing and a lasting rise in productivity that arrives later than the prices assumed. *Instances:* the 1840s railways; the 1920s; the late 1990s. **Financial repression** and **capital controls** are Chapter 3's regimes. *Instances:* 1942–51 and 1945–1970s; emerging markets since. **Monetary-system change** is the replacement of the rule that defines money: the gold standard's suspension in 1914 and abandonment in the 1930s, the end of convertibility in 1971, the euro's introduction. *Instances:* a handful in a century; in the present reserve system, n≈0. **Structural break** is a relationship that held across regimes ceasing to hold, not because the regime changed but because the mechanism behind it did. *Instances:* gold against real yields and the stock–bond correlation in 2022, treated in Chapter 19.
+
+**A worked example, with illustrative numbers.** Under repression with capital controls, a domestic saver holds a deposit at 1% while inflation runs at 6%, and is prevented from buying foreign assets. Across five years their deposit loses about a fifth of its purchasing power *(conceptual; rounded)*, and the domestic equity market rises in nominal terms because savings have nowhere else to go. A foreign holder who can convert at the official rate sees the same equity market fall in their own currency. The regime decided which price was real.
+
+**A historical instance.** August 1971: the closing of the gold window ended dollar convertibility, and within two years the fixed exchange-rate system had given way to floating rates. Gold, fixed for a generation, rose many-fold across the decade that followed *(Metals; last verified October 2026)*.
+
+**What it looked like on the day.** The announcement came on a Sunday evening with a wage-and-price freeze and an import surcharge. Markets rose the next day on the price freeze. The monetary system had changed, and the first day's reaction read it as a domestic policy package.
+
+| Environment | Mechanism, in a phrase | Modern developed-market instances |
+|---|---|---|
+| Expansion | Credit and income growing together | Many |
+| Recession | The loop running downward | About a dozen post-war (U.S.) |
+| Inflation | Prices rising with expectations following | Two regimes (1966–82; 2021–23) |
+| Disinflation | Inflation falling, positive | One long regime (1982–2020) |
+| Deflation | Falling prices raise real debt | 1929–33; Japan after 1998 |
+| Stagnation | Savings above investment demand at any rate | Japan; the euro area |
+| Bubble | Price above income, financed by the rise | Four or five |
+| Crash | Forced selling into a withdrawn bid | Three (1929, 1987, 2020) |
+| Liquidity crisis | A scramble for cash and collateral | Three (1907, 2008, 2020) |
+| Banking crisis | A run on short-funded long assets | Three (1930–33, 2008, 2023) |
+| Fiscal crisis | The state's market refusing its issuance | Few; the gilt episode of 2022 |
+| Currency crisis | Holders fleeing faster than the defense | Few in the largest economies |
+| War | The state as buyer, seller and rule-maker | Two; n≈0 since |
+| Technological revolution | Capital ahead of income | Three or four |
+| Financial repression | The holder made to hold below inflation | Two long regimes |
+| Capital controls | The exits closed | One long regime (1940s–70s) |
+| Monetary-system change | The rule that defines money replaced | n≈0 in the present system |
+| Structural break | A cross-regime relationship ceasing | 2022's pair |
+
+---
+
+## Chapter 14 — Environments and the asset classes
+
+**What each asset did is mechanism first and measurement second, and the measurement is thin.** For the cycle environments the modern record supplies enough instances to say direction with confidence and magnitude roughly; for the crisis environments it supplies a handful; for war, monetary-system change and capital controls in a developed market it supplies almost none. The paper therefore gives direction for every cell, magnitude only where a cited paper has measured it, and the number of instances behind each row.
+
+**Equities** rise in expansion and disinflation, fall in recession — recession bears average roughly −40% over eighteen months and non-recession bears roughly −29% over six *(Tops and Bottoms, eight bears 1970–2022; last verified October 2026)* — and fall hardest in deflation and banking crises, the deepest families in the extended record *(Base Rates, Chapter 12; last verified October 2026)*. In inflation they fall in real terms and are dispersed by pricing power. In repression they hold nominal value and lose real value unevenly. In war and capital controls the domestic index is a price inside a closed room. Across the extended international record, the median bad market falls about 30% and recovers in about two years, the 95th percentile falls about 80% and takes twenty to thirty-five years, and the 99th is a total loss for the original holder *(Base Rates, Chapter 13.3; last verified October 2026)*.
+
+**Long government bonds** of a solvent sovereign rise in recession, deflation, liquidity crises (after the first scramble) and banking crises, and they are the protection of the deflationary branch. They fall in inflation, and they are the worst asset of repression, fiscal crisis and monetary-system change, losing a third or more of purchasing power in the 1940s instance *(Base Rates, Chapter 11.4; last verified October 2026)*.
+
+**Credit** tracks equities with a lead in the credit-driven environments and widens most in banking and liquidity crises; in inflation it is hurt by the rate and helped by the nominal growth that eases default.
+
+**Gold** protects in inflation, repression, currency crises and monetary-system change, and in deflation only after the authorities revalue it; it falls in disinflation with rising real yields, and in the first stage of a liquidity crisis, when it is sold to raise cash.
+
+**Commodities** rise in inflation, expansion and war, and fall in recession and deflation.
+
+**The dollar**, as the reserve currency, rises in recessions, liquidity crises and banking crises abroad, because dollar debt must be serviced in dollars, and weakens in its own repression and fiscal stress, against real assets if not against other currencies (Currencies owns the detail). **Cash** protects in deflation and every crisis and loses steadily in inflation and repression.
+
+| Environment | Equities | Long govts | Credit | Gold | Commodities | Dollar | Instances |
+|---|---|---|---|---|---|---|---|
+| Expansion | + | ± | + | ± | + | ± | Many |
+| Recession | − (about −40%, 18 months) | + | − | ± | − | + | Six recession bears since 1970 |
+| Inflation | − real | − | ± | + | + | ± | Two regimes |
+| Disinflation | + | + | + | − | ± | ± | One regime |
+| Deflation | − (deepest) | + | − | + after revaluation | − | + | Two |
+| Stagnation | ± | + | ± | ± | − | ± | Two |
+| Bubble | + then − | ± | + then − | ± | ± | ± | Four or five |
+| Crash | − fast | + | − | − first | − | + | Three |
+| Liquidity crisis | − | − first, then + | − | − first | − | + | Three |
+| Banking crisis | − | + | − | ± | − | + | Three |
+| Fiscal crisis | − | − | − | + | ± | − (the issuer's) | Few |
+| Currency crisis | − in hard currency | − | − | + | ± | + | Few, large economies |
+| War | Closed room | − real | ± | + | + | ± | n≈0 since 1945 |
+| Technological revolution | + then − | ± | ± | ± | ± | ± | Three or four |
+| Financial repression | Nominal hold, real loss | − real (worst) | ± | + | + | − against real assets | Two |
+| Capital controls | Closed room | − real | ± | + held abroad | ± | ± | One long regime |
+| Monetary-system change | ± | − | ± | + | + | − | n≈0 now |
+| Structural break | Depends on the relationship | — | — | — | — | — | 2022 |
+
+*Signs are direction. Magnitudes appear only where a cited paper has measured them, and the instance count is the n behind the row.*
+
+---
+
+## Chapter 15 — Environments and the library's signals
+
+**A signal is a relationship, and each relationship was measured in a regime.** This chapter takes the seven the library leans on hardest and says, for each, the environments in which it holds, weakens or inverts.
+
+**Credit leads equities.** It holds in credit-driven tops and recessions — the 2007 top, with a four-month lead — and in banking crises; it is correctly silent at mechanical and exogenous tops *(Tops and Bottoms, the synthesis chapter; last verified October 2026)*. It weakens in inflation-driven bears, where the equity fall is a discount-rate event and credit stays tight; and it fails under repression, where credit spreads are suppressed by the same policy that suppresses yields.
+
+**Curve inversion precedes recession.** It holds in the short-cycle environments, with a lead of six to eighteen months *(Tops and Bottoms; last verified October 2026)*; it weakens when the term premium is distorted — by asset purchases, by yield-curve control, by a supply shock in long bonds — because the curve's slope then measures policy rather than expectations. Under yield-curve control it carries no information at all.
+
+**Gold against real yields.** It held in the disinflation regime and broke in 2022, when the official-sector bid became the marginal buyer *(Metals, Chapter 5; last verified October 2026)*. In repression and monetary-system change the relationship is replaced by gold against the credibility of the currency, which is a different variable.
+
+**The stock–bond correlation.** Negative in disinflation, when bad growth news lowers yields and equity prices together and the bond hedges the stock; positive in inflation, when the discount rate drives both. It inverted in 2022 and was positive across the inflation regime of 1966–82 *(Base Rates, Chapter 5; last verified October 2026)*. Every balanced-portfolio rule calibrated after 1998 is a disinflation rule.
+
+**The variance risk premium.** Positive in most environments — insurance is sold at a premium — and briefly and violently negative in crashes and liquidity crises, when realized volatility outruns implied. Volatility's argument that the premium, crowding and unwinds are one fact governs it; the environment decides when the fact pays out.
+
+**Momentum.** Holds in expansion, inflation regimes and trends of any sign; fails in sharp reversals — the turn from a crash to a recovery, the first months of a new regime — when the losers of the old regime lead the new one.
+
+**The yen and volatility.** The yen strengthens when volatility rises, because yen-funded carry is unwound; the link holds when the carry is large and the yen's rate differential wide, and weakens when the differential narrows or when Japan's own policy is the shock *(Volatility, Chapter 21; last verified October 2026)*.
+
+| Signal | Holds in | Weakens in | Inverts or fails in |
+|---|---|---|---|
+| Credit leads equities | Credit tops; banking crises | Inflation bears | Repression |
+| Curve inversion precedes recession | Short-cycle environments | Distorted term premium | Yield-curve control |
+| Gold against real yields | Disinflation | — | Broke in 2022; replaced under repression |
+| Negative stock–bond correlation | Disinflation | Mixed regimes | Inflation (positive) |
+| Positive variance risk premium | Most | Rising volatility | Crashes; liquidity crises |
+| Momentum | Expansion; trends | Stagnation | Sharp reversals; regime turns |
+| Yen strengthens with volatility | Large carry, wide differential | Narrow differential | Japan as the shock |
+
+---
+
+## Chapter 16 — Environments and the participants
+
+**Each environment has a participant who becomes marginal and a participant who is forced.** Price, Time, and Edge's Chapter 26 gives the general form for the twelve edges; this chapter names the forced participant per family, because the forced participant is the one a reader is trading against.
+
+**In the cycle environments** the forced participants are calendar and mandate holders: pension and insurance rebalancing, benchmark-relative managers, and in recession the redeeming fund and the de-risking allocator. **In inflation** the rate-sensitive holder — the long-duration fund, the liability-matched pension — repositions, and the real-asset buyer becomes marginal. **Under repression** the captive holder is the marginal buyer of the state's debt, buying because a rule requires it, and the free holder's edge is to decline the captive asset. **In a liquidity crisis** the leveraged holder is forced to sell whatever can be sold, which is the best assets first, and the only participant with an edge is one with unencumbered cash. **In a banking crisis** the depositor, who is not normally a market participant, becomes marginal, and the equity price of a bank becomes an input to the run on it. **In a fiscal crisis** the leveraged holder of the state's debt and the rating-linked mandate holder are forced together. **In a currency crisis** the sovereign and its central bank are forced, and the holders who can leave do. **In war and under capital controls** the state is marginal, and whoever is permitted to transact sets the price.
+
+| Environment family | Marginal participant | Forced participant | Forcing mechanism |
+|---|---|---|---|
+| Cycle | Discretionary and systematic buyers | Rebalancers; redeeming funds | Calendar; redemption |
+| Inflation | Real-asset buyers | Duration-matched holders | Mandate |
+| Repression | The captive holder | The captive holder | Regulation |
+| Liquidity crisis | Whoever still quotes | Leveraged holders | Margin; collateral |
+| Banking crisis | Depositors | Banks; their wholesale lenders | Withdrawal; regulation |
+| Fiscal crisis | The state's auction | Leveraged and rating-linked holders | Margin; mandate |
+| Currency crisis | The central bank | The sovereign | Capital flight |
+| War; capital controls | The state | Domestic savers | Regulation |
+
+---
+
+# Part V — Identification and transition
+
+## Chapter 17 — Identification as a skill
+
+**Identifying a regime and identifying its end are one skill, and it is a skill of reading slow evidence without being moved by fast evidence.** A regime is identified by a set of readings that agree, across lenses, at the cadence of the slowest of them; its end is identified when that agreement breaks. Both are hard for the same reason: the fast evidence — the day's price, the week's flow — arrives constantly and argues, and the slow evidence arrives rarely and is easy to discount.
+
+### 17.1 The dials
+
+The Doctrine operationalizes the regime as three dials rather than one composite, because the things they measure move on different clocks: the Macro dial monthly, governing Book A's band; the Volatility dial weekly to daily, governing size and instrument in every book; the Gamma dial daily, governing Book C's setups and Book B's timing (the Doctrine, Part V, 5.1). Volatility's two-regime frame is the source of the Volatility dial's states. This paper's contribution is the slowest layer beneath the Macro dial: the long-cycle location of Parts I and II, which changes on a clock of years and decides which of the Macro dial's states are even available. In a repression regime the Macro dial can read Expansion, and the expansion is happening inside a regime in which long bonds lose real value; the dial is right and the stance it implies for duration is wrong unless the long-cycle layer is read with it.
+
+### 17.2 Leading and confirming
+
+Each environment has indicators that lead its arrival and indicators that confirm it. Leading indicators are early and noisy; confirming indicators are reliable and late. For the short cycle, the lending-standards survey, the credit impulse and the curve lead, and unemployment and earnings confirm. For the inflation regime, breakevens and wage settlements lead, and the core price indices confirm. For the long cycle, the financing-quality and holder questions lead, and the debt-service ratio confirms. A reader who acts only on confirming indicators is late by construction and safe; a reader who acts on a single leading indicator is early and often wrong. The skill is to act in proportion: to reduce exposure to the old regime on leading evidence and to commit to the new one on confirming evidence — which is the Doctrine's transition rule, derived here rather than asserted.
+
+### 17.3 The base rates of transitions, and the cost of early against late
+
+Transitions are rarer than they feel. Tops and Bottoms counts eight bear markets since 1970 against six near-misses that looked like the start of one and were not *(Tops and Bottoms, 1970–2024; last verified October 2026)*: a reader who treated every correction of that size as a regime change would have been wrong nearly half the time. The market-state object's calibration tranche measures the same thing for the dials themselves — how often each dial state persists and how often it turns, with its sample size stated — and it prints "awaiting" until a row has enough independent starts to say anything. The base rates say the cost of being early and the cost of being late are not symmetric: being late into a crisis costs the depth of the first leg, and being early costs the remainder of the final advance, which Part III showed can be a doubling. The Doctrine's answer — reduce quickly to the lower half of the departing band, re-engage slowly — is the answer that bounds both costs rather than minimizing either.
+
+**A worked example, with illustrative numbers.** A Book A band of 60–80% equity sits at 75% when the Macro dial turns from Expansion to Transition. The rule moves the book to the lower half of the departing band, about 65%, hedged, rather than to the 20–40% band of a Contraction. If the transition is false and the market rises 10%, the book has given up about one point of return against staying at 75% *(conceptual; rounded)*. If the transition is real and the market falls 30%, the book has saved about three points against staying, and stays positioned to move to the new band on confirming evidence. The rule buys a small, bounded insurance against a large, unbounded error.
+
+**A historical instance.** The autumn of 1998: a hedge-fund failure, a currency default and a sharp equity fall produced every leading sign of a crisis, and the central bank cut its rate three times. The market recovered to new highs within months, and the next real transition came eighteen months later *(Tops and Bottoms, the near-misses; last verified October 2026)*.
+
+**What it looked like on the day.** On the worst day of a false transition the leading indicators all read the same as on the first day of a real one. What differs is the confirming set, which on the false day has not moved: credit is wider but not accelerating, earnings revisions are steady, and the policy authority is still able to act.
+
+### 17.4 The two branches, told apart early
+
+This section is written for the market-state object's `debt_cycle_branch` field, which prints `state: none` until a rule decides between the two branches of a long-cycle resolution and which the object's specification left to this paper. **What follows is a proposal for the operator's ruling, not a rule, and it grants nothing.** The field is report-only for every reader and stays so whatever is ruled; the sizing consequence of the branch — that Book A's duration sleeve is a deflation hedge and the wrong instrument for the inflationary branch — is the Doctrine's to write.
+
+**The observables.** The object's specification names seven inputs, read together as one mechanism: federal debt to output and its trajectory, the structural deficit, net interest as a share of revenue, the foreign official share of the debt's absorption, the term premium's behaviour when growth expectations fall, real yields against inflation, and gold against real yields. Four of them are stored and printed as the field's observables block: the trailing twelve-month deficit as a share of output (`calc.deficit_ttm_pct_gdp`), the ten-year real yield (`fred.tips_10y`), the ten-year breakeven (`fred.breakeven_10y`) and the front gold future (`yfinance.mkt_gold_front`). The term premium is barred from the object by the rates-attribution ruling and can inform the reader but not the field. The real yield measured against trailing inflation (`calc.r_real_10y_cpi`) extends the real-yield arm before the inflation-linked bond existed.
+
+**What each branch does to them.** The two branches share their antecedents — a high and rising debt-service burden, a structural deficit — and differ in the direction of three prices. In the deflationary branch, inflation and breakevens fall, real yields rise because inflation falls faster than nominal yields, the reserve currency strengthens, and gold does not rise against real yields until the authorities act. In the inflationary branch, breakevens rise, real yields are negative and stay negative because nominal yields are held or lag, the currency weakens against real assets, and gold rises against real yields — the divergence Metals calls the doubt about the numéraire.
+
+| Observable | Shared antecedent | Deflationary branch | Inflationary branch |
+|---|---|---|---|
+| Deficit and interest burden | High, rising | Rising, as revenue falls | Rising, then eased by nominal growth |
+| Breakeven inflation | — | Falling | Rising |
+| Real yield | — | Rising | Negative and persistent |
+| Gold against real yields | — | No divergence until policy acts | Rising against flat or rising real yields |
+| Reserve currency | — | Strengthening | Weakening against real assets |
+
+**The proposed rule.** Stated as a proposal, with every threshold session-set and open to the ruling:
+
+1. **Precondition.** The field reads `none` unless the long-cycle stress is present: net interest to revenue (`calc.interest_to_receipts`) above its own five-year 80th percentile, *or* the trailing deficit above its five-year median while the economy is not in recession. Without the precondition, a fall in breakevens is a short-cycle recession and not a long-cycle branch.
+2. **The three tells, each read on a thirteen-week window.** *Inflation direction:* the breakeven's thirteen-week change. *Real-yield direction:* the real yield's thirteen-week change and its sign. *Gold against real yields:* gold's thirteen-week return when the real yield's change is zero or positive.
+3. **Deflationary.** The breakeven falling, the real yield rising, and gold not diverging: all three.
+4. **Inflationary.** The breakeven rising or the real yield below zero, *and* gold rising while the real yield is flat or rising: the divergence is required, because negative real yields alone are also the ordinary state of an easing cycle.
+5. **Persistence.** A branch prints only after its condition holds at two consecutive month-end reads, as the object's dimensions require two sessions. A branch that has printed reverts to `none` after two consecutive month-ends without its condition.
+6. **Confidence.** The count of tells in agreement, of three, printed beside the state; the field never prints a probability.
+
+**The rule's assumptions.** That the branch is visible in prices before it is visible in the debt figures, which are annual and revised. That the reserve issuer's own breakeven and real yield are informative about its branch, which requires the inflation-linked market not to be distorted by the central bank's purchases. That gold's divergence from real yields is about the currency's credibility and not about a single buyer's demand — the assumption the 2022 break makes most fragile. And that thirteen weeks is long enough to remove the short cycle's noise and short enough to be early.
+
+**The rule's falsifiers.** It is falsified if, read back over the history the store holds, it prints a branch that the following two years contradict — inflationary before a deflationary episode, or the reverse. It is falsified as noise if it changes state more than twice in a year. It is falsified in its gold arm if gold diverges from real yields for a reason a reserve-manager survey or the official-sector purchase data attributes to a single class of buyer. And it fails its own precondition if a branch's price signature appears without the stress — which would mean the signature is a short-cycle phenomenon and the rule has nothing to say about the long cycle. The history it can be scored on is short: the inflation-linked market's record begins in 1997, the real-yield proxy extends it, and the full long-cycle instances of Part III predate both.
+
+**A worked example, with illustrative numbers.** Net interest has risen to the 90th percentile of its five-year range; the precondition holds. Over thirteen weeks the breakeven rises from 2.3% to 2.6%, the real yield falls from 1.5% to 1.2%, and gold rises 12% while the real yield is roughly unchanged across the last six of those weeks. Two of three tells agree on the inflationary branch at the first month-end and three of three at the second; the field prints `inflationary`, confidence three of three. A month later the breakeven falls back to 2.4% and gold stalls; the condition fails at one month-end and the field holds, because reversion also needs two *(conceptual; rounded)*.
+
+**A historical instance.** The year 2008 is the instance the rule must get right on the deflationary side: breakevens collapsed in the autumn, real yields on inflation-linked bonds rose sharply as the market sold them for cash, the dollar strengthened, and gold fell before it rose. Every tell read deflationary — and the authorities' response turned the episode within months, which is the case for the persistence rule's two reads and for the field's being report-only.
+
+**What it looked like on the day.** In the autumn of 2008 the ten-year breakeven fell toward zero while the real yield rose toward 3%, a move the commentary attributed to forced selling of inflation-linked bonds rather than to a change in expectations. Both readings were right: the price signature was deflationary and partly mechanical. A rule that read the day would have printed the branch; a rule that reads two month-ends would have printed it later and held it through the turn, which is the trade-off the persistence term makes.
+
+---
+
+## Chapter 18 — How regimes end
+
+**Regimes end in sequences, and the sequences rhyme by mechanism rather than by date.** Tops and Bottoms owns the equity-market sequences; this chapter reads six transitions as regime changes, one paragraph each, and then the false transitions that looked the same.
+
+**1972–74.** A disinflationary expansion with a two-tier equity market became an inflation regime: the dollar's link to gold ended in 1971, an oil embargo quadrupled the price of crude in 1973, the central bank tightened deep into the recession because inflation would not break, and stocks and bonds fell together. The breadth of the market had peaked about a year before the index *(Tops and Bottoms, the 1973–74 episode; last verified October 2026)*. The regime that ended was the post-war one of fixed exchange rates and low inflation.
+
+**1980–82.** An inflation regime ended by a policy authority willing to raise real rates far above zero and hold them there through two recessions. The equity market was cheap at the top; the bear was made by policy. The transition that followed — disinflation — lasted four decades, and nearly every relationship the library teaches was measured inside it.
+
+**2000.** A valuation regime ended by capital exhaustion and a tightening; the regime of rising multiples gave way to a long repricing, and the long cycle's debt moved from corporations to households.
+
+**2007–09.** A credit regime ended by a run on the shadow banks; the transition was to zero rates, asset purchases and the state as the borrower of last resort — the regime of financial repression in its mild, post-crisis form.
+
+**2020.** The fastest transition on record: from a calm, low-volatility expansion to a crash and a liquidity crisis in a month, and back to an expansion inside two months more, because the policy response was larger and faster than any before *(Volatility, Chapter 20; last verified October 2026)*. The regime that ended was not the long-cycle one; it was resumed, with more debt.
+
+**2022.** The disinflation regime ended. Inflation rose above 8%, the policy rate rose faster than in forty years, the stock–bond correlation turned positive, and gold broke from real yields — a regime change and two structural breaks in a single year *(The Rate and Liquidity Machine, the 2021–2023 era; last verified October 2026)*.
+
+**The false transitions.** 1994 (a bond-market rout without an equity bear), 1998 (a hedge-fund failure and a default), 2011 (a sovereign-debt scare and a downgrade), 2015–16 (a currency devaluation and a commodity collapse), 2018 (a volatility-product failure and a tightening) and 2024 (a carry unwind) each produced the leading signs of a regime change and none produced one *(Tops and Bottoms, the near-misses; last verified October 2026)*. What separated them from the real transitions was the confirming set: credit did not accelerate, earnings were not cut, and the policy authority could and did respond.
+
+| Transition | Old regime | Ended by | New regime | Lead that worked |
+|---|---|---|---|---|
+| 1972–74 | Fixed rates; low inflation | Gold link cut; oil; policy behind | Inflation | Breadth, about a year |
+| 1980–82 | Inflation | Real rates far above zero | Disinflation (four decades) | Policy itself |
+| 2000 | Rising multiples | Capital exhaustion; tightening | Repricing | Breadth, about two years |
+| 2007–09 | Credit expansion | Run on shadow banks | Zero rates; mild repression | Credit, a season |
+| 2020 | Calm expansion | An exogenous shock | Resumed, with more debt | None (untimeable) |
+| 2022 | Disinflation | Inflation; fastest tightening in forty years | Inflation regime; two breaks | Breakevens and wages |
+
+---
+
+## Chapter 19 — Structural breaks
+
+**A structural break is a relationship that stops holding because its mechanism changed, and it is told from a regime change by asking whether the mechanism still operates.** A regime change alters the conditions under which a mechanism produces its relationship; the relationship returns when the conditions do. A break alters the mechanism; the relationship does not return. Metals' chapter on the broken gold model is the template, and this chapter applies it to four relationships.
+
+**Gold against real yields, 2022.** For most of two decades gold's price moved inversely with the ten-year real yield, because the marginal holder was a Western investor for whom gold's opportunity cost was the real yield. In 2022 real yields rose sharply and gold did not fall as the model required; the marginal buyer had become the official sector, buying for reasons the real yield does not enter *(Metals, Chapter 5; last verified October 2026)*. The mechanism test reads it as a break: the old mechanism still operates for the old buyer, and the old buyer is no longer marginal.
+
+**The stock–bond correlation, 2022.** Negative for two decades, because growth shocks dominated and inflation was anchored; positive in 2022, because inflation shocks dominated. The mechanism test reads it as a regime change rather than a break: the mechanism — which shock dominates — is unchanged, and the correlation is expected to return if the disinflation regime does. The consequence for a portfolio is the same in the meantime, which is why the distinction matters only for what to expect next.
+
+**The curve's lead time.** The curve inverted in 2022 and the recession it historically predicted did not arrive on the usual schedule. Two readings compete. A regime reading says the lead lengthens when household and corporate balance sheets are strong and debt was termed out at low rates. A break reading says asset purchases and the supply of long bonds have changed what the curve's slope measures. The test is whether the term premium, separately measured, explains the inversion; if it does, the curve measured policy and supply, and its lead is broken for as long as the distortion lasts.
+
+**The Phillips curve.** The relationship between unemployment and inflation flattened across the disinflation regime, so that low unemployment produced little inflation. Whether the flattening was a break — globalization, anchored expectations, a changed labor market — or a regime property that would steepen again when expectations un-anchored, the 2021–23 inflation partly answered: the curve steepened, which is evidence for the regime reading.
+
+**How to know a break from a regime.** Three questions, in order. Is there a named mechanism for the old relationship, and is it still operating for the participant it described? Has the marginal participant changed? And does the new relationship have a mechanism of its own? A relationship that fails the first question was a sample property and never a mechanism. One that passes the first and fails the second is a break. One that passes both and changes sign is a regime change. The answers decide whether a reader retires a tool or sets it aside.
+
+| Relationship | 2022 behaviour | Reading | Why |
+|---|---|---|---|
+| Gold against real yields | Decoupled | Break | The marginal buyer changed |
+| Stock–bond correlation | Turned positive | Regime change | The dominant shock changed; the mechanism did not |
+| Curve's lead time | Lengthened | Contested | Depends on the term premium's share of the inversion |
+| Phillips curve | Steepened | Regime property | Expectations un-anchored and it returned |
+
+---
+
+## Chapter 20 — Reading the library through the regime
+
+**Every paper on the markets shelf gives guidance that is right in the regime it was written in and needs a change in others.** The table below says, for the shelf's papers, what changes about each one's guidance in the four environments that most often invalidate it: inflation, a deflationary deleveraging, financial repression, and a crisis. It is a cross-reference, not a summary; each paper's own Environments section is the detail.
+
+| Paper | In inflation | In a deflationary deleveraging | Under repression | In a crisis |
+|---|---|---|---|---|
+| Price, Time, and Edge | Real-asset buyers become marginal | Cash and duration holders marginal | The captive holder is the counterparty | Do not transact without unencumbered cash |
+| Foundations (Factor IV) | The hard-asset verdict strengthens | The debt factor's sign flips to deflation | The interest burden is the lead | Factor readings lag the tape |
+| The Twenty-Five | Inflation-family scenarios move up | Debt-deflation scenarios move up | The long-cycle scenario's inflationary branch | The routing matrix's crisis rows |
+| Monthly manual | Pillar 4 leads | Pillar 8 confirms | Pillar 8 is the regime | Pillars lag; the dials lead |
+| Rates & Liquidity | Long-end accidents | The put returns | The 1942–51 peg is the template | The plumbing signals fire first |
+| Currencies | Debasement against real assets | The reserve currency strengthens | Weakens against real assets | The dollar bid |
+| Credit | Spreads tight, defaults later | Credit leads | Spreads suppressed; the signal fails | Credit leads the bottom |
+| Energy | The buffer is the driver | Demand collapse | Real asset protection | Supply shocks dominate |
+| Metals | Gold protects | Gold after revaluation | Gold protects | Gold sold first for cash |
+| Digital Assets | Untested | Untested | Debasement case strengthens | Sold as a risk asset |
+| Emerging Markets | Commodity exporters gain | The dollar channel bites | Controls appear | Contagion through funding |
+| Tops and Bottoms | Inflation tops; bottoms on the second derivative | Credit tops; bottoms on policy scale | Few modern instances | Bottom signature applies |
+| Base Rates | Real returns, not nominal | The deep tail is live | The 1940s bond bear | The bear-rally base rate |
+| Volatility | Rates volatility leads | Equity volatility leads | Suppressed, then gapping | The fastest transitions |
+| Equities | Pricing power decides | Multiples compress hardest | Nominal holds, real loses | Correlation to one |
+| Positioning & Flows | Duration holders reposition | Redemptions dominate | The captive holder | Margin dominates |
+| Options as Expression | Rates-vol hedges | Index puts pay | Long-dated real-asset calls | Defined risk only |
+
+---
+
+# Part VI — Tactical Applications, Wiring, Environments, and the Appendices
+
+## Chapter 21 — Tactical applications, by horizon
+
+This paper teaches location rather than an asset, so what is "tradeable" in it is the stance a location implies: which book's band is available, which branch's protection is held, and which measured relationships are suspended. What follows lays that against the seven rungs of Price, Time, and Edge's Chapter 6, in prose with the same nine fields for each rung, and then as a cheat sheet. Blank rungs are permitted and are used.
+
+*Nothing in this chapter is investment advice. It describes how one operator, running one book under one set of rules, uses a regime read.*
+
+**Intraday.** Nothing is tradeable at this rung from this paper; the regime read is too slow to bear on a session. The edge type is none. The counterparties at this rung — market makers and fast liquidity providers, transacting for the spread — are indifferent to the long cycle and right to be. Competition has nothing to remove, because no edge is claimed. Nothing would end the rung's blankness. There is no expression and no book, and the only report section is the close's Mechanics, read for whether a crisis environment's liquidity has withdrawn — in which case Chapter 16 says not to transact.
+
+**Days.** What is tradeable is the reaction to an event read through the regime: a release whose surprise means different things in different environments, such as an inflation print in an inflation regime against one in a disinflation regime. The edge type is regime recognition. The counterparties are participants reacting to the sign of the news rather than to its meaning in the regime, transacting because their models were calibrated in another regime. Competition has not removed it because the regime-conditioning is slow knowledge that fast participants do not carry. It would end if the market priced the regime-conditional reaction reliably. The expression is defined-risk options sized to the packet's risk; the book is C; it is read in the close's The read and Plumbing & rates.
+
+**Weeks.** What is tradeable is the persistence of a regime once it is identified, and the transition rule's reduction when one turns. The edge types are regime recognition and horizon. The counterparties are participants who treat a regime change as a correction and buy it, and benchmark-bound holders who cannot change exposure for a view of weeks. Competition has not removed it because acting on a slow read at a weekly cadence is contractually awkward for most capital. It would end if the transition rule's false-alarm cost rose above its insurance value on measurement. The expression is reduced size and the lower half of a band, and in Book B, trend trusted over mean reversion in a tightening; the book is B, with A's band; it is read in the Weekly's The read and What's priced.
+
+**Months.** What is tradeable is the Macro dial's band, read with the long-cycle layer beneath it: which band is available, and whether the duration sleeve is the right instrument for the branch. The edge types are regime recognition and cross-asset. The counterparties are mandated holders who must hold duration regardless of the branch — the captive holder of Chapter 3 — and allocators whose rules were calibrated in disinflation. Competition has not removed it because the counterparties are prevented, not outbid. It would end at a structural break that invalidated the dials themselves. The expression is index and Treasury exposure inside the band, with the protection's composition chosen by the branch; the book is A; it is read in the Monthly's Plumbing & rates, the slow layers and Pillar 8.
+
+**Cyclical.** What is usable is the long-cycle location of Parts I and II — an input to stance rather than a trade: the branch question, the protection composition, the regularities suspended. The edge type is horizon. There is almost no transacting counterparty; the counterparty is the absence of participants with a five-to-ten-year clock. Competition is excluded by contract rather than outbid. What would end it is the operator discovering they cannot hold a stance across the path. It is expressed only through the months-rung band and the protection mix, it feeds Book A as an input, and it is read in the Monthly's slow layers, Factor IV and the quarterly review.
+
+**Secular.** What is usable is the long cycle and the internal-order lens as constraints: which branch the politics leans toward, which relationships are safe to rely on at all. The edge type is horizon and analytical. There is no transacting counterparty. Nothing competitive would end it; the risk is that the read is wrong and unfalsifiable for a decade. The expression is stance and the hedge budget only — a long-cycle thesis is a ring-fenced budget in Book D, renewed, never a net exposure, as the Doctrine rules for tail theses; it is read in the Disruptive Themes composite, the tail watch's long-cycle scenario and the annual structural review.
+
+**Generational.** There is no edge for this book at this rung. The usable content is that the present monetary arrangement is not permanent, which changes what is assumed rather than what is held. There is no counterparty, no expression and no book. It is read once a year, in the annual structural review's adversarial questions.
+
+| Horizon | Tradeable | Edge | Other side, and why | Why not competed away | Ends if | Expression | Book | Read in |
+|---|---|---|---|---|---|---|---|---|
+| Intraday | — | — | Liquidity providers, for the spread | — | — | None | — | Close: Mechanics |
+| Days | Regime-conditional reaction | Regime recognition | Sign-of-news traders | Slow knowledge | Priced reliably | Defined-risk options | C | Close: The read; Plumbing |
+| Weeks | Regime persistence; the transition rule | Regime; horizon | Dip buyers; benchmark holders | Slow reads are awkward | False-alarm cost too high | Lower half of band; trend in B | B (A's band) | Weekly: The read; What's priced |
+| Months | The band with the long-cycle layer | Regime; cross-asset | Captive duration holders | Prevented, not outbid | A break in the dials | Band; protection by branch | A | Monthly: Plumbing; slow layers; Pillar 8 |
+| Cyclical | Location; branch; suspended regularities | Horizon | Nobody with the clock | Contract | Stance not holdable | Through the band | A input | Slow layers; Factor IV; quarterly |
+| Secular | Constraints; internal order | Horizon; analytical | None | — | Wrong and unfalsifiable | Hedge budget only | D budget | Themes; tail watch; annual review |
+| Generational | — | — | — | — | — | None | — | Annual review |
+
+**Book A's stance by regime, and the environment-switch table.** The Doctrine's regime card sets Book A's band by the Macro dial. This paper adds the layer the card points to: within each band, the composition of protection depends on the long-cycle branch. Argued first: in the deflationary branch the duration sleeve is the right protection, and the card's rule to raise it in Contraction is correct; in the inflationary branch the duration sleeve is the wrong instrument, and the protection's weight belongs in real assets and short duration; with no branch identified, the protection is split, because the cost of holding the wrong branch's hedge is the asymmetry this paper exists to flag. The table is a proposal that sits beside the card; the Doctrine writes the rule.
+
+| Macro dial | Branch: none | Branch: deflationary | Branch: inflationary |
+|---|---|---|---|
+| Expansion | Card's band; protection split | Card's band; duration as protection | Card's band; real assets and short duration |
+| Overheat | Card's band; real assets up | — (rare) | Real assets up further; duration light |
+| Tightening | Card's band; duration sleeve on | Duration sleeve on | Duration sleeve held small; gold sleeve as hedge |
+| Contraction | Card's band; duration up | Duration up (the card's rule) | Duration not raised; real assets and cash |
+| Transition | Lower half, hedged | Lower half, hedged with duration | Lower half, hedged with real assets |
+
+---
+
+## Chapter 22 — Wiring
+
+This paper produces one field and a vocabulary. Its wiring is mostly where the regime read is carried and which register fields it populates.
+
+**The close.** The market-state object, which the 16:45 close computes and every report reads, carries the three dials, the dimensions and the `debt_cycle_branch` field this paper's Chapter 17.4 proposes a rule for; the close prints the field's observables in its detail tables. Plumbing & rates carries the real-yield, breakeven and curve readings that are the branch's daily tells.
+
+**The Weekly.** The read and What's priced carry the regime's persistence; the dials' transitions print where the calibration has enough history.
+
+**The Monthly.** Pillar 8 (sovereign health and debt cycle) and the slow layers carry the twelve diagnostic questions' stored inputs as levels with percentiles; Factor IV carries the interest burden; the debt-cycle observables block prints the branch's inputs. The Monthly is where the long-cycle location is read, at its natural cadence.
+
+**The quarterly review and the annual structural review.** The quarterly asks whether the location has moved on the twelve questions; the annual review re-reads Appendix A and refreshes Appendix B.
+
+**Register fields this paper populates.** Every decision packet in Book A carries the **environment** (one or more of the eighteen) and the **long-cycle branch** as the object read it at entry (none, deflationary or inflationary), so that expectancy can be cut by environment and branch once the register holds enough history. These are categorical so they can be counted.
+
+**Claims-registry entries this paper owns.** The eighteen environments and their definitions; the twelve diagnostic questions; the two branches and their tells; the four operating regimes of Chapter 3; and the break-or-regime test of Chapter 19. Any other paper that uses these terms cites this one and does not redefine them.
+
+**What the annual review re-verifies.** Whether each environment's instance count has changed; whether any relationship in Chapter 15 has moved columns; whether the proposed branch rule, if ruled, has been falsified on the history; and whether a new structural break has appeared.
+
+---
+
+## Chapter 23 — Environments
+
+**This paper's Environments section is Part IV.** The house standard asks every markets paper for an Environments chapter covering the eighteen for its own subject; for this paper the subject is the environments themselves, so the master definitions are Chapter 13, the asset-class matrix Chapter 14, the signal matrix Chapter 15 and the participant matrix Chapter 16. Every other markets paper's Environments section is a row set of those matrices, and when a paper's row and this paper's matrix disagree, the disagreement is a finding for the annual review rather than an error in either.
+
+Two points the matrices make together are worth stating once more here because they are the ones a reader is most likely to forget. **Three environments have no modern developed-market sample** — war, capital controls and monetary-system change — and for them the honest content is mechanism only. **Several relationships invert rather than weaken**, so that a position a relationship implies in one environment is the losing position in another; the stock–bond hedge is the example the last generation's portfolios learned in 2022.
+
+---
+
+## Appendix A — Assumptions and falsifiers
+
+*The instrument the annual structural review reads. Sections (a) to (e) in the fixed format.*
+
+**(a) Mechanisms treated as durable.** Argued from first principles and expected to survive regime change. If one fails, the paper is wrong rather than out of date.
+
+1. The short cycle is regulated by the policy rate's effect on the cost of rolling debt (Chapter 1).
+2. Debt accumulates faster than income across short cycles because each easing is met with borrowing, until the regulator loses its effect (Chapter 2).
+3. The currency the debt is owed in decides the branch of the resolution: one the borrower cannot create resolves deflationary, one it can resolves usually inflationary (Chapter 2.2).
+4. Each deleveraging lever used alone worsens the deleveraging; the outcome depends on the mix (Chapter 2.1).
+5. When the other levers are politically blocked, monetization is the default, because it requires no vote (Chapter 2.3).
+6. Every repression regime works by creating a holder who cannot leave (Chapter 3).
+7. The reserve role lengthens the long cycle and biases its resolution toward the inflationary branch (Chapter 4).
+8. A structural break is a changed mechanism or a changed marginal participant; a regime change is a changed condition (Chapter 19).
+
+**(b) Empirical relationships relied on, with sample, regime and last verification.**
+
+| Relationship | Sample | Regime measured in | Last verified | Where used |
+|---|---|---|---|---|
+| Diagnostic leads at tops (breadth, curve, credit) | U.S. bears and near-misses, 1970–2024 | Multiple | October 2026 | Part III; Chapter 17 |
+| Repression's liquidation effect | Advanced economies, 1945–1980 | Post-war repression | October 2026 | Chapter 3 |
+| Depth by mechanism family | Thirteen narrated U.S. episodes and the international record | Multiple | October 2026 | Chapters 12, 14 |
+| Stock–bond correlation sign by regime | U.S., 1966–2026 | Inflation and disinflation | October 2026 | Chapters 15, 19 |
+| Gold against real yields, and its break | U.S., about 2005–2021; broken since 2022 | Pre- and post-official bid | October 2026 | Chapters 15, 19 |
+| Six near-misses against eight bears | U.S., 1970–2024 | Multiple | October 2026 | Chapter 17.3 |
+
+**(c) The falsifier for each relationship.**
+
+- *Diagnostic leads:* a new top at which breadth, the curve and credit all failed to lead — which would make the lead a property of the sample.
+- *Repression's liquidation:* a decade of negative real yields in which the debt ratio rose — which Japan's stabilization partly is, and which is why the chapter states it.
+- *Depth by family:* a credit or debt-deflation bear shallower than the valuation bears of its decade.
+- *Stock–bond correlation:* a sustained negative correlation in an inflation regime.
+- *Gold against real yields:* the beta re-attaching on a multi-year window, which would mean the official bid is no longer marginal.
+- *Near-miss frequency:* a decade in which every correction of the near-miss size became a bear.
+- *The proposed branch rule, if ruled:* the four falsifiers of Chapter 17.4.
+
+**(d) Standing-register items that touch this paper.** Four changes are watched, each with a tripwire and a consequence for a chapter. *Fiscal dominance:* the tripwire is a real policy rate held below zero while core inflation runs a point above target for four quarters; if it fires, Chapter 3's fiscal-dominance regime is live and Chapter 21's months-rung protection moves to the inflationary column. *Reserve diversification:* the tripwire is the foreign official share of the debt falling for eight quarters with central-bank gold buying above its decade average; if it fires, Chapter 4's erosion is under way and the branch rule's gold arm gains weight. *Capital controls in a developed market:* the tripwire is any G20 economy restricting outward portfolio flows; if it fires, the n≈0 row of Chapter 13 acquires its first modern instance. *The internal-order cycle:* the tripwire is a central bank's statutory independence amended; if it fires, question 11 of Chapter 5 is answered and the default lever of Chapter 2.3 is likelier.
+
+| Change | Tripwire | Consequence |
+|---|---|---|
+| Fiscal dominance | Real policy rate below zero with core a point above target, four quarters | Ch. 3 live; Ch. 21 months rung to the inflationary column |
+| Reserve diversification | Foreign official share down eight quarters; record official gold buying | Ch. 4 erosion under way; Ch. 17.4's gold arm gains weight |
+| Developed-market capital controls | A G20 economy restricts outward portfolio flows | Ch. 13's n≈0 row gains an instance |
+| Central-bank independence | Statutory independence amended | Ch. 5 question 11 answered; Ch. 2.3's default lever likelier |
+
+**(e) Inventory of figures and dated material.** No figure is drawn in this Draft. Each is a placeholder that states what it would show and the stored series it would be drawn from; the directory `docs/figures/debt-cycles-regimes-environments/` holds a README that lists them.
+
+- *Figure 1 — The long cycle in one panel:* federal debt to output and net interest to revenue, as far back as the store holds, with the five tops of Part III marked. Drawn from `calc.fed_debt_total_pct_gdp` and `calc.interest_to_receipts`.
+- *Figure 2 — r against g:* the real effective rate on the debt against real growth, with the repression era shaded. Drawn from `calc.r_minus_g` and its average and marginal forms.
+- *Figure 3 — The branch tells:* the ten-year breakeven, the ten-year real yield and the gold front future on one time axis, with the proposed rule's state as a band. Drawn from `fred.breakeven_10y`, `fred.tips_10y`, `calc.r_real_10y_cpi` and `yfinance.mkt_gold_front`.
+- *Figure 4 — The stock–bond correlation through regimes:* the sixty-session correlation of equities and long bonds, with the inflation and disinflation regimes shaded. Drawn from `calc.corr_spy_tlt_60d`.
+- *Figure 5 — Five tops, from inside:* a timeline per instance of the diagnostic's first appearance, the top and the resolution, on a common axis of months from the top. Drawn from the cited episode dates in Tops and Bottoms and Base Rates; not a stored series.
+- *Figure 6 — The environment matrix:* Chapter 14's table as a grid shaded by direction, with each row's instance count beside it. Drawn from this paper's Chapter 14; not a stored series.
+
+The dated material is Appendix B, every item with its as-of date and source; it is recomputable from the stored series named in Chapter 5 and from the papers it cites.
+
+---
+
+## Appendix B — The dated appendix
+
+*Everything in this appendix carries an as-of date and is history rather than a read if that date is more than a year old. Nothing here is investment advice, no security is recommended, and nothing here is a forecast.*
+
+**As of: 24 October 2026.**
+
+**B.1 — The twelve diagnostic values.** Each value is cited from the library's own dated material with its as-of date; where no sourced value exists, the cell names the stored series to read at the refresh and states no number. No value was computed for this Draft.
+
+| # | Question | Value | As of | Source |
+|---|---|---|---|---|
+| 1 | Debt and interest to revenue | Debt about 120% of output; interest burden past 18.5% of revenue; debt service about 15% of outlays; net interest above defense spending since the mid-2020s | August 2026 | Currencies (Chapters 15–16); Foundations (Lineage, Minsky); Base Rates (Chapter 14.3) |
+| 2 | Who holds the debt | Foreign official holders net reducers; the marginal buyer domestic (money-market funds, banks, stablecoin issuers, the central bank's reinvestment) | August 2026 | Currencies (Chapter 16) |
+| 3 | Real rates against growth | Not stated here: read `calc.r_minus_g` and `calc.r_real_10y_cpi` | — | The store |
+| 4 | Policy space | Policy rate 3.50–3.75% with inflation at 3.4% | August 2026 | Currencies (Chapter 15) |
+| 5 | Private leverage | Not stated here: read `calc.household_debt_pct_gdp` and `calc.nonfin_corp_debt_pct_gdp` | — | The store |
+| 6 | Valuations against income | Not stated here: read `shiller.cape` and `fred.hy_oas`; the Top & Bottom report's overlays | — | The store |
+| 7 | Credit impulse | Not stated here: the Monthly's lending series | — | The store |
+| 8 | Fiscal impulse | Deficits about 6% of output in an expansion | August 2026 | Currencies (Chapter 16) |
+| 9 | Inflation regime | Inflation 3.4%; breakevens not stated here: read `fred.breakeven_10y` | August 2026 | Currencies (Chapter 15) |
+| 10 | External position | Not stated here: the international accounts; `fred.real_dollar_broad` | — | The store |
+| 11 | Political constraints on the central bank | A new central-bank chair from May 2026; the early evidence hawkish | August 2026 | Currencies (Chapter 16) |
+| 12 | Top-of-cycle conditions | Not stated here: the Top & Bottom report's overlays and the slow layers | — | The reports |
+
+**B.2 — The location, as the dated values read.** *(24 October 2026; a read, not a forecast; low confidence because seven of twelve cells are unread here)* On the five cells with sourced values, the long-cycle diagnostics read late: the interest burden rising and past major discretionary categories, a structural deficit in an expansion, and a marginal buyer that has become domestic and rate-sensitive. The central bank was, at the last dated read, resisting rather than accommodating, which is the reading that keeps fiscal dominance a tripwire rather than a regime. The branch is not identified: the proposed rule of Chapter 17.4 has not been ruled or run.
+
+**B.3 — The ten-year yield's verified closes.** *(verified 16 October 2026 from FRED's DGS10)* The 10-year Treasury yield closed at or above 5.25% in the week of 5 October 2026 — 5.31% on 5 October, 5.27% on 6 October and 5.28% on 7 October — after first closing above it at 5.26% on 29 September 2026; the last close at or above 5.25% before that was 5.26% on 12 June 2007. *(Batch 5 item 24's dated line, from the dated-appendix queue; the queue left its home to the operator's accept-all, and this paper is the likely home it named.)*
+
+**B.4 — Base-rate note: the long-bond cycle chart.** *(dated 9 October 2026; Batch 5 item 18)* A macro-cycles product pitch charts two hundred years of long-bond yields as 56-, 59- and 67-year secular legs, with 2020 as the turn and an oscillator run out to 2060. The leg lengths are fitted to the chart and the 2060 line is a forecast; it is kept here as a dated picture of the long cycle, not a measure. The testable claim, that dispersion is back, is measured in Mechanics' dispersion panel (Cboe DSPX and COR1M/COR3M).
+
+**B.5 — Base-rate note: gold against world equities.** *(dated 15 October 2026; Batch 6 item 38)* Above-ground gold's value as a share of global equity market capitalization, 1901–2025, peaked at roughly 80–90% at the First World War, the Second World War and the end of the 1970s inflation decade, troughed near 5% around 2000, and stood near 20% and rising at the date of the item *(as charted by a gold-focused fund manager; the stack does not track the ratio)*. Three peaks in a hundred and twenty-five years, each at a regime this paper names — two wars and an inflation — make it a secular frame and not a timing tool. Metals carries the same note for gold's own record.
+
+**B.6 — What the register does not yet say.** *(as of 24 October 2026)* The register carries the environment and branch fields of Chapter 22 only from the date this paper is adopted, so it holds no history against which the regime-conditional expectancy of Chapter 21 can be scored. The market-state object's dial calibration prints "awaiting" on most rows. Every claim here about how this book behaves by regime is, until then, a claim from mechanism and the cited record, not a measured result.
