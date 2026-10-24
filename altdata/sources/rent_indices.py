@@ -152,10 +152,11 @@ def fetch_rows() -> list[dict]:
     data, headers = http_get_response(ZILLOW_URL, timeout=120)
     available, kind = pub.availability(headers)
     rows += zillow_rows(data.decode("utf-8", errors="replace"), available, kind)
-    link = pub.find_link(APTLIST_PAGE, APTLIST_PATTERN)
-    data, headers = http_get_response(link, timeout=120)
-    available, kind = pub.availability(headers)
-    rows += aptlist_rows(data.decode("utf-8", errors="replace"), available, kind)
+    # APARTMENT LIST REFUSED (the feed repair of 24 Oct 2026): its research page
+    # answers HTTP 403 on every run, and the whole writer went STALE with it, so
+    # Zillow stopped too. The Apartment List leg is no longer requested (the 16 Oct
+    # sources rule); aptlist.rent_us is declared refused in the registry and its
+    # readers print the gap. Zillow is read alone.
     return rows
 
 

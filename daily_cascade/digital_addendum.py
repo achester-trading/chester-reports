@@ -357,6 +357,10 @@ def who_is_buying(st, cutoff: str, cfg: dict) -> dict:
     else:
         legs["etf"] = None
         why["etf"] = f"{len(flows)} Farside sessions stored for the month"
+    from altdata import refusals                                # noqa: PLC0415
+    if refusals.text("farside"):
+        legs["etf"] = None
+        why["etf"] = refusals.text("farside")
     t = next((v for d, v in tnp if d == end), None)
     legs["treasury"] = t
     if t is None:

@@ -1763,6 +1763,11 @@ def group_u() -> None:
 
 
 def main() -> int:
+    # THE PARSERS ARE TESTED AS IF LIVE (the feed repair of 24 Oct 2026): MBA,
+    # Farside and Apartment List are declared refused in source_registry.yaml, and
+    # their pulls ask nothing; tools/validate_feed_repair.py holds the refusal.
+    from altdata import refusals
+    refusals.set_registry({"sources": {}})
     print(f"{LINE}\nThe published-file writers (ST-1, ST-2) -- offline\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,

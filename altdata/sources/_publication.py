@@ -164,6 +164,28 @@ def stale(source: str, keys: Iterable[str], reason: str,
             "last_observed": held}
 
 
+REFUSED = "REFUSED"
+
+
+def refusal_text(source: str, registry: Optional[dict] = None) -> Optional[str]:
+    """altdata.refusals.text: 'not tracked: <source> refuses automated reads
+    since <date>' or None (the feed repair of 24 Oct 2026)."""
+    from .. import refusals                                     # noqa: PLC0415
+    return refusals.text(source, registry)
+
+
+def refused(source: str, run_id: Optional[str] = None,
+            registry: Optional[dict] = None) -> Optional[dict]:
+    """The summary of a run that requests nothing because the source refuses
+    automated reads; None when it does not."""
+    text = refusal_text(source, registry)
+    if not text:
+        return None
+    log.info("%s: REFUSED -- %s (nothing requested)", source, text)
+    return {"source": source, "status": REFUSED, "reason": text, "written": 0,
+            "run_id": run_id, "session": session.session_date()}
+
+
 def pending(source: str, reason: str, run_id: Optional[str] = None) -> dict:
     """The summary of a clean, empty run: a source never yet dropped. Writes
     nothing, and there is nothing stored to keep."""

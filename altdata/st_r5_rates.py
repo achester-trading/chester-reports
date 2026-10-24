@@ -378,6 +378,10 @@ def mba(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     yoy = _pts(st, c.get("yoy_key", "mba.purchase_nsa_yoy"), cutoff)
     wow = dict(_pts(st, c.get("wow_key", "mba.purchase_sa_wow"), cutoff))
     out: dict[str, Any] = {}
+    from . import refusals                                      # noqa: PLC0415
+    gap = refusals.text("mba")
+    if gap:
+        return dict(out, absent=True, reason=gap)
     if not yoy:
         return dict(out, absent=True, reason=c.get("absent_reason", "MBA is not stored"))
     week, y = yoy[-1]

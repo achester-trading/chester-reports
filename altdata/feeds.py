@@ -403,7 +403,10 @@ def writer_failures(mods: list, out: dict) -> dict:
     failed: dict[str, str] = {}
     for name, mod in mods:
         r = out.get(name) or {}
-        if r.get("status") in ("OK", "PENDING"):
+        # REFUSED (the feed repair of 24 Oct 2026): the source refuses automated
+        # reads, the writer asked nothing, and its keys are declared in the
+        # registry -- a listed gap, not a failure of this run.
+        if r.get("status") in ("OK", "PENDING", "REFUSED"):
             continue
         why = f"{name}: {r.get('reason') or 'status ' + str(r.get('status'))}"
         for k in _keys([(name, mod)]):
@@ -765,12 +768,21 @@ def freshness(as_of: Optional[str] = None,
         newest_map = db.newest_observed_map([k for _, ks in rosters for k in ks],
                                             as_of=as_of)
         for name, keys in rosters:
-            absent, stale, fresh, pending = [], [], [], []
+            absent, stale, fresh, pending, declared = [], [], [], [], []
             detail, pdetail = {}, {}
             tried = set((attempted or {}).get(name) or [])
             oc = outcomes.get(name) or {}
+            # DECLARED KEYS (the feed repair of 24 Oct 2026): superseded, refused,
+            # a listed gap or written only while held -- the registry says so, and
+            # the store check reads the same declaration.
+            keep = []
+            for k in keys:
+                (declared if derived.declared_status(derived.registry_entry(k))
+                 else keep).append(k)
+            keys = keep
             if not keys:
                 out["feeds"][name] = {"expected": 0, "fresh": 0, "stale": 0,
+                                      "declared": len(declared),
                                       "absent": 0, "pending": 0, "stale_keys": [],
                                       "stale_detail": {}, "absent_keys": [],
                                       "pending_keys": [], "ok": True,
@@ -849,6 +861,8 @@ def freshness(as_of: Optional[str] = None,
                 "absent_keys": sorted(absent)[:8],
                 "pending_keys": sorted(pending)[:8],
                 "pending_detail": {k: pdetail[k] for k in sorted(pdetail)[:8]},
+                "declared": len(declared),
+                "declared_keys": sorted(declared)[:8],
                 # OK = NO STALE KEYS. A pending key is a key no pull has tried.
                 "ok": not stale}
         out["ok"] = all(f["ok"] for f in out["feeds"].values())

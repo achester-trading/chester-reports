@@ -1877,7 +1877,13 @@ sources:
       index level and its history are member-only
     allowed_reports: [daily_cascade, monthly_macro]
     implemented_by: altdata/sources/mba.py
-    status: live
+    # REFUSED (the feed repair of 24 Oct 2026, a61b): www.mba.org answers HTTP 403
+    # to its own robots.txt on every run in the box's log extract. The writer asks
+    # nothing while this stands; the MBA line prints the gap (the 16 Oct rule).
+    status: refused
+    short_name: "MBA"
+    refused_since: "2026-10-24"
+    refused_seen: "HTTP 403 on https://www.mba.org/robots.txt"
     caveats:
       - >-
         Lifted 16 Oct 2026 (ruling: WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item); on feeds.EXTERNAL_WRITERS. Forward-only: the newsroom pages no archive.
@@ -2037,6 +2043,12 @@ sources:
     status: live
   farside:
     name: Farside Investors -- US spot bitcoin and ether ETF daily flows (HTML tables)
+    # REFUSED (the feed repair of 24 Oct 2026, a61b): HTTP 403 with a Cloudflare
+    # "Just a moment" challenge on /btc/ and /eth/. The writer asks nothing; the
+    # Digital Assets page's ETF-flow line and the evening note print the gap.
+    refused_since: "2026-10-24"
+    refused_seen: "HTTP 403, a Cloudflare challenge, on farside.co.uk/btc/ and /eth/"
+    short_name: "Farside"
     tier: C
     epistemic_role: unofficial_mirror
     domain: [crypto_flows]
@@ -2051,7 +2063,7 @@ sources:
     license: public web page; cite Farside Investors
     allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
     implemented_by: altdata/sources/farside.py
-    status: live
+    status: refused
   geckoterminal:
     name: GeckoTerminal public API -- new pools and trending pools (the froth gauge)
     tier: C

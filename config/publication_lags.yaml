@@ -21,6 +21,19 @@
 # MATCHING. A family matches by `fred_ids` (the FRED series ids, globbed, read
 # through altdata.config.FRED_PULL_SERIES) and/or `keys` (store keys, globbed).
 # The first family that matches a key wins; order is most specific first.
+#
+# INHERITANCE (the feed repair of 24 Oct 2026, a61b). A derived key that declares
+# its inputs in the registry (`inputs:` on a metric, `member_inputs` or
+# `member_inputs_from` on a block) takes the LARGEST lag among its own family and
+# its inputs' (altdata/derived.py inherited_lag), so calc.surprise_vs_naive.*,
+# calc.yoy_*, calc.real_*, calc.r_real_* and every corr.* key with a weekly-posted
+# leg wait as long as the slowest series they are made of.
+#
+# THE ARITHMETIC of a monthly family below: a month is dated its first day and
+# published D sessions after it ends; just before the next month's print the
+# newest is about 21 + 21 + D sessions old, against the monthly allowance's 32,
+# so lag = D + 10, plus a holiday's slack. D is the publisher's own schedule, or
+# the release date its newest file states, cited beside each.
 version: 1
 families:
   - id: fred_h10
@@ -173,3 +186,100 @@ families:
       ends (the jobs report first, PCE and the Census series last). Before the
       next print the newest is about 54 sessions old: 32 plus 22. The naive
       expectations of monthly series read the same prints.
+
+  # --- The feed repair of 24 Oct 2026 (a61b): the monthly sources outside FRED,
+  # each from its publisher's schedule or its newest file's stated release.
+  - id: statcan_cpi
+    keys: ["ca.cpi_yoy", "ca.cpi_core_yoy"]
+    lag_sessions: 24
+    max_lag: 26
+    source: "Statistics Canada, the CPI (table 18-10-0004-01), Web Data Service"
+    reason: >-
+      The CPI is released in the third week of the following month: September
+      2026's point carries releaseTime 2026-10-19 (the laptop's probe of 24 Oct),
+      about 13 sessions after the month ended. 13 + 10, and a holiday's slack.
+  - id: japan_cpi
+    keys: ["jp.cpi_yoy", "jp.cpi_core_yoy", "jp.cpi_less_fresh_yoy"]
+    lag_sessions: 24
+    max_lag: 27
+    source: "Statistics Bureau of Japan, the national CPI (stat.go.jp)"
+    reason: >-
+      The national CPI is released about three weeks after the month: August
+      2026's file is Last-Modified 17 Sep 2026 (the 08:30 JST release), about 13
+      sessions after the month ended. 13 + 10 and a day's slack; the bound allows
+      Japan's September holidays.
+  - id: uk_cpi
+    keys: ["uk.cpi_yoy", "uk.cpi_core_yoy"]
+    lag_sessions: 23
+    max_lag: 25
+    source: "Office for National Statistics, CPI and CPI excluding energy, food, alcohol and tobacco (MM23)"
+    reason: >-
+      The CPI is released in the middle of the following month: the file states
+      "Release date 16-09-2026" for August 2026, about 12 sessions after the month
+      ended. 12 + 10 and a day's slack.
+  - id: thailand_cpi
+    keys: ["thai.cpi", "thai.cpi_yoy"]
+    lag_sessions: 18
+    max_lag: 20
+    source: "Trade Policy and Strategy Office (Ministry of Commerce, Thailand), headline CPI"
+    reason: >-
+      TPSO releases the month's CPI in the first week of the next; the writer
+      stamps each month the 10th of the following month by rule, about 7
+      sessions after it ends. 7 + 10 and a day's slack.
+  - id: ecb_irs
+    keys: ["ecb.irs_10y_*"]
+    lag_sessions: 23
+    max_lag: 25
+    source: "ECB data portal, IRS: long-term interest rates for convergence purposes (monthly averages)"
+    reason: >-
+      A monthly average is published after the month closes: September 2026 was
+      in the dataset when the writer was checked on 16 Oct 2026, within 12
+      sessions of the month's end. 12 + 10 and a day's slack.
+  - id: redfin
+    keys: ["redfin.*"]
+    lag_sessions: 19
+    max_lag: 22
+    source: "Redfin data center, monthly housing market files (public bucket)"
+    reason: >-
+      The monthly files are updated once a month after it closes: country.csv
+      was Last-Modified 12 Oct 2026 carrying September, about 8 sessions after the
+      month ended. 8 + 10 and a day's slack.
+  - id: nyfed_sce
+    keys: ["nyfed.sce_*"]
+    lag_sessions: 18
+    max_lag: 21
+    source: "Federal Reserve Bank of New York, Survey of Consumer Expectations"
+    reason: >-
+      The survey's monthly results are released in the second week of the
+      following month (the New York Fed's release calendar), about 7 sessions
+      after the month ends. 7 + 10 and a day's slack.
+  - id: census_vip
+    keys: ["census.vip_*"]
+    lag_sessions: 33
+    max_lag: 35
+    source: "Census Bureau, construction spending (value put in place)"
+    reason: >-
+      Construction spending is released on the first business day of the month,
+      for the month two before (the Census economic-indicator calendar): about
+      22 sessions after the reference month ends. 22 + 10 and a day's slack.
+  - id: fred_h6_weekly
+    fred_ids: ["WRMFNS"]
+    freq: weekly
+    lag_sessions: 34
+    max_lag: 37
+    source: "Federal Reserve H.6 (money stock), retail money funds, weekly, through FRED"
+    reason: >-
+      H.6 is released once a month, about four weeks after the month it covers,
+      carrying that month's weekly levels: on 24 Oct 2026 the newest week was
+      31 Aug. Before the next release the newest week is about 41 sessions old,
+      against the weekly allowance's 8: 33 and a day's slack.
+  - id: btc_difficulty
+    keys: ["mempool.difficulty"]
+    freq: weekly
+    lag_sessions: 4
+    max_lag: 5
+    source: "Bitcoin's difficulty adjustment, through mempool.space"
+    reason: >-
+      The difficulty is set every 2,016 blocks, about 14 days (10 sessions) at the
+      ten-minute target; one row an adjustment. Weekly's 8 plus 4 covers an
+      adjustment a few days late when blocks run slow; 5 bounds it.

@@ -267,6 +267,11 @@ def cells(ed: dict, sid: str) -> dict:
 
 
 def main() -> int:
+    # THE PARSERS ARE TESTED AS IF LIVE (the feed repair of 24 Oct 2026): MBA,
+    # Farside and Apartment List are declared refused in source_registry.yaml, and
+    # their pulls ask nothing; tools/validate_feed_repair.py holds the refusal.
+    from altdata import refusals
+    refusals.set_registry({"sources": {}})
     from daily_cascade import digital_addendum as da
 
     db_a = str(TD / "obs_a.sqlite")

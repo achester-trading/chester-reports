@@ -145,6 +145,11 @@ def fetch_rows() -> list[dict]:
 
 
 def pull(run_id: Optional[str] = None, db=None) -> dict:
+    # REFUSED (the feed repair of 24 Oct 2026): www.mba.org answers HTTP 403 to
+    # its own robots.txt; the source registry declares it and nothing is asked.
+    r = pub.refused(SOURCE, run_id)
+    if r:
+        return r
     if HELD_FOR_D1C:
         return {"source": SOURCE, "status": "HELD", "written": 0,
                 "reason": HOLD_REASON, "keys": KEYS}

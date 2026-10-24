@@ -172,6 +172,12 @@ names:
     llama_slug: "aerodrome"
     llama_coin: "coingecko:aerodrome-finance"
     llama_series: ["fees", "revenue", "holders_revenue", "tvl"]
+    # HELD (the feed repair of 24 Oct 2026): DefiLlama merged Aerodrome and
+    # Velodrome into the parent `aero` (Aero) at the 21 Oct 2026 launch, and the
+    # slug `aerodrome` now serves the merged protocol's history back to 2022. Not
+    # requested until the operator rules whether AERO follows the merged parent
+    # (a labelled break) or stays a gap.
+    llama_hold: "DefiLlama merged Aerodrome into Aero (with Velodrome) on 21 Oct 2026; held until ruled"
     measurable:
       key: "llama.fees_aero"
       pays: "Main exchange on Coinbase's Base network; 100% of ~$91M fees to token lockers"

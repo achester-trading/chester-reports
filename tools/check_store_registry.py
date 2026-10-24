@@ -39,7 +39,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 REPO = Path(__file__).resolve().parent.parent
-QUIET_STATUSES = ("not_yet_sourced", "superseded")
+QUIET_STATUSES = ("not_yet_sourced", "superseded", "refused", "gap", "while_held")
 # Blocks whose members are a table's or a file's COLUMNS, or a vocabulary's values
 # -- registered so a new column cannot appear unregistered, never stored as keys.
 # Left out of list 2, where they would read as 101 missing series.
@@ -133,14 +133,19 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
     # written on Monday as "2 sessions" -- 389 corr.* keys and the session
     # half-life keys among them.
     last = session.last_completed_session(as_of).isoformat()
-    stale = []
+    stale, declared = [], []
     for k in sorted(have):
         if k not in resolved or not have[k]["newest"]:
             continue
-        # A superseded key is never written again, so it cannot be stale: its
-        # rows are history (yfinance.mkt_usdcnh since PB-1).
-        if ((resolved[k] or {}).get("status_extra")
-                or (resolved[k] or {}).get("status")) == "superseded":
+        # A DECLARED key is never counted stale (superseded since PB-1; refused,
+        # gap and while_held since the feed repair of 24 Oct 2026): it is listed
+        # apart, with its status (derived.DECLARED_STATUSES).
+        ds = derived.declared_status(resolved[k])
+        if ds:
+            declared.append({"key": k, "status": ds,
+                             "newest": str(have[k]["newest"])[:10],
+                             "why": (resolved[k].get("superseded_by")
+                                     or resolved[k].get("gap_reason") or "")})
             continue
         allow, why = derived.staleness_allowance_of(resolved[k], k)
         if allow is None:
@@ -164,7 +169,7 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
     srcs = sorted(detail, key=str)
     return {"db": db, "as_of": as_of, "last_session": last, "stored": len(have),
             "unregistered": unregistered, "no_rows": no_rows, "quiet": quiet,
-            "stale": stale, "off_list_sources": srcs,
+            "stale": stale, "declared": declared, "off_list_sources": srcs,
             "off_list_detail": {s: {"rows": detail[s]["rows"],
                                     "keys": len(detail[s]["keys"]),
                                     "examples": detail[s]["keys"][:EXAMPLE_KEYS]}
@@ -191,6 +196,13 @@ def report(r: dict, verbose: bool = False) -> str:
                          66, initial_indent="       ", subsequent_indent="       ")
     if verbose:
         out += [f"         {k}" for k in r["no_rows"]]
+    dec = r.get("declared") or []
+    if dec:
+        by: dict = {}
+        for x in dec:
+            by[x["status"]] = by.get(x["status"], 0) + 1
+        out.append("  declared, not stale        : " + str(len(dec)) + " ("
+                   + ", ".join(f"{n} {s}" for s, n in sorted(by.items())) + ")")
     dead = [s for s in r["stale"] if s.get("dead")]
     out.append(f"  3. stale                     : {len(r['stale'])}"
                + (f" ({len(dead)} dead?: past {DEAD_MULTIPLE}x their allowance)"

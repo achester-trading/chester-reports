@@ -320,6 +320,10 @@ def collect(only: Optional[str] = None, fetch: Callable[..., Any] = _get,
             slug = n.get("llama_slug")
             if not slug:
                 continue
+            if n.get("llama_hold"):
+                # HELD (the feed repair of 24 Oct 2026): nothing requested.
+                summary.setdefault("held", {})[sym] = n["llama_hold"]
+                continue
             s = sym.lower()
             served = set(n.get("llama_series") or [])
             for kind, dtype in FEE_TYPES.items():

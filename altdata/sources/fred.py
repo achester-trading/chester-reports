@@ -4,10 +4,12 @@ FRED (Federal Reserve Economic Data) fetcher.
 API docs: https://fred.stlouisfed.org/docs/api/fred/
 
 Auth:    API key required. Set FRED_API_KEY env var.
-Limits:  120 requests per 60 seconds (FRED's published limit). The pull pauses
-         PACING_SECONDS between calls, so it alone stays at or under 100 a
-         minute; the ALFRED history (altdata/fred_history.py) paces the same and
-         reads through the same fetch.
+Limits:  120 requests per 60 seconds (FRED's published limit). The pull starts
+         a request at most every PACING_SECONDS (0.55 s: at most about 109 a
+         minute, whatever the latency), sleeping only the part of the interval a
+         request did not already take, so a slow night is not made slower. The
+         ALFRED history (altdata/fred_history.py) reads through the same fetch
+         with its own 0.6 s pause; the two should not run in the same minutes.
 
 A BODY THAT IS NOT JSON (the feed repair of 24 Oct 2026, a61b). On 24 Oct about
 fifteen series failed on one run with "Expecting value: line 1 column 1": FRED
@@ -64,7 +66,7 @@ from ..store import Store
 log = logging.getLogger(__name__)
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
-PACING_SECONDS = 0.6  # pause between requests: at most 100 a minute, under FRED's 120
+PACING_SECONDS = 0.55  # the least interval between request starts: <= ~109 a minute
 # The non-JSON path (24 Oct 2026): attempts in all, and the longest Retry-After
 # honoured (SESSION-SET: a longer ask is capped, not ignored).
 RETRY_ATTEMPTS = 3
@@ -235,7 +237,12 @@ def pull(store: Store, lookback_days: Optional[int] = None,
                                              "revision window)")
     windows: dict[str, Optional[str]] = {}
 
+    last_start: Optional[float] = None
     for i, spec in enumerate(specs, start=1):
+        # Be polite to FRED: request starts at least PACING_SECONDS apart.
+        if last_start is not None:
+            time.sleep(max(0.0, PACING_SECONDS - (time.monotonic() - last_start)))
+        last_start = time.monotonic()
         log.info("[%d/%d] %s (%s)", i, total, spec.key, spec.fred_id)
         try:
             start = (None if full or lookback_days is not None else
@@ -264,8 +271,6 @@ def pull(store: Store, lookback_days: Optional[int] = None,
                       secrets.redact(traceback.format_exc()))
             failed.append((spec.key, secrets.redact(f"unexpected: {type(e).__name__}: {e}")))
 
-        # Be polite to FRED
-        time.sleep(PACING_SECONDS)
 
     if failed:
         log.warning("%s", summary_line(failed, total))
