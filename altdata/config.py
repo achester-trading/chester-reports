@@ -698,13 +698,23 @@ FRED_BANK_STRESS_SERIES: list[SeriesSpec] = [
     SeriesSpec("stlfsi", "STLFSI4", "St. Louis Fed Financial Stress Index", "6", "idx", "weekly"),
 ]
 
+# THE PER-HOUSEHOLD DEFLATOR (signal-triage Batch 14, item 68, ST-R6.61a; F3: NAR's
+# index has no free series, so Redfin's pending sales are deflated by Census
+# household counts). Read off FRED on 23 Oct 2026: TTLHHM156N, "Household
+# Estimates", the Census Bureau's, THOUSANDS, not seasonally adjusted, monthly
+# (from 1955; quarterly before the monthly rows begin).
+FRED_HOUSEHOLDS_SERIES: list[SeriesSpec] = [
+    SeriesSpec("households", "TTLHHM156N", "Household estimates, total, thousands, NSA (Census)", "2", "K", "monthly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
-                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES)
+                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
+                                      + FRED_HOUSEHOLDS_SERIES)
 
 
 # Quick lookup by key

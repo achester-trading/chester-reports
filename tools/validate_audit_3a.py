@@ -167,7 +167,9 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # A51 (19 Oct 2026): the open note's retail sales form (RSAFS)
                   "fred_notes",
                   # Batch 12 item 59 (a53, 20 Oct 2026): the bank-stress panel's FRED legs
-                  "fred_bank_stress"}
+                  "fred_bank_stress",
+                  # Batch 14 item 68 (b55, 23 Oct 2026): the per-household deflator
+                  "fred_households"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).

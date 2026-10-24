@@ -16306,6 +16306,32 @@ bulk_imports:
     mechanism_group_map:
       "2": macro_momentum
 
+  fred_households:
+    description: >-
+      The per-household deflator (signal-triage Batch 14, item 68, ST-R6.61a;
+      b55, 23 Oct 2026; F3): the Census Bureau's household estimates (FRED
+      TTLHHM156N), THOUSANDS, not seasonally adjusted, monthly. Redfin's pending
+      sales divided by it make item 36's per-household line, single-source (NAR's
+      index has no free series). See altdata/config.py FRED_HOUSEHOLDS_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_HOUSEHOLDS_SERIES
+    member_families:
+      fred.households: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
   fred_bank_stress:
     description: >-
       Signal-triage Batch 12, item 59 (ST-R6.59a; a53, 20 Oct 2026): the
