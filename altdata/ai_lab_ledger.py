@@ -129,7 +129,7 @@ def measures(r: dict) -> dict:
 
 def _head(r: dict) -> str:
     st = r.get("status") or "entered"
-    return f"{r['lab']}, {r['period']} ({st}; reported {r.get('reported')})"
+    return f"{r['lab']}, {r['period']} ({st}; as of {r.get('reported')}, as reported)"
 
 
 def unit_economics_line(rows: list[dict]) -> str:

@@ -1238,7 +1238,10 @@ def group_i() -> None:
     check(all(x.strip() for x in lines) and filled and marked
           and all(("withdrawn" in x or "not determinable" in x or "deferred" in x
                    or "zero rebalancing" in x or "Attribution" in x or "ON" in x
-                   or "off" in x or "not rendered" in x) for x in other),
+                   or "off" in x or "not rendered" in x
+                   # Batch 15 item 75 (b56): the mega-IPO watch says why it is
+                   # empty; an empty ledger says so.
+                   or "not yet public" in x or "no ledger entry" in x) for x in other),
           f"every line is populated with its as-of ({len(filled)}) or marked NOT "
           f"AVAILABLE / NOT TRACKED with its source ({len(marked)}); the rest say why "
           f"they are not read ({len(other)})")
