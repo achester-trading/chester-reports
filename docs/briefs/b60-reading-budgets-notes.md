@@ -86,17 +86,19 @@
 | `validate_stack_cadence` | Group A's targets (10, 35, 55, 90 minutes; 2,250, 7,900, 10,000 words), group D's guard (full paragraphs, `over_target`) and runaway scale. **Group M rewritten:** no cadence trims, `trim_to_budget` gone from the code, and **an over-target fixture at the close, the Weekly and the Monthly renders every paragraph, claim and item in full and prints the foot line in the page and the Markdown**. Inside its target, no line; the Quarterly carries none and cuts nothing | 104/0 |
 | `validate_stack` | Group F: the fixture is inside its 10-minute target; over a 1-minute target nothing is cut and the footer carries the line | 84/0 |
 | `validate_weekly_stack` | Group H: the 35-minute, 7,900-word target; over it the Weekly prints every paragraph and item and the line | 83/0 |
-| `validate_monthly_stack` | Group E: over 10,000 words and 55 minutes nothing is cut, no "(trimmed)", the page prints the line; the budget step never trims a stored summary | left to CI (memory) |
+| `validate_monthly_stack` | Group E: over 10,000 words and 55 minutes nothing is cut, no "(trimmed)", the page prints the line; the budget step never trims a stored summary | 267/0, run locally after its target pin was fixed |
 | `validate_readability` | The guard cuts nothing past the 120-word, one-paragraph target | 67/0 |
 | `validate_digital_addendum` | The 1,500 / 7 / 2 targets with no `max_lines`. **Over a 100-word, 1-minute target the page keeps every row and line of the full week and prints its foot line.** Items 77 and 78 are in the incidents body with their tables, not the footnote. A read past 120 words prints in full; a runaway reply is still withheld | 98/0 |
 | `validate_batch15_2` | The addendum's incidents body carries items 77 and 78 | 57/0 |
 | `validate_crypto_sources` | The Weekly block prints all its measures, with no cap key | 117/0 |
 
-Also run locally: `validate_quarterly_gates` 95/0, `validate_a47_chain3` 42/0, `validate_a55_box_fixes` 31/0, `validate_audit_fixes` 103/0 (the gates that test a too-long reply), `check_master_guide` 0/0 (the guide's close and Weekly rows rewritten and its HTML rebuilt), `check_library` 0/0, and `validate_audit_3a` 88/0.
+Also run locally: `validate_daily_close` 102/0, `validate_weekly_complete` 96/0, `validate_monthly` 359/0 (1 skipped), `validate_quarterly_stack` 94/0, `validate_quarterly_gates` 95/0, `validate_a47_chain3` 42/0, `validate_a55_box_fixes` 31/0, `validate_audit_fixes` 103/0 (the gates that test a too-long reply), `check_master_guide` 0/0 (the guide's close and Weekly rows rewritten and its HTML rebuilt), `check_library` 0/0, and `validate_audit_3a` 88/0.
 
 **No gate is added**, so CLAUDE.md's count line is unchanged (138 code gates, B59's count).
 
-**CI:** recorded below once read.
+**CI, round 1:** run 40119476629 at `f001352`, **red, one gate**. `validate_weekly_fixes_8` showed the audit retry on a 159-word draft in an 80-150 band being withheld; since D20 that draft prints. The gate now shows the retry on the band's floor (a 60-word draft, withheld, revised once to 120 and published), and checks that 159 words is no fault. 68/0 locally. (The run of `8d29041`, superseded, was cancelled.)
+
+**CI, round 2:** recorded below once read.
 
 ## Differences from the paste
 
@@ -104,7 +106,7 @@ Also run locally: `validate_quarterly_gates` 95/0, `validate_a47_chain3` 42/0, `
 - **The writers' character ceilings are kept as runaway guards (doubled), not removed.** Removing them entirely would leave only the provider's output cap, which cuts a reply mid-sentence.
 - **The opener band's floor is kept.** A commentary under the floor is still sent back once; that is a shape fault, not length.
 - **The anchor's caps** (signal lines, crypto daily part, the morning ceiling) are not changed: the 07:00 anchor is not named in D20. They are listed.
-- **Nothing in the Weekly's renderer is changed for the freeze** (29 Oct-1 Nov), because nothing here merges before 1 Nov.
+- **The freeze:** the Weekly's code changes here, but none of it merges before 1 Nov, so nothing reaches the Weekly in the 29 Oct-1 Nov freeze.
 
 ## Files shared with other branches
 

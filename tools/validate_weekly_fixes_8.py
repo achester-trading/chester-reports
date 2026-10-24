@@ -105,10 +105,17 @@ def group_a() -> None:
     check(opener.band(cad, "medium") == (80, 150),
           "the fixture's band is the Weekly's medium one, 80 to 150 words")
     take = "Takeaway: the credit market is not pricing stress."
-    long_draft = words(159 - len(take.split())) + " " + take
+    # D19/D20 (24 Oct 2026): the band's top is a target, so the retry is shown on
+    # its floor -- a draft too thin to carry its Takeaway -- and a long one prints.
+    long_draft = words(60 - len(take.split())) + " " + take
     short_draft = words(120 - len(take.split())) + " " + take
-    check(opener.words(long_draft) == 159 and opener.words(short_draft) == 120,
-          "the drafts run 159 and 120 words")
+    over_draft = words(159 - len(take.split())) + " " + take
+    check(opener.words(long_draft) == 60 and opener.words(short_draft) == 120
+          and opener.words(over_draft) == 159,
+          "the drafts run 60, 120 and 159 words")
+    check(not opener.faults(over_draft, cad, "medium", "Narratives"),
+          "159 words in an 80-150 band is no fault since D19/D20: it prints in full, "
+          "never withheld for length")
     data = {"oas": {"label": "EM high-yield OAS", "change_bp": 5}}
     seen: list = []
 
@@ -132,10 +139,10 @@ def group_a() -> None:
     r = audit_retry.run(make(True), report="weekly", section="narratives",
                         retryable=lambda x: True)
     check(r["published"] and r["attempts"] == 2 and len(seen) == 2,
-          f"159 words in an 80-150 band: withheld, revised once, published "
+          f"60 words under an 80-150 band: withheld, revised once, published "
           f"({r['attempts']} attempts)")
     note = seen[1]["note"] or ""
-    check("WITHHELD BY THE AUDIT: withheld: Narratives runs 159 words; its band is "
+    check("WITHHELD BY THE AUDIT: withheld: Narratives runs 60 words; its band is "
           "80 to 150" in note and "THE OPENER SHAPE" in note
           and "THE FAILING SPAN: the draft as a whole" in note
           and "YOUR DRAFT:\n<<<\n" + long_draft in note
@@ -151,7 +158,7 @@ def group_a() -> None:
     r2 = audit_retry.run(make(False), report="weekly", section="narratives",
                          retryable=lambda x: True)
     check(not r2["published"] and r2["attempts"] == 2 and len(seen) == 2
-          and r2["reason"].startswith("withheld: Narratives runs 159 words")
+          and r2["reason"].startswith("withheld: Narratives runs 60 words")
           and r2["first_reason"] == r2["reason"],
           "a draft that fails twice is withheld with the second reason, after one "
           "revision and no third call")
