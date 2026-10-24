@@ -33,8 +33,9 @@ network, no model, no live store (each store here is the gate's own).
   G  THE NEW FAMILIES. Each carries its source, reason and a lag within its
      bound, and matches a registered key; each declared new family is present.
      A64 (ruling D29.5): EIA's rig counts and the Cleveland Fed rules carry the
-     families their publishers' calendars give; Ken French's library and the
-     Shiller workbook's earnings and dividends, which state no delay, carry none.
+     families their publishers' calendars give; the Tuck data library and the
+     shillerdata.com workbook's earnings and dividends, which state no delay,
+     carry none.
   H  AERO'S LABELLED BREAK (ruling D29.3, A64). The writer asks DefiLlama for the
      merged parent `aero` and keeps no point before 21 Oct 2026, so stored
      history is never restated; the four keys are no longer declared a gap; a
@@ -440,7 +441,7 @@ def group_g() -> None:
     none = [k for k in ("french.hml", "french.ind49_ret_vw", "french.ind49_beme",
                         "shiller.sp_earnings", "shiller.sp_dividend")
             if derived.publication_lag(res[k], k)[1] is not None]
-    check(not none, f"Ken French's library and Shiller's earnings and dividends carry no "
+    check(not none, f"the Tuck data library and the shillerdata.com workbook's earnings and dividends carry no "
                     f"family: no publisher statement ({none or 'none'})")
 
 

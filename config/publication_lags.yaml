@@ -285,8 +285,8 @@ families:
       adjustment a few days late when blocks run slow; 5 bounds it.
 
   # --- A64 (24 Oct 2026, evening; ruling D29.5): the two of the four listed
-  # sources whose publishers state a schedule. Ken French's library and the
-  # Shiller workbook's earnings and dividends state none, so they have no family
+  # sources whose publishers state a schedule. The Tuck data library and the
+  # shillerdata.com workbook's earnings and dividends state none, so no family
   # (docs/briefs/a61b-feed-repair-notes.md, "A64").
   - id: eia_rigs
     keys: ["eia.rigs_*"]
