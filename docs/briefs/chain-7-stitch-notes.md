@@ -1,4 +1,4 @@
-STITCH: pushed; CI recorded below.
+STITCH COMPLETE: CI green at `a6c53f5` (run 40135049114), in two rounds; every later commit changes notes only. Must not merge before the 1 Nov Monthly.
 
 # chain-7: the post-Monthly branches since chain-6, stitched into one (session B, 24 Oct 2026)
 
@@ -139,7 +139,7 @@ The Monthly's and the Weekly's full gates (`validate_monthly_stack`, `validate_m
 | Round | Run | On | Result |
 |---|---|---|---|
 | 1 | 40132670483 | `bd6a307` | **Red, one gate:** `validate_crypto_basket` (92/1). The strip had edited VVV's thesis, a verbatim quotation of the filed basket document. Fixed in the next commit by restoring the line; 93/0 locally. Every other job passed |
-| 2 | recorded once read | | |
+| 2 | 40135049114 | `a6c53f5` | **Green**, every job passed (11m10s) |
 
 ## The box sheet
 
