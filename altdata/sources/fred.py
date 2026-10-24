@@ -4,7 +4,20 @@ FRED (Federal Reserve Economic Data) fetcher.
 API docs: https://fred.stlouisfed.org/docs/api/fred/
 
 Auth:    API key required. Set FRED_API_KEY env var.
-Limits:  Generous (~120 requests per 60s). We pause briefly between calls.
+Limits:  120 requests per 60 seconds (FRED's published limit). The pull pauses
+         PACING_SECONDS between calls, so it alone stays at or under 100 a
+         minute; the ALFRED history (altdata/fred_history.py) paces the same and
+         reads through the same fetch.
+
+A BODY THAT IS NOT JSON (the feed repair of 24 Oct 2026, a61b). On 24 Oct about
+fifteen series failed on one run with "Expecting value: line 1 column 1": FRED
+answered 200-or-not with a body that was not JSON (an error or rate-limit page),
+on the day the 1.9m-row ALFRED history ran beside the 16:10 pull. `get_json`
+records the HTTP status and the first 120 characters of the body, retries with
+backoff (at most RETRY_ATTEMPTS attempts, honouring Retry-After up to
+RETRY_AFTER_CAP seconds), and then raises a FetchError whose text carries the
+status; the pull marks that series STALE with it (altdata/feeds.py) and logs ONE
+summary line per run, never a traceback per series.
 Format:  Each series returns observations with 'date' and 'value' (string,
          '.' for missing). We coerce '.' to None.
 
@@ -40,9 +53,9 @@ import os
 import time
 import logging
 import traceback
-from typing import Optional
+from typing import Callable, Optional
 
-from ._base import http_get_json, FetchError
+from ._base import FetchError, RETRY_BACKOFF, DEFAULT_TIMEOUT, USER_AGENT
 from .. import config
 from .. import session
 from .. import secrets
@@ -51,7 +64,12 @@ from ..store import Store
 log = logging.getLogger(__name__)
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
-PACING_SECONDS = 0.4  # pause between requests; well under FRED limit
+PACING_SECONDS = 0.6  # pause between requests: at most 100 a minute, under FRED's 120
+# The non-JSON path (24 Oct 2026): attempts in all, and the longest Retry-After
+# honoured (SESSION-SET: a longer ask is capped, not ignored).
+RETRY_ATTEMPTS = 3
+RETRY_AFTER_CAP = 60.0
+SNIPPET_CHARS = 120
 # The revision window by release frequency, in days (SESSION-SET; the docstring
 # gives the reasons). An unknown frequency takes the widest.
 REVISION_WINDOW_DAYS = {"daily": 30, "weekly": 120, "monthly": 400, "quarterly": 400}
@@ -111,6 +129,53 @@ def newest_stored(store: Store, key: str) -> Optional[str]:
     return max(days) if days else None
 
 
+def _snippet(text: str) -> str:
+    """The first SNIPPET_CHARS characters of a body, whitespace folded, redacted."""
+    return secrets.redact(" ".join(str(text or "")[:SNIPPET_CHARS].split()))
+
+
+def _retry_after(value) -> Optional[float]:
+    """Retry-After in seconds (the delta form; an HTTP date is not honoured)."""
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def get_json(url: str, params: dict, get: Optional[Callable] = None,
+             sleep: Callable = time.sleep) -> dict:
+    """One FRED (or ALFRED) JSON read. A 4xx other than 429 is not retried; a
+    429, a 5xx, a connection error or a body that is not JSON is retried up to
+    RETRY_ATTEMPTS attempts in all, waiting Retry-After (capped) or a doubling
+    backoff. The final FetchError names the HTTP status and the body's start."""
+    import requests                                             # noqa: PLC0415
+    get = get or requests.get
+    last, wait = "no response", RETRY_BACKOFF
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
+        ra = None
+        try:
+            resp = get(url, params=params, timeout=DEFAULT_TIMEOUT,
+                       headers={"User-Agent": USER_AGENT})
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            last = f"{type(exc).__name__}"
+        else:
+            status = resp.status_code
+            if 400 <= status < 500 and status != 429:
+                raise FetchError(f"HTTP {status}: {_snippet(resp.text)}")
+            if status < 300:
+                try:
+                    return resp.json()
+                except ValueError:
+                    last = f"HTTP {status}, body not JSON: {_snippet(resp.text)}"
+            else:
+                last = f"HTTP {status}: {_snippet(resp.text)}"
+            ra = _retry_after((resp.headers or {}).get("Retry-After"))
+        if attempt < RETRY_ATTEMPTS:
+            sleep(min(RETRY_AFTER_CAP, ra) if ra is not None else wait)
+            wait *= 2
+    raise FetchError(f"{last} (after {RETRY_ATTEMPTS} attempts)")
+
+
 def _fetch_series(fred_id: str, api_key: str, lookback_days: Optional[int] = None,
                   start: Optional[str] = None) -> list[tuple[str, Optional[float]]]:
     """Fetch one FRED series and return list of (date, value): from `start`, or
@@ -126,9 +191,17 @@ def _fetch_series(fred_id: str, api_key: str, lookback_days: Optional[int] = Non
     }
     if start:
         params["observation_start"] = start
-    data = http_get_json(FRED_BASE, params=params)
+    data = get_json(FRED_BASE, params=params)
     obs = data.get("observations", [])
     return [(o["date"], _parse_value(o.get("value"))) for o in obs]
+
+
+def summary_line(failed: list, total: int) -> str:
+    """ONE line for the run: the count, and each failed key with its reason's
+    first words."""
+    parts = [f"{k} ({' '.join(str(r).split())[:60]})" for k, r in failed[:20]]
+    more = f"; and {len(failed) - 20} more" if len(failed) > 20 else ""
+    return f"fred: {len(failed)} of {total} series failed: " + "; ".join(parts) + more
 
 
 def pull(store: Store, lookback_days: Optional[int] = None,
@@ -181,18 +254,21 @@ def pull(store: Store, lookback_days: Optional[int] = None,
             }
             success += 1
         except FetchError as e:
-            log.warning("  FAIL %s: %s", spec.key, secrets.redact(str(e)))
+            log.debug("  FAIL %s: %s", spec.key, secrets.redact(str(e)))
             failed.append((spec.key, secrets.redact(str(e))))
         except Exception as e:
             # AUD-1 2b: the traceback carries the exception's text, and a
-            # requests error's text carries the URL with its api_key.
-            log.error("  unexpected error on %s: %s", spec.key,
+            # requests error's text carries the URL with its api_key. At DEBUG
+            # only (24 Oct 2026): the run's summary line below names it.
+            log.debug("  unexpected error on %s: %s", spec.key,
                       secrets.redact(traceback.format_exc()))
-            failed.append((spec.key, secrets.redact(f"unexpected: {e}")))
+            failed.append((spec.key, secrets.redact(f"unexpected: {type(e).__name__}: {e}")))
 
         # Be polite to FRED
         time.sleep(PACING_SECONDS)
 
+    if failed:
+        log.warning("%s", summary_line(failed, total))
     return {
         "total": total,
         "success": success,

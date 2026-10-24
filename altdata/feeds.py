@@ -514,11 +514,14 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     from .sources import fred as fred_src
     from .store import Store
     summary = fred_src.pull(Store())
-    record_attempted("fred", fred_keys())
+    # A failed series is STALE with its reason (the HTTP status where there was
+    # one), not pending (the feed repair of 24 Oct 2026); the pull's own summary
+    # line names them, so nothing is logged per series here.
+    failed = {f"fred.{key}": f"fred: {secrets.redact(str(err))}"[:160]
+              for key, err in summary.get("failed") or []}
+    record_attempted("fred", fred_keys(), failed=failed)
     log.info("fred: %d/%d series, %d failed", summary.get("success", 0),
-             summary.get("total", 0), len(summary.get("failed") or []))
-    for key, err in summary.get("failed") or []:
-        log.warning("fred: %s failed -- %s", key, secrets.redact(str(err)))
+             summary.get("total", 0), len(failed))
     return summary
 
 
