@@ -86,7 +86,9 @@ It is registered in the Makefile after `validate_regime`, and CLAUDE.md's line i
 
 | CI run | On | Result |
 |---|---|---|
-| read once after the push | the tip | see the report |
+| 40118726042 | 182b9d35 (the build, before the a62 merge) | failure (superseded by the next) |
+| 40119503077 | 02f89b0d | failure: `validate_monthly_stack`, `validate_crypto_basket`, `validate_correlation_layer`, all `KeyError: 'not_tracked'` in `monthly_macro/stack.py` `slow_layers`. The calibration sub-sections were appended last and carried no `not_tracked` list, which the slow layers append their faults to. Mine. |
+| A64 round (read once after the push) | aeea2bd2: every `state_v2_block` sub-section carries `not_tracked: []` | crypto_basket 93/0, correlation_layer 75/0, 6f_calibration 15/0, regime 516/0 locally; `validate_monthly_stack` left to CI |
 
 ## The box's first calibration read (a dry run; the operator's, after the merge)
 
