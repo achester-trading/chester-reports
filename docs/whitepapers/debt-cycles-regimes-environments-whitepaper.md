@@ -176,3 +176,88 @@ The frame's claims are structural rather than predictive. Debt grows faster than
 | Term premium up as growth expectations fall | Volatility | The market pricing supply rather than growth |
 | Sanctions on reserves | Foreign policy | A political risk premium on the store of value |
 
+
+---
+
+# Part II — Locating the present
+
+## Chapter 5 — The twelve diagnostic questions
+
+**Locating the present is a measurement problem before it is a judgment.** The questions below are the union of the lenses in Part I: each is measurable from a public series, each belongs to one or more lenses, and each has a reading that would push the location toward one branch or the other. None of them has a threshold that decides anything on its own — Base Rates' Chapter 14.4 is right that no debt-to-income level has been shown to be critical — and the diagnostic reads them together, as one mechanism, which is how the architecture rules the long-cycle state is to be read. The present values are in Appendix B, dated; the questions are timeless.
+
+**1. How large is the debt, and how much of income does servicing it take?** Debt to output is the stock; net interest to revenue is the flow that bites. The stock moves slowly and has no proven critical level; the flow is where the constraint becomes concrete, because interest must be paid before anything else and crowds out the rest. The diagnostic reads the flow's *direction* and the point at which it passes major discretionary categories of spending. Lens: Dalio, the Monthly manual's Pillar 8. Stored as `calc.fed_debt_total_pct_gdp` and `calc.interest_to_receipts`.
+
+**2. Who holds the debt?** A debt held by foreign official buyers, domestic captive holders, the central bank, or price-sensitive private buyers is four different debts. The share held by the central bank and by captive domestic holders measures how far repression has already gone; the foreign official share measures how much of the marginal demand depends on the reserve role. A falling foreign official share with a rising domestic, rate-sensitive share is the long-cycle frame's early tell. Lens: Dalio, Reinhart and Rogoff. Stored through the Treasury's debt statements and the TIC flows (`fiscaldata.mspd_*`, the `tic.flow_*` official lines).
+
+**3. Where are real rates against growth?** The comparison of the real interest rate the state pays with the real growth rate of the economy — *r* against *g* — is the arithmetic of the debt ratio. When *g* exceeds *r*, a modest primary deficit is sustainable; when *r* exceeds *g*, the ratio compounds upward unless the primary balance is in surplus. Real yields well below zero for years are repression; real yields above growth with a primary deficit are the deflationary branch's pressure. Lens: Pillar 8, Reinhart and Sbrancia. Stored as `calc.r_minus_g`, its average and marginal forms, and `calc.r_real_10y_cpi`.
+
+**4. How much policy space is left?** Space is the distance between the policy rate and the point at which cutting it stops working — zero, or a level below which the currency or the banks break — and the room the central bank's balance sheet and the state's budget have to act. An economy entering a recession with a policy rate of five points has a regulator; one entering with a rate near zero has only the balance sheet and the budget. Lens: Koo, The Rate and Liquidity Machine. Stored as `fred.fed_funds` and `calc.real_policy_rate`.
+
+**5. How leveraged is the private sector, and how good is its financing?** Household and corporate debt to income are the stock; the share of borrowers whose income covers interest but not principal is Minsky's financing quality. A private sector that is deleveraging while the state borrows is Koo's balance-sheet recession; a private sector levering into a boom is Minsky's migration under way. Lens: Minsky, Koo, Credit. Stored as `calc.household_debt_pct_gdp` and `calc.nonfin_corp_debt_pct_gdp`.
+
+**6. Where are valuations against income?** Asset prices relative to the incomes that must eventually service them — equity prices against earnings across a cycle, house prices against household income, credit spreads against default experience. Valuation never times a top (Tops and Bottoms is explicit), but it sets the asymmetry: how far prices fall when the financing that supports them is withdrawn. Lens: Kindleberger, Minsky. Stored as `shiller.cape`, `shiller.real_home_price` and `fred.hy_oas`.
+
+**7. What is the credit impulse?** The change in new credit as a share of output — the second derivative of debt. Spending responds to the *flow* of new borrowing, not the stock, so the impulse turns before activity does, and a contracting impulse in an economy with high debt is the earliest sign that the short cycle is turning down inside a long one. Lens: Dalio, Credit. Read from the lending and consumer-credit series the Monthly carries.
+
+**8. What is the fiscal impulse?** The change in the state's primary deficit as a share of output. A widening deficit at low unemployment is the structural signature the long-cycle frame watches; a sudden narrowing is austerity, and in a weak economy it is the deflationary lever. Lens: Dalio, Koo, Pillar 8. Stored as `calc.deficit_ttm_pct_gdp`.
+
+**9. Which inflation regime is the economy in?** The level of inflation, its persistence, and above all whether expectations are anchored: whether long-dated breakevens stay near the target when the current rate moves. An anchored regime lets the central bank look through a shock; an un-anchoring regime forces it to tighten into weakness or to accept the inflationary branch. Lens: Reinhart and Rogoff, The Rate and Liquidity Machine. Stored as `fred.breakeven_10y`, `fred.tips_10y` and the CPI and PCE series.
+
+**10. What is the external position?** The current account, the net international investment position, and the share of the debt owed to foreigners and in foreign currency. A debtor that owes in its own currency to its own residents is in a different position from one that owes in dollars to foreigners, and the second is the deflationary branch waiting to happen. Lens: Reinhart and Rogoff, Currencies. Read from the international accounts and, for the dollar, `fred.real_dollar_broad`.
+
+**11. What political constraints bind the central bank?** Whether the central bank can, in practice, raise the real rate above zero when inflation requires it: the legal independence, the appointment calendar, the public pressure on the rate, and the internal-order lens's measures of polarization and trust. This is the question that separates fiscal dominance from a central bank that is merely slow. Lens: the internal-order cycle. Not a stored series; read from the narrative register and the voices as a set of dated events.
+
+**12. How many of the top-of-cycle conditions are present?** The checklist Part III builds from five long-cycle tops: leverage at an extreme in the sector the boom is financed through; a valuation far above income; a narrowing of leadership and breadth into the final advance; a policy authority tightening into an economy that is already slowing, or unable to; financing migrating toward Ponzi; and a narrative that explains why this time the old constraints do not apply. Lens: Kindleberger, Minsky, Tops and Bottoms. Read from the Top & Bottom report's overlays and the Monthly's slow layers.
+
+**A worked example, with illustrative numbers.** Two economies each carry government debt of 110% of output. In the first, net interest takes 8% of revenue, a third of the debt is held by the central bank and captive domestic institutions, real rates sit two points below growth, the private sector is deleveraging, and inflation expectations are anchored. In the second, net interest takes 18% of revenue and rising, the foreign official share is falling, real rates are a point above growth with a primary deficit of 4%, private leverage is high, and long-dated breakevens are drifting up. The headline ratio is the same and the two economies are in different places: the first is in a stable repression with room to wait, the second in the zone where the regulator is losing its effect and the branch is about to be chosen. *(conceptual; rounded)*
+
+**A historical instance.** Japan in 1990 and the United States in 2008 scored similarly on the private-leverage and valuation questions and very differently on the policy-space question: Japan's policy rate stood at six points and its central bank was slow to use it, while the United States cut to zero inside fifteen months and bought assets. Japan's balance-sheet recession ran for more than a decade; the American one was shorter, in part because the regulator was used faster *(Koo; Tops and Bottoms and The Rate and Liquidity Machine for the U.S. sequence; last verified October 2026)*.
+
+**What it looked like on the day.** On any given day, the twelve answers do not arrive together. The debt figure is annual, the interest figure quarterly, the holder data monthly with a lag, the breakevens daily. A reader on the day sees one or two of them move and is tempted to read the location from those. The discipline is the opposite: the location is read from the whole set at its slowest common cadence, which is quarterly, and a single daily move is evidence about the short cycle, not the long one.
+
+| # | Question | Lens | Stored as, or read from |
+|---|---|---|---|
+| 1 | Debt and interest to revenue | Dalio; Pillar 8 | `calc.fed_debt_total_pct_gdp`, `calc.interest_to_receipts` |
+| 2 | Who holds the debt | Dalio; Reinhart and Rogoff | `fiscaldata.mspd_*`, `tic.flow_*` |
+| 3 | Real rates against growth | Pillar 8; Reinhart and Sbrancia | `calc.r_minus_g`, `calc.r_real_10y_cpi` |
+| 4 | Policy space | Koo; Rates & Liquidity | `fred.fed_funds`, `calc.real_policy_rate` |
+| 5 | Private leverage and financing quality | Minsky; Koo; Credit | `calc.household_debt_pct_gdp`, `calc.nonfin_corp_debt_pct_gdp` |
+| 6 | Valuations against income | Kindleberger; Minsky | `shiller.cape`, `shiller.real_home_price`, `fred.hy_oas` |
+| 7 | Credit impulse | Dalio; Credit | The Monthly's lending series |
+| 8 | Fiscal impulse | Dalio; Koo | `calc.deficit_ttm_pct_gdp` |
+| 9 | Inflation regime and anchoring | Reinhart and Rogoff | `fred.breakeven_10y`, `fred.tips_10y` |
+| 10 | External position | Reinhart and Rogoff; Currencies | The international accounts; `fred.real_dollar_broad` |
+| 11 | Political constraints on the central bank | Internal order | The narrative register and the voices |
+| 12 | Top-of-cycle conditions | Kindleberger; Minsky; Tops and Bottoms | The Top & Bottom overlays; the slow layers |
+
+---
+
+## Chapter 6 — What the last hundred years can and cannot tell us
+
+**The U.S. record contains one long debt cycle, and a sample of one cannot calibrate anything.** The period from the 1920s to the present holds a single complete passage of the long cycle in the United States: the leverage of the 1920s, the deflationary resolution of 1929–33, the repression of 1942–51, the long expansion of private and then public debt from the 1950s, the inflationary episode of 1966–82, and the long disinflation that followed. Japan supplies a second, compressed, from the late 1980s, and its resolution — two decades of stabilization at zero rates — is one the frame did not predict. The international record of Reinhart and Rogoff and of the long-run returns literature supplies more instances of crises, but many fewer complete long cycles, and they come from economies with different currencies, institutions and reserve positions *(Base Rates, Chapters 10–13, and the long-run returns literature it cites; last verified October 2026)*.
+
+**The honest inference** is therefore narrower than the frame's popular form. The record supports three claims. First, the mechanisms are real: debt service constrains policy, the currency of the debt decides the branch, and repression is the common resolution for a state that borrows in its own money. Second, the timing is not estimable: a frame that has been right about direction and wrong about the decade for most of its history has no timing content, and Currencies says so of its own strongest statement. Third, the distribution of outcomes is wider than the U.S. record shows, because the record is the record of the century's most successful market and is conditioned on its survival.
+
+**What the record cannot do** is tell a reader what happens under conditions it has not contained. It contains no instance of a reserve issuer with debt near its present ratio, no instance of a reserve issuer whose central bank holds a large share of its debt while inflation runs above target, no instance of a fiat reserve system's end, and no instance of the present internal-order readings coinciding with the present debt readings in the reserve issuer. Each of these is an n of zero, and an analogy drawn across an n of zero is a story, not an inference.
+
+**How to reason about conditions that have not occurred.** The method is the one The Twenty-Five uses for its listed tails: reason forward from the mechanism, state that the empirical content is absent, and refuse a number the sample cannot support. Concretely, for a condition with no precedent, the reader asks three questions. Which mechanisms in Part I would operate, and in which direction? Which lever is blocked, and therefore which is the default? And which of the twelve diagnostic readings would move first if the mechanism were operating — so that the absence of precedent is replaced by a watch list rather than by an analogy. This is first principles rather than pattern-matching, and it is slower and less satisfying, and it is the only form of reasoning the sample permits.
+
+**A worked example.** A reader asks whether the present resembles 1946. The analogy is tempting: debt near the post-war peak, inflation above target, a central bank under pressure. The mechanism method asks instead: in 1946 the debt was held largely by domestic captive holders under capital controls and a yield peg; is it now? It was a reserve issuer with no rival; is it now? Its inflation came from the release of wartime price controls into pent-up demand; does the present inflation have that source? The analogy breaks on the first question, and the mechanism survives: repression is still the default lever, but the captive holder it depended on must now be created by regulation rather than inherited from a war.
+
+**A historical instance.** The frame's predictions for Japan are the cleanest case of an analogy failing where the mechanism held. Through the 1990s, 2000s and 2010s, commentators applying the frame expected a Japanese debt crisis. The mechanism — debt in the state's own currency, held domestically — predicted that no crisis was necessary and that the resolution would be slow; the analogy to debtors that had crises predicted one. The mechanism was right *(Currencies, Chapter 15; last verified October 2026)*.
+
+**What it looked like on the day.** On the day a new condition arrives, the commentary reaches for the nearest precedent and names it — "this is 1970s inflation," "this is 2008 again." The mechanism reader writes down instead which precedent's mechanism is operating and which is not, and treats the named precedent's later path as one scenario among several rather than as the base case.
+
+| What the record supports | What it does not |
+|---|---|
+| The mechanisms: debt service constrains policy; the currency decides the branch | The timing of a resolution |
+| Repression as the common resolution in one's own currency | Any threshold of debt that triggers a crisis |
+| A distribution of outcomes wider than the U.S. record | Analogies across conditions it never contained |
+
+---
+
+## Chapter 7 — The current read
+
+**The current read is dated and lives in Appendix B.** This chapter exists so the structure is complete and so the reader knows where to look: the twelve diagnostic values, each with its as-of date and source; the long-cycle state as the paper would locate it from them; the base-rate notes the change orders have assigned to this paper; and the long-bond and stock–bond records the stack has verified. The body of this paper carries none of it, and a reader who finds a present-tense read in the body has found a defect.
+
+The read is refreshed when the paper is revised and, between revisions, by the Monthly's slow layers, which carry the stored inputs as levels with percentiles. Where Appendix B and the store disagree, the store is newer and wins, and Appendix B's date says how stale it is.
