@@ -174,6 +174,7 @@ Every other gate was left to CI: `validate_monthly_stack`, everything that rende
 ## What stayed out, and why
 
 - **Nothing of the six branches.** All six are in, at the tips named.
+- **`a57-batch14-b1`** (session A's Batch 14 Part B1, on origin and in CI this evening): not in the paste's list, so not merged. It was read only far enough to name it here; it lands in a later chain or on its own.
 - **Session A's and B's needs-you items not ruled in this paste** are listed below, unchanged. This paste applies only the fixes above.
 - **The paths with the operator's Windows user folder** in older notes (b52's notes name the order's Downloads path, as several earlier notes do). They are paths, not a person's name in prose, so they were left alone; say if they should be scrubbed.
 - **a56's and b52's CI tables** stay as their branches left them. This file records both runs (above).
