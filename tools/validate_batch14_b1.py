@@ -329,9 +329,16 @@ def group_c() -> None:
           and "(marked)" in rows["Margin debt, share of Z.1 equity market value"][1],
           "margin debt as a level and as a share, marked between Z.1 releases")
     gaps = next(x for x in pn["lines"] if x.startswith("Leveraged ETFs not covered"))
-    check(all(t in gaps for t in ("SPXL", "SPXS", "TNA", "TZA", "QID", "UDOW", "SDOW",
-                                   "URTY", "SRTY")),
-          "every major fund the writer does not cover is a listed gap")
+    check(all(t in gaps for t in ("SPXL", "SPXS", "TNA", "TZA"))
+          and not any(t in gaps for t in ("QID", "UDOW", "SDOW", "URTY", "SRTY")),
+          "every major fund the writer does not cover is a listed gap (Direxion's four; "
+          "ProShares' five are covered since ruling D13)")
+    from altdata.sources import proshares as _ps
+    lev = {f["ticker"]: f["leverage"] for f in fr.config()["leveraged_etfs"]["covered"]}
+    want = {"QID": -2, "UDOW": 3, "SDOW": -3, "URTY": 3, "SRTY": -3}
+    check(all(lev.get(t) == L and t in _ps.FUNDS for t, L in want.items()),
+          "ruling D13: QID -2, UDOW 3, SDOW -3, URTY 3, SRTY -3 in the writer's FUNDS and the "
+          "rebalance estimate")
     check(ev["flow"]["dealer"]["regime"] == "negative"
           and "(6b, as stored)" in " ".join(r[0] for r in pn["table"]["rows"]),
           "dealer gamma read as 6b stored it, never recomputed")

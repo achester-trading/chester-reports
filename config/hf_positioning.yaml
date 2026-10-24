@@ -21,6 +21,18 @@ net_oi_key: cftc.tff_lev_money_net_oi
 # rule, st_r5_rates.lens).
 lens_years: 5
 
+# HEDGE-FUND PERFORMANCE (ruling D22 of 24 Oct 2026): QAI, a hedge-fund
+# replication ETF, as a proxy -- labelled so wherever it prints. Its close from
+# the price basket (altdata/sources/yfinance_source.py, keyless); the week's and
+# the four weeks' price return (5 and 20 sessions), each with its dual
+# percentiles against every rolling return of the same length (five years and
+# the full stored history). Report only, beside the CFTC line.
+performance:
+  symbol: QAI
+  key: yfinance.mkt_qai
+  label: "Hedge-fund performance (QAI, replication proxy)"
+  sessions: {week: 5, four_weeks: 20}
+
 # THE SQUEEZE-RISK FLAG (the ruling: "leveraged-fund net short above its 90th
 # percentile while item 71's depth is below its 10th percentile").
 squeeze:
@@ -41,9 +53,6 @@ gaps:
     FINRA short interest as a share of float for the S&P 500: NOT TRACKED (no
     stored or keyless S&P 500 constituent list, and no float source; FINRA's
     short interest is stored for the tracked universe only)
-  performance: >-
-    A hedge-fund performance proxy: NOT TRACKED (no keyless public series; HFR
-    sells its index performance data by subscription)
   prime_book: >-
     Prime-brokerage figures (leverage, long and short flows) are proprietary: a
     dated record in the appendix queue only, never a line

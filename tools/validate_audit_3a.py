@@ -197,6 +197,10 @@ NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      "yfinance.mkt_aiq_split", "yfinance.mkt_aiq_volume",
                      "yfinance.mkt_spxt", "yfinance.mkt_spxt_dividend",
                      "yfinance.mkt_spxt_split", "yfinance.mkt_spxt_volume",
+                     # Ruling D22 (a61, 24 Oct 2026): QAI, the hedge-fund
+                     # replication proxy.
+                     "yfinance.mkt_qai", "yfinance.mkt_qai_dividend",
+                     "yfinance.mkt_qai_split", "yfinance.mkt_qai_volume",
                      # Batch 9 item 52 (17 Oct 2026): ^VIX9D and ^VIX6M join the
                      # basket, with their action series.
                      "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",

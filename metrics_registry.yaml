@@ -16762,7 +16762,7 @@ bulk_imports:
       yfinance.mkt_dspx: vol_index
       yfinance.mkt_cor1m: index_points
       yfinance.mkt_cor3m: index_points
-    expected_members: 126   # + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -16819,7 +16819,7 @@ bulk_imports:
     family: quantity
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 96   # + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
+    expected_members: 97   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -16980,7 +16980,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 126   # + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily

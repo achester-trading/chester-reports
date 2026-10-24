@@ -149,7 +149,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    126 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    127 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).

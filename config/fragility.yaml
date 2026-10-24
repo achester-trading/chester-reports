@@ -64,6 +64,12 @@ leveraged_etfs:
     - {ticker: SPXU, leverage: -3, index: S&P 500, proxy: yfinance.mkt_spy}
     - {ticker: SSO, leverage: 2, index: S&P 500, proxy: yfinance.mkt_spy}
     - {ticker: SDS, leverage: -2, index: S&P 500, proxy: yfinance.mkt_spy}
+    # Ruling D13 of 24 Oct 2026 (a61): the five the writer's file already served.
+    - {ticker: QID, leverage: -2, index: Nasdaq-100, proxy: yfinance.mkt_qqq}
+    - {ticker: UDOW, leverage: 3, index: Dow 30, proxy: yfinance.mkt_dia}
+    - {ticker: SDOW, leverage: -3, index: Dow 30, proxy: yfinance.mkt_dia}
+    - {ticker: URTY, leverage: 3, index: Russell 2000, proxy: yfinance.mkt_iwm}
+    - {ticker: SRTY, leverage: -3, index: Russell 2000, proxy: yfinance.mkt_iwm}
   # Section 5 check 9 (23 Oct 2026): the major index funds the writer does not
   # cover -- a listed gap each, never approximated.
   not_covered:
@@ -71,8 +77,6 @@ leveraged_etfs:
        reason: "no daily NAV or AUM history file; its holdings file carries only today's shares outstanding (the writer's check of 26 Sep 2026)"}
     - {tickers: [TNA, TZA], index: Russell 2000, issuer: Direxion,
        reason: "no daily NAV or AUM history file (as above)"}
-    - {tickers: [QID, UDOW, SDOW, URTY, SRTY], index: "Nasdaq-100, Dow, Russell 2000", issuer: ProShares,
-       reason: "the issuer's keyless NAV file serves them, but the writer's FUNDS do not list them: an extension is the operator's"}
 
 # DEALER GAMMA from 6b, as the dealer engine stored it (never recomputed): the
 # close's per-window $ per 1% for SPY, all expiries (dealer.window_gamma,

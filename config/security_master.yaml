@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 215
+next_id: 221
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -4400,3 +4400,108 @@ instruments:
   - exchange
   - multiplier
   - name
+- id: SM00215
+  name: null
+  asset_class: etf
+  currency: null
+  multiplier: null
+  exchange: null
+  identifiers:
+    yahoo: QAI
+    store_key: yfinance.mkt_qai
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS
+    asset_class: the symbol's form; added by a61 (ruling D22 of 24 Oct 2026, Batch 15 item 74's hedge-fund replication proxy)
+  unverified:
+  - currency
+  - exchange
+  - multiplier
+  - name
+- id: SM00216
+  name: ProShares UltraShort QQQ
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: QID
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+    name: the issuer's NAV file, accounts.profunds.com/etfdata/ByFund/QID-historical_nav.csv (read 24 Oct 2026); added by a61 (ruling D13 of 24 Oct 2026)
+  unverified:
+  - currency
+  - exchange
+- id: SM00217
+  name: ProShares UltraPro Dow30
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: UDOW
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+    name: the issuer's NAV file, accounts.profunds.com/etfdata/ByFund/UDOW-historical_nav.csv (read 24 Oct 2026); added by a61 (ruling D13 of 24 Oct 2026)
+  unverified:
+  - currency
+  - exchange
+- id: SM00218
+  name: ProShares UltraPro Short Dow30
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SDOW
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+    name: the issuer's NAV file, accounts.profunds.com/etfdata/ByFund/SDOW-historical_nav.csv (read 24 Oct 2026); added by a61 (ruling D13 of 24 Oct 2026)
+  unverified:
+  - currency
+  - exchange
+- id: SM00219
+  name: ProShares UltraPro Russell2000
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: URTY
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+    name: the issuer's NAV file, accounts.profunds.com/etfdata/ByFund/URTY-historical_nav.csv (read 24 Oct 2026); added by a61 (ruling D13 of 24 Oct 2026)
+  unverified:
+  - currency
+  - exchange
+- id: SM00220
+  name: ProShares UltraPro Short Russell2000
+  asset_class: etf
+  currency: null
+  multiplier: 1
+  exchange: null
+  identifiers:
+    ticker: SRTY
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS
+    name: the issuer's NAV file, accounts.profunds.com/etfdata/ByFund/SRTY-historical_nav.csv (read 24 Oct 2026); added by a61 (ruling D13 of 24 Oct 2026)
+  unverified:
+  - currency
+  - exchange
