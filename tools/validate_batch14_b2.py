@@ -371,8 +371,12 @@ def group_h() -> None:
           and "https://www.nar.realtor/newsroom/pending-home-sales-decreased-7-3-percent-in-september"
           in tail,
           "NAR's 66.0 print, dated, with its source line")
-    check(q.rstrip().endswith("pending-home-sales-decreased-7-3-percent-in-september"),
-          "appended at the end of the queue")
+    # Appended at the end when b55 wrote it; later branches append after it (the
+    # chain-6 stitch), so the check is that it follows every earlier entry.
+    sec = q.index("(Batch 14 item 68)")
+    check(sec > q.index("(Batch 14 item 63)")
+          and "pending-home-sales-decreased-7-3-percent-in-september" in q[sec:],
+          "appended after the entries before it, its source line inside its section")
 
 
 def group_i() -> None:
