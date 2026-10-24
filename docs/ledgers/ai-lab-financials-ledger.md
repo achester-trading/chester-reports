@@ -14,15 +14,19 @@ any other lab that files. The figures in a row are entered as published, each ro
 with its source and URL; **the ratios are computed by code**
 (`altdata/ai_lab_ledger.py`), never typed here.
 
-**Status of entries (G3).**
+**Status of entries (G3; ruling D21 of 24 Oct 2026).**
+- **Entries come from filings only.** A session makes each entry from a filed
+  document -- the S-1 and its amendments, a 10-Q, a 10-K, or an equivalent public
+  filing -- cited by its URL, about once a quarter (about an hour a quarter).
+  **Press reports are never a source for an entry.** The operator's explicit yes
+  for the quarterly rows is ruling D21 (rule 30); no row is added on the day of
+  the ruling.
 - **The first entry is a dated record, marked provisional.** Anthropic's S-1 was
   not public on EDGAR when this template was written (public reporting to 22 Oct
   2026; the session had no SEC contact configured, so EDGAR itself was not
   read). Its figures are the draft prospectus as the Wall Street Journal reported
-  it, relayed by the source in its row. It is replaced by a filed row once the
-  S-1 is on EDGAR.
-- **Quarterly entries after that are a listed gap** pending the operator's
-  explicit yes (G3, rule 30): no session adds a recurring by-hand row without it.
+  it, relayed by the source in its row. It stays a provisional dated record until
+  the S-1 is on EDGAR, and is then replaced by a row from the filing.
 
 **The fields** (the order's list). Entered: revenue for the period and for the
 same period a year earlier; compute and infrastructure spending; net loss; the

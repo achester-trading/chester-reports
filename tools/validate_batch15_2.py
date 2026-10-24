@@ -331,8 +331,12 @@ def group_e() -> None:
           "so commitments over TTM revenue is not computed, and says why")
     check("**Disclosure.**" in t and "the company that builds Claude" in t
           and "takes no view on the company" in t
-          and "Quarterly entries after that are a listed gap" in t,
-          "the template carries the order's disclosure and G3's status")
+          and "Entries come from filings only" in t
+          and "Press reports are never a source for an entry" in t
+          and "listed gap" not in t
+          and "stays a provisional dated record until\n  the S-1 is on EDGAR" in t.replace("\r\n", "\n"),
+          "the template carries the order's disclosure and ruling D21's status (filings "
+          "only, press never, the first row provisional until the S-1 is on EDGAR)")
     ipo = al.ipo_watch_lines()
     check(ipo and all(s.count("not yet public") == 3 for s in ipo) and "SPCX" in ipo[0],
           "the mega-IPO watch beside SPCX: float, inclusion and lock-ups \"not yet public\"")

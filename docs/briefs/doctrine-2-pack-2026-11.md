@@ -308,6 +308,7 @@ They were accepted onto this agenda on 19 Oct (R11); none is ruled.
 - **Proposal P2:** keep "above ~5.25%, treat a positive correlation reading as persistent" as a heuristic, never a threshold, labelled "unvalidated" until it runs.
 - **Evidence:** no ledger runs it. The rates-driver ledgers (FAIL, 5 episodes) cover the withdrawn driver cell, not this note.
 - **Rule-31 draft (for the operator's accept-all):** adopt as an unvalidated heuristic. *Block: reading rules.*
+- **Agenda line (ruling D3 of 24 Oct 2026), beside this note:** the `calc.infl_vol` bridge question. The series is left unwritten (BLS never published October 2025's CPI, so no 24-month window clears until November 2027); whether to rule a bridge for a missing print is for this session. An agenda line only, no draft.
 
 #### H-3. The projection rule, SR-18
 
@@ -396,6 +397,10 @@ They were accepted onto this agenda on 19 Oct (R11); none is ruled.
 
 - **What it is:** the October minutes (item 10): "Doctrine #2 recalibrates any [reporting-stack trigger] that fired more than weekly or not at all in October" (also `config/reporting_stack.yaml`, header).
 - **Rule-31 draft (for the operator's accept-all):** recalibrate from the October counts at the session, one line each, keeping a ruled trigger's value unless it fired more than weekly. *Block: calibration.*
+
+#### W-6. The reading budgets ruled 24 Oct
+
+- **Agenda line (ruling D20 of 24 Oct 2026):** Ratify the reading budgets ruled 24 Oct (daily close 10 min, Weekly 35 min, Digital Assets addendum ~1,500 words; targets, never caps).
 
 ### O. Other mentions found in docs/ and config/
 
