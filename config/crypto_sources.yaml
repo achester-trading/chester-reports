@@ -215,11 +215,11 @@ paprika:
   url: https://api.coinpaprika.com/v1/global
   attribution: "Powered by Coinpaprika"
 
-# CD-9, the blocks. The Weekly's crypto flows block: at most 12 lines, a sub-
-# section of Positioning & flows. The Monthly's rows: mechanics (network health)
-# and the slow layers (the data layer), every row in the triple form.
+# CD-9, the blocks. The Weekly's crypto flows block: a sub-section of Positioning
+# & flows, every row printed (its 12-line cap retired by D19/D20, 24 Oct 2026).
+# The Monthly's rows: mechanics (network health) and the slow layers (the data
+# layer), every row in the triple form.
 blocks:
-  weekly_max_lines: 12
   z_from: 2026-12-15             # ruling 5: the aggregate's z prints from mid-December
   froth_from: 2027-01-15         # S-5: 90 days of store after a first sample
   watch_triple_window_days: 1825

@@ -2692,12 +2692,11 @@ def summary_minutes(ed: dict) -> int:
 # ---------------------------------------------------------------------------
 def enforce_budget(ed: dict) -> dict:
     """The stacked reports' guard at the Monthly's cadence
-    (daily_cascade.stack.enforce_budget): each paragraph cut to its section's
-    depth allowance, The read's sentences not repeated elsewhere, then over the
-    budget the lowest-priority paragraphs go and the block prints "(trimmed)".
-    A claim, an item, a line, a table and a reading entry are never cut. The
-    reading time is the shared estimate, which counts the stored text the
-    Reading chapter prints (readability.stored_words)."""
+    (daily_cascade.stack.enforce_budget): The read's sentences not repeated
+    elsewhere; since D19/D20 (24 Oct 2026) nothing is cut for length -- the
+    10,000 words and the 55 minutes are targets, and over them the edition prints
+    one foot line. The reading time is the shared estimate, which counts the
+    stored text the Reading chapter prints (readability.stored_words)."""
     stack_mod.enforce_budget(ed, CADENCE)
     ed["reading_minutes"] = rd.reading_minutes(ed)
     if ed.get("summary"):

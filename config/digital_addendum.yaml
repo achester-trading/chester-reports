@@ -26,22 +26,21 @@ first_edition_week_ending: 2026-10-30
 # a series nobody writes prints "not tracked" with its reason; the dealer-engine
 # items print "awaiting EL-12". Never a blank, never a zero.
 awaiting: "awaiting the first pull"
-# THE LINE BUDGET (SESSION-SET, held by tools/validate_digital_addendum.py): the
-# page's table rows and lines may not grow past Phase 1's count on the full
-# fixture week (52, measured 17 Oct). The panels displace to fit: the tape's four weekly-range lines
-# fold into one, the two undated ahead lines into one, the mNAV cell carries its watch and flag lines, and the "who is
-# buying" table replaces the single treasury cell.
-max_lines: 52
+# THE LINE BUDGET (52 lines, Phase 1's count) IS RETIRED by D19/D20 (24 Oct
+# 2026): depth over brevity. No row, line or section is dropped to fit.
 
-# THE BUDGETS (SESSION-SET). Reading target five minutes (the ruling). Words are
-# every word the page prints -- tables, lines and the read -- at the stack's 250 a
-# minute (daily_cascade/readability.WORDS_PER_MINUTE), plus 20 seconds a chart.
-# 1,100 words leaves a chart's room inside the five minutes. The read is one
-# paragraph of at most 120 words and six figures. Charts: two allowed, none drawn
-# in Phase 1 (the tables carry every figure; a chart waits for Tranche A's series).
+# THE BUDGETS: TARGETS, NEVER CAPS (D19/D20, 24 Oct 2026). Reading target about
+# seven minutes, about 1,500 words: every word the page prints -- tables, lines
+# and the read -- at the stack's 250 a minute
+# (daily_cascade/readability.WORDS_PER_MINUTE), plus 20 seconds a chart. A page
+# over the target renders in full and prints one foot line ("This page runs about
+# N minutes against a 7-minute target"); nothing is trimmed or withheld for
+# length. The read is asked for one paragraph of about 120 words and six figures;
+# a longer one prints in full. Charts: two allowed, none drawn in Phase 1 (the
+# tables carry every figure; a chart waits for Tranche A's series).
 budget:
-  reading_minutes: 5
-  words: 1100
+  reading_minutes: 7
+  words: 1500
   read_words: 120
   read_figures: 6
   charts: 2
