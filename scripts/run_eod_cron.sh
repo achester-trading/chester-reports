@@ -224,6 +224,14 @@ SR_RC=$?
 printf '%s
 ' "$SR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SR_RC -ne 0 ]] && log "WARN speed_attribution resolve exited $SR_RC -- continuing"
+# D15 (b59, rulings of 24 Oct 2026): the one-day 10-year trigger's ledger, its
+# awaiting attributions and its realised 5- and 20-session outcomes (a new
+# vintage, never an overwrite). Warn-only, as above.
+log "one-day 10-year: resolve the ledger"
+OD_OUT="$("$VENV_PY" -m altdata.oneday_10y resolve 2>&1 | tail -3)"
+OD_RC=$?
+printf '%s\n' "$OD_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $OD_RC -ne 0 ]] && log "WARN oneday_10y resolve exited $OD_RC -- continuing"
 # BATCH 15 ITEM 73: the gold-event and DM-drawdown ledgers' awaiting legs, once
 # their inputs land, and their realised 5- and 20-session outcomes (a new vintage,
 # never an overwrite). Warn-only, as above.

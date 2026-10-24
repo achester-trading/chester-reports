@@ -81,5 +81,12 @@ step mechanism_scan "$PY" -m altdata.mechanism_scan run
 # (cyber, protocols).
 step cyber_weekly "$PY" -m altdata.cyber_pressure weekly
 step protocols    "$PY" -m altdata.protocol_breadth daily
+# D26 (b59, rulings of 24 Oct 2026; no new timer): GDELT's raw event files (the
+# complete UTC days not yet stored), NOAA CPC's degree days and the Hugging Face
+# model-release watch, daily, report only. All three are on the freshness roster
+# (gdelt, degree_days, ai_releases).
+step gdelt        "$PY" -m altdata.sources.gdelt daily
+step degree_days  "$PY" -m altdata.sources.cpc_degree_days daily
+step ai_releases  "$PY" -m altdata.sources.hf_releases daily
 log "crypto basket: done"
 exit 0

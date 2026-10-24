@@ -1048,6 +1048,10 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # fired day only (daily_cascade/batch15_a_block.py; lines only).
         from . import batch15_a_block                           # noqa: PLC0415
         batch15_a_block.close_extras(built, st, p["session"], cutoff)
+        # D15 (b59, rulings of 24 Oct 2026): the one-day 10-year trigger's flag line
+        # in the event area, on a trigger day only (daily_cascade/b59_block.py).
+        from . import b59_block                                 # noqa: PLC0415
+        b59_block.close_extras(built, st, p["session"], cutoff)
         # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
         # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
         from . import batch3_block                              # noqa: PLC0415

@@ -545,6 +545,10 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     # blocks over the month's sessions. Tables and lines only.
     from daily_cascade import batch15_a_block                    # noqa: PLC0415
     subs = batch15_a_block.mechanics_subsections(subs, st, now, first, last)
+    # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+    # degree days beside natural gas after the oil-shock signature.
+    from daily_cascade import b59_block                          # noqa: PLC0415
+    subs = b59_block.mechanics_subsections(subs, st, now, first, last)
     # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
     from daily_cascade import batch5_block                       # noqa: PLC0415
     sb = batch5_block.mechanics_subsection(st, now)
@@ -1848,6 +1852,10 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         # after item 38's gold/equity ratio, report only.
         from daily_cascade import batch15_a_block                # noqa: PLC0415
         subs = batch15_a_block.place_slow(subs, st, now)
+        # D26 (b59): Factor III's GDELT lines and Factor I-b's model releases,
+        # right after the Factor lines; report only.
+        from daily_cascade import b59_block                      # noqa: PLC0415
+        subs = b59_block.place_slow(subs, st, now)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)
@@ -2288,6 +2296,10 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 built[sid] = fn()
             except Exception as exc:                            # noqa: BLE001
                 built[sid] = _fault(sid, exc)
+        # D26 (b59): GDELT's articles per story beside the narrative register.
+        if st is not None and built.get("narratives") is not None:
+            from daily_cascade import b59_block                  # noqa: PLC0415
+            b59_block.monthly_narratives(built["narratives"], st, now)
         retro = built["mechanics"].pop("_retro", None)
         printed = [(k, "tape") for k in sorted(on_tape)]
         for sid in ("plumbing", "narratives"):

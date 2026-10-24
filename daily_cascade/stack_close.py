@@ -373,6 +373,13 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                                                   session.utc_iso())
             if _ae_rows and not dry_run:
                 st.write_many(_ae_rows)
+            # D15 (b59): a trigger day's ledger row, its attribution "awaiting"
+            # until the models' inputs land (the EOD resolve).
+            from . import b59_block                             # noqa: PLC0415
+            _od_rows = b59_block.store_rows(mech.setdefault("data", {}),
+                                            session.utc_iso())
+            if _od_rows and not dry_run:
+                st.write_many(_od_rows)
             # BATCH 11 ITEM 55 (H6): the next session's level clusters, from the
             # levels known after the 16:10 capture, frozen 30 days once stored.
             if not dry_run:
