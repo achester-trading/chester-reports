@@ -1043,6 +1043,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # (daily_cascade/batch14_b1_block.py; tables and lines only).
         from . import batch14_b1_block                          # noqa: PLC0415
         batch14_b1_block.close_extras(built, st, p["session"], cutoff, screen)
+        # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58, 23 Oct 2026): the gold event's and
+        # the developed-market drawdown's flag lines in the event area, on a
+        # fired day only (daily_cascade/batch15_a_block.py; lines only).
+        from . import batch15_a_block                           # noqa: PLC0415
+        batch15_a_block.close_extras(built, st, p["session"], cutoff)
         # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
         # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
         from . import batch3_block                              # noqa: PLC0415

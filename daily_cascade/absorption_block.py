@@ -40,7 +40,12 @@ NEOCLOUD_LINE = ("Neocloud / AI-infrastructure credit (the neoclouds' bonds and 
 # SpaceX), a listed gap beside it -- config/ai_trade.yaml's line, no by-hand path.
 AI_CREDIT_LINE = ("AI credit (the CDS and bond spreads of CoreWeave, Oracle and "
                   "SpaceX): NOT TRACKED (item 65, F2: no keyless source; a listed gap "
-                  "beside SR-16's neocloud line, no by-hand line)")
+                  "beside SR-16's neocloud line, no by-hand line). "
+                  # Batch 15 item 76 (a58, 23 Oct 2026; G3): where it points now.
+                  "Item 76's protection-demand line is a listed gap too (DTCC's "
+                  "per-name CDS volumes are a subscription product and its site terms "
+                  "forbid automated extraction); the CDS levels and the AI borrowing "
+                  "figure item 76 cites are dated records (23 Oct 2026), not lines")
 CAPS = {"Duration Absorption": 18, "Cheap-and-Unloved": 10}
 RATE_TITLE = "Rate machine summary"
 DA_TITLE = "Duration Absorption"

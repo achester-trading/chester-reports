@@ -541,6 +541,10 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     # the twin, and item 71's fragility panel. Tables and lines only.
     from daily_cascade import batch14_b1_block                   # noqa: PLC0415
     subs = batch14_b1_block.mechanics_subsections(subs, st, now)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the month's sessions. Tables and lines only.
+    from daily_cascade import batch15_a_block                    # noqa: PLC0415
+    subs = batch15_a_block.mechanics_subsections(subs, st, now, first, last)
     # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
     from daily_cascade import batch5_block                       # noqa: PLC0415
     sb = batch5_block.mechanics_subsection(st, now)
@@ -1838,6 +1842,10 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
     if st is not None and now:
         from daily_cascade import t1_rest_block                 # noqa: PLC0415
         subs += t1_rest_block.slow_subsections(st, now)
+        # BATCH 15 ITEM 72 (a58): institutional gold-ETF ownership (13F), right
+        # after item 38's gold/equity ratio, report only.
+        from daily_cascade import batch15_a_block                # noqa: PLC0415
+        subs = batch15_a_block.place_slow(subs, st, now)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)

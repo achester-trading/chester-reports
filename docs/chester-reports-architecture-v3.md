@@ -199,7 +199,7 @@ analysis should almost never require touching an engine.
 > store holds is listed by `python -m altdata.catalogue` and checked against the
 > registry by `python -m tools.check_store_registry`.
 >
-> **Refreshed 19 Oct 2026 (the chain-2 stitch; A51 adds RSAFS and a53 item 59's panel; chain-5 adds b52's eight capex-chain proxies, Batch 14 item 63; a57 items 65 and 71's four and AIQ, SPXT).** The pull walks 281 FRED series
+> **Refreshed 19 Oct 2026 (the chain-2 stitch; A51 adds RSAFS and a53 item 59's panel; chain-5 adds b52's eight capex-chain proxies, Batch 14 item 63; a57 items 65 and 71's four and AIQ, SPXT; a58 item 73's NIKKEI225).** The pull walks 282 FRED series
 > (`config.FRED_PULL_SERIES`) and 126 market symbols
 > (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
 > Master (`config/security_master.yaml`). The scheduled roster is 33 official

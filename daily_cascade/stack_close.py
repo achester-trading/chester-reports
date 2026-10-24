@@ -357,6 +357,13 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
             if spd and spd.get("fired") and not dry_run:
                 from altdata import speed_attribution as sa     # noqa: PLC0415
                 st.write_many([sa.ledger_row(spd, session.utc_iso())])
+            # BATCH 15 ITEM 73: a fired day's gold-event and DM-drawdown ledger
+            # rows, the legs "awaiting" until their inputs land (the EOD resolve).
+            from . import batch15_a_block                       # noqa: PLC0415
+            _ae_rows = batch15_a_block.store_rows(mech.setdefault("data", {}), st,
+                                                  session.utc_iso())
+            if _ae_rows and not dry_run:
+                st.write_many(_ae_rows)
             # BATCH 11 ITEM 55 (H6): the next session's level clusters, from the
             # levels known after the 16:10 capture, frozen 30 days once stored.
             if not dry_run:

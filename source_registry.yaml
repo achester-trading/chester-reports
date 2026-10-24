@@ -2690,6 +2690,65 @@ sources:
     implemented_by: altdata/speed_attribution.py
     status: live
 
+  gold_event:
+    name: The gold event trigger and attribution (Batch 15 item 73)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [global]
+    latency: written by the 16:45 close pass on a fired day, and by its resolve and history commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/gold_event.py through daily_cascade/stack_close.py:
+      gold.event_ledger, observed on the fired day and available when written;
+      the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/gold_event.py
+    status: live
+
+  dm_drawdown:
+    name: The developed-market drawdown screen (Batch 15 item 73)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [JP, KR, TW]
+    latency: written by the 16:45 close pass on a fired day, and by its resolve and history commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/dm_drawdown.py through daily_cascade/stack_close.py:
+      equity.dm_drawdown_ledger, observed on the fired day and available when
+      written; the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/dm_drawdown.py
+    status: live
+
+  sec_13f:
+    name: SEC EDGAR -- the Form 13F data sets (Batch 15 item 72's gold-ETF holders)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [US]
+    latency: quarterly; each data set covers three months of filings, posted after the 13F deadlines
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      observed_at is the quarter end (PERIODOFREPORT); the load's instant stands
+      in for availability, since the data set posts weeks after the filings it
+      holds. A later load that adds late filers is a new vintage.
+    license: >-
+      public, keyless SEC data sets (www.sec.gov/data-research/sec-markets-data/
+      form-13f-data-sets), read under the SEC's fair-access policy with the
+      CHESTER_SEC_CONTACT User-Agent (altdata/sources/edgar.py); robots.txt read
+      before each fetch
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/gold_13f.py
+    status: built
+    caveats:
+      - >-
+        Run by hand on the box (fetch, then load); no timer. A 13F covers US-listed
+        long positions of managers with $100m or more only.
+
   secondary_notes:
     name: The secondary notes' fetch steps' own readings
     tier: derived

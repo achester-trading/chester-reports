@@ -224,6 +224,16 @@ SR_RC=$?
 printf '%s
 ' "$SR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $SR_RC -ne 0 ]] && log "WARN speed_attribution resolve exited $SR_RC -- continuing"
+# BATCH 15 ITEM 73: the gold-event and DM-drawdown ledgers' awaiting legs, once
+# their inputs land, and their realised 5- and 20-session outcomes (a new vintage,
+# never an overwrite). Warn-only, as above.
+for AE in gold_event dm_drawdown; do
+  log "$AE: resolve the ledger"
+  AE_OUT="$("$VENV_PY" -m "altdata.$AE" resolve 2>&1 | tail -3)"
+  AE_RC=$?
+  printf '%s\n' "$AE_OUT" | sed 's/^/  /' >>"$LOG"
+  [[ $AE_RC -ne 0 ]] && log "WARN $AE resolve exited $AE_RC -- continuing"
+done
 
 # THE VOLUME PROFILE'S STORED SERIES (VP-1): calc.vp_<id>_session_* and _20s_*
 # for spy, qqq and iwm, from the 5-minute bars the feeds step just landed, for the

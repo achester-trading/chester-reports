@@ -3860,6 +3860,84 @@ metrics:
       rates and the term premium ("awaiting" until the model's input for the
       day is stored, F5), and the 10-year's realised 5- and 20-session change.
       A resolution is a new vintage, never an overwrite. A report: no right.
+  gold.event_ledger:
+    source: gold_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 73 (ST-R6.73a; a58-batch15-1): the gold event's ledger, one
+      JSON row per day gold (GC=F) moved 2.5% or more on the day or beyond its
+      95th percentile over five sessions (instrument = the day), written by the
+      close and by the history command: the trigger, each leg's change (real
+      10-year, DXY, Brent; "awaiting" until the leg's input is stored), the
+      not-tracked ETF-flow leg, the IMF IFS central-bank trend, the residual line,
+      and gold's realised 5- and 20-session change. A resolution is a new vintage,
+      never an overwrite. A flag: no composite input.
+  equity.dm_drawdown_ledger:
+    source: dm_drawdown
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 73 (ST-R6.73b; a58-batch15-1): the developed-market drawdown
+      screen's ledger, one JSON row per index and day (instrument =
+      "<index>:<day>") whose 10- or 20-session drawdown was beyond its 95th
+      percentile on five years: Nikkei 225 (FRED), KOSPI and TAIEX (ETF proxies,
+      EWY and EWT). The trigger, the attribution legs (local currency, local
+      10-year or "not tracked", the prior US session, Japan's carry stack and
+      SR-32's early line, item 63's capex-chain line) and the index's realised 5-
+      and 20-session change. A resolution is a new vintage. A flag: no composite
+      input.
+  sec13f.gold_etf_holders:
+    source: sec_13f
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 72 (ST-R6.72a; a58-batch15-1): the number of 13F filers
+      reporting a share position in GLD, IAU or either (instrument GLD, IAU,
+      BOTH), at the quarter end (observed_at), counted from SEC EDGAR's Form 13F
+      data sets by altdata/gold_13f.py. Written only for a quarter the loaded
+      files cover through its 45-day deadline; a later load is a new vintage.
+      Report only.
+  sec13f.gold_etf_value_usd:
+    source: sec_13f
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 72: the value 13F filers report for their GLD, IAU or either
+      position (instrument GLD, IAU, BOTH), DOLLARS (VALUE is thousands for
+      filings before 3 Jan 2023 and is scaled), at the quarter end. Report only.
   calc.vol_compression:
     source: vol_event
     mechanism_group: market_state
@@ -16404,6 +16482,31 @@ bulk_imports:
       "4": macro_inflation
       "6": macro_valuation_credit
 
+  fred_batch15_a:
+    description: >-
+      Signal-triage Batch 15 item 73 (a58-batch15-1, 23 Oct 2026): the
+      developed-market drawdown screen's FRED index, NIKKEI225 (Nikkei Stock
+      Average, index, daily close, from 1949-05-16), read off FRED 23 Oct 2026;
+      see altdata/config.py FRED_BATCH15_A_SERIES. A flag's input only.
+    source: fred
+    members_from: altdata.config.FRED_BATCH15_A_SERIES
+    member_families:
+      fred.nikkei225: price
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "7": macro_global_fx
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -17599,6 +17702,10 @@ families:
   vol.event_day: conditions
   vol.event_ledger: conditions
   rates.speed_event_ledger: conditions
+  gold.event_ledger: conditions
+  equity.dm_drawdown_ledger: conditions
+  sec13f.gold_etf_holders: quantity
+  sec13f.gold_etf_value_usd: quantity
   calc.vol_compression: conditions
   calc.net_liquidity: quantity
   fred.bank_reserves: quantity

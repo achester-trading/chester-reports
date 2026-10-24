@@ -170,7 +170,9 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "fred_bank_stress",
                   # Batch 14 items 65 and 71 (a57, 23 Oct 2026): the AI-bottleneck PPI
                   # lines and Z.1's equity market value
-                  "fred_batch14_b1"}
+                  "fred_batch14_b1",
+                  # Batch 15 item 73 (a58, 23 Oct 2026): the DM screen's NIKKEI225
+                  "fred_batch15_a"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).
