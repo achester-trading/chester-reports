@@ -3840,6 +3840,26 @@ metrics:
       event (instrument = the event's date) with its attribution and its realised
       5- and 20-session SPX and VIX outcomes; a resolution is a new vintage, never
       an overwrite. No modifier right before 30 events.
+  rates.speed_event_ledger:
+    source: speed_attribution
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 14 item 65 (ST-R6.65a; a57-batch14-b1): the speed-flag attribution's
+      event ledger, one JSON row per day SR-35's 10-year companion fired
+      (instrument = the day), written by the close: the trigger, each
+      term-structure model's split of the 10-year's move into expected short
+      rates and the term premium ("awaiting" until the model's input for the
+      day is stored, F5), and the 10-year's realised 5- and 20-session change.
+      A resolution is a new vintage, never an overwrite. A report: no right.
   calc.vol_compression:
     source: vol_event
     mechanism_group: market_state
@@ -16350,6 +16370,40 @@ bulk_imports:
       "3": macro_liquidity
       "6": macro_valuation_credit
 
+  fred_batch14_b1:
+    description: >-
+      Signal-triage Batch 14, Part B1 (items 65 and 71; a57-batch14-b1, 23 Oct
+      2026): item 65's AI-bottleneck PPI lines in item 46's pipeline -- BLS's PPI
+      by industry for printed circuit assemblies (PCU334418334418, Dec 2003 =
+      100), computer storage devices (PCU334112334112) and semiconductors
+      (PCU334413334413), indexes, NSA, monthly, through FRED (F3) -- and item
+      71's capitalisation: Z.1's all-sector corporate equities at market value
+      (BOGZ1LM893064105Q, MILLIONS, quarterly), the denominator of margin debt's
+      share. Ids and units read off FRED 23 Oct 2026; see altdata/config.py
+      FRED_BATCH14_B1_SERIES. Report only.
+    source: fred
+    members_from: altdata.config.FRED_BATCH14_B1_SERIES
+    member_families:
+      fred.ppi_pcb_assembly: release
+      fred.ppi_storage_devices: release
+      fred.ppi_semiconductors: release
+      fred.z1_equities_mv: quantity
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 4
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "4": macro_inflation
+      "6": macro_valuation_credit
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -16512,7 +16566,7 @@ bulk_imports:
       yfinance.mkt_dspx: vol_index
       yfinance.mkt_cor1m: index_points
       yfinance.mkt_cor3m: index_points
-    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 126   # + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -16569,7 +16623,7 @@ bulk_imports:
     family: quantity
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 94   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
+    expected_members: 96   # + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -16730,7 +16784,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 126   # + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -17544,6 +17598,7 @@ families:
   yfinance.mkt_vix6m: conditions
   vol.event_day: conditions
   vol.event_ledger: conditions
+  rates.speed_event_ledger: conditions
   calc.vol_compression: conditions
   calc.net_liquidity: quantity
   fred.bank_reserves: quantity

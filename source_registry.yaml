@@ -2673,6 +2673,23 @@ sources:
     implemented_by: altdata/vol_event.py
     status: live
 
+  speed_attribution:
+    name: The 10-year attribution on speed-flag days (Batch 14 item 65)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass on a flag day, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/speed_attribution.py through daily_cascade/stack_close.py:
+      rates.speed_event_ledger, observed on the flag day and available when
+      written; the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/speed_attribution.py
+    status: live
+
   secondary_notes:
     name: The secondary notes' fetch steps' own readings
     tier: derived

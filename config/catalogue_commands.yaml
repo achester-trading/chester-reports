@@ -262,6 +262,18 @@ commands:
     domain: rates
     line: 'FDIC BankFind -- the banking system''s unrealised securities gains (losses), AFS and HTM, quarterly, keyless (`--since 2007-03-31` for the history)'
     sources: [fdic_qbp]
+  altdata.speed_attribution:
+    domain: computed
+    line: 'The 10-year attribution on speed-flag days and its event ledger (Batch 14 item 65): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
+    sources: [speed_attribution]
+  altdata.ai_trade:
+    domain: computed
+    line: 'One big AI trade (Batch 14 item 65): the AI-bottleneck PPI line, the Broad-AI proxy pair (AIQ against SPXT, labelled proxy) and the AI-credit gap; `show [--as-of ISO]`; reads only'
+    sources: [fred, yfinance]
+  altdata.fragility:
+    domain: computed
+    line: 'The liquidity-fragility panel and flag (Batch 14 item 71): SPY Amihud and range per volume, margin debt and its share, the leveraged-ETF rebalance, 6b dealer gamma; `show [--date D]`; reads only'
+    sources: [calc]
   altdata.bank_stress:
     domain: computed
     line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'

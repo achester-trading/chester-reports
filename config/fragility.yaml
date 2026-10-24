@@ -1,0 +1,95 @@
+# fragility.yaml -- signal-triage Batch 14 item 71 (written as 64; ST-R6.71a-c),
+# the liquidity-fragility panel, its flag and the "liquidity" lens; ruled 20 Oct
+# 2026 with filing amendments F1-F8 (docs/change-order-signal-triage-batch-14-
+# 2026-10-20.md). Read by altdata/fragility.py; laid out by
+# daily_cascade/batch14_b1_block.py. FLAG RIGHTS ONLY: no T&B or Book C modifier
+# before the air-pocket ledger; nothing enters a composite or the market-state
+# object.
+version: fragility-v1
+updated: 2026-10-23
+
+# THE DEPTH PROXIES, from the stored daily bars (yfinance.mkt_spy and its _high,
+# _low and _volume): SPY's Amihud illiquidity -- the absolute close-to-close
+# return per dollar of volume -- and the day's range per dollar of volume, each in
+# basis points per $1bn traded (dollar volume = the close x the shares traded).
+spy:
+  close: yfinance.mkt_spy
+  high: yfinance.mkt_spy_high
+  low: yfinance.mkt_spy_low
+  volume: yfinance.mkt_spy_volume
+# Session-set: each measure is the mean of its last 20 daily values (Amihud's own
+# form averages over a window; one session's ratio is noise), and the fewest
+# sessions with volume a mean may hold.
+mean_sessions: 20
+min_sessions_in_mean: 15
+
+# ES TOP-OF-BOOK DEPTH: not tracked (section 5 check 8, 23 Oct 2026): the bars
+# store holds OHLCV only, Yahoo serves no level-1 size history, and the CME's
+# level-1 feed through the broker is a paid market-data subscription this system
+# does not hold. Until a free source serves it, the Amihud measure stands in for
+# depth in the flag, labelled as the stand-in.
+es_depth_gap: >-
+  ES top-of-book depth: NOT TRACKED (F3; section 5 check 8: no free source serves
+  ES level-1 size -- the bars store holds OHLCV only, and the CME's level-1 feed is
+  a paid subscription)
+
+# FINRA MARGIN DEBT (the existing writer, finra.margin_debit, dollars, monthly),
+# as a level and as a share of market capitalisation. The capitalisation is Z.1's
+# all-sector corporate equities at market value (FRED BOGZ1LM893064105Q, MILLIONS,
+# quarterly): the whole US equity market, financials included, as margin accounts
+# hold it; the nonfinancial-only line (NCBEILQ027S) would leave the banks and
+# insurers out. Between Z.1 releases the latest quarter is MARKED TO SPX from the
+# quarter's end to the month's end, labelled "marked" (session-set; b52's rule for
+# Z.1's household share).
+margin:
+  debit: finra.margin_debit
+  market_value: fred.z1_equities_mv
+  market_value_scale: 1000000.0      # millions -> dollars
+  spx: yfinance.mkt_gspc
+
+# THE LEVERAGED-ETF CLOSE-REBALANCE ESTIMATE: AUM x L x (L - 1) x the day's
+# return, summed over the major 2x and 3x index ETFs the existing writer covers
+# (altdata/sources/proshares.py, levetf.aum, the prior session's AUM), each on
+# its index's proxy's close-to-close return. L(L - 1) is positive for an inverse
+# fund too, so every fund trades with the day's move.
+leveraged_etfs:
+  aum_key: levetf.aum
+  # Session-set: the oldest a prior-session AUM may be.
+  aum_max_age_days: 5
+  covered:
+    - {ticker: TQQQ, leverage: 3, index: Nasdaq-100, proxy: yfinance.mkt_qqq}
+    - {ticker: SQQQ, leverage: -3, index: Nasdaq-100, proxy: yfinance.mkt_qqq}
+    - {ticker: QLD, leverage: 2, index: Nasdaq-100, proxy: yfinance.mkt_qqq}
+    - {ticker: UPRO, leverage: 3, index: S&P 500, proxy: yfinance.mkt_spy}
+    - {ticker: SPXU, leverage: -3, index: S&P 500, proxy: yfinance.mkt_spy}
+    - {ticker: SSO, leverage: 2, index: S&P 500, proxy: yfinance.mkt_spy}
+    - {ticker: SDS, leverage: -2, index: S&P 500, proxy: yfinance.mkt_spy}
+  # Section 5 check 9 (23 Oct 2026): the major index funds the writer does not
+  # cover -- a listed gap each, never approximated.
+  not_covered:
+    - {tickers: [SPXL, SPXS], index: S&P 500, issuer: Direxion,
+       reason: "no daily NAV or AUM history file; its holdings file carries only today's shares outstanding (the writer's check of 26 Sep 2026)"}
+    - {tickers: [TNA, TZA], index: Russell 2000, issuer: Direxion,
+       reason: "no daily NAV or AUM history file (as above)"}
+    - {tickers: [QID, UDOW, SDOW, URTY, SRTY], index: "Nasdaq-100, Dow, Russell 2000", issuer: ProShares,
+       reason: "the issuer's keyless NAV file serves them, but the writer's FUNDS do not list them: an extension is the operator's"}
+
+# DEALER GAMMA from 6b, as the dealer engine stored it (never recomputed): the
+# close's per-window $ per 1% for SPY, all expiries (dealer.window_gamma,
+# instrument SPY:all; daily_cascade/dealer_block.window_rows). Only negative gamma
+# is forced flow: dealers short gamma sell into a fall and buy into a rise, about
+# |gamma $ per 1%| x the day's move in percent.
+dealer:
+  key: dealer.window_gamma
+  instrument: "SPY:all"
+
+# THE FRAGILITY FLAG (ruled): depth below its 10th percentile -- while depth is
+# not tracked, the Amihud measure at or above its 90th, labelled the stand-in --
+# while the forced-flow estimate (the leveraged-ETF rebalance plus negative dealer
+# gamma) is above its 90th. Session-set: both arms rank on the five-year window of
+# the dual percentiles (the full history prints beside it).
+flag:
+  depth_pct: 10
+  amihud_pct: 90
+  forced_flow_pct: 90
+  window_years: 5
