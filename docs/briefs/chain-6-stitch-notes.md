@@ -1,4 +1,4 @@
-STITCH PENDING (CI round 1 not yet read)
+STITCH COMPLETE: CI green at `79cd140` (run 40055201097, 147/147 jobs). Must not merge before the 1 Nov Monthly.
 
 # chain-6: the four post-Monthly branches stitched into one (session B, 23-24 Oct 2026)
 
@@ -85,7 +85,7 @@ STITCH PENDING (CI round 1 not yet read)
 
 | Round | Run | On | Result |
 |---|---|---|---|
-| 1 | — | — | — |
+| 1 | 40055201097 | `79cd140` | **Green: 147 of 147 jobs** (the stack gates and `smoke_test` among them). The run of the superseded push `8985c3f` (40055143011) was cancelled. Also run locally on the stitched tree: `validate_weekly_edits` 91/0, `validate_monthly` 359/0, `validate_st_t1_rest` 34/0, `validate_digital_addendum` 94/0, `validate_weekly_complete` 96/0, `validate_daily_close` 102/0, `validate_quarterly_stack` 94/0, `validate_backups` passed |
 
 ## The box sheet
 
