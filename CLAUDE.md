@@ -799,8 +799,8 @@ Report only.
   edition stored". Item 30's Book A line in the allocation block reads the US
   median. No number is entered by hand.
 - **Item 67.** PEG and LTEG are listed gaps (F3) and print nowhere; item 60's
-  lines end on one gap line pointing at
-  `docs/base-rate-notes/lteg-overshoot-2026-10.md`, the cited note. The
+  lines end on one gap line pointing at the LTEG overshoot note,
+  `docs/base-rate-notes/lteg-overshoot-2026-10.md`, which is cited. The
   proposal `market_cheap_on_peg` is seeded PROPOSED with its caveat.
 - **Item 68.** Redfin's pending sales per 1,000 households (FRED TTLHHM156N,
   `fred.households`) print beside the raw level in item 36's housing block, with

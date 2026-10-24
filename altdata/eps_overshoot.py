@@ -44,8 +44,8 @@ GAP = ("Implied forward growth and the realised forecast error: listed gaps (ite
        "does not print.")
 # Batch 14 item 67 (written as 60; F3, b55): PEG and LTEG have no keyless source,
 # so neither prints; the chain carries this one listed-gap line wherever it prints.
-PEG_GAP = ("PEG and long-term growth: no keyless source; see the LTEG overshoot note "
-           "(docs/base-rate-notes/lteg-overshoot-2026-10.md).")
+# The note is docs/base-rate-notes/lteg-overshoot-2026-10.md.
+PEG_GAP = "PEG and long-term growth: no keyless source; see the LTEG overshoot note."
 
 
 def config(path: Optional[Path] = None) -> dict:

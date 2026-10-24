@@ -20,7 +20,8 @@ Section 0 governs, and items are cited by their filed numbers.
 
 | Commit | What |
 |---|---|
-| (first) | Items 62, 67 and 68, the gate, its fixtures, the counts and these notes |
+| `63ff1be` | Items 62, 67 and 68, the gate, its fixtures, the counts and these notes |
+| (second) | `validate_st_r5_t1_rest`'s FRED pin 277 → 278 (found from a57's CI round 1, which hit the same pin); the PEG gap line printed without the note's path |
 
 ## Part 0: the source checks (run 23 Oct 2026, from the laptop, before building)
 
@@ -68,7 +69,7 @@ The "not on the shelf" note excluded "Vanguard outlooks". It now excludes only V
 
 ## Item 67: PEG and LTEG
 
-- **No PEG or LTEG line prints (F3).** Item 60's lines (`altdata/eps_overshoot.py`, printed by `daily_cascade/index_carry_block.py`'s what's-priced sub-section) now end on one line in every branch: "PEG and long-term growth: no keyless source; see the LTEG overshoot note (docs/base-rate-notes/lteg-overshoot-2026-10.md)."
+- **No PEG or LTEG line prints (F3).** Item 60's lines (`altdata/eps_overshoot.py`, printed by `daily_cascade/index_carry_block.py`'s what's-priced sub-section) now end on one line in every branch: "PEG and long-term growth: no keyless source; see the LTEG overshoot note." The module names the note's path.
 - **The note:** `docs/base-rate-notes/lteg-overshoot-2026-10.md`, a new folder, since no notes folder for base-rate notes existed (B56's crypto-winter note will sit beside it). It makes three claims from studies (2003, 1996, 2024), each with its title and DOI, and the 2000 peak from Acadian's June 2026 piece, with its URL. **2021 is "Not written":** no citable source was found. No author's name appears (the paste's no-names rule), so each citation is its title, journal, year and URL.
 - **The narrative entry** `market_cheap_on_peg` in `config/narratives.yaml` `proposals:`:
   - It seeds at the next seed as PROPOSED, emerging, origin `config_proposal`.

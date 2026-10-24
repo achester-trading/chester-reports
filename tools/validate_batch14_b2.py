@@ -234,9 +234,10 @@ def group_c() -> None:
 def group_d() -> None:
     head("D. ITEM 67, PEG AND LTEG")
     from altdata import eps_overshoot as eo
-    want = ("PEG and long-term growth: no keyless source; see the LTEG overshoot note "
-            "(docs/base-rate-notes/lteg-overshoot-2026-10.md).")
-    check(eo.PEG_GAP == want, "the listed-gap line, as the paste words it, with the note's path")
+    want = "PEG and long-term growth: no keyless source; see the LTEG overshoot note."
+    src = (REPO / "altdata" / "eps_overshoot.py").read_text(encoding="utf-8")
+    check(eo.PEG_GAP == want and "docs/base-rate-notes/lteg-overshoot-2026-10.md" in src,
+          "the listed-gap line, as the paste words it; the module names the note's path")
     gap = eo.read(None, NOW, "on")
     check(eo.lines(gap)[-1] == want and eo.lines({"state": "absent", "source": "x"})[-1] == want,
           "it closes every branch of item 60's lines")
