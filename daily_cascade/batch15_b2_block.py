@@ -96,15 +96,39 @@ def cyber_subsection(st, now: str) -> Optional[dict]:
             "data": {"cyber_pressure": {"flag": r["flag"]["state"]}}}
 
 
-def incidents_note(st, now: str) -> str:
-    """The addendum's incidents cross-references, printed in the section's
-    footnote so the page's line budget holds."""
+def incidents_body(st, now: str) -> dict:
+    """Items 77 and 78 in the addendum's incidents section (section 7), each with
+    its full read and its table (D19/D20, 24 Oct 2026: the 52-line cap that kept
+    them to one footnote line is retired). {tables, lines, data}."""
     from altdata import cyber_pressure as cp                    # noqa: PLC0415
     from altdata import protocol_breadth as pb                  # noqa: PLC0415
-    c = _safe(lambda: cp.incidents_line(cp.read(st, now)), "the cyber cross-reference")
-    p = _safe(lambda: pb.line(pb.read(st, now)), "the protocol count")
-    return " ".join(x for x in (c or "Cyber pressure: not read.",
-                                p or "DefiLlama active protocols: not read.") if x)
+    tables, lines, data = [], [], {}
+    c = _safe(lambda: cp.read(st, now), "the cyber-pressure read")
+    if c:
+        rows = []
+        for lab, x in (("CISA known exploited vulnerabilities added", c["kev"]),
+                       ("NVD critical CVEs published", c["nvd"])):
+            rows.append([lab, x.get("week") or "—",
+                         "—" if x.get("count") is None else f"{x['count']:,}",
+                         x.get("lens_text") or "not read"])
+        tables.append({"title": "Cyber pressure (item 77)",
+                       "columns": ["Feed", "Week of", "Count", "Percentile"], "rows": rows})
+        lines += cp.lines(c)
+        data["cyber_flag"] = c["flag"]["state"]
+    else:
+        lines.append("Cyber pressure (item 77): not read.")
+    p = _safe(lambda: pb.read(st, now), "the protocol count")
+    if p and p.get("state") == "computed":
+        tables.append({"title": "Protocol breadth (item 78)",
+                       "columns": ["Day", "Active (TVL above zero)", "Listed, not dead",
+                                   "30 days", "History from"],
+                       "rows": [[p["day"], f"{p['active']:,}",
+                                 "—" if p["listed"] is None else f"{p['listed']:,}",
+                                 "—" if p["change_30d"] is None else f"{p['change_30d']:+,}",
+                                 f"{p['start']} ({p['days']} snapshots)"]]})
+    lines += [pb.line(p or {}), pb.HAND_COUNT_GAP + "."]
+    data["protocols"] = (p or {}).get("state")
+    return {"tables": tables, "lines": lines, "data": data}
 
 
 def protocol_subsection(st, now: str) -> Optional[dict]:

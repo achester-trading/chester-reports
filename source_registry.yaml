@@ -2004,6 +2004,64 @@ sources:
     allowed_reports: [weekly_tactical, monthly_macro]
     implemented_by: altdata/cyber_pressure.py
     status: built
+  gdelt:
+    name: The GDELT Project's raw event files (2.0 15-minute exports; 1.0 daily files for the history)
+    tier: C
+    epistemic_role: aggregator
+    domain: [geopolitics, narrative]
+    geography: [global]
+    latency: a 15-minute export every 15 minutes; the reader takes each complete UTC day in the 17:25 crypto basket run
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each event carries its DATEADDED; observed_at is the UTC day the events were
+      added. The live rows (gdelt:v2_15min) are available at the pull; the
+      backfill's (gdelt:v1_daily) are reconstructed at the next day's noon UTC.
+    license: >-
+      "Available for unlimited and unrestricted use for any academic, commercial, or
+      governmental use of any kind without fee" (gdeltproject.org/about.html, read
+      24 Oct 2026); robots.txt (data.gdeltproject.org) answers 404. Keyless. The DOC
+      API is not read (it answered 429 and asks one request per 5 s).
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/gdelt.py
+    status: built
+  noaa_cpc:
+    name: NOAA Climate Prediction Center, population-weighted degree days (daily files)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [energy, weather]
+    geography: [united_states]
+    latency: daily; the newest column is about two days old
+    timestamp_reliability: high
+    timestamp_notes: >-
+      One file per year and kind, one column per day; the live rows are available at
+      the pull, the backfill's reconstructed two days after the day. The newest days
+      are preliminary and re-read for 14 days.
+    license: >-
+      NWS information "is in the public domain, unless specifically noted otherwise,
+      and may be used without charge for any lawful purpose" (weather.gov/disclaimer,
+      read 24 Oct 2026); robots.txt (ftp.cpc.ncep.noaa.gov) answers 404. Keyless.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/cpc_degree_days.py
+    status: built
+  huggingface:
+    name: Hugging Face Hub public API, model listings (the model-release watch)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [ai, technology]
+    geography: [global]
+    latency: live listing; read once a day in the 17:25 crypto basket run
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A repository's createdAt can predate its public release, so a release event is
+      available at the pull that first saw it; the weekly counts are recounted for
+      four weeks; the backfill's weeks are reconstructed from createdAt.
+    license: >-
+      robots.txt (huggingface.co, read 24 Oct 2026): "User-agent: *", "Allow: /". The
+      terms of service carry no clause on automated access; the API states 500
+      requests per 300 s anonymous (RateLimit-Policy). Keyless. Counts and dates only.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/hf_releases.py
+    status: built
   nvd:
     name: NIST National Vulnerability Database, CVE API 2.0
     tier: A1
@@ -2711,6 +2769,22 @@ sources:
     implemented_by: altdata/vol_event.py
     status: live
 
+  oneday_10y:
+    name: The one-day 10-year trigger's attribution (D15)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass on a trigger day, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/oneday_10y.py through daily_cascade/stack_close.py:
+      rates.oneday_event_ledger, observed on the trigger day and available when
+      written; the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/oneday_10y.py
+    status: live
   speed_attribution:
     name: The 10-year attribution on speed-flag days (Batch 14 item 65)
     tier: derived

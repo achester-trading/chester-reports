@@ -47,6 +47,15 @@ families:
       EIA posts its daily spot prices once a week (Wednesday), through the
       previous few sessions; FRED mirrors them after. The newest print is up to
       a week old before the next posting, 6 sessions with a holiday's slack.
+  - id: noaa_cpc_degree_days
+    keys: ["noaa.hdd_pop", "noaa.cdd_pop"]
+    lag_sessions: 2
+    max_lag: 3
+    source: "NOAA CPC's daily population-weighted degree days (b59, D26)"
+    reason: >-
+      The CPC's daily file carries the day before yesterday as its newest column
+      (on 24 Oct 2026 its newest was 22 Oct): 2 sessions over the daily allowance,
+      3 with a holiday's slack.
   - id: term_premium_models
     keys: ["calc.attr_kw_tp_share_*", "calc.attr_acm_tp_share_*",
            "calc.attr_dkw_path_share_*"]

@@ -263,6 +263,11 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     if sessions:
         subs = batch15_a_block.mechanics_subsections(subs, st, cutoff, sessions[0],
                                                      sessions[-1])
+        # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+        # degree days beside natural gas after the oil-shock signature.
+        from . import b59_block                                 # noqa: PLC0415
+        subs = b59_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                               sessions[-1])
     # 6f TRANCHE 3 (a62): the tail families, one line, read from the object.
     from . import state_v2_block                                # noqa: PLC0415
     tl = state_v2_block.weekly_subsection(st, cutoff)
@@ -2140,6 +2145,13 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         cyb = batch15_b2_block.cyber_subsection(st, now)
         if cyb:
             built["ahead"].setdefault("subsections", []).append(cyb)
+        # D26 (b59): GDELT's geopolitical line in the tail register, and in
+        # Narratives the stories' GDELT counts and the model-release line.
+        from . import b59_block                                 # noqa: PLC0415
+        tl = b59_block.tail_subsection(st, now)
+        if tl:
+            built["ahead"].setdefault("subsections", []).append(tl)
+        b59_block.weekly_narratives(built["narratives"], st, now)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.

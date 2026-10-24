@@ -21,7 +21,7 @@ Signal triage Batch 15, session B (b56): items 74, 75, 77 and 78.
   F  ITEM 77, CYBER PRESSURE. KEV's weekly counts by hand from a fixture
      catalogue (its seeding week left out of the percentiles); NVD's weekly
      counts through a fake fetch, paced; the joint flag on, off and not read;
-     the Weekly's Ahead and the addendum's incidents footnote carry it.
+     the Weekly's Ahead and the addendum's incidents section (its body, b60) carry it.
   G  ITEM 78, PROTOCOL BREADTH. The active and listed counts by hand; the dry
      run; the line's history-start label; the Monthly chapter's sub-section and
      the hand count's listed gap.
@@ -402,10 +402,10 @@ def group_f() -> None:
     ws = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
     da = (REPO / "daily_cascade" / "digital_addendum.py").read_text(encoding="utf-8")
     check("batch15_b2_block.cyber_subsection(st, now)" in ws
-          and "batch15_b2_block.incidents_note(st, cutoff)" in da
-          and 'secs["incidents"]["footnote"]' in da,
-          "the Weekly's Ahead carries the line; the addendum's incidents footnote the "
-          "cross-reference (a line, no Drive link)")
+          and "batch15_b2_block.incidents_body(st, cutoff)" in da
+          and 'secs["incidents"]["tables"] += b15["tables"]' in da,
+          "the Weekly's Ahead carries the line; the addendum's incidents section "
+          "carries the read and its table in its body (D19/D20, b60; no Drive link)")
     check("drive.google" not in (REPO / "daily_cascade" / "batch15_b2_block.py").read_text(
         encoding="utf-8"), "no link to Drive")
 

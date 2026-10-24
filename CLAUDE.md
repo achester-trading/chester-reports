@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-eight code gates (one hundred and thirty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-nine code gates (one hundred and thirty-six Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -305,8 +305,9 @@ The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` 
 `stack_render.markdown` print a whole edition at any cadence; at "monthly" a
 sub-section carries its own charts and notes, a Reading entry's stored summary
 prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
-never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
-words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
+never in the budget). The Monthly's 10,000 words (T3.1 item 22; 7,000 before) are
+a target: since D19/D20 (24 Oct 2026) nothing is cut to fit, and an edition over
+its reading target prints one foot line (`stack.target_line`). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
 
 **Each family of metrics is measured its own way (6e, the metric lenses; ruled
@@ -471,8 +472,8 @@ the Weekly (`weekly_digital_<ending>.html` and `.pdf`, its edition JSON and its
 appendix line) and attaches it to the Weekly's own email as a second PDF (ruled
 17 Oct 2026); the Weekly prints one line naming
 it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
-the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
-minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
+the ruling's order (`config/digital_addendum.yaml`, its targets, never caps:
+about seven minutes, about 1,500 words, two charts; D19/D20, 24 Oct 2026); every Batch 4 Tranche A cell prints "awaiting
 Tranche A" until its key has a row; the read is one paragraph through the
 existing narrative step and its audits, from the page's figures only. The X
 pilot's ledgers and digests are read from the box's inbox, which the nightly
@@ -549,8 +550,9 @@ panels read Tranche A by key:
 - an absent series prints "awaiting the first pull", "not tracked" or "awaiting
   EL-12".
 
-The page holds Phase 1's 52-line budget, and the read's audits gain a flag-word
-check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
+Phase 1's 52-line budget is retired (D19/D20, 24 Oct 2026): items 77 and 78 print
+in the incidents section's body with their tables, and a page over its target prints
+one foot line. The read's audits gain a flag-word check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
 watch, read-only.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
@@ -812,6 +814,36 @@ Report only.
   `docs/dated-appendix-queue.md`.
 
 `tools/validate_batch14_b2.py` holds it.
+
+**The one-day 10-year trigger and three new sources (rulings of 24 Oct 2026, D15
+and D26; b59-trigger-sources). Merges after the 1 Nov Monthly.** Report only;
+nothing enters a composite or the market-state object.
+- **D15.** `altdata/oneday_10y.py` (`config/oneday_10y.yaml`) fires when DGS10's
+  one-day change passes the five-year 97.5th percentile of absolute one-day
+  changes (either sign, at least 1,000 of them). It runs the speed flag's
+  attribution over one session, "awaiting" any model not yet stored. Its ledger
+  `rates.oneday_event_ledger` is written by the close and resolved in the EOD pass.
+  The pre-registration is `docs/ledgers/oneday-10y-preregistration-2026-10.md`,
+  held by SHA-256. The laptop first edition is INSUFFICIENT, n 67. The close prints
+  the flag line in the event area; the Weekly and the Monthly print the block in
+  Mechanics.
+- **D26.** Each reader was registered first as an Alpha Lab hypothesis
+  (`alpha/research/hypotheses-2026-10-24-b59-sources.yaml`, committed alone before
+  the readers). All three are keyless steps of the crypto basket's 17:25 run, on
+  the freshness roster:
+  - `altdata/sources/gdelt.py`: the 15-minute exports, the geopolitical families'
+    conflict counts, share and tone, and the articles per story. A failed export
+    marks the day STALE and fills nothing. The DOC API is not read.
+  - `altdata/sources/cpc_degree_days.py`: NOAA CPC's population-weighted degree
+    days, the 1991-2020 normal on read.
+  - `altdata/sources/hf_releases.py`: new public model repositories per week for
+    the declared organisations, counts and dates only.
+- **Placement.** GDELT: the Weekly's tail register, both narratives sections and
+  the Monthly's Factor III. Degree days: beside natural gas in Mechanics. Model
+  releases: the Weekly's narratives and the Monthly's Factor I-b
+  (`daily_cascade/b59_block.py`).
+
+`tools/validate_b59.py` holds it.
 
 **Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
 breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the

@@ -758,6 +758,14 @@ def freshness(as_of: Optional[str] = None,
         from . import protocol_breadth as _pb                  # noqa: PLC0415
         rosters += [(_cyb.ROSTER, list(_cyb.ROSTER_KEYS)),
                     (_pb.ROSTER, list(_pb.ROSTER_KEYS))]
+        # D26 (b59): GDELT, the degree days and the model-release watch, steps
+        # of the crypto basket's run.
+        from .sources import cpc_degree_days as _cpc           # noqa: PLC0415
+        from .sources import gdelt as _gd                      # noqa: PLC0415
+        from .sources import hf_releases as _hf                # noqa: PLC0415
+        rosters += [(_gd.ROSTER, list(_gd.ROSTER_KEYS)),
+                    (_cpc.ROSTER, list(_cpc.ROSTER_KEYS)),
+                    (_hf.ROSTER, list(_hf.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None

@@ -266,7 +266,7 @@ def weekly_block(st, now: str, cfg: Optional[dict] = None) -> dict:
                      short(d)])
     else:
         rows.append(["Crypto market cap; BTC dominance", NOT_TRACKED, "—"])
-    rows = rows[:int(bc.get("weekly_max_lines") or 12)]
+    # D19/D20 (24 Oct 2026): every row prints; the 12-line cap is retired.
     return {"title": TITLE_WEEKLY,
             "table": {"columns": ["Measure", "The week", "Data as of"], "rows": rows},
             "paragraph_wanted": False,

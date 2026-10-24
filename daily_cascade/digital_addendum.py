@@ -545,9 +545,10 @@ def digest_items(body: str) -> list[dict]:
     return out
 
 
-def _truncate(s: str, n: int) -> str:
-    s = re.sub(r"\s+", " ", s).strip()
-    return s if len(s) <= n else s[:n - 1].rstrip() + "…"
+def _whole(s: str) -> str:
+    """Whitespace collapsed; never shortened (D19/D20, 24 Oct 2026: a cell prints
+    in full -- the 110- and 120-character truncations are retired)."""
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def attention_section(st, cutoff: str, sun: str, sat: str, cfg: dict,
@@ -600,18 +601,18 @@ def attention_section(st, cutoff: str, sun: str, sat: str, cfg: dict,
     if pairs:
         tables.append({"title": "Disagreement pairs", "columns":
                        ["Date", "Question", "Side A", "Side B"],
-                       "rows": [[short_date(x["date"]), _truncate(x["question"], 120),
+                       "rows": [[short_date(x["date"]), _whole(x["question"]),
                                  x["side_a"], x["side_b"]] for x in pairs[:4]]})
     if new_v:
         tables.append({"title": "New voices (the voices ledger)", "columns":
                        ["Handle", "Role", "Incentive"],
-                       "rows": [[v.get("handle"), _truncate(v.get("role") or "", 70),
+                       "rows": [[v.get("handle"), _whole(v.get("role") or ""),
                                  v.get("incentive_tag") or "—"] for v in new_v[:6]]})
     if scan:
         tables.append({"title": "The Saturday scan", "columns":
                        ["Date", "Name", "Kind", "Item"],
                        "rows": [[short_date(x["date"]), x["name"], x.get("kind"),
-                                 f"{_truncate(x.get('title') or '', 80)} ({x.get('url')})"]
+                                 f"{_whole(x.get('title') or '')} ({x.get('url')})"]
                                 for x in scan[:6]]})
     if not week and not digs:
         lines.append(f"X attention: {NO_DIGEST}.")
@@ -650,7 +651,7 @@ def incidents_section(cutoff: str, sun: str, sat: str, cfg: dict, cal: list[dict
         tables.append({"title": "From the week's digests", "columns":
                        ["Date", "Account", "Theme", "As posted", "Post"],
                        "rows": [[short_date(x["date"]), x["handle"], x["theme"],
-                                 _truncate(x["claim"], 110), x["url"]] for x in items]})
+                                 _whole(x["claim"]), x["url"]] for x in items]})
     if reg:
         tables.append({"title": "Regulatory calendar", "columns":
                        ["Date", "Who", "Event"],
@@ -877,7 +878,8 @@ def write_read(ed: dict, cfg: dict, *, client=None, model: Optional[str] = None
         style = {}
     try:
         r = base.generate(payload, model=model, client=client, system_prompt=system,
-                          max_chars=words * 9, one_paragraph=True, citable_ids=[])
+                          max_chars=stack_prose.runaway(words * 9), one_paragraph=True,
+                          citable_ids=[])
     except Exception as exc:                                    # noqa: BLE001
         return {"state": "fault", "published": False,
                 "reason": f"FAULT {type(exc).__name__}: {exc}"}
@@ -889,8 +891,8 @@ def write_read(ed: dict, cfg: dict, *, client=None, model: Optional[str] = None
     faults = (stack_prose.style_faults(text, style) + stack_prose.id_faults(text)
               + stack_prose.excess_faults(text) + readability.stance_faults(text)
               + stack_prose.figure_faults(text, figs))
-    if len(text.split()) > words:
-        faults.append(f"{len(text.split())} words, over the read's {words}")
+    # D19/D20 (24 Oct 2026): a read over its 120 words prints in full (the
+    # page's foot line covers the target); it is no longer withheld for length.
     # THE FLAG-WORD AUDIT (Phase 2): the page prints one flag, item 49's mNAV,
     # and only when it holds; a read may name a flag only when the page prints it.
     flag_on = any(c.get("flag") for s in ed["sections"]
@@ -927,24 +929,17 @@ def reading_minutes(ed: dict) -> int:
                             / 60.0))
 
 
-TRIM_ORDER = ("incidents", "attention", "ahead")
-
-
 def enforce_budget(ed: dict) -> None:
-    """Words over the budget: the longest tables of the trim order lose their
-    last rows, one at a time, each section marked "(trimmed)"."""
-    cap = int((ed.get("budget") or {}).get("words") or 1100)
-    for sid in TRIM_ORDER:
-        s = next(x for x in ed["sections"] if x["id"] == sid)
-        while page_words(ed) > cap:
-            ts = [t for t in s.get("tables") or [] if len(t.get("rows") or []) > 1]
-            if not ts:
-                break
-            max(ts, key=lambda t: len(t["rows"]))["rows"].pop()
-            s["trimmed"] = True
+    """THE TARGETS (D19/D20, 24 Oct 2026; the 52-line cap and the row trim are
+    retired): the page's words and minutes counted, and over the reading target
+    one foot line; nothing is trimmed, dropped or withheld for length."""
+    b = ed.get("budget") or {}
     ed["words"] = page_words(ed)
     ed["minutes"] = reading_minutes(ed)
-    ed["over_budget"] = ed["words"] > cap
+    ed["over_budget"] = ed["words"] > int(b.get("words") or 1500)
+    t = int(b.get("reading_minutes") or 7)
+    ed["target_line"] = (f"This page runs about {ed['minutes']} minutes against a "
+                         f"{t}-minute target." if ed["minutes"] > t else None)
 
 
 def appendix_line(ed: dict) -> str:
@@ -1007,17 +1002,19 @@ def build(ending: str, *, as_of: Optional[str] = None, db_path: Optional[str] = 
             "(CD-12). The froth gauge is unscored until its gate (not before "
             "January 2027).")
         secs["attention"] = attention_section(st, cutoff, sun, sat, cfg, inbox)
-        # Batch 15 items 77 and 78 (b56): the cyber cross-reference and the
-        # active-protocol count, in the incidents section's footnote so the
-        # page's 52-line budget holds.
+        # Batch 15 items 77 and 78 (b56), in the incidents section's BODY since
+        # D19/D20 (24 Oct 2026; the 52-line cap that held them in its footnote
+        # is retired): each with its full read and its table.
         from daily_cascade import batch15_b2_block               # noqa: PLC0415
-        b15_note = batch15_b2_block.incidents_note(st, cutoff)
+        b15 = batch15_b2_block.incidents_body(st, cutoff)
     first = cutoff[:10]
     last = _plus(first, int((cfg.get("ahead") or {}).get("window_days") or 45))
     secs["incidents"] = incidents_section(cutoff, sun, sat, cfg,
                                           calendar_window(cal, first, last),
                                           inbox)
-    secs["incidents"]["footnote"] = (secs["incidents"]["footnote"] + " " + b15_note)
+    secs["incidents"]["tables"] += b15["tables"]
+    secs["incidents"]["lines"] += b15["lines"]
+    secs["incidents"]["data"]["items_77_78"] = b15["data"]
     secs["ahead"] = ahead_section(cutoff, cfg, cal, events_db)
     secs["book"] = book_section(cfg, register)
     secs["read"] = {"tables": [], "lines": [], "paragraphs": [], "data": {},
@@ -1062,9 +1059,7 @@ def render(ed: dict, archive_path: Optional[str] = None) -> str:
                                       f"{esc(rd.prose_date(ed['week_ending']))}"))
     out = [head]
     for n, s in enumerate(ed["sections"], start=1):
-        out.append(f'<h2 style="{sr.H2}">{n}. {esc(s["title"])}'
-                   + (f' <span style="{sr.SUBTITLE}">(trimmed)</span>'
-                      if s.get("trimmed") else "") + "</h2>")
+        out.append(f'<h2 style="{sr.H2}">{n}. {esc(s["title"])}</h2>')
         for p in s.get("paragraphs") or []:
             out.append(f'<p style="{sr.PARA}">{esc(p)}</p>')
         for t in s.get("tables") or []:
@@ -1082,12 +1077,13 @@ def render(ed: dict, archive_path: Optional[str] = None) -> str:
                    f'appendix, written by code from this page: a draft for Ari\'s '
                    f'accept-all.</p>')
     meta = (f"Addendum v{esc(ed.get('config_version'))} &middot; "
-            f"{esc(rd.plural(int(ed.get('words') or 0), 'word'))} of a "
-            f"{esc(str((ed.get('budget') or {}).get('words')))} budget &middot; "
+            f"{esc(rd.plural(int(ed.get('words') or 0), 'word'))} against a "
+            f"{esc(str((ed.get('budget') or {}).get('words')))}-word target &middot; "
             f"{esc(rd.plural(int(ed.get('chart_count') or 0), 'chart'))} &middot; "
             f"as-of cutoff {esc(rd.stamp_et(ed.get('as_of')))} &middot; run "
             f"{esc(ed.get('run_id') or 'n/a')}")
-    foot = [meta, "Report only: nothing on this page has decision rights. Paper only."]
+    foot = ([esc(ed["target_line"])] if ed.get("target_line") else []) + [
+        meta, "Report only: nothing on this page has decision rights. Paper only."]
     if archive_path:
         foot.append(f"Archived to {esc(archive_path)}.")
     out.append('<div style="margin:24px 0 0 0;padding-top:8px;border-top:1px solid '
@@ -1217,13 +1213,14 @@ def _main(argv: Optional[list] = None) -> int:
         return 1
     ed = res["edition"]
     print(f"digital addendum -- week to {ed['crypto_week'][1]}")
-    print(f"  words      : {ed['words']} (budget {ed['budget'].get('words')}), "
-          f"about {ed['minutes']} minutes, {ed['chart_count']} charts")
+    print(f"  words      : {ed['words']} (target {ed['budget'].get('words')}), "
+          f"about {ed['minutes']} minutes, {ed['chart_count']} charts"
+          + (f" -- {ed['target_line']}" if ed.get("target_line") else ""))
     print(f"  the read   : {ed['prose'].get('state')} "
           f"{ed['prose'].get('reason') or ''}")
     for s in ed["sections"]:
         print(f"    {s['id']:<10} {sum(len(t.get('rows') or []) for t in s.get('tables') or [])}"
-              f" rows" + ("  (trimmed)" if s.get("trimmed") else ""))
+              f" rows")
     print(f"  archive    : {res['archive_path']}")
     return 0
 

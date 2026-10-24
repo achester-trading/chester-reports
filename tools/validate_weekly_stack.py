@@ -21,7 +21,7 @@ store -- a code gate never reads the live store, and no figure here is real:
   G ATTENTION  packets approved / 7 from the register; a deferral recorded with
                the attention_budget reason; sitting hours / 2 and rulings from the
                attention log; each trigger's firing count.
-  H BUDGET     <= 3,500 words and <= 6 charts; over budget prints "(trimmed)".
+  H BUDGET     a 35-minute, 7,900-word target (D19/D20); over it nothing is cut, one foot line.
 """
 
 from __future__ import annotations
@@ -765,21 +765,24 @@ def main() -> int:
 
     # --- H. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nH. BUDGET\n{LINE}")
-    check(ed["budget"] == {"words": 3500, "charts": 10} and ed["words"] <= 3500
-          and ed["chart_count"] <= 11,
-          f"the Weekly's budget is 3,500 words of prose / 10 charts ({ed['words']} "
-          f"words, {ed['chart_count']} charts; a fired trigger lifts the cap by one)")
+    check(ed["budget"] == {"words": 7900, "charts": 10} and ed["words"] <= 7900
+          and ed["chart_count"] <= 11 and ed.get("reading_target_minutes") == 35,
+          f"the Weekly's target is 35 minutes, 7,900 words of prose / 10 charts "
+          f"(D19/D20; {ed['words']} words, {ed['chart_count']} charts; a fired "
+          f"trigger lifts the chart cap by one)")
     e = json.loads(json.dumps(ed))
     deep = next(s for s in e["sections"] if s["depth"] == "deep" and s.get("claim"))
-    deep["paragraphs"] = ["Prose for the budget to take. " * 6] * 3
+    deep["paragraphs"] = ["Prose printed in full past the target. " * 900] * 3
+    paras = list(deep["paragraphs"])
     n_items = sum(len(s["items"]) for s in e["sections"])
-    before = sum(stack_mod.section_words(s) for s in e["sections"])
-    e["budget"] = {"words": before - 20, "charts": 10}
-    stack_mod.enforce_budget(e)
-    check(deep["trimmed"] and len(deep["paragraphs"]) < 3
-          and sum(len(s["items"]) for s in e["sections"]) == n_items,
-          "over budget, later paragraphs go, the section prints \"(trimmed)\", and "
-          "no item is cut")
+    e["reading_target_minutes"] = None
+    stack_mod.enforce_budget(e, "weekly")
+    check(deep["paragraphs"] == paras and not deep.get("trimmed")
+          and sum(len(s["items"]) for s in e["sections"]) == n_items
+          and e["reading_target_minutes"] == 35
+          and str(e.get("target_line") or "").endswith("against a 35-minute target."),
+          f"over its 35-minute target the Weekly prints every paragraph and item in "
+          f"full and one foot line (D19/D20): {e.get('target_line')!r}")
 
     group_v(out, td)
 

@@ -1,0 +1,119 @@
+# gdelt.yaml -- the GDELT raw event files reader (rulings of 24 Oct 2026, D26;
+# b59-trigger-sources). Read by altdata/sources/gdelt.py. Report only: nothing
+# here enters a composite or the market-state object.
+#
+# THE SOURCE CHECK (24 Oct 2026, re-confirmed before the reader; B58's brief,
+# docs/briefs/new-sources-check-2026-10-24.md section 2):
+#   terms     https://www.gdeltproject.org/about.html: "all datasets released by
+#             the GDELT Project are available for unlimited and unrestricted use
+#             for any academic, commercial, or governmental use of any kind
+#             without fee", and "You may redistribute, rehost, republish, and
+#             mirror any of the GDELT datasets in any form".
+#   robots    data.gdeltproject.org/robots.txt answers 404 (RFC 9309: no rules).
+#   files     lastupdate.txt named the newest 15-minute export (about 50 KB
+#             zipped, about 800 events) on 24 Oct 2026; the 1.0 daily file for
+#             23 Oct 2026 served 117,193 events (7.4 MB zipped).
+#   DOC API   NOT USED: it answered 429 to the laptop on 23-24 Oct and asks one
+#             request per 5 seconds. The raw files carry what the reader needs.
+version: gdelt-v1
+updated: 2026-10-24
+
+urls:
+  # The 2.0 exports: one file per 15 minutes, stamped with the window's start (UTC).
+  v2_export: "https://data.gdeltproject.org/gdeltv2/{stamp}.export.CSV.zip"
+  # The 1.0 daily files: one file a day, for the history backfill only.
+  v1_daily: "https://data.gdeltproject.org/events/{day}.export.CSV.zip"
+
+# Session-set. The pause between file requests: GDELT states no limit for the raw
+# files; 1.5 s keeps a day's 96 exports near two and a half minutes.
+pause_seconds: 1.5
+# Session-set. The daily step reads the last complete UTC days not yet stored, at
+# most this many a run (a missed run catches up; older days are the backfill's).
+catch_up_days: 3
+# Session-set. The backfill's default reach in days (the operator's, one request
+# a day at the pause above; each 1.0 file is about 7 MB).
+backfill_days: 365
+
+# THE MEASURES: CAMEO root codes (EventRootCode, two digits). Conflict is the
+# material-conflict roots 18 (assault), 19 (fight) and 20 (unconventional mass
+# violence); reduce-relations is root 16 (sanctions, embargoes, broken ties:
+# economic warfare, Factor III's leading channel).
+measures:
+  conflict: ["18", "19", "20"]
+  reduce_relations: ["16"]
+# The share is per this many of the day's events (all families, all roots), so a
+# day's level does not move with GDELT's own volume or file layout.
+share_per: 10000
+
+# THE FAMILIES: the Twenty-Five's Family D (physical shocks and geopolitics) and
+# Factor III's theatres. An event belongs to a family when either actor's CAMEO
+# country code is in `actors`, or its action's FIPS country code is in
+# `locations`, or the two actors form one of its `dyads`. An event may count in
+# more than one family.
+families:
+  - id: taiwan_strait
+    label: Taiwan Strait
+    scenario: "The Twenty-Five, scenario 8 (Taiwan)"
+    factor: III
+    actors: [TWN]
+    locations: [TW]
+    dyads: [[CHN, USA], [CHN, JPN], [CHN, PHL]]
+  - id: middle_east_gulf
+    label: Middle East and the Gulf
+    scenario: "The Twenty-Five, scenario 7 (chokepoint disruption)"
+    factor: III
+    actors: [IRN, ISR, SAU, ARE, QAT, KWT, BHR, OMN, IRQ, YEM, LBN, SYR, PSE]
+    locations: [IR, IS, SA, AE, QA, KU, BA, MU, IZ, YM, LE, SY, GZ, WE]
+    dyads: []
+  - id: russia_ukraine
+    label: Russia and Ukraine
+    scenario: "Family D (physical shocks and geopolitics)"
+    factor: III
+    actors: [RUS, UKR]
+    locations: [RS, UP]
+    dyads: []
+  - id: korean_peninsula
+    label: Korean peninsula
+    scenario: "Family D (physical shocks and geopolitics)"
+    factor: III
+    actors: [PRK]
+    locations: [KN]
+    dyads: [[PRK, KOR], [PRK, USA], [PRK, JPN]]
+  - id: us_china
+    label: US and China (economic warfare)
+    scenario: "Factor III: economic warfare as the leading channel"
+    factor: III
+    actors: []
+    locations: []
+    dyads: [[USA, CHN]]
+
+# THE NARRATIVES (config/narratives.yaml, the four seeds and the proposals): a
+# day's mention count is the distinct source articles among the day's events whose
+# address carries one of the story's phrases, matched on whole words of the URL
+# (GDELT's event files carry no article text; the address's slug is what is read).
+# Session-set and listed in the notes; a phrase is lower case, words separated by
+# spaces.
+narratives:
+  ai_capex_durability: ["ai capex", "data center", "data centers", "hyperscaler",
+                        "hyperscalers", "ai spending", "ai infrastructure"]
+  fiscal_dominance: ["fiscal dominance", "budget deficit", "treasury auction",
+                     "debt ceiling", "bond vigilantes", "term premium", "debt service"]
+  yen_carry: ["yen carry", "carry trade", "bank of japan", "boj", "jgb", "japanese yen"]
+  midterm_cycle: ["midterm", "midterms", "midterm election", "midterm elections"]
+  bond_bull_end_active_era: ["bond bull", "bond bear", "bond rout", "bond selloff",
+                             "bond sell off", "30 year yield"]
+  treasury_asian_hours_selling: ["foreign selling of treasuries", "treasury selling",
+                                 "japan treasury holdings", "china treasury holdings"]
+  capital_competition: ["capital competition", "long end", "long dated bonds",
+                        "term premium"]
+  ai_excess_orderly_flush: ["ai bubble", "ai selloff", "ai sell off", "ai stocks fall",
+                            "ai correction"]
+  estimates_overshoot_reckoning: ["earnings estimates", "earnings expectations",
+                                  "earnings growth forecast", "profit forecasts"]
+  gse_mbs_purchase_floor: ["fannie mae", "freddie mac", "mortgage bonds",
+                           "mortgage backed securities", "mbs purchases"]
+  market_cheap_on_peg: ["peg ratio", "price earnings growth"]
+
+# Five years of the share's daily history for the five-year percentile; the full
+# history prints beside it.
+lens_years: 5

@@ -687,7 +687,8 @@ def stack_plan(ed: dict) -> list[dict]:
                    + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE + T36_RULES + vocab_frame())
         out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
                     "sid": s["id"], "system": system,
-                    "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
+                    # D19/D20 (24 Oct 2026): a runaway guard, never a length cap.
+                    "max_chars": sp.runaway(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
                     # T3.4: a parent's frame is its budget, not its tables.
                     "slice": sp.section_slice(s, ed, "monthly")})
     return out
@@ -759,7 +760,7 @@ def block_plan(ed: dict) -> list[dict]:
                           "\n\n" + sp.FILLER_RULE))
             out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
                         "kind": "stack", "sid": s["id"], "system": system,
-                        "max_chars": hi * 9 + 500, "slice": sl})
+                        "max_chars": sp.runaway(hi * 9 + 500), "slice": sl})
     return out
 
 
@@ -891,7 +892,7 @@ def summary_plan(ed: dict, sections: Optional[list] = None) -> list[dict]:
             system += SOURCE_RULE
         out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
                     "kind": "stack", "sid": s["id"], "system": system,
-                    "max_chars": 1400, "slice": reader_slice(frame),
+                    "max_chars": sp.runaway(1400), "slice": reader_slice(frame),
                     "audit_extra": summary_audit_extra(s, ed)})
     return out
 
