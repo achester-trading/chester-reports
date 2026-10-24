@@ -98,7 +98,7 @@ Also run locally: `validate_daily_close` 102/0, `validate_weekly_complete` 96/0,
 
 **CI, round 1:** run 40119476629 at `f001352`, **red, one gate**. `validate_weekly_fixes_8` showed the audit retry on a 159-word draft in an 80-150 band being withheld; since D20 that draft prints. The gate now shows the retry on the band's floor (a 60-word draft, withheld, revised once to 120 and published), and checks that 159 words is no fault. 68/0 locally. (The run of `8d29041`, superseded, was cancelled.)
 
-**CI, round 2:** recorded below once read.
+**CI, round 2:** run 40121026725 at `67fdd3e`, **green**, every job passed (15m02s).
 
 ## Differences from the paste
 
