@@ -770,7 +770,7 @@ def main() -> int:
           f"trigger lifts the chart cap by one)")
     e = json.loads(json.dumps(ed))
     deep = next(s for s in e["sections"] if s["depth"] == "deep" and s.get("claim"))
-    deep["paragraphs"] = ["Prose printed in full past the target. " * 300] * 3
+    deep["paragraphs"] = ["Prose printed in full past the target. " * 900] * 3
     paras = list(deep["paragraphs"])
     n_items = sum(len(s["items"]) for s in e["sections"])
     e["reading_target_minutes"] = None
