@@ -189,14 +189,14 @@ def collect(get: Callable[[str], str] = _get, *, pages: str = "pages",
 
 
 def pull(run_id: Optional[str] = None, db=None, **kw) -> dict:
+    """STALE-not-empty: any failure (a refusal, a changed header, an empty page)
+    writes nothing for that coin and the summary names the last good date."""
     # REFUSED (the feed repair of 24 Oct 2026): farside.co.uk answers HTTP 403
     # with a Cloudflare challenge; the source registry declares it and nothing is
     # asked. Never worked around.
     r = pub.refused(SOURCE, run_id)
     if r:
         return r
-    """STALE-not-empty: any failure (a refusal, a changed header, an empty page)
-    writes nothing for that coin and the summary names the last good date."""
     state: dict = {}
 
     def produce() -> list[dict]:

@@ -32,6 +32,14 @@ network, no model, no live store (each store here is the gate's own).
      natural gas's weekly leg inherits EIA's lag.
   G  THE NEW FAMILIES. Each carries its source, reason and a lag within its
      bound, and matches a registered key; each declared new family is present.
+     A64 (ruling D29.5): EIA's rig counts and the Cleveland Fed rules carry the
+     families their publishers' calendars give; Ken French's library and the
+     Shiller workbook's earnings and dividends, which state no delay, carry none.
+  H  AERO'S LABELLED BREAK (ruling D29.3, A64). The writer asks DefiLlama for the
+     merged parent `aero` and keeps no point before 21 Oct 2026, so stored
+     history is never restated; the four keys are no longer declared a gap; a
+     reader prints the label wherever a figure reaches the date, refuses a change
+     measured across it, and a name without a break is unchanged.
 
     python tools/validate_feed_repair.py
 """
@@ -357,7 +365,7 @@ def group_e() -> None:
     want = {"fred.ioer": "superseded", "overnight.tnx_chg": "superseded",
             "overnight.tnx_chg_pct": "superseded", "overnight.tnx_prior_settle": "superseded",
             "lbma.gold_pm_usd": "superseded", "crypto.total_market_cap_usd": "gap",
-            "zec.crypto_cap_share": "gap", "llama.fees_aero": "gap", "llama.tvl_aero": "gap",
+            "zec.crypto_cap_share": "gap",
             "mba.purchase_sa_wow": "refused", "aptlist.rent_us": "refused",
             "farside.btc_total": "refused", "portfolio.position_qty": "while_held"}
     got = {k: derived.declared_status(res.get(k)) for k in want}
@@ -365,13 +373,9 @@ def group_e() -> None:
     check(res["fred.ioer"].get("superseded_by") == "fred.iorb"
           and res["overnight.tnx_chg"].get("superseded_by") == "yfinance.mkt_tnx",
           "each superseded key names the key that replaced it")
-    bk = yaml.safe_load((REPO / "config" / "crypto_basket.yaml").read_text(encoding="utf-8"))
-    names = bk.get("names") or bk
-    aero = next((v for k, v in (names.items() if isinstance(names, dict) else [])
-                 if k == "AERO"), {})
     lsrc = (REPO / "altdata" / "sources" / "llama.py").read_text(encoding="utf-8")
-    check(bool(aero.get("llama_hold")) and 'n.get("llama_hold")' in lsrc,
-          "AERO's DefiLlama series are held: declared, and the writer requests nothing for it")
+    check('n.get("llama_hold")' in lsrc,
+          "a held name's DefiLlama series are still never requested (the writer reads llama_hold)")
 
 
 def group_f() -> None:
@@ -423,10 +427,108 @@ def group_g() -> None:
     check(derived.staleness_allowance_of(res["fred.mmf_retail"], "fred.mmf_retail")[0] == 8 + 34
           and derived.staleness_allowance_of(res["mempool.difficulty"], "mempool.difficulty")[0] == 8 + 4,
           "retail money funds: weekly plus H.6's monthly release; the difficulty: weekly plus 4")
+    # A64 (ruling D29.5): two publishers state a calendar; two state none.
+    a64 = {"eia_rigs": "eia.rigs_oil", "clevfed_rules": "clevfed.rules_median_4q"}
+    ok = all(i in have and have[i].get("source") and "read 24 Oct 2026" in str(have[i].get("reason"))
+             and have[i]["lag_sessions"] <= have[i]["max_lag"]
+             and derived.publication_lag(res[k], k)[1] == i for i, k in a64.items())
+    check(ok, "EIA's rig counts and the Cleveland Fed rules carry their families, each "
+              "quoting the publisher's calendar read on 24 Oct 2026")
+    check(derived.staleness_allowance_of(res["eia.rigs_total"], "eia.rigs_total")[0] == 32 + 23
+          and derived.staleness_allowance_of(res["clevfed.rules_start"], "clevfed.rules_start")[0] == 95 + 7,
+          "the rig counts: monthly plus 23; the rules: quarterly plus 7")
+    none = [k for k in ("french.hml", "french.ind49_ret_vw", "french.ind49_beme",
+                        "shiller.sp_earnings", "shiller.sp_dividend")
+            if derived.publication_lag(res[k], k)[1] is not None]
+    check(not none, f"Ken French's library and Shiller's earnings and dividends carry no "
+                    f"family: no publisher statement ({none or 'none'})")
+
+
+class FakeStore:
+    """as_of(key) over a fixed series; nothing else is read."""
+
+    def __init__(self, series: dict):
+        self.series = series
+
+    def as_of(self, key, as_of=None, instrument=None):
+        return [{"observed_at": d, "value_num": v} for d, v in self.series.get(key, [])]
+
+
+def group_h() -> None:
+    import datetime as dt
+    import yaml
+    from altdata import crypto_basket as cb, derived
+    from altdata.sources import llama
+    head("H. AERO'S LABELLED BREAK")
+    label = ("Aerodrome and Velodrome merged into Aero on 21 Oct 2026: values from "
+             "that date are the merged protocol")
+    aero = llama.basket()["AERO"]
+    check(aero.get("llama_slug") == "aero" and not aero.get("llama_hold")
+          and aero.get("llama_break") == {"date": "2026-10-21", "label": label},
+          "AERO follows the merged parent `aero` from 21 Oct 2026, with the ruled label")
+    days = [dt.date(2026, 10, 10) + dt.timedelta(days=i) for i in range(14)]
+    ts = [int(dt.datetime(d.year, d.month, d.day, tzinfo=dt.timezone.utc).timestamp())
+          for d in days]
+    asked = []
+
+    def fetch(url, params=None):
+        asked.append(url)
+        if "/summary/fees/" in url:
+            return {"totalDataChart": [[t, 100.0 + i] for i, t in enumerate(ts)]}
+        if "/protocol/" in url:
+            return {"tvl": [{"date": t, "totalLiquidityUSD": 5e8 + i} for i, t in enumerate(ts)]}
+        raise AssertionError(url)
+    rows, summary = llama.collect(only="basket", fetch=fetch, today="2026-10-24")
+    ar = [r for r in rows if r["registry_key"].endswith("_aero")]
+    check(any(u.endswith("/summary/fees/aero") for u in asked)
+          and any(u.endswith("/protocol/aero") for u in asked)
+          and not any("aerodrome" in u for u in asked),
+          "the writer asks for the parent `aero`, never the old slug")
+    check(ar and min(r["observed_at"] for r in ar) == "2026-10-21"
+          and max(r["observed_at"] for r in ar) == "2026-10-23"
+          and {r["registry_key"] for r in ar} == {f"llama.{k}_aero" for k in
+                                                   ("fees", "revenue", "holders_revenue", "tvl")},
+          "the four keys are written from 21 Oct only; nothing before it is restated "
+          f"({len(ar)} rows, {summary.get('breaks')})")
+    other = [r for r in rows if not r["registry_key"].endswith("_aero")
+             and r["observed_at"] < "2026-10-21"]
+    check(bool(other), "a name without a break still keeps its whole history")
+    res = derived.resolve_registry(yaml.safe_load(
+        (REPO / "metrics_registry.yaml").read_text(encoding="utf-8")))
+    check(all(derived.declared_status(res.get(f"llama.{k}_aero")) is None
+              for k in ("fees", "revenue", "holders_revenue", "tvl")),
+          "the four keys are no longer declared a gap")
+    # Stored: the old slug's history to 20 Oct, the merged parent's from 21 Oct.
+    hist = [((dt.date(2026, 9, 1) + dt.timedelta(days=i)).isoformat(), 50.0)
+            for i in range(50)]
+    hist = [p for p in hist if p[0] <= "2026-10-20"] + [
+        ((dt.date(2026, 10, 21) + dt.timedelta(days=i)).isoformat(), 200.0) for i in range(3)]
+    st = FakeStore({"llama.fees_aero": hist, "llama.fees_uni": hist})
+    me = cb.measurable("AERO", aero, st, None, "2026-10-23", 7)
+    check(me.get("latest") == 600.0 and me.get("change_pct") is None
+          and (me.get("break") or {}).get("label") == label and "from 2026-10-21" in me["form"],
+          f"a window reaching the break sums from its date and measures no change across it ({me})")
+    me_pre = cb.measurable("AERO", aero, st, None, "2026-10-20", 7)
+    check(me_pre.get("break") is None and me_pre.get("change_pct") is not None,
+          "a window ending before the break reads as it did, unlabelled")
+    plain = dict(aero, llama_break=None, measurable={"key": "llama.fees_uni"})
+    me_u = cb.measurable("UNI", plain, st, None, "2026-10-23", 7)
+    check(me_u.get("break") is None and me_u.get("latest") == 3 * 200.0 + 4 * 50.0,
+          "a name without a break is unchanged")
+    cfg = {"names": {"AERO": aero}}
+    wk = cb.weekly_block(st, "2026-10-23", cfg=cfg)
+    mo = cb.monthly_block(st, "2026-10-23T22:00:00+00:00", cfg=cfg)
+    want = f"AERO: {label}."
+    check(want in ((wk.get("detail") or {}).get("notes") or []),
+          "the Weekly's basket table prints the labelled break")
+    check(want in (mo.get("notes") or []), "the Monthly's basket table prints the labelled break")
+    qp = cb.quarterly_pages(st, "2026Q4", cfg=cfg, as_of=None)
+    check(any(ln == f"Break: {label}." for ln in qp[0]["lines"]),
+          "the Quarterly's page prints the labelled break")
 
 
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

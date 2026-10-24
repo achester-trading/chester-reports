@@ -18449,14 +18449,9 @@ member_overrides:
   # automated use); no keyless source with vintages serves the total.
   crypto.total_market_cap_usd: {status_extra: gap, gap_reason: "CoinGecko retired by ruling of 13 Oct 2026; no keyless source serves the total"}
   zec.crypto_cap_share: {status_extra: gap, gap_reason: "its denominator, crypto.total_market_cap_usd, retired 13 Oct 2026"}
-  # DefiLlama merged Aerodrome and Velodrome into the parent `aero` (Aero) at the
-  # 21 Oct 2026 launch; the old slug now serves the merged protocol's history, so
-  # the series no longer mean Aerodrome's. Not requested until ruled (config/
-  # crypto_basket.yaml AERO llama_hold).
-  llama.fees_aero: {status_extra: gap, gap_reason: "DefiLlama merged Aerodrome into Aero (with Velodrome), 21 Oct 2026; held until ruled"}
-  llama.revenue_aero: {status_extra: gap, gap_reason: "DefiLlama merged Aerodrome into Aero (with Velodrome), 21 Oct 2026; held until ruled"}
-  llama.holders_revenue_aero: {status_extra: gap, gap_reason: "DefiLlama merged Aerodrome into Aero (with Velodrome), 21 Oct 2026; held until ruled"}
-  llama.tvl_aero: {status_extra: gap, gap_reason: "DefiLlama merged Aerodrome into Aero (with Velodrome), 21 Oct 2026; held until ruled"}
+  # llama.*_aero are no longer declared a gap (ruling D29.3, A64): they follow
+  # DefiLlama's merged parent `aero` from 21 Oct 2026 as a labelled break
+  # (config/crypto_basket.yaml AERO llama_break).
   # Refused sources (source_registry.yaml status refused; the 16 Oct rule).
   mba.purchase_sa_wow: {status_extra: refused, gap_reason: "www.mba.org answers HTTP 403 to its robots.txt (24 Oct 2026)"}
   mba.purchase_nsa_yoy: {status_extra: refused, gap_reason: "www.mba.org answers HTTP 403 to its robots.txt (24 Oct 2026)"}

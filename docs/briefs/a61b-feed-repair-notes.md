@@ -207,3 +207,98 @@ The 24 Oct 10:35 heartbeat reads `verdict=unit_failed rc=13 ... backup=failed:pa
 3. **AERO after DefiLlama's merge:** follow the merged parent `aero` from 21 Oct as a labelled break, or keep the four keys a listed gap? Follow / gap.
 4. **Yahoo Finance's voices feed stays disabled** (no public feed found)? Yes / no.
 5. **Lags for the Tuck library, EIA's rig counts, the Cleveland Fed rules and the Shiller workbook's earnings:** have a session look up each publisher's stated delay before a family is written? Yes / no.
+
+## A64, 24 Oct evening
+
+The afternoon rulings of 24 Oct: D28 and D29. Three of them land here: D29.3 (AERO), D29.4 (the voices checks) and D29.5 (the four lags). Branch-only: nothing merged, the box not touched, no units, no secrets. "The store check of 24 Oct" means the paste's summary: no stale-list file was in Downloads, and the laptop's `data/chester.db` holds no rows for any of the four sources. So the only observed gap below comes from the publisher's own page, as evidence only.
+
+### Part 0: the rulings filed
+
+`C:\Users\arich\Downloads\rulings-2026-10-24-pm.md` (2,004 bytes) is copied to `docs/briefs/rulings-2026-10-24-pm.md`. `cmp` found it identical, and it is committed alone (`e8bfc611`).
+
+The morning file's index, the D1–D27 row in `docs/attention-log.md`, exists on chain-6 (`a61-rulings-1024`) and not on this branch, which is cut from main. So the afternoon file is indexed where main indexes rulings and minutes: one row in `docs/attention-log.md`, which says that D1–D27 are indexed on chain-6. Both branches append a row at the same place, so expect one trivial conflict in that table at the chain-7 stitch.
+
+### Part 1: the four lags (D29.5)
+
+Each publisher's own statement, quoted with its URL. A family is written only where the publisher states a schedule, under b51's rule: the documented delay, a holiday's slack, and a bound.
+
+| Source | The publisher's statement | Result |
+|---|---|---|
+| **EIA's rig counts** (`eia.rigs_oil`, `eia.rigs_gas`, `eia.rigs_total`). The count is Baker Hughes'; the EIA republishes it as monthly averages. | The EIA's series page, https://www.eia.gov/dnav/pet/pet_crd_drill_s1_m.htm (read 24 Oct 2026): "Release Date: 9/30/2026" (newest month Aug-26), "Next Release Date: 10/30/2026"; source "Baker Hughes, Inc., Houston, TX, 'North America Rig Count,' used with permission". So a month is published at the end of the following month. | **Family `eia_rigs`, lag 23, bound 26.** A month is dated its 15th, so before the next release the newest is about 54 sessions old (15 Aug to 30 Oct): 32 + 22, plus a day's slack. |
+| **Cleveland Fed rules** (`clevfed.rules_*`) | The indicator page, https://www.clevelandfed.org/indicators-and-data/simple-monetary-policy-rules (read 24 Oct 2026), under "Update Schedule": "Last updated September 4, 2026", "Next update November 20, 2026". The rates "use forecasts available as of September 3, 2026", and the table starts at 2026.3. | **Family `clevfed_rules`, lag 7, bound 9.** The starting quarter is the observation, read at worst as its first day (1 Jul), so on 20 Nov the newest is about 100 sessions old: 95 + 5, plus two for a holiday or a late posting. |
+| **Ken French's data library** (`french.hml`, `french.ind49_ret_vw`, `french.ind49_beme`) | https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html (read 24 Oct 2026) states a cadence, "We reconstruct the full history of returns each month when we update the portfolios", but no delay after the month. The one timing sentence is about the archived annual cuts: "The July cut has data through July and was released in August of that year." | **Listed, no family.** The only observed gap is evidence only: the page's returns table was headed "August 2026" on 24 Oct, the newest month about seven weeks after it ended. |
+| **Shiller's earnings and dividends** (`shiller.sp_earnings`, `shiller.sp_dividend`) | https://shillerdata.com/ (read 24 Oct 2026) says only that "Monthly dividend and earnings data are computed from the S&P four-quarter totals ... with linear interpolation to monthly figures". It states no delay, and the workbook leaves recent rows blank (the writer's docstring: "both lag the price by months"). | **Listed, no family.** No stored rows on the laptop, so there is no observed gap. |
+
+Probes:
+- One keyless request to clevfed.org, after its robots.txt (`Disallow: /errors/*` only), with the repo's standard User-Agent: `chartdata.csv` answered 200 `text/csv`. I printed the headers only and did not re-request the body. That is why the Cleveland family reads the starting quarter's date at worst, as the quarter's first day.
+- The other three pages were read as documentation. They were not probed.
+
+Gate: `tools/validate_feed_repair.py` group G gains three checks.
+- The two families exist, each quoting the calendar read on 24 Oct.
+- The allowances: the rig counts are 32 + 23, the rules 95 + 7.
+- The French and Shiller keys match no family.
+
+### Part 2: AERO (D29.3)
+
+- `config/crypto_basket.yaml` AERO: `llama_slug: "aero"` (the merged parent) replaces `aerodrome`, and `llama_hold` is gone. A new `llama_break` sets `date: 2026-10-21` and the label quoted exactly: "Aerodrome and Velodrome merged into Aero on 21 Oct 2026: values from that date are the merged protocol".
+- `altdata/sources/llama.py`: for a name with a break, the four series keep only points on or after its date. Stored Aerodrome history before 21 Oct is never restated: no older row is written, so no new vintage of one exists.
+- `altdata/crypto_basket.py`, where the four keys print:
+  - `measurable()` reads only from the break once its window reaches it. A flow's sum is labelled "from 2026-10-21".
+  - No change is computed across the break: it prints "—", never a merged-against-Aerodrome percentage.
+  - The Weekly's and the Monthly's basket tables add the label as a note, and the Quarterly page adds a "Break:" line.
+  - A name without a break is unchanged.
+- `metrics_registry.yaml`: the four `gap` declarations are removed, so the keys are live again.
+- **Not probed.** The one DefiLlama request (`/summary/fees/aero`) was denied by the session's permission check and not retried. The parent slug `aero` is the ruling's, and DefiLlama addresses parents by that slug. The first box pull is the real check: if `aero` answers 4xx, the series fail by name in the pull summary, as any failed series does.
+- Gate: `validate_feed_repair.py` group H, eleven checks on fixtures:
+  - The writer asks for `aero`, never the old slug.
+  - Rows from 21 Oct only, all four keys.
+  - Other names keep their history.
+  - The gap declarations are gone.
+  - The windows at, before and without the break.
+  - The label in the Weekly, Monthly and Quarterly.
+
+### Part 3: the voices replacements (D29.4, checks only)
+
+Nothing built. One request each, after robots.txt, with the repo's standard User-Agent `chester-reports/1.0 (+https://github.com/achester-trading/chester-reports)`.
+
+**(a) Yahoo's per-ticker headline RSS** (`feeds.finance.yahoo.com/rss/2.0/headline?s=<ticker>`): **FAILS.**
+- https://feeds.finance.yahoo.com/robots.txt answers `User-agent: *` / `Disallow: /`. That is a robots disallow, so no feed request was made and there is no payload to describe.
+- Yahoo's terms (https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html, section 2, member conduct) forbid to "access or collect data, or attempt to access or collect data, from our Services using any automated means". The RSS clause (item 15) adds that "you are only permitted to display the content that is provided in the feed, without modification".
+- The deciding clause is the robots disallow, then the automated-means clause.
+
+**(b) CNBC's public markets RSS** (Market Insider, `https://www.cnbc.com/id/20409666/device/rss/rss.html`): **FAILS.**
+- Robots allows it: https://www.cnbc.com/robots.txt's `User-agent: *` group disallows /preview/, /search and a few app paths, not `/id/`.
+- The same file disallows `/` to a long list of named agents, among them `TradingBot`, `trading-pipeline`, `StockMarketAnalyser`, `FinanceApp` and `investment-dashboard`. Separately, https://search.cnbc.com/robots.txt (the older `combinedcms` feed host) disallows `/` to `*`.
+- The one request answered 200 `application/xml`: RSS 2.0, `ttl` 60, `lastBuildDate` Fri 23 Oct 2026 18:40 GMT.
+  - Three items, each with link, guid, a CNBC `metadata:` id, type and sponsored flag, title, description and pubDate.
+  - The newest item is from 12 Oct and the oldest from 15 Jul, so it is thin as a daily source.
+- The terms decide it. CNBC is an NBCUniversal service. https://www.nbcuniversal.com/terms/prohibited-actions:
+  - Section K(a): "you may not use any robots, spiders, crawlers, devices, scripts or other data gathering or extraction software and/or tools, whether automated or manual, to access, acquire, copy, monitor, scrape, data mine, or aggregate any Content or any portion of the NBCUniversal Services for any purpose".
+  - Section E forbids to "copy ... archive ... the NBCUniversal Services or Content ... unless expressly permitted by us in writing".
+- The voices scan stores a headline and its link for every item, which is aggregating and archiving Content.
+- Not confirmed: cnbc.com's own terms page answered 403 to the documentation fetch. So no sentence from cnbc.com itself is quoted saying it applies NBCUniversal's terms. CNBC is an NBCUniversal service, which those terms govern.
+
+So both are refusals under the 16 Oct rule. Yahoo Finance's voices index stays disabled, as D29.4 ruled.
+
+### Part 4: CI
+
+| Branch | Run | On | Result |
+|---|---|---|---|
+| a61b-feed-repair | 40115196420 | `62320b9a` | **failure, three gates, all this branch's**, fixed here (below) |
+| a61b-feed-repair | read once after this push | the A64 tip | see the report |
+| a62-6f-build | 40119480977 | `5e3f6f57` | **success**; its notes record it (`00cafef7`) |
+| a63-6f-calibration | 40119503077 | `02f89b0d` | **failure**: `validate_monthly_stack`, `validate_crypto_basket`, `validate_correlation_layer`, each `KeyError: 'not_tracked'`. Mine: the calibration sub-sections were appended last without the list the slow layers append to. Fixed in `aeea2bd2`; notes `7eabc08e`. |
+
+a61b's three failures, from items 1 and 5 of this branch's repair; each gate still expected the old behaviour:
+1. `validate_audit_1` group E patched `fred.http_get_json`, which FRED's pull no longer calls (item 1 moved it onto `fred.get_json`). The patch now targets `fred.get_json`.
+2. `validate_a47_chain3` expected Farside's flow lines. Farside is refused (item 5), so the two ETF lines now print the refusal text.
+3. `validate_crypto_sources` expected STALE with a last good date. It now checks that the line prints the refusal (never empty, never zero), and that a pull of a declared refusal asks nothing and writes nothing (`REFUSED`).
+4. Also: `farside.pull`'s docstring had been pushed below the refusal lines; it is back on top.
+
+Local: validate_feed_repair 50/0, validate_b51_registry_html 25/0, validate_crypto_basket and check_registry pass, validate_a47_chain3 42/0, validate_crypto_sources 117/0, validate_audit_1 48/0.
+
+### What this changes in the needs-you above
+
+- Items 3, 4 and 5 are ruled by D29.3–D29.5 and done here.
+- Items 1 and 2 are D29.1 and D29.2, for Tuesday's merge.
+- The box sheet's expected-stale list loses `eia.rigs_*` and `clevfed.rules_*`. It keeps `french.*`, `shiller.sp_dividend` and `shiller.sp_earnings`, which have no publisher statement, and gains `llama.*_aero` until the first pull after the merge.

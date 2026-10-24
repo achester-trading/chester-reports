@@ -283,3 +283,31 @@ families:
       The difficulty is set every 2,016 blocks, about 14 days (10 sessions) at the
       ten-minute target; one row an adjustment. Weekly's 8 plus 4 covers an
       adjustment a few days late when blocks run slow; 5 bounds it.
+
+  # --- A64 (24 Oct 2026, evening; ruling D29.5): the two of the four listed
+  # sources whose publishers state a schedule. Ken French's library and the
+  # Shiller workbook's earnings and dividends state none, so they have no family
+  # (docs/briefs/a61b-feed-repair-notes.md, "A64").
+  - id: eia_rigs
+    keys: ["eia.rigs_*"]
+    lag_sessions: 23
+    max_lag: 26
+    source: "EIA, crude oil and natural gas rotary rigs in operation (Baker Hughes' count, monthly averages), petroleum navigator"
+    reason: >-
+      The EIA's own release calendar on the series page (pet_crd_drill_s1_m.htm,
+      read 24 Oct 2026): "Release Date: 9/30/2026", carrying Aug-26 as the
+      newest month, and "Next Release Date: 10/30/2026". A month is dated its
+      15th, so before the next release the newest is about 54 sessions old
+      (15 Aug to 30 Oct): the monthly allowance's 32 plus 22, and a day's slack.
+  - id: clevfed_rules
+    keys: ["clevfed.rules_*"]
+    lag_sessions: 7
+    max_lag: 9
+    source: "Federal Reserve Bank of Cleveland, simple monetary policy rules (the indicator page's chart data)"
+    reason: >-
+      The indicator page's own update schedule (read 24 Oct 2026): "Last
+      updated September 4, 2026", "Next update November 20, 2026", the table
+      starting at 2026.3. The starting quarter is the observation, read at worst
+      as the quarter's first day, so before the next update the newest is about
+      100 sessions old (1 Jul to 20 Nov): the quarterly allowance's 95 plus 5,
+      and two for a holiday or a late posting.
