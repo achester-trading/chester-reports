@@ -1,4 +1,4 @@
-STITCH COMPLETE: CI green at `79cd140` (run 40055201097, 147/147 jobs). Must not merge before the 1 Nov Monthly.
+STITCH COMPLETE: CI green at `79cd140` (run 40055201097, 147/147 jobs); every later commit changes notes only (a58's third tip and these notes). Must not merge before the 1 Nov Monthly.
 
 # chain-6: the four post-Monthly branches stitched into one (session B, 23-24 Oct 2026)
 
@@ -31,6 +31,7 @@ STITCH COMPLETE: CI green at `79cd140` (run 40055201097, 147/147 jobs). Must not
 | 4 | a58-batch15-1 | `e219bc8` | **red**: its latest run, 40049370749, failed `validate_secrets` and `validate_st_t2_rates` (a58's own; recorded, not fixed here). A had pushed no fix when it was merged | `9614a68` | CLAUDE.md, Makefile, `altdata/config.py`, the architecture document, the queue, the Master Guide and its HTML, `metrics_registry.yaml`, `tools/validate_prices.py`, `tools/validate_st_r5_t1_rest.py` |
 | fix 1 | — | — | — | `d9e0da9` | `tools/validate_batch14_b2.py` (below) |
 | 4b | a58-batch15-1, again | `1194a12` (A59: the fix of its two red gates; it moved between the first merge and the final push) | its run 40054872472 queued when merged | `9bc67c0` | none: a clean merge (`validate_secrets`, `dm_drawdown`, its config and notes) |
+| 4c | a58-batch15-1, a third time | `a27ca1d` (A59's notes: its round 2 CI green, run 40054872472, 145/145; it moved as chain-6's CI was recorded) | the fix's run 40054872472 green | `eae6a18` | none: a58's notes only |
 
 ## Every conflict and its resolution
 
