@@ -96,14 +96,15 @@ def trigger(y: list[tuple[str, float]], day: str, cfg: Optional[dict] = None,
             "change_bp": round(today, 1), "threshold_bp": round(thr, 1),
             "n": len(window), "from": next(d for d, _ in ch if lo < d),
             "percentile": float(t["percentile"]),
-            "line": (f"{today:+.0f} bp on the day, beyond the five-year "
-                     f"{_ord(t['percentile'])} percentile of one-day moves "
-                     f"({thr:.1f} bp, n={len(window):,})")}
+            "line": (f"{today:+.0f} bp on the day, beyond its five-year threshold "
+                     f"of {thr:.1f} bp ({_pct_words(t['percentile'])} of one-day "
+                     f"moves were smaller; n={len(window):,})")}
 
 
-def _ord(p: Any) -> str:
-    p = float(p)
-    return f"{p:g}th"
+def _pct_words(p: Any) -> str:
+    """'97.5%': the threshold's percentile as a share, never a hand-written
+    ordinal (the numeral audit's rule)."""
+    return f"{float(p):g}%"
 
 
 # ---------------------------------------------------------------------------
@@ -167,9 +168,9 @@ def block(st, cutoff: str, first: str, last: str) -> dict:
     t = cfg["trigger"]
     sub: dict[str, Any] = {"title": BLOCK_TITLE, "paragraph_wanted": False}
     if not evs:
-        sub["lines"] = [f"No 10-year one-day move beyond its five-year "
-                        f"{_ord(t['percentile'])} percentile in the {n} sessions from "
-                        f"{first} to {last} stored (D15)."]
+        sub["lines"] = [f"No 10-year one-day move beyond its five-year threshold (the "
+                        f"move {_pct_words(t['percentile'])} of one-day moves stay "
+                        f"under) in the {n} sessions from {first} to {last} stored (D15)."]
         return sub
     rows = []
     for e in evs:
@@ -184,7 +185,7 @@ def block(st, cutoff: str, first: str, last: str) -> dict:
             return "awaiting" if m.get("state") == "awaiting" else (m.get("reason") or "—")
         rows.append([e["day"], f"{tr['change_bp']:+.0f} bp", f"{tr['threshold_bp']:.1f} bp",
                      cell("kw"), cell("acm"), _leg(att)])
-    sub["table"] = {"columns": ["Day", "Move", "Threshold (5y 97.5th)", "KW premium share",
+    sub["table"] = {"columns": ["Day", "Move", "Threshold (5 years, 97.5%)", "KW premium share",
                                 "ACM premium share", "Carried"], "rows": rows}
     sub["lines"] = ["A report (D15): the trigger runs the attribution and adds no "
                     "right; nothing enters a composite or the market-state object."]
