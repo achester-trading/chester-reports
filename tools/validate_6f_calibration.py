@@ -20,6 +20,21 @@ section 3). Synthetic fixtures only: no network, no live store, no model.
   D  WHERE IT PRINTS. The close's one line (every dial, every horizon), the
      Weekly's and the Monthly's table, the Monthly's unledgered dimension table,
      and the close writes the ledger after it stores the object.
+  E  alignment_weekly AT ENTRY (6f tranche 4, A65; ruling 9a). The packet's
+     direction against the weekly per-horizon read of the decision's session:
+     aligned, counter and neutral on calibrated fixtures; absent with its reason
+     when the read is uncalibrated ("uncalibrated (n = k of 30)"), when the read
+     is absent, and when the session's object does not exist yet; the register
+     writes the stamp and its basis, carries both forward on a supersession, and
+     a register without the column records neither.
+  F  THE MIGRATION (tools/migrate_alignment_weekly.py) on a scratch register:
+     the dry run changes nothing; --apply refuses without a backup and with a
+     backup path that exists; with a fresh backup it adds both columns in one
+     transaction, backfills nothing, logs, and a second run does nothing.
+  G  THE QUARTERLY'S CUT (register/scoreboard.alignment_split): counts and hit
+     rates by horizon_alignment and by alignment_weekly over the previous
+     quarter, a cell printed only at n >= 10, else "n < 10"; it prints in the
+     Quarterly's register table and not in the Monthly's.
 
     python tools/validate_6f_calibration.py
 """
@@ -235,10 +250,253 @@ def group_d() -> None:
           "the calibration reads stored objects and never recomputes one")
 
 
+def hobj(day: str, weekly, absent: str | None = None) -> dict:
+    """A stored object with the per-horizon block (weekly None = absent)."""
+    o = obj(day, "expansion")
+    w = {"horizon": "weekly", "state": weekly, "sessions": 20}
+    if weekly is None:
+        w["absent_reason"] = absent or "no observation for calc.trend_spy_vs_50d"
+    o["horizons"] = {"weekly": w}
+    return o
+
+
+def scratch_register(name: str):
+    from register.store import Register
+    return Register(str(TD / f"{name}.db"),
+                    entities_path=REPO / "config" / "tracked_entities.yaml")
+
+
+BASE = dict(instrument="SPY", thesis="fixture", edge_type="e", horizon="swing",
+            invalidation="a close below 95", status="draft")
+
+
+def group_e() -> None:
+    import importlib
+    import sqlite3
+    import regime
+    from altdata import observations
+    decide = importlib.import_module("decide")
+    head("E. alignment_weekly AT ENTRY")
+    days = regime.session_days("2023-06-01", "2026-10-23")
+    now = "2026-10-23T23:59:00+00:00"            # 19:59 ET, Friday's close complete
+    last = days[-1]
+
+    def stamp(name, items, direction):
+        db = store_with(name, items)
+        with observations.ObservationStore(db) as st:
+            return decide.alignment_weekly(direction, now=now, store=st)
+    up = [(d, evening(d), hobj(d, "up")) for d in days]
+    k_up = len(range(0, len(days) - 20, 20))
+    check(k_up >= 30, f"the calibrated fixture: {len(days)} sessions, {k_up} independent "
+                      f"starts at 20 sessions")
+    for direction, want in (("long", "aligned"), ("short", "counter"), ("hedge", "neutral")):
+        got, why = stamp(f"up_{direction}", up, direction)
+        check(got == want and last in why,
+              f"weekly read up, {direction} -> {want} ({why})")
+    flat = [(d, evening(d), hobj(d, "flat")) for d in days]
+    got, why = stamp("flat", flat, "long")
+    check(got == "neutral", f"weekly read flat, long -> neutral ({why})")
+    few = [(d, evening(d), hobj(d, "up")) for d in days[-60:]]
+    got, why = stamp("few", few, "long")
+    k_few = len(range(0, 60 - 20, 20))
+    check(got is None and f"uncalibrated (n = {k_few} of 30)" in why,
+          f"60 sessions: absent, uncalibrated, k = {k_few} by hand ({why})")
+    gone = up[:-1] + [(last, evening(last),
+                       hobj(last, None, "calc.trend_spy_vs_50d was last observed 2026-09-01"))]
+    got, why = stamp("gone", gone, "long")
+    check(got is None and "weekly read absent" in why and "2026-09-01" in why,
+          f"the weekly read absent on the session's object: absent, its reason ({why})")
+    got, why = stamp("early", up[:-1], "long")
+    check(got is None and f"entered before the {last} object existed" in why
+          and days[-2] in why,
+          f"a decision entered before the session's object exists: absent ({why})")
+    v1 = [(d, evening(d), obj(d, "expansion")) for d in days[-5:]]
+    got, why = stamp("v1", v1, "long")
+    check(got is None and "no per-horizon reads" in why,
+          f"an object without horizons: absent ({why})")
+    # The register: written beside horizon_alignment, absent as NULL with its basis.
+    reg = scratch_register("reg_e")
+    try:
+        check(reg.has_alignment_weekly, "a new register carries the column")
+        a = reg.record(direction="long", alignment_weekly="counter",
+                       alignment_weekly_basis="direction long against the weekly read down",
+                       horizon_alignment="aligned", **BASE)
+        b = reg.record(direction="long", alignment_weekly=None,
+                       alignment_weekly_basis="weekly read up, uncalibrated (n = 1 of 30)",
+                       **BASE)
+        ra, rb = reg.get(a), reg.get(b)
+        check(ra["alignment_weekly"] == "counter" and ra["horizon_alignment"] == "aligned"
+              and rb["alignment_weekly"] is None
+              and "uncalibrated" in rb["alignment_weekly_basis"],
+              "the register writes the stamp beside horizon_alignment, and an absent "
+              "stamp as NULL with its basis")
+        try:
+            reg.record(direction="long", alignment_weekly="sideways", **BASE)
+            ok = False
+        except ValueError:
+            ok = True
+        check(ok, "a value outside aligned / neutral / counter is refused")
+    finally:
+        reg.close()
+    src = (REPO / "tools" / "decide.py").read_text(encoding="utf-8")
+    check('alignment_weekly=old_d.get("alignment_weekly")' in src
+          and 'alignment_weekly_basis=old_d.get("alignment_weekly_basis")' in src,
+          "a supersession carries both forward from the old row, never recomputed")
+    # A live register as it stands before the migration: today's schema without
+    # the two columns.
+    scratch_register("reg_old").close()
+    c = sqlite3.connect(str(TD / "reg_old.db"))
+    c.execute("ALTER TABLE decisions DROP COLUMN alignment_weekly_basis")
+    c.execute("ALTER TABLE decisions DROP COLUMN alignment_weekly")
+    c.commit()
+    c.close()
+    reg = scratch_register("reg_old")
+    try:
+        d = reg.record(direction="long", alignment_weekly="aligned",
+                       alignment_weekly_basis="x", **BASE)
+        cols = [r[1] for r in reg.conn.execute("PRAGMA table_info(decisions)")]
+        check(not reg.has_alignment_weekly and "alignment_weekly" not in cols
+              and reg.get(d) is not None,
+              "a register that predates the migration: opening it adds no column, and "
+              "record() writes the row without the stamp")
+    finally:
+        reg.close()
+
+
+def group_f() -> None:
+    import sqlite3
+    import migrate_alignment_weekly as mig
+    head("F. THE MIGRATION, ON A SCRATCH REGISTER")
+    db = TD / "mig.db"
+    c = sqlite3.connect(str(db))
+    c.execute("CREATE TABLE decisions (id TEXT PRIMARY KEY, created_at TEXT, "
+              "horizon_alignment TEXT)")
+    c.executemany("INSERT INTO decisions VALUES (?,?,?)",
+                  [(f"d{i}", "2026-10-01", "aligned") for i in range(3)])
+    c.commit()
+    c.close()
+    before = db.read_bytes()
+    lines: list[str] = []
+    rc = mig.run(str(db), out=lines.append)
+    for ln in lines:
+        print(f"    | {ln}")
+    check(rc == 0 and db.read_bytes() == before
+          and any("would add: alignment_weekly TEXT" in ln for ln in lines)
+          and any("would add: alignment_weekly_basis TEXT" in ln for ln in lines)
+          and any("3 existing rows read 'entered before 6f'" in ln for ln in lines),
+          "the dry run (the default) prints both columns and the rows left before 6f, "
+          "and changes nothing")
+    out: list[str] = []
+    rc = mig.run(str(db), apply=True, out=out.append)
+    check(rc == 2 and any("REFUSED: --apply needs --backup" in ln for ln in out)
+          and db.read_bytes() == before, "--apply without --backup is refused")
+    taken = TD / "exists.db"
+    taken.write_bytes(b"x")
+    out = []
+    rc = mig.run(str(db), apply=True, backup=str(taken), out=out.append)
+    check(rc == 2 and any("exists" in ln for ln in out) and db.read_bytes() == before,
+          "--apply with a backup path that exists is refused")
+    bk = TD / "bk" / "pre.db"
+    out = []
+    rc = mig.run(str(db), apply=True, backup=str(bk), out=out.append)
+    c = sqlite3.connect(str(db))
+    cols = [r[1] for r in c.execute("PRAGMA table_info(decisions)")]
+    vals = c.execute("SELECT alignment_weekly, alignment_weekly_basis FROM decisions").fetchall()
+    c.close()
+    logf = TD / mig.LOG_NAME
+    log = logf.read_text(encoding="utf-8") if logf.exists() else ""
+    check(rc == 0 and bk.is_file()
+          and {"alignment_weekly", "alignment_weekly_basis"} <= set(cols)
+          and vals == [(None, None)] * 3 and "migrate_alignment_weekly" in log,
+          f"with a fresh backup: backed up and checked, both columns added, nothing "
+          f"backfilled, logged ({out[-1] if out else ''})")
+    out = []
+    rc = mig.run(str(db), apply=True, backup=str(TD / "bk" / "again.db"), out=out.append)
+    check(rc == 0 and any("nothing to do" in ln for ln in out)
+          and not (TD / "bk" / "again.db").exists(), "a second run changes nothing")
+    msrc = (REPO / "tools" / "migrate_alignment_weekly.py").read_text(encoding="utf-8")
+    check("BEGIN IMMEDIATE" in msrc and "ROLLBACK" in msrc,
+          "the ALTERs are one transaction: both columns or neither")
+    ssrc = (REPO / "register" / "store.py").read_text(encoding="utf-8")
+    start = ssrc.index('for col in ("signals_used TEXT"')
+    alters = ssrc[start:ssrc.index("ALTER TABLE decisions ADD COLUMN {col}", start)]
+    check("alignment_weekly" not in alters,
+          "the register's open-time ALTER list does not carry the columns: the schema "
+          "changes only through the operator's migration")
+
+
+def group_g() -> None:
+    from altdata import grader
+    from register import scoreboard as sb
+    head("G. THE QUARTERLY'S CUT")
+    check(sb.previous_quarter("2026-10-24") == ("2026-07-01", "2026-09-30")
+          and sb.previous_quarter("2027-01-05") == ("2026-10-01", "2026-12-31"),
+          "the window is the previous calendar quarter")
+    reg = scratch_register("reg_g")
+    ids = {}
+    try:
+        # 12 aligned/aligned (8 hits), 4 counter/counter, 3 absent, 2 before 6f.
+        spec = ([("aligned", "aligned", "w", 1.0)] * 8
+                + [("aligned", "aligned", "w", -1.0)] * 4
+                + [("counter", "counter", "w", 1.0)] * 4
+                + [("neutral", None, "uncalibrated (n = 3 of 30)", 1.0)] * 3
+                + [("aligned", None, None, 1.0)] * 2)
+        for h, w, basis, ret in spec:
+            ids[reg.record(direction="long", horizon_alignment=h, alignment_weekly=w,
+                           alignment_weekly_basis=basis, **BASE)] = ret
+    finally:
+        reg.close()
+    db = str(TD / "reg_g.db")
+    with grader.GradeStore(db) as gs:
+        for i, (did, ret) in enumerate(ids.items()):
+            gs.write({"decision_id": did, "horizon": "swing",
+                      "graded_at": f"2026-08-{10 + i % 15:02d}T21:00:00+00:00",
+                      "horizon_date": "2026-08-01", "return_pct": ret,
+                      "observations_json": "[]", "price_source": "fixture",
+                      "method_version": grader.METHOD_VERSION})
+        # A grade outside the quarter is not counted (it would also replace the
+        # first decision's latest grade if it were).
+        gs.write({"decision_id": next(iter(ids)), "horizon": "swing",
+                  "graded_at": "2026-10-02T21:00:00+00:00", "horizon_date": "2026-10-01",
+                  "return_pct": -5.0, "observations_json": "[]", "price_source": "fixture",
+                  "method_version": grader.METHOD_VERSION})
+    s = sb.alignment_split("2026-10-24T12:00:00+00:00", db_path=db)
+    ha, aw = s["by_horizon_alignment"], s["by_alignment_weekly"]
+    check(ha["aligned"]["n"] == 14 and ha["aligned"]["hits"] == 10 and ha["aligned"]["printed"]
+          and ha["counter"]["n"] == 4 and not ha["counter"]["printed"],
+          f"by horizon_alignment: aligned n=14, 10 hits, printed; counter n=4, not "
+          f"printed ({ha})")
+    check(aw["aligned"]["n"] == 12 and aw["aligned"]["hits"] == 8
+          and abs(aw["aligned"]["hit_rate"] - 8 / 12) < 1e-12 and aw["aligned"]["printed"]
+          and aw["absent at entry"]["n"] == 3 and aw["entered before 6f"]["n"] == 2
+          and aw["neutral"]["n"] == 0,
+          f"by alignment_weekly: aligned n=12, 8 hits (8/12 by hand); absent at entry 3; "
+          f"entered before 6f 2; neutral 0 ({aw})")
+    lines = sb.alignment_lines(s)
+    check(len(lines) == 2 and "aligned: n=12, 8 hits (67%)" in lines[1]
+          and "counter: n < 10" in lines[1] and "neutral: n < 10" in lines[1]
+          and "entered before 6f: n < 10" in lines[1],
+          f"the floor: a cell under 10 prints 'n < 10' and no figure ({lines[1]})")
+    from monthly_macro import stack
+    rm = {"state": "empty", "reason": "x"}
+    mo = [t for t in stack.detail_tables({"register_month": rm}, set())
+          if t["id"] == "register"][0]
+    qu = [t for t in stack.detail_tables({"register_month": {**rm, "alignment_split": s}},
+                                         set()) if t["id"] == "register"][0]
+    check(not any("alignment_weekly" in ln for ln in mo["lines"])
+          and any("alignment_weekly" in ln for ln in qu["lines"]),
+          "the cut prints in the register table of a payload that carries it (the "
+          "Quarterly's), and not in the Monthly's")
+    psrc = (REPO / "monthly_macro" / "payload.py").read_text(encoding="utf-8")
+    check('if period == "quarter":' in psrc and "scoreboard.alignment_split(cutoff)" in psrc,
+          "only the Quarterly's payload (period quarter) builds the split")
+
+
 def main() -> int:
     import regime
     days = regime.session_days("2024-06-03", "2026-10-23")
-    for g in (lambda: group_a(days), lambda: group_b(days), lambda: group_c(days), group_d):
+    for g in (lambda: group_a(days), lambda: group_b(days), lambda: group_c(days), group_d,
+              group_e, group_f, group_g):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

@@ -18,6 +18,12 @@ score:
   # interval first, and changes nothing.
   min_n: 10
 
+alignment_split:
+  # 6f tranche 4 (A65): the Quarterly's counts and hit rates by horizon_alignment
+  # and by alignment_weekly at entry. Below this many graded decisions a cell
+  # prints "n < 10" and no figure -- the brief's floor, the same as the score's.
+  min_n: 10
+
 benchmarks:
   # The Card: "over four quarters". 365 calendar days to the as-of; where Book Z
   # began later (1 Sep 2026), the 60/40 is read from its first mark and says so.

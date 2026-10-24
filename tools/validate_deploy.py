@@ -147,6 +147,9 @@ MUST_DENY = {
         "bash scripts/decide_remote.sh record --instrument QQQ",
         "scripts/decide_remote.sh set-status --id x --status active",
         "python tools/migrate_register.py import --in x.json",
+        # 6f tranche 4: the register's alignment_weekly columns are the operator's
+        # schema change, from the box sheet.
+        "python tools/migrate_alignment_weekly.py --apply --backup ~/backups/x.db",
         # 6c-2: confirming or rejecting a PROPOSED narrative is the narrative
         # register's one human gate, on the same argument as a decision write.
         "python -m altdata.narratives confirm dollar_funding_squeeze",

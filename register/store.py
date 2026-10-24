@@ -120,6 +120,18 @@ ENGINE_IDS = ("daily_cascade", "weekly", "monthly", "operator")
 # Computed at entry from the packet's direction against the sign of the
 # market-state object's trend dimension; recorded, never recomputed.
 HORIZON_ALIGNMENTS = ("aligned", "neutral", "counter")
+# 6f tranche 4 (ruling 9a of 24 Oct 2026; the Enterprise Layer order's gated row
+# "alignment_weekly | 6f"): the packet's direction against the market-state
+# object's WEEKLY per-horizon trend read (horizons.weekly), stamped at entry from
+# the same vocabulary and never recomputed. alignment_weekly is NULL when the read
+# was absent or uncalibrated at entry, and alignment_weekly_basis says why. The
+# columns arrive on a live register ONLY through tools/migrate_alignment_weekly.py,
+# the operator's: they are deliberately NOT in the open-time ALTER list below, so
+# opening the register never changes its schema. Until the migration runs,
+# record() writes neither and decide.py says so. A row with no column value was
+# entered before 6f and reads PRE_6F.
+ALIGNMENT_WEEKLY_COLUMNS = ("alignment_weekly TEXT", "alignment_weekly_basis TEXT")
+PRE_6F = "entered before 6f"
 REVIEW_CHANGED = ("none", "resized", "restructured", "hedged", "delayed",
                   "rejected")
 # The gate at entry's verdict folds into review_changed: a review that changed the
@@ -494,6 +506,9 @@ CREATE TABLE IF NOT EXISTS decisions (
     setup_id         TEXT,
     engine_id        TEXT,
     horizon_alignment TEXT,
+    -- 6f tranche 4: the weekly per-horizon stamp and why it is absent, if it is.
+    alignment_weekly TEXT,
+    alignment_weekly_basis TEXT,
     review_changed   TEXT,
     falsifiers       TEXT,
     counter_thesis   TEXT,
@@ -723,9 +738,16 @@ class Register:
             pass
         self.conn.commit()
         self._migrate_rule_break_kinds()
+        # 6f tranche 4: present on a new register (SCHEMA), and on a live one only
+        # after the operator's migration.
+        self.has_alignment_weekly = self._has_column("decisions", "alignment_weekly")
         self.restrictions = (instruments.Restrictions(entities_path)
                              if entities_path else instruments.restrictions())
         self.sync_restrictions()
+
+    def _has_column(self, table: str, column: str) -> bool:
+        return any(r[1] == column for r in
+                   self.conn.execute(f"PRAGMA table_info({table})"))
 
     def _migrate_rule_break_kinds(self) -> None:
         """Widen rule_breaks' CHECK to the current RULE_BREAK_KINDS, keeping
@@ -817,6 +839,8 @@ class Register:
                setup_id: Optional[str] = None,
                engine_id: Optional[str] = None,
                horizon_alignment: Optional[str] = None,
+               alignment_weekly: Optional[str] = None,
+               alignment_weekly_basis: Optional[str] = None,
                review_changed: Optional[str] = None,
                falsifiers: Optional[list] = None,
                counter_thesis: Optional[str] = None,
@@ -984,6 +1008,15 @@ class Register:
                 and horizon_alignment not in HORIZON_ALIGNMENTS):
             raise ValueError(f"horizon_alignment must be one of "
                              f"{HORIZON_ALIGNMENTS}")
+        if (alignment_weekly is not None
+                and alignment_weekly not in HORIZON_ALIGNMENTS):
+            raise ValueError(f"alignment_weekly must be one of "
+                             f"{HORIZON_ALIGNMENTS}")
+        # Written only where the column exists (the operator's migration); an
+        # absent stamp is NULL with its basis, never a default.
+        weekly = ((", alignment_weekly, alignment_weekly_basis",
+                   (alignment_weekly, _clean(alignment_weekly_basis)))
+                  if self.has_alignment_weekly else ("", ()))
         if review_changed is not None and review_changed not in REVIEW_CHANGED:
             raise ValueError(f"review_changed must be one of {REVIEW_CHANGED}")
         if falsifiers is not None:
@@ -1064,10 +1097,8 @@ class Register:
             " exit_price, exit_time, exit_currency, exit_fx_to_usd,"
             " abstention_reason, mechanism, falsifier_date, expected_return,"
             " expected_downside, entry_condition, risk_budget, benchmark,"
-            " red_team, red_team_review_minutes, risk_usd)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-            "         ?,?,?,?,?,?,?,?,?,?)",
+            " red_team, red_team_review_minutes, risk_usd" + weekly[0] + ")"
+            " VALUES (" + ",".join("?" * (53 + len(weekly[1]))) + ")",
             (did, now, decision_time or now, instrument, norm, direction,
              thesis, edge_type, horizon, size, invalidation, status,
              operator_action, thesis_state, run_id,
@@ -1086,7 +1117,7 @@ class Register:
              _clean(red_team),
              (int(red_team_review_minutes)
               if red_team_review_minutes not in (None, "") else None),
-             (float(risk_usd) if risk_usd is not None else None)))
+             (float(risk_usd) if risk_usd is not None else None)) + weekly[1])
         self.conn.commit()
         return did
 

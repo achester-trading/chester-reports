@@ -789,6 +789,15 @@ def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
         out["top_bottom"] = top_bottom_block(store=db)
         out["alternative_assets"] = alternative_assets_block(cutoff, store=db)
         out["register_month"] = register_month_block(cutoff)
+        if period == "quarter":
+            # 6f tranche 4: the Quarterly's split by alignment at entry (DTH
+            # §XXIII's test), over the previous calendar quarter. Report only.
+            try:
+                from register import scoreboard
+                out["register_month"]["alignment_split"] = scoreboard.alignment_split(cutoff)
+            except Exception as exc:                           # noqa: BLE001
+                out["register_month"]["alignment_split"] = {
+                    "not_built": f"{type(exc).__name__}: {exc}"}
         out["appendix"] = appendix_block(cutoff, store=db)
         # 6d: the calibration-archive gate's progress, printed in the appendix.
         # Confidence-modification from venue odds is not built and may not be
