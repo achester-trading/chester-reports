@@ -236,7 +236,8 @@ def daily(dry_run: bool = False, now: Optional[dt.datetime] = None,
     out: dict[str, Any] = {"step": "daily", "dry_run": dry_run, "stale": {}, "days": []}
     try:
         if stored is None:
-            stored = _stored_days(st, session.utc_iso()) if st is not None else set()
+            stored = (_stored_days(st, session.utc_iso(timespec="microseconds"))
+                      if st is not None else set())
         rows: list[dict] = []
         for d in sorted(days):
             if d.isoformat() in stored:
@@ -282,7 +283,8 @@ def backfill(days: Optional[int] = None, dry_run: bool = False,
     out: dict[str, Any] = {"step": "backfill", "dry_run": dry_run, "failed": {}, "rows": 0}
     try:
         if stored is None:
-            stored = _stored_days(st, session.utc_iso()) if st is not None else set()
+            stored = (_stored_days(st, session.utc_iso(timespec="microseconds"))
+                      if st is not None else set())
         todo = [last - dt.timedelta(days=i) for i in range(n, 0, -1)]
         todo = [d for d in todo if d.isoformat() not in stored]
         out["requests"] = len(todo)

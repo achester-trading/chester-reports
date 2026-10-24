@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-seven code gates (one hundred and thirty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-eight code gates (one hundred and thirty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -810,6 +810,36 @@ Report only.
   `docs/dated-appendix-queue.md`.
 
 `tools/validate_batch14_b2.py` holds it.
+
+**The one-day 10-year trigger and three new sources (rulings of 24 Oct 2026, D15
+and D26; b59-trigger-sources). Merges after the 1 Nov Monthly.** Report only;
+nothing enters a composite or the market-state object.
+- **D15.** `altdata/oneday_10y.py` (`config/oneday_10y.yaml`) fires when DGS10's
+  one-day change passes the five-year 97.5th percentile of absolute one-day
+  changes (either sign, at least 1,000 of them). It runs the speed flag's
+  attribution over one session, "awaiting" any model not yet stored. Its ledger
+  `rates.oneday_event_ledger` is written by the close and resolved in the EOD pass.
+  The pre-registration is `docs/ledgers/oneday-10y-preregistration-2026-10.md`,
+  held by SHA-256. The laptop first edition is INSUFFICIENT, n 67. The close prints
+  the flag line in the event area; the Weekly and the Monthly print the block in
+  Mechanics.
+- **D26.** Each reader was registered first as an Alpha Lab hypothesis
+  (`alpha/research/hypotheses-2026-10-24-b59-sources.yaml`, committed alone before
+  the readers). All three are keyless steps of the crypto basket's 17:25 run, on
+  the freshness roster:
+  - `altdata/sources/gdelt.py`: the 15-minute exports, the geopolitical families'
+    conflict counts, share and tone, and the articles per story. A failed export
+    marks the day STALE and fills nothing. The DOC API is not read.
+  - `altdata/sources/cpc_degree_days.py`: NOAA CPC's population-weighted degree
+    days, the 1991-2020 normal on read.
+  - `altdata/sources/hf_releases.py`: new public model repositories per week for
+    the declared organisations, counts and dates only.
+- **Placement.** GDELT: the Weekly's tail register, both narratives sections and
+  the Monthly's Factor III. Degree days: beside natural gas in Mechanics. Model
+  releases: the Weekly's narratives and the Monthly's Factor I-b
+  (`daily_cascade/b59_block.py`).
+
+`tools/validate_b59.py` holds it.
 
 **Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
 breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the
