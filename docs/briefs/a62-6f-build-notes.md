@@ -134,6 +134,25 @@ Tranche 2 (calibration) is A63. Tranche 4 (`alignment_weekly`) waits for the reg
 | check_registry | OK |
 | validate_regime_store | the data gate, NOT VALIDATED on the laptop (no objects) |
 
+## The CI rounds
+
+| Round | Run | On | Result |
+|---|---|---|---|
+| 1 | 40117517223 | `1309c81` | **failure, four gates, all this branch's** (fixed in round 2) |
+| 2 | read once after the push | the fix | see the report |
+
+Round 1's four failures, all this branch's:
+
+- **`validate_numeral_audit`.** `state_v2_block.py` wrote an ordinal suffix by hand. It now uses `numeral_audit.ordinal()`.
+- **`validate_weekly_stack`.** Two causes:
+  - Thirteen keys the object v2 names had no display label in `config/display_labels.yaml`; they are added. CI's message showed only four, as the gate prints the first four.
+  - The gate's id regex was lower-case only, so it read `fred.uoM_sent` as `fred.uo`; capitals are admitted.
+  - Also, `state_v2_block` no longer opens the default store when a caller holds none.
+- **`validate_config_refs`.** The bar named b59's `rates.oneday_event_ledger` literally, a key not registered on this base. The pattern is now the glob `rates.oneday_event_*`, which matches nothing until b59 lands.
+- **`validate_b45_chain3`.** The narrative register's refusal now lists fifteen dimensions, and `mechanism_watch.note_refused` cut the note at 300 characters before the reason that followed. The cut is now 600.
+
+Locally after the fix: validate_numeral_audit 172/0, validate_weekly_stack 83/0, validate_config_refs 120/0, validate_b45_chain3 29/0, validate_regime 516/0.
+
 ## Every session-set value, with its reason
 
 | Value | Set to | Reason |

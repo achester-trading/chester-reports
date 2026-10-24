@@ -18716,7 +18716,7 @@ market_state_barred:
     keys: ["yfinance.mkt_qai"]
   - order: rulings D15 and D26 of 24 Oct 2026 (b59-trigger-sources; its configs' headers)
     rule: "report only: nothing here enters a composite or the market-state object"
-    keys: ["rates.oneday_event_ledger", "gdelt.*", "noaa.*", "ai.model_release*"]
+    keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
 
 forward_dated:
