@@ -73,7 +73,7 @@ def tail_subsection(obj: dict) -> Optional[dict]:
     if not t:
         return None
     f0 = obj["tail_families"][0]
-    return {"title": TAIL_TITLE, "paragraph_wanted": False, "table": t,
+    return {"title": TAIL_TITLE, "paragraph_wanted": False, "table": t, "not_tracked": [],
             "lines": [f"State rule: {f0['state_rule']}.",
                       f"Probability: {f0['probability_reason']}. Families are never summed.",
                       f"From the market-state object of {obj.get('session')} "
@@ -86,7 +86,7 @@ def debt_subsection(obj: dict) -> Optional[dict]:
         return None
     rows = [[o["label"], _num(o.get("level")), _num(o.get("percentile_5y"), "{:.0f}"),
              o.get("observed_at") or "—"] for o in dc.get("observables") or []]
-    return {"title": DEBT_TITLE, "paragraph_wanted": False,
+    return {"title": DEBT_TITLE, "paragraph_wanted": False, "not_tracked": [],
             "lines": [f"State: none -- {dc['reason']}. The observables print read-only."],
             "table": {"columns": ["Observable", "Level", "Five-year percentile", "As of"],
                       "rows": rows}}
@@ -142,12 +142,15 @@ def calibration_subsection(st, cutoff: str, dimensions: bool = False) -> list[di
 
     def build():
         sc, m, obj = _calibration(st, cutoff)
+        # "not_tracked" on every sub-section: the Monthly's slow layers append
+        # their faults to the last one (a63 CI 40119503077).
         out = [{"title": CAL_TITLE, "paragraph_wanted": False, "table": sc.table(m, obj),
+                "not_tracked": [],
                 "lines": [f"From {m['sessions']} stored objects under {m['method']}, "
                           f"each read as of its own availability; a row prints once "
                           f"its state has {sc.MIN_STARTS} independent starts."]}]
         if dimensions:
-            out.append({"title": DIM_CAL_TITLE, "paragraph_wanted": False,
+            out.append({"title": DIM_CAL_TITLE, "paragraph_wanted": False, "not_tracked": [],
                         "table": sc.dimension_table(m, obj),
                         "lines": ["Printed, never ledgered: only the dials are scored (8a)."]})
         return out
