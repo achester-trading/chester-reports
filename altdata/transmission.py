@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from altdata import st_r5_rates as rt
+from altdata.numeral_audit import ordinal
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "config" / "transmission.yaml"
@@ -203,8 +204,8 @@ def impulse_line(w: dict) -> str:
 def net_lines(b: dict) -> list[str]:
     lo, hi = b["bands"]
     out = [f"Net transmission, side by side (no leg is weighted or summed; each is "
-           f"scaled on its own, and a level leg reads tight past its {lo:.0f}th or "
-           f"{hi:.0f}th percentile): tightening legs reading tight, {b['tight_count']} "
+           f"scaled on its own, and a level leg reads tight past its {ordinal(lo)} or "
+           f"{ordinal(hi)} percentile): tightening legs reading tight, {b['tight_count']} "
            f"of {b['read_count']} read."]
     for x in b["legs"]:
         mark = ("loose" if x.get("loose") else "tight" if x.get("tight") else
