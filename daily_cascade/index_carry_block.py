@@ -131,9 +131,14 @@ def positioning_subsection(st, now: str, cfg: Optional[dict] = None) -> Optional
     except Exception:                                           # noqa: BLE001
         log.warning("allocation block faulted", exc_info=True)
         return None
+    lines = ix.allocation_lines(a)
+    # Batch 14 item 62 (b55): item 30's Book A long-horizon expected-return line
+    # reads the cross-house CMA median where one is stored. Report only.
+    from daily_cascade import batch14_b2_block                  # noqa: PLC0415
+    lines.append(batch14_b2_block.book_a_line(st, now))
     return {"title": ALLOC_TITLE,
             "table": {"columns": ALLOC_COLUMNS, "rows": ix.allocation_rows(a)},
-            "lines": ix.allocation_lines(a), "paragraph_wanted": False,
+            "lines": lines, "paragraph_wanted": False,
             "not_tracked": ix.allocation_absent(a),
             "table_note": ("Federal Reserve Z.1 (Financial Accounts), households and "
                            "nonprofits, via FRED, quarterly, published about seventy "

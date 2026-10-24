@@ -1463,7 +1463,9 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     # rows its tables print, appear in those tables, so each fact prints once.
     skip = set(gtm.config().get("printed_scan_rows") or [])
     rows = [r for r in rows if not str(r["metric"]).startswith(gtm.METRIC_PREFIX)
-            and r["metric"] not in skip]
+            and r["metric"] not in skip
+            # Batch 14 item 62 (b55): the CMA editions print in their own table.
+            and not str(r["family"]).startswith("cma-")]
     subs, items, data = [], [], []
     by_fam: dict[str, list] = {}
     for r in rows:
@@ -1849,6 +1851,14 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         subs[-1]["not_tracked"].append(
             "the scans' sourced figures: no scan ingested by this edition's cutoff")
     subs += src_subs
+    # SIGNAL-TRIAGE BATCH 14, ITEM 62 (b55): the cross-house CMA table, from the
+    # stored CMA scans (their families are left out of the sourced figures above,
+    # so each figure prints once).
+    if now:
+        from daily_cascade import batch14_b2_block               # noqa: PLC0415
+        cma_sub = batch14_b2_block.slow_subsection(now, db_path)
+        if cma_sub:
+            subs.append(cma_sub)
     # FACTOR I, THE REAL ECONOMY (ST-R4.23a, Batch 5 item 23): construction
     # spending, real -- data centers and the rest. No rights until the
     # Disruptive Themes refresh; held until D1c, it prints why.

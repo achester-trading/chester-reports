@@ -306,7 +306,8 @@ def group_f() -> None:
     check(cfg["source"] is None, "no forward-EPS source named (F3's probe failed)")
     gap = eo.read(None, "2026-10-20T00:00:00+00:00", "on")
     check(gap["state"] == "gap" and gap["flag"] is None
-          and eo.lines(gap) == [cfg["gap_reason"].strip()]
+          # Batch 14 item 67 (b55): the PEG/LTEG gap line closes every branch.
+          and eo.lines(gap) == [cfg["gap_reason"].strip(), eo.PEG_GAP]
           and "flag does not print" in eo.lines(gap)[0],
           "the gap branch: both series listed gaps, the flag does not print")
     db = TD / "eps.db"
@@ -330,7 +331,7 @@ def group_f() -> None:
           f"and its source ({ls[0][:60]})")
     e = built["error"]
     check(e and e["forecast_day"] == "2024-06-28" and e["error_pct"] == round((224 / 240 - 1) * 100, 2)
-          and built["flag"] is True and "flag ON" in ls[-1],
+          and built["flag"] is True and "flag ON" in ls[-2] and ls[-1] == eo.PEG_GAP,
           "the realised error (224 against the 240 stored a year earlier) negative with the "
           "revisions-turn flag on: the overshoot flag prints ON")
 

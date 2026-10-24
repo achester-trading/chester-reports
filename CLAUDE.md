@@ -129,7 +129,9 @@ altdata/                  Shared ingestion package — used by every report
                           (Group B, the PPI and GDP lenses); 1 in
                           FRED_NOTES_SERIES (the open note's retail sales);
                           10 in FRED_BANK_STRESS_SERIES (item 59's panel);
-                          FRED_PULL_SERIES, 277, is the union the
+                          1 in FRED_HOUSEHOLDS_SERIES (item 68's
+                          per-household deflator);
+                          FRED_PULL_SERIES, 278, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -239,7 +241,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-three code gates (one hundred and thirty Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-four code gates (one hundred and thirty-one Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -782,6 +784,30 @@ ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
 - JDI Research's own feed joins the voices scan (F4).
 
 `tools/validate_batch14_a2.py` holds it.
+
+**Batch 14, Part B2: the CMA table, the PEG note and the per-household line (items
+62, 67 and 68; b55-batch14-b2, 23 Oct 2026). Merges after the 1 Nov Monthly.**
+Report only.
+- **Item 62.** HSBC AM's Capital Market Assumptions and Vanguard's Capital Markets
+  Model forecasts join the reading shelf. Each house's edition is a scan file,
+  `docs/scans/cma-<house>-<YYYY>q<N>.md`, written by the chat-side publication
+  watch, its reference table one row per asset with the row's own URL; the scans
+  ingest stores it. `altdata/cma_table.py` (`config/cma_table.yaml`) computes each
+  asset's median, high less low and count across the current editions (older than
+  15 months dropped and counted), and the Monthly's slow layers print it
+  (`daily_cascade/batch14_b2_block.py`); a house with nothing stored prints "no
+  edition stored". Item 30's Book A line in the allocation block reads the US
+  median. No number is entered by hand.
+- **Item 67.** PEG and LTEG are listed gaps (F3) and print nowhere; item 60's
+  lines end on one gap line pointing at
+  `docs/base-rate-notes/lteg-overshoot-2026-10.md`, the cited note. The
+  proposal `market_cheap_on_peg` is seeded PROPOSED with its caveat.
+- **Item 68.** Redfin's pending sales per 1,000 households (FRED TTLHHM156N,
+  `fred.households`) print beside the raw level in item 36's housing block, with
+  dual percentiles, single-source. NAR's 66.0 print is a dated record in
+  `docs/dated-appendix-queue.md`.
+
+`tools/validate_batch14_b2.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
