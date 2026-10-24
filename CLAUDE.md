@@ -240,7 +240,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-four code gates (one hundred and thirty-one Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-five code gates (one hundred and thirty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -783,6 +783,36 @@ ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
 - JDI Research's own feed joins the voices scan (F4).
 
 `tools/validate_batch14_a2.py` holds it.
+
+**Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
+breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the
+1 Nov Monthly (G4).** Report only.
+- **Item 74.** The TFF pull adds ES and NQ. `altdata/hf_positioning.py`
+  (`config/hf_positioning.yaml`) prints leveraged funds' net in each, with the
+  net short share's dual percentiles, in the Weekly's Positioning & flows. The
+  squeeze-risk flag pairs ES's net short at or above its 90th with item 71's
+  Amihud stand-in at or above its 90th; it prints there and as a context line
+  in item 45's levels read. FINRA's share of float and a performance proxy are
+  listed gaps; the prime-book figures are a dated record. The ledger, ST-R6.74b,
+  is pre-registered (`docs/ledgers/short-extremes-preregistration-2026-10.md`,
+  held by SHA-256), reads stored history only, and its laptop first edition is
+  INSUFFICIENT (n 0: no ES rows stored yet).
+- **Item 75.** `docs/ledgers/ai-lab-financials-ledger.md` is the template, its
+  first row the provisional, WSJ-reported draft S-1. `altdata/ai_lab_ledger.py`
+  computes the ratios; Factor I's lines print item 47's unit-economics line,
+  SR-16's commitments entry ("no ledger entry" otherwise) and the mega-IPO watch
+  ("not yet public").
+- **Item 77.** `altdata/cyber_pressure.py` stores CISA KEV additions and NVD's
+  critical CVEs per week (a Saturday step of the crypto basket's run) and prints
+  them, with their joint flag, in the Weekly's Ahead as the tail register's cyber
+  line, never a tripwire.
+- **Item 78.** `altdata/protocol_breadth.py` stores DefiLlama's active-protocol
+  count daily from its first pull (the endpoint serves today's list only) for the
+  Monthly's digital chapter. Items 77 and 78 cross-reference in the addendum's
+  incidents footnote. The base rate is
+  `docs/base-rate-notes/crypto-winters-protocol-shutdowns-2026-10.md`.
+
+`tools/validate_batch15_2.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store

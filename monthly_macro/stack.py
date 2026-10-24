@@ -2291,7 +2291,12 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 at = max((i for i, x in enumerate(subs)
                           if str(x.get("title") or "").startswith("Themes: digital")),
                          default=at)
-                subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
+                cb_subs = crypto_blocks.monthly_slow(st, now)
+                # SIGNAL-TRIAGE BATCH 15, ITEM 78 (b56): DefiLlama's active-
+                # protocol count, after the network-health rows.
+                from daily_cascade import batch15_b2_block      # noqa: PLC0415
+                pbs = batch15_b2_block.protocol_subsection(st, now)
+                subs[at + 1:at + 1] = cb_subs + ([pbs] if pbs else [])
             except Exception:                                   # noqa: BLE001
                 log.warning("crypto data layer unavailable", exc_info=True)
             # THE DIGITAL ASSET MECHANISM WATCH PART (ST-14, 2.7.6; st-t5-render,

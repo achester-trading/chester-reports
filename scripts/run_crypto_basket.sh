@@ -75,5 +75,11 @@ step prl_daily  "$PY" -m altdata.prl daily
 # (it skips itself otherwise); its one model call only when a candidate survives
 # the rule pre-filter; writes drafts only.
 step mechanism_scan "$PY" -m altdata.mechanism_scan run
+# Batch 15 items 77 and 78 (b56, 23 Oct 2026; no new timer): the cyber feeds (CISA
+# KEV and NVD), Saturdays only (the step skips itself otherwise), and DefiLlama's
+# active-protocol count, a daily snapshot. Both are on the freshness roster
+# (cyber, protocols).
+step cyber_weekly "$PY" -m altdata.cyber_pressure weekly
+step protocols    "$PY" -m altdata.protocol_breadth daily
 log "crypto basket: done"
 exit 0

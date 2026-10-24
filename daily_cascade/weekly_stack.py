@@ -1006,6 +1006,14 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
+    # SIGNAL-TRIAGE BATCH 15, ITEM 74 (b56): the hedge-fund positioning line and
+    # the squeeze-risk flag, beside the CFTC table. The Weekly's only (TFF is
+    # weekly; the Monthly's Positioning keeps its five read blocks).
+    if cadence == "weekly":
+        from . import batch15_b2_block                          # noqa: PLC0415
+        hfp = batch15_b2_block.positioning_subsection(st, now)
+        if hfp:
+            out.append(hfp)
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
     # slow-money set and of SR-36's unwind watch, never a flag of its own. The
@@ -2113,6 +2121,12 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         ah43 = t1_rest_block.ahead_subsection(st, now)
         if ah43:
             built["ahead"].setdefault("subsections", []).append(ah43)
+        # SIGNAL-TRIAGE BATCH 15, ITEM 77 (b56): the tail register's cyber-
+        # pressure line, report only.
+        from . import batch15_b2_block                          # noqa: PLC0415
+        cyb = batch15_b2_block.cyber_subsection(st, now)
+        if cyb:
+            built["ahead"].setdefault("subsections", []).append(cyb)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.

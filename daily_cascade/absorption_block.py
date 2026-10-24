@@ -242,6 +242,18 @@ def cheap_unloved(st, now: str) -> list[str]:
     return out[:CAPS[CU_TITLE]]
 
 
+def ai_lab_lines() -> list[str]:
+    """Batch 15 item 75 (b56): item 47's unit-economics line and SR-16's entry
+    from the AI-lab ledger's latest row ("no ledger entry" otherwise), and the
+    mega-IPO watch beside SPCX. Report only."""
+    from altdata import ai_lab_ledger                           # noqa: PLC0415
+    try:
+        return ai_lab_ledger.lines()
+    except Exception:                                           # noqa: BLE001
+        log.warning("the AI-lab ledger lines faulted", exc_info=True)
+        return [ai_lab_ledger.unit_economics_line([]), ai_lab_ledger.sr16_line([])]
+
+
 def factor_lines(st, now: str) -> list[str]:
     return [
         "Factor I (funding):",
@@ -253,6 +265,7 @@ def factor_lines(st, now: str) -> list[str]:
         f"  {nt('AI share of long IG issuance', 'calc.ai_long_share')}",
         f"  {NEOCLOUD_LINE}",
         f"  {AI_CREDIT_LINE}",
+        *[f"  {x}" for x in ai_lab_lines()],
         "  " + line(st, now, "Memory line: Micron inventory days", "calc.mu_inv_days",
                     lambda v: f"{v:.0f} days", "EDGAR company concepts"),
         "Factor III: " + na("the oil buffer", "calc.oil_buffer_state",

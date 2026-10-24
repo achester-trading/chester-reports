@@ -497,6 +497,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | Ledger | Verdict | n | What it studies |
 |---|---|---|---|
 | `after-hours-earnings-preregistration-2026-10.md` | diagnostic | n — | After-hours earnings: continuation or fade — pre-registration (SN-2, October 2026) |
+| `ai-lab-financials-ledger.md` | diagnostic | n — | The AI-lab financials ledger -- its template and first, provisional row (ST-R6.75a, Batch 15 item 75; report only) |
 | `air-pocket-preregistration-2026-10.md` | diagnostic | n — | The air pockets against the fragility panel — pre-registration (ST-R6.71d, Batch 14 item 71) |
 | `bank-stress-preregistration-2026-10.md` | diagnostic | n — | The bank-stress base rate — pre-registration (ST-R6.59c, Batch 12 item 59) |
 | `dealer-scorecard-preregistration-2026-10-h6.md` | diagnostic | n — | Dealer scorecard — pre-registration H6, level clusters (Batch 11 item 55) |
@@ -516,6 +517,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `release-first-hour-preregistration-2026-10.md` | diagnostic | n — | The release-day first hour — pre-registration (SN-1, October 2026) |
 | `s-2-ledger-2026-10-19.md` | FAIL | n 22 | S-2 ledger -- spot bitcoin ETF flow extremes and BTC's forward return |
 | `s-3-ledger-2026-10-19.md` | FAIL | n 4 | S-3 ledger -- the crypto leverage extreme (funding z with open interest at a 90-day high) |
+| `short-extremes-preregistration-2026-10.md` | diagnostic | n — | Leveraged funds' extreme net shorts in ES and the S&P 500 after -- pre-registration (ST-R6.74b, Batch 15 item 74) |
 | `sn-1-ledger-2026-10-19.md` | FAIL | n 159 | SN-1 ledger -- the release-day first hour: continue or fade |
 | `sn-2-ledger-2026-10-19.md` | FAIL | n 193 | SN-2 ledger -- after-hours earnings: continuation or fade |
 | `speed-attribution-preregistration-2026-10.md` | diagnostic | n — | The 10-year speed flag's attribution against what followed — pre-registration (ST-R6.65a, Batch 14 item 65) |
@@ -546,6 +548,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `st-r6.66c-ledger-2026-10-21.md` | FAIL | n 65 | ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth (Batch 14 item 66; report only) |
 | `st-r6.65a-ledger-2026-10-23.md` | INSUFFICIENT | n 28 | ST-R6.65a ledger -- the 10-year speed flag's attribution against the next 20 sessions (Batch 14 item 65; report only) |
 | `st-r6.71d-ledger-2026-10-23.md` | FAIL | n 2965 | ST-R6.71d ledger -- the air pockets against the fragility panel (Batch 14 item 71; flag rights only) |
+| `st-r6.74b-ledger-2026-10-23.md` | INSUFFICIENT | n 0 | ST-R6.74b ledger -- leveraged funds' extreme net shorts in ES against the S&P 500's next 20 sessions (Batch 15 item 74; flag rights only) |
 | `vendor-divergence-notes.md` | diagnostic | n — | Vendor divergence notes -- FlashAlpha against the engine |
 | `wealth-effect-preregistration-2026-10.md` | diagnostic | n — | The wealth-effect impulse against real consumption -- pre-registration (ST-R6.66c, Batch 14 item 66) |
 <!-- /table -->

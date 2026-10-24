@@ -1,0 +1,49 @@
+# hf_positioning.yaml -- signal-triage Batch 15, item 74 (written as 67;
+# ST-R6.74a, 74b), the hedge-fund positioning line and the squeeze-risk flag
+# (docs/change-order-signal-triage-batch-15-2026-10-23.md, entry 74; G3).
+#
+# Read by altdata/hf_positioning.py; printed in the Weekly's Positioning & flows
+# (daily_cascade/weekly_stack.py) and, as one context line, in item 45's ES
+# levels read on the close (daily_cascade/stack_close.py). Report only: the flag
+# is a flag, no composite and no market-state object reads it.
+version: hf-positioning-v1
+updated: 2026-10-23
+title: "Hedge-fund positioning (CFTC leveraged funds)"
+
+# The CFTC's Traders in Financial Futures, leveraged funds, net, as stored by
+# altdata/sources/cftc.py (instrument = the CME ticker).
+contracts:
+  - {instrument: ES, label: "E-mini S&P 500", code: "13874A"}
+  - {instrument: NQ, label: "E-mini Nasdaq-100", code: "209742"}
+net_key: cftc.tff_lev_money_net
+net_oi_key: cftc.tff_lev_money_net_oi
+# The dual percentiles: five years and the full stored history (the metric-lens
+# rule, st_r5_rates.lens).
+lens_years: 5
+
+# THE SQUEEZE-RISK FLAG (the ruling: "leveraged-fund net short above its 90th
+# percentile while item 71's depth is below its 10th percentile").
+squeeze:
+  # SESSION-SET. The arm reads ES, the contract item 45's levels read is about;
+  # NQ prints beside it. The net short is the negative of the net share of open
+  # interest (positions scaled to OI, the 10A standard), ranked on five years.
+  arm_instrument: ES
+  net_short_pct: 90
+  # Item 71's depth is not tracked; its stand-in is SPY's Amihud illiquidity
+  # (altdata/fragility.py), where HIGHER means LESS depth. "Depth below its 10th
+  # percentile" is therefore the Amihud measure at or above its 90th, on the same
+  # five-year window -- item 71's own depth arm.
+  depth_pct: 10
+
+# The pieces the order names that fail the source checks (G3; the 16 Oct rule).
+gaps:
+  short_interest: >-
+    FINRA short interest as a share of float for the S&P 500: NOT TRACKED (no
+    stored or keyless S&P 500 constituent list, and no float source; FINRA's
+    short interest is stored for the tracked universe only)
+  performance: >-
+    A hedge-fund performance proxy: NOT TRACKED (no keyless public series; HFR
+    sells its index performance data by subscription)
+  prime_book: >-
+    Prime-brokerage figures (leverage, long and short flows) are proprietary: a
+    dated record in the appendix queue only, never a line

@@ -243,6 +243,15 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                 es_sub["lines"] = list(es_sub.get("lines") or []) + [_fl]
         except Exception:                                       # noqa: BLE001
             log.warning("the fragility line in the levels read faulted", exc_info=True)
+        # Batch 15 item 74 (b56): the squeeze-risk context line, after item 71's.
+        try:
+            from . import batch15_b2_block                      # noqa: PLC0415
+            with observations.ObservationStore(db_path) as _sst:
+                _sq = batch15_b2_block.es_squeeze_line(_sst, sess, cutoff)
+            if _sq:
+                es_sub["lines"] = list(es_sub.get("lines") or []) + [_sq]
+        except Exception:                                       # noqa: BLE001
+            log.warning("the squeeze line in the levels read faulted", exc_info=True)
         mech["subsections"].append(es_sub)
         mech["data"]["es_block"] = {"state": es_blk.get("state"),
                                     "lean": (es_rd or {}).get("lean"),

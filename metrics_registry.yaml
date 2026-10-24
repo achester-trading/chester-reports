@@ -10416,6 +10416,73 @@ metrics:
       Shiller's real home price index, 1890 = 100 (Fig3-1.xls, Irrational
       Exuberance's Figure 3.1 as updated by the author): annual 1890-1952, monthly
       from January 1953. Batch 14 item 69's percentile since 1890 (a56).
+  cyber.kev_added_week:
+    source: cisa_kev
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      CISA's Known Exploited Vulnerabilities catalogue: the entries added in the
+      ISO week (Monday to Sunday) by their dateAdded; observed_at = the week's
+      Monday. The catalogue's first week (its seeding, 287 entries on 3 Nov 2021)
+      is stored and left out of the percentiles. Batch 15 item 77 (b56).
+  cyber.nvd_critical_week:
+    source: nvd
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      NVD's CVE API 2.0: CVEs published in the ISO week with a CVSS v3 severity of
+      CRITICAL (a base score of 9.0 or higher); observed_at = the week's Monday.
+      REVISED: NVD scores a CVE after publication, so each Saturday re-reads the
+      last 8 weeks as new vintages. Batch 15 item 77 (b56).
+  defillama.protocols_listed:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      DefiLlama's protocol list (api.llama.fi/protocols), the protocols neither
+      marked dead (deadFrom) nor deprecated, counted on the day of the pull. A
+      daily snapshot from the first pull: the endpoint serves today's list only.
+      Batch 15 item 78 (b56).
+  defillama.protocols_active:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Of defillama.protocols_listed, those with a TVL above zero on the day of the
+      pull: the active-protocol count, crypto's supply-side breadth proxy. A daily
+      snapshot from the first pull. Batch 15 item 78 (b56).
   worldbank.cmo_total:
     source: worldbank_cmo
     mechanism_group: commodity_prices
@@ -18313,6 +18380,10 @@ families:
   shiller.cape: ratio
   shiller.cpi: price
   shiller.real_home_price: price
+  cyber.kev_added_week: quantity
+  cyber.nvd_critical_week: quantity
+  defillama.protocols_listed: quantity
+  defillama.protocols_active: quantity
   shiller.gs10: rate
   shiller.sp_dividend: price
   shiller.sp_earnings: price
