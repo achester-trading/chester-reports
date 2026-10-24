@@ -133,7 +133,7 @@ These files are shared with other branches, so expect stitch conflicts in them:
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the A65 tip | see the report |
+| 40139747558 | `c3a846e2` | **success** (9m52s; read once, 24 Oct evening) |
 
 ## Needs you (at most five)
 
