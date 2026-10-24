@@ -1,6 +1,6 @@
 # 6f: the market-state object v2 — specification DRAFT
 
-**Status: DRAFT for the operator's rulings, taken in chat one decision at a time (section 9). Nothing here is built, configured or gated.** Written 23–24 Oct 2026 (session A, A60) on branch `a60-6f-spec` from `origin/chain-5` (`6fa2024`). Docs only. 6f is placed in the week of 2 Nov by Workplan v7 (`docs/workplan-v7-2026-10-16.md`, "Week of 2 Nov ... 6f"); Audit #3 sizes it at about 8 hours (`docs/chester-reports-audit-3.md`, the 6f row: "16 dimensions with transition probabilities · dial calibration · tail families (~6) with Brier · debt-cycle branch | 8 | Phase 3").
+**Status: RULED 24 Oct 2026 (D27): all twelve decisions as recommended.** Written 23–24 Oct 2026 (session A, A60) on branch `a60-6f-spec` from `origin/chain-5` (`6fa2024`). Docs only. 6f is placed in the week of 2 Nov by Workplan v7 (`docs/workplan-v7-2026-10-16.md`, "Week of 2 Nov ... 6f"); Audit #3 sizes it at about 8 hours (`docs/chester-reports-audit-3.md`, the 6f row: "16 dimensions with transition probabilities · dial calibration · tail families (~6) with Brier · debt-cycle branch | 8 | Phase 3").
 
 **Sources read.**
 - **Code and config:** `regime.py`, `contradictions.py`, `config/market_state.yaml`, `metrics_registry.yaml`, `source_registry.yaml`, `altdata/probability_ledger.py`, `altdata/fred_history.py`, `config/prediction_markets.yaml`, `tools/decide.py`, `register/heat.py` and the object's readers. All of it as it stands on chain-5.
@@ -531,6 +531,8 @@ The `symmetric close` ruling for v1.13 rides the same bump, because two config b
 ## 9. Decisions for the operator
 
 Each is a choice between named options, with a recommendation. They are written to be taken one at a time.
+
+The rulings: [the operator's rulings of 24 Oct 2026, D27](rulings-2026-10-24.md).
 
 **1. How many dimensions v2 adds now. (a) the five buildable ones now, the other three absent with reasons; (b) wait until all eight are buildable; (c) the five now and drop the other three from the plan.** Recommend (a). The five rest on stored keyless series and the object already knows how to say "absent, and why". Waiting for a geopolitical index or an index forward-EPS source could take months and holds back calibration, which needs time more than anything. Dropping the three would lose the record that they were wanted.
 
