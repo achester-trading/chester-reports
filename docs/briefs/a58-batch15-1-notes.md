@@ -176,12 +176,19 @@ Section 0 governs, and items are cited by their filed numbers. Items 74, 75, 77 
 
 ## The CI run
 
-| Run | On | Result |
-|---|---|---|
-| 40049193630 | `4e5a8af` (the build and the gate) | queued when read once, 23 Oct about 21:20 ET; result not read in this session |
-| 40049341156 | `c198e46` (these notes) | queued when read; the branch tip's run is the one that counts |
+| Round | Run | On | Result |
+|---|---|---|---|
+| 1 | 40049193630 | `4e5a8af` (the build and the gate) | failure: the same two gates as the tip's run |
+| 1 | 40049341156 | `c198e46` (these notes) | failure: the same two gates |
+| 1 | 40049370749 | `e219bc8` (the notes' CI line) | failure, read 23 Oct (A59): 2 code gates failed, every other passed |
+| 2 | see below | the A59 fix | read once after the push (A59) |
 
-The run was read once, as the brief asks; no command waited on it. Its result is the next session's (or the operator's) to read: `gh run list --branch a58-batch15-1 --limit 3`.
+**Round 1's two failures were both this branch's, and A59 fixed them:**
+
+- `tools/validate_secrets.py` (57/1): "altdata/gold_13f.py imports edgar's User-Agent for a non-SEC caller". The 13F reader is an SEC caller (the data sets on www.sec.gov), so it is added to the gate's `SEC_UA_CALLERS` with its reason, the way every earlier SEC caller was.
+- `tools/validate_st_t2_rates.py` (70/1), group L: "no ST-5 key or candidate row is in the market-state config or any other config but its own", hit by `config/dm_drawdown.yaml` naming `calc.jpy_unwind`, `calc.jp_front_diff_60d` and `calc.jp_hedged_carry` (and, by substring, `calc.jp_front_diff`). The three Japan carry legs move out of the config into `altdata/dm_drawdown.py`'s `JAPAN_CARRY`, read as display-only attribution legs as before; the config says where they went and why. The screen's output is unchanged.
+
+Locally after the fix: validate_st_t2_rates 71/0, validate_secrets 58/0, validate_batch15_1 70/0.
 
 ## Every listed gap
 

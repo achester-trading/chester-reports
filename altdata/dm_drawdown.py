@@ -36,6 +36,16 @@ from . import asset_event as ae
 REPO = Path(__file__).resolve().parent.parent
 CONFIG = REPO / "config" / "dm_drawdown.yaml"
 LEDGER_KEY = "equity.dm_drawdown_ledger"
+# Japan's yen carry legs (SR-2). They are ST-5 keys, which no config but
+# funding_currency.yaml may name (validate_st_t2_rates group L), so they live
+# here: read as display-only attribution legs, never into a composite.
+JAPAN_CARRY = [
+    {"key": "calc.jpy_unwind", "label": "yen unwind flag (SR-2)", "kind": "flag"},
+    {"key": "calc.jp_front_diff_60d",
+     "label": "US-Japan 2-year gap, 60-session change (SR-2)", "kind": "level_bp"},
+    {"key": "calc.jp_hedged_carry",
+     "label": "hedged Japanese carry on Treasuries (SR-2)", "kind": "level_pct"},
+]
 SOURCE = "dm_drawdown"
 TITLE = "Developed-market drawdown"
 
@@ -144,7 +154,7 @@ def attribute(series: dict, m: dict, tr: dict, cfg: dict) -> dict:
         rows.append([cfg["us_session"]["label"], "absent (no US session stored before the day)"])
     legs["us_session"] = u
     if m.get("japan"):
-        for c in cfg["japan"]["carry"]:
+        for c in JAPAN_CARRY:
             lv = _level(series.get(c["key"]) or [], tr["day"], c["kind"])
             legs[c["key"]] = lv
             rows.append([c["label"], lv.get("text") or f"absent ({lv.get('reason')})"])
@@ -208,7 +218,7 @@ def read_series(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         out[f"{m['id']}:ccy"] = p(st, m["currency"]["key"], cutoff)
         if m.get("local_10y"):
             out[f"{m['id']}:10y"] = p(st, m["local_10y"]["key"], cutoff)
-    for c in cfg["japan"]["carry"]:
+    for c in JAPAN_CARRY:
         out[c["key"]] = p(st, c["key"], cutoff)
     out[cfg["japan"]["slow_money"]["key"]] = p(st, cfg["japan"]["slow_money"]["key"], cutoff)
     try:

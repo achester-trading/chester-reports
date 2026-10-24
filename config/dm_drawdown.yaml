@@ -63,10 +63,9 @@ gaps:
 # capex-chain line.
 us_session: {key: yfinance.mkt_gspc, label: "S&P 500, the prior US session"}
 japan:
-  carry:
-    - {key: calc.jpy_unwind, label: "yen unwind flag (SR-2)", kind: flag}
-    - {key: calc.jp_front_diff_60d, label: "US-Japan 2-year gap, 60-session change (SR-2)", kind: level_bp}
-    - {key: calc.jp_hedged_carry, label: "hedged Japanese carry on Treasuries (SR-2)", kind: level_pct}
+  # The yen carry legs (SR-2) are ST-5 keys, which no config but
+  # funding_currency.yaml may name (validate_st_t2_rates group L), so they are
+  # altdata/dm_drawdown.py's JAPAN_CARRY: read as display-only attribution legs.
   # SR-32 (jp.slowmoney) is a stub: its stored early line is the 30-year JGB.
   slow_money: {key: mof.jgb_30y, label: "30-year JGB (SR-32's early line; the family is a stub)"}
 start_tolerance_days: 4
