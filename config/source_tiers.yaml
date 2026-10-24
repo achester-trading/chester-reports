@@ -121,6 +121,9 @@ tiers:
     - Binance
     - Chase Bank
     - The Dark Side Of The Boom
+    # Ruling D5 of 24 Oct 2026 (Batch 14 item 70): the newsletter outlet, a news
+    # source of the voices scan (config/voices_sources.yaml fxempire_forecasts).
+    - FXEmpire
 
 # -----------------------------------------------------------------------------
 # FEDERAL RESERVE PRESS RELEASES, BY KIND
