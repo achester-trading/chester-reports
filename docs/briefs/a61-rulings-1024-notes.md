@@ -10,12 +10,13 @@
 | Commit | What |
 |---|---|
 | `93288d4` | docs: the operator's rulings of 24 Oct 2026 (D1-D27). The log, byte for byte, alone. |
-| (next) | Index line in `docs/attention-log.md`. |
-| (next) | Part 1 (D5): the voices. |
+| `d5a8b2d` | Index line in `docs/attention-log.md`. |
+| `649e59b` | Part 1 (D5): the voices. |
 | `4cb25f7` | Part 2 (D13, D22): the five funds; QAI and the performance line; the Security Master; the count pins. |
-| (next) | Part 2 (D17): the CMA table's two medians. |
-| (next) | Part 2 (D21, D9, D3, D20). |
-| (next) | The Master Guide's HTML rebuilt, and these notes. |
+| `861d3bf` | Part 2 (D17): the CMA table's two medians. |
+| `4cf03c0` | Part 2 (D21, D9, D3, D20). |
+| `05af21f` | The Master Guide's HTML rebuilt, and these notes. |
+| (this) | The notes' commit hashes and the CI run as read. |
 
 ## Part 0: the log
 
@@ -127,7 +128,7 @@
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the branch tip | see below |
+| 40112619226 | `05af21f` | in progress when read once (24 Oct, about 12:40 ET); the result was not read in this session. Read it with `gh run list --branch a61-rulings-1024 --limit 3` |
 
 ## The box commands (the operator's; after the merge, which is after the 1 Nov Monthly)
 
