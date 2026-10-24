@@ -22,6 +22,8 @@ log = logging.getLogger(__name__)
 
 TAIL_TITLE = "Tail families (the Twenty-Five; report only)"
 DEBT_TITLE = "Debt-cycle branch (report only)"
+CAL_TITLE = "Dial transitions (calibration; report only)"
+DIM_CAL_TITLE = "Dimension transitions (unledgered; report only)"
 
 
 def _safe(fn: Callable, what: str, default: Any = None) -> Any:
@@ -116,3 +118,44 @@ def weekly_subsection(st, cutoff: str) -> Optional[dict]:
         return ({"title": TAIL_TITLE, "lines": [ln], "paragraph_wanted": False}
                 if ln else None)
     return _safe(build, "the tail-family line", None)
+
+
+# ---------------------------------------------------------------------------
+# 6f tranche 2 (a63; rulings 7a, 8a): the dials' transition reads
+# ---------------------------------------------------------------------------
+def _calibration(st, cutoff: str):
+    from altdata import state_calibration as sc                 # noqa: PLC0415
+    m = sc.matrices(st, cutoff)
+    return sc, m, _object(st, cutoff)
+
+
+def calibration_subsection(st, cutoff: str, dimensions: bool = False) -> list[dict]:
+    """The Weekly's and the Monthly's table (dial x horizon); the Monthly adds the
+    dimensions' table, unledgered."""
+    def build():
+        sc, m, obj = _calibration(st, cutoff)
+        out = [{"title": CAL_TITLE, "paragraph_wanted": False, "table": sc.table(m, obj),
+                "lines": [f"From {m['sessions']} stored objects under {m['method']}, "
+                          f"each read as of its own availability; a row prints once "
+                          f"its state has {sc.MIN_STARTS} independent starts."]}]
+        if dimensions:
+            out.append({"title": DIM_CAL_TITLE, "paragraph_wanted": False,
+                        "table": sc.dimension_table(m, obj),
+                        "lines": ["Printed, never ledgered: only the dials are scored (8a)."]})
+        return out
+    return _safe(build, "the calibration tables", []) or []
+
+
+def close_extras(built: dict, st, cutoff: str) -> None:
+    """The daily close's one line, in the mechanics section."""
+    mech = built.get("mechanics")
+    if mech is None:
+        return
+    def build():
+        sc, m, obj = _calibration(st, cutoff)
+        return sc.close_line(m, obj)
+    ln = _safe(build, "the calibration line")
+    if not ln:
+        return
+    mech.setdefault("subsections", []).append(
+        {"title": CAL_TITLE, "paragraph_wanted": False, "lines": [ln]})

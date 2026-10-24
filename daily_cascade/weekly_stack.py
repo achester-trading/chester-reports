@@ -268,6 +268,8 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     tl = state_v2_block.weekly_subsection(st, cutoff)
     if tl:
         subs.append(tl)
+    # 6f TRANCHE 2 (a63): the dials' transition table.
+    subs += state_v2_block.calibration_subsection(st, cutoff)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}

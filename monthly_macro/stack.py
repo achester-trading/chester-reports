@@ -1852,6 +1852,8 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         # from the stored object; report only.
         from daily_cascade import state_v2_block                 # noqa: PLC0415
         subs += state_v2_block.slow_subsections(st, now)
+        # 6f TRANCHE 2 (a63): the dials' transitions, and the dimensions' unledgered.
+        subs += state_v2_block.calibration_subsection(st, now, dimensions=True)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)

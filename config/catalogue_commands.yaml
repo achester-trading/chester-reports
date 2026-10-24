@@ -372,6 +372,10 @@ commands:
   altdata.gtm_equities:
     domain: equity
     line: "The J.P. Morgan Guide batch, part 2's equity items (GTM-3 the concentration twin, GTM-4 the AI buckets and the hyperscaler bridge, GTM-10 the sector rows): show prints them as of a cutoff -- read-only"
+  altdata.state_calibration:
+    domain: computed
+    line: "6f tranche 2 (rulings 7a, 8a): the dials' transition counts at 5, 20 and 63 sessions from stored objects, point in time; 'uncalibrated (n = k of 30)' until a row has 30 independent starts; calibrated dial rows to the probability ledger (the close writes them); show read-only"
+    sources: [derived_state]
   altdata.state_vector:
     domain: options
     line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"
