@@ -2382,10 +2382,10 @@ def main() -> int:
           # The four cadences' targets (the secondary notes add their own keys).
           and {k: (cfg.get("reading_targets_minutes") or {}).get(k)
                for k in ("daily", "weekly", "monthly", "quarterly")}
-          == {"daily": 5, "weekly": 20, "monthly": 55, "quarterly": 90},
+          == {"daily": 10, "weekly": 35, "monthly": 55, "quarterly": 90},
           "the Monthly budget (10,000 words, 12 charts; T3.1) and the four "
-          "reading targets (5, 20, 55 minutes; the Quarterly's read 90, AQ-1) are "
-          "configuration")
+          "reading targets (10, 35, 55 minutes since D19/D20; the Quarterly's read "
+          "90, AQ-1) are configuration")
     check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
               and s["id"] not in ("positioning",)),
           "every non-empty section opens with a claim line (Positioning's call "
