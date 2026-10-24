@@ -122,6 +122,33 @@ families:
     reason: >-
       The monthly activity, price and PMI prints are released between the
       last day of the month (PMI) and the 15th-20th of the next; dated the 1st.
+  - id: fred_h8_weekly
+    fred_ids: ["DPSSCBW027SBOG", "DPSLCBW027SBOG"]
+    lag_sessions: 5
+    max_lag: 6
+    source: "Federal Reserve H.8 (assets and liabilities of commercial banks), through FRED"
+    reason: >-
+      Added at the chain-5 stitch (23 Oct 2026), as b51's notes asked once
+      chain-4's bank-stress panel (a53) was beside this file. H.8's weekly
+      deposits are dated the week's Wednesday and released on the Friday of the
+      following week, nine days later. Just before the next release the newest
+      week is sixteen days old, about 12 sessions: the weekly allowance's 8 plus
+      4, and one more for a holiday. (H.4.1's two credit lines, WLCFLPCL and
+      WLCFOCEL, are Wednesday levels released the next day, so the weekly
+      allowance holds them and they are not named here.)
+  - id: shiller_housing
+    keys: ["shiller.real_home_price"]
+    lag_sessions: 56
+    max_lag: 60
+    source: "Shiller's real home price index (Fig3-1.xls), after the S&P CoreLogic Case-Shiller national index"
+    reason: >-
+      Added at the chain-5 stitch (23 Oct 2026) for a56's new key (Batch 14 item
+      69). The national index it extends is published on the last Tuesday of
+      the month, two months after the reference month, and the sheet follows it:
+      the file of 6 Oct 2026 carried July 2026 as its last month (a56's Part 0).
+      A month is dated its first day, so the newest is about three months old
+      when the sheet updates and about four before the next, near 88 sessions:
+      the monthly allowance's 32 plus 56.
   - id: fred_quarterly_release
     fred_ids: ["*"]
     keys: ["calc.naive_expectation.*"]

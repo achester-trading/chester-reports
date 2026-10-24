@@ -748,7 +748,8 @@ as-of, window or n is refused. `tools/validate_ledgers_b6.py` holds it.
 age up to `session.last_completed_session()` of its as-of, never to the UTC date,
 so an evening run no longer counts the next session. `config/publication_lags.yaml`
 states each late or batched source's real lag (H.10, EIA's spot prices, the
-term-premium models, Z.1, TIC, the IMF, the EM legs, the Pink Sheet, NBS, and
+term-premium models, Z.1, TIC, the IMF, the EM legs, the Pink Sheet, NBS, H.8's
+weekly deposits and Shiller's housing sheet (both added at the chain-5 stitch), and
 FRED's monthly and quarterly releases), each session-set with its reason and a
 bound; `derived.staleness_allowance_of`, the one staleness rule, adds it to the
 cadence's allowance. A key past three times its allowance prints "dead?" whatever
