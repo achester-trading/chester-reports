@@ -129,8 +129,22 @@
 #         v1.11 and v1.12 exist in the laptop's store, and a reused number would
 #         put two rule sets under one label. The attribution it described is a
 #         descriptive block outside this object (altdata/rates_attribution.py).
-version: market-state-v1.10
-schema_source: docs/chester-reports-audit-3.md §K
+#   v2.0  (24 Oct 2026, 6f tranches 1, 3 and 5, a62; ruled D27; the spec
+#         docs/briefs/6f-spec-draft-2026-10-24.md). v1.13 was the next rules
+#         number and is folded into this one bump. Five new dimensions --
+#         positioning, sentiment, valuation, funding_stress, policy -- each banded
+#         on one primary; earnings and geopolitical declared and absent, not
+#         buildable, with what each waits for (1a, 5a); no tail dimension, SKEW a
+#         member of volatility (2a); absolute bands where the series has a natural
+#         zero (3a); valuation on its full history with the five-year read beside
+#         it (4a); funding_stress's CP-bill member (6a). The horizons block (the
+#         spec's section 6), tail_families (10a) and debt_cycle_branch (11a),
+#         report only. The contradiction table's symmetric close (ruled for
+#         v1.13 at Audit #4): an open row closes after two failing sessions, as
+#         it opens after two. Method-11 with it. No barred key is a member
+#         (12a; metrics_registry.yaml market_state_barred, validate_regime).
+version: market-state-v2.0
+schema_source: docs/chester-reports-audit-3.md §K; docs/briefs/6f-spec-draft-2026-10-24.md
 
 defaults:
   persistence_sessions: 2
@@ -409,9 +423,258 @@ dimensions:
           Realized volatility of SPY's own 20-session returns. The leg this
           dimension was missing: implied alone has nothing to be rich or cheap
           against, and the two disagreeing IS the fourth contradiction row.
+      # v2.0 (ruling 2a): no tail dimension; the price of protection joins here.
+      - metric: yfinance.mkt_skew
+        polarity: +1
+        because: >-
+          Cboe's SKEW is the price of out-of-the-money index puts: a high reading
+          is protection bid. As a member it supports or contradicts the published
+          state -- protection bid while VIX is low is a disagreement worth seeing
+          -- and never makes a tail verdict of its own (the Twenty-Five, 0.2).
     note: >-
-      Implied and realized together. The vol dial reads their RATIO separately --
-      a level and a premium are different statements.
+      Implied and realized together, with SKEW beside them. The vol dial reads
+      their RATIO separately -- a level and a premium are different statements.
+
+  # -------------------------------------------------------------------------
+  # v2.0 (6f tranche 1; rulings 1a-6a of 24 Oct 2026). Every member below is a
+  # stored, keyless key whose order does not bar the object (metrics_registry.yaml
+  # market_state_barred; validate_regime group V2 refuses one that is). Report
+  # only: no dial, band, packet or engine reads these five (the spec, 7.1).
+  # -------------------------------------------------------------------------
+  positioning:
+    horizon: 1-3m
+    states: [crowded, neutral, light]
+    bands:
+      - {state: crowded, min_percentile: 66}
+      - {state: neutral, min_percentile: 33}
+      - {state: light,   min_percentile: 0}
+    members:
+      - metric: finra.margin_debit
+        transform: change_12m_pct
+        polarity: +1
+        because: >-
+          Margin debt's change on a year earlier, in percent: borrowing to hold
+          stocks rising fast is crowding. The level trends with the market, so
+          the change is what is ranked (SESSION-SET: twelve months, the year
+          FINRA's own release compares).
+      - metric: cftc.tff_lev_money_net
+        instrument: TY
+        polarity: +1
+        because: >-
+          Leveraged funds' net position in the 10-year note future: the basis
+          trade's crowding. Net short is the trade's usual sign, so a HIGH
+          percentile (less short) is the less crowded reading -- it is ranked as
+          stored and reads with the dimension's sign as evidence only.
+      - metric: levetf.aum
+        instrument: TQQQ
+        polarity: +1
+        because: >-
+          The largest daily-rebalanced leveraged fund the writer covers: its
+          assets rising is leveraged long exposure building (SESSION-SET: TQQQ,
+          the largest of the set).
+    note: >-
+      A monthly primary inside a daily object: it changes about three weeks after
+      each month ends, and the Weekly sees it unchanged for four weeks.
+
+  sentiment:
+    horizon: 1-3m
+    states: [euphoric, neutral, fearful]
+    bands:
+      - {state: euphoric, min_percentile: 66}
+      - {state: neutral,  min_percentile: 33}
+      - {state: fearful,  min_percentile: 0}
+    members:
+      - metric: aaii.bull_bear_spread
+        polarity: +1
+        because: Individual investors' bulls less bears; a high spread is euphoria.
+      - metric: chain.spy_put_call_volume
+        polarity: -1
+        because: >-
+          SPY's put volume over call volume from the system's own capture: a high
+          put share is fear, so it is flipped onto the euphoric scale.
+      - metric: fred.uoM_sent
+        polarity: +1
+        because: The consumer's own sentiment survey, monthly.
+    note: >-
+      What sentiment IS, not what it predicts: nothing reads "fearful" as a buy.
+
+  valuation:
+    horizon: 1y+
+    states: [rich, fair, cheap]
+    # RULING 4a: the series' FULL history, not five years -- five years of CAPE
+    # is one regime. The five-year read prints beside it (percentile_5y).
+    window_days: full
+    also_window_days: 1826
+    bands:
+      - {state: rich,  min_percentile: 66}
+      - {state: fair,  min_percentile: 33}
+      - {state: cheap, min_percentile: 0}
+    members:
+      - metric: shiller.cape
+        polarity: +1
+        because: The cyclically adjusted P/E; high is rich.
+      - metric: fred.hh_equity_share
+        polarity: +1
+        because: >-
+          Households' equity share of their financial assets (Z.1): a high share
+          is prices already capitalised into balance sheets.
+    note: >-
+      No stored equity risk premium yet: the excess CAPE yield is computed in
+      memory (Batch 14 item 64) and a forward earnings yield at index level is a
+      listed gap.
+
+  funding_stress:
+    horizon: 1-3m
+    states: [stressed, watch, calm]
+    # RULING 3a: ABSOLUTE bands in basis points -- the spread has a natural zero
+    # (SOFR above IORB is scarce reserves at the margin), and a series that sat
+    # below zero for most of five years would read "stressed" at -3 bp on
+    # percentiles. Members are judged on their own percentiles (66/33).
+    band_mode: absolute
+    bands:
+      - {state: stressed, min_value: 10}
+      - {state: watch,    min_value: 0}
+      - {state: calm,     min_value: -1.0e9}
+    member_bands:
+      - {state: stressed, min_percentile: 66}
+      - {state: watch,    min_percentile: 33}
+      - {state: calm,     min_percentile: 0}
+    members:
+      - metric: calc.sofr_iorb_bp
+        polarity: +1
+        because: SOFR less IORB, bp; above zero is reserves scarce at the margin.
+      - metric: calc.cp_bill_bp
+        polarity: +1
+        because: >-
+          Financial commercial paper (90-day AA) less the 3-month bill, bp: what a
+          bank pays over the government to borrow for three months (ruling 6a).
+      - metric: fred.stlfsi
+        polarity: +1
+        because: The St. Louis Fed's financial stress index, weekly; above zero is stress.
+      - metric: tic.fima_repo
+        polarity: +1
+        because: Foreign officials borrowing dollars at the FIMA facility is dollar funding stress.
+    note: >-
+      It overlaps liquidity (fred.nfci) and credit; the primaries differ, and a
+      disagreement between them is information.
+
+  policy:
+    horizon: 1-3m
+    states: [tightening_priced, on_hold, easing_priced]
+    # RULING 3a: ABSOLUTE bands -- the 2-year less the funds rate has a natural
+    # zero, and a quarter-point either side is the market pricing a move.
+    band_mode: absolute
+    bands:
+      - {state: tightening_priced, min_value: 25}
+      - {state: on_hold,           min_value: -25}
+      - {state: easing_priced,     min_value: -1.0e9}
+    member_bands:
+      - {state: tightening_priced, min_percentile: 66}
+      - {state: on_hold,           min_percentile: 33}
+      - {state: easing_priced,     min_percentile: 0}
+    members:
+      - metric: calc.policy_2y_minus_effr_bp
+        polarity: +1
+        because: >-
+          The 2-year less the effective funds rate, bp: the market's expected path
+          over two years against today's rate. It is the path only -- never the
+          split of a yield move into path and premium, which is the withdrawn
+          rates.driver's and stays outside the object (ST-3).
+      - metric: calc.fed_mkt_gap_12m
+        polarity: +1
+        because: The futures-implied rate a year out less the median dot, bp.
+      - metric: calc.real_policy_rate
+        polarity: +1
+        because: "The funds rate less core PCE inflation: the stance the market prices against."
+
+  # RULING 5a: declared and absent, with what it waits for.
+  earnings:
+    horizon: 1-3m
+    states: [upgrading, flat, downgrading]
+    buildable: false
+    not_buildable_reason: >-
+      not buildable yet: no public keyless index forward-EPS series with history
+      (S&P DJI's withdrawn 17 Oct 2026; index.forward_pe unsourced). Waits for one
+      (a listed gap since Batch 12 F3), then 252 sessions of it.
+  geopolitical:
+    horizon: 1-3m
+    states: [elevated, normal, quiet]
+    buildable: false
+    not_buildable_reason: >-
+      not buildable yet: no public keyless geopolitical risk index with a long
+      history is stored and admitted (the prediction-market rights are discovery
+      only; GDELT's keys, b59, are report-only by D26). Waits for a source-checked
+      index and a ruling admitting it.
+
+# ---------------------------------------------------------------------------
+# v2.0: THE PER-HORIZON READS (the spec's section 6; the Enterprise Layer's R-7:
+# "the state object holds the market view per horizon and never collapses
+# them"). Each is a read of the trend dimension's own members at the book
+# horizon's length, banded 66/33 with persistence 2. horizons.monthly is the
+# trend dimension's own primary. Read by nothing that acts: alignment_weekly is
+# tranche 4, after the register's schema change.
+# ---------------------------------------------------------------------------
+horizons:
+  daily:   {metric: calc.trend_spy_ma20_slope, book: C, sessions: 5}
+  weekly:  {metric: calc.trend_spy_vs_50d,     book: B, sessions: 20}
+  monthly: {metric: calc.trend_spy_vs_200d,    book: A, sessions: 63}
+horizon_bands:
+  - {state: up,   min_percentile: 66}
+  - {state: flat, min_percentile: 33}
+  - {state: down, min_percentile: 0}
+
+# ---------------------------------------------------------------------------
+# v2.0: THE TAIL FAMILIES (ruling 10a; the spec's section 4). The Twenty-Five's
+# seven mechanism families (docs/whitepapers/tail-scenarios-whitepaper.md),
+# NEVER SUMMED (its 0.2: no tail index). Each family's state is `watch` when one
+# of its stored first-mover series reads extreme (altdata/derived.py's declared
+# extreme rule: at or past the 5th or 95th percentile of five years), `quiet`
+# when every one is read and none is, `not read` when none is stored.
+# SESSION-SET: the paper's tripwires are prose, so the extreme rule stands in and
+# says so. probability: none -- no source until the prediction-market calibration
+# gate is met and a ruling grants more. Report only: no book, packet, dial or
+# engine reads it.
+# ---------------------------------------------------------------------------
+tail_families:
+  probability_reason: >-
+    none: no probability source -- the prediction-market rights are discovery
+    only (config/prediction_markets.yaml), its calibration-archive gate is not
+    met, and no ruling grants confidence modification (ruling 10a)
+  state_rule: >-
+    watch when a first-mover series reads extreme (5th/95th percentile of five
+    years, derived's declared rule) -- a stand-in, because the paper's tripwires
+    are prose
+  families:
+    - {id: A, name: "Funding, duration and plumbing", scenarios: [1, 2, 9, 11, 19],
+       first_movers: [calc.sofr_iorb_bp, fred.yield_30y, tic.fima_repo]}
+    - {id: B, name: "Credit and the mandate machine", scenarios: [5, 6, 14],
+       first_movers: [fred.hy_oas, fred.ccc_oas]}
+    - {id: C, name: "Concentration and the buildout", scenarios: [3, 20],
+       first_movers: [calc.breadth_rsp_over_spy]}
+    - {id: D, name: "Physical shocks and geopolitics", scenarios: [7, 8, 12, 17],
+       first_movers: [fred.brent]}
+    - {id: E, name: "Policy legitimacy and the inflation path", scenarios: [10, 15, 16],
+       first_movers: [fred.breakeven_5y5y, calc.fed_mkt_gap_12m]}
+    - {id: F, name: "Settlement and money architecture", scenarios: [4, 18, 13],
+       first_movers: [yfinance.mkt_gold_front, fred.tips_10y]}
+    - {id: G, name: "The price-insensitive buyer class", scenarios: [21, 22, 23, 24, 25],
+       first_movers: [levetf.aum]}
+
+# ---------------------------------------------------------------------------
+# v2.0: THE DEBT-CYCLE BRANCH (ruling 11a; architecture 31.2). state: none --
+# the rule that decides the branch is Paper XXVII's, unwritten. The observables
+# print read-only, each a level with its five-year percentile.
+# ---------------------------------------------------------------------------
+debt_cycle_branch:
+  reason: >-
+    none: awaits Paper XXVII's diagnostic, the rule that decides between the
+    deflationary and the inflationary branch (ruling 11a)
+  branches: [deflationary, inflationary]
+  observables:
+    - {metric: calc.deficit_ttm_pct_gdp, label: "Federal deficit, trailing twelve months, % of GDP"}
+    - {metric: fred.tips_10y, label: "10-year real yield (TIPS)"}
+    - {metric: fred.breakeven_10y, label: "10-year breakeven inflation"}
+    - {metric: yfinance.mkt_gold_front, label: "Gold, COMEX front month"}
 
 # ---------------------------------------------------------------------------
 # THE THREE DIALS

@@ -277,8 +277,10 @@ paper that now exists.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in
-`config/market_state.yaml` — eight dimensions, three dials and an eight-row
-contradiction table — and the 16:45 close pass is its only writer. Every report
+`config/market_state.yaml` — fifteen dimensions, three dials and an eight-row
+contradiction table (v2, 6f: thirteen of the dimensions computed, two declared not
+buildable; plus the report-only horizons, tail families and debt-cycle branch) —
+and the 16:45 close pass is its only writer. Every report
 reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
 because an anchor computing its own object could disagree with the close report's,
 and then the system holds two regimes with no way to say which one a decision was

@@ -1065,9 +1065,9 @@ def group_j() -> None:
     check("st_r5_t1_rest" not in regime_src and "t1_rest_block" not in regime_src
           and not re.search(r"^\s*(from|import)\s+regime\b", src, re.M)
           and "driver" not in ms["dimensions"]["inflation"]
-          and ms["version"] == "market-state-v1.10",
+          and ms["version"] == "market-state-v2.0",
           "report-only: regime.py reads none of it, it reads no regime, and the inflation "
-          "dimension declares no driver (the object stays v1.10)")
+          "dimension declares no driver (the object is v2.0 since 6f, a62; no driver came with it)")
 
 
 # ---------------------------------------------------------------------------

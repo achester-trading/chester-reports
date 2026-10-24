@@ -13569,6 +13569,21 @@ metrics:
     trigger_eligible: false
     description: >-
       S3b funding stress: SOFR less interest on reserve balances, bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cp_bill_bp:
+    # Its inputs' lags are FRED's daily ones (6f, ruling 6a).
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      6f funding_stress (ruling 6a of 24 Oct 2026): 90-day AA financial commercial paper (fred.fin_cp_3m, DCPF3M) less the 3-month bill (fred.tbill_3m, DTB3), bp. Same-day only; altdata/macro_6e.py.
   calc.sofr_effr_bp:
     source: derived_state
     mechanism_group: macro_liquidity
@@ -18645,6 +18660,65 @@ families:
 # the edition's session, and they print it as "effective 19 Oct"; any other
 # series' observation dated after the session is not read (altdata/derived.py
 # forward_dated; daily_cascade/weekly_stack.py change_over).
+# -----------------------------------------------------------------------------
+# MARKET_STATE_BARRED (6f tranche 5; ruling 12a of 24 Oct 2026). Every key an
+# order keeps out of the market-state object, seeded from the order that bars it.
+# resolve_registry sets `market_state: barred` and `market_state_barred_by` on
+# each key a pattern matches (globs over store keys); `instruments`, where given,
+# bars only those instruments of the key. tools/validate_regime.py group V2
+# refuses a barred key (or instrument) as a member of any dimension, a dial's
+# leg or a horizon read. `pending` names a branch whose keys are not on this base
+# yet: the pattern is seeded now so the bar is in force the day they land.
+# -----------------------------------------------------------------------------
+market_state_barred:
+  - order: docs/change-order-signal-triage-2026-09-25.md (MW-2, R9)
+    rule: "no calc.prl_* path to a composite, overlay, trigger, dial or dimension"
+    keys: ["calc.prl_*"]
+  - order: docs/change-order-signal-triage-2026-09-25.md (2.3.6, SR-19)
+    rule: "narrow flag, conditioner only"
+    keys: ["calc.neg_beta_share_*"]
+  - order: the 30 Sep 2026 withdrawal of rates.driver (ST-3; docs/market-state.md 4)
+    rule: "the rates attribution is not read by regime.py; the object has no rates sub-state"
+    keys: ["calc.attr_*"]
+  - order: ST-5, held by tools/validate_st_t2_rates.py group L
+    rule: "no ST-5 key or candidate row is in the market-state config; regime imports nothing of ST-5"
+    keys: ["calc.jp_front_diff", "calc.jp_front_diff_60d", "calc.jpy_pos_z",
+           "calc.jp_hedged_carry", "calc.usdjpy_rvol_20d", "calc.jpy_unwind",
+           "calc.cny_fix_dev", "calc.uscn_10y_spread", "calc.deval_tell"]
+  - order: docs/change-order-signal-triage-batch-11-2026-10-19.md (section 1; registry ruling 2 of 19 Oct)
+    rule: "no vendor value in any flag, tell, dial, decision or engine; vendor keys are never lensed"
+    keys: ["vendor.*", "dealer.vendor_*"]
+  - order: config/prediction_markets.yaml (the rights; Part 27)
+    rule: "discovery, attention shock and disagreement, and nothing else; never a trigger"
+    keys: ["pm.*"]
+  - order: docs/change-order-signal-triage-batch-14-2026-10-20.md (F5, items 62-71)
+    rule: "nothing enters a composite or the market-state object"
+    keys: ["rates.speed_event_ledger", "fred.ppi_pcb_assembly", "fred.ppi_storage_devices",
+           "fred.ppi_semiconductors", "fred.z1_equities_mv", "fred.households",
+           "shiller.real_home_price", "yfinance.mkt_aiq", "yfinance.mkt_spxt",
+           "yfinance.mkt_smh", "yfinance.mkt_mu", "yfinance.mkt_amd", "yfinance.mkt_grid",
+           "yfinance.mkt_anet", "yfinance.mkt_vrt", "yfinance.mkt_pave", "yfinance.mkt_asml"]
+  - order: docs/change-order-signal-triage-batch-14-2026-10-20.md (F5, item 71) and ruling D13 of 24 Oct 2026
+    rule: "the five funds joined the fragility panel's rebalance estimate; nothing enters the object"
+    keys: ["levetf.aum", "levetf.shares_outstanding", "levetf.nav"]
+    instruments: [QID, UDOW, SDOW, URTY, SRTY]
+  - order: docs/change-order-signal-triage-batch-15-2026-10-23.md (section 1, items 72, 73, 77, 78; the configs' headers)
+    rule: "no composite weights change; rights are flags and report lines only; nothing enters the market-state object"
+    keys: ["sec13f.*", "gold.event_ledger", "equity.dm_drawdown_ledger", "fred.nikkei225",
+           "cyber.*", "defillama.protocols_*"]
+  - order: docs/change-order-signal-triage-batch-15-2026-10-23.md (item 74; config/hf_positioning.yaml)
+    rule: "no composite and no market-state object reads it"
+    keys: ["cftc.tff_lev_money_net", "cftc.tff_lev_money_net_oi", "cftc.tff_lev_money_long",
+           "cftc.tff_lev_money_short"]
+    instruments: [ES, NQ]
+  - order: ruling D22 of 24 Oct 2026 (Batch 15 item 74, a61)
+    rule: "hedge-fund performance (QAI, replication proxy): report only"
+    keys: ["yfinance.mkt_qai"]
+  - order: rulings D15 and D26 of 24 Oct 2026 (b59-trigger-sources; its configs' headers)
+    rule: "report only: nothing here enters a composite or the market-state object"
+    keys: ["rates.oneday_event_ledger", "gdelt.*", "noaa.*", "ai.model_release*"]
+    pending: b59-trigger-sources
+
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:

@@ -51,6 +51,7 @@ CONFIG_PATH = REPO / "config" / "macro_6e.yaml"
 KEYS = [
     "calc.path_divergence_usdjpy",
     "calc.policy_2y_minus_effr_bp", "calc.sofr_iorb_bp", "calc.sofr_effr_bp",
+    "calc.cp_bill_bp",
     "calc.ccc_bb_oas_bp", "calc.real_policy_rate", "calc.policy_diff_us_ea_bp",
     "calc.policy_diff_us_uk_bp",
     "calc.deficit_ttm_pct_gdp", "calc.interest_to_receipts",
@@ -138,6 +139,11 @@ def rows(db: observations.ObservationStore, as_of: Optional[str] = None,
     sofr, iorb = load("fred.sofr"), load("fred.iorb")
     same_day("calc.policy_2y_minus_effr_bp", y2, effr, lambda a, b: (a - b) * 100.0)
     same_day("calc.sofr_iorb_bp", sofr, iorb, lambda a, b: (a - b) * 100.0)
+    # 6f's funding_stress member (ruling 6a of 24 Oct 2026): financial commercial
+    # paper, 90-day AA, less the 3-month bill, bp. Both legs already pulled
+    # keyless from FRED (DCPF3M, DTB3). Same-day only.
+    same_day("calc.cp_bill_bp", load("fred.fin_cp_3m"), load("fred.tbill_3m"),
+             lambda a, b: (a - b) * 100.0)
     same_day("calc.sofr_effr_bp", sofr, effr, lambda a, b: (a - b) * 100.0)
     same_day("calc.ccc_bb_oas_bp", load("fred.ccc_oas"), load("fred.bb_oas"),
              lambda a, b: (a - b) * 100.0)

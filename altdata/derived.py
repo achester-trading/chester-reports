@@ -366,7 +366,28 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
         why = excl.get(key) or excl.get(e.get("bulk_block") or "\0")
         if why and not e.get("family"):
             e["lens_excluded"] = why
+    # THE MARKET-STATE BAR (6f tranche 5; ruling 12a): every key an order keeps
+    # out of the object carries `market_state: barred` and the order that bars it.
+    import fnmatch  # noqa: PLC0415
+    for bar in reg.get("market_state_barred") or []:
+        pats = list(bar.get("keys") or [])
+        for key, e in out.items():
+            if any(fnmatch.fnmatchcase(key, g) for g in pats):
+                e["market_state"] = "barred"
+                e.setdefault("market_state_barred_by", []).append(
+                    {"order": bar.get("order"), "rule": bar.get("rule"),
+                     "instruments": bar.get("instruments")})
     return out
+
+
+def market_state_barred(e: Optional[dict], instrument: Optional[str] = None) -> Optional[str]:
+    """The order that bars this key (or this instrument of it) from the
+    market-state object, or None (6f tranche 5)."""
+    for b in (e or {}).get("market_state_barred_by") or []:
+        inst = b.get("instruments")
+        if not inst or (instrument is not None and instrument in inst):
+            return str(b.get("order"))
+    return None
 
 
 def _leaf_field(reg: dict, name: str, field: str) -> Any:

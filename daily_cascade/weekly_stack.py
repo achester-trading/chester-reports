@@ -263,6 +263,11 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     if sessions:
         subs = batch15_a_block.mechanics_subsections(subs, st, cutoff, sessions[0],
                                                      sessions[-1])
+    # 6f TRANCHE 3 (a62): the tail families, one line, read from the object.
+    from . import state_v2_block                                # noqa: PLC0415
+    tl = state_v2_block.weekly_subsection(st, cutoff)
+    if tl:
+        subs.append(tl)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}
