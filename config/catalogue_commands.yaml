@@ -54,6 +54,18 @@ commands:
     domain: reference
     line: "The weekly cyber-pressure line (Batch 15 item 77): CISA KEV additions and NVD's critical CVEs per week, dual percentiles and the joint flag; weekly is the Saturday step of the crypto basket's run, backfill the operator's, show read-only"
     sources: [cisa_kev, nvd]
+  altdata.sources.gdelt:
+    domain: reference
+    line: "GDELT's raw event files (D26): the geopolitical families' conflict counts, share and tone, and the articles per story; daily is a step of the crypto basket's run (a failed export marks the day STALE), backfill (the 1.0 daily files) the operator's, show read-only"
+    sources: [gdelt]
+  altdata.sources.cpc_degree_days:
+    domain: reference
+    line: "NOAA CPC's population-weighted heating and cooling degree days (D26), daily from 1981, the departure from the 1991-2020 normal on read; daily is a step of the crypto basket's run, backfill the operator's, show read-only"
+    sources: [noaa_cpc]
+  altdata.sources.hf_releases:
+    domain: reference
+    line: "The Hugging Face model-release watch (D26): new public model repositories per week for the declared organisations, counts and dates only; daily is a step of the crypto basket's run, backfill the operator's, show read-only"
+    sources: [huggingface]
   altdata.hf_positioning:
     domain: positioning
     line: "The hedge-fund positioning line and the squeeze-risk flag (Batch 15 item 74): CFTC TFF leveraged funds in ES and NQ with dual percentiles, against item 71's depth stand-in; show prints them -- read-only, report only"
@@ -284,6 +296,10 @@ commands:
     domain: computed
     line: 'The 10-year attribution on speed-flag days and its event ledger (Batch 14 item 65): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
     sources: [speed_attribution]
+  altdata.oneday_10y:
+    domain: computed
+    line: 'The one-day 10-year trigger and its event ledger (D15): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
+    sources: [oneday_10y]
   altdata.ai_trade:
     domain: computed
     line: 'One big AI trade (Batch 14 item 65): the AI-bottleneck PPI line, the Broad-AI proxy pair (AIQ against SPXT, labelled proxy) and the AI-credit gap; `show [--as-of ISO]`; reads only'

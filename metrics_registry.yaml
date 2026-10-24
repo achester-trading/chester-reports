@@ -10528,6 +10528,219 @@ metrics:
       CRITICAL (a base score of 9.0 or higher); observed_at = the week's Monday.
       REVISED: NVD scores a CVE after publication, so each Saturday re-reads the
       last 8 weeks as new vintages. Batch 15 item 77 (b56).
+  rates.oneday_event_ledger:
+    source: oneday_10y
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      D15 (rulings of 24 Oct 2026; b59): the one-day 10-year trigger's event
+      ledger, one JSON row per day the 10-year's one-day change passed its
+      five-year 97.5th percentile (instrument = the day), written by the close:
+      the trigger, each term-structure model's one-session split ("awaiting"
+      until its input is stored) and the 10-year's 5- and 20-session change.
+      A resolution is a new vintage. Report only: no right, no market-state input.
+  gdelt.events_total:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Every event added that day. Report only.
+  gdelt.source_urls_total:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      The distinct source articles among the day's events. Report only.
+  gdelt.conflict_events:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family (config/gdelt.yaml): events with CAMEO
+      root codes 18-20 whose actors, action location or dyad match it.
+      Report only.
+  gdelt.reduce_relations_events:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: events with CAMEO root code 16 (reduce
+      relations: sanctions, embargoes; economic warfare). Report only.
+  gdelt.conflict_share:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: its conflict events per 10,000 of the day's
+      events, so the level does not move with GDELT's volume or file layout (1.0
+      daily files in the backfill, 2.0 15-minute exports live). Report only.
+  gdelt.avg_tone:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: the mean AvgTone of all its events
+      (any root code). Report only.
+  gdelt.narrative_mentions:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the story (config/narratives.yaml): distinct articles whose
+      address carries one of its declared phrases (config/gdelt.yaml). Attention,
+      not agreement. Report only.
+  noaa.hdd_pop:
+    source: noaa_cpc
+    mechanism_group: reference_library
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      NOAA CPC's daily heating degree days, population-weighted (D26, b59;
+      altdata/sources/cpc_degree_days.py); instrument = conus or the census
+      division; from 1981. The newest days are preliminary: a changed value is a
+      new vintage. The normal (1991-2020) is computed on read. Report only.
+  noaa.cdd_pop:
+    source: noaa_cpc
+    mechanism_group: reference_library
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      NOAA CPC's daily cooling degree days, population-weighted (D26, b59);
+      instrument = conus or the census division; from 1981. Report only.
+  ai.model_releases_week:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      The Hugging Face model-release watch (D26, b59; altdata/sources/hf_releases.py):
+      instrument = the organisation (config/ai_release_watch.yaml); the public
+      model repositories created in the ISO week, observed_at = its Monday (UTC).
+      Recounted for 4 weeks (a late-published repository is a new vintage); the
+      backfill's weeks are reconstructed from createdAt. Report only.
+  ai.model_releases_week_total:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      The same count over every declared organisation (D26, b59); written only
+      when every organisation was read. Report only.
+  ai.model_release_event:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      One JSON row per new public model repository (D26, b59): instrument = its
+      id, observed_at = its creation day, available_at = the pull that first saw
+      it (never createdAt). Counts and dates only. Report only.
   defillama.protocols_listed:
     source: defillama
     mechanism_group: crypto_protocol_economics
@@ -18515,6 +18728,17 @@ families:
   shiller.real_home_price: price
   cyber.kev_added_week: quantity
   cyber.nvd_critical_week: quantity
+  gdelt.events_total: quantity
+  gdelt.source_urls_total: quantity
+  gdelt.conflict_events: quantity
+  gdelt.reduce_relations_events: quantity
+  gdelt.conflict_share: ratio
+  gdelt.avg_tone: conditions
+  gdelt.narrative_mentions: quantity
+  noaa.hdd_pop: conditions
+  noaa.cdd_pop: conditions
+  ai.model_releases_week: quantity
+  ai.model_releases_week_total: quantity
   defillama.protocols_listed: quantity
   defillama.protocols_active: quantity
   shiller.gs10: rate
@@ -19122,3 +19346,5 @@ lens_excluded:
   structure_comparison: "labels"
   zec.cap_probe: "units 'label': not a level series"
   zec.shielded_probe: "units 'label': not a level series"
+  rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
+  ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"
