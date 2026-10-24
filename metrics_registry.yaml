@@ -19470,6 +19470,11 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  edgar.capex_guidance_record.amzn: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.googl: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.meta: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.msft: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.orcl: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
   calc.release_first_hour: "units 'label': a JSON record per release day and instrument (the secondary notes)"
   exposure.regime_word: "units 'label': the capture's gate word per symbol and slot, not a level series (decision 9)"
   calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"
