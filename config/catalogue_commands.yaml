@@ -292,6 +292,18 @@ commands:
     domain: computed
     line: 'The liquidity-fragility panel and flag (Batch 14 item 71): SPY Amihud and range per volume, margin debt and its share, the leveraged-ETF rebalance, 6b dealer gamma; `show [--date D]`; reads only'
     sources: [calc]
+  altdata.gold_13f:
+    domain: computed
+    line: 'Institutional gold-ETF ownership from the SEC 13F data sets (Batch 15 item 72): `fetch [--files N] [--dry-run]` (the box, CHESTER_SEC_CONTACT), `load ZIP ... [--dry-run]`, `show [--as-of ISO]`'
+    sources: [sec_13f]
+  altdata.gold_event:
+    domain: computed
+    line: 'The gold event trigger, its attribution and ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'
+    sources: [gold_event]
+  altdata.dm_drawdown:
+    domain: computed
+    line: 'The developed-market drawdown screen and its ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'
+    sources: [dm_drawdown]
   altdata.bank_stress:
     domain: computed
     line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'

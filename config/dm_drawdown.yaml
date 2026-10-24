@@ -1,0 +1,75 @@
+# dm_drawdown.yaml -- signal-triage Batch 15 item 73 (written as 66; ST-R6.73b;
+# ruled 23 Oct 2026 with filing amendments G1-G6; a58-batch15-1, session A). The
+# developed-market equity drawdown screen: item 10's shock screen (SR-46's EM
+# screen in altdata/move_screen.py) extended to the indices source check 2 found.
+# Read by altdata/dm_drawdown.py. FLAGS ONLY: nothing here enters a composite or
+# the market-state object.
+version: dm-drawdown-v1
+updated: 2026-10-23
+
+# THE TRIGGER. RULED: the 10- or 20-session drawdown beyond its 95th percentile.
+# SESSION-SET: the drawdown is the close's fall from the highest close of the
+# window (that many sessions before it and the day), %; its percentile is over
+# the five years of sessions BEFORE the day (a57's flag window), nearest rank;
+# with fewer than `min_history` prior drawdowns the window is "not read" and the
+# row says how many it had (the move screen's 500-observation rule).
+trigger:
+  windows: [10, 20]          # RULED
+  percentile: 95.0           # RULED
+  window_years: 5
+  min_history: 500
+
+# THE INDICES (source check 2, 23 Oct 2026). FRED first; then a country ETF the
+# store already holds, labelled "ETF proxy" (a US-listed fund in dollars, so its
+# move holds the currency's). Each index with neither is a listed gap, by name.
+indices:
+  - id: nikkei225
+    label: "Nikkei 225"
+    key: fred.nikkei225            # FRED NIKKEI225, daily from 1949-05-16
+    source_label: "FRED NIKKEI225"
+    country: Japan
+    currency: {key: yfinance.mkt_usdjpy, label: "USD/JPY"}
+    local_10y: {key: mof.jgb_10y, label: "JGB 10-year (MoF)"}
+    japan: true
+  - id: kospi
+    label: "KOSPI"
+    key: yfinance.mkt_ewy          # iShares MSCI South Korea, already in SR-46's basket
+    source_label: "ETF proxy: EWY"
+    proxy: true
+    country: Korea
+    currency: {key: fred.usd_krw, label: "USD/KRW"}
+    local_10y_gap: "not tracked: Korea's 10-year is stored only as the OECD monthly average (fred.oecd_10y_kr), not at a session horizon"
+    capex_chain: true
+  - id: taiex
+    label: "TAIEX"
+    key: yfinance.mkt_ewt          # iShares MSCI Taiwan, already in SR-46's basket
+    source_label: "ETF proxy: EWT"
+    proxy: true
+    country: Taiwan
+    currency: {key: fred.usd_twd, label: "USD/TWD"}
+    local_10y_gap: "not tracked: no keyless Taiwan 10-year series (FRED has none; SR-46's list)"
+    capex_chain: true
+
+gaps:
+  topix: "TOPIX: NOT TRACKED -- FRED does not carry it and the store holds no Japan country ETF beyond the Nikkei's own series (source check 2; a listed gap)"
+  dax: "DAX: NOT TRACKED -- FRED does not carry it and no Germany country ETF is in the store (source check 2; a listed gap)"
+  cac40: "CAC 40: NOT TRACKED -- FRED does not carry it and no France country ETF is in the store (source check 2; a listed gap)"
+  ftse100: "FTSE 100: NOT TRACKED -- FRED does not carry it and no UK country ETF is in the store (source check 2; a listed gap)"
+
+# THE ATTRIBUTION, over the window that fired (the longer when both): the local
+# currency's change, the local 10-year where a keyless daily series is stored,
+# the prior US session's move, and for Japan the yen carry stack (SR-2) and the
+# slow-money family's stored early line; KOSPI and TAIEX also read item 63's
+# capex-chain line.
+us_session: {key: yfinance.mkt_gspc, label: "S&P 500, the prior US session"}
+japan:
+  carry:
+    - {key: calc.jpy_unwind, label: "yen unwind flag (SR-2)", kind: flag}
+    - {key: calc.jp_front_diff_60d, label: "US-Japan 2-year gap, 60-session change (SR-2)", kind: level_bp}
+    - {key: calc.jp_hedged_carry, label: "hedged Japanese carry on Treasuries (SR-2)", kind: level_pct}
+  # SR-32 (jp.slowmoney) is a stub: its stored early line is the 30-year JGB.
+  slow_money: {key: mof.jgb_30y, label: "30-year JGB (SR-32's early line; the family is a stub)"}
+start_tolerance_days: 4
+
+# THE LEDGER: the index's realised change over the next 5 and 20 sessions, %.
+forward_sessions: [5, 20]

@@ -257,6 +257,12 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     # the twin, and item 71's fragility panel. Tables and lines only.
     from . import batch14_b1_block                              # noqa: PLC0415
     subs = batch14_b1_block.mechanics_subsections(subs, st, cutoff)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the edition's sessions. Tables and lines only.
+    from . import batch15_a_block                               # noqa: PLC0415
+    if sessions:
+        subs = batch15_a_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                                     sessions[-1])
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}

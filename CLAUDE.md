@@ -132,7 +132,8 @@ altdata/                  Shared ingestion package — used by every report
                           1 in FRED_HOUSEHOLDS_SERIES (item 68's
                           per-household deflator);
                           4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
-                          FRED_PULL_SERIES, 282, is the union the
+                          1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
+                          FRED_PULL_SERIES, 283, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -242,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-five code gates (one hundred and thirty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and thirty-seven code gates (one hundred and thirty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1233,6 +1234,25 @@ Both ledgers are pre-registered:
 - ST-R6.71d: FAIL, n 2965.
 
 `tools/validate_batch14_b1.py` holds it.
+
+**Gold and developed-market events are flags with their own ledgers; gold-ETF
+ownership is a report (Batch 15 items 72, 73 and 76, a58, 23 Oct 2026; merges after
+the 1 Nov Monthly).** `altdata/gold_event.py` fires on gold's (GC=F) one-day move of
+2.5% or a five-day move beyond its 95th percentile on five years, and attributes it
+to the real 10-year, DXY and Brent ("awaiting" until each lands), the IMF IFS
+central-bank trend and a residual line that fits nothing; ETF flows are not tracked
+(WGC is login-gated). `altdata/dm_drawdown.py` extends SR-46's screen to Nikkei 225
+(FRED NIKKEI225) and the KOSPI and TAIEX ETF proxies, on a 10- or 20-session
+drawdown beyond its 95th percentile; TOPIX, DAX, CAC 40 and FTSE 100 are listed gaps.
+The close prints their flag lines in the event area and stores `gold.event_ledger` and
+`equity.dm_drawdown_ledger`; the EOD pass resolves both; the Weekly and Monthly print
+the blocks. `altdata/gold_13f.py` counts 13F holders of GLD and IAU from SEC's keyless
+data sets (fetch on the box through CHESTER_SEC_CONTACT, then load) for the Monthly's
+slow layers beside item 38. Item 76's DTCC protection-demand line is a listed gap
+(per-name volumes are a subscription; the site's terms forbid automated extraction);
+its CDS levels and the AI borrowing figure are dated records.
+`daily_cascade/batch15_a_block.py` lays them out; `tools/validate_batch15_1.py` holds
+them.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

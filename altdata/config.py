@@ -727,6 +727,16 @@ FRED_BATCH14_B1_SERIES: list[SeriesSpec] = [
     SeriesSpec("z1_equities_mv", "BOGZ1LM893064105Q", "Z.1 all sectors: corporate equities, liability, market value, millions", "6", "M", "quarterly"),
 ]
 
+# SIGNAL-TRIAGE BATCH 15, ITEM 73 (a58-batch15-1, 23 Oct 2026, session A): the
+# developed-market drawdown screen's one FRED index, read off fredgraph.csv on 23
+# Oct 2026 (source check 2): NIKKEI225, Nikkei Stock Average, INDEX, daily close,
+# not seasonally adjusted, from 1949-05-16. FRED carries no TOPIX, DAX, CAC 40,
+# FTSE 100, KOSPI or TAIEX series; those are proxies or listed gaps
+# (config/dm_drawdown.yaml).
+FRED_BATCH15_A_SERIES: list[SeriesSpec] = [
+    SeriesSpec("nikkei225", "NIKKEI225", "Nikkei Stock Average (Nikkei 225), daily close", "7", "idx", "daily"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
@@ -734,7 +744,7 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
                                       + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
-                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES)
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES)
 
 
 # Quick lookup by key

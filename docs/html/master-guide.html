@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="8250c6a51ce0dfe440118d7f5ee14f229e4bafe44ede3ed8bb3953992b7a35e8">
+<meta name="source-sha256" content="f20b0fe61d9e02327033708df287ef0a6f9e4ba636b479d2945df75e84a24b4d">
 <title>The Master Guide</title>
 <style>
 :root {
@@ -239,7 +239,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p><strong>In three lines.</strong> Feeds land in a store where every row carries the instant it became knowable. One market state is computed from it each evening, and every report reads that state rather than computing its own. The reports raise readings, flags and candidates; only your Decision Packet permits a trade, and every decision is graded so the rules can change at a sitting.</p>
 <h3>The loop, in words</h3>
 <ol>
-<li><strong>Inputs.</strong> About seventy writers (33 official, 37 external, the yfinance basket of 124 symbols, the option chains, the crypto layer, the scans) land in <strong>the point-in-time store</strong>. Every row carries <code>available_at</code>, the instant the system could have known it, so a replay of an old day sees only what existed then.</li>
+<li><strong>Inputs.</strong> About seventy writers (33 official, 37 external, the yfinance basket of 126 symbols, the option chains, the crypto layer, the scans) land in <strong>the point-in-time store</strong>. Every row carries <code>available_at</code>, the instant the system could have known it, so a replay of an old day sees only what existed then.</li>
 <li><strong>One market state.</strong> The 16:45 close computes the <strong>market-state object</strong>: three dials (Macro, Volatility, Gamma) and eight dimensions, from the declared rules in <code>config/market_state.yaml</code>. It is the only writer. Every other report reads it through <code>regime.latest()</code>; none recomputes it.</li>
 <li><strong>The reports</strong> read the store and the state. They raise outputs on <strong>the ladder</strong> (Part 3): readings and lenses, flags, tells and setups, candidates. None of them may place a trade or write a decision.</li>
 <li><strong>Your Decision Packet.</strong> You decide. A packet carries the edge, the counterparty, the instrument, the size by the Card's percentage, the exit written before entry and the regime stamp. "No Decision Packet, no trade" (Doctrine Rule 18). The register records it; the register's commands are yours alone.</li>
@@ -1684,7 +1684,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </ul>
 <h3>2. Market prices</h3>
 <ul>
-<li><strong>What:</strong> the yfinance basket (<strong>124 symbols</strong>; KRE joins for Batch 12's bank-equity leg, and on the fifth chain SMH, MU, AMD, GRID, ANET, VRT, PAVE and ASML for Batch 14's capex chain, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
+<li><strong>What:</strong> the yfinance basket (<strong>126 symbols</strong>; KRE joins for Batch 12's bank-equity leg, on the fifth chain SMH, MU, AMD, GRID, ANET, VRT, PAVE and ASML for Batch 14's capex chain, and AIQ and SPXT for Batch 14 item 65's AI proxy pair, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
 <li><strong>When:</strong> 16:10 and 06:45; the close's re-pull; Saturday 06:00; IBKR every 30 minutes in the session; Massive at 16:31 and in the intraday captures; the secondary notes' own 5-minute bars at 09:50 and 21:30.</li>
 <li><strong>History from Massive's flat files</strong> (D4, <code>tools/massive_flatfiles_backfill.py</code>): the chains' history reconstructed from last-trade closes, stored labelled <code>reconstructed</code>, and read by the ranks only within the pre-registered agreement tolerances (accepted 19 October, R6). It runs by hand on the box once its two credentials are in <code>.env</code>; on the fifth chain it also stores each name's daily total, call and put volume, read apart from the captures under a relative 10% tolerance (OS-12d).</li>
 <li><strong>The most it may do:</strong> readings and lenses; the volatility-event flag (no modifier right before 30 events).</li>
