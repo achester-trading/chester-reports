@@ -26,7 +26,7 @@ Everything below is checked against the code and config on chain-5. Where someth
 
 ### The loop, in words
 
-1. **Inputs.** About seventy writers (33 official, 37 external, the yfinance basket of 124 symbols, the option chains, the crypto layer, the scans) land in **the point-in-time store**. Every row carries `available_at`, the instant the system could have known it, so a replay of an old day sees only what existed then.
+1. **Inputs.** About seventy writers (33 official, 37 external, the yfinance basket of 126 symbols, the option chains, the crypto layer, the scans) land in **the point-in-time store**. Every row carries `available_at`, the instant the system could have known it, so a replay of an old day sees only what existed then.
 2. **One market state.** The 16:45 close computes the **market-state object**: three dials (Macro, Volatility, Gamma) and eight dimensions, from the declared rules in `config/market_state.yaml`. It is the only writer. Every other report reads it through `regime.latest()`; none recomputes it.
 3. **The reports** read the store and the state. They raise outputs on **the ladder** (Part 3): readings and lenses, flags, tells and setups, candidates. None of them may place a trade or write a decision.
 4. **Your Decision Packet.** You decide. A packet carries the edge, the counterparty, the instrument, the size by the Card's percentage, the exit written before entry and the regime stamp. "No Decision Packet, no trade" (Doctrine Rule 18). The register records it; the register's commands are yours alone.
@@ -373,7 +373,7 @@ Each section says what the family is, how often it arrives, the most it may do, 
 
 ### 2. Market prices
 
-- **What:** the yfinance basket (**124 symbols**; KRE joins for Batch 12's bank-equity leg, and on the fifth chain SMH, MU, AMD, GRID, ANET, VRT, PAVE and ASML for Batch 14's capex chain, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's **Portfolio Truth** (read-only, no order code), and **Massive's SPX and SPCX chains** (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).
+- **What:** the yfinance basket (**126 symbols**; KRE joins for Batch 12's bank-equity leg, on the fifth chain SMH, MU, AMD, GRID, ANET, VRT, PAVE and ASML for Batch 14's capex chain, and AIQ and SPXT for Batch 14 item 65's AI proxy pair, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's **Portfolio Truth** (read-only, no order code), and **Massive's SPX and SPCX chains** (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).
 - **When:** 16:10 and 06:45; the close's re-pull; Saturday 06:00; IBKR every 30 minutes in the session; Massive at 16:31 and in the intraday captures; the secondary notes' own 5-minute bars at 09:50 and 21:30.
 - **History from Massive's flat files** (D4, `tools/massive_flatfiles_backfill.py`): the chains' history reconstructed from last-trade closes, stored labelled `reconstructed`, and read by the ranks only within the pre-registered agreement tolerances (accepted 19 October, R6). It runs by hand on the box once its two credentials are in `.env`; on the fifth chain it also stores each name's daily total, call and put volume, read apart from the captures under a relative 10% tolerance (OS-12d).
 - **The most it may do:** readings and lenses; the volatility-event flag (no modifier right before 30 events).
@@ -497,6 +497,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | Ledger | Verdict | n | What it studies |
 |---|---|---|---|
 | `after-hours-earnings-preregistration-2026-10.md` | diagnostic | n — | After-hours earnings: continuation or fade — pre-registration (SN-2, October 2026) |
+| `air-pocket-preregistration-2026-10.md` | diagnostic | n — | The air pockets against the fragility panel — pre-registration (ST-R6.71d, Batch 14 item 71) |
 | `bank-stress-preregistration-2026-10.md` | diagnostic | n — | The bank-stress base rate — pre-registration (ST-R6.59c, Batch 12 item 59) |
 | `dealer-scorecard-preregistration-2026-10-h6.md` | diagnostic | n — | Dealer scorecard — pre-registration H6, level clusters (Batch 11 item 55) |
 | `dealer-scorecard-preregistration-2026-10.md` | diagnostic | n — | Dealer scorecard — pre-registration (6b, October 2026) |
@@ -517,6 +518,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `s-3-ledger-2026-10-19.md` | FAIL | n 4 | S-3 ledger -- the crypto leverage extreme (funding z with open interest at a 90-day high) |
 | `sn-1-ledger-2026-10-19.md` | FAIL | n 159 | SN-1 ledger -- the release-day first hour: continue or fade |
 | `sn-2-ledger-2026-10-19.md` | FAIL | n 193 | SN-2 ledger -- after-hours earnings: continuation or fade |
+| `speed-attribution-preregistration-2026-10.md` | diagnostic | n — | The 10-year speed flag's attribution against what followed — pre-registration (ST-R6.65a, Batch 14 item 65) |
 | `sr-1-ledger-2026-10-18.md` | PASS | n 6 | SR-1 ledger -- growth/value: the z-above-trend setup and the break |
 | `sr-12-ledger-2026-10-18.md` | INSUFFICIENT | n 3 | SR-12 ledger -- investor bond allocation, by inflation and stock-bond correlation |
 | `sr-13-ledger-2026-10-18.md` | INSUFFICIENT | n 4 | SR-13 ledger -- tech against defensives: the spread's top decile |
@@ -542,6 +544,8 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `st-r5.44b-ledger-2026-10-17.md` | INSUFFICIENT | n 0 | ST-R5.44b ledger -- how wide average-member vs index drawdown gaps resolved |
 | `st-r6.59c-ledger-2026-10-20.md` | FAIL | n 18 | ST-R6.59c ledger -- the bank-stress base rate: the correction-vs-crisis classifier (item 59) |
 | `st-r6.66c-ledger-2026-10-21.md` | FAIL | n 65 | ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth (Batch 14 item 66; report only) |
+| `st-r6.65a-ledger-2026-10-23.md` | INSUFFICIENT | n 28 | ST-R6.65a ledger -- the 10-year speed flag's attribution against the next 20 sessions (Batch 14 item 65; report only) |
+| `st-r6.71d-ledger-2026-10-23.md` | FAIL | n 2965 | ST-R6.71d ledger -- the air pockets against the fragility panel (Batch 14 item 71; flag rights only) |
 | `vendor-divergence-notes.md` | diagnostic | n — | Vendor divergence notes -- FlashAlpha against the engine |
 | `wealth-effect-preregistration-2026-10.md` | diagnostic | n — | The wealth-effect impulse against real consumption -- pre-registration (ST-R6.66c, Batch 14 item 66) |
 <!-- /table -->

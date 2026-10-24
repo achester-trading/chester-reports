@@ -537,6 +537,10 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     subs = gtm_block.place_mechanics(
         subs, gtm_block.mechanics_subsections(st, now, "monthly"),
         after_panel=fcf["title"] if fcf else None)
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from daily_cascade import batch14_b1_block                   # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, now)
     # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
     from daily_cascade import batch5_block                       # noqa: PLC0415
     sb = batch5_block.mechanics_subsection(st, now)

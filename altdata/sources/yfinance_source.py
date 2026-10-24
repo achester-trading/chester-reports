@@ -273,6 +273,13 @@ SYMBOLS: dict[str, str] = {
     "TIP": "mkt_tip",
     "MUB": "mkt_mub",
     "MBB": "mkt_mbb",
+    # SIGNAL-TRIAGE BATCH 14, ITEM 65 (a57-batch14-b1, 23 Oct 2026; F2): the "Broad
+    # AI against the S&P without the AI enablers" proxy pair, labelled "proxy"
+    # wherever it prints (config/ai_trade.yaml): AIQ, an AI-and-technology ETF,
+    # against SPXT, the S&P 500 without its technology sector. Both issuers publish
+    # the holdings. Each needs tools/backfill_prices.py before its history reads.
+    "AIQ": "mkt_aiq",
+    "SPXT": "mkt_spxt",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #

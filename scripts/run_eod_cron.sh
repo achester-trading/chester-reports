@@ -215,6 +215,15 @@ VR_OUT="$("$VENV_PY" -m altdata.vol_event resolve 2>&1 | tail -3)"
 VR_RC=$?
 printf '%s\n' "$VR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $VR_RC -ne 0 ]] && log "WARN vol_event resolve exited $VR_RC -- continuing"
+# BATCH 14 ITEM 65: the speed-flag ledger's awaiting attributions, once the
+# term-structure models' inputs land, and its realised 5- and 20-session
+# outcomes (a new vintage, never an overwrite). Warn-only, as above.
+log "speed attribution: resolve the ledger"
+SR_OUT="$("$VENV_PY" -m altdata.speed_attribution resolve 2>&1 | tail -3)"
+SR_RC=$?
+printf '%s
+' "$SR_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SR_RC -ne 0 ]] && log "WARN speed_attribution resolve exited $SR_RC -- continuing"
 
 # THE VOLUME PROFILE'S STORED SERIES (VP-1): calc.vp_<id>_session_* and _20s_*
 # for spy, qqq and iwm, from the 5-minute bars the feeds step just landed, for the

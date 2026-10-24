@@ -261,6 +261,26 @@ sources:
     default_kind: independent
     note: "tag (ruled 20 Oct 2026, Batch 14 item 66): research seller with open positions -- a view here may be a position's case"
 
+  # --- Added 23 Oct 2026 (signal-triage Batch 14, item 65 -- written as 58 -- and
+  # F4; a57-batch14-b1): Carson Group's own public blog, read through the site's
+  # RSS feed. robots.txt (www.carsongroup.com, read 23 Oct 2026) disallows nothing
+  # for any agent and asks a crawl delay of 10 seconds, which `pause_seconds`
+  # honours; the feed served dated items without a login to the project's generic
+  # User-Agent. Its terms of use allow personal, non-commercial use: the scan stores
+  # the URL, the dates and a one-line paraphrase, never the text. The ruled tag is
+  # "credible"; LinkedIn is not read (F4). The firm is the default voice; the
+  # model names the author when the post does (no person is named here).
+  - id: carson_group
+    group: desk
+    name: "Carson Group: blog"
+    outlet: "Carson Group"
+    method: rss
+    url: "https://www.carsongroup.com/feed/"
+    default_voice: "Carson Group"
+    default_kind: buy_side
+    pause_seconds: 10
+    note: "tag (ruled 20 Oct 2026, Batch 14 item 65): credible; a wealth manager's market commentary"
+
   # --- Added 4 Oct 2026 (Phase B ruling 5): the regional Feds, Treasury, the ECB
   # and the Bank of England, and Yahoo Finance. Each robots.txt read and the path
   # allowed on 4 Oct; what was asked for and not allowed is under `not_used`.

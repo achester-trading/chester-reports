@@ -36,6 +36,11 @@ NT = "NOT TRACKED"
 NEOCLOUD_LINE = ("Neocloud / AI-infrastructure credit (the neoclouds' bonds and "
                  "peers): NOT TRACKED (item 60, F2: no keyless source; a listed gap "
                  "beside the hyperscaler anchors)")
+# Batch 14 item 65 (a57, 23 Oct 2026; F2): the AI-credit watch (CoreWeave, Oracle,
+# SpaceX), a listed gap beside it -- config/ai_trade.yaml's line, no by-hand path.
+AI_CREDIT_LINE = ("AI credit (the CDS and bond spreads of CoreWeave, Oracle and "
+                  "SpaceX): NOT TRACKED (item 65, F2: no keyless source; a listed gap "
+                  "beside SR-16's neocloud line, no by-hand line)")
 CAPS = {"Duration Absorption": 18, "Cheap-and-Unloved": 10}
 RATE_TITLE = "Rate machine summary"
 DA_TITLE = "Duration Absorption"
@@ -247,6 +252,7 @@ def factor_lines(st, now: str) -> list[str]:
         "  " + line(st, now, "BBB less AA OAS", "calc.aa_bbb_oas_diff", bp, "FRED ICE BofA"),
         f"  {nt('AI share of long IG issuance', 'calc.ai_long_share')}",
         f"  {NEOCLOUD_LINE}",
+        f"  {AI_CREDIT_LINE}",
         "  " + line(st, now, "Memory line: Micron inventory days", "calc.mu_inv_days",
                     lambda v: f"{v:.0f} days", "EDGAR company concepts"),
         "Factor III: " + na("the oil buffer", "calc.oil_buffer_state",
