@@ -157,7 +157,13 @@ The operator registers the batch on the box by manifest (box commands below).
 
 The stack gates are left to CI.
 
-**CI:** recorded below once read.
+**CI, round 1:** run 40113942600 at `e5ae3e5`, **red**, two of my gates:
+- `validate_numeral_audit`: D15's line wrote "97.5th" in an f-string. It now reads "beyond its five-year threshold of N bp (97.5% of one-day moves were smaller)".
+- `validate_weekly_edits`: the degree days' gas line printed the store key `fred.natgas` in the Weekly. It now names Henry Hub spot and FRED DHHNGSP only.
+
+Both fixed in `3dd56b5` and rerun locally (172/0 and 91/0).
+
+**CI, round 2:** run 40115424213 at `3dd56b5`, **green**. 136 jobs passed on the first attempt. Eleven were cancelled by the runner, none of them a failure (the morning anchor's, the backup's and others); rerun with `gh run rerun --failed`, they and the summary job passed.
 
 ## Listed gaps
 
