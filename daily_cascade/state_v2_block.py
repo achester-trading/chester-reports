@@ -33,6 +33,10 @@ def _safe(fn: Callable, what: str, default: Any = None) -> Any:
 
 
 def _object(st, cutoff: str) -> Optional[dict]:
+    """The stored object as of the cutoff, from the store the caller holds; with
+    no store, nothing (never the default database)."""
+    if st is None:
+        return None
     import regime                                               # noqa: PLC0415
     return regime.latest(as_of=cutoff, store=st)
 
@@ -47,8 +51,9 @@ def tail_table(obj: dict) -> Optional[dict]:
         return None
     rows = []
     for f in fams:
+        from altdata.numeral_audit import ordinal               # noqa: PLC0415
         movers = "; ".join(
-            f"{m['metric']} {_num(m.get('percentile'), '{:.0f}')}th"
+            f"{m['metric']} {ordinal(m['percentile'])}"
             + (" (extreme)" if m.get("extreme") else "")
             for m in f.get("first_movers") or [] if m.get("percentile") is not None)
         unread = f.get("unread") or []
