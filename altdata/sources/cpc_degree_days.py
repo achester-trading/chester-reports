@@ -301,7 +301,7 @@ def lines(r: dict) -> list[str]:
                (f"${ng['level']:.2f} on {ng['day']}"
                 + (f", {ng['week_pct']:+.1f}% on the week" if ng.get("week_pct") is not None
                    else "") + "."
-                if ng else "not stored (fred.natgas)."))
+                if ng else "not stored yet."))
     out.append("Report only: weather-driven demand beside the price, no composite, no "
                "market-state input (D26).")
     return out
