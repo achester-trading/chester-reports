@@ -11,21 +11,24 @@ F2 of the order: the table is not updated by hand. The chat-side publication
 watch writes each house's edition as a scan file (docs/scans/cma-<house>-
 <YYYY>q<N>.md) whose reference table carries the 10-year expected return per
 asset, each row with its own source URL; `python -m altdata.scans ingest` stores
-them as sourced figures; this module reads the store and computes, per asset:
+them as sourced figures; this module reads the store and computes, per asset
+and per basis (ruling D17 of 24 Oct 2026: two medians, never mixed):
 
-  median       of the houses with a current edition
-  dispersion   the highest less the lowest, and the count of houses
+  median       nominal and real, each of the current houses on that basis
+  dispersion   the highest less the lowest on each basis, and its count of houses
   dropped      an edition whose data as-of is more than `stale_months` before the
                cutoff is left out, and the count says so
 
-A house with no stored edition prints "no edition stored", never a recalled
-figure. Each edition's horizon and basis (nominal or real) are its scan's own
-rows and print beside it; the median is taken across them as published, with no
-conversion, and the table says so.
+An edition's basis is its scan's "Basis" row: "real" or "nominal" (as a word); a
+basis that is neither is in neither median and the read says so. Each house's
+figure prints on its own basis beside the medians, its horizon as published and
+labelled. A house with no stored edition prints "no edition stored", never a
+recalled figure.
 
 Reads only (scans.latest opens the store read-only). No composite, no
-market-state object, no decision: item 30's Book A line prints the median and
-nothing reads it back.
+market-state object, no decision: item 30's Book A line prints the nominal
+US-equity median -- the real one, labelled, when fewer than two nominal houses
+have a current edition -- and nothing reads it back.
 """
 
 from __future__ import annotations
@@ -40,6 +43,7 @@ from typing import Optional
 REPO = Path(__file__).resolve().parent.parent
 CONFIG = REPO / "config" / "cma_table.yaml"
 NUMBER = re.compile(r"[-+]?\d+(?:\.\d+)?")
+BASES = ("nominal", "real")
 
 
 def config(path: Optional[Path] = None) -> dict:
@@ -63,6 +67,23 @@ def number(value: str) -> Optional[float]:
     """'6.1%' / '6.1' / '+6.1 %' -> 6.1; a value with no number -> None."""
     m = NUMBER.search(str(value or "").replace(",", ""))
     return float(m.group(0)) if m else None
+
+
+def basis_of(text: Optional[str]) -> Optional[str]:
+    """An edition's Basis row -> 'nominal' or 'real' (as a word), else None."""
+    t = str(text or "").lower()
+    if re.search(r"\breal\b", t):
+        return "real"
+    if re.search(r"\bnominal\b", t):
+        return "nominal"
+    return None
+
+
+def _stats(vals: list[tuple[str, float]]) -> dict:
+    nums = [v for _, v in vals]
+    return {"values": dict(vals), "n": len(nums),
+            "median": None if not nums else round(statistics.median(nums), 2),
+            "dispersion": None if len(nums) < 2 else round(max(nums) - min(nums), 2)}
 
 
 def read(cutoff: str, db_path: Optional[str] = None, cfg: Optional[dict] = None,
@@ -91,24 +112,22 @@ def read(cutoff: str, db_path: Optional[str] = None, cfg: Optional[dict] = None,
             "read_on": rs[0].get("read_on"),
             "horizon": (by.get(cfg.get("horizon_metric", "Horizon")) or {}).get("value"),
             "basis": (by.get(cfg.get("basis_metric", "Basis")) or {}).get("value"),
+            "basis_kind": basis_of((by.get(cfg.get("basis_metric", "Basis")) or {}).get("value")),
             "figures": {a["id"]: by[a["metric"]] for a in cfg["assets"]
                         if a["metric"] in by}})
     current = [h for h in houses if h["state"] == "current"]
     assets = []
     for a in cfg["assets"]:
-        vals = []
+        by_basis: dict[str, list] = {b: [] for b in BASES}
         for h in current:
             f = h["figures"].get(a["id"])
             v = None if f is None else number(f["value"])
-            if v is not None:
-                vals.append((h["id"], v))
-        nums = [v for _, v in vals]
-        assets.append({
-            **a, "values": dict(vals), "n": len(nums),
-            "median": None if not nums else round(statistics.median(nums), 2),
-            "dispersion": None if len(nums) < 2 else round(max(nums) - min(nums), 2)})
+            if v is not None and h["basis_kind"] in by_basis:
+                by_basis[h["basis_kind"]].append((h["id"], v))
+        assets.append({**a, **{b: _stats(by_basis[b]) for b in BASES}})
     return {"as_of": str(cutoff)[:10], "floor": floor, "houses": houses,
             "assets": assets, "current": len(current),
+            "unclassified": [h["id"] for h in current if h["basis_kind"] is None],
             "dropped": [h["id"] for h in houses if h["state"] == "stale"],
             "missing": [h["id"] for h in houses if h["state"] == "none"],
             "no_edition": cfg.get("no_edition", "no edition stored"),
@@ -128,22 +147,30 @@ def _house_cell(h: dict, aid: str, no_edition: str) -> str:
     f = h["figures"].get(aid)
     if f is None:
         return "not in the edition"
-    return f["value"]
+    basis = h.get("basis_kind") or "basis not stated"
+    horizon = h.get("horizon") or "horizon not stated"
+    return f"{f['value']} ({basis}, {horizon})"
+
+
+def _median_cell(s: dict) -> str:
+    if s["median"] is None:
+        return "—"
+    return _pct(s["median"]) + ("" if s["dispersion"] is None else
+                                f" ({s['dispersion']:.1f} pp high less low)")
 
 
 def table(r: dict) -> dict:
-    """One row per asset: each house's figure as stored, then the median, the
-    dispersion and the count."""
+    """One row per asset: each house's figure on its own basis and horizon, then
+    the nominal and the real median, each with its spread and its count."""
     cols = (["Asset"] + [h["id"].upper() if len(h["id"]) <= 4 else h["id"].title()
                          for h in r["houses"]]
-            + ["Median", "High less low", "Houses"])
+            + ["Median, nominal", "Houses, nominal", "Median, real", "Houses, real"])
     rows = []
     for a in r["assets"]:
         rows.append([a["label"]]
                     + [_house_cell(h, a["id"], r["no_edition"]) for h in r["houses"]]
-                    + [_pct(a["median"]),
-                       "—" if a["dispersion"] is None else f"{a['dispersion']:.1f} pp",
-                       str(a["n"])])
+                    + [_median_cell(a["nominal"]), str(a["nominal"]["n"]),
+                       _median_cell(a["real"]), str(a["real"]["n"])])
     return {"columns": cols, "rows": rows}
 
 
@@ -176,39 +203,63 @@ def lead(r: dict) -> str:
         return base
     us = next((a for a in r["assets"] if a["id"] == "us_equity"), None)
     exus = next((a for a in r["assets"] if a["id"] == "exus_dev_equity"), None)
+    nb = {b: sum(1 for h in r["houses"]
+                 if h["state"] == "current" and h.get("basis_kind") == b) for b in BASES}
+    u = len(r.get("unclassified") or [])
     parts = [f"{n} of {len(r['houses'])} houses have a current edition"
              + (f" ({k} dropped as older than {r['stale_months']} months)" if k else "")
-             + "."]
-    if us and us["median"] is not None and exus and exus["median"] is not None:
-        gap = round(exus["median"] - us["median"], 2)
-        parts.append(f"The median 10-year expected return for ex-US developed equity "
-                     f"is {exus['median']:.1f}% against {us['median']:.1f}% for US "
-                     f"equity ({gap:+.1f} pp).")
-    widest = max((a for a in r["assets"] if a["dispersion"] is not None),
-                 key=lambda a: a["dispersion"], default=None)
+             + f": {nb['nominal']} nominal, {nb['real']} real"
+             + (f", {u} with no stated basis and in neither median" if u else "") + "."]
+    for b in BASES:
+        if us and us[b]["median"] is not None and exus and exus[b]["median"] is not None:
+            gap = round(exus[b]["median"] - us[b]["median"], 2)
+            parts.append(f"The {b} median expected return for ex-US developed equity "
+                         f"is {exus[b]['median']:.1f}% against {us[b]['median']:.1f}% for "
+                         f"US equity ({gap:+.1f} pp).")
+            break
+    cands = [(a, b) for a in r["assets"] for b in BASES if a[b]["dispersion"] is not None]
+    widest = max(cands, key=lambda x: x[0][x[1]]["dispersion"], default=None)
     if widest:
-        parts.append(f"The houses disagree most on {widest['label']} "
-                     f"({widest['dispersion']:.1f} pp from high to low, "
-                     f"n={widest['n']}).")
-    parts.append("Horizons and bases are each house's own, printed below; the median "
-                 "is taken as published, with no conversion.")
+        a, b = widest
+        parts.append(f"The houses disagree most on {a['label']}, {b} "
+                     f"({a[b]['dispersion']:.1f} pp from high to low, n={a[b]['n']}).")
+    parts.append("Nominal and real are two medians, never mixed; each house prints on "
+                 "its own basis and horizon, as published, with no conversion.")
     return " ".join(parts)
+
+
+def book_a_basis(a: dict) -> Optional[str]:
+    """Ruling D17: the nominal median; the real one when fewer than two nominal
+    houses have a current edition; the one nominal house when there is no real
+    one (SESSION-SET: the ruling does not name that case); else None."""
+    if a["nominal"]["n"] >= 2:
+        return "nominal"
+    if a["real"]["n"] >= 1:
+        return "real"
+    if a["nominal"]["n"] == 1:
+        return "nominal"
+    return None
 
 
 def book_a_line(r: Optional[dict]) -> str:
     """Item 30's Book A long-horizon expected-return line. Report only."""
+    none = ("Book A long-horizon expected return (cross-house CMA median): "
+            "no CMA edition stored.")
     if not r:
-        return ("Book A long-horizon expected return (cross-house CMA median): "
-                "no CMA edition stored.")
+        return none
     a = next((x for x in r["assets"] if x["id"] == r["book_a_asset"]), None)
-    if a is None or a["median"] is None:
-        return ("Book A long-horizon expected return (cross-house CMA median): "
-                "no CMA edition stored.")
-    disp = ("" if a["dispersion"] is None else
-            f", {a['dispersion']:.1f} pp from high to low")
+    b = None if a is None else book_a_basis(a)
+    if b is None:
+        return none
+    s = a[b]
+    disp = ("" if s["dispersion"] is None else
+            f", {s['dispersion']:.1f} pp from high to low")
+    why = ("" if b == "nominal" else
+           f"; real because fewer than two nominal houses have a current edition "
+           f"(n={a['nominal']['n']})")
     return (f"Book A long-horizon expected return (cross-house CMA median, "
-            f"{a['label']}): {a['median']:.1f}% a year over each house's horizon "
-            f"(n={a['n']} houses{disp}; as published, report only).")
+            f"{a['label']}, {b}): {s['median']:.1f}% a year over each house's horizon "
+            f"(n={s['n']} houses{disp}{why}; as published, report only).")
 
 
 def _main(argv: list[str]) -> int:
