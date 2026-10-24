@@ -169,7 +169,7 @@ cd ~/chester-reports && .venv/bin/python -m altdata.sources.edgar_guidance show
 | Run | On | Result |
 |---|---|---|
 | 40141969415 | `89b4e781` | **failure**, two gates, both mine: `validate_secrets` (the new reader imports edgar's contact User-Agent and was not on `SEC_UA_CALLERS`; it passed locally only while the file was untracked) and `validate_lenses` (the five record keys, unit `label`, carried no lens family). Fixed: the reader added to `SEC_UA_CALLERS` (it calls data.sec.gov and www.sec.gov only), and the five record keys to `lens_excluded` with their reason. Local: validate_secrets 58/0, validate_lenses 49/0. |
-| round 2, after the fix | the fix's tip | see the report |
+| 40142916636 | `cee740a5` | **success** (9m13s) |
 
 ## Needs you (at most five)
 
