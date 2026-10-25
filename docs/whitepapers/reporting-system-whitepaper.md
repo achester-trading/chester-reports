@@ -563,12 +563,14 @@ The Monthly adds its own list of banned internal terms and refuses bullet-list f
 
 A paragraph that fails is never rewritten by code and never "fixed" quietly. It is **withheld**, and the reader sees a short note saying which audit failed and on which figure. The tables and items of a section print even when its prose is withheld, so the reader loses the commentary, not the facts. An outage reads differently from a refusal: "model call failed" is never confused with "audit failed". The rejected text is kept out of the edition so that it cannot be published by accident.
 
-A section the audit withholds gets **one revision**, in the stacked sections, the Weekly's précis, the close's paragraph and the anchor's. The model is told three things:
+A section the audit withholds gets **one revision**, in the stacked sections, the Weekly's précis, the close's paragraph, the anchor's, the two secondary notes and the Monthly's storyline fallback. The model is told three things:
 - the rule the draft broke, in the rule's own words;
 - the failing span: the sentence holding each refused figure or quoted fragment, or "the draft as a whole" when the fault is its length or shape;
 - the draft itself, with the instruction to revise exactly that span and change nothing else.
 
-If the revision fails, the section is withheld, with both reasons kept. Only an audit's refusal is revised. A fault is not: a failed API call, a malformed payload, a prompt past its guard or a reply that overran its length. The Monthly's storyline fallback writer still runs its own loop of up to three attempts, telling the model the reason but not the span. Its move to the one revision is on the third chain (Appendix E). The voices block makes one attempt only.
+If the revision fails, the section is withheld, with both reasons kept. Only an audit's refusal is revised. A fault is not: a failed API call, a malformed payload, a prompt past its guard or a reply that ran away. The voices block makes one attempt only.
+
+**Length is no longer an audit.** Since the ruling of 24 October that budgets are targets, the paragraph guard cuts nothing: a long reply is marked over its target and prints whole. What remains is a runaway guard, a character ceiling well above any honest paragraph, which withholds a reply that has plainly run away rather than one that is merely long. The figure cap per paragraph and the withholding of a repeated sentence stand. The audits of §5.2 are unchanged since Draft 3.
 
 ### 5.4 No stored source, not printed
 
