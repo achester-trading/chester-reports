@@ -107,7 +107,7 @@ The library gate fails any file in `docs/whitepapers/` with no at-a-glance row a
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the tip | see the report |
+| 40152328215 | `20d17d83` | **CI queued, run 40152328215** (not waited on) |
 
 ## Needs you
 
