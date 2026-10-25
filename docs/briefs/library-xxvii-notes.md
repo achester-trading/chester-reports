@@ -61,7 +61,7 @@ It carries its own assumptions and four falsifiers, a worked example, a historic
 | Round | Run | On | Result |
 |---|---|---|---|
 | 1 | 40140241723 | `4943d7b` | **Red, one gate:** `check_master_guide`, "papers in the roster with no group: ['XXVII']", then Table 9 and the stale Figure 5. Fixed in the next commit (departure 12); passes locally with 0 failures, as does `check_library` |
-| 2 | recorded once read | | |
+| 2 | 40141073525 | `43a1b90` | **Green**, every gate |
 
 ## The drafted guide entry (for the operator; written into the guide when the paper merges)
 
