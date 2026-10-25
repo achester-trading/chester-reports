@@ -12,7 +12,7 @@
 #                CRYPT_REMOTE to the crypt remote's root; returns 1, with
 #                CRYPT_ERR naming what is missing, when a setting is absent
 #
-# THE SETTINGS, ALL FROM THE ENVIRONMENT (.env on the box, Ari's write; never in
+# THE SETTINGS, ALL FROM THE ENVIRONMENT (.env on the box, the operator's write; never in
 # this repo and never in rclone.conf):
 #   CHESTER_RCLONE_BACKUP_REMOTE   the Drive remote on the SEPARATE backup account,
 #                                  and its folder, e.g. chesterbak:chester-backups.
@@ -20,7 +20,7 @@
 #                                  Drive remote's is; it is a token for an account
 #                                  that holds nothing but ciphertext.
 #   CHESTER_RCLONE_CRYPT_PASSWORD  the crypt password, in clear in .env (and in
-#   CHESTER_RCLONE_CRYPT_SALT      Ari's password manager off the box); the salt is
+#   CHESTER_RCLONE_CRYPT_SALT      the operator's password manager off the box); the salt is
 #                                  rclone's "password2"
 #
 # rclone reads a remote from RCLONE_CONFIG_<NAME>_<KEY> variables, so the crypt

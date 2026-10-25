@@ -253,6 +253,28 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     from . import gtm_block                                     # noqa: PLC0415
     subs = gtm_block.place_mechanics(subs, gtm_block.mechanics_subsections(
         st, cutoff, "weekly"))
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from . import batch14_b1_block                              # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, cutoff)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the edition's sessions. Tables and lines only.
+    from . import batch15_a_block                               # noqa: PLC0415
+    if sessions:
+        subs = batch15_a_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                                     sessions[-1])
+        # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+        # degree days beside natural gas after the oil-shock signature.
+        from . import b59_block                                 # noqa: PLC0415
+        subs = b59_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                               sessions[-1])
+    # 6f TRANCHE 3 (a62): the tail families, one line, read from the object.
+    from . import state_v2_block                                # noqa: PLC0415
+    tl = state_v2_block.weekly_subsection(st, cutoff)
+    if tl:
+        subs.append(tl)
+    # 6f TRANCHE 2 (a63): the dials' transition table.
+    subs += state_v2_block.calibration_subsection(st, cutoff)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}
@@ -1002,6 +1024,14 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
+    # SIGNAL-TRIAGE BATCH 15, ITEM 74 (b56): the hedge-fund positioning line and
+    # the squeeze-risk flag, beside the CFTC table. The Weekly's only (TFF is
+    # weekly; the Monthly's Positioning keeps its five read blocks).
+    if cadence == "weekly":
+        from . import batch15_b2_block                          # noqa: PLC0415
+        hfp = batch15_b2_block.positioning_subsection(st, now)
+        if hfp:
+            out.append(hfp)
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
     # slow-money set and of SR-36's unwind watch, never a flag of its own. The
@@ -2109,6 +2139,19 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         ah43 = t1_rest_block.ahead_subsection(st, now)
         if ah43:
             built["ahead"].setdefault("subsections", []).append(ah43)
+        # SIGNAL-TRIAGE BATCH 15, ITEM 77 (b56): the tail register's cyber-
+        # pressure line, report only.
+        from . import batch15_b2_block                          # noqa: PLC0415
+        cyb = batch15_b2_block.cyber_subsection(st, now)
+        if cyb:
+            built["ahead"].setdefault("subsections", []).append(cyb)
+        # D26 (b59): GDELT's geopolitical line in the tail register, and in
+        # Narratives the stories' GDELT counts and the model-release line.
+        from . import b59_block                                 # noqa: PLC0415
+        tl = b59_block.tail_subsection(st, now)
+        if tl:
+            built["ahead"].setdefault("subsections", []).append(tl)
+        b59_block.weekly_narratives(built["narratives"], st, now)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.

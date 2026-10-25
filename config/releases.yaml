@@ -11,7 +11,7 @@
 #
 # Every value below is the order's where it gives one and SESSION-SET otherwise,
 # with its reason beside it; the session-set ones are listed in
-# docs/briefs/6e-releases-notes.md for Ari.
+# docs/briefs/6e-releases-notes.md for the operator.
 version: 1
 
 # ---------------------------------------------------------------------------

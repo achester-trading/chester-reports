@@ -1,5 +1,5 @@
 """
-Monthly v2: the prose, one audited model call per section. (Ari's revision, 1 Oct)
+Monthly v2: the prose, one audited model call per section. (the operator's revision, 1 Oct)
 
     The month in markets          3-4 paragraphs on what drove the month
     Looking back, one per theme   2-4 paragraphs each, six themes
@@ -438,7 +438,7 @@ def _market_states(p: dict) -> Optional[dict]:
         return None
 
 
-# NEVER WRITE ABOUT THE SYSTEM (Ari's second round). Internal vocabulary in a
+# NEVER WRITE ABOUT THE SYSTEM (the operator's second round). Internal vocabulary in a
 # reader's prose -- "the payload", "the object", "the dimension", "not_sourced" --
 # is the report describing its own plumbing. A section using any of these is
 # withheld like a failed audit. Whole words, case-insensitive; "fielded" or
@@ -446,7 +446,7 @@ def _market_states(p: dict) -> Optional[dict]:
 # "The system" alone is NOT banned: "liquidity in the system" is desk language
 # for the banking system (the second-round dry run withheld a section over it);
 # only the phrases that can mean this report's machinery are.
-# PHRASES ABOUT THE REPORT, NOT BARE WORDS (Ari, 1 Oct). The first list banned
+# PHRASES ABOUT THE REPORT, NOT BARE WORDS (the operator, 1 Oct). The first list banned
 # "slice", "row", "field" and "the system's" outright, and the third dry run
 # withheld "the system's shock absorber" and "the cyclically-sensitive slice of
 # CPI" -- ordinary English. A bare word that markets also use ("three sessions in
@@ -687,7 +687,8 @@ def stack_plan(ed: dict) -> list[dict]:
                    + "\n" + ORDINAL_RULE.strip() + DISPLAY_RULE + T36_RULES + vocab_frame())
         out.append({"key": f"stack:{s['id']}", "title": s["title"], "kind": "stack",
                     "sid": s["id"], "system": system,
-                    "max_chars": int(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
+                    # D19/D20 (24 Oct 2026): a runaway guard, never a length cap.
+                    "max_chars": sp.runaway(sp.MAX_CHARS.get(s["depth"], 900) * 2.5),
                     # T3.4: a parent's frame is its budget, not its tables.
                     "slice": sp.section_slice(s, ed, "monthly")})
     return out
@@ -759,7 +760,7 @@ def block_plan(ed: dict) -> list[dict]:
                           "\n\n" + sp.FILLER_RULE))
             out.append({"key": ss["phase"], "title": f"{s['title']}: {ss['title']}",
                         "kind": "stack", "sid": s["id"], "system": system,
-                        "max_chars": hi * 9 + 500, "slice": sl})
+                        "max_chars": sp.runaway(hi * 9 + 500), "slice": sl})
     return out
 
 
@@ -891,7 +892,7 @@ def summary_plan(ed: dict, sections: Optional[list] = None) -> list[dict]:
             system += SOURCE_RULE
         out.append({"key": f"summary:{s['id']}", "title": f"Summary: {s['title']}",
                     "kind": "stack", "sid": s["id"], "system": system,
-                    "max_chars": 1400, "slice": reader_slice(frame),
+                    "max_chars": sp.runaway(1400), "slice": reader_slice(frame),
                     "audit_extra": summary_audit_extra(s, ed)})
     return out
 

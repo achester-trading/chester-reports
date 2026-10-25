@@ -13,7 +13,7 @@ configured to block access from your country": the same condition. Under the 16
 Oct rule (friction becomes a keyless alternative or a gap) the third venue is
 DERIBIT's perpetuals, keyless and reachable from both machines (DS-41 already
 adopts Deribit). Bybit's reader is here, tested on its documented response shape,
-and OFF in config (`venues.bybit.enabled: false`) until Ari rules on it; its keys
+and OFF in config (`venues.bybit.enabled: false`) until the operator rules on it; its keys
 are not registered while it is off.
 
     fut.funding_okx      (BTC, ETH)  the day's funding annualised %, from
@@ -59,7 +59,7 @@ DERIBIT = "https://www.deribit.com/api/v2"
 BYBIT = "https://api.bybit.com"
 KEYS = ["fut.funding_okx", "fut.oi_okx", "fut.ls_account_okx",
         "fut.funding_deribit", "fut.oi_deribit"]
-# Bybit's, registered only if Ari switches the venue on.
+# Bybit's, registered only if the operator switches the venue on.
 BYBIT_KEYS = ["fut.funding_bybit", "fut.oi_bybit", "fut.ls_account_bybit"]
 DAY_MS = 86_400_000
 

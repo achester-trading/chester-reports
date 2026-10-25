@@ -31,7 +31,7 @@ minute, 10 jobs a request. With it: 25 requests per 6 seconds, 100 jobs a
 request. A 429 waits the server's reset and retries. The morning step maps only
 symbols that are new, renamed or not yet mapped, capped at MORNING_REQUESTS
 requests so it fits the 06:45 job; the rest wait for the next morning. The first
-full mapping (about 13,000 listings, about 55 minutes keyless) is printed for Ari.
+full mapping (about 13,000 listings, about 55 minutes keyless) is printed for the operator.
 
 THE TICKER FORM. Nasdaq Trader prints ACT symbols (BRK.B, ABR$D, AAC.W); OpenFIGI
 takes Bloomberg's (BRK/B, ABR/PD, AAC/WS). to_openfigi() converts, and the first

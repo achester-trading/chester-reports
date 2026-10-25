@@ -102,7 +102,7 @@ mempool:
 fng:
   url: https://api.alternative.me/fng/
 # ETHEREUM, under the 16 Oct rule (b). The order's DS-11 is Etherscan (ethsupply2,
-# the gas oracle), which needs ETHERSCAN_API_KEY, a registration Ari has not made.
+# the gas oracle), which needs ETHERSCAN_API_KEY, a registration the operator has not made.
 # The keyless path within robots is Blockscout's Ethereum explorer
 # (eth.blockscout.com, robots: Allow /): the gas oracle (slow/average/fast gwei),
 # network utilisation and the daily transaction count (30 days of history). ETH
@@ -128,7 +128,7 @@ bitcoin_data:
 # GAPS, named (each printed by its writer's summary and in the notes).
 gaps:
   raises: "DefiLlama /raises answers 402 'Upgrade to the paid API plan' (re-probed 17 Oct 2026)"
-  eth_supply_burn: "Etherscan ethsupply2 needs ETHERSCAN_API_KEY (a registration Ari has not made); no keyless source within robots serves supply, staked and burnt"
+  eth_supply_burn: "Etherscan ethsupply2 needs ETHERSCAN_API_KEY (a registration the operator has not made); no keyless source within robots serves supply, staked and burnt"
   coingecko_global: "CoinGecko /global (total market cap, BTC dominance): no ST-13 fetcher exists, and CoinGecko's terms bar storing its data (ruled 13 Oct 2026); no free source with storable terms serves the total"
   bybit: "geo-blocked from the US (17 Oct 2026); Deribit perpetuals are the third venue"
 
@@ -215,11 +215,11 @@ paprika:
   url: https://api.coinpaprika.com/v1/global
   attribution: "Powered by Coinpaprika"
 
-# CD-9, the blocks. The Weekly's crypto flows block: at most 12 lines, a sub-
-# section of Positioning & flows. The Monthly's rows: mechanics (network health)
-# and the slow layers (the data layer), every row in the triple form.
+# CD-9, the blocks. The Weekly's crypto flows block: a sub-section of Positioning
+# & flows, every row printed (its 12-line cap retired by D19/D20, 24 Oct 2026).
+# The Monthly's rows: mechanics (network health) and the slow layers (the data
+# layer), every row in the triple form.
 blocks:
-  weekly_max_lines: 12
   z_from: 2026-12-15             # ruling 5: the aggregate's z prints from mid-December
   froth_from: 2027-01-15         # S-5: 90 days of store after a first sample
   watch_triple_window_days: 1825
@@ -227,7 +227,7 @@ blocks:
   # 16:45 close's crypto paragraph, at most six computed lines. The order wires
   # it only after Track D's D4/D6, which nothing records as done (TODO.md shows
   # both open; a43's notes record no such precondition for ST-10, which is wired
-  # unconditionally) -- so it is built and switched OFF. Ari's yes turns it on.
+  # unconditionally) -- so it is built and switched OFF. The operator's yes turns it on.
   # Displaces nothing: in the close it is a Positioning & flows sub-section of
   # data lines, which the 1,000-word budget does not count (stack.py: prose
   # only); in the anchor, six lines under the overnight table.

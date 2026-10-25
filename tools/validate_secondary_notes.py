@@ -612,7 +612,7 @@ def group_g() -> None:
     dr = (REPO / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
     dt_ = re.search(r'DEPLOY_TIMERS="([^"]*)"', dr, re.S).group(1)
     check("chester-open-note.timer" not in dt_ and "chester-evening-note.timer" not in dt_,
-          "neither timer is in DEPLOY_TIMERS: enabling them is Ari's")
+          "neither timer is in DEPLOY_TIMERS: enabling them is the operator's")
     hb = (REPO / "scripts" / "check_heartbeat_cron.sh").read_text(encoding="utf-8")
     check("chester-open-note.timer:open_note_heartbeat:100:open note" in hb
           and "chester-evening-note.timer:evening_note_heartbeat:100:evening note" in hb,

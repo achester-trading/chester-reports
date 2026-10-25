@@ -129,7 +129,11 @@ altdata/                  Shared ingestion package — used by every report
                           (Group B, the PPI and GDP lenses); 1 in
                           FRED_NOTES_SERIES (the open note's retail sales);
                           10 in FRED_BANK_STRESS_SERIES (item 59's panel);
-                          FRED_PULL_SERIES, 277, is the union the
+                          1 in FRED_HOUSEHOLDS_SERIES (item 68's
+                          per-household deflator);
+                          4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
+                          1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
+                          FRED_PULL_SERIES, 283, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -145,7 +149,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    124 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    127 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -239,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-four code gates (one hundred and thirty-one Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty code gates (one hundred and thirty-seven Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -273,8 +277,10 @@ paper that now exists.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in
-`config/market_state.yaml` — eight dimensions, three dials and an eight-row
-contradiction table — and the 16:45 close pass is its only writer. Every report
+`config/market_state.yaml` — fifteen dimensions, three dials and an eight-row
+contradiction table (v2, 6f: thirteen of the dimensions computed, two declared not
+buildable; plus the report-only horizons, tail families and debt-cycle branch) —
+and the 16:45 close pass is its only writer. Every report
 reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
 because an anchor computing its own object could disagree with the close report's,
 and then the system holds two regimes with no way to say which one a decision was
@@ -299,8 +305,9 @@ The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` 
 `stack_render.markdown` print a whole edition at any cadence; at "monthly" a
 sub-section carries its own charts and notes, a Reading entry's stored summary
 prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
-never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
-words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
+never in the budget). The Monthly's 10,000 words (T3.1 item 22; 7,000 before) are
+a target: since D19/D20 (24 Oct 2026) nothing is cut to fit, and an edition over
+its reading target prints one foot line (`stack.target_line`). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
 
 **Each family of metrics is measured its own way (6e, the metric lenses; ruled
@@ -465,8 +472,8 @@ the Weekly (`weekly_digital_<ending>.html` and `.pdf`, its edition JSON and its
 appendix line) and attaches it to the Weekly's own email as a second PDF (ruled
 17 Oct 2026); the Weekly prints one line naming
 it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
-the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
-minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
+the ruling's order (`config/digital_addendum.yaml`, its targets, never caps:
+about seven minutes, about 1,500 words, two charts; D19/D20, 24 Oct 2026); every Batch 4 Tranche A cell prints "awaiting
 Tranche A" until its key has a row; the read is one paragraph through the
 existing narrative step and its audits, from the page's figures only. The X
 pilot's ledgers and digests are read from the box's inbox, which the nightly
@@ -543,8 +550,9 @@ panels read Tranche A by key:
 - an absent series prints "awaiting the first pull", "not tracked" or "awaiting
   EL-12".
 
-The page holds Phase 1's 52-line budget, and the read's audits gain a flag-word
-check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
+Phase 1's 52-line budget is retired (D19/D20, 24 Oct 2026): items 77 and 78 print
+in the incidents section's body with their tables, and a page over its target prints
+one foot line. The read's audits gain a flag-word check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
 watch, read-only.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
@@ -782,6 +790,90 @@ ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
 - JDI Research's own feed joins the voices scan (F4).
 
 `tools/validate_batch14_a2.py` holds it.
+
+**Batch 14, Part B2: the CMA table, the PEG note and the per-household line (items
+62, 67 and 68; b55-batch14-b2, 23 Oct 2026). Merges after the 1 Nov Monthly.**
+Report only.
+- **Item 62.** HSBC AM's Capital Market Assumptions and Vanguard's Capital Markets
+  Model forecasts join the reading shelf. Each house's edition is a scan file,
+  `docs/scans/cma-<house>-<YYYY>q<N>.md`, written by the chat-side publication
+  watch, its reference table one row per asset with the row's own URL; the scans
+  ingest stores it. `altdata/cma_table.py` (`config/cma_table.yaml`) computes each
+  asset's median, high less low and count across the current editions (older than
+  15 months dropped and counted), and the Monthly's slow layers print it
+  (`daily_cascade/batch14_b2_block.py`); a house with nothing stored prints "no
+  edition stored". Item 30's Book A line in the allocation block reads the US
+  median. No number is entered by hand.
+- **Item 67.** PEG and LTEG are listed gaps (F3) and print nowhere; item 60's
+  lines end on one gap line pointing at the LTEG overshoot note,
+  `docs/base-rate-notes/lteg-overshoot-2026-10.md`, which is cited. The
+  proposal `market_cheap_on_peg` is seeded PROPOSED with its caveat.
+- **Item 68.** Redfin's pending sales per 1,000 households (FRED TTLHHM156N,
+  `fred.households`) print beside the raw level in item 36's housing block, with
+  dual percentiles, single-source. NAR's 66.0 print is a dated record in
+  `docs/dated-appendix-queue.md`.
+
+`tools/validate_batch14_b2.py` holds it.
+
+**The one-day 10-year trigger and three new sources (rulings of 24 Oct 2026, D15
+and D26; b59-trigger-sources). Merges after the 1 Nov Monthly.** Report only;
+nothing enters a composite or the market-state object.
+- **D15.** `altdata/oneday_10y.py` (`config/oneday_10y.yaml`) fires when DGS10's
+  one-day change passes the five-year 97.5th percentile of absolute one-day
+  changes (either sign, at least 1,000 of them). It runs the speed flag's
+  attribution over one session, "awaiting" any model not yet stored. Its ledger
+  `rates.oneday_event_ledger` is written by the close and resolved in the EOD pass.
+  The pre-registration is `docs/ledgers/oneday-10y-preregistration-2026-10.md`,
+  held by SHA-256. The laptop first edition is INSUFFICIENT, n 67. The close prints
+  the flag line in the event area; the Weekly and the Monthly print the block in
+  Mechanics.
+- **D26.** Each reader was registered first as an Alpha Lab hypothesis
+  (`alpha/research/hypotheses-2026-10-24-b59-sources.yaml`, committed alone before
+  the readers). All three are keyless steps of the crypto basket's 17:25 run, on
+  the freshness roster:
+  - `altdata/sources/gdelt.py`: the 15-minute exports, the geopolitical families'
+    conflict counts, share and tone, and the articles per story. A failed export
+    marks the day STALE and fills nothing. The DOC API is not read.
+  - `altdata/sources/cpc_degree_days.py`: NOAA CPC's population-weighted degree
+    days, the 1991-2020 normal on read.
+  - `altdata/sources/hf_releases.py`: new public model repositories per week for
+    the declared organisations, counts and dates only.
+- **Placement.** GDELT: the Weekly's tail register, both narratives sections and
+  the Monthly's Factor III. Degree days: beside natural gas in Mechanics. Model
+  releases: the Weekly's narratives and the Monthly's Factor I-b
+  (`daily_cascade/b59_block.py`).
+
+`tools/validate_b59.py` holds it.
+
+**Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
+breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the
+1 Nov Monthly (G4).** Report only.
+- **Item 74.** The TFF pull adds ES and NQ. `altdata/hf_positioning.py`
+  (`config/hf_positioning.yaml`) prints leveraged funds' net in each, with the
+  net short share's dual percentiles, in the Weekly's Positioning & flows. The
+  squeeze-risk flag pairs ES's net short at or above its 90th with item 71's
+  Amihud stand-in at or above its 90th; it prints there and as a context line
+  in item 45's levels read. FINRA's share of float and a performance proxy are
+  listed gaps; the prime-book figures are a dated record. The ledger, ST-R6.74b,
+  is pre-registered (`docs/ledgers/short-extremes-preregistration-2026-10.md`,
+  held by SHA-256), reads stored history only, and its laptop first edition is
+  INSUFFICIENT (n 0: no ES rows stored yet).
+- **Item 75.** `docs/ledgers/ai-lab-financials-ledger.md` is the template, its
+  first row the provisional, WSJ-reported draft S-1. `altdata/ai_lab_ledger.py`
+  computes the ratios; Factor I's lines print item 47's unit-economics line,
+  SR-16's commitments entry ("no ledger entry" otherwise) and the mega-IPO watch
+  ("not yet public").
+- **Item 77.** `altdata/cyber_pressure.py` stores CISA KEV additions and NVD's
+  critical CVEs per week (a Saturday step of the crypto basket's run) and prints
+  them, with their joint flag, in the Weekly's Ahead as the tail register's cyber
+  line, never a tripwire.
+- **Item 78.** `altdata/protocol_breadth.py` stores DefiLlama's active-protocol
+  count daily from its first pull (the endpoint serves today's list only) for the
+  Monthly's digital chapter. Items 77 and 78 cross-reference in the addendum's
+  incidents footnote. The base rate is
+  `docs/base-rate-notes/crypto-winters-protocol-shutdowns-2026-10.md`.
+
+`tools/validate_batch15_2.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
@@ -1149,6 +1241,52 @@ flag turns on. Item 60's forward-EPS legs are listed gaps while
 both branches). The hyperscaler P/E dispersion (`altdata/pe_dispersion.py`)
 prints with the Monthly's index decomposition. `tools/validate_batch12.py` holds
 it.
+
+**The speed flag's attribution and the fragility flag are reports and a flag, never
+a regime (Batch 14 items 65 and 71, a57, 23 Oct 2026; merges after the 1 Nov
+Monthly).** On a day SR-35's 10-year companion prints, `altdata/speed_attribution.py`
+splits the 10-year's move into expected short rates and the term premium by KW and
+ACM, each read only when its input for the day is stored (F5: "awaiting"
+otherwise). The close prints it in Mechanics after item 52's block and stores
+`rates.speed_event_ledger`; the EOD pass's `resolve` writes the attribution and
+the outcomes as they land. `altdata/ai_trade.py` carries:
+- the AI-bottleneck PPI line, in item 46's inflation block (Monthly);
+- AIQ against SPXT, labelled proxy, after item 31's concentration table;
+- the AI-credit gap beside SR-16's neocloud line.
+
+`altdata/fragility.py` is item 71's panel (`config/fragility.yaml`):
+- SPY's Amihud measure and range per volume, with ES depth "not tracked";
+- margin debt and its share of Z.1's equity market value;
+- the leveraged-ETF rebalance over ProShares' seven;
+- 6b's stored dealer gamma.
+
+Its flag is the Amihud stand-in at its 90th with forced flow above its 90th: flag
+rights only. Its lens is a report-only row in item 52's table, and its line sits
+in item 45's levels read. `daily_cascade/batch14_b1_block.py` lays both out.
+Both ledgers are pre-registered:
+- ST-R6.65a: INSUFFICIENT, n 28;
+- ST-R6.71d: FAIL, n 2965.
+
+`tools/validate_batch14_b1.py` holds it.
+
+**Gold and developed-market events are flags with their own ledgers; gold-ETF
+ownership is a report (Batch 15 items 72, 73 and 76, a58, 23 Oct 2026; merges after
+the 1 Nov Monthly).** `altdata/gold_event.py` fires on gold's (GC=F) one-day move of
+2.5% or a five-day move beyond its 95th percentile on five years, and attributes it
+to the real 10-year, DXY and Brent ("awaiting" until each lands), the IMF IFS
+central-bank trend and a residual line that fits nothing; ETF flows are not tracked
+(WGC is login-gated). `altdata/dm_drawdown.py` extends SR-46's screen to Nikkei 225
+(FRED NIKKEI225) and the KOSPI and TAIEX ETF proxies, on a 10- or 20-session
+drawdown beyond its 95th percentile; TOPIX, DAX, CAC 40 and FTSE 100 are listed gaps.
+The close prints their flag lines in the event area and stores `gold.event_ledger` and
+`equity.dm_drawdown_ledger`; the EOD pass resolves both; the Weekly and Monthly print
+the blocks. `altdata/gold_13f.py` counts 13F holders of GLD and IAU from SEC's keyless
+data sets (fetch on the box through CHESTER_SEC_CONTACT, then load) for the Monthly's
+slow layers beside item 38. Item 76's DTCC protection-demand line is a listed gap
+(per-name volumes are a subscription; the site's terms forbid automated extraction);
+its CDS levels and the AI borrowing figure are dated records.
+`daily_cascade/batch15_a_block.py` lays them out; `tools/validate_batch15_1.py` holds
+them.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.

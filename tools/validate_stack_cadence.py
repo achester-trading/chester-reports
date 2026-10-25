@@ -42,8 +42,9 @@ T2.7 (8 Oct 2026): what the shared renderer carries for the Monthly.
   L CHARTS      at "monthly" a sub-section's charts print under it; at "weekly"
                 every chart at section level as before; page_html and markdown
                 print the edition in one order, each chart's line in place.
-  M BUDGET      trim_to_budget (the Monthly's): the appendix first, then the
-                last of several paragraphs, back to front; never a claim or item.
+  M TARGETS     D19/D20 (24 Oct 2026): no cadence trims; an edition over its
+                reading target renders every paragraph in full and prints one
+                foot line, in the page and the Markdown; none inside it.
   N CONFIG      a section declared at one cadence only (Reading) is skipped at
                 the others; the ten always; B's Monthly keys are present.
   O TICKS       dated ticks: first and last always, none within half a step.
@@ -113,12 +114,15 @@ def group_a() -> None:
           == ["session", "week", "month", "quarter"],
           "daily, weekly, monthly and (AQ-1) quarterly resolve to session, week, "
           "month and quarter")
-    check(cads["weekly"]["budget"] == {"words": 3500, "charts": 10}
+    check(cads["daily"]["budget"] == {"words": 2250, "charts": 3}
+          and cads["weekly"]["budget"] == {"words": 7900, "charts": 10}
           and cads["monthly"]["budget"] == {"words": 10000, "charts": 12}
           and cads["quarterly"]["budget"] == {"words": None, "charts": 40}
           and [cads[n]["reading_target_minutes"] for n in cadence.NAMES]
-          == [5, 20, 55, 90],
-          "each carries its budget and reading target from the ratified config")
+          == [10, 35, 55, 90],
+          "each carries its target and reading time from the ruled config (D19/D20, "
+          "24 Oct 2026: the close 10 minutes, 2,250 words; the Weekly 35, 7,900; the "
+          "Monthly 55, 10,000, unchanged)")
     check(cads["monthly"]["depth_words"]["deep"] == 450
           and cads["weekly"]["depth_words"]["deep"] == 420
           and cads["daily"]["depth_words"]["deep"] == 150,
@@ -244,22 +248,24 @@ def group_d() -> None:
                             subs=[{"title": "s", "paragraph": "gone"}])]}
     rd.finalize(wk, "weekly")
     s = wk["sections"][0]
-    check(len(s["paragraphs"]) == 1 and stack_mod.words(s["paragraphs"][0]) <= 220
-          and s["trimmed"] and "paragraph" not in s["subsections"][0],
-          "the Weekly keeps one paragraph cut to its band's top at a sentence, and "
-          "drops a sub-section's")
+    check(s["paragraphs"] == [long, "A second paragraph."] and s.get("over_target")
+          and not s.get("trimmed") and "paragraph" not in s["subsections"][0],
+          "the Weekly prints both paragraphs in full past its one-paragraph, 220-word "
+          "target (D20: nothing cut), records over_target, and drops the leftover "
+          "sub-section key")
     mo = {"sections": [_sec(paragraphs=[long, "A second paragraph."],
                             subs=[{"title": "s", "paragraphs": [long, "Kept."]}])],
           "detail": [{"title": "d", "paragraphs": ["Detail prose here."]}]}
     rd.finalize(mo, "monthly")
     s = mo["sections"][0]
     ss = s["subsections"][0]
-    check(len(s["paragraphs"]) == 2 and stack_mod.words(s["paragraphs"][0]) <= 450
-          and stack_mod.words(s["paragraphs"][0]) > 120 and s["trimmed"],
-          "the Monthly keeps its paragraphs, each cut at the deep allowance (450)")
-    check(len(ss["paragraphs"]) == 2 and stack_mod.words(ss["paragraphs"][0]) <= 450
-          and ss.get("trimmed"),
-          "and a sub-section keeps its own, under the same cap")
+    check(s["paragraphs"] == [long, "A second paragraph."]
+          and stack_mod.words(s["paragraphs"][0]) > 450 and s.get("over_target")
+          and not s.get("trimmed"),
+          "the Monthly prints its paragraphs in full past the deep allowance (450), "
+          "a target since D20")
+    check(ss["paragraphs"] == [long, "Kept."] and ss.get("over_target"),
+          "and a sub-section keeps its own, in full")
     total = (stack_mod.words(s["claim"]) + sum(stack_mod.words(p) for p in s["paragraphs"])
              + sum(stack_mod.words(p) for p in ss["paragraphs"]) + 3)
     check(stack_mod.edition_words(mo) == total == mo["words"],
@@ -270,7 +276,8 @@ def group_d() -> None:
     check(rd.reading_minutes(mo) == want == rd.reading_minutes(mo, 3),
           f"reading_minutes: 250 words a minute plus 20 seconds a chart, over the "
           f"whole edition ({rd.reading_minutes(mo)})")
-    check(rd.reading_target("monthly") == 55 and rd.reading_target("weekly") == 20,
+    check(rd.reading_target("monthly") == 55 and rd.reading_target("weekly") == 35
+          and rd.reading_target("daily") == 10,
           "reading_target reads the cadence's")
 
 
@@ -302,9 +309,12 @@ def group_e() -> None:
           "claim_only asks for the claim line alone")
     check(sp.section_prompt(s, "monthly", extra_notes={"plumbing": "\n\nEXTRA NOTE."})
           .endswith("EXTRA NOTE."), "a report's own notes are appended last")
-    check(sp.section_max_chars(s, "monthly") == int(sp.MAX_CHARS["deep"] * 2.5)
-          and sp.section_max_chars(s, "daily") == sp.MAX_CHARS["deep"],
-          "the runaway guard scales by the cadence's chars_scale")
+    check(sp.section_max_chars(s, "monthly") == min(int(sp.MAX_CHARS["deep"] * 2.5 * 2),
+                                                    sp.RUNAWAY_CEILING)
+          and sp.section_max_chars(s, "daily") == sp.MAX_CHARS["deep"] * 2
+          and sp.RUNAWAY_CEILING * 1.0 < 2000 * 4,
+          "the runaway guard scales by the cadence's chars_scale, doubled by D20 and "
+          "held under the call's 2,000-token output cap")
     check("the month" in sp.read_prompt("monthly") and "THE WEEK BY DAY" in
           sp.read_prompt("weekly") and "THE WEEK BY DAY" not in sp.read_prompt("daily"),
           "read_prompt carries the period, and the Weekly's own note")
@@ -525,9 +535,9 @@ def group_k() -> None:
     check(rd.reading_minutes(ed2, 0) == max(1, math.ceil(
         (before + stored) / rd.WORDS_PER_MINUTE)),
           "the reading time counts the stored words")
-    stack_mod.trim_to_budget(ed2, 1)
+    stack_mod.enforce_budget(ed2, "monthly")
     check(ed2["sections"][0]["subsections"][0]["entries"][0]["summary"] == raw,
-          "the budget cut never trims a stored summary")
+          "the budget step never trims a stored summary")
     md = sr.markdown({"sections": [s], "detail": []}, "monthly", "Monthly — x")
     check("**[Desk note (Oct)](https://ex.com/a?x=1&y=2)** — Publisher · 1 Oct 2026"
           in md and f"\n{raw}\n" in md,
@@ -600,38 +610,57 @@ def group_l() -> None:
 
 
 def group_m() -> None:
-    print(f"\n{LINE}\nM. THE BUDGET CUT (T2.7)\n{LINE}")
+    print(f"\n{LINE}\nM. TARGETS, NEVER CAPS (D19/D20, 24 Oct 2026)\n{LINE}")
     from daily_cascade import cadence as cadence_mod
     from daily_cascade import stack as stack_mod
+    from daily_cascade import stack_render as sr
     check([cadence_mod.get(c).get("trim_to_budget") for c in cadence_mod.NAMES]
-          == [False, False, True, False],
-          "config: only the Monthly trims to its budget; the close and the Weekly "
-          "fit by construction, and the Quarterly's reference is unbudgeted")
+          == [False, False, False, False],
+          "config: no cadence trims to its budget (the Monthly's cut is retired)")
+    check(not hasattr(stack_mod, "trim_to_budget"),
+          "the budget cut is gone from the code, not only switched off")
     para = "word " * 100
-    ed = {"sections": [
-        {"id": "a", "claim": "Claim a.", "paragraphs": [para, para], "trimmed": False,
-         "items": [{"text": "item"}],
-         "subsections": [{"title": "s", "paragraphs": [para]}]},
-        {"id": "b", "claim": "Claim b.", "paragraphs": [para], "trimmed": False,
-         "subsections": []}],
-        "detail": [{"title": "Appendix", "trimmed": False,
-                    "subsections": [{"title": "p", "paragraphs": [para, para]}]}]}
-    stack_mod.trim_to_budget(ed, 350)
-    a, b = ed["sections"]
-    check(ed["detail"][0]["subsections"][0]["paragraphs"] == []
-          and ed["detail"][0]["trimmed"],
-          "the appendix's paragraphs go first")
-    check(len(a["paragraphs"]) == 1 and a["trimmed"] and b["paragraphs"] == [para]
-          and stack_mod.edition_words(ed) <= 350,
-          f"then the last paragraph of a block that keeps several, until it fits "
-          f"({stack_mod.edition_words(ed)} words)")
-    check(a["claim"] == "Claim a." and a["items"] == [{"text": "item"}],
-          "a claim and an item are never cut")
-    w = {"sections": [{"id": "x", "claim": "c", "paragraphs": [para] * 5,
-                       "subsections": [], "trimmed": False}], "detail": []}
-    stack_mod.trim_to_budget(w, 0)
-    check(len(w["sections"][0]["paragraphs"]) == 5,
-          "no budget, no cut")
+    for cad in ("daily", "weekly", "monthly"):
+        ed = {"sections": [
+            {"id": "a", "title": "A", "claim": "Claim a.", "paragraphs": [para, para, para],
+             "trimmed": False, "items": [{"text": "item"}], "depth": "deep",
+             "subsections": [{"title": "s", "paragraphs": [para]}]},
+            {"id": "b", "title": "B", "claim": "Claim b.", "paragraphs": [para] * 160,
+             "trimmed": False, "subsections": [], "depth": "light"}],
+            "detail": [{"title": "Appendix", "trimmed": False,
+                        "subsections": [{"title": "p", "paragraphs": [para, para]}]}],
+            "chart_count": 2, "config_version": "x", "as_of": "2026-10-24T20:45:00+00:00"}
+        before = {"a": list(ed["sections"][0]["paragraphs"]),
+                  "b": list(ed["sections"][1]["paragraphs"]),
+                  "d": list(ed["detail"][0]["subsections"][0]["paragraphs"])}
+        stack_mod.enforce_budget(ed, cad)
+        a, b = ed["sections"]
+        t = cadence_mod.get(cad)["reading_target_minutes"]
+        from daily_cascade import readability as rd
+        n = rd.reading_minutes(ed)
+        check(a["paragraphs"] == before["a"] and b["paragraphs"] == before["b"]
+              and ed["detail"][0]["subsections"][0]["paragraphs"] == before["d"]
+              and not a.get("trimmed") and not b.get("trimmed")
+              and a["claim"] == "Claim a." and a["items"] == [{"text": "item"}],
+              f"{cad}: an edition over its target ({n} minutes against {t}) renders "
+              f"every paragraph, claim and item in full; nothing is marked trimmed")
+        line = f"This edition runs about {n} minutes against a {t}-minute target."
+        foot = sr.page_footer(ed, "r", None, "marks")
+        check(n > t and ed["target_line"] == line and line in foot
+              and line in sr.markdown(ed, cad, "T"),
+              f"{cad}: and prints one foot line, in the page and the Markdown: {line!r}")
+    small = {"sections": [{"id": "a", "claim": "c", "paragraphs": ["short."],
+                           "subsections": []}], "detail": []}
+    stack_mod.enforce_budget(small, "daily")
+    check(small["target_line"] is None
+          and "minute target" not in sr.page_footer(small, "r", None, "m"),
+          "inside its target an edition prints no foot line")
+    q = {"sections": [{"id": "a", "claim": "c", "paragraphs": [para] * 60,
+                       "subsections": []}], "detail": []}
+    stack_mod.enforce_budget(q, "quarterly")
+    check(q["target_line"] is None and len(q["sections"][0]["paragraphs"]) == 60,
+          "the Quarterly: its read is warned on by its own gate (quarterly.read_warning), "
+          "its whole edition carries no foot line, and nothing is cut")
 
 
 def group_n() -> None:

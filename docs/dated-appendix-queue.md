@@ -176,3 +176,84 @@ citation until its next revision.
 > illustrative split of one dollar, not a measurement. Half of every capex dollar
 > stays with the chipmakers; power is the second-largest bucket and the slowest to
 > build.
+
+## For item 36's housing ledger (Batch 14 item 68)
+
+The order rules the print "a dated line in item 36's ledger" (F2: a dated record,
+not a data line; NAR's index has no free series and is not pulled). Its home is
+item 36's ledger, ST-R5.36b, at its next edition; until then it waits here.
+
+> *Dated 20 Oct 2026.* NAR's Pending Home Sales Index fell to 66.0 in September
+> 2026, down 7.3% on the month and 11.3% on the year, with declines in all four
+> regions. NAR's release gives the level in its chart and the changes in its
+> text, and does not itself call the reading a record; the order's source chart
+> (a housing-data seller's post) and the trade press describe it as the lowest in
+> the index's history. It does not adjust for household growth, which is why
+> item 36's housing block now prints Redfin's pending sales per 1,000 households
+> beside the raw level. Source: NAR, "Pending Home Sales Decreased 7.3% in
+> September" (20 Oct 2026),
+> https://www.nar.realtor/newsroom/pending-home-sales-decreased-7-3-percent-in-september
+
+## For the positioning record (Batch 15 item 74)
+
+G3: the prime-brokerage figures are a dated record from public reporting, never a
+line; the positioning line runs on the CFTC's TFF report. Its home is the paper
+that next carries the positioning chapter; until then it waits here.
+
+> *Dated 22 Oct 2026.* A bank's prime-brokerage desk reported that short sales
+> had outpaced long purchases across global equities by about five to one in
+> October, that short leverage in its prime book stood at the 99th percentile of
+> its five-year history, that global fundamental long-short funds lost 2.9% in
+> the week through 15 Oct, and that Asia-focused stock pickers were down 6.8% for
+> the first half of October. These are the bank's proprietary figures as
+> reported, not measured here. Sources: Bloomberg, "Hedge Funds Pile Into Shorts
+> as Goldman Flags Stock Squeeze Risk" (22 Oct 2026),
+> https://www.bloomberg.com/news/articles/2026-10-22/hedge-funds-pile-into-shorts-as-goldman-flags-stock-squeeze-risk;
+> as republished on Yahoo Finance (22 Oct 2026),
+> https://finance.yahoo.com/markets/stocks/articles/hedge-funds-ramping-stock-shorts-195628440.html
+
+## For the AI-lab financials ledger (Batch 15 item 75)
+
+G3: the S-1 figures are one dated record, provisional until the filing is on
+EDGAR; the ledger's first row (docs/ledgers/ai-lab-financials-ledger.md) carries
+the same figures and is replaced by a filed row then.
+
+> *Dated 20 Oct 2026, PROVISIONAL.* As the Wall Street Journal reported Anthropic's
+> draft S-1: revenue of $16.3 billion in the first half of 2026, from $1.1 billion
+> a year earlier; a net loss of $80.7 billion, of which $72 billion came from
+> non-cash accounting adjustments related to convertible notes and financing
+> instruments; nearly $9 billion spent on computing capacity and infrastructure in
+> the half; roughly $450 billion of cloud compute agreements over the next decade;
+> and approximately 20% of the half's revenue from two customers. The S-1 was not
+> public on EDGAR in public reporting to 22 Oct 2026. Disclosure: item 75 concerns
+> Anthropic, the company that builds Claude, which drafted the order; this record
+> takes no view on the company. Source: Investing.com, "Anthropic revenue hits
+> $16.3 billion as preliminary S-1 outlines IPO risks - WSJ" (20 Oct 2026),
+> https://www.investing.com/news/stock-market-news/anthropic-revenue-hits-163-billion-as-preliminary-s1-outlines-ipo-risks--wsj-4960928
+
+## For the AI-credit watch and SR-16: CDS levels and AI borrowing (Batch 15 item 76)
+
+Batch 15's G3 makes the order's one-off figures dated records, not lines: the
+monthly CDS-level and borrowing rows are a listed gap, and item 76's protection-
+demand line is a listed gap as well (source check 4: DTCC publishes no keyless
+per-name CDS volumes; `docs/briefs/a58-batch15-1-notes.md`). Committed by session A
+(a58-batch15-1) as drafted, for the operator's accept-all.
+
+> *Dated mid-October 2026 (CDS levels); 20 Oct 2026 (the post).* Five-year CDS,
+> cost per $10m of protection, as charted from Morgan Stanley Research and the
+> Financial Times: CoreWeave $1.09m (about 1,090 bp; some of its bonds at
+> distressed levels); Oracle $322k (more than double on the year); SpaceX $226k
+> (a record); Meta $108k (a record); Nvidia $101k (a record). Weekly CDS traded on
+> seven AI names (Oracle, Nvidia, Meta, Amazon, Alphabet, Broadcom, SpaceX) rose
+> from under $2bn in July to more than $9bn in September, about 4.5 times.
+> Source line: a newsletter writer's post on X, 20 Oct 2026, citing Morgan Stanley
+> Research and the Financial Times (tag: newsletter writer; incentive:
+> subscriptions). As of: mid-October 2026 for the levels, September 2026 for the
+> volumes. URL: the order does not file the post's link; none is invented here.
+> Not verified against a primary source: the vendors' CDS marks are not public.
+
+> *Dated 20 Oct 2026 (as reported).* AI companies have borrowed $466bn in 2026 to
+> date, against $101bn at the same point of 2025 -- the issuance figure SR-16
+> tracks. Source line: the same post, citing Morgan Stanley Research and the
+> Financial Times. As of: 20 Oct 2026, year to date. URL: not filed in the order.
+> Not verified against a primary source.

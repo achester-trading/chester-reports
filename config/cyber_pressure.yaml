@@ -1,0 +1,42 @@
+# cyber_pressure.yaml -- signal-triage Batch 15, item 77 (written as 70;
+# ST-R6.77a), the weekly cyber-pressure line. Read by altdata/cyber_pressure.py;
+# printed in the Weekly's Ahead (the tail register's cyber family) and the
+# Digital Assets addendum's incidents section. Report only.
+version: cyber-pressure-v1
+updated: 2026-10-23
+title: "Tail register: cyber pressure"
+
+# The crypto basket's 17:25 run calls `weekly` daily; it reads on Saturdays only
+# (ET weekday 5) and skips itself otherwise. No new timer.
+run_weekday: 5
+
+kev:
+  url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+  # SESSION-SET. The catalogue launched on 3 Nov 2021 with 287 entries in one day:
+  # its seeding, not a week's exploitation. Weeks before the second week are stored
+  # and left out of the percentiles.
+  exclude_before: "2021-11-08"
+
+nvd:
+  url: "https://services.nvd.nist.gov/rest/json/cves/2.0"
+  # CVSS v3 CRITICAL is a base score of 9.0 to 10.0: the ruling's "CVSS 9.0 or
+  # higher". A CVE scored only under v4 is not counted (labelled on the line).
+  severity_param: cvssV3Severity
+  severity: CRITICAL
+  # NVD's public limit without a key: 5 requests in a rolling 30 seconds. A key
+  # raises it; that is a .env matter for the operator, not this build.
+  pause_seconds: 6.5
+  # SESSION-SET. NVD scores a CVE after publication, so a recent week's count
+  # rises for weeks: each Saturday re-reads the last 8 complete weeks as new
+  # vintages, and the line calls the newest 4 provisional.
+  reread_weeks: 8
+  provisional_weeks: 4
+  # The backfill (the operator's, once): v3 scores begin in late 2015.
+  backfill_from: "2016-01-04"
+  backfill_window_days: 119          # under the API's 120-day range limit
+  page_size: 2000
+
+# The dual percentiles: five years and the full stored history.
+lens_years: 5
+# The ruling: "a flag when both are above their 95th percentile in the same week".
+flag_pct: 95

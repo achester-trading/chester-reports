@@ -383,6 +383,17 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
     for key, fields in (reg.get("member_overrides") or {}).items():
         if key in out and isinstance(fields, dict):
             out[key].update(fields)
+    # THE MARKET-STATE BAR (6f tranche 5; ruling 12a): every key an order keeps
+    # out of the object carries `market_state: barred` and the order that bars it.
+    import fnmatch  # noqa: PLC0415
+    for bar in reg.get("market_state_barred") or []:
+        pats = list(bar.get("keys") or [])
+        for key, e in out.items():
+            if any(fnmatch.fnmatchcase(key, g) for g in pats):
+                e["market_state"] = "barred"
+                e.setdefault("market_state_barred_by", []).append(
+                    {"order": bar.get("order"), "rule": bar.get("rule"),
+                     "instruments": bar.get("instruments")})
     return out
 
 
@@ -401,6 +412,16 @@ def declared_status(e: Optional[dict]) -> Optional[str]:
     """The key's declared status, if it has one of DECLARED_STATUSES."""
     s = (e or {}).get("status_extra") or (e or {}).get("status")
     return s if s in DECLARED_STATUSES else None
+
+
+def market_state_barred(e: Optional[dict], instrument: Optional[str] = None) -> Optional[str]:
+    """The order that bars this key (or this instrument of it) from the
+    market-state object, or None (6f tranche 5)."""
+    for b in (e or {}).get("market_state_barred_by") or []:
+        inst = b.get("instruments")
+        if not inst or (instrument is not None and instrument in inst):
+            return str(b.get("order"))
+    return None
 
 
 def _leaf_field(reg: dict, name: str, field: str) -> Any:
@@ -1275,7 +1296,7 @@ def family_of(metric_id: str) -> tuple[Optional[str], str]:
     if e.get("family") in FAMILIES:
         if str(e.get("units")) in NOT_LEVEL_UNITS:
             return None, (f"declared family {e['family']}, but units {e.get('units')!r}: "
-                          f"not a level series (listed for Ari)")
+                          f"not a level series (listed for the operator)")
         return e["family"], "registry family"
     if e.get("lens_excluded"):
         return None, f"not a level series: {e['lens_excluded']}"
@@ -1297,7 +1318,7 @@ def long_window_of(metric_id: str, family: Optional[str]) -> tuple[Any, str]:
             return n, f"the registry's long_window override ({v})"
         fam_lw = LONG_WINDOW.get(family or "")
         return fam_lw, (f"the registry's long_window {v!r} is not a window; 6c's "
-                        f"{family} default (listed for Ari)")
+                        f"{family} default (listed for the operator)")
     if family == "release" and INFLATION.search(metric_id):
         return "full", "6c: inflation, full history"
     lw = LONG_WINDOW.get(family or "")

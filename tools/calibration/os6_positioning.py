@@ -33,7 +33,7 @@ may not change it):
 
 THE RIGHTS IT WOULD GRANT, STATED AND NOT GRANTED: a narrow, report-only flag in
 OS-3's lines for a component whose test passes (the DIP WATCH idea), never a
-composite or a weight, and only after Ari's ruling. A PASS reaches the register
+composite or a weight, and only after the operator's ruling. A PASS reaches the register
 only as a rule-31 draft.
 
 Public sources only (tools/calibration/README.md): Yahoo's ^VIX, ^VIX9D, ^VIX3M,
@@ -228,7 +228,7 @@ def study(d: dict, mode: str) -> dict:
             "pass_rule": PASS_RULE, "verdict": verdict,
             "rights": ("Would grant: a narrow, report-only flag in OS-3's lines for a "
                        "component whose test survives (the DIP WATCH idea), never a "
-                       "composite or a weight, and only after Ari's ruling. This ledger "
+                       "composite or a weight, and only after the operator's ruling. This ledger "
                        "grants nothing. " + C.RIGHTS_NOTE),
             "sources": [f"Yahoo Finance daily closes: {', '.join(SYMBOLS.values())} (the "
                         f"one yfinance import), retrieved {d.get('retrieved', '-')}"],

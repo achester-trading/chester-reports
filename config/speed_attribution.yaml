@@ -1,0 +1,29 @@
+# speed_attribution.yaml -- signal-triage Batch 14 item 65 (written as 58;
+# ST-R6.65a), ruled 20 Oct 2026 with filing amendments F1-F8: the 10-year
+# attribution, run automatically on speed-flag days (SR-35, the move screen's
+# 10-year companion), on item 52's event pattern, with its own event ledger.
+# Read by altdata/speed_attribution.py. A report: the speed flag's existing rights
+# stand and nothing here adds one (F5).
+version: speed-attribution-v1
+updated: 2026-10-23
+
+# The yield the flag moves on (the companion's own key) and the term-structure
+# models that split the NOMINAL 10-year into expected short rates and the term
+# premium. DKW splits the real yield and is not read here (rates_attribution.py
+# prints it beside these two).
+yield_key: fred.yield_10y
+models:
+  - {id: kw, label: "KW (Federal Reserve Board)", key: fred.term_premium_kw}
+  - {id: acm, label: "ACM (New York Fed)", key: acm.term_premium_10y}
+
+# F5: a model is read only when its observation ON the flag day is stored; a
+# model without one is "awaiting", and with none of them the attribution prints
+# "awaiting". The start of the move is the model's observation on or before the
+# yield's own start session (a model publishes on Treasury days, as the yield
+# does).
+# Session-set: how far before the start session a model's observation may sit.
+start_tolerance_days: 4
+
+# THE LEDGER (item 52's pattern): realised outcomes after the event, the
+# 10-year's change over these sessions, in basis points.
+forward_sessions: [5, 20]

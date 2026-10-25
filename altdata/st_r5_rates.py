@@ -308,13 +308,27 @@ def metro_breadth(st, cutoff: str, key: str, month: str) -> dict:
             "share": None if not n else round(falling / n, 4)}
 
 
+def per_household(pend: list[tuple[str, float]], hh: list[tuple[str, float]]
+                  ) -> list[tuple[str, float]]:
+    """Batch 14 item 68: pending sales per 1,000 households, month by month. The
+    household estimate is in thousands, so pending / households is already per
+    thousand; the latest estimate on or before each month stands in for it, and a
+    month before the first estimate is left out."""
+    out = []
+    for month, level in pend:
+        h = _on_or_before(hh, month)
+        if h and h[1]:
+            out.append((month, round(level / h[1], 4)))
+    return out
+
+
 def housing(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     cfg = cfg or config()
     c = cfg.get("housing") or {}
     pend = _pts(st, c.get("pending_key", "redfin.pending_sales"), cutoff)
     mort = _pts(st, c.get("mortgage_key", "fred.mortgage_30y"), cutoff)
     # Redfin alone, single-source (ruled 16 Oct 2026: no recurring by-hand line
-    # without Ari's yes, so NAR's index, which has no free series, is dropped).
+    # without the operator's yes, so NAR's index, which has no free series, is dropped).
     out: dict[str, Any] = {
         "single_source": True,
         "mortgage": None if not mort else {"rate": mort[-1][1], "as_of": mort[-1][0],
@@ -334,7 +348,28 @@ def housing(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
                breadth=metro_breadth(st, cutoff, c.get("metro_key", "redfin.metro_pending_sales"),
                                      month),
                universe=int(c.get("metro_universe", 50)))
+    # Batch 14 item 68 (b55): the per-household line, beside the raw level.
+    hh = _pts(st, c.get("households_key", "fred.households"), cutoff)
+    ph = per_household(pend, hh)
+    out["per_household"] = (
+        {"absent": True, "reason": "the Census household estimates (FRED TTLHHM156N) "
+                                   "are not stored yet"} if not hh else
+        {"absent": True, "reason": "no stored month has a household estimate on or "
+                                   "before it"} if not ph or ph[-1][0] != month else
+        {"absent": False, "month": ph[-1][0], "value": ph[-1][1],
+         "households_k": _on_or_before(hh, month)[1],
+         "households_as_of": _on_or_before(hh, month)[0],
+         "lens": lens(ph, int(c.get("per_household_years", 5)))})
     return out
+
+
+def per_household_line(ph: dict, mon: str) -> str:
+    if ph.get("absent"):
+        return f"Pending sales per 1,000 households: not read — {ph['reason']}."
+    return (f"Pending sales per 1,000 households (Redfin over the Census household "
+            f"estimates via FRED, single-source, {mon}): {ph['value']:.2f} "
+            f"({ph['households_k']:,.0f} thousand households, {ph['households_as_of']}; "
+            f"{lens_text(ph['lens'])}).")
 
 
 def housing_lines(h: dict) -> list[str]:
@@ -353,6 +388,9 @@ def housing_lines(h: dict) -> list[str]:
         lines.append(f"Pending home sales (Redfin, single-source, {mon}): "
                      f"{h['pending']:,.0f}{yoy}"
                      + (f"; {', '.join(sup)}" if sup else "") + ".")
+        ph = h.get("per_household")
+        if ph:
+            lines.append(per_household_line(ph, mon))
         b = h["breadth"]
         if b["n"]:
             lines.append(f"Metro breadth: {b['falling']} of {b['n']} top metros with "

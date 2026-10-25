@@ -7,7 +7,7 @@ architecture Part 26.2 #6).
     python -m altdata.security_master export [--out PATH]   # chester-meme's contract
     python -m altdata.security_master draft-box [--store PATH]  # box: print YAML
 
-config/security_master.yaml IS THE SOURCE OF TRUTH: in git, reviewed by Ari.
+config/security_master.yaml IS THE SOURCE OF TRUTH: in git, reviewed by the operator.
 This module loads it and serves it. It was seeded once by
 tools/seed_security_master.py from the maps the code already keeps; the call
 sites keep their own maps for now, and move to the master one at a time later.

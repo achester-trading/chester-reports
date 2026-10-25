@@ -537,6 +537,18 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     subs = gtm_block.place_mechanics(
         subs, gtm_block.mechanics_subsections(st, now, "monthly"),
         after_panel=fcf["title"] if fcf else None)
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from daily_cascade import batch14_b1_block                   # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, now)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the month's sessions. Tables and lines only.
+    from daily_cascade import batch15_a_block                    # noqa: PLC0415
+    subs = batch15_a_block.mechanics_subsections(subs, st, now, first, last)
+    # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+    # degree days beside natural gas after the oil-shock signature.
+    from daily_cascade import b59_block                          # noqa: PLC0415
+    subs = b59_block.mechanics_subsections(subs, st, now, first, last)
     # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
     from daily_cascade import batch5_block                       # noqa: PLC0415
     sb = batch5_block.mechanics_subsection(st, now)
@@ -1463,7 +1475,9 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     # rows its tables print, appear in those tables, so each fact prints once.
     skip = set(gtm.config().get("printed_scan_rows") or [])
     rows = [r for r in rows if not str(r["metric"]).startswith(gtm.METRIC_PREFIX)
-            and r["metric"] not in skip]
+            and r["metric"] not in skip
+            # Batch 14 item 62 (b55): the CMA editions print in their own table.
+            and not str(r["family"]).startswith("cma-")]
     subs, items, data = [], [], []
     by_fam: dict[str, list] = {}
     for r in rows:
@@ -1834,6 +1848,20 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
     if st is not None and now:
         from daily_cascade import t1_rest_block                 # noqa: PLC0415
         subs += t1_rest_block.slow_subsections(st, now)
+        # BATCH 15 ITEM 72 (a58): institutional gold-ETF ownership (13F), right
+        # after item 38's gold/equity ratio, report only.
+        from daily_cascade import batch15_a_block                # noqa: PLC0415
+        subs = batch15_a_block.place_slow(subs, st, now)
+        # 6f TRANCHE 3 (a62): the tail families and the debt-cycle branch, read
+        # from the stored object; report only.
+        from daily_cascade import state_v2_block                 # noqa: PLC0415
+        subs += state_v2_block.slow_subsections(st, now)
+        # 6f TRANCHE 2 (a63): the dials' transitions, and the dimensions' unledgered.
+        subs += state_v2_block.calibration_subsection(st, now, dimensions=True)
+        # D26 (b59): Factor III's GDELT lines and Factor I-b's model releases,
+        # right after the Factor lines; report only.
+        from daily_cascade import b59_block                      # noqa: PLC0415
+        subs = b59_block.place_slow(subs, st, now)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)
@@ -1849,6 +1877,14 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         subs[-1]["not_tracked"].append(
             "the scans' sourced figures: no scan ingested by this edition's cutoff")
     subs += src_subs
+    # SIGNAL-TRIAGE BATCH 14, ITEM 62 (b55): the cross-house CMA table, from the
+    # stored CMA scans (their families are left out of the sourced figures above,
+    # so each figure prints once).
+    if now:
+        from daily_cascade import batch14_b2_block               # noqa: PLC0415
+        cma_sub = batch14_b2_block.slow_subsection(now, db_path)
+        if cma_sub:
+            subs.append(cma_sub)
     # FACTOR I, THE REAL ECONOMY (ST-R4.23a, Batch 5 item 23): construction
     # spending, real -- data centers and the rest. No rights until the
     # Disruptive Themes refresh; held until D1c, it prints why.
@@ -2266,6 +2302,10 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 built[sid] = fn()
             except Exception as exc:                            # noqa: BLE001
                 built[sid] = _fault(sid, exc)
+        # D26 (b59): GDELT's articles per story beside the narrative register.
+        if st is not None and built.get("narratives") is not None:
+            from daily_cascade import b59_block                  # noqa: PLC0415
+            b59_block.monthly_narratives(built["narratives"], st, now)
         retro = built["mechanics"].pop("_retro", None)
         printed = [(k, "tape") for k in sorted(on_tape)]
         for sid in ("plumbing", "narratives"):
@@ -2287,7 +2327,12 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 at = max((i for i, x in enumerate(subs)
                           if str(x.get("title") or "").startswith("Themes: digital")),
                          default=at)
-                subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
+                cb_subs = crypto_blocks.monthly_slow(st, now)
+                # SIGNAL-TRIAGE BATCH 15, ITEM 78 (b56): DefiLlama's active-
+                # protocol count, after the network-health rows.
+                from daily_cascade import batch15_b2_block      # noqa: PLC0415
+                pbs = batch15_b2_block.protocol_subsection(st, now)
+                subs[at + 1:at + 1] = cb_subs + ([pbs] if pbs else [])
             except Exception:                                   # noqa: BLE001
                 log.warning("crypto data layer unavailable", exc_info=True)
             # THE DIGITAL ASSET MECHANISM WATCH PART (ST-14, 2.7.6; st-t5-render,
@@ -2653,12 +2698,11 @@ def summary_minutes(ed: dict) -> int:
 # ---------------------------------------------------------------------------
 def enforce_budget(ed: dict) -> dict:
     """The stacked reports' guard at the Monthly's cadence
-    (daily_cascade.stack.enforce_budget): each paragraph cut to its section's
-    depth allowance, The read's sentences not repeated elsewhere, then over the
-    budget the lowest-priority paragraphs go and the block prints "(trimmed)".
-    A claim, an item, a line, a table and a reading entry are never cut. The
-    reading time is the shared estimate, which counts the stored text the
-    Reading chapter prints (readability.stored_words)."""
+    (daily_cascade.stack.enforce_budget): The read's sentences not repeated
+    elsewhere; since D19/D20 (24 Oct 2026) nothing is cut for length -- the
+    10,000 words and the 55 minutes are targets, and over them the edition prints
+    one foot line. The reading time is the shared estimate, which counts the
+    stored text the Reading chapter prints (readability.stored_words)."""
     stack_mod.enforce_budget(ed, CADENCE)
     ed["reading_minutes"] = rd.reading_minutes(ed)
     if ed.get("summary"):

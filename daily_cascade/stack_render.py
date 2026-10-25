@@ -578,6 +578,10 @@ def page_footer(ed: dict, run_id: Optional[str], archive_path: Optional[str],
             f"as-of cutoff {esc(rd.stamp_et(ed.get('as_of')))} &middot; run "
             f"{esc(run_id_display(run_id))}")
     lines = [meta, esc(marks)]
+    # D19/D20 (24 Oct 2026): an edition over its reading target renders in full
+    # and says so here, in one line; nothing was cut or withheld to fit.
+    if ed.get("target_line"):
+        lines.insert(0, esc(ed["target_line"]))
     # AUD-2 item 4: the model meter -- the close's one line, the Monthly's month
     # by report. Tokens, never dollars.
     for x in ([ed["model_line"]] if ed.get("model_line") else []) + list(
@@ -891,6 +895,8 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
             for ss in d.get("subsections") or []:
                 out += _md_sub(ss, cad, charts, "####", with_charts=False)
             out += _md_foot(foot_parts(d, False, _trimmed_note(cad)))
+    if ed.get("target_line"):
+        out.append(f"\n*{ed['target_line']}*")
     out.append(f"\n*Stack {ed.get('config_version')} · "
                f"{rd.plural(int(ed.get('words') or 0), 'word')} · "
                f"{rd.plural(int(ed.get('chart_count') or 0), 'chart')} · run "

@@ -3846,6 +3846,104 @@ metrics:
       event (instrument = the event's date) with its attribution and its realised
       5- and 20-session SPX and VIX outcomes; a resolution is a new vintage, never
       an overwrite. No modifier right before 30 events.
+  rates.speed_event_ledger:
+    source: speed_attribution
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 14 item 65 (ST-R6.65a; a57-batch14-b1): the speed-flag attribution's
+      event ledger, one JSON row per day SR-35's 10-year companion fired
+      (instrument = the day), written by the close: the trigger, each
+      term-structure model's split of the 10-year's move into expected short
+      rates and the term premium ("awaiting" until the model's input for the
+      day is stored, F5), and the 10-year's realised 5- and 20-session change.
+      A resolution is a new vintage, never an overwrite. A report: no right.
+  gold.event_ledger:
+    source: gold_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 73 (ST-R6.73a; a58-batch15-1): the gold event's ledger, one
+      JSON row per day gold (GC=F) moved 2.5% or more on the day or beyond its
+      95th percentile over five sessions (instrument = the day), written by the
+      close and by the history command: the trigger, each leg's change (real
+      10-year, DXY, Brent; "awaiting" until the leg's input is stored), the
+      not-tracked ETF-flow leg, the IMF IFS central-bank trend, the residual line,
+      and gold's realised 5- and 20-session change. A resolution is a new vintage,
+      never an overwrite. A flag: no composite input.
+  equity.dm_drawdown_ledger:
+    source: dm_drawdown
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 73 (ST-R6.73b; a58-batch15-1): the developed-market drawdown
+      screen's ledger, one JSON row per index and day (instrument =
+      "<index>:<day>") whose 10- or 20-session drawdown was beyond its 95th
+      percentile on five years: Nikkei 225 (FRED), KOSPI and TAIEX (ETF proxies,
+      EWY and EWT). The trigger, the attribution legs (local currency, local
+      10-year or "not tracked", the prior US session, Japan's carry stack and
+      SR-32's early line, item 63's capex-chain line) and the index's realised 5-
+      and 20-session change. A resolution is a new vintage. A flag: no composite
+      input.
+  sec13f.gold_etf_holders:
+    source: sec_13f
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 72 (ST-R6.72a; a58-batch15-1): the number of 13F filers
+      reporting a share position in GLD, IAU or either (instrument GLD, IAU,
+      BOTH), at the quarter end (observed_at), counted from SEC EDGAR's Form 13F
+      data sets by altdata/gold_13f.py. Written only for a quarter the loaded
+      files cover through its 45-day deadline; a later load is a new vintage.
+      Report only.
+  sec13f.gold_etf_value_usd:
+    source: sec_13f
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 72: the value 13F filers report for their GLD, IAU or either
+      position (instrument GLD, IAU, BOTH), DOLLARS (VALUE is thousands for
+      filings before 3 Jan 2023 and is scaled), at the quarter end. Report only.
   calc.vol_compression:
     source: vol_event
     mechanism_group: market_state
@@ -10418,6 +10516,286 @@ metrics:
       Shiller's real home price index, 1890 = 100 (Fig3-1.xls, Irrational
       Exuberance's Figure 3.1 as updated by the author): annual 1890-1952, monthly
       from January 1953. Batch 14 item 69's percentile since 1890 (a56).
+  cyber.kev_added_week:
+    source: cisa_kev
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      CISA's Known Exploited Vulnerabilities catalogue: the entries added in the
+      ISO week (Monday to Sunday) by their dateAdded; observed_at = the week's
+      Monday. The catalogue's first week (its seeding, 287 entries on 3 Nov 2021)
+      is stored and left out of the percentiles. Batch 15 item 77 (b56).
+  cyber.nvd_critical_week:
+    source: nvd
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      NVD's CVE API 2.0: CVEs published in the ISO week with a CVSS v3 severity of
+      CRITICAL (a base score of 9.0 or higher); observed_at = the week's Monday.
+      REVISED: NVD scores a CVE after publication, so each Saturday re-reads the
+      last 8 weeks as new vintages. Batch 15 item 77 (b56).
+  rates.oneday_event_ledger:
+    source: oneday_10y
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      D15 (rulings of 24 Oct 2026; b59): the one-day 10-year trigger's event
+      ledger, one JSON row per day the 10-year's one-day change passed its
+      five-year 97.5th percentile (instrument = the day), written by the close:
+      the trigger, each term-structure model's one-session split ("awaiting"
+      until its input is stored) and the 10-year's 5- and 20-session change.
+      A resolution is a new vintage. Report only: no right, no market-state input.
+  gdelt.events_total:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Every event added that day. Report only.
+  gdelt.source_urls_total:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      The distinct source articles among the day's events. Report only.
+  gdelt.conflict_events:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family (config/gdelt.yaml): events with CAMEO
+      root codes 18-20 whose actors, action location or dyad match it.
+      Report only.
+  gdelt.reduce_relations_events:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: events with CAMEO root code 16 (reduce
+      relations: sanctions, embargoes; economic warfare). Report only.
+  gdelt.conflict_share:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: its conflict events per 10,000 of the day's
+      events, so the level does not move with GDELT's volume or file layout (1.0
+      daily files in the backfill, 2.0 15-minute exports live). Report only.
+  gdelt.avg_tone:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: the mean AvgTone of all its events
+      (any root code). Report only.
+  gdelt.narrative_mentions:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the story (config/narratives.yaml): distinct articles whose
+      address carries one of its declared phrases (config/gdelt.yaml). Attention,
+      not agreement. Report only.
+  noaa.hdd_pop:
+    source: noaa_cpc
+    mechanism_group: reference_library
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      NOAA CPC's daily heating degree days, population-weighted (D26, b59;
+      altdata/sources/cpc_degree_days.py); instrument = conus or the census
+      division; from 1981. The newest days are preliminary: a changed value is a
+      new vintage. The normal (1991-2020) is computed on read. Report only.
+  noaa.cdd_pop:
+    source: noaa_cpc
+    mechanism_group: reference_library
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      NOAA CPC's daily cooling degree days, population-weighted (D26, b59);
+      instrument = conus or the census division; from 1981. Report only.
+  ai.model_releases_week:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      The Hugging Face model-release watch (D26, b59; altdata/sources/hf_releases.py):
+      instrument = the organisation (config/ai_release_watch.yaml); the public
+      model repositories created in the ISO week, observed_at = its Monday (UTC).
+      Recounted for 4 weeks (a late-published repository is a new vintage); the
+      backfill's weeks are reconstructed from createdAt. Report only.
+  ai.model_releases_week_total:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      The same count over every declared organisation (D26, b59); written only
+      when every organisation was read. Report only.
+  ai.model_release_event:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      One JSON row per new public model repository (D26, b59): instrument = its
+      id, observed_at = its creation day, available_at = the pull that first saw
+      it (never createdAt). Counts and dates only. Report only.
+  defillama.protocols_listed:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      DefiLlama's protocol list (api.llama.fi/protocols), the protocols neither
+      marked dead (deadFrom) nor deprecated, counted on the day of the pull. A
+      daily snapshot from the first pull: the endpoint serves today's list only.
+      Batch 15 item 78 (b56).
+  defillama.protocols_active:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Of defillama.protocols_listed, those with a TVL above zero on the day of the
+      pull: the active-protocol count, crypto's supply-side breadth proxy. A daily
+      snapshot from the first pull. Batch 15 item 78 (b56).
   worldbank.cmo_total:
     source: worldbank_cmo
     mechanism_group: commodity_prices
@@ -13426,6 +13804,21 @@ metrics:
     trigger_eligible: false
     description: >-
       S3b funding stress: SOFR less interest on reserve balances, bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cp_bill_bp:
+    # Its inputs' lags are FRED's daily ones (6f, ruling 6a).
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      6f funding_stress (ruling 6a of 24 Oct 2026): 90-day AA financial commercial paper (fred.fin_cp_3m, DCPF3M) less the 3-month bill (fred.tbill_3m, DTB3), bp. Same-day only; altdata/macro_6e.py.
   calc.sofr_effr_bp:
     source: derived_state
     mechanism_group: macro_liquidity
@@ -16330,6 +16723,32 @@ bulk_imports:
     mechanism_group_map:
       "2": macro_momentum
 
+  fred_households:
+    description: >-
+      The per-household deflator (signal-triage Batch 14, item 68, ST-R6.61a;
+      b55, 23 Oct 2026; F3): the Census Bureau's household estimates (FRED
+      TTLHHM156N), THOUSANDS, not seasonally adjusted, monthly. Redfin's pending
+      sales divided by it make item 36's per-household line, single-source (NAR's
+      index has no free series). See altdata/config.py FRED_HOUSEHOLDS_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_HOUSEHOLDS_SERIES
+    member_families:
+      fred.households: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
   fred_bank_stress:
     description: >-
       Signal-triage Batch 12, item 59 (ST-R6.59a; a53, 20 Oct 2026): the
@@ -16373,6 +16792,65 @@ bulk_imports:
     mechanism_group_map:
       "3": macro_liquidity
       "6": macro_valuation_credit
+
+  fred_batch14_b1:
+    description: >-
+      Signal-triage Batch 14, Part B1 (items 65 and 71; a57-batch14-b1, 23 Oct
+      2026): item 65's AI-bottleneck PPI lines in item 46's pipeline -- BLS's PPI
+      by industry for printed circuit assemblies (PCU334418334418, Dec 2003 =
+      100), computer storage devices (PCU334112334112) and semiconductors
+      (PCU334413334413), indexes, NSA, monthly, through FRED (F3) -- and item
+      71's capitalisation: Z.1's all-sector corporate equities at market value
+      (BOGZ1LM893064105Q, MILLIONS, quarterly), the denominator of margin debt's
+      share. Ids and units read off FRED 23 Oct 2026; see altdata/config.py
+      FRED_BATCH14_B1_SERIES. Report only.
+    source: fred
+    members_from: altdata.config.FRED_BATCH14_B1_SERIES
+    member_families:
+      fred.ppi_pcb_assembly: release
+      fred.ppi_storage_devices: release
+      fred.ppi_semiconductors: release
+      fred.z1_equities_mv: quantity
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 4
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "4": macro_inflation
+      "6": macro_valuation_credit
+
+  fred_batch15_a:
+    description: >-
+      Signal-triage Batch 15 item 73 (a58-batch15-1, 23 Oct 2026): the
+      developed-market drawdown screen's FRED index, NIKKEI225 (Nikkei Stock
+      Average, index, daily close, from 1949-05-16), read off FRED 23 Oct 2026;
+      see altdata/config.py FRED_BATCH15_A_SERIES. A flag's input only.
+    source: fred
+    members_from: altdata.config.FRED_BATCH15_A_SERIES
+    member_families:
+      fred.nikkei225: price
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "7": macro_global_fx
 
   fred_aq3:
     description: >-
@@ -16536,7 +17014,7 @@ bulk_imports:
       yfinance.mkt_dspx: vol_index
       yfinance.mkt_cor1m: index_points
       yfinance.mkt_cor3m: index_points
-    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -16593,7 +17071,7 @@ bulk_imports:
     family: quantity
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 94   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
+    expected_members: 97   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -16754,7 +17232,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -17584,6 +18062,11 @@ families:
   yfinance.mkt_vix6m: conditions
   vol.event_day: conditions
   vol.event_ledger: conditions
+  rates.speed_event_ledger: conditions
+  gold.event_ledger: conditions
+  equity.dm_drawdown_ledger: conditions
+  sec13f.gold_etf_holders: quantity
+  sec13f.gold_etf_value_usd: quantity
   calc.vol_compression: conditions
   calc.net_liquidity: quantity
   fred.bank_reserves: quantity
@@ -17659,7 +18142,7 @@ families:
   edgar.xbrl_mu_inventory: quantity
   edgar.xbrl_mu_cogs_q: quantity
   # 6e (15 Oct 2026): every other individually registered level series,
-  # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari.
+  # by tools/assign_families.py; `# ambiguous:` marks one listed for the operator.
   aaii.bull_bear_spread: ratio
   acm.fitted_yield_10y: rate
   acm.risk_neutral_yield_10y: rate
@@ -18298,6 +18781,21 @@ families:
   shiller.cape: ratio
   shiller.cpi: price
   shiller.real_home_price: price
+  cyber.kev_added_week: quantity
+  cyber.nvd_critical_week: quantity
+  gdelt.events_total: quantity
+  gdelt.source_urls_total: quantity
+  gdelt.conflict_events: quantity
+  gdelt.reduce_relations_events: quantity
+  gdelt.conflict_share: ratio
+  gdelt.avg_tone: conditions
+  gdelt.narrative_mentions: quantity
+  noaa.hdd_pop: conditions
+  noaa.cdd_pop: conditions
+  ai.model_releases_week: quantity
+  ai.model_releases_week_total: quantity
+  defillama.protocols_listed: quantity
+  defillama.protocols_active: quantity
   shiller.gs10: rate
   shiller.sp_dividend: price
   shiller.sp_earnings: price
@@ -18471,6 +18969,65 @@ member_overrides:
   portfolio.position_unrealized_pnl: {status_extra: while_held}
   portfolio.position_currency: {status_extra: while_held}
   portfolio.position_con_id: {status_extra: while_held}
+
+# -----------------------------------------------------------------------------
+# MARKET_STATE_BARRED (6f tranche 5; ruling 12a of 24 Oct 2026). Every key an
+# order keeps out of the market-state object, seeded from the order that bars it.
+# resolve_registry sets `market_state: barred` and `market_state_barred_by` on
+# each key a pattern matches (globs over store keys); `instruments`, where given,
+# bars only those instruments of the key. tools/validate_regime.py group V2
+# refuses a barred key (or instrument) as a member of any dimension, a dial's
+# leg or a horizon read. `pending` names a branch whose keys are not on this base
+# yet: the pattern is seeded now so the bar is in force the day they land.
+# -----------------------------------------------------------------------------
+market_state_barred:
+  - order: docs/change-order-signal-triage-2026-09-25.md (MW-2, R9)
+    rule: "no calc.prl_* path to a composite, overlay, trigger, dial or dimension"
+    keys: ["calc.prl_*"]
+  - order: docs/change-order-signal-triage-2026-09-25.md (2.3.6, SR-19)
+    rule: "narrow flag, conditioner only"
+    keys: ["calc.neg_beta_share_*"]
+  - order: the 30 Sep 2026 withdrawal of rates.driver (ST-3; docs/market-state.md 4)
+    rule: "the rates attribution is not read by regime.py; the object has no rates sub-state"
+    keys: ["calc.attr_*"]
+  - order: ST-5, held by tools/validate_st_t2_rates.py group L
+    rule: "no ST-5 key or candidate row is in the market-state config; regime imports nothing of ST-5"
+    keys: ["calc.jp_front_diff", "calc.jp_front_diff_60d", "calc.jpy_pos_z",
+           "calc.jp_hedged_carry", "calc.usdjpy_rvol_20d", "calc.jpy_unwind",
+           "calc.cny_fix_dev", "calc.uscn_10y_spread", "calc.deval_tell"]
+  - order: docs/change-order-signal-triage-batch-11-2026-10-19.md (section 1; registry ruling 2 of 19 Oct)
+    rule: "no vendor value in any flag, tell, dial, decision or engine; vendor keys are never lensed"
+    keys: ["vendor.*", "dealer.vendor_*"]
+  - order: config/prediction_markets.yaml (the rights; Part 27)
+    rule: "discovery, attention shock and disagreement, and nothing else; never a trigger"
+    keys: ["pm.*"]
+  - order: docs/change-order-signal-triage-batch-14-2026-10-20.md (F5, items 62-71)
+    rule: "nothing enters a composite or the market-state object"
+    keys: ["rates.speed_event_ledger", "fred.ppi_pcb_assembly", "fred.ppi_storage_devices",
+           "fred.ppi_semiconductors", "fred.z1_equities_mv", "fred.households",
+           "shiller.real_home_price", "yfinance.mkt_aiq", "yfinance.mkt_spxt",
+           "yfinance.mkt_smh", "yfinance.mkt_mu", "yfinance.mkt_amd", "yfinance.mkt_grid",
+           "yfinance.mkt_anet", "yfinance.mkt_vrt", "yfinance.mkt_pave", "yfinance.mkt_asml"]
+  - order: docs/change-order-signal-triage-batch-14-2026-10-20.md (F5, item 71) and ruling D13 of 24 Oct 2026
+    rule: "the five funds joined the fragility panel's rebalance estimate; nothing enters the object"
+    keys: ["levetf.aum", "levetf.shares_outstanding", "levetf.nav"]
+    instruments: [QID, UDOW, SDOW, URTY, SRTY]
+  - order: docs/change-order-signal-triage-batch-15-2026-10-23.md (section 1, items 72, 73, 77, 78; the configs' headers)
+    rule: "no composite weights change; rights are flags and report lines only; nothing enters the market-state object"
+    keys: ["sec13f.*", "gold.event_ledger", "equity.dm_drawdown_ledger", "fred.nikkei225",
+           "cyber.*", "defillama.protocols_*"]
+  - order: docs/change-order-signal-triage-batch-15-2026-10-23.md (item 74; config/hf_positioning.yaml)
+    rule: "no composite and no market-state object reads it"
+    keys: ["cftc.tff_lev_money_net", "cftc.tff_lev_money_net_oi", "cftc.tff_lev_money_long",
+           "cftc.tff_lev_money_short"]
+    instruments: [ES, NQ]
+  - order: ruling D22 of 24 Oct 2026 (Batch 15 item 74, a61)
+    rule: "hedge-fund performance (QAI, replication proxy): report only"
+    keys: ["yfinance.mkt_qai"]
+  - order: rulings D15 and D26 of 24 Oct 2026 (b59-trigger-sources; its configs' headers)
+    rule: "report only: nothing here enters a composite or the market-state object"
+    keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
+    pending: b59-trigger-sources
 
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
@@ -18949,3 +19506,5 @@ lens_excluded:
   structure_comparison: "labels"
   zec.cap_probe: "units 'label': not a level series"
   zec.shielded_probe: "units 'label': not a level series"
+  rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
+  ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"

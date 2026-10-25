@@ -215,6 +215,33 @@ VR_OUT="$("$VENV_PY" -m altdata.vol_event resolve 2>&1 | tail -3)"
 VR_RC=$?
 printf '%s\n' "$VR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $VR_RC -ne 0 ]] && log "WARN vol_event resolve exited $VR_RC -- continuing"
+# BATCH 14 ITEM 65: the speed-flag ledger's awaiting attributions, once the
+# term-structure models' inputs land, and its realised 5- and 20-session
+# outcomes (a new vintage, never an overwrite). Warn-only, as above.
+log "speed attribution: resolve the ledger"
+SR_OUT="$("$VENV_PY" -m altdata.speed_attribution resolve 2>&1 | tail -3)"
+SR_RC=$?
+printf '%s
+' "$SR_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $SR_RC -ne 0 ]] && log "WARN speed_attribution resolve exited $SR_RC -- continuing"
+# D15 (b59, rulings of 24 Oct 2026): the one-day 10-year trigger's ledger, its
+# awaiting attributions and its realised 5- and 20-session outcomes (a new
+# vintage, never an overwrite). Warn-only, as above.
+log "one-day 10-year: resolve the ledger"
+OD_OUT="$("$VENV_PY" -m altdata.oneday_10y resolve 2>&1 | tail -3)"
+OD_RC=$?
+printf '%s\n' "$OD_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $OD_RC -ne 0 ]] && log "WARN oneday_10y resolve exited $OD_RC -- continuing"
+# BATCH 15 ITEM 73: the gold-event and DM-drawdown ledgers' awaiting legs, once
+# their inputs land, and their realised 5- and 20-session outcomes (a new vintage,
+# never an overwrite). Warn-only, as above.
+for AE in gold_event dm_drawdown; do
+  log "$AE: resolve the ledger"
+  AE_OUT="$("$VENV_PY" -m "altdata.$AE" resolve 2>&1 | tail -3)"
+  AE_RC=$?
+  printf '%s\n' "$AE_OUT" | sed 's/^/  /' >>"$LOG"
+  [[ $AE_RC -ne 0 ]] && log "WARN $AE resolve exited $AE_RC -- continuing"
+done
 
 # THE VOLUME PROFILE'S STORED SERIES (VP-1): calc.vp_<id>_session_* and _20s_*
 # for spy, qqq and iwm, from the 5-minute bars the feeds step just landed, for the

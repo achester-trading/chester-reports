@@ -56,11 +56,15 @@ from . import opener as opener_mod
 READ_DEPTH = "deep"
 DEPTH_PARAGRAPHS = {"deep": "2 to 3", "medium": "1", "light": "0", "short": "0",
                     "line": "0"}
-# Runaway guards, not style rules: a one-sentence section is cut to its first
-# sentence after the audit, so its guard only has to catch a reply that lost
-# the thread.
+# Runaway guards, not style rules: each only has to catch a reply that lost the
+# thread. Since D19/D20 (24 Oct 2026) a reply under its guard prints in full: a
+# section asked for one sentence is no longer cut to its first.
 MAX_CHARS = {"deep": 2600, "medium": 1400, "light": 1600, "short": 1600,
              "line": 1200}
+# D19/D20: each ceiling doubled (runaway()), and capped under the call's output
+# limit: 2,000 tokens (narrative.MAX_TOKENS) is about 8,000 characters.
+RUNAWAY_SCALE = 2.0
+RUNAWAY_CEILING = 7000
 # The per-1% hedge-flow metric's own 1 (payload.NARRATIVE_UNIT_CONSTANTS).
 UNIT_CONSTANTS = [1.0]
 
@@ -996,9 +1000,19 @@ def section_slice(s: dict, ed: dict, cadence: str = "daily") -> dict:
     return _slice(s, ed)
 
 
+def runaway(chars: float) -> int:
+    """A ceiling as a RUNAWAY GUARD (D19/D20, 24 Oct 2026): the depth's old
+    ceiling doubled, so a reply that merely runs long prints in full, and never
+    above RUNAWAY_CEILING, under the model call's output cap
+    (narrative.MAX_TOKENS, about 8,000 characters), so no reply is cut off by the
+    provider mid-sentence. It catches a reply that lost the thread; it is not a
+    reading budget."""
+    return int(min(chars * RUNAWAY_SCALE, RUNAWAY_CEILING))
+
+
 def section_max_chars(s: dict, cadence: str = "daily") -> int:
     """The section's runaway guard at `cadence` (not a style rule)."""
-    return int(MAX_CHARS.get(s["depth"], 900) * float(cadence_of(cadence)["chars_scale"]))
+    return runaway(MAX_CHARS.get(s["depth"], 900) * float(cadence_of(cadence)["chars_scale"]))
 
 
 def read_prompt(cadence: str = "daily", base=None) -> str:
@@ -1170,8 +1184,12 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             sents = _sentences(res["text"].split("\n\n")[0])
             s["claim"] = sents[0] if sents else res["text"]
             rest = res["text"][len(s["claim"]):].strip()
-            s["paragraphs"] = ([re.sub(r"\s+", " ", rest)] if rest and paras != "0"
-                               else [])
+            # D19/D20 (24 Oct 2026): nothing is cut for length, so a section
+            # asked for its claim alone (`paras` "0") still prints the rest of
+            # an audited reply in full; the prompt's shape is a target.
+            s["paragraphs"] = [re.sub(r"\s+", " ", rest)] if rest else []
+            if rest and paras == "0":
+                s["over_target"] = True
         else:
             s["claim"] = None
             s["withheld"] = res.get("reason")
@@ -1203,7 +1221,7 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         rp["week_by_day"] = read.get("table")
         rp["press_attributions"] = [i["text"] for i in read["items"]
                                     if i["key"].startswith("read:attr")]
-    res = run("read", rp, read_sys, int(cad["read_chars"]))
+    res = run("read", rp, read_sys, runaway(int(cad["read_chars"])))
     results["read"] = res
     if res.get("published"):
         sents = _sentences(res["text"])

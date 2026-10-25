@@ -206,17 +206,20 @@ def main() -> int:
               for h in heads),
           "What's priced: 'what markets and surveys expect, not how they're positioned'")
     # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts);
-    # ST-R4.27a puts Treasury moves by session under the CFTC table.
+    # ST-R4.27a puts Treasury moves by session under the CFTC table; Batch 15 item
+    # 74 (b56) the hedge-fund positioning line right after the CFTC table.
     check([ss["title"] for ss in sec["positioning"]["subsections"]] ==
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
+           "Hedge-fund positioning (CFTC leveraged funds)",
            "Treasury moves by session: overnight against the US session",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
            "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash",
            "Crypto flows"],
-          "Positioning in ten sub-sections, each with its table (the eighth, ST-R4.27a's "
-          "Treasury moves by session; the ninth, Batch 6 item 30's allocation block; the "
-          "crypto flows block last, Batch 4 Tranche A)")
+          "Positioning in eleven sub-sections, each with its table (the third, Batch 15 "
+          "item 74's hedge-fund positioning; ST-R4.27a's Treasury moves by session; "
+          "Batch 6 item 30's allocation block; the crypto flows block last, Batch 4 "
+          "Tranche A)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the

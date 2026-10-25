@@ -22,8 +22,8 @@ a real position or a real price:
   E INTRADAY   fewer than 90% of the session's bars: "bars incomplete", C1 omitted;
                the bars feed (16:10 eod) retries a missing final bar for five
                minutes and owns the table; the close fetches nothing.
-  F BUDGET     an over-budget edition drops low-priority lines and prints
-               "(trimmed)" at the section.
+  F BUDGET     targets, never caps (D19/D20): an edition over its target renders
+               every paragraph and prints one foot line; nothing is "(trimmed)".
   G LEDGER     outlooks are computed from stored closes, recorded before printing,
                recorded once per session, and NOT recorded on a dry run.
   H SCORECARD  the dealer-scorecard row the Monthly will read is stored.
@@ -714,14 +714,16 @@ def main() -> int:
 
     # --- F. BUDGET ------------------------------------------------------------------
     print(f"\n{LINE}\nF. BUDGET\n{LINE}")
-    check(ed1["words"] <= 1000, f"the fixture edition is inside 1,000 words "
-                                f"({ed1['words']})")
+    check(ed1["words"] <= 2250 and not ed1.get("target_line"),
+          f"the fixture edition is inside its 2,250-word, 10-minute target, with no "
+          f"foot line ({ed1['words']})")
     e = stack_mod.build(p, book, ed1["outlooks"], None, db)
     stack_prose.write(e, client=clean, outlooks=ed1["outlooks"])
     # PROSE ONLY (T2.2, ruled 4 Oct 2026): items and tables are data, never
-    # counted and never cut; over budget, later paragraphs go first.
+    # counted and never cut. D19/D20 (24 Oct 2026): over its target an edition
+    # renders in full and prints one foot line; no paragraph goes.
     deep = next(s for s in e["sections"] if s["depth"] == "deep" and s.get("claim"))
-    deep["paragraphs"] = ["One more paragraph of prose for the cut to take. " * 4] * 3
+    deep["paragraphs"] = ["One more paragraph of prose, printed in full. " * 40] * 3
     items_before = {i["key"] for s in e["sections"] for i in s["items"]}
     tables_before = [s.get("table") for s in e["sections"]]
     prose_only = sum(stack_mod.words(s.get("claim")) + sum(
@@ -730,13 +732,15 @@ def main() -> int:
     before = sum(stack_mod.section_words(s) for s in e["sections"])
     check(before == prose_only,
           f"words count prose only: claims and paragraphs, never items ({before})")
-    limit = before - 40
-    e["budget"] = {"words": limit, "charts": 3}
+    paras_before = list(deep["paragraphs"])
+    e["reading_target_minutes"] = 1
     stack_mod.enforce_budget(e)
-    trimmed = [s["id"] for s in e["sections"] if s["trimmed"]]
-    check(trimmed and len(deep["paragraphs"]) < 3,
-          f"over budget ({before} words against {limit}), the later paragraphs go "
-          f"first ({trimmed}; {e['words']} words)")
+    trimmed = [s["id"] for s in e["sections"] if s.get("trimmed")]
+    check(not trimmed and deep["paragraphs"] == paras_before and e["target_line"]
+          and e["target_line"].endswith("against a 1-minute target."),
+          f"over its target ({e['words']} words against a 1-minute target) nothing "
+          f"is cut: the three paragraphs print in full, and the foot line reads "
+          f"{e['target_line']!r}")
     check(items_before == {i["key"] for s in e["sections"] for i in s["items"]}
           and tables_before == [s.get("table") for s in e["sections"]],
           "and no item and no table is cut -- they are data")
@@ -746,10 +750,10 @@ def main() -> int:
               if not s.get("withheld") and not s.get("empty")
               and not any("repeated The read" in n for n in s.get("notes") or [])),
           "and no claim line is cut")
-    sh = stack_render.section_html(next(s for s in e["sections"]
-                                        if s["id"] == trimmed[0]), 1, {}, "email")
-    check("Commentary trimmed to one paragraph." in sh,
-          "the cut section says so in its footnote")
+    sh = stack_render.section_html(deep, 1, {}, "email")
+    foot = stack_render.page_footer(e, "r", None, "marks")
+    check("Commentary trimmed" not in sh and e["target_line"] in foot,
+          "no section says it was trimmed; the page's footer carries the one line")
 
     # --- G. LEDGER ------------------------------------------------------------------
     print(f"\n{LINE}\nG. ODDS IN THE LEDGER\n{LINE}")

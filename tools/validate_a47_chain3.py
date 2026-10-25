@@ -179,7 +179,7 @@ def group_c(db: str) -> None:
     check(stack.section_words(withp) == stack.section_words(base),
           f"the close's prose count is unchanged by the paragraph "
           f"({stack.section_words(base)} words either way): it displaces nothing in "
-          f"the 1,000-word budget")
+          f"the 2,250-word target (D19/D20)")
     check(len(b["lines"]) <= 6 and max(len(x.split()) for x in b["lines"]) <= 40,
           "at most six lines, none past 40 words, in the anchor")
     from altdata.sources import _crypto as C

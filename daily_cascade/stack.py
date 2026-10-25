@@ -519,8 +519,14 @@ def vol_event_for(p: dict, st, cutoff: str) -> Optional[dict]:
             from . import dealer_block                          # noqa: PLC0415
             prof = dealer_block.newest_settled(p["session"], "SPY", p["computed_dir"],
                                                lookback_days=0)
-        return ve.evaluate(ve.read_series(st, cutoff), p["session"], profile=prof,
-                           attributions=ve.attributions_for(p["session"], cutoff))
+        ev = ve.evaluate(ve.read_series(st, cutoff), p["session"], profile=prof,
+                         attributions=ve.attributions_for(p["session"], cutoff))
+        # Batch 14 item 71 (F5): the "liquidity" lens, a report-only row.
+        if ev.get("fired"):
+            from . import batch14_b1_block                      # noqa: PLC0415
+            ve.with_liquidity(ev, batch14_b1_block.liquidity_lens(st, p["session"],
+                                                                  cutoff))
+        return ev
     except Exception as exc:                                    # noqa: BLE001
         return {"day": p["session"], "fired": False, "trigger": {},
                 "trigger_line": f"Volatility: the read faulted ({type(exc).__name__})"}
@@ -1032,6 +1038,23 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
             "book": book_section(p),
         }
         em_extras(built, screen, p["session"])
+        # SIGNAL-TRIAGE BATCH 14, PART B1 (a57, 23 Oct 2026): item 65's speed-flag
+        # attribution on a flag day and item 71's fragility panel, in Mechanics
+        # (daily_cascade/batch14_b1_block.py; tables and lines only).
+        from . import batch14_b1_block                          # noqa: PLC0415
+        batch14_b1_block.close_extras(built, st, p["session"], cutoff, screen)
+        # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58, 23 Oct 2026): the gold event's and
+        # the developed-market drawdown's flag lines in the event area, on a
+        # fired day only (daily_cascade/batch15_a_block.py; lines only).
+        from . import batch15_a_block                           # noqa: PLC0415
+        batch15_a_block.close_extras(built, st, p["session"], cutoff)
+        # 6f TRANCHE 2 (a63): the dials' transition reads, one line.
+        from . import state_v2_block                            # noqa: PLC0415
+        state_v2_block.close_extras(built, st, cutoff)
+        # D15 (b59, rulings of 24 Oct 2026): the one-day 10-year trigger's flag line
+        # in the event area, on a trigger day only (daily_cascade/b59_block.py).
+        from . import b59_block                                 # noqa: PLC0415
+        b59_block.close_extras(built, st, p["session"], cutoff)
         # SIGNAL-TRIAGE BATCH 3, ST-B3-16: SR-32's early line on the tape --
         # nothing below 4.40%, one line approaching, the mechanism at 4.5%.
         from . import batch3_block                              # noqa: PLC0415
@@ -1233,57 +1256,39 @@ def edition_words(ed: dict) -> int:
 
 
 def enforce_budget(ed: dict, cadence: str = "daily") -> dict:
-    """THE PARAGRAPH GUARD (T2.5 item 2; per cadence, T2.6): the close and the
-    Weekly keep one paragraph of at most 120 words per section, which keeps them
-    inside their budgets by construction; the Monthly's allowance is its own
-    (config `cadences:`). Then a sentence that repeats The read is withheld where
-    it repeats it (item 4). A claim line, an item and a table are never cut --
-    they are data, and the budget counts prose."""
+    """THE GUARD (T2.5 item 2; per cadence, T2.6), as D19/D20 left it (24 Oct
+    2026: budgets are targets, never caps). The paragraph guard drops empty
+    paragraphs and cuts nothing for length; a sentence that repeats The read is
+    withheld where it repeats it (item 4: repetition, not length). Then the
+    edition's reading time is read against its cadence's target, and over it the
+    edition carries one foot line (`target_line`). Nothing is cut or withheld to
+    fit; a claim line, an item and a table are data and never touched."""
     from . import readability                                   # noqa: PLC0415
     from . import cadence as cadence_mod                        # noqa: PLC0415
     readability.finalize(ed, cadence)
     readability.withhold_duplicates(ed)
     cad = cadence_mod.get(cadence)
-    if cad.get("trim_to_budget"):
-        trim_to_budget(ed, int((cad.get("budget") or {}).get("words") or 0))
     ed["words"] = edition_words(ed)
+    if ed.get("reading_target_minutes") is None:
+        ed["reading_target_minutes"] = cad.get("reading_target_minutes")
+    # The Quarterly's target is its READ's, warned on by quarterly.read_warning;
+    # its reference is unbudgeted, so the whole edition is not read against it.
+    ed["target_line"] = None if cad.get("read_budget") else target_line(ed)
     return ed
 
 
-def trim_to_budget(ed: dict, budget: int) -> dict:
-    """THE BUDGET CUT (T2.7; the Monthly's, config `trim_to_budget`): while the
-    prose runs over `budget` words, the lowest-priority paragraph goes -- a
-    detail block's sub-section paragraphs first (the appendix), then the last
-    paragraph of a block that keeps several, from the back of the edition
-    forward, then any last paragraph -- and the block and its section print
-    "(trimmed)". A claim, an item, a line, a table and a reading entry are never
-    cut; the model never summarises to fit. Returns the edition."""
-    if budget <= 0:
-        return ed
-    order = [(d, ss) for d in ed.get("detail") or [] for ss in d.get("subsections") or []]
-    blocks = []
-    for s in reversed(ed.get("sections") or []):
-        for ss in reversed(s.get("subsections") or []):
-            blocks.append((s, ss))
-        blocks.append((s, s))
-
-    def cut_one() -> bool:
-        for owner, blk in order:
-            if blk.get("paragraphs"):
-                blk["paragraphs"] = []
-                blk["trimmed"] = owner["trimmed"] = True
-                return True
-        for least in (2, 1):
-            for owner, blk in blocks:
-                if len(blk.get("paragraphs") or []) >= least:
-                    blk["paragraphs"] = blk["paragraphs"][:-1]
-                    blk["trimmed"] = owner["trimmed"] = True
-                    return True
-        return False
-
-    while edition_words(ed) > budget and cut_one():
-        pass
-    return ed
+def target_line(ed: dict) -> Optional[str]:
+    """D20's one foot line when the edition runs over its reading target, else
+    None: "This edition runs about N minutes against a T-minute target." The
+    minutes are the shared estimate (readability.reading_minutes)."""
+    from . import readability                                   # noqa: PLC0415
+    t = ed.get("reading_target_minutes")
+    if not t:
+        return None
+    n = readability.reading_minutes(ed)
+    if n <= int(t):
+        return None
+    return f"This edition runs about {n} minutes against a {int(t)}-minute target."
 
 
 def chart_plan(ed: dict, available: dict[str, Optional[str]]) -> list[str]:

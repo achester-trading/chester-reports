@@ -1,7 +1,7 @@
 # The Card's scoreboard (register/scoreboard.py; b48-scoreboard, ruled 19 Oct 2026,
 # "accept all" on the four decisions sent at 23:35 ET). Measurement only: rows 5,
 # 12 and 13 of the Master Guide's Table 8. Doctrine #2 (7-8 Nov) may amend how
-# they are used. Every value here is SESSION-SET, listed for Ari with its reason.
+# they are used. Every value here is SESSION-SET, listed for the operator with its reason.
 
 version: scoreboard-v1
 

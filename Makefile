@@ -46,6 +46,7 @@ PY_VALIDATORS := \
 	tools/validate_horizon_charts.py \
 	tools/validate_secrets.py \
 	tools/validate_regime.py \
+	tools/validate_6f_calibration.py \
 	tools/validate_base_rates.py \
 	tools/validate_claims.py \
 	tools/validate_structure_compare.py \
@@ -123,6 +124,11 @@ PY_VALIDATORS := \
 	tools/validate_feed_repair.py \
 	tools/validate_batch14_a1.py \
 	tools/validate_batch14_a2.py \
+	tools/validate_batch14_b2.py \
+	tools/validate_batch14_b1.py \
+	tools/validate_batch15_2.py \
+	tools/validate_batch15_1.py \
+	tools/validate_b59.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \

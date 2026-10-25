@@ -698,13 +698,53 @@ FRED_BANK_STRESS_SERIES: list[SeriesSpec] = [
     SeriesSpec("stlfsi", "STLFSI4", "St. Louis Fed Financial Stress Index", "6", "idx", "weekly"),
 ]
 
+# THE PER-HOUSEHOLD DEFLATOR (signal-triage Batch 14, item 68, ST-R6.61a; F3: NAR's
+# index has no free series, so Redfin's pending sales are deflated by Census
+# household counts). Read off FRED on 23 Oct 2026: TTLHHM156N, "Household
+# Estimates", the Census Bureau's, THOUSANDS, not seasonally adjusted, monthly
+# (from 1955; quarterly before the monthly rows begin).
+FRED_HOUSEHOLDS_SERIES: list[SeriesSpec] = [
+    SeriesSpec("households", "TTLHHM156N", "Household estimates, total, thousands, NSA (Census)", "2", "K", "monthly"),
+]
+
+# SIGNAL-TRIAGE BATCH 14, PART B1 (items 65 and 71; a57-batch14-b1, 23 Oct 2026,
+# session A). Ids, first observations and units read off fredgraph.csv on 23 Oct
+# 2026 (F3: BLS's PPI detail through FRED, BLS having refused the box's reads):
+#   PCU334418334418     PPI by industry: printed circuit assembly (electronic
+#                       assembly) manufacturing, INDEX Dec 2003 = 100, NSA, monthly,
+#                       from 2003-12 (item 65's AI-bottleneck line)
+#   PCU334112334112     PPI by industry: computer storage device manufacturing,
+#                       INDEX, NSA, monthly, from 1992-12
+#   PCU334413334413     PPI by industry: semiconductor and related device
+#                       manufacturing, INDEX, NSA, monthly, from 1967-01
+#   BOGZ1LM893064105Q   Z.1 all sectors: corporate equities, liability, MARKET
+#                       VALUE, MILLIONS, quarterly, from 1945 (item 71: the
+#                       capitalisation margin debt is a share of)
+FRED_BATCH14_B1_SERIES: list[SeriesSpec] = [
+    SeriesSpec("ppi_pcb_assembly", "PCU334418334418", "PPI by industry: printed circuit assembly (electronic assembly) manufacturing, index Dec 2003 = 100, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_storage_devices", "PCU334112334112", "PPI by industry: computer storage device manufacturing, index, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_semiconductors", "PCU334413334413", "PPI by industry: semiconductor and related device manufacturing, index, NSA", "4", "idx", "monthly"),
+    SeriesSpec("z1_equities_mv", "BOGZ1LM893064105Q", "Z.1 all sectors: corporate equities, liability, market value, millions", "6", "M", "quarterly"),
+]
+
+# SIGNAL-TRIAGE BATCH 15, ITEM 73 (a58-batch15-1, 23 Oct 2026, session A): the
+# developed-market drawdown screen's one FRED index, read off fredgraph.csv on 23
+# Oct 2026 (source check 2): NIKKEI225, Nikkei Stock Average, INDEX, daily close,
+# not seasonally adjusted, from 1949-05-16. FRED carries no TOPIX, DAX, CAC 40,
+# FTSE 100, KOSPI or TAIEX series; those are proxies or listed gaps
+# (config/dm_drawdown.yaml).
+FRED_BATCH15_A_SERIES: list[SeriesSpec] = [
+    SeriesSpec("nikkei225", "NIKKEI225", "Nikkei Stock Average (Nikkei 225), daily close", "7", "idx", "daily"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
-                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES)
+                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES)
 
 
 # Quick lookup by key

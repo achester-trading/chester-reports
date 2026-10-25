@@ -1992,6 +1992,102 @@ sources:
     allowed_reports: [monthly_macro, weekly_tactical]
     implemented_by: altdata/sources/pearl_explorer.py
     status: built
+  cisa_kev:
+    name: CISA Known Exploited Vulnerabilities catalogue (JSON feed)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [cyber]
+    geography: [united_states]
+    latency: the catalogue is updated as entries are added (usually several times a week); read on Saturdays
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each entry carries its dateAdded; the weekly count is complete at the week's
+      Sunday 23:59 ET, which is its available_at (reconstructed). One file holds the
+      whole catalogue from 3 Nov 2021.
+    license: >-
+      A US government work, public; no key. robots.txt (www.cisa.gov, read 23 Oct
+      2026) allows the feeds path (/sites/default/files/feeds/).
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/cyber_pressure.py
+    status: built
+  gdelt:
+    name: The GDELT Project's raw event files (2.0 15-minute exports; 1.0 daily files for the history)
+    tier: C
+    epistemic_role: aggregator
+    domain: [geopolitics, narrative]
+    geography: [global]
+    latency: a 15-minute export every 15 minutes; the reader takes each complete UTC day in the 17:25 crypto basket run
+    timestamp_reliability: high
+    timestamp_notes: >-
+      Each event carries its DATEADDED; observed_at is the UTC day the events were
+      added. The live rows (gdelt:v2_15min) are available at the pull; the
+      backfill's (gdelt:v1_daily) are reconstructed at the next day's noon UTC.
+    license: >-
+      "Available for unlimited and unrestricted use for any academic, commercial, or
+      governmental use of any kind without fee" (gdeltproject.org/about.html, read
+      24 Oct 2026); robots.txt (data.gdeltproject.org) answers 404. Keyless. The DOC
+      API is not read (it answered 429 and asks one request per 5 s).
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/gdelt.py
+    status: built
+  noaa_cpc:
+    name: NOAA Climate Prediction Center, population-weighted degree days (daily files)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [energy, weather]
+    geography: [united_states]
+    latency: daily; the newest column is about two days old
+    timestamp_reliability: high
+    timestamp_notes: >-
+      One file per year and kind, one column per day; the live rows are available at
+      the pull, the backfill's reconstructed two days after the day. The newest days
+      are preliminary and re-read for 14 days.
+    license: >-
+      NWS information "is in the public domain, unless specifically noted otherwise,
+      and may be used without charge for any lawful purpose" (weather.gov/disclaimer,
+      read 24 Oct 2026); robots.txt (ftp.cpc.ncep.noaa.gov) answers 404. Keyless.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/cpc_degree_days.py
+    status: built
+  huggingface:
+    name: Hugging Face Hub public API, model listings (the model-release watch)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [ai, technology]
+    geography: [global]
+    latency: live listing; read once a day in the 17:25 crypto basket run
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      A repository's createdAt can predate its public release, so a release event is
+      available at the pull that first saw it; the weekly counts are recounted for
+      four weeks; the backfill's weeks are reconstructed from createdAt.
+    license: >-
+      robots.txt (huggingface.co, read 24 Oct 2026): "User-agent: *", "Allow: /". The
+      terms of service carry no clause on automated access; the API states 500
+      requests per 300 s anonymous (RateLimit-Policy). Keyless. Counts and dates only.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/hf_releases.py
+    status: built
+  nvd:
+    name: NIST National Vulnerability Database, CVE API 2.0
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [cyber]
+    geography: [united_states]
+    latency: a CVE is published, then scored by NVD days to weeks later; read on Saturdays
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      Counts by publication week, re-read for 8 weeks because scoring lags
+      publication; available_at is the pull instant. The newest weeks are
+      provisional.
+    license: >-
+      A US government work, public; no key needed (the public limit is 5 requests
+      in a rolling 30 seconds; a key raises it and is the operator's, in .env).
+      services.nvd.nist.gov serves no robots.txt (404: no rules), checked 23 Oct
+      2026.
+    allowed_reports: [weekly_tactical, monthly_macro]
+    implemented_by: altdata/cyber_pressure.py
+    status: built
   alternative_me:
     name: alternative.me Crypto Fear & Greed Index
     tier: C
@@ -2375,7 +2471,7 @@ sources:
     status: live
 
   damodaran:
-    name: Aswath Damodaran -- industry datasets (NYU Stern)
+    name: Damodaran Online -- industry datasets (NYU Stern)
     tier: C
     epistemic_role: primary_fact
     domain: [valuation]
@@ -2464,7 +2560,7 @@ sources:
       the venue's statement of a belief, never a fact about the event.
     license: >-
       Public market-data endpoints, read without a key or an account (probed 2 Oct
-      2026). If a key is ever required it goes in the box .env by Ari.
+      2026). If a key is ever required it goes in the box .env by the operator.
     allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
     implemented_by: altdata/sources/prediction_markets.py
     status: active
@@ -2684,6 +2780,98 @@ sources:
     allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
     implemented_by: altdata/vol_event.py
     status: live
+
+  oneday_10y:
+    name: The one-day 10-year trigger's attribution (D15)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass on a trigger day, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/oneday_10y.py through daily_cascade/stack_close.py:
+      rates.oneday_event_ledger, observed on the trigger day and available when
+      written; the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/oneday_10y.py
+    status: live
+  speed_attribution:
+    name: The 10-year attribution on speed-flag days (Batch 14 item 65)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the 16:45 close pass on a flag day, and by its seed and resolve commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/speed_attribution.py through daily_cascade/stack_close.py:
+      rates.speed_event_ledger, observed on the flag day and available when
+      written; the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/speed_attribution.py
+    status: live
+
+  gold_event:
+    name: The gold event trigger and attribution (Batch 15 item 73)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [global]
+    latency: written by the 16:45 close pass on a fired day, and by its resolve and history commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/gold_event.py through daily_cascade/stack_close.py:
+      gold.event_ledger, observed on the fired day and available when written;
+      the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/gold_event.py
+    status: live
+
+  dm_drawdown:
+    name: The developed-market drawdown screen (Batch 15 item 73)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [JP, KR, TW]
+    latency: written by the 16:45 close pass on a fired day, and by its resolve and history commands
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/dm_drawdown.py through daily_cascade/stack_close.py:
+      equity.dm_drawdown_ledger, observed on the fired day and available when
+      written; the EOD pass's resolve writes later vintages.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/dm_drawdown.py
+    status: live
+
+  sec_13f:
+    name: SEC EDGAR -- the Form 13F data sets (Batch 15 item 72's gold-ETF holders)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [commodities]
+    geography: [US]
+    latency: quarterly; each data set covers three months of filings, posted after the 13F deadlines
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      observed_at is the quarter end (PERIODOFREPORT); the load's instant stands
+      in for availability, since the data set posts weeks after the filings it
+      holds. A later load that adds late filers is a new vintage.
+    license: >-
+      public, keyless SEC data sets (www.sec.gov/data-research/sec-markets-data/
+      form-13f-data-sets), read under the SEC's fair-access policy with the
+      CHESTER_SEC_CONTACT User-Agent (altdata/sources/edgar.py); robots.txt read
+      before each fetch
+    allowed_reports: [monthly_macro, alt_asset]
+    implemented_by: altdata/gold_13f.py
+    status: built
+    caveats:
+      - >-
+        Run by hand on the box (fetch, then load); no timer. A 13F covers US-listed
+        long positions of managers with $100m or more only.
 
   secondary_notes:
     name: The secondary notes' fetch steps' own readings

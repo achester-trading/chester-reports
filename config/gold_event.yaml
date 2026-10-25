@@ -1,0 +1,66 @@
+# gold_event.yaml -- signal-triage Batch 15 item 73 (written as 66; ST-R6.73a;
+# ruled 23 Oct 2026 with filing amendments G1-G6; a58-batch15-1, session A). The
+# gold event trigger and its attribution, on item 52's event pattern
+# (altdata/vol_event.py) and a57's speed-flag ledger (altdata/speed_attribution.py).
+# Read by altdata/gold_event.py. FLAGS ONLY: nothing here enters a composite or the
+# market-state object.
+version: gold-event-v1
+updated: 2026-10-23
+
+# THE GOLD SERIES item 38 and AQ-8a already read: GC=F, the COMEX front future,
+# $/oz, through the Yahoo basket. No new vendor.
+gold_key: yfinance.mkt_gold_front
+
+# THE TRIGGER. RULED: a one-day move of 2.5% or more either way, or a 5-day move
+# beyond its 95th percentile.
+trigger:
+  one_day_pct: 2.5              # RULED
+  five_day_sessions: 5          # RULED
+  five_day_percentile: 95.0     # RULED
+  # SESSION-SET: the five-day move is a LOG change, two-sided (|change|), as item
+  # 52 reads the VIX's; its percentile is over the five years of sessions BEFORE
+  # the day (a57's flag window, the shorter of the dual windows), nearest rank.
+  window_years: 5
+  sessions_per_year: 252
+  # SESSION-SET: fewer prior five-day changes than this and the five-day arm is
+  # "not read" (one year of sessions); the row says how many it had.
+  min_history: 252
+
+# THE ATTRIBUTION, over the trigger's horizon (1 session when the one-day arm
+# fires, else 5): each leg's change from the session before the horizon to the
+# day. A leg whose observation on the day is not stored is "awaiting" (FRED posts
+# the real yield and Brent a day or more after the close), and the EOD resolve
+# writes it once it lands -- a new vintage, never an overwrite.
+legs:
+  - {id: real_10y, label: "Real 10-year yield (DFII10)", key: fred.tips_10y, unit: bp,
+     gold_against: true}
+  - {id: dxy, label: "DXY (ICE, DX-Y.NYB)", key: yfinance.mkt_dxy, unit: pct,
+     gold_against: true}
+  - {id: brent, label: "Brent (FRED DCOILBRENTEU)", key: fred.brent, unit: pct,
+     gold_against: true}
+# `gold_against: true` is the order's mechanism (item 73's thought process): oil up
+# -> rate expectations, the dollar and real yields up -> gold down. The residual
+# line counts the read legs that moved the way that mechanism ties to the gold
+# move's sign; nothing is fitted, so the rest is said to be unattributed.
+# SESSION-SET: how far before the horizon's start a leg's observation may sit
+# (a long weekend; FRED's Brent skips UK holidays).
+start_tolerance_days: 4
+
+# GOLD-ETF FLOWS: item 72's WGC line does not exist (source check 1 failed:
+# login-gated), so the leg is not tracked.
+etf_flows_gap: "not tracked: WGC's gold-ETF flows are behind a login (item 72, source check 1); item 72's 13F line is quarterly holdings, not a flow"
+
+# THE CENTRAL-BANK TREND: WGC's file failed check 1, so the leg reads the series
+# the system already stores, the IMF IFS sum of central banks' net purchases
+# (altdata/sources/imf_ifs.py; AQ-8a's leg, config/attribution.yaml). The trend is
+# the latest 12 months against the 12 before (session-set: a year smooths the
+# monthly reporting gaps).
+central_banks:
+  key: imf.ifs.gold_net_purchases_oz.total
+  label: "Central banks' net gold purchases (IMF IFS)"
+  months: 12
+  oz_per_tonne: 32150.7466
+
+# THE LEDGER (item 52's and a57's shape): gold's realised change over the next 5
+# and 20 sessions, %.
+forward_sessions: [5, 20]

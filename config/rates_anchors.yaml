@@ -43,7 +43,7 @@ fiscal_anchor:
   weo_balance: "em.weo.fiscal_gdp.{iso3}"
   weo_current_account: "em.weo.ca_gdp.{iso3}"
   min_countries: 10
-  # Courtial's fit excluded China; the cross-section is developed markets only.
+  # The twin-deficit fit excluded China; the cross-section is developed markets only.
   countries:
     - {iso3: usa, name: "United States", yield: fred.oecd_10y_us}
     - {iso3: can, name: "Canada", yield: fred.oecd_10y_ca}

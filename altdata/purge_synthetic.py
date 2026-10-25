@@ -1,6 +1,6 @@
 """
 Remove the smoke test's synthetic rows from the live store (b51, 21 Oct 2026) --
-ONE OF ARI'S TWO CHOICES, built so it can be run; nothing runs it but Ari.
+ONE OF THE OPERATOR'S TWO CHOICES, built so it can be run; nothing runs it but the operator.
 
     python -m altdata.purge_synthetic --dry-run
     python -m altdata.purge_synthetic --apply --backup ~/backups/chester-pre-purge-synthetic.db

@@ -241,11 +241,14 @@ def group_a() -> None:
     # since part 2 added GTM-12's six; 64 / 166 since ST-4 added FEDTARMD; 65 / 266
     # at the chain-2 stitch (Batch 5's three, 6e's, Group B's; two duplicates gone);
     # 65 / 267 since A51 added RSAFS (FRED_NOTES_SERIES, 19 Oct 2026); 65 / 277
-    # since a53 added the bank-stress panel's ten (Batch 12 item 59; chain-4).
-    check(len(acfg.FRED_SIGNAL_SERIES) == 65 and len(acfg.FRED_PULL_SERIES) == 277
-          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 277
-          and len({s.fred_id for s in acfg.FRED_PULL_SERIES}) == 277,
-          f"FRED_SIGNAL_SERIES 65, FRED_PULL_SERIES 277, no key or id twice "
+    # since a53 added the bank-stress panel's ten (Batch 12 item 59; chain-4); 65 /
+    # 281 since a57 added Batch 14 B1's four (items 65 and 71, 23 Oct 2026); 65 /
+    # 283 at chain-6 with b55's Census household estimates (Batch 14 item 68)
+    # and a58's NIKKEI225 (Batch 15 item 73).
+    check(len(acfg.FRED_SIGNAL_SERIES) == 65 and len(acfg.FRED_PULL_SERIES) == 283
+          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 283
+          and len({s.fred_id for s in acfg.FRED_PULL_SERIES}) == 283,
+          f"FRED_SIGNAL_SERIES 65, FRED_PULL_SERIES 283, no key or id twice "
           f"({len(acfg.FRED_SIGNAL_SERIES)}, {len(acfg.FRED_PULL_SERIES)})")
     s = bis_cbpol.parse_all(ALL_CSV)
     check(set(s) == {"US", "XM", "DE"} and s["US"] == {"2026-08-31": 4.25, "2026-09-30": 4.0},
@@ -1062,9 +1065,9 @@ def group_j() -> None:
     check("st_r5_t1_rest" not in regime_src and "t1_rest_block" not in regime_src
           and not re.search(r"^\s*(from|import)\s+regime\b", src, re.M)
           and "driver" not in ms["dimensions"]["inflation"]
-          and ms["version"] == "market-state-v1.10",
+          and ms["version"] == "market-state-v2.0",
           "report-only: regime.py reads none of it, it reads no regime, and the inflation "
-          "dimension declares no driver (the object stays v1.10)")
+          "dimension declares no driver (the object is v2.0 since 6f, a62; no driver came with it)")
 
 
 # ---------------------------------------------------------------------------
