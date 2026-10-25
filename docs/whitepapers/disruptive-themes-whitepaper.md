@@ -2,7 +2,7 @@
 
 ### Foundations and Field Guide to the Five-Force Framework
 
-**Companion I · Version 1.0 · August 29, 2026 · Companion to Disruptive Themes v3.0-prototype**
+**Companion I · Version 1.1 · 25 October 2026 · restructured per Audit 2 (first edition 29 August 2026) · Companion to Disruptive Themes v3.0-prototype**
 
 *Numeral per the library guide, which is canonical for numerals; cross-references in this paper are by name.*
 
@@ -107,41 +107,7 @@ An insurance reader has seen this exact shape before: an MGA channel posting spe
 
 **The 2021–22 GPU cycle.** Small, recent, and structurally identical: crypto-driven scarcity, double-ordering, then a demand air pocket revealed channel inventory that took the supplier two to three quarters to digest, with a revenue miss and a ~60% drawdown in the stock — against an end market (gaming plus early AI) that remained perfectly healthy. This is the episode the report's timing section cites as the template for "the unwind shape," and it is the reason the commitment-to-revenue ratio is tracked as the primary early-warning line.
 
-## 1.3 The present moment — a dispatch
-
-**AUGUST 29, 2026.** The week belonged to the supplier. Nvidia's Wednesday report was, by the numbers, among the great quarterly prints in corporate history: **$96.2 billion of revenue, up 106% year over year, 92% of it data center, with next-quarter guidance of $108 billion.** Tech stood alone as the only S&P sector to advance the following session; by Friday the Nasdaq had given some of it back as Marvell fell 9% *through* an earnings beat — the tape's way of saying that beating estimates no longer clears the bar expectations have set.
-
-Underneath the blockbuster, the financing story advanced another notch. Forward purchase commitments and supply agreements stand near $530 billion — five and a half quarters of revenue at the new, doubled run rate — with the supply-and-capacity component alone jumping from $119 billion to $279 billion in a single quarter. The receivables balance sits at $63 billion, up 64% in six months, roughly 70% of it owed by five customers. The company raised $25 billion in new debt this year. Inventory has grown 48% since January. American customers now account for 70% of revenue, up from 65% — the export-control regime concentrating the world's AI demand into a handful of U.S. capex budgets, which is either a moat or a single point of failure depending on the year you ask.
-
-The customers, for their part, keep raising the stakes: the big-five 2026 capex envelope stands at $660–770 billion depending on whose tally you take, with every guide this year revised *up* — Meta's April raise (to $125–145 billion, for "personal superintelligence") drew a 9.25% one-day decline that the report has been calling "the first real rebellion against the spending curve." The rebellion did not spread. Power, not capital, is increasingly the binding constraint; construction and utility employment keep rising on data-center demand while entry-level white-collar hiring softens — the displacement tell the framework watches as AI's first legible labor-market signature.
-
-And in Jackson Hole on Friday, the new Fed chairman name-checked the theme itself, gesturing at a "hyper-Moore's law" economy. The report logs the phrase as rhetoric, not evidence — but when the AI buildout has become load-bearing in the *Federal Reserve chairman's* growth narrative, the reflexive loop has closed at the highest possible altitude.
-
-## 1.4 The two-to-three-year horizon (through year-end 2028)
-
-Structured judgment, probabilities illustrative, paths not mutually exhaustive in detail but forced to sum:
-
-| Path | Probability | Shape |
-|---|---|---|
-| **Air-pocket digestion** | **40%** | End demand pauses — an enterprise-adoption plateau, a hyperscaler ROI review, a power-delivery wall. Per the 2021–22 template: two to three quarters from commitment peak to revenue miss. The complex draws down 25–40%, the index 12–20% through the concentration channel (see Chapter 2). Real demand resumes afterward; the buildout continues at a saner slope. This is the modal path precisely *because* it is the ordinary way capex cycles resolve. |
-| **Orderly digestion** | **25%** | The falsifier fires benignly: commitment-to-revenue declines for two consecutive quarters while margins hold near the 71–72% guide. Backlog converts, receivables age normally, the score drifts toward +2 and the factor stops being a risk story. |
-| **Credit-event variant** | **15%** | The unwind arrives through the financing rather than the income statement: a major financed customer (a neocloud, a leveraged AI lab) fails; receivables get written down; the vendor-financing web reprices as counterparty risk; contagion runs through the $100+ billion of AI-adjacent debt issued into IG and private-credit books. Distinct from the air pocket because it is faster, gap-risk-shaped, and lands on Factor II's CCC−BB fault line. |
-| **Melt-up extension** | **15%** | A verified capability milestone or a genuine enterprise ROI wave extends the boom another leg. Commitments keep climbing; the reckoning defers and *grows*. The framework's honest note: this path is the most dangerous for the report's credibility (a fourth, fifth, sixth OVEREXTENDED reading) while being the one that most enlarges the eventual adjustment. |
-| **Immediate capability shock** | **5%** | A DeepSeek-class efficiency breakthrough or architectural shift strands a meaningful share of the installed base ahead of schedule. Low probability per cycle, never zero; this is what the capability sub-block (Part 19) exists to watch. |
-
-**Signposts that move probability mass:** the commitment-to-revenue ratio inflecting (either direction); any top-five hyperscaler *cutting* guidance (pre-registered in the report's What Would Change My Mind); gross margin printing below the trough guide; Korea 20-day chip exports and TSMC monthly revenue — the two demand thermometers that sit *outside* the reflexive U.S. financing loop — rolling over; receivables aging deteriorating in the 10-Q footnotes.
-
-## 1.5 The ten-year horizon (2036) — scenario families
-
-**The Electricity Outcome (~35%).** AI is as transformative as claimed — and the durable returns migrate to *users*: firms that reorganize work around cheap intelligence, the way manufacturers reorganized around the electric motor. The infrastructure layer commoditizes as competing silicon, efficiency gains, and open models turn compute into a utility. Today's giants remain enormous but earn utility-like returns on their trillions of installed assets; index leadership churns toward the "S&P 493" application layer. Consistent with a real technology *and* poor forward returns from today's supplier valuations — history's most common resolution.
-
-**The Railroad Outcome (~25%).** Overbuild, bust, then a golden age on discounted assets. Somewhere in 2027–29 the financing structure breaks (the air-pocket or credit path realized), a meaningful share of today's capex is written down, and stranded compute plus surviving power infrastructure becomes the cheap substrate on which the 2030s' real AI economy is built — by companies that mostly do not exist yet. Terrible for today's financiers, excellent for the technology's ultimate diffusion. 1873 and 2002 with better cooling.
-
-**Oligopoly Rents Persist (~20%).** The bull decade. Scale advantages in compute, power contracts, data, and model quality prove self-reinforcing rather than self-eroding; the top of the market consolidates into the most profitable industrial complex ever assembled; concentration normalizes at levels that would terrify every prior era, and today's 98th-percentile multiple proves *cheap* against 2036 earnings. The scenario in which the framework's persistent caution was simply wrong — kept at full weight in writing, per the steelman discipline.
-
-**AI Winter-Lite (~15%).** Capability gains decelerate into an asymptote; enterprise ROI disappoints at scale; capex is cut for years, not quarters. Hundreds of billions of assets depreciate against revenue that never matched them. Tech equities deliver a lost half-decade; the broad economy absorbs it (this buildout is equity-heavy relative to 2000's debt), but the index — one-third concentrated in the theme — does not. Not a technology verdict: a *timing* verdict, like fiber in 2002.
-
-**Weights are era-priors, not predictions** — held loosely, revised on the capability sub-block's verified milestones rather than on demonstrations or announcements.
+*This factor's dated dispatch and its 2028 and 2036 horizons are in Appendix B (as of 29 August 2026), moved there unchanged under Audit 2.*
 
 ## 1.6 The instrument panel — what the report tracks and why
 
@@ -192,36 +158,7 @@ Every equity price decomposes into two terms: earnings, and the multiple paid pe
 
 **2021–22 — the modern dress rehearsal.** CAPE ~38, concentration already historic, and a 25% index decline delivered almost purely through the multiple (forward earnings barely fell) when real yields rose 250 basis points. The cleanest recent demonstration of the discount-rate channel that couples this chapter to Chapter 4 — and of how fast the top ten become one trade.
 
-## 2.3 The present moment — a dispatch
-
-**AUGUST 29, 2026.** The S&P 500 closed the week at 7,711.76 — within a percent of its record, up more than 25% from a year ago, having ground higher through a summer that included a re-closed Strait of Hormuz, a hawkish new Fed chairman, and a 30-year Treasury above 5.2%. The cap-weighted index carries roughly 25.5x forward earnings; the equal-weighted version, 19.8x. On Shiller's measure the market is priced at 40.75–41.6 times its on-leveled earnings — a level exceeded only in the final weeks of 1999.
-
-The strangest print on the board is not in equities at all. With the 10-year Treasury at 4.72%, the index's forward earnings yield of roughly 3.9% now sits *below* the risk-free rate — an equity risk premium of approximately negative 80 basis points. Stocks are priced not merely for perfection but for perfection *plus* a willingness to accept less compensation than the government pays. The last sustained residence in negative-ERP territory ended in March 2000. Bulls respond, with a straight face and some evidence, that forward earnings estimates (up 23% this year, per the strategists) are too low, which would repair the arithmetic from the denominator.
-
-Credit, meanwhile, files its minority report. High-yield index spreads sit near cycle tights — the calmest reading a credit cycle produces — while the CCC−BB differential holds near 855 basis points, a distress premium for the marginal borrower. Nvidia beat and Marvell fell 9% anyway; Rubrik beat and fell 11%; the tape has begun charging admission for merely meeting expectations. Nothing in this paragraph times anything. All of it loads the spring.
-
-## 2.4 The two-to-three-year horizon (through year-end 2028)
-
-Factor II's paths are explicitly *conditional* — valuation determines severity while the trigger arrives from Factors I, III, IV, or V. Probabilities describe the multiple's own route:
-
-| Path | Probability | Shape |
-|---|---|---|
-| **Mechanical de-rating** | **40%** | The yield channel does the work: term premium and policy risk push the 10-year toward and above 5%, and 25.5x compresses toward 21–22x. Index −12 to −18% with earnings intact — the report's "mechanical correction" modal case, requiring no recession, only arithmetic. |
-| **Multiple persistence** | **28%** | The 1996–99 route: extremity persists and extends. Earnings grow 15%+, the multiple holds or expands, the index grinds toward strategist targets (8,250+). Each year of this path raises the starting altitude of the eventual adjustment — risk deferred and enlarged. |
-| **Full compression** | **24%** | A realized trigger (AI air pocket, Hormuz price-close, funding accident) meets the extreme multiple: compression toward the long-run 18–19x mean, index −25 to −35%, CCC−BB proven prophetic as the middle of the credit book migrates toward its tail. |
-| **Terminal melt-up** | **8%** | The 1999 endgame: CAPE takes out 44, ERP goes decisively negative, retail and passive flows go vertical. The framework's worst regime — maximum fragility wearing maximum euphoria — and historically the shortest-lived. |
-
-**Signposts:** the ERP (earnings yield minus 10Y) — each leg deeper into negative territory shifts mass from persistence toward compression; the equal/cap-weight ratio (broadening is the benign falsifier, pre-registered); CCC−BB ±150bp moves; the re-rating-exhaustion decomposition (how much of each rally is earnings vs. multiple — GAP, S6) — multiple-only advances are late-cycle signatures.
-
-## 2.5 The ten-year horizon (2036) — scenario families
-
-**The Lost-Decade Grind (~35%).** From CAPE ~41, the base historical case: nominal prices oscillate in a wide range while earnings grow underneath, delivering ~0–3% real annualized with two or three 20%+ drawdowns en route. The market of 1966–82 or 2000–2012 — misery without catastrophe, and the scenario in which today's negative ERP is simply paid for slowly.
-
-**Crash-and-Recover (~30%).** A 2027–29 compression (−30% or worse via one of the compound pathways) resets the multiple to the high teens, off which the AI-productivity earnings era compounds properly. Painful, then excellent: the best *forward* outcome for anyone with dry powder, and the reason BOTTOM WATCH exists as a band.
-
-**Earnings Grow Into It (~20%).** The Yardeni resolution: AI-driven margin expansion lifts index EPS toward $450+ by decade's end; the multiple never breaks because the denominator races the numerator; 2036 looks back on 25.5x as reasonable. Requires the productivity story to arrive on schedule *and* the yield channel to stay quiet — a conjunction, which is why it is priced below its popularity.
-
-**Japan-Style Stagnation (~15%).** The compound-crisis tail realized: a valuation break coincides with the fiscal reckoning (Chapter 4) and a broken policy toolkit; the multiple compresses and *stays* compressed for a decade as the risk-free asset's own credibility is the casualty. The scenario in which equities and bonds fail together — the one the 60/40 portfolio cannot survive and the one Factor V's hard-asset architecture is effectively a hedge against.
+*This factor's dated dispatch and its 2028 and 2036 horizons are in Appendix B (as of 29 August 2026), moved there unchanged under Audit 2.*
 
 ## 2.6 The instrument panel
 
@@ -278,35 +215,7 @@ Factor II is the system's amplifier: it converts other factors' triggers into ma
 
 **The 2026 war itself, compressed.** February 28: U.S.–Israeli strikes decapitate the Iranian leadership; Iran closes Hormuz. Brent peaks at $138 on April 7. April 8: Pakistan-mediated ceasefire; partial reopening; the June run of this report marks Factor III *improved* with Brent at $86. June 18: formal ceasefire signed — the premise_event of the June scoring. ~August 7: collapse; strait re-closed; new sanctions and counter-blockade measures. The framework's own process failure — carrying the dead June-18 premise through one refresh at −1 — is documented in the report header, and the premise_expiry discipline exists because of it. Six months of war have now produced: two closures, one dead supreme leader, one collapsed ceasefire, a ~47% cut in Gulf crude exports, 200x war-risk pricing — and an oil price below where the *year started*. That sentence is the divergence.
 
-## 3.3 The present moment — a dispatch
-
-**AUGUST 29, 2026.** The Strait of Hormuz has now been effectively closed for roughly 181 days — a duration that would have been dismissed as apocalyptic fiction in any pre-war tabletop exercise. PortWatch counted **three transits on August 23** against a pre-war baseline near eighty-five a day. Gulf crude exports are running at roughly half their pre-war volume. The August 7 collapse of the June ceasefire has settled into a grim rhythm: strikes, sanctions (Monday's session sold off on a fresh Iran sanctions package alongside U.S.–Canada tariff friction — the geoeconomic half of the factor's name earning its billing), threats against Kharg Island, and intermittent diplomacy.
-
-And Brent closed near **$89**.
-
-The bond market barely blinks at Hormuz headlines anymore; equities set records through them; the July CPI showed *energy falling 1.5% on the month* — the ceasefire-era crude slide still washing through the index even as the strait stayed shut, though the 14.7% year-over-year energy print remembers what the monthly change has forgotten. The only market still visibly at war is the one that pays claims: hull war-risk holds near 10% of vessel value per transit, two hundred times the pre-war rate, and underwriters report no meaningful softening since the collapse. Meanwhile the slow chain grinds forward out of sight: Gulf ammonia and urea flows remain disrupted, and the framework's fertilizer clock says the food-CPI echo of *this summer's* disruption is due in the winter prints — after every dashboard has declared the shock absorbed. One number for the file: the widely circulated "69% El Niño" figure making the rounds is the conditional probability of the *largest event since 1950 given an event* — not the probability of an event. The report carries ENSO as context, not headline.
-
-## 3.4 The two-to-three-year horizon (through year-end 2028)
-
-| Path | Probability | Shape |
-|---|---|---|
-| **Adaptation confirmed** | **35%** | The two-quarter rule resolves benignly: transits recover above 50% of baseline for a month, premiums normalize toward 1–2%, the divergence closes from the *physical* side. The report de-escalates the factor in writing — the rarest act in market commentary — and cuts the chokepoint weight. The Tanker War's ending. |
-| **Frozen oscillation** | **30%** | Neither peace nor escalation: the strait cycles between 5% and 40% of baseline, premiums stay an order of magnitude above pre-war, the shadow fleet institutionalizes, and the fertilizer chain delivers its food-CPI echo into 2027 regardless. Factor holds at −1/−2 indefinitely; the tail stays priced by insurers and ignored by everyone else. |
-| **Price closes the divergence** | **25%** | A tanker strike with casualties, a Kharg execution, or simple buffer exhaustion (SPR ~14% drained and falling) finally moves crude: Brent $120–150, the disinflation path inverts, the Fed's option to ease vanishes exactly as scenario 16 arrives — the supply-shock compound path (Chapter 8's worked example). The framework's pre-registered escalation: any re-closure that *finally moves price* marks the adaptation thesis dead. |
-| **Broader war** | **10%** | Horizontal escalation — Hezbollah fronts reopening, direct great-power friction, or a second chokepoint (Bab el-Mandeb, Malacca pressure, Taiwan gray-zone) activating while Hormuz is still down. The multi-chokepoint world arrives ahead of schedule; every insurance market reprices at once. |
-
-**Signposts:** the transit/baseline ratio crossing 50% (either direction); war-risk premiums breaking below 5% or above 15%; Tampa ammonia and NOLA urea inflecting; the divergence metric itself — the single line the factor's score is now formally tied to.
-
-**The other theaters over the same window.** The four paths above resolve the *Hormuz divergence* specifically, because that is where the factor's live premise sits. The rest of the board runs on its own clocks, and the near-horizon question for each is whether it produces a market-transmitting event before year-end 2028:
-
-| Theater | Escalation by YE2028 | What transmission would look like |
-|---|---|---|
-| **Geoeconomic escalation** (tariffs, export controls, mineral licensing) | **~70%** | Continuous, not discrete: effective tariff rates and license regimes ratcheting; margin compression and an inflation floor rather than a crisis print |
-| **Red Sea / Bab el-Mandeb** persistence or re-escalation | **~45%** | Freight rates and insurance; a second front of the same chokepoint arithmetic already partly normalized |
-| **Taiwan gray-zone escalation** (quarantine drill, cable cutting, customs inspection regime) | **~25%** | Semiconductor and Japan/Korea equity repricing; the first honest test of what a strait insurance market does when the cargo is irreplaceable |
-| **Russia–NATO sub-threshold incident** (Baltic cable, airspace, shadow-fleet interdiction) | **~25%** | Defense budgets, European energy, and an Article 5 credibility question the market prices in basis points of European risk premium |
-| **India–Pakistan or Korean flare-up** | **~15%** | Regional risk premium; nuclear-adjacent headlines that markets historically fade within weeks |
-| **Taiwan blockade or worse** | **~5%** | Not a market event — a market *regime* event. See §3.5. |
+*This factor's dated dispatch and its 2028 and 2036 horizons are in Appendix B (as of 29 August 2026), moved there unchanged under Audit 2.*
 
 ## 3.5 The wider board — theaters over the decade
 
@@ -356,18 +265,6 @@ Reading the table as nine independent draws is the error the framework exists to
 
 **The deterrence-credibility feedback.** This is the one that runs through the framework's own live case. Each chokepoint closed without decisive cost imposed lowers the market's *and* the challengers' estimate of the price of the next closure. Deterrence is a belief, beliefs are reflexive, and the current market read — that Hormuz closed and nothing much happened — is precisely the belief that makes the next attempt cheaper. Adaptation, the benign hypothesis of §3.1, is genuinely good news for oil prices and genuinely bad news for deterrence. The framework should hold both at once, and this is the sentence that says so.
 
-## 3.6 The ten-year horizon (2036) — scenario families
-
-**Managed Fragmentation — armed peace with a tax (~35%).** The modal path and the one already partly realized: blocs harden, supply chains duplicate, chokepoint risk becomes a permanently priced feature rather than an episodic crisis, and war-risk rates never return to their pre-2026 basis. No great-power war. What it costs: a structurally higher inflation floor (duplicated capacity, friend-shored production, standing strategic stockpiles), a defense capital cycle running for a decade, and a permanent risk premium in energy, freight, and insurance. Not a catastrophe — a *tax*, collected forever, on the efficiency the previous thirty years were built to harvest.
-
-**The Chokepoint Cascade — precedent metastasizes (~20%).** The bad tail with a specific mechanism rather than a mood: the demonstrated survivability of closing Hormuz is studied, the quarantine rung is tested in the Taiwan Strait in the late 2020s or early 2030s, and the semiconductor chokepoint proves to have no adaptation path. Every insurance market reprices at once, the AI buildout's physical substrate becomes a national-security asset rather than a commercial one, and the 2026 episode is remembered as the rehearsal everyone watched and nobody priced. This is the family in which Chapter 8's compound sequence runs to completion.
-
-**Accelerated Transition — the closures kill the chokepoints (~15%).** Suez 1956 at civilizational scale, generalized: six months of $90 crude with a fat tail does to oil demand what 1973 did in Europe and Japan, while the semiconductor onshoring wave, mineral substitution and recycling, and route diversification erode the *underlying relevance* of every pressure point on the board by the early 2030s. The chokepoints stop mattering because the world routed around them — the outcome in which today's disruption is remembered as the last one that could work.
-
-**Restored Order — the settlement branch (~15%).** Deals hold: a post-succession Iranian settlement with sanctions relief, a durable European security arrangement, a US–China modus vivendi that keeps Taiwan ambiguous and profitable for both. Premiums mean-revert within two years, the adaptation hypothesis is confirmed and marked confirmed, and this factor de-escalates toward zero. The framework's explicit obligation in this world is to carry the lesson forward rather than quietly re-arming the same fear at the next headline.
-
-**Multi-Theater Simultaneity — the 1930s analog (~15%).** Two or more theaters active at once by opportunistic timing: the correlation problem realized. Not necessarily world war — more likely a period of several years in which the assumption of a single manageable crisis at a time simply fails, defense spending crosses fiscal thresholds that were previously political red lines (the Chapter 4 coupling), and the global insurance and shipping systems price for a permanently contested commons. The scenario in which every diversification assumption in a portfolio, geographic and asset-class alike, is tested at the same moment.
-
 ## 3.7 The instrument panel
 
 *The Hormuz block is the live instance; the wider-board block is what keeps the factor from expiring with it.*
@@ -410,17 +307,7 @@ Reading the table as nine independent draws is the error the framework exists to
 
 ## 4.1 The 101 — how the dynamic works
 
-**The interest burden is the sovereign's combined ratio.** Take net interest paid, divide by federal revenue: the share of every incoming tax dollar consumed by servicing the existing book before a dollar of policy is bought. That ratio has now crossed roughly **18.5%**, above the 1991 record of ~18.4%. The comparison's sting is in the second variable: 1991's record was set with long yields near 8%; today's is set with the average around 5.2%. When the *ratio* exceeds its record at *two-thirds lower rates*, the arithmetic is being driven by the stock of debt, not its price — and the stock does not mean-revert. Trailing-twelve-month interest is roughly **$1.2 trillion** against a deficit running near 6% of GDP ($1.8 trillion in ten months) at full employment. Deficits of that size *with no recession to blame* are the structural signature.
-
-**WAM flatters; reset velocity tells the truth.** The Treasury advertises a weighted-average maturity near six years, which sounds like insulation. But roughly **a third of marketable debt reprices within twelve months** — the post-2010 high outside the pandemic — because the stack is barbelled with bills. The effective interest rate therefore converges toward market rates far faster than the headline WAM implies. Any fixed-income desk recognizes the structure: duration on paper, floating-rate in practice — a book that reprices at renewal, into a hard market, every year. The gap between r (the effective rate, converging upward) and g (nominal growth) is the entire sustainability arithmetic, and reset velocity is the speed at which the gap closes from the wrong side.
-
-**The Twist changes shape, not size — and the shape is the message.** On August 19 the Treasury doubled its buyback operations to $4 billion each, purchasing long-dated bonds and funding the purchases with bill issuance. No debt is repaid; the maturity profile shortens. Now consolidate the sovereign balance sheet — Treasury plus Federal Reserve, one issuer in economic substance — and the picture sharpens: the consolidated state is deliberately becoming a *shorter-duration, more floating-rate borrower* at the exact moment its interest burden is at record share of revenue. That is what a borrower does when it cannot afford the long end — and every market that prices duration can read it.
-
-**The TGA fork is the line between mechanics and monetization.** The floated next step — funding buybacks from the Treasury General Account, the government's ~$950 billion checking account at the Fed — is categorically different, and the difference is the chapter's hinge. Bill-funded buybacks are a maturity swap: cash comes from markets, cash returns to markets. TGA-funded buybacks *spend the government's account at the central bank into private hands*: bank reserves are created, exactly as in quantitative easing — except executed by a finance ministry with no monetary-policy committee, no mandate, and no press conference. That is the textbook mechanism of **fiscal dominance**: monetary conditions set by the government's financing needs rather than the central bank's mandate. The confirming series is deliberately mundane — TGA balance versus bank reserves, weekly. If the TGA falls while reserves rise, at scale, the fork has been taken, and no speech will have announced it.
-
-**Plumbing is the fast clock under the slow thesis.** Bank reserves near **$2.94 trillion** with the reverse-repo buffer effectively exhausted means the system's shock absorber is gone: every dollar of new bill supply now drains reserves directly. The tripwires are the September-2019 set — SOFR trading above IORB, Standing Repo Facility usage, settlement fails — indicators that move in *days* and force policy responses in *hours*. The thesis of this chapter unfolds over years; its accidents happen over a weekend.
-
-**Gold's two bids, decomposed.** The hard-asset verdict on all of the above requires splitting gold's demand into the **official bid** (central banks accumulating reserves — slow, structural, price-insensitive) and the **paper bid** (futures and options positioning — fast, leveraged, reflexive). August's move — **+14% to ~$4,650** — is overwhelmingly paper: GLD net call-minus-put open interest near 2.4 million contracts against a 2021–24 mean of 0.8 million, while *physical* retail demand sits at a five-year low. The report's verdict is precise and deliberately uncomfortable for gold bulls: this is a **fragile-rally state** — the speculative bid without the structural bid — evidence that markets are *rehearsing* the debasement trade, not yet confirmation of a debasement regime. The bond market, for its part, votes the other way entirely: the 10-year at 4.72% treats the Twist as trivial mechanics. Both verdicts cannot stay right.
+The debt-cycle mechanism this factor reads is taught in Debt Cycles, Regimes, and Environments, in its chapters "The short debt cycle", "The long debt cycle" and "Financial repression, fiscal dominance, yield-curve control and capital controls"; this paper's original 101 is kept, unchanged, in Appendix B.
 
 ## 4.2 Historical context
 
@@ -438,37 +325,7 @@ Reading the table as nine independent draws is the error the framework exists to
 
 **Argentina and Turkey, passim.** The endgame exhibits: when fiscal dominance is fully priced, the currency — not the bond market — becomes the release valve, and the population pre-emptively adopts hard assets and foreign money. The U.S. is nowhere near this; the reserve currency privilege is precisely the distance. Chapter 5 is about the instruments that would measure that distance shrinking.
 
-## 4.3 The present moment — a dispatch
-
-**AUGUST 29, 2026.** Kevin Warsh chose Jackson Hole for his first full articulation of the doctrine, and delivered a sentence built for the history books: *"I stand here today committed to a discipline, not to a decision."* Inflation, he allowed, ran better than expected this summer — July's CPI cooled to 3.4%, core to 2.5% — but the readings "do not tell me that underlying trends have meaningfully improved." No guidance followed, on principle. Markets supplied their own: September hike odds jumped from 35% to 57% by the close, the two-year yield rose six basis points to 4.30%, and the S&P slipped a quarter percent while still finishing the week higher — the eleventh consecutive week in which equities and the Fed have politely disagreed about the future.
-
-The committee he chairs is openly split — a 9–3 July hold with three regional presidents dissenting *for a hike*, the June dots penciling one increase by year-end, and the chairman calling it a "family fight" for the thirteenth time on the public record. The 30-year sits at 5.21%, above the threshold the flow-show strategists spent June warning would "break both pillars at once." The 10-year, at 4.72%, has rendered its verdict on the August 19 Twist: too small to matter — $4 billion an operation against a $40 trillion market.
-
-Hard assets rendered the opposite verdict. Gold rose 14% in August to ~$4,650, its best month of the year, on options positioning three times the recent mean — while physical coin-and-bar demand plumbs five-year lows and bitcoin printed $79,000 *during* the Jackson Hole speech itself. The debasement trade is being rehearsed in paper size ahead of any confirmed regime. Meanwhile the fiscal engine idles at full throttle: $1.8 trillion of deficit through ten months, $1.2 trillion of trailing interest, a third of the stack repricing inside a year, reserves at $2.94 trillion with the buffer gone — and a floated plan, still just floated, to fund the next round of buybacks from the government's own checking account. Early August's coordinated yen intervention — Japan selling *European* assets while the Fed promoted FIMA repo, an arrangement engineered so the largest foreign holder would not have to sell Treasuries — completed the picture of a system managing its constraints in public while insisting there are none.
-
-## 4.4 The two-to-three-year horizon (through year-end 2028)
-
-| Path | Probability | Shape |
-|---|---|---|
-| **Soft fiscal dominance** | **35%** | The fork is taken quietly: buybacks grow, TGA funding arrives "temporarily," the curve is managed by issuance policy, inflation settles into a 3–4% plateau nobody re-anchors, and real yields are engineered mildly negative. No crisis, no announcement — the 1940s in business-casual. Gold's structural bid confirms; bonds deliver slow-motion real losses; the framework's score was right and the timing unfalsifiable. |
-| **Muddle-through** | **25%** | The 1991 path's weaker modern cousin: inflation drifts to 2.5–3%, AI-led growth holds g above r, the Twist stays small, the TGA stays parked. The burden stabilizes near 19–20% of revenue without breaching. Requires nothing to go wrong for three years — priced accordingly. |
-| **Inflation-forced hikes** | **20%** | Scenario 16, the path the report names as the one it is least positioned for: the fertilizer echo, a Hormuz price-close, or plain services stickiness re-accelerates core; the September hike becomes a *cycle*; funds reach 4.5%+ into a 6%-deficit economy. Every interest-sensitive channel — including the capex complex of Chapter 1 and the multiple of Chapter 2 — reprices at once. The stagflation configuration. |
-| **The funding accident** | **15%** | The gilt template on Treasury scale: an auction tails badly, SOFR gaps over IORB, fails spike, a leverage pocket (basis trade, stablecoin reserve, LDI-analog) unwinds — and the Fed is buying within days, against its own rhetoric. Fast, technical, and regime-defining in retrospect: the accident *is* how fiscal dominance usually gets ratified. |
-| **Genuine consolidation** | **5%** | The deficit bends below 5% of GDP through policy rather than accident. Pre-registered in the report as a falsifier; priced at the frequency history suggests. |
-
-**Signposts:** TGA vs. reserves, weekly — the single highest-value series in the framework; the September FOMC (hike odds 57% at press time) and whether one hike becomes a path; auction tails and indirect share; SOFR−IORB; the stock-bond correlation regime (persistent positive correlation = Treasuries no longer hedging equities = the diversification bid migrating toward Chapter 5's assets); gold's two-bid decomposition converging (physical joining paper would upgrade the rally from fragile to confirmed).
-
-## 4.5 The ten-year horizon (2036) — scenario families
-
-**The Repression Decade (~35%).** The 1946–51 playbook, updated: yields managed through issuance policy, regulation, and the occasional "temporary" facility; inflation averaging 3–4%; nominal GDP outgrowing the debt while real bondholders pay the bill on a fifteen-year installment plan. Equities muddle in nominal terms; hard assets and pricing-power businesses win; the 60/40's bond leg is the designated loser. History's modal exit for exactly this configuration.
-
-**The Productivity Bailout (~25%).** The only painless door: AI-driven growth (Chapter 1's promise, delivered) lifts g decisively above r; revenue surprises compound; the burden ratio walks itself down as it did in the 1990s. The scenario in which today's fiscal alarm reads, from 2036, like 1993's did from 2000 — overwrought. Its probability *is* the probability that Chapter 1's boom is real and timely, which is the deepest coupling in the framework.
-
-**The Debasement Regime (~20%).** Repression attempted but not believed: the two-bid decomposition resolves with physical joining paper, the official-bid convergence trade (Chapter 5) accelerates, dollar reserve share erodes from 58% toward the 40s, and gold/BTC transition from rehearsal to standing monetary escape valves. Not hyperinflation — erosion: the reserve privilege spent down a percentage point at a time, with every fiscal expedient ratifying the trade.
-
-**Crisis and Accord 2.0 (~15%).** The accident path realized and formalized: a funding event forces explicit yield-curve control or standing debt monetization, and — as in 1951 — the *resolution* becomes the constitutional moment. Either independence is re-founded on new terms after the emergency (the good branch), or the emergency powers never lapse (the bad one). The scenario in which the premise fields on Factor IV would read: regime_event, applied.
-
-**Austerity Turn (~5%).** The political black swan: a genuine consolidation coalition. Kept on the board because 1991 happened; sized at the frequency it happens.
+*This factor's dated dispatch and its 2028 and 2036 horizons are in Appendix B (as of 29 August 2026), moved there unchanged under Audit 2.*
 
 ## 4.6 The instrument panel
 
@@ -520,33 +377,7 @@ Factor IV is the common bus. **← Factor III:** the energy shock supplied the i
 
 **June 2026, this framework's own record.** Factor V is the media scan working as designed: June's report flagged "stablecoin dollarization" as a blind spot; August's report seats it as a factor. The promotion path — scan → candidate → factor, with a one-cycle scoring quarantine — is itself a discipline worth naming, because most frameworks bolt on new factors at maximum enthusiasm and maximum correlation.
 
-## 5.3 The present moment — a dispatch
-
-**AUGUST 29, 2026.** Bitcoin printed seventy-nine thousand dollars on Friday — not on an ETF headline or a halving, but on the words of a Federal Reserve chairman at Jackson Hole. The asset that was engineered as an exit from monetary policy now trades tick-for-tick *on* monetary policy, which is either an irony or a graduation depending on the reader's priors. Gold's August — up 14% to ~$4,650 — carried the same signature: overwhelming paper positioning (net call-minus-put open interest at three times the recent mean) over five-year-low physical demand. The debasement trade is being rehearsed at size, in derivatives, ahead of confirmation.
-
-The structural story advanced more quietly. Stablecoin legislation continues its tailwind path; issuers' bill holdings grow into the Treasury's own issuance assumptions; the tokenized-fund complex builds; prediction markets — this cycle's media-scan candidate — matured to the point that *dissent counts at FOMC meetings* trade with posted odds. Central banks kept buying gold on the established glacier schedule: ~860 tonnes last year, 244 in the first quarter, against mine supply crawling at 1%. And in the report's ledger of headwinds, the post-quantum cryptography migration gap sits unchanged — the audit item nobody trades on until the week everybody does. The factor enters the composite next run. This run, it watches — which, for a force whose whole thesis is that the plumbing changes before the prices do, is the appropriate posture.
-
-## 5.4 The two-to-three-year horizon (through year-end 2028)
-
-| Path | Probability | Shape |
-|---|---|---|
-| **Institutionalization** | **40%** | The Eurodollar path: supply compounds, bill absorption performs as Treasury's math assumes, tokenized settlement becomes boring infrastructure, and the factor's score turns *positive* — a stabilizing force that widens the buyer base for exactly the paper Chapter 4 must sell. The four questions resolve toward "infrastructure." |
-| **Bifurcation** | **25%** | The rails thrive while the assets decouple: stablecoins and tokenization institutionalize as the speculative complex collapses onto pure liquidity beta (the report's pre-registered reduction: "the architecture story reduces to a risk asset"). Half the thesis confirmed — the half that matters for Treasury finance. |
-| **The depeg event** | **20%** | Reserve Primary at chain speed: a major issuer breaks par on a reserve loss, a custody failure, or a run; redemptions force bill liquidation into the bufferless market of Chapter 4; scenarios 4/23 realize together. The sovereign backstop question gets answered in a weekend, and the answer creates the moral-hazard architecture of the following decade. |
-| **Regulatory reversal** | **10%** | A political turn or a foreign-bloc CBDC wall reverses the accommodation: growth stalls, the marginal bill buyer Treasury planned on fails to appear — the quiet failure mode, damaging through absence rather than event. |
-| **The PQC scare** | **5%** | A credible quantum milestone forces migration panic across custody and settlement. Low odds per cycle; permanently non-zero; the reason the audit line exists. |
-
-**Signposts:** stablecoin aggregate supply vs. bill issuance (the load-bearing test, quarterly); any issuer trading persistently off par; the gold two-bid decomposition (physical joining paper = regime confirmation); coin-margined OI and DAT leverage (the reflexivity gauges — GAP, CoinGlass S11); China's disclosed gold share creeping off its sub-10% base.
-
-## 5.5 The ten-year horizon (2036) — scenario families
-
-**Dollarization 2.0 (~35%).** The paradox scenario, and the modal one: private dollar tokens extend dollar hegemony into every phone on earth, doing at retail what Eurodollars did at wholesale. Billions of foreign users hold dollars they never could before; bill demand becomes structurally deeper; the *instrument* revolutionizes while the *sovereign* it wraps grows stronger. The U.S. wins the monetary transition by franchising it — and the Chapter 4 debt problem gains a decade of additional rope, for better and worse.
-
-**The Multipolar Settlement (~25%).** The convergence trade completes: China and the accumulating bloc reach 25–40% gold reserve shares; regional CBDC and commodity-settlement rails route around dollar clearing for a meaningful minority of trade; the dollar's reserve share erodes into the 40s. Not collapse — *optionality*: for the first time since 1944, holding dollars becomes a choice with visible alternatives, and the pricing of U.S. fiscal behavior (Chapter 4) loses its captive audience.
-
-**Status Quo Viscosity (~20%).** The boring branch: bank rails absorb the useful innovations, stablecoins plateau as a niche settlement layer, CBDCs stall on privacy politics, the debasement trade round-trips as it did after 1980. Money's architecture, it turns out, moves on fifty-year clocks, not ten. The factor is quietly retired — the outcome the promotion discipline exists to keep cheap.
-
-**Crypto-Native Discontinuity (~20%).** Conditional on Chapter 4's repression or debasement branches realizing: hard-asset monetization goes mainstream, BTC completes its graduation into a standing reserve asset at multiples of today's price, and the leverage structures — coin-margined, DAT, restaked — deliver at least one systemic deleveraging event *en route*. The scenario in which Factor V ends the decade as the framework's most important chapter, and the two-bid decomposition its most cited chart.
+*This factor's dated dispatch and its 2028 and 2036 horizons are in Appendix B (as of 29 August 2026), moved there unchanged under Audit 2.*
 
 ## 5.6 The instrument panel
 
@@ -722,7 +553,7 @@ The projection sections here will age on schedule, and are meant to be graded, n
 
 The companion on the twenty-five tail scenarios — *The Twenty-Five* — was built from the full table in the Monthly report rather than the five delta rows carried here, with the same treatment per scenario: mechanism, precedent, probability band, instruments, and couplings.
 
-*Version 1.0 · August 29, 2026 · Companion to Disruptive Themes v3.0-prototype · Direction reliable, precision illustrative — here as there.*
+*Version 1.1 · 25 October 2026, restructured per Audit 2 (first edition 29 August 2026) · Companion to Disruptive Themes v3.0-prototype · Direction reliable, precision illustrative — here as there.*
 
 ## Appendix A — Dated: Evidence log, Factor I and Factor V (as of 19 October 2026)
 
@@ -738,3 +569,190 @@ Each entry carries, in this order:
 - the operator's confirmation or rejection, with its date, once given.
 
 No entry has been posted yet.
+
+## Appendix B — Dated: the dispatches, the 2028 and 2036 horizons, and Factor IV's debt-cycle 101 (as of 29 August 2026)
+
+*Moved here from the body on 25 October 2026 under Audit 2's Phase 3, the split of this paper into a timeless body and a dated appendix; the text is unchanged, and each section keeps its number and the date it was written (29 August 2026). The report refreshes these sections; the body does not carry them.*
+
+### 1.3 The present moment — a dispatch
+
+**AUGUST 29, 2026.** The week belonged to the supplier. Nvidia's Wednesday report was, by the numbers, among the great quarterly prints in corporate history: **$96.2 billion of revenue, up 106% year over year, 92% of it data center, with next-quarter guidance of $108 billion.** Tech stood alone as the only S&P sector to advance the following session; by Friday the Nasdaq had given some of it back as Marvell fell 9% *through* an earnings beat — the tape's way of saying that beating estimates no longer clears the bar expectations have set.
+
+Underneath the blockbuster, the financing story advanced another notch. Forward purchase commitments and supply agreements stand near $530 billion — five and a half quarters of revenue at the new, doubled run rate — with the supply-and-capacity component alone jumping from $119 billion to $279 billion in a single quarter. The receivables balance sits at $63 billion, up 64% in six months, roughly 70% of it owed by five customers. The company raised $25 billion in new debt this year. Inventory has grown 48% since January. American customers now account for 70% of revenue, up from 65% — the export-control regime concentrating the world's AI demand into a handful of U.S. capex budgets, which is either a moat or a single point of failure depending on the year you ask.
+
+The customers, for their part, keep raising the stakes: the big-five 2026 capex envelope stands at $660–770 billion depending on whose tally you take, with every guide this year revised *up* — Meta's April raise (to $125–145 billion, for "personal superintelligence") drew a 9.25% one-day decline that the report has been calling "the first real rebellion against the spending curve." The rebellion did not spread. Power, not capital, is increasingly the binding constraint; construction and utility employment keep rising on data-center demand while entry-level white-collar hiring softens — the displacement tell the framework watches as AI's first legible labor-market signature.
+
+And in Jackson Hole on Friday, the new Fed chairman name-checked the theme itself, gesturing at a "hyper-Moore's law" economy. The report logs the phrase as rhetoric, not evidence — but when the AI buildout has become load-bearing in the *Federal Reserve chairman's* growth narrative, the reflexive loop has closed at the highest possible altitude.
+
+### 1.4 The two-to-three-year horizon (through year-end 2028)
+
+Structured judgment, probabilities illustrative, paths not mutually exhaustive in detail but forced to sum:
+
+| Path | Probability | Shape |
+|---|---|---|
+| **Air-pocket digestion** | **40%** | End demand pauses — an enterprise-adoption plateau, a hyperscaler ROI review, a power-delivery wall. Per the 2021–22 template: two to three quarters from commitment peak to revenue miss. The complex draws down 25–40%, the index 12–20% through the concentration channel (see Chapter 2). Real demand resumes afterward; the buildout continues at a saner slope. This is the modal path precisely *because* it is the ordinary way capex cycles resolve. |
+| **Orderly digestion** | **25%** | The falsifier fires benignly: commitment-to-revenue declines for two consecutive quarters while margins hold near the 71–72% guide. Backlog converts, receivables age normally, the score drifts toward +2 and the factor stops being a risk story. |
+| **Credit-event variant** | **15%** | The unwind arrives through the financing rather than the income statement: a major financed customer (a neocloud, a leveraged AI lab) fails; receivables get written down; the vendor-financing web reprices as counterparty risk; contagion runs through the $100+ billion of AI-adjacent debt issued into IG and private-credit books. Distinct from the air pocket because it is faster, gap-risk-shaped, and lands on Factor II's CCC−BB fault line. |
+| **Melt-up extension** | **15%** | A verified capability milestone or a genuine enterprise ROI wave extends the boom another leg. Commitments keep climbing; the reckoning defers and *grows*. The framework's honest note: this path is the most dangerous for the report's credibility (a fourth, fifth, sixth OVEREXTENDED reading) while being the one that most enlarges the eventual adjustment. |
+| **Immediate capability shock** | **5%** | A DeepSeek-class efficiency breakthrough or architectural shift strands a meaningful share of the installed base ahead of schedule. Low probability per cycle, never zero; this is what the capability sub-block (Part 19) exists to watch. |
+
+**Signposts that move probability mass:** the commitment-to-revenue ratio inflecting (either direction); any top-five hyperscaler *cutting* guidance (pre-registered in the report's What Would Change My Mind); gross margin printing below the trough guide; Korea 20-day chip exports and TSMC monthly revenue — the two demand thermometers that sit *outside* the reflexive U.S. financing loop — rolling over; receivables aging deteriorating in the 10-Q footnotes.
+
+### 1.5 The ten-year horizon (2036) — scenario families
+
+**The Electricity Outcome (~35%).** AI is as transformative as claimed — and the durable returns migrate to *users*: firms that reorganize work around cheap intelligence, the way manufacturers reorganized around the electric motor. The infrastructure layer commoditizes as competing silicon, efficiency gains, and open models turn compute into a utility. Today's giants remain enormous but earn utility-like returns on their trillions of installed assets; index leadership churns toward the "S&P 493" application layer. Consistent with a real technology *and* poor forward returns from today's supplier valuations — history's most common resolution.
+
+**The Railroad Outcome (~25%).** Overbuild, bust, then a golden age on discounted assets. Somewhere in 2027–29 the financing structure breaks (the air-pocket or credit path realized), a meaningful share of today's capex is written down, and stranded compute plus surviving power infrastructure becomes the cheap substrate on which the 2030s' real AI economy is built — by companies that mostly do not exist yet. Terrible for today's financiers, excellent for the technology's ultimate diffusion. 1873 and 2002 with better cooling.
+
+**Oligopoly Rents Persist (~20%).** The bull decade. Scale advantages in compute, power contracts, data, and model quality prove self-reinforcing rather than self-eroding; the top of the market consolidates into the most profitable industrial complex ever assembled; concentration normalizes at levels that would terrify every prior era, and today's 98th-percentile multiple proves *cheap* against 2036 earnings. The scenario in which the framework's persistent caution was simply wrong — kept at full weight in writing, per the steelman discipline.
+
+**AI Winter-Lite (~15%).** Capability gains decelerate into an asymptote; enterprise ROI disappoints at scale; capex is cut for years, not quarters. Hundreds of billions of assets depreciate against revenue that never matched them. Tech equities deliver a lost half-decade; the broad economy absorbs it (this buildout is equity-heavy relative to 2000's debt), but the index — one-third concentrated in the theme — does not. Not a technology verdict: a *timing* verdict, like fiber in 2002.
+
+**Weights are era-priors, not predictions** — held loosely, revised on the capability sub-block's verified milestones rather than on demonstrations or announcements.
+
+### 2.3 The present moment — a dispatch
+
+**AUGUST 29, 2026.** The S&P 500 closed the week at 7,711.76 — within a percent of its record, up more than 25% from a year ago, having ground higher through a summer that included a re-closed Strait of Hormuz, a hawkish new Fed chairman, and a 30-year Treasury above 5.2%. The cap-weighted index carries roughly 25.5x forward earnings; the equal-weighted version, 19.8x. On Shiller's measure the market is priced at 40.75–41.6 times its on-leveled earnings — a level exceeded only in the final weeks of 1999.
+
+The strangest print on the board is not in equities at all. With the 10-year Treasury at 4.72%, the index's forward earnings yield of roughly 3.9% now sits *below* the risk-free rate — an equity risk premium of approximately negative 80 basis points. Stocks are priced not merely for perfection but for perfection *plus* a willingness to accept less compensation than the government pays. The last sustained residence in negative-ERP territory ended in March 2000. Bulls respond, with a straight face and some evidence, that forward earnings estimates (up 23% this year, per the strategists) are too low, which would repair the arithmetic from the denominator.
+
+Credit, meanwhile, files its minority report. High-yield index spreads sit near cycle tights — the calmest reading a credit cycle produces — while the CCC−BB differential holds near 855 basis points, a distress premium for the marginal borrower. Nvidia beat and Marvell fell 9% anyway; Rubrik beat and fell 11%; the tape has begun charging admission for merely meeting expectations. Nothing in this paragraph times anything. All of it loads the spring.
+
+### 2.4 The two-to-three-year horizon (through year-end 2028)
+
+Factor II's paths are explicitly *conditional* — valuation determines severity while the trigger arrives from Factors I, III, IV, or V. Probabilities describe the multiple's own route:
+
+| Path | Probability | Shape |
+|---|---|---|
+| **Mechanical de-rating** | **40%** | The yield channel does the work: term premium and policy risk push the 10-year toward and above 5%, and 25.5x compresses toward 21–22x. Index −12 to −18% with earnings intact — the report's "mechanical correction" modal case, requiring no recession, only arithmetic. |
+| **Multiple persistence** | **28%** | The 1996–99 route: extremity persists and extends. Earnings grow 15%+, the multiple holds or expands, the index grinds toward strategist targets (8,250+). Each year of this path raises the starting altitude of the eventual adjustment — risk deferred and enlarged. |
+| **Full compression** | **24%** | A realized trigger (AI air pocket, Hormuz price-close, funding accident) meets the extreme multiple: compression toward the long-run 18–19x mean, index −25 to −35%, CCC−BB proven prophetic as the middle of the credit book migrates toward its tail. |
+| **Terminal melt-up** | **8%** | The 1999 endgame: CAPE takes out 44, ERP goes decisively negative, retail and passive flows go vertical. The framework's worst regime — maximum fragility wearing maximum euphoria — and historically the shortest-lived. |
+
+**Signposts:** the ERP (earnings yield minus 10Y) — each leg deeper into negative territory shifts mass from persistence toward compression; the equal/cap-weight ratio (broadening is the benign falsifier, pre-registered); CCC−BB ±150bp moves; the re-rating-exhaustion decomposition (how much of each rally is earnings vs. multiple — GAP, S6) — multiple-only advances are late-cycle signatures.
+
+### 2.5 The ten-year horizon (2036) — scenario families
+
+**The Lost-Decade Grind (~35%).** From CAPE ~41, the base historical case: nominal prices oscillate in a wide range while earnings grow underneath, delivering ~0–3% real annualized with two or three 20%+ drawdowns en route. The market of 1966–82 or 2000–2012 — misery without catastrophe, and the scenario in which today's negative ERP is simply paid for slowly.
+
+**Crash-and-Recover (~30%).** A 2027–29 compression (−30% or worse via one of the compound pathways) resets the multiple to the high teens, off which the AI-productivity earnings era compounds properly. Painful, then excellent: the best *forward* outcome for anyone with dry powder, and the reason BOTTOM WATCH exists as a band.
+
+**Earnings Grow Into It (~20%).** The Yardeni resolution: AI-driven margin expansion lifts index EPS toward $450+ by decade's end; the multiple never breaks because the denominator races the numerator; 2036 looks back on 25.5x as reasonable. Requires the productivity story to arrive on schedule *and* the yield channel to stay quiet — a conjunction, which is why it is priced below its popularity.
+
+**Japan-Style Stagnation (~15%).** The compound-crisis tail realized: a valuation break coincides with the fiscal reckoning (Chapter 4) and a broken policy toolkit; the multiple compresses and *stays* compressed for a decade as the risk-free asset's own credibility is the casualty. The scenario in which equities and bonds fail together — the one the 60/40 portfolio cannot survive and the one Factor V's hard-asset architecture is effectively a hedge against.
+
+### 3.3 The present moment — a dispatch
+
+**AUGUST 29, 2026.** The Strait of Hormuz has now been effectively closed for roughly 181 days — a duration that would have been dismissed as apocalyptic fiction in any pre-war tabletop exercise. PortWatch counted **three transits on August 23** against a pre-war baseline near eighty-five a day. Gulf crude exports are running at roughly half their pre-war volume. The August 7 collapse of the June ceasefire has settled into a grim rhythm: strikes, sanctions (Monday's session sold off on a fresh Iran sanctions package alongside U.S.–Canada tariff friction — the geoeconomic half of the factor's name earning its billing), threats against Kharg Island, and intermittent diplomacy.
+
+And Brent closed near **$89**.
+
+The bond market barely blinks at Hormuz headlines anymore; equities set records through them; the July CPI showed *energy falling 1.5% on the month* — the ceasefire-era crude slide still washing through the index even as the strait stayed shut, though the 14.7% year-over-year energy print remembers what the monthly change has forgotten. The only market still visibly at war is the one that pays claims: hull war-risk holds near 10% of vessel value per transit, two hundred times the pre-war rate, and underwriters report no meaningful softening since the collapse. Meanwhile the slow chain grinds forward out of sight: Gulf ammonia and urea flows remain disrupted, and the framework's fertilizer clock says the food-CPI echo of *this summer's* disruption is due in the winter prints — after every dashboard has declared the shock absorbed. One number for the file: the widely circulated "69% El Niño" figure making the rounds is the conditional probability of the *largest event since 1950 given an event* — not the probability of an event. The report carries ENSO as context, not headline.
+
+### 3.4 The two-to-three-year horizon (through year-end 2028)
+
+| Path | Probability | Shape |
+|---|---|---|
+| **Adaptation confirmed** | **35%** | The two-quarter rule resolves benignly: transits recover above 50% of baseline for a month, premiums normalize toward 1–2%, the divergence closes from the *physical* side. The report de-escalates the factor in writing — the rarest act in market commentary — and cuts the chokepoint weight. The Tanker War's ending. |
+| **Frozen oscillation** | **30%** | Neither peace nor escalation: the strait cycles between 5% and 40% of baseline, premiums stay an order of magnitude above pre-war, the shadow fleet institutionalizes, and the fertilizer chain delivers its food-CPI echo into 2027 regardless. Factor holds at −1/−2 indefinitely; the tail stays priced by insurers and ignored by everyone else. |
+| **Price closes the divergence** | **25%** | A tanker strike with casualties, a Kharg execution, or simple buffer exhaustion (SPR ~14% drained and falling) finally moves crude: Brent $120–150, the disinflation path inverts, the Fed's option to ease vanishes exactly as scenario 16 arrives — the supply-shock compound path (Chapter 8's worked example). The framework's pre-registered escalation: any re-closure that *finally moves price* marks the adaptation thesis dead. |
+| **Broader war** | **10%** | Horizontal escalation — Hezbollah fronts reopening, direct great-power friction, or a second chokepoint (Bab el-Mandeb, Malacca pressure, Taiwan gray-zone) activating while Hormuz is still down. The multi-chokepoint world arrives ahead of schedule; every insurance market reprices at once. |
+
+**Signposts:** the transit/baseline ratio crossing 50% (either direction); war-risk premiums breaking below 5% or above 15%; Tampa ammonia and NOLA urea inflecting; the divergence metric itself — the single line the factor's score is now formally tied to.
+
+**The other theaters over the same window.** The four paths above resolve the *Hormuz divergence* specifically, because that is where the factor's live premise sits. The rest of the board runs on its own clocks, and the near-horizon question for each is whether it produces a market-transmitting event before year-end 2028:
+
+| Theater | Escalation by YE2028 | What transmission would look like |
+|---|---|---|
+| **Geoeconomic escalation** (tariffs, export controls, mineral licensing) | **~70%** | Continuous, not discrete: effective tariff rates and license regimes ratcheting; margin compression and an inflation floor rather than a crisis print |
+| **Red Sea / Bab el-Mandeb** persistence or re-escalation | **~45%** | Freight rates and insurance; a second front of the same chokepoint arithmetic already partly normalized |
+| **Taiwan gray-zone escalation** (quarantine drill, cable cutting, customs inspection regime) | **~25%** | Semiconductor and Japan/Korea equity repricing; the first honest test of what a strait insurance market does when the cargo is irreplaceable |
+| **Russia–NATO sub-threshold incident** (Baltic cable, airspace, shadow-fleet interdiction) | **~25%** | Defense budgets, European energy, and an Article 5 credibility question the market prices in basis points of European risk premium |
+| **India–Pakistan or Korean flare-up** | **~15%** | Regional risk premium; nuclear-adjacent headlines that markets historically fade within weeks |
+| **Taiwan blockade or worse** | **~5%** | Not a market event — a market *regime* event. See §3.5. |
+
+### 3.6 The ten-year horizon (2036) — scenario families
+
+**Managed Fragmentation — armed peace with a tax (~35%).** The modal path and the one already partly realized: blocs harden, supply chains duplicate, chokepoint risk becomes a permanently priced feature rather than an episodic crisis, and war-risk rates never return to their pre-2026 basis. No great-power war. What it costs: a structurally higher inflation floor (duplicated capacity, friend-shored production, standing strategic stockpiles), a defense capital cycle running for a decade, and a permanent risk premium in energy, freight, and insurance. Not a catastrophe — a *tax*, collected forever, on the efficiency the previous thirty years were built to harvest.
+
+**The Chokepoint Cascade — precedent metastasizes (~20%).** The bad tail with a specific mechanism rather than a mood: the demonstrated survivability of closing Hormuz is studied, the quarantine rung is tested in the Taiwan Strait in the late 2020s or early 2030s, and the semiconductor chokepoint proves to have no adaptation path. Every insurance market reprices at once, the AI buildout's physical substrate becomes a national-security asset rather than a commercial one, and the 2026 episode is remembered as the rehearsal everyone watched and nobody priced. This is the family in which Chapter 8's compound sequence runs to completion.
+
+**Accelerated Transition — the closures kill the chokepoints (~15%).** Suez 1956 at civilizational scale, generalized: six months of $90 crude with a fat tail does to oil demand what 1973 did in Europe and Japan, while the semiconductor onshoring wave, mineral substitution and recycling, and route diversification erode the *underlying relevance* of every pressure point on the board by the early 2030s. The chokepoints stop mattering because the world routed around them — the outcome in which today's disruption is remembered as the last one that could work.
+
+**Restored Order — the settlement branch (~15%).** Deals hold: a post-succession Iranian settlement with sanctions relief, a durable European security arrangement, a US–China modus vivendi that keeps Taiwan ambiguous and profitable for both. Premiums mean-revert within two years, the adaptation hypothesis is confirmed and marked confirmed, and this factor de-escalates toward zero. The framework's explicit obligation in this world is to carry the lesson forward rather than quietly re-arming the same fear at the next headline.
+
+**Multi-Theater Simultaneity — the 1930s analog (~15%).** Two or more theaters active at once by opportunistic timing: the correlation problem realized. Not necessarily world war — more likely a period of several years in which the assumption of a single manageable crisis at a time simply fails, defense spending crosses fiscal thresholds that were previously political red lines (the Chapter 4 coupling), and the global insurance and shipping systems price for a permanently contested commons. The scenario in which every diversification assumption in a portfolio, geographic and asset-class alike, is tested at the same moment.
+
+### 4.1 The 101 — how the dynamic works
+
+**The interest burden is the sovereign's combined ratio.** Take net interest paid, divide by federal revenue: the share of every incoming tax dollar consumed by servicing the existing book before a dollar of policy is bought. That ratio has now crossed roughly **18.5%**, above the 1991 record of ~18.4%. The comparison's sting is in the second variable: 1991's record was set with long yields near 8%; today's is set with the average around 5.2%. When the *ratio* exceeds its record at *two-thirds lower rates*, the arithmetic is being driven by the stock of debt, not its price — and the stock does not mean-revert. Trailing-twelve-month interest is roughly **$1.2 trillion** against a deficit running near 6% of GDP ($1.8 trillion in ten months) at full employment. Deficits of that size *with no recession to blame* are the structural signature.
+
+**WAM flatters; reset velocity tells the truth.** The Treasury advertises a weighted-average maturity near six years, which sounds like insulation. But roughly **a third of marketable debt reprices within twelve months** — the post-2010 high outside the pandemic — because the stack is barbelled with bills. The effective interest rate therefore converges toward market rates far faster than the headline WAM implies. Any fixed-income desk recognizes the structure: duration on paper, floating-rate in practice — a book that reprices at renewal, into a hard market, every year. The gap between r (the effective rate, converging upward) and g (nominal growth) is the entire sustainability arithmetic, and reset velocity is the speed at which the gap closes from the wrong side.
+
+**The Twist changes shape, not size — and the shape is the message.** On August 19 the Treasury doubled its buyback operations to $4 billion each, purchasing long-dated bonds and funding the purchases with bill issuance. No debt is repaid; the maturity profile shortens. Now consolidate the sovereign balance sheet — Treasury plus Federal Reserve, one issuer in economic substance — and the picture sharpens: the consolidated state is deliberately becoming a *shorter-duration, more floating-rate borrower* at the exact moment its interest burden is at record share of revenue. That is what a borrower does when it cannot afford the long end — and every market that prices duration can read it.
+
+**The TGA fork is the line between mechanics and monetization.** The floated next step — funding buybacks from the Treasury General Account, the government's ~$950 billion checking account at the Fed — is categorically different, and the difference is the chapter's hinge. Bill-funded buybacks are a maturity swap: cash comes from markets, cash returns to markets. TGA-funded buybacks *spend the government's account at the central bank into private hands*: bank reserves are created, exactly as in quantitative easing — except executed by a finance ministry with no monetary-policy committee, no mandate, and no press conference. That is the textbook mechanism of **fiscal dominance**: monetary conditions set by the government's financing needs rather than the central bank's mandate. The confirming series is deliberately mundane — TGA balance versus bank reserves, weekly. If the TGA falls while reserves rise, at scale, the fork has been taken, and no speech will have announced it.
+
+**Plumbing is the fast clock under the slow thesis.** Bank reserves near **$2.94 trillion** with the reverse-repo buffer effectively exhausted means the system's shock absorber is gone: every dollar of new bill supply now drains reserves directly. The tripwires are the September-2019 set — SOFR trading above IORB, Standing Repo Facility usage, settlement fails — indicators that move in *days* and force policy responses in *hours*. The thesis of this chapter unfolds over years; its accidents happen over a weekend.
+
+**Gold's two bids, decomposed.** The hard-asset verdict on all of the above requires splitting gold's demand into the **official bid** (central banks accumulating reserves — slow, structural, price-insensitive) and the **paper bid** (futures and options positioning — fast, leveraged, reflexive). August's move — **+14% to ~$4,650** — is overwhelmingly paper: GLD net call-minus-put open interest near 2.4 million contracts against a 2021–24 mean of 0.8 million, while *physical* retail demand sits at a five-year low. The report's verdict is precise and deliberately uncomfortable for gold bulls: this is a **fragile-rally state** — the speculative bid without the structural bid — evidence that markets are *rehearsing* the debasement trade, not yet confirmation of a debasement regime. The bond market, for its part, votes the other way entirely: the 10-year at 4.72% treats the Twist as trivial mechanics. Both verdicts cannot stay right.
+
+### 4.3 The present moment — a dispatch
+
+**AUGUST 29, 2026.** Kevin Warsh chose Jackson Hole for his first full articulation of the doctrine, and delivered a sentence built for the history books: *"I stand here today committed to a discipline, not to a decision."* Inflation, he allowed, ran better than expected this summer — July's CPI cooled to 3.4%, core to 2.5% — but the readings "do not tell me that underlying trends have meaningfully improved." No guidance followed, on principle. Markets supplied their own: September hike odds jumped from 35% to 57% by the close, the two-year yield rose six basis points to 4.30%, and the S&P slipped a quarter percent while still finishing the week higher — the eleventh consecutive week in which equities and the Fed have politely disagreed about the future.
+
+The committee he chairs is openly split — a 9–3 July hold with three regional presidents dissenting *for a hike*, the June dots penciling one increase by year-end, and the chairman calling it a "family fight" for the thirteenth time on the public record. The 30-year sits at 5.21%, above the threshold the flow-show strategists spent June warning would "break both pillars at once." The 10-year, at 4.72%, has rendered its verdict on the August 19 Twist: too small to matter — $4 billion an operation against a $40 trillion market.
+
+Hard assets rendered the opposite verdict. Gold rose 14% in August to ~$4,650, its best month of the year, on options positioning three times the recent mean — while physical coin-and-bar demand plumbs five-year lows and bitcoin printed $79,000 *during* the Jackson Hole speech itself. The debasement trade is being rehearsed in paper size ahead of any confirmed regime. Meanwhile the fiscal engine idles at full throttle: $1.8 trillion of deficit through ten months, $1.2 trillion of trailing interest, a third of the stack repricing inside a year, reserves at $2.94 trillion with the buffer gone — and a floated plan, still just floated, to fund the next round of buybacks from the government's own checking account. Early August's coordinated yen intervention — Japan selling *European* assets while the Fed promoted FIMA repo, an arrangement engineered so the largest foreign holder would not have to sell Treasuries — completed the picture of a system managing its constraints in public while insisting there are none.
+
+### 4.4 The two-to-three-year horizon (through year-end 2028)
+
+| Path | Probability | Shape |
+|---|---|---|
+| **Soft fiscal dominance** | **35%** | The fork is taken quietly: buybacks grow, TGA funding arrives "temporarily," the curve is managed by issuance policy, inflation settles into a 3–4% plateau nobody re-anchors, and real yields are engineered mildly negative. No crisis, no announcement — the 1940s in business-casual. Gold's structural bid confirms; bonds deliver slow-motion real losses; the framework's score was right and the timing unfalsifiable. |
+| **Muddle-through** | **25%** | The 1991 path's weaker modern cousin: inflation drifts to 2.5–3%, AI-led growth holds g above r, the Twist stays small, the TGA stays parked. The burden stabilizes near 19–20% of revenue without breaching. Requires nothing to go wrong for three years — priced accordingly. |
+| **Inflation-forced hikes** | **20%** | Scenario 16, the path the report names as the one it is least positioned for: the fertilizer echo, a Hormuz price-close, or plain services stickiness re-accelerates core; the September hike becomes a *cycle*; funds reach 4.5%+ into a 6%-deficit economy. Every interest-sensitive channel — including the capex complex of Chapter 1 and the multiple of Chapter 2 — reprices at once. The stagflation configuration. |
+| **The funding accident** | **15%** | The gilt template on Treasury scale: an auction tails badly, SOFR gaps over IORB, fails spike, a leverage pocket (basis trade, stablecoin reserve, LDI-analog) unwinds — and the Fed is buying within days, against its own rhetoric. Fast, technical, and regime-defining in retrospect: the accident *is* how fiscal dominance usually gets ratified. |
+| **Genuine consolidation** | **5%** | The deficit bends below 5% of GDP through policy rather than accident. Pre-registered in the report as a falsifier; priced at the frequency history suggests. |
+
+**Signposts:** TGA vs. reserves, weekly — the single highest-value series in the framework; the September FOMC (hike odds 57% at press time) and whether one hike becomes a path; auction tails and indirect share; SOFR−IORB; the stock-bond correlation regime (persistent positive correlation = Treasuries no longer hedging equities = the diversification bid migrating toward Chapter 5's assets); gold's two-bid decomposition converging (physical joining paper would upgrade the rally from fragile to confirmed).
+
+### 4.5 The ten-year horizon (2036) — scenario families
+
+**The Repression Decade (~35%).** The 1946–51 playbook, updated: yields managed through issuance policy, regulation, and the occasional "temporary" facility; inflation averaging 3–4%; nominal GDP outgrowing the debt while real bondholders pay the bill on a fifteen-year installment plan. Equities muddle in nominal terms; hard assets and pricing-power businesses win; the 60/40's bond leg is the designated loser. History's modal exit for exactly this configuration.
+
+**The Productivity Bailout (~25%).** The only painless door: AI-driven growth (Chapter 1's promise, delivered) lifts g decisively above r; revenue surprises compound; the burden ratio walks itself down as it did in the 1990s. The scenario in which today's fiscal alarm reads, from 2036, like 1993's did from 2000 — overwrought. Its probability *is* the probability that Chapter 1's boom is real and timely, which is the deepest coupling in the framework.
+
+**The Debasement Regime (~20%).** Repression attempted but not believed: the two-bid decomposition resolves with physical joining paper, the official-bid convergence trade (Chapter 5) accelerates, dollar reserve share erodes from 58% toward the 40s, and gold/BTC transition from rehearsal to standing monetary escape valves. Not hyperinflation — erosion: the reserve privilege spent down a percentage point at a time, with every fiscal expedient ratifying the trade.
+
+**Crisis and Accord 2.0 (~15%).** The accident path realized and formalized: a funding event forces explicit yield-curve control or standing debt monetization, and — as in 1951 — the *resolution* becomes the constitutional moment. Either independence is re-founded on new terms after the emergency (the good branch), or the emergency powers never lapse (the bad one). The scenario in which the premise fields on Factor IV would read: regime_event, applied.
+
+**Austerity Turn (~5%).** The political black swan: a genuine consolidation coalition. Kept on the board because 1991 happened; sized at the frequency it happens.
+
+### 5.3 The present moment — a dispatch
+
+**AUGUST 29, 2026.** Bitcoin printed seventy-nine thousand dollars on Friday — not on an ETF headline or a halving, but on the words of a Federal Reserve chairman at Jackson Hole. The asset that was engineered as an exit from monetary policy now trades tick-for-tick *on* monetary policy, which is either an irony or a graduation depending on the reader's priors. Gold's August — up 14% to ~$4,650 — carried the same signature: overwhelming paper positioning (net call-minus-put open interest at three times the recent mean) over five-year-low physical demand. The debasement trade is being rehearsed at size, in derivatives, ahead of confirmation.
+
+The structural story advanced more quietly. Stablecoin legislation continues its tailwind path; issuers' bill holdings grow into the Treasury's own issuance assumptions; the tokenized-fund complex builds; prediction markets — this cycle's media-scan candidate — matured to the point that *dissent counts at FOMC meetings* trade with posted odds. Central banks kept buying gold on the established glacier schedule: ~860 tonnes last year, 244 in the first quarter, against mine supply crawling at 1%. And in the report's ledger of headwinds, the post-quantum cryptography migration gap sits unchanged — the audit item nobody trades on until the week everybody does. The factor enters the composite next run. This run, it watches — which, for a force whose whole thesis is that the plumbing changes before the prices do, is the appropriate posture.
+
+### 5.4 The two-to-three-year horizon (through year-end 2028)
+
+| Path | Probability | Shape |
+|---|---|---|
+| **Institutionalization** | **40%** | The Eurodollar path: supply compounds, bill absorption performs as Treasury's math assumes, tokenized settlement becomes boring infrastructure, and the factor's score turns *positive* — a stabilizing force that widens the buyer base for exactly the paper Chapter 4 must sell. The four questions resolve toward "infrastructure." |
+| **Bifurcation** | **25%** | The rails thrive while the assets decouple: stablecoins and tokenization institutionalize as the speculative complex collapses onto pure liquidity beta (the report's pre-registered reduction: "the architecture story reduces to a risk asset"). Half the thesis confirmed — the half that matters for Treasury finance. |
+| **The depeg event** | **20%** | Reserve Primary at chain speed: a major issuer breaks par on a reserve loss, a custody failure, or a run; redemptions force bill liquidation into the bufferless market of Chapter 4; scenarios 4/23 realize together. The sovereign backstop question gets answered in a weekend, and the answer creates the moral-hazard architecture of the following decade. |
+| **Regulatory reversal** | **10%** | A political turn or a foreign-bloc CBDC wall reverses the accommodation: growth stalls, the marginal bill buyer Treasury planned on fails to appear — the quiet failure mode, damaging through absence rather than event. |
+| **The PQC scare** | **5%** | A credible quantum milestone forces migration panic across custody and settlement. Low odds per cycle; permanently non-zero; the reason the audit line exists. |
+
+**Signposts:** stablecoin aggregate supply vs. bill issuance (the load-bearing test, quarterly); any issuer trading persistently off par; the gold two-bid decomposition (physical joining paper = regime confirmation); coin-margined OI and DAT leverage (the reflexivity gauges — GAP, CoinGlass S11); China's disclosed gold share creeping off its sub-10% base.
+
+### 5.5 The ten-year horizon (2036) — scenario families
+
+**Dollarization 2.0 (~35%).** The paradox scenario, and the modal one: private dollar tokens extend dollar hegemony into every phone on earth, doing at retail what Eurodollars did at wholesale. Billions of foreign users hold dollars they never could before; bill demand becomes structurally deeper; the *instrument* revolutionizes while the *sovereign* it wraps grows stronger. The U.S. wins the monetary transition by franchising it — and the Chapter 4 debt problem gains a decade of additional rope, for better and worse.
+
+**The Multipolar Settlement (~25%).** The convergence trade completes: China and the accumulating bloc reach 25–40% gold reserve shares; regional CBDC and commodity-settlement rails route around dollar clearing for a meaningful minority of trade; the dollar's reserve share erodes into the 40s. Not collapse — *optionality*: for the first time since 1944, holding dollars becomes a choice with visible alternatives, and the pricing of U.S. fiscal behavior (Chapter 4) loses its captive audience.
+
+**Status Quo Viscosity (~20%).** The boring branch: bank rails absorb the useful innovations, stablecoins plateau as a niche settlement layer, CBDCs stall on privacy politics, the debasement trade round-trips as it did after 1980. Money's architecture, it turns out, moves on fifty-year clocks, not ten. The factor is quietly retired — the outcome the promotion discipline exists to keep cheap.
+
+**Crypto-Native Discontinuity (~20%).** Conditional on Chapter 4's repression or debasement branches realizing: hard-asset monetization goes mainstream, BTC completes its graduation into a standing reserve asset at multiples of today's price, and the leverage structures — coin-margined, DAT, restaked — deliver at least one systemic deleveraging event *en route*. The scenario in which Factor V ends the decade as the framework's most important chapter, and the two-bid decomposition its most cited chart.
