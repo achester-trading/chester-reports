@@ -539,3 +539,5 @@ Classes as in section 4.1. "Row" is the config's label; a row without one is nam
 | Disaggregated COT, scaled to open interest | the CFTC writer stores legacy non-commercial only (AQ-3) | F | the existing CFTC writer, the agricultural instruments added |
 | (waits) | the grain curves arrive with 6b | C | 6b's curves |
 | Sugar, coffee, cocoa and cotton | the softs are not in the price feed, the curve or the CFTC writer (AQ-3, AQ-13) | C | 6b's curves |
+
+- **CI:** CI queued, run 40145781009 (at `237a323`). The next paste that touches this branch reads the result once.
