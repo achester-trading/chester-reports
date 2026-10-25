@@ -3123,6 +3123,99 @@ sources:
     implemented_by: altdata/sources/mof_intervention.py
     status: built
 
+  # B70 (b70-quarterly-readers-2, 25 Oct 2026; D34): the sources B67 refused,
+  # registered so each declared gap names its source and the reason.
+  pjm:
+    name: PJM Interconnection -- capacity auction reports (REFUSED at check)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [energy]
+    geography: [united_states]
+    latency: n/a
+    timestamp_reliability: unknown
+    license: >-
+      "Access to this website does not confer any license or ownership interest in
+      either the form or content of the website" (https://www.pjm.com/about-pjm/legal.aspx,
+      read 25 Oct 2026); its data tools forbid non-members to republish.
+    terms_url: https://www.pjm.com/about-pjm/legal.aspx
+    terms_read: 2026-10-25
+    allowed_reports: []
+    implemented_by: null
+    status: refused
+  lbnl:
+    name: Lawrence Berkeley National Laboratory -- interconnection queues (REFUSED at check)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [energy]
+    geography: [united_states]
+    latency: n/a
+    timestamp_reliability: unknown
+    license: emp.lbl.gov/queues answered HTTP 403 to the project's request (25 Oct 2026); not retried.
+    terms_url: https://www.lbl.gov/disclaimers/
+    terms_read: 2026-10-25
+    allowed_reports: []
+    implemented_by: null
+    status: refused
+  moea_tw:
+    name: Taiwan Ministry of Economic Affairs -- export orders (REFUSED at check)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [trade]
+    geography: [taiwan]
+    latency: n/a
+    timestamp_reliability: unknown
+    license: www.moea.gov.tw answered HTTP 403 to robots.txt and the page (25 Oct 2026); not retried. data.gov.tw's open-data licence is a lead, unchecked.
+    terms_url: https://data.gov.tw/en/license
+    terms_read: 2026-10-25
+    allowed_reports: []
+    implemented_by: null
+    status: refused
+  tsmc:
+    name: TSMC -- monthly revenue releases (REFUSED at check)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [equity_fundamentals]
+    geography: [taiwan]
+    latency: n/a
+    timestamp_reliability: unknown
+    license: >-
+      "You are hereby granted permission to access the Content from the Site ... solely
+      for your personal, non-commercial use of viewing and browsing"
+      (https://www.tsmc.com/english/legal_and_trademark, read 25 Oct 2026).
+    terms_url: https://www.tsmc.com/english/legal_and_trademark
+    terms_read: 2026-10-25
+    allowed_reports: []
+    implemented_by: null
+    status: refused
+  circle:
+    name: "Circle -- USDC transparency page (REFUSED at check, no terms found)"
+    tier: B
+    epistemic_role: primary_fact
+    domain: [crypto]
+    geography: [global]
+    latency: n/a
+    timestamp_reliability: unknown
+    license: no general terms of use for circle.com could be located to read (25 Oct 2026); a source whose terms cannot be read does not pass.
+    terms_url: https://www.circle.com/transparency
+    terms_read: 2026-10-25
+    allowed_reports: []
+    implemented_by: null
+    status: refused
+  tether:
+    name: Tether -- transparency file (REFUSED at check)
+    tier: B
+    epistemic_role: primary_fact
+    domain: [crypto]
+    geography: [global]
+    latency: n/a
+    timestamp_reliability: unknown
+    license: app.tether.to's robots.txt disallows transparency.json (25 Oct 2026); not requested.
+    terms_url: https://tether.to/en/legal/
+    terms_read: 2026-10-25
+    allowed_reports: []
+    implemented_by: null
+    status: refused
+
 stored_aliases:
   ibkr:
     by_key_family:

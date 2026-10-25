@@ -218,7 +218,13 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # share count, MSTR's captured spot -- before the derived
                     # writer, which computes mNAV and net purchases from them.
                     "treasury",
-                    "crypto_derived")
+                    "crypto_derived",
+                    # The Quarterly's readers, tranche 2 (b70, 25 Oct 2026; D34):
+                    # iShares' crypto trusts (level, not flow), DefiLlama's breadth
+                    # (stored, never republished), the BDCs' filed facts, and the
+                    # Blockscout field check (PENDING until a supply field exists).
+                    "ishares_holdings", "llama_breadth", "edgar_bdc",
+                    "blockscout_supply")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:

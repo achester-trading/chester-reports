@@ -244,7 +244,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty code gates (one hundred and thirty-seven Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-one code gates (one hundred and thirty-eight Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -811,6 +811,22 @@ limit in code, all report-only and barred from the market-state object:
 404 or 410 as no rules) and keeps the one-a-day guard. `tools/validate_quarterly_readers_1.py`
 holds it.
 
+**The Quarterly's readers, tranche 2 (b70-quarterly-readers-2, 25 Oct 2026; D34;
+after the 1 Nov Monthly).** Four external writers, report-only:
+- `ishares_holdings`: IBIT's and ETHA's AUM and shares, "level, not flow";
+- `llama_breadth`: DefiLlama TVL by category and by layer-2 chain, stored and
+  never republished, the AERO merge convention in code;
+- `edgar_bdc`: five BDCs' filed investments at fair value and NAV per share,
+  through the SEC contact, with OCSL refused by the blocklist;
+- `blockscout_supply`: a field check, PENDING while Blockscout's public stats
+  carry no burn or issuance field.
+
+The sources B67 refused are registered `refused`, and their rows print "not
+tracked" with the reason and the check date (`status_extra: not_yet_sourced`):
+PJM, LBNL, MOEA, TSMC, Circle, Tether, Thailand's current account and the
+construction index. The Yahoo rows (GDX, SIL, the grain fronts) print "pending
+D33". `tools/validate_quarterly_readers_2.py` holds it.
+
 **Batch 14, Part B2: the CMA table, the PEG note and the per-household line (items
 62, 67 and 68; b55-batch14-b2, 23 Oct 2026). Merges after the 1 Nov Monthly.**
 Report only.
@@ -1227,7 +1243,7 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 43 official writers, 37 external writers and 7
+**The scheduled roster is 43 official writers, 41 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.

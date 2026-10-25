@@ -722,3 +722,19 @@ commands:
     domain: fx
     line: "The SNB's weekly sight deposits (data portal, attributed, non-commercial) (b69)"
     sources: [snb]
+  altdata.sources.blockscout_supply:
+    domain: crypto
+    line: "ETH burn and issuance: a field check on Blockscout's public stats, PENDING until a supply field exists (b70)"
+    sources: [blockscout]
+  altdata.sources.edgar_bdc:
+    domain: macro
+    line: "Five listed BDCs' filed facts through EDGAR: investments at fair value, NAV per share; non-accruals a listed gap (b70)"
+    sources: [sec_edgar]
+  altdata.sources.ishares_holdings:
+    domain: crypto
+    line: "iShares' IBIT and ETHA: AUM and shares outstanding, level not flow (b70)"
+    sources: [ishares_trusts]
+  altdata.sources.llama_breadth:
+    domain: crypto
+    line: "DefiLlama TVL by category and by layer-2 chain, daily snapshots, stored never republished (b70)"
+    sources: [defillama]

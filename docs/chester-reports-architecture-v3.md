@@ -203,7 +203,7 @@ analysis should almost never require touching an engine.
 > (`config.FRED_PULL_SERIES`) and 127 market symbols
 > (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
 > Master (`config/security_master.yaml`). The scheduled roster is 43 official
-> writers, 37 external writers and 7 loggers. A scheduled writer opens the store
+> writers, 41 external writers and 7 loggers. A scheduled writer opens the store
 > through `observations.open_writer()`; the append-only triggers refuse UPDATE
 > and DELETE once installed, and a row whose source is not a registered id (or
 > `<id>:<variant>`) is refused. Where two sources hold one period at one instant,
