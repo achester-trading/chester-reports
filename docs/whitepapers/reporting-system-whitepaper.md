@@ -365,7 +365,8 @@ Since Draft 2 the close has gained:
 - **the dealer block:** the session's positioning from the three captures, its quality panel, the horizon matrix, a dealer chart, and three fixed sentences per capture held by the flag-word audit (§5.2);
 - **the ES block:** the e-mini future's levels on three timeframes;
 - **the state-vector line** (§8.3);
-- **the volatility-event block**, on a day the event flag fires: a nine-lens attribution table and a base rate from stored history;
+- **the event area** in Mechanics, each block printing only on its trigger (§4.7);
+- **the calibration line**: the dials' transition rows, "uncalibrated" until they calibrate (§3.10);
 - **a line counting chester-meme's drafts;**
 - **the day's data-quality marks** in its warnings (§2.6).
 
@@ -403,7 +404,7 @@ The themes are declared, each mapped to the state object's dimensions and, where
 
 **Reading.** The Reading chapter is built from the committed reading register and watchlist with no model call. It lists the month's read and listed editions in the watchlist's group order. Each is a hyperlinked title line naming the publisher, the publication date, the data-as-of date where it differs and the scan, followed by the stored summary for a deep or skim item and the one-liner for a list item. An item with no URL is not printed and is counted in the footnote; a pending item never prints; a shelf entry the daily voices scan already stored is printed once and named. The month's window runs from the prior month-end to this one, so consecutive Monthlies tile. Then comes the coming month's due list. The summaries are stored text: escaped, never polished, trimmed or audited, outside the prose budget and inside the reading time.
 
-**Charts M1–M9.** The Monthly draws its own set with the Weekly's chart primitives, from the store at edition time: SPY over three years in weekly candles (M1) and over ten years in monthly candles with the drawdown from the high (M2), each drawing only the levels the tape's prose is given; the dealer retrospective (M3); the 10-year yield with its term premium (M4); twenty years of the high-yield spread with its percentiles (M5); speculative positioning as z-scores (M6); breakevens and the implied policy path at month start against month end (M7); the scenario weights and their Brier scores by edition (M8); and Book Z against the account's value (M9), whose caption says that the books are not yet marked one by one. Each chart sits in the section or sub-section it illustrates, inside the chart cap, and counts toward the reading time.
+**Charts M0–M13.** The Monthly draws its own set with the Weekly's chart primitives, from the store at edition time: three months of SPY's daily candles with its 50- and 200-day averages, which prints first in The tape (M0); SPY over three years in weekly candles (M1) and over ten years in monthly candles with the drawdown from the high (M2), each drawing only the levels the tape's prose is given; the dealer retrospective (M3); the 10-year yield with its term premium (M4); twenty years of the high-yield spread with its percentiles (M5); speculative positioning as z-scores (M6); breakevens and the implied policy path at month start against month end (M7); the scenario weights and their Brier scores by edition (M8); and Book Z against the account's value (M9), whose caption says that the books are not yet marked one by one; the fed funds futures' implied path at month start against month end (M10); what is carrying the index, the S&P 500 against its earnings and its multiple (M11); the dealer panel, when the month's settled profiles exist (M12); and a watched mechanism's supply against its design (M13), the first set aside when the cap binds. Each chart sits in the section or sub-section it illustrates, inside the chart cap, and counts toward the reading time.
 
 **What the Monthly gained since Draft 2.**
 - The Factor lines and the Rate machine summary.
@@ -417,13 +418,16 @@ The themes are declared, each mapped to the state object's dimensions and, where
 
 The chart set is capped at twelve (Appendix A).
 
-**Budget, prose and fallback.** Each section's prose is one audited model call, with the one revision of §5.3. Over the word budget, code trims the appendix first, then the last of several paragraphs, back to front, and marks the cut "(trimmed)"; the Reading chapter is never cut. A fault in the stacked edition does not stop the Monthly: it degrades to the storyline render. A dry run builds with the model and reads the prior Monthly from the real archive, so its change marks are real, but writes only to a dry-run folder: no fetch, no scans ingest, no snapshot and no dashboard state, and, if asked, one email under a "[DRY RUN]" subject. The scenario weights are read from the probability ledger and are never written by the Monthly; until a scenario register is ruled, the block says the ledger holds none.
+**Budget, prose and fallback.** Each section's prose is one audited model call, with the one revision of §5.3. The word budget is a target, not a cap: nothing is cut or withheld for length, and an edition over its target prints one line at its foot saying how long it runs against the target. A fault in the stacked edition does not stop the Monthly: it degrades to the storyline render. A dry run builds with the model and reads the prior Monthly from the real archive, so its change marks are real, but writes only to a dry-run folder: no fetch, no scans ingest, no snapshot and no dashboard state, and, if asked, one email under a "[DRY RUN]" subject. The scenario weights are read from the probability ledger and are never written by the Monthly; until a scenario register is ruled, the block says the ledger holds none.
 
-### 4.7 The anchor in the morning, the 12:30 slot, and the close's detail tables
+### 4.7 The anchor, the two notes, the 12:30 slot and the close
 
-A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a **What changed** block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile and the levels moved behind it. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked. Since Draft 2 it carries:
+The weekday runs on five touches: the anchor at 07:00, the open note at 09:50, the alert-only slot at 12:30, the close at 16:45 and the evening note at 21:30. The anchor and the close are the reports of record; the two notes and the slot check in between them, and none of the three in between has a right the reports of record do not give it.
+
+**The anchor.** A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a **What changed** block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile and the levels moved behind it. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked. Since Draft 2 it carries:
 - the ES block;
 - the volatility-event block on the morning after an event;
+- the volatile-day flag: each of its arms with its reading and as-of, the gap provisional until the open note settles it, printed and never applied;
 - the signal lines: the auction, the FOMC-week gap, the yen flag and the rally inside a bear, each only on its trigger;
 - the meme-drafts line;
 - **the opening setup**, under the prior close's dealer surface:
@@ -432,7 +436,13 @@ A morning anchor runs before the open. It reads the previous session's state obj
   - "Largest OI builds, side unknown", with each build's estimated premium, its chance in the money and its context tags;
   - two put-volume proxies, for SPY and SPX, each labelled no side.
 
-None of these says who opened a position, because the chains cannot tell. A pre-market line on the gauge, from the e-mini's overnight print, is ruled and not built on this chain (Appendix E).
+None of these says who opened a position, because the chains cannot tell. The gauge opens on a pre-market line from the e-mini's overnight print, and SPX's and SPCX's cells read "awaiting the solver gate" until their greeks pass it.
+
+**The open note** runs at 09:50 on weekdays, after the 08:30 releases and the first twenty minutes of trading. It fetches first, into the store only: five-minute bars from 08:00, a targeted pull of the morning's releases, news and a short voices pass. It then reads, in order, the 08:30 releases and the market's reaction, the open against the anchor's expected-movement gauge, the news since 07:00, Book C, and what the close will check; the volatile-day flag prints completed, with the gap settled from the 09:30 open. It may confirm or cancel Book C's 07:00 drafts and never add one; while no 07:00 setup list is built it says so. It asks the model for a paragraph only when its gate opens (a top-tier release, a gap or an early range beyond the gauge, the close's volatility trigger, or the flag), and the paragraph has a hard word cap: past it, the paragraph is withheld, never trimmed.
+
+**The evening note** runs at 21:30 from Sunday to Thursday. It fetches the futures, Asia, currencies, crypto, the yuan's fixing, news, earnings and after-hours moves into the store, then prints the futures since the close (on Sunday, the open against Friday), the after-hours earnings, Asia, currencies, crypto, the news and tonight's Book D drafts. It has no rights. On a quiet weekday it prints one line, that there is nothing to do tonight and the anchor will re-read it all; it asks for a paragraph only when a market has moved past its declared threshold, and always on Sunday. The meme ingest runs a quarter of an hour before it, so tonight's drafts are in.
+
+**Both notes** start as dry runs, mailed under a "[DRY RUN]" subject until the date declared in configuration, write their edition and payload to the archive, append to the withheld-drafts log, and report a fault as a heartbeat warning rather than a failure. Each makes at most one model call and one revision, inside the meter, and none when its gate is shut. Their timers are the operator's to enable (Appendix A).
 
 **The 12:30 slot** is alert-only. After the 12:30 capture it evaluates a list of gates:
 - the dealer flip crossed by a confirmed margin;
@@ -442,11 +452,20 @@ None of these says who opened a position, because the chains cannot tell. A pre-
 
 When every gate stays closed, the slot writes nothing and sends nothing. When one opens, it writes the open gates' trigger lines, code-written, to the outbox and mails them once, under the subject "12:30 alert". No model is called.
 
+**The event area.** The close's Mechanics carries a set of event blocks, each printing only on its own trigger, each report-only, and each repeated at depth in the Weekly's and the Monthly's Mechanics:
+- **the volatility event:** a one-day or five-day move in the VIX past its thresholds, a crossing of the volatility dial's band, or compression, with a nine-lens attribution and a base rate from stored history; the anchor reprints it the morning after;
+- **the rates speed flag's attribution:** when the 10-year moves unusually fast over two weeks or a month, the term-structure models' split of the move into path and premium;
+- **the one-day 10-year move:** when the day's absolute change in the 10-year is beyond its declared five-year percentile, either way, the attribution runs, under a ledger pre-registered for it; it reads "not read" while the history is too short;
+- **the gold event:** a large one-day or five-day move in gold, with the legs that usually explain it (the real yield, the dollar, oil);
+- **the developed-market drawdown screen:** an index's drawdown over ten or twenty sessions past its five-year percentile, for the indices a keyless daily source serves; the others print "not tracked".
+
+None of these is a state of the object, and none reaches a dial, a band or a decision.
+
 The stacked close does not open on that block. Its state table and its contradiction table print at the **end** of the edition as detail tables, after The book and before the glossary, read from the stored object the close's payload carries and never recomputed. The order is deliberate: the ten sections say what the session did, and the tables are there for the reader who wants the object itself. Only the pre-stack form of the close, kept as a fallback, opens on What changed.
 
 ### 4.8 The reports that are specified but not built
 
-**The Alternative Assets Quarterly is built and not yet running.** It is the fourth cadence of the same stack. The ten sections over the previous quarter make its front matter, and eleven family chapters make its slow layers, every item tiered as lead or reference. Its timer ships disabled, and its first edition is planned for the second Saturday of January 2027.
+**The Alternative Assets Quarterly is built and not yet running.** It is the fourth cadence of the same stack. The ten sections over the previous quarter make its front matter, and eleven family chapters make its slow layers, every item tiered as lead or reference. Its timer ships disabled, to be enabled by the operator after its December dry run, and its first edition is planned for the second Saturday of January 2027.
 
 Four reports appear in the architecture and are not built.
 
@@ -460,7 +479,7 @@ Four reports appear in the architecture and are not built.
 
 ### 4.9 The chart-and-prose rule
 
-Charts and prose describe the same market, so they must describe the same levels. (Each report's chart cap is in Appendix A, with what the dealer charts displace when they enter: in the Weekly the prediction-market chart, and the second positioning panel when a contradiction chart is open; in the Monthly the scenario chart; in the close the second daily chart.) Before a report is assembled, the system computes one **level list** for the edition. Each level (prior close, session range, the moving averages, the week's range, the 52-week extremes, the dealer levels) carries its value, source, as-of time and a status: *held*, *broke* or *untested*, set by a declared rule. The prose may name only levels on the list, and may say "held" or "broke" only where the list says so. A chart may draw only levels on the list. A gate holds both to the one object. Charts carry no verdicts. A chart that cannot be drawn prints "chart unavailable" with the reason. The email carries each chart as a small image; the archive keeps it as a scalable file.
+Charts and prose describe the same market, so they must describe the same levels. (Each report's chart cap is in Appendix A, with what the dealer charts displace when they enter: in the Weekly the prediction-market chart, and the standing decomposition too when a contradiction chart is open and no trigger fired; in the Monthly the scenario chart; in the close the second daily chart.) Before a report is assembled, the system computes one **level list** for the edition. Each level (prior close, session range, the moving averages, the week's range, the 52-week extremes, the dealer levels) carries its value, source, as-of time and a status: *held*, *broke* or *untested*, set by a declared rule. The prose may name only levels on the list, and may say "held" or "broke" only where the list says so. A chart may draw only levels on the list. A gate holds both to the one object. Charts carry no verdicts. A chart that cannot be drawn prints "chart unavailable" with the reason. The email carries each chart as a small image; the archive keeps it as a scalable file.
 
 ### 4.10 What each report writes
 
@@ -468,8 +487,11 @@ Charts and prose describe the same market, so they must describe the same levels
 |---|---|---|---|---|---|
 | Daily close | Weekday evenings | Store, object, register, ledger | The object; outlooks; the dealer scorecard row; chain readings; archive; dashboard state | Smallest | Up to 3 |
 | Morning anchor | Weekday mornings | The prior object; overnight moves; events | Archive; dashboard state | Short | None |
+| Open note | Weekdays, 09:50 | The morning's releases, bars and news; the anchor's gauge; Book C's drafts | Store (its own fetch); archive; one mail; heartbeat | A hard cap, paragraph only on its gate | One |
+| Evening note | Sunday to Thursday, 21:30 | Futures, Asia, currencies, crypto, after-hours moves, news; tonight's Book D drafts | Store (its own fetch); archive; one mail; heartbeat | A hard cap, paragraph only on its gate (always on Sunday) | One |
 | Weekly | Sunday morning | Store, object, register, ledger, voices | Archive; dashboard state | Middle | Fixed set |
-| Monthly | The 1st | Store, object, register, ledger, voices, scans, the reading register | Scan figures to the store; snapshot; archive; dashboard state | Largest | M1–M13 |
+| Monthly | The 1st | Store, object, register, ledger, voices, scans, the reading register | Scan figures to the store; snapshot; archive; dashboard state | Largest | M0–M13, capped |
+| Digital Assets addendum | With the Sunday Weekly, from 1 November | The crypto data layer, the store, the X digest's ledgers | A second PDF with the Weekly's mail | A target, as the Weekly's | Up to two |
 | 12:30 slot | Weekdays | The 12:30 capture, the morning profile, stored quotes | An alert file and one mail, only when a gate opens | None | None |
 | Alternative Assets Quarterly | Second Saturday of the quarter (disabled) | As the Monthly, over the quarter | Archive; dashboard state | No word budget | Up to 40 |
 | Quarterly Structural | Quarter-end | — | — | Not built | — |
@@ -895,7 +917,7 @@ Nothing has been promoted.
 
 ### 10.1 Targets
 
-Each cadence has a reading target: about five minutes for the close, twenty for the Weekly and fifty-five for the Monthly. These are enforced through budgets rather than by hope. Each report has a ceiling on prose words and on charts (Appendix A). Only prose counts toward the word ceiling; tables and code-written lines do not, because they are the facts the prose serves. When a report runs over, code cuts the third paragraphs of the deep sections first, then the second paragraphs, and marks the cut "(trimmed)"; the Monthly cuts its appendix first and never cuts its Reading chapter (§4.6). The model is never asked to summarise to fit. The targets are configured, and the Weekly and the Monthly print their estimated reading time in the header against them. The Monthly's count includes the stored summaries of its Reading chapter, which are outside the word budget but not outside the reader's time.
+Each cadence has a reading target and a word budget (Appendix A). Both are targets, not caps: the ruling of 24 October put depth before brevity, so nothing is cut or withheld for length, and an edition over its target prints one line at its foot saying how long it runs against the target. Only prose counts toward the words; tables and code-written lines do not, because they are the facts the prose serves. The chart caps still bind, and a firing trigger raises a report's cap by one. The model is never asked to summarise to fit. The two secondary notes are the exception: their word caps are hard, and a paragraph past one is withheld rather than trimmed. The Weekly and the Monthly print their estimated reading time in the header against their targets. The Monthly's count includes the stored summaries of its Reading chapter, which are outside the word budget but not outside the reader's time.
 
 ### 10.2 How to read a stacked report
 
