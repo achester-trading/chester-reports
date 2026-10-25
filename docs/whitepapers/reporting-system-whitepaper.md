@@ -831,9 +831,11 @@ A quarterly meta-loop runs inside the weekly one. It measures whether the quarte
 - engine 3, prediction markets against futures;
 - engine 4, the scheduled events, whose base rates print "awaiting" where an input is not stored;
 - engine 5, crypto carry, which runs nothing until its ninety-two-week window is met;
+- engine 6, the reversion of extremes, which prints "awaiting (n = k of 30)" until its formation sample exists;
+- engine 7, the intraday dealer regimes: buckets of symbol, the 09:45 gamma regime and the sign of the opening move, read from the stored captures after the close. It is a research engine that queues no signal, and registering it is the operator's command on the box;
 - promoted rules from the grammar.
 
-Engine 6, engine 7 and the grammar search are not built (Appendix E).
+**The grammar search** enumerates candidate rules from a declared grammar, under a cap on candidates and on time per step, as the nightly loop's last step; a new search starts only in a month's first week. A candidate it finds is registered like any other hypothesis before its test. Since Draft 3 all three are built. Engine 7 is not the intraday layer's dealer engine: it is evidence the lab may report, and the layer's engines stay unregistered (§8.4).
 
 ---
 
