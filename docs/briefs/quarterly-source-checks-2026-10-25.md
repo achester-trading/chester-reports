@@ -276,3 +276,5 @@ The finding that matters beyond these series is that **Yahoo's chart host disall
 - **The yfinance finding is not this brief's to resolve.** It bears on the whole price basket (127 symbols), not just these rows. It is stated so the next sitting can rule with the facts in front of it.
 - **Superseded or retired sources were not re-tried:** CoinGecko, ICI's money-fund page, S&P DJI, LBMA and Google News (the B58 check).
 - **CI.** Read once after the push; recorded below.
+
+**CI.** At the one read after the push of `bce29aa`, no run was listed yet, so there is no run id. The next paste that touches this branch reads it once.
