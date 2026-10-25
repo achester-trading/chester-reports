@@ -334,3 +334,5 @@ What would let it run sooner without moving the gate: run the blinded pass in sh
 - **EL-9's live pass** is below its ruled gate.
 
 **The figure placeholder (section 1):** the loop drawn as a ring of the eight stages, feeds to Doctrine. The three return paths are drawn back from grading into ratified config, the lab and the scans, each arrow labelled with the gate it crosses (a sitting, the constitution, a human confirmation). The seven additions are marked at the stage each attaches to.
+
+- **CI:** CI queued, run 40146406646 (at `67e40a5`). The next paste that touches this branch reads the result once.
