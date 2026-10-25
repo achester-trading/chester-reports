@@ -25,3 +25,4 @@ The Weekly reads this file for its sitting hours (out of 2) and its count of rul
 | 2026-10-08 | ruling | — | Reading shelf: eight publications added (Fidelity ×2, Bridgewater, PIMCO ×2, UBS Year Ahead, Morgan Stanley outlooks, Blackstone Ten Surprises); change order filed |
 | 2026-10-24 | ruling | — | Rulings of 24 Oct, D1–D27 (two standing rules, the 6f decisions, the post-Monthly builds), taken in chat; filed verbatim (docs/briefs/rulings-2026-10-24.md) |
 | 2026-10-24 | ruling | — | Rulings of 24 Oct afternoon, D28–D29 (the A61 and A61b/A63 needs-you), taken in chat; filed verbatim (docs/briefs/rulings-2026-10-24-pm.md); D1–D27 are the row above |
+| 2026-10-24 | ruling | — | Rulings of 24 Oct evening, D30–D34 (Paper XXVII, chain-7, the dated appendices, yfinance, the Quarterly's sources), with D29.4 closed, taken in chat; filed verbatim (docs/briefs/rulings-2026-10-24-evening.md) |
