@@ -103,7 +103,8 @@ selloff:
 # that reads the measure; the verdict is code's.
 # ---------------------------------------------------------------------------
 voices:
-  - {voice: "Charles Diebel", claim: "1994-type correlated repricing, nearly complete", test: shape_correlated}
+  # outlet pending operator ruling
+  - {voice: "outlet not named in the order (post cited)", claim: "1994-type correlated repricing, nearly complete", test: shape_correlated}
   - {voice: "Société Générale (an idea, via a post)", claim: "twin deficits imply about 5.8%; about 50 bp of fiscal premium unpaid", test: fiscal_gap_positive, min_gap_bp: 25}
   - {voice: "Arkevium", claim: "priced for a 5.0-5.5% chop; mechanics flirting with a spiral to 5.75-6.0%", test: level_band, band: [5.0, 5.5], spiral_above: 5.5}
   - {voice: "Sarmaya Partners", claim: "the Fed blinks", test: outside_axis}
