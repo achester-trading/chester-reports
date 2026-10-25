@@ -8,6 +8,25 @@ Ari's accept-all"). An entry moves into its paper's dated appendix when that
 paper is written or next revised, and is then struck from here. Entries are
 added, never rewritten; a correction is a new line under the entry.*
 
+## Applied on 24 October 2026 by A68
+
+Eight entries moved into their papers' dated appendices, each kept as queued with its date in its heading, and then struck from here. No paper's body was edited. The record of the move is `docs/briefs/a68-dated-appendix-notes.md`.
+
+| Entry (as queued) | Moved to | Placed by |
+|---|---|---|
+| The dated appendix line for the stock-bond flag (Batch 5 item 24) | The Rate and Liquidity Machine, Appendix B | the register entry it amends: SR-9's home |
+| For XII, as the order names it (Batch 5 item 23): both notes | Disruptive Themes, Appendix B | the order's numeral is not the library's XII; Factor I argues the thesis |
+| For the Book A rule table: A-6 (Batch 5 item 24) | Base Rates, Appendix C, as row A-8 | A-6 and A-7 were taken first; rows are never renumbered |
+| The dated record of the 10-year and the real 10-year (Batch 14 item 64) | The Rate and Liquidity Machine, Appendix B | its subject (DGS10, DFII10) |
+| The 10-year at 8%, a forecast (Batch 14 item 70) | The Rate and Liquidity Machine, Appendix B | its subject (the 10-year attribution) |
+| For XV, Equities: A Structural Framework, its AI-rings section (Batch 14 item 63) | Equities, Appendix D | named by the queue; the AI-rings section's body is not edited |
+| For the positioning record (Batch 15 item 74) | Positioning and Flows, Appendix B | the paper that carries the positioning chapter |
+| For the AI-credit watch and SR-16: CDS levels and AI borrowing (Batch 15 item 76) | Disruptive Themes, Appendix B, marked unverified | the register entry it amends: SR-16's home |
+
+## Open items: no home
+
+Each entry below stays as queued; the line beneath it, added by A68, says why no paper's dated appendix takes it.
+
 ## For XXVII, Debt Cycles, Regimes, and Environments (reserved; not yet written)
 
 ### Base-rate note: the long-bond cycle chart (Batch 5 item 18)
@@ -19,38 +38,7 @@ added, never rewritten; a correction is a new line under the entry.*
 > the long cycle, not a measure. The testable claim, that dispersion is back,
 > is measured in Mechanics' dispersion panel (Cboe DSPX and COR1M/COR3M).
 
-## The dated appendix line for the stock-bond flag (Batch 5 item 24)
-
-The order says "dated appendix" without naming a paper; XXVII, which carries the
-regimes, is the likely home, and Ari's accept-all decides.
-
-> The 10-year Treasury yield (FRED DGS10) closed at or above 5.25% in the week of
-> 5 Oct 2026 — 5.31% on 5 Oct, 5.27% on 6 Oct and 5.28% on 7 Oct — after first
-> closing above it at 5.26% on 29 Sep 2026; the last close at or above 5.25% before
-> that was 5.26% on 12 Jun 2007. Verified from FRED, not from the chart.
-
-*Verify item 5, answered 16 Oct 2026 from FRED's DGS10 (fredgraph.csv, read by
-session B). The draft said "the first time since 2002"; FRED says June 2007, and
-the cross came the week before 5 Oct, so the line carries the verified dates.*
-
-## For XII, as the order names it (Batch 5 item 23)
-
-The order calls it "XII's power-buildout narrative"; the library's XII is the
-Daily Cascade paper, so the numeral is the order's and the home is Ari's to name
-(the power-buildout thesis is argued in Foundations' Factor I chapter).
-
-### Disagreement note: power construction against data centers
-
-> Census VIP, August 2026 (preliminary, SAAR): total power construction +8.5%
-> nominal year over year, against data centers +73.2% (the poster's real figures:
-> +4.1% and +64.5%). Power is growing at a fraction of the data-center pace, which
-> cuts against XII's power-buildout thesis. Logged as a disagreement, not
-> resolved.
-
-### Base-rate note: manufacturing construction
-
-> Manufacturing's fall is mostly the CHIPS and IRA fab boom rolling off, a base
-> effect, which is why the level against 2019 prints beside the year over year.
+*No home (A68, 24 Oct 2026): XXVII, Debt Cycles, Regimes, and Environments, is reserved and not yet written, and the queue names it. The entry moves when the paper is written.*
 
 ## The sovereign fragility scorecard (Batch 5 item 21): its layout
 
@@ -69,31 +57,7 @@ layout, as drafted:
 | JP | | | | | | |
 | UK | | | | | | |
 
-## For the Book A rule table: A-6 (Batch 5 item 24)
-
-The table's home is a dated Appendix C, "The Book A rule table (dated;
-candidates)", in Base Rates (the 25 Sep order's section 2.4 has Base Rates hold
-it until Portfolio Construction does). Session A builds that appendix on
-`st-r5-fixes` with A-1 to A-3 and its A-4 and A-5, and asked that this branch
-number from A-6, so this entry moves there at the stitch rather than opening a
-second table.
-
-| Rule | Condition | Action | Source items | Gate |
-|---|---|---|---|---|
-| A-6 Duration hedge status under the stock-bond flag | The stock-bond flag live (SR-9, amended by Batch 5 item 24: the 60-day correlation beside the two-year window, its strength conditioned on the 10-year attribution) | Treasury duration loses hedge status; replacement diversifiers per the item-25 map: T-bills, gold, commodities, trend-following, defined-outcome option structures. Strong (breakeven-led): full substitution. Moderate: partial. Weak (real-yield- or term-premium-led, inflation anchored): duration kept, sized down | SR-9; Batch 5 items 24 and 25 | as A-1's: SR-9 regression (backlog) or driver calibration (ST-3) |
-
-As drafted (the draft called it "A-1, amended"; it is A-1's hedge substitution
-made specific to the flag, so it keeps A-1's gate):
-
-> While the stock-bond flag is live, Treasury duration loses hedge status.
-> Replacement diversifiers per the item-25 map: T-bills, gold, commodities,
-> trend-following, defined-outcome option structures. Strength strong
-> (breakeven-led): full substitution. Moderate: partial. Weak (real-yield- or
-> term-premium-led, inflation anchored): duration kept, sized down. The flag's
-> threshold and strength rules are config/batch5_tranche_1.yaml's.
-
-The flag is computed by `altdata/batch5.py` and printed in Mechanics; nothing in
-the code acts on the rule table.
+*No home (A68, 24 Oct 2026): A layout for a recurring by-hand data line, not a dated record. It is not live without the operator's explicit yes (ruling (b) of 16 Oct 2026), so no paper's dated appendix takes it.*
 
 ## For the narrative register's pairs: "what's driving 5.3%" (Batch 5 item 26)
 
@@ -113,30 +77,7 @@ conflict). Side B is also committed as a pending register proposal,
 > carried at least half of the six-month rise, side B when the expected short
 > rate did; review: monthly.`
 
-## The dated record of the 10-year and the real 10-year (Batch 14 item 64)
-
-> *Dated 21 Oct 2026, read from FRED.* The 10-year Treasury yield (FRED DGS10)
-> closed at 5.31% on 5 Oct 2026, its highest close of 2026 and the highest since
-> 14 May 2002 (5.32%). The 10-year TIPS yield (FRED DFII10) closed at 2.95% the
-> same day, the highest since 24 Nov 2008 (3.11%). The post that carried them
-> (an aggregator's charts) dated both "as of 9 Oct 2026"; on 9 Oct DGS10 closed
-> 5.24% and DFII10 2.91%, so the levels are 5 Oct's and the "highest since 2002
-> and 2008" holds for them.
-
-*Batch 14 Part 0 also checked the order's check 5 (Part B's item 65): no DGS10
-close reached 5.33% in 2026, and no session in September or October 2026 fell
-25 bp (the largest fall in mid-October was 9 bp, 5.19% to 5.10% on 15 Oct), so
-"5.33% to 5.08% in a single day" does not match FRED's closes; it may be an
-intraday range. Read from fredgraph.csv by session A, 21 Oct 2026.*
-
-## The 10-year at 8%, a forecast (Batch 14 item 70)
-
-> *Dated 19 Oct 2026, appendix only.* A newsletter writer charted the 10-year
-> yield against the 10-year CAGR of US nominal GDP from 1970 (a stated 93%
-> correlation of two trending levels) and forecast that the 10-year could reach
-> 8%. The chart's own reading, nominal growth near 6%, implies a 10-year near
-> 6%, not 8%. The measure the order builds is the gap: the 10-year less the 10-
-> and 5-year nominal GDP CAGR, in the 10-year attribution, as the US macro r-g.
+*No home (A68, 24 Oct 2026): Its home is `docs/narrative-register-pairs.md`, a register file, not a paper's dated appendix. The pair's body has not landed there yet: the file carries the `what_driving_5_3` heading and Batch 6 item 35's bear side only.*
 
 ## For item 20's Treasury reaction-function ledger: a housing intervention (Batch 14 item 69)
 
@@ -159,23 +100,7 @@ terms are confirmed against the day's reporting and the director's own post, not
 against an FHFA release; the GSE documents above are primary for the purchases
 but were not machine-readable here, so no figure from them is quoted.*
 
-## For XV, Equities: A Structural Framework, its AI-rings section (Batch 14 item 63)
-
-The order adopts BNP Paribas's capex-chain weights "as a standing reference table
-in Factor I and in the Equities paper's AI-rings section, dated August 2026". The
-paper's body is not edited (b52); the table stands in `config/capex_chain.yaml` and
-prints in the Monthly's slow layers (Factor I), and this entry is the paper's
-citation until its next revision.
-
-> *Dated August 2026 (BNP Paribas Equity Research, as published by a16z).* Of an
-> illustrative $100 of AI capex: semiconductors $50 (accelerators 25, memory 15,
-> CPUs and server production 10), power $20 (grid and independent generation 10,
-> distribution 6.5, on-site routing 3.5), networking $15, cooling $7.5, facilities
-> and construction $7.5; wafer-fab equipment about $8 of the semis share, roughly
-> half of it lithography. BNP calls the weights high-level estimates: an
-> illustrative split of one dollar, not a measurement. Half of every capex dollar
-> stays with the chipmakers; power is the second-largest bucket and the slowest to
-> build.
+*No home (A68, 24 Oct 2026): Its home, as F6 rules it, is item 20's ledger (ST-R4.20a, 20b), which is listed and not built. No paper is named.*
 
 ## For item 36's housing ledger (Batch 14 item 68)
 
@@ -194,23 +119,7 @@ item 36's ledger, ST-R5.36b, at its next edition; until then it waits here.
 > September" (20 Oct 2026),
 > https://www.nar.realtor/newsroom/pending-home-sales-decreased-7-3-percent-in-september
 
-## For the positioning record (Batch 15 item 74)
-
-G3: the prime-brokerage figures are a dated record from public reporting, never a
-line; the positioning line runs on the CFTC's TFF report. Its home is the paper
-that next carries the positioning chapter; until then it waits here.
-
-> *Dated 22 Oct 2026.* A bank's prime-brokerage desk reported that short sales
-> had outpaced long purchases across global equities by about five to one in
-> October, that short leverage in its prime book stood at the 99th percentile of
-> its five-year history, that global fundamental long-short funds lost 2.9% in
-> the week through 15 Oct, and that Asia-focused stock pickers were down 6.8% for
-> the first half of October. These are the bank's proprietary figures as
-> reported, not measured here. Sources: Bloomberg, "Hedge Funds Pile Into Shorts
-> as Goldman Flags Stock Squeeze Risk" (22 Oct 2026),
-> https://www.bloomberg.com/news/articles/2026-10-22/hedge-funds-pile-into-shorts-as-goldman-flags-stock-squeeze-risk;
-> as republished on Yahoo Finance (22 Oct 2026),
-> https://finance.yahoo.com/markets/stocks/articles/hedge-funds-ramping-stock-shorts-195628440.html
+*No home (A68, 24 Oct 2026): Its home, as F2 rules it, is item 36's ledger (`docs/ledgers/st-r5.36b-ledger-2026-10-17.md`) at its next edition, not a paper.*
 
 ## For the AI-lab financials ledger (Batch 15 item 75)
 
@@ -231,29 +140,4 @@ the same figures and is replaced by a filed row then.
 > $16.3 billion as preliminary S-1 outlines IPO risks - WSJ" (20 Oct 2026),
 > https://www.investing.com/news/stock-market-news/anthropic-revenue-hits-163-billion-as-preliminary-s1-outlines-ipo-risks--wsj-4960928
 
-## For the AI-credit watch and SR-16: CDS levels and AI borrowing (Batch 15 item 76)
-
-Batch 15's G3 makes the order's one-off figures dated records, not lines: the
-monthly CDS-level and borrowing rows are a listed gap, and item 76's protection-
-demand line is a listed gap as well (source check 4: DTCC publishes no keyless
-per-name CDS volumes; `docs/briefs/a58-batch15-1-notes.md`). Committed by session A
-(a58-batch15-1) as drafted, for the operator's accept-all.
-
-> *Dated mid-October 2026 (CDS levels); 20 Oct 2026 (the post).* Five-year CDS,
-> cost per $10m of protection, as charted from Morgan Stanley Research and the
-> Financial Times: CoreWeave $1.09m (about 1,090 bp; some of its bonds at
-> distressed levels); Oracle $322k (more than double on the year); SpaceX $226k
-> (a record); Meta $108k (a record); Nvidia $101k (a record). Weekly CDS traded on
-> seven AI names (Oracle, Nvidia, Meta, Amazon, Alphabet, Broadcom, SpaceX) rose
-> from under $2bn in July to more than $9bn in September, about 4.5 times.
-> Source line: a newsletter writer's post on X, 20 Oct 2026, citing Morgan Stanley
-> Research and the Financial Times (tag: newsletter writer; incentive:
-> subscriptions). As of: mid-October 2026 for the levels, September 2026 for the
-> volumes. URL: the order does not file the post's link; none is invented here.
-> Not verified against a primary source: the vendors' CDS marks are not public.
-
-> *Dated 20 Oct 2026 (as reported).* AI companies have borrowed $466bn in 2026 to
-> date, against $101bn at the same point of 2025 -- the issuance figure SR-16
-> tracks. Source line: the same post, citing Morgan Stanley Research and the
-> Financial Times. As of: 20 Oct 2026, year to date. URL: not filed in the order.
-> Not verified against a primary source.
+*No home (A68, 24 Oct 2026): Its home is `docs/ledgers/ai-lab-financials-ledger.md`, which already carries the same figures as its first, provisional row. It stays here until the S-1 is on EDGAR and the filed row replaces it (D21).*
