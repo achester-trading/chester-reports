@@ -134,7 +134,13 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # Signal-triage Batch 12, item 59 (a53, 20 Oct 2026): the
                     # bank-stress panel's OFR Financial Stress Index and the
                     # FDIC's unrealised securities losses, both keyless
-                    "ofr_fsi", "fdic_qbp")
+                    "ofr_fsi", "fdic_qbp",
+                    # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34):
+                    # oil and energy, agriculture, currencies. PortWatch and the
+                    # Riksbank send one request a day, whatever the timer does.
+                    "eia_buffers", "portwatch", "esmis_wasde", "esmis_crop_progress",
+                    "cpc_oni", "cftc_grains", "boc_valet", "riksbank", "snb_sight",
+                    "mof_intervention")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that

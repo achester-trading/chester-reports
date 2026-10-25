@@ -737,6 +737,17 @@ FRED_BATCH15_A_SERIES: list[SeriesSpec] = [
     SeriesSpec("nikkei225", "NIKKEI225", "Nikkei Stock Average (Nikkei 225), daily close", "7", "idx", "daily"),
 ]
 
+# THE QUARTERLY'S READERS, TRANCHE 1 (b69-quarterly-readers-1, 25 Oct 2026; D34;
+# B67 section 5): Cboe's crude-oil volatility index, OVXCLS, daily close, an
+# INDEX of percent volatility, from 2007-05-10 (fredgraph probed in B67). The
+# series page: "Copyright, 2016, Chicago Board Options Exchange, Inc."; FRED's
+# legal FAQ: a copyrighted series is for "your own personal use" without the
+# owner's permission. Read through the API with the key, stored for own use,
+# never redistributed (the store is outside the public repository).
+FRED_6I_SERIES: list[SeriesSpec] = [
+    SeriesSpec("ovx", "OVXCLS", "Cboe crude oil volatility index (OVX), daily close", "5", "idx", "daily"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
@@ -744,7 +755,8 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
                                       + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
-                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES)
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES
+                                      + FRED_6I_SERIES)
 
 
 # Quick lookup by key

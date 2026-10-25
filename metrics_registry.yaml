@@ -16156,6 +16156,438 @@ metrics:
     description: >-
       The J.P.Morgan Global Manufacturing PMI headline (S&P Global; 50 = no change), entered by hand from the public release: the series is S&P Global's. observed_at = the reference month's first day. ST-R5.43a's growth read beside the diffusion index.
 
+  # B69 (b69-quarterly-readers-1, 25 Oct 2026; D34): the Alternative Assets
+  # Quarterly's oil-and-energy, agriculture and currency readers. Report-only;
+  # barred from the market-state object (market_state_barred, below).
+  eia.spr_stocks:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US Strategic Petroleum Reserve stocks, barrels (EIA WCSSTUS1, thousand barrels x1000; b69). The oil chapter's buffer line beside commercial stocks; report-only.
+  eia.refinery_util:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      US refinery operable utilisation, percent (EIA WPULEUS3; b69). Report-only.
+  eia.gas_storage:
+    source: eia
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Working gas in underground storage, Lower 48, billion cubic feet (EIA NW2_EPG0_SWO_R48_BCF; b69). The five-year band is the chapter's read; report-only.
+  eia.lng_exports:
+    source: eia
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      US liquefied natural gas exports, million cubic feet, monthly (EIA N9133US2; b69). Monthly exports, not daily feedgas, which stays not tracked (B67).
+  imf.portwatch.transits.hormuz:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Strait of Hormuz, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.hormuz.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Strait of Hormuz (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.suez:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Suez Canal, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.suez.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Suez Canal (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.bab_el_mandeb:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Bab el-Mandeb Strait, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.bab_el_mandeb.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Bab el-Mandeb Strait (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.malacca:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Malacca Strait, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.malacca.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Malacca Strait (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  usda.wasde.wheat.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US wheat ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.wheat.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US wheat ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.wheat:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US wheat crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  usda.wasde.corn.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US corn ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.corn.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US corn ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.corn:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US corn crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  usda.wasde.soybeans.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US soybeans ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.soybeans.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US soybeans ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.soybeans:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US soybeans crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  noaa.oni:
+    source: noaa_cpc
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      NOAA CPC's Oceanic Nino Index: the three-month season's sea-surface anomaly, degrees C, observed at the season's centre month (b69). Context only, never extrapolated to a price.
+  cftc.disagg.corn.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT corn: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.corn.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT corn: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  cftc.disagg.wheat.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT wheat: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.wheat.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT wheat: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  cftc.disagg.soybeans.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT soybeans: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.soybeans.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT soybeans: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  boc.yield_2y:
+    source: boc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Government of Canada 2-year benchmark bond yield, percent (Bank of Canada Valet BD.CDN.2YR.DQ.YLD; attributed to the Bank of Canada; b69).
+  riksbank.yield_2y:
+    source: riksbank
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Swedish government bond yield, 2 years, percent (Riksbank SWEA SEGVB2YC; one request a day; b69).
+  snb.sight_deposits_total:
+    source: snb
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Total sight deposits in Swiss francs at the SNB, CHF millions, weekly (SNB data portal cube snbgwdchfsgw, item TG; attributed Swiss National Bank; own, non-commercial use; b69).
+  snb.sight_deposits_domestic:
+    source: snb
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Sight deposits of domestic banks at the SNB, CHF millions, weekly (cube snbgwdchfsgw, item GI; attributed; b69).
+  jp.mof.intervention_jpy:
+    source: mof_intervention
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Japan's foreign-exchange intervention for the release period, YEN, from the Ministry of Finance's monthly release (PDL 1.0, source cited on every row; b69). Observed at the period's last day.
 bulk_imports:
 
   fred_macro:
@@ -16724,6 +17156,32 @@ bulk_imports:
     mechanism_group_from_member: pillar
     mechanism_group_map:
       "2": macro_momentum
+
+  fred_6i:
+    description: >-
+      The Quarterly's readers, tranche 1 (b69-quarterly-readers-1, 25 Oct 2026; D34;
+      B67 section 5): Cboe's crude-oil volatility index through FRED (OVXCLS), for
+      the oil chapter beside realised volatility. Cboe's copyright ("Copyright,
+      2016, Chicago Board Options Exchange, Inc."): own use, never redistributed;
+      read through the FRED API with the system's key, never the graph CSV. See
+      altdata/config.py FRED_6I_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_6I_SERIES
+    member_families:
+      fred.ovx: price
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "5": macro_sentiment
 
   fred_bank_stress:
     description: >-
@@ -18894,6 +19352,41 @@ families:
 # leg or a horizon read. `pending` names a branch whose keys are not on this base
 # yet: the pattern is seeded now so the bar is in force the day they land.
 # -----------------------------------------------------------------------------
+  # B69 (25 Oct 2026): the Quarterly's readers, tranche 1
+  eia.spr_stocks: quantity
+  eia.refinery_util: ratio
+  eia.gas_storage: quantity
+  eia.lng_exports: release
+  imf.portwatch.transits.hormuz: quantity
+  imf.portwatch.transits.hormuz.tanker: quantity
+  imf.portwatch.transits.suez: quantity
+  imf.portwatch.transits.suez.tanker: quantity
+  imf.portwatch.transits.bab_el_mandeb: quantity
+  imf.portwatch.transits.bab_el_mandeb.tanker: quantity
+  imf.portwatch.transits.malacca: quantity
+  imf.portwatch.transits.malacca.tanker: quantity
+  usda.wasde.wheat.ending_stocks: quantity
+  usda.wasde.wheat.stocks_to_use: ratio
+  usda.crop_progress.wheat: conditions
+  usda.wasde.corn.ending_stocks: quantity
+  usda.wasde.corn.stocks_to_use: ratio
+  usda.crop_progress.corn: conditions
+  usda.wasde.soybeans.ending_stocks: quantity
+  usda.wasde.soybeans.stocks_to_use: ratio
+  usda.crop_progress.soybeans: conditions
+  noaa.oni: conditions
+  cftc.disagg.corn.managed_money_net: quantity
+  cftc.disagg.corn.managed_money_net_oi: ratio
+  cftc.disagg.wheat.managed_money_net: quantity
+  cftc.disagg.wheat.managed_money_net_oi: ratio
+  cftc.disagg.soybeans.managed_money_net: quantity
+  cftc.disagg.soybeans.managed_money_net_oi: ratio
+  boc.yield_2y: rate
+  riksbank.yield_2y: rate
+  snb.sight_deposits_total: quantity
+  snb.sight_deposits_domestic: quantity
+  jp.mof.intervention_jpy: quantity
+  fred.ovx: price
 market_state_barred:
   - order: docs/change-order-signal-triage-2026-09-25.md (MW-2, R9)
     rule: "no calc.prl_* path to a composite, overlay, trigger, dial or dimension"
@@ -18943,6 +19436,9 @@ market_state_barred:
     keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
 
+  - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
+    rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
+    keys: ['eia.spr_stocks', 'eia.refinery_util', 'eia.gas_storage', 'eia.lng_exports', 'imf.portwatch.*', 'usda.wasde.*', 'usda.crop_progress.*', 'noaa.oni', 'cftc.disagg.*', 'boc.*', 'riksbank.*', 'snb.*', 'jp.mof.*', 'fred.ovx']
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:

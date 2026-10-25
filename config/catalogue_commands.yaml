@@ -682,3 +682,43 @@ commands:
     domain: options
     line: The VX futures curve from Cboe's public settlement files
     sources: [cboe]
+  altdata.sources.boc_valet:
+    domain: rates
+    line: "The Bank of Canada's 2-year benchmark yield (Valet, keyless, attributed); the Quarterly's currencies chapter (b69)"
+    sources: [boc]
+  altdata.sources.cftc_grains:
+    domain: commodities
+    line: "CFTC disaggregated COT for the grains: managed money net in corn, wheat and soybeans (b69)"
+    sources: [cftc]
+  altdata.sources.cpc_oni:
+    domain: reference
+    line: "NOAA CPC's Oceanic Nino Index, the ENSO state, monthly from 1950; context for the Quarterly's agriculture section (b69)"
+    sources: [noaa_cpc]
+  altdata.sources.eia_buffers:
+    domain: commodities
+    line: "EIA's SPR stocks, refinery utilisation, gas storage and LNG exports for the Quarterly's oil-and-energy chapter (b69)"
+    sources: [eia]
+  altdata.sources.esmis_crop_progress:
+    domain: commodities
+    line: "USDA Crop Progress through ESMIS: good-or-excellent shares for corn, soybeans and wheat, weekly in season (b69)"
+    sources: [usda_esmis]
+  altdata.sources.esmis_wasde:
+    domain: commodities
+    line: "USDA WASDE through ESMIS: US wheat, corn and soybean ending stocks and stocks-to-use, each release its own vintage, projections kept apart (b69)"
+    sources: [usda_esmis]
+  altdata.sources.mof_intervention:
+    domain: fx
+    line: "Japan's monthly foreign-exchange intervention record (MoF, PDL 1.0, cited on every row) (b69)"
+    sources: [mof_intervention]
+  altdata.sources.portwatch:
+    domain: commodities
+    line: "IMF PortWatch daily chokepoint transits (Hormuz, Suez, Bab el-Mandeb, Malacca), one request a day, attributed (b69)"
+    sources: [imf_portwatch]
+  altdata.sources.riksbank:
+    domain: rates
+    line: "The Riksbank's 2-year government bond yield (SWEA, keyless), one request a day (b69)"
+    sources: [riksbank]
+  altdata.sources.snb_sight:
+    domain: fx
+    line: "The SNB's weekly sight deposits (data portal, attributed, non-commercial) (b69)"
+    sources: [snb]
