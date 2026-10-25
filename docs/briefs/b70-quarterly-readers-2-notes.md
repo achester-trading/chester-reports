@@ -98,3 +98,5 @@ On the box's first EDGAR read, the session that reads the log should record whic
 3. **The BDC names.** ARCC, FSK, BXSL, OBDC and MAIN were chosen because the 6i brief names none: five of the largest listed BDCs, OCSL excluded by the blocklist. Confirm or change the list.
 4. **The Digital Assets addendum's breadth line** is not wired. The DefiLlama rows print in the Quarterly only. Add them to the addendum's page beside item 78, or leave the addendum as it is?
 5. **The CI queue.** Every run in the repository was queued at this paste's start, B69's for 16 minutes, and session A's too. If it is an account limit, merges will wait on results that are hours behind.
+
+**CI.** At the one read after the push of `6bd2d53`, no run was listed yet, so there is no run id. The next paste that touches this branch reads it once.
