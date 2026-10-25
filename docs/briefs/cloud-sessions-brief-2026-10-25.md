@@ -196,3 +196,5 @@ Steps 2 to 6 fall between 26 Oct and 4 Nov. The 1 Nov Monthly and its freeze sit
 - **Read from another branch:** the afternoon rulings of 24 Oct (D28, D29) are on `origin/a61b-feed-repair` only. D28 (3) is the Security Master rule that decision 4 would replace.
 - **The count of 65 notes sections** is a reading of headings that contain "files shared" or "shared files". Files named only in prose outside such a section are not counted.
 - **No cost figure** is given (section 6): none is stored.
+
+- **CI:** CI queued, run 40146071056 (at `f270731`). The next paste that touches this branch reads the result once.
