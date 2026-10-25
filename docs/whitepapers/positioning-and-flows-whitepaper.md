@@ -526,3 +526,23 @@ Callers as of this draft: closing-auction absorption (stimulus = normalized imba
 - **Rights consequence (the ledger's):** PASS: a confidence modifier for Book A duration sizing and an input to rule A-3. FAIL: the conditional base-rate table only. INSUFFICIENT: neither. Stated, not granted: the verdict reaches the register only as a rule-31 draft, and no right changes until the operator accepts it.
 - **Register:** the gate status this ledger gives was accepted as drafted (rule 31) on 19 October 2026; the register status is otherwise unchanged.
 - **Edition:** a laptop first edition from public sources; the box edition supersedes it.
+
+## Appendix B — Dated: Records from the signal-triage orders (as of 24 October 2026)
+
+*Moved here from `docs/dated-appendix-queue.md` on 24 October 2026 by session A (A68). Each entry is dated in its heading, keeps its wording as queued, and names the batch or ruling it came from. It changes nothing in the paper's body and grants no right; a figure here is a dated record, not a series.*
+
+### The prime-brokerage short book (22 October 2026; Batch 15 item 74)
+
+*G3: the prime-brokerage figures are a dated record from public reporting, never a line; the positioning line runs on the CFTC's TFF report. The queue's home was "the paper that next carries the positioning chapter", which is this one.*
+
+> *Dated 22 Oct 2026.* A bank's prime-brokerage desk reported that short sales
+> had outpaced long purchases across global equities by about five to one in
+> October, that short leverage in its prime book stood at the 99th percentile of
+> its five-year history, that global fundamental long-short funds lost 2.9% in
+> the week through 15 Oct, and that Asia-focused stock pickers were down 6.8% for
+> the first half of October. These are the bank's proprietary figures as
+> reported, not measured here. Sources: Bloomberg, "Hedge Funds Pile Into Shorts
+> as Goldman Flags Stock Squeeze Risk" (22 Oct 2026),
+> https://www.bloomberg.com/news/articles/2026-10-22/hedge-funds-pile-into-shorts-as-goldman-flags-stock-squeeze-risk;
+> as republished on Yahoo Finance (22 Oct 2026),
+> https://finance.yahoo.com/markets/stocks/articles/hedge-funds-ramping-stock-shorts-195628440.html
