@@ -4,9 +4,20 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXXIII** — System shelf, after *The Operating Doctrine* and *Building and Validating a Systematic Book*, per the library guide. Cross-references in this paper are by name.
-**Version:** Draft 3 — 19 October 2026 (Draft 2, 9 October 2026; Draft 1, 6 October 2026, described the Monthly before it joined the stack)
-**Errata (ruled 19 October 2026, decision 17; applied on the third chain):** §2.3 no longer lists the LBMA gold price, which the code holds unlicensed and off; §4.6's chart set is capped at twelve, not thirteen; §10.1's Monthly reading target is fifty-five minutes, not forty; Appendix A's scans outside the repository point to the Master Guide's record of the chat-side tasks, since `docs/scheduled-tasks.md` defines neither the X digest, its reader triage nor the Saturday brief.
-**Status:** As-built. "Built" means the contents of the second stitched chain (`chain-2`), the branch that merges into main on 20 October 2026; a capability on a branch that merges later is listed as not built (Appendix E). The paper describes the system as that code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code, and of each item Draft 2 called not built. Reread after the first stacked Monthly (1 November 2026), after the Opening Setup's remaining rulings, and at Audit #5.
+**Version:** Draft 4 — 24 October 2026 (Draft 3, 19 October 2026; Draft 2, 9 October 2026; Draft 1, 6 October 2026, described the Monthly before it joined the stack)
+**Status:** Draft 4 — 24 October 2026; as built on chain-7 and a61b-feed-repair, ahead of their merges (a61b 27 Oct; chain-7 after the 1 Nov Monthly). "Built" means the contents of the seventh stitched chain (`chain-7`, which carries the third to sixth chains, the four post-Monthly branches, 6f, the one-day trigger, the new sources and the reading budgets) and of the feed repair (`a61b-feed-repair`, which merges on 27 October). Where the two differ, the paper says which. A capability on a branch that merges later is listed as not built (Appendix E). The paper describes the system as that code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code, and of each item Drafts 2 and 3 called not built. Reread after the first stacked Monthly (1 November 2026), after the Doctrine #2 sitting (7–8 November) and at Audit #5.
+
+**Errata.** Draft 3's own errata of 19 October (decision 17) are applied: the LBMA gold price is not a source, the Monthly's chart cap is twelve, its reading target is fifty-five minutes, and the chat-side tasks are recorded in the Master Guide. Draft 4 corrects these further slips in Draft 3:
+- §2.3 placed the national statistics offices' CPIs, the Banque de France's yield, the Census Bureau's construction spending, Cboe's indices and the SEC's filings among the official writers; the feed roster files them as external tables.
+- §4.6 named the Monthly's charts M1 to M13; the set is M0 to M13, M0 being three months of SPY's daily candles in The tape.
+- §4.9 and Appendix A called W11 the second positioning panel; W11 is the standing decomposition in What's priced, and the Weekly's dealer panel enters fifth, not fourth.
+- §6.3 said the repository records no Monthly signal scan; the scheduled-tasks record defines it, as Appendix D's item 16 said.
+- §6.5 announced two further scheduled tasks and named one.
+- §6.5 said the MSTR/MSCI watch reads Strategy's mNAV from the store; the chat-side task records the index review's notices to Drive, and no reader in the repository reads its file. The digital-assets addendum reads mNAV from the store.
+- Appendix D, item 4, said nothing writes an observed knowable time; the ALFRED backfill does (15 October).
+- Appendix D, item 12, called the Monthly's timer enabled by hand; it has been on the deploy's list since 9 October, as Draft 3's own second table said.
+- Appendix D's second table said the broker sync's comment still says 17:00; it says 17:30 since the third chain.
+- Appendix E listed the PRL explorer's endpoint as unbuilt; it was closed as a listed gap on 18 October. It also listed two intake-queue entries waiting for "T&B full"; the queue holds one.
 
 ---
 
