@@ -39,13 +39,13 @@ Docs only and branch-only. `a70-amendment-3-record` branches from `origin/a69-re
 
 ## Gates
 
-`check_library`: run below.
+`check_library`: 27 papers, 0 failures, 0 warnings.
 
 ## CI
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the A70 tip | see the report |
+| 40151381058 | `a55341a2` | **CI queued, run 40151381058** (not waited on) |
 
 ## Needs you
 
