@@ -598,22 +598,25 @@ For each new item, the scan makes one model call, under a daily cap, to extract 
 
 **Status is computed, never declared.** Comparing each voice's new entry with its earlier ones gives one of four statuses. NEW means no earlier entry from this voice. REITERATED means the same subject and the same direction. INFLECTED means the same subject and a different direction. SILENT means an entry in the prior window and none in this one, which becomes UNREACHABLE when the source itself could not be read. The model supplies a direction; code decides what changed.
 
+**The register names the outlet.** A source entry names the firm, the publication or the feed, never a person, under a standing ruling of 24 October; a view from one person's newsletter is entered as its outlet. The rule governs the declared source list and is applied by the session that adds a source; it is not a check in code.
+
 The scan also feeds the **four stories** the system tracks: that AI capital spending keeps growing, that deficits drive long-term rates, that the yen carry trade unwinds, and the midterm-year pattern. Each story has declared evidence that counts for or against it (earnings, inflation surprises, currency and bond moves, headlines matched by declared patterns) and a declared outcome against which it is eventually graded. Evidence rows are written directly. A story's state (emerging, consensus, contested, fading) moves only by declared rules, and a new story the model proposes waits behind the operator's confirmation.
 
 ### 6.3 The signal intake and its register
 
 Any proposal to add a signal, from any scan or any reading, enters through one intake template with six fields: where it would live, its mechanism, its data, the rights requested, how it would be validated, and its disposition. Every proposal gets a numbered entry in the signal-triage register (SR-1, SR-2, …), and numbers are never reused. The rights a signal may request run from none, through "base rate only" and a narrow flag, up to a confidence modifier or a composite input. Everything enters at the lowest class: nothing from the intake can block a decision, produce a packet, enter a composite or change a theme until its gate is passed.
 
-Since Draft 2 the register has grown from Batch 5 to Batch 9: items 16 to 52 are filed, and most of the first tranches are built:
+Since Draft 2 the register has grown from Batch 5 to Batch 15: items 16 to 78 are filed (Batch 10 was never used), and most of their first tranches are built:
 - the index cluster and the allocation block;
 - the labour, CPI, PPI and GDP lenses and the surprise index;
 - the ES block;
 - the digital-assets items;
-- the volatility event.
+- the volatility event;
+- the opening setup's amendments, the bank-stress panel, relative options volume, the capex chain, the cross-house capital-market assumptions, the fragility and gold-event panels, and the cyber and protocol lines.
 
-What is built is report-only: nothing from these batches has been promoted to a right. The calibration ledgers that would grant rights are in §9.9; on 19 October the operator accepted their first gate statuses as drafted, and none passed into a right.
+Items 16 to 78 carry their batch numbers as ids; their register numbers are assigned at a Doctrine sitting, not at filing. What is built is report-only: nothing from these batches has been promoted to a right. The calibration ledgers that would grant rights are in §9.9; on 19 October the operator accepted their first gate statuses as drafted, and none passed into a right.
 
-The commissioning brief for this paper also describes a Monthly signal scan on the 25th, feeding this register. The repository records the intake and the register but not a scan by that name, nor its prompt. Appendix A marks it "schedule per the scheduled task".
+A **Monthly signal scan** on the 25th feeds this register: a chat-side task writes a scan file of candidates for the operator to rule on. Its time, output and the decision that created it are in the scheduled-tasks record; its prompt is outside the repository. Its first run is due on 25 October 2026.
 
 ### 6.4 The quarterly read of the Guide to the Markets
 
@@ -640,13 +643,19 @@ Promoting a watch candidate or rejecting one is the operator's write, denied to 
 
 The supply gap is ESTIMATED until the chain's explorer can be read; that explorer is a listed gap until an endpoint within its robots.txt and terms is found. Venue concentration is not tracked. CoinGecko, the original source, is retired under its terms.
 
-**The X digest** is a chat-side pilot since 17 October: a scheduled task reads a seed list of handles and topics into Drive, and a reader task keeps the attention and voices ledgers. The operator rules on candidates in chat; the xAI path on the box is a decision, not a build. **The MSTR/MSCI event watch** runs from 2 to 30 November, reading Strategy's mNAV from the store.
+**The X digest** is a chat-side pilot since 17 October, built as three files on Drive:
+- a daily digest file, written by a scheduled task from a seed list of handles and topics;
+- an attention ledger and a voices ledger, kept by a triage task that reads the digest each morning.
 
-Two further scheduled tasks run outside the repository on their own calendars. A **consensus-drift scan** every second month follows how expert opinion on the long-horizon AI risks is moving, under a reserved register entry with no rights yet. Neither task's prompt is in the repository, and Appendix A marks both "schedule per the scheduled task".
+The box's nightly sweep copies all three into its inbox, and the digital-assets addendum reads them; nothing else in the repository does. The seed list is the chat-side task's own prompt, not a file in the repository, and accounts that publish only on X are added to it in one batch a month (a standing ruling of 24 October). The digest's rights are attention only: an X post never earns measurement rights by its volume, and candidates go to the intake for a ruling. The xAI path on the box is a decision, not a build.
+
+**The MSTR/MSCI event watch** runs on weekdays from 2 to 30 November, with a post-effective read on 1 December. It records the index review's notices to a Drive file and sends a short push; no reader in the repository reads that file, and the addendum reads Strategy's mNAV from the store.
+
+A **consensus-drift scan** every second month follows how expert opinion on the long-horizon AI risks is moving, under a reserved register entry with no rights yet. Its prompt is outside the repository, and Appendix A marks it "schedule per the scheduled task".
 
 ### 6.6 The reading shelf
 
-A twice-monthly **publication watch**, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's Reading chapter (§4.6): every shelf edition published in the month, linked, with its stored summary and nothing of the system's own stance. It has no decision rights either. The other scans' reference tables reach the Monthly by a second route, the scans ingest, which stores each table's figures with their sources for Slow layers to print.
+A twice-monthly **publication watch**, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's Reading chapter (§4.6): every shelf edition published in the month, linked, with its stored summary and nothing of the system's own stance. Since 24 October it also checks the capital-market-assumption publications of six houses. Each new edition is committed as a scan file of a fixed shape (an edition line, the read date and source, and a reference table of the houses' assumptions with a URL per row), which the scans ingest stores as sourced figures for the Monthly's cross-house table. No such edition was stored at the time of writing, so each house prints "no edition stored". It has no decision rights either. The other scans' reference tables reach the Monthly by a second route, the scans ingest, which stores each table's figures with their sources for Slow layers to print.
 
 | Scan | Cadence | Reads | May propose | In the repo |
 |---|---|---|---|---|
@@ -657,7 +666,8 @@ A twice-monthly **publication watch**, not named in the commissioning brief, che
 | Consensus drift | Every second month | Expert-opinion sources | Reserved entry, no rights | Change order; prompt outside |
 | Reading shelf | Twice monthly | The declared shelf | Candidates, voices, Reading chapter entries | Brief and watchlist |
 | Mechanism scan | Saturdays | News queries, DefiLlama | Mechanism-watch drafts (the operator promotes) | Yes |
-| X digest | Daily (pilot) | A seed list of X handles | Attention and voices ledger rows; candidates for a ruling | Order; prompt outside |
+| X digest | Daily (pilot) | A seed list of X handles | Attention and voices ledger rows; candidates for a ruling | Order, the sweep and the addendum's reader; prompt outside |
+| Monthly signal scan | The 25th | Declared sources | Candidates for the register, for a ruling | Scheduled-tasks record; prompt outside |
 
 ### 6.7 chester-meme
 
@@ -667,7 +677,7 @@ The interface between the two repositories is files only:
 - chester-meme reads chester-reports' Security Master through the one-way export (§2.5), which carries the restricted names;
 - chester-reports reads chester-meme's drop directory and never writes into chester-meme.
 
-**The ingest** runs at 21:45, and again inside the 06:45 overnight pass, so a packet written after the evening scan is in before the anchor. In order, it:
+**The ingest** runs at 21:15, before the evening note reads tonight's drafts, and again inside the 06:45 overnight pass, so a packet written after the evening scan is in before the anchor. In order, it:
 1. checks the manifest's schema version and checksum;
 2. treats a packet already seen as a no-op;
 3. refuses a restricted packet, and a Brookfield-related name a second time, by a database trigger;
