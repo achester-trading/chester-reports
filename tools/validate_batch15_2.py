@@ -462,7 +462,11 @@ def group_h() -> None:
     check("No published count of protocol shutdowns for 2022-23 was found" in t,
           "a comparison no source supports is said to be missing")
     q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
-    p74 = q.split("(Batch 15 item 74)")[-1]
+    # A68 (24 Oct 2026) moved item 74's record into Positioning and Flows' dated
+    # Appendix B; item 75's stays in the queue until the S-1 is on EDGAR.
+    pf = (REPO / "docs" / "whitepapers" / "positioning-and-flows-whitepaper.md").read_text(
+        encoding="utf-8")
+    p74 = pf.split("Batch 15 item 74)")[-1]
     p75 = q.split("(Batch 15 item 75)")[-1]
     check("Dated 22 Oct 2026" in p74 and "five to one" in p74 and "https://" in p74,
           "item 74's prime-book figures: one dated record, cited")
@@ -501,8 +505,12 @@ def group_i() -> None:
         NOTE.read_text(encoding="utf-8"), LAB.read_text(encoding="utf-8"),
         EDITION.read_text(encoding="utf-8"),
         (REPO / "docs" / "ledgers" / "short-extremes-preregistration-2026-10.md").read_text(encoding="utf-8"),
+        # item 74's record, where A68 moved it (Positioning and Flows, Appendix B),
+        # and item 75's, still in the queue.
+        (REPO / "docs" / "whitepapers" / "positioning-and-flows-whitepaper.md").read_text(
+            encoding="utf-8").split("Batch 15 item 74)")[-1],
         (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8").split(
-            "(Batch 15 item 74)")[1]])
+            "(Batch 15 item 75)")[-1]])
     people = (r"Dalio|Marino|Prehn|Curzio|Gadala|Muur|Wanjun|Radge|Mark Wilson|Civita|"
               r"Hollerith|Howley|Kim Jong|Lamont")
     check(not re.search(people, mine), "no person's name in the new code, config, ledgers, "

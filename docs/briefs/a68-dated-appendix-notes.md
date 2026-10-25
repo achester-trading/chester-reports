@@ -67,4 +67,5 @@ No other entry's wording asks for a body change.
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the A68 tip | see the report |
+| 40145701014 | `a7c283dc` | **failure**, three gates, all from this move: `validate_batch14_a1` (items 64 and 70), `validate_batch15_1` (item 76) and `validate_batch15_2` (item 74) read their records from the queue, where A68 struck them. Fixed: each reads the record where it now lives (the Rate and Liquidity Machine's, Disruptive Themes' and Positioning and Flows' Appendix B), and still reads the queue for the entries that stay there (69, 75). Local: 30/0, 69/1 and 60/0. batch15_1's one local failure, the Batch 15 order's SHA-256, is the laptop's CRLF checkout of an untouched file; it passed in CI. `validate_batch14_b2` (item 68, still queued) 57/0. |
+| round 2, after the fix | the fix's tip | see the report |

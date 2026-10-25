@@ -263,11 +263,15 @@ def group_f() -> None:
 
 def group_g() -> None:
     head("G. THE DATED APPENDIX")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
-    check("(Batch 14 item 64)" in q and "5.31% on 5 Oct 2026" in q and "2.95%" in q
+    # A68 (24 Oct 2026) moved items 64 and 70 into the Rate and Liquidity Machine's
+    # dated Appendix B; item 69's line stays in the queue (its ledger is not built).
+    q = ((REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+         + (REPO / "docs" / "whitepapers" / "rates-liquidity-whitepaper.md").read_text(
+             encoding="utf-8"))
+    check("Batch 14 item 64)" in q and "5.31% on 5 Oct 2026" in q and "2.95%" in q
           and "14 May 2002" in q and "24 Nov 2008" in q,
           "the 10-year record: 5 Oct 2026's closes, highest since 2002 and 2008")
-    check("(Batch 14 item 70)" in q and "8%" in q and "appendix only" in q,
+    check("Batch 14 item 70)" in q and "8%" in q and "appendix only" in q,
           "the 8% forecast, appendix only")
     check("housing intervention" in q and "Dated 8 Jan 2026" in q and "https://" in q,
           "item 20's housing intervention line, dated, with its citation")

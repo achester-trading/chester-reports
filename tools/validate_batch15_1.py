@@ -451,8 +451,7 @@ def group_e() -> None:
     check(not re.search(r"^\s+dtcc[._]", reg, re.M) and "\n  dtcc" not in src
           and not (REPO / "altdata" / "cds_protection.py").exists(),
           "no protection-demand line, flag or DTCC key is built (check 4 failed)")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
-    sec = q[q.find(APPENDIX_HEAD):] if APPENDIX_HEAD in q else ""
+    sec = appendix_records()
     check(bool(sec) and "$1.09m" in sec and "$322k" in sec and "$226k" in sec
           and "$108k" in sec and "$101k" in sec and "Source line:" in sec
           and "As of: mid-October 2026" in sec,
@@ -460,6 +459,18 @@ def group_e() -> None:
     check("$466bn" in sec and "$101bn" in sec and "As of: 20 Oct 2026" in sec,
           "the $466bn AI borrowing figure is a dated record (SR-16)")
     check("listed gap" in sec[:900], "the monthly rows are said to be a listed gap")
+
+
+def appendix_records() -> str:
+    """Item 76's dated records: in the queue under APPENDIX_HEAD until A68 (24 Oct
+    2026) moved them into Disruptive Themes' dated Appendix B (SR-16's home)."""
+    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    if APPENDIX_HEAD in q:
+        return q[q.find(APPENDIX_HEAD):]
+    dt = (REPO / "docs" / "whitepapers" / "disruptive-themes-whitepaper.md").read_text(
+        encoding="utf-8")
+    head = "### AI names' CDS levels and AI borrowing"
+    return dt[dt.find(head):] if head in dt else ""
 
 
 # ---------------------------------------------------------------------------
@@ -556,8 +567,7 @@ PEOPLE = ("Dalio", "Marino", "Prehn", "Curzio", "Gadala", "Muur", "Radge", "Wanj
 def group_h() -> None:
     head("H  HYGIENE")
     texts = {p: (REPO / p).read_text(encoding="utf-8") for p in NEW_MODULES + NEW_CONFIG}
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
-    texts["appendix"] = q[q.find(APPENDIX_HEAD):]
+    texts["appendix"] = appendix_records()
     hits = [f"{p}: {n}" for p, t in texts.items() for n in PEOPLE if n in t]
     hits += [f"{p}: \\bAri\\b" for p, t in texts.items() if re.search(r"\bAri\b", t)]
     check(not hits, f"no person's name in the new files or the appendix records ({hits})")
