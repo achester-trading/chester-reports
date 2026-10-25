@@ -210,9 +210,9 @@ Once a session, after the close, the system computes one object that describes t
 
 The machinery that computes it holds no market knowledge of its own. Every dimension, member series, threshold and polarity is declared in one configuration file, and each line carries a short "because" that says why the rule points the way it does. Changing the description of the market therefore means changing a declared rule, through the same ratification path as any other rule, rather than editing code.
 
-### 3.2 The eight dimensions
+### 3.2 The dimensions
 
-The object describes the market along eight dimensions. Each has three states, and each reads an ordered list of member series. The first member is the *primary*: it alone sets the state, by asking where today's value sits in its own five-year history. Roughly, the top third of that history gives the first state, the middle third the second and the bottom third the third, with the direction reversed where a high reading means the opposite thing. The other members are *evidence*. A member in the same band as the state is listed as supporting; a member in a different band is listed as contradicting. This is deliberately not a composite score. A composite would average away exactly the disagreements a reader most needs to see, so the object reports the primary's state and lists the disagreement beside it.
+The object describes the market along a declared set of dimensions: the eight it began with, five added in its second version (6f), and two declared and absent. Each has three states, and each reads an ordered list of member series. The first member is the *primary*: it alone sets the state, by asking where today's value sits in its own five-year history. Roughly, the top third of that history gives the first state, the middle third the second and the bottom third the third, with the direction reversed where a high reading means the opposite thing. The other members are *evidence*. A member in the same band as the state is listed as supporting; a member in a different band is listed as contradicting. This is deliberately not a composite score. A composite would average away exactly the disagreements a reader most needs to see, so the object reports the primary's state and lists the disagreement beside it.
 
 When nothing disagrees, the object says "none found" as a positive claim rather than leaving the field empty. When a dimension cannot be computed, it says why: no series, no fresh series, or no registry entry. Freshness is judged against each series' own reporting rhythm (a weekly series is allowed more sessions than a daily one), and a dimension whose primary is older than a declared multiple of that allowance goes absent rather than reporting a stale state.
 
@@ -225,11 +225,20 @@ When nothing disagrees, the object says "none found" as a positive claim rather 
 | Credit | easy / neutral / stressed | High-yield spread (inverted) | BB, CCC and investment-grade spreads |
 | Trend | up / flat / down | SPY against its 200-day average | SPY against its 50-day; the 20-day's slope |
 | Breadth | broad / mixed / narrow | Share of sector funds above their 50-day | Share above the 200-day; equal- against cap-weight |
-| Volatility | elevated / normal / subdued | The VIX, same day | FRED's VIX series; SPY's 20-day realized volatility |
+| Volatility | elevated / normal / subdued | The VIX, same day | FRED's VIX series; SPY's 20-day realized volatility; Cboe's SKEW, which never makes a tail verdict |
+| Positioning | crowded / neutral / light | Margin debt's twelve-month change | Leveraged money's Treasury-futures positioning; a leveraged fund's assets |
+| Sentiment | euphoric / neutral / fearful | The AAII bull-bear spread | SPY's put/call volume (inverted); Michigan's sentiment |
+| Valuation | rich / fair / cheap | The CAPE, ranked over its full history, with a five-year read beside it | Households' equity share |
+| Funding stress | stressed / watch / calm | SOFR against the Fed's reserve rate, on absolute bands | The commercial-paper-to-bill spread; the St. Louis Fed's stress index; the Fed's repo facility for foreign official holders |
+| Policy | tightening priced / on hold / easing priced | The 2-year yield against effective fed funds, on absolute bands | The market's gap to the Fed's path; the real policy rate |
 
 Two notes belong with the table. Growth has no daily series, so its state moves with the weekly claims data and lags the market. Breadth is measured across the eleven sector funds, not across every stock, and so understates how narrow a market led by a few large names can be. The object says both things in its own text.
 
-**No sub-states.** The object holds the eight dimensions and nothing finer.
+**The five added dimensions are report-only.** No dial, band, packet or engine reads them; they describe. Where a series has a natural zero (a funding spread, the policy gap), its states sit on fixed bands rather than on percentiles, because "above zero" means something a percentile cannot say.
+
+**Two dimensions are declared and absent.** *Earnings* (upgrading, flat, downgrading) waits for a public, keyless index forward-earnings series with history, and then for a year of it. *Geopolitical* (elevated, normal, quiet) waits for a source-checked risk index with a long history and a ruling that admits it. Each prints absent with that reason. A *tail* dimension is not declared at all: the Twenty-Five forbids a single tail index, so the tails are kept as families (§3.11).
+
+**No sub-states.** The object holds its dimensions, the per-horizon reads, the tail families and the debt-cycle branch (§3.9 to §3.11), and nothing finer.
 - **The rates driver is withdrawn.** It was a four-cell reading of why yields moved, and it failed its calibration gate twice in late September. A return needs a new pre-registration and a new rules version. What prints instead is each term-structure model's path-and-premium split, dated, with a flag for whether the models agree; it decides nothing.
 - **The inflation driver is a read beside the object.** It was ruled as an inflation sub-state, but it prints as a report-only line in the Monthly, outside the object, which carries no driver on inflation.
 
@@ -253,7 +262,7 @@ The dimensions describe each market on its own terms. The contradiction table as
 
 **The gap z-score, for a reader.** For a pair of series, the system takes each series over the same five-year window and expresses each day's value as a z-score: how many standard deviations it sits from its own five-year average. It subtracts one from the other, with the signs arranged so that normal agreement is the baseline. That daily difference is the *gap*. The question is then how unusual today's gap is compared with the gap's own five-year history, so the gap is itself turned into a z-score. A gap z of 2 means the two markets are further apart than they have been on roughly 95% of days in five years. It is a statement about the relationship, not about either market's level: both can be unremarkable on their own and still disagree unusually. The two series are aligned on common dates first, a slower series being read as of the faster one's dates, and a pair with too few common dates prints no magnitude rather than an unreliable one.
 
-A pair *opens* when its gap z has been at or beyond the declared threshold for the persistence number of sessions, and the date of the first session of that run is kept as its "since". In the code as it stands, an open pair closes on the first session the condition fails. Some pairs, such as gamma against trend, are state mismatches with no magnitude at all, and a reserved pair for prediction markets prints absent until its own gate opens.
+A pair *opens* when its gap z has been at or beyond the declared threshold for the persistence number of sessions, and the date of the first session of that run is kept as its "since". Since the object's second version the close is symmetric: an open pair closes only after the condition has failed for the same number of sessions, showing *closing* in between and keeping its "since". Some pairs, such as gamma against trend, are state mismatches with no magnitude at all, and a reserved pair for prediction markets prints absent until its own gate opens.
 
 ### 3.6 Exceptions
 
@@ -273,6 +282,26 @@ The mapping and the bands live with the risk limits, not with the object. The ob
 ### 3.8 Why no report recomputes regime
 
 Every report reads the object through one reader that reads and never computes. The close is the object's only writer. The reason is simple and absolute. A report that computed its own regime could disagree with the close's, and then the system would hold two regimes and no way to say which one a decision was taken under. The grading in Part IX depends on every decision being attributable to one description of the market at one moment. A second regime anywhere would break it.
+
+### 3.9 Per-horizon reads
+
+The trend dimension is read three times, once at each book's horizon: the 20-day average's slope for the days of Book C, SPY against its 50-day average for the weeks of Book B, and SPY against its 200-day average for the months of Book A, which is the trend dimension's own primary. Each read has the dimension's bands and persistence. The three are stored side by side and never collapsed into one, because the organising principle says the object holds the view per horizon. On this chain nothing that acts reads them, and no report prints them; the register's weekly alignment stamp, which will read the weekly one, is on a later branch (Appendix E).
+
+### 3.10 Calibration
+
+The object's states are now graded as states. For each dial, the published state on a session and the published state a declared number of sessions later make one pair, both read from stored objects and never recomputed with today's code; the horizons are the three books', in sessions. The share of pairs from a state that end in each other state is a transition probability, counted and not modelled. A row prints a probability only once its state has a declared minimum of independent starts (starts far enough apart not to overlap). Until then it prints "uncalibrated (n = k of 30)", never a number and never an empty field. A calibrated row's probabilities are smoothed by adding one half to each count, so none is zero or one.
+
+Only the dials' rows reach the probability ledger, and only once calibrated: each evening the close writes them and resolves the rows that have come due. The dimensions' transition table prints in the Monthly and is never ledgered. The close prints one line of the dials' rows, and the Weekly and the Monthly a table. The first read on the box will be uncalibrated everywhere, because the stored history under the current method is short; that is the expected state, not a fault. A read never uses an object computed after its own cutoff.
+
+### 3.11 Tail families and the debt-cycle branch
+
+**The tail families** are the Twenty-Five's seven mechanism families, one row each and never summed. A family's state is *watch* when one of its first-mover series is at a five-year extreme, *quiet* when all are read and none is, and *not read* when none is stored. Every family's probability is "none": the prediction-market rights are discovery only, their calibration gate is not met, and no ruling grants more. The Monthly prints the table in Slow layers, and the Weekly one line.
+
+**The debt-cycle branch** carries its observables (the deficit's share of output, the real 10-year yield, the 10-year breakeven and gold), each as a level with its percentile, and a state of "none", because the diagnostic that would set it belongs to a paper not yet written. It prints in the Monthly's Slow layers only.
+
+### 3.12 What the object may not read
+
+Some series are barred from the object by name. A registry field marks each barred key with the order and rule that barred it, and a gate refuses any barred key as a dimension member, a dial leg or a horizon read. A bar can be narrow, applying to one instrument of a key and not another. It exists so that a series admitted to the store for one report, a vendor's or a by-hand figure for example, can never become part of the one description of the market by accident.
 
 ---
 
