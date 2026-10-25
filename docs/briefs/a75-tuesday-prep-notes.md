@@ -83,7 +83,7 @@ The curves and the numbers read as intended.
 
 | Branch | Tip | Run |
 |---|---|---|
-| `a61b-feed-repair` | this notes commit | read once after the push (the report) |
+| `a61b-feed-repair` | `0b651344` | **CI queued, run 40155010604** (and 40154526031 at `efe02994`, queued) |
 | `chain-7-main` | `27aa84b2` | **CI queued, run 40154912529** |
 
 ## Needs you (at most five)
