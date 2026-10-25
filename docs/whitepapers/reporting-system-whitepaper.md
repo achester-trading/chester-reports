@@ -977,6 +977,7 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 |---|---|
 | 1 minute, weekday | The anchor's What changed |
 | 2 minutes, weekday | The close's claim lines and What doesn't fit |
+| 1 minute, 09:50 or 21:30 | The open note or the evening note: one line on a quiet day |
 | 5 minutes, Sunday | The Weekly's précis, Changed since last Weekly, The read, The book; the addendum last |
 | 10 minutes, the 1st | The Monthly's read (the one page) and its book (where our read lands) |
 | On a 12:30 mail | The alert's trigger line, then the close at 16:45 |
@@ -984,9 +985,9 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 
 ---
 
-## Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 19 October 2026)
+## Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 24 October 2026)
 
-*Everything in this appendix is as of 19 October 2026, read from the second stitched chain (`chain-2`, commit `ab27c07`) on the day of writing: the systemd units in `deploy/systemd/`, the deploy's timer list in `scripts/deploy_remote.sh`, the `Makefile`, `CLAUDE.md`, `config/reporting_stack.yaml`, `config/risk_limits.yaml`, `config/market_state.yaml`, `config/vol_event.yaml`, `config/data_quality.yaml`, `config/metric_lenses.yaml`, `config/flashalpha.yaml`, `config/digital_addendum.yaml`, the dealer pre-registration ledger and the feed modules. All times are U.S. Eastern. Whether each timer is enabled on the production box is not recorded in the repository; the chain-2 box sheet lists the ones the operator enables.*
+*Everything in this appendix is as of 24 October 2026, read from the seventh stitched chain (`chain-7`, commit `62c19b41`) and the feed repair (`a61b-feed-repair`, commit `0d954d0f`) on the day of writing. The sources are the systemd units in `deploy/systemd/`, the deploy's timer list in `scripts/deploy_remote.sh`, the `Makefile`, `CLAUDE.md`, `config/reporting_stack.yaml`, `config/risk_limits.yaml`, `config/market_state.yaml`, `config/vol_event.yaml`, `config/data_quality.yaml`, `config/metric_lenses.yaml`, `config/publication_lags.yaml`, `config/flashalpha.yaml`, `config/digital_addendum.yaml`, `source_registry.yaml`, the dealer pre-registration ledger and the feed modules. Where the feed repair changes a value, the value after its merge is given and the change named. All times are U.S. Eastern. Whether each timer is enabled on the production box is not recorded in the repository; the box sheets list the ones the operator enables.*
 
 **Timers the deploy enables.** The deploy and the box's self-deploy enable a declared list of fourteen timers and copy every other unit without enabling it.
 
@@ -998,55 +999,84 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 | Heartbeat | Daily 08:30 | Health check; verdict and exit code |
 | Broker sync | Weekdays every 30 minutes, 09:00–17:30 | Portfolio Truth; reconciliation (its install section is held back in the unit file) |
 | Closing-auction sampler | Weekdays 15:49 | Auction imbalance |
-| End-of-day pull | Weekdays 16:10 | Every feed but the loggers; option chains and exposures; the derived features; the volume profile |
-| Daily close | Weekdays 16:45 | The object; the close |
-| Crypto basket | Daily 17:25 | The crypto basket and the crypto data layer |
+| End-of-day pull | Weekdays 16:10 | Every feed but the loggers; option chains and exposures; the derived features; the volume profile; the one-day 10-year ledger's resolution |
+| Daily close | Weekdays 16:45 | The object; the calibration rows; the close |
+| Crypto basket | Daily 17:25 | The crypto basket and data layer; GDELT, the degree days and the model-release watch; on Saturdays the cyber lists; each day the protocol counts |
 | Backup | Daily 02:30 | The encrypted sweep |
 | Saturday prices | Saturdays 06:00 | The week's price corrections |
-| Weekly | Sundays 05:00 | The Weekly |
+| Weekly | Sundays 05:00 | The Weekly and the digital-assets addendum |
 | Monthly | The 1st, 07:30 | The scans ingest; the Monthly |
 | Self-deploy | Every 30 minutes inside the windows | Unit copy, daemon reload, the declared timers, the drift check; never a restart |
 
-**Timers the operator enables** (copied by the deploy, enabled by hand; the chain-2 box sheet gives the steps).
+**Timers the operator enables** (copied by the deploy, enabled by hand; the box sheets give the steps).
 
 | Unit | When | What it runs |
 |---|---|---|
 | Dealer captures | Weekdays 09:45 and 12:30 | Intraday chain captures; the 12:30 alert slot |
+| Open note | Weekdays 09:50 | The open note, after its own fetch |
 | Vendor writer | Weekdays 16:25 | The FlashAlpha cross-check |
 | Vendor chains | Weekdays 16:31 | SPX and SPCX from Massive, after its 15-minute delay |
-| Restore test | Sundays 10:15 | Restores the newest encrypted snapshot and checks it against the sweep's count |
-| Meme ingest | Sunday to Friday 21:45 | chester-meme's packets as Book D drafts (the overnight pass repeats it before 07:00) |
-| Alpha Lab, nightly | Weekdays 17:40 | Fill, mark, grade, govern, learn |
+| Alpha Lab, nightly | Weekdays 17:40 | Fill, mark, grade, govern, learn; the grammar search last |
 | Alpha Lab, proposer | Weekdays 18:10 | The one model call that proposes hypotheses |
+| Meme ingest | Sunday to Friday 21:15 | chester-meme's packets as Book D drafts (the overnight pass repeats it before 07:00) |
+| Evening note | Sunday to Thursday 21:30 | The evening note, after its own fetch |
 | Alpha Lab, weekly | Sundays 06:00 | Walk-forward, re-fit, rebalance, the agenda, the verdicts |
+| Restore test | Sundays 10:15 | Restores the newest encrypted snapshot and checks it against the sweep's count |
 | Quarterly | The second Saturday of January, April, July and October, 06:00 | The Alternative Assets Quarterly; ships disabled; first edition 9 January 2027 |
-| Monthly restore drill | The 3rd, 10:30 | Superseded by the weekly test (ruled 19 October 2026); never enabled |
 | Broker gateway restart and watchdog | Held back | Enabled only after a witnessed clean start |
 
-**The Monthly's calendar.** Dry runs 23 and 28 October 2026; deploy freeze from 29 October 23:30; the first stacked edition on 1 November 2026. The Weekly's digital-assets addendum: dry-run page 25 October, first edition 1 November.
+The monthly restore drill's units are deleted; its tool remains.
 
-**Gates.** `make validate` runs every gate: 118 code gates (115 Python, 3 shell) and 8 data gates, with no network and no box. A code gate seeds a store of its own and never reads the live one. A data gate reports on the box's real history, does not set the exit code, and prints NOT VALIDATED where there is no store. The list lives in the `Makefile`, and CI reads it from there.
+**The calendar.** The feed repair merges on Tuesday 27 October inside the windows. The Monthly's dry runs are 23 and 28 October; the deploy freeze runs from 29 October 23:30, and no Weekly edit is made from 29 October to 1 November; the first stacked Monthly and the first digital-assets addendum are on 1 November 2026. The seventh chain merges after that Monthly. The two notes are live from 26 October; until then each run is a dry run. Doctrine #2 sits on 7–8 November; Audit #5 is the week of 23 November.
+
+**Gates.** `make validate` runs every gate: on the seventh chain, 139 code gates (136 Python, 3 shell) and 8 data gates, with no network and no box; the feed repair adds one code gate, so 140 after its merge. A code gate seeds a store of its own and never reads the live one. A data gate reports on the box's real history, does not set the exit code, and prints NOT VALIDATED where there is no store. The list lives in the `Makefile`, and CI reads it from there.
 
 **Operating windows.** Deploys and other box writes: weekdays 09:05–15:40 and 17:20–23:30, never 16:00–17:20; weekends open, clear of Sunday 05:00. A merge to main is a box write: every box wrapper pulls main before it starts, and unit files follow at the next self-deploy. A session never runs unit commands, privilege escalation or register writes.
 
-**The stack.** Prose budgets: close 1,000 words and 3 charts; Weekly 3,500 words and 10 charts; Monthly 10,000 words and 12 charts; Quarterly no word budget and 40 charts. Reading-time targets: close 5 minutes, Weekly 20, Monthly 55 (raised from 40), Quarterly 90; the digital-assets addendum 5 minutes and 1,100 words. Reading time is prose words ÷ 250 plus 20 seconds per chart. A firing trigger adds one chart. The dealer retrospective's floor: 20 scored sessions.
+**The stack's budgets** (targets, never caps, ruled 24 October 2026; an edition over its target prints one line at its foot).
 
-**Charts and what the dealer charts displace.** The close: C1 SPY's session, C2 sixty daily candles, C3 by rule, and D2 the dealer chart after C1 and any C3; with C3 drawn and no trigger, C2 is set aside. The Weekly: W1 SPY six months; W2 two years; W3 the curve and the high-yield spread; W4 speculative positioning; W5 sector and style returns; W6 open contradictions (only when one is open); W7 SPY over 23-hour sessions with the overnight future; W8 six markets; W9 positioning and sentiment gauges; W10 prediction-market odds; W11 the second positioning panel; W12 the dealer panel, which goes in fourth and sets W10 aside, and W11 too when W6 is open and no trigger fires. The Monthly: thirteen planned charts, M1 to M13, plus M12 when dealer profiles exist; set aside first are M13, then M8 (which does not render until scenario set #1 exists).
+| Report | Prose words | Charts | Reading target |
+|---|---|---|---|
+| Daily close | 2,250 | 3 | 10 minutes |
+| Weekly | 7,900 | 10 | 35 minutes |
+| Monthly | 10,000 | 12 | 55 minutes |
+| Quarterly | no word budget | 40 | 90 minutes |
+| Digital-assets addendum | about 1,500 | 2 (none drawn in its first phase) | 7 minutes |
+| Open note | 250, a hard cap | 1 | 2 minutes |
+| Evening note | 150, a hard cap (Sunday 400) | 1 | 1 minute (Sunday 3) |
+
+Reading time is prose words ÷ 250 plus 20 seconds per chart. A firing trigger adds one chart. The runaway guard withholds a reply past twice its section's ceiling, and never past 7,000 characters. The dealer retrospective's floor: 20 scored sessions. The evening note asks for a paragraph on a weekday only when the e-mini or Nasdaq future moves past 0.75%, dollar-yen past 1.0% or an Asian index past 1.5%; always on Sunday.
+
+**Charts and what the dealer charts displace.**
+- **The close:** C1 SPY's session, C2 sixty daily candles, C3 by rule, and D2 the dealer chart after C1 and any C3. With C3 drawn and no trigger, C2 is set aside.
+- **The Weekly:** W1 SPY six months; W2 two years; W3 the curve and the high-yield spread; W4 speculative positioning; W5 sector and style returns; W6 open contradictions (only when one is open); W7 SPY over 23-hour sessions with the overnight future; W8 six markets; W9 positioning and sentiment gauges; W10 prediction-market odds; W11 the standing decomposition, in What's priced; W12 the dealer panel. W12 enters fifth and sets W10 aside, and W11 too when W6 is open and no trigger fires.
+- **The Monthly:** M0 to M13, fourteen charts, M12 only when the month's dealer profiles exist; capped at twelve. Set aside first are M13, then M8 (which does not render until scenario set #1 exists), then M9, then M12.
 
 **Thresholds.**
 
 | Threshold | Value | Where |
 |---|---|---|
+| The market-state object | Rules v2.0, method 11; persistence 2 sessions; a five-year window; bands 66 and 33; contradictions open at a gap z of 2.0 held 2 sessions and close after 2 failing; exceptions at 5; extremes at the 5th and 95th percentiles; the VIX bands 14, 20 and 30 | `market_state.yaml` |
+| The five added dimensions | Funding stress on absolute bands (stressed at 10 bp and above, watch at 0 and above); policy at +25 and −25 bp; valuation ranked over its full history beside five years | `market_state.yaml` |
+| Per-horizon reads | 5, 20 and 63 sessions (Books C, B, A); bands 66 and 33; persistence 2 | `market_state.yaml` |
+| Calibration | 30 independent starts per row; horizons 5, 20 and 63 sessions; add-half smoothing | `altdata/state_calibration.py` |
 | Dealer regime word | Prints only at net-to-gross ≥ 0.10 (ruled) | `reporting_stack.yaml`, `dealer_block` |
 | Walls | The out-of-the-money walls; the all-strike peaks print as peaks | the dealer engine |
 | Volatility event | A one-day VIX change of 15% or 3 points either way; a five-day log change past its 95th percentile on a 20-year window; a crossing of the volatility dial's band; compression within 5% of the 126-session low, held 3 sessions | `vol_event.yaml` |
 | The 12:30 volatility gate | Upward only: +15% or +3 points | `vol_event.yaml`, `midday` |
+| The volatile-day flag | The overnight range past 1.5 times the 20-session average true range (at least 15 sessions), a gap of 1% or more, the VIX arm, a negative gamma dial, a tier-1 calendar event | `vol_event.yaml`, `volatile_day` |
+| The one-day 10-year move | The day's absolute change past the 97.5th percentile of five years of changes, either way; "not read" below 1,000 changes | `oneday_10y.yaml` |
+| The gold event | A one-day move of 2.5%, or a five-day move past its five-year 95th percentile | `gold_event.yaml` |
+| The developed-market drawdown screen | Ten- and twenty-session drawdowns past their five-year 95th percentile | `dm_drawdown.yaml` |
+| Relative options volume | 1.5 times (provisional; reviewed after 19 November) | the relative-volume config |
 | Outlier marks | 6 standard deviations of the last 60 changes, every family (session-set) | `data_quality.yaml` |
 | Cross-source tolerances | VIX against VIXCLS: 0.01 (measured 15 October over 1,029 days); ^TNX against DGS10 and ^TYX against DGS30: not yet measured | `data_quality.yaml` |
 | Correction and bear | −10% and −20% from the 52-week high | `altdata/derived.py` |
 | Credit widening | HY, BB, CCC +100 bp and IG +40 bp in three months (ruled 4 October); AA +25, BBB +50, EM corporate +75, EM high yield +150 (session-set) | `metric_lenses.yaml` |
 | Lens disagreement | 30 points between the five-year and the long-window percentile | `altdata/derived.py` |
-| The market-state object | As Draft 2 (rules v1.10, method 8; persistence 2 sessions; five-year window; bands 66 and 33; contradictions at a gap z of 2.0 for 2 sessions, exceptions at 5; extremes at the 5th and 95th percentiles; the VIX bands 14, 20 and 30) | `market_state.yaml` |
+| The store check's "dead?" | Past three times a key's own allowance | `tools/check_store_registry.py` |
+
+**Publication-lag families.** Fifteen on the seventh chain (among them the H.10 rates, the EIA's spot prices, the term-premium models, Z.1, TIC, the IMF, the emerging-market monthly and quarterly releases, the World Bank's pink sheet, China's statistics bureau, H.8's weekly deposits, NOAA's degree days, the Shiller housing sheet, and FRED's quarterly and monthly releases); the feed repair adds twelve (the national CPIs, the ECB's swap rates, Redfin, the New York Fed's consumer survey, the Census construction data, H.6's money funds, the bitcoin difficulty, the EIA's rig counts and the Cleveland Fed's policy rules), so 27 after its merge. Each states its publisher's documented delay, its slack and its bound. Listed with no family because their publishers state no delay: the Tuck data library and the shillerdata.com workbook's earnings and dividends.
 
 **The dealer scorecard's pre-registration** (`docs/ledgers/dealer-scorecard-preregistration-2026-10.md`, dated 17 October 2026, never edited). A rate prints only from 20 scored sessions, and is no decision below 120 eligible sessions. 120 formation sessions, then 120 test sessions. Benjamini–Hochberg at q = 0.10 across the six tests. A flag is demoted when a rolling 120-session interval includes its base rate for two consecutive months.
 
@@ -1054,34 +1084,54 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 
 **The vendor writer** (`config/flashalpha.yaml`). The plan ends 31 March 2027. Symbols: SPY, QQQ, IWM, SPX and MSTR. A daily call budget of 60, planned at 57: 45 at 16:25, 6 at 09:45 and 6 at 12:30. The expected-move path prints "expected move: not served" on a 403 or 404. Its implied volatility is compared only on the first expiry of 20 days or more, from the 16:25 capture. The divergence data gate's tolerances: GEX 50% relative, DEX 15%, the flip 0.5% of spot, the walls 1.5%, the regime word compared as a word.
 
-**Risk limits and attention.** As Draft 2 (`risk-limits-v1`): capital base $300,000; net beta at the regime band's top plus 15 points; sector at most 30%; volatility exposure at most 0.5% of capital per vol point; duration at most 5% per 100 bp; Book A bands Expansion 60–80%, Overheat 40–60%, Tightening and Contraction 20–40%; Transition for 10 sessions. Attention: 7 packets a week and one sitting of at most 2 hours.
+**Risk limits and attention.** As Draft 2 (`risk-limits-v1`): capital base $300,000; net beta at the regime band's top plus 15 points; sector at most 30%; volatility exposure at most 0.5% of capital per vol point; duration at most 5% per 100 bp; Book A bands Expansion 60–80%, Overheat 40–60%, Tightening and Contraction 20–40%; Transition for 10 sessions. Attention: 7 packets a week and one sitting of at most 2 hours, a rule; the third count uncapped.
 
-**Prose and audits.** One call per section, with one revision for a section the audit withholds (the rule broken, the failing span and the draft go back with it) in the stack, the précis, the close and the anchor; the Monthly's storyline fallback writer still makes up to three attempts on chain-2. The Monthly's ten-thousand-word budget is enforced by trimming (§4.6). Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget.
+**Prose and audits.** One call per section, with one revision for a section the audit withholds (the rule broken, the failing span and the draft go back with it) in the stack, the précis, the close, the anchor, the two notes and the Monthly's storyline fallback. Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget; the open note's voices pass 120 seconds, inside the same cap.
 
 **Sources.**
 
 | Family | Count |
 |---|---|
-| Price symbols | 115 |
-| FRED series pulled | 266: the Monthly's 59, 65 signal series, and eight smaller lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12, Thailand 1, 6e 25, release lenses 45, Group B 29) |
-| Official writers | 31 |
-| External writers | 37 |
+| Price symbols | 127 (124 on the feed repair's base; 127 after its merge) |
+| FRED series pulled | 283: the Monthly's 59, 65 signal series, and the smaller lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12, Thailand 1, 6e 25, release lenses 45, Group B 29, the bank-stress legs 10, households 1, retail sales 1, the PPI and Z.1 lines of Batch 14 4, the Nikkei 225 1) |
+| Official writers | 33 |
+| External writers | 37 (the feed repair's two refused writers stay listed and request nothing) |
 | Loggers | 7 |
 | Option chains | the 17 captured names by Yahoo; SPX and SPCX by Massive at 16:31, their greeks behind the solver gate |
 | Prediction markets | 2 venues |
-| Voices sources | as declared in `config/voices_sources.yaml`, with the disabled and unused sources listed there |
+| Voices sources | 22 declared; 17 enabled on the seventh chain, 16 after the feed repair disables one |
+| Publication-lag families | 15; 27 after the feed repair |
 
-**Keys held** (names only): FRED, Anthropic, the dashboard token, SMTP, Nasdaq Data Link, Massive, FlashAlpha, OpenFIGI, and the SEC contact address. **Keys not pursued** under the standing rule of 16 October on sources: Webstat (its keyless TEC 10 export is read instead), the Bank of Korea's ECOS, the Bank of Thailand's API (its keyless table is read instead) and Etherscan. **Pending decisions:** the xAI path (item 50, Tranche 1) and the December vendor month.
+**Keys held** (names only): FRED, Anthropic, the dashboard token, SMTP, Nasdaq Data Link, Massive (and its flat-files pair, read by one backfill tool only), FlashAlpha, OpenFIGI, the bitcoin-data service's free key, the backup's encryption passphrase, and the SEC contact address. **Keys not pursued** under the standing rule of 16 October on sources: Webstat (its keyless TEC 10 export is read instead), the Bank of Korea's ECOS, the Bank of Thailand's API (its keyless table is read instead) and Etherscan. **Pending decisions:** the xAI path (item 50, Tranche 1) and the December vendor month.
 
-**Sources that refuse, or that the system declines.** CNBC (403), Goldman's insights (403), Morgan Stanley and Nuveen (time out): disabled in the voices list. S&P DJI's EPS workbook: withdrawn, printed "not tracked (source withdrawn)". CoinGecko: retired, its terms bar storing its data. Bybit: a country block; the reader is switched off. State Street's GLD archive: robots refuse the API host, so the operator drops the archive once. Farside: answered the laptop 403 through Cloudflare on 17 October; the box's first run decides, and nothing is scraped around a refusal. GeckoTerminal's site robots disallow crawling, and its documented API is read under its own terms (ruled 17 October). Yahoo Finance news is an active, tier-3 source, not a refusal.
+**Sources that refuse, or that the system declines.**
+- **Declared refused on the feed repair (24 October):** MBA (an HTTP 403 on its robots.txt); Apartment List (403; Zillow is read alone); Farside (403 through a Cloudflare challenge). Each prints "not tracked: … refuses automated reads since 2026-10-24".
+- **Disabled on the feed repair:** Yahoo Finance's voices index (its feed answers 404). Its two candidate replacements were checked and refused: Yahoo's per-ticker headline feed by its robots.txt and terms, and CNBC's markets feed by its owner's terms.
+- **Listed gaps:** WGC's files, which need a login and whose terms forbid scraping (the central-bank leg reads the IMF's IFS instead); DTCC's per-name CDS volumes, a subscription product whose terms forbid automated extraction.
+- **Disabled in the voices list:** CNBC (403), Goldman's insights (403), Morgan Stanley and Nuveen (time out).
+- **Withdrawn or retired:** S&P DJI's EPS workbook, printed "not tracked (source withdrawn)"; CoinGecko, its terms bar storing its data; the LBMA writer; the Google News story queries, by their robots.txt.
+- **Other:** Bybit is switched off by a country block. State Street's GLD archive is refused to the API host by robots, so the operator drops it once. GeckoTerminal's site robots disallow crawling, and its documented API is read under its own terms.
 
-**Scans outside the repository.** Recorded in the Master Guide's record of the chat-side tasks (`docs/master-guide/chat-tasks.yaml`, the Guide's Table 2); `docs/scheduled-tasks.md` defines those it lists, and not the X digest, its reader triage or the Saturday brief: the Guide to the Markets read (the 6th of January, April, July and October), the Monthly signal scan (the 25th), the Saturday crypto mechanism scan, the AI-risk consensus-drift scan (the 20th of even months), the reading-shelf publication watch (the 12th and the 27th), the AAII weekly read (Thursdays), the FlashAlpha tasks (to be deleted once the divergence gate is clean), the X digest and its reader triage (a pilot since 17 October), and the Saturday brief, which reads the Alpha Lab's verdicts from Drive's `chester-lab-outbox`.
+**Superseded keys** (declared on the feed repair): IOER by IORB (still pulled, read by nothing); the overnight 10-year index fields by the daily index; the LBMA price by the COMEX front future. On the seventh chain, WGC's keys are superseded by the IMF's.
+
+**Scans outside the repository.** Recorded in the Master Guide's record of the chat-side tasks (`docs/master-guide/chat-tasks.yaml`, the Guide's Table 2), updated 20 October:
+- the Guide to the Markets read (the 6th of January, April, July and October);
+- the Monthly signal scan (the 25th, 06:57; first run due 25 October 2026);
+- the Saturday crypto mechanism scan (retiring);
+- the AI-risk consensus-drift scan (the 20th of even months);
+- the reading-shelf publication watch (the 12th and the 27th), with the six houses' capital-market-assumption files since 24 October;
+- the AAII weekly read (Thursdays);
+- the MSTR/MSCI event watch (weekdays 2–30 November, and 1 December);
+- the FlashAlpha tasks (retiring);
+- the X digest (daily 06:00) and its triage (06:50), a pilot since 17 October, with accounts that publish only on X added in a monthly batch;
+- the Saturday brief, which writes the Alpha Lab's inbox;
+- the Alternative Assets Quarterly's scan (planned for January 2027).
 
 ---
 
-## Appendix B — The Incident Log to Date (as of 19 October 2026)
+## Appendix B — The Incident Log to Date (as of 24 October 2026)
 
-*From `docs/incidents.md`. No incident has been logged since INC-9.*
+*From `docs/incidents.md`. No incident has been logged since INC-9, on any branch.*
 
 | Id | Date | What happened | Fix and lesson |
 |---|---|---|---|
@@ -1112,13 +1162,13 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 
 **Regularities with dates.** The Brier coin of 0.25 is arithmetic, not a regularity. The thresholds in Appendix A were set by ruling, not estimated, and are falsified in the operational sense if a trigger fires every session or never over a month. That is the test the Doctrine monthly applies.
 
-**Standing-register items touching this paper.** The intraday layer's engines (Part VIII) are unregistered. The stacked Monthly is built and has not yet published: its first edition, on 1 November 2026, is the one to read against §4.6. The Alternative Assets Quarterly is built with its timer disabled. The Quarterly Structural, Disruptive Themes, the Top & Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.
+**Standing-register items touching this paper.** The intraday layer's engines (Part VIII) are unregistered. The stacked Monthly is built and has not yet published: its first edition, on 1 November 2026, is the one to read against §4.6. The object's calibration has no calibrated row yet (§3.10). The Alternative Assets Quarterly is built with its timer disabled. The Quarterly Structural, Disruptive Themes, the Top & Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.
 
-**Dated figures in this paper.** Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 19 October 2026, from the configuration files named there.
+**Dated figures in this paper.** Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 24 October 2026, from the configuration files named there.
 
 ---
 
-## Appendix D — Where the Brief Disagreed with the Code, and What Draft 2 Called Unbuilt: Dispositions (as of 19 October 2026)
+## Appendix D — Where the Brief Disagreed with the Code, and What Drafts 2 and 3 Called Unbuilt: Dispositions (as of 24 October 2026)
 
 *Draft 1 of this paper was commissioned by a brief, and in writing it twenty-five places were found where the brief, or the repository's own documents, disagreed with the code. Draft 1 followed the code and left each item for a ruling; they were listed when it was merged on 6 October. This appendix records what became of each. "Fixed" names the change that fixed it: D-2 (the corrections to the repository's own documents, 7 October), L-1 (the loggers' schedule and the small items with it, 6 October), T2.6 and T2.7 (the stack's cadences and the shared renderer, 8 October), T3 (the stacked Monthly, 8 October) and LIB-2 (this draft and its two companions, 9 October). "Ruled for Audit #4" means a ruling has placed it on that sitting's business. "Open" means nothing has yet been decided or changed.*
 
@@ -1129,9 +1179,9 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 | 1 | No H.4.1 writer: the balance-sheet legs come through FRED; the brief's list of official writers omits the New York Fed's consumer survey and the Fed Board's inflation-expectations index | **Fixed (D-2).** Both briefs carry a dated correction |
 | 2 | WallStreetBets is a feed inside the borrow-and-mentions logger, not a logger of its own; the retail-activity logger is dormant without its key; the shielded-share logger has no reachable source | **Fixed (D-2)** for WallStreetBets. The dormant logger and the missing source are facts about the feeds, not disagreements, and stand |
 | 3 | The loggers had no scheduled run | **Fixed (L-1).** Recorded as INC-9 (Appendix B); the overnight fetch runs them and a gate holds every feed to a runner |
-| 4 | The brief names two kinds of knowable time; the code has three (observed, ingest instant, reconstructed), and nothing yet writes the first | **Open.** The brief is unchanged; this paper follows the code. Writing observed times waits on vintage data |
+| 4 | The brief names two kinds of knowable time; the code has three (observed, ingest instant, reconstructed), and nothing yet wrote the first | **Fixed (AUD-3d, 15 October).** The ALFRED backfill writes each FRED value as observed at its vintage's first publication. The brief is unchanged |
 | 5 | The contradiction table has eight pairs, not seven | **Fixed (D-2)** |
-| 6 | A contradiction closes on the first session it fails, though the documents said it closes over two | **Ruled for Audit #4.** A symmetric two-session close is ruled for rules v1.13; D-2 recorded the code's present behaviour in the state-object document |
+| 6 | A contradiction closes on the first session it fails, though the documents said it closes over two | **Fixed (6f, on the seventh chain).** The close is symmetric: two failing sessions, as two open it, with *closing* between (§3.5) |
 | 7 | The stacked close does not open on the What changed block | **Fixed (D-2, T2.6).** D-2 corrected the documents; T2.6 built the state and contradiction tables at the end of the close (§4.7) |
 | 8 | The state-object document was stale in places | **Fixed (D-2)** |
 
@@ -1142,7 +1192,7 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 | 9 | The Monthly was not on the stack; it had no depth column and its charts existed only in the brief | **Fixed (T3, on T2.6 and T2.7).** §4.6 describes it as built; the depth column, Slow layers, Reading and M1–M9 are in configuration and code |
 | 10 | The Quarterly Structural, Disruptive Themes, Top & Bottom and the Thailand quarterly are not built | **Open,** and described as not built (§4.8). The Quarterly Structural still has no specification document |
 | 11 | Reading targets were documented, not configured | **Fixed (T3).** The three targets are in configuration; the Weekly and the Monthly print against them |
-| 12 | The deploy did not enable the Weekly, Monthly, voices and auction timers | **Fixed in part (L-1):** the Weekly, voices and auction timers are on the deploy's list. **Open:** the Monthly's timer is still enabled by hand |
+| 12 | The deploy did not enable the Weekly, Monthly, voices and auction timers | **Fixed.** L-1 put the Weekly, voices and auction timers on the deploy's list, and A-4 the Monthly's on 9 October (Draft 3 said "open" here in error) |
 | 13 | The Weekly sent no dashboard state record | **Fixed (L-1).** It reports under its own key, and not on a dry run |
 
 **Prose and scans**
@@ -1158,16 +1208,16 @@ When time is short, the system is designed to degrade gracefully. On a weekday, 
 
 | # | Draft 1 found | Disposition |
 |---|---|---|
-| 18 | Book Z is three benchmark ledgers, not a register book, and the Doctrine names only a 60/40 benchmark | **Open** |
+| 18 | Book Z is three benchmark ledgers, not a register book, and the Doctrine names only a 60/40 benchmark | **Fixed in part:** the scoreboard computes the Doctrine's benchmarks, Book A alone and the 60/40, as measurement; their use is on the Doctrine #2 agenda |
 | 19 | The entry gate enforces four limits only; the per-position tiers, the book loss stops, the kill-switch ladder and the heat cap are reported but not refused, and the Systematic Book paper says an over-tier position would be refused | **Open** |
 | 20 | "Heat" means a factor view in the code and open risk to invalidation in the Doctrine; the second is not computed | **Open** |
-| 21 | Reconciliation's comments say hourly against a 30-minute timer, and an empty currency was read as dollars | **Fixed in part (L-1):** an empty currency is refused with a reason, never read as dollars. **Open:** the comments still say hourly |
+| 21 | Reconciliation's comments say hourly against a 30-minute timer, and an empty currency was read as dollars | **Fixed in part (L-1):** an empty currency is refused with a reason, never read as dollars. **Open:** reconciliation's comments still say hourly; the timer's own comment says 17:30 since the third chain |
 | 22 | The intraday layer: "never orders" comes from the Doctrine minutes while the Enterprise Layer's tactics item may place paper bracket orders; the state vector is defined only in a change order; none of it is built | **Open,** and described as unbuilt (Part VIII). The intraday scope is on Audit #4's list from the Enterprise Layer change order; the bracket-order question is not |
-| 23 | The Operating Doctrine was behind the 2 October rulings | **Fixed (LIB-2).** Its dated appendix carries the rulings and the incidents, and its body changed where it contradicted a ruling. **Open:** Book C still cites a 10:00 report, which no ruling addresses |
+| 23 | The Operating Doctrine was behind the 2 October rulings | **Fixed (LIB-2).** Its dated appendix carries the rulings and the incidents, and its body changed where it contradicted a ruling. **Open:** Book C still cites a 10:00 report; the Doctrine #2 pack drafts the 09:50 open note in its place |
 | 24 | The Daily Cascade paper's Part 0 described as live what is not built | **Fixed (LIB-2).** Part 0 opens on a dated note marking the intraday slots and the drafted setups as plan, and describes the stacked close as it runs |
 | 25 | The voices scan's time was stale in three places; the deploy windows were not in the repository | **Fixed (L-1).** All three say 06:15; the windows are in `CLAUDE.md` (Appendix A) |
 
-Of the twenty-five, fourteen are fixed, four are fixed in part, one is ruled for Audit #4 and six are open. (The state of Draft 1's findings is as Draft 2 recorded it on 9 October; Draft 3 has not re-tested them.)
+Of the twenty-five, seventeen are fixed, four are fixed in part and four are open. (Draft 4 re-tested items 4, 6, 12, 18 and 21 against the code; the others stand as Draft 2 recorded them.)
 
 **What Draft 2 called not built, and what became of each (as of 19 October 2026)**
 
@@ -1181,40 +1231,60 @@ Of the twenty-five, fourteen are fixed, four are fixed in part, one is ruled for
 | A quarterly report of any kind | **Built:** the Alternative Assets Quarterly, its timer disabled until January 2027 (§4.8) |
 | The prediction-market confidence gate | **Open by design** |
 | The Monthly's timer enabled by hand | **Fixed.** It is on the deploy's list |
-| The broker sync's comments saying hourly | **Open.** The timer runs every 30 minutes to 17:30; its comment still says 17:00 |
+| The broker sync's comments saying hourly | **Fixed in part.** The timer runs every 30 minutes to 17:30, and its comment says so since the third chain; reconciliation's comments still say hourly |
+
+**What Draft 3 called not built, and what became of each (as of 24 October 2026)**
+
+| Draft 3 said not built | Disposition |
+|---|---|
+| The gauge's pre-market line; SPX's and SPCX's "awaiting the solver gate" | **Built** (third chain; §4.7) |
+| The Monthly storyline writer's one revision | **Built** (third chain; §5.3) |
+| The crypto daily paragraph and its 12:30 leverage line | **Built behind a switch that is off** (third chain) |
+| The S-2 and S-3 calibration ledgers | **Built;** both FAIL, accepted 20 October (§9.9) |
+| The retirement of the monthly restore drill's units | **Done** (third chain); the tool remains |
+| Engine 6, the grammar search and their appendices | **Built** (third chain; §8.5) |
+| Engine 7, and version 2 of the hypothesis grammar | **Built;** engine 7's registration is the operator's; one condition of the grammar's version 2 is not built |
+| 6f | **Built** on the seventh chain: the five dimensions, the horizons, the calibration, the tail families, the debt-cycle branch and the bar (Part III); the weekly alignment stamp on a later branch |
+| The December vendor month | **Still a plan;** the Doctrine #2 pack drafts a start on 1 December |
+| The vendor's e-mail alerts | **Outside the system,** as ruled |
+| Crypto Tranche C | **Not built** |
+| The Quarterly Structural, and the 6i brief | **Not built;** the 6i brief is a draft on a later branch |
+| Item 50 Tranche 1 | **Not built;** a decision around 31 October |
+| The Enterprise Layer's EL-8 to EL-13 | **Not built;** a learning-loop brief on a later branch proposes work toward them |
+| G-6; a trade tape | **Not built** |
+| The Opening Setup's remaining rulings | **Not ruled;** the 0700 list and the 09:50 note are on the Doctrine #2 agenda |
+| The intake-queue entries waiting for "T&B full" | **One entry,** GTM-3 (Draft 3 said two) |
+| The rates driver | **Still withdrawn** |
+| The conversion of dealer levels to the e-mini | **Still not wired** into a report |
+| The PRL explorer's endpoint | **Closed** as a listed gap on 18 October (Draft 3 listed it in error) |
+| A stored macro consensus | **Not built** |
 
 ---
 
-## Appendix E — What Draft 3 Says Is Not Built (as of 19 October 2026)
+## Appendix E — What Draft 4 Says Is Not Built (as of 24 October 2026)
 
-*So that the next draft can be checked against it. "Not built" means not on the second stitched chain; an item on a branch that merges later says so.*
+*So that the next draft can be checked against it. "Not built" means on neither the seventh stitched chain nor the feed repair; an item on a branch that merges later says so.*
 
-**On branches that merge after the second chain.**
-- **On the third chain (session A's `a47-chain3`):**
-  - the gauge's pre-market line;
-  - SPX's and SPCX's cells reading "awaiting the solver gate";
-  - the Monthly storyline writer's one revision;
-  - the crypto daily paragraph and its 12:30 leverage line, built behind a switch that is off;
-  - the S-2 and S-3 calibration ledgers;
-  - the retirement of the monthly restore drill's units.
-- **On the Alpha Lab's next branches:** engine 6, the grammar search and its appendices (ST-L).
-
-**Decisions of 18 October that are plans.**
-- **The December vendor month:** one month of FlashAlpha's Growth plan (or Alpha, for its history) beside one month of SpotGamma's Essential plan, judged on a page of the January Monthly.
-- **The vendor's e-mail alerts:** outside the system, never a data line.
+**On branches that merge after the seventh chain.**
+- **The weekly alignment stamp** (6f tranche 4): the register's second alignment, against the weekly per-horizon read, written by the decision tool at entry, its migration the operator's; and the Quarterly's split of graded packets by both alignments.
+- **The capex-guidance reader:** the hyperscalers' capex guidance from their own 10-Q and 10-K filings, each figure stored beside its filing's sentence, read by the capex chain's line, item 26's revisions and the Quarterly's question.
+- **The Doctrine #2 pack's refresh and the dated-appendix moves** (documents only).
+- **The 6i brief** (a draft), and **a learning-loop brief** (a draft for a ruling).
 
 **Specified, not built.**
-- Engine 7, and version 2 of the hypothesis grammar.
 - **Crypto Tranche C:** the long-term-holder series waits on a free key, and the Dune queries are unbuilt.
-- **6f.**
-- The Quarterly Structural, and the 6i brief.
+- The Quarterly Structural.
 - **Item 50 Tranche 1:** the X digest's API path on the box, a decision around 31 October.
-- The Enterprise Layer's EL-8 to EL-13, the Doctrine's two paper engines among them (EL-12).
+- The Enterprise Layer's EL-8 to EL-13: the lessons register (EL-10) and the Doctrine's two paper engines (EL-12) among them.
 - **G-6.**
 - **A trade tape.**
-- The Opening Setup's remaining rulings.
-- The two intake-queue entries that wait for "T&B full".
+- The Opening Setup's remaining rulings: the 0700 list, and the open note as the Doctrine's 1000 report.
+- The intake-queue entry that waits for "T&B full".
 - The rates driver, withdrawn on 30 September and not reinstated.
 - The conversion of dealer levels to the e-mini, written and gated but not wired into a report.
-- The PRL explorer's endpoint.
 - A stored macro consensus, which the surprise index's non-FOMC legs need.
+- The earnings and geopolitical dimensions, each waiting for its source (§3.2).
+- A probability for any tail family, which waits for the prediction-market gate and a ruling.
+- The debt-cycle branch's state, which waits for the paper that will define it.
+- A reader for the MSTR/MSCI watch's Drive file.
+- The December vendor month, a plan.
