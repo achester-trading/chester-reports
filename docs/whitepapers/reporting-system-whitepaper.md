@@ -876,7 +876,7 @@ The **Red Team's** objective is to find the cheapest way a conclusion could be w
 
 ### 9.7 The attention budget
 
-The operator's attention is the budget everything else spends, and it is measured. The ruled budget is **seven packets approved a week and one sitting of at most two hours a week**. A packet deferred for want of attention is recorded as an abstention with that reason, so the cost of the budget is itself graded. The Weekly prints **three counts**: packets against seven, sitting hours against two, and rulings taken in chat, which are measured but not capped. A log of every sitting and ruling, with the minutes it took, feeds them.
+The operator's attention is the budget everything else spends, and it is measured. The ruled budget is **seven packets approved a week and one sitting of at most two hours a week**. A packet deferred for want of attention is recorded as an abstention with that reason, so the cost of the budget is itself graded. The Weekly prints **three counts**: packets against seven, sitting hours against two, and rulings taken in chat, which are measured but not capped until a sitting sets a cap from a month's data. A log of every sitting and ruling, with the minutes it took, feeds them. The attention budget is a rule, not a target: the reading budgets of Part X became targets on 24 October, and the attention budget did not.
 
 ### 9.8 Incidents and the sittings where values are ratified
 
@@ -904,6 +904,7 @@ Values, meaning thresholds, mappings, budgets and limits, are ratified at sittin
 | Attention budget | What the operator's time was spent on | Seven packets, two hours |
 | Incident log | Failures, fixes and lessons | Zero repeats |
 | Calibration ledgers | Whether a proposed signal earns a right | Its pass rule, registered before the run |
+| State calibration | How often each dial's state gives way to each other, at each book's horizon | The unconditional count; nothing prints before thirty independent starts |
 
 ### 9.9 Calibration ledgers
 
@@ -929,7 +930,31 @@ A verdict reaches the register only as a draft under rule 31, and no right chang
 | Net liquidity against the S&P, MOVE against VIX | No gate in the order; base rates recorded | Nothing |
 | The concentration and drawdown-gap ledgers | INSUFFICIENT on a three-year constituent history | Nothing |
 
+**Since Draft 3.** The ledgers filed from 19 October, with what the operator has done with each:
+
+| Study | Verdict | Status |
+|---|---|---|
+| The opening setup's positioning components (OS-6) | FAIL | Accepted as drafted, 19 Oct |
+| The open-interest builds against their outcome (OS-9) | INSUFFICIENT, n 0 | Accepted as drafted, 19 Oct |
+| The hiking-cycle table; SR-20; SR-24 | No gate; base rates recorded | Accepted as drafted, 19 Oct |
+| The crypto alerts (S-2, S-3); the release-day first hour and after-hours earnings (SN-1, SN-2) | FAIL | Accepted as drafted, 20 Oct |
+| The wealth effect's December test (ST-R6.66c) | FAIL | Accepted as drafted, 24 Oct |
+| The speed flag's attribution (ST-R6.65a) | INSUFFICIENT | Accepted as drafted, 24 Oct |
+| The fragility panel's air pockets (ST-R6.71d) | FAIL | Accepted as drafted, 24 Oct |
+| The squeeze-risk flag (ST-R6.74b) | INSUFFICIENT, n 0 | Accepted as drafted, 24 Oct |
+| The bank-stress classifier (ST-R6.59c) | FAIL | Pending, on the Doctrine #2 agenda |
+| Relative options volume (OS-12c) | INSUFFICIENT, n 0 | Pending |
+| The one-day 10-year move's attribution | INSUFFICIENT | Pending |
+
+Further register lines with no gate in their order, and two with an insufficient sample, wait as drafts for the same sitting. Several studies are pre-registered and accruing, with no verdict yet: the bank-stress and relative-volume tests, the wealth effect, the air pockets, the speed attribution, the short extremes and the one-day move.
+
 Nothing has been promoted.
+
+### 9.10 The state object graded as a state
+
+The calibration of §3.10 is the newest of the instruments. It asks a narrower question than the ledgers: not whether a signal earns a right, but how often the object's own description gives way to another, at each book's horizon. Its counts are read from stored objects only, its pass condition (thirty independent starts) is fixed before any count is read, and until a row meets it the reports print "uncalibrated". The dials' calibrated rows are scored in the probability ledger like any other forecast, so the object's description of the market is itself graded against the coin.
+
+**What is still missing.** The Enterprise Layer's lessons register is specified and not built: its gate is the first Quarterly Structural with at least five lessons to file, and until then the lessons live in the Operating Doctrine's dated appendix (§9.8). A brief for the next version of the learning loop is drafted on a later branch for a ruling (Appendix E).
 ---
 
 ## Part X — Reading the Reports
