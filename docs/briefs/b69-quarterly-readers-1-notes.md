@@ -6,7 +6,8 @@
 
 - **Base:** `origin/b68-price-source-migration` at `fa7e298`.
 - **B68's CI, read once at the start** (this branch is built on it): runs 40151381144 and 40151394265 were both still **queued**, after 32 minutes.
-- **The commits:** the readers, gate and registry, then these notes (SHAs in the report).
+- **The commits:** `02d1861` (the readers, the gate, the registries and these notes, in one commit), then this CI line.
+- **CI:** at the one read after the push of `02d1861`, no run was listed yet, so there is no run id. B70 branches from this tip and reads it once.
 
 ## The readers
 
