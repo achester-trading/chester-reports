@@ -332,7 +332,7 @@ def clock_svg() -> str:
 # "Companion to" column in the library guide.
 GROUPS = [
     ("How to decide and judge evidence", ["XVIII", "XXXIII", "XIX", "XXIII", "XVII"]),
-    ("The big frame (Book A, the Monthly)", ["I", "III", "IV", "II", "XX", "X"]),
+    ("The big frame (Book A, the Monthly)", ["I", "III", "IV", "II", "XX", "X", "XXXI"]),
     ("Asset classes (A's sleeves, B's non-equity)", ["V", "VI", "VII", "VIII", "IX",
                                                        "XXXIV", "XV", "XXI", "XXIV"]),
     ("Price, positioning, expression (B, C, D)", ["XXV", "XVI", "XIII", "XI", "XXII",
@@ -340,7 +340,7 @@ GROUPS = [
 ]
 BOOKS = {
     "XVIII": "ABCD", "XXXIII": "ABCD", "XIX": "C", "XXIII": "ABCD", "XVII": "A",
-    "I": "A", "III": "A", "IV": "AB", "II": "AD", "XX": "AB", "X": "AB",
+    "I": "A", "III": "A", "IV": "AB", "II": "AD", "XX": "AB", "X": "AB", "XXXI": "A",
     "V": "AB", "VI": "AB", "VII": "AB", "VIII": "AB", "IX": "AD", "XXXIV": "A",
     "XV": "AB", "XXI": "AB", "XXIV": "BC",
     "XXV": "BC", "XVI": "BCD", "XIII": "C", "XI": "CD", "XXII": "BCD", "XIV": "BC",
