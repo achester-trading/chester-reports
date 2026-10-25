@@ -34,7 +34,7 @@ import math
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[2] / "docs" / "figures" / "evidence-inference"
-W, H = 680, 380
+W, H = 680, 404                         # 24 below the axis: a two-line foot
 L, R, T, B = 62, 658, 34, 334          # plot box
 INK, MUTE, GRID = "#1a1a1a", "#5b5b5b", "#d8d4cc"
 C1, C2, C3, RED = "#3a5f8a", "#2f6f4f", "#8a5fb0", "#9c3b3b"
@@ -69,7 +69,7 @@ class Plot:
             self.out.append(f'<line x1="{L}" y1="{py:.1f}" x2="{R}" y2="{py:.1f}" stroke="{GRID}" stroke-width="0.6"/>'
                             f'<text x="{L - 7}" y="{py + 3.5:.1f}" text-anchor="end" fill="{MUTE}">{yfmt(v)}</text>')
         if xlabel:
-            self.out.append(f'<text x="{(L + R) / 2}" y="{B + 32}" text-anchor="middle" fill="{MUTE}">{xlabel}</text>')
+            self.out.append(f'<text x="{(L + R) / 2}" y="{B + 28}" text-anchor="middle" fill="{MUTE}">{xlabel}</text>')
         if ylabel:
             self.out.append(f'<text x="16" y="{(T + B) / 2}" text-anchor="middle" fill="{MUTE}" '
                             f'transform="rotate(-90 16 {(T + B) / 2})">{ylabel}</text>')
@@ -102,8 +102,19 @@ class Plot:
         if label:
             self.out.append(f'<text x="{px + 4:.1f}" y="{T + 12}" fill="{color}">{label}</text>')
 
-    def svg(self, foot):
-        self.out.append(f'<text x="{L}" y="{H - 6}" fill="{MUTE}" font-size="10">{foot}</text></svg>')
+    def svg(self, foot, width=110):
+        # The foot wraps at a word boundary to two lines inside the plot's width.
+        lines, cur = [], ""
+        for w in foot.split():
+            if cur and len(cur) + 1 + len(w) > width:
+                lines.append(cur)
+                cur = w
+            else:
+                cur = f"{cur} {w}" if cur else w
+        lines.append(cur)
+        y0 = H - 8 - 13 * (len(lines) - 1)
+        spans = "".join(f'<tspan x="{L}" y="{y0 + 13 * i}">{s}</tspan>' for i, s in enumerate(lines))
+        self.out.append(f'<text fill="{MUTE}" font-size="10">{spans}</text></svg>')
         return "".join(self.out)
 
 
@@ -117,11 +128,17 @@ def fig1():
     p.band([(n, 0.2 - 2 / math.sqrt(n)) for n in ns], [(n, 0.2 + 2 / math.sqrt(n)) for n in ns], C1, 0.18)
     p.line([(20, 0.2), (1200, 0.2)], C1)
     p.line([(20, 0), (1200, 0)], RED, 1.1, "4 3")
+    # Where each n's label sits: (on the upper or lower dot, dx, dy, anchor), so
+    # the crowded right half's labels do not overlap or run off the canvas.
+    place = {30: ("hi", 0, -8, "middle"), 50: ("hi", 0, -8, "middle"),
+             150: ("hi", -6, -8, "end"), 200: ("hi", 6, -8, "start"),
+             400: ("lo", 6, 16, "start"), 1000: ("hi", -6, -8, "end")}
     for n in (30, 50, 150, 200, 400, 1000):
         se = 1 / math.sqrt(n)
-        p.dot(n, 0.2 - 2 * se, C1)
-        p.dot(n, 0.2 + 2 * se, C1, f"n {n}: {0.2 - 2 * se:+.2f} to {0.2 + 2 * se:+.2f}",
-              dy=-8, anchor="middle")
+        lab = f"n {n}: {0.2 - 2 * se:+.2f} to {0.2 + 2 * se:+.2f}"
+        at, dx, dy, anchor = place[n]
+        p.dot(n, 0.2 - 2 * se, C1, lab if at == "lo" else None, dx=dx, dy=dy, anchor=anchor)
+        p.dot(n, 0.2 + 2 * se, C1, lab if at == "hi" else None, dx=dx, dy=dy, anchor=anchor)
     p.text(21, 0.03, "zero", RED)
     return p.svg("Interval = 0.2 ± 2/√n, the per-decision spread taken as 1R (Chapter 1). "
                  "A year (≈200) cannot exclude much below +0.06R; 30 or 50 cannot exclude zero.")
@@ -160,7 +177,7 @@ def fig3():
         p.line([(n, (a + 0.6 * n) / (a + b + n)) for n in ns], col)
         v30 = (a + 18) / (a + b + 30)
         p.dot(30, v30, col, f"{name}: {v30 * 100:.0f}% after 30", dx=8,
-              dy=(-7 if name.startswith("mech") else (14 if name.startswith("scep") else -7)))
+              dy=(-7 if name.startswith("mech") else 14 if name.startswith("scep") else 13))
     p.text(420, 0.605, "truth 60%", MUTE)
     return p.svg("Posterior mean (a + wins)/(a + b + n) along the expected path: the weak prior "
                  "is at 58% after 30, the sceptic at 53%; the mechanism's prior starts at 60% (Chapter 9).")
@@ -208,8 +225,8 @@ def fig5():
     p.vline(40, RED, "decay begins")
     first = next(w for w in ws if w > 40 and trail(w) + se < 0.2)
     p.vline(first, C2, f"week {first}: band excludes 0.2R")
-    p.text(72, 0.47, "dashed: the true edge", INK)
-    p.text(72, 0.40, "blue: trailing 13-week expectancy, ±1 SE", C1)
+    p.text(1, 0.52, "dashed: the true edge", INK, size=10)
+    p.text(1, 0.44, "blue: trailing 13-week expectancy, ±1 SE", C1, size=10)
     return p.svg(f"Illustrative: 200 decisions a year (SE {se:.2f}R on 13 weeks); a 0.2R edge decaying "
                  f"linearly to zero by week 66. The band first excludes the old edge at week {first} (Chapter 15).")
 
