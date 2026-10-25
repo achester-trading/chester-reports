@@ -159,7 +159,7 @@ Several sources are pulled and watched for freshness but read by no report yet. 
 
 ### 2.5 The Security Master
 
-Every instrument the system names has one identity, kept in one reviewed file and served by one module. An instrument's id is stable and never reused. Beside it sit its asset class, currency, multiplier, exchange, its identifiers under each scheme (the store's key, the broker's id, the option root and others), its aliases and an active window. **An identifier names an instrument only inside its window**, so a reused ticker resolves to the right issuer on each date. A lookup returns exactly one instrument or refuses. A fact neither the repository nor a stored source holds is left empty and listed as unverified, never guessed.
+Every instrument the system names has one identity, kept in one reviewed file and served by one module. An instrument's id is stable and never reused. Beside it sit its asset class, currency, multiplier, exchange, its identifiers under each scheme (the store's key, the broker's id, the option root and others), its aliases and an active window. **An identifier names an instrument only inside its window**, so a reused ticker resolves to the right issuer on each date. A lookup returns exactly one instrument or refuses. A fact neither the repository nor a stored source holds is left empty and listed as unverified, never guessed. New ids are allocated from one declared next id on every branch, and when two branches allocate the same id the stitch that joins them renumbers the collision once (ruled 24 October), so an id, once merged, is never reused.
 
 A morning job keeps Nasdaq Trader's daily symbol directories as reference data and rebuilds the ticker history from them. It then writes **a read-only export**: one security per composite FIGI, with its ticker history. This is the interface chester-meme reads, and nothing in chester-reports reads it back. Indices carry no FIGI and are outside the export. The restricted names are computed into the master from the tracked-entities list at load, never written by hand.
 
@@ -720,9 +720,13 @@ When the operator records a decision, a sequence of checks runs before anything 
 
 **The order gate.** Last, the system reads the cross-book view of the open decisions and asks whether the new one would worsen a declared limit: net beta, sector concentration, interest-rate duration or volatility exposure. The outcome is deterministic. It approves if no limit is worsened. It delays if an input is missing. It asks for a restructure if the volatility limit is worsened. It resizes if a useful fraction of the request fits. It asks for a hedge if net beta is worsened. It rejects if sector or duration is worsened and no useful size fits. Anything short of approval holds the decision at draft unless the operator records an override with a reason, and the override is kept.
 
+**The stamps at entry.** The gate's record of each decision carries the regime it was taken under, read from the stored object and never recomputed: the macro dial's state, the Doctrine regime with its band and cap, and the mapping's version; since Draft 3, the volatility and gamma dials' states with the session they were read from; and the volatile-day flag as the day's live edition printed it, with whether its gap had settled. The decision row itself carries its alignment, the packet's direction against the sign of the trend dimension, recorded once and carried through every supersession. A decision taken before a stamp existed reads "not stamped" in every cut, never a reconstructed value. A second alignment against the weekly per-horizon read is built on a later branch (Appendix E).
+
 The limits are few and declared (Appendix A). Several of the Operating Doctrine's other numbers, namely the per-position risk tiers, the books' loss stops, the kill-switch ladder and the cap on total open risk across the shorter books, are measured and reported but not yet refused by the gate. The Doctrine states them as rules for the operator. The code enforces the four limits above.
 
 ### 7.4 The books
+
+**The Book B scanner** draws its candidates from every stored daily price series with enough history, less the index levels it excludes, so a symbol joins its universe by being stored, the capex chain's proxies included (ruled 24 October); its output is graded paper.
 
 The Operating Doctrine defines four books by horizon, and the register knows exactly those four. **Book A** (Allocation) holds the long-horizon exposure, managed inside a band set by the regime (Part III). **Book B** (Swing) holds positions of weeks. **Book C** (Tactical) holds positions of days. **Book D** (Opportunistic) holds rare, small, pre-defined opportunities. Each has its own risk per position and its own loss limits, set by the Doctrine.
 
@@ -758,13 +762,14 @@ Two incidents shaped the **currency rules**, and both are in Appendix B. The fir
 
 Some commands write the record the system is graded against, so they stay the operator's. The repository's permission file denies each of them to every unattended session, with the verb whole:
 - recording a decision or changing its status;
-- importing into the register;
+- rejecting a chester-meme draft;
+- importing into the register, or retiring the laptop's old register;
 - confirming or rejecting a proposed narrative;
 - promoting or rejecting a mechanism-watch candidate (added 19 October);
 - retiring an Alpha Lab engine by ruling;
 - lifting the lab's drawdown halt.
 
-A session prints such a command for the operator to run; it never runs it. The reason is the grading trail of §7.2: a grader that could write the decisions it grades would be marking its own homework.
+A session prints such a command for the operator to run; it never runs it. Schema changes to the register follow the same rule: a migration is written with a dry run and applied by the operator from the box sheet. The reason is the grading trail of §7.2: a grader that could write the decisions it grades would be marking its own homework.
 
 ---
 
