@@ -48,7 +48,7 @@ Three single points of truth make this possible. There is **one store**: every n
 The three are deliberately separate. The store holds facts, the regime object holds a description of those facts, and the register holds what the operator decided to do about them. None of them can write into another. A report can read all three, but it can write only to the ledger of its own forecasts and to the archive of its own editions.
 
 **Five layers.** Around those three sit five layers, and the rest of the paper takes them in turn.
-1. **The reporting stack:** the anchor at 07:00, the close at 16:45, the Weekly on Sunday, the Monthly on the 1st and the Quarterly once a quarter, with an alert-only slot at 12:30 (Part IV).
+1. **The reporting stack:** the anchor at 07:00, the close at 16:45, the Weekly on Sunday, the Monthly on the 1st and the Quarterly once a quarter, with an alert-only slot at 12:30 and two short secondary notes, the open note at 09:50 and the evening note at 21:30, which check in between the reports of record (Part IV).
 2. **The data and architecture layer:** one store with its clocks, marks and ids, the Security Master and the encrypted backup (Part II).
 3. **The decision layer:** the register, the books, the gate at entry and reconciliation (Part VII).
 4. **The Alpha Lab:** a paper research layer with its own database and book (Part VIII).
