@@ -61,6 +61,9 @@ REGISTRY = {
     # (Markets XXVI-XXX, the Top & Bottom manual XXXI, the Annual Structural
     # Review XXXII), so the next free numeral was XXXIII.
     "XXXIII": "reporting-system",
+    # System shelf, Draft 1 (A73, 24 Oct 2026): the Annual Structural Review, at
+    # the numeral Audit 2 reserved for it.
+    "XXXII": "annual-structural-review",
     # Markets shelf, Draft 1 (AQ-14, 11 Oct 2026). Numeral provisional: assigned
     # at the filing; XXXIV was the next free after XXXIII.
     "XXXIV": "emerging-markets",
@@ -601,6 +604,47 @@ def check_14_dated_appendices(papers):
                              f"register/store.py ABSTENTION_REASONS")
 
 
+REVIEW_REGISTER = ROOT / "docs" / "reading" / "structural-review-register.yaml"
+REVIEW_MONTHS = 13
+_REVIEW_ROW = re.compile(r"^\s*-\s*\{numeral:\s*([IVXL]+),.*?version_date:\s*([0-9-]+),"
+                         r"\s*last_reviewed:\s*([0-9-]+|null)", re.M)
+
+
+def check_15_structural_review(today=None):
+    """The Annual Structural Review's gate (Paper XXXII; Audit 2 section 5.2): the
+    standing register rows every roster paper, and warns when a paper's review
+    clock -- its last review, else its version date -- has run past thirteen
+    months. Warnings only, as the audit specifies; the failing check on a missing
+    Assumptions and Falsifiers section (b) is proposed, not adopted (XXXII section 15)."""
+    import datetime as _dt
+    if not REVIEW_REGISTER.exists():
+        warn(15, f"{REVIEW_REGISTER.relative_to(ROOT)} is missing: no paper's review "
+                 f"clock can be read")
+        return
+    rows = {m.group(1): (m.group(2), m.group(3))
+            for m in _REVIEW_ROW.finditer(REVIEW_REGISTER.read_text(encoding="utf-8"))}
+    today = today or _dt.date.today()
+    for num, slug in REGISTRY.items():
+        if not (ROOT / "docs" / "whitepapers" / f"{slug}-whitepaper.md").exists():
+            continue
+        if num not in rows:
+            warn(15, f"{num} ({slug}) has no row in the structural-review register")
+            continue
+        version_date, last = rows[num]
+        start = last if last != "null" else version_date
+        try:
+            d = _dt.date.fromisoformat(start)
+        except ValueError:
+            warn(15, f"{num}: the register's date {start!r} is not a date")
+            continue
+        months = (today.year - d.year) * 12 + (today.month - d.month) - (today.day < d.day)
+        if months > REVIEW_MONTHS:
+            warn(15, f"{num} ({slug}): {'last reviewed' if last != 'null' else 'never reviewed; version dated'} "
+                     f"{start}, {months} months ago (past {REVIEW_MONTHS})")
+    for num in sorted(set(rows) - set(REGISTRY)):
+        warn(15, f"the structural-review register rows {num}, which the roster does not have")
+
+
 def main():
     rows = guide_rows()
     papers = paper_files()
@@ -618,6 +662,7 @@ def main():
     check_12_stale(papers)
     check_13_agents()
     check_14_dated_appendices(papers)
+    check_15_structural_review()
 
     for i in infos:
         print(f"info {i}")

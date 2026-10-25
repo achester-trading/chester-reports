@@ -331,7 +331,7 @@ def clock_svg() -> str:
 # books are the Doctrine's four it serves. Refined against each paper's own
 # "Companion to" column in the library guide.
 GROUPS = [
-    ("How to decide and judge evidence", ["XVIII", "XXXIII", "XIX", "XXIII", "XVII"]),
+    ("How to decide and judge evidence", ["XVIII", "XXXIII", "XIX", "XXIII", "XVII", "XXXII"]),
     ("The big frame (Book A, the Monthly)", ["I", "III", "IV", "II", "XX", "X"]),
     ("Asset classes (A's sleeves, B's non-equity)", ["V", "VI", "VII", "VIII", "IX",
                                                        "XXXIV", "XV", "XXI", "XXIV"]),
@@ -339,7 +339,7 @@ GROUPS = [
                                                     "XIV", "XII"]),
 ]
 BOOKS = {
-    "XVIII": "ABCD", "XXXIII": "ABCD", "XIX": "C", "XXIII": "ABCD", "XVII": "A",
+    "XVIII": "ABCD", "XXXIII": "ABCD", "XXXII": "ABCD", "XIX": "C", "XXIII": "ABCD", "XVII": "A",
     "I": "A", "III": "A", "IV": "AB", "II": "AD", "XX": "AB", "X": "AB",
     "V": "AB", "VI": "AB", "VII": "AB", "VIII": "AB", "IX": "AD", "XXXIV": "A",
     "XV": "AB", "XXI": "AB", "XXIV": "BC",
