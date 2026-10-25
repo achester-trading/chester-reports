@@ -58,7 +58,7 @@ The paper's sentence matches the second rule, not the first. The figure shows bo
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the tip | see the report |
+| 40152914138 | `01551954` | **CI queued, run 40152914138** (not waited on) |
 
 ## Needs you
 
