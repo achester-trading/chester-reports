@@ -104,6 +104,6 @@ selloff:
 # ---------------------------------------------------------------------------
 voices:
   - {voice: "Charles Diebel", claim: "1994-type correlated repricing, nearly complete", test: shape_correlated}
-  - {voice: "Jeremy Courtial (SocGen idea)", claim: "twin deficits imply about 5.8%; about 50 bp of fiscal premium unpaid", test: fiscal_gap_positive, min_gap_bp: 25}
-  - {voice: "Maxence Visseau", claim: "priced for a 5.0-5.5% chop; mechanics flirting with a spiral to 5.75-6.0%", test: level_band, band: [5.0, 5.5], spiral_above: 5.5}
+  - {voice: "Société Générale (an idea, via a post)", claim: "twin deficits imply about 5.8%; about 50 bp of fiscal premium unpaid", test: fiscal_gap_positive, min_gap_bp: 25}
+  - {voice: "Arkevium", claim: "priced for a 5.0-5.5% chop; mechanics flirting with a spiral to 5.75-6.0%", test: level_band, band: [5.0, 5.5], spiral_above: 5.5}
   - {voice: "Sarmaya Partners", claim: "the Fed blinks", test: outside_axis}
