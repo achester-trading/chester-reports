@@ -338,3 +338,5 @@ Filed items 64 (the real 10-year against the cyclically adjusted earnings yield)
 The one-line change: give `check_11_wordcount` a `--write-total` mode that replaces the number matched by `roughly ([\d,]+) words` with the measured total, rounded to the thousand. The stitcher runs it at each merge, as the cloud-sessions brief's `stitch_counts.py` does for CLAUDE.md's counts. The guide's sentence then stays as written, and the number in it is the tool's.
 
 **Validation.** Section numbering here is sequential; the library gate was run on this branch before the push (below).
+
+**CI.** At the one read, right after the push of `73fc616`, `gh run list --branch b66-phase-4-briefs` listed no run yet, so there is no run id. The next paste that touches this branch reads the result once.
