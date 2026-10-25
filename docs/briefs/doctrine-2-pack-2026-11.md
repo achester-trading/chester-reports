@@ -446,6 +446,8 @@ No t2-* notes file exists. T2's changes are in the config comments and the minut
 - Audit #4's unwritten proposal (`audit-4-agenda.md`, lines 38–43) put Round 4 at SR-52…75. That overlaps both the GTM entries (SR-48…59, ruling 4 of 17 Oct) and this table.
 - Batch 4's working "SR-48" (diesel) collides with the register's SR-48.
 
+**Amendment #3's filing: record only; original pending.** Post-Freeze Amendment #3 (13 Sep 2026, AI trajectory and governance; Internal Order) was approved in chat and never committed. `docs/change-order-amendment-3-2026-09-13-record.md` records what the repository holds of it. SR-11 and SR-55, which it reserves, are not in Table 5.1.
+
 ### Table 5.2. Rule-31 drafts since Audit #4
 
 **Accepted 24 Oct (D9)**, for the record. Each is in the ledger, the notes and the register:
