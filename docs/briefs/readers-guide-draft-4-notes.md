@@ -117,4 +117,4 @@ The paper follows the code in each.
 
 | Run | Commit | Result |
 |---|---|---|
-| read once after the push | the A69 tip | see the report |
+| 40151163517 | `3dc8c79e` | **CI queued, run 40151163517** (not waited on; the next paste that touches this branch reads it once) |
