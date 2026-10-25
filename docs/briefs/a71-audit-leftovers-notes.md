@@ -66,7 +66,7 @@ Each leftover is checked against the code on this branch. The new gate's group A
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the A71 tip | see the report |
+| 40151828480 | `b8fd2117` | **CI queued, run 40151828480** (not waited on) |
 
 ## Needs you (at most five)
 
