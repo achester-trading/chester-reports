@@ -48,6 +48,7 @@ PY_VALIDATORS := \
 	tools/validate_regime.py \
 	tools/validate_6f_calibration.py \
 	tools/validate_edgar_guidance.py \
+	tools/validate_audit_leftovers.py \
 	tools/validate_base_rates.py \
 	tools/validate_claims.py \
 	tools/validate_structure_compare.py \
