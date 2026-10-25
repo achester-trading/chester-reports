@@ -33,7 +33,7 @@ Three conventions run through the paper. First, nothing here is a market view. T
 
 ![Figure 1 — The reporting system's data flow: feeds, the store, the market-state object, the reports, the register, the ledger, grading and the Doctrine](../figures/reporting-system/fig-01.svg)
 
-*Figure 1 — How a number becomes a lesson. Each stage reads only from the stage above it; the left-hand bands name who acts at each stage. The dashed return path is the only way the system changes itself: graded evidence, ratified at a sitting, comes back as configuration. On the right are the two layers Draft 3 adds: the Alpha Lab, which reads the store and reaches the register only as evidence the operator may table, and chester-meme, which reads the Security Master's export and writes packets that enter the register only as drafts the operator confirms.*
+*Figure 1 — How a number becomes a lesson. Each stage reads only from the stage above it; the left-hand bands name who acts at each stage. The dashed return path is the only way the system changes itself: graded evidence, ratified at a sitting, comes back as configuration. On the right are the two side layers: the Alpha Lab, which reads the store and reaches the register only as evidence the operator may table, and chester-meme, which reads the Security Master's export and writes packets that enter the register only as drafts the operator confirms. Below them, Draft 4 adds stage 4's weekday touches: the anchor, the open note at 09:50, the 12:30 slot, the close with its event area, and the evening note at 21:30.*
 
 ---
 
