@@ -90,7 +90,7 @@ As for XXXI (A72):
 
 | Run | On | Result |
 |---|---|---|
-| read once after the push | the tip | see the report |
+| 40152641103 | `1805d00b` | **CI queued, run 40152641103** (not waited on) |
 
 ## Needs you
 
