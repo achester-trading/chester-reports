@@ -531,3 +531,5 @@ All three are a probe on the box, which is the operator's: a session does not to
 - gates (1): `tools/validate_aq3_series.py`
 - other (1): `metrics_registry.yaml`
 
+
+**CI.** At the one read after the push of `3a11e8c`, no run was listed yet, so there is no run id. The next paste that touches this branch (B69 branches from it) reads it once.
