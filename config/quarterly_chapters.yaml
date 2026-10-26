@@ -416,7 +416,7 @@ families:
       - {label: "The dollar's COFER share, constant currency", absent: "not tracked (by-hand audit, 16 Oct 2026): no free series publishes the constant-currency share (an ECB/IMF calculation in their reports)"}
       - {key: cfets.cny_fix,         label: "The PBoC's CNY fixing"}
       - {key: mof.jgb_10y,           label: "The 10-year JGB yield"}
-      - {label: "The EM dollar index", absent: "not stored (AQ-3)"}
+      - {key: fred.dxy_em,          label: "The EM dollar index (DTWEXEMEGS)"}
       - {label: "The DXY-weighted two-year spread", absent: "the five other two-year yields are not stored (AQ-3)"}
       - {hook_key: cftc.tff_lev_money_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, leveraged funds net, % of open interest (CFTC TFF)"}
       - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, asset managers net, % of open interest (CFTC TFF)"}
@@ -432,7 +432,7 @@ families:
       - {label: "Risk reversals", absent: "FXE and FXY chains are not captured"}
       - {label: "Intervention footprints (MoF monthly, SNB sight deposits)", absent: "not stored (AQ-3)"}
       - {hook_key: calc.cnh_cny_bp, branch: aq-3-series-1, label: "CNH-CNY, bp"}
-      - {label: "Stablecoin supply", absent: "not stored (AQ-3)"}
+      - {key: llama.stable_total,   label: "Stablecoin supply, all chains (DefiLlama)"}
     structure_charts:
       - {id: dollar_pair, title: "DXY against the broad dollar", kind: twin,
          series: [{key: yfinance.mkt_dxy, label: "DXY"},
@@ -449,7 +449,7 @@ families:
       - {id: carry_to_vol, title: "Carry-to-vol per pair", waits: "not built (AQ-8)", kill: "none ruled"}
       - {id: dollar_cycles, title: "The dollar-cycles table (GTM-22)", waits: "not built (AQ-8)", kill: "none ruled"}
       - {id: yen_stack, title: "The yen stack and hedged-yield spreads", waits: "not built (AQ-8)", kill: "none ruled"}
-      - {id: stablecoin_dollarisation, title: "The stablecoin-dollarisation line", waits: "stablecoin supply is not stored (AQ-3)", kill: "none ruled"}
+      - {id: stablecoin_dollarisation, title: "The stablecoin-dollarisation line", series: [llama.stable_total], kill: "none ruled"}
     falsification:
       - id: debasement
         paper: "Currencies"
@@ -491,8 +491,11 @@ families:
         paper: "Currencies"
         section: "Falsification Tests"
         statement: "\"Stablecoins strengthen the dollar\" is falsified by stablecoin growth shifting materially toward non-dollar denominations, or by supply contracting during a period of dollar stability."
-        measurable: null
-        not_measured: "stablecoin supply is not stored (AQ-3)"
+        measurable:
+          all:
+            - {quarters_negative: {series: llama.stable_total, quarters: 1}}
+            - {unmeasured: {reason: "\"a period of dollar stability\" is given no threshold by the paper and none is set here"}}
+        session_set: "the second clause only: \"supply contracting\" read as total stablecoin supply (dollar-pegged, llama.stable_total) lower over the last quarter; the first clause, the non-dollar share, is not stored. While supply grows the test holds; a contraction prints not measured until \"dollar stability\" has a reading"
     ten_questions:
       - {n: 1,  text: "Is the Fed holding rates above inflation, or has it begun to accommodate?", series: [fred.fed_funds, calc.yoy_cpi]}
       - {n: 2,  text: "Have long yields risen while the dollar fell this quarter?", series: [fred.yield_10y, fred.dxy]}
@@ -663,7 +666,7 @@ families:
       - {hook_key: fred.usd_twd, branch: aq-3-series-1, label: "The EM FX basket: USD/TWD"}
       - {hook_key: fred.usd_inr, branch: aq-3-series-1, label: "The EM FX basket: USD/INR"}
       - {hook_key: fred.usd_myr, branch: aq-3-series-1, label: "The EM FX basket: USD/MYR"}
-      - {label: "The EM dollar index", absent: "FRED's emerging-market dollar index is not in the pull (AQ-3)"}
+      - {key: fred.dxy_em, label: "The EM dollar index (DTWEXEMEGS)"}
       - {label: "EM portfolio flows (the IIF Capital Flows Tracker, by region)", absent: "no writer (AQ-3)"}
       - {label: "The funding channel (the three-month cross-currency basis)", absent: "not stored (AQ-3)"}
     structure_charts:
@@ -685,7 +688,7 @@ families:
          waits: "the basis is not stored (AQ-3)",
          kill: "the scenario's re-specification rule: \"A cluster of three or more IMF programmes in a single quarter converts this from tail to current condition.\""}
       - {id: em_copper_gold, title: "Copper-gold and the commodity complex (the S12 routing)",
-         waits: "the correlation layer's rows (aq-5-correlation-layer)", kill: "the scenario's own re-specification rule"}
+         series: [corr.copper_gold__10y.60d, corr.copper_gold__10y.252d], kill: "the scenario's own re-specification rule"}
     falsification: []
     falsification_note: "no owning paper — not stated (the EM paper, AQ-14, will carry its tests)"
     ten_questions: []
@@ -771,7 +774,7 @@ families:
          module: altdata.correlation, reader: breaks_between, branch: aq-5-correlation-layer,
          kill: "none ruled (section 5)"}
       - {id: china_imf_gold, title: "SAFE's gold against IMF IFS (the 1% cross-check)",
-         waits: "imf-ifs-gold (imf.ifs.gold_reserves_oz.chn)", kill: "none ruled"}
+         ratio_pct: [safe.gold_reserves_oz, imf.ifs.gold_reserves_oz.chn], kill: "none ruled"}
     falsification: []
     falsification_note: "no owning paper — not stated (International Equities 10.6 names observables, not tests)"
     ten_questions: []
@@ -798,7 +801,7 @@ families:
           - {label: "Capacity discipline: utilisation in solar, batteries, EVs", absent: "not stored (AQ-3)"}
           - {label: "Capacity discipline: module and cell prices", absent: "not stored (AQ-3)"}
           - {label: "Capacity discipline: survival of subscale makers", absent: "not stored; a named Gap"}
-          - {label: "Property: starts", absent: "not stored (AQ-3, China property)"}
+          - {key: nbs.re_starts_ytd, label: "Property: starts (NBS, floor space newly started, year to date)"}
           - {label: "Property: inventory months", absent: "not stored (AQ-3, China property)"}
           - {label: "Property: developer credit spreads", absent: "not stored (AQ-3, China property)"}
           - {label: "Shareholder return: net issuance, buybacks, dividends", absent: "not stored (AQ-3)"}
@@ -881,18 +884,21 @@ families:
       - {key: zec.shielded_value_share, label: "ZEC: shielded share of supply"}
       - {key: zec.shielded_tx_share,  label: "ZEC: shielded share of transactions"}
       - {key: zec.crypto_cap_share,   label: "ZEC's share of crypto market cap"}
-      - {label: "Stablecoin total supply (S-1)", absent: "not stored (AQ-3)"}
-      - {label: "BTC long-term-holder supply (SR-29)", absent: "not stored"}
+      - {key: llama.stable_total, label: "Stablecoin total supply (S-1)"}
+      - {key: btcdata.lth_supply_share, label: "BTC long-term-holder supply, % of supply (SR-29)"}
       - {label: "ETH burn against issuance", absent: "not stored (AQ-3)"}
       - {label: "RWA tokenised value and holder count", absent: "not stored (AQ-3)"}
       - {hook_key: etf.ibit_shares, branch: aq-3-series-1, label: "IBIT shares outstanding (S-2's share count)"}
       - {label: "ETF flows read against float (S-2)", absent: "the float is not stored; the share count is (IBIT, above)"}
       - {label: "Exchange balances", absent: "not stored"}
-      - {label: "OI-weighted funding (S-3; crowded at z > +2 with OI/mcap at a 90-day high)", absent: "not stored"}
-      - {label: "The DVOL regime (S-4, DS-41)", absent: "not stored"}
+      - {key: calc.funding_agg, instrument: BTC, label: "OI-weighted funding, BTC (S-3; crowded at z > +2 with OI/mcap at a 90-day high)"}
+      - {key: calc.oi_mcap, instrument: BTC, label: "Open interest over market cap, BTC (S-3's second leg)"}
+      - {key: deribit.dvol_btc, label: "The DVOL regime (S-4, DS-41)"}
       - {label: "Hyperliquid whale positions", absent: "not stored"}
-      - {label: "Miner reserves and hashrate", absent: "not stored"}
-      - {label: "Treasury-company activity and premium to NAV", absent: "not stored; a named Gap"}
+      - {key: mempool.hashrate, label: "Hashrate (mempool.space)"}
+      - {label: "Miner reserves", absent: "not stored"}
+      - {key: calc.treasury_net_purchases, label: "Treasury-company activity: the month's net BTC bought (item 49b)"}
+      - {key: calc.mnav, instrument: MSTR, label: "Treasury-company premium to NAV: MSTR's mNAV (item 49a)"}
       - {label: "Sovereign purchase announcements", absent: "events, read through the scan (AQ-7)"}
       - {label: "The CLARITY and BIP-360/361 calendars", absent: "events, read through the scan (AQ-7)"}
     structure_charts:
@@ -917,7 +923,7 @@ families:
       - {id: factor_v, title: "Factor V's four standing quarterly questions (infrastructure against speculation; the gold-against-BTC split; leverage depth; the security budget), with the adoption ledger",
          waits: "the adoption ledger is not stored; the four are answered at the quarterly review", kill: "none ruled"}
       - {id: stable_bills, title: "Stablecoin supply against bill issuance",
-         waits: "stablecoin supply is not stored (AQ-3)", kill: "a two-quarter stall is the quiet falsifier"}
+         series: [llama.stable_total], kill: "a two-quarter stall is the quiet falsifier"}
       - {id: stable_issuers, title: "Issuer-level stablecoin surveillance and reserve composition (S4, S23)",
          waits: "issuer attestations are not stored (AQ-3)", kill: "each scenario's own re-specification rule"}
       - {id: pqc, title: "Post-quantum milestones against verified capability (S18)",
@@ -971,8 +977,11 @@ families:
           "Solana has durable product-market fit" is falsified if application TVL fails to
           recover when speculative conditions improve — indicating the prior activity was
           purely cyclical.
-        measurable: null
-        not_measured: "Solana's application TVL is not stored (AQ-3)"
+        measurable:
+          all:
+            - {change_below: {series: llama.chain_tvl, instrument: Solana, below: 0}}
+            - {change_above: {series: yfinance.mkt_btc_usd, above: 0, label: "speculative conditions improving"}}
+        session_set: "\"fails to recover\" read as Solana's TVL (llama.chain_tvl, instrument Solana; USD, so price moves it too) lower over the quarter; \"when speculative conditions improve\" read as BTC higher over the quarter"
       - id: privacy_path
         paper: "Digital Assets"
         section: "Falsification Tests"
@@ -989,8 +998,11 @@ families:
           "Stablecoins are genuine infrastructure" is falsified by supply contracting during
           a period of price stability — which would indicate the growth was speculative
           positioning after all.
-        measurable: null
-        not_measured: "stablecoin supply is not stored (AQ-3)"
+        measurable:
+          all:
+            - {quarters_negative: {series: llama.stable_total, quarters: 1}}
+            - {unmeasured: {reason: "\"a period of price stability\" is given no threshold by the paper and none is set here"}}
+        session_set: "\"supply contracting\" read as total stablecoin supply lower over the last quarter; while supply grows the test holds, and a contraction prints not measured until \"price stability\" has a reading"
     ten_questions:
       - {n: 1,  text: "Is stablecoin supply growing or contracting?", series: []}
       - {n: 2,  text: "Are ETF flows positive, and against what float?", series: []}
@@ -1028,12 +1040,12 @@ families:
             cases_key: btc
             fields:
               definition: {paper: "the Digital Assets paper, §11, \"What it is\"", absent: "token rights are a field of the quarterly scan (AQ-7)"}
-              supply: {absent: "circulating against fully diluted, LTH supply (SR-29), lost coins and ETF/treasury holdings — the effective float — are not stored"}
+              supply: {keys: [btcdata.lth_supply_share], absent: "circulating against fully diluted, lost coins and ETF/treasury holdings — the rest of the effective float — are not stored"}
               economics: {paper: "§4, Theory 1 (monetary premium: the measurable is the holder base)", absent: "the holder base is not stored"}
               usage: {absent: "on-chain activity and fees, organic against subsidised, are not stored"}
               security: {absent: "hashrate, miner reserves, client concentration, proof-of-reserve cadence and custodian post-quantum roadmaps are not stored (the paper's §5-7 watches; AQ-7)"}
               market: {keys: [yfinance.mkt_btc_usd, crypto.total_market_cap_usd], absent: "venue volumes and depth are not stored"}
-              derivatives: {absent: "funding, OI (S-3), CME positioning, DVOL (DS-41) and ETF flows are not stored"}
+              derivatives: {keys: [calc.funding_agg, calc.oi_mcap, deribit.dvol_btc, farside.btc_total], instruments: {calc.funding_agg: BTC, calc.oi_mcap: BTC}, absent: "CME positioning is not stored"}
               regulation: {absent: "the CLARITY and GENIUS calendars and custody by jurisdiction arrive through the scan (AQ-7)"}
               catalysts: {absent: "the quarter's catalysts arrive through the scan (AQ-7)"}
               falsifiers: {tests: [btc_store_of_value, btc_scarcity, institutional_vol]}
@@ -1046,8 +1058,8 @@ families:
               economics: {paper: "§4, Theory 2 (productive utility: fee revenue accruing to the token)", absent: "base-layer fee capture is not stored"}
               usage: {absent: "L2 against mainnet activity is not stored"}
               security: {absent: "validator and client concentration are not stored"}
-              market: {absent: "ETH is not in the price feed (AQ-3)"}
-              derivatives: {absent: "funding, OI and ETF flows are not stored"}
+              market: {keys: [yfinance.mkt_eth_usd]}
+              derivatives: {keys: [hl.funding, fut.funding_okx, calc.oi_mcap, farside.eth_total], instruments: {hl.funding: ETH, fut.funding_okx: ETH, calc.oi_mcap: ETH}}
               regulation: {absent: "arrives through the scan (AQ-7)"}
               catalysts: {absent: "arrives through the scan (AQ-7)"}
               falsifiers: {tests: [eth_value_capture]}
@@ -1057,10 +1069,10 @@ families:
             fields:
               definition: {paper: "the Digital Assets paper, §13, \"What it is\"", absent: "token rights are a field of the quarterly scan (AQ-7)"}
               supply: {absent: "emissions, unlocks and staking are not stored"}
-              economics: {paper: "§13, \"The 2026 lesson\"", absent: "application TVL and its composition are not stored"}
-              usage: {absent: "application TVL, DEX volume and the memecoin share are not stored"}
+              economics: {paper: "§13, \"The 2026 lesson\"", keys: [llama.chain_tvl], instruments: {llama.chain_tvl: Solana}, absent: "the TVL's composition is not stored"}
+              usage: {keys: [llama.chain_tvl], instruments: {llama.chain_tvl: Solana}, absent: "Solana's DEX volume (llama.dex_volume is all chains) and the memecoin share are not stored"}
               security: {absent: "validator concentration and outages are not stored"}
-              market: {absent: "SOL is not in the price feed (AQ-3)"}
+              market: {keys: [yfinance.mkt_sol_usd]}
               derivatives: {absent: "funding, OI and ETF flows are not stored"}
               regulation: {absent: "arrives through the scan (AQ-7)"}
               catalysts: {absent: "arrives through the scan (AQ-7)"}
@@ -1082,13 +1094,13 @@ families:
           - id: prl
             name: "PRL (Pearl, coingecko pearl-2; never keyed by ticker)"
             fields:
-              definition: {absent: "the crypto.watch entry and its MW-1 fields (ST-13) are not built"}
-              supply: {absent: "D1-D3 (code supply, week-one overhang, supply gap) are not stored (ST-13)"}
+              definition: {paper: "the Security Master's SM00118, the crypto.watch entry with its MW-1 fields (ST-13, built 18 Oct)"}
+              supply: {keys: [calc.prl_supply_code, calc.prl_overhang, calc.prl_supply_gap]}
               economics: {absent: "signposts S1-S2 (paid-compute partners, the PRL demand sink) are not stored (ST-13)"}
               usage: {absent: "not stored (ST-13)"}
               security: {absent: "signpost S7 (technical and chain integrity) is not stored (ST-13)"}
-              market: {absent: "S3 (exchange access) and D5 (venue concentration) are not stored (ST-13)"}
-              derivatives: {absent: "S6 and D4 (emission-to-volume) are not stored (ST-13)"}
+              market: {keys: [calc.prl_venue_conc], absent: "S3 (exchange access) is not stored (ST-13); D5's one input, CoinGecko's tickers, is retired (rulings of 13 and 18 Oct 2026)"}
+              derivatives: {keys: [calc.prl_emission_to_volume], absent: "S6 is not stored (ST-13)"}
               regulation: {absent: "S8 (team, funding, regulatory) is not stored (ST-13)"}
               catalysts: {absent: "arrives through the scan (AQ-7)"}
               falsifiers:
@@ -1111,11 +1123,12 @@ families:
         kind: series
         after: analyses
         rows:
-          - {label: "Stablecoin supply by issuer and chain (S-1)", absent: "not stored (AQ-3)"}
+          - {key: llama.stable_total, label: "Stablecoin supply, all chains (S-1)"}
+          - {label: "Stablecoin supply by issuer (S-1)", absent: "issuer attestations are not stored (AQ-3)"}
           - {label: "Tokenised treasuries and RWA", absent: "not stored (AQ-3)"}
           - {label: "L2 value secured", absent: "not stored (AQ-3)"}
           - {key: zec.crypto_cap_share, label: "Privacy coins as a group (ZEC's share; XMR, delisted, not stored)"}
-          - {label: "Memecoin froth (S-5)", absent: "not stored (AQ-3)"}
+          - {key: calc.froth_z, instrument: "solana:new_pools", label: "Memecoin froth (S-5), Solana new pools, z (unscored until 90 days are stored)"}
       - id: stablecoin_plumbing
         n: "6d"
         title: "The stablecoin plumbing, by issuer (not directional theses)"
@@ -1178,7 +1191,7 @@ families:
       - {rel_return: {a: yfinance.mkt_xlu, b: yfinance.mkt_spy, years: 1}, label: "The rate-sensitive ratio: utilities against the market, one year"}
       - {rel_return: {a: yfinance.mkt_iwm, b: yfinance.mkt_spy, years: 1}, label: "The rate-sensitive ratio: small caps against the market, one year"}
       - {label: "CPPI (commercial property prices)", absent: "paid; not stored"}
-      - {label: "Real house prices, year on year", absent: "Case-Shiller is not in the FRED pull (AQ-3)"}
+      - {key: fred.case_shiller_national, label: "House prices: Case-Shiller national, NSA (nominal; the real year-on-year read against CPI is not computed here)"}
       - {key: fred.mortgage_30y,     label: "The 30-year mortgage rate"}
       - {diff: [fred.mortgage_30y, fred.yield_10y], label: "The mortgage spread over the 10-year"}
       - {key: fred.mortgage_delinq,  label: "Mortgage delinquency"}
@@ -1406,12 +1419,12 @@ families:
       - {key: fred.usd_eur, label: "USD per EUR (FRED DEXUSEU)"}
       - {key: fred.usd_jpy, label: "JPY per USD (FRED DEXJPUS)"}
       - {label: "The valuation quad by region", absent: "regional forward P/E, P/B and dividend yield are not stored (AQ-3)"}
-      - {label: "Hedged against unhedged (\"two decisions wearing one ticker\")", absent: "the hedged funds are not in the price feed (AQ-3)"}
+      - {key: calc.hefa_efa, label: "Hedged against unhedged, HEFA/EFA (\"two decisions wearing one ticker\")"}
       - {label: "Japan: the below-1x-book share", absent: "not stored (AQ-3)"}
       - {label: "Japan: the buyback run-rate", absent: "not stored (AQ-3)"}
       - {label: "Japan: the cross-holding unwind", absent: "not stored (AQ-3)"}
       - {label: "Japan: the wage round", absent: "an event, read through the scan (AQ-7)"}
-      - {label: "The euro fragmentation spread", absent: "Italian and German 10-year yields are not stored (AQ-3)"}
+      - {key: calc.btp_bund_bp, label: "The euro fragmentation spread (BTP less Bund, 10-year, bp)"}
       - {label: "The leadership-regime clock", absent: "not built"}
     structure_charts:
       - {id: us_intl, title: "US against developed ex-US: SPY and EFA", kind: twin,
@@ -1516,13 +1529,13 @@ families:
       - {key: fred.dxy,           label: "The broad dollar (the baht's broad direction)"}
       - {key: yfinance.mkt_usdcny, label: "USD/CNY (a neighbour)", dp: 4}
       - {key: yfinance.mkt_usdjpy, label: "USD/JPY (a neighbour)"}
-      - {label: "The BoT policy rate", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {key: thai.bot_policy_rate, label: "The BoT policy rate", namespace: thailand}
     structure:
       - {hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB, with its percentile", namespace: thailand}
-      - {label: "The BoT policy rate and its stated path", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
-      - {label: "Thai CPI", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {key: thai.bot_policy_rate, label: "The BoT policy rate (its stated path is not stored)", namespace: thailand}
+      - {key: thai.cpi_yoy, label: "Thai CPI, year on year", namespace: thailand}
       - {label: "The current account", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
-      - {label: "Tourist arrivals", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {key: thai.tourist_arrivals, label: "Tourist arrivals", namespace: thailand}
       - {label: "The construction-materials price index", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
       - {label: "The construction labour cost index", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
       - {key: fred.dxy,            label: "The broad dollar (shared; read, never fed)"}

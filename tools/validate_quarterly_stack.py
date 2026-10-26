@@ -1036,11 +1036,13 @@ def group_g2(r: dict, fams: dict, chs: dict) -> None:
           and "yfinance.mkt_btc_usd" in btc["Market structure and liquidity by venue"]
           and "observed" in btc["Source and vintage log"]
           and prl["Bull / base / bear"].startswith("not yet — ")
-          and eth["Market structure and liquidity by venue"].startswith("not yet — ")
+          # 6i-1: ETH's market field reads its stored key, no longer "not yet"
+          and eth["Market structure and liquidity by venue"].startswith("yfinance.mkt_eth_usd")
           and "MW-7" in prl["Measurable falsifiers"]
           and all(v for v in list(btc.values()) + list(prl.values())),
           "every field reads a stored series, the vendored case file or the tests -- "
-          "or prints its not-yet reason (BTC from the store; ETH and PRL not yet)")
+          "or prints its not-yet reason (BTC from the store; ETH's market from its "
+          "key, 6i-1; PRL's cases not yet)")
     lt = cr["light_tier"]["table"]["rows"]
     cfg_lt = next(p_ for p_ in fams["crypto"]["panels"] if p_["id"] == "light_tier")
     check([x[0].split()[0] for x in lt] == ["HYPE", "TAO", "LINK", "AAVE"]

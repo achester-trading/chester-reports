@@ -1041,7 +1041,7 @@ def _quarter_ends(end: str, n: int) -> list[str]:
 def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
     end = ctx["end"]
     if kind == "quarters_negative":
-        pts = rows(st, p["series"], ctx["now"], None, end)
+        pts = rows(st, p["series"], ctx["now"], p.get("instrument"), end)
         ends = _quarter_ends(end, int(p["quarters"]))
         lv = [level_on(pts, e) for e in ends]
         if any(x is None for x in lv):
@@ -1065,7 +1065,8 @@ def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
                 "evidence": f"{p['series']} annualised {pace:,.0f} against "
                             f"{p['below']:,}"}
     if kind == "change_below":
-        m = quarter_move(st, {"key": p["series"], "label": p["series"]}, ctx)
+        m = quarter_move(st, {"key": p["series"], "label": p["series"],
+                              "instrument": p.get("instrument")}, ctx)
         if not m or m.get("change") is None:
             return {"met": None, "missing": f"{p['series']}: no change over the quarter"}
         return {"met": m["change"] < float(p["below"]), "strained": False,
@@ -1104,7 +1105,8 @@ def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
                 "strained": r <= float(p.get("strained_at_most", p["at_most"])),
                 "evidence": f"{w}-session correlation {r:+.2f}"}
     if kind == "change_above":
-        m = quarter_move(st, {"key": p["series"], "label": p["series"]}, ctx)
+        m = quarter_move(st, {"key": p["series"], "label": p["series"],
+                              "instrument": p.get("instrument")}, ctx)
         if not m or m.get("change") is None:
             return {"met": None, "missing": f"{p['series']}: no change over the quarter"}
         tag = f" ({p['label']})" if p.get("label") else ""
@@ -1669,8 +1671,8 @@ def _cases(case_key: Optional[str]) -> Optional[dict]:
     return (cp.CASES_AND_POSITIONING.get(case_key) or {}).get("cases")
 
 
-def _latest(st, key: str, ctx: dict) -> Optional[dict]:
-    got = [r for r in st.as_of(key, ctx["now"], None)
+def _latest(st, key: str, ctx: dict, inst: Optional[str] = None) -> Optional[dict]:
+    got = [r for r in st.as_of(key, ctx["now"], inst)
            if r.get("value_num") is not None
            and str(r["observed_at"])[:10] <= ctx["end"]]
     return max(got, key=lambda r: str(r["observed_at"])) if got else None
@@ -1704,8 +1706,11 @@ def coin_page(st, coin: dict, fam: dict, ctx: dict, states: dict) -> dict:
             txt = "; ".join(used) or "no stored series on this page"
         elif spec.get("keys"):
             vals = []
+            # `instruments` maps a key to its instrument (a coin, a chain), so
+            # `keys` stays a list of registry keys (6i-1)
+            inst = spec.get("instruments") or {}
             for k in spec["keys"]:
-                r = _latest(st, k, ctx)
+                r = _latest(st, k, ctx, inst.get(k))
                 if r is None:
                     vals.append(f"{k}: nothing stored")
                     continue
