@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty code gates (one hundred and thirty-seven Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-two code gates (one hundred and thirty-nine Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1211,6 +1211,25 @@ fixtures.
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
+
+**Is it getting better: decision quality and the error corpus (Learning Loop v2,
+LL-1 and LL-3; B73, ruled 25 Oct 2026).** Report only, no model call, no right.
+`altdata/decision_quality.py` computes at read, from the stored ledger and grades:
+Murphy's decomposition of the Brier score (reliability, resolution, uncertainty and
+the within-bin term, ten bins of 0.1) by source family and horizon bucket,
+"accruing (n=k of 100)" below 100 resolved rows a cell; the counterfactual ledger
+per book (taken, declined, draft, one grade a decision); the Weekly stance's implied
+book against Book Z; and the one line, the system Brier and the expectancy in ruled
+R over 13 and 52 weeks against the windows before. The Monthly appends it to the Lab
+report attachment (`with_lab_report`, outside `alpha/`); `python -m
+altdata.decision_quality pack` prints the Doctrine pack's section; the Weekly reads
+none of it. `altdata/error_corpus.py` writes the append-only `error_corpus` table:
+one row per graded miss (a ledger row past the coin's Brier, a grade below zero R)
+with what was said, what happened, the margin, and what was missing at emission --
+the object's absent dimensions and legs, and the ledger's new `missing_inputs`
+column, written once by every source's `record`. It prints nowhere; the critic
+(LL-5) reads it. `tools/validate_decision_quality.py` and
+`tools/validate_error_corpus.py` hold it.
 
 **Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
 59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s

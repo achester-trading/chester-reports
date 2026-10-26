@@ -54,6 +54,8 @@ PY_VALIDATORS := \
 	tools/validate_monthly.py \
 	tools/validate_events.py \
 	tools/validate_grader.py \
+	tools/validate_decision_quality.py \
+	tools/validate_error_corpus.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \

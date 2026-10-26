@@ -269,6 +269,37 @@ def _cf_text(c: dict, min_n: int) -> str:
     return f"n={c['n']}, {r}{p}"
 
 
+def book_z_marks(as_of: str, db: Optional[str] = None
+                 ) -> Optional[dict[str, list[tuple[str, float]]]]:
+    """ledger -> [(session, value)] of Book Z's marks knowable at `as_of`, by
+    the store's own as-of join, over a read-only connection (opening the store
+    writable would switch its journal and write beside it). None: no store."""
+    from . import benchmark, observations                       # noqa: PLC0415
+    conn = _ro(db)
+    if conn is None:
+        return None
+    try:
+        if not _has(conn, "observations"):
+            return {}
+        cutoff = observations.canonical_instant(as_of)
+        out: dict[str, list[tuple[str, float]]] = {}
+        for ld in benchmark.LEDGERS:
+            rows = observations.prefer_tier([dict(r) for r in conn.execute(
+                observations.AS_OF_SQL, {"key": benchmark.KEY, "instrument": ld,
+                                         "as_of": cutoff})], benchmark.KEY)
+            vals = []
+            for r in rows:
+                try:
+                    vals.append((str(r["observed_at"])[:10],
+                                 float(json.loads(r["value_text"])["value"])))
+                except (TypeError, ValueError, KeyError):
+                    continue
+            out[ld] = sorted(vals)
+        return out
+    finally:
+        conn.close()
+
+
 def stance_vs_book_z(rows: list[dict], as_of: str, db: Optional[str] = None,
                      marks=None) -> dict:
     """The stack's implied stance (the Weekly's resolved stance rows) against
@@ -276,37 +307,34 @@ def stance_vs_book_z(rows: list[dict], as_of: str, db: Optional[str] = None,
 
     `marks(ledger, day)` returns the ledger's value on or before `day` knowable
     at `as_of`; by default it reads paper.benchmark from the store."""
-    st = None
     if marks is None:
-        from . import benchmark, observations                   # noqa: PLC0415
-        p = Path(db or observations.DEFAULT_DB)
-        if not p.exists():
+        series = book_z_marks(as_of, db)
+        if series is None:
             return {"n": 0, "absent_reason": "no store"}
-        st = observations.ObservationStore(str(p))
 
         def marks(ledger: str, day: str) -> Optional[float]:
-            m = benchmark._mark_on_or_before(st, ledger, day, as_of)
-            return float(m["value"]) if m else None
-    try:
-        weeks, missing = [], 0
-        for r in rows:
-            if r["source"] != STANCE_SOURCE or float(r["probability"]) == 0.5:
-                continue
-            d0, d1 = str(r["emitted_at"])[:10], str(r["horizon_date"])[:10]
-            rets = {}
-            for ld in ("cash", "spy", "sixty_forty"):
-                a, b = marks(ld, d0), marks(ld, d1)
-                rets[ld] = (100.0 * (b / a - 1.0)) if a and b else None
-            if None in rets.values():
-                missing += 1
-                continue
-            long_ = float(r["probability"]) > 0.5
-            weeks.append({"week": d0, "stance": "long SPY" if long_ else "cash",
-                          "stance_pct": rets["spy"] if long_ else rets["cash"],
-                          **{f"{k}_pct": v for k, v in rets.items()}})
-    finally:
-        if st is not None:
-            st.close()
+            best = None
+            for d, v in series.get(ledger, []):
+                if d <= day:
+                    best = v
+            return best
+
+    weeks, missing = [], 0
+    for r in rows:
+        if r["source"] != STANCE_SOURCE or float(r["probability"]) == 0.5:
+            continue
+        d0, d1 = str(r["emitted_at"])[:10], str(r["horizon_date"])[:10]
+        rets = {}
+        for ld in ("cash", "spy", "sixty_forty"):
+            a, b = marks(ld, d0), marks(ld, d1)
+            rets[ld] = (100.0 * (b / a - 1.0)) if a and b else None
+        if None in rets.values():
+            missing += 1
+            continue
+        long_ = float(r["probability"]) > 0.5
+        weeks.append({"week": d0, "stance": "long SPY" if long_ else "cash",
+                      "stance_pct": rets["spy"] if long_ else rets["cash"],
+                      **{f"{k}_pct": v for k, v in rets.items()}})
     out: dict[str, Any] = {"n": len(weeks), "unmarked": missing, "weeks": weeks}
     for k in ("stance", "cash", "spy", "sixty_forty"):
         out[f"{k}_mean_pct"] = _mean([w[f"{k}_pct"] for w in weeks])

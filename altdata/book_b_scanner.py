@@ -1120,6 +1120,7 @@ def record_forecasts(cands: list[dict], ending: str, emitted_at: str,
                        f"{ending} reaches +1R before -1R within six weeks"),
                 probability=float(g.get("probability") or 0.5), horizon_date=hz,
                 emitted_at=emitted_at, emitted_by="altdata.book_b_scanner",
+                missing_inputs=[],                      # LL-3: none recorded
                 resolution_criterion=criterion(c, ending, hz)))
     return ids
 

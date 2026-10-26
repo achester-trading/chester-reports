@@ -94,9 +94,17 @@ commands:
   altdata.vendor_chains:
     domain: options
     line: 'The vendor chains at 16:31 ET (M-3): Massive SPX and SPCX, the 16:16 data (a 15-minute delay), the same chain files as before and their own completeness record'
+  altdata.decision_quality:
+    domain: register
+    line: Decision quality -- is the system getting better? (Learning Loop v2, LL-1)
+    sources: [derived_probability, derived_grade]
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report
+  altdata.error_corpus:
+    domain: register
+    line: The error corpus -- every graded miss, with what was said, what happened and what was missing (LL-3)
+    sources: [derived_probability]
   altdata.em_scorecard:
     domain: em
     line: 'The EM vulnerability scorecard: a table of lenses, never a composite'

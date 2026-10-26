@@ -179,7 +179,8 @@ def record(rows: list[dict], day: str, dry_run: bool = False,
                 source=LEDGER_SOURCE, scenario_set=sset, claim=r["claim"],
                 probability=r["probability"], horizon_date=r["horizon_date"],
                 resolution_criterion=json.dumps(r["criterion"], sort_keys=True),
-                emitted_by="daily_cascade.close_report")
+                emitted_by="daily_cascade.close_report",
+                missing_inputs=[])                      # LL-3: a computed row only
     return rows
 
 
