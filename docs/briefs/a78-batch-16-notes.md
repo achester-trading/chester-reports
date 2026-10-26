@@ -144,6 +144,53 @@ unchanged.
 
 CI in progress at push, run 40333495867 (Gates), on 62e19d19. The next paste on this branch reads it.
 
+## Box steps, Wednesday 28 Oct 2026 (ruling 1 of A78's needs-you)
+
+These run after A78 merges and before the dry run. The box runs steps 1, 2 and 4.
+The box never edits the repo, so step 3 is not a box command.
+
+```
+# 1. Trial run into a scratch directory; nothing in docs/ledgers is touched
+python tools/calibration/midterm_base_rate.py --box --date 2026-10-28 --out /tmp/midterm-trial
+#    check: n 19, the recession column says yes/no rather than "not stored",
+#    and the as-of date is the latest close
+
+# 2. The real run
+python tools/calibration/midterm_base_rate.py --box --date 2026-10-28
+
+# 4. Check
+python tools/validate_batch16_midterm.py
+```
+
+**Step 3, the copy-back, is done by a session paste on main after the box run.**
+The operator copies the dated ledger and its CSV back to the laptop. A short
+paste then commits them and makes three changes:
+
+- the "> " headline line from `docs/ledgers/midterm-base-rate-2026-10-28.md`
+  goes into `config/weekly_ahead.yaml`, under `register_event_rows` ->
+  `cal.midterm_election_2026`, as `base_rate`;
+- that entry's `ledger:` field points at the new file;
+- the `LEDGER` constant in `tools/validate_batch16_midterm.py` points at the new
+  file.
+
+That paste is merged and deployed before the dry run. The 26 Oct ledger is
+never edited.
+
+Two cautions for the sheet:
+
+- **Step 4 on the box still checks the 26 Oct ledger.** The `LEDGER` constant
+  changes only in step 3's paste, so step 4 on the box shows that the gate
+  passes, not that the new ledger matches. The paste's own run of the gate is
+  the check that the new ledger and the config match.
+- **Step 2 as written leaves an untracked ledger in the box's checkout.**
+  The ledger and its CSV land under `docs/ledgers/`. When step 3's commit adds
+  the same two paths, the box's next `git pull --ff-only` would refuse ("untracked
+  working tree files would be overwritten"). There are two safe ways round it:
+  - write step 2 outside the checkout, with
+    `--out ~/chester-data/ledgers`, and copy from there;
+  - or remove the two box-side files once they are on the laptop and before
+    step 3's commit reaches main.
+
 ## Needs-you (five)
 
 1. **The recession column needs the box.** `fred.usrec` is not in the laptop's
