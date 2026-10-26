@@ -47,6 +47,8 @@ classes:
   em_event:           {tier: 2, channel: "an emerging-market political or policy event: that currency and its local rates", amplifiers: [USD_INDEX]}
   china_political:    {tier: 2, channel: "the Party and State calendar: China's policy stance, the yuan and commodity demand", amplifiers: [USD_INDEX, WTI]}
   register_event:     {tier: 2, channel: "a dated event on the claims register", amplifiers: [SP500]}
+  # Batch 16 items 80(b) and 90 (A78, 26 Oct 2026): the midterm's own class.
+  us_election:        {tier: 2, channel: "control of Congress, and so the fiscal path and the legislative calendar for two years: the term premium, the dollar and the sectors legislation reaches", amplifiers: [UST10Y, USD_INDEX, SP500]}
   fed_speaker:        {tier: 3, channel: "a committee member's view of the rate path", amplifiers: [UST10Y]}
   coupon_auction:     {tier: 3, channel: "coupon supply at that maturity", amplifiers: [UST10Y]}
   earnings_tracked:   {tier: 3, channel: "a name a tracked story turns on", amplifiers: []}
@@ -113,3 +115,22 @@ hand_calendars:
 # THE CLAIMS REGISTER'S DATED EVENTS (config/claims.yaml): a claim whose value is
 # an ISO date inside the coming week prints as an event.
 register_events: [cal.midterm_election_2026]
+
+# A REGISTER EVENT WITH ITS OWN ROW (Batch 16 items 80(b) and 90; A78, 26 Oct 2026).
+# `significance` is the order's (1 to 5, 5 highest), mapped onto the three tiers
+# above as 5 -> 1, 4 -> 2, 1 to 3 -> 3: the midterm is significance 4, so tier 2
+# through its class. `odds` are watch ids in config/prediction_markets.yaml, read
+# from the store the Weekly opened and printed as the consensus column; "odds not
+# stored" when it holds none. `base_rate` is the ledger's headline, COPIED here (a
+# live row never reads a ledger at run time) and held to the ledger by
+# tools/validate_batch16_midterm.py; a new edition of the ledger is copied in by
+# the session that files it.
+register_event_rows:
+  cal.midterm_election_2026:
+    event: "US midterm election"
+    cls: us_election
+    significance: 4
+    time: "all day; results after the close"
+    odds: [house_control, senate_control]
+    ledger: docs/ledgers/midterm-base-rate-2026-10-26.md
+    base_rate: "Base rate, the 19 midterm years since 1950 (ledger 2026-10-26): the year's drawdown, median −16.6% (mean −17.5%), against −9.9% (mean −12.4%) in the 57 other years; the year's low came before election day in 17 of 19, 10 of them in August to October; from election day the S&P 500 was higher 12 months later in 19 of 19, median +14.5%, against 39 of 56 other years from the same day; n = 19."
