@@ -3896,7 +3896,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: never
-    units: count
+    units: label
     trigger_eligible: false
     added_date: "2026-10-26"
     description: >-
@@ -3913,7 +3913,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: never
-    units: count
+    units: label
     trigger_eligible: false
     added_date: "2026-10-26"
     description: >-
@@ -3930,7 +3930,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: never
-    units: count
+    units: label
     trigger_eligible: false
     added_date: "2026-10-26"
     description: >-
@@ -3947,7 +3947,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: never
-    units: count
+    units: label
     trigger_eligible: false
     added_date: "2026-10-26"
     description: >-
@@ -3964,7 +3964,7 @@ metrics:
     invalidated_by: none
     observation_type: calculated
     revision_policy: never
-    units: count
+    units: label
     trigger_eligible: false
     added_date: "2026-10-26"
     description: >-

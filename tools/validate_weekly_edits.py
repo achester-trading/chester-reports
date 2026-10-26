@@ -199,7 +199,10 @@ def main() -> int:
     heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\""
                        + re.escape(stack_render.SUBTITLE) + r"\">&mdash; "
                        r"([^<]+)</span>", html)
-    check(len(heads) == 10 and [int(h[0]) for h in heads] == list(range(1, 11)),
+    # Eleven since B75: the gold block (Batch 16 item 88(a)) is the Weekly's own
+    # section, header-only before its first edition.
+    check(len(heads) == 11 and [int(h[0]) for h in heads] == list(range(1, 12))
+          and heads[5][1] == "Gold",
           f"every header is 'number · name — subtitle', styled apart ({len(heads)})")
     check(any(h[2] == "what markets and surveys expect, not how they&#x27;re positioned"
               or h[2] == "what markets and surveys expect, not how they're positioned"
