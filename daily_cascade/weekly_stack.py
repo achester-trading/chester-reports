@@ -2134,6 +2134,15 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),
         }
+        # SIGNAL-TRIAGE BATCH 16 ITEM 88(a) (B75): the gold block, its own section
+        # between Plumbing & rates and Positioning & flows (config order).
+        from . import gold_block                                # noqa: PLC0415
+        try:
+            built[gold_block.SECTION_ID] = gold_block.weekly_section(
+                st, now, ending, computed_dir=p.get("computed_dir"),
+                events=(cal or {}).get("rows"))
+        except Exception:                                       # noqa: BLE001
+            log.warning("the gold block faulted", exc_info=True)
         # SIGNAL-TRIAGE BATCH 6 item 43: the growth lead's line in Ahead.
         from . import t1_rest_block                             # noqa: PLC0415
         ah43 = t1_rest_block.ahead_subsection(st, now)
@@ -2199,6 +2208,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    from . import gold_block                                    # noqa: PLC0415
+    gold_block.mark_before_first(sections, built)
     # W-1.3a: the keys assemble does not carry -- a section's one-line summaries
     # (W-1.2 item 2.6), its reference rows and its notes.
     for s in sections:
@@ -2306,6 +2317,12 @@ def chart_plan(ed: dict) -> list[str]:
         want.insert(4, "W12")
     if (misfit.get("data") or {}).get("open_contradictions"):
         want.insert(4, "W6")
+    # W13, THE GOLD BLOCK'S CHART (Batch 16 item 88(a); B75): after W3, inside the
+    # cap, from the block's first edition on (a section printing its header only
+    # draws nothing).
+    gold = next((s for s in ed["sections"] if s["id"] == "gold"), None)
+    if gold is not None and not gold.get("empty"):
+        want.insert(want.index("W3") + 1, "W13")
     return want[:cap]
 
 
@@ -2315,7 +2332,7 @@ PLACE = {"W1": ("tape", None), "W2": ("tape", None), "W8": ("tape", None),
          "W6": ("misfit", None), "W5": ("positioning", 0),
          "W4": ("positioning", 1), "W9": ("positioning", 3),
          "W10": ("priced", 1), "W11": ("priced", None),
-         "W12": ("mechanics", None)}
+         "W12": ("mechanics", None), "W13": ("gold", None)}
 
 # W8's six panels: (tape id, panel title).
 W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY"),
@@ -2401,6 +2418,15 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     except Exception:                                           # noqa: BLE001
         log.warning("W10 odds unavailable", exc_info=True)
     out["odds"] = odds
+    try:
+        from altdata import gold_attribution as ga               # noqa: PLC0415
+        from . import gold_block                                # noqa: PLC0415
+        gcfg = ga.config()
+        out["gold"] = gold_block.chart_series(
+            ga.read_series(st, now, gcfg).get("gold") or [], ending, gcfg)
+    except Exception:                                           # noqa: BLE001
+        log.warning("W13 series unavailable", exc_info=True)
+        out["gold"] = None
     try:
         from altdata import st_r5_index                          # noqa: PLC0415
         out["carry"] = st_r5_index.chart_series(st, now, "twelve_months")
@@ -2531,6 +2557,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W11" in plan:
         charts["W11"] = charts_mod.index_carry("W11", cd.get("carry"), "twelve months",
                                                f"{base}_w11", out_dir)
+    if "W13" in plan:
+        charts["W13"] = charts_mod.gold_chart("W13", cd.get("gold"), f"{base}_w13",
+                                              out_dir)
     if "W12" in plan:
         from . import dealer_block                              # noqa: PLC0415
         mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})

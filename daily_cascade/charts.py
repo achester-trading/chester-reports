@@ -1007,6 +1007,44 @@ def w10(odds: dict, path_now: Optional[dict], path_week: Optional[dict],
 # line is the product of the other two (in logs, their sum). Forward EPS where
 # S&P DJI's drops reach the anchor, else trailing; the title says which.
 # ---------------------------------------------------------------------------
+def gold_chart(cid: str, cs: Optional[dict], name: str, out_dir: Optional[str],
+               min_points: int = 20) -> dict:
+    """W13 (Batch 16 item 88(a); B75): gold's close over the stored window, its
+    200-day average and the stored record marked. The points are
+    daily_cascade/gold_block.chart_series's."""
+    close = (cs or {}).get("close") or []
+    if len(close) < min_points:
+        return {"id": cid, "unavailable": f"fewer than {min_points} stored gold closes"}
+    try:
+        ma, rec = cs.get("ma200") or [], cs.get("record")
+        title = span_title("Gold (COMEX front future), $/oz, with its 200-day average",
+                           len(close), "sessions", close[0][0], close[-1][0],
+                           "the stored window")
+        fig, ax = _base(title)
+        pos = {d: i for i, (d, _) in enumerate(close)}
+        ax.plot(range(len(close)), [v for _, v in close], color="#b08d1a",
+                linewidth=1.2, label="Close")
+        if ma:
+            ax.plot([pos[d] for d, _ in ma if d in pos], [v for d, v in ma if d in pos],
+                    color=LEVEL_COLOURS.get("ma_200d", "#0f766e"), linewidth=1.0,
+                    label="200-day average")
+        drawn = []
+        if rec and rec[0] in pos:
+            ax.scatter([pos[rec[0]]], [rec[1]], color="#b3261e", zorder=3, s=18)
+            ax.annotate(f"record {rec[1]:,.0f} ({rec[0]})", (pos[rec[0]], rec[1]),
+                        textcoords="offset points", xytext=(-60, 6), fontsize=7)
+            drawn.append({"label": "record", "date": rec[0], "value": rec[1]})
+        ax.legend(fontsize=7, frameon=False, loc="lower left")
+        _dated_ticks(ax, [d for d, _ in close])
+        out = _finish(fig, name, out_dir)
+        cap = (f"{title}; close {close[-1][1]:,.2f} ({close[-1][0]})"
+               + (f"; 200-day {ma[-1][1]:,.2f}" if ma else "")
+               + (f"; record {rec[1]:,.2f} on {rec[0]}" if rec else ""))
+        return {"id": cid, "title": title, "drawn": drawn, "caption": cap, **out}
+    except Exception as exc:                                    # noqa: BLE001
+        return {"id": cid, "unavailable": f"{type(exc).__name__}: {exc}"}
+
+
 def index_carry(cid: str, cs: dict, plain: str, name: str,
                 out_dir: Optional[str]) -> dict:
     if not cs or cs.get("absent"):

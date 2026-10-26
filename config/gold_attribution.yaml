@@ -96,10 +96,12 @@ weekly:
   cftc: {key: cftc.dis_managed_money_net, instrument: GOLD,
          label: "CFTC managed money, net (COMEX gold)"}
   targets: "Sell-side targets: not yet built (Tranche B)."
-  # THE AHEAD LINE: the week's scheduled events that move gold, ranked 1-5 by the
-  # calendar's own significance (higher first), at most five. Session-set list.
-  ahead_kinds: [fomc, cpi, pce, payrolls, employment, ppi, gdp, retail_sales,
-                jobless_claims, ism]
+  # THE AHEAD LINE: the Weekly calendar's rows (daily_cascade/weekly_sections.
+  # calendar_week) whose release class moves gold, ranked by the calendar's own
+  # importance tier (1 first), then by date, and numbered 1-5. Session-set list
+  # of the classes in config ahead's release_classes.
+  ahead_classes: [fomc_decision, fomc_minutes, inflation_print, inflation_data,
+                  labour_print, labour_data, growth_print, coupon_benchmark, refunding]
   ahead_max: 5
   # THE CHART (W13): gold's close over the stored window (the last two years),
   # its 200-day average and the record marked. Counted inside the Weekly's chart

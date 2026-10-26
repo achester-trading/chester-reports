@@ -269,6 +269,13 @@ sections:
   # code-written lines only (prose_wanted false), so its budget is 0 prose words
   # and 0 charts: it displaces nothing inside the 10,000 words or the 12 charts.
   - {id: labour,      title: "Labour", subtitle: "payrolls' cyclical core, breadth, revisions, flows and wages",                          monthly: medium}
+  # THE GOLD BLOCK, the Weekly only (signal-triage Batch 16 item 88(a), written as
+  # round 7's 81(a); ruled 26 Oct 2026; B75): between Plumbing & rates and
+  # Positioning & flows, every Sunday from 8 Nov 2026, about 400 words of desk
+  # commentary (weekly deep) and one chart (W13, inside the chart cap). Built by
+  # daily_cascade/gold_block.py; S1's config/stack_hooks/ is not on this base, so
+  # the section list carries it. The Monthly chapter (88(b)) is Tranche B.
+  - {id: gold,        title: "Gold", subtitle: "the tape, what moved it, who holds it, and the tells",                weekly: deep}
   - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium, quarterly: deep, quarterly_tier: reference}
   - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep, quarterly: deep, quarterly_tier: reference}
   - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep, quarterly: medium, quarterly_tier: reference}
