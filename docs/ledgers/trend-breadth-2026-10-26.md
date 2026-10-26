@@ -1,5 +1,7 @@
 # Trend-signal breadth against what followed -- calibration ledger (Batch 16 item 89(b))
 
+**The binding first edition is the box's, run on the backfill after the merge; the laptop edition below was run once before this block was committed, on a partial store, and binds nothing (ruled 26 Oct 2026). The Nasdaq-100 is a proxy throughout: QQQ.**
+
 <!-- prereg:begin -->
 ## Pre-registration
 

@@ -65,6 +65,13 @@ and the share prints "of n held", n reduced. ES and NQ's history starts only whe
 the overnight writer started, since it stores one settle a morning; it is the one
 stored daily front for them (the bars table is not keyed).
 
+**The ES and NQ convention (accepted 26 Oct 2026).** Each close is
+`overnight.<es|nq>_prior_settle` at instrument `ES=F` / `NQ=F`: Yahoo's
+continuous front month, unadjusted, as last traded at 16:00 ET. It is observed
+on that session and available when the 06:45 overnight pull wrote it, the next
+morning. A 16:00 ET print is not the exchange's settlement, and a roll's gap
+stays in the series.
+
 ## What prints
 
 - **The table** goes in the Weekly's Positioning & flows, and the Monthly reads the
@@ -178,3 +185,18 @@ All pass.
    is a new dated registration, never an edit of this block.
 
 - **CI:** in progress at `618e825`, run 40383686285. The next paste on this branch reads it once.
+
+## Ruled (26 Oct 2026)
+
+1. AUD/USD stays the sixteenth row: the order's 82(b) lists AUD.
+2. ES and NQ from the overnight writer's 16:00 ET settles: accepted. The
+   convention is labelled above, under the markets.
+3. The Nasdaq-100 outcome through QQQ: accepted, labelled a proxy in the
+   ledger's head.
+4. The `trend_breadth` mechanism group: accepted.
+5. The order's 82(b) market list and outcome windows match the build. No new
+   registration.
+
+**The order of work, as disclosed: accepted.** The binding first edition is the
+box's, run on the backfill after the merge; the ledger's head says so in one
+line, outside the hashed block, whose SHA-256 is unchanged.
