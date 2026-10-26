@@ -345,8 +345,12 @@ def main() -> int:
 
     # --- A. STACK --------------------------------------------------------------
     print(f"\n{LINE}\nA. THE STACK AT THE WEEKLY'S DEPTHS\n{LINE}")
-    check([s["id"] for s in ed["sections"]] == list(stack_mod.SECTION_ORDER),
-          "ten sections in the brief's order")
+    # Eleven since B75: the gold block (Batch 16 item 88(a)) is the Weekly's own
+    # section, between Plumbing & rates and Positioning & flows.
+    want = list(stack_mod.SECTION_ORDER)
+    want.insert(want.index("plumbing") + 1, "gold")
+    check([s["id"] for s in ed["sections"]] == want,
+          "the ten sections in the brief's order, and Gold after Plumbing (B75)")
     want = {"read": "deep", "tape": "deep", "mechanics": "medium", "misfit": "deep",
             "plumbing": "medium", "positioning": "deep", "narratives": "medium",
             "ahead": "deep", "book": "medium"}

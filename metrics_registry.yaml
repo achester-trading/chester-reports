@@ -19005,6 +19005,7 @@ families:
   yfinance.fund_orcl_net_debt: quantity
   yfinance.fund_orcl_operating_cash_flow: quantity
   zec.beta_to_btc_60d: ratio
+  gold.beta_real_60d: ratio
   zec.btc_ratio: ratio
   zec.crypto_cap_share: ratio
   zec.market_cap_usd: quantity
@@ -19613,3 +19614,8 @@ lens_excluded:
   zec.shielded_probe: "units 'label': not a level series"
   rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
   ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"
+  gold.attr.real_yield: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.breakeven: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.dollar: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.liquidation: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.official_bid: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
