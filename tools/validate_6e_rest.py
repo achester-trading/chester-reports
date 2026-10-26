@@ -23,6 +23,8 @@ store, fetches or calls a model. No figure here is real.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import math
 import re

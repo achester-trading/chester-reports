@@ -41,6 +41,8 @@ and the store are seeded in a temporary database of the gate's own.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import json
 import os
 import socket

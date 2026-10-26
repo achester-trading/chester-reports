@@ -56,6 +56,8 @@ which let it run unattended cannot be widened by accident.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import fnmatch
 import json
 import re
@@ -523,12 +525,24 @@ def group_g() -> None:
     # THE POINT OF THE MAKEFILE IS ONE LIST. A shim carrying its own copy of the
     # validator names would be the third place the list lives, which is how four
     # gates drifted out of CI while still passing locally.
-    check("mk_list" in shim and "Makefile" in shim,
-          "the shim READS the gate list out of the Makefile rather than keeping "
-          "its own copy -- one list is the Makefile's entire reason to exist")
-    for name in ("PY_VALIDATORS", "EXTRA", "SH_VALIDATORS", "DATA_GATES"):
-        check(re.search(rf'mk_list {name}\b', shim) is not None,
-              f"and reads {name} from it")
+    check("tools/gate_list.py" in shim and "mk_list" in shim and "Makefile" in shim,
+          "the shim READS the gate list from tools/gate_list.py, the tool the "
+          "Makefile calls, rather than keeping its own copy -- one list is the "
+          "whole point")
+    # S1: the three lists are the gates' declarations, through the one tool;
+    # EXTRA is still read out of the Makefile.
+    for name, kind in (("PY_VALIDATORS", "code"), ("SH_VALIDATORS", "shell"),
+                       ("DATA_GATES", "data")):
+        check(re.search(rf'{name}="\$\(gate_list {kind}\)"', shim) is not None,
+              f"and reads {name} from it (--kind {kind})")
+    check(re.search(r"mk_list EXTRA\b", shim) is not None,
+          "and reads EXTRA from the Makefile")
+    mk = MAKEFILE.read_text(encoding="utf-8")
+    check(all(re.search(rf"^{n} := \$\(shell \$\(LISTPY\) tools/gate_list\.py "
+                        rf"--kind {k}\)", mk, re.M)
+              for n, k in (("PY_VALIDATORS", "code"), ("SH_VALIDATORS", "shell"),
+                           ("DATA_GATES", "data"))),
+          "and the Makefile builds the same three lists from the same tool")
     check(not re.search(r"^\s*PY_VALIDATORS=[\"']?tools/", shim, re.M),
           "and hardcodes no validator path of its own")
     # figures has an ADOPT=1 mode that overwrites the committed Currencies

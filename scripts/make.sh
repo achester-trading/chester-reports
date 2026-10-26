@@ -10,11 +10,12 @@
 # and every gate run went back to a prompt. An allowlist that does not reach the
 # real command is decoration.
 #
-# IT DOES NOT KEEP ITS OWN LIST OF VALIDATORS. It parses PY_VALIDATORS, EXTRA,
-# SH_VALIDATORS and DATA_GATES out of the Makefile, because the entire reason the
-# Makefile exists is that the list of gates once lived in two places and four of
-# them had drifted out of CI while still passing locally. A shim with its own copy
-# would be the third place. Adding a gate is still one line in the Makefile.
+# IT DOES NOT KEEP ITS OWN LIST OF VALIDATORS. It reads PY_VALIDATORS,
+# SH_VALIDATORS and DATA_GATES from tools/gate_list.py -- the same tool the
+# Makefile calls -- and EXTRA out of the Makefile, because the entire reason for
+# one list is that the gates once lived in two places and four of them had
+# drifted out of CI while still passing locally. A shim with its own copy would
+# be the third place. A gate joins by declaring GATE_KIND in its own file (S1).
 #
 #   bash scripts/make.sh validate        every code gate, keep going, then report;
 #                                        data gates run and report, no exit code
@@ -64,13 +65,16 @@ mk_list() {
     ' Makefile | tr -d '\r'
 }
 
-PY_VALIDATORS="$(mk_list PY_VALIDATORS)"
+# The declared lists, from the one tool (S1); CR stripped for the same reason.
+gate_list() { "$PY" tools/gate_list.py --kind "$1" | tr -d ''; }
+
+PY_VALIDATORS="$(gate_list code)"
 EXTRA="$(mk_list EXTRA)"
-SH_VALIDATORS="$(mk_list SH_VALIDATORS)"
-DATA_GATES="$(mk_list DATA_GATES)"
+SH_VALIDATORS="$(gate_list shell)"
+DATA_GATES="$(gate_list data)"
 
 if [ -z "$(echo "$PY_VALIDATORS" | tr -d ' \n')" ]; then
-    echo "could not read PY_VALIDATORS out of the Makefile -- refusing to run a" >&2
+    echo "tools/gate_list.py listed no code gates -- refusing to run a" >&2
     echo "shorter list than the Makefile holds, which is the failure this whole" >&2
     echo "arrangement exists to prevent." >&2
     exit 2

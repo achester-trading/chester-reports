@@ -34,6 +34,8 @@ No gate reads the live store, fetches or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import io
 import json
 import os
@@ -830,10 +832,10 @@ def code_counts() -> dict:
     from altdata.sources import yfinance_source as yf
     mk = (REPO / "Makefile").read_text(encoding="utf-8")
 
-    def block(name):
-        m = re.search(rf"^{name} := \\\n(.*?)(?:\n\n|\Z)", mk, re.S | re.M)
-        return re.findall(r"tools/\S+", m.group(1)) if m else []
-    py, sh, data = block("PY_VALIDATORS"), block("SH_VALIDATORS"), block("DATA_GATES")
+    # The lists are the gates' own declarations (S1), read through the one tool.
+    import gate_list
+    py, sh, data = (gate_list.gates("code"), gate_list.gates("shell"),
+                    gate_list.gates("data"))
     extra = len(re.findall(r"^EXTRA := (\S+)", mk, re.M))
     ms = yaml.safe_load((REPO / "config" / "market_state.yaml").read_text(
         encoding="utf-8"))

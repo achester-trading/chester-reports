@@ -104,6 +104,8 @@ Tranche 2 (X-2; change order sections 4 and 10):
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import datetime as dt
 import hashlib

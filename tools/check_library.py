@@ -25,6 +25,8 @@ one line to it -- the same discipline as adding a validator to the Makefile or
 a report key to state/emit.py:VALID_KEYS.
 """
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import hashlib
 import re
 import subprocess

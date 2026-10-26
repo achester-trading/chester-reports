@@ -44,6 +44,8 @@ tools/validate_monthly_store.py.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import sys
 from pathlib import Path
 import os as _gt_os                                            # noqa: E402

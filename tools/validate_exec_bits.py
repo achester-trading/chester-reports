@@ -52,6 +52,8 @@ xvfb-run, IBC's own launcher) are the box's business, not the repo's.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import re
 import subprocess
 import sys

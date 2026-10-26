@@ -33,6 +33,8 @@ gate. It never reads the live store, fetches or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import re
