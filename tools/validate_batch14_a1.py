@@ -44,6 +44,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+# The dated-appendix queue is a directory (S1 part 4): read the entries.
+import appendix_queue_index                                 # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -257,15 +259,14 @@ def group_f() -> None:
     check("shiller.real_home_price" in (reg.get("metrics") or reg),
           "the new key, shiller.real_home_price, is registered")
     mine = src + (REPO / "config" / "narratives.yaml").read_text(encoding="utf-8").split(
-        "gse_mbs_purchase_floor:")[1] + (REPO / "docs" / "dated-appendix-queue.md").read_text(
-        encoding="utf-8").split("(Batch 14 item 64)")[1]
+        "gse_mbs_purchase_floor:")[1] + appendix_queue_index.queue_text(REPO).split("(Batch 14 item 64)")[1]
     check(not re.search(r"Bradshaw|Nobler|Pulte|Trump|Bilello|Varghese|@[A-Za-z]", mine),
           "no person's name or handle in the new code, proposal or appendix lines")
 
 
 def group_g() -> None:
     head("G. THE DATED APPENDIX")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     check("(Batch 14 item 64)" in q and "5.31% on 5 Oct 2026" in q and "2.95%" in q
           and "14 May 2002" in q and "24 Nov 2008" in q,
           "the 10-year record: 5 Oct 2026's closes, highest since 2002 and 2008")

@@ -57,6 +57,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+# The dated-appendix queue is a directory (S1 part 4): read the entries.
+import appendix_queue_index                                 # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -387,7 +389,7 @@ def group_g() -> None:
 
 def group_h() -> None:
     head("H. THE DATED APPENDIX")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     tail = q.split("(Batch 14 item 68)")[-1]
     check("(Batch 14 item 68)" in q and "Dated 20 Oct 2026" in tail and "66.0" in tail
           and "7.3%" in tail and "11.3%" in tail
@@ -419,7 +421,7 @@ def group_i() -> None:
           "the new modules write no store, read no vendor value or by-hand key, and import "
           "no composite, market-state object or register")
     nar_txt = (REPO / "config" / "narratives.yaml").read_text(encoding="utf-8")
-    queue = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    queue = appendix_queue_index.queue_text(REPO)
     mine = "\n".join([
         src, (REPO / "config" / "cma_table.yaml").read_text(encoding="utf-8"),
         NOTE.read_text(encoding="utf-8"),

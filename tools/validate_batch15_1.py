@@ -52,6 +52,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+# The dated-appendix queue is a directory (S1 part 4): read the entries.
+import appendix_queue_index                                 # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -458,7 +460,7 @@ def group_e() -> None:
     check(not re.search(r"^\s+dtcc[._]", reg, re.M) and "\n  dtcc" not in src
           and not (REPO / "altdata" / "cds_protection.py").exists(),
           "no protection-demand line, flag or DTCC key is built (check 4 failed)")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     sec = q[q.find(APPENDIX_HEAD):] if APPENDIX_HEAD in q else ""
     check(bool(sec) and "$1.09m" in sec and "$322k" in sec and "$226k" in sec
           and "$108k" in sec and "$101k" in sec and "Source line:" in sec
@@ -563,7 +565,7 @@ PEOPLE = ("Dalio", "Marino", "Prehn", "Curzio", "Gadala", "Muur", "Radge", "Wanj
 def group_h() -> None:
     head("H  HYGIENE")
     texts = {p: (REPO / p).read_text(encoding="utf-8") for p in NEW_MODULES + NEW_CONFIG}
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     texts["appendix"] = q[q.find(APPENDIX_HEAD):]
     hits = [f"{p}: {n}" for p, t in texts.items() for n in PEOPLE if n in t]
     hits += [f"{p}: \\bAri\\b" for p, t in texts.items() if re.search(r"\bAri\b", t)]
