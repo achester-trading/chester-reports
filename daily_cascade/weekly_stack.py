@@ -1032,6 +1032,14 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
         hfp = batch15_b2_block.positioning_subsection(st, now)
         if hfp:
             out.append(hfp)
+    # SIGNAL-TRIAGE BATCH 16, ITEM 89(b) (B76): trend breadth, our own
+    # cross-asset trend signal, one table; the Monthly reads the same table.
+    # Nothing in the daily close.
+    if cadence in ("weekly", "monthly"):
+        from . import trend_breadth_block                       # noqa: PLC0415
+        tbs = trend_breadth_block.positioning_subsection(st, now)
+        if tbs:
+            out.append(tbs)
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
     # slow-money set and of SR-36's unwind watch, never a flag of its own. The

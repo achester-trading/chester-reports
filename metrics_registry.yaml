@@ -553,6 +553,9 @@ vocabularies:
     - prediction_market
     # The correlation layer (AQ-5): one mechanism, however many pairs.
     - cross_asset_correlation
+    # Trend breadth (Batch 16 item 89(b), B76): one mechanism, however many
+    # markets and lookbacks -- sixty-four signs are one reading of the closes.
+    - trend_breadth
     # Batch 4 Tranche A part 1 (17 Oct 2026): crypto perp leverage (funding,
     # open interest, long/short across the venues) and Bitcoin's and Ethereum's
     # network state (hashrate, fees, gas).
@@ -16180,6 +16183,46 @@ metrics:
     description: >-
       The J.P.Morgan Global Manufacturing PMI headline (S&P Global; 50 = no change), entered by hand from the public release: the series is S&P Global's. observed_at = the reference month's first day. ST-R5.43a's growth read beside the diffusion index.
 
+  trend.flips_week:
+    source: calc
+    mechanism_group: trend_breadth
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 89(b) (B76; altdata/trend_breadth.py): the trend signals' sign
+      changes, across the held markets and the four lookbacks (20, 60, 120, 250
+      sessions), observed in the seven calendar days to the day. Computed from the
+      store's closes; available when the latest input is. Report rights only:
+      barred from the market-state object.
+  trend.reversing_share:
+    source: calc
+    mechanism_group: trend_breadth
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 89(b) (B76; altdata/trend_breadth.py): reversing breadth, the
+      share of held markets carrying a state whose state is "reversing" (the
+      20-session sign non-zero, opposite the 250-session one, and changed inside
+      the market's last five sessions), percent. Its calibration ledger is
+      docs/ledgers/trend-breadth-2026-10-26.md, pre-registered; no rights until it
+      is read. Barred from the market-state object.
+
 bulk_imports:
 
   fred_macro:
@@ -17966,6 +18009,27 @@ bulk_imports:
     mechanism_group: crypto_protocol_economics
     long_window: 365d
 
+  trend_breadth_signs:
+    description: >-
+      Batch 16 item 89(b) (B76): each held market's trend sign at four lookbacks,
+      keyed trend.<market>.<lookback> (trend.ust_10y.250 ...): +1 when the close
+      is above the mean of its last L closes, -1 below, 0 equal, per the market's
+      own sessions (config/trend_breadth.yaml, declared, not fitted). Computed
+      from stored closes only (D33); a sign is available when the latest close in
+      its window is. Report rights only; barred from the market-state object.
+    source: calc
+    members_from: altdata.trend_breadth.SIGN_KEYS
+    members_are: keys
+    expected_members: 64
+    units: ratio
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group: trend_breadth
+
 families:
   # Signal-triage Batch 6, the rest of Tranche 1 (16 Oct 2026).
   sp500.member_weight: ratio
@@ -19028,6 +19092,9 @@ market_state_barred:
     rule: "report only: nothing here enters a composite or the market-state object"
     keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
+  - order: docs/change-order-signal-triage-round-7-2026-10-26.md (Batch 16 item 89(b), written as 82(b); B76)
+    rule: "trend breadth is a report; it enters the Top & Bottom intake queue only after its calibration ledger is read"
+    keys: ["trend.*"]
 
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
@@ -19508,3 +19575,4 @@ lens_excluded:
   zec.shielded_probe: "units 'label': not a level series"
   rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
   ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"
+  trend_breadth_signs: "a sign (+1, -1 or 0) per market and lookback, not a level series (item 89(b))"

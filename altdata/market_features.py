@@ -1125,9 +1125,20 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("funding-currency features failed", exc_info=True)
             fcr = {"error": f"{type(exc).__name__}: {exc}"}
+        # BATCH 16 ITEM 89(b)'S TREND BREADTH (B76), after ST-5's: the signs over
+        # its own recent days (its full history is `python -m
+        # altdata.trend_breadth backfill`). Never fatal.
+        try:
+            from . import trend_breadth                          # noqa: PLC0415
+            tbr = trend_breadth.compute(
+                as_of=as_of, first_day=trend_breadth.default_first_day(db, as_of),
+                store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("trend breadth failed", exc_info=True)
+            tbr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
                 "dry_run": dry_run, "correlation": corr, "absorption": absr,
-                "funding_currency": fcr}
+                "funding_currency": fcr, "trend_breadth": tbr}
     finally:
         if own:
             db.close()

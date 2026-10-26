@@ -1410,12 +1410,20 @@ def t31_positioning_group(ed: dict, out: dict) -> None:
                                      "Three months"],
           "the Weekly's sector table is unchanged: the switch is the cadence")
     want = ["sectors", "cftc", "short", "retail", "tic", "alloc"]
-    check([ss.get("phase") for ss in pos["subsections"]]
+    # Batch 16 item 89(b) (B76): the trend-breadth table rides Positioning at
+    # both cadences as a table without a read (paragraph_wanted false).
+    from daily_cascade import trend_breadth_block as tbb
+    check(subs.get(tbb.TITLE, {}).get("paragraph_wanted") is False
+          and (subs[tbb.TITLE].get("table") or {}).get("columns", [None])[0] == "Market",
+          "item 89(b): the Monthly reads the Weekly's trend-breadth table, with no "
+          "written read")
+    check([ss.get("phase") for ss in pos["subsections"] if ss.get("title") != tbb.TITLE]
           == [f"block:positioning:{g}" for g in want],
           "item 10: each of the six sub-sections -- sectors, CFTC, short interest, "
           "retail sentiment, TIC, and Batch 6's allocation block -- is set up for its "
           "own written read")
-    with_rows = [ss for ss in pos["subsections"] if (ss.get("table") or {}).get("rows")]
+    with_rows = [ss for ss in pos["subsections"] if (ss.get("table") or {}).get("rows")
+                 and ss.get("paragraph_wanted") is not False]
     check(with_rows and all(ss.get("prose") and ss.get("paragraphs") for ss in with_rows)
           and all(ss.get("prose") is None for ss in pos["subsections"]
                   if not (ss.get("table") or {}).get("rows")),
