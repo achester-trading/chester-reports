@@ -130,11 +130,16 @@ def group_a() -> None:
     p = REPO / ORDER
     check(p.exists() and _hash(p) == ORDER_SHA,
           "the Batch 15 order is on file at its SHA-256 (filed byte for byte)")
-    co = (REPO / "docs" / "change-orders.md").read_text(encoding="utf-8")
+    # The index and the register's cell, read through the tool that writes them
+    # (S1 part 3); --check holds the committed files to it.
+    import change_orders_index as coi                           # noqa: PLC0415
+    co = coi.index_text(REPO)
     i14 = co.find("change-order-signal-triage-batch-14-2026-10-20.md")
     i15 = co.find("change-order-signal-triage-batch-15-2026-10-23.md")
     check(0 <= i14 < i15, "docs/change-orders.md indexes it after Batch 14")
-    reg = (REPO / "docs" / "signal-triage-register.md").read_text(encoding="utf-8")
+    check(not coi.run(REPO, write=False),
+          "and the committed index and cell are what the tool writes")
+    reg = coi.register_text(REPO)
     hdr = next((ln for ln in reg.splitlines() if ln.startswith("| Batch orders")), "")
     check("[15](change-order-signal-triage-batch-15-2026-10-23.md)" in hdr
           and "items 72–78" in hdr, "the register's header lists Batch 15 (items 72-78)")
