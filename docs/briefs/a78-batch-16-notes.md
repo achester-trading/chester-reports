@@ -155,15 +155,16 @@ python tools/calibration/midterm_base_rate.py --box --date 2026-10-28 --out /tmp
 #    check: n 19, the recession column says yes/no rather than "not stored",
 #    and the as-of date is the latest close
 
-# 2. The real run
-python tools/calibration/midterm_base_rate.py --box --date 2026-10-28
+# 2. The real run, OUTSIDE the checkout (where the wealth ledger's box edition
+#    lives too), so git pull --ff-only is never blocked
+python tools/calibration/midterm_base_rate.py --box --date 2026-10-28 --out ~/chester-data/ledgers/
 
 # 4. Check
 python tools/validate_batch16_midterm.py
 ```
 
 **Step 3, the copy-back, is done by a session paste on main after the box run.**
-The operator copies the dated ledger and its CSV back to the laptop. A short
+The operator copies the dated ledger and its CSV from `~/chester-data/ledgers/` back to the laptop. A short
 paste then commits them and makes three changes:
 
 - the "> " headline line from `docs/ledgers/midterm-base-rate-2026-10-28.md`
@@ -182,14 +183,10 @@ Two cautions for the sheet:
   changes only in step 3's paste, so step 4 on the box shows that the gate
   passes, not that the new ledger matches. The paste's own run of the gate is
   the check that the new ledger and the config match.
-- **Step 2 as written leaves an untracked ledger in the box's checkout.**
-  The ledger and its CSV land under `docs/ledgers/`. When step 3's commit adds
-  the same two paths, the box's next `git pull --ff-only` would refuse ("untracked
-  working tree files would be overwritten"). There are two safe ways round it:
-  - write step 2 outside the checkout, with
-    `--out ~/chester-data/ledgers`, and copy from there;
-  - or remove the two box-side files once they are on the laptop and before
-    step 3's commit reaches main.
+- **Step 2 writes outside the checkout** (ruled 26 Oct 2026). The two files land in
+  `~/chester-data/ledgers/`, never in the box's `docs/ledgers/`. That means no
+  untracked file is in the way when step 3's commit adds the same paths, and the
+  box's `git pull --ff-only` is never blocked.
 
 ## Needs-you (five)
 
