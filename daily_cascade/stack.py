@@ -1048,6 +1048,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # fired day only (daily_cascade/batch15_a_block.py; lines only).
         from . import batch15_a_block                           # noqa: PLC0415
         batch15_a_block.close_extras(built, st, p["session"], cutoff)
+        # SIGNAL-TRIAGE BATCH 16 ITEM 88(d) (B75): gold on exception -- one line
+        # only when item 87's 2-sigma trigger fires or an exhaustion tell flips
+        # (daily_cascade/gold_block.py; lines only).
+        from . import gold_block                                # noqa: PLC0415
+        gold_block.close_extras(built, st, p["session"], cutoff)
         # 6f TRANCHE 2 (a63): the dials' transition reads, one line.
         from . import state_v2_block                            # noqa: PLC0415
         state_v2_block.close_extras(built, st, cutoff)
