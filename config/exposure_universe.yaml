@@ -1,0 +1,29 @@
+# exposure_universe.yaml -- the dealer engine's nightly exposure files: the hold
+# and its declared exceptions (signal-triage Batch 16 item 88(c), written as
+# round 7's 81(c); ruled 26 Oct 2026; B75). Read by altdata/config.py
+# exposure_exceptions() and through it by run_eod.py's Stage 2.
+#
+# THE HOLD: the 13 symbols with Greeks (config.options_universe(): SPY, QQQ, IWM
+# and ten single names), ruled 19 Oct 2026; the universe review in December 2026
+# covers any widening. An exception is declared HERE, never in code, each with
+# the ruling that grants it. An exception must already be captured nightly
+# (config.chain_universe()): it adds a computed profile, not a capture.
+#
+# WHAT AN EXCEPTION GETS: its own exposure file each night under the engine's
+# existing conventions (GEX, DEX, the walls and the flip; tools/exposure_compute.
+# py), and its readings in the store through Stage 2b (altdata/dealer_store.py).
+# WHAT IT DOES NOT: the pin log, the completeness gate, the dealer tables of the
+# close and the Weekly's Mechanics -- those carry the 13 and their statistics
+# are the 13's. Session-set: the capture time is the engine's (the 16:10 pass).
+hold:
+  count: 13
+  ruled: "19 Oct 2026"
+  review: "December 2026 (the universe review)"
+exceptions:
+  - symbol: GLD
+    security_master_id: SM00022
+    ruled: "26 Oct 2026: Batch 16 item 88(c) (round 7's 81(c)), 'a one-ticker exception to the 13-ticker hold'"
+    reads: "the Weekly gold block's GLD levels line (daily_cascade/gold_block.py)"
+    # FlashAlpha's plan (config/flashalpha.yaml) serves SPY, QQQ, IWM, SPX and
+    # MSTR; GLD is not in it, so the vendor-comparison line says so.
+    vendor_comparison: "not served: GLD is not in config/flashalpha.yaml's plan"

@@ -836,6 +836,25 @@ def options_universe() -> list[str]:
     return INDEX_ETF_SYMBOLS + SINGLE_NAMES
 
 
+def exposure_exceptions(path: "str | None" = None) -> list[str]:
+    """Symbols computed into the nightly exposure files beside the 13, each a
+    declared exception in config/exposure_universe.yaml with its ruling (Batch
+    16 item 88(c): GLD). Only a symbol already captured nightly is returned."""
+    from pathlib import Path                                    # noqa: PLC0415
+    import yaml                                                 # noqa: PLC0415
+    p = Path(path) if path else Path(__file__).resolve().parent.parent / \
+        "config" / "exposure_universe.yaml"
+    try:
+        doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except OSError:
+        return []
+    held = set(options_universe())
+    captured = set(options_universe()) | set(PAPER_BID_SYMBOLS)
+    return [str(e["symbol"]) for e in doc.get("exceptions") or []
+            if e.get("symbol") and e.get("ruled") and str(e["symbol"]) in captured
+            and str(e["symbol"]) not in held]
+
+
 def chain_universe() -> list[str]:
     """Every symbol the yfinance chain fetcher captures nightly: the 13 and the
     paper bid's four. 17 today."""
