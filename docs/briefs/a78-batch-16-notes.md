@@ -142,7 +142,7 @@ unchanged.
 
 ## CI
 
-See the last section.
+CI in progress at push, run 40333495867 (Gates), on 62e19d19. The next paste on this branch reads it.
 
 ## Needs-you (five)
 
