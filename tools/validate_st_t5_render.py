@@ -459,7 +459,7 @@ def group_e() -> None:
     md = mw.render(rows, as_of="2026-10-31")
     check(md.startswith("# Mechanism-watch register") and "| MW-0001 | Fixture Chain |" in md
           and "Never edited by hand" in md, "the rendered view (make mechanism-register)")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("mechanism-register:" in mk and "altdata.mechanism_watch render" in mk,
           "make mechanism-register renders it")
     try:

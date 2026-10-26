@@ -2638,7 +2638,7 @@ def main() -> int:
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_monthly_stack.py" in mk, "the Makefile's list carries it")
     del yaml
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")

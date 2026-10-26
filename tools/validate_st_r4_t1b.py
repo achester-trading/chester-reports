@@ -442,7 +442,7 @@ def group_f() -> None:
           "the basket carries the three Cboe indices and ZN=F; TLT and ZN=F store OHLC")
     cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")
     check("altdata.batch5b:" in cat, "the catalogue names the new command")
-    mf = (REPO / "Makefile").read_text(encoding="utf-8")
+    mf = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_st_r4_t1b.py" in mf, "this gate is in the Makefile")
     from daily_cascade import batch5b_block as blk
     with observations.ObservationStore(store([])) as st:

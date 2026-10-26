@@ -489,7 +489,7 @@ def group_glossary() -> None:
 
 def group_i() -> None:
     print(f"\n{LINE}\nI. THE GATE IS REGISTERED\n{LINE}")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_stack_cadence.py" in mk, "the Makefile's list carries it")
 
 

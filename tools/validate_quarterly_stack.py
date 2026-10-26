@@ -438,7 +438,7 @@ def group_f() -> None:
           and "systemctl --user enable --now chester-quarterly.timer" in t,
           "shipped disabled: not in DEPLOY_TIMERS; the enable command is printed "
           "for the operator")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_quarterly_stack.py" in mk, "this gate is in the "
                                                      "Makefile's list")
 

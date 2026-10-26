@@ -343,7 +343,7 @@ def group_f() -> None:
           "on a variable nobody has set trains its reader to ignore it")
 
     # In make validate, and therefore in CI: the matrix reads the Makefile.
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_events.py" in mk,
           "this gate is in the Makefile's one list, which is what puts it in the "
           "CI matrix")

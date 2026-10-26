@@ -542,7 +542,7 @@ def group_f() -> None:
           "the catalogue names both new commands")
     rel = {r["id"] for r in CFG["releases"]}
     check({"ppi", "gdp"} <= rel, "lens 24's releases include PPI and GDP")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_releases_b.py" in mk, "the Makefile runs this gate")
 
 

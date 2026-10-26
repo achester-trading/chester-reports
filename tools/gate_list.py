@@ -57,6 +57,15 @@ def by_kind(root: Path = REPO) -> dict[str, list[str]]:
     return {k: gates(k, root) for k in KINDS}
 
 
+def makefile_text(root: Path = REPO) -> str:
+    """The Makefile as a gate reads it to ask "am I in the list": its text, and
+    after it every declared gate, one a line. Before S1 the paths were in the
+    Makefile itself; a gate that checks its own wiring reads this instead."""
+    text = (root / "Makefile").read_text(encoding="utf-8")
+    return (text + "\n# THE DECLARED GATES (tools/gate_list.py)\n"
+            + "".join(f"{g}\n" for k in KINDS for g in gates(k, root)))
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="the gate list, by declared kind")
     ap.add_argument("--kind", required=True, choices=KINDS)

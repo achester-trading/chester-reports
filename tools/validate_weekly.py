@@ -271,7 +271,7 @@ def group_e() -> None:
           "runs, and 'no payload' as red")
     check("run_weekly.sh" in s, "and runs the wrapper")
 
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     # READ FROM scripts/deploy_remote.sh, where the list lives. This used to
     # search the Makefile, which has not declared DEPLOY_TIMERS since the deploy
     # became a delegation -- so the check matched nothing and passed whatever
