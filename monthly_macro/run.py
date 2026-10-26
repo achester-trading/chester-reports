@@ -95,6 +95,11 @@ def deliver_edition(stamp: str, out_dir: str = "reports",
         # with the Quarterly. Neither ever raises.
         lab = (quarterly_attachment(stamp) if prefix == "alt_asset"
                else monthly_attachment(stamp))
+        if prefix != "alt_asset":
+            # LL-1 (B73): the decision-quality line and its two tables, appended
+            # to the Lab report outside alpha/ (which may not read the ledgers).
+            from altdata.decision_quality import with_lab_report  # noqa: PLC0415
+            lab = with_lab_report(lab, stamp)
         state, detail = delivery.send_html(
             ("[DRY RUN] " if dry_run else "") + subject.format(date=stamp), html,
             text_fallback=md,

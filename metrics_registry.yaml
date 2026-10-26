@@ -4933,6 +4933,61 @@ metrics:
       what always saying 50% gets you, 1 is certain and wrong. revision_policy is
       `never`: a forecast is immutable by trigger and a resolution is written
       once, so the score cannot change once it exists.
+  # LEARNING LOOP v2, LL-1 and LL-3 (B73; the brief of 25 Oct 2026, decisions 1
+  # and 11). Measurement of the system's own forecasting and decisions: report
+  # only, trigger_eligible false, barred from the market-state object below.
+  brier.decomposition:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: monthly
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-1 (altdata/decision_quality.py): Murphy's decomposition of the Brier
+      score over the ledger's resolved rows (reliability, resolution,
+      uncertainty and the within-bin term, ten bins of 0.1) by source family and
+      horizon bucket, "accruing (n=k of 100)" below 100 rows a cell; and the
+      system line over 13 and 52 weeks. Computed at read, never stored; printed
+      in the Monthly's Lab report and the Doctrine pack.
+  grade.counterfactual:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: monthly
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-1 (altdata/decision_quality.py): the counterfactual ledger per book,
+      ruled R over the latest grade per decision for the taken, the declined (the
+      filter) and the drafts (the cost of abstention); and the Weekly stance's
+      implied book against Book Z's cash, SPY and 60/40 marks. Computed at read,
+      never stored.
+  learning.error_corpus:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-3 (altdata/error_corpus.py): the error_corpus table in chester.db, one
+      append-only row per graded miss (a ledger row past the coin's Brier, or a
+      grade with negative ruled R): what was said, what happened, the margin,
+      and the absent dimensions, awaiting legs and missing inputs at emission.
+      Code only, no model; read by the critic (LL-5), printed nowhere.
   brier.running:
     source: derived_probability
     mechanism_group: forecast_calibration
@@ -19028,6 +19083,9 @@ market_state_barred:
     rule: "report only: nothing here enters a composite or the market-state object"
     keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
+  - order: docs/briefs/learning-loop-v2-brief-2026-10-25.md (section 3; decisions 1 and 11 ruled 25 Oct 2026; B73)
+    rule: "report only: the system's own grades are evidence for the sittings, never an input to the object"
+    keys: ["brier.decomposition", "grade.counterfactual", "learning.error_corpus"]
 
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
