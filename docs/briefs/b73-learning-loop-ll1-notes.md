@@ -189,3 +189,5 @@ trigger: an additive `ALTER`, with no existing row edited.
    yet"). Should LL-5 put it in the EOD pass after the grader?
 3. **The stance's short side:** the Weekly stance is read as long SPY or cash. If a
    stance below 0.5 should be read as short SPY instead, say so (one line).
+
+- **CI:** in progress, run 40340433664 (at `dc49d4f`), read once at push. The next paste that touches this branch reads the result once.
