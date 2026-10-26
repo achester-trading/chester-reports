@@ -143,3 +143,12 @@ The Weekly block's other inputs:
 
 - **Local runs:** the three new gates, check_registry, check_library, validate_audit_3a, validate_gates, check_master_guide, validate_figure_budget, validate_dealer_block, validate_daily_close, validate_weekly_complete, validate_weekly_edits and validate_st_r5_index pass. validate_monthly_stack failed once, on the registry sweep (gold.attr.* typed count); that is fixed (typed label), but its rerun and a wider Weekly batch were stopped by the laptop running low on memory, so CI is their check.
 - **CI:** queued at `ac353f9`; the run id is in the report. The next paste on this branch reads the result once.
+
+## Ruled (26 Oct 2026)
+
+1. Official bid: the file stays empty; the 8 Nov block prints "no record yet"; the operator supplies the first dated record before 8 Nov.
+2. The chart cap is 11 (`403454e`): W13 never sets another chart aside; the words stay 7,900.
+3. The Nasdaq-100 leg through QQQ: accepted.
+4. 2σ, as the order says: accepted.
+
+- **CI round 2:** runs 40352607527 and 40377224688 failed on three gates the laptop had not run: validate_lenses (gold.attr.* had no family or exclusion; gold.beta_real_60d no family), validate_weekly_stack (expected ten sections; Gold is the eleventh) and validate_quarterly_stack (the Weekly-only gold section has no quarterly depth). Fixed in `64c5a51`. Locally all three pass, as do validate_monthly_stack, validate_audit_3a, check_registry, validate_weekly_complete, validate_weekly_edits, validate_stack_cadence and validate_weekly_gold_block. CI queued, run 40379206540.
