@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty-two code gates (one hundred and thirty-nine Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-five code gates (one hundred and forty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -946,6 +946,20 @@ absent with its reason; every read is as of. The settings are
 to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
 crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
 is `docs/volume-profile.md`.
+
+**Top & Bottom is calibrated through its overlays, never a composite (6i, 26 Oct
+2026).** `altdata/tb_harness.py` reads the 3 Sep episodes and the flagged extended
+set from `config/tb_episodes.yaml` through the three overlays of the
+architecture's Part 23, each input as of its decision date's close from a read-only
+store, and writes only its dated ledger, `docs/ledgers/tb-harness-<date>.md`, under
+the pass rule pre-registered in that config. A series before it exists reads "not
+existent"; the credit leg prints "pending 6i-3: Baa less the 10-year" until HY OAS
+is stored. No `top_bottom` composite is stored or registered (the 6i brief's
+decision 3). Disruptive Themes' Stage 1 panels (`daily_cascade/themes_block.py`,
+`config/themes_panels.yaml`) join the Alternative Assets Quarterly through a hook
+file after its family chapters, unscored, every unstored input a GAP cell with its
+reason; Stages 2 to 4 are 6i-6. `tools/validate_tb_harness.py`,
+`validate_quarterly_rows_6i.py` and `validate_themes_panels.py` hold them.
 
 **The dealer block is a view of the exposure JSON (6b part 1, brief v2 ratified
 16 Oct 2026).** `daily_cascade/dealer_block.py` prints T1 with its quality panel,

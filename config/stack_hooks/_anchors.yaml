@@ -4,3 +4,7 @@ monthly:
   slow:
     # After the scans' sourced figures, at the end of the slow layers' sub-sections.
     - sourced_figures
+quarterly:
+  slow:
+    # After the eleven family chapters (monthly_macro/quarterly.py, 6i-5).
+    - family_chapters
