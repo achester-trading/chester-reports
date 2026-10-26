@@ -140,3 +140,6 @@ The Weekly block's other inputs:
    or order an index source.
 4. **The 2σ reading:** it uses the move screen's sigma at the order's 2, not the
    screen's own 2.5. Confirm.
+
+- **Local runs:** the three new gates, check_registry, check_library, validate_audit_3a, validate_gates, check_master_guide, validate_figure_budget, validate_dealer_block, validate_daily_close, validate_weekly_complete, validate_weekly_edits and validate_st_r5_index pass. validate_monthly_stack failed once, on the registry sweep (gold.attr.* typed count); that is fixed (typed label), but its rerun and a wider Weekly batch were stopped by the laptop running low on memory, so CI is their check.
+- **CI:** queued at `ac353f9`; the run id is in the report. The next paste on this branch reads the result once.
