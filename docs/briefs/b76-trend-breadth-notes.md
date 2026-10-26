@@ -176,3 +176,5 @@ All pass.
 5. **The order's text:** it was not available to this session. If entry 82 states
    a pass rule or market list that differs from the paste's, it governs. The fix
    is a new dated registration, never an edit of this block.
+
+- **CI:** in progress at `618e825`, run 40383686285. The next paste on this branch reads it once.
