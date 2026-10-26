@@ -200,3 +200,4 @@ All pass.
 **The order of work, as disclosed: accepted.** The binding first edition is the
 box's, run on the backfill after the merge; the ledger's head says so in one
 line, outside the hashed block, whose SHA-256 is unchanged.
+- **CI round 2:** runs 40383686285 and 40383731901 failed on validate_weekly_edits alone (it pins Positioning's sub-section titles; the trend table is the fourth). Fixed in the next commit; it passes locally (91 of 91).
