@@ -119,3 +119,9 @@ assumes *Price, Time, and Edge*'s participants and forcing mechanisms.
 3. **Figure order.** Keep the brief's numbers (appearing 7, 4, 6, 3, 5, 1, 2), or renumber by appearance in the drawing paste?
 4. **The new Chapter 18** (the two short instances as their own chapter). Accept, or fold it into Chapter 19?
 5. **The Systematic Book's light edits** in the moved 3.5 (above). Accept, or restore the original wording verbatim?
+
+## Ruled (26 Oct 2026)
+
+- **XXVII, checked from the chat against its text on `library-xxvii`: no repetition.** XXVII treats 1987, 1998, the gilts and 2022 only as instances in its regime definitions; XXX carries the mechanisms. Needs-you 2 is closed.
+- **Chapter 18, the two short instances (August 2024 and April 2025): accepted** as its own chapter at the end of Part III; Parts IV and V stay at chapters 19–23.
+- Also ruled, with no change to the paper: the length (16,895 words) is accepted with no cuts before review; the figures are renumbered by order of appearance in the figure paste, not now; and the moved 3.5's light edit is accepted, keeping "illustrative" on its arithmetic.
