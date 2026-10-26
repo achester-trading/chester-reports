@@ -133,7 +133,7 @@ altdata/                  Shared ingestion package — used by every report
                           per-household deflator);
                           4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
                           1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
-                          FRED_PULL_SERIES, 283, is the union the
+                          FRED_PULL_SERIES, 285, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty-five code gates (one hundred and forty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-six code gates (one hundred and forty-three Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -953,13 +953,27 @@ set from `config/tb_episodes.yaml` through the three overlays of the
 architecture's Part 23, each input as of its decision date's close from a read-only
 store, and writes only its dated ledger, `docs/ledgers/tb-harness-<date>.md`, under
 the pass rule pre-registered in that config. A series before it exists reads "not
-existent"; the credit leg prints "pending 6i-3: Baa less the 10-year" until HY OAS
-is stored. No `top_bottom` composite is stored or registered (the 6i brief's
+existent". No `top_bottom` composite is stored or registered (the 6i brief's
 decision 3). Disruptive Themes' Stage 1 panels (`daily_cascade/themes_block.py`,
 `config/themes_panels.yaml`) join the Alternative Assets Quarterly through a hook
 file after its family chapters, unscored, every unstored input a GAP cell with its
 reason; Stages 2 to 4 are 6i-6. `tools/validate_tb_harness.py`,
 `validate_quarterly_rows_6i.py` and `validate_themes_panels.py` hold them.
+
+**The harness's credit leg has two proxies, and its false-positive rate is
+pre-registered (6i-3 and 6i-4, A79, 26 Oct 2026).** DBAA and BAA are in the FRED
+pull so that `calc.baa_less_10y` (daily, from 1986) and `calc.baa_less_10y_m`
+(monthly, from 1962) reach every episode; HY OAS reaches none before 2023 on FRED.
+Both are registered and barred from the market-state object. The Baa proxy is an
+overlay beside HY Spread Acceleration (`proxy_of`), printed with its own window and
+never counted in the calibration's record. `python -m altdata.tb_harness fpr`
+scores every stored S&P 500 session by the rule in
+`docs/ledgers/tb-harness-fpr-2026-10-26.md`, whose head was committed before the
+code and whose hash `config/tb_episodes.yaml` must match. The Monthly prints three
+lines through `config/stack_hooks/monthly-slow-tb-harness.yaml`: the overlays'
+states, the episode record and the rate per overlay with n. The Quarterly's "HY
+spread acceleration" row reads the overlay. `tools/validate_tb_harness_fpr.py`
+holds it.
 
 **The dealer block is a view of the exposure JSON (6b part 1, brief v2 ratified
 16 Oct 2026).** `daily_cascade/dealer_block.py` prints T1 with its quality panel,

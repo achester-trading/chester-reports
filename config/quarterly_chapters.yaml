@@ -1256,7 +1256,7 @@ families:
       - {label: "Private-credit non-accruals and PIK share", absent: "BDC filings and the Boston Fed series are not stored (AQ-3)"}
       - {label: "The listed-BDC discount to NAV", absent: "not stored (AQ-3)"}
       - {label: "Cross-sectional mark dispersion", absent: "filings analysis; not stored"}
-      - {label: "HY spread acceleration", absent: "the Top & Bottom overlay is not on this build"}
+      - {label: "HY spread acceleration", harness_overlay: hy_accel}   # 6i-4 (A79): the T&B harness's overlay, the Baa proxy beside
       - {label: "Credit-equity divergence", absent: "not computed here; the HY OAS and SPY rows are printed beside each other"}
       - {key: fred.hy_oas,       label: "HY OAS"}
       - {key: fred.ig_oas,       label: "IG OAS"}

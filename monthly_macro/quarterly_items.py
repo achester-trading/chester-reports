@@ -694,6 +694,15 @@ def structure_rows(st, specs: list[dict], ctx: dict) -> tuple[list, list, dict]:
         if s is None:
             nt.append(f"{raw['label']}: {why}")
             continue
+        if s.get("harness_overlay"):
+            # 6i-4: the T&B harness's overlay at the quarter's end (report-only).
+            from daily_cascade import tb_harness_block              # noqa: PLC0415
+            txt, asof, why = tb_harness_block.quarterly_row(st, s["harness_overlay"], ctx)
+            if txt is None:
+                nt.append(f"{s['label']}: {why}")
+            else:
+                rws.append([s["label"], f"{txt} ({asof})", "—", "—", five])
+            continue
         if s.get("rel_return") or s.get("corr"):
             txt, asof, why = computed_value(st, s, ctx)
             if txt is None:

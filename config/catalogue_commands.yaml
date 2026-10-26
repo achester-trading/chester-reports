@@ -222,6 +222,9 @@ commands:
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.tb_harness:
+    domain: equity
+    line: 'The Top & Bottom harness (6i): the overlays as of a date, the calibration ledger, the continuous false-positive rate'
   altdata.transmission:
     domain: rates
     line: 'The wealth-effect impulse and the net-transmission line (Batch 14 item 66): the loosening leg beside the tightening legs, side by side; report only'

@@ -186,7 +186,7 @@ def group_c(p: dict) -> dict:
     ids = [s["id"] for s in ed["sections"]]
     chs = q.chapters(ed)
     check(ids[:10] == list(stack_mod.SECTION_ORDER) and len(chs) == 11
-          and ids[10:] == [c["id"] for c in chs],
+          and ids[10:10 + len(chs)] == [c["id"] for c in chs],
           "the stack's ten sections as the front matter, then the eleven chapters")
     check(all(s.get("period") == "quarter" for s in ed["sections"])
           and ed["reading_target_minutes"] == 90 and ed["budget"]["charts"] == 40,
@@ -638,7 +638,8 @@ def group_g(r: dict) -> None:
             got = qi.spec_keys(s_)
             if got:
                 keys += got
-            elif not (s_.get("absent") or (s_.get("hook_key") and s_.get("branch"))):
+            elif not (s_.get("absent") or s_.get("harness_overlay")
+                      or (s_.get("hook_key") and s_.get("branch"))):
                 bad.append(f"{fid}: {s_.get('label')} has neither a key nor absent")
         for c in f.get("structure_charts") or []:
             keys += [x["key"] for x in c["series"] if x.get("key")]

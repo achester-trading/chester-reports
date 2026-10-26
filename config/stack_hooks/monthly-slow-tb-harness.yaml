@@ -1,0 +1,13 @@
+# 6i-4 (A79, 26 Oct 2026): the Top & Bottom harness's three lines in the Monthly's
+# slow layers -- the overlays' states with their trigger counts, the episode
+# record k of n per class, the false-positive rate per overlay with n. Never a
+# composite (decision 3 of 25 Oct 2026). The Weekly and the Quarterly never run it.
+id: monthly-slow-tb-harness
+cadence: monthly
+section: slow
+after: monthly-slow-capex-chain
+module: daily_cascade.tb_harness_block
+function: slow_subsection
+args: [st, now]
+requires: [st, now]
+returns: one

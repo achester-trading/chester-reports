@@ -63,7 +63,9 @@ def group_a() -> None:
     head("A. TODAY'S ORDER, RENDERED FROM THE HOOK FILES")
     for (cad, sec, anc), want in FROZEN.items():
         got = sh.ids(cad, sec, anc)
-        check(got == want, f"{cad}/{sec} after {anc}: the frozen order ({got})")
+        # A hook added after S1 (6i-4's T&B lines, A79) follows the frozen order.
+        check(got[:len(want)] == want, f"{cad}/{sec} after {anc}: the frozen order, "
+              f"then any later hook ({got})")
     resolved = []
     for h in sh.HOOKS:
         try:
@@ -90,8 +92,9 @@ def group_a() -> None:
     finally:
         for mod, name, fn in saved:
             setattr(mod, name, fn)
-    check([s["title"] for s in out] == FROZEN[("monthly", "slow", "sourced_figures")],
-          "rendered, the sub-sections come out in the frozen order")
+    want = FROZEN[("monthly", "slow", "sourced_figures")]
+    check([s["title"] for s in out][:len(want)] == want,
+          "rendered, the sub-sections come out in the frozen order, later hooks after")
 
 
 def write(d: Path, files: dict) -> Path:

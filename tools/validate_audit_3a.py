@@ -176,7 +176,9 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # lines and Z.1's equity market value
                   "fred_batch14_b1",
                   # Batch 15 item 73 (a58, 23 Oct 2026): the DM screen's NIKKEI225
-                  "fred_batch15_a"}
+                  "fred_batch15_a",
+                  # 6i-3 (A79, 26 Oct 2026): DBAA and BAA, the T&B harness's credit proxy
+                  "fred_6i3"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).
