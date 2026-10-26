@@ -525,7 +525,8 @@ def main() -> int:
     check("def backfill(" in inspect.getsource(bars_mod) and "--dry-run" in
           inspect.getsource(bars_mod._main),
           "the one-time 60-day 5-minute backfill exists, with its dry run")
-    check(cfg["budget"]["weekly"]["charts"] == 10, "the Weekly's chart cap is 10")
+    check(cfg["budget"]["weekly"]["charts"] == 11,
+          "the Weekly's chart cap is 11 (10 from 4 Oct; 11 from 26 Oct, B75 (b))")
     check("PROSE ONLY" in inspect.getsource(stack_mod.section_words),
           "budgets count prose only, every report")
     mins = (REPO / "docs" / "briefs" / "doctrine-monthly-2026-10-minutes.md").read_text(

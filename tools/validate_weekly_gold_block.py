@@ -287,6 +287,10 @@ def group_f() -> None:
     check(plan.index("W13") == plan.index("W3") + 1 and len(plan) == 10
           and "W10" not in plan,
           f"W13 after W3, inside the cap of 10, the last set aside ({plan})")
+    cap = cfg["budget"]["weekly"]["charts"]
+    full = weekly_stack.chart_plan({"sections": secs, "budget": {"charts": cap}})
+    check(cap == 11 and len(full) == 11 and "W13" in full and "W10" in full,
+          f"at the ruled cap of 11 (26 Oct 2026) W13 pushes nothing out ({full})")
     check(weekly_stack.PLACE["W13"] == ("gold", None), "placed in the gold section")
     _, data = seeded_store()
     cs = gb.chart_series(data[CFG["keys"]["gold"]], ENDING, CFG)

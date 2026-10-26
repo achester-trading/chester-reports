@@ -765,9 +765,9 @@ def main() -> int:
 
     # --- H. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nH. BUDGET\n{LINE}")
-    check(ed["budget"] == {"words": 7900, "charts": 10} and ed["words"] <= 7900
-          and ed["chart_count"] <= 11 and ed.get("reading_target_minutes") == 35,
-          f"the Weekly's target is 35 minutes, 7,900 words of prose / 10 charts "
+    check(ed["budget"] == {"words": 7900, "charts": 11} and ed["words"] <= 7900
+          and ed["chart_count"] <= 12 and ed.get("reading_target_minutes") == 35,
+          f"the Weekly's target is 35 minutes, 7,900 words of prose / 11 charts "
           f"(D19/D20; {ed['words']} words, {ed['chart_count']} charts; a fired "
           f"trigger lifts the chart cap by one)")
     e = json.loads(json.dumps(ed))
