@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty code gates (one hundred and thirty-seven Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-three code gates (one hundred and forty Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1211,6 +1211,24 @@ fixtures.
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
+
+**The gold spine, Tranche A (signal-triage Batch 16 items 87 and 88(a), (c), (d);
+round 7's 80 and 81; ruled 25-26 Oct 2026; B75).** Report rights only.
+`altdata/gold_attribution.py` fires on a gold move past 2 sigma on the move screen's
+own sigma and window, and decomposes it into five stored lenses, side by side and
+never weighted: the real yield, the breakeven, the dollar, liquidation (the
+correlation with the S&P 500 and QQQ for the Nasdaq-100; the squeeze flag "not
+stored"), and the official bid (the operator's dated records in
+`config/gold_official_bid.yaml`, "no record" otherwise). Beside it, the 60-day beta
+to the real yield; `gold.attr.<lens>` and `gold.beta_real_60d` are stored by the close
+and barred from the object. The exhaustion checklist's four tells are a
+pre-registered ledger (`docs/ledgers/gold-exhaustion-preregistration-2026-10.md`)
+with no rights. `daily_cascade/gold_block.py` prints the close's gold line only on a
+fired day or a flipped tell, and the Weekly's `gold` section between Plumbing & rates
+and Positioning & flows from 8 Nov (header-only before), with chart W13 inside the
+cap. GLD gets its own nightly exposure file as a declared exception to the 13-ticker
+hold (`config/exposure_universe.yaml`). `tools/validate_gold_attribution.py`,
+`validate_weekly_gold_block.py` and `validate_gld_exposure.py` hold it.
 
 **Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
 59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s

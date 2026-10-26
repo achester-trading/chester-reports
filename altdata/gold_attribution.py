@@ -517,6 +517,13 @@ def ledger_stats(weeks: list[dict], cfg: dict, min_n: int = 30, t_min: float = 2
     return out
 
 
+def overall_verdict(stats: dict) -> str:
+    """The edition's one word: PASS if any tell passes, FAIL if any fails, else
+    INSUFFICIENT. Each tell's own verdict prints in the table and decides alone."""
+    vs = {r["verdict"] for r in stats.values()}
+    return "PASS" if "PASS" in vs else "FAIL" if "FAIL" in vs else "INSUFFICIENT"
+
+
 def ledger_md(weeks: list[dict], stats: dict, cfg: dict, as_of: str,
               prereg_sha: str) -> str:
     lines = [f"# The gold exhaustion checklist's ledger, first edition ({as_of[:10]})", "",
@@ -525,6 +532,14 @@ def ledger_md(weeks: list[dict], stats: dict, cfg: dict, as_of: str,
              f"rule is the pre-registration's "
              f"(`{cfg['exhaustion']['preregistration']}`, SHA-256 `{prereg_sha}`), "
              f"committed before this edition was computed.*", "",
+             "| Field | Value |", "|---|---|",
+             f"| As of | {as_of} |",
+             f"| Window | the stored gold history, {len(weeks)} weeks"
+             + (f" ({weeks[0]['week']} to {weeks[-1]['week']})" if weeks else "") + " |",
+             f"| n | {len(weeks)} weeks |",
+             "| Pass rule | per tell: Welch t of 2.0 on the +20-session return, ticked "
+             "against clear, at least 30 weeks a side (the pre-registration's) |",
+             f"| Verdict | {overall_verdict(stats)} |", "",
              f"**Window:** the stored gold history, {len(weeks)} weeks"
              + (f" ({weeks[0]['week']} to {weeks[-1]['week']})." if weeks else "."),
              "", "**The statistic:** per tell, the mean +20-session gold return after a "

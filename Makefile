@@ -54,6 +54,9 @@ PY_VALIDATORS := \
 	tools/validate_monthly.py \
 	tools/validate_events.py \
 	tools/validate_grader.py \
+	tools/validate_gold_attribution.py \
+	tools/validate_weekly_gold_block.py \
+	tools/validate_gld_exposure.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \
