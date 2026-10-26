@@ -2831,6 +2831,24 @@ sources:
     implemented_by: altdata/gold_event.py
     status: live
 
+  gold_attribution:
+    name: Gold's five-lens attribution and the 60-day real-yield beta (Batch 16 item 87)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [global]
+    latency: written by the 16:45 close pass each session (the beta) and on a fired day (the lenses), and by its backfill command
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/gold_attribution.py through daily_cascade/stack_close.py:
+      gold.beta_real_60d each session and gold.attr.<lens> on a 2-sigma day,
+      observed on the session and available when written; the backfill's rows
+      carry the compute instant, never a backdated one.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/gold_attribution.py
+    status: live
+
   dm_drawdown:
     name: The developed-market drawdown screen (Batch 15 item 73)
     tier: derived
