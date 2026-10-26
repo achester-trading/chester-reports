@@ -334,7 +334,8 @@ GROUPS = [
     ("How to decide and judge evidence", ["XVIII", "XXXIII", "XIX", "XXIII", "XVII"]),
     ("The big frame (Book A, the Monthly)", ["I", "III", "IV", "II", "XX", "X"]),
     ("Asset classes (A's sleeves, B's non-equity)", ["V", "VI", "VII", "VIII", "IX",
-                                                       "XXXIV", "XV", "XXI", "XXIV"]),
+                                                       "XXXIV", "XV", "XXI", "XXIV",
+                                                       "XXIX"]),
     ("Price, positioning, expression (B, C, D)", ["XXV", "XVI", "XIII", "XI", "XXII",
                                                     "XIV", "XII"]),
 ]
@@ -345,6 +346,7 @@ BOOKS = {
     "XV": "AB", "XXI": "AB", "XXIV": "BC",
     "XXV": "BC", "XVI": "BCD", "XIII": "C", "XI": "CD", "XXII": "BCD", "XIV": "BC",
     "XII": "C",
+    "XXIX": "AB",
 }
 
 

@@ -64,6 +64,10 @@ REGISTRY = {
     # Markets shelf, Draft 1 (AQ-14, 11 Oct 2026). Numeral provisional: assigned
     # at the filing; XXXIV was the next free after XXXIII.
     "XXXIV": "emerging-markets",
+    # Markets shelf, Phase 4, Draft 1 (library-xxix, 26 Oct 2026): the numeral
+    # Audit 2's roster reserved for it. Placed here, not after XXV, so it does
+    # not collide with library-xxvii's and library-xxx's entries at merge.
+    "XXIX": "real-assets-and-risk-transfer",
 }
 
 # D4: the two papers that own a dotted rule namespace, and the chapters whose
