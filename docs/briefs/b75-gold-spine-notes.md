@@ -146,7 +146,7 @@ The Weekly block's other inputs:
 
 ## Ruled (26 Oct 2026)
 
-1. Official bid: the file stays empty; the 8 Nov block prints "no record yet"; the operator supplies the first dated record before 8 Nov.
+1. Official bid: the file stays empty; the 8 Nov block prints "no record" (the code's string); the operator supplies the first dated record before 8 Nov.
 2. The chart cap is 11 (`403454e`): W13 never sets another chart aside; the words stay 7,900.
 3. The Nasdaq-100 leg through QQQ: accepted.
 4. 2σ, as the order says: accepted.
