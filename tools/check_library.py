@@ -453,11 +453,16 @@ def check_10_figures_and_builds():
         # business.
         with built.open(encoding="utf-8") as fh:
             m = stamp.search(fh.read(4096))
+        # The Master Guide's edition is the stitch's to rebuild (S1 part 6, the
+        # cloud-sessions brief's decision 6): a builder adds a row to the Guide,
+        # so here its staleness warns, and tools/check_master_guide.py --strict
+        # fails it on the stitch's branches. A paper's edition still fails.
+        flag = warn if built.stem == "master-guide" else fail
         if m is None:
-            fail(10, f"docs/html/{built.name} carries no source-sha256 -- "
+            flag(10, f"docs/html/{built.name} carries no source-sha256 -- "
                      f"run `make html`")
         elif m.group(1) != source_sha256(src):
-            fail(10, f"docs/html/{built.name} was built from a different "
+            flag(10, f"docs/html/{built.name} was built from a different "
                      f"{src.name} -- run `make html`")
 
 

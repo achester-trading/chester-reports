@@ -23,15 +23,21 @@ section 6). It keeps the front door in step with what the code holds:
   6  FIGURES    every figure the Guide links exists
   7  AS OF      a WARNING (never a failure) when the Guide's "As of" date is older
                 than the newest change order filed in docs/
-  8  GENERATED  figures 2 and 5 match what tools/figures/master_guide.py draws
-                from today's timers, chat-tasks.yaml and roster
+  8  STALE      the generated files are current: figures 2 and 5 match what
+                tools/figures/master_guide.py draws from today's timers,
+                chat-tasks.yaml and roster; docs/html/master-guide.html carries
+                the Guide's source-sha256; the change-order index and the
+                dated-appendix index match their tools. A WARNING on every
+                branch, a failure with --strict, which CI passes on the stitch's
+                branches only (chain-*, *-main): builders add rows, the stitch
+                regenerates (S1 part 6; the cloud-sessions brief, decision 6)
 
 A machine-checked table sits between `<!-- table:NAME -->` and `<!-- /table -->`.
 The gate reads files only: no store, no network, no model. `--root` points it at a
 synthetic tree, which the gate's own
 `--selftest` builds.
 
-    python tools/check_master_guide.py [--root PATH] [--selftest]
+    python tools/check_master_guide.py [--root PATH] [--selftest] [--strict]
 """
 
 from __future__ import annotations
@@ -125,7 +131,45 @@ def as_of(text: str):
     return dt.date(int(m.group(3)), MONTHS[m.group(2)], int(m.group(1))) if m else None
 
 
-def check(root: Path) -> tuple[list[str], list[str]]:
+def stale(root: Path) -> list[str]:
+    """The generated files that are out of date (check 8)."""
+    out: list[str] = []
+    sys.path.insert(0, str(REPO / "tools"))
+    # the generated figures (the repo's own tree only: the generator reads the
+    # repo's timers, tasks and roster)
+    if root.resolve() == REPO.resolve():
+        sys.path.insert(0, str(REPO / "tools" / "figures"))
+        import master_guide as figs                             # noqa: PLC0415
+        for name, body in (("fig-02-clock.svg", figs.clock_svg()),
+                           ("fig-05-library.svg", figs.library_svg())):
+            p = figs.OUT / name
+            if not p.is_file() or p.read_text(encoding="utf-8") != body + "\n":
+                out.append(f"[stale] {name}: run tools/figures/master_guide.py")
+    # the Guide's HTML edition, by the stamp tools/build_paper_html.py writes
+    html = root / "docs" / "html" / "master-guide.html"
+    if html.is_file():
+        import check_library                                    # noqa: PLC0415
+        with html.open(encoding="utf-8") as fh:
+            m = re.search(r'<meta name="source-sha256" content="([0-9a-f]{64})"',
+                          fh.read(4096))
+        if m is None or m.group(1) != check_library.source_sha256(root / GUIDE):
+            out.append("[stale] docs/html/master-guide.html was not built from "
+                       "today's Guide: run tools/build_paper_html.py docs/master-guide.md")
+    # the two indexes the stitch writes (S1 parts 3 and 4)
+    if (root / "docs" / "change-orders.md").is_file() and \
+            (root / "docs" / "signal-triage-register.md").is_file():
+        import change_orders_index as coi                       # noqa: PLC0415
+        for f in coi.run(root, write=False):
+            out.append(f"[stale] {f}: run tools/change_orders_index.py --write")
+    if (root / "docs" / "dated-appendix-queue" / "_preface.md").is_file():
+        import appendix_queue_index as aqi                      # noqa: PLC0415
+        if aqi.run(root, write=False):
+            out.append("[stale] docs/dated-appendix-queue.md: run "
+                       "tools/appendix_queue_index.py --write")
+    return out
+
+
+def check(root: Path, strict: bool = False) -> tuple[list[str], list[str]]:
     import yaml
     fails: list[str] = []
     warns: list[str] = []
@@ -224,16 +268,9 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         if not (gp.parent / f).resolve().is_file():
             fails.append(f"[figures] {f} does not exist")
 
-    # 8. the generated figures are current (the repo's own tree only: the
-    # generator reads the repo's timers, tasks and roster)
-    if root.resolve() == REPO.resolve():
-        sys.path.insert(0, str(REPO / "tools" / "figures"))
-        import master_guide as figs                             # noqa: PLC0415
-        for name, body in (("fig-02-clock.svg", figs.clock_svg()),
-                           ("fig-05-library.svg", figs.library_svg())):
-            p = figs.OUT / name
-            if not p.is_file() or p.read_text(encoding="utf-8") != body + "\n":
-                fails.append(f"[figures] {name} is stale: run tools/figures/master_guide.py")
+    # 8. the generated files: a warning on a builder's branch, a failure with
+    # --strict (the stitch's branches), so the stitch clears them (S1 part 6)
+    (fails if strict else warns).extend(stale(root))
 
     # 7. as of
     a = as_of(text)
@@ -355,6 +392,20 @@ def selftest() -> int:
         f, _ = check(root)
         expect(any("Table 1 names chester-open-note" in x for x in f),
                "a row that claims a schedule for a timer with no unit still fails")
+        # S1 part 6: a stale generated file warns, and fails only with --strict.
+        g.write_text(base, encoding="utf-8")
+        (root / "docs" / "change-orders.md").write_text(
+            "# Change orders\n\n| Date | Order | What it rules |\n|---|---|---|\n",
+            encoding="utf-8")
+        (root / "docs" / "signal-triage-register.md").write_text(
+            "# Register\n\n| Batch orders | none. Items 16 onward keep their numbers |\n",
+            encoding="utf-8")
+        f, w = check(root)
+        expect(f == [] and any("[stale] docs/change-orders.md" in x for x in w),
+               "a stale index warns on a builder's branch and does not fail")
+        f, _ = check(root, strict=True)
+        expect(any("[stale] docs/change-orders.md" in x for x in f),
+               "and fails with --strict, as the stitch's branches run it")
     print(f"\n{ok} passed, {bad} failed")
     return 0 if bad == 0 else 1
 
@@ -363,13 +414,15 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="tools/check_master_guide.py")
     ap.add_argument("--root", default=str(REPO))
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--strict", action="store_true",
+                    help="fail on a stale generated file (the stitch's branches)")
     a = ap.parse_args(argv)
     print("SELF-TEST, on a synthetic tree")
     rc = selftest()
     if a.selftest:
         return rc
-    print("\nTHE GUIDE, against the tree")
-    fails, warns = check(Path(a.root))
+    print(f"\nTHE GUIDE, against the tree{' (strict)' if a.strict else ''}")
+    fails, warns = check(Path(a.root), strict=a.strict)
     for x in warns:
         print(f"  WARN  {x}")
     for x in fails:

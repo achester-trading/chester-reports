@@ -101,12 +101,17 @@ jobs:
           pip install -r requirements.txt
 
       # Shell gates run under bash, Python gates under python. The suffix is
-      # the only difference and the Makefile already encodes which is which.
+      # the only difference and each gate's GATE_KIND declares which is which.
+      # S1 part 6: check_master_guide's staleness checks (Figures 2 and 5, the
+      # Guide's HTML stamp, the two indexes) fail only on the stitch's branches,
+      # chain-* and *-main; on a builder's branch they warn.
       - name: ${{ matrix.gate }}
+        env:
+          GATE_ARGS: ${{ matrix.gate == 'tools/check_master_guide.py' && (startsWith(github.head_ref || github.ref_name, 'chain-') || endsWith(github.head_ref || github.ref_name, '-main')) && '--strict' || '' }}
         run: |
           case "${{ matrix.gate }}" in
             *.sh) bash "${{ matrix.gate }}" ;;
-            *)    python "${{ matrix.gate }}" ;;
+            *)    python "${{ matrix.gate }}" $GATE_ARGS ;;
           esac
 
   # DATA GATES, REPORTED AND NOT REQUIRED.
