@@ -30,6 +30,48 @@
 version: tb-episodes-1
 updated: 2026-10-26
 
+# THE CONTINUOUS FALSE-POSITIVE RATE (6i-3; A79, 26 Oct 2026). Pre-registered in
+# docs/ledgers/tb-harness-fpr-2026-10-26.md, whose head was committed alone
+# before the code that runs it; this text is that head's quote, and
+# tools/validate_tb_harness_fpr.py holds the two hashes equal. A change is a new
+# registration and a new dated ledger, never an edit.
+fpr_rule: >-
+  The continuous false-positive rate (6i-3), pre-registered on 26 Oct 2026
+  before its first run. SESSIONS: every session on which the store holds an S&P
+  500 close (yfinance.mkt_gspc), from its first to its last. SCORING: each
+  session is read through each of Part 23's three overlays as
+  config/tb_episodes.yaml defines them (Concentration & Complacency, HY Spread
+  Acceleration, Liquidity & Funding Stress), and through the credit leg's Baa
+  proxy, every input read as of that session's close by available_at, exactly
+  as the calibration reads a decision date. The Baa proxy is the HY Spread
+  Acceleration overlay's four triggers read on Baa less the 10-year
+  (calc.baa_less_10y, daily from DBAA; before DBAA exists, calc.baa_less_10y_m,
+  monthly from BAA): at least +50% off its 12-month low, its 30-day change at
+  least +40bp, its 30-day change at least +15bp, and its level at least 225bp,
+  firing at three of four; the first three carry Part 23's HY and IG thresholds
+  unchanged, the level is session-set because Part 23's IG at least 110bp has
+  no Baa analogue. A reading is FIRED when the overlay's state is FIRES; CLEAR,
+  UNREAD and NOT EXISTENT readings are counted and never enter the rate.
+  EPISODES: an episode begins at its top, the three calibration tops and the
+  tops of the extended set's eight post-1970 bears and five pre-1970 episodes;
+  controls and near-misses begin no episode, because the calibration scores a
+  fire before one as a false call. WINDOW: 365 calendar days forward. A fired
+  reading on session d is a TRUE POSITIVE if an episode begins on a day t with
+  d <= t <= d + 365 days, and a FALSE POSITIVE otherwise; a fired reading whose
+  window runs past the store's last session and holds no episode start is
+  CENSORED and enters neither count. STATISTIC: per overlay, false positives
+  over true plus false positives, printed with n (that denominator), the scored
+  sessions (FIRES or CLEAR), the censored count and the number of distinct
+  firing runs (consecutive fired sessions). No threshold, window or episode is
+  tuned on the result; a change is a new registration and a new dated ledger.
+  Report-only: the rate enters no composite, the market-state object, a dial, a
+  band or a packet.
+fpr:
+  window_days: 365
+  sessions_key: yfinance.mkt_gspc
+  overlays: [concentration, hy_accel, liquidity, hy_accel_baa]
+  preregistration: docs/ledgers/tb-harness-fpr-2026-10-26.md
+
 pass_rule: >-
   The harness's first edition is read twice. First, the ledger's own question:
   does it reproduce the 3 Sep record (tops 0/3, bottoms 4/6, controls 4/4)? That
@@ -79,8 +121,14 @@ inputs:
   top10:    {reader: concentration_twin, freq: daily, exists_from: null, source: "GTM-3's concentration twin (altdata/gtm_equities.py), the top ten's share of the S&P 500's market cap from the stored SPY holdings; recent only"}
   vix:      {key: yfinance.mkt_vix,   freq: daily,   exists_from: "1990-01-02", source: "the paper: \"no VIX exists before 1990\""}
   hy_oas:   {key: fred.hy_oas,        freq: daily,   exists_from: "1996-12-31", units_to_bp: 100,
-             pending: "pending 6i-3: Baa less the 10-year",
-             source: "the paper: \"no high-yield OAS series exists before late 1996\"; ICE BofA BAMLH0A0HYM2 begins 31 Dec 1996. FRED serves it only from 2023 (the false-bottom ledger), so before the store holds it the credit leg prints the 6i-3 proxy as pending (decision 6, both proxies)"}
+             source: "the paper: \"no high-yield OAS series exists before late 1996\"; ICE BofA BAMLH0A0HYM2 begins 31 Dec 1996. FRED serves it only from 2023 (the false-bottom ledger), so before the store holds it the credit leg's Baa proxy is the reading printed beside it (6i-3; decision 6, both proxies)"}
+  # 6i-3 (A79): the credit leg's long proxy, Baa less the 10-year, in bp. Daily
+  # from DBAA's first day; before it, the monthly from BAA (`fallback`), which
+  # reaches back to DGS10's first month, 1962. Before 1962: not existent.
+  baa_10y:  {key: calc.baa_less_10y,  freq: daily,   exists_from: "1986-01-02", fallback: baa_10y_m,
+             source: "DBAA (Moody's, daily) begins 2 Jan 1986; less DGS10 the same session (altdata/market_features.py)"}
+  baa_10y_m: {key: calc.baa_less_10y_m, freq: monthly, exists_from: "1962-01-01",
+             source: "BAA (Moody's, monthly average, from 1919) less the month's mean DGS10, which begins 2 Jan 1962"}
   ig_oas:   {key: fred.ig_oas,        freq: daily,   exists_from: "1996-12-31", units_to_bp: 100, source: "ICE BofA BAMLC0A0CM begins 31 Dec 1996"}
   net_liq:  {key: calc.net_liquidity, freq: weekly,  exists_from: "2002-12-18", source: "WALCL, its asset leg, begins 18 Dec 2002 (CLAUDE.md, the net-liquidity units)"}
   reserves: {key: fred.bank_reserves, freq: weekly,  exists_from: null, units: "millions", source: "WRESBAL, millions (CLAUDE.md); its start is not fixed here, so before the store holds it the reading is not stored, never not existent"}
@@ -112,6 +160,23 @@ overlays:
       - {id: hy_30d,     text: "30-day HY ≥ +40bp",  input: hy_oas, rule: change_at_least, window_days: 30, threshold: 40}
       - {id: ig_30d,     text: "30-day IG ≥ +15bp",  input: ig_oas, rule: change_at_least, window_days: 30, threshold: 15}
       - {id: ig_level,   text: "IG ≥ 110bp",         input: ig_oas, rule: at_least, threshold: 110}
+  # 6i-3 (A79; decision 6, both credit proxies side by side): the overlay above
+  # read on Baa less the 10-year, which reaches every episode from 1962. Printed
+  # BESIDE HY Spread Acceleration with its own window, never in its place: the
+  # calibration's record and A77's pass rule count the three overlays only
+  # (`proxy_of`). Its thresholds are pre-registered in `fpr_rule` above.
+  - id: hy_accel_baa
+    title: "HY Spread Acceleration (Baa proxy)"
+    proxy_of: hy_accel
+    top_type: "2007 credit"
+    fires_at: 3
+    source: "the architecture's Part 23 overlay's triggers on Baa less the 10-year (6i-3)"
+    triggers:
+      - {id: baa_off_low, text: "Baa−10y ≥ +50% off its 12-month low", input: baa_10y, rule: pct_off_low, window_days: 365, threshold: 50}
+      - {id: baa_30d_hy,  text: "30-day Baa−10y ≥ +40bp", input: baa_10y, rule: change_at_least, window_days: 30, threshold: 40}
+      - {id: baa_30d_ig,  text: "30-day Baa−10y ≥ +15bp", input: baa_10y, rule: change_at_least, window_days: 30, threshold: 15}
+      - {id: baa_level,   text: "Baa−10y ≥ 225bp",        input: baa_10y, rule: at_least, threshold: 225,
+         definition: "session-set (A79): Part 23's IG ≥ 110bp has no Baa analogue; 225bp is near Baa less the 10-year's post-1986 middle as 110bp is near IG OAS's, not measured on the store before the registration"}
   - id: liquidity
     title: "Liquidity & Funding Stress"
     top_type: "2019/2020 plumbing"

@@ -4,12 +4,21 @@ The Top & Bottom calibration harness, its core (6i-2; A77, 26 Oct 2026).
     python -m altdata.tb_harness show   [--db PATH] [--date D]
     python -m altdata.tb_harness ledger [--db PATH] [--edition laptop|box]
                                         [--out-dir DIR] [--dry-run]
+    python -m altdata.tb_harness fpr    [--db PATH] [--edition laptop|box]
+                                        [--out-dir DIR] [--dry-run]
 
 The brief (docs/briefs/6i-spec-draft-2026-10-25.md, section 2), ruled 25 Oct 2026
 with its decisions as recommended: the 3 Sep thirteen as the base, the extended
 set flagged beside it (decision 2), no composite stored (decision 3), and the
 credit leg on both proxies (decision 6) -- HY OAS where the store holds it, and
-before that "pending 6i-3: Baa less the 10-year", the series 6i-3 adds.
+beside it, with its own window, the Baa proxy (Baa less the 10-year), which 6i-3
+added and which the calibration's record never counts.
+
+THE CONTINUOUS FALSE-POSITIVE RATE (6i-3; A79). `fpr` scores every stored S&P 500
+session through the overlays and the proxy, by the rule pre-registered in
+docs/ledgers/tb-harness-fpr-2026-10-26.md (config `fpr_rule`, its hash at the
+ledger's head), and writes the rate per overlay with n below that head. The
+reports (6i-4) read the newest ledgers through latest_record and latest_fpr.
 
 WHAT IT COMPUTES. config/tb_episodes.yaml holds the episodes, the inputs and the
 three overlays of the architecture's Part 23 (Concentration & Complacency, HY
@@ -146,6 +155,9 @@ def read_input(st, cfg: dict, name: str, day: str, now: str,
         return {"state": state, "pts": [], "text": text}
 
     if ef and day < str(ef):
+        if inp.get("fallback"):
+            # The Baa proxy (6i-3): before DBAA exists, the monthly from BAA.
+            return read_input(st, cfg, inp["fallback"], day, now, lookback_days)
         return unread(NOT_EXISTENT, f"{name} {NOT_EXISTENT} before {ef}")
     if inp.get("reader") == "concentration_twin":
         return _read_top10(st, cfg, day, unread)
@@ -169,6 +181,12 @@ def read_input(st, cfg: dict, name: str, day: str, now: str,
 
 
 def _read_top10(st, cfg: dict, day: str, unread) -> dict:
+    # The FPR's cached reader knows the first stored holdings day: before it
+    # nothing is stored, without loading the holdings for every session.
+    first = getattr(st, "top10_from", "")
+    if first is None or (first and day < first):
+        return unread("not stored", f"top-10 share not stored as of {day} (no holdings)")
+    st = getattr(st, "base", st)
     try:
         from altdata import gtm_equities                       # noqa: PLC0415
         tw = gtm_equities.concentration_twin(st, cutoff(day, cfg))
@@ -256,7 +274,14 @@ def overlay(st, cfg: dict, ov: dict, day: str, now: str) -> dict:
 
 
 def overlays_at(st, cfg: dict, day: str, now: str) -> list[dict]:
-    return [overlay(st, cfg, ov, day, now) for ov in cfg["overlays"]]
+    """Every overlay in the config's order, the Baa proxy (`proxy_of`) beside its own."""
+    return [{**overlay(st, cfg, ov, day, now), "proxy_of": ov.get("proxy_of")}
+            for ov in cfg["overlays"]]
+
+
+def scored(ovs: list[dict]) -> list[dict]:
+    """The three overlays the calibration's record counts: never a proxy."""
+    return [o for o in ovs if not o.get("proxy_of")]
 
 
 def state_text(o: dict) -> str:
@@ -284,7 +309,7 @@ def spx_extreme(st, cfg: dict, day: str, kind: str, now: str) -> str:
 
 
 def classify(cls: str, per_date: list[list[dict]]) -> str:
-    states = [o["state"] for ovs in per_date for o in ovs]
+    states = [o["state"] for ovs in per_date for o in scored(ovs)]
     if cls == "bottom":
         return "not scored"
     if cls == "top":
@@ -432,8 +457,8 @@ def ledger(st, cfg: dict, edition: str, now: str, run_date: str) -> tuple[str, s
          f"The overlays' own record: {rec_line}.", "",
          "## The thirteen", "",
          "| Episode | Class | Date | S&P 500 in the store | Concentration | HY acceleration "
-         "| Liquidity | Classification | Session-set |",
-         "|---|---|---|---|---|---|---|---|---|"]
+         "| HY acceleration, Baa proxy | Liquidity | Classification | Session-set |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
     for e in cal:
         for i, (d, ovs) in enumerate(zip(e["dates"], e["per_date"])):
             L.append(f"| {e['id'] if i == 0 else ''} | {e['class'] if i == 0 else ''} | {d} "
@@ -467,7 +492,8 @@ def ledger(st, cfg: dict, edition: str, now: str, run_date: str) -> tuple[str, s
           "that could not have existed\". A date before a series begins reads it as not "
           "existent.", "",
           "| Set | Episode | Class | Date | S&P 500 in the store | Concentration "
-          "| HY acceleration | Liquidity |", "|---|---|---|---|---|---|---|---|"]
+          "| HY acceleration | HY acceleration, Baa proxy | Liquidity |",
+          "|---|---|---|---|---|---|---|---|---|"]
     for x in ext:
         L.append(f"| {x['set']} | {x['id']} | {x['class']} | {x['date']} | {x['extreme']} | "
                  + " | ".join(state_text(o) for o in x["overlays"]) + " |")
@@ -475,20 +501,22 @@ def ledger(st, cfg: dict, edition: str, now: str, run_date: str) -> tuple[str, s
           f"- Shiller's CAPE and 10-year rate are the current file's values, each month "
           f"treated as knowable {pit['shiller_lag_months']} months after it begins "
           f"({pit['shiller_lag_source']}). They are not first prints.",
-          "- The credit leg reads fred.hy_oas where the store holds it; before that it "
-          "prints \"pending 6i-3: Baa less the 10-year\" (decision 6). 6i-3 adds DBAA and BAA.",
+          "- The credit leg reads fred.hy_oas where the store holds it, and beside it the "
+          "Baa proxy (Baa less the 10-year: DBAA from 1986, BAA's monthly before it, from "
+          "1962), each with its own window (decision 6). The proxy is printed, never "
+          "counted in the record or the pass rule.",
           "- Part 23's ERP, the SOFR−IORB window, the TGA window and the net-liquidity "
           "\"accel\" are not defined there; their definitions here are session-set and "
           "named in config/tb_episodes.yaml.",
-          "- The continuous false-positive rate (Part 23's deferred item 3) is 6i-3, not "
-          "this edition.",
+          "- The continuous false-positive rate (Part 23's deferred item 3) is its own "
+          "ledger, tb-harness-fpr-<date>.md (6i-3), pre-registered.",
           "- A laptop edition reads a partial store: a reading it cannot make is printed "
           "as such, and the box's run supersedes it.", ""]
     md = "\n".join(L)
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator="\n")
     w.writerow(["set", "episode", "class", "date", "spx_check", "concentration",
-                "hy_accel", "liquidity", "classification"])
+                "hy_accel", "hy_accel_baa", "liquidity", "classification"])
     for e in cal:
         for i, (d, ovs) in enumerate(zip(e["dates"], e["per_date"])):
             w.writerow(["calibration", e["id"], e["class"], d, e["extremes"][i]]
@@ -499,8 +527,267 @@ def ledger(st, cfg: dict, edition: str, now: str, run_date: str) -> tuple[str, s
     return md, buf.getvalue()
 
 
+# ---------------------------------------------------------------------------
+# The continuous false-positive rate (6i-3)
+# ---------------------------------------------------------------------------
+FPR_MARKER = "<!-- RESULT BELOW. The head above is pre-registered and never edited. -->"
+FPR_COLUMNS = ["overlay", "sessions", "scored", "fired", "true_positive",
+               "false_positive", "censored", "runs", "rate"]
+
+
+def fpr_hash(cfg: dict) -> str:
+    """The SHA-256 of the pre-registered FPR rule, hashed as the pass rule is."""
+    return hashlib.sha256(" ".join(str(cfg["fpr_rule"]).split()).encode("utf-8")).hexdigest()
+
+
+class CachedReader:
+    """Reader.as_of over every vintage of a key loaded once, for the FPR's every
+    session: the same join (the newest available_at at or before the cutoff,
+    per period, then the source tier), sliced by period. `day_cap` bounds the
+    periods read to the session being scored (every read_input keeps only
+    periods on or before it)."""
+
+    def __init__(self, base: Reader, cfg: Optional[dict] = None) -> None:
+        self.base, self.conn, self.path = base, base.conn, base.path
+        self._obs = base._obs
+        self._c: dict = {}
+        self.day_cap: Optional[str] = None
+        self.top10_from: Optional[str] = None
+        try:
+            from altdata import gtm                             # noqa: PLC0415
+            wk = gtm.config()["concentration_twin"]["weight_key"]
+            r = self.conn.execute("SELECT MIN(observed_at) FROM observations "
+                                  "WHERE registry_key = ?", (wk,)).fetchone()
+            self.top10_from = str(r[0])[:10] if r and r[0] else None
+        except Exception:                                       # noqa: BLE001
+            self.top10_from = ""                                # unknown: read each day
+
+    def _load(self, key: str, instrument: Optional[str]) -> tuple[list, list]:
+        k = (key, instrument)
+        if k not in self._c:
+            obs: list[str] = []
+            groups: list[list[dict]] = []
+            for r in self.conn.execute(
+                    "SELECT observed_at, value_num, value_text, source, available_at, "
+                    "run_id, availability_kind FROM observations WHERE registry_key = ? "
+                    "AND instrument IS ? ORDER BY observed_at, available_at",
+                    (key, instrument)):
+                d = dict(r)
+                o = str(d["observed_at"])
+                if not obs or obs[-1] != o:
+                    obs.append(o)
+                    groups.append([])
+                groups[-1].append(d)
+            self._c[k] = (obs, groups)
+        return self._c[k]
+
+    def as_of(self, key: str, as_of: Optional[str] = None, instrument: Optional[str] = None,
+              observed_from: Optional[str] = None) -> list[dict]:
+        import bisect                                           # noqa: PLC0415
+        cut = self._obs.canonical_instant(as_of or dt.datetime.now(dt.timezone.utc).isoformat())
+        obs, groups = self._load(key, instrument)
+        out: list[dict] = []
+        for j in range(bisect.bisect_left(obs, str(observed_from)) if observed_from else 0,
+                       len(obs)):
+            if self.day_cap and obs[j][:10] > self.day_cap:
+                break
+            g = [r for r in groups[j] if str(r["available_at"]) <= cut]
+            if g:
+                m = max(str(r["available_at"]) for r in g)
+                out.extend(r for r in g if str(r["available_at"]) == m)
+        return self._obs.prefer_tier(out, key)
+
+    def sessions(self, key: str) -> list[str]:
+        return sorted({o[:10] for o in self._load(key, None)[0]})
+
+    def close(self) -> None:
+        self.base.close()
+
+
+def episode_starts(cfg: dict) -> list[str]:
+    """Where an episode begins, by the registered rule: every top, calibration,
+    the extended bears' and the pre-1970 episodes'. Controls begin none."""
+    ex = cfg["extended"]
+    out = {d for e in cfg["calibration"] if e["class"] == "top" for d in e["dates"]}
+    out |= {e["top"] for e in ex["bears"]["episodes"]}
+    out |= {e["top"] for e in ex["pre_1970"]["episodes"]}
+    return sorted(out)
+
+
+def classify_fired(fired: list[str], starts: list[str], last: str,
+                   window_days: int) -> dict:
+    """Each fired session TRUE POSITIVE, FALSE POSITIVE or CENSORED, by the rule."""
+    tp = fp = cen = 0
+    for d in fired:
+        end = (_d(d) + dt.timedelta(days=window_days)).isoformat()
+        if any(d <= t <= end for t in starts):
+            tp += 1
+        elif end > last:
+            cen += 1
+        else:
+            fp += 1
+    return {"true_positive": tp, "false_positive": fp, "censored": cen}
+
+
+def fpr_from_states(states: dict[str, list[tuple[str, str]]], starts: list[str],
+                    last: str, window_days: int) -> list[dict]:
+    """{overlay: [(session, state)]} in session order -> one row per overlay."""
+    out = []
+    for oid, seq in states.items():
+        fired = [d for d, s in seq if s == FIRES]
+        runs = sum(1 for i, (_, s) in enumerate(seq)
+                   if s == FIRES and (i == 0 or seq[i - 1][1] != FIRES))
+        c = classify_fired(fired, starts, last, window_days)
+        n = c["true_positive"] + c["false_positive"]
+        counts = {k: sum(1 for _, s in seq if s == k)
+                  for k in (FIRES, CLEAR, UNREAD, OVERLAY_NOT_EXISTENT)}
+        out.append({"overlay": oid, "sessions": len(seq),
+                    "scored": counts[FIRES] + counts[CLEAR], "fired": len(fired),
+                    **c, "runs": runs, "n": n,
+                    "rate": (c["false_positive"] / n) if n else None,
+                    "unread": counts[UNREAD], "not_existent": counts[OVERLAY_NOT_EXISTENT]})
+    return out
+
+
+def run_fpr(st, cfg: dict, now: str, sessions: Optional[list[str]] = None,
+            progress=None) -> dict:
+    """Every session scored through the registered overlays; the rate per overlay."""
+    f = cfg["fpr"]
+    days = sessions if sessions is not None else st.sessions(f["sessions_key"])
+    ovs = [o for o in cfg["overlays"] if o["id"] in f["overlays"]]
+    states: dict[str, list[tuple[str, str]]] = {o["id"]: [] for o in ovs}
+    for i, day in enumerate(days):
+        if hasattr(st, "day_cap"):
+            st.day_cap = day
+        for o in ovs:
+            states[o["id"]].append((day, overlay(st, cfg, o, day, now)["state"]))
+        if progress and i % 2500 == 0:
+            progress(f"{i:,} of {len(days):,} sessions ({day})")
+    starts = episode_starts(cfg)
+    rows = fpr_from_states(states, starts, days[-1] if days else "", int(f["window_days"]))
+    titles = {o["id"]: o["title"] for o in ovs}
+    for r in rows:
+        r["title"] = titles[r["overlay"]]
+    return {"rows": rows, "first": days[0] if days else None,
+            "last": days[-1] if days else None, "n_sessions": len(days), "starts": starts}
+
+
+def rate_text(r: dict) -> str:
+    if not r["n"]:
+        return (f"no judged fire (n=0; {r['scored']:,} of {r['sessions']:,} sessions "
+                f"scored, {r['censored']} censored)")
+    return (f"{100 * r['rate']:.1f}% (n={r['n']:,} fired sessions judged, {r['runs']} runs; "
+            f"{r['scored']:,} of {r['sessions']:,} scored, {r['censored']} censored)")
+
+
+def fpr_ledger(cfg: dict, res: dict, edition: str, now: str, head: str) -> tuple[str, str]:
+    L = [head.rstrip("\n"), "", FPR_MARKER, "", "## Result", "",
+         f"**Edition:** {edition} run, {now[:16]} UTC, over the observation store "
+         f"read-only. Sessions {res['first']} to {res['last']} ({res['n_sessions']:,}); "
+         f"{len(res['starts'])} episode starts ({', '.join(res['starts'])}).", "",
+         "| Overlay | False-positive rate | Fired | True | False | Censored | Runs "
+         "| Scored | Unread | Not existent |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for r in res["rows"]:
+        rate = "—" if r["rate"] is None else f"{100 * r['rate']:.1f}% (n={r['n']:,})"
+        L.append(f"| {r['title']} | {rate} | {r['fired']:,} | {r['true_positive']:,} "
+                 f"| {r['false_positive']:,} | {r['censored']:,} | {r['runs']:,} "
+                 f"| {r['scored']:,} | {r['unread']:,} | {r['not_existent']:,} |")
+    L += ["", "Fired sessions are autocorrelated: a run of consecutive fires is one "
+              "signal held, so the runs column, not n, is the count of independent "
+              "calls. The rate is report-only and never tuned on.", ""]
+    if edition == "laptop":
+        L += ["**A laptop edition reads a partial store** (FRED rows first knowable on "
+              "the migration instant, no Shiller rows, no SPY holdings, no Baa series): "
+              "an unread overlay scores no session, and the box's run supersedes this "
+              "edition.", ""]
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(FPR_COLUMNS)
+    for r in res["rows"]:
+        w.writerow([r["overlay"], r["sessions"], r["scored"], r["fired"], r["true_positive"],
+                    r["false_positive"], r["censored"], r["runs"],
+                    "" if r["rate"] is None else f"{r['rate']:.6f}"])
+    return "\n".join(L), buf.getvalue()
+
+
+def prereg_head(cfg: dict) -> str:
+    """The pre-registered ledger's head, up to the marker, verbatim."""
+    text = (REPO / cfg["fpr"]["preregistration"]).read_text(encoding="utf-8")
+    return text.split(FPR_MARKER)[0]
+
+
+# ---------------------------------------------------------------------------
+# What the reports read (6i-4): the newest ledgers, never a composite
+# ---------------------------------------------------------------------------
+def _newest(pattern: str, ledger_dir: Optional[Path] = None) -> Optional[Path]:
+    got = sorted(Path(ledger_dir or LEDGER_DIR).glob(pattern))
+    return got[-1] if got else None
+
+
+def latest_record(ledger_dir: Optional[Path] = None) -> Optional[dict]:
+    """k of n per class from the newest calibration ledger's episodes CSV."""
+    p = _newest("tb-harness-20??-??-??-episodes.csv", ledger_dir)
+    if p is None:
+        return None
+    rows = [r for r in csv.DictReader(io.StringIO(p.read_text(encoding="utf-8")))
+            if r["set"] == "calibration" and r["classification"]]
+    out = {"ledger": p.name.replace("-episodes.csv", ".md")}
+    for cls, hit in (("top", "called"), ("control", "refused"), ("bottom", None)):
+        eps = {r["episode"]: r["classification"] for r in rows if r["class"] == cls}
+        out[cls] = {"n": len(eps),
+                    "k": sum(1 for v in eps.values() if v == hit) if hit else None,
+                    "unread": sum(1 for v in eps.values() if v == "unread")}
+    return out
+
+
+def latest_fpr(ledger_dir: Optional[Path] = None) -> Optional[dict]:
+    """The newest FPR ledger's rows, or None where none has run."""
+    p = _newest("tb-harness-fpr-20??-??-??.csv", ledger_dir)
+    if p is None:
+        return None
+    rows = list(csv.DictReader(io.StringIO(p.read_text(encoding="utf-8"))))
+    if not rows:
+        return {"ledger": p.name.replace(".csv", ".md"), "rows": []}
+    for r in rows:
+        for k in FPR_COLUMNS[1:-1]:
+            r[k] = int(r[k])
+        r["n"] = r["true_positive"] + r["false_positive"]
+        r["rate"] = float(r["rate"]) if r["rate"] else None
+    return {"ledger": p.name.replace(".csv", ".md"), "rows": rows}
+
+
 def _today_et() -> str:
     return dt.datetime.now(ET).date().isoformat()
+
+
+def _fpr_main(a, cfg: dict, st: CachedReader, now: str) -> int:
+    head = prereg_head(cfg)
+    if fpr_hash(cfg) not in head:
+        print("the config's fpr_rule does not hash to the pre-registered head: "
+              "a changed rule is a new registration, not a run")
+        return 2
+    res = run_fpr(st, cfg, now, progress=lambda m: print(m, file=sys.stderr))
+    md, rows = fpr_ledger(cfg, res, a.edition, now, head)
+    for r in res["rows"]:
+        print(f"{r['title']}: {rate_text(r)}")
+    if a.dry_run:
+        print(md)
+        return 0
+    out = Path(a.out_dir)
+    path = out / f"tb-harness-fpr-{_today_et()}.md"
+    if path.exists():
+        # The pre-registration is filled once, below its marker; a ledger with a
+        # result is never edited.
+        old = path.read_text(encoding="utf-8")
+        if FPR_MARKER not in old or "Not yet run." not in old.split(FPR_MARKER)[1]:
+            print(f"{path} has a result: a ledger is never edited; re-run on another "
+                  f"day for a new edition")
+            return 2
+    out.mkdir(parents=True, exist_ok=True)
+    path.write_bytes((md + "\n").encode("utf-8"))
+    path.with_suffix(".csv").write_bytes(rows.encode("utf-8"))
+    print(f"wrote {path} and its CSV")
+    return 0
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -515,10 +802,21 @@ def main(argv: Optional[list[str]] = None) -> int:
     g.add_argument("--out-dir", default=str(LEDGER_DIR))
     g.add_argument("--dry-run", action="store_true",
                    help="print the ledger; write nothing")
+    f = sub.add_parser("fpr", help="the continuous false-positive rate (6i-3)")
+    f.add_argument("--db")
+    f.add_argument("--edition", default="laptop", choices=["laptop", "box"])
+    f.add_argument("--out-dir", default=str(LEDGER_DIR))
+    f.add_argument("--dry-run", action="store_true",
+                   help="print the result; write nothing")
     a = ap.parse_args(argv)
     cfg = config()
     st = Reader(a.db)
     now = dt.datetime.now(dt.timezone.utc).isoformat()
+    if a.cmd == "fpr":
+        try:
+            return _fpr_main(a, cfg, CachedReader(st), now)
+        finally:
+            st.close()
     try:
         if a.cmd == "show":
             day = a.date or _today_et()

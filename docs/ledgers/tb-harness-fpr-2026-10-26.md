@@ -17,4 +17,16 @@
 
 ## Result
 
-Not yet run.
+**Edition:** laptop run, 2026-10-26T23:04 UTC, over the observation store read-only. Sessions 1927-12-30 to 2026-09-21 (24,797); 13 episode starts (1906-01-19, 1929-09-16, 1937-03-10, 1946-05-29, 1961-12-12, 1973-01-11, 1980-11-28, 1987-08-25, 1990-07-16, 2000-03-24, 2007-10-09, 2020-02-19, 2022-01-03).
+
+| Overlay | False-positive rate | Fired | True | False | Censored | Runs | Scored | Unread | Not existent |
+|---|---|---|---|---|---|---|---|---|---|
+| Concentration & Complacency | — | 0 | 0 | 0 | 0 | 0 | 0 | 24,797 | 0 |
+| HY Spread Acceleration | — | 0 | 0 | 0 | 0 | 0 | 5 | 7,472 | 17,320 |
+| HY Spread Acceleration (Baa proxy) | — | 0 | 0 | 0 | 0 | 0 | 0 | 16,288 | 8,509 |
+| Liquidity & Funding Stress | — | 0 | 0 | 0 | 0 | 0 | 0 | 24,797 | 0 |
+
+Fired sessions are autocorrelated: a run of consecutive fires is one signal held, so the runs column, not n, is the count of independent calls. The rate is report-only and never tuned on.
+
+**A laptop edition reads a partial store** (FRED rows first knowable on the migration instant, no Shiller rows, no SPY holdings, no Baa series): an unread overlay scores no session, and the box's run supersedes this edition.
+

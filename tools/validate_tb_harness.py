@@ -15,8 +15,8 @@ Fixtures only (no store, no network):
      a false call, a bottom not scored, a top with too few triggers read unread
   C  point in time: a row not yet available at the decision date is not read; a
      series before it exists reads "not existent" (a pre-1970 episode, a post-1990
-     input) and is never back-filled; the credit leg prints "pending 6i-3: Baa less
-     the 10-year" before HY OAS is stored; Shiller's months are lagged
+     input) and is never back-filled; before HY OAS is stored the credit leg
+     reads not stored, with 6i-3's Baa proxy beside it; Shiller's months are lagged
   D  the pass rule's SHA-256 in the ledger's head is the config's; the rule is
      quoted verbatim; the ledger's own question is asked
   E  no composite: no top_bottom key in the registry, the store opened read-only,
@@ -161,7 +161,7 @@ def group_b(cfg: dict) -> None:
     check(ovs["concentration"]["state"] == tb.FIRES and ovs["concentration"]["fired"] >= 3,
           f"the hot fixture fires Concentration ({tb.state_text(ovs['concentration'])})")
     cold_ovs = {o["id"]: o for o in tb.overlays_at(cold, cfg, day, now)}
-    check(all(o["state"] == tb.CLEAR for o in cold_ovs.values()),
+    check(all(o["state"] == tb.CLEAR for o in tb.scored(list(cold_ovs.values()))),
           f"the cold fixture reads every overlay CLEAR "
           f"({[tb.state_text(o) for o in cold_ovs.values()]})")
     check(cls(hot, "top", [day]) == "called", "a top an overlay fires on is called")
@@ -202,19 +202,22 @@ def group_c(cfg: dict) -> None:
           f"an overlay too few of whose triggers existed is NOT EXISTENT "
           f"({tb.state_text(ovs['hy_accel'])})")
     hy = next(t for t in ovs["hy_accel"]["triggers"] if t["id"] == "hy_30d")
-    check(hy["state"] == "pending" and hy["shown"].startswith("pending 6i-3: Baa less the 10-year"),
-          f"the credit leg before HY OAS prints the 6i-3 proxy as pending ({hy['shown']!r})")
+    check(hy["state"] == tb.NOT_EXISTENT and "not existent before 1996-12-31" in hy["shown"],
+          f"the credit leg before HY OAS exists reads it as not existent; 6i-3's Baa "
+          f"proxy prints beside it ({hy['shown']!r})")
     gap = tb.read_input(FakeStore({}), cfg, "hy_oas", "2010-06-15", now)
-    check(gap["state"] == "pending" and "not stored as of 2010-06-15" in gap["text"],
-          "and after HY OAS exists but before the store holds it, the same, with why")
+    check(gap["state"] == "not stored" and "not stored as of 2010-06-15" in gap["text"],
+          "and after HY OAS exists but before the store holds it, not stored, with why")
     sh = FakeStore({("shiller.cape", None): [("2022-05-01", 30.0, "2026-10-01T00:00:00+00:00"),
                                              ("2022-03-01", 31.0, "2026-10-01T00:00:00+00:00")]})
     r = tb.read_input(sh, cfg, "cape", "2022-06-15", now)
     check(r["state"] == "read" and r["pts"][-1] == ("2022-06-01", 31.0),
           f"Shiller's months are lagged {cfg['point_in_time']['shiller_lag_months']}: "
           f"in mid-June 2022 March's CAPE is the newest knowable ({r['pts'][-1] if r['pts'] else None})")
-    check(all(str(e).startswith("pending 6i-3") for e in [cfg["inputs"]["hy_oas"]["pending"]]),
-          "the pending text is the paste's: \"pending 6i-3: Baa less the 10-year\"")
+    check(not cfg["inputs"]["hy_oas"].get("pending")
+          and any(o.get("proxy_of") == "hy_accel" for o in cfg["overlays"]),
+          "6i-3 resolved the pending credit leg: the Baa proxy overlay sits beside HY "
+          "Spread Acceleration (validate_tb_harness_fpr.py holds it)")
 
 
 def group_d(cfg: dict) -> None:

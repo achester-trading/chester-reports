@@ -737,6 +737,18 @@ FRED_BATCH15_A_SERIES: list[SeriesSpec] = [
     SeriesSpec("nikkei225", "NIKKEI225", "Nikkei Stock Average (Nikkei 225), daily close", "7", "idx", "daily"),
 ]
 
+# 6i-3 (A79, 26 Oct 2026; the 6i brief's decision 6, both credit proxies): the
+# long credit proxy the Top & Bottom harness's episodes need, Baa less the
+# 10-year (calc.baa_less_10y and _m, altdata/market_features.py), because HY OAS
+# reaches no episode before 2023 on FRED. Moody's Seasoned Baa Corporate Bond
+# Yield: DBAA, PERCENT, daily, from 1986-01-02; BAA, PERCENT, monthly average,
+# from 1919-01. Public domain through FRED; history from ALFRED's first vintage
+# (altdata/fred_history.py). Report-only: barred from the market-state object.
+FRED_6I3_SERIES: list[SeriesSpec] = [
+    SeriesSpec("dbaa", "DBAA", "Moody's Seasoned Baa Corporate Bond Yield, daily", "6", "%", "daily"),
+    SeriesSpec("baa",  "BAA",  "Moody's Seasoned Baa Corporate Bond Yield, monthly average", "6", "%", "monthly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
@@ -744,7 +756,8 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
                                       + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
-                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES)
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES
+                                      + FRED_6I3_SERIES)
 
 
 # Quick lookup by key
