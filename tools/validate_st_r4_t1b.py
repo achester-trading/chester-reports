@@ -417,7 +417,7 @@ def group_f() -> None:
           and "batch5b_block.positioning_subsection(st, now)" in ws,
           "the Weekly: Mechanics (18, 19 and the read's line) and Positioning (27)")
     check("batch5b_block.mechanics_subsections(st, now)" in ms
-          and "batch5b_block.slow_subsections(st, now)" in ms,
+          and __import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch5b_block", "slow_subsections", ["st", "now"]),
           "the Monthly: Mechanics, and the slow layers (22); Positioning through "
           "the Weekly's builder")
     from altdata import config as acfg

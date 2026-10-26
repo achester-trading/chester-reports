@@ -64,6 +64,9 @@ from altdata import model_meter
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
 from daily_cascade import stack_render as sr
+# Imported here, not in the builder, so a cycle or a missing anchor in
+# config/stack_hooks/ is refused when the Monthly is imported (S1 part 5).
+from daily_cascade import stack_hooks
 from daily_cascade.stack import item
 
 from . import dealer as dealer_mod
@@ -1877,38 +1880,13 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         subs[-1]["not_tracked"].append(
             "the scans' sourced figures: no scan ingested by this edition's cutoff")
     subs += src_subs
-    # SIGNAL-TRIAGE BATCH 14, ITEM 62 (b55): the cross-house CMA table, from the
-    # stored CMA scans (their families are left out of the sourced figures above,
-    # so each figure prints once).
-    if now:
-        from daily_cascade import batch14_b2_block               # noqa: PLC0415
-        cma_sub = batch14_b2_block.slow_subsection(now, db_path)
-        if cma_sub:
-            subs.append(cma_sub)
-    # FACTOR I, THE REAL ECONOMY (ST-R4.23a, Batch 5 item 23): construction
-    # spending, real -- data centers and the rest. No rights until the
-    # Disruptive Themes refresh; held until D1c, it prints why.
-    if st is not None and now:
-        from daily_cascade import batch5_block                   # noqa: PLC0415
-        con = batch5_block.slow_subsection(st, now)
-        if con:
-            subs.append(con)
-        # BATCH 5 ITEM 22 (ST-R4.22a, 22b): the expansion's age with the post-war
-        # hazard, and Factor I's information-processing dependency line.
-        from daily_cascade import batch5b_block                  # noqa: PLC0415
-        subs += batch5b_block.slow_subsections(st, now)
-        # BATCH 14 ITEMS 64 AND 69 (a56): the excess CAPE yield and real home
-        # prices since 1890, report only.
-        from daily_cascade import batch14_a1_block               # noqa: PLC0415
-        b14 = batch14_a1_block.slow_subsection(st, now)
-        if b14:
-            subs.append(b14)
-        # SIGNAL-TRIAGE BATCH 14, ITEM 63 (b52): Factor I's capex-chain exhibit,
-        # BNP Paribas's $100 (August 2026), the standing dated table.
-        from daily_cascade import capex_chain_block              # noqa: PLC0415
-        cc_ref = capex_chain_block.slow_subsection()
-        if cc_ref:
-            subs.append(cc_ref)
+    # THE DECLARED HOOKS AFTER THE SOURCED FIGURES (S1 part 5): each sub-section
+    # joins through config/stack_hooks/<id>.yaml, in `after:` order -- today the
+    # CMA table (b55), Factor I's construction line, the expansion's age and the
+    # dependency line (Batch 5), the excess CAPE yield (a56) and the capex chain
+    # (b52). A new one is a new file there, never an edit here.
+    subs += stack_hooks.run("monthly", "slow", "sourced_figures",
+                            {"st": st, "now": now, "db_path": db_path})
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]

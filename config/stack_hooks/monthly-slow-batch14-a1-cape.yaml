@@ -1,0 +1,11 @@
+# Batch 14 items 64 and 69 (a56): the excess CAPE yield and real home prices since 1890.
+# Moved from monthly_macro/stack.py's inline list by S1 part 5 (26 Oct 2026).
+id: monthly-slow-batch14-a1-cape
+cadence: monthly
+section: slow
+after: monthly-slow-batch5b-expansion
+module: daily_cascade.batch14_a1_block
+function: slow_subsection
+args: [st, now]
+requires: [st, now]
+returns: one

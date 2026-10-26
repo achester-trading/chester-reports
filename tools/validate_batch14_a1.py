@@ -242,7 +242,7 @@ def group_f() -> None:
           and any("scorecard is not built" in g for g in sub["not_tracked"]),
           "the slow sub-section; item 21's scorecard column named \"not built\"")
     ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
-    check("batch14_a1_block.slow_subsection(st, now)" in ms,
+    check(__import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch14_a1_block", "slow_subsection", ["st", "now"]),
           "the Monthly's slow layers carry it")
     files = [REPO / "altdata" / "batch14_a1.py", REPO / "daily_cascade" / "batch14_a1_block.py"]
     src = "\n".join(p.read_text(encoding="utf-8") for p in files)

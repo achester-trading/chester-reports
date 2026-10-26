@@ -1,0 +1,11 @@
+# Batch 14 item 63 (b52): Factor I's capex-chain exhibit, BNP Paribas's $100 (August 2026).
+# Moved from monthly_macro/stack.py's inline list by S1 part 5 (26 Oct 2026).
+id: monthly-slow-capex-chain
+cadence: monthly
+section: slow
+after: monthly-slow-batch14-a1-cape
+module: daily_cascade.capex_chain_block
+function: slow_subsection
+args: []
+requires: [st, now]
+returns: one

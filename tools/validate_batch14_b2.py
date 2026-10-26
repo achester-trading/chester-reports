@@ -219,7 +219,7 @@ def group_c() -> None:
           "the slow sub-section: its read as a lead (before the table), the table, "
           "six edition lines, no paragraph")
     ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
-    check("batch14_b2_block.slow_subsection(now, db_path)" in ms
+    check(__import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch14_b2_block", "slow_subsection", ["now", "db_path"])
           and 'not str(r["family"]).startswith("cma-")' in ms,
           "the Monthly's slow layers carry it, and the sourced figures leave the CMA "
           "families out")

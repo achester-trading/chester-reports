@@ -378,7 +378,7 @@ def group_g() -> None:
     ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
     check("transmission_block.subsection(st, now)" in ms
           and "capex_chain_block.priced_subsection(st, now)" in ms
-          and "capex_chain_block.slow_subsection()" in ms,
+          and __import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.capex_chain_block", "slow_subsection", []),
           "the Monthly calls the three: Plumbing's loosening leg, what's priced, Factor I")
     vs = yaml.safe_load((REPO / "config" / "voices_sources.yaml").read_text(encoding="utf-8"))
     j = [s for s in vs["sources"] if s.get("id") == "jdi_research"]

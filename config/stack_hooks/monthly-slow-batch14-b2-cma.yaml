@@ -1,0 +1,11 @@
+# Signal-triage Batch 14 item 62 (b55): the cross-house CMA table, from the stored CMA scans.
+# Moved from monthly_macro/stack.py's inline list by S1 part 5 (26 Oct 2026).
+id: monthly-slow-batch14-b2-cma
+cadence: monthly
+section: slow
+after: inline:sourced_figures
+module: daily_cascade.batch14_b2_block
+function: slow_subsection
+args: [now, db_path]
+requires: [now]
+returns: one

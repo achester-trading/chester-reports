@@ -1,0 +1,6 @@
+# THE STACKS' OWN PLACES a hook may follow (daily_cascade/stack_hooks.py), by
+# cadence and section. A hook's `after: inline:<anchor>` must name one here.
+monthly:
+  slow:
+    # After the scans' sourced figures, at the end of the slow layers' sub-sections.
+    - sourced_figures
