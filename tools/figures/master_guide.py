@@ -336,7 +336,8 @@ GROUPS = [
     ("Asset classes (A's sleeves, B's non-equity)", ["V", "VI", "VII", "VIII", "IX",
                                                        "XXXIV", "XV", "XXI", "XXIV"]),
     ("Price, positioning, expression (B, C, D)", ["XXV", "XVI", "XIII", "XI", "XXII",
-                                                    "XIV", "XII"]),
+                                                    "XIV", "XII",
+                                                    "XXX"]),
 ]
 BOOKS = {
     "XVIII": "ABCD", "XXXIII": "ABCD", "XIX": "C", "XXIII": "ABCD", "XVII": "A",
@@ -345,6 +346,7 @@ BOOKS = {
     "XV": "AB", "XXI": "AB", "XXIV": "BC",
     "XXV": "BC", "XVI": "BCD", "XIII": "C", "XI": "CD", "XXII": "BCD", "XIV": "BC",
     "XII": "C",
+    "XXX": "BCD",
 }
 
 
