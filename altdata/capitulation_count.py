@@ -51,6 +51,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from altdata.numeral_audit import ordinal
+
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config" / "capitulation_count.yaml"
 PREREG = ROOT / "docs" / "ledgers" / "capitulation-count-2026-10-26.md"
@@ -206,7 +208,7 @@ def family_short_interest(f: dict, series: dict, day: str, max_age: int) -> dict
     holds = dd["sessions_since_low"] >= int(f["hold_sessions"]) and dd["today"][1] > dd["low"][1]
     breadth = now[1] > at_low[1]
     ok = pct >= f["top_percentile"] and holds and breadth
-    return _res(f, ok, f"short interest at its {pct:.0f}th percentile; low {dd['low'][0]} "
+    return _res(f, ok, f"short interest at its {ordinal(pct)} percentile; low {dd['low'][0]} "
                        f"{'held' if holds else 'not held'} ({dd['sessions_since_low']} sessions); "
                        f"RSP/SPY {'above' if breadth else 'not above'} its value at the low")
 
@@ -364,7 +366,7 @@ def exception_of(out: dict, d: dict) -> dict:
 
 def divergence_line(v: dict) -> str:
     sp = (f"VXN less VIX {v['spread'][1]:+.2f} pts"
-          + (f" ({v['spread_pct']:.0f}th percentile, one year)" if v["spread_pct"] is not None
+          + (f" ({ordinal(v['spread_pct'])} percentile, one year)" if v["spread_pct"] is not None
              else " (percentile accruing)")) if v["spread"] else "VXN less VIX not stored"
     dd = (f"SMH {v['sector_dd']:.1f}% from its 52-week high against the S&P 500's {v['index_dd']:.1f}%"
           if v["sector_dd"] is not None and v["index_dd"] is not None else "SMH's drawdown not stored")
