@@ -1077,6 +1077,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         if built.get("plumbing") is not None:
             built["plumbing"]["items"] += bank_stress_block.close_items(st, cutoff)
         built["read"]["items"] += bank_stress_block.read_items(st, cutoff)
+        # SIGNAL-TRIAGE BATCH 17 item 97 (B79): the Capitulation Count and the
+        # sector divergence line in Positioning & flows, on exception only.
+        from . import capitulation_block                        # noqa: PLC0415
+        if built.get("positioning") is not None:
+            built["positioning"]["items"] += capitulation_block.close_items(st, cutoff)
         # CD-9's daily part (the a47 chain, 19 Oct 2026): the crypto paragraph as
         # a Positioning & flows sub-section of data lines, which the word budget
         # does not count -- only while its switch is on.

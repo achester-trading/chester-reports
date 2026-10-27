@@ -2178,6 +2178,13 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                 crypto_blocks.weekly_block(st, now))
         except Exception:                                       # noqa: BLE001
             log.warning("crypto flows block unavailable", exc_info=True)
+        # SIGNAL-TRIAGE BATCH 17 item 97 (B79): the Capitulation Count beside the
+        # T&B verdict, every Sunday the S&P 500 is more than 5% below its 52-week
+        # high, with table 3's read as a one-line caption and 97(c)'s line.
+        from . import capitulation_block                        # noqa: PLC0415
+        cap_sub = capitulation_block.weekly_subsection(st, now)
+        if cap_sub:
+            built["positioning"].setdefault("subsections", []).append(cap_sub)
         em_week(built, screen, ending)
         # W-1.3b items 3.4 and 3.5: What's priced's event x venue matrix over
         # Ahead's top events, and the top event's playbook.

@@ -1212,6 +1212,30 @@ loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
 
+**The Capitulation Count is printed beside the T&B verdict, never inside it
+(signal-triage Batch 17 item 97; B79, 26 Oct 2026).** `altdata/capitulation_count.py`
+reads the store as of the cutoff and writes nothing. It scores one point per
+scorable family, from five families with the order's exact tests
+(`config/capitulation_count.yaml`): VIX or VIX/VIX3M, the equity put/call ratio's
+20-session mean, SPY's gamma flip, short interest while the low holds with RSP/SPY,
+and flows with AAII. A family whose inputs are missing is a gap, and the scorable
+count prints beside the count (J4). The labels are the order's: none, oversold,
+surrender. There are no decimals and no weights.
+- **Where it prints:** `daily_cascade/capitulation_block.py` prints it in the
+  close's Positioning & flows on exception, and in the Weekly's every Sunday the
+  S&P 500 is more than 5% below its 52-week high, with table 3's read as a caption.
+  97(c)'s sector divergence line (VXN less VIX; SMH's drawdown against the index's)
+  rides the same block.
+- **The feeds:**
+  - Cboe's put/call reader (`altdata/sources/cboe_putcall.py`) ships switched off,
+    pending the operator's ruling on Cboe's terms.
+  - VXN and FRED's VIX3M join the FRED pull.
+  - Every fund-flow leg is a listed gap, so family 5 is unscorable.
+- **The ledger:** pre-registered at `docs/ledgers/capitulation-count-2026-10-26.md`.
+  The binary "4 or more" reaches the T&B intake queue only after it.
+- **Gates:** `tools/validate_capitulation_feeds.py` and
+  `tools/validate_capitulation_count.py` hold it.
+
 **Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
 59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s
 panel. Its series:

@@ -1,0 +1,15 @@
+episode,kind,low,count,scorable,four_or_more,family_vix,family_put_call,family_gamma,family_short_interest,family_flows,spx_20,spx_60,qqq_20,qqq_60,low_held_60
+bear_1973,bear low,1974-10-03,0,0,False,not existent,not existent,not existent,not existent,not existent,18.66,7.84,,,True
+bear_1980,bear low,1982-08-12,0,0,False,not existent,not existent,not existent,not existent,not existent,18.11,38.80,,,True
+bear_1987,bear low,1987-12-04,0,0,False,not existent,not existent,not existent,not existent,not existent,15.50,19.68,,,True
+bear_1990,bear low,1990-10-11,0,0,False,gap,not existent,not existent,not existent,not existent,4.11,6.58,,,True
+near_1994,near-miss low,1994-04-04,0,0,False,gap,not existent,not existent,not existent,not existent,3.21,1.98,,,True
+near_1998,near-miss low,1998-10-08,0,0,False,gap,not existent,not existent,not existent,not existent,18.18,29.74,,,True
+bear_2000,bear low,2002-10-09,0,0,False,gap,not existent,not existent,not existent,not existent,18.92,19.60,,,True
+bear_2007,bear low,2009-03-09,0,0,False,gap,not existent,not existent,not existent,not existent,23.49,37.73,,,True
+near_2011,near-miss low,2011-10-03,0,0,False,gap,not existent,not existent,not existent,not existent,14.02,13.68,,,True
+near_2015,near-miss low,2016-02-11,0,0,False,gap,not existent,not existent,not existent,not existent,10.56,12.55,,,True
+near_2018,near-miss low,2018-12-24,0,0,False,gap,not existent,not existent,not existent,not existent,12.39,19.12,,,True
+bear_2020,bear low,2020-03-23,0,0,False,gap,gap,not existent,not existent,not existent,22.31,39.16,,,True
+bear_2022,bear low,2022-10-12,0,0,False,gap,gap,not existent,not existent,not existent,4.80,8.81,0.25,3.00,True
+near_2024,near-miss low,2024-08-05,0,0,False,gap,gap,not existent,not existent,not existent,6.61,12.47,6.07,14.88,True

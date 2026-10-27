@@ -57,3 +57,123 @@ feeds:
       robots: "not read: a listed gap by J4"
       terms: "ICI refuses an identified client (altdata/sources/ici_mmf.py, parked)"
       state: gap
+
+# ---------------------------------------------------------------- 97(a) the count
+# One point per SCORABLE family, exactly the order's five tests. No decimals, no
+# weights, no blending. A family whose inputs are missing or older than
+# `max_age_days` at the cutoff is a gap: it scores nothing and reduces the
+# scorable count, which prints beside the count ("k of n scorable", J4).
+count:
+  max_age_days: 10          # session-set: two trading weeks for a daily input
+  families:
+    - id: vix
+      name: "VIX"
+      test: "VIX above 30, or VIX/VIX3M above 1"
+      vix_above: 30
+      ratio_above: 1.0
+      keys: [fred.vix, fred.vix3m, calc.vix3m_over_vix]
+    - id: put_call
+      name: "equity put/call"
+      test: "the equity put/call ratio's 20-session mean at or above 0.8"
+      key: cboe.pc_equity
+      sessions: 20
+      at_least: 0.8
+    - id: gamma
+      name: "dealer gamma"
+      test: "net GEX flipped negative to positive, with spot above the flip"
+      instrument: SPY
+      keys: [exposure.net_gex, exposure.net_to_gross, exposure.gamma_flip, exposure.spot]
+      # the gate's own rule (6b): a sign is read only at net-to-gross of 0.10 or more
+      min_net_to_gross: 0.10
+      # "flipped": a negative capture within this many sessions before today's
+      # positive one (session-set)
+      lookback_sessions: 5
+    - id: short_interest
+      name: "short interest"
+      test: "short interest in the top quintile of its own history while price holds above the drawdown low, with RSP/SPY above its value at the low"
+      key: finra.short_interest
+      instrument: SPY
+      top_percentile: 80
+      min_prints: 24        # session-set: a year of semi-monthly prints
+      price_key: yfinance.mkt_gspc
+      breadth_key: calc.breadth_rsp_over_spy
+      high_sessions: 252    # the 52-week high
+      hold_sessions: 3      # session-set: the low is at least 3 sessions old
+    - id: flows
+      name: "flows and AAII"
+      test: "equity ETF flows turned to two consecutive weeks of inflow, and AAII bearish peaked above 50% and falling"
+      # Every flows leg is a listed gap (feeds.flows), and the AAII writer stores
+      # only aaii.bull_bear_spread, not the bearish share: family 5 is unscorable
+      # (J4) until both exist.
+      flow_keys: []
+      aaii_bearish_key: null
+      inflow_weeks: 2
+      bearish_peak_above: 50
+  labels:                   # the order's bands, read against the count itself
+    - {at_least: 4, label: surrender}
+    - {at_least: 2, label: oversold}
+    - {at_least: 0, label: none}
+  print:
+    close_on_change: true
+    close_at_least: 2       # the oversold band
+    weekly_below_high_pct: 5
+    index_key: yfinance.mkt_gspc
+
+# The pair is the read (Appendix A, table 3). The T&B verdict is not built (no
+# writer stores top_bottom.verdict), so the caption prints that.
+table_3:
+  - {verdict: OVEREXTENDED, band: surrender, read: "Oversold inside an expensive market: Book C bounce, not a Book A add"}
+  - {verdict: BOTTOM SIGNAL, band: surrender, read: "The historical rhyme (2009, 2020)"}
+  - {verdict: BOTTOM SIGNAL, band: none, read: "2022-type: the macro second derivative turned; the checklist cannot confirm it and should not be asked to"}
+  - {verdict: NEUTRAL, band: surrender, read: "Mechanical correction (1998, 2018, 2024): fast, fully retraced, Book C only"}
+
+# ---------------------------------------------------------------- 97(c) the sector line
+divergence:
+  vxn_key: fred.vxn
+  vix_key: fred.vix
+  pct_sessions: 252
+  spread_pct_above: 90
+  sector_key: yfinance.mkt_smh      # J5: SMH, not SOXX (D33: no new yfinance symbol)
+  index_key: yfinance.mkt_gspc
+  high_sessions: 252
+  drawdown_multiple: 2
+
+# ---------------------------------------------------------------- the calibration ledger
+# Pre-registered in docs/ledgers/capitulation-count-2026-10-26.md (held by its
+# SHA-256 in tools/validate_capitulation_count.py), committed alone before its
+# first run. The episodes are Tops and Bottoms' bears' lows and near-miss lows as
+# A77's config/tb_episodes.yaml carries them (origin/a77-6i-tranches-1-2-5, read
+# 26 Oct 2026, not merged), deduplicated; 1994's and 2011's are session-set there.
+ledger:
+  spx_key: yfinance.mkt_gspc
+  ndx_proxy_key: yfinance.mkt_qqq    # QQQ, a labelled proxy for the Nasdaq-100 (from March 1999)
+  # The date each family's series begins to exist; before it the reading is "not
+  # existent", never back-filled. null: not fixed here, so every episode reads
+  # "not existent" for that family until a later edition states a date.
+  exists_from:
+    vix: "1990-01-02"               # FRED VIXCLS; VIX3M (VXVCLS) from 2007-12-04 is the ratio's optional leg
+    put_call: "2019-10-23"          # the first Cboe daily file verified on 26 Oct 2026 (earlier dates answered 403)
+    gamma: null                     # SPY's stored captures began in October 2026
+    short_interest: null            # FINRA's history in the store is not fixed here
+    flows: null                     # a listed gap (J4)
+  episodes:
+    - {id: bear_1973, kind: bear low, low: "1974-10-03"}
+    - {id: bear_1980, kind: bear low, low: "1982-08-12"}
+    - {id: bear_1987, kind: bear low, low: "1987-12-04"}
+    - {id: bear_1990, kind: bear low, low: "1990-10-11"}
+    - {id: near_1994, kind: near-miss low, low: "1994-04-04"}
+    - {id: near_1998, kind: near-miss low, low: "1998-10-08"}
+    - {id: bear_2000, kind: bear low, low: "2002-10-09"}
+    - {id: bear_2007, kind: bear low, low: "2009-03-09"}
+    - {id: near_2011, kind: near-miss low, low: "2011-10-03"}
+    - {id: near_2015, kind: near-miss low, low: "2016-02-11"}
+    - {id: near_2018, kind: near-miss low, low: "2018-12-24"}
+    - {id: bear_2020, kind: bear low, low: "2020-03-23"}
+    - {id: bear_2022, kind: bear low, low: "2022-10-12"}
+    - {id: near_2024, kind: near-miss low, low: "2024-08-05"}
+  rule:
+    min_scorable: 4
+    min_episodes: 5
+    min_firings: 3
+    held_share: 0.6
+    positive_share: 0.67

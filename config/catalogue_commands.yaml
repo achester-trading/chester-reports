@@ -324,6 +324,10 @@ commands:
     domain: computed
     line: 'The developed-market drawdown screen and its ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'
     sources: [dm_drawdown]
+  altdata.capitulation_count:
+    domain: computed
+    line: 'the Capitulation Count (item 97(a)) and the sector divergence line (97(c)); `show --db PATH [--date D]` and `ledger --db PATH [--dry-run]`; reads only (mode=ro)'
+    sources: [calc]
   altdata.bank_stress:
     domain: computed
     line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'
