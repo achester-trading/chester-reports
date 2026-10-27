@@ -57,6 +57,7 @@ PY_VALIDATORS := \
 	tools/validate_decision_quality.py \
 	tools/validate_error_corpus.py \
 	tools/validate_value_of_information.py \
+	tools/validate_postmortems.py \
 	tools/validate_executions.py \
 	tools/validate_exec_bits.py \
 	tools/validate_systemd_units.py \

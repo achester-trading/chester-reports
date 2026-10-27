@@ -180,6 +180,10 @@ commands:
   altdata.paper_bid:
     domain: options
     line: The two-bid decomposition, the parts that can start now
+  altdata.postmortem:
+    domain: register
+    line: Code-built post-mortems -- one file per graded miss of the week, the six questions blank for the operator (LL-4)
+    sources: [derived_probability, derived_grade]
   altdata.probability_ledger:
     domain: register
     line: The probability ledger -- every number this system states as a likelihood, scored
@@ -199,6 +203,10 @@ commands:
   altdata.rates_shape:
     domain: rates
     line: THE SELLOFF-SHAPE AXIS AND THE SELLOFF'S COMPOSITION, and the four voices adjudicated by the measures
+  altdata.redteam_shadow:
+    domain: register
+    line: Red Team v1 in shadow -- a blinded model pass on each material packet, to a file only (LL-4)
+    sources: [derived_grade]
   altdata.releases:
     domain: computed
     line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'
