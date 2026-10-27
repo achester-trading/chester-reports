@@ -737,6 +737,17 @@ FRED_BATCH15_A_SERIES: list[SeriesSpec] = [
     SeriesSpec("nikkei225", "NIKKEI225", "Nikkei Stock Average (Nikkei 225), daily close", "7", "idx", "daily"),
 ]
 
+# SIGNAL-TRIAGE BATCH 17, ITEM 97(b)(ii) (b79-capitulation-count, 26 Oct 2026,
+# session B): the Capitulation Count's term-structure leg and 97(c)'s sector
+# spread. Read off FRED on 26 Oct 2026: VXNCLS, Cboe's Nasdaq-100 volatility index,
+# daily close, INDEX, from 2 Feb 2001; VXVCLS, Cboe's S&P 500 3-month volatility
+# index (VIX3M), daily close, INDEX, from 4 Dec 2007. FRED's VIX3M is the free,
+# keyless pair for fred.vix, beside yfinance.mkt_vix3m (D33: no new yfinance symbol).
+FRED_BATCH17_SERIES: list[SeriesSpec] = [
+    SeriesSpec("vxn", "VXNCLS", "CBOE Nasdaq-100 volatility index (VXN), daily close", "5", "idx", "daily"),
+    SeriesSpec("vix3m", "VXVCLS", "CBOE S&P 500 3-month volatility index (VIX3M), daily close", "5", "idx", "daily"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
@@ -744,7 +755,8 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
                                       + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
-                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES)
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES
+                                      + FRED_BATCH17_SERIES)
 
 
 # Quick lookup by key

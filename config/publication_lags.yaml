@@ -308,6 +308,16 @@ families:
       newest month, and "Next Release Date: 10/30/2026". A month is dated its
       15th, so before the next release the newest is about 54 sessions old
       (15 Aug to 30 Oct): the monthly allowance's 32 plus 22, and a day's slack.
+  - id: cboe_putcall
+    keys: ["cboe.pc_*"]
+    lag_sessions: 1
+    max_lag: 2
+    source: "Cboe daily market statistics (put/call ratios), one file a session"
+    reason: >-
+      The session's file is posted after the close and dated the session (the
+      23 Oct 2026 file read the same evening), so it is current within the
+      daily allowance; one session's slack covers a file posted after midnight
+      or a late holiday schedule (signal-triage Batch 17 item 97(b), B79).
   - id: clevfed_rules
     keys: ["clevfed.rules_*"]
     lag_sessions: 7

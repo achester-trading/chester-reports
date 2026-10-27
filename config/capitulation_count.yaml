@@ -1,0 +1,59 @@
+# THE CAPITULATION COUNT AND ITS FEEDS (signal-triage Batch 17, item 97;
+# docs/change-order-signal-triage-batch-17-2026-10-26.md, entry 97 and Appendix A;
+# B79, b79-capitulation-count, 26 Oct 2026, session B). Read by
+# altdata/capitulation_count.py; held by tools/validate_capitulation_feeds.py
+# (the feeds) and tools/validate_capitulation_count.py (the count and 97(c)).
+#
+# A five-family bottom checklist on a fast clock (is selling exhausted? days),
+# printed BESIDE the Top & Bottom verdict (is the regime turning? months) and never
+# inside it: the order's Appendix A table 3, "the pair is the read". Report rights.
+# Nothing here enters the T&B composite, the market-state object, a dial or a band;
+# the binary "4 or more" enters the T&B intake queue only after the calibration
+# ledger (docs/ledgers/capitulation-count-2026-10-26.md).
+
+version: capitulation-count-1
+updated: 2026-10-26
+
+# ---------------------------------------------------------------- 97(b) the feeds
+feeds:
+  put_call:
+    module: altdata/sources/cboe_putcall.py
+    keys: [cboe.pc_equity, cboe.pc_index, cboe.pc_total]
+    state: "built, switched off pending the operator's ruling on Cboe's terms"
+  vol_indices:
+    fred: {VXNCLS: fred.vxn, VXVCLS: fred.vix3m}
+    # 97(b)(ii): the VIX/VIX3M ratio is NOT a new stored series. The existing
+    # calc.vix3m_over_vix (altdata/market_features.py, stored every session by the
+    # features pass) is read inverted; FRED's pair (fred.vix, fred.vix3m) is read
+    # first where both are stored for the day, the keyless and non-Yahoo route.
+    ratio_from: [fred.vix3m, fred.vix]
+    ratio_fallback: calc.vix3m_over_vix
+  # 97(b)(iii): fund flows. A reader is built only where robots.txt AND the terms
+  # permit it (the 16 Oct 2026 rule); each verdict below was read on 26 Oct 2026.
+  # None permits, so every leg is a listed gap and family 5 is unscorable (J4).
+  flows:
+    - fund: SPY
+      issuer: State Street Investment Management (ssga.com)
+      robots: "no rule against the product pages (read 26 Oct 2026)"
+      terms: "ssga.com's pages: 'The whole or any part of this work may not be reproduced, copied or transmitted ... without SSGA's express written consent' (read 26 Oct 2026)"
+      state: gap
+    - fund: QQQ
+      issuer: Invesco (invesco.com)
+      robots: "disallows query parameters such as asOfDate, startDate and endDate, not product pages (read 26 Oct 2026)"
+      terms: "not located at a stable URL on 26 Oct 2026 (the legal page answered 404); permission not established"
+      state: gap
+    - fund: IWM
+      issuer: iShares (ishares.com)
+      robots: "disallows search, sign-on and .dl paths, not product pages (read 26 Oct 2026)"
+      terms: "not located at a stable URL on 26 Oct 2026 (terms page answered 404); permission not established. altdata/sources/ishares_trusts.py's registry entry records no terms reading"
+      state: gap
+    - fund: SMH
+      issuer: VanEck (vaneck.com)
+      robots: "Crawl-delay 25; no rule against SMH's pages (read 26 Oct 2026)"
+      terms: "not located at a stable URL on 26 Oct 2026 (terms page answered 404); permission not established"
+      state: gap
+    - fund: ICI weekly combined estimated flows
+      issuer: Investment Company Institute
+      robots: "not read: a listed gap by J4"
+      terms: "ICI refuses an identified client (altdata/sources/ici_mmf.py, parked)"
+      state: gap

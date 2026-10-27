@@ -1373,6 +1373,37 @@ sources:
         first pull's Last-Modified, so invisible to an as-of read before it. Live
         under the D1c ruling of 16 Oct 2026; on feeds.EXTERNAL_WRITERS.
 
+  cboe_putcall:
+    name: Cboe Global Markets -- daily market statistics, put/call ratios (equity, index, total)
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [options, sentiment]
+    geography: [US]
+    latency: daily, after the close (one JSON file a session)
+    timestamp_reliability: high
+    timestamp_notes: >-
+      One file per session, dated the session; available_at is the file's
+      Last-Modified (observed). Files answer from late 2019; earlier dates 403.
+    license: >-
+      public JSON, no key (cdn.cboe.com/data/us/options/market_statistics/daily/<YYYY-MM-DD>_daily_options,
+      the file behind www.cboe.com/us/options/market_statistics/daily/, read 26 Oct 2026).
+      ROBOTS (26 Oct 2026): www.cboe.com disallows /book/ and /*market_statistics/volume_reports/
+      only; cdn.cboe.com answers 403 (no rules, RFC 9309); checked on every pull.
+      TERMS (www.cboe.com/terms, Last Updated 16 Nov 2022, read 26 Oct 2026): one copy
+      for personal non-commercial use; "You may not otherwise copy, reproduce, alter,
+      store either in hard copy or in an electronic retrieval system". The writer is
+      built and SWITCHED OFF until the operator rules on that clause.
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/cboe_putcall.py
+    status: built
+    caveats:
+      - >-
+        Signal-triage Batch 17 item 97(b)(i), B79. Stores the equity, index and
+        total ratios by name; the 20-session mean and the one-year percentiles are
+        computed at read time. Off (`ENABLED = False`): a pull returns STALE with
+        the reason and writes nothing; the Capitulation Count's family 2 prints as
+        a gap. Not on feeds.EXTERNAL_WRITERS until the ruling.
+
   nbs:
     name: National Bureau of Statistics of China -- English press releases (70-city prices; real-estate investment and sales)
     tier: A0

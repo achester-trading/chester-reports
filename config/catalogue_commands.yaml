@@ -268,6 +268,10 @@ commands:
     domain: options
     line: "Cboe's daily history files: COR1M, COR3M (implied correlation) and DSPX (dispersion), from 2006 and 2014"
     sources: [cboe_indices]
+  altdata.sources.cboe_putcall:
+    domain: options
+    line: "Cboe's daily put/call ratios (equity, index, total), item 97(b); switched off pending the ruling on Cboe's terms"
+    sources: [cboe_putcall]
   altdata.sources.cfets:
     domain: china
     line: CFETS / China Money -- the USD/CNY central parity and the CGB 10-year and 2-year yields
