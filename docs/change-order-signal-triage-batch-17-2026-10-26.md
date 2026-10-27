@@ -15,7 +15,7 @@
 
 ## 0. Filing amendments (paste A81, 26 Oct 2026; ruled in chat 26 Oct 2026)
 
-- **J1, the numbering.** Items 92 to 97 as written; work IDs ST-R8.92a onward. The order's cross-references are already in filed numbers. Each was checked against `docs/signal-triage-register.md`, the earlier batch orders and Batch 16's H1 table, by subject:
+- **J1, the numbering.** Items 92 to 97 as written; work IDs ST-R8.92a onward. The order's cross-references are in filed numbers but one (54, rewritten to 60). Each was checked against `docs/signal-triage-register.md`, the earlier batch orders and Batch 16's H1 table, by subject:
 
   | Reference | Resolves to | Subject, and where it is filed |
   |---|---|---|
@@ -32,7 +32,7 @@
   | SR-35 | SR-35 | The 10-year speed flag (Batch 3's order). A working number in its order with no register entry |
   | 52 | 52 | The volatility event (Batch 16's H1: unchanged) |
   | GTM-5 | GTM-5 | The EPS growth decomposition, LOG (the GTM order) |
-  | **54** | **60, not resolved here** | 96 cites "item 54 (estimate overshoot)". The earnings-estimate overshoot is the filed **item 60** (Batch 12; Batch 14's F-table: "the order's item 54 is the filed item 60"). The text below is left as written, pending the operator's ruling |
+  | 54 | **60** | The earnings-estimate overshoot, filed as item 60 (Batch 12; Batch 14's F-table: "the order's item 54 is the filed item 60"). 96's "item 54 (estimate overshoot)" is rewritten to "item 60" below, on the operator's ruling of 27 Oct 2026 (paste A82); it is the one change to the order's text |
   | Factor I, Factor IV, R28, D33 | unchanged | Their own namespaces |
 
 - **J2, rule 30.** The two recurring by-hand lines are allowed by the operator's yes of 26 Oct 2026 (D39): 95's monthly Moody's diff and 96's quarterly FactSet row. 97(d)'s Cboe base-rate row is one-off, a dated record in `docs/dated-appendix-queue.md` when it is built. No other recurring by-hand line is created.
@@ -99,7 +99,7 @@ Every item is REPORT_OK-class. Nothing here has a path to DECISION_BLOCKED, chan
 ### 96 · Earnings-growth contribution concentration — AMEND the concentration twin
 **Source.** Trevor Noren, Sage Road Research (LinkedIn, 25 Oct 2026), relaying a WSJ chart "Contributions to S&P 500 third-quarter earnings growth from a year earlier" — *independent research*, relaying *media*; WSJ figure not independently verified (V2).
 **Read.** S&P 500 Q3 earnings +29.7% YoY; roughly half the growth from ten names — Micron, Nvidia, Broadcom, ExxonMobil, EchoStar, Sandisk, Marathon Petroleum, Meta, Chevron, Valero — with 357 other positive contributors and 132 decliners.
-**Thought process.** Held: GTM-5 (EPS growth decomposition), the concentration twin (top-10 cap share vs earnings share; intake-queue draft GTM-3 / SR-50), item 54 (estimate overshoot), the standing earnings-vs-multiple chart (round-5 batch). Missing: *growth-contribution* concentration — the top-10 share of index EPS *growth* and the decliner count — which moves faster than earnings-share concentration and reads differently: this quarter memory and energy, not hyperscalers, carried the index, which bears on Factor I. FactSet publishes the sector and Mag-7 split free each season ([FactSet Insight](https://insight.factset.com/are-magnificent-7-companies-still-top-contributors-to-sp-500-earnings-growth-for-q3)); that is the stored source.
+**Thought process.** Held: GTM-5 (EPS growth decomposition), the concentration twin (top-10 cap share vs earnings share; intake-queue draft GTM-3 / SR-50), item 60 (estimate overshoot), the standing earnings-vs-multiple chart (round-5 batch). Missing: *growth-contribution* concentration — the top-10 share of index EPS *growth* and the decliner count — which moves faster than earnings-share concentration and reads differently: this quarter memory and energy, not hyperscalers, carried the index, which bears on Factor I. FactSet publishes the sector and Mag-7 split free each season ([FactSet Insight](https://insight.factset.com/are-magnificent-7-companies-still-top-contributors-to-sp-500-earnings-growth-for-q3)); that is the stored source.
 **Decision.** Amend the concentration twin with a per-season row: top-10 share of index EPS growth · number of decliners · Mag-7 vs ex-Mag-7 growth (FactSet) · sector contributions. Prints in the Weekly during earnings season and in the Monthly's equity structure. Base-rate rights (history from FactSet's seasonal notes, by hand). 1.5 h + 0.25 h/quarter by hand. Voices: Noren, new.
 
 ### 97 · Capitulation Count — a five-family bottom checklist (Book C tool)
