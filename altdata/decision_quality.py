@@ -476,17 +476,19 @@ def lab_section(as_of: Optional[str] = None, db: Optional[str] = None) -> str:
 
 def with_lab_report(lab: Optional[tuple[str, str, str]], stamp: str,
                     db: Optional[str] = None) -> Optional[tuple[str, str, str]]:
-    """The Monthly's hook: the Lab report attachment with this section appended,
-    or the section alone when the lab has no ledger. Never raises: the Monthly is
-    never this section's casualty."""
+    """The Monthly's hook: the Lab report attachment with this section appended.
+    With no Lab report there is nothing to append to, and the edition gains no
+    attachment of its own: B73 Part 2 prints the section IN the Lab report, and a
+    third attachment broke the Monthly's two-attachment edition (B80). Never
+    raises: the Monthly is never this section's casualty."""
+    if not lab:
+        return lab
     try:
         sec = lab_section(None, db)
     except Exception:                                         # noqa: BLE001
         return lab
-    if lab:
-        name, md, kind = lab
-        return (name, md.rstrip() + "\n\n" + sec, kind)
-    return (f"decision_quality_{str(stamp)[:7]}.md", sec, "markdown")
+    name, md, kind = lab
+    return (name, md.rstrip() + "\n\n" + sec, kind)
 
 
 def pack_md(as_of: Optional[str] = None, db: Optional[str] = None) -> str:

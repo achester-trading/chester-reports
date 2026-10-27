@@ -264,8 +264,8 @@ def group_e() -> None:
           and "### The Brier decomposition, by source family and horizon" in got[1],
           "the Lab report gains the line and the two tables")
     alone = dq.with_lab_report(None, "2026-11-01", db)
-    check(alone and alone[0] == "decision_quality_2026-11.md",
-          "with no lab ledger the section is its own attachment")
+    check(alone is None,
+          "with no Lab report the edition gains no attachment (the Monthly's two stay two; B80)")
     run = (REPO / "monthly_macro" / "run.py").read_text(encoding="utf-8")
     check("with_lab_report(lab, stamp)" in run, "the Monthly calls the hook")
     try:
