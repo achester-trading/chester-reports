@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="c841ca07ebbae054a3b6ee576cdb578e7e1cebc7e7a45728fd95968c9c9894fc">
+<meta name="source-sha256" content="aaa8429fb29e861f620c0f806191667be8e7727ecfe833341161505572ed94b0">
 <title>The Annual Structural Review</title>
 <style>
 :root {
@@ -232,7 +232,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - <strong>(c)</strong> for each, the falsifier: the observation that would mean the section is wrong;
 - <strong>(d)</strong> the items from the standing register of what could change (Part V) that touch this paper;
 - <strong>(e)</strong> an inventory of every dated figure in the paper's appendices, with the stored series it can be recomputed from.</p>
-<p>Section (b) is the one the gate is meant to police. Audit 2 specifies that the library gate fails when a paper's (b) is missing. On 24 October 2026 two of the roster's papers carry the appendix at all, so the failing check is proposed for adoption once every content paper has its appendix, not before. Until then, a paper without the appendix is reviewed by its review session reading the body for its claims, and the first output of that review is the appendix.</p>
+<p>Section (b) is the one the gate is meant to police. Audit 2 specifies that the library gate fails when a paper's (b) is missing. On 24 October 2026 two of the roster's papers carried the appendix at all, so the failing check is adopted in a form that binds new and reviewed papers and lists the rest (section 15). Until its review, an older paper without the appendix is reviewed by its review session reading the body for its claims, and the first output of that review is the appendix.</p>
 <h3>4. Instrument 2: the dated-figure recomputation</h3>
 <p>Every figure in a paper's dated appendices is recomputed annually from the point-in-time store, as of the review date, stored as an observation, and compared with the published value. A move beyond a stated tolerance is flagged for the review session. <em>Base Rates</em> already specifies this for its own tables; the protocol makes it the rule for every appendix. It is a computed step, not a session, and it is specified as a build target the review runs before its sessions. It is not built yet. Until it is, the review session refreshes the appendix by hand from the store, and says so in the log.</p>
 <h3>5. Instrument 3: the relationship health check</h3>
@@ -450,8 +450,8 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - a paper whose review clock has passed <strong>thirteen months</strong> is a <strong>warning</strong>. The clock runs from the last review, or from the version date while the paper has never been reviewed;
 - a register row naming a paper the roster does not have is a <strong>warning</strong>.</p>
 <p>These are the warnings Audit 2 specifies: "library-check warns when any paper's last-reviewed date is more than thirteen months old". They are warnings, not failures, because a late review is a debt to be paid, not a broken library.</p>
-<h3>15. What the gate does not yet check</h3>
-<p>Audit 2 also specifies that the gate <strong>fails</strong> when a paper's Assumptions and Falsifiers section (b) is missing. That check is proposed and not adopted. Two papers on the roster carry the appendix today, so the check would fail the library on its first run, for a debt the library has known about since September and has not yet paid. The proposal is to adopt it as each shelf's papers gain their appendices, starting with the Markets shelf, by a ruling that names the date from which it fails.</p>
+<h3>15. The appendix rule</h3>
+<p>Audit 2 also specifies that the gate <strong>fails</strong> when a paper's Assumptions and Falsifiers section (b) is missing. The rule is adopted (decision 52, ruled 25 October 2026), in a form that does not fail the library for a debt it has known about since September. A paper with no Assumptions and Falsifiers appendix fails the gate if its first version is dated on or after 26 October 2026, or if the standing register shows it reviewed at least once. Every other paper without the appendix is listed in one warning, and its first review pays the debt. The first version date is the earliest date on the masthead's Version line, or the register's version date if earlier. The check reads the appendix's heading rather than section (b) alone, because the papers that carry the appendix label its sections differently. A fixture pair holds the rule: a new paper without the appendix fails, an old one warns.</p>
 <table>
 <thead>
 <tr>
@@ -477,9 +477,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>Adopted (check 15)</td>
 </tr>
 <tr>
-<td>A paper's Assumptions and Falsifiers (b) exists</td>
-<td>Failure if not</td>
-<td>Proposed; would fail 25 papers today</td>
+<td>A paper's Assumptions and Falsifiers appendix exists</td>
+<td>Failure if first dated on or after 26 Oct 2026, or once reviewed; otherwise one warning listing the papers</td>
+<td>Adopted (check 15, decision 52)</td>
 </tr>
 </tbody>
 </table>

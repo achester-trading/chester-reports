@@ -97,3 +97,33 @@ As for XXXI (A72):
 1. **Read Draft 1.** It merges by its own pull request.
 2. **The calendar's departure from the audit's all-in-January:** keep it, or review everything in January.
 3. **The failing check on a missing appendix (b):** the date from which it fails, or keep it proposed.
+
+## B78, 26 Oct 2026: the appendix rule adopted (session B)
+
+Ruled 25 Oct 2026 (D38, decision 52). Base: this branch at `7670d53c`. The paste is committed on `library-ei-figures` (`docs/pastes/B78.md`).
+
+**The gate.** `tools/check_library.py` check 15 now ends with `af_appendix_check`. A paper with no "## Appendix X — Assumptions and Falsifiers" heading (or "&", any case) **fails** in two cases:
+- its first version date is on or after 26 Oct 2026 (`AF_FROM`);
+- the register shows it reviewed at least once (`last_reviewed` not null).
+
+Every other paper without the appendix is named in **one warning**.
+
+How the check reads it:
+- **The first version date** is the earliest date on the masthead's Version line(s), in any of the library's three date forms, or the register's `version_date` if that is earlier.
+- **A paper with neither** is read as new. Every roster paper has a register row, so this case is only a paper that has none.
+- **The check reads the heading, not section (b) alone.** The two papers that carry the appendix label (b) differently ("Regularities with dates" and "Empirical claims").
+
+**The fixture pair** is in `tests/fixtures/check_library/`:
+- `af-new-paper.md`: first dated 2 November 2026, no appendix. It must read "fail".
+- `af-old-paper.md`: 1.1 of 3 December 2026, with "(1.0 — August 2026)" kept in brackets. It must read "warn".
+
+check_library has no test file and this paste adds no gate, so the gate runs the pair on every run and fails itself if the rule stops telling them apart. Also checked by hand: the old fixture marked as reviewed reads "fail".
+
+**XXXII's text.** §15 is now "The appendix rule" and says the rule is adopted, as ruled. Its table row reads "Adopted (check 15, decision 52)". §3's sentence that called the check "proposed" now points to §15. The proposal stays above in these notes, as history. The register file is untouched.
+
+**Gates on this branch:**
+- `check_library`: 28 papers, 0 failures, 1 warning, the new one. 25 older papers owe the appendix: I–XXIV and XXXIV. Only XXXII and XXXIII carry it.
+- `check_master_guide`: passed.
+- The paper's HTML edition is rebuilt.
+
+**At the chain merge.** XXIX and XXX are not on this branch. Both carry "## Appendix A — Assumptions and falsifiers", which the check matches (it ignores case), and both are first dated 26 Oct 2026. They pass, so no paper fails. XXVII was not read from this session; if its masthead is dated on or after 26 Oct and it has no such appendix, it would fail. Its Draft 1 is dated before that, so it would only warn.

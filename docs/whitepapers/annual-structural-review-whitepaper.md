@@ -68,7 +68,7 @@ Every content paper carries an Assumptions and Falsifiers appendix in a fixed fo
 - **(d)** the items from the standing register of what could change (Part V) that touch this paper;
 - **(e)** an inventory of every dated figure in the paper's appendices, with the stored series it can be recomputed from.
 
-Section (b) is the one the gate is meant to police. Audit 2 specifies that the library gate fails when a paper's (b) is missing. On 24 October 2026 two of the roster's papers carry the appendix at all, so the failing check is proposed for adoption once every content paper has its appendix, not before. Until then, a paper without the appendix is reviewed by its review session reading the body for its claims, and the first output of that review is the appendix.
+Section (b) is the one the gate is meant to police. Audit 2 specifies that the library gate fails when a paper's (b) is missing. On 24 October 2026 two of the roster's papers carried the appendix at all, so the failing check is adopted in a form that binds new and reviewed papers and lists the rest (section 15). Until its review, an older paper without the appendix is reviewed by its review session reading the body for its claims, and the first output of that review is the appendix.
 
 ### 4. Instrument 2: the dated-figure recomputation
 
@@ -205,16 +205,16 @@ The library gate gains one check, the fifteenth, which reads the register on eve
 
 These are the warnings Audit 2 specifies: "library-check warns when any paper's last-reviewed date is more than thirteen months old". They are warnings, not failures, because a late review is a debt to be paid, not a broken library.
 
-### 15. What the gate does not yet check
+### 15. The appendix rule
 
-Audit 2 also specifies that the gate **fails** when a paper's Assumptions and Falsifiers section (b) is missing. That check is proposed and not adopted. Two papers on the roster carry the appendix today, so the check would fail the library on its first run, for a debt the library has known about since September and has not yet paid. The proposal is to adopt it as each shelf's papers gain their appendices, starting with the Markets shelf, by a ruling that names the date from which it fails.
+Audit 2 also specifies that the gate **fails** when a paper's Assumptions and Falsifiers section (b) is missing. The rule is adopted (decision 52, ruled 25 October 2026), in a form that does not fail the library for a debt it has known about since September. A paper with no Assumptions and Falsifiers appendix fails the gate if its first version is dated on or after 26 October 2026, or if the standing register shows it reviewed at least once. Every other paper without the appendix is listed in one warning, and its first review pays the debt. The first version date is the earliest date on the masthead's Version line, or the register's version date if earlier. The check reads the appendix's heading rather than section (b) alone, because the papers that carry the appendix label its sections differently. A fixture pair holds the rule: a new paper without the appendix fails, an old one warns.
 
 | Check | Effect | State |
 |---|---|---|
 | A roster paper has a register row | Warning if not | Adopted (check 15) |
 | A paper reviewed within thirteen months | Warning if not | Adopted (check 15) |
 | A register row names a roster paper | Warning if not | Adopted (check 15) |
-| A paper's Assumptions and Falsifiers (b) exists | Failure if not | Proposed; would fail 25 papers today |
+| A paper's Assumptions and Falsifiers appendix exists | Failure if first dated on or after 26 Oct 2026, or once reviewed; otherwise one warning listing the papers | Adopted (check 15, decision 52) |
 
 ---
 
