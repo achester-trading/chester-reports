@@ -198,3 +198,5 @@ The Monthly's stack gates were not run locally. The one change on that path is t
 2. **The two timers.** The lines above are proposals; no unit file was written. Say if a unit paste should add them, and when.
 3. **What counts as a material packet.** I took every decision with a replay packet (26.2 #3). If EL-9 means only Books B and C, or a risk floor, say so (one line in `material_packets`).
 4. **`CAUSE_WORDS` is a session-set list.** A shortening that says "because" in a non-causal sense is refused too. The cost is one paragraph, never the file.
+
+- **CI:** queued, run 40438939725 (at `7b89a7c`), read once at push. The next paste that touches this branch reads the result once.
