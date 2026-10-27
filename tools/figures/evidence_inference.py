@@ -79,11 +79,23 @@ class Plot:
         da = f' stroke-dasharray="{dash}"' if dash else ""
         self.out.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}"{da}/>')
 
-    def band(self, lo, hi, color, opacity):
+    def band(self, lo, hi, color, opacity, clip=False):
         top = " ".join(f"L{self.x(a):.1f},{self.y(b):.1f}" for a, b in hi)
         bot = " ".join(f"L{self.x(a):.1f},{self.y(b):.1f}" for a, b in reversed(lo))
         d = "M" + top[1:] + " " + bot + " Z"
-        self.out.append(f'<path d="{d}" fill="{color}" opacity="{opacity}" stroke="none"/>')
+        cp = ""
+        if clip:
+            # A band that runs past the y-range is cut at the plot box, not drawn over the title.
+            if "plotbox" not in "".join(self.out):
+                self.out.append(f'<defs><clipPath id="plotbox"><rect x="{L}" y="{T}" '
+                                f'width="{R - L}" height="{B - T}"/></clipPath></defs>')
+            cp = ' clip-path="url(#plotbox)"'
+        self.out.append(f'<path d="{d}" fill="{color}" opacity="{opacity}" stroke="none"{cp}/>')
+
+    def swatch(self, a, b, color, opacity, label):
+        px, py = self.x(a), self.y(b)
+        self.out.append(f'<rect x="{px:.1f}" y="{py - 9:.1f}" width="14" height="10" fill="{color}" '
+                        f'opacity="{opacity}"/><text x="{px + 19:.1f}" y="{py:.1f}" fill="{MUTE}">{label}</text>')
 
     def dot(self, a, b, color, label=None, dx=6, dy=-6, anchor="start"):
         self.out.append(f'<circle cx="{self.x(a):.1f}" cy="{self.y(b):.1f}" r="3.2" fill="{color}"/>')
@@ -151,14 +163,15 @@ def fig2():
            ylabel="annualized Sharpe")
     ts = [0.5 + i * 0.1 for i in range(196)]
     se = lambda t: math.sqrt((1 + 0.5) / t)
-    p.band([(t, 1 - 2 * se(t)) for t in ts], [(t, 1 + 2 * se(t)) for t in ts], C1, 0.12)
-    p.band([(t, 1 - se(t)) for t in ts], [(t, 1 + se(t)) for t in ts], C1, 0.22)
+    p.band([(t, 1 - 2 * se(t)) for t in ts], [(t, 1 + 2 * se(t)) for t in ts], C1, 0.12, clip=True)
+    p.band([(t, 1 - se(t)) for t in ts], [(t, 1 + se(t)) for t in ts], C1, 0.22, clip=True)
     p.line([(0.5, 1), (20, 1)], C1)
     p.line([(0.5, 0), (20, 0)], RED, 1.1, "4 3")
     for t in (1, 5, 10):
         p.dot(t, 1 + se(t), C1, f"T {t}: SE {se(t):.2f}", dy=-8,
               anchor="start" if t < 10 else "middle")
-    p.text(15, -1.55, "dark: ±1 SE   light: ±2 SE", MUTE)
+    p.swatch(12.5, -1.25, C1, 0.34, "±1 SE")
+    p.swatch(12.5, -1.65, C1, 0.12, "±2 SE")
     return p.svg("SE = √((1 + S²/2)/T) with S = 1 (Chapter 2): 1.22 at one year, 0.55 at five, "
                  "0.39 at ten, where one standard error spans about 0.6 to 1.4.")
 

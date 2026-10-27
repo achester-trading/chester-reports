@@ -4,7 +4,7 @@
 
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXIII** — with the positioning and book layer, immediately before *Building and Validating a Systematic Book* — per the library guide, which is canonical for numerals; cross-references in this paper are by name
-**Version:** 1.0 — September 2026
+**Version:** 1.0.1 — 26 October 2026: Chapter 14 sentence per Figure 4 (1.0 — September 2026)
 **Status:** Doctrine-adjacent. Governs how every figure the register prints is to be read. Its five computed figures are drawn from the paper's own formulas (24 October 2026).
 
 ---
@@ -172,7 +172,7 @@ The gap is deliberate and this chapter defends it. Kelly assumes four things, an
 
 ![Figure 4 — Kelly under an uncertain edge: the fraction of full Kelly falls as the edge's error bar grows](../figures/evidence-inference/fig-04.svg)
 
-The figure shows the first violation alone. When the edge estimate carries uncertainty comparable to its size — which Part I says it will for years — the growth-optimal fraction collapses toward a fraction of full Kelly, and at the uncertainty levels a two-hundred-decision sample implies, it sits near or below quarter-Kelly. **The Doctrine's sizing is not conservative relative to Kelly; it is approximately Kelly-optimal once the edge's uncertainty is admitted.** The promotion gates that allow tiers to rise as the register accumulates are the mechanism by which sizing tracks the narrowing error bar — never reaching full Kelly, because the error bar never reaches zero.
+The figure shows the first violation alone. When the edge estimate carries uncertainty comparable to its size — which Part I says it will for years — the growth-optimal fraction, under a rule that sizes to the edge's lower two-standard-error bound (Figure 4's second curve), collapses toward a fraction of full Kelly, and at the uncertainty levels a two-hundred-decision sample implies, it sits near or below quarter-Kelly. Under Bayesian shrinkage of the estimated edge, the figure's first curve, it does not: shrinkage alone leaves the fraction well above quarter-Kelly at that sample. **The Doctrine's sizing is not conservative relative to Kelly; it is approximately Kelly-optimal once the edge's uncertainty is admitted.** The promotion gates that allow tiers to rise as the register accumulates are the mechanism by which sizing tracks the narrowing error bar — never reaching full Kelly, because the error bar never reaches zero.
 
 ## Chapter 15 — Edge decay: a fading edge or a bad month
 

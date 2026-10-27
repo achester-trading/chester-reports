@@ -64,3 +64,19 @@ The paper's sentence matches the second rule, not the first. The figure shows bo
 
 1. **Figure 4 and Chapter 14's sentence.** Only the lower-bound rule puts 200 decisions near quarter-Kelly. Either the sentence names that rule (a body edit, yours to rule), or the figure keeps both, as drawn.
 2. **Look at the five once.** They were drawn by coordinates; no renderer is installed on the laptop.
+
+## B78, 26 Oct 2026: the Chapter 14 sentence and Figure 2's layout (session B)
+
+Ruled 25 Oct 2026 (D38, decision 55). Base: this branch at `ee74953e`.
+
+**The body edit.** Chapter 14's sentence now names the rule under which it holds. The growth-optimal fraction sits near or below quarter-Kelly at two hundred decisions "under a rule that sizes to the edge's lower two-standard-error bound (Figure 4's second curve)". A second sentence says that under Bayesian shrinkage, the first curve, it does not: shrinkage leaves the fraction well above quarter-Kelly (about 0.89 of Kelly at s/m ≈ 0.35). Nothing else in the body changed. The masthead reads "1.0.1 — 26 October 2026: Chapter 14 sentence per Figure 4 (1.0 — September 2026)". `check_library` still reduces it to 1.0, the guide's version.
+
+**Figure 4's foot line** never carried the clause "the sentence matches the second rule". That clause was in these notes (needs-you 1), not in the figure. The foot says only what the bound rule gives at 200 and at 60, so it is unchanged. Needs-you 1 above is closed by the edit.
+
+**Figure 2, layout only.** Two faults are fixed:
+- The ±1 and ±2 SE bands are clipped to the plot box. The light band no longer runs past the top over the title, or past the bottom.
+- The legend was one text string whose spaces collapsed. It is now two swatches, each with its label ("±1 SE", "±2 SE").
+
+No number, curve or wording changed. Only `fig-02.svg` changed when the script was rerun. The preview is `C:\Users\arich\projects\figure-previews\ei\fig-02.png` (headless Edge), and it was looked at.
+
+**Gates.** `check_library`: 27 papers, 0 failures, 0 warnings. The paper's HTML edition is rebuilt (5 figures embedded).
