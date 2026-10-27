@@ -19497,6 +19497,10 @@ lens_excluded:
   calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"
   calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
   calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
+  # B73 (LL-1, LL-3), placed by B80: computed at read from the ledgers, tables not series.
+  brier.decomposition: "a table of Murphy's three terms per source family and horizon, computed at read, not a level series (LL-1)"
+  grade.counterfactual: "a table per book of taken against not-taken outcomes, computed at read, not a level series (LL-1)"
+  learning.error_corpus: "an append-only table of graded misses, one record each, not a level series (LL-3)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).
   state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"
   state.net_gex_sign: "a sign (+1, -1 or 0), not a level series (EL-5)"
