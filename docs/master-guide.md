@@ -500,6 +500,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `ai-lab-financials-ledger.md` | diagnostic | n — | The AI-lab financials ledger -- its template and first, provisional row (ST-R6.75a, Batch 15 item 75; report only) |
 | `air-pocket-preregistration-2026-10.md` | diagnostic | n — | The air pockets against the fragility panel — pre-registration (ST-R6.71d, Batch 14 item 71) |
 | `bank-stress-preregistration-2026-10.md` | diagnostic | n — | The bank-stress base rate — pre-registration (ST-R6.59c, Batch 12 item 59) |
+| `capitulation-count-2026-10-26.md` | diagnostic | n — | The Capitulation Count's calibration ledger -- pre-registration (Batch 17 item 97(a)); the laptop's CSV reads INSUFFICIENT, n 0 |
 | `dealer-scorecard-preregistration-2026-10-h6.md` | diagnostic | n — | Dealer scorecard — pre-registration H6, level clusters (Batch 11 item 55) |
 | `dealer-scorecard-preregistration-2026-10.md` | diagnostic | n — | Dealer scorecard — pre-registration (6b, October 2026) |
 | `d15-ledger-2026-10-24.md` | INSUFFICIENT | n 67 | D15 ledger -- the 10-year one-day trigger's attribution against the next 5 sessions (rulings of 24 Oct 2026; report only) |
