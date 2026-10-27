@@ -115,12 +115,15 @@ REMAINDERS = {
 }
 
 # The rows carrying a reason (absent / waits / not_measured), family by family:
-# the brief's 230 less the switched rows plus the remainders. A change to any
-# other row moves a count.
+# the brief's 230 less the switched rows plus the remainders, less the rows a
+# later paste switched (LATER_SWITCHED). A change to any other row moves a count.
 REASON_ROWS = {"metals": 14, "oil_energy": 24, "currency": 18, "em": 8, "china": 21,
-               "crypto": 66, "real_estate": 5, "credit": 13, "intl_equities": 13,
+               "crypto": 66, "real_estate": 5, "credit": 12, "intl_equities": 13,
                "thailand": 4, "agriculture": 15}
 BASE_REASON_ROWS = 230
+# Rows switched off a reason after 6i-1, each by the paste that built its reading:
+# credit's "HY spread acceleration" reads the T&B harness's overlay (6i-4, A79).
+LATER_SWITCHED = {("credit", "HY spread acceleration"): "harness_overlay"}
 
 
 def reason_rows(fams: dict) -> dict:
@@ -244,10 +247,27 @@ def group_c(fams: dict) -> None:
     whole = 1 + sum(1 for fid, where, loc, _, _ in SWITCHED      # 1: PRL's definition
                     if not any((find(fams[fid], where, loc) or {}).get(f)
                                for f in ("absent", "waits", "not_measured")))
-    check(BASE_REASON_ROWS - whole + 2 == sum(REASON_ROWS.values()),
+    later = len(LATER_SWITCHED)
+    check(BASE_REASON_ROWS - whole + 2 - later == sum(REASON_ROWS.values()),
           f"the arithmetic: 230 less the {whole} rows switched whole, plus the two "
-          f"remainder rows, is {sum(REASON_ROWS.values())} ({switched} switched, "
-          f"{switched - whole + 1} keeping a remainder)")
+          f"remainder rows, less {later} switched later, is {sum(REASON_ROWS.values())} "
+          f"({switched} switched, {switched - whole + 1} keeping a remainder)")
+    for (fid, label), field in LATER_SWITCHED.items():
+        rows = []
+
+        def walk(x):
+            if isinstance(x, dict):
+                if x.get("label") == label:
+                    rows.append(x)
+                for v in x.values():
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+        walk(fams[fid])
+        check(len(rows) == 1 and rows[0].get(field)
+              and not any(rows[0].get(f) for f in ("absent", "waits", "not_measured")),
+              f"{fid}'s \"{label}\" is switched by a later paste: it reads {field}, no reason")
 
 
 class FakeStore:
