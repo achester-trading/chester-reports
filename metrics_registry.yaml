@@ -18638,6 +18638,10 @@ families:
   census.vip_total: quantity
   census.vip_power: quantity
   cboe.cor1m: conditions
+  # Batch 17 item 97(b) (B79): Cboe's daily put/call ratios
+  cboe.pc_equity: ratio
+  cboe.pc_index: ratio
+  cboe.pc_total: ratio
   cboe.cor3m: conditions
   cboe.dspx: conditions
   fred.ppi_construction: release
