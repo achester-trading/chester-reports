@@ -199,8 +199,8 @@ def group_d(db: str) -> None:
     check(lab[0] == "lab_2026-11.md" and "## Value of information" in lab[1]
           and lab[1].startswith("# Lab report"),
           "the hook appends the section to the Lab report")
-    check(alone and alone[0] == "value_of_information_2026-11.md",
-          "without a lab it is its own attachment")
+    check(alone is None,
+          "with no Lab report the edition gains no attachment (the Monthly's two stay two; B80)")
     run = (REPO / "monthly_macro" / "run.py").read_text(encoding="utf-8")
     check(run.find("voi.with_lab_report") > run.find("lab = with_lab_report(lab, stamp)") > 0,
           "the Monthly calls it after decision quality's hook")
