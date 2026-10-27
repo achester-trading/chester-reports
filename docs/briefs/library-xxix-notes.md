@@ -126,3 +126,13 @@ reserved for.
 3. **XXVII was not readable from this session.** A pass against its text would confirm two things before merge: that Chapter 1.4's "channel only" treatment of the mid-2000s does not repeat it, and that the citations to *Debt Cycles* would be better by chapter title. The brief asks for chapter titles; none is given here.
 4. **Agriculture** is written as its own short chapter, Chapter 6, following the brief's numbering, rather than as a section inside another chapter. Accept it, or fold it into Part II as section 5.5?
 5. **Three library branches now touch the Master Guide's generated files** (Figure 5 and its HTML), and XXX's branch is red for want of the same change, as far as can be told without its log. Whoever merges the second and third branches regenerates both files. Do you want XXX fixed now, in its own paste, or at its merge? Separately, the Quarterly's chapters still say "no owning paper": `config/quarterly_chapters.yaml` sets `paper: null` for `real_estate` and `agriculture`. Pointing them at this paper is a config change for the merge paste, not this one.
+
+## Ruled, 26 Oct 2026, and done in B78
+
+- **1. Length.** 13,718 words is accepted.
+- **2. Appendix B's figures from memory.** B78 marks each "(to verify: <source>)": the five episode rows in B.2 and the three market bullets in B.3. They are verified before merge. B.1 is the system's own ledger as filed and is not marked.
+- **3. XXVII, checked from the chat: no repetition.** XXIX cites *Debt Cycles* for 2007 and narrates nothing of it. Needs-you 3 is closed.
+- **4. Agriculture** stays its own chapter (6), per the brief's numbering.
+- **5. The Master Guide's generated files.** The stitch regenerates them, so conflicts there are expected and are not fixed per branch. XXX's CI failure is fixed in B78 on `library-xxx` (the same "no group" failure, confirmed locally). The Quarterly's owning-paper config (`config/quarterly_chapters.yaml`, `paper: null` for real estate and agriculture) belongs to the merge paste.
+
+`check_library` after the marks: 0 failures, 1 warning (check 11, unchanged).

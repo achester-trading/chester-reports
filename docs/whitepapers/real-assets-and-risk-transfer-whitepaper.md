@@ -586,17 +586,17 @@ Three changes are watched. *Insured catastrophe losses against reinsurance capit
 
 | Episode | Figure | Source |
 |---|---|---|
-| 2022 mortgage rates | The 30-year fixed rate rose from about 3.1% in early January to about 7.1% in late October and early November 2022 | Freddie Mac PMMS |
-| 2022 listed against private | The FTSE Nareit All Equity REITs index returned about −25% in 2022; the NCREIF ODCE index returned about +7% | FTSE Russell; NCREIF |
-| 2017 loss year | Insured natural-catastrophe losses of roughly $140 billion, a record at the time | Swiss Re Institute, sigma |
-| 2005 loss year | The Gulf hurricanes of 2005 were then the costliest insured catastrophe season on record | Swiss Re Institute, sigma |
-| March 2023 | Three US regional banks failed in March and early May 2023 | FDIC |
+| 2022 mortgage rates | The 30-year fixed rate rose from about 3.1% in early January to about 7.1% in late October and early November 2022 (to verify: Freddie Mac PMMS) | Freddie Mac PMMS |
+| 2022 listed against private | The FTSE Nareit All Equity REITs index returned about −25% in 2022; the NCREIF ODCE index returned about +7% (to verify: FTSE Russell; NCREIF) | FTSE Russell; NCREIF |
+| 2017 loss year | Insured natural-catastrophe losses of roughly $140 billion, a record at the time (to verify: Swiss Re Institute, sigma) | Swiss Re Institute, sigma |
+| 2005 loss year | The Gulf hurricanes of 2005 were then the costliest insured catastrophe season on record (to verify: Swiss Re Institute, sigma) | Swiss Re Institute, sigma |
+| March 2023 | Three US regional banks failed in March and early May 2023 (to verify: FDIC) | FDIC |
 
 ### B.3 — Markets as they stand
 
-- **The catastrophe-bond market** is commonly reported at roughly $50 billion outstanding, against global reinsurance capital of roughly $700 billion, of which alternative (capital-market) capital is roughly $100 billion. Each figure varies by source and definition. *(Artemis; Aon; as of late 2025)*
-- **US commercial real-estate debt** is commonly reported at about $5 trillion outstanding, with banks the largest holders. *(Federal Reserve, Z.1; MBA)*
-- **The US housing stock** is mostly financed with 30-year fixed-rate mortgages; the share of outstanding mortgages carrying a rate below the prevailing new-loan rate remained large through 2026. *(FHFA; ICE Mortgage Monitor)*
+- **The catastrophe-bond market** is commonly reported at roughly $50 billion outstanding, against global reinsurance capital of roughly $700 billion, of which alternative (capital-market) capital is roughly $100 billion. Each figure varies by source and definition. *(Artemis; Aon; as of late 2025)* (to verify: Artemis; Aon)
+- **US commercial real-estate debt** is commonly reported at about $5 trillion outstanding, with banks the largest holders. *(Federal Reserve, Z.1; MBA)* (to verify: Federal Reserve, Z.1; MBA)
+- **The US housing stock** is mostly financed with 30-year fixed-rate mortgages; the share of outstanding mortgages carrying a rate below the prevailing new-loan rate remained large through 2026. *(FHFA; ICE Mortgage Monitor)* (to verify: FHFA; ICE Mortgage Monitor)
 
 ### B.4 — What the store does not yet hold
 
