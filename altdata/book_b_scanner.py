@@ -928,7 +928,17 @@ def draft(inst: dict, pv: dict, ctx: dict, cfg: dict, ending: str) -> dict:
         inst["days"][pv["t"]],
         # VP-1 item 9: printed as one clause on the candidate line; the score,
         # the gates, the timing and the grading never read it.
-        "volume_profile": volume_readings(inst, E, b, entry, risk, d)}
+        "volume_profile": volume_readings(inst, E, b, entry, risk, d),
+        # LL-2 (A80): what the candidate could not read, for its ledger row.
+        "missing_inputs": missing_inputs_of(confs, pv, adv)}
+
+
+def missing_inputs_of(confs: list[dict], pv: dict, adv: Optional[float]) -> list[str]:
+    """What a candidate could not read (LL-2, A80): each confirmation family
+    unread, the volume leg unconfirmed, the dollar ADV not stored."""
+    return sorted({f"confirmation:{x['family']}" for x in confs if x["met"] is None}
+                  | ({"volume"} if pv.get("volume_unconfirmed") else set())
+                  | ({"dollar_adv"} if adv is None else set()))
 
 
 def gate(c: dict, ctx: dict, cfg: dict) -> Optional[str]:
@@ -1120,7 +1130,7 @@ def record_forecasts(cands: list[dict], ending: str, emitted_at: str,
                        f"{ending} reaches +1R before -1R within six weeks"),
                 probability=float(g.get("probability") or 0.5), horizon_date=hz,
                 emitted_at=emitted_at, emitted_by="altdata.book_b_scanner",
-                missing_inputs=[],                      # LL-3: none recorded
+                missing_inputs=c.get("missing_inputs", []),  # LL-2: unread legs
                 resolution_criterion=criterion(c, ending, hz)))
     return ids
 

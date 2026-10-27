@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty-two code gates (one hundred and thirty-nine Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-three code gates (one hundred and forty Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1230,6 +1230,18 @@ the object's absent dimensions and legs, and the ledger's new `missing_inputs`
 column, written once by every source's `record`. It prints nowhere; the critic
 (LL-5) reads it. `tools/validate_decision_quality.py` and
 `tools/validate_error_corpus.py` hold it.
+
+**Which missing input costs the most (Learning Loop v2, LL-2; A80, ruled 25 Oct
+2026).** `altdata/value_of_information.py` computes at read, by source family and
+horizon, the mean Brier of the resolved rows missing an input at emission (the
+row's `missing_inputs` united with the object's absent dimensions and legs held
+then; NULL with no object is unrecorded, never compared) less that of the rows that
+had it, with n, a percentile bootstrap interval (seed 20261025, 2,000 resamples)
+and the share missing; an input is ranked from 30 affected rows. It is the scans'
+and source checks' search order, the operator's to adopt; the Monthly's Lab report
+prints it after decision quality and `python -m altdata.value_of_information pack`
+prints the Doctrine pack's section. Book B's candidate rows record their unread
+legs. `tools/validate_value_of_information.py` holds it.
 
 **Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
 59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s

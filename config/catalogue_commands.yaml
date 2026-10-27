@@ -91,6 +91,10 @@ commands:
   altdata.dealer_capture:
     domain: options
     line: 'The intraday dealer captures, 09:45 and 12:30 ET: chains, the exposure JSON per capture, and the 12:30 gates'
+  altdata.value_of_information:
+    domain: register
+    line: Value of information -- which missing input costs the most forecast accuracy (LL-2)
+    sources: [derived_probability]
   altdata.vendor_chains:
     domain: options
     line: 'The vendor chains at 16:31 ET (M-3): Massive SPX and SPCX, the 16:16 data (a 15-minute delay), the same chain files as before and their own completeness record'
