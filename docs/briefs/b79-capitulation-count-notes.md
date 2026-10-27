@@ -135,3 +135,33 @@ python -m altdata.capitulation_count ledger --db <the store>
 3. **AAII's bearish share.** Family 5's second leg needs `aaii.bearish`, but the AAII writer stores only the bull-bear spread. The weekly CSV in the inbox carries the bearish column, so adding the key is a small change to the existing writer, in a later paste. Is that wanted?
 4. **The ledger's session-set rule.** The thresholds (5 usable episodes, 3 firings, 60% held, 67% positive) and the families' `exists_from` dates (gamma and short interest null) are this session's. Accept them, or name your own before the box's edition. A change is a new dated registration.
 5. **CI and the counts.** `validate_audit_3a` will fail in CI on the counts above (285 / 142 / 139) until the stitch writes them, since `stitch_counts.py` is not on `chain-7-main`. Should the counts be written by hand on this branch instead?
+
+## Ruled 27 Oct 2026 (D40), applied in B80
+
+1. **Cboe's daily put/call.** Its terms forbid storing the data in a retrieval system, the clause CoinGecko was retired on, so it fails the 16 Oct rule. Family 2 stays a listed gap with that reason, and the reader stays built and switched off. The reason now reads so in `cboe_putcall.OFF_REASON`, in the count's gap line, in the config, in the source block and in CLAUDE.md.
+
+   **The existing live Cboe readers carry only a robots record, so their terms need the same check.** Both sit under www.cboe.com/terms (Last Updated 16 Nov 2022). Nothing is changed; a ruling, like D33's for Yahoo, comes at Doctrine #2.
+
+   | Reader | What it reads | Its record today | Terms URL |
+   |---|---|---|---|
+   | `altdata/sources/cboe_indices.py` (source `cboe_indices`) | COR1M, COR3M, DSPX daily history files, `cdn.cboe.com/api/global/us_indices/daily_prices/` | robots only (16 Oct 2026) | https://www.cboe.com/terms |
+   | `altdata/loggers/vxcurve.py` (source `cboe`) | the VIX term-structure files: VX futures settlements and per-contract history, `cdn.cboe.com/data/us/futures/market_statistics/`, and the delayed VX quote | "no key, no account, no terms accepted in code"; no terms reading | https://www.cboe.com/terms |
+
+   VIX, VIX3M, VIX9D, VIX6M, VVIX and SKEW also reach the store through Yahoo (`yfinance_source.py`). They are D33's matter, not a Cboe reader. Its comment names Cboe's daily files as the verified alternative for VIX9D and VIX6M; that alternative now needs this same terms check.
+2. **Flows:** no vendor. The four funds (SPY, QQQ, IWM, SMH) stay gaps, and ICI too.
+3. **AAII's bearish share:** yes, in a later paste through the existing AAII writer (the inbox CSV carries the column). No change now.
+4. **The ledger's thresholds:** accepted as pre-registered. Audit #5 may revise them by a new dated registration after the box's edition.
+5. **The counts are written on this branch:**
+   - CLAUDE.md: FRED_PULL_SERIES 285, with a `FRED_BATCH17_SERIES` line; 142 code gates, of which 139 are Python.
+   - The architecture document's store box: "pull walks 285 FRED series".
+   - `validate_audit_3a` (88 passed) and `validate_releases_b` (76 passed) now agree. The stitch recounts anyway.
+
+## B80: the red CI (run 40442359617), fixed
+
+| Gate | Cause | Fix |
+|---|---|---|
+| `validate_numeral_audit` | two f-strings wrote "th" by hand (`{pct:.0f}th percentile`) | `7890fad4`: through `numeral_audit.ordinal()` |
+| `validate_st_r5_t1_rest` | its pin FRED_PULL_SERIES 283; this branch adds two series | `129791df`: the pin moved to 285, a list the paste changed legitimately; the rule is unchanged |
+| `validate_lenses` | the three `cboe.pc_*` keys carried no family | `e0676a0e`: the `ratio` family |
+| `check_master_guide` | the ledger file was not in Table 7a | `3c57683f`: one row (diagnostic), the Guide's HTML rebuilt |
+| `validate_audit_3a`, `validate_releases_b` | the counts | this commit (ruling 5) |

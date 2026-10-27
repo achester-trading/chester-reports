@@ -133,7 +133,8 @@ altdata/                  Shared ingestion package — used by every report
                           per-household deflator);
                           4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
                           1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
-                          FRED_PULL_SERIES, 283, is the union the
+                          2 in FRED_BATCH17_SERIES (item 97's VXN, VIX3M);
+                          FRED_PULL_SERIES, 285, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -243,7 +244,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty code gates (one hundred and thirty-seven Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-two code gates (one hundred and thirty-nine Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1227,8 +1228,9 @@ surrender. There are no decimals and no weights.
   97(c)'s sector divergence line (VXN less VIX; SMH's drawdown against the index's)
   rides the same block.
 - **The feeds:**
-  - Cboe's put/call reader (`altdata/sources/cboe_putcall.py`) ships switched off,
-    pending the operator's ruling on Cboe's terms.
+  - Cboe's put/call reader (`altdata/sources/cboe_putcall.py`) stays switched off:
+    Cboe's terms forbid storing the data (ruled D40, 27 Oct 2026), so family 2
+    is a listed gap.
   - VXN and FRED's VIX3M join the FRED pull.
   - Every fund-flow leg is a listed gap, so family 5 is unscorable.
 - **The ledger:** pre-registered at `docs/ledgers/capitulation-count-2026-10-26.md`.

@@ -1391,8 +1391,8 @@ sources:
       only; cdn.cboe.com answers 403 (no rules, RFC 9309); checked on every pull.
       TERMS (www.cboe.com/terms, Last Updated 16 Nov 2022, read 26 Oct 2026): one copy
       for personal non-commercial use; "You may not otherwise copy, reproduce, alter,
-      store either in hard copy or in an electronic retrieval system". The writer is
-      built and SWITCHED OFF until the operator rules on that clause.
+      store either in hard copy or in an electronic retrieval system". Ruled D40
+      (27 Oct 2026): that fails the 16 Oct rule; the writer stays built and SWITCHED OFF.
     allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
     implemented_by: altdata/sources/cboe_putcall.py
     status: built

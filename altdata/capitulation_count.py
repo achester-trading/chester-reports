@@ -137,7 +137,7 @@ def family_vix(f: dict, series: dict, day: str, max_age: int) -> dict:
 def family_put_call(f: dict, series: dict, day: str, max_age: int) -> dict:
     eq = series.get(f["key"]) or []
     if not eq:
-        return _gap(f, "no rows (cboe.pc_equity: the Cboe writer is switched off pending its terms ruling)")
+        return _gap(f, "a listed gap: Cboe's terms forbid storing its put/call data (the 16 Oct 2026 rule; D40)")
     if not _fresh(eq, day, max_age):
         return _gap(f, f"stale: last {eq[-1][0]}")
     n = int(f["sessions"])

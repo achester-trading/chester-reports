@@ -19,7 +19,7 @@ feeds:
   put_call:
     module: altdata/sources/cboe_putcall.py
     keys: [cboe.pc_equity, cboe.pc_index, cboe.pc_total]
-    state: "built, switched off pending the operator's ruling on Cboe's terms"
+    state: "built, switched off: its terms fail the 16 Oct 2026 rule (D40, 27 Oct 2026); family 2 a listed gap"
   vol_indices:
     fred: {VXNCLS: fred.vxn, VXVCLS: fred.vix3m}
     # 97(b)(ii): the VIX/VIX3M ratio is NOT a new stored series. The existing

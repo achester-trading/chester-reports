@@ -60,10 +60,10 @@ TERMS = ("https://www.cboe.com/terms (Last Updated 16 Nov 2022, read 26 Oct 2026
          "one copy for personal non-commercial use; no other storing in an "
          "electronic retrieval system")
 
-# THE SWITCH. Off until the operator rules on the terms above (B79 needs-you 1).
+# THE SWITCH. Off by ruling D40 (27 Oct 2026): the terms above fail the 16 Oct rule.
 ENABLED = False
-OFF_REASON = ("switched off pending the operator's ruling on Cboe's terms "
-              "(no storing in an electronic retrieval system beyond one personal copy)")
+OFF_REASON = ("switched off: Cboe's terms forbid storing the data in an electronic "
+              "retrieval system, which fails the 16 Oct 2026 rule (ruled D40, 27 Oct 2026)")
 
 # the file's ratio name -> store key
 RATIOS = {"EQUITY PUT/CALL RATIO": "cboe.pc_equity",
