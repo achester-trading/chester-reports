@@ -125,3 +125,49 @@ assumes *Price, Time, and Edge*'s participants and forcing mechanisms.
 - **XXVII, checked from the chat against its text on `library-xxvii`: no repetition.** XXVII treats 1987, 1998, the gilts and 2022 only as instances in its regime definitions; XXX carries the mechanisms. Needs-you 2 is closed.
 - **Chapter 18, the two short instances (August 2024 and April 2025): accepted** as its own chapter at the end of Part III; Parts IV and V stay at chapters 19–23.
 - Also ruled, with no change to the paper: the length (16,895 words) is accepted with no cuts before review; the figures are renumbered by order of appearance in the figure paste, not now; and the moved 3.5's light edit is accepted, keeping "illustrative" on its arithmetic.
+
+## B78, 26 Oct 2026: the figures drawn, and the CI failure fixed (session B)
+
+Base: this branch at `69226ff1`. The paste is committed on `library-ei-figures` (`docs/pastes/B78.md`).
+
+**Renumbered by order of appearance** (B74 ruling 3). The brief's 7, 4, 6, 3, 5, 1, 2 are now 1–7. Every reference in the body, the masthead and Appendix A(e) moved with them, all in one pass:
+
+| New | Old | Figure | State |
+|---|---|---|---|
+| 1 | 7 | The cascade as a loop (6.1) | **Drawn**: a diagram, no series |
+| 2 | 4 | Dealer gamma and the session's range (7.4) | Placeholder: no `exposure.net_gex` rows on the laptop |
+| 3 | 6 | The stock–bond correlation's sign (9.1) | **Drawn**: laptop store; the box regenerates |
+| 4 | 3 | Leveraged funds' net in ES (10.x) | Placeholder: no `cftc.tff_lev_money_net_oi` rows |
+| 5 | 5 | The volatility index through the cases (Part III) | **Drawn**: laptop store; the box regenerates |
+| 6 | 1 | Forced flow against depth (19.1) | Placeholder: no `levetf.aum` rows |
+| 7 | 2 | Margin debt through the cases (19.1) | Placeholder: no `finra.margin_debit` rows |
+
+**Three of seven drawn.** The drawn three are image links with their captions. The four placeholders now read "drawn at merge from the box's store", with their keys.
+
+**The script** is `tools/figures/market_structure.py --db PATH`, beside the other figure scripts. It opens the store read-only (`mode=ro`) and reads each day at its latest vintage. It names, on every run, the figures whose keys hold no rows. The figures are in `docs/figures/market-structure-and-cascades/`, with an `index.md`.
+
+**The laptop's store** is `chester-reports/data/chester.db`, last written 15 Oct 2026.
+- **Figure 3:** `calc.corr_spy_tlt_60d` holds no rows on the laptop. The figure computes the 60-session correlation from the stored SPY and TLT closes (2021-09 to 2026-09) with the correlation layer's own `returns` and `rolling_corr`, and says so in its foot. The box draws it from the stored key.
+- **Figure 5:** `fred.vix` holds 2022-04-21 to 2026-05-28 here. It marks the 2022 gilts, August 2024 and April 2025, and its foot lists the six cases before the first observation. The box regenerates it from the full history.
+
+**Previews:** `C:\Users\arich\projects\figure-previews\xxx\fig-01.png`, `fig-03.png` and `fig-05.png`, rendered by headless Edge, each looked at before committing. One fix pass:
+- Figure 1's two exit labels overlapped; each is now two lines.
+- Figure 3's legend sat under the 2022 mark's label; it moved to the plot's foot.
+- One fault remains: the legend still crosses the 2022 mark's dashed line.
+
+**The CI failure.** Runs 40414090959 and 40415162446 failed on `check_master_guide`'s "papers in the roster with no group: ['XXX']". This was confirmed locally, and fixed the way XXVII and XXIX were:
+- `tools/figures/master_guide.py` places XXX in "Price, positioning, expression", serving Books B, C and D. It is a new last line of that group, plus the end of `BOOKS`.
+- Table 9 gains one row after Positioning & Flows.
+- Figure 5 and the Guide's HTML are regenerated. Figure 2 (the clock) came out byte-different only in line endings and was not committed.
+
+These generated files will conflict at the stitch, which regenerates them (ruled 26 Oct).
+
+**The guide row's** size cell reads "3 figures in `docs/figures/`, 4 placeholders".
+
+**Gates:**
+- `check_library`: 28 papers, 0 failures, 1 warning (check 11, the guide's word header).
+- `check_master_guide`: VALIDATION PASSED.
+- The four SVGs parse.
+- There is no other figure gate: `make figures` covers only the Currencies charts.
+
+The paper's HTML edition is not built here; `make html` builds it at merge.

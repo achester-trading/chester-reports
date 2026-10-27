@@ -6,7 +6,7 @@
 **Series placement:** Companion **XXX** — Markets shelf, reading-plan position 8 beside *Positioning & Flows* and *Technical Indicators*, after the options sequence — per the library guide, which is canonical for numerals; cross-references in this paper are by name
 **Version:** 1.0 — Draft 1, 26 October 2026
 **Last reviewed:** 26 October 2026 (seeded with the version date; no structural review has been held)
-**Status:** Draft 1, for the operator's review. The body is timeless; every level, share and probability lives in Appendix B. The seven figures are placeholders, named with the store keys each will draw from, and are drawn in a later edition.
+**Status:** Draft 1, for the operator's review. The body is timeless; every level, share and probability lives in Appendix B. The seven figures are numbered by order of appearance. Figures 1, 3 and 5 are drawn (26 October 2026; 3 and 5 from the laptop's store, which the box regenerates). Figures 2, 4, 6 and 7 are placeholders named with their store keys, drawn at merge from the box's store.
 
 ---
 
@@ -218,7 +218,7 @@ Most risk models treat price moves as weather: something that happens to the par
 
 The loop has four steps. A price move changes some participants' constraints: their margin, their value-at-risk, their volatility target, their fund's redemptions, their dealer's hedge ratio. The changed constraint obliges them to trade in the direction of the move. The trade moves the price further. The further move tightens the constraint again. Whether the loop dies or runs depends on two things: how much of the market's capital sits under constraints of the same shape, and how deep the market is relative to the flow the constraints release.
 
-**Figure 7 — The cascade as a loop.** *Placeholder, drawn in a later edition: a conceptual diagram with no series. The price move tightens constraints, forced flow meets depth, the move extends, and the loop either damps or runs.*
+![Figure 1 — The cascade as a loop: a price move tightens constraints, forced flow meets depth, the move extends, and the loop either damps or runs](../figures/market-structure-and-cascades/fig-01.svg)
 
 The loop explains why the same news produces small moves in some markets and enormous ones in others. The news is the first step. Everything after it is the market's own structure, and the structure can be read beforehand: who is under which constraint, at what size, against what depth.
 
@@ -261,7 +261,7 @@ A fund that promises a multiple L of the daily return must rebalance every day t
 
 When dealers are net short options, their delta hedging trades with the move: they sell as prices fall and buy as they rise. When they are net long, the hedging trades against the move and damps it. *The Dealer's Hand* teaches the mechanics, in its Part I, once for the library, and this paper does not teach them again. Its contribution here is placement. Short dealer gamma is a forced flow of the same shape as margin and volatility targeting: it trades with the move, mechanically, at a size set by positioning the dealers did not choose. Zero-day options concentrate that flow inside the session. Their gamma is largest near expiry and at the money, so their hedging can amplify an intraday move and then vanish at the close. *The Dealer's Hand* and *Volatility* carry the zero-day market at depth; a fourth treatment here would be the duplication the library's audit warned against.
 
-**Figure 4 — Dealer gamma and the session's range.** *Placeholder, drawn in a later edition: the stored net gamma exposure (`exposure.net_gex`) against SPY's daily range (`yfinance.mkt_spy`), from the captures' first stored session.*
+**Figure 2 — Dealer gamma and the session's range.** *Placeholder, drawn at merge from the box's store: the stored net gamma exposure (`exposure.net_gex`) against SPY's daily range (`yfinance.mkt_spy`), from the captures' first stored session.*
 
 ### 7.5 Redemptions
 
@@ -311,7 +311,7 @@ Diversification works through low correlation, and correlations measured in calm
 
 The stock–bond correlation is the case that matters most to a portfolio that holds both, and its sign is a property of the regime rather than a constant. When inflation is the dominant risk, stocks and bonds fall together, because both are being repriced by the same rise in rates. When growth is the dominant risk, bonds rally as stocks fall. A 60/40 portfolio is diversified in the second regime and concentrated in the first. *Debt Cycles* carries the environments in which each sign holds; the cascade mechanism adds only that a forced seller of everything can briefly make the correlation positive in any regime.
 
-**Figure 6 — The stock–bond correlation's sign through regimes.** *Placeholder, drawn in a later edition: the 60-session correlation of SPY and TLT returns (`calc.corr_spy_tlt_60d`), its sign shaded.*
+![Figure 3 — The stock–bond correlation's sign through regimes: the 60-session correlation of SPY and TLT returns, its sign shaded](../figures/market-structure-and-cascades/fig-03.svg)
 
 *Worked example (illustrative).* A 60/40 portfolio in a regime where the stock–bond correlation is −0.3 has a volatility well below the equity sleeve's. If the correlation flips to +0.5 while equity falls 20% and bonds fall 10%, the portfolio falls 16% against the equity sleeve's 20%: diversification saved four points, not the ten a negative correlation had seemed to promise. The joint drawdown is not a tail of the old distribution. It is the normal behaviour of the new regime.
 
@@ -356,7 +356,7 @@ A squeeze stops when supply arrives: a secondary offering, lenders returning sha
 
 *On the day.* The borrow rate spiking, recalls, trading halts on volatility, and the brokers' restrictions.
 
-**Figure 3 — Leveraged funds' net in ES against the squeeze cases.** *Placeholder, drawn in a later edition: CFTC Traders in Financial Futures, leveraged funds' net in the E-mini S&P 500 as a share of open interest (`cftc.tff_lev_money_net_oi`), with the squeeze cases marked.*
+**Figure 4 — Leveraged funds' net in ES against the squeeze cases.** *Placeholder, drawn at merge from the box's store: CFTC Traders in Financial Futures, leveraged funds' net in the E-mini S&P 500 as a share of open interest (`cftc.tff_lev_money_net_oi`), with the squeeze cases marked.*
 
 | Ingredient | What it does | The tell |
 |---|---|---|
@@ -372,7 +372,7 @@ A squeeze stops when supply arrives: a secondary offering, lenders returning sha
 
 The cases are weighted to where the system's measures reach. February 2018 and March 2020 are told in full, 2021 and 2022 at medium length. 1987, 1998 and 2010 predate the store, so they are mechanism chapters cited to their histories. August 2024 and April 2025 are short instances that the air-pocket ledger scores (Chapter 19). Each chapter gives the mechanism; *Tops and Bottoms* tells the episodes. The cases' figures are in Appendix B, dated.
 
-**Figure 5 — The volatility index through the seven cases.** *Placeholder, drawn in a later edition: the VIX's daily close (`fred.vix`) from its first stored observation, with the seven cases and the two short instances marked.*
+![Figure 5 — The volatility index through the cases: the VIX's daily close from its first stored observation, the cases inside the series marked](../figures/market-structure-and-cascades/fig-05.svg)
 
 ## Chapter 11 — 1987: portfolio insurance as a forced seller
 
@@ -489,7 +489,7 @@ The Federal Reserve broke both spirals in a sequence of announcements. It bought
 
 ### 15.5 What the store sees
 
-The store covers March 2020 end to end: margin debt (Figure 2), futures positioning, the volatility index (Figure 5) and the stock–bond correlation (Figure 6). It is the library's clearest case of that correlation turning positive without an inflation regime, because a shared forced seller overrode the regime's sign (Chapter 9). It is not one of the air-pocket ledger's events, which are one-day drops after calm (Chapter 19).
+The store covers March 2020 end to end: margin debt (Figure 7), futures positioning, the volatility index (Figure 5) and the stock–bond correlation (Figure 3). It is the library's clearest case of that correlation turning positive without an inflation regime, because a shared forced seller overrode the regime's sign (Chapter 9). It is not one of the air-pocket ledger's events, which are one-day drops after calm (Chapter 19).
 
 *Worked example (illustrative).* A basis-trade fund holds $10 billion of cash Treasuries financed in repo at a 2% haircut, $200 million of its own capital, and is short the equivalent futures. Futures initial margin rises from 3% to 6%, a $300 million call against futures worth $10 billion, and the repo haircut rises to 4%, another $200 million. The fund must raise $500 million against $200 million of capital. It cannot, so it sells cash Treasuries, and every fund running the same trade sells the same bonds. The trade was hedged against price; it was not hedged against margin.
 
@@ -593,9 +593,9 @@ The system's direct measure of the organising claim is the liquidity-fragility p
 
 The panel's **fragility flag** fires when two arms are on together: the depth stand-in at or above its 90th percentile over five years, and the forced-flow estimate above its 90th. It carries flag rights only. It modifies nothing, and any right it could earn is the operator's ruling after its ledger. The panel also supplies the "liquidity" row of the volatility-event lenses (item 52) and a line in the ES levels read (item 45).
 
-**Figure 1 — Forced flow against depth.** *Placeholder, drawn in a later edition: the leveraged-ETF rebalance estimate and SPY's Amihud stand-in, the three air pockets marked. Keys: `levetf.aum` and `yfinance.mkt_spy`; the estimate and the measure are computed by the fragility module, not stored as keys.*
+**Figure 6 — Forced flow against depth.** *Placeholder, drawn at merge from the box's store: the leveraged-ETF rebalance estimate and SPY's Amihud stand-in, the three air pockets marked. Keys: `levetf.aum` and `yfinance.mkt_spy`; the estimate and the measure are computed by the fragility module, not stored as keys.*
 
-**Figure 2 — Margin debt through the cases.** *Placeholder, drawn in a later edition: FINRA margin debit balances (`finra.margin_debit`), with the cases marked.*
+**Figure 7 — Margin debt through the cases.** *Placeholder, drawn at merge from the box's store: FINRA margin debit balances (`finra.margin_debit`), with the cases marked.*
 
 ### 19.2 Its ledger: ST-R6.71d, FAIL
 
@@ -779,7 +779,7 @@ Four changes are watched. *Automated liquidity provision*: a liquidity event wit
 | Leveraged-product and vol-targeting growth | A stated asset level | Chapters 19 and 20 |
 | Zero-day options | A stated volume share | Chapter 7.4; possibly a new case |
 
-**(e) Inventory of dated figures.** The seven figures are placeholders in this draft, each named with its store keys: Figure 1, forced flow against depth (`levetf.aum`, `yfinance.mkt_spy`, computed by the fragility module); Figure 2, margin debt (`finra.margin_debit`); Figure 3, leveraged funds' net in ES (`cftc.tff_lev_money_net_oi`); Figure 4, dealer gamma and the session's range (`exposure.net_gex`, `yfinance.mkt_spy`); Figure 5, the volatility index through the cases (`fred.vix`); Figure 6, the stock–bond correlation (`calc.corr_spy_tlt_60d`); Figure 7, the cascade loop (conceptual, no series). Every case figure the text quotes is in Appendix B.
+**(e) Inventory of dated figures.** The seven figures, by order of appearance, each with its store keys (`tools/figures/market_structure.py` draws them): Figure 1, the cascade loop (conceptual, no series; drawn); Figure 2, dealer gamma and the session's range (`exposure.net_gex`, `yfinance.mkt_spy`; placeholder); Figure 3, the stock–bond correlation (`calc.corr_spy_tlt_60d`, drawn from the stored SPY and TLT closes by the correlation layer's method); Figure 4, leveraged funds' net in ES (`cftc.tff_lev_money_net_oi`; placeholder); Figure 5, the volatility index through the cases (`fred.vix`; drawn); Figure 6, forced flow against depth (`levetf.aum`, `yfinance.mkt_spy`, computed by the fragility module; placeholder); Figure 7, margin debt (`finra.margin_debit`; placeholder). The drawn series figures are from the laptop's store and the box regenerates them; the placeholders are drawn at merge from the box's store. Every case figure the text quotes is in Appendix B.
 
 ---
 
