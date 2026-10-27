@@ -19501,6 +19501,8 @@ lens_excluded:
   brier.decomposition: "a table of Murphy's three terms per source family and horizon, computed at read, not a level series (LL-1)"
   grade.counterfactual: "a table per book of taken against not-taken outcomes, computed at read, not a level series (LL-1)"
   learning.error_corpus: "an append-only table of graded misses, one record each, not a level series (LL-3)"
+  # A80 (LL-2), placed beside B80's: computed at read from the corpus, a table not a series.
+  learning.value_of_information: "a table of each missing input's mean-Brier cost by family and horizon, computed at read, not a level series (LL-2)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).
   state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"
   state.net_gex_sign: "a sign (+1, -1 or 0), not a level series (EL-5)"
