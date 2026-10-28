@@ -53,6 +53,10 @@ same on a CI runner as on the laptop.
      file, which urllib.robotparser misses); a disallowing or refused
      robots.txt fetches nothing and the run is STALE with the reason; the
      operator's file, when present, is read with no network call.
+  V  AAII's bearish share (D40.3, B82). aaii.bearish_share comes from the same
+     rows as the spread: a row in percents and a row in fractions give the same
+     share; the history's row wins on a shared date; a row that sums to neither
+     is skipped for both keys; a pull with both files writes both keys.
 """
 
 from __future__ import annotations
@@ -1762,6 +1766,116 @@ def group_u() -> None:
           "anchor -- never a recurring drop (rule 30)")
 
 
+# ---------------------------------------------------------------------------
+# V. AAII'S BEARISH SHARE (D40.3, 27 Oct 2026; B82): a second key from the same
+# rows, dated, scaled, unioned and stamped as the spread is.
+# ---------------------------------------------------------------------------
+AAII_WEEKLY_BEAR_CSV = (
+    "week_ending,bullish,neutral,bearish,spread,source_url,retrieved_at,crosscheck\n"
+    # 30 Sep -> 1 Oct, in the history (bearish 46.1%): the history's row is kept.
+    "2026-09-30,33.0,20.0,47.0,-14.0,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-01T16:10:00Z,agrees\n"
+    # 7 Oct -> 8 Oct, in percents; 14 Oct -> 15 Oct, the same shares in fractions.
+    "2026-10-07,40.1,25.2,34.7,5.4,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-08T16:10:00Z,agrees\n"
+    "2026-10-14,0.401,0.252,0.347,0.054,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-15T16:10:00Z,agrees\n"
+    # 21 Oct -> 22 Oct sums to 50: neither about 1 nor about 100.
+    "2026-10-21,20.0,10.0,20.0,0.0,https://www.aaii.com/sentimentsurvey,"
+    "2026-10-22T16:10:00Z,agrees\n")
+
+
+def group_v() -> None:
+    """AAII's bearish share: the same rows, rules and time fields as the spread."""
+    print(f"{LINE}\nV. AAII -- THE BEARISH SHARE (D40.3)\n{LINE}")
+    from altdata.sources import aaii
+    at = "2026-10-10T00:00:00.000000+00:00"
+    check(aaii.KEYS == ["aaii.bull_bear_spread", "aaii.bearish_share"]
+          and aaii.BEARISH_KEY == "aaii.bearish_share",
+          "KEYS is the spread and the bearish share")
+
+    week = aaii.rows_from_weekly(AAII_WEEKLY_BEAR_CSV.encode("utf-8"), keys=aaii.KEYS)
+    bear = {r["observed_at"]: r for r in week if r["registry_key"] == aaii.BEARISH_KEY}
+    spread = {r["observed_at"]: r for r in week if r["registry_key"] == aaii.KEY}
+    check(bear["2026-10-08"]["value"] == bear["2026-10-15"]["value"] == 34.7,
+          f"a row in percents and a row in fractions give the same bearish share, "
+          f"in percent ({bear['2026-10-08']['value']}, {bear['2026-10-15']['value']})")
+    check(set(bear) == set(spread) == {"2026-10-01", "2026-10-08", "2026-10-15"}
+          and "2026-10-22" not in bear,
+          f"a row that sums to neither about 1 nor about 100 is skipped for both "
+          f"keys ({sorted(bear)})")
+    check(all(bear[d]["available_at"] == spread[d]["available_at"]
+              and bear[d]["availability_kind"] == spread[d]["availability_kind"]
+              == "ingest_instant" for d in bear),
+          "each bearish row carries its spread row's available_at and "
+          "availability_kind")
+    check([r["value"] for r in aaii.rows_from_weekly(
+              AAII_WEEKLY_BEAR_CSV.encode("utf-8"))]
+          == [spread[d]["value"] for d in sorted(spread)],
+          "the default read is still the spread alone, at the same values")
+
+    hist = aaii.rows_from_bytes(AAII_HISTORY_CSV.encode("utf-8"), at,
+                                "ingest_instant", keys=aaii.KEYS)
+    both = aaii.union(hist, week)
+    got = {(r["registry_key"], r["observed_at"]): r["value"] for r in both}
+    check(len(both) == len(got)
+          and got[(aaii.BEARISH_KEY, "2026-10-01")] == 46.1
+          and got[(aaii.KEY, "2026-10-01")] == -11.9
+          and got[(aaii.BEARISH_KEY, "2026-10-08")] == 34.7,
+          f"the history's row wins on a shared date for both keys (1 Oct: bearish "
+          f"{got[(aaii.BEARISH_KEY, '2026-10-01')]}, not the weekly file's 47.0); "
+          f"the weekly file adds the later dates")
+
+    class Sheet:
+        def __init__(self, rows):
+            self.rows, self.nrows = rows, len(rows)
+
+        def row_values(self, r):
+            return self.rows[r]
+    serial = float((dt.date(2026, 9, 24) - dt.date(1899, 12, 30)).days)
+    sheet = Sheet([["Reported Date", "Bullish", "Neutral", "Bearish"],
+                   [serial, 0.3077, 0.2308, 0.4615]])
+    check([(r["registry_key"], r["value"]) for r in
+           aaii.rows_from_sheet(sheet, 0, at, "ingest_instant", keys=aaii.KEYS)]
+          == [(aaii.KEY, -15.38), (aaii.BEARISH_KEY, 46.15)],
+          "the xls history gives both keys from one row")
+
+    saved = (os.environ.get(aaii.FILE_VAR), os.environ.get(aaii.WEEKLY_VAR),
+             aaii.http_get_text)
+    fetched: list = []
+    db = temp_store()
+    try:
+        h = Path(_TMP) / "v_sentiment.csv"
+        h.write_text(AAII_HISTORY_CSV, encoding="utf-8")
+        w = Path(_TMP) / "v_aaii-weekly.csv"
+        w.write_text(AAII_WEEKLY_BEAR_CSV, encoding="utf-8")
+        os.environ[aaii.FILE_VAR] = str(h)
+        os.environ[aaii.WEEKLY_VAR] = str(w)
+        aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or ""
+        r = aaii.pull(db=db, history=True)
+        rows = db.conn.execute(
+            "SELECT observed_at, value_num FROM observations WHERE registry_key = ? "
+            "ORDER BY observed_at", (aaii.BEARISH_KEY,)).fetchall()
+        check(r["status"] == pub.OK and not fetched and not r["keys_without_rows"]
+              and [(g[0][:10], g[1]) for g in rows]
+              == [("2026-09-17", 36.5), ("2026-09-24", 46.1), ("2026-10-01", 46.1),
+                  ("2026-10-08", 34.7), ("2026-10-15", 34.7)],
+              f"a pull with both files writes both keys, the bearish share's union "
+              f"as the spread's ({[(g[0][:10], g[1]) for g in rows]})")
+        os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_history_v.csv")
+        r = aaii.pull(db=db)
+        check(r["status"] == pub.OK and not fetched,
+              "without the history file the weekly rows alone write both keys")
+    finally:
+        aaii.http_get_text = saved[2]
+        for var, val in ((aaii.FILE_VAR, saved[0]), (aaii.WEEKLY_VAR, saved[1])):
+            if val is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = val
+        db.close()
+
+
 def main() -> int:
     # THE PARSERS ARE TESTED AS IF LIVE (the feed repair of 24 Oct 2026): MBA,
     # Farside and Apartment List are declared refused in source_registry.yaml, and
@@ -1772,7 +1886,7 @@ def main() -> int:
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
               group_p, group_n, group_q, group_r, group_s, group_t,
-              group_u):
+              group_u, group_v):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

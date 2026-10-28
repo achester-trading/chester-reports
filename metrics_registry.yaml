@@ -6831,6 +6831,21 @@ metrics:
     trigger_eligible: false
     description: >-
       AAII Sentiment Survey: the share of individual investors bullish minus the share bearish on the next six months, in percentage points.
+  # D40.3 (27 Oct 2026; B82): the same survey's Bearish share, from the same rows
+  # and by the same rules as the spread. Read by B79's Capitulation Count.
+  aaii.bearish_share:
+    source: aaii
+    mechanism_group: retail_activity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      AAII Sentiment Survey: the share of individual investors bearish on the next six months, in percent of respondents (0-100).
   nyfed.sce_3y:
     source: nyfed_sce
     mechanism_group: inflation_expectations
@@ -17661,6 +17676,7 @@ families:
   # 6e (15 Oct 2026): every other individually registered level series,
   # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari.
   aaii.bull_bear_spread: ratio
+  aaii.bearish_share: ratio
   acm.fitted_yield_10y: rate
   acm.risk_neutral_yield_10y: rate
   acm.term_premium_10y: rate
