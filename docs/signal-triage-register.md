@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it) and [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -801,6 +801,34 @@ Book A's rule table reads it as a modifier (Appendix C, row A-7); nothing automa
 **Built (part 1).** Customs-duties receipts (FRED B235RC1Q027SBEA, billions, SAAR) over four times the quarter's goods imports (FRED BOPGIMP, millions, monthly), with its five-year and full-history percentiles. The rate is **quarterly**, because FRED has no monthly customs-receipts series. The Guide's 10.6% and the statutory peaks are the sourced comparison: 30.0% on 8 Apr 2025, and 15.9% including IEEPA on 20 Feb 2026, scan §6. National-accounts receipts are not the Census imports-for-consumption basis, so the two differ by construction. Printed in the Monthly's Plumbing & rates as the inflation modifier. Family `quantity` (both legs), long window `full`.
 
 **Rights.** Modifier.
+
+---
+
+### SR-60 to SR-64 — Batch 16's provisional rows (filed 26 Oct 2026, paste A78)
+
+Provisional, placed by Audit #5: the numbers are the next free ones after SR-59
+(SR-55 and SR-58 are reserved), assigned at filing so the building pastes can cite
+them; the audit that places Batch 16 confirms or renumbers them. Each row's text is
+the [Batch 16 order](change-order-signal-triage-batch-16-2026-10-26.md)'s item.
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 60 | 80(b) with 90 | The midterm event row and the midterm base-rate table: 19 midterms since 1950, nothing omitted; the year's drawdown against the other years, the low's date against election day, forward returns from the low and from election day, the recession flag | Base rate (no trigger) | A78 (`docs/ledgers/midterm-base-rate-2026-10-26.md`; the Weekly's Ahead row for 3 Nov 2026) | provisional, placed by Audit #5 — table built, branch a78-batch-16-midterm |
+| 61 | 83(b) | The hyperscalers' server and network useful-life watch, from 10-Q and 10-K | Narrow flag | Tranche B | provisional, placed by Audit #5 — quarterly read a listed gap (H3) |
+| 62 | 88 | Gold as standing coverage: the Weekly gold block, the Monthly gold chapter, GLD in the nightly exposure files, the close on exception | Report only | Tranche A (88(a), (c), (d)); Tranche B (88(b)) | provisional, placed by Audit #5 — the weekly official-bid line is the one recurring by-hand row allowed (H3) |
+| 63 | 89(a) | The crowding-unwind gauge: the momentum factor's z-score and the count of held pair spreads beyond 3σ | Report only; T&B intake after a calibration ledger | Tranche B | provisional, placed by Audit #5 |
+| 64 | 89(b) | Trend-signal breadth over the held markets, from stored keys only (H4) | Report only; T&B intake after a calibration ledger | Tranche A | provisional, placed by Audit #5 |
+
+**Batch 16's amendments, recorded against their filed parents.** Item 73 (the gold
+event trigger) is amended by 79 (the sell-side target table) and 87 (the five-lens
+attribution); 52 (the volatility event) by 80(a) (the oil-shock lens); 74 (the
+squeeze flag) by 81 (the prime-book trough ledger); 45 (the ES read) by 82 (tape
+character); Factor I by 83(a) (the revenue-gap anchor table); 76 (the CDS line) by
+83(c) (neocloud coverage); 63 (the AI capex chain) by 84(a) (the compute
+counterparty map); 16 (quantum and ECDSA) by 86 (the quantum-readiness ledger); and
+80(b) (the midterm row) by 90 (the full sample). 91(a) is infrastructure (no SR);
+91(b) and (c) amend `docs/alpha-lab-rules.md`; 91(d) is placed in the Enterprise
+Layer order.
 
 ---
 

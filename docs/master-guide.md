@@ -507,6 +507,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `fed-cycles-ledger-2026-10-19.md` | NO GATE | n 21 | FED-CYCLES ledger -- the hiking-cycle table, computed by rule |
 | `gex-scale-flashalpha-2026-09-30.md` | diagnostic | n — | GEX / DEX scale against FlashAlpha — 30 Sep 2026 SPY (read-only diagnostic) |
 | `gex-scale-flashalpha-2026-10-09.md` | diagnostic | n — | GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic) |
+| `midterm-base-rate-2026-10-26.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
 | `oneday-10y-preregistration-2026-10.md` | diagnostic | n — | The one-day 10-year trigger's attribution against what followed — pre-registration (D15) |
 | `os-12c-ledger-2026-10-20.md` | INSUFFICIENT | n 0 | OS-12c ledger -- relative options volume against the next five sessions' movement (item 61) |
 | `os-6-ledger-2026-10-19.md` | FAIL | n 498 | OS-6 ledger -- the positioning components against SPX's forward path (item 53) |

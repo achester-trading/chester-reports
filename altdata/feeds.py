@@ -94,7 +94,7 @@ def staleness_multiple() -> float:
         return float(STALENESS_MULTIPLE_FALLBACK)
 
 FEEDS = ("prices", "fred", "official", "external", "loggers", "bars",
-         "prediction_markets", "fed_funds")
+         "fed_funds", "prediction_markets")
 
 # THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
 # that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium

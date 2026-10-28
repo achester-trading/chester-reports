@@ -243,7 +243,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty code gates (one hundred and thirty-seven Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-one code gates (one hundred and thirty-eight Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -874,6 +874,18 @@ breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the
   `docs/base-rate-notes/crypto-winters-protocol-shutdowns-2026-10.md`.
 
 `tools/validate_batch15_2.py` holds it.
+
+**Batch 16, the midterm table and its Ahead row (items 80(b) and 90, round 7, filed
+26 Oct 2026 with H1-H7; a78-batch-16-midterm).** Base-rate rights only.
+`tools/calibration/midterm_base_rate.py` computes every midterm year since 1950 from
+the store (`yfinance.mkt_gspc`, `fred.usrec`; a key not stored prints "not stored")
+into a dated ledger whose computation is printed at its head with its SHA-256. The
+Weekly's Ahead prints the claims register's midterm date as a named row
+(`register_event_rows` in `config/weekly_ahead.yaml`): its own class and tier, the
+House and Senate odds from the stored prediction markets as its consensus, "odds
+not stored" without them, and the ledger's headline COPIED into config beside its
+channel, since a live row never reads a ledger. A new edition is copied in by the
+session that files it. `tools/validate_batch16_midterm.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store

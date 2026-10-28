@@ -257,3 +257,7 @@ per-name CDS volumes; `docs/briefs/a58-batch15-1-notes.md`). Committed by sessio
 > tracks. Source line: the same post, citing Morgan Stanley Research and the
 > Financial Times. As of: 20 Oct 2026, year to date. URL: not filed in the order.
 > Not verified against a primary source.
+
+## For the Base Rates paper (Batch 16 items 80(b) and 90)
+
+> *Dated 26 Oct 2026.* The midterm base-rate table, all nineteen midterm years from 1950 to 2022 computed from the store's S&P 500 closes, is the dated ledger `docs/ledgers/midterm-base-rate-2026-10-26.md` (laptop edition; the box's re-run is a new dated file), beside the paper's ex-ante Table 7 (`baserate.midterm_from_election`).
