@@ -50,6 +50,7 @@ log = logging.getLogger(__name__)
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "config" / "weekly_ahead.yaml"
 NOT_CAPTURED = "implied move not captured"
+ODDS_NOT_STORED = "odds not stored"
 # Six columns, the edition's widest (T2.5 item 10): the day and the time share one.
 COLUMNS = ["When (ET)", "Event", "Importance", "Consensus / modal",
            "Why it matters", "Positioning that would amplify a surprise"]
@@ -122,6 +123,9 @@ def why_of(r: dict, c: dict, ai: set[str]) -> str:
     sym = str(r.get("symbol") or str(r.get("event") or "").split(" ")[0]).upper()
     if c.get("ai_clause") and r.get("cls", "").startswith("earnings") and sym in ai:
         why += c["ai_clause"]
+    # A register row's base rate prints beside its channel (Batch 16 item 90).
+    if r.get("base_rate"):
+        why += ". " + str(r["base_rate"])
     return why
 
 
@@ -293,12 +297,66 @@ def hand_rows(cfg: dict, mon: dt.date, sat: dt.date,
     return rows, absent
 
 
-def register_rows(cfg: dict, mon: dt.date, sat: dt.date) -> list[dict]:
+def odds_line(watch_ids: list, db_path: Optional[str],
+              now: Optional[str] = None) -> str:
+    """The control-of-Congress odds as the row's consensus (Batch 16 items 80(b)
+    and 90): each watched question's stored probability for its declared side,
+    per venue, at the run's cutoff. Read from the store the Weekly opened; never
+    fetched, and "odds not stored" when it holds none."""
+    if not db_path or not watch_ids:
+        return ODDS_NOT_STORED
+    try:
+        from altdata import observations                        # noqa: PLC0415
+        from altdata import prediction_markets as pm            # noqa: PLC0415
+        from altdata.sources import prediction_markets as src   # noqa: PLC0415
+        watch = {w.get("id"): w for w in src.load_config().get("watch_list") or []}
+        st = observations.ObservationStore(db_path)
+        try:
+            mks = pm.load(st, now)
+        finally:
+            st.close()
+    except Exception:                                           # noqa: BLE001
+        log.warning("the Ahead row's odds are unavailable", exc_info=True)
+        return ODDS_NOT_STORED
+    parts, newest, seen = [], None, False
+    for wid in watch_ids:
+        w = watch.get(wid) or {}
+        # The declared side's stem ("Democratic Party" -> "democrat") names the
+        # outcome on both venues, whose own labels differ.
+        stem = str(w.get("side") or "").split(" ")[0].lower()[:8]
+        venues = []
+        for v, name in (("kalshi", "Kalshi"), ("polymarket", "Polymarket")):
+            last = None
+            for m in mks:
+                label = f"{m.get('outcome') or ''} {m.get('question') or ''}".lower()
+                if m.get("watch_id") != wid or m.get("venue") != v or \
+                        not stem or stem not in label:
+                    continue
+                for r in m.get("history") or []:
+                    if r.get("value_num") is not None and \
+                            (last is None or str(r["available_at"]) > last[1]):
+                        last = (float(r["value_num"]), str(r["available_at"]))
+            if last is None:
+                venues.append(f"{name} not stored")
+                continue
+            seen = True
+            newest = max(newest or last[1], last[1])
+            venues.append(f"{name} {100.0 * last[0]:.0f}%")
+        parts.append(f"{w.get('subject') or wid}: " + ", ".join(venues))
+    if not seen:
+        return ODDS_NOT_STORED
+    return "; ".join(parts) + f" (as of {newest[:10]})"
+
+
+def register_rows(cfg: dict, mon: dt.date, sat: dt.date,
+                  db_path: Optional[str] = None,
+                  now: Optional[str] = None) -> list[dict]:
     out = []
     try:
         from altdata import claims                              # noqa: PLC0415
     except Exception:                                           # noqa: BLE001
         return out
+    named = cfg.get("register_event_rows") or {}
     for cid in cfg.get("register_events") or []:
         try:
             c = claims.cite(cid)
@@ -306,9 +364,18 @@ def register_rows(cfg: dict, mon: dt.date, sat: dt.date) -> list[dict]:
         except Exception:                                       # noqa: BLE001
             continue
         if mon <= d < sat:
-            out.append({"date": d.isoformat(), "time": "time not stated",
-                        "event": str(c.get("unit") or cid).capitalize(),
-                        "consensus": "—", "cls": "register_event", "claim": cid})
+            row = {"date": d.isoformat(), "time": "time not stated",
+                   "event": str(c.get("unit") or cid).capitalize(),
+                   "consensus": "—", "cls": "register_event", "claim": cid}
+            n = named.get(cid)
+            if n:
+                row.update({"event": n.get("event") or row["event"],
+                            "time": n.get("time") or row["time"],
+                            "cls": n.get("cls") or row["cls"],
+                            "base_rate": n.get("base_rate"),
+                            "consensus": odds_line(n.get("odds") or [], db_path, now)
+                            if n.get("odds") else "—"})
+            out.append(row)
     return out
 
 
@@ -421,7 +488,8 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
             r = opening_setup.with_pricing(r, now, db_path)
         rows.append(dict(r))
     hrows, absent = hand_rows(cfg, mon, sat, repo)
-    rows += hrows + register_rows(cfg, mon, sat) + rebalance_rows(p, mon, sat)
+    rows += hrows + register_rows(cfg, mon, sat, db_path, now) \
+        + rebalance_rows(p, mon, sat)
     rows, full, lines = collapse_families(rows, min_outcomes)
     z_min = float(cfg.get("amplifier_z") or 1.5)
     ai = ai_names(cfg, repo)

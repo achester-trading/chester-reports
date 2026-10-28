@@ -176,3 +176,7 @@ citation until its next revision.
 > illustrative split of one dollar, not a measurement. Half of every capex dollar
 > stays with the chipmakers; power is the second-largest bucket and the slowest to
 > build.
+
+## For the Base Rates paper (Batch 16 items 80(b) and 90)
+
+> *Dated 26 Oct 2026.* The midterm base-rate table, all nineteen midterm years from 1950 to 2022 computed from the store's S&P 500 closes, is the dated ledger `docs/ledgers/midterm-base-rate-2026-10-26.md` (laptop edition; the box's re-run is a new dated file), beside the paper's ex-ante Table 7 (`baserate.midterm_from_election`).
