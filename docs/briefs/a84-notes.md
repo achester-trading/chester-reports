@@ -196,3 +196,7 @@ with the publishers:
 - `tools/validate_b51_registry_html.py`: 25 passed, 0 failed.
 - `tools/validate_feed_repair.py`: 50 passed, 0 failed.
 - `tools/check_registry.py`: OK.
+
+## CI
+
+CI queued, run 40788050524 (Gates, on 757cfc21), read once on 28 Oct 2026; not waited on.
