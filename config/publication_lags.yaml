@@ -113,12 +113,17 @@ families:
   - id: em_quarterly
     keys: ["em.*"]
     freq: quarterly
-    lag_sessions: 65
+    lag_sessions: 53
     max_lag: 70
-    source: "The emerging-markets scorecard's quarterly legs (GDP, current account, external debt)"
+    source: "World Bank Quarterly External Debt Statistics (QEDS/SDDS), the family's only writer (altdata/sources/wb_qeds.py)"
     reason: >-
-      National accounts and balance-of-payments quarters arrive about a quarter
-      after they end; dated the quarter's first day.
+      A84 (28 Oct 2026), from the World Bank's 2026 QEDS Submission and
+      Publication Calendar (the QEDS page's "Publication calendar", read 28 Oct
+      2026): 2026Q1 published 17 Jul (first round) and 31 Jul (second), 2026Q2
+      16 Oct and 30 Oct. A quarter is dated its LAST day (wb_qeds.py), so
+      before the next quarter's second round the newest is 147 sessions old
+      (31 Mar to 29 Oct): the quarterly allowance's 95 plus 52, and one for a
+      holiday. The 65 it replaces assumed first-day dating, which no em key uses.
   - id: worldbank_pink_sheet
     keys: ["worldbank.*"]
     lag_sessions: 15
