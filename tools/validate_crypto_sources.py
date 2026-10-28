@@ -913,9 +913,13 @@ def part2(cfg: dict) -> None:
     check(len(wb["table"]["rows"]) <= 12 and all(r_[2] for r_ in wb["table"]["rows"]),
           f"the Weekly block: {len(wb['table']['rows'])} lines, at most 12, each with its "
           f"data-as-of")
-    check(lines["BTC spot ETF flows, the week"][1] == "STALE: last good 1 Oct 2026",
-          "THE STALE RENDER: a stale Farside table prints STALE with its last good "
-          "date -- never an empty cell, never a zero")
+    # Farside is refused since the feed repair of 24 Oct 2026 (a61b item 5): the
+    # line prints the gap, never an empty cell or a zero, whatever is stored.
+    from altdata import refusals as _ref
+    _fs = lines["BTC spot ETF flows, the week"][1]
+    check(_fs.startswith(_ref.text("farside")[:40]) and "0" != _fs.strip(),
+          f"THE REFUSED RENDER: the Farside line prints the refusal -- never an empty "
+          f"cell, never a zero ({_fs})")
     check("flag" not in text and "crowded" not in text and "extreme" not in text,
           "NO FLAG PRINTS: with every flag true in the store, no block prints one")
     check("z-score from 15 Dec 2026" in lines["BTC perp funding, OI-weighted (annualised)"][1],
@@ -963,13 +967,16 @@ def part2(cfg: dict) -> None:
                                     robots=lambda: (True, ""), today=TODAY, now=NOW)
     check(not fs_rows and len(fs_s["failed"]) == 2,
           "Farside refused: nothing parsed, both tables named")
+    asked_fs: list = []
     with store(str(TD / "fs.sqlite")) as st:
         st.write_many([C.row("farside.btc_total", "2026-10-01", 1.0, "2026-10-02T00:00:00+00:00",
                              "farside")])
-        res = farside.pull(db=st, get=lambda u: (_ for _ in ()).throw(OSError("403")),
+        res = farside.pull(db=st, get=lambda u: asked_fs.append(u) or "",
                            robots=lambda: (True, ""), today=TODAY, now=NOW)
-    check(res["status"] == "STALE" and res["written"] == 0 and res["last_good"] == "2026-10-01",
-          "STALE-not-empty: a refused pull writes nothing and names the last good date")
+    check(res["status"] == "REFUSED" and res["written"] == 0 and not asked_fs
+          and "refuses automated reads" in res["reason"],
+          "REFUSED: a declared refusal asks nothing and writes nothing, the reason named "
+          "(the feed repair of 24 Oct 2026)")
     fb_rows, _ = farside.collect(lambda u: (FX / "farside" / ("btc.html" if "bitcoin" in u
                                                                or "/btc/" in u else "eth.html")
                                             ).read_text(encoding="utf-8"),

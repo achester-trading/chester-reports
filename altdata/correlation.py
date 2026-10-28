@@ -113,6 +113,22 @@ def break_key(asset: str, bench: str) -> str:
     return f"corr.{asset}__{bench}.break"
 
 
+def member_inputs(key: str, cfg: Optional[dict] = None) -> list[str]:
+    """The two legs' store keys behind a corr.* key (the registry's
+    `member_inputs_from`; the feed repair of 24 Oct 2026), so the staleness
+    rule inherits a weekly-posted leg's publication lag."""
+    body = key.removeprefix("corr.").rsplit(".", 1)[0]
+    if "__" not in body:
+        return []
+    ins = inputs(cfg)
+    out = []
+    for leg in body.split("__", 1):
+        k = (ins.get(leg) or {}).get("key")
+        if k:
+            out.append(str(k))
+    return out
+
+
 def stored_key(key: str, cfg: Optional[dict] = None) -> str:
     """The key a matrix cell is READ under: its alias where it has one."""
     al = (cfg or config()).get("aliases") or {}

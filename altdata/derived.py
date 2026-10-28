@@ -314,7 +314,8 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
                                   "members_are", "member_suffixes",
                                   "mechanism_group_from_member",
                                   "mechanism_group_map", "member_units",
-                                  "member_families")}
+                                  "member_families", "member_inputs",
+                                  "member_inputs_from")}
             entry["bulk_block"] = bid
             # `from_member` means "the member owns this field". A member named as
             # a string has no attributes: its units are the individually
@@ -332,6 +333,15 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
             for suffix in suffixes:
                 key = prefix + str(name) + suffix
                 e = dict(entry)
+                # A DERIVED MEMBER'S INPUTS (the feed repair of 24 Oct 2026): a
+                # template over the member's name, or a function of the key, so
+                # the staleness rule can inherit the inputs' publication lag.
+                if block.get("member_inputs"):
+                    e["inputs"] = [str(t).format(member=name)
+                                   for t in block["member_inputs"]]
+                elif block.get("member_inputs_from"):
+                    mp, fa = str(block["member_inputs_from"]).rsplit(".", 1)
+                    e["inputs"] = list(getattr(importlib.import_module(mp), fa)(key) or [])
                 # ONE MEMBER'S OWN UNITS (AUD-3a item 3): ^TNX is a yield and ^VIX
                 # a volatility index inside a block of prices. Declared per store
                 # key in the block, so the exception is visible in the registry.
@@ -366,7 +376,31 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
         why = excl.get(key) or excl.get(e.get("bulk_block") or "\0")
         if why and not e.get("family"):
             e["lens_excluded"] = why
+    # MEMBER OVERRIDES (the feed repair of 24 Oct 2026): fields set on one key,
+    # a bulk member's included, after everything else -- a declared status
+    # (superseded, refused, gap, while_held) or a corrected cadence, each with its
+    # reason beside it in the registry.
+    for key, fields in (reg.get("member_overrides") or {}).items():
+        if key in out and isinstance(fields, dict):
+            out[key].update(fields)
     return out
+
+
+# THE DECLARED STATUSES (the feed repair of 24 Oct 2026). A key so declared is
+# never counted stale -- not by the store check, not by the heartbeat's freshness
+# roster -- and is listed apart, with its reason:
+#   superseded  replaced by `superseded_by`; its rows are history
+#   refused     its source refuses automated reads (the 16 Oct sources rule); the
+#               writer no longer requests it and the readers print the gap
+#   gap         a listed gap: not written, with `gap_reason`
+#   while_held  written only while a position is held; a flat book is not stale
+DECLARED_STATUSES = ("superseded", "refused", "gap", "while_held")
+
+
+def declared_status(e: Optional[dict]) -> Optional[str]:
+    """The key's declared status, if it has one of DECLARED_STATUSES."""
+    s = (e or {}).get("status_extra") or (e or {}).get("status")
+    return s if s in DECLARED_STATUSES else None
 
 
 def _leaf_field(reg: dict, name: str, field: str) -> Any:
@@ -604,6 +638,21 @@ def publication_lag(e: dict, metric_id: str,
     return 0, None
 
 
+def inherited_lag(e: dict, metric_id: str, families: Optional[list[dict]] = None,
+                  lookup=None) -> tuple[int, Optional[str]]:
+    """(sessions, family) -- the LARGEST publication lag among the key's own
+    family and its declared `inputs` (the feed repair of 24 Oct 2026). A derived
+    key can be no fresher than its slowest input: calc.surprise_vs_naive.core_pce
+    waits for core PCE as calc.naive_expectation.core_pce does."""
+    lag, fam = publication_lag(e, metric_id, families)
+    look = lookup or registry_entry
+    for k in (e or {}).get("inputs") or []:
+        l2, f2 = publication_lag(look(k) or {}, k, families)
+        if l2 > lag:
+            lag, fam = l2, f"{f2}, through its input {k}"
+    return lag, fam
+
+
 def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int], str]:
     """The same rule over an entry already resolved (tools/check_store_registry.py
     resolves a registry of its own and reads it here, so the store check and the
@@ -616,7 +665,7 @@ def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int],
     base, why = _cadence_allowance(e)
     if base is None:
         return base, why
-    lag, fam = publication_lag(e, metric_id)
+    lag, fam = inherited_lag(e, metric_id)
     if lag:
         return base + lag, f"{why}, plus {lag} sessions' publication lag ({fam})"
     return base, why

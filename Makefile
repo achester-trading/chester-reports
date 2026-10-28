@@ -120,6 +120,7 @@ PY_VALIDATORS := \
 	tools/validate_batch13.py \
 	tools/validate_a55_box_fixes.py \
 	tools/validate_b51_registry_html.py \
+	tools/validate_feed_repair.py \
 	tools/validate_batch14_a1.py \
 	tools/validate_batch14_a2.py \
 	tools/validate_aq3_series.py \

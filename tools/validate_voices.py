@@ -719,9 +719,19 @@ def main() -> int:
     full = vmod.load_config()
     off = {x["id"]: x for x in full["sources"] if x.get("enabled") is False}
     check(set(off) == {"cnbc_market_insider", "cnbc_investing", "goldman_insights",
-                       "morgan_stanley_ideas", "nuveen_insights"}
-          and all(x.get("unreachable_reason") for x in off.values()),
-          "3: the sources the box cannot read are marked unreachable with their reason")
+                       "morgan_stanley_ideas", "nuveen_insights", "yahoo_finance"}
+          and all(x.get("unreachable_reason") for x in off.values())
+          and "404" in off["yahoo_finance"]["unreachable_reason"],
+          "3: the sources the box cannot read are marked unreachable with their reason "
+          "(Yahoo Finance's 404 since the feed repair of 24 Oct 2026)")
+    tro = next(x for x in full["sources"] if x["id"] == "troweprice_insights")
+    tmo = vsn.source_timeouts(full["sources"])
+    fx = vsn.Fetcher("ua", 0, timeouts=tmo)
+    check(tro.get("timeout_seconds") == 60
+          and fx.timeout_for(tro["url"]) == 60.0
+          and fx.timeout_for("https://www.gmo.com/americas/research-library/") == vsn.TIMEOUT,
+          "3: T. Rowe Price's timeout raised once to 60 seconds for its host only; "
+          "every other host keeps the scan's 25")
     check(full["max_model_calls_per_day"] == 60
           and all(x.get("group") in ("official", "desk", "news") for x in full["sources"]),
           "4: the day's cap is 60 calls; every source is grouped")

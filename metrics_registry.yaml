@@ -3184,6 +3184,8 @@ metrics:
       off; the curve is the shape, and shape and level move independently -- an
       inversion at 1% and an inversion at 5% are different worlds.
   calc.real_wages_yoy:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.ahe_yoy, fred.cpi]
     source: derived_state
     mechanism_group: macro_labor
     native_horizon: monthly
@@ -3201,6 +3203,8 @@ metrics:
       year ago. Computed from calc.yoy_ahe and calc.yoy_cpi rather than from a
       second year-over-year implementation.
   calc.r_real_10y_core_pce:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.yield_10y, fred.core_pce]
     source: derived_state
     mechanism_group: macro_momentum
     native_horizon: monthly
@@ -3220,6 +3224,8 @@ metrics:
       mixed a May yield with an April inflation reading -- 1.16 against 1.04 on
       the dates that actually go together.
   calc.r_real_10y_cpi:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.yield_10y, fred.cpi]
     source: derived_state
     mechanism_group: macro_momentum
     native_horizon: monthly
@@ -3970,6 +3976,8 @@ metrics:
       close: the register's first packet date, or 1 Sep 2026 if earlier.
       Written once per session and never recomputed (altdata/benchmark.py).
   calc.yoy_cpi:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.cpi]
     source: derived_state
     mechanism_group: macro_inflation
     native_horizon: monthly
@@ -3986,6 +3994,8 @@ metrics:
       closest to 365 days back within 45 days, so a month's shape does not move
       the comparison and a hole in the series cannot silently substitute for it.
   calc.yoy_core_cpi:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.core_cpi]
     source: derived_state
     mechanism_group: macro_inflation
     native_horizon: monthly
@@ -3999,6 +4009,8 @@ metrics:
     trigger_eligible: false
     description: Core CPI, ex food and energy, year-over-year in percent.
   calc.yoy_pce:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.pce]
     source: derived_state
     mechanism_group: macro_inflation
     native_horizon: monthly
@@ -4012,6 +4024,8 @@ metrics:
     trigger_eligible: false
     description: The PCE price index, year-over-year in percent.
   calc.yoy_core_pce:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.core_pce]
     source: derived_state
     mechanism_group: macro_inflation
     native_horizon: monthly
@@ -4027,6 +4041,8 @@ metrics:
       Core PCE, year-over-year in percent -- the Fed's own target variable, and
       the inflation leg of calc.r_real_10y_core_pce.
   calc.yoy_m2:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.m2]
     source: derived_state
     mechanism_group: macro_liquidity
     native_horizon: monthly
@@ -4040,6 +4056,8 @@ metrics:
     trigger_eligible: false
     description: M2 money stock, year-over-year in percent.
   calc.yoy_real_gdp:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.real_gdp]
     source: derived_state
     mechanism_group: macro_momentum
     native_horizon: quarterly
@@ -4055,6 +4073,8 @@ metrics:
       Real GDP, year-over-year in percent. This is the G in r-vs-g, and it is
       computed once: calc.r_minus_g reads this series rather than recomputing it.
   calc.yoy_housing_starts:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.housing_starts]
     source: derived_state
     mechanism_group: macro_momentum
     native_horizon: monthly
@@ -4068,6 +4088,8 @@ metrics:
     trigger_eligible: false
     description: Housing starts, year-over-year in percent.
   calc.yoy_ahe:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.ahe_yoy]
     source: derived_state
     mechanism_group: macro_labor
     native_horizon: monthly
@@ -13433,6 +13455,8 @@ metrics:
     description: >-
       The CCC & lower OAS less the BB OAS (BAMLH0A3HYC less BAMLH0A1HYBB), bp: the architecture's Session 2 CCC-BB differential, the tail of high yield against its best credits. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
   calc.real_policy_rate:
+    # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
+    inputs: [fred.effr, fred.core_pce]
     source: derived_state
     mechanism_group: macro_liquidity
     native_horizon: monthly
@@ -16822,6 +16846,9 @@ bulk_imports:
     family: release   # ambiguous: the naive expectation of a release, in its units; alternative: the member's own family
     member_key: key
     key_prefix: "calc.naive_expectation."
+    # Each member's input (the feed repair of 24 Oct 2026): it inherits the
+    # FRED series' publication lag.
+    member_inputs: ["fred.{member}"]
     expected_members: 59
     units: from_member
     # FOLLOWS ITS FRED SERIES (ruled 15 Oct 2026, AUD-3a part 1): an expectation of a share is a share,
@@ -16880,6 +16907,10 @@ bulk_imports:
     family: conditions   # ambiguous: a surprise against the naive expectation, read as a standardised level; alternative: ratio
     member_key: key
     key_prefix: "calc.surprise_vs_naive."
+    # Each member's input (the feed repair of 24 Oct 2026): it inherits the FRED
+    # series' publication lag -- core PCE's 22 sessions, H.10's 6, EIA's 6 -- as
+    # calc.naive_expectation.<series> already did.
+    member_inputs: ["fred.{member}"]
     expected_members: 59
     units: from_member
     # FOLLOWS ITS FRED SERIES (ruled 15 Oct 2026, AUD-3a part 1): a surprise in a share is a change in it,
@@ -17225,6 +17256,9 @@ bulk_imports:
       a member: it is calc.corr_spy_tlt_60d, read under its alias.
     source: derived_state
     members_from: altdata.correlation.PAIR_SERIES
+    # Each member's two legs (the feed repair of 24 Oct 2026): a pair with a
+    # weekly-posted leg (natural gas, EIA's Wednesday posting) inherits its lag.
+    member_inputs_from: altdata.correlation.member_inputs
     family: ratio
     members_are: keys
     expected_members: 419
@@ -17251,6 +17285,9 @@ bulk_imports:
       session-set, in config/correlation.yaml `shift`.
     source: derived_state
     members_from: altdata.correlation.SHIFT_SERIES
+    # Each member's two legs (the feed repair of 24 Oct 2026): a pair with a
+    # weekly-posted leg (natural gas, EIA's Wednesday posting) inherits its lag.
+    member_inputs_from: altdata.correlation.member_inputs
     members_are: keys
     expected_members: 210
     mechanism_group: cross_asset_correlation
@@ -17277,6 +17314,9 @@ bulk_imports:
       escalating no trigger.
     source: derived_state
     members_from: altdata.correlation.BREAK_SERIES
+    # Each member's two legs (the feed repair of 24 Oct 2026): a pair with a
+    # weekly-posted leg (natural gas, EIA's Wednesday posting) inherits its lag.
+    member_inputs_from: altdata.correlation.member_inputs
     family: ratio
     members_are: keys
     expected_members: 36
@@ -18386,6 +18426,52 @@ families:
 # the edition's session, and they print it as "effective 19 Oct"; any other
 # series' observation dated after the session is not read (altdata/derived.py
 # forward_dated; daily_cascade/weekly_stack.py change_over).
+# -----------------------------------------------------------------------------
+# MEMBER OVERRIDES (the feed repair of 24 Oct 2026, a61b; docs/briefs/
+# a61b-feed-repair-notes.md). Fields set on one key after the blocks expand,
+# each with its reason. A declared status (altdata/derived.py DECLARED_STATUSES)
+# is never counted stale -- by the store check or the heartbeat's roster -- and
+# is listed apart.
+# -----------------------------------------------------------------------------
+member_overrides:
+  # Discontinued by the Board on 28 Jul 2021; IORB replaced it the next day.
+  fred.ioer: {status_extra: superseded, superseded_by: fred.iorb}
+  # ^TNX prints in US cash hours only: at the 06:45 read its newest bar IS the
+  # prior settle bar, so the change fields are omitted by design (23 Sep 2026,
+  # "a market that did not trade did not move zero"); the daily close is read.
+  overnight.tnx_chg: {status_extra: superseded, superseded_by: yfinance.mkt_tnx}
+  overnight.tnx_chg_pct: {status_extra: superseded, superseded_by: yfinance.mkt_tnx}
+  overnight.tnx_prior_settle: {status_extra: superseded, superseded_by: yfinance.mkt_tnx}
+  # Off the roster since 9 Oct 2026 (A-4: the JSON answers 403, robots.txt 401);
+  # the themes read COMEX's front gold future under its own name.
+  lbma.gold_pm_usd: {status_extra: superseded, superseded_by: yfinance.mkt_gold_front}
+  # Retired by ruling of 13 Oct 2026 (CoinGecko's terms provide for no
+  # automated use); no keyless source with vintages serves the total.
+  crypto.total_market_cap_usd: {status_extra: gap, gap_reason: "CoinGecko retired by ruling of 13 Oct 2026; no keyless source serves the total"}
+  zec.crypto_cap_share: {status_extra: gap, gap_reason: "its denominator, crypto.total_market_cap_usd, retired 13 Oct 2026"}
+  # llama.*_aero are no longer declared a gap (ruling D29.3, A64): they follow
+  # DefiLlama's merged parent `aero` from 21 Oct 2026 as a labelled break
+  # (config/crypto_basket.yaml AERO llama_break).
+  # Refused sources (source_registry.yaml status refused; the 16 Oct rule).
+  mba.purchase_sa_wow: {status_extra: refused, gap_reason: "www.mba.org answers HTTP 403 to its robots.txt (24 Oct 2026)"}
+  mba.purchase_nsa_yoy: {status_extra: refused, gap_reason: "www.mba.org answers HTTP 403 to its robots.txt (24 Oct 2026)"}
+  aptlist.rent_us: {status_extra: refused, gap_reason: "apartmentlist.com answers HTTP 403 (24 Oct 2026); Zillow is read alone"}
+  farside.btc_total: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  farside.eth_total: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  farside.btc_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  farside.eth_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  # Bitcoin's difficulty is set every 2,016 blocks, about 14 days: one row an
+  # adjustment, not a day. Weekly cadence plus the btc_difficulty lag.
+  mempool.difficulty: {freq: weekly, native_horizon: weekly, information_half_life: until_next_release}
+  # Written only while a position is held (IBKR's portfolio); a flat paper book
+  # writes none and is not stale.
+  portfolio.position_qty: {status_extra: while_held}
+  portfolio.position_avg_cost: {status_extra: while_held}
+  portfolio.position_market_value: {status_extra: while_held}
+  portfolio.position_unrealized_pnl: {status_extra: while_held}
+  portfolio.position_currency: {status_extra: while_held}
+  portfolio.position_con_id: {status_extra: while_held}
+
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:

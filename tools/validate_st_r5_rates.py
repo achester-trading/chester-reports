@@ -668,10 +668,13 @@ def group_i() -> None:
     check(all(k in reg["families"] and k in reg["long_windows"] for k in new),
           "the new series carry a family and a long window (the metric-lens rule)")
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
-    check(all(src.get(s, {}).get("status") == "live"
-              and src[s].get("implemented_by") == f"altdata/sources/{s}.py"
-              for s in ("redfin", "mba")),
-          "redfin and mba are registered sources, status live")
+    check(src.get("redfin", {}).get("status") == "live"
+          and src.get("mba", {}).get("status") == "refused"
+          and src["mba"].get("refused_since") == "2026-10-24"
+          and all(src[s].get("implemented_by") == f"altdata/sources/{s}.py"
+                  for s in ("redfin", "mba")),
+          "redfin and mba are registered sources: redfin live, mba refused since 24 Oct "
+          "2026 (the feed repair: HTTP 403 on its robots.txt)")
     check_dropped(("manual.mba_purchase_index", "manual.nar_phsi", "manual.euro_ccc_oas"),
                   reg)
     cmds = catalogue.commands()
@@ -703,6 +706,11 @@ def check_dropped(dropped: tuple[str, ...], reg: dict) -> None:
 
 
 def main() -> int:
+    # THE PARSERS ARE TESTED AS IF LIVE (the feed repair of 24 Oct 2026): MBA,
+    # Farside and Apartment List are declared refused in source_registry.yaml, and
+    # their pulls ask nothing; tools/validate_feed_repair.py holds the refusal.
+    from altdata import refusals
+    refusals.set_registry({"sources": {}})
     print(f"{LINE}\nSignal-triage Batch 6: the rates-transmission cluster\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
               group_i):

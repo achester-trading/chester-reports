@@ -416,7 +416,9 @@ def group_e() -> None:
         sent.append(dict(params or {}))
         return {"observations": [{"date": "2026-08-01", "value": "2.5"},
                                  {"date": "2026-09-01", "value": "2.6"}]}
-    with mock.patch.object(fred, "http_get_json", fake_get), \
+    # fred.get_json, not http_get_json: FRED's own read since the feed repair
+    # (a61b item 1, the non-JSON path).
+    with mock.patch.object(fred, "get_json", fake_get), \
             mock.patch.object(fred, "_get_key", lambda: "k"), \
             mock.patch.object(fred.time, "sleep", lambda s: None):
         out = fred.pull(st, series=[monthly, daily])
@@ -430,7 +432,7 @@ def group_e() -> None:
           "the narrow fetch MERGES into the CSV copy: the 2020 row survives, the "
           "re-read month is replaced, the new month added")
     fixed: list = []
-    with mock.patch.object(fred, "http_get_json",
+    with mock.patch.object(fred, "get_json",
                            lambda url, params=None, **k: fixed.append(params) or
                            {"observations": []}), \
             mock.patch.object(fred, "_get_key", lambda: "k"), \

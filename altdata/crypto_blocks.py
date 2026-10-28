@@ -141,6 +141,10 @@ def band(pct_full: Optional[float], cfg: dict) -> str:
 def etf_line(st, coin: str, now: str, today: str) -> list:
     pts = _pts(st, f"farside.{coin}_total", now)
     label = f"{coin.upper()} spot ETF flows, the week"
+    from altdata import refusals                                # noqa: PLC0415
+    gap = refusals.text("farside")
+    if gap:
+        return [label, gap, "—"]
     if not pts:
         return [label, "not stored (Farside: see the notes)", "—"]
     last = pts[-1][0]
@@ -302,6 +306,10 @@ def _etf_daily(st, coin: str, now: str, today: str, stale_days: int) -> str:
     from altdata.numeral_audit import ordinal                   # noqa: PLC0415
     lab = f"{coin.upper()} spot ETF flows (T-1)"
     pts = _pts(st, f"farside.{coin}_total", now)
+    from altdata import refusals                                # noqa: PLC0415
+    gap = refusals.text("farside")
+    if gap:
+        return f"{lab}: {gap}."
     if not pts:
         return f"{lab}: not stored (Farside refuses the laptop; the box is untested)."
     d, v = pts[-1]
