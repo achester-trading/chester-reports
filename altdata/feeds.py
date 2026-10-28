@@ -969,6 +969,22 @@ def _main(argv: list[str]) -> int:
                         print(f"  logger  {ln:24} {note}")
                     print(f"  {name:7} {d.get('total', 0)} ran, "
                           f"{d.get('written', 0)} rows written")
+                # THE THREE OTHER SHAPES (A84): bars, the venues and fed funds
+                # return no success/total, so the feed template printed "0/0 ok"
+                # on the box on 28 Oct while each had written its rows. Each line
+                # is built from what its pull already returns.
+                elif name == "bars":
+                    inst = d.get("instruments") or {}
+                    short = sum(1 for v in inst.values()
+                                if v.get("error") or not v.get("final_bar"))
+                    print(f"  {name:7} {len(inst)} instruments, {short} short")
+                elif name == "prediction_markets":
+                    print(f"  {name} {d.get('markets') or 0} markets, "
+                          f"{d.get('written') or 0} written, "
+                          f"{len(d.get('errors') or {})} errors")
+                elif name == "fed_funds":
+                    print(f"  {name} {len(d.get('served') or [])} served, "
+                          f"{len(d.get('failed') or {})} failed")
                 else:
                     print(f"  {name:7} {d.get('success', 0)}/"
                           f"{d.get('total', 0)} ok, "
