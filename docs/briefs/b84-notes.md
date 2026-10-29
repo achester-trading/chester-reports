@@ -145,11 +145,11 @@ Run one at a time, in the foreground:
 | validate_monthly | 360 passed, 0 failed, 1 skipped (run_monthly.sh rc mapping: no bash+flock on the laptop) |
 | validate_monthly_frames (the Monthly prose frames' gate) | 39 passed (group F new, 7 checks) |
 | validate_numeral_audit (DISPLAY_NOUNS touched) | 172 passed |
-| validate_stack | see the report |
-| validate_readability | see the report |
+| validate_stack | 84 passed |
+| validate_readability | 67 passed |
 | validate_audit_fixes (owns the role checks) | 106 passed (3 new) |
-| validate_narratives (owns state_contradictions) | see the report |
-| validate_monthly_stack (stack.py) | see the report |
+| validate_narratives (owns state_contradictions) | 103 passed |
+| validate_monthly_stack (stack.py) | not finished: the laptop stopped the run for low memory after 72 lines of output, with no FAIL among them; CI runs it |
 
 ## Against A88
 
