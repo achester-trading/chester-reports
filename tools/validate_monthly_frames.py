@@ -26,6 +26,11 @@ and no network -- the writer is scripted.
   E  A VOICE'S VIEW IS ATTRIBUTED. Lane's "driven by" -- paraphrased, in single
      quotes or double -- prints in the voices block; the same words in our own
      prose are still a motive fault.
+  F  B84, THE BARE DELTAS OF THE 28 OCT DRY RUN. China's gold carries "ounces";
+     the bare-delta retry quotes the frame's display for each bare figure
+     ("write '+29,000 jobs'"); the CFTC level carries "−964,293 contracts", the
+     dry run's bare draft is withheld naming it, and the corrected draft
+     publishes. Each dry-run sentence still fails as written.
 
     python tools/validate_monthly_frames.py
 """
@@ -312,6 +317,68 @@ def group_e() -> None:
           "single quotes strike the quotation; an apostrophe does not")
 
 
+def group_f() -> None:
+    print(f"\n{LINE}\nF. B84: THE BARE DELTAS OF THE 28 OCT DRY RUN\n{LINE}")
+    from monthly_macro import stack as stk
+    # summary:narratives -- official gold in ounces, stored as a plain count.
+    gold = na.change_display(740000.0, "count", "safe.gold_reserves_oz")
+    check(gold == "+740,000 ounces"
+          and na.change_display(740000.0, "count",
+                                "imf.ifs.gold_reserves_oz.chn") == "+740,000 ounces",
+          f"China's official gold carries its noun ({gold})")
+    drafted = ("China's official gold holdings (SAFE) rose +740,000, speculators "
+               "added +118,738 contracts to net yen futures positioning (CFTC).")
+    check(na.bare_deltas(drafted) == ["+740,000"]
+          and not na.bare_deltas(drafted.replace("+740,000", gold)),
+          "the dry run's sentence is still withheld; the same sentence with the "
+          "display copied publishes")
+    # month_in_markets -- the retry names the form to copy.
+    hint = pr.bare_hint(["+29,000"], [{"rows": [{"metric": "fred.nfp",
+                                                 "change_display": "+29,000 jobs",
+                                                 "latest_level_display":
+                                                     "159.04 million"}]}])
+    check("write '+29,000 jobs' for +29,000" in hint,
+          f"the bare-delta retry quotes the frame's display for the figure ({hint})")
+    check("noun or scale" in pr.bare_hint(["+29,000"], [{"rows": []}]),
+          "with no display in the frame, the retry says to add the noun or scale")
+    sec = block("plumbing", "Plumbing & rates", "Macro: employment, income, GDP",
+                "block:plumbing:macro", ["Series", "Latest", "The month"],
+                [["Nonfarm payrolls", "159.04 million", "+29,000 jobs"]])
+    bad = write(edition(sec), {"THE BLOCK: Macro": [
+        "Payrolls rose +29,000 to 159.04 million over the month."]}, [])
+    r = bad["block:plumbing:macro"]
+    why = str(r.get("first_reason") or r.get("reason"))
+    check(not r["published"] and "write '+29,000 jobs'" in why,
+          f"month_in_markets' sentence is withheld, the retry quoting '+29,000 jobs' "
+          f"({why[-70:]})")
+    # block:positioning:cftc -- the level carries its display, the bare level
+    # still fails.
+    disp = stk.count_level_display(-964293.0, "cftc.noncomm_net")
+    check(disp == "−964,293 contracts"
+          and stk.count_level_display(-964293.0, "aaii.bull_bear_spread") is None,
+          f"the CFTC level has a display with its noun ({disp}); a series with no "
+          f"noun gets none")
+    hist = {"history": [{"group": "cftc", "series": "CFTC 10-year note",
+                         "latest": -964293.0, "latest_level_display": disp,
+                         "as_of": "2026-10-20"}]}
+    cftc = block("positioning", "Positioning & flows", "Speculative positioning (CFTC)",
+                 "block:positioning:cftc", ["Contract", "Net", "Change"],
+                 [["10-year note", "−964,293", "−125,318 contracts"]], data=hist)
+    drafts = ["Positioning split along the curve into October. Net speculative "
+              "contracts in 10-year note futures stood at -964,293 as of 2026-10-20, "
+              "a change of −125,318 contracts on the month.",
+              f"Positioning split along the curve into October. Net speculative "
+              f"contracts in 10-year note futures stood at {disp} as of 2026-10-20, "
+              f"a change of −125,318 contracts on the month."]
+    calls: list = []
+    res = write(edition(cftc), {"THE BLOCK: Speculative": drafts}, calls)
+    r = res["block:positioning:cftc"]
+    check(r["published"] and r.get("attempts") == 2 and disp in (r.get("text") or "")
+          and len(calls) == 2 and f"write '{disp}'" in calls[1],
+          f"the dry run's CFTC draft is withheld and the retry names '{disp}'; the "
+          f"draft that copies it publishes ({r.get('attempts')} attempts)")
+
+
 def main() -> int:
     print(f"{LINE}\nT3.5 -- THE MONTHLY'S FRAMES TAKE THE WEEKLY'S BUDGET DISCIPLINE\n{LINE}")
     group_a()
@@ -319,6 +386,7 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if not FAIL else "VALIDATION FAILED")
     return 1 if FAIL else 0
