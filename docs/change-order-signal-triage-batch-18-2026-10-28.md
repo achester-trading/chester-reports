@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | File | `docs/change-order-signal-triage-batch-18-2026-10-28.md` |
-| Status | **RULED in chat** 28 Oct 2026, pending the operator's accept (given with paste B81). Filed 28 Oct 2026 by paste B81 with filing amendments K1 to K4 (§0). The paste is kept verbatim at `docs/pastes/B81.md`. |
+| Status | **RULED in chat** 28 Oct 2026, accepted 28 Oct 2026 (D42.5). Filed 28 Oct 2026 by paste B81 with filing amendments K1 to K4 (§0). The paste is kept verbatim at `docs/pastes/B81.md`. |
 | Encoding | Batch 18 of Post-Freeze Amendment #4. Batch 17 holds items 92–97 (paste A81, branch `a81-batch-17-filing`, unmerged), so this is item 98, its work IDs 98(a) to 98(c). Register number provisional, SR-68, placed by Audit #5 (K2). |
 | Precedence | Below Part 26, the Enterprise Layer order and the dated change-orders edition; equal to the other Amendment #4 batches. |
 | Supersedes | Nothing. |
@@ -33,6 +33,8 @@
 
 - **K4, nothing built, no source added.** The filing adds no feed, key, symbol, gate or timer. 98(c) names the source the build will try; the build runs the 16 Oct 2026 sources check before it stores a night bar.
 
+  98(c): IBKR night bars come under D38's price-migration ruling (b68: IBKR as the price source, ceiling USD 60/month). If serving night-session bars needs a data subscription beyond what D38 covers, that is a new ruling, and 98(a)-(b) stay a listed gap until then. (D42.5, 28 Oct 2026.)
+
 ---
 
 Item 98 is REPORT_OK-class. It changes no composite weight, no T&B pillar weight and no regime rule, and creates no regime tag. Nothing prints without a stored source.
@@ -43,7 +45,7 @@ Item 98 is REPORT_OK-class. It changes no composite weight, no T&B pillar weight
 
 | Item | Short name | Ruling | Kind | Sessions | By hand |
 |---|---|---|---|---|---|
-| 98 | The 23-hour equity session | 28 Oct 2026, pending the operator's accept | ADOPT: cadence unchanged; three adjustments (a)–(c) | 1.5 session-evenings | — |
+| 98 | The 23-hour equity session | 28 Oct 2026, accepted 28 Oct 2026 (D42.5) | ADOPT: cadence unchanged; three adjustments (a)–(c) | 1.5 session-evenings | — |
 
 ---
 
@@ -107,6 +109,6 @@ Item 98 is REPORT_OK-class. It changes no composite weight, no T&B pillar weight
 
 | When | What | Words |
 |---|---|---|
-| 28 Oct 2026 | The cadence unchanged; 98(a)–(c) after Doctrine #2 | The ruling as given with paste B81, pending the operator's accept |
+| 28 Oct 2026 | The cadence unchanged; 98(a)–(c) after Doctrine #2 | The ruling as given with paste B81, accepted 28 Oct 2026 (D42.5) |
 
-Open at filing: the operator's accept; SR-68 and the batch number (audit); V1–V4.
+Open at filing: the operator's accept; SR-68 and the batch number (audit); V1–V4. The accept was given 28 Oct 2026 (D42.5, as filed with K1–K4).

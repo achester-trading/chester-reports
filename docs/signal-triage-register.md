@@ -815,6 +815,8 @@ the [Batch 18 order](change-order-signal-triage-batch-18-2026-10-28.md)'s item.
 |---|---|---|---|---|---|
 | 68 | 98 | The 23-hour equity session: the cadence unchanged; every bar tagged night, pre, regular or post from its own UTC timestamp, never the venue's trade date, and regular-session statistics read the regular tag only (98(a)); SPY and QQQ overnight beside ES in the 07:00 anchor and the 21:30 evening note, "overnight equities not stored" until night bars are stored (98(b)); night bars from IBKR under the price migration, else a listed gap (98(c)) | Report only | After Doctrine #2, before the first night (target 6 Dec 2026) | provisional, placed by Audit #5 |
 
+*Accepted 28 Oct 2026 (D42.5), as filed with K1–K4; the register status above is unchanged:* 98(c)'s IBKR night bars come under D38's price-migration ruling (b68, ceiling USD 60/month); a data subscription beyond what D38 covers is a new ruling, and 98(a)–(b) stay a listed gap until then.
+
 ---
 
 ## Rule-31 acceptances outside the SR entries
