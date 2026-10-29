@@ -504,6 +504,8 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `fed-cycles-ledger-2026-10-19.md` | NO GATE | n 21 | FED-CYCLES ledger -- the hiking-cycle table, computed by rule |
 | `gex-scale-flashalpha-2026-09-30.md` | diagnostic | n — | GEX / DEX scale against FlashAlpha — 30 Sep 2026 SPY (read-only diagnostic) |
 | `gex-scale-flashalpha-2026-10-09.md` | diagnostic | n — | GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic) |
+| `midterm-base-rate-2026-10-26.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
+| `midterm-base-rate-2026-10-28.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
 | `os-12c-ledger-2026-10-20.md` | INSUFFICIENT | n 0 | OS-12c ledger -- relative options volume against the next five sessions' movement (item 61) |
 | `os-6-ledger-2026-10-19.md` | FAIL | n 498 | OS-6 ledger -- the positioning components against SPX's forward path (item 53) |
 | `os-9-ledger-2026-10-19.md` | INSUFFICIENT | n 0 | OS-9 ledger -- the OI builds' chance in the money, against the outcome at expiry (item 58) |
@@ -542,6 +544,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `st-r5.44b-ledger-2026-10-17.md` | INSUFFICIENT | n 0 | ST-R5.44b ledger -- how wide average-member vs index drawdown gaps resolved |
 | `st-r6.59c-ledger-2026-10-20.md` | FAIL | n 18 | ST-R6.59c ledger -- the bank-stress base rate: the correction-vs-crisis classifier (item 59) |
 | `st-r6.66c-ledger-2026-10-21.md` | FAIL | n 65 | ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth (Batch 14 item 66; report only) |
+| `st-r6.66c-ledger-2026-10-28.md` | FAIL | n 65 | ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth |
 | `vendor-divergence-notes.md` | diagnostic | n — | Vendor divergence notes -- FlashAlpha against the engine |
 | `wealth-effect-preregistration-2026-10.md` | diagnostic | n — | The wealth-effect impulse against real consumption -- pre-registration (ST-R6.66c, Batch 14 item 66) |
 <!-- /table -->

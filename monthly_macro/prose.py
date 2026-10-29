@@ -577,7 +577,10 @@ MONTHLY_NOTES = {
         "close; the 40-week, 10-month and 20-month columns are AVERAGES of past "
         "closes, never a close and never where a market ended the month; 'From "
         "the 52-week high' is a percentage distance. A market 'closed' or "
-        "'ended' only at its month-end close."),
+        "'ended' only at its month-end close. Where a market's close is null "
+        "(close_absent), it has no close this month: never write 'closed', "
+        "'ended' or 'at' beside one of its averages -- name the average as an "
+        "average (\"SPY's 40-week average of ...\") or leave the market out."),
     "mechanics": (
         "\n\nTHE DEALER RETROSPECTIVE: how the market behaved against dealer "
         "positioning over the month, never what to do about it. Every figure "
@@ -985,8 +988,27 @@ def t36_faults(text: str, sec: dict, ed: Optional[dict]) -> list[str]:
     large figure (M9), the dollar's name (M10)."""
     from altdata import numeral_audit as na                     # noqa: PLC0415
     pay = _payloads(sec, ed)
-    return (na.role_faults(text, pay) + na.separator_faults(text)
+    return (na.role_faults(_mask_day_ordinals(text), pay) + na.separator_faults(text)
             + dollar_label_faults(text, pay))
+
+
+# A DAY OF THE MONTH IS NOT A CLOSE (B84, looking_ahead in the 28 Oct dry run):
+# "December closes the quarter ...: ISM Manufacturing on the 1st, ... payrolls on
+# the 4th" was withheld as 1 and 4 written as closes of two averages. An ordinal
+# is never a price, so before the role audit reads the text every ordinal that is
+# not a percentile's is blanked; a close written as a number is read as before.
+_ORDINAL = re.compile(r"\b\d{1,2}(?:st|nd|rd|th)\b", re.I)
+
+
+def _mask_day_ordinals(text: Optional[str]) -> Optional[str]:
+    if not text:
+        return text
+
+    def blank(m: re.Match) -> str:
+        near = text[max(0, m.start() - 40):m.end() + 40]
+        return m.group(0) if re.search(r"percentile", near, re.I) else \
+            " " * len(m.group(0))
+    return _ORDINAL.sub(blank, text)
 
 
 _DOLLAR_LABEL = re.compile(r"dollar|\bdxy\b", re.I)
@@ -1184,6 +1206,51 @@ def allowed_figures(sl: Optional[dict]) -> str:
     return "; ".join(rows)
 
 
+# THE BARE-DELTA RETRY NAMES THE FORM (B84, the 28 Oct dry run): "copy its
+# change_display" left the writer to find which string that was, and
+# month_in_markets printed "+29,000" bare on its second attempt. The retry now
+# quotes the frame's own display for each bare figure ("write '+29,000 jobs'"),
+# as the separator message quotes its form.
+_DISPLAY_NUM = re.compile(r"^[+−-]?\$?(\d[\d,]*(?:\.\d+)?)\s*\S")
+
+
+def _display_strings(payload, _depth: int = 0) -> list[str]:
+    """Every string in the payload that is a figure with something after it -- a
+    noun, a scale or a unit ("+29,000 jobs", "−964,293 contracts", "$2.95tn")."""
+    out: list[str] = []
+    if _depth > 12:
+        return out
+    if isinstance(payload, str):
+        if _DISPLAY_NUM.match(payload.strip()):
+            out.append(payload.strip())
+    elif isinstance(payload, dict):
+        for v in payload.values():
+            out += _display_strings(v, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out += _display_strings(v, _depth + 1)
+    return out
+
+
+def bare_hint(bare: list[str], payloads: list) -> str:
+    """'; write '+29,000 jobs' for +29,000' for each bare figure whose display the
+    frame carries with its noun or scale; else the instruction to add the noun."""
+    shown = _display_strings(payloads)
+    hints = []
+    for b in bare:
+        m = re.search(r"\d[\d,]*(?:\.\d+)?", b)
+        if not m:
+            continue
+        n = float(m.group(0).replace(",", ""))
+        form = next((s for s in shown
+                     if float(_DISPLAY_NUM.match(s).group(1).replace(",", "")) == n
+                     and re.search(r"\d\s*[A-Za-z$]|\d\s+[a-z]", s)), None)
+        hints.append(f"write '{form}' for {b}" if form else
+                     f"write {b} with its noun or scale (jobs, contracts, ounces, "
+                     f"thousand, million)")
+    return ("; " + "; ".join(hints)) if hints else ""
+
+
 TIGHTER = 0.7
 TOO_LONG_RETRY = ("YOUR PREVIOUS DRAFT RAN PAST THE {n} CHARACTERS ALLOWED. Write it "
                   "again in at most {cap} characters: fewer sentences, the same "
@@ -1284,7 +1351,9 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 published, state = False, "bare_delta"
                 reason = (f"withheld: a change of 10,000 or more printed without its "
                           f"unit or scale ({', '.join(bare[:3])}) -- copy its "
-                          f"change_display or latest_level_display verbatim")
+                          f"change_display or latest_level_display verbatim"
+                          + bare_hint(bare[:3], [sec.get("slice"),
+                                                 sec.get("audit_extra")]))
             # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1b, the Weekly's W-1.1a
             # item 4): "fell -3 bp" prints "fell 3 bp", after every audit, and
             # the rewrite is counted.
