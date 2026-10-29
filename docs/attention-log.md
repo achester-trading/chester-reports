@@ -24,3 +24,4 @@ The Weekly reads this file for its sitting hours (out of 2) and its count of rul
 | 2026-10-05 | ruling | 6 | Reading shelf D1–D3 ruled (09:08–09:10 ET): chapter after narratives; watch on the 12th and 27th; ECB/BoE FSRs promoted to deep |
 | 2026-10-08 | ruling | — | Reading shelf: eight publications added (Fidelity ×2, Bridgewater, PIMCO ×2, UBS Year Ahead, Morgan Stanley outlooks, Blackstone Ten Surprises); change order filed |
 | 2026-10-24 | ruling | — | Rulings of 24 Oct afternoon, D28–D29 (the A61 and A61b/A63 needs-you), taken in chat; filed verbatim (docs/briefs/rulings-2026-10-24-pm.md); D1–D27 are indexed on chain-6 |
+| 2026-10-27 | ruling | — | Rulings of 25-27 Oct, D35–D41 (nautilus_trader for Phase 4, the Weekly Letter, Batch 16's filing, the 60-item morning list, Batch 17, B79's Cboe terms, the Day-Trading Layer brief), taken in chat; filed verbatim (docs/briefs/rulings-2026-10-25-27.md) |

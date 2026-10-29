@@ -45,7 +45,7 @@ import midterm_base_rate as mbr                                 # noqa: E402
 TD = Path(gate_mkdtemp("batch16_midterm_"))
 LINE = "=" * 78
 PASS = FAIL = 0
-LEDGER = REPO / "docs" / "ledgers" / "midterm-base-rate-2026-10-26.md"
+LEDGER = REPO / "docs" / "ledgers" / "midterm-base-rate-2026-10-28.md"
 CSV = LEDGER.with_suffix(".csv")
 CLAIM = "cal.midterm_election_2026"
 # The first 16 hex of the SHA-256 of each lower-cased name in the order's voices
