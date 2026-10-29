@@ -957,10 +957,38 @@ def group_j() -> None:
           "M10: the summary is withheld and retried until the series is named")
 
 
+# ---------------------------------------------------------------------------
+# K. THE MONTHLY'S BINDING FROM THE 28 OCT DRY RUN (A88)
+# ---------------------------------------------------------------------------
+# Every withheld draft A88 owns, as a sentence over a block in the rows' real
+# labels (tests/fixtures/monthly_dryrun_2026-10-28.json): each passes now, and
+# each must-fail case -- a wrong figure in its own clause, under a derived name,
+# in its own tag, or an average called a close -- still fails.
+M28 = json.loads((REPO / "tests" / "fixtures" / "monthly_dryrun_2026-10-28.json")
+                 .read_text(encoding="utf-8"))
+
+
+def group_k() -> None:
+    print(f"\n{LINE}\nK. THE MONTHLY'S BINDING FROM THE 28 OCT DRY RUN (A88)\n{LINE}")
+    for c in M28["binding_pass"]:
+        a = na.audit(c["text"], c["block"])
+        check(a.passed, f"passes: {c['case']} ({a.reason()[:120]})")
+    for c in M28["binding_fail"]:
+        a = na.audit(c["text"], c["block"])
+        check(not a.passed and "is bound to" in a.reason(),
+              f"still fails: {c['case']} ({a.reason()[:120]})")
+    for c in M28["role_pass"]:
+        f = na.role_faults(c["text"], M28["role_payload"])
+        check(not f, f"the role audit passes: {c['case']} ({(f or [''])[0][:120]})")
+    for c in M28["role_fail"]:
+        check(bool(na.role_faults(c["text"], M28["role_payload"])),
+              f"the role audit still fails: {c['case']}")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_j):
+              group_j, group_k):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0

@@ -465,9 +465,16 @@ def main() -> int:
     # --- J. PLACEMENT ----------------------------------------------------------
     print(f"\n{LINE}\nJ. PLACEMENT -- What's priced, The read, What doesn't fit\n{LINE}")
     import validate_stack as vs
-    from altdata import bars as bars_mod, levels as levels_mod
+    from altdata import bars as bars_mod, levels as levels_mod, session
     from daily_cascade import stack as stack_mod
     db4 = str(Path(td) / "close.db")
+    # THE GATE'S CLOCK (A88 Part 0): the seeded market state, and with it the
+    # payload's as_of that build() takes for its cutoff, are stamped by the real
+    # clock, and from 29 Oct 2026 the fixture's 28 Oct meeting was past and
+    # (rightly) dropped. The clock is pinned to the fixture session's close from
+    # the seed to the build; the renderer's rule is unchanged.
+    saved_now = session.utc_now
+    session.utc_now = lambda: dt.datetime.fromisoformat(f"{SESSION}T20:45:00+00:00")
     seeded = vs.seed(db4)
     with observations.ObservationStore(db4) as st:
         for day in days:
@@ -487,6 +494,7 @@ def main() -> int:
         ed = stack_mod.build(p, book, [], None, db4)
     finally:
         fed_funds.meeting_days = saved_md
+        session.utc_now = saved_now
     sec = {s["id"]: s for s in ed["sections"]}
     pt = [i["text"] for i in sec["priced"]["items"]]
     check(any(t.startswith("Fed funds futures: the market prices") and
