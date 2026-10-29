@@ -735,6 +735,42 @@ def group_j() -> None:
     check(mp.ROLE_RULE in mp.T36_RULES and mp.system_prompt("x", "y").count(
         "bind ONLY to a close") == 1,
           "M1: every Monthly frame carries the role rule")
+    # B84 (the 28 Oct dry run) -- looking_ahead: a day of the month is not a close.
+    avg = {"slice": {"long_frame": [{"market": "10-year yield", "close": None,
+                                     "ma_40w": 4.48},
+                                    {"market": "SPY", "close": None,
+                                     "ma_40w": 721.82}],
+                     "fees": [{"label": "Bitcoin fee, one-hour tier (sat/vB)",
+                               "long_run_average": 1.2}]}}
+    ahead = ("December closes the quarter with its own concentration of risk: ISM "
+             "Manufacturing on the 1st, ISM Services on the 3rd, payrolls on the "
+             "4th, AVGO earnings and the FOMC statement both on the 9th.")
+    check(not mp.t36_faults(ahead, avg, {})
+          and na.role_faults(ahead, avg["slice"]),
+          "B84: looking_ahead's calendar ('closes the quarter ... on the 1st ... the "
+          "4th') passes the Monthly's role check; the role audit alone still binds "
+          "the ordinals (its rule is unchanged)")
+    check(mp.t36_faults("SPY closed September 2026 at 721.82, with the 10-year "
+                        "yield at 4.48.", avg, {})
+          and mp.t36_faults("The tape closed the 4th week with SPY at 721.82.",
+                            avg, {}),
+          "B84: an average written as a close is still withheld, beside a masked "
+          "ordinal too (stack:tape's dry-run sentence)")
+    # B84 -- stack:tape: no close held, so the row says so and the frame says what
+    # to do; a held close is unchanged.
+    lf2 = ms.tape_section({"month_in_markets": {"rows": [], "end": "2026-09-30"}},
+                          {"instruments": [
+                              {"label": "SPY", "frame": {"last": None}, "row": {},
+                               "levels": [{"type": "ma_40w", "value": 721.82,
+                                           "label": "40-week"}]},
+                              {"label": "Gold", "frame": {"last": 4640.1}, "row": {},
+                               "levels": [{"type": "ma_40w", "value": 4554.56,
+                                           "label": "40-week"}]}]})
+    rows = {r["market"]: r for r in lf2["data"]["long_frame"]}
+    check("close_absent" in rows["SPY"] and "close_absent" not in rows["Gold"]
+          and "close_absent" in mp.MONTHLY_NOTES.get("tape", ""),
+          "B84: a market with no month-end close says so in the long frame's data, "
+          "and the tape's frame tells the writer to write no close for it")
 
     # M2 -- one direction per instrument across the summary ------------------
     m2 = M5["m2_consistency"]
