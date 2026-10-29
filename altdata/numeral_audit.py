@@ -426,6 +426,9 @@ DISPLAY_NOUNS = {
     "fred.existing_homes": "homes", "fred.new_homes": "homes",
     "cftc.": "contracts", "pm.volume": "contracts", "pm.open_interest": "contracts",
     "exposure.oi_": "contracts", "eia.": "barrels",
+    # B84 (summary:narratives, the 28 Oct dry run): official gold in troy ounces,
+    # stored as a plain count -- "+740,000" printed bare until it carried its noun.
+    "safe.gold_reserves_oz": "ounces", "imf.ifs.gold_reserves_oz.": "ounces",
 }
 UNIT_NOUNS = {"shares": "shares", "contracts": "contracts", "Contracts": "contracts",
               "jobs": "jobs", "persons": "people", "Persons": "people"}

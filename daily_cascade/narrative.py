@@ -585,6 +585,12 @@ STATE_ALIASES = {"gamma": ("dealer gamma", "gamma dial", "gamma"),
                                 "volatility")}
 
 
+# A name followed by one of these is a different series, not the dial or
+# dimension: inflation expectations are surveyed or priced, and their direction
+# is not the inflation dimension's state.
+NOT_THE_STATE = r"(?!\s+expectations?\b)"
+
+
 def _name_re(name: str) -> str:
     import re as _re  # noqa: PLC0415
     names = STATE_ALIASES.get(name, (name,))
@@ -638,9 +644,11 @@ def state_contradictions(text: str, market_states: dict) -> list[str]:
         # after (not when it is the start of a transition, handled above)
         for m in _re.finditer(N + fill + r"\s+" + W + r"(?![\w/-])", masked):
             claim(name, m.group(1))
-        # before
+        # before -- but not when the name heads another noun: "rising inflation
+        # expectations" says the expectations rose, not that the inflation
+        # dimension is rising (B84, theme:sentiment in the 28 Oct dry run).
         for m in _re.finditer(r"(?<![\w-])" + W + r"\s+" + _name_re(name)
-                              + r"(?![\w-])", masked):
+                              + r"(?![\w-])" + NOT_THE_STATE, masked):
             claim(name, m.group(1))
     # pairs: "<a>-vs-<b> ... w1/w2" within one clause of 90 characters
     for a in names:
