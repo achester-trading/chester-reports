@@ -70,3 +70,31 @@ external roster's stale count falls by eight. With no other external key stale,
 the verdict leaves `feed_stale`: the external line should read declared 8 more
 than tonight and stale 0. On 2 Dec 2026 the DVOL pair lapse back to counted; by
 then they are written, or the backfill has run.
+
+## Part 2: LF for pinned-hash files (branch `b85-gitattributes-lf`, `5cb338fa`)
+
+**Which files are pinned.** I hashed every tracked file's committed blob and
+matched it against every 64-hex constant in the repo. Fifteen files are pinned:
+
+- the three `docs/interface/` files and the alpha inbox fixture, which were
+  already covered;
+- `config/alpha_constitution.yaml`;
+- the Batch 8 order;
+- seven ledger pre-registrations;
+- the two midterm CSVs.
+
+The Batch 15 order B83 hit is on chain-7 only.
+
+**The rules.** `.gitattributes` gains `docs/change-order-*.md`,
+`docs/ledgers/**` and `config/alpha_constitution.yaml` as `text eol=lf`.
+
+**What changed.** `git add --renormalize .` changed no file's content, because
+git already stored them LF. The commit is the ten `.gitattributes` lines only.
+The laptop's 110 covered working copies were rewritten from CRLF to their
+committed bytes, each checked equal to its blob first.
+
+**The gate.** `validate_batch15_1` is not on main yet. Its file's path now
+resolves to `eol: lf`, and its blob hashes to the pinned `d5318a6d...`, so a
+checkout after the merges passes it on Windows. The six pin-holding gates on
+this base all pass on the laptop: validate_dealer_block 134, secondary_notes 88,
+batch14_a2 40, batch13 33, batch12 57, validate_alpha 257.
