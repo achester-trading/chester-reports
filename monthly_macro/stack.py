@@ -419,6 +419,12 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                         _v(lv.get("ma_10m")), _v(lv.get("ma_20m")),
                         "—" if dd is None else f"{dd:+.2f}%"])
         lf_data.append({"market": i["label"], "close": close,
+                        # B84 (stack:tape, the 28 Oct dry run): with no close held
+                        # for the month-end session, the writer was left only the
+                        # averages and wrote each one as a close. Say so in the row.
+                        **({"close_absent": "no month-end close is stored for "
+                                            "this market: write no close for it"}
+                           if close is None else {}),
                         "ma_40w": lv.get("ma_40w"), "ma_10m": lv.get("ma_10m"),
                         "ma_20m": lv.get("ma_20m"), "drawdown_52w_pct": dd})
     if not lf_rows:
@@ -964,6 +970,20 @@ POSITIONING_SERIES = (
     ("tic", "Total net TIC flows", "tic.flow_total", None))
 
 
+def count_level_display(value, key: str) -> Optional[str]:
+    """A count's level as the integer with its noun ("−964,293 contracts"), for a
+    series whose display carries a noun; None otherwise. B84: the CFTC block's
+    data held the raw latest alone, so the writer printed "−964,293" bare and the
+    retry's "copy its latest_level_display" named a field the block lacked."""
+    from altdata import derived, numeral_audit as na             # noqa: PLC0415
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    noun = na.display_noun(key, derived.level_units_of(key) or "")
+    if not noun:
+        return None
+    return (na.MINUS if value < 0 else "") + f"{abs(float(value)):,.0f} {noun}"
+
+
 def positioning_history(st, now: str) -> list[dict]:
     """Every positioning series the store holds, with its latest value and
     where that value sits in its own last two years: the z, its n and window, or
@@ -981,7 +1001,9 @@ def positioning_history(st, now: str) -> list[dict]:
             continue
         vals = [v for _, v in pts]
         z = derived.z_of(vals, vals[-1]) if len(vals) >= HISTORY_MIN else None
+        disp = count_level_display(vals[-1], key)
         out.append({"group": group, "series": label, "latest": vals[-1],
+                    **({"latest_level_display": disp} if disp else {}),
                     "as_of": pts[-1][0], "n": len(vals),
                     "z_two_years": None if z is None else round(z, 1),
                     "history": (f"z {z:+.1f} over two years (n={len(vals)})"

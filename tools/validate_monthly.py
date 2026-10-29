@@ -1069,6 +1069,22 @@ def group_h() -> None:
               "the audit holds 'volatility regime' to the regime's stored read and "
               "'volatility against its five-year history' (or 'realized "
               "volatility') to the other's -- each name its own value")
+        # B84: theme:sentiment, the 28 Oct dry run, withheld twice for
+        # "inflation is called rising, stored stable" -- the sentence is about
+        # inflation EXPECTATIONS, which did rise. The dimension's own claim still
+        # fails.
+        ims = {"inflation": {"kind": "dimension", "state": "stable",
+                             "vocabulary": ["falling", "stable", "rising"]}}
+        sent = ("That combination, depressed sentiment alongside rising inflation "
+                "expectations, sits awkwardly beside positioning data that shows "
+                "no retreat from risk.")
+        check(not nv.state_contradictions(sent, ims)
+              and nv.state_contradictions("Sentiment fell alongside rising "
+                                          "inflation.", ims)
+              and nv.state_contradictions("Inflation is rising.", ims),
+              "'rising inflation expectations' is not a claim about the inflation "
+              "dimension (theme:sentiment, 28 Oct); 'rising inflation' and "
+              "'inflation is rising' against a stored stable still fail")
         sysp = prose_mod.system_prompt("X", "y")
         check("open with the claim" in sysp and "implication for positioning" in sysp
               and "No headings, no bullet points" in sysp,
