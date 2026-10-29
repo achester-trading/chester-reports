@@ -1,0 +1,1025 @@
+{
+ "binding_pass": [
+  {
+   "case": "pillar:1 159.04 million",
+   "text": "Labor Market Vitality this month reads as a headline-soft complex: nonfarm payrolls rose +29,000 jobs to 159.04 million, a level that sits at the 100th percentile of its five-year range, while the unemployment rate (U-3) ticked up by +0.1 to 4.2, now at the 81st percentile.",
+   "block": {
+    "series": [
+     {
+      "series": "Nonfarm payrolls, total",
+      "latest_level_display": "159.04 million",
+      "change_display": "+29,000 jobs",
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Unemployment rate (U-3)",
+      "latest_pct": 4.2,
+      "change": 0.1,
+      "level_percentile_5y": 81
+     },
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "200.5 thousand",
+      "change_display": "−7,000 claims",
+      "level_percentile_5y": 1
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people",
+      "level_percentile_5y": 93
+     },
+     {
+      "series": "Job openings, total (JOLTS)",
+      "latest_level_display": "7.08 million",
+      "change_display": "−256,000 openings",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Hires level, total (JOLTS)",
+      "latest_level_display": "5.19 million",
+      "change_display": "+46,000 hires",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Quits rate (JOLTS)",
+      "latest_pct": 1.9,
+      "change": 0.0,
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Layoffs & discharges (JOLTS)",
+      "latest_level_display": "1.64 million",
+      "change_display": "−61,000 layoffs",
+      "level_percentile_5y": 41
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:1 7.08 / 5.19 million",
+   "text": "The internals support the latter reading: job openings fell by −256,000 openings to 7.08 million and hires rose by +46,000 hires to 5.19 million, both readings pinned at the 14th percentile, while the quits rate held flat at 1.9, also 14th percentile.",
+   "block": {
+    "series": [
+     {
+      "series": "Nonfarm payrolls, total",
+      "latest_level_display": "159.04 million",
+      "change_display": "+29,000 jobs",
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Unemployment rate (U-3)",
+      "latest_pct": 4.2,
+      "change": 0.1,
+      "level_percentile_5y": 81
+     },
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "200.5 thousand",
+      "change_display": "−7,000 claims",
+      "level_percentile_5y": 1
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people",
+      "level_percentile_5y": 93
+     },
+     {
+      "series": "Job openings, total (JOLTS)",
+      "latest_level_display": "7.08 million",
+      "change_display": "−256,000 openings",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Hires level, total (JOLTS)",
+      "latest_level_display": "5.19 million",
+      "change_display": "+46,000 hires",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Quits rate (JOLTS)",
+      "latest_pct": 1.9,
+      "change": 0.0,
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Layoffs & discharges (JOLTS)",
+      "latest_level_display": "1.64 million",
+      "change_display": "−61,000 layoffs",
+      "level_percentile_5y": 41
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:2 attempt 1 (10-year, 2-year)",
+   "text": "The proximate pressure on housing is unmistakable: the 30-year mortgage rate climbed +37 bp to 7.03%, now at the 97th percentile, alongside broad-based increases across the Treasury curve — the 10-year yield up +54 bp to 5.29% (98th percentile), the 2-year up +54 bp to 4.88% (83rd percentile).",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "Building permits, total",
+      "latest_level_display": "1.4 million",
+      "change_display": "−5,000 permits",
+      "level_percentile_5y": 10
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:2 attempt 2 (respectively)",
+   "text": "The proximate pressure on housing is unmistakable: the 30-year mortgage rate climbed +37 bp to 7.03%, now at the 97th percentile of its five-year range, alongside broad-based increases across the Treasury curve, with the 10-year yield and the 2-year yield each up +54 bp, to 5.29% (98th percentile) and 4.88% (83rd percentile) respectively, and the 30-year yield up +39 bp to 5.64% (98th percentile).",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "Building permits, total",
+      "latest_level_display": "1.4 million",
+      "change_display": "−5,000 permits",
+      "level_percentile_5y": 10
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:2 1.4 million",
+   "text": "Building permits slipped by −5,000 permits to 1.4 million (10th percentile), while existing home sales actually rose by +60,000 homes to 3.99 million.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "Building permits, total",
+      "latest_level_display": "1.4 million",
+      "change_display": "−5,000 permits",
+      "level_percentile_5y": 10
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:3 NFCI",
+   "text": "M2 money stock climbed +$113bn to $23.41tn, at the 100th percentile of its five-year range, while the Chicago Fed's National Financial Conditions Index eased −5.65% to −0.52, the 34th percentile.",
+   "block": {
+    "series": [
+     {
+      "series": "M2 money stock",
+      "latest_level_display": "$23.41tn",
+      "change_display": "+$113bn",
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Chicago Fed NFCI",
+      "latest_level": -0.52,
+      "change_pct": -5.65,
+      "level_percentile_5y": 34
+     },
+     {
+      "series": "NFCI leverage subindex",
+      "latest_level": 0.17,
+      "change_pct": 31.58,
+      "level_percentile_5y": 89
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:4 +0.88 / +0.03",
+   "text": "The stickier cuts of inflation firmed too: flexible CPI on a one-month annualized basis rose +0.88 to the 92nd percentile, while sticky CPI and sticky core CPI, though still only at the 32nd and 39th percentiles, each ticked up +0.03.",
+   "block": {
+    "series": [
+     {
+      "series": "CPI, all items",
+      "latest_level": 330.1,
+      "change_pct": 0.65,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core CPI (ex food/energy)",
+      "latest_level": 331.2,
+      "change_pct": 0.33,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "PCE price index",
+      "latest_level": 128.1,
+      "change_pct": 0.31,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core PCE",
+      "latest_level": 130.46,
+      "change_pct": 0.25,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Sticky CPI, 1-mo annualized",
+      "latest_level": 3.1,
+      "change": 0.03,
+      "level_percentile_5y": 32
+     },
+     {
+      "series": "Sticky Core CPI, 1-mo ann",
+      "latest_level": 3.3,
+      "change": 0.03,
+      "level_percentile_5y": 39
+     },
+     {
+      "series": "Flexible CPI, 1-mo ann",
+      "latest_level": 6.2,
+      "change": 0.88,
+      "level_percentile_5y": 92
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:4 +0.65% (respectively)",
+   "text": "Core CPI rose +0.33% to the 100th percentile, and the broader CPI and PCE price index each pushed further into that same 100th-percentile territory, up +0.65% and +0.31% respectively.",
+   "block": {
+    "series": [
+     {
+      "series": "CPI, all items",
+      "latest_level": 330.1,
+      "change_pct": 0.65,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core CPI (ex food/energy)",
+      "latest_level": 331.2,
+      "change_pct": 0.33,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "PCE price index",
+      "latest_level": 128.1,
+      "change_pct": 0.31,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core PCE",
+      "latest_level": 130.46,
+      "change_pct": 0.25,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Sticky CPI, 1-mo annualized",
+      "latest_level": 3.1,
+      "change": 0.03,
+      "level_percentile_5y": 32
+     },
+     {
+      "series": "Sticky Core CPI, 1-mo ann",
+      "latest_level": 3.3,
+      "change": 0.03,
+      "level_percentile_5y": 39
+     },
+     {
+      "series": "Flexible CPI, 1-mo ann",
+      "latest_level": 6.2,
+      "change": 0.88,
+      "level_percentile_5y": 92
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:7 euro / yen / yuan",
+   "text": "In September the Broad Dollar Index (DTWEXBGS, FRB) rose +2.03% to a level of 120.97, sitting at the 61st percentile of its five-year range, while the dollar strengthened against each major counterpart: the euro fell −2.34% to a level of 1.13 (64th percentile), the yen fell −1.56% to a level of 157.25 and now sits at the 83rd percentile of its own five-year range, and the yuan was comparatively steady, down −0.23% to a level of 6.7 but still only at the 11th percentile of its own five-year range.",
+   "block": {
+    "series": [
+     {
+      "series": "Broad Dollar Index (DTWEXBGS, FRB)",
+      "latest_level": 120.97,
+      "change_pct": 2.03,
+      "level_percentile_5y": 61
+     },
+     {
+      "series": "USD/EUR exchange rate",
+      "latest_level": 1.13,
+      "change_pct": -2.34,
+      "level_percentile_5y": 64
+     },
+     {
+      "series": "JPY/USD exchange rate",
+      "latest_level": 157.25,
+      "change_pct": -1.56,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "CNY/USD exchange rate",
+      "latest_level": 6.7,
+      "change_pct": -0.23,
+      "level_percentile_5y": 11
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:liquidity $5.78tn / reserves",
+   "text": "Net liquidity (the Fed balance sheet less reverse repo and Treasury cash) ended the month at $5.78tn, essentially flat at +0.06%, while the Fed balance sheet itself added +$12.12bn to close at $6.74tn and bank reserves rose +$23.15bn to $2.95tn — though reserves still sit at only the 11th percentile of their five-year range.",
+   "block": {
+    "series": [
+     {
+      "series": "Net liquidity (Fed balance sheet less reverse repo and Treasury cash)",
+      "latest_level_display": "$5.78tn",
+      "change_pct": 0.06,
+      "level_percentile_5y": 16
+     },
+     {
+      "series": "Fed balance sheet",
+      "latest_level_display": "$6.74tn",
+      "change_display": "+$12.12bn",
+      "level_percentile_5y": 31
+     },
+     {
+      "series": "Bank reserves at the Fed",
+      "latest_level_display": "$2.95tn",
+      "change_display": "+$23.15bn",
+      "level_percentile_5y": 11
+     },
+     {
+      "series": "Dollar-yen",
+      "latest_level": 157.25,
+      "change_pct": -1.56,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Japanese government bond yield",
+      "latest_pct": 3.06,
+      "change_bps": 11.4,
+      "level_percentile_5y": 96
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:liquidity yen (attempt 1)",
+   "text": "The dollar weakened against the yen by −1.56% to 157.25, even as the 10-year Japanese government bond yield rose +11.4 bp to 3.06%, a level at the 96th percentile of its five-year range.",
+   "block": {
+    "series": [
+     {
+      "series": "Net liquidity (Fed balance sheet less reverse repo and Treasury cash)",
+      "latest_level_display": "$5.78tn",
+      "change_pct": 0.06,
+      "level_percentile_5y": 16
+     },
+     {
+      "series": "Fed balance sheet",
+      "latest_level_display": "$6.74tn",
+      "change_display": "+$12.12bn",
+      "level_percentile_5y": 31
+     },
+     {
+      "series": "Bank reserves at the Fed",
+      "latest_level_display": "$2.95tn",
+      "change_display": "+$23.15bn",
+      "level_percentile_5y": 11
+     },
+     {
+      "series": "Dollar-yen",
+      "latest_level": 157.25,
+      "change_pct": -1.56,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Japanese government bond yield",
+      "latest_pct": 3.06,
+      "change_bps": 11.4,
+      "level_percentile_5y": 96
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:fiscal 30-year / term premium",
+   "text": "The month's central tension sits in the bond market, not the currency: the 10-year Treasury yield rose +54 bp to 5.29%, a level now at the 98th percentile of the past five years, while the 30-year moved +39 bp to 5.64%, also at the 98th percentile, and the term premium itself added +12.6 bp to 0.89%, its 74th percentile.",
+   "block": {
+    "series": [
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year term premium (NY Fed ACM model)",
+      "latest_pct": 0.89,
+      "change_bps": 12.6,
+      "level_percentile_5y": 74
+     },
+     {
+      "series": "10-year breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 72
+     },
+     {
+      "series": "Net foreign purchases of US securities (TIC)",
+      "latest_level_display": "−$21.56bn",
+      "change_pct": -68.53,
+      "level_percentile_5y": 48
+     },
+     {
+      "series": "Foreign official holdings of Treasuries",
+      "latest_level_display": "$3.76tn",
+      "change_pct": -0.46,
+      "level_percentile_5y": 19
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:fiscal TIC",
+   "text": "On the demand side, net foreign purchases of U.S. securities fell −68.53% to −$21.56bn as of August, sitting at the 48th percentile, and foreign official holdings of Treasuries slipped −0.46% to $3.76tn, a 19th-percentile level.",
+   "block": {
+    "series": [
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year term premium (NY Fed ACM model)",
+      "latest_pct": 0.89,
+      "change_bps": 12.6,
+      "level_percentile_5y": 74
+     },
+     {
+      "series": "10-year breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 72
+     },
+     {
+      "series": "Net foreign purchases of US securities (TIC)",
+      "latest_level_display": "−$21.56bn",
+      "change_pct": -68.53,
+      "level_percentile_5y": 48
+     },
+     {
+      "series": "Foreign official holdings of Treasuries",
+      "latest_level_display": "$3.76tn",
+      "change_pct": -0.46,
+      "level_percentile_5y": 19
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:geopolitics yuan fixing",
+   "text": "The dollar's two faces also diverged, while the yuan eased on both measures — the daily fixing down −0.7% to a level of 6.74 (13th percentile) and dollar-yuan down −0.23% to a level of 6.7 (11th percentile), the latter two near the bottom of their five-year ranges.",
+   "block": {
+    "series": [
+     {
+      "series": "Yuan daily fixing",
+      "latest_level": 6.74,
+      "change_pct": -0.7,
+      "level_percentile_5y": 13
+     },
+     {
+      "series": "Dollar-yuan",
+      "latest_level": 6.7,
+      "change_pct": -0.23,
+      "level_percentile_5y": 11
+     }
+    ]
+   }
+  },
+  {
+   "case": "stack:slow PRL's / ZEC's",
+   "text": "PRL's fees rose +272.0% on the prior 30 days, the sharpest swing this month, while ZEC's fees fell −44.3% over the same window even as Zcash's shielded share of supply slipped −0.01 raw.",
+   "block": {
+    "rows": [
+     {
+      "label": "PRL fees, 30 days",
+      "change_pct": 272.0
+     },
+     {
+      "label": "ZEC fees, 30 days",
+      "change_pct": -44.3
+     },
+     {
+      "label": "Zcash's shielded share of supply",
+      "change": -0.01
+     },
+     {
+      "label": "PRL",
+      "level": 0.42
+     }
+    ]
+   }
+  },
+  {
+   "case": "summary:slow PRL fees",
+   "text": "Elsewhere, PRL fees over 30 days rose +272.0% on the prior 30 days, a pace of activity moving in the opposite direction.",
+   "block": {
+    "rows": [
+     {
+      "label": "PRL fees, 30 days",
+      "change_pct": 272.0
+     },
+     {
+      "label": "ZEC fees, 30 days",
+      "change_pct": -44.3
+     },
+     {
+      "label": "Zcash's shielded share of supply",
+      "change": -0.01
+     },
+     {
+      "label": "PRL",
+      "level": 0.42
+     }
+    ]
+   }
+  },
+  {
+   "case": "block:plumbing:liquidity $5.80tn",
+   "text": "Net liquidity fell −$343bn to $5.80tn as of 2026-10-21, even as bank reserves rose +$38bn to $2.96tn over the same window.",
+   "block": {
+    "rows": [
+     {
+      "label": "Net liquidity (Fed balance sheet less TGA and RRP)",
+      "level_display": "$5.80tn",
+      "change_display": "−$343bn"
+     },
+     {
+      "label": "Bank reserves (H.4.1)",
+      "as_of": "2026-10-21",
+      "level_display": "$2.96tn",
+      "change_display": "+$38bn"
+     }
+    ]
+   }
+  },
+  {
+   "case": "block:positioning:sectors −3.27%",
+   "text": "The month favored defensive positioning: small caps trailed large at −4.99% (IWM/SPY) and discretionary spending lagged staples at −3.27% (XLY/XLP), both pointing the same direction.",
+   "block": {
+    "rows": [
+     {
+      "label": "IWM/SPY",
+      "change_pct": -4.99
+     },
+     {
+      "label": "XLY/XLP",
+      "change_pct": -3.27
+     }
+    ]
+   }
+  },
+  {
+   "case": "summary:plumbing +6",
+   "text": "SOFR less IORB moved +6 bp as of October 27, holding on the tight side of zero through the month.",
+   "block": {
+    "rows": [
+     {
+      "label": "SOFR less IORB",
+      "level": 4
+     },
+     {
+      "label": "SOFR less IORB (funding pressure when above zero)",
+      "change_bps": 6,
+      "as_of": "2026-10-27"
+     }
+    ]
+   }
+  }
+ ],
+ "binding_fail": [
+  {
+   "case": "(a) the derived name binds: payrolls given the openings figure",
+   "text": "Nonfarm payrolls rose to 7.08 million.",
+   "block": {
+    "series": [
+     {
+      "series": "Nonfarm payrolls, total",
+      "latest_level_display": "159.04 million",
+      "change_display": "+29,000 jobs",
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Unemployment rate (U-3)",
+      "latest_pct": 4.2,
+      "change": 0.1,
+      "level_percentile_5y": 81
+     },
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "200.5 thousand",
+      "change_display": "−7,000 claims",
+      "level_percentile_5y": 1
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people",
+      "level_percentile_5y": 93
+     },
+     {
+      "series": "Job openings, total (JOLTS)",
+      "latest_level_display": "7.08 million",
+      "change_display": "−256,000 openings",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Hires level, total (JOLTS)",
+      "latest_level_display": "5.19 million",
+      "change_display": "+46,000 hires",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Quits rate (JOLTS)",
+      "latest_pct": 1.9,
+      "change": 0.0,
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Layoffs & discharges (JOLTS)",
+      "latest_level_display": "1.64 million",
+      "change_display": "−61,000 layoffs",
+      "level_percentile_5y": 41
+     }
+    ]
+   }
+  },
+  {
+   "case": "(a) the 10-year yield given the 2-year's level",
+   "text": "The 10-year yield rose +54 bp to 4.88%.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "Building permits, total",
+      "latest_level_display": "1.4 million",
+      "change_display": "−5,000 permits",
+      "level_percentile_5y": 10
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     }
+    ]
+   }
+  },
+  {
+   "case": "(a) the euro given the yen's level",
+   "text": "The euro fell −1.56% to 157.25.",
+   "block": {
+    "series": [
+     {
+      "series": "Broad Dollar Index (DTWEXBGS, FRB)",
+      "latest_level": 120.97,
+      "change_pct": 2.03,
+      "level_percentile_5y": 61
+     },
+     {
+      "series": "USD/EUR exchange rate",
+      "latest_level": 1.13,
+      "change_pct": -2.34,
+      "level_percentile_5y": 64
+     },
+     {
+      "series": "JPY/USD exchange rate",
+      "latest_level": 157.25,
+      "change_pct": -1.56,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "CNY/USD exchange rate",
+      "latest_level": 6.7,
+      "change_pct": -0.23,
+      "level_percentile_5y": 11
+     }
+    ]
+   }
+  },
+  {
+   "case": "(c) own clause: hires given the openings figure",
+   "text": "Job openings fell, while hires rose to 7.08 million.",
+   "block": {
+    "series": [
+     {
+      "series": "Nonfarm payrolls, total",
+      "latest_level_display": "159.04 million",
+      "change_display": "+29,000 jobs",
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Unemployment rate (U-3)",
+      "latest_pct": 4.2,
+      "change": 0.1,
+      "level_percentile_5y": 81
+     },
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "200.5 thousand",
+      "change_display": "−7,000 claims",
+      "level_percentile_5y": 1
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people",
+      "level_percentile_5y": 93
+     },
+     {
+      "series": "Job openings, total (JOLTS)",
+      "latest_level_display": "7.08 million",
+      "change_display": "−256,000 openings",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Hires level, total (JOLTS)",
+      "latest_level_display": "5.19 million",
+      "change_display": "+46,000 hires",
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Quits rate (JOLTS)",
+      "latest_pct": 1.9,
+      "change": 0.0,
+      "level_percentile_5y": 14
+     },
+     {
+      "series": "Layoffs & discharges (JOLTS)",
+      "latest_level_display": "1.64 million",
+      "change_display": "−61,000 layoffs",
+      "level_percentile_5y": 41
+     }
+    ]
+   }
+  },
+  {
+   "case": "(c) own tag: XLY/XLP given IWM/SPY's figure",
+   "text": "Discretionary lagged staples at −4.99% (XLY/XLP).",
+   "block": {
+    "rows": [
+     {
+      "label": "IWM/SPY",
+      "change_pct": -4.99
+     },
+     {
+      "label": "XLY/XLP",
+      "change_pct": -3.27
+     }
+    ]
+   }
+  },
+  {
+   "case": "(c) the subject outside the bracket: net liquidity given reserves' level",
+   "text": "Net liquidity (the Fed balance sheet less reverse repo and Treasury cash) ended the month at $2.95tn.",
+   "block": {
+    "series": [
+     {
+      "series": "Net liquidity (Fed balance sheet less reverse repo and Treasury cash)",
+      "latest_level_display": "$5.78tn",
+      "change_pct": 0.06,
+      "level_percentile_5y": 16
+     },
+     {
+      "series": "Fed balance sheet",
+      "latest_level_display": "$6.74tn",
+      "change_display": "+$12.12bn",
+      "level_percentile_5y": 31
+     },
+     {
+      "series": "Bank reserves at the Fed",
+      "latest_level_display": "$2.95tn",
+      "change_display": "+$23.15bn",
+      "level_percentile_5y": 11
+     },
+     {
+      "series": "Dollar-yen",
+      "latest_level": 157.25,
+      "change_pct": -1.56,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Japanese government bond yield",
+      "latest_pct": 3.06,
+      "change_bps": 11.4,
+      "level_percentile_5y": 96
+     }
+    ]
+   }
+  },
+  {
+   "case": "(a) acronym: the NFCI given its leverage subindex's change",
+   "text": "The Chicago Fed's National Financial Conditions Index rose +31.58%.",
+   "block": {
+    "series": [
+     {
+      "series": "M2 money stock",
+      "latest_level_display": "$23.41tn",
+      "change_display": "+$113bn",
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Chicago Fed NFCI",
+      "latest_level": -0.52,
+      "change_pct": -5.65,
+      "level_percentile_5y": 34
+     },
+     {
+      "series": "NFCI leverage subindex",
+      "latest_level": 0.17,
+      "change_pct": 31.58,
+      "level_percentile_5y": 89
+     }
+    ]
+   }
+  }
+ ],
+ "role_payload": {
+  "live_weights": [
+   {
+    "claim": "S&P 500 above its election-day level",
+    "probability": 0.92
+   },
+   {
+    "claim": "S&P 500 above its 1 October level",
+    "probability": 0.83
+   },
+   {
+    "claim": "Book B breakout",
+    "probability": 0.5
+   },
+   {
+    "claim": "SPY same side of its 20-day average",
+    "probability": 0.9
+   },
+   {
+    "claim": "SPY lowest weekly close",
+    "probability": 0.65
+   },
+   {
+    "claim": "SPY lowest weekly close, low",
+    "probability": 0.34
+   }
+  ],
+  "long_run": [
+   {
+    "name": "Bitcoin fee, one-hour tier (sat/vB)",
+    "long_run_average": 1
+   },
+   {
+    "name": "S&P 500-10-year yield, 60 days",
+    "long_run_average_window": 0.5
+   },
+   {
+    "name": "SPY",
+    "ma_40w": 721.82
+   }
+  ],
+  "spy": {
+   "average": 20
+  }
+ },
+ "role_pass": [
+  {
+   "case": "our_read: the day of '1 October 2026'",
+   "text": "The highest-conviction weight on the ledger is 0.92 on the S&P 500 (yfinance.mkt_gspc) closing above its 3 November 2026 level by 3 November 2027, the midterm-cycle primary claim, with a secondary midterm read at 0.83 for the index closing above its 1 October 2026 level by 31 March 2027."
+  },
+  {
+   "case": "our_read: a 20-day window and the 0.5 weight",
+   "text": "The 0.9 weight on SPY closing the next session on the same side of its 20-day average, above it at 770.9, sits well above the 0.65 and 0.5 weights attached to the same lowest-weekly-close claim at 765.37, and above the lowest version of that claim at 0.34 — three weights on the same level."
+  }
+ ],
+ "role_fail": [
+  {
+   "case": "a real average called a close, beside a date",
+   "text": "SPY closed at 721.82 on 1 October 2026."
+  },
+  {
+   "case": "a bare 0.5 after 'closed', not called a weight",
+   "text": "The S&P 500-10-year yield gap closed the month at 0.5."
+  }
+ ]
+}

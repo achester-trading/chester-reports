@@ -132,5 +132,5 @@ register_event_rows:
     significance: 4
     time: "all day; results after the close"
     odds: [house_control, senate_control]
-    ledger: docs/ledgers/midterm-base-rate-2026-10-26.md
-    base_rate: "Base rate, the 19 midterm years since 1950 (ledger 2026-10-26): the year's drawdown, median −16.6% (mean −17.5%), against −9.9% (mean −12.4%) in the 57 other years; the year's low came before election day in 17 of 19, 10 of them in August to October; from election day the S&P 500 was higher 12 months later in 19 of 19, median +14.5%, against 39 of 56 other years from the same day; n = 19."
+    ledger: docs/ledgers/midterm-base-rate-2026-10-28.md
+    base_rate: "Base rate, the 19 midterm years since 1950 (ledger 2026-10-28): the year's drawdown, median −16.6% (mean −17.5%), against −9.9% (mean −12.4%) in the 57 other years; the year's low came before election day in 17 of 19, 10 of them in August to October; from election day the S&P 500 was higher 12 months later in 19 of 19, median +14.5%, against 39 of 56 other years from the same day; n = 19."
