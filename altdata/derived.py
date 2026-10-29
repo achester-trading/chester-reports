@@ -394,13 +394,25 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
 #               writer no longer requests it and the readers print the gap
 #   gap         a listed gap: not written, with `gap_reason`
 #   while_held  written only while a position is held; a flat book is not stale
+# A declaration may carry `declared_until` (B85, 29 Oct 2026): a gap that is only
+# history still accruing -- a percentile that needs 60 days, a z that needs 90 --
+# is declared until the date its first row is due, and lapses then, so a key that
+# still has no row is counted stale again rather than hidden for good.
 DECLARED_STATUSES = ("superseded", "refused", "gap", "while_held")
 
 
-def declared_status(e: Optional[dict]) -> Optional[str]:
-    """The key's declared status, if it has one of DECLARED_STATUSES."""
+def declared_status(e: Optional[dict], today: Optional[str] = None) -> Optional[str]:
+    """The key's declared status, if it has one of DECLARED_STATUSES and its
+    `declared_until`, when it carries one, is still ahead of `today` (ET)."""
     s = (e or {}).get("status_extra") or (e or {}).get("status")
-    return s if s in DECLARED_STATUSES else None
+    if s not in DECLARED_STATUSES:
+        return None
+    until = (e or {}).get("declared_until")
+    if until:
+        day = (today or session.session_date())[:10]
+        if day >= str(until)[:10]:
+            return None
+    return s
 
 
 def _leaf_field(reg: dict, name: str, field: str) -> Any:

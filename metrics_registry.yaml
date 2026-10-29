@@ -18460,6 +18460,19 @@ member_overrides:
   farside.eth_total: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
   farside.btc_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
   farside.eth_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  # B85 (29 Oct 2026): the keys the heartbeat named "never written". S-2 is
+  # computed from farside.*_total alone (crypto_derived.s2_rows), so it is refused
+  # with its source; the blocks already print refusals.text("farside").
+  calc.etf_streak: {status_extra: refused, gap_reason: "computed from farside.*_total only; farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  calc.etf_5d_pct: {status_extra: refused, gap_reason: "computed from farside.*_total only; farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  calc.flag_etf_extreme: {status_extra: refused, gap_reason: "computed from farside.*_total only; farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  # History still accruing: a gap declared until the first row is due, then
+  # lapsing (derived.declared_status), so a key still unwritten after it is stale.
+  calc.dvol_pct_full: {status_extra: gap, declared_until: 2026-12-02, gap_reason: "accruing: 60 days of deribit.dvol_* needed (crypto_derived.s4_rows); the daily pull keeps 14 days back from its first run of 17 Oct 2026, so the first row is due about 1 Dec 2026 -- at once after the operator's `python -m altdata.sources.deribit backfill`"}
+  calc.dvol_pct_5y: {status_extra: gap, declared_until: 2026-12-02, gap_reason: "accruing: written with calc.dvol_pct_full, on 60 days of deribit.dvol_* (crypto_derived.s4_rows); due about 1 Dec 2026, or at once after the operator's `python -m altdata.sources.deribit backfill`"}
+  calc.froth_z: {status_extra: gap, declared_until: 2027-01-15, gap_reason: "accruing: 90 days of GeckoTerminal's own rows needed (config s5.min_store_days; crypto_derived.s5_rows), and the sample has no backfill; from the first sample of 17 Oct 2026 the first row is due 14 Jan 2027"}
+  calc.flag_froth: {status_extra: gap, declared_until: 2027-01-15, gap_reason: "accruing: written with calc.froth_z for both of a network's measures (crypto_derived.s5_rows); due 14 Jan 2027"}
+  calc.flag_leverage_crowded: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
   # Bitcoin's difficulty is set every 2,016 blocks, about 14 days: one row an
   # adjustment, not a day. Weekly cadence plus the btc_difficulty lag.
   mempool.difficulty: {freq: weekly, native_horizon: weekly, information_half_life: until_next_release}

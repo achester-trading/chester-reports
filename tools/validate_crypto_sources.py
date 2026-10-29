@@ -32,6 +32,10 @@ live store read, no model called.
                 2026): a fixture response parses; with no key nothing is fetched;
                 the guard refuses a 9th request in an hour and a 16th in a day;
                 the terms quoted; no gate fetches
+  P B85         the eight derived keys the box's heartbeat named "never written"
+                (29 Oct 2026): S-2's three refused with Farside; DVOL's
+                percentiles, the froth z and flag and the leverage flag a gap
+                declared until their first row is due, lapsing on that date
 """
 
 from __future__ import annotations
@@ -702,6 +706,7 @@ def main() -> int:
 
     part2(cfg)
     treasury_checks(cfg)
+    b85_checks()
     check(not _SOCKETS, "no connection was attempted")
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
@@ -1052,6 +1057,57 @@ def treasury_checks(cfg: dict) -> None:
     ew = feeds.EXTERNAL_WRITERS
     check("treasury" in ew and ew.index("treasury") < ew.index("crypto_derived"),
           "the treasury writer is on the roster, before the derived writer (mNAV)")
+
+
+# ===========================================================================
+# P. B85 (29 Oct 2026): the eight keys the heartbeat named "never written"
+# ===========================================================================
+B85_REFUSED = ("calc.etf_streak", "calc.etf_5d_pct", "calc.flag_etf_extreme")
+B85_ACCRUING = {"calc.dvol_pct_full": "2026-12-02", "calc.dvol_pct_5y": "2026-12-02",
+                "calc.froth_z": "2027-01-15", "calc.flag_froth": "2027-01-15",
+                "calc.flag_leverage_crowded": "2026-12-16"}
+
+
+def b85_checks() -> None:
+    from altdata import derived
+    from altdata.sources import _crypto as C, crypto_derived as D
+    head("P. B85: EVERY DERIVED KEY THAT CANNOT BE WRITTEN SAYS WHY")
+    today = "2026-10-29"
+    ent = {k: derived.registry_entry(k) for k in (*B85_REFUSED, *B85_ACCRUING)}
+    check(all(derived.declared_status(ent[k], today) == "refused"
+              and "farside" in ent[k].get("gap_reason", "")
+              and not ent[k].get("declared_until") for k in B85_REFUSED)
+          and all(derived.declared_status(ent[k], "2030-01-01") == "refused"
+                  for k in B85_REFUSED),
+          "S-2's three keys are refused with Farside, their only input, and never "
+          "lapse")
+    check(all(derived.declared_status(ent[k], today) == "gap"
+              and str(ent[k].get("declared_until"))[:10] == u
+              and "accruing" in ent[k].get("gap_reason", "")
+              for k, u in B85_ACCRUING.items()),
+          "the five history-bound keys are a gap declared until their first row "
+          "is due, each with its reason")
+    check(all(derived.declared_status(ent[k], u) is None
+              and derived.declared_status(
+                  ent[k], (dt.date.fromisoformat(u) - dt.timedelta(days=1)).isoformat())
+              == "gap" for k, u in B85_ACCRUING.items()),
+          "the declaration lapses on its date: a key still unwritten then is "
+          "counted stale again, never hidden for good")
+    check(derived.declared_status({"status_extra": "refused"}, "2030-01-01") == "refused"
+          and derived.declared_status({"status_extra": "gap",
+                                       "declared_until": "2026-11-01"},
+                                      "2026-11-01") is None
+          and derived.declared_status({"status_extra": "live"}) is None,
+          "a declaration with no date is unchanged; a dated one lapses on the day")
+    db = str(TD / "b85.sqlite")
+    with store(db) as st:
+        st.write_many([C.row("deribit.dvol_btc", "2026-10-20", 45.0,
+                             "2026-10-21T00:00:00+00:00", "deribit")])
+        s2 = D.s2_rows(st, None, {}, NOW)
+        s4 = D.s4_rows(st, None, {}, NOW)
+    check(s2 == [] and not any(r["registry_key"].startswith("calc.dvol_pct") for r in s4),
+          "with Farside refused nothing is written for S-2, and DVOL's percentiles "
+          "wait for 60 stored days (the declared reasons, read from the code)")
 
 
 if __name__ == "__main__":
