@@ -398,9 +398,10 @@ def group_f() -> None:
 
     def allow(k):
         return derived.staleness_allowance_of(res[k], k)[0]
-    check(allow("calc.surprise_vs_naive.core_pce") == allow("calc.naive_expectation.core_pce") == 54,
-          "calc.surprise_vs_naive.core_pce waits 54 sessions, as the naive expectation does")
-    check(allow("calc.yoy_core_pce") == 54 and allow("calc.r_real_10y_cpi") == 54
+    # 32 + 35: fred_monthly_release's lag as ruled by D42.1 (28 Oct 2026).
+    check(allow("calc.surprise_vs_naive.core_pce") == allow("calc.naive_expectation.core_pce") == 67,
+          "calc.surprise_vs_naive.core_pce waits 67 sessions, as the naive expectation does")
+    check(allow("calc.yoy_core_pce") == 67 and allow("calc.r_real_10y_cpi") == 67
           and allow("calc.surprise_vs_naive.dxy") == 8,
           "calc.yoy_*, calc.r_real_* inherit the monthly release; the daily FX surprise H.10's lag")
     nat = [k for k in res if k.startswith("corr.") and "natgas" in k]
@@ -436,8 +437,8 @@ def group_g() -> None:
     check(ok, "EIA's rig counts and the Cleveland Fed rules carry their families, each "
               "quoting the publisher's calendar read on 24 Oct 2026")
     check(derived.staleness_allowance_of(res["eia.rigs_total"], "eia.rigs_total")[0] == 32 + 23
-          and derived.staleness_allowance_of(res["clevfed.rules_start"], "clevfed.rules_start")[0] == 95 + 7,
-          "the rig counts: monthly plus 23; the rules: quarterly plus 7")
+          and derived.staleness_allowance_of(res["clevfed.rules_start"], "clevfed.rules_start")[0] == 95 + 27,
+          "the rig counts: monthly plus 23; the rules: quarterly plus 27 (D42.3)")
     none = [k for k in ("french.hml", "french.ind49_ret_vw", "french.ind49_beme",
                         "shiller.sp_earnings", "shiller.sp_dividend")
             if derived.publication_lag(res[k], k)[1] is not None]

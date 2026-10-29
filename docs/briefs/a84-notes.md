@@ -158,7 +158,7 @@ with the publishers:
 - JOLTS on 3 Nov clears the four JOLTS keys and theirs;
 - the Cleveland Fed's update on 20 Nov clears clevfed.rules_*.
 
-## Needs you
+## Needs you (ruled 28 Oct 2026 as D42; applied by A86, below)
 
 1. **fred_monthly_release.** BEA's and BLS's 2026 calendars put D at 21 (PCE) and
    24 (JOLTS) sessions, so the file's arithmetic gives lag 31 to 34, 35 with
@@ -200,3 +200,112 @@ with the publishers:
 ## CI
 
 CI queued, run 40788050524 (Gates, on 757cfc21), read once on 28 Oct 2026; not waited on.
+
+## A86: the rulings applied (D42, 28 Oct 2026, 19:45 ET)
+
+Paste committed as `docs/pastes/A86.md`, on this branch at 803a0b96.
+
+| Family | Ruling | Lag | max_lag | Allowance |
+|---|---|---|---|---|
+| fred_monthly_release | D42.1 | 22 -> 35 | 25 -> 36 | 54 -> 67 |
+| em_monthly_itg (new) | D42.2 | 53 | 58 | 85 |
+| em_monthly | D42.2 | 45, unchanged | 50, unchanged | 77 |
+| clevfed_rules | D42.3 | 7 -> 27 | 9 -> 30 | 102 -> 122 |
+| em_quarterly | (A84, outcome a) | 53 | 70 | 148 |
+
+**How each was applied:**
+
+- **D42.1.** One family. The reason states the arithmetic: JOLTS's D = 24
+  (3 Nov), plus 10, plus one session's slack = 35, with BEA's 29 Oct and BLS's
+  29 Sep dates cited. It also says that this is the publishers' delay, not a
+  number chosen to clear keys.
+- **D42.2, the inheritance check.** The em.lens.reserves_import_months.* entries
+  declare no `inputs` (the resolved registry shows none), so the inheritance
+  rule cannot carry the imports' lag to them. The new family therefore matches
+  `em.itg.*` and `em.lens.reserves_import_months.*` explicitly: 11 + 11 = 22
+  keys. It sits before em_monthly, because the first match wins. em_monthly keeps
+  the other 56 keys (BIS policy rates, IMF CPI, IMF reserves and their lenses).
+- **D42.3.** The writer's dating is unchanged. The reason cites the page's
+  schedule (read 28 Oct) and the 6/1/2026 row date, against which the newest is
+  120 sessions old before the 20 Nov update.
+
+### D42.4: genuinely stale, publisher delays, no change (for Audit #5's list)
+
+| Key(s) | Newest observation | Publisher | Family, allowance | Age on 28 Oct |
+|---|---|---|---|---|
+| em.ifs.reserves_usd.chn | 2026-06-30 | IMF IL (peers at Aug-Sep 2026) | em_monthly, 77 | 84 |
+| em.cpi.yoy.are | 2025-12-31 | IMF CPI (the UAE series has stopped) | em_monthly, 77 | 207 |
+| em.qeds.ext_debt_usd.chn, em.qeds.st_debt_usd.chn | 2025-12-31 | World Bank QEDS (missed 2026Q1's two rounds and 2026Q2's first) | em_quarterly, 148 | 207 |
+| em.lens.ext_debt_gdp.chn, em.lens.reserves_st_debt.chn | 2025-12-31 | built on China's QEDS | em_quarterly, 148 | 207 |
+
+### Which keys stop being stale, and the box count
+
+**The laptop store cannot show it.** It holds no em.* or clevfed.* rows, and its
+FRED rows end in May. So the keys are counted from the box's own listing of
+28 Oct, and the registry's resolved allowances under this branch.
+
+**Under this branch's lags, on 29 Oct (age 85 for a month-end key at 30 Jun, 63
+for a first-day key at 1 Aug):**
+
+- **The seven named FRED keys.** fred.pce, job_openings, hires_total,
+  quits_rate, layoffs, saving_rate and real_disp_income (63 against 67), and the
+  11 calc.* keys that declare them as inputs:
+  - calc.naive_expectation.{pce, job_openings, hires_total, quits_rate, layoffs};
+  - calc.surprise_vs_naive of the same five;
+  - calc.yoy_pce.
+
+  That is 18 keys. Any other of the box's 27 stale fred.* keys that is monthly
+  and between 55 and 67 sessions old clears too. The box's listing named only
+  these seven, so the upper bound is uncertain.
+- **The imports leg.** em.itg.imports_usd.{idn, mex, mys, pol, tha} and their
+  em.lens.reserves_import_months.* (85 against 85, fresh on 29 Oct only): 10
+  keys, 11 if China's lens is dated June.
+  - **Caution:** these turn stale again on 30 Oct (86 against 85) unless the IMF
+    posts July for those five.
+- **The Cleveland Fed.** clevfed.rules_* (105 against 122): 4 keys.
+
+**Estimates:**
+
+- **Cleared under the branch:** 32 to 33 known keys, up to about 45 if the other
+  fred.* and calc.* keys on the box's list are monthly releases in the same
+  window.
+- **Still stale:** the six D42.4 keys, and everything not in these four
+  families.
+
+**The box count, by scenario:**
+
+- **What the box actually runs tomorrow (main's lags, this branch is
+  branch-only).** After tonight's evening note and tomorrow's 16:10 run:
+  **134 to 140**. That is 138 plus or minus the keys aging across their
+  allowance by one session.
+- **The 29 Oct PCE release, counted separately, on main.** If the 16:10 pull
+  stores September's PCE, it clears fred.pce, saving_rate and real_disp_income
+  and calc.naive_expectation.pce, calc.surprise_vs_naive.pce and calc.yoy_pce:
+  6 keys, so **128 to 134**.
+- **Once this branch merges (after 1 Nov), from the same 29 Oct state:**
+  **95 to 106**. That is 138 less 32 to 45, plus the day's aging.
+  - The PCE release changes nothing in this count, because the PCE keys are
+    already inside 67.
+  - From 30 Oct the 10 to 11 imports keys may return.
+
+### Gates (A86, one at a time, foreground, laptop)
+
+**Results:**
+
+- `tools/validate_b51_registry_html.py`: 25 passed, 0 failed.
+- `tools/validate_feed_repair.py`: 50 passed, 0 failed.
+- `tools/check_registry.py`: OK.
+
+**Two gates pinned the old values, and their pins were moved to the ruled
+values.** Each rule is unchanged; each pin is the config's number copied into the
+gate. These files are outside the paste's shared files, and are flagged for the
+operator:
+
+- **`validate_b51_registry_html.py`.** fred.cpi's allowance changes from 32 + 22
+  to 32 + 35.
+- **`validate_feed_repair.py`.** The core-PCE and yoy/r_real allowances change
+  from 54 to 67, and clevfed.rules_start's from 95 + 7 to 95 + 27.
+
+**Kept on the config side instead.** That gate's check that the Cleveland Fed's
+reason quotes "read 24 Oct 2026" is held by the config. The reason now says
+"first read 24 Oct 2026, re-read 28 Oct 2026", which is true: A64 read it first.

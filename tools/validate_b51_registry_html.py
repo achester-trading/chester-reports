@@ -120,7 +120,7 @@ def group_b() -> None:
           f"(unmatched: {unmatched or 'none'})")
     want = {"fred.usd_eur": ("fred_h10", 2 + 6), "fred.brent": ("eia_spot", 2 + 6),
             "calc.naive_expectation.dxy": ("fred_h10", 8),
-            "fred.cpi": ("fred_monthly_release", 32 + 22),
+            "fred.cpi": ("fred_monthly_release", 32 + 35),        # D42.1, 28 Oct 2026
             "tic.holdings_by_country": ("tic", 32 + 45),
             "calc.attr_kw_tp_share_20d": ("term_premium_models", 2 + 5)}
     got = {k: (derived.publication_lag(res[k], k)[1],
