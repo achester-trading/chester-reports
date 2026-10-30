@@ -124,6 +124,7 @@ PY_VALIDATORS := \
 	tools/validate_batch14_a1.py \
 	tools/validate_batch14_a2.py \
 	tools/validate_batch16_midterm.py \
+	tools/validate_ibkr_bars.py \
 	tools/validate_aq3_series.py \
 	tools/validate_basis_proxy.py \
 	tools/validate_rates_anchors.py \

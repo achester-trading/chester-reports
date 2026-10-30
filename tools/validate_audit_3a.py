@@ -166,6 +166,8 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "note_bars_prices",
                   # A51 (19 Oct 2026): the open note's retail sales form (RSAFS)
                   "fred_notes",
+                  # A93 (29 Oct 2026): the IBKR daily bars, built and switched off
+                  "ibkr_daily_bars",
                   # Batch 12 item 59 (a53, 20 Oct 2026): the bank-stress panel's FRED legs
                   "fred_bank_stress"}
 # Members a later branch added to an EXISTING block, declared by name: new by

@@ -355,6 +355,10 @@ commands:
     domain: equity
     line: Quarterly fundamentals for nine AI-capex names -- yfinance, stamped by SEC filing
     sources: [yfinance_fundamentals]
+  altdata.sources.ibkr_bars:
+    domain: prices
+    line: "IBKR historical daily bars (A93, D38's tranche 1): built and switched off until the market-data subscription; plan, pull, backfill"
+    sources: [ibkr_bars]
   altdata.sources.ibkr_costs:
     domain: portfolio
     line: Schedule-derived expression economics -- the Gate 1.5 fallback
