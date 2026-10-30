@@ -297,6 +297,25 @@ def group_c() -> None:
                                mv), "a clause with no directional word is not checked")
     check(not direction.faults("The curve fell to 10 bp.", mv),
           "a figure after 'to' is a level, not a change, and is not read")
+    # B87: the Monthly's second dry run (29 Oct) withheld block:plumbing:yields
+    # twice on the long end's word bound to the spread's figure. Its two drafts
+    # must pass; a word that disagrees with its own clause's figure still fails.
+    ym = {"2s10s": (-18.0, "−18 bp", "bp"), "30-year": (11.0, "+11 bp", "bp"),
+          "10-year": (-12.0, "−12 bp", "bp")}
+    for tail in ("backed up", "firmed"):
+        draft = (f"The curve flattened as 2s10s narrowed −18 bp to 29 bp even as the "
+                 f"long end {tail}, a split between the front and the belly.")
+        check(not direction.faults(draft, ym),
+              f"B87: 'even as the long end {tail}' is its own clause: the dry run's "
+              f"draft passes against 2s10s −18 bp and the 30-year +11 bp")
+    check(direction.faults("The 10-year rose −12 bp to 4.10% even as the curve "
+                           "flattened.", ym)
+          and direction.faults("The curve flattened as 2s10s widened −18 bp even as "
+                               "the long end backed up.", ym)
+          and direction.faults("The long end backed up even as the 10-year rose "
+                               "−12 bp.", ym),
+          "B87: a word against its own clause's figure still fails on either side "
+          "of 'even as' (the 10-year rose when it fell; 2s10s widened when it fell)")
     ed, seen = run_write([plumbing_section()],
                          [shaped(d["plumbing_paragraph"], "deep"),
                           shaped(d["firmed_paragraph"], "deep")])

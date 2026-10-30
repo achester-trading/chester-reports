@@ -13,8 +13,8 @@ false. This check sits beside the numeral audit and withholds the same way:
 
     direction audit failed on 1 clause: 'the dollar softened' against DXY +0.27%
 
-THE RULE, PER CLAUSE (a sentence split at commas, semicolons, colons, dashes and
-"while"):
+THE RULE, PER CLAUSE (a sentence split at commas, semicolons, colons, dashes,
+"while", "whereas" and "even as"):
 
   A CURRENCY'S DIRECTION. A directional word within a few words of a currency
     ("the dollar softened", "a firmer dollar") is read against that currency's
@@ -67,7 +67,11 @@ def conventions() -> dict:
     return _CONV
 
 
-_CLAUSE = re.compile(r"[;:,—–]|\s-\s|\s+(?:while|whereas)\s+", re.I)
+# "EVEN AS" OPENS A CLAUSE OF ITS OWN, as "while" does (B87, the Monthly's second
+# dry run of 29 Oct): "2s10s narrowed −18 bp to 29 bp even as the long end backed
+# up" bound "backed up" -- the long end's word -- to the spread's −18 bp and was
+# withheld twice. Split there, a word is read against a figure of its own clause.
+_CLAUSE = re.compile(r"[;:,—–]|\s-\s|\s+(?:while|whereas|even\s+as)\s+", re.I)
 _SENT = re.compile(r"(?<=[.!?])\s+")
 # A SIGN BEFORE A CURRENCY SYMBOL IS THE FIGURE'S SIGN (W-1.3c item 1). Dry run
 # #6 withheld Plumbing on "fell −$1bn the same day": the sign sat in front of the
