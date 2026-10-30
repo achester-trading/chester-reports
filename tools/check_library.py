@@ -60,6 +60,9 @@ REGISTRY = {
     # Markets shelf, Phase 2, Draft 1 (library-xxvii, 24 Oct 2026): the numeral
     # Audit 2's roster reserved for it.
     "XXVII": "debt-cycles-regimes-environments",
+    # Markets shelf, Phase 4, Draft 1 (library-xxx, 26 Oct 2026): the numeral
+    # Audit 2's roster reserved for it.
+    "XXX": "market-structure-and-cascades",
     # System shelf. XXVI-XXXII are reserved by Audit 2's approved roster
     # (Markets XXVI-XXX, the Top & Bottom manual XXXI, the Annual Structural
     # Review XXXII), so the next free numeral was XXXIII.
