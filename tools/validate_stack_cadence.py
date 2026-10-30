@@ -53,6 +53,8 @@ T2.7 (8 Oct 2026): what the shared renderer carries for the Monthly.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import os
 import re
 import sys
@@ -487,7 +489,7 @@ def group_glossary() -> None:
 
 def group_i() -> None:
     print(f"\n{LINE}\nI. THE GATE IS REGISTERED\n{LINE}")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_stack_cadence.py" in mk, "the Makefile's list carries it")
 
 

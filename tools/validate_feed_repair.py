@@ -47,6 +47,8 @@ network, no model, no live store (each store here is the gate's own).
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import json
 import logging

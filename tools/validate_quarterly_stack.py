@@ -38,6 +38,8 @@ It never reads the live store.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import copy
 import datetime as dt
 import io
@@ -436,7 +438,7 @@ def group_f() -> None:
           and "systemctl --user enable --now chester-quarterly.timer" in t,
           "shipped disabled: not in DEPLOY_TIMERS; the enable command is printed "
           "for the operator")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_quarterly_stack.py" in mk, "this gate is in the "
                                                      "Makefile's list")
 

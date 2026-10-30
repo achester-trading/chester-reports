@@ -23,6 +23,8 @@ store, fetches or calls a model. No figure here is real.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import math
 import re
@@ -350,7 +352,7 @@ def group_f() -> None:
           and "lens_cells.lens_table(" in ws and 'out["completeness"]' in pl,
           "the hooks: the features pass, the Weekly's Plumbing, the Monthly v2 appendix")
     cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("altdata.macro_6e:" in cat and "tools/validate_6e_rest.py" in mk,
           "the catalogue names the command; the Makefile the gate")
     src = "".join((REPO / p).read_text(encoding="utf-8") for p in (

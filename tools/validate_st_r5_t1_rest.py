@@ -60,6 +60,8 @@ no model. Every expected figure is computed here, independently of the module:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import copy
 import datetime as dt

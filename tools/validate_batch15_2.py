@@ -39,6 +39,8 @@ Synthetic fixtures only: no live store, no network, no model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import re
 import sys
@@ -47,6 +49,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+# The dated-appendix queue is a directory (S1 part 4): read the entries.
+import appendix_queue_index                                 # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -461,7 +465,7 @@ def group_h() -> None:
           f"every paragraph with a figure carries its source URL ({len(figs)} such)")
     check("No published count of protocol shutdowns for 2022-23 was found" in t,
           "a comparison no source supports is said to be missing")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     p74 = q.split("(Batch 15 item 74)")[-1]
     p75 = q.split("(Batch 15 item 75)")[-1]
     check("Dated 22 Oct 2026" in p74 and "five to one" in p74 and "https://" in p74,
@@ -501,7 +505,7 @@ def group_i() -> None:
         NOTE.read_text(encoding="utf-8"), LAB.read_text(encoding="utf-8"),
         EDITION.read_text(encoding="utf-8"),
         (REPO / "docs" / "ledgers" / "short-extremes-preregistration-2026-10.md").read_text(encoding="utf-8"),
-        (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8").split(
+        appendix_queue_index.queue_text(REPO).split(
             "(Batch 15 item 74)")[1]])
     people = (r"Dalio|Marino|Prehn|Curzio|Gadala|Muur|Wanjun|Radge|Mark Wilson|Civita|"
               r"Hollerith|Howley|Kim Jong|Lamont")

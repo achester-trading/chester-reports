@@ -27,146 +27,14 @@ PYTHON ?= $(shell test -x .venv/bin/python && echo .venv/bin/python \
                   || (test -x .venv/Scripts/python.exe && echo .venv/Scripts/python.exe \
                   || echo python))
 
-# THE ONE LIST. Adding a validator means adding it here; registry-check.yml
-# reads this file rather than keeping its own copy.
-PY_VALIDATORS := \
-	tools/check_registry.py \
-	tools/validate_register.py \
-	tools/validate_packets.py \
-	tools/validate_backup.py \
-	tools/validate_ibkr_portfolio.py \
-	tools/validate_ibkr_costs.py \
-	tools/validate_ibkr_whatif.py \
-	tools/validate_daily_close.py \
-	tools/validate_morning_anchor.py \
-	tools/validate_numeral_audit.py \
-	tools/validate_deploy.py \
-	tools/validate_derived.py \
-	tools/validate_prices.py \
-	tools/validate_horizon_charts.py \
-	tools/validate_secrets.py \
-	tools/validate_regime.py \
-	tools/validate_6f_calibration.py \
-	tools/validate_base_rates.py \
-	tools/validate_claims.py \
-	tools/validate_structure_compare.py \
-	tools/validate_weekly.py \
-	tools/validate_monthly.py \
-	tools/validate_events.py \
-	tools/validate_grader.py \
-	tools/validate_executions.py \
-	tools/validate_exec_bits.py \
-	tools/validate_systemd_units.py \
-	tools/validate_official_sources.py \
-	tools/validate_em_scorecard.py \
-	tools/validate_imf_ifs.py \
-	tools/validate_narratives.py \
-	tools/validate_config_refs.py \
-	tools/validate_enforce.py \
-	tools/validate_rollup.py \
-	tools/validate_benchmark.py \
-	tools/validate_crypto_basket.py \
-	tools/validate_stack.py \
-	tools/validate_prediction_markets.py \
-	tools/validate_weekly_stack.py \
-	tools/validate_monthly_stack.py \
-	tools/validate_quarterly_stack.py \
-	tools/validate_quarterly_gates.py \
-	tools/validate_alt_asset_scan.py \
-	tools/validate_thesis_register.py \
-	tools/validate_attribution.py \
-	tools/validate_voices.py \
-	tools/validate_weekly_edits.py \
-	tools/validate_weekly_complete.py \
-	tools/validate_feeds_scheduled.py \
-	tools/validate_readability.py \
-	tools/validate_stack_cadence.py \
-	tools/validate_figure_budget.py \
-	tools/validate_move_screen.py \
-	tools/validate_no_filler.py \
-	tools/validate_edition_consistency.py \
-	tools/validate_audit_fixes.py \
-	tools/validate_weekly_fixes_8.py \
-	tools/validate_weekly_fixes_9.py \
-	tools/validate_weekly_integrity.py \
-	tools/validate_batch3_a.py \
-	tools/validate_st_r5_rates.py \
-	tools/validate_st_r5_index.py \
-	tools/validate_st_r5_t1_rest.py \
-	tools/validate_by_hand_audit.py \
-	tools/validate_monthly_frames.py \
-	tools/validate_weekly_storyline.py \
-	tools/validate_weekly_opener.py \
-	tools/validate_weekly_calendar.py \
-	tools/validate_weekly_analytics.py \
-	tools/validate_book_b_scanner.py \
-	tools/validate_exposure_edges.py \
-	tools/validate_dealer_block.py \
-	tools/validate_vol_event.py \
-	tools/validate_dealer_vendor.py \
-	tools/validate_system_metrics.py \
-	tools/validate_gtm.py \
-	tools/validate_st_t1_rest.py \
-	tools/validate_st_t2_rates.py \
-	tools/validate_st_t3_calib.py \
-	tools/validate_library_st_l.py \
-	tools/validate_a43_render.py \
-	tools/validate_opening_setup.py \
-	tools/validate_a47_chain3.py \
-	tools/validate_a48_batch11.py \
-	tools/validate_secondary_notes.py \
-	tools/validate_a50_dealer_store.py \
-	tools/validate_b48_scoreboard.py \
-	tools/validate_batch12.py \
-	tools/validate_batch13.py \
-	tools/validate_a55_box_fixes.py \
-	tools/validate_b51_registry_html.py \
-	tools/validate_feed_repair.py \
-	tools/validate_batch14_a1.py \
-	tools/validate_batch14_a2.py \
-	tools/validate_batch14_b2.py \
-	tools/validate_batch14_b1.py \
-	tools/validate_batch15_2.py \
-	tools/validate_batch15_1.py \
-	tools/validate_b59.py \
-	tools/validate_batch16_midterm.py \
-	tools/validate_aq3_series.py \
-	tools/validate_basis_proxy.py \
-	tools/validate_rates_anchors.py \
-	tools/validate_ai_fcf.py \
-	tools/validate_sr38_inbox.py \
-	tools/validate_correlation_layer.py \
-	tools/validate_lenses.py \
-	tools/validate_6e_rest.py \
-	tools/validate_releases.py \
-	tools/validate_releases_b.py \
-	tools/validate_st_t5_prl.py \
-	tools/validate_st_t5_render.py \
-	tools/validate_b45_chain3.py \
-	tools/validate_digital_addendum.py \
-	tools/validate_crypto_sources.py \
-	tools/validate_audit_3a.py \
-	tools/validate_audit_2.py \
-	tools/validate_audit_1.py \
-	tools/validate_backups.py \
-	tools/validate_meme_ingest.py \
-	tools/validate_ledgers_b6.py \
-	tools/validate_outliers.py \
-	tools/validate_quality.py \
-	tools/validate_fred_history.py \
-	tools/validate_alpha.py \
-	tools/validate_alpha_no_orders.py \
-	tools/validate_alpha_proposer.py \
-	tools/validate_alpha_lab_3.py \
-	tools/validate_alpha_lab_4.py \
-	tools/validate_volume_profile.py \
-	tools/validate_es_block.py \
-	tools/validate_st_r4_t1.py \
-	tools/validate_st_r4_t1b.py \
-	tools/validate_security_master.py \
-	tools/check_library.py \
-	tools/check_master_guide.py \
-	tools/validate_gates.py
+# THE ONE LIST, DECLARED BY THE GATES (S1, 26 Oct 2026; the cloud-sessions
+# brief's decision 2). A gate joins by declaring GATE_KIND = "code" (or "data",
+# or "# GATE_KIND: shell") in its own file; tools/gate_list.py reads the
+# declarations, sorted by path, so no branch edits a shared list. This file,
+# scripts/make.sh and registry-check.yml (through `make list-code`) all read the
+# same tool. Standard library only, so any interpreter lists them.
+LISTPY := $(shell test -x .venv/bin/python && echo .venv/bin/python                   || (test -x .venv/Scripts/python.exe && echo .venv/Scripts/python.exe                   || (command -v python3 >/dev/null 2>&1 && echo python3 || echo python)))
+PY_VALIDATORS := $(shell $(LISTPY) tools/gate_list.py --kind code)
 
 # DATA GATES -- a DIFFERENT KIND OF CHECK, and the distinction is the point.
 #
@@ -192,22 +60,16 @@ PY_VALIDATORS := \
 # source, and tools/validate_gates.py asserts this list and those declarations
 # agree. Without that, this list is just a place to quietly park a failing code
 # validator.
-DATA_GATES := \
-	tools/validate_iv_solver.py \
-	tools/validate_base_rates_store.py \
-	tools/validate_monthly_store.py \
-	tools/validate_regime_store.py \
-	tools/validate_weekly_store.py \
-	tools/validate_imf_china.py \
-	tools/validate_vendor_divergence.py \
-	tools/validate_backup_crypt.py
+DATA_GATES := $(shell $(LISTPY) tools/gate_list.py --kind data)
 
-SH_VALIDATORS := \
-	tools/validate_ibgateway_watchdog.sh \
-	tools/validate_heartbeat_caller.sh \
-	tools/validate_session_calendar.sh
+SH_VALIDATORS := $(shell $(LISTPY) tools/gate_list.py --kind shell)
 
 EXTRA := smoke_test.py
+
+# An empty list would run nothing and pass: refuse it.
+ifeq ($(strip $(PY_VALIDATORS)),)
+$(error tools/gate_list.py listed no code gates -- refusing to run a shorter list)
+endif
 
 .PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures mechanism-register
 

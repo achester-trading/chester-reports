@@ -43,6 +43,8 @@ no store as on the box. No network and no key: the model is an injected client.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import json
 import os
 import re

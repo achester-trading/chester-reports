@@ -40,6 +40,8 @@ reader is poisoned), no model, no live store.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import io
 import math
@@ -463,7 +465,7 @@ def group_h() -> None:
           "the Weekly: the attribution and net liquidity in Plumbing, 24 in Mechanics")
     check('batch5_block.plumbing_subsections(st, now, then, "monthly")' in ms
           and "batch5_block.mechanics_subsection(st, now)" in ms
-          and "batch5_block.slow_subsection(st, now)" in ms,
+          and __import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch5_block", "slow_subsection", ["st", "now"]),
           "the Monthly: Plumbing, Mechanics, and Factor I in the slow layers")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
     met = reg["metrics"]

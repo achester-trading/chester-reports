@@ -45,6 +45,8 @@ Synthetic fixtures only: no live store, no network, no model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import json
 import re
 import sqlite3
@@ -55,6 +57,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+# The dated-appendix queue is a directory (S1 part 4): read the entries.
+import appendix_queue_index                                 # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -215,7 +219,7 @@ def group_c() -> None:
           "the slow sub-section: its read as a lead (before the table), the table, "
           "six edition lines, no paragraph")
     ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
-    check("batch14_b2_block.slow_subsection(now, db_path)" in ms
+    check(__import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch14_b2_block", "slow_subsection", ["now", "db_path"])
           and 'not str(r["family"]).startswith("cma-")' in ms,
           "the Monthly's slow layers carry it, and the sourced figures leave the CMA "
           "families out")
@@ -385,7 +389,7 @@ def group_g() -> None:
 
 def group_h() -> None:
     head("H. THE DATED APPENDIX")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     tail = q.split("(Batch 14 item 68)")[-1]
     check("(Batch 14 item 68)" in q and "Dated 20 Oct 2026" in tail and "66.0" in tail
           and "7.3%" in tail and "11.3%" in tail
@@ -417,7 +421,7 @@ def group_i() -> None:
           "the new modules write no store, read no vendor value or by-hand key, and import "
           "no composite, market-state object or register")
     nar_txt = (REPO / "config" / "narratives.yaml").read_text(encoding="utf-8")
-    queue = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    queue = appendix_queue_index.queue_text(REPO)
     mine = "\n".join([
         src, (REPO / "config" / "cma_table.yaml").read_text(encoding="utf-8"),
         NOTE.read_text(encoding="utf-8"),

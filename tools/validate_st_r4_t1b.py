@@ -40,6 +40,8 @@ model. No figure here is real.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import math
@@ -415,7 +417,7 @@ def group_f() -> None:
           and "batch5b_block.positioning_subsection(st, now)" in ws,
           "the Weekly: Mechanics (18, 19 and the read's line) and Positioning (27)")
     check("batch5b_block.mechanics_subsections(st, now)" in ms
-          and "batch5b_block.slow_subsections(st, now)" in ms,
+          and __import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch5b_block", "slow_subsections", ["st", "now"]),
           "the Monthly: Mechanics, and the slow layers (22); Positioning through "
           "the Weekly's builder")
     from altdata import config as acfg
@@ -440,7 +442,7 @@ def group_f() -> None:
           "the basket carries the three Cboe indices and ZN=F; TLT and ZN=F store OHLC")
     cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")
     check("altdata.batch5b:" in cat, "the catalogue names the new command")
-    mf = (REPO / "Makefile").read_text(encoding="utf-8")
+    mf = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_st_r4_t1b.py" in mf, "this gate is in the Makefile")
     from daily_cascade import batch5b_block as blk
     with observations.ObservationStore(store([])) as st:

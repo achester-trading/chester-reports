@@ -25,6 +25,8 @@ base-rate table and the 3 Nov 2026 row in the Weekly's Ahead (paste A78, 26 Oct
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import csv
 import datetime as dt
 import hashlib

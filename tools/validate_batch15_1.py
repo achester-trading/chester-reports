@@ -36,6 +36,8 @@ Synthetic fixtures only: no live store, no network, no model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import datetime as dt
 import hashlib
@@ -50,6 +52,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
+# The dated-appendix queue is a directory (S1 part 4): read the entries.
+import appendix_queue_index                                 # noqa: E402
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -128,11 +132,16 @@ def group_a() -> None:
     p = REPO / ORDER
     check(p.exists() and _hash(p) == ORDER_SHA,
           "the Batch 15 order is on file at its SHA-256 (filed byte for byte)")
-    co = (REPO / "docs" / "change-orders.md").read_text(encoding="utf-8")
+    # The index and the register's cell, read through the tool that writes them
+    # (S1 part 3); --check holds the committed files to it.
+    import change_orders_index as coi                           # noqa: PLC0415
+    co = coi.index_text(REPO)
     i14 = co.find("change-order-signal-triage-batch-14-2026-10-20.md")
     i15 = co.find("change-order-signal-triage-batch-15-2026-10-23.md")
     check(0 <= i14 < i15, "docs/change-orders.md indexes it after Batch 14")
-    reg = (REPO / "docs" / "signal-triage-register.md").read_text(encoding="utf-8")
+    check(not coi.run(REPO, write=False),
+          "and the committed index and cell are what the tool writes")
+    reg = coi.register_text(REPO)
     hdr = next((ln for ln in reg.splitlines() if ln.startswith("| Batch orders")), "")
     check("[15](change-order-signal-triage-batch-15-2026-10-23.md)" in hdr
           and "items 72–78" in hdr, "the register's header lists Batch 15 (items 72-78)")
@@ -451,7 +460,7 @@ def group_e() -> None:
     check(not re.search(r"^\s+dtcc[._]", reg, re.M) and "\n  dtcc" not in src
           and not (REPO / "altdata" / "cds_protection.py").exists(),
           "no protection-demand line, flag or DTCC key is built (check 4 failed)")
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     sec = q[q.find(APPENDIX_HEAD):] if APPENDIX_HEAD in q else ""
     check(bool(sec) and "$1.09m" in sec and "$322k" in sec and "$226k" in sec
           and "$108k" in sec and "$101k" in sec and "Source line:" in sec
@@ -556,7 +565,7 @@ PEOPLE = ("Dalio", "Marino", "Prehn", "Curzio", "Gadala", "Muur", "Radge", "Wanj
 def group_h() -> None:
     head("H  HYGIENE")
     texts = {p: (REPO / p).read_text(encoding="utf-8") for p in NEW_MODULES + NEW_CONFIG}
-    q = (REPO / "docs" / "dated-appendix-queue.md").read_text(encoding="utf-8")
+    q = appendix_queue_index.queue_text(REPO)
     texts["appendix"] = q[q.find(APPENDIX_HEAD):]
     hits = [f"{p}: {n}" for p, t in texts.items() for n in PEOPLE if n in t]
     hits += [f"{p}: \\bAri\\b" for p, t in texts.items() if re.search(r"\bAri\b", t)]

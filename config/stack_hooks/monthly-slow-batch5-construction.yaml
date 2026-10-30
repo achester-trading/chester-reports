@@ -1,0 +1,11 @@
+# Factor I, the real economy (ST-R4.23a, Batch 5 item 23): construction spending, real.
+# Moved from monthly_macro/stack.py's inline list by S1 part 5 (26 Oct 2026).
+id: monthly-slow-batch5-construction
+cadence: monthly
+section: slow
+after: monthly-slow-batch14-b2-cma
+module: daily_cascade.batch5_block
+function: slow_subsection
+args: [st, now]
+requires: [st, now]
+returns: one
