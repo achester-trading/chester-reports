@@ -57,6 +57,9 @@ REGISTRY = {
     "XIX": "systematic-book", "XX": "base-rates", "XXI": "international-equities",
     "XXII": "options-expression", "XXIII": "evidence-inference", "XXIV": "earnings",
     "XXV": "price-time-and-edge",
+    # Markets shelf, Phase 2, Draft 1 (library-xxvii, 24 Oct 2026): the numeral
+    # Audit 2's roster reserved for it.
+    "XXVII": "debt-cycles-regimes-environments",
     # System shelf. XXVI-XXXII are reserved by Audit 2's approved roster
     # (Markets XXVI-XXX, the Top & Bottom manual XXXI, the Annual Structural
     # Review XXXII), so the next free numeral was XXXIII.
