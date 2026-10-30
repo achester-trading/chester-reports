@@ -164,6 +164,23 @@ def group_b() -> None:
               "| Batch orders | [Batch 3]"),
           "the missing batch is appended to the cell before its closing sentence")
     check(coi.run(root, write=False) == [], "and --check passes after it")
+    # D42.10 (29 Oct 2026): a filed record whose name carries a suffix after its
+    # date (A70's "...-2026-09-13-record.md") is an order the index keeps, never
+    # dropped by --write; a name with no date stays outside the pattern.
+    (d / "change-order-amendment-3-2026-09-13-record.md").write_text(
+        "# Change order — Amendment 3, record only\n", encoding="utf-8")
+    (d / "change-order-notes-undated.md").write_text("# Not an order\n",
+                                                     encoding="utf-8")
+    check("change-order-amendment-3-2026-09-13-record.md" in coi.orders(root)
+          and "change-order-notes-undated.md" not in coi.orders(root),
+          "a dated record with a suffix is an order; an undated name is not")
+    coi.run(root, write=True)
+    idx = (d / "change-orders.md").read_text(encoding="utf-8")
+    names = [re.search(r"\[([^\]]+)\]", ln).group(1)
+             for ln in idx.split("\n") if ln.startswith("| ") and "[" in ln]
+    check(names[0] == "change-order-amendment-3-2026-09-13-record.md"
+          and "| 13 Sep 2026 |" in idx and coi.run(root, write=False) == [],
+          "--write indexes it in date order (13 Sep first) and --check passes")
 
 
 # ---------------------------------------------------------------------------

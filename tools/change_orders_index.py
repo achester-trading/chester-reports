@@ -32,7 +32,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 INDEX = Path("docs") / "change-orders.md"
 REGISTER = Path("docs") / "signal-triage-register.md"
-ORDER_RX = re.compile(r"^change-order-.*-(\d{4}-\d{2}-\d{2})\.md$")
+# A filed order ends in its date; a filed record may carry a suffix after the
+# date ("change-order-amendment-3-2026-09-13-record.md", A70). D42.10 (29 Oct
+# 2026): the pattern widens rather than any filed record being renamed, because
+# other files cite those paths.
+ORDER_RX = re.compile(r"^change-order-.*-(\d{4}-\d{2}-\d{2})(?:-[a-z][a-z0-9-]*)?\.md$")
 BATCH_RX = re.compile(r"^change-order-signal-triage-batch-(\d+)-\d{4}-\d{2}-\d{2}\.md$")
 ROW_RX = re.compile(r"^\| ([^|]+) \| \[([^\]]+)\]\(([^)]+)\) \| (.*) \|\s*$")
 CELL_TAIL = ". Items 16 onward keep their numbers"
