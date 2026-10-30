@@ -1,0 +1,65 @@
+# THE FORECASTERS (Learning Loop v2, LL-6; the brief's section 2.3, on
+# b65-learning-loop-v2: docs/briefs/learning-loop-v2-brief-2026-10-25.md).
+# Decision 4 (D38, 26 Oct 2026): three forecasters, two on the Anthropic model
+# with distinct prompts and one on a second provider, Gemini; the second
+# provider's key is the operator's. Each answers the same code-built packet
+# independently (decision 5) and never sees the others' answers.
+#
+# NOTHING SPENDS BY SURPRISE. Every provider's budget starts at ZERO calls a
+# day: a forecaster whose provider has no budget left is skipped and says so.
+# The operator sets the budgets after the merge (docs/briefs/a94-notes.md).
+version: 1
+
+budgets:
+  anthropic: {calls_per_day: 0}
+  gemini: {calls_per_day: 0}
+
+# The second provider: Gemini's REST API (generateContent), the key sent as a
+# header (x-goog-api-key), never in a URL, so it cannot reach a log through one.
+# The key is read from the environment or .env under this name, never logged.
+gemini:
+  key_name: GEMINI_API_KEY
+  endpoint: "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+  timeout_seconds: 90
+  retries: 1
+
+forecasters:
+  - id: opus-a
+    provider: anthropic
+    model: claude-opus-5-5
+    prompt_id: base-rate-v1
+    prompt: >-
+      You are a forecaster. For each question below, give the probability that it
+      resolves YES, using the base rate first and adjusting only for the evidence
+      in the packet. Answer with JSON only: {"<question id>": <probability 0-1>}.
+  - id: opus-b
+    provider: anthropic
+    model: claude-opus-5-5
+    prompt_id: inside-view-v1
+    prompt: >-
+      You are a forecaster. For each question below, reason from the mechanism the
+      packet describes to the probability that it resolves YES, then check it
+      against how often such claims have resolved YES. Answer with JSON only:
+      {"<question id>": <probability 0-1>}.
+  - id: gemini-a
+    provider: gemini
+    # The operator confirms the model id when setting the budget.
+    model: gemini-2.5-pro
+    prompt_id: base-rate-v1
+    prompt: >-
+      You are a forecaster. For each question below, give the probability that it
+      resolves YES, using the base rate first and adjusting only for the evidence
+      in the packet. Answer with JSON only: {"<question id>": <probability 0-1>}.
+
+# THE AGGREGATE (section 2.3): the extremized mean of the log-odds, weighted by
+# each forecaster's track record, equal until each has 100 resolved rows. The
+# brief names extremizing but no factor, so `extremize` is 1.0 -- the plain
+# log-odds mean -- until a ruling sets it; the factor prints beside every value.
+aggregate:
+  extremize: 1.0
+  equal_weights_until_resolved: 100
+  clip: [0.01, 0.99]
+
+# Each forecast's manifest: one JSON line per forecaster per run, appended,
+# never rewritten. Never the key.
+manifests_path: "~/chester-data/forecasters/manifests.jsonl"

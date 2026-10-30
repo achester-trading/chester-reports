@@ -116,6 +116,7 @@
       "Bash(*BITCOIN_DATA_API_KEY*)",
       "Bash(*CHESTER_RCLONE_CRYPT_PASSWORD*)",
       "Bash(*CHESTER_RCLONE_CRYPT_SALT*)",
+      "Bash(*GEMINI_API_KEY*)",
       "Bash(*rclone.conf*)",
       "Bash(*/.ssh/*)",
       "Bash(*environ*)",

@@ -197,6 +197,8 @@ MUST_DENY = {
         "ssh vps 'grep BITCOIN_DATA_API_KEY ~/chester-reports/.env'",
         "echo $CHESTER_RCLONE_CRYPT_PASSWORD",
         "python -c 'import os; print(os.getenv(\"CHESTER_RCLONE_CRYPT_SALT\"))'",
+        # A94 (30 Oct 2026): the second forecaster's key (D38: Gemini).
+        "printenv GEMINI_API_KEY",
     ],
 }
 
