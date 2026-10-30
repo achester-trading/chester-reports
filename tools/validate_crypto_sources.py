@@ -1065,7 +1065,9 @@ def treasury_checks(cfg: dict) -> None:
 B85_REFUSED = ("calc.etf_streak", "calc.etf_5d_pct", "calc.flag_etf_extreme")
 B85_ACCRUING = {"calc.dvol_pct_full": "2026-12-02", "calc.dvol_pct_5y": "2026-12-02",
                 "calc.froth_z": "2027-01-15", "calc.flag_froth": "2027-01-15",
-                "calc.flag_leverage_crowded": "2026-12-16"}
+                "calc.flag_leverage_crowded": "2026-12-16",
+                # D42.9 (B87): the two keys sharing the leverage flag's input
+                "calc.leverage_z": "2026-12-16", "calc.oi_mcap_z": "2026-12-16"}
 
 
 def b85_checks() -> None:
@@ -1085,7 +1087,7 @@ def b85_checks() -> None:
               and str(ent[k].get("declared_until"))[:10] == u
               and "accruing" in ent[k].get("gap_reason", "")
               for k, u in B85_ACCRUING.items()),
-          "the five history-bound keys are a gap declared until their first row "
+          "the seven history-bound keys are a gap declared until their first row "
           "is due, each with its reason")
     check(all(derived.declared_status(ent[k], u) is None
               and derived.declared_status(
@@ -1093,6 +1095,13 @@ def b85_checks() -> None:
               == "gap" for k, u in B85_ACCRUING.items()),
           "the declaration lapses on its date: a key still unwritten then is "
           "counted stale again, never hidden for good")
+    lev = derived.registry_entry("calc.flag_leverage_crowded")
+    check(all(derived.registry_entry(k).get("gap_reason") == lev.get("gap_reason")
+              and str(derived.registry_entry(k).get("declared_until"))[:10]
+              == str(lev.get("declared_until"))[:10]
+              for k in ("calc.leverage_z", "calc.oi_mcap_z")),
+          "D42.9: calc.leverage_z and calc.oi_mcap_z carry the leverage flag's own "
+          "declaration, date and reason")
     check(derived.declared_status({"status_extra": "refused"}, "2030-01-01") == "refused"
           and derived.declared_status({"status_extra": "gap",
                                        "declared_until": "2026-11-01"},

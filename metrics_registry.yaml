@@ -18473,6 +18473,11 @@ member_overrides:
   calc.froth_z: {status_extra: gap, declared_until: 2027-01-15, gap_reason: "accruing: 90 days of GeckoTerminal's own rows needed (config s5.min_store_days; crypto_derived.s5_rows), and the sample has no backfill; from the first sample of 17 Oct 2026 the first row is due 14 Jan 2027"}
   calc.flag_froth: {status_extra: gap, declared_until: 2027-01-15, gap_reason: "accruing: written with calc.froth_z for both of a network's measures (crypto_derived.s5_rows); due 14 Jan 2027"}
   calc.flag_leverage_crowded: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
+  # D42.9 (29 Oct 2026; B87): the two keys that share the leverage flag's missing
+  # input -- 60 observations in 90 days of an aggregate that began with the first
+  # pull -- take its declaration, date and reason.
+  calc.leverage_z: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
+  calc.oi_mcap_z: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
   # Bitcoin's difficulty is set every 2,016 blocks, about 14 days: one row an
   # adjustment, not a day. Weekly cadence plus the btc_difficulty lag.
   mempool.difficulty: {freq: weekly, native_horizon: weekly, information_half_life: until_next_release}

@@ -98,3 +98,12 @@ resolves to `eol: lf`, and its blob hashes to the pinned `d5318a6d...`, so a
 checkout after the merges passes it on Windows. The six pin-holding gates on
 this base all pass on the laptop: validate_dealer_block 134, secondary_notes 88,
 batch14_a2 40, batch13 33, batch12 57, validate_alpha 257.
+
+## B87 (29 Oct 2026, D42.9): the two keys that surfaced next
+
+`calc.leverage_z` and `calc.oi_mcap_z` share `calc.flag_leverage_crowded`'s missing input: 60
+observations in 90 days of an aggregate that began with the first pull. Each now carries
+the same declaration as the flag: `status_extra: gap`, `declared_until: 2026-12-16` and its
+reason. Group P checks the two carry the flag's own date and reason.
+validate_crypto_sources: 123 passed; validate_a47_chain3: 42; check_registry: OK;
+validate_feed_repair: 50.
