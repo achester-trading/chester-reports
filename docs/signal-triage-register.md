@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d) and [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands), and [18](change-order-signal-triage-batch-18-2026-10-28.md) (item 98, ruled 28 Oct 2026 with filing amendments K1–K4: the 23-hour equity session, the cadence unchanged, session-aware bars and the overnight read; added by hand), [19](change-order-signal-triage-batch-19-2026-10-29.md) (round 9, items 99–110, ruled 27–29 Oct 2026 with filing amendments L1–L6: the Kakushadze & Serur registry, the premium sleeve, the liquidity levels, the kill-switch board, the global AI-complex panel, the EM shock-screen audit, the intraday dealer read, money market funds; added by hand). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d) and [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands), and [18](change-order-signal-triage-batch-18-2026-10-28.md) (item 98, ruled 28 Oct 2026 with filing amendments K1–K4: the 23-hour equity session, the cadence unchanged, session-aware bars and the overnight read; added by hand), [19](change-order-signal-triage-batch-19-2026-10-29.md) (round 9, items 99–110, ruled 27–29 Oct 2026 with filing amendments L1–L6: the Kakushadze & Serur registry, the premium sleeve, the liquidity levels, the kill-switch board, the global AI-complex panel, the EM shock-screen audit, the intraday dealer read, money market funds; added by hand), [20](change-order-signal-triage-batch-20-2026-10-29.md) (round 10, items 111–114, ruled 29 Oct 2026 with filing amendments M1–M5: four free data sources, the silver drawdown table, froth breadth, a crypto fear-and-greed log; added by hand). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -875,6 +875,33 @@ numbers (L1).
   106, who owns BTC and gold.
 - `docs/alpha-lab-rules.md` is amended by 99: family_ref keys and two leakage cases.
 - 101(b) registers the `liquidity-sweep` family; 103 is a narrative claim.
+
+---
+
+### SR-73 to SR-75 — Batch 20's provisional rows (filed 30 Oct 2026, paste B92)
+
+Provisional, placed by Audit #5, numbered after Batch 19's SR-72 (paste B91). Each
+row's text is the [Batch 20 order](change-order-signal-triage-batch-20-2026-10-29.md)'s
+item. Every source is a candidate under the 16 Oct rule, checked when built (M4).
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 73 | 111(a) | The insider buy/sell ratio: S&P-wide open-market insider buys against sells from SEC Form 4 (EDGAR), with a 1-year percentile, and cluster buying (three or more insiders in one company within a week); weekly, positioning & flows | Report only; a calibration ledger before any candidacy as a Capitulation Count (97) input | Tranche B | provisional, placed by Audit #5 |
+| 74 | 111(b) | The BIS Global Liquidity Indicators: USD credit to non-bank borrowers outside the US (BIS SDMX), quarterly, beside the global-liquidity-momentum proxy (filed 92; the order's "93", M2) and 108 in plumbing & rates | Report only | Tranche B | provisional, placed by Audit #5 |
+| 75 | 111(c) | TARGET2 balances: Italy and Spain debtors, Germany creditor (ECB SDMX), monthly, beside SR-30's OAT–Bund and BTP–Bund (the order's "SR-29", M2) | Report only | Tranche B | provisional, placed by Audit #5 |
+
+**Batch 20's amendments, recorded against their filed parents.**
+- 88(b), the Monthly gold chapter, is amended by 112: a silver drawdown table of every
+  selloff of 30% or more since 1968, typed blow-off or in-bull crash by a criterion
+  fixed in advance (the run-up multiple into the peak); the same typing applied to
+  the gold table.
+- Item 31, peak bubble concentration, is amended by 113: froth breadth, the count and
+  index weight of S&P 500 stocks with a 6-month return z above 2 and positive
+  convexity of the log-price path, by sector, monthly beside SR-19.
+- Pillar 5 (the "5H" smart-money sub-cluster) is amended by 111(d), conditionally:
+  13F via EDGAR. V1 is closed (not built), and whether 111(d) applies is the
+  operator's.
+- 114 is log only.
 
 ---
 
