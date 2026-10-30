@@ -745,11 +745,16 @@ def group_j() -> None:
     ahead = ("December closes the quarter with its own concentration of risk: ISM "
              "Manufacturing on the 1st, ISM Services on the 3rd, payrolls on the "
              "4th, AVGO earnings and the FOMC statement both on the 9th.")
+    # A91 (D42.8): A88 ended the role audit's span at a colon and taught it to
+    # skip a date's numerals, so the role audit ALONE no longer binds these
+    # ordinals either; B84's mask in the Monthly's wiring is now belt and braces.
+    # The audit still flags a real average written as a close.
     check(not mp.t36_faults(ahead, avg, {})
-          and na.role_faults(ahead, avg["slice"]),
-          "B84: looking_ahead's calendar ('closes the quarter ... on the 1st ... the "
-          "4th') passes the Monthly's role check; the role audit alone still binds "
-          "the ordinals (its rule is unchanged)")
+          and not na.role_faults(ahead, avg["slice"])
+          and na.role_faults("SPY closed the month at 721.82.", avg["slice"]),
+          "B84 with A88: looking_ahead's calendar ('closes the quarter ... on the 1st "
+          "... the 4th') passes the Monthly's role check and the role audit alone; "
+          "SPY's 40-week average written as its close is still withheld")
     check(mp.t36_faults("SPY closed September 2026 at 721.82, with the 10-year "
                         "yield at 4.48.", avg, {})
           and mp.t36_faults("The tape closed the 4th week with SPY at 721.82.",
