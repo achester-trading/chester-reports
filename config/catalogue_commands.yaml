@@ -375,6 +375,10 @@ commands:
     domain: equity
     line: "SEC EDGAR XBRL frames: the five hyperscalers' annual operating cash flow and capex (GTM-4's bridge; needs the SEC contact)"
     sources: [edgar_xbrl]
+  altdata.sources.edgar_guidance:
+    domain: equity
+    line: "SEC EDGAR 10-Q and 10-K: the five hyperscalers' capex GUIDANCE, each figure beside its filing's sentence, URL and accession (A66; items 26 and 63; needs the SEC contact)"
+    sources: [edgar_guidance]
   altdata.sources.eia:
     domain: commodities
     line: EIA Weekly Petroleum Status Report -- US crude and product stocks

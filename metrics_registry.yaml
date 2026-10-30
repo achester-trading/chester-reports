@@ -162,6 +162,7 @@ vocabularies:
   native_horizon: [intraday, daily, weekly, monthly, quarterly, structural]
   units:
     - usd                    # a dollar amount
+    - usd_bn                 # US dollars in billions (A66: filed capex guidance)
     - usd_per_1pct           # dollars per 1% move in spot
     - usd_per_point          # dollars per one-point move in spot
     - usd_per_volpt          # dollars per 1 implied-vol point
@@ -15692,6 +15693,141 @@ metrics:
     trigger_eligible: false
     description: >-
       A hyperscaler's payments for property, plant and equipment for its fiscal year, dollars, a positive outflow as filed (XBRL PaymentsToAcquirePropertyPlantAndEquipment, else PaymentsToAcquireProductiveAssets -- Amazon's tag), from EDGAR's annual frames, instrument = the ticker, observed_at = the fiscal year's end. GTM-4's bridge.
+  # A66 (24 Oct 2026; signal-triage items 26 and 63): the hyperscalers' capex
+  # GUIDANCE, read from their own 10-Q and 10-K filings by
+  # altdata/sources/edgar_guidance.py. Rule 30: each figure is stored only beside
+  # its record -- the filing's sentence verbatim, URL, accession, filing date.
+  # observed_at = the filing date; available_at = the filing's acceptance instant.
+  edgar.capex_guidance.amzn:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Amazon's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.amzn); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.amzn:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Amazon's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.googl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Alphabet's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.googl); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.googl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Alphabet's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.meta:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Meta's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.meta); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.meta:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Meta's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.msft:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Microsoft's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.msft); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.msft:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Microsoft's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.orcl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Oracle's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.orcl); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.orcl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Oracle's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
   # SIGNAL-TRIAGE ST-4 (st-t1-rest, 18 Oct 2026): Duration Absorption and the
   # rates flags, altdata/absorption.py, written by the features pass. Display
   # and modifier only; none is trigger-eligible or enters a composite.
@@ -19525,6 +19661,11 @@ families:
   fiscaldata.mts_customs_net: quantity
   edgar.xbrl_operating_cash_flow: quantity
   edgar.xbrl_capex: quantity
+  edgar.capex_guidance.amzn: quantity
+  edgar.capex_guidance.googl: quantity
+  edgar.capex_guidance.meta: quantity
+  edgar.capex_guidance.msft: quantity
+  edgar.capex_guidance.orcl: quantity
   yfinance.mkt_tip: price
   yfinance.mkt_mub: price
   yfinance.mkt_mbb: price
@@ -20945,6 +21086,11 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  edgar.capex_guidance_record.amzn: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.googl: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.meta: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.msft: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.orcl: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
   calc.release_first_hour: "units 'label': a JSON record per release day and instrument (the secondary notes)"
   exposure.regime_word: "units 'label': the capture's gate word per symbol and slot, not a level series (decision 9)"
   calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"

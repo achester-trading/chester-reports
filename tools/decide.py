@@ -71,7 +71,7 @@ from register.store import (                      # noqa: E402
     Register, RestrictedInstrumentError,
     ENGINE_IDS, REVIEW_CHANGED, setup_ids, review_from_gate,
     PacketIncompleteError, PacketRefusedError, packet_faults, refusal_text,
-    EL1_PACKET_NAMES)
+    EL1_PACKET_NAMES, PRE_6F)
 import exposure_compute as ec                     # noqa: E402
 import expression_check                           # noqa: E402
 import pin_log                                    # noqa: E402
@@ -396,6 +396,52 @@ def horizon_alignment(direction: str) -> tuple:
             f"direction {direction} against trend {state} on the {day} object")
 
 
+# 6f tranche 4 (ruling 9a of 24 Oct 2026): the second alignment, against the
+# object's WEEKLY per-horizon trend read (horizons.weekly, the spec's section 6),
+# stamped at entry beside horizon_alignment and carried forward, never recomputed.
+# Unlike horizon_alignment it is ABSENT (None, with its basis) rather than neutral
+# when there is nothing to read: no object for the decision's session, no weekly
+# read, or a read whose own transitions are uncalibrated (A63's rule). A flat read
+# or an unsigned direction is neutral, as for horizon_alignment.
+def alignment_weekly(direction: str, now: Optional[str] = None,
+                     store=None) -> tuple:
+    """(alignment or None, basis). The decision's session is the last COMPLETED
+    one at entry (session.last_completed_session): its close object is the one
+    the system could have had. Report only: a stamp, never a command."""
+    from altdata import session as _session  # noqa: PLC0415
+    day = _session.last_completed_session(now).isoformat()
+    try:
+        import regime  # noqa: PLC0415
+        from altdata import observations, state_calibration  # noqa: PLC0415
+        st = store or observations.ObservationStore()
+        try:
+            obj = regime.latest(store=st, session_day=day)
+            if not obj:
+                newest = regime.latest(as_of=now, store=st)
+                return None, (f"entered before the {day} object existed (newest "
+                              f"stored: {(newest or {}).get('session') or 'none'})")
+            w = (obj.get("horizons") or {}).get("weekly")
+            if w is None:
+                return None, f"the {day} object carries no per-horizon reads"
+            if not w.get("state"):
+                return None, (f"weekly read absent on the {day} object: "
+                              f"{w.get('absent_reason') or 'no reason recorded'}")
+            cal = state_calibration.horizon_row(st, obj, "weekly", as_of=now)
+        finally:
+            if store is None:
+                st.close()
+    except Exception as exc:                                  # noqa: BLE001
+        return None, f"no market-state object readable ({type(exc).__name__})"
+    state = w["state"]
+    if not cal.get("calibrated"):
+        return None, f"weekly read {state} on the {day} object, {cal['text']}"
+    t, dsign = TREND_SIGN.get(state), DIRECTION_SIGN.get(direction)
+    if not t or not dsign:
+        return "neutral", f"weekly read {state} on the {day} object, direction {direction}"
+    return (("aligned" if t == dsign else "counter"),
+            f"direction {direction} against the weekly read {state} on the {day} object")
+
+
 def packet_args(args) -> dict:
     """The EL-1 decision-object fields, as the register's keywords."""
     return {"mechanism": args.mechanism, "falsifier_date": args.falsifier_date,
@@ -478,9 +524,14 @@ def cmd_record(args) -> int:
             print(LINE)
             return 2
         align, align_basis = horizon_alignment(args.direction)
+        align_w, align_w_basis = alignment_weekly(args.direction)
         print(f"  setup_id        : {args.setup}")
         print(f"  engine_id       : {args.engine}")
         print(f"  alignment       : {align}  ({align_basis})")
+        print(f"  alignment_weekly: {align_w or 'absent'}  ({align_w_basis})")
+        if not reg.has_alignment_weekly:
+            print(f"                    not recorded: this register predates the "
+                  f"6f migration (tools/migrate_alignment_weekly.py)")
         for f in args.falsifier or []:
             print(f"  falsifier       : {f}")
         if not args.falsifier:
@@ -697,6 +748,8 @@ def cmd_record(args) -> int:
                          gate_override=args.override_gate,
                          setup_id=args.setup, engine_id=args.engine,
                          horizon_alignment=align,
+                         alignment_weekly=align_w,
+                         alignment_weekly_basis=align_w_basis,
                          review_changed=review_from_gate(
                              (gate_out or {}).get("outcome"), args.review_changed),
                          falsifiers=list(args.falsifier or []),
@@ -853,7 +906,10 @@ def cmd_show(args) -> int:
         el1 = ("setup_id", "engine_id", "horizon_alignment", "review_changed",
                "falsifiers", "counter_thesis") + EL1_PACKET_NAMES
         for k, v in d.items():
-            if k in el1 and v is None:
+            if k == "alignment_weekly" and v is None:
+                v = (f"absent ({d['alignment_weekly_basis']})"
+                     if d.get("alignment_weekly_basis") else PRE_6F)
+            elif k in el1 and v is None:
                 v = "not recorded"          # a pre-P5-B row, not a default
             elif k == "falsifiers":
                 v = "; ".join(json.loads(v)) or "not recorded"
@@ -1215,6 +1271,8 @@ def cmd_set_status(args) -> int:
                 # its successor would be DECISION_OK without falsifiers.
                 setup_id=old_d.get("setup_id"), engine_id=old_d.get("engine_id"),
                 horizon_alignment=old_d.get("horizon_alignment"),
+                alignment_weekly=old_d.get("alignment_weekly"),
+                alignment_weekly_basis=old_d.get("alignment_weekly_basis"),
                 review_changed=old_d.get("review_changed"),
                 falsifiers=(json.loads(old_d["falsifiers"])
                             if old_d.get("falsifiers") else None),

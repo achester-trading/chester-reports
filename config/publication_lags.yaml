@@ -210,6 +210,21 @@ families:
       A month is dated its first day, so the newest is about three months old
       when the sheet updates and about four before the next, near 88 sessions:
       the monthly allowance's 32 plus 56.
+  - id: sec_periodic_filings
+    keys: ["edgar.capex_guidance.*", "edgar.capex_guidance_record.*"]
+    freq: quarterly
+    lag_sessions: 14
+    max_lag: 16
+    source: "SEC Forms 10-Q and 10-K, General Instructions (sec.gov/about/forms/form10-q.pdf and form10-k.pdf, read 24 Oct 2026)"
+    reason: >-
+      A guidance record is dated its filing. Form 10-Q, General Instruction A.1:
+      "40 days after the end of the fiscal quarter for large accelerated filers
+      and accelerated filers"; Form 10-K, General Instruction A.(2)(a): "60 days
+      after the end of the fiscal year covered by the report ... for large
+      accelerated filers". All five filers are large accelerated filers. The
+      longest stretch between filings is the third quarter's 10-Q to the 10-K:
+      a quarter plus the 10-K's 20 extra days, about 14 sessions over the
+      quarterly allowance's 95; 16 is the bound.
   - id: fred_quarterly_release
     fred_ids: ["*"]
     keys: ["calc.naive_expectation.*"]

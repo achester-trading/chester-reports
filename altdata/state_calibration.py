@@ -97,6 +97,35 @@ def dimension_state(obj: dict, dim: str) -> Optional[str]:
     return None if d.get("fault") else d.get("state")
 
 
+def horizon_state(obj: dict, horizon: str) -> Optional[str]:
+    """A per-horizon trend read's published state (the spec's section 6)."""
+    d = (obj.get("horizons") or {}).get(horizon) or {}
+    return None if d.get("fault") else d.get("state")
+
+
+HORIZON_STATES = ["up", "flat", "down"]
+
+
+def horizon_row(store, obj: dict, horizon: str, as_of: Optional[str] = None) -> dict:
+    """The calibration row for one per-horizon read's current state (6f tranche 4,
+    alignment_weekly): its own transitions over the stored objects knowable at
+    `as_of`, at the horizon's own length in sessions, by row_for's rule -- so a
+    read with fewer than MIN_STARTS independent starts is "uncalibrated (n = k of
+    30)". Read only."""
+    import regime                                               # noqa: PLC0415
+    spec = (regime.load_config().get("horizons") or {}).get(horizon) or {}
+    h = int(spec.get("sessions") or 0)
+    cur = horizon_state(obj or {}, horizon)
+    objs = stored_objects(store, as_of)
+    trans: dict = {}
+    if objs and h:
+        days = sorted(objs)
+        trans = transitions({d: horizon_state(o, horizon) for d, o in objs.items()},
+                            h, _calendar(days[0], days[-1]))
+    return {**row_for(trans, cur, HORIZON_STATES), "horizon": horizon, "sessions": h,
+            "state": cur}
+
+
 def _calendar(first: str, last: str) -> list[str]:
     import regime                                               # noqa: PLC0415
     return regime.session_days(first, last)

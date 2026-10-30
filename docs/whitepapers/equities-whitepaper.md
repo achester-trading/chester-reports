@@ -413,6 +413,25 @@ If ring-four revenue arrives at scale within two years — if the spenders begin
 
 - No ledger: the memory-cycle table's inputs (HBM share, DRAM direction) were by-hand lines, and rule 30 creates no by-hand line; the table waits for a source.
 
+
+## Appendix D — Dated: Records from the signal-triage orders (as of 24 October 2026)
+
+*Moved here from `docs/dated-appendix-queue.md` on 24 October 2026 by session A (A68). Each entry is dated in its heading, keeps its wording as queued, and names the batch or ruling it came from. It changes nothing in the paper's body and grants no right; a figure here is a dated record, not a series.*
+
+### The capex chain's reference weights (August 2026; Batch 14 item 63)
+
+*The order adopts the weights "as a standing reference table in Factor I and in the Equities paper's AI-rings section, dated August 2026". The section's body is not edited (b52; A68 lists the body placement as a change needing a ruling). The table stands in `config/capex_chain.yaml` and prints in the Monthly's slow layers (Factor I); this entry is the paper's citation until its next revision.*
+
+> *Dated August 2026 (BNP Paribas Equity Research, as published by a16z).* Of an
+> illustrative $100 of AI capex: semiconductors $50 (accelerators 25, memory 15,
+> CPUs and server production 10), power $20 (grid and independent generation 10,
+> distribution 6.5, on-site routing 3.5), networking $15, cooling $7.5, facilities
+> and construction $7.5; wafer-fab equipment about $8 of the semis share, roughly
+> half of it lithography. BNP calls the weights high-level estimates: an
+> illustrative split of one dollar, not a measurement. Half of every capex dollar
+> stays with the chipmakers; power is the second-largest bucket and the slowest to
+> build.
+
 ---
 
 *Version 1.0 — September 2026. Companion XV. Cross-references by name throughout, per the library's rule. Word count and revisions logged in the library guide.*

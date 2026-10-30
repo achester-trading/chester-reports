@@ -263,6 +263,102 @@ def expectancy_line(e: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# The Quarterly's split by alignment at entry (6f tranche 4; DTH §XXIII's test)
+# ---------------------------------------------------------------------------
+ALIGNMENT_CELLS = ("aligned", "neutral", "counter")
+NOT_RECORDED = "not recorded"
+ABSENT_WEEKLY = "absent at entry"
+
+
+def previous_quarter(as_of: str) -> tuple[str, str]:
+    """The calendar quarter before the as-of's: the Quarterly's own window."""
+    d = dt.date.fromisoformat(as_of[:10])
+    q0 = (d.month - 1) // 3 * 3 + 1
+    first = dt.date(d.year, q0, 1)
+    end = first - dt.timedelta(days=1)
+    start = dt.date(end.year, (end.month - 1) // 3 * 3 + 1, 1)
+    return start.isoformat(), end.isoformat()
+
+
+def weekly_cell(decision: dict) -> str:
+    """The weekly stamp's cell: a value, absent at entry (its basis was stored),
+    or entered before 6f (no column value at all). Never read from today."""
+    from register.store import PRE_6F  # noqa: PLC0415
+    v = decision.get("alignment_weekly")
+    if v:
+        return str(v)
+    return ABSENT_WEEKLY if decision.get("alignment_weekly_basis") else PRE_6F
+
+
+def alignment_split(as_of: Optional[str] = None, db_path: Optional[str] = None,
+                    window: Optional[tuple] = None, cfg: Optional[dict] = None) -> dict:
+    """Counts and hit rates of the graded decisions, by horizon_alignment and by
+    alignment_weekly as stamped at entry, over the window (default: the quarter
+    before the as-of). One latest grade per decision, every status alike (the
+    grader's shadow-outcome rule: alignment is a property of the packet, not of
+    the operator's action). A hit is a positive return in the decision's own
+    direction. A cell under min_n prints "n < 10" and no figure."""
+    cfg = cfg or load_config()
+    min_n = int((cfg.get("alignment_split") or {}).get("min_n", 10))
+    as_of = as_of or _now()
+    start, end = window or previous_quarter(as_of)
+    out: dict[str, Any] = {"window": [start, end], "min_n": min_n,
+                           "by_horizon_alignment": {}, "by_alignment_weekly": {}}
+    conn = _ro(db_path)
+    if conn is None or not _has(conn, "grades") or not _has(conn, "decisions"):
+        out["not_built"] = "no grades table on the store yet"
+        return out
+    try:
+        from altdata import grader  # noqa: PLC0415
+        grades = [dict(r) for r in conn.execute(
+            "SELECT * FROM grades WHERE method_version = ? AND substr(graded_at,1,10) >= ? "
+            "AND substr(graded_at,1,10) <= ? AND graded_at <= ?",
+            (grader.METHOD_VERSION, start, end, as_of))]
+        decs = {str(r["id"]): dict(r) for r in conn.execute("SELECT * FROM decisions")}
+    finally:
+        conn.close()
+    cuts = {"by_horizon_alignment": {}, "by_alignment_weekly": {}}
+    for g in _latest_per_decision(grades):
+        ret = g.get("return_pct")
+        if not isinstance(ret, (int, float)):
+            continue
+        d = decs.get(str(g.get("decision_id"))) or {}
+        for key, cell in (("by_horizon_alignment", d.get("horizon_alignment") or NOT_RECORDED),
+                          ("by_alignment_weekly", weekly_cell(d))):
+            c = cuts[key].setdefault(cell, {"n": 0, "hits": 0})
+            c["n"] += 1
+            c["hits"] += int(ret > 0)
+    for key, cells in cuts.items():
+        order = [*ALIGNMENT_CELLS, *sorted(k for k in cells if k not in ALIGNMENT_CELLS)]
+        out[key] = {k: {**cells.get(k, {"n": 0, "hits": 0}),
+                        "hit_rate": (cells[k]["hits"] / cells[k]["n"]
+                                     if cells.get(k, {}).get("n") else None),
+                        "printed": cells.get(k, {}).get("n", 0) >= min_n}
+                    for k in order}
+    return out
+
+
+def split_cell_text(c: dict, min_n: int = 10) -> str:
+    if not c["printed"]:
+        return f"n < {min_n}"
+    return f"n={c['n']}, {c['hits']} hits ({c['hit_rate']:.0%})"
+
+
+def alignment_lines(s: dict) -> list[str]:
+    """The Quarterly's two cuts, for the register's detail table."""
+    if s.get("not_built"):
+        return [f"By alignment at entry: not built ({s['not_built']})."]
+    span = f"{_date(s['window'][0])} to {_date(s['window'][1])}"
+    out = []
+    for key, what in (("by_horizon_alignment", "the trend dimension (horizon_alignment)"),
+                      ("by_alignment_weekly", "the weekly read (alignment_weekly)")):
+        out.append(f"By {what} at entry, graded {span}, hit rate in the decision's "
+                   f"direction: " + "; ".join(f"{k}: {split_cell_text(v, s['min_n'])}"
+                                              for k, v in s[key].items()) + ".")
+    return out
+
+
+# ---------------------------------------------------------------------------
 # The benchmarks over four quarters
 # ---------------------------------------------------------------------------
 def _book_return(decisions: list[dict], book_set: tuple, start: str, end: str,

@@ -738,3 +738,45 @@ Each entry carries, in this order:
 - the operator's confirmation or rejection, with its date, once given.
 
 No entry has been posted yet.
+
+## Appendix B — Dated: Records from the signal-triage orders (as of 24 October 2026)
+
+*Moved here from `docs/dated-appendix-queue.md` on 24 October 2026 by session A (A68). Each entry is dated in its heading, keeps its wording as queued, and names the batch or ruling it came from. It changes nothing in the paper's body and grants no right; a figure here is a dated record, not a series.* *These are dated records, not Appendix A's evidence-log entries: none was posted through the mechanism scan or to the narrative register, so none takes Appendix A's form.*
+
+### Power construction against data centers, a disagreement note (9 October 2026; Batch 5 item 23)
+
+*The order calls it "XII's power-buildout narrative"; the library's XII is the Daily Cascade paper, so the numeral is the order's. The power-buildout thesis is argued in this paper's Factor I, so the note is placed here; the operator may name another home.*
+
+> Census VIP, August 2026 (preliminary, SAAR): total power construction +8.5%
+> nominal year over year, against data centers +73.2% (the poster's real figures:
+> +4.1% and +64.5%). Power is growing at a fraction of the data-center pace, which
+> cuts against XII's power-buildout thesis. Logged as a disagreement, not
+> resolved.
+
+### Manufacturing construction, a base-rate note (9 October 2026; Batch 5 item 23)
+
+> Manufacturing's fall is mostly the CHIPS and IRA fab boom rolling off, a base
+> effect, which is why the level against 2019 prints beside the year over year.
+
+### AI names' CDS levels and AI borrowing — unverified (20 October 2026; Batch 15 item 76)
+
+*Placed by the register entry it amends: SR-16's home is this paper's Factor I evidence log (`docs/signal-triage-register.md`, SR-16). Batch 15's G3 makes the order's one-off figures dated records, not lines; the monthly CDS-level and borrowing rows and item 76's protection-demand line are listed gaps (source check 4: DTCC publishes no keyless per-name CDS volumes; `docs/briefs/a58-batch15-1-notes.md`). **Unverified: no auto-discard date was ruled by the order**; committed by session A (a58-batch15-1) as drafted, for the operator's accept-all.*
+
+> *Dated mid-October 2026 (CDS levels); 20 Oct 2026 (the post).* Five-year CDS,
+> cost per $10m of protection, as charted from Morgan Stanley Research and the
+> Financial Times: CoreWeave $1.09m (about 1,090 bp; some of its bonds at
+> distressed levels); Oracle $322k (more than double on the year); SpaceX $226k
+> (a record); Meta $108k (a record); Nvidia $101k (a record). Weekly CDS traded on
+> seven AI names (Oracle, Nvidia, Meta, Amazon, Alphabet, Broadcom, SpaceX) rose
+> from under $2bn in July to more than $9bn in September, about 4.5 times.
+> Source line: a newsletter writer's post on X, 20 Oct 2026, citing Morgan Stanley
+> Research and the Financial Times (tag: newsletter writer; incentive:
+> subscriptions). As of: mid-October 2026 for the levels, September 2026 for the
+> volumes. URL: the order does not file the post's link; none is invented here.
+> Not verified against a primary source: the vendors' CDS marks are not public.
+
+> *Dated 20 Oct 2026 (as reported).* AI companies have borrowed $466bn in 2026 to
+> date, against $101bn at the same point of 2025 -- the issuance figure SR-16
+> tracks. Source line: the same post, citing Morgan Stanley Research and the
+> Financial Times. As of: 20 Oct 2026, year to date. URL: not filed in the order.
+> Not verified against a primary source.

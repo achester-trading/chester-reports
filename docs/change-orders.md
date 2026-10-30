@@ -4,6 +4,7 @@ An index of every ruled change order in `docs/`, oldest first. Each order is fil
 
 | Date | Order | What it rules |
 |---|---|---|
+| 13 Sep 2026 | [change-order-amendment-3-2026-09-13-record.md](change-order-amendment-3-2026-09-13-record.md) | **Record only; original pending.** Post-Freeze Amendment #3, AI trajectory and governance monitoring (workstream A, the I-b inputs and consensus drift; B, Internal Order as Factor VI), approved in chat; the order's file was never committed (filed 24 Oct 2026, A70) |
 | 25 Sep 2026 | [change-order-signal-triage-2026-09-25.md](change-order-signal-triage-2026-09-25.md) | Signal triage, consolidated (Batches 1–2, SR-1 to SR-27) |
 | 27 Sep 2026 | [change-order-enterprise-layer-2026-09-27.md](change-order-enterprise-layer-2026-09-27.md) | The Enterprise Layer and intraday tactics |
 | 2 Oct 2026 | [change-order-signal-triage-batch-3-2026-10-02.md](change-order-signal-triage-batch-3-2026-10-02.md) | Signal triage Batch 3 and the Japan / US-yields scan |

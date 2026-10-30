@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="7d79fdfb8b732af6263e1e6f7e637e0d3a949d7a1a1ef30b3086861f8b1be7f8">
+<meta name="source-sha256" content="758f17497f0d24359efbe52d5adf454270e02ae754cc46b92920d0938f2de21f">
 <title>The Reporting System: A Reader&#x27;s Guide</title>
 <style>
 :root {
@@ -135,9 +135,19 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h2>What Each Report Is, Where Its Numbers Come From, What It May Say, and How It Learns</h2>
 <p><strong>Companion white paper — chester-reports library</strong>
 <strong>Series placement:</strong> Companion <strong>XXXIII</strong> — System shelf, after <em>The Operating Doctrine</em> and <em>Building and Validating a Systematic Book</em>, per the library guide. Cross-references in this paper are by name.
-<strong>Version:</strong> Draft 3 — 19 October 2026 (Draft 2, 9 October 2026; Draft 1, 6 October 2026, described the Monthly before it joined the stack)
-<strong>Errata (ruled 19 October 2026, decision 17; applied on the third chain):</strong> §2.3 no longer lists the LBMA gold price, which the code holds unlicensed and off; §4.6's chart set is capped at twelve, not thirteen; §10.1's Monthly reading target is fifty-five minutes, not forty; Appendix A's scans outside the repository point to the Master Guide's record of the chat-side tasks, since <code>docs/scheduled-tasks.md</code> defines neither the X digest, its reader triage nor the Saturday brief.
-<strong>Status:</strong> As-built. "Built" means the contents of the second stitched chain (<code>chain-2</code>), the branch that merges into main on 20 October 2026; a capability on a branch that merges later is listed as not built (Appendix E). The paper describes the system as that code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code, and of each item Draft 2 called not built. Reread after the first stacked Monthly (1 November 2026), after the Opening Setup's remaining rulings, and at Audit #5.</p>
+<strong>Version:</strong> Draft 4 — 24 October 2026 (Draft 3, 19 October 2026; Draft 2, 9 October 2026; Draft 1, 6 October 2026, described the Monthly before it joined the stack)
+<strong>Status:</strong> Draft 4 — 24 October 2026; as built on chain-7 and a61b-feed-repair, ahead of their merges (a61b 27 Oct; chain-7 after the 1 Nov Monthly). "Built" means the contents of the seventh stitched chain (<code>chain-7</code>, which carries the third to sixth chains, the four post-Monthly branches, 6f, the one-day trigger, the new sources and the reading budgets) and of the feed repair (<code>a61b-feed-repair</code>, which merges on 27 October). Where the two differ, the paper says which. A capability on a branch that merges later is listed as not built (Appendix E). The paper describes the system as that code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code, and of each item Drafts 2 and 3 called not built. Reread after the first stacked Monthly (1 November 2026), after the Doctrine #2 sitting (7–8 November) and at Audit #5.</p>
+<p><strong>Errata.</strong> Draft 3's own errata of 19 October (decision 17) are applied: the LBMA gold price is not a source, the Monthly's chart cap is twelve, its reading target is fifty-five minutes, and the chat-side tasks are recorded in the Master Guide. Draft 4 corrects these further slips in Draft 3:
+- §2.3 placed the national statistics offices' CPIs, the Banque de France's yield, the Census Bureau's construction spending, Cboe's indices and the SEC's filings among the official writers; the feed roster files them as external tables.
+- §4.6 named the Monthly's charts M1 to M13; the set is M0 to M13, M0 being three months of SPY's daily candles in The tape.
+- §4.9 and Appendix A called W11 the second positioning panel; W11 is the standing decomposition in What's priced, and the Weekly's dealer panel enters fifth, not fourth.
+- §6.3 said the repository records no Monthly signal scan; the scheduled-tasks record defines it, as Appendix D's item 16 said.
+- §6.5 announced two further scheduled tasks and named one.
+- §6.5 said the MSTR/MSCI watch reads Strategy's mNAV from the store; the chat-side task records the index review's notices to Drive, and no reader in the repository reads its file. The digital-assets addendum reads mNAV from the store.
+- Appendix D, item 4, said nothing writes an observed knowable time; the ALFRED backfill does (15 October).
+- Appendix D, item 12, called the Monthly's timer enabled by hand; it has been on the deploy's list since 9 October, as Draft 3's own second table said.
+- Appendix D's second table said the broker sync's comment still says 17:00; it says 17:30 since the third chain.
+- Appendix E listed the PRL explorer's endpoint as unbuilt; it was closed as a listed gap on 18 October. It also listed two intake-queue entries waiting for "T&amp;B full"; the queue holds one.</p>
   </div>
 
   <div class="controls">
@@ -145,7 +155,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     <button id="collapseAll">Collapse all</button>
   </div>
 
-  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-what-the-system-is-for">Part I — What the System Is For</a></li><li><a href="#s3-part-ii-the-data-the-system-holds">Part II — The Data the System Holds</a></li><li><a href="#s4-part-iii-the-market-state-object">Part III — The Market-State Object</a></li><li><a href="#s5-part-iv-the-reports-and-the-ten-section-stack">Part IV — The Reports and the Ten-Section Stack</a></li><li><a href="#s6-part-v-how-the-prose-is-made-honest">Part V — How the Prose Is Made Honest</a></li><li><a href="#s7-part-vi-the-scans">Part VI — The Scans</a></li><li><a href="#s8-part-vii-the-register-and-the-books">Part VII — The Register and the Books</a></li><li><a href="#s9-part-viii-the-intraday-layer">Part VIII — The Intraday Layer</a></li><li><a href="#s10-part-ix-how-the-system-learns">Part IX — How the System Learns</a></li><li><a href="#s11-part-x-reading-the-reports">Part X — Reading the Reports</a></li><li><a href="#s12-appendix-a-dated-timers-gates-windows-thresholds-budgets-sou">Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 19 October 2026)</a></li><li><a href="#s13-appendix-b-the-incident-log-to-date-as-of-19-october-2026">Appendix B — The Incident Log to Date (as of 19 October 2026)</a></li><li><a href="#s14-appendix-c-assumptions-and-falsifiers">Appendix C — Assumptions and Falsifiers</a></li><li><a href="#s15-appendix-d-where-the-brief-disagreed-with-the-code-and-what-">Appendix D — Where the Brief Disagreed with the Code, and What Draft 2 Called Unbuilt: Dispositions (as of 19 October 2026)</a></li><li><a href="#s16-appendix-e-what-draft-3-says-is-not-built-as-of-19-october-2">Appendix E — What Draft 3 Says Is Not Built (as of 19 October 2026)</a></li></ol></nav>
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-what-the-system-is-for">Part I — What the System Is For</a></li><li><a href="#s3-part-ii-the-data-the-system-holds">Part II — The Data the System Holds</a></li><li><a href="#s4-part-iii-the-market-state-object">Part III — The Market-State Object</a></li><li><a href="#s5-part-iv-the-reports-and-the-ten-section-stack">Part IV — The Reports and the Ten-Section Stack</a></li><li><a href="#s6-part-v-how-the-prose-is-made-honest">Part V — How the Prose Is Made Honest</a></li><li><a href="#s7-part-vi-the-scans">Part VI — The Scans</a></li><li><a href="#s8-part-vii-the-register-and-the-books">Part VII — The Register and the Books</a></li><li><a href="#s9-part-viii-the-intraday-layer">Part VIII — The Intraday Layer</a></li><li><a href="#s10-part-ix-how-the-system-learns">Part IX — How the System Learns</a></li><li><a href="#s11-part-x-reading-the-reports">Part X — Reading the Reports</a></li><li><a href="#s12-appendix-a-dated-timers-gates-windows-thresholds-budgets-sou">Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 24 October 2026)</a></li><li><a href="#s13-appendix-b-the-incident-log-to-date-as-of-24-october-2026">Appendix B — The Incident Log to Date (as of 24 October 2026)</a></li><li><a href="#s14-appendix-c-assumptions-and-falsifiers">Appendix C — Assumptions and Falsifiers</a></li><li><a href="#s15-appendix-d-where-the-brief-disagreed-with-the-code-and-what-">Appendix D — Where the Brief Disagreed with the Code, and What Drafts 2 and 3 Called Unbuilt: Dispositions (as of 24 October 2026)</a></li><li><a href="#s16-appendix-e-what-draft-4-says-is-not-built-as-of-24-october-2">Appendix E — What Draft 4 Says Is Not Built (as of 24 October 2026)</a></li></ol></nav>
 
     <details class="section" id="s1-front-matter" open>
       <summary class="section-head">
@@ -154,7 +164,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <h3>Reader's note</h3>
-<p>This paper is for the operator: the one person who reads every report, takes every decision and rules on every change. It is meant to be read once from start to finish, on a phone or at a desk, and then consulted when a report prints something unfamiliar. Read whole, it takes about an hour and a half (some 23,400 words at the reports' own pace of 250 words a minute). It answers four questions about every report the system produces: what the report is, where its numbers come from, what it may and may not say, and how the system learns from what it said.</p>
+<p>This paper is for the operator: the one person who reads every report, takes every decision and rules on every change. It is meant to be read once from start to finish, on a phone or at a desk, and then consulted when a report prints something unfamiliar. Read whole, it takes about two hours (some 29,000 words at the reports' own pace of 250 words a minute). It answers four questions about every report the system produces: what the report is, where its numbers come from, what it may and may not say, and how the system learns from what it said.</p>
 <p>The other papers on this shelf describe one machine each. The Daily Cascade paper is the field guide to the daily sections; the Monthly manual covers the macro pillars; the Systematic Book paper describes the register and the broker connection as they were built; the Operating Doctrine says what the operator is to do. This paper sits above them and explains how the pieces fit: how a number travels from a public website into the store, from the store into one shared description of the market, from that description into a report, from the report into a decision, and from the decision into a graded record that eventually changes the rules. Figure 1 draws that path; the ten Parts walk it.</p>
 <p>Three conventions run through the paper. First, nothing here is a market view. The paper describes machinery; the reports carry the readings. Second, the body is timeless. Anything that will change with the next configuration edit, such as a timer, a threshold, a word budget or the number of sources, sits in Appendix A with the date it was true. Third, where a capability is specified but not yet built, the paper says so in the sentence that describes it. A guide that describes the intended system as if it were running is the most dangerous kind of documentation, because it is the kind a reader trusts.</p>
 <p><strong>Prerequisites.</strong> None beyond the Operating Doctrine's first three Parts, which explain the books and the dials. The Dealer's Hand teaches the options mechanics behind the dealer-positioning figures; Base Rates and Evidence and Inference teach the statistics behind the grading. This paper uses their results and does not re-derive them.</p>
@@ -218,10 +228,10 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     <text x="184" y="320" font-size="12">computed once a session, read by every report</text>
 
     <text x="184" y="376" font-weight="600">4  The reports</text>
-    <text x="184" y="396" font-size="12">The ten-section stack at each cadence. Code puts</text>
-    <text x="184" y="412" font-size="12">every figure on the page; the model writes around</text>
-    <text x="184" y="428" font-size="12">them, and the audits withhold any paragraph whose</text>
-    <text x="184" y="444" font-size="12">figure is not in the payload</text>
+    <text x="184" y="396" font-size="12">The stack at each cadence, and the day's touches</text>
+    <text x="184" y="412" font-size="12">(right). Code puts every figure on the page; the</text>
+    <text x="184" y="428" font-size="12">model writes around them, and the audits withhold</text>
+    <text x="184" y="444" font-size="12">any paragraph whose figure is not in the payload</text>
 
     <text x="184" y="500" font-weight="600">5  The register</text>
     <text x="184" y="520" font-size="12">Decision Packets, written by the operator and</text>
@@ -295,10 +305,25 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   </g>
   <text x="918" y="420" font-size="11" fill="#7a5c2e" transform="rotate(-90 918 420)" text-anchor="middle">lab evidence: the operator may table it</text>
 
-  <text x="20" y="990" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5. The side layers (right) read and draft; neither decides.</text>
+  <!-- stage 4's weekday touches (Draft 4): the two secondary notes and the close's event area -->
+  <rect x="652" y="604" width="232" height="172" rx="6" fill="#f5f0f8" stroke="#8a5fb0" stroke-width="1"/>
+  <g fill="#1a1a1a">
+    <text x="666" y="628" font-weight="600">The day's touches (stage 4)</text>
+    <text x="666" y="648" font-size="12">07:00  the anchor</text>
+    <text x="666" y="664" font-size="12">09:50  the open note</text>
+    <text x="666" y="680" font-size="12">12:30  the alert slot, on a gate</text>
+    <text x="666" y="696" font-size="12">16:45  the close, with its</text>
+    <text x="666" y="712" font-size="12">event area: volatility, the</text>
+    <text x="666" y="728" font-size="12">10-year, gold, DM indices</text>
+    <text x="666" y="744" font-size="12">21:30  the evening note, Sun–Thu</text>
+    <text x="666" y="764" font-size="11" fill="#8a5fb0">No touch adds a right</text>
+  </g>
+
+  <text x="20" y="984" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5. The side layers (right) read and draft; neither decides.</text>
+  <text x="20" y="1000" fill="#5b5b5b" font-size="11">The touches box lists stage 4's weekday runs; the two notes check in between the anchor and the close and hold no right those reports do not give them.</text>
 </svg>
 <figcaption>Figure 1 — The reporting system&#x27;s data flow: feeds, the store, the market-state object, the reports, the register, the ledger, grading and the Doctrine</figcaption></figure></p>
-<p><em>Figure 1 — How a number becomes a lesson. Each stage reads only from the stage above it; the left-hand bands name who acts at each stage. The dashed return path is the only way the system changes itself: graded evidence, ratified at a sitting, comes back as configuration. On the right are the two layers Draft 3 adds: the Alpha Lab, which reads the store and reaches the register only as evidence the operator may table, and chester-meme, which reads the Security Master's export and writes packets that enter the register only as drafts the operator confirms.</em></p>
+<p><em>Figure 1 — How a number becomes a lesson. Each stage reads only from the stage above it; the left-hand bands name who acts at each stage. The dashed return path is the only way the system changes itself: graded evidence, ratified at a sitting, comes back as configuration. On the right are the two side layers: the Alpha Lab, which reads the store and reaches the register only as evidence the operator may table, and chester-meme, which reads the Security Master's export and writes packets that enter the register only as drafts the operator confirms. Below them, Draft 4 adds stage 4's weekday touches: the anchor, the open note at 09:50, the 12:30 slot, the close with its event area, and the evening note at 21:30.</em></p>
 <hr />
       </div>
     </details>
@@ -314,7 +339,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>Three single points of truth make this possible. There is <strong>one store</strong>: every number any report prints was first written to a single database, together with the time it became knowable, so that any figure can be traced and any past report can be replayed as it would have looked at the time. There is <strong>one regime</strong>: a single object, computed once per session, describes the state of the market in a fixed vocabulary, and every report reads that object rather than forming its own opinion. And there is <strong>one register</strong>: every decision the operator takes, declines or abstains from is written once, in a fixed format, and never edited.</p>
 <p>The three are deliberately separate. The store holds facts, the regime object holds a description of those facts, and the register holds what the operator decided to do about them. None of them can write into another. A report can read all three, but it can write only to the ledger of its own forecasts and to the archive of its own editions.</p>
 <p><strong>Five layers.</strong> Around those three sit five layers, and the rest of the paper takes them in turn.
-1. <strong>The reporting stack:</strong> the anchor at 07:00, the close at 16:45, the Weekly on Sunday, the Monthly on the 1st and the Quarterly once a quarter, with an alert-only slot at 12:30 (Part IV).
+1. <strong>The reporting stack:</strong> the anchor at 07:00, the close at 16:45, the Weekly on Sunday, the Monthly on the 1st and the Quarterly once a quarter, with an alert-only slot at 12:30 and two short secondary notes, the open note at 09:50 and the evening note at 21:30, which check in between the reports of record (Part IV).
 2. <strong>The data and architecture layer:</strong> one store with its clocks, marks and ids, the Security Master and the encrypted backup (Part II).
 3. <strong>The decision layer:</strong> the register, the books, the gate at entry and reconciliation (Part VII).
 4. <strong>The Alpha Lab:</strong> a paper research layer with its own database and book (Part VIII).
@@ -353,18 +378,19 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>Intraday bars live in their own table in the same database, with the same three clocks: a bar's start time, the moment it was knowable, and the moment it was written. A backfilled bar is stamped as knowable at its close plus the feed's delay. A bar fetched before it closed is dropped, because it was a bar in progress rather than a bar.</p>
 <h3>2.3 The feed families</h3>
 <p>The feeds are grouped into families. Each family has its own puller, its own schedule and its own definition of stale. A heartbeat check reads each series against its declared freshness allowance every morning and raises a "feed stale" verdict when any family falls behind.</p>
-<p><strong>Prices.</strong> Daily closes, and for the tape set opens, highs and lows, for several dozen market symbols: the major index funds, the eleven sector funds, bond, credit and commodity funds, the dollar index, the main currency pairs, the Treasury yield indices, front-month gold, oil and copper futures, Bitcoin, and the volatility indices. These are the raw material of the trend, breadth and volatility readings and of every chart. A separate <em>bars</em> feed pulls five-minute bars for the tape set, plus the S&amp;P 500 e-mini future across its nearly 24-hour session, so that the overnight move can be drawn beside the cash session. Since the 14 October audit, a Saturday pull corrects the week's prices, and every price and FRED pull is followed by a check for bad prints (§2.6).</p>
+<p><strong>Prices.</strong> Daily closes, and for the tape set opens, highs and lows, for several dozen market symbols: the major index funds, the eleven sector funds, bond, credit and commodity funds, the dollar index, the main currency pairs, the Treasury yield indices, front-month gold, oil and copper futures, Bitcoin, and the volatility indices. Since Draft 3 the basket also carries the capex chain's proxies (the semiconductor, memory, grid, networking, cooling, construction and lithography names the AI capex chain reads), a regional-bank fund, an AI fund against its total-return benchmark, and a hedge-fund replication proxy read beside the CFTC's positioning. These are the raw material of the trend, breadth and volatility readings and of every chart. A separate <em>bars</em> feed pulls five-minute bars for the tape set, plus the S&amp;P 500 e-mini future across its nearly 24-hour session, so that the overnight move can be drawn beside the cash session. Since the 14 October audit, a Saturday pull corrects the week's prices, and every price and FRED pull is followed by a check for bad prints (§2.6).</p>
 <p><strong>FRED.</strong> The St. Louis Fed's database supplies the bulk of the macro series: rates and yields, credit spreads, inflation expectations, labour-market data, the Fed's balance sheet and its liabilities, the components behind the inflation, labour, PPI and GDP lenses, and a set of signal series pulled and watched. FRED deprecates series without notice; a series that goes quiet surfaces as stale rather than breaking a run. Deep history is written from ALFRED at each value's first publication, so a backtest sees what was known on the day (§2.2). The pull is incremental: each run asks only for what it does not already hold.</p>
-<p><strong>The official writers.</strong> A set of small writers reads specific official sources directly: the New York Fed's term-premium model, the San Francisco Fed's term-structure model, the Fed Board's TIPS decomposition and its inflation-expectations index, the New York Fed's consumer survey, TreasuryDirect's auction results, the Treasury's debt statistics, the TIC capital-flow data, China's SAFE reserve and balance-of-payments data, Japan's Ministry of Finance bond yields, the CFETS yuan fixing, the CFTC's Commitments of Traders, and the EIA's weekly petroleum report. Since Draft 2 the official family has grown to include the national statistics offices' CPI releases (the ONS, Statistics Canada and Japan's statistics bureau), the Banque de France's and the Bundesbank's ten-year yields, the BIS's policy rates, the ECB's long-term rates, the Census Bureau's construction spending, Cboe's correlation and dispersion indices, the Treasury's fiscal data and the SEC's company filings. Each writer declares its keys. If one fails, it marks itself stale and keeps the last good vintage, so one outage never takes down another source.</p>
-<p><strong>External tables.</strong> Slower or less official sources: the University of Michigan's long-run inflation expectations, Ken French's industry and value-factor returns, Damodaran's industry multiples, Shiller's CAPE inputs, the World Bank's commodity indices, FINRA's margin statistics, the AAII sentiment survey, leveraged-ETF assets and a set of company fundamentals stamped by their filing dates. The LBMA gold price is not among them: the code holds it unlicensed and switched off, its parser kept but unscheduled, and the themes read the COMEX front future under its own name.</p>
-<p><strong>Loggers.</strong> Forward-only collectors for things nobody archives: retail trading activity in the most-traded names, analyst consensus estimates, short volume and short interest, retail chatter on social forums (including the WallStreetBets feed) measured as mention counts, the Zcash market, the VIX futures curve and, dormant until a data entitlement is confirmed, the closing-auction imbalance. Loggers exist because these series cannot be backfilled: a day not logged is a day lost.</p>
+<p><strong>The official writers.</strong> A set of small writers reads specific official sources directly: the New York Fed's term-premium model, the San Francisco Fed's term-structure model, the Fed Board's TIPS decomposition and its inflation-expectations index, the New York Fed's consumer survey, TreasuryDirect's auction results, the Treasury's debt statistics, the TIC capital-flow data, China's SAFE reserve and balance-of-payments data, Japan's Ministry of Finance bond yields, the CFETS yuan fixing, the CFTC's Commitments of Traders, and the EIA's weekly petroleum report. The family also holds the Bundesbank's ten-year yield, the BIS's policy rates, the ECB's long-term rates and the Treasury's fiscal data, and since Draft 3 the Office of Financial Research's stress index and the FDIC's quarterly banking profile. Each writer declares its keys. If one fails, it marks itself stale and keeps the last good vintage, so one outage never takes down another source.</p>
+<p><strong>External tables.</strong> Slower or less official sources: the University of Michigan's long-run inflation expectations, the Tuck data library's industry and value-factor returns, a university data library's industry multiples, the shillerdata.com workbook's CAPE inputs and, since Draft 3, its long real home-price series, the World Bank's commodity indices, FINRA's margin statistics, the AAII sentiment survey, leveraged-ETF assets (the ProShares funds, the Dow and Russell pairs among them), the national statistics offices' CPI releases, the Banque de France's ten-year yield, the Census Bureau's construction spending, Cboe's correlation and dispersion indices, the SEC's XBRL frames for the hyperscalers' filed cash flow and capex, Redfin's and Zillow's housing series, and a set of company fundamentals stamped by their filing dates. The LBMA gold price is not among them: its writer was retired from the roster, its parser kept, and the themes read the COMEX front future under its own name. The SEC's quarterly 13F data sets are read by a loader the operator runs on the box; nothing schedules it.</p>
+<p><strong>Loggers.</strong> Forward-only collectors for things nobody archives: retail trading activity in the most-traded names, analyst consensus estimates, short volume and short interest, retail chatter on social forums (including the WallStreetBets feed) measured as mention counts, the Zcash market, the VIX futures curve, Nasdaq Trader's daily symbol directories and, dormant until a data entitlement is confirmed, the closing-auction imbalance. Loggers exist because these series cannot be backfilled: a day not logged is a day lost.</p>
 <p><strong>Prediction markets.</strong> Odds from Kalshi and Polymarket on a declared watch list. Their rights are narrow by ruling: discovery, an attention flag when a probability moves sharply in a day, and a disagreement flag when the venues differ materially from the futures market or from a scenario weight. They never change a scenario weight, a narrative, a theme or a book, and they are never a trigger. A gate stands in front of any larger role. Only after a long archive of live (not backfilled) snapshots, a minimum number of qualifying shocks, a study showing the venues lead the assets after costs, and two Monthly calibration reviews may anyone propose letting them modify confidence. That study is not built.</p>
 <p><strong>Fed funds futures.</strong> The CBOT contracts for the next several meetings, converted into the market's implied path for the policy rate. When too few meetings are priced, the path prints as "not yet tracked".</p>
-<p><strong>The crypto data layer.</strong> Keyless public sources read once a day after the US close: perpetual funding and open interest from Hyperliquid, OKX and Deribit; Deribit's implied-volatility index (DVOL); the spot bitcoin and ether ETF flows from Farside; stablecoin supply and the watch names' fees from DefiLlama; the Fear &amp; Greed index; Bitcoin's hashrate, difficulty and fees; Ethereum's network figures; the froth gauge's new pools; and the total market cap from CoinPaprika. CoinGecko is retired, because its terms bar storing its data, and Bybit is switched off by a country block. The flags these series could raise are stored with their gate status "not passed" and print nowhere until their ledgers pass (§9.9).</p>
+<p><strong>The crypto data layer.</strong> Keyless public sources read once a day after the US close: perpetual funding and open interest from Hyperliquid, OKX and Deribit; Deribit's implied-volatility index (DVOL); stablecoin supply and the watch names' fees from DefiLlama, with a labelled break where a protocol merges into another; the Fear &amp; Greed index; Bitcoin's hashrate, difficulty and fees; Ethereum's network figures; the froth gauge's new pools; and the total market cap from CoinPaprika. CoinGecko is retired, because its terms bar storing its data, and Bybit is switched off by a country block. The spot bitcoin and ether ETF flows were read from Farside until its site refused automated reads; on the feed repair the source is declared refused and the flow lines print that gap (§2.7). The flags these series could raise are stored with their gate status "not passed" and print nowhere until their ledgers pass (§9.9).</p>
 <p><strong>The option chain capture.</strong> Every evening the system captures the full option chains for the major index funds and a set of large single names, and stores them raw. From each chain it computes the dealer-positioning figures the Dealer's Hand derives: net gamma exposure and its dollar value per 1% move, delta, vanna and charm exposure, the gamma flip, the call and put walls, the strike of peak absolute gamma, and max pain. These rest on a stated convention about which side dealers are on, which the reports name every time they print a dealer figure. The four exposures are treated as one piece of evidence, never four. The capture also yields two figures of the market's own: SPY's at-the-money implied volatility at thirty days, solved by the system's own solver from the option mid prices, and SPY's put/call volume ratio. A missed night is gone; option chains cannot be fetched after the fact.</p>
 <p>The capture now runs three times a session: at 09:45 and 12:30 for the intraday read, and at 16:10 for the settled one. Seventeen names come from Yahoo. SPX and SPCX come from a second vendor, Massive, captured at 16:31 because its data is delayed fifteen minutes; their greeks wait behind the implied-volatility solver's gate, which they have not passed. Beside the chains, <strong>a vendor's cross-check</strong> (FlashAlpha) is pulled at 16:25 and stored under its own keys as a labelled comparison. No vendor value enters a flag, a tell, a dial or a decision; a data gate on the box measures how far the vendor's figures diverge from ours (Appendix A).</p>
 <p><strong>The voices scan.</strong> A morning scan of declared public sources (central banks and finance ministries first, then the large asset managers' published views, then news) that records who said what, when, on which subject and in which direction, with a URL for every row. It is described fully in Part VI.</p>
 <p><strong>The events feed.</strong> Release calendars, the session calendar, official news feeds, earnings dates and filings, which tell the reports what is scheduled and what has happened.</p>
+<p><strong>Attention and event sources</strong> (since Draft 3). Three report-only writers run inside the crypto basket's evening pass, each pre-registered as an Alpha Lab hypothesis before its first print: GDELT's raw event files, counted per story; NOAA's population-weighted heating and cooling degree days; and a watch of model releases on the Hugging Face hub. On Saturdays the same pass reads the U.S. cyber agency's known-exploited list and NIST's vulnerability feed, and each day DefiLlama's protocol counts. None of these reaches a dial, a band or a decision.</p>
 <h3>2.4 Which report reads what</h3>
 <p>The families matter to a reader because each report draws on a different subset. The table summarises it; Appendix A gives the counts.</p>
 <table>
@@ -439,9 +465,15 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>Crypto data layer</td>
-<td>ETF flows, funding, open interest, DVOL</td>
+<td>Funding, open interest, DVOL; the ETF flows' refusal printed as a gap</td>
 <td>Daily, after the close</td>
 <td>The Weekly's crypto flows block, the addendum, the Monthly's crypto rows</td>
+</tr>
+<tr>
+<td>Attention and event sources</td>
+<td>GDELT's event counts, degree days, model releases, the exploited-vulnerability list</td>
+<td>Daily after the close; the cyber lists on Saturdays</td>
+<td>The Monthly's slow layers, the addendum; report only</td>
 </tr>
 <tr>
 <td>Intraday captures</td>
@@ -460,7 +492,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>Several sources are pulled and watched for freshness but read by no report yet. They are there because a series cannot be given a history retroactively once its first months have passed unrecorded.</p>
 <p><strong>What the 12:30 slot reads.</strong> Only stored inputs: the session's 12:30 chain capture, the morning's dealer profile (the prior session's settled capture), the VIX's history for the volatility gate, and the 12:30 quotes the funding hooks need. It fetches nothing of its own beyond the capture, and it calls no model.</p>
 <h3>2.5 The Security Master</h3>
-<p>Every instrument the system names has one identity, kept in one reviewed file and served by one module. An instrument's id is stable and never reused. Beside it sit its asset class, currency, multiplier, exchange, its identifiers under each scheme (the store's key, the broker's id, the option root and others), its aliases and an active window. <strong>An identifier names an instrument only inside its window</strong>, so a reused ticker resolves to the right issuer on each date. A lookup returns exactly one instrument or refuses. A fact neither the repository nor a stored source holds is left empty and listed as unverified, never guessed.</p>
+<p>Every instrument the system names has one identity, kept in one reviewed file and served by one module. An instrument's id is stable and never reused. Beside it sit its asset class, currency, multiplier, exchange, its identifiers under each scheme (the store's key, the broker's id, the option root and others), its aliases and an active window. <strong>An identifier names an instrument only inside its window</strong>, so a reused ticker resolves to the right issuer on each date. A lookup returns exactly one instrument or refuses. A fact neither the repository nor a stored source holds is left empty and listed as unverified, never guessed. New ids are allocated from one declared next id on every branch, and when two branches allocate the same id the stitch that joins them renumbers the collision once (ruled 24 October), so an id, once merged, is never reused.</p>
 <p>A morning job keeps Nasdaq Trader's daily symbol directories as reference data and rebuilds the ticker history from them. It then writes <strong>a read-only export</strong>: one security per composite FIGI, with its ticker history. This is the interface chester-meme reads, and nothing in chester-reports reads it back. Indices carry no FIGI and are outside the export. The restricted names are computed into the master from the tracked-entities list at load, never written by hand.</p>
 <h3>2.6 Marks, ids and tiers</h3>
 <p>The 14 October audit added four guards to the store.
@@ -473,7 +505,17 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     - a cross-source gap: the Treasury yield indices against FRED's yields, and the VIX against FRED's copy, past each pair's measured tolerance.</p>
 <pre><code>The close prints the day's marks in its warnings table. A mark never blocks a report and never changes a value.
 </code></pre>
-<h3>2.7 Backups and the restore test</h3>
+<h3>2.7 Declared statuses, publication lags and the store check</h3>
+<p><strong>A source can be declared, not only read.</strong> The source and metric registries carry a status beside each entry, and the readers obey it:
+- <strong>refused</strong>: the source refuses automated reads (a robots rule, a terms clause, or an HTTP refusal on a polite request). The writer asks for nothing and its lines print "not tracked: <source> refuses automated reads since <date>". Nothing is scraped around a refusal, and a refused source is re-checked only when a session is told to.
+- <strong>superseded</strong>: a key replaced by another, named beside it; a superseded key may still be pulled, but no report reads it.
+- <strong>gap</strong>: a key with no admissible source, printed as a gap with its reason.
+- <strong>while held</strong>: a key that exists only while a position does.</p>
+<p>On the feed repair these statuses are read by one function, and the store check lists declared keys apart from stale ones, so a declared gap never reads as a broken feed.</p>
+<p><strong>A lag is the publisher's, never a guess.</strong> A series' age is counted from its observation date, so a source that publishes late looks stale while it is working. A table of publication-lag families adds each publisher's documented delay, with a holiday's slack and a stated bound, to the series' own allowance. A key matches the first family whose pattern fits it. On the feed repair, a computed series inherits the largest lag among its declared inputs. Where a publisher states no delay, no family is written and the source is listed instead.</p>
+<p><strong>"Dead?"</strong> The store check reads the live store read-only and lists stored keys the registry does not know, registered keys with no rows, and stale keys by their own allowance. A key past three times its allowance is marked "dead?" whatever its lag says, so a lag can never hide a source that has stopped.</p>
+<p><strong>The synthetic rows.</strong> Until late September the smoke test wrote synthetic rows into the live store. A purge tool removes them in one audited transaction, after a fresh, integrity-checked backup; it is the operator's to run.</p>
+<h3>2.8 Backups and the restore test</h3>
 <p>The nightly backup copies the database snapshot and the store's trees <strong>encrypted</strong>, through an rclone crypt remote on a separate Google account used only for backups. The sweep never syncs or deletes; retention is pruned on both sides. The report archive is in the sweep. Without its encryption settings the sweep exits rather than copying in the clear.</p>
 <p>Every Sunday a <strong>restore test</strong> pulls the newest snapshot back through the encrypted remote into a private directory. It checks the snapshot's integrity, compares its row count with the count the sweep recorded when it wrote it, and writes a status the morning heartbeat reads. A failed test, or none within eight days, turns the heartbeat's backup field red. The weekly test superseded the monthly restore drill of 14 October, which read the old plaintext remote; the drill is never enabled.</p>
 <p>Two other paths are kept apart from the encrypted remote. The inbound files the operator drops in Drive (the AAII row, the GLD archive, the X pilot's files, the Alpha Lab's inbox) are read through a read-only remote. The Alpha Lab's verdicts go out through a third remote that can write only its own files, to a top-level Drive folder of its own, <code>chester-lab-outbox</code>.</p>
@@ -490,8 +532,8 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h3>3.1 One description of the market</h3>
 <p>Once a session, after the close, the system computes one object that describes the market in a fixed vocabulary. Every report reads it; nothing else computes a regime. The object is stored like any other observation, with its own knowable time, so a report written for a past date reads the object as it stood then.</p>
 <p>The machinery that computes it holds no market knowledge of its own. Every dimension, member series, threshold and polarity is declared in one configuration file, and each line carries a short "because" that says why the rule points the way it does. Changing the description of the market therefore means changing a declared rule, through the same ratification path as any other rule, rather than editing code.</p>
-<h3>3.2 The eight dimensions</h3>
-<p>The object describes the market along eight dimensions. Each has three states, and each reads an ordered list of member series. The first member is the <em>primary</em>: it alone sets the state, by asking where today's value sits in its own five-year history. Roughly, the top third of that history gives the first state, the middle third the second and the bottom third the third, with the direction reversed where a high reading means the opposite thing. The other members are <em>evidence</em>. A member in the same band as the state is listed as supporting; a member in a different band is listed as contradicting. This is deliberately not a composite score. A composite would average away exactly the disagreements a reader most needs to see, so the object reports the primary's state and lists the disagreement beside it.</p>
+<h3>3.2 The dimensions</h3>
+<p>The object describes the market along a declared set of dimensions: the eight it began with, five added in its second version (6f), and two declared and absent. Each has three states, and each reads an ordered list of member series. The first member is the <em>primary</em>: it alone sets the state, by asking where today's value sits in its own five-year history. Roughly, the top third of that history gives the first state, the middle third the second and the bottom third the third, with the direction reversed where a high reading means the opposite thing. The other members are <em>evidence</em>. A member in the same band as the state is listed as supporting; a member in a different band is listed as contradicting. This is deliberately not a composite score. A composite would average away exactly the disagreements a reader most needs to see, so the object reports the primary's state and lists the disagreement beside it.</p>
 <p>When nothing disagrees, the object says "none found" as a positive claim rather than leaving the field empty. When a dimension cannot be computed, it says why: no series, no fresh series, or no registry entry. Freshness is judged against each series' own reporting rhythm (a weekly series is allowed more sessions than a daily one), and a dimension whose primary is older than a declared multiple of that allowance goes absent rather than reporting a stale state.</p>
 <table>
 <thead>
@@ -549,12 +591,44 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>Volatility</td>
 <td>elevated / normal / subdued</td>
 <td>The VIX, same day</td>
-<td>FRED's VIX series; SPY's 20-day realized volatility</td>
+<td>FRED's VIX series; SPY's 20-day realized volatility; Cboe's SKEW, which never makes a tail verdict</td>
+</tr>
+<tr>
+<td>Positioning</td>
+<td>crowded / neutral / light</td>
+<td>Margin debt's twelve-month change</td>
+<td>Leveraged money's Treasury-futures positioning; a leveraged fund's assets</td>
+</tr>
+<tr>
+<td>Sentiment</td>
+<td>euphoric / neutral / fearful</td>
+<td>The AAII bull-bear spread</td>
+<td>SPY's put/call volume (inverted); Michigan's sentiment</td>
+</tr>
+<tr>
+<td>Valuation</td>
+<td>rich / fair / cheap</td>
+<td>The CAPE, ranked over its full history, with a five-year read beside it</td>
+<td>Households' equity share</td>
+</tr>
+<tr>
+<td>Funding stress</td>
+<td>stressed / watch / calm</td>
+<td>SOFR against the Fed's reserve rate, on absolute bands</td>
+<td>The commercial-paper-to-bill spread; the St. Louis Fed's stress index; the Fed's repo facility for foreign official holders</td>
+</tr>
+<tr>
+<td>Policy</td>
+<td>tightening priced / on hold / easing priced</td>
+<td>The 2-year yield against effective fed funds, on absolute bands</td>
+<td>The market's gap to the Fed's path; the real policy rate</td>
 </tr>
 </tbody>
 </table>
 <p>Two notes belong with the table. Growth has no daily series, so its state moves with the weekly claims data and lags the market. Breadth is measured across the eleven sector funds, not across every stock, and so understates how narrow a market led by a few large names can be. The object says both things in its own text.</p>
-<p><strong>No sub-states.</strong> The object holds the eight dimensions and nothing finer.
+<p><strong>The five added dimensions are report-only.</strong> No dial, band, packet or engine reads them; they describe. Where a series has a natural zero (a funding spread, the policy gap), its states sit on fixed bands rather than on percentiles, because "above zero" means something a percentile cannot say.</p>
+<p><strong>Two dimensions are declared and absent.</strong> <em>Earnings</em> (upgrading, flat, downgrading) waits for a public, keyless index forward-earnings series with history, and then for a year of it. <em>Geopolitical</em> (elevated, normal, quiet) waits for a source-checked risk index with a long history and a ruling that admits it. Each prints absent with that reason. A <em>tail</em> dimension is not declared at all: the Twenty-Five forbids a single tail index, so the tails are kept as families (§3.11).</p>
+<p><strong>No sub-states.</strong> The object holds its dimensions, the per-horizon reads, the tail families and the debt-cycle branch (§3.9 to §3.11), and nothing finer.
 - <strong>The rates driver is withdrawn.</strong> It was a four-cell reading of why yields moved, and it failed its calibration gate twice in late September. A return needs a new pre-registration and a new rules version. What prints instead is each term-structure model's path-and-premium split, dated, with a flag for whether the models agree; it decides nothing.
 - <strong>The inflation driver is a read beside the object.</strong> It was ruled as an inflation sub-state, but it prints as a report-only line in the Monthly, outside the object, which carries no driver on inflation.</p>
 <h3>3.3 The three dials</h3>
@@ -567,7 +641,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h3>3.5 The contradiction table</h3>
 <p>The dimensions describe each market on its own terms. The contradiction table asks whether markets that usually agree have stopped agreeing. It holds a declared list of pairs, including price against breadth, equities against high-yield credit, the long bond against high yield, implied volatility against realized, growth against cyclical stocks, the gamma dial against the trend, and each active story against the data. Each pair has a plain-language description of what each side is saying and what would close the gap.</p>
 <p><strong>The gap z-score, for a reader.</strong> For a pair of series, the system takes each series over the same five-year window and expresses each day's value as a z-score: how many standard deviations it sits from its own five-year average. It subtracts one from the other, with the signs arranged so that normal agreement is the baseline. That daily difference is the <em>gap</em>. The question is then how unusual today's gap is compared with the gap's own five-year history, so the gap is itself turned into a z-score. A gap z of 2 means the two markets are further apart than they have been on roughly 95% of days in five years. It is a statement about the relationship, not about either market's level: both can be unremarkable on their own and still disagree unusually. The two series are aligned on common dates first, a slower series being read as of the faster one's dates, and a pair with too few common dates prints no magnitude rather than an unreliable one.</p>
-<p>A pair <em>opens</em> when its gap z has been at or beyond the declared threshold for the persistence number of sessions, and the date of the first session of that run is kept as its "since". In the code as it stands, an open pair closes on the first session the condition fails. Some pairs, such as gamma against trend, are state mismatches with no magnitude at all, and a reserved pair for prediction markets prints absent until its own gate opens.</p>
+<p>A pair <em>opens</em> when its gap z has been at or beyond the declared threshold for the persistence number of sessions, and the date of the first session of that run is kept as its "since". Since the object's second version the close is symmetric: an open pair closes only after the condition has failed for the same number of sessions, showing <em>closing</em> in between and keeping its "since". Some pairs, such as gamma against trend, are state mismatches with no magnitude at all, and a reserved pair for prediction markets prints absent until its own gate opens.</p>
 <h3>3.6 Exceptions</h3>
 <p>An exception is something the reports must surface even when no state moved. There are two kinds. A <strong>contradiction exception</strong> is an open pair that has stayed open for a declared number of sessions; the plain-language label is "a gap between two markets held past five sessions". An <strong>extreme exception</strong> is any member series at a five-year extreme, meaning a percentile at the very top or bottom of its history, reported even when its dimension's state did not change, unless the reading is itself stale. Exceptions are listed contradictions first, and they are report-only: they inform; they do not alert and they do not trigger. The Weekly prints its open exceptions in three tiers, each with its resolution path, catalyst and invalidation:
 1. a <em>potential leading indicator</em>;
@@ -579,6 +653,16 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>The mapping and the bands live with the risk limits, not with the object. The object describes the market; the Doctrine's regimes are a use the book makes of that description.</p>
 <h3>3.8 Why no report recomputes regime</h3>
 <p>Every report reads the object through one reader that reads and never computes. The close is the object's only writer. The reason is simple and absolute. A report that computed its own regime could disagree with the close's, and then the system would hold two regimes and no way to say which one a decision was taken under. The grading in Part IX depends on every decision being attributable to one description of the market at one moment. A second regime anywhere would break it.</p>
+<h3>3.9 Per-horizon reads</h3>
+<p>The trend dimension is read three times, once at each book's horizon: the 20-day average's slope for the days of Book C, SPY against its 50-day average for the weeks of Book B, and SPY against its 200-day average for the months of Book A, which is the trend dimension's own primary. Each read has the dimension's bands and persistence. The three are stored side by side and never collapsed into one, because the organising principle says the object holds the view per horizon. On this chain nothing that acts reads them, and no report prints them; the register's weekly alignment stamp, which will read the weekly one, is on a later branch (Appendix E).</p>
+<h3>3.10 Calibration</h3>
+<p>The object's states are now graded as states. For each dial, the published state on a session and the published state a declared number of sessions later make one pair, both read from stored objects and never recomputed with today's code; the horizons are the three books', in sessions. The share of pairs from a state that end in each other state is a transition probability, counted and not modelled. A row prints a probability only once its state has a declared minimum of independent starts (starts far enough apart not to overlap). Until then it prints "uncalibrated (n = k of 30)", never a number and never an empty field. A calibrated row's probabilities are smoothed by adding one half to each count, so none is zero or one.</p>
+<p>Only the dials' rows reach the probability ledger, and only once calibrated: each evening the close writes them and resolves the rows that have come due. The dimensions' transition table prints in the Monthly and is never ledgered. The close prints one line of the dials' rows, and the Weekly and the Monthly a table. The first read on the box will be uncalibrated everywhere, because the stored history under the current method is short; that is the expected state, not a fault. A read never uses an object computed after its own cutoff.</p>
+<h3>3.11 Tail families and the debt-cycle branch</h3>
+<p><strong>The tail families</strong> are the Twenty-Five's seven mechanism families, one row each and never summed. A family's state is <em>watch</em> when one of its first-mover series is at a five-year extreme, <em>quiet</em> when all are read and none is, and <em>not read</em> when none is stored. Every family's probability is "none": the prediction-market rights are discovery only, their calibration gate is not met, and no ruling grants more. The Monthly prints the table in Slow layers, and the Weekly one line.</p>
+<p><strong>The debt-cycle branch</strong> carries its observables (the deficit's share of output, the real 10-year yield, the 10-year breakeven and gold), each as a level with its percentile, and a state of "none", because the diagnostic that would set it belongs to a paper not yet written. It prints in the Monthly's Slow layers only.</p>
+<h3>3.12 What the object may not read</h3>
+<p>Some series are barred from the object by name. A registry field marks each barred key with the order and rule that barred it, and a gate refuses any barred key as a dimension member, a dial leg or a horizon read. A bar can be narrow, applying to one instrument of a key and not another. It exists so that a series admitted to the store for one report, a vendor's or a by-hand figure for example, can never become part of the one description of the market by accident.</p>
 <hr />
       </div>
     </details>
@@ -681,7 +765,8 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - <strong>the dealer block:</strong> the session's positioning from the three captures, its quality panel, the horizon matrix, a dealer chart, and three fixed sentences per capture held by the flag-word audit (§5.2);
 - <strong>the ES block:</strong> the e-mini future's levels on three timeframes;
 - <strong>the state-vector line</strong> (§8.3);
-- <strong>the volatility-event block</strong>, on a day the event flag fires: a nine-lens attribution table and a base rate from stored history;
+- <strong>the event area</strong> in Mechanics, each block printing only on its trigger (§4.7);
+- <strong>the calibration line</strong>: the dials' transition rows, "uncalibrated" until they calibrate (§3.10);
 - <strong>a line counting chester-meme's drafts;</strong>
 - <strong>the day's data-quality marks</strong> in its warnings (§2.6).</p>
 <h3>4.5 The Weekly</h3>
@@ -704,7 +789,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p><strong>Mechanics: the dealer retrospective.</strong> Mechanics goes deep on the Monthly, and what it carries is a retrospective of the month against dealer positioning. It reads the month's stored dealer scorecard rows, one per session, written by the close; it recomputes nothing. Each session is flagged by the Weekly's own rule, so a session is <em>pinned</em> in the Monthly exactly when it was pinned in its Weekly. The flags are pinned (the close near max pain), held (a wall touched and the close inside it), amplified (the flip crossed and the range well beyond the implied one), and an implied-volatility check (SPY's own at-the-money volatility against the VIX). The month's counts and hit rates are taken over the sessions on which each flag could be computed. <strong>The twenty-session rule:</strong> below a declared floor of scored sessions, set in configuration (Appendix A), the counts are not printed as rates, the section says "insufficient sessions (n = …)", and the model is not asked for prose. When prose is written, a flag-word audit holds it to the per-session table: a sentence that says pinned, held or amplified must name a session whose flag is set, or carry that flag's own count for the month.</p>
 <p><strong>Slow layers.</strong> The eleventh section holds what moves too slowly for a Weekly: valuation, base rates (the Top &amp; Bottom record and the bear-rally base rate), tails, and themes (the alternative assets). Its figures print in <strong>triple form</strong>: the latest value, its long-run average and its percentile, each with its data-as-of date and its window. Until the metric lenses are built, the average is taken over the store's full history and the percentile over five years where the store holds them; a shorter history prints its own start and sample size. The equity risk premium and the dividend yield wait for the lenses and say so. Slow layers also prints the newest edition of each scan's reference table from the store, with its source line. The scans' tables are ingested as sourced figures, each with a URL, the scan's own section reference and an as-of date, and an advice row is refused and named.</p>
 <p><strong>Reading.</strong> The Reading chapter is built from the committed reading register and watchlist with no model call. It lists the month's read and listed editions in the watchlist's group order. Each is a hyperlinked title line naming the publisher, the publication date, the data-as-of date where it differs and the scan, followed by the stored summary for a deep or skim item and the one-liner for a list item. An item with no URL is not printed and is counted in the footnote; a pending item never prints; a shelf entry the daily voices scan already stored is printed once and named. The month's window runs from the prior month-end to this one, so consecutive Monthlies tile. Then comes the coming month's due list. The summaries are stored text: escaped, never polished, trimmed or audited, outside the prose budget and inside the reading time.</p>
-<p><strong>Charts M1–M9.</strong> The Monthly draws its own set with the Weekly's chart primitives, from the store at edition time: SPY over three years in weekly candles (M1) and over ten years in monthly candles with the drawdown from the high (M2), each drawing only the levels the tape's prose is given; the dealer retrospective (M3); the 10-year yield with its term premium (M4); twenty years of the high-yield spread with its percentiles (M5); speculative positioning as z-scores (M6); breakevens and the implied policy path at month start against month end (M7); the scenario weights and their Brier scores by edition (M8); and Book Z against the account's value (M9), whose caption says that the books are not yet marked one by one. Each chart sits in the section or sub-section it illustrates, inside the chart cap, and counts toward the reading time.</p>
+<p><strong>Charts M0–M13.</strong> The Monthly draws its own set with the Weekly's chart primitives, from the store at edition time: three months of SPY's daily candles with its 50- and 200-day averages, which prints first in The tape (M0); SPY over three years in weekly candles (M1) and over ten years in monthly candles with the drawdown from the high (M2), each drawing only the levels the tape's prose is given; the dealer retrospective (M3); the 10-year yield with its term premium (M4); twenty years of the high-yield spread with its percentiles (M5); speculative positioning as z-scores (M6); breakevens and the implied policy path at month start against month end (M7); the scenario weights and their Brier scores by edition (M8); and Book Z against the account's value (M9), whose caption says that the books are not yet marked one by one; the fed funds futures' implied path at month start against month end (M10); what is carrying the index, the S&amp;P 500 against its earnings and its multiple (M11); the dealer panel, when the month's settled profiles exist (M12); and a watched mechanism's supply against its design (M13), the first set aside when the cap binds. Each chart sits in the section or sub-section it illustrates, inside the chart cap, and counts toward the reading time.</p>
 <p><strong>What the Monthly gained since Draft 2.</strong>
 - The Factor lines and the Rate machine summary.
 - The dealer retrospective with its figures.
@@ -715,11 +800,13 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - The Lab report, attached from the Alpha Lab.
 - The <strong>system-metrics block</strong>: uptime, feed completeness, incidents, model calls and withheld drafts, printed only as recorded.</p>
 <p>The chart set is capped at twelve (Appendix A).</p>
-<p><strong>Budget, prose and fallback.</strong> Each section's prose is one audited model call, with the one revision of §5.3. Over the word budget, code trims the appendix first, then the last of several paragraphs, back to front, and marks the cut "(trimmed)"; the Reading chapter is never cut. A fault in the stacked edition does not stop the Monthly: it degrades to the storyline render. A dry run builds with the model and reads the prior Monthly from the real archive, so its change marks are real, but writes only to a dry-run folder: no fetch, no scans ingest, no snapshot and no dashboard state, and, if asked, one email under a "[DRY RUN]" subject. The scenario weights are read from the probability ledger and are never written by the Monthly; until a scenario register is ruled, the block says the ledger holds none.</p>
-<h3>4.7 The anchor in the morning, the 12:30 slot, and the close's detail tables</h3>
-<p>A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a <strong>What changed</strong> block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile and the levels moved behind it. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked. Since Draft 2 it carries:
+<p><strong>Budget, prose and fallback.</strong> Each section's prose is one audited model call, with the one revision of §5.3. The word budget is a target, not a cap: nothing is cut or withheld for length, and an edition over its target prints one line at its foot saying how long it runs against the target. A fault in the stacked edition does not stop the Monthly: it degrades to the storyline render. A dry run builds with the model and reads the prior Monthly from the real archive, so its change marks are real, but writes only to a dry-run folder: no fetch, no scans ingest, no snapshot and no dashboard state, and, if asked, one email under a "[DRY RUN]" subject. The scenario weights are read from the probability ledger and are never written by the Monthly; until a scenario register is ruled, the block says the ledger holds none.</p>
+<h3>4.7 The anchor, the two notes, the 12:30 slot and the close</h3>
+<p>The weekday runs on five touches: the anchor at 07:00, the open note at 09:50, the alert-only slot at 12:30, the close at 16:45 and the evening note at 21:30. The anchor and the close are the reports of record; the two notes and the slot check in between them, and none of the three in between has a right the reports of record do not give it.</p>
+<p><strong>The anchor.</strong> A morning anchor runs before the open. It reads the previous session's state object without recomputing it and opens on a <strong>What changed</strong> block: states moved, extremes set or cleared, dials moved, contradictions opened, closed or persisting, coverage changed, every magnitude stamped with its percentile and the levels moved behind it. A quiet session prints "nothing changed" as a positive statement. The anchor is not stacked. Since Draft 2 it carries:
 - the ES block;
 - the volatility-event block on the morning after an event;
+- the volatile-day flag: each of its arms with its reading and as-of, the gap provisional until the open note settles it, printed and never applied;
 - the signal lines: the auction, the FOMC-week gap, the yen flag and the rally inside a bear, each only on its trigger;
 - the meme-drafts line;
 - <strong>the opening setup</strong>, under the prior close's dealer surface:
@@ -727,23 +814,33 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     - three daily volatility lines (the VIX against realised volatility, the term structure's stress, and the short end's spike);
     - "Largest OI builds, side unknown", with each build's estimated premium, its chance in the money and its context tags;
     - two put-volume proxies, for SPY and SPX, each labelled no side.</p>
-<p>None of these says who opened a position, because the chains cannot tell. A pre-market line on the gauge, from the e-mini's overnight print, is ruled and not built on this chain (Appendix E).</p>
+<p>None of these says who opened a position, because the chains cannot tell. The gauge opens on a pre-market line from the e-mini's overnight print, and SPX's and SPCX's cells read "awaiting the solver gate" until their greeks pass it.</p>
+<p><strong>The open note</strong> runs at 09:50 on weekdays, after the 08:30 releases and the first twenty minutes of trading. It fetches first, into the store only: five-minute bars from 08:00, a targeted pull of the morning's releases, news and a short voices pass. It then reads, in order, the 08:30 releases and the market's reaction, the open against the anchor's expected-movement gauge, the news since 07:00, Book C, and what the close will check; the volatile-day flag prints completed, with the gap settled from the 09:30 open. It may confirm or cancel Book C's 07:00 drafts and never add one; while no 07:00 setup list is built it says so. It asks the model for a paragraph only when its gate opens (a top-tier release, a gap or an early range beyond the gauge, the close's volatility trigger, or the flag), and the paragraph has a hard word cap: past it, the paragraph is withheld, never trimmed.</p>
+<p><strong>The evening note</strong> runs at 21:30 from Sunday to Thursday. It fetches the futures, Asia, currencies, crypto, the yuan's fixing, news, earnings and after-hours moves into the store, then prints the futures since the close (on Sunday, the open against Friday), the after-hours earnings, Asia, currencies, crypto, the news and tonight's Book D drafts. It has no rights. On a quiet weekday it prints one line, that there is nothing to do tonight and the anchor will re-read it all; it asks for a paragraph only when a market has moved past its declared threshold, and always on Sunday. The meme ingest runs a quarter of an hour before it, so tonight's drafts are in.</p>
+<p><strong>Both notes</strong> start as dry runs, mailed under a "[DRY RUN]" subject until the date declared in configuration, write their edition and payload to the archive, append to the withheld-drafts log, and report a fault as a heartbeat warning rather than a failure. Each makes at most one model call and one revision, inside the meter, and none when its gate is shut. Their timers are the operator's to enable (Appendix A).</p>
 <p><strong>The 12:30 slot</strong> is alert-only. After the 12:30 capture it evaluates a list of gates:
 - the dealer flip crossed by a confirmed margin;
 - the VIX rising past the event threshold (upward only);
 - the yen-unwind tell;
 - the yuan devaluation tell's tracked legs.</p>
 <p>When every gate stays closed, the slot writes nothing and sends nothing. When one opens, it writes the open gates' trigger lines, code-written, to the outbox and mails them once, under the subject "12:30 alert". No model is called.</p>
+<p><strong>The event area.</strong> The close's Mechanics carries a set of event blocks, each printing only on its own trigger, each report-only, and each repeated at depth in the Weekly's and the Monthly's Mechanics:
+- <strong>the volatility event:</strong> a one-day or five-day move in the VIX past its thresholds, a crossing of the volatility dial's band, or compression, with a nine-lens attribution and a base rate from stored history; the anchor reprints it the morning after;
+- <strong>the rates speed flag's attribution:</strong> when the 10-year moves unusually fast over two weeks or a month, the term-structure models' split of the move into path and premium;
+- <strong>the one-day 10-year move:</strong> when the day's absolute change in the 10-year is beyond its declared five-year percentile, either way, the attribution runs, under a ledger pre-registered for it; it reads "not read" while the history is too short;
+- <strong>the gold event:</strong> a large one-day or five-day move in gold, with the legs that usually explain it (the real yield, the dollar, oil);
+- <strong>the developed-market drawdown screen:</strong> an index's drawdown over ten or twenty sessions past its five-year percentile, for the indices a keyless daily source serves; the others print "not tracked".</p>
+<p>None of these is a state of the object, and none reaches a dial, a band or a decision.</p>
 <p>The stacked close does not open on that block. Its state table and its contradiction table print at the <strong>end</strong> of the edition as detail tables, after The book and before the glossary, read from the stored object the close's payload carries and never recomputed. The order is deliberate: the ten sections say what the session did, and the tables are there for the reader who wants the object itself. Only the pre-stack form of the close, kept as a fallback, opens on What changed.</p>
 <h3>4.8 The reports that are specified but not built</h3>
-<p><strong>The Alternative Assets Quarterly is built and not yet running.</strong> It is the fourth cadence of the same stack. The ten sections over the previous quarter make its front matter, and eleven family chapters make its slow layers, every item tiered as lead or reference. Its timer ships disabled, and its first edition is planned for the second Saturday of January 2027.</p>
+<p><strong>The Alternative Assets Quarterly is built and not yet running.</strong> It is the fourth cadence of the same stack. The ten sections over the previous quarter make its front matter, and eleven family chapters make its slow layers, every item tiered as lead or reference. Its timer ships disabled, to be enabled by the operator after its December dry run, and its first edition is planned for the second Saturday of January 2027.</p>
 <p>Four reports appear in the architecture and are not built.</p>
 <p><strong>The Quarterly Structural</strong> is planned as the quarter-end report on structural positioning, the tail budget and the states of the long-horizon themes: the Disruptive Themes factor states, the tail families, a rewrite of the library guide's executive summary and a review of the international sleeve, opening on a table of system metrics. It has a place in the work plan and no specification document yet.</p>
 <p><strong>Disruptive Themes</strong> has a reserved dashboard identity and has been re-cadenced from monthly to quarterly, folded into the Quarterly Structural.</p>
 <p><strong>Top &amp; Bottom</strong> is no longer planned as a standalone report. It becomes a state variable, a verdict and a composite printed inside the Monthly and the Weekly. The Monthly already carries its place, under Slow layers' base rates, which prints that the harness is not built until it is.</p>
 <p><strong>The Thailand quarterly</strong> is a short, isolated monitor of a personal exposure, with alerts on the currency, the central bank and payment dates. It sits outside the dials and the register by design, can never trigger anything, and is deferred to the end of the roadmap.</p>
 <h3>4.9 The chart-and-prose rule</h3>
-<p>Charts and prose describe the same market, so they must describe the same levels. (Each report's chart cap is in Appendix A, with what the dealer charts displace when they enter: in the Weekly the prediction-market chart, and the second positioning panel when a contradiction chart is open; in the Monthly the scenario chart; in the close the second daily chart.) Before a report is assembled, the system computes one <strong>level list</strong> for the edition. Each level (prior close, session range, the moving averages, the week's range, the 52-week extremes, the dealer levels) carries its value, source, as-of time and a status: <em>held</em>, <em>broke</em> or <em>untested</em>, set by a declared rule. The prose may name only levels on the list, and may say "held" or "broke" only where the list says so. A chart may draw only levels on the list. A gate holds both to the one object. Charts carry no verdicts. A chart that cannot be drawn prints "chart unavailable" with the reason. The email carries each chart as a small image; the archive keeps it as a scalable file.</p>
+<p>Charts and prose describe the same market, so they must describe the same levels. (Each report's chart cap is in Appendix A, with what the dealer charts displace when they enter: in the Weekly the prediction-market chart, and the standing decomposition too when a contradiction chart is open and no trigger fired; in the Monthly the scenario chart; in the close the second daily chart.) Before a report is assembled, the system computes one <strong>level list</strong> for the edition. Each level (prior close, session range, the moving averages, the week's range, the 52-week extremes, the dealer levels) carries its value, source, as-of time and a status: <em>held</em>, <em>broke</em> or <em>untested</em>, set by a declared rule. The prose may name only levels on the list, and may say "held" or "broke" only where the list says so. A chart may draw only levels on the list. A gate holds both to the one object. Charts carry no verdicts. A chart that cannot be drawn prints "chart unavailable" with the reason. The email carries each chart as a small image; the archive keeps it as a scalable file.</p>
 <h3>4.10 What each report writes</h3>
 <table>
 <thead>
@@ -774,6 +871,22 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>None</td>
 </tr>
 <tr>
+<td>Open note</td>
+<td>Weekdays, 09:50</td>
+<td>The morning's releases, bars and news; the anchor's gauge; Book C's drafts</td>
+<td>Store (its own fetch); archive; one mail; heartbeat</td>
+<td>A hard cap, paragraph only on its gate</td>
+<td>One</td>
+</tr>
+<tr>
+<td>Evening note</td>
+<td>Sunday to Thursday, 21:30</td>
+<td>Futures, Asia, currencies, crypto, after-hours moves, news; tonight's Book D drafts</td>
+<td>Store (its own fetch); archive; one mail; heartbeat</td>
+<td>A hard cap, paragraph only on its gate (always on Sunday)</td>
+<td>One</td>
+</tr>
+<tr>
 <td>Weekly</td>
 <td>Sunday morning</td>
 <td>Store, object, register, ledger, voices</td>
@@ -787,7 +900,15 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>Store, object, register, ledger, voices, scans, the reading register</td>
 <td>Scan figures to the store; snapshot; archive; dashboard state</td>
 <td>Largest</td>
-<td>M1–M13</td>
+<td>M0–M13, capped</td>
+</tr>
+<tr>
+<td>Digital Assets addendum</td>
+<td>With the Sunday Weekly, from 1 November</td>
+<td>The crypto data layer, the store, the X digest's ledgers</td>
+<td>A second PDF with the Weekly's mail</td>
+<td>A target, as the Weekly's</td>
+<td>Up to two</td>
 </tr>
 <tr>
 <td>12:30 slot</td>
@@ -923,11 +1044,12 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </table>
 <h3>5.3 Withhold with a reason, and the one revision</h3>
 <p>A paragraph that fails is never rewritten by code and never "fixed" quietly. It is <strong>withheld</strong>, and the reader sees a short note saying which audit failed and on which figure. The tables and items of a section print even when its prose is withheld, so the reader loses the commentary, not the facts. An outage reads differently from a refusal: "model call failed" is never confused with "audit failed". The rejected text is kept out of the edition so that it cannot be published by accident.</p>
-<p>A section the audit withholds gets <strong>one revision</strong>, in the stacked sections, the Weekly's précis, the close's paragraph and the anchor's. The model is told three things:
+<p>A section the audit withholds gets <strong>one revision</strong>, in the stacked sections, the Weekly's précis, the close's paragraph, the anchor's, the two secondary notes and the Monthly's storyline fallback. The model is told three things:
 - the rule the draft broke, in the rule's own words;
 - the failing span: the sentence holding each refused figure or quoted fragment, or "the draft as a whole" when the fault is its length or shape;
 - the draft itself, with the instruction to revise exactly that span and change nothing else.</p>
-<p>If the revision fails, the section is withheld, with both reasons kept. Only an audit's refusal is revised. A fault is not: a failed API call, a malformed payload, a prompt past its guard or a reply that overran its length. The Monthly's storyline fallback writer still runs its own loop of up to three attempts, telling the model the reason but not the span. Its move to the one revision is on the third chain (Appendix E). The voices block makes one attempt only.</p>
+<p>If the revision fails, the section is withheld, with both reasons kept. Only an audit's refusal is revised. A fault is not: a failed API call, a malformed payload, a prompt past its guard or a reply that ran away. The voices block makes one attempt only.</p>
+<p><strong>Length is no longer an audit.</strong> Since the ruling of 24 October that budgets are targets, the paragraph guard cuts nothing: a long reply is marked over its target and prints whole. What remains is a runaway guard, a character ceiling well above any honest paragraph, which withholds a reply that has plainly run away rather than one that is merely long. The figure cap per paragraph and the withholding of a repeated sentence stand. The audits of §5.2 are unchanged since Draft 3.</p>
 <h3>5.4 No stored source, not printed</h3>
 <p>A view attributed to a named person or institution may print only if the system holds a stored row for it with a URL, a publication date, the moment it was retrieved and a source tier. The rule is enforced when a voice is written, not when it is printed: a row missing any of the four is refused, and stored voices cannot be edited or deleted. A voice whose extracted view fails the style or policy rules still prints its name, source and status, with the view itself withheld and the reason given.</p>
 <h3>5.5 Attributions, not causes</h3>
@@ -949,17 +1071,19 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>Each weekday morning, before the overnight fetch, a scan reads a declared list of public sources in priority order: officials first (central banks, finance ministries), then the published views of large asset managers, then news. It obeys each site's robots.txt, re-read on every run. It identifies itself honestly and does not run at all without a contact address configured. It reads only public pages: no paywalls, no email, no personal sources.</p>
 <p>For each new item, the scan makes one model call, under a daily cap, to extract who said it, on which declared subject, in which direction (bullish, bearish or neutral) and over what horizon, with a short quote. The article itself is held in memory only and never stored. A source the scan cannot read is recorded as unreachable with its reason, and the reports print "unreachable" for it rather than presenting its last view as current.</p>
 <p><strong>Status is computed, never declared.</strong> Comparing each voice's new entry with its earlier ones gives one of four statuses. NEW means no earlier entry from this voice. REITERATED means the same subject and the same direction. INFLECTED means the same subject and a different direction. SILENT means an entry in the prior window and none in this one, which becomes UNREACHABLE when the source itself could not be read. The model supplies a direction; code decides what changed.</p>
+<p><strong>The register names the outlet.</strong> A source entry names the firm, the publication or the feed, never a person, under a standing ruling of 24 October; a view from one person's newsletter is entered as its outlet. The rule governs the declared source list and is applied by the session that adds a source; it is not a check in code.</p>
 <p>The scan also feeds the <strong>four stories</strong> the system tracks: that AI capital spending keeps growing, that deficits drive long-term rates, that the yen carry trade unwinds, and the midterm-year pattern. Each story has declared evidence that counts for or against it (earnings, inflation surprises, currency and bond moves, headlines matched by declared patterns) and a declared outcome against which it is eventually graded. Evidence rows are written directly. A story's state (emerging, consensus, contested, fading) moves only by declared rules, and a new story the model proposes waits behind the operator's confirmation.</p>
 <h3>6.3 The signal intake and its register</h3>
 <p>Any proposal to add a signal, from any scan or any reading, enters through one intake template with six fields: where it would live, its mechanism, its data, the rights requested, how it would be validated, and its disposition. Every proposal gets a numbered entry in the signal-triage register (SR-1, SR-2, …), and numbers are never reused. The rights a signal may request run from none, through "base rate only" and a narrow flag, up to a confidence modifier or a composite input. Everything enters at the lowest class: nothing from the intake can block a decision, produce a packet, enter a composite or change a theme until its gate is passed.</p>
-<p>Since Draft 2 the register has grown from Batch 5 to Batch 9: items 16 to 52 are filed, and most of the first tranches are built:
+<p>Since Draft 2 the register has grown from Batch 5 to Batch 15: items 16 to 78 are filed (Batch 10 was never used), and most of their first tranches are built:
 - the index cluster and the allocation block;
 - the labour, CPI, PPI and GDP lenses and the surprise index;
 - the ES block;
 - the digital-assets items;
-- the volatility event.</p>
-<p>What is built is report-only: nothing from these batches has been promoted to a right. The calibration ledgers that would grant rights are in §9.9; on 19 October the operator accepted their first gate statuses as drafted, and none passed into a right.</p>
-<p>The commissioning brief for this paper also describes a Monthly signal scan on the 25th, feeding this register. The repository records the intake and the register but not a scan by that name, nor its prompt. Appendix A marks it "schedule per the scheduled task".</p>
+- the volatility event;
+- the opening setup's amendments, the bank-stress panel, relative options volume, the capex chain, the cross-house capital-market assumptions, the fragility and gold-event panels, and the cyber and protocol lines.</p>
+<p>Items 16 to 78 carry their batch numbers as ids; their register numbers are assigned at a Doctrine sitting, not at filing. What is built is report-only: nothing from these batches has been promoted to a right. The calibration ledgers that would grant rights are in §9.9; on 19 October the operator accepted their first gate statuses as drafted, and none passed into a right.</p>
+<p>A <strong>Monthly signal scan</strong> on the 25th feeds this register: a chat-side task writes a scan file of candidates for the operator to rule on. Its time, output and the decision that created it are in the scheduled-tasks record; its prompt is outside the repository. Its first run is due on 25 October 2026.</p>
 <h3>6.4 The quarterly read of the Guide to the Markets</h3>
 <p>Once a quarter, shortly after J.P. Morgan publishes its Guide to the Markets, a scheduled task reads the new edition and compares it with a reference table kept from the previous read. It records the deltas, notes what does not fit the system's own description of the market, writes any candidates in the intake template, adds a voices entry for the Guide, and refreshes the reference table. A short chat summary follows, then rulings, then that month's change-order batch. The Guide's recommendations never print. What may be adopted from it is narrow: a base-rate row, a modifier, a sourced figure or a voices entry. The task's prompt lives outside the repository.</p>
 <p>The read of 6 October produced <strong>the GTM batch</strong>: eleven adopted items. Each is computed from the system's own data where that data exists. Where it does not, the item is stored as a sourced figure with its slide reference.</p>
@@ -977,10 +1101,14 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - an idle-GPU flag;
 - a thesis status with its trace.</p>
 <p>The supply gap is ESTIMATED until the chain's explorer can be read; that explorer is a listed gap until an endpoint within its robots.txt and terms is found. Venue concentration is not tracked. CoinGecko, the original source, is retired under its terms.</p>
-<p><strong>The X digest</strong> is a chat-side pilot since 17 October: a scheduled task reads a seed list of handles and topics into Drive, and a reader task keeps the attention and voices ledgers. The operator rules on candidates in chat; the xAI path on the box is a decision, not a build. <strong>The MSTR/MSCI event watch</strong> runs from 2 to 30 November, reading Strategy's mNAV from the store.</p>
-<p>Two further scheduled tasks run outside the repository on their own calendars. A <strong>consensus-drift scan</strong> every second month follows how expert opinion on the long-horizon AI risks is moving, under a reserved register entry with no rights yet. Neither task's prompt is in the repository, and Appendix A marks both "schedule per the scheduled task".</p>
+<p><strong>The X digest</strong> is a chat-side pilot since 17 October, built as three files on Drive:
+- a daily digest file, written by a scheduled task from a seed list of handles and topics;
+- an attention ledger and a voices ledger, kept by a triage task that reads the digest each morning.</p>
+<p>The box's nightly sweep copies all three into its inbox, and the digital-assets addendum reads them; nothing else in the repository does. The seed list is the chat-side task's own prompt, not a file in the repository, and accounts that publish only on X are added to it in one batch a month (a standing ruling of 24 October). The digest's rights are attention only: an X post never earns measurement rights by its volume, and candidates go to the intake for a ruling. The xAI path on the box is a decision, not a build.</p>
+<p><strong>The MSTR/MSCI event watch</strong> runs on weekdays from 2 to 30 November, with a post-effective read on 1 December. It records the index review's notices to a Drive file and sends a short push; no reader in the repository reads that file, and the addendum reads Strategy's mNAV from the store.</p>
+<p>A <strong>consensus-drift scan</strong> every second month follows how expert opinion on the long-horizon AI risks is moving, under a reserved register entry with no rights yet. Its prompt is outside the repository, and Appendix A marks it "schedule per the scheduled task".</p>
 <h3>6.6 The reading shelf</h3>
-<p>A twice-monthly <strong>publication watch</strong>, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's Reading chapter (§4.6): every shelf edition published in the month, linked, with its stored summary and nothing of the system's own stance. It has no decision rights either. The other scans' reference tables reach the Monthly by a second route, the scans ingest, which stores each table's figures with their sources for Slow layers to print.</p>
+<p>A twice-monthly <strong>publication watch</strong>, not named in the commissioning brief, checks a declared shelf of publications (chartbooks, central-bank stability reviews, plumbing and positioning research) for new editions. It reads them to a declared depth and writes a scan file with summaries, candidates and voices entries. It feeds the Monthly's Reading chapter (§4.6): every shelf edition published in the month, linked, with its stored summary and nothing of the system's own stance. Since 24 October it also checks the capital-market-assumption publications of six houses. Each new edition is committed as a scan file of a fixed shape (an edition line, the read date and source, and a reference table of the houses' assumptions with a URL per row), which the scans ingest stores as sourced figures for the Monthly's cross-house table. No such edition was stored at the time of writing, so each house prints "no edition stored". It has no decision rights either. The other scans' reference tables reach the Monthly by a second route, the scans ingest, which stores each table's figures with their sources for Slow layers to print.</p>
 <table>
 <thead>
 <tr>
@@ -1046,7 +1174,14 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>Daily (pilot)</td>
 <td>A seed list of X handles</td>
 <td>Attention and voices ledger rows; candidates for a ruling</td>
-<td>Order; prompt outside</td>
+<td>Order, the sweep and the addendum's reader; prompt outside</td>
+</tr>
+<tr>
+<td>Monthly signal scan</td>
+<td>The 25th</td>
+<td>Declared sources</td>
+<td>Candidates for the register, for a ruling</td>
+<td>Scheduled-tasks record; prompt outside</td>
 </tr>
 </tbody>
 </table>
@@ -1055,7 +1190,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p>The interface between the two repositories is files only:
 - chester-meme reads chester-reports' Security Master through the one-way export (§2.5), which carries the restricted names;
 - chester-reports reads chester-meme's drop directory and never writes into chester-meme.</p>
-<p><strong>The ingest</strong> runs at 21:45, and again inside the 06:45 overnight pass, so a packet written after the evening scan is in before the anchor. In order, it:
+<p><strong>The ingest</strong> runs at 21:15, before the evening note reads tonight's drafts, and again inside the 06:45 overnight pass, so a packet written after the evening scan is in before the anchor. In order, it:
 1. checks the manifest's schema version and checksum;
 2. treats a packet already seen as a no-op;
 3. refuses a restricted packet, and a Brookfield-related name a second time, by a database trigger;
@@ -1087,8 +1222,10 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <p><strong>The expression check</strong> compares the chosen instrument with the thesis. On a draft it warns; on an active decision it binds.</p>
 <p><strong>The packet rule.</strong> An active decision must name its book, at least one falsifier, an invalidation and a counter-thesis: the cheapest way the conclusion could be wrong. This is the first version of the Red Team (Part IX), enforced at write time.</p>
 <p><strong>The order gate.</strong> Last, the system reads the cross-book view of the open decisions and asks whether the new one would worsen a declared limit: net beta, sector concentration, interest-rate duration or volatility exposure. The outcome is deterministic. It approves if no limit is worsened. It delays if an input is missing. It asks for a restructure if the volatility limit is worsened. It resizes if a useful fraction of the request fits. It asks for a hedge if net beta is worsened. It rejects if sector or duration is worsened and no useful size fits. Anything short of approval holds the decision at draft unless the operator records an override with a reason, and the override is kept.</p>
+<p><strong>The stamps at entry.</strong> The gate's record of each decision carries the regime it was taken under, read from the stored object and never recomputed: the macro dial's state, the Doctrine regime with its band and cap, and the mapping's version; since Draft 3, the volatility and gamma dials' states with the session they were read from; and the volatile-day flag as the day's live edition printed it, with whether its gap had settled. The decision row itself carries its alignment, the packet's direction against the sign of the trend dimension, recorded once and carried through every supersession. A decision taken before a stamp existed reads "not stamped" in every cut, never a reconstructed value. A second alignment against the weekly per-horizon read is built on a later branch (Appendix E).</p>
 <p>The limits are few and declared (Appendix A). Several of the Operating Doctrine's other numbers, namely the per-position risk tiers, the books' loss stops, the kill-switch ladder and the cap on total open risk across the shorter books, are measured and reported but not yet refused by the gate. The Doctrine states them as rules for the operator. The code enforces the four limits above.</p>
 <h3>7.4 The books</h3>
+<p><strong>The Book B scanner</strong> draws its candidates from every stored daily price series with enough history, less the index levels it excludes, so a symbol joins its universe by being stored, the capex chain's proxies included (ruled 24 October); its output is graded paper.</p>
 <p>The Operating Doctrine defines four books by horizon, and the register knows exactly those four. <strong>Book A</strong> (Allocation) holds the long-horizon exposure, managed inside a band set by the regime (Part III). <strong>Book B</strong> (Swing) holds positions of weeks. <strong>Book C</strong> (Tactical) holds positions of days. <strong>Book D</strong> (Opportunistic) holds rare, small, pre-defined opportunities. Each has its own risk per position and its own loss limits, set by the Doctrine.</p>
 <p><strong>Book D's drafts from chester-meme</strong> (§6.7) enter as drafts keyed by their packet id and wait for the operator's confirmation. A packet the weekly attention budget deferred is recorded as an abstention with the reason <code>attention_budget</code>, and it is graded like any other abstention (§9.7).</p>
 <p>Beside them sits <strong>Book Z</strong>, which is not a book in the register but a set of three benchmark ledgers: <strong>cash</strong> (Treasury bills accruing interest, the "no trade" book), <strong>SPY</strong> held without trading, and a <strong>60/40</strong> of SPY and an aggregate bond fund rebalanced monthly. Each starts at 100 on a fixed date, is marked once per session and never recomputed. Book Z answers the question every book must face: would doing nothing, or doing the obvious thing, have done better? A figure comparing a book with Book Z must say "excess" or "relative to"; it may not present a book's return as if it stood alone.</p>
@@ -1145,12 +1282,13 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h3>7.8 The operator's writes</h3>
 <p>Some commands write the record the system is graded against, so they stay the operator's. The repository's permission file denies each of them to every unattended session, with the verb whole:
 - recording a decision or changing its status;
-- importing into the register;
+- rejecting a chester-meme draft;
+- importing into the register, or retiring the laptop's old register;
 - confirming or rejecting a proposed narrative;
 - promoting or rejecting a mechanism-watch candidate (added 19 October);
 - retiring an Alpha Lab engine by ruling;
 - lifting the lab's drawdown halt.</p>
-<p>A session prints such a command for the operator to run; it never runs it. The reason is the grading trail of §7.2: a grader that could write the decisions it grades would be marking its own homework.</p>
+<p>A session prints such a command for the operator to run; it never runs it. Schema changes to the register follow the same rule: a migration is written with a dry run and applied by the operator from the box sheet. The reason is the grading trail of §7.2: a grader that could write the decisions it grades would be marking its own homework.</p>
 <hr />
       </div>
     </details>
@@ -1199,8 +1337,10 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 - engine 3, prediction markets against futures;
 - engine 4, the scheduled events, whose base rates print "awaiting" where an input is not stored;
 - engine 5, crypto carry, which runs nothing until its ninety-two-week window is met;
+- engine 6, the reversion of extremes, which prints "awaiting (n = k of 30)" until its formation sample exists;
+- engine 7, the intraday dealer regimes: buckets of symbol, the 09:45 gamma regime and the sign of the opening move, read from the stored captures after the close. It is a research engine that queues no signal, and registering it is the operator's command on the box;
 - promoted rules from the grammar.</p>
-<p>Engine 6, engine 7 and the grammar search are not built (Appendix E).</p>
+<p><strong>The grammar search</strong> enumerates candidate rules from a declared grammar, under a cap on candidates and on time per step, as the nightly loop's last step; a new search starts only in a month's first week. A candidate it finds is registered like any other hypothesis before its test. Since Draft 3 all three are built. Engine 7 is not the intraday layer's dealer engine: it is evidence the lab may report, and the layer's engines stay unregistered (§8.4).</p>
 <hr />
       </div>
     </details>
@@ -1231,7 +1371,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <h3>9.6 The Red Team</h3>
 <p>The <strong>Red Team's</strong> objective is to find the cheapest way a conclusion could be wrong, at a stated cost in review time. Its first version is the packet rule in Part VII: no active decision without a falsifier, an invalidation and a counter-thesis, enforced at write time. A second version, a blinded review pass, is gated on the cost-measurement stage of the broker gates and on a minimum number of graded packets.</p>
 <h3>9.7 The attention budget</h3>
-<p>The operator's attention is the budget everything else spends, and it is measured. The ruled budget is <strong>seven packets approved a week and one sitting of at most two hours a week</strong>. A packet deferred for want of attention is recorded as an abstention with that reason, so the cost of the budget is itself graded. The Weekly prints <strong>three counts</strong>: packets against seven, sitting hours against two, and rulings taken in chat, which are measured but not capped. A log of every sitting and ruling, with the minutes it took, feeds them.</p>
+<p>The operator's attention is the budget everything else spends, and it is measured. The ruled budget is <strong>seven packets approved a week and one sitting of at most two hours a week</strong>. A packet deferred for want of attention is recorded as an abstention with that reason, so the cost of the budget is itself graded. The Weekly prints <strong>three counts</strong>: packets against seven, sitting hours against two, and rulings taken in chat, which are measured but not capped until a sitting sets a cap from a month's data. A log of every sitting and ruling, with the minutes it took, feeds them. The attention budget is a rule, not a target: the reading budgets of Part X became targets on 24 October, and the attention budget did not.</p>
 <h3>9.8 Incidents and the sittings where values are ratified</h3>
 <p>An <strong>incident</strong> is a failure that reached production or nearly did: a unit that silently did not run, a prompt silently truncated, a currency invented by a fallback. Each is logged with what happened, the fix, the gate that now holds the fix, and a one-line lesson. The lessons that bear on the operator's rules are carried into the Operating Doctrine's dated appendix, so the Doctrine records not only what the rules are but what taught them.</p>
 <p>The Monthly and the Quarterly open their system read on <strong>the system-metrics block</strong>:
@@ -1296,6 +1436,11 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>Whether a proposed signal earns a right</td>
 <td>Its pass rule, registered before the run</td>
 </tr>
+<tr>
+<td>State calibration</td>
+<td>How often each dial's state gives way to each other, at each book's horizon</td>
+<td>The unconditional count; nothing prints before thirty independent starts</td>
+</tr>
 </tbody>
 </table>
 <h3>9.9 Calibration ledgers</h3>
@@ -1353,7 +1498,78 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<h2>Nothing has been promoted.</h2>
+<p><strong>Since Draft 3.</strong> The ledgers filed from 19 October, with what the operator has done with each:</p>
+<table>
+<thead>
+<tr>
+<th>Study</th>
+<th>Verdict</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The opening setup's positioning components (OS-6)</td>
+<td>FAIL</td>
+<td>Accepted as drafted, 19 Oct</td>
+</tr>
+<tr>
+<td>The open-interest builds against their outcome (OS-9)</td>
+<td>INSUFFICIENT, n 0</td>
+<td>Accepted as drafted, 19 Oct</td>
+</tr>
+<tr>
+<td>The hiking-cycle table; SR-20; SR-24</td>
+<td>No gate; base rates recorded</td>
+<td>Accepted as drafted, 19 Oct</td>
+</tr>
+<tr>
+<td>The crypto alerts (S-2, S-3); the release-day first hour and after-hours earnings (SN-1, SN-2)</td>
+<td>FAIL</td>
+<td>Accepted as drafted, 20 Oct</td>
+</tr>
+<tr>
+<td>The wealth effect's December test (ST-R6.66c)</td>
+<td>FAIL</td>
+<td>Accepted as drafted, 24 Oct</td>
+</tr>
+<tr>
+<td>The speed flag's attribution (ST-R6.65a)</td>
+<td>INSUFFICIENT</td>
+<td>Accepted as drafted, 24 Oct</td>
+</tr>
+<tr>
+<td>The fragility panel's air pockets (ST-R6.71d)</td>
+<td>FAIL</td>
+<td>Accepted as drafted, 24 Oct</td>
+</tr>
+<tr>
+<td>The squeeze-risk flag (ST-R6.74b)</td>
+<td>INSUFFICIENT, n 0</td>
+<td>Accepted as drafted, 24 Oct</td>
+</tr>
+<tr>
+<td>The bank-stress classifier (ST-R6.59c)</td>
+<td>FAIL</td>
+<td>Pending, on the Doctrine #2 agenda</td>
+</tr>
+<tr>
+<td>Relative options volume (OS-12c)</td>
+<td>INSUFFICIENT, n 0</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>The one-day 10-year move's attribution</td>
+<td>INSUFFICIENT</td>
+<td>Pending</td>
+</tr>
+</tbody>
+</table>
+<p>Further register lines with no gate in their order, and two with an insufficient sample, wait as drafts for the same sitting. Several studies are pre-registered and accruing, with no verdict yet: the bank-stress and relative-volume tests, the wealth effect, the air pockets, the speed attribution, the short extremes and the one-day move.</p>
+<p>Nothing has been promoted.</p>
+<h3>9.10 The state object graded as a state</h3>
+<p>The calibration of §3.10 is the newest of the instruments. It asks a narrower question than the ledgers: not whether a signal earns a right, but how often the object's own description gives way to another, at each book's horizon. Its counts are read from stored objects only, its pass condition (thirty independent starts) is fixed before any count is read, and until a row meets it the reports print "uncalibrated". The dials' calibrated rows are scored in the probability ledger like any other forecast, so the object's description of the market is itself graded against the coin.</p>
+<h2><strong>What is still missing.</strong> The Enterprise Layer's lessons register is specified and not built: its gate is the first Quarterly Structural with at least five lessons to file, and until then the lessons live in the Operating Doctrine's dated appendix (§9.8). A brief for the next version of the learning loop is drafted on a later branch for a ruling (Appendix E).</h2>
       </div>
     </details>
 
@@ -1364,7 +1580,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <h3>10.1 Targets</h3>
-<p>Each cadence has a reading target: about five minutes for the close, twenty for the Weekly and fifty-five for the Monthly. These are enforced through budgets rather than by hope. Each report has a ceiling on prose words and on charts (Appendix A). Only prose counts toward the word ceiling; tables and code-written lines do not, because they are the facts the prose serves. When a report runs over, code cuts the third paragraphs of the deep sections first, then the second paragraphs, and marks the cut "(trimmed)"; the Monthly cuts its appendix first and never cuts its Reading chapter (§4.6). The model is never asked to summarise to fit. The targets are configured, and the Weekly and the Monthly print their estimated reading time in the header against them. The Monthly's count includes the stored summaries of its Reading chapter, which are outside the word budget but not outside the reader's time.</p>
+<p>Each cadence has a reading target and a word budget (Appendix A). Both are targets, not caps: the ruling of 24 October put depth before brevity, so nothing is cut or withheld for length, and an edition over its target prints one line at its foot saying how long it runs against the target. Only prose counts toward the words; tables and code-written lines do not, because they are the facts the prose serves. The chart caps still bind, and a firing trigger raises a report's cap by one. The model is never asked to summarise to fit. The two secondary notes are the exception: their word caps are hard, and a paragraph past one is withheld rather than trimmed. The Weekly and the Monthly print their estimated reading time in the header against their targets. The Monthly's count includes the stored summaries of its Reading chapter, which are outside the word budget but not outside the reader's time.</p>
 <h3>10.2 How to read a stacked report</h3>
 <p>Read the claim lines first. Ten bold sentences give the whole edition in under a minute. Then look for the diamonds. A ◆ marks what changed since the last edition of the same cadence, and an unchanged section has already collapsed to one line, so attention goes where something moved. Read What doesn't fit next, whatever the claim lines say, because it is the one section built to show where the system's own picture is under strain. Footnotes marked "Not yet tracked" are the honest edge of the system's knowledge. They do not need reading every day, but they are where the gaps are. A note saying a paragraph was withheld is a working audit, not a broken report. The figures in that section's table still stand.</p>
 <p>The words in the reports have fixed meanings, listed in the glossary at the end of each stacked report. In the close, the state and contradiction tables sit just above it (§4.7). <em>Pending</em> means a reading has crossed its line but not for long enough to count. <em>Open</em> means a gap has been wide for at least two sessions. An <em>exception</em> is a gap open five sessions or more, or a reading at a five-year extreme. "Outside 10–90%" means a reading in the outer fifth of its history. A <em>base rate</em> is how often something has happened, with its sample size. <em>Brier</em> is the forecast score, where 0.25 is the coin.</p>
@@ -1385,6 +1601,10 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>2 minutes, weekday</td>
 <td>The close's claim lines and What doesn't fit</td>
+</tr>
+<tr>
+<td>1 minute, 09:50 or 21:30</td>
+<td>The open note or the evening note: one line on a quiet day</td>
 </tr>
 <tr>
 <td>5 minutes, Sunday</td>
@@ -1410,11 +1630,11 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 
     <details class="section" id="s12-appendix-a-dated-timers-gates-windows-thresholds-budgets-sou">
       <summary class="section-head">
-        <span class="section-title">Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 19 October 2026)</span>
+        <span class="section-title">Appendix A — Dated: Timers, Gates, Windows, Thresholds, Budgets, Sources, Charts (as of 24 October 2026)</span>
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><em>Everything in this appendix is as of 19 October 2026, read from the second stitched chain (<code>chain-2</code>, commit <code>ab27c07</code>) on the day of writing: the systemd units in <code>deploy/systemd/</code>, the deploy's timer list in <code>scripts/deploy_remote.sh</code>, the <code>Makefile</code>, <code>CLAUDE.md</code>, <code>config/reporting_stack.yaml</code>, <code>config/risk_limits.yaml</code>, <code>config/market_state.yaml</code>, <code>config/vol_event.yaml</code>, <code>config/data_quality.yaml</code>, <code>config/metric_lenses.yaml</code>, <code>config/flashalpha.yaml</code>, <code>config/digital_addendum.yaml</code>, the dealer pre-registration ledger and the feed modules. All times are U.S. Eastern. Whether each timer is enabled on the production box is not recorded in the repository; the chain-2 box sheet lists the ones the operator enables.</em></p>
+<p><em>Everything in this appendix is as of 24 October 2026, read from the seventh stitched chain (<code>chain-7</code>, commit <code>62c19b41</code>) and the feed repair (<code>a61b-feed-repair</code>, commit <code>0d954d0f</code>) on the day of writing. The sources are the systemd units in <code>deploy/systemd/</code>, the deploy's timer list in <code>scripts/deploy_remote.sh</code>, the <code>Makefile</code>, <code>CLAUDE.md</code>, <code>config/reporting_stack.yaml</code>, <code>config/risk_limits.yaml</code>, <code>config/market_state.yaml</code>, <code>config/vol_event.yaml</code>, <code>config/data_quality.yaml</code>, <code>config/metric_lenses.yaml</code>, <code>config/publication_lags.yaml</code>, <code>config/flashalpha.yaml</code>, <code>config/digital_addendum.yaml</code>, <code>source_registry.yaml</code>, the dealer pre-registration ledger and the feed modules. Where the feed repair changes a value, the value after its merge is given and the change named. All times are U.S. Eastern. Whether each timer is enabled on the production box is not recorded in the repository; the box sheets list the ones the operator enables.</em></p>
 <p><strong>Timers the deploy enables.</strong> The deploy and the box's self-deploy enable a declared list of fourteen timers and copy every other unit without enabling it.</p>
 <table>
 <thead>
@@ -1458,17 +1678,17 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>End-of-day pull</td>
 <td>Weekdays 16:10</td>
-<td>Every feed but the loggers; option chains and exposures; the derived features; the volume profile</td>
+<td>Every feed but the loggers; option chains and exposures; the derived features; the volume profile; the one-day 10-year ledger's resolution</td>
 </tr>
 <tr>
 <td>Daily close</td>
 <td>Weekdays 16:45</td>
-<td>The object; the close</td>
+<td>The object; the calibration rows; the close</td>
 </tr>
 <tr>
 <td>Crypto basket</td>
 <td>Daily 17:25</td>
-<td>The crypto basket and the crypto data layer</td>
+<td>The crypto basket and data layer; GDELT, the degree days and the model-release watch; on Saturdays the cyber lists; each day the protocol counts</td>
 </tr>
 <tr>
 <td>Backup</td>
@@ -1483,7 +1703,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>Weekly</td>
 <td>Sundays 05:00</td>
-<td>The Weekly</td>
+<td>The Weekly and the digital-assets addendum</td>
 </tr>
 <tr>
 <td>Monthly</td>
@@ -1497,7 +1717,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<p><strong>Timers the operator enables</strong> (copied by the deploy, enabled by hand; the chain-2 box sheet gives the steps).</p>
+<p><strong>Timers the operator enables</strong> (copied by the deploy, enabled by hand; the box sheets give the steps).</p>
 <table>
 <thead>
 <tr>
@@ -1513,6 +1733,11 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>Intraday chain captures; the 12:30 alert slot</td>
 </tr>
 <tr>
+<td>Open note</td>
+<td>Weekdays 09:50</td>
+<td>The open note, after its own fetch</td>
+</tr>
+<tr>
 <td>Vendor writer</td>
 <td>Weekdays 16:25</td>
 <td>The FlashAlpha cross-check</td>
@@ -1523,19 +1748,9 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>SPX and SPCX from Massive, after its 15-minute delay</td>
 </tr>
 <tr>
-<td>Restore test</td>
-<td>Sundays 10:15</td>
-<td>Restores the newest encrypted snapshot and checks it against the sweep's count</td>
-</tr>
-<tr>
-<td>Meme ingest</td>
-<td>Sunday to Friday 21:45</td>
-<td>chester-meme's packets as Book D drafts (the overnight pass repeats it before 07:00)</td>
-</tr>
-<tr>
 <td>Alpha Lab, nightly</td>
 <td>Weekdays 17:40</td>
-<td>Fill, mark, grade, govern, learn</td>
+<td>Fill, mark, grade, govern, learn; the grammar search last</td>
 </tr>
 <tr>
 <td>Alpha Lab, proposer</td>
@@ -1543,19 +1758,29 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>The one model call that proposes hypotheses</td>
 </tr>
 <tr>
+<td>Meme ingest</td>
+<td>Sunday to Friday 21:15</td>
+<td>chester-meme's packets as Book D drafts (the overnight pass repeats it before 07:00)</td>
+</tr>
+<tr>
+<td>Evening note</td>
+<td>Sunday to Thursday 21:30</td>
+<td>The evening note, after its own fetch</td>
+</tr>
+<tr>
 <td>Alpha Lab, weekly</td>
 <td>Sundays 06:00</td>
 <td>Walk-forward, re-fit, rebalance, the agenda, the verdicts</td>
 </tr>
 <tr>
+<td>Restore test</td>
+<td>Sundays 10:15</td>
+<td>Restores the newest encrypted snapshot and checks it against the sweep's count</td>
+</tr>
+<tr>
 <td>Quarterly</td>
 <td>The second Saturday of January, April, July and October, 06:00</td>
 <td>The Alternative Assets Quarterly; ships disabled; first edition 9 January 2027</td>
-</tr>
-<tr>
-<td>Monthly restore drill</td>
-<td>The 3rd, 10:30</td>
-<td>Superseded by the weekly test (ruled 19 October 2026); never enabled</td>
 </tr>
 <tr>
 <td>Broker gateway restart and watchdog</td>
@@ -1564,11 +1789,70 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<p><strong>The Monthly's calendar.</strong> Dry runs 23 and 28 October 2026; deploy freeze from 29 October 23:30; the first stacked edition on 1 November 2026. The Weekly's digital-assets addendum: dry-run page 25 October, first edition 1 November.</p>
-<p><strong>Gates.</strong> <code>make validate</code> runs every gate: 118 code gates (115 Python, 3 shell) and 8 data gates, with no network and no box. A code gate seeds a store of its own and never reads the live one. A data gate reports on the box's real history, does not set the exit code, and prints NOT VALIDATED where there is no store. The list lives in the <code>Makefile</code>, and CI reads it from there.</p>
+<p>The monthly restore drill's units are deleted; its tool remains.</p>
+<p><strong>The calendar.</strong> The feed repair merges on Tuesday 27 October inside the windows. The Monthly's dry runs are 23 and 28 October; the deploy freeze runs from 29 October 23:30, and no Weekly edit is made from 29 October to 1 November; the first stacked Monthly and the first digital-assets addendum are on 1 November 2026. The seventh chain merges after that Monthly. The two notes are live from 26 October; until then each run is a dry run. Doctrine #2 sits on 7–8 November; Audit #5 is the week of 23 November.</p>
+<p><strong>Gates.</strong> <code>make validate</code> runs every gate: on the seventh chain, 139 code gates (136 Python, 3 shell) and 8 data gates, with no network and no box; the feed repair adds one code gate, so 140 after its merge. A code gate seeds a store of its own and never reads the live one. A data gate reports on the box's real history, does not set the exit code, and prints NOT VALIDATED where there is no store. The list lives in the <code>Makefile</code>, and CI reads it from there.</p>
 <p><strong>Operating windows.</strong> Deploys and other box writes: weekdays 09:05–15:40 and 17:20–23:30, never 16:00–17:20; weekends open, clear of Sunday 05:00. A merge to main is a box write: every box wrapper pulls main before it starts, and unit files follow at the next self-deploy. A session never runs unit commands, privilege escalation or register writes.</p>
-<p><strong>The stack.</strong> Prose budgets: close 1,000 words and 3 charts; Weekly 3,500 words and 10 charts; Monthly 10,000 words and 12 charts; Quarterly no word budget and 40 charts. Reading-time targets: close 5 minutes, Weekly 20, Monthly 55 (raised from 40), Quarterly 90; the digital-assets addendum 5 minutes and 1,100 words. Reading time is prose words ÷ 250 plus 20 seconds per chart. A firing trigger adds one chart. The dealer retrospective's floor: 20 scored sessions.</p>
-<p><strong>Charts and what the dealer charts displace.</strong> The close: C1 SPY's session, C2 sixty daily candles, C3 by rule, and D2 the dealer chart after C1 and any C3; with C3 drawn and no trigger, C2 is set aside. The Weekly: W1 SPY six months; W2 two years; W3 the curve and the high-yield spread; W4 speculative positioning; W5 sector and style returns; W6 open contradictions (only when one is open); W7 SPY over 23-hour sessions with the overnight future; W8 six markets; W9 positioning and sentiment gauges; W10 prediction-market odds; W11 the second positioning panel; W12 the dealer panel, which goes in fourth and sets W10 aside, and W11 too when W6 is open and no trigger fires. The Monthly: thirteen planned charts, M1 to M13, plus M12 when dealer profiles exist; set aside first are M13, then M8 (which does not render until scenario set #1 exists).</p>
+<p><strong>The stack's budgets</strong> (targets, never caps, ruled 24 October 2026; an edition over its target prints one line at its foot).</p>
+<table>
+<thead>
+<tr>
+<th>Report</th>
+<th>Prose words</th>
+<th>Charts</th>
+<th>Reading target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily close</td>
+<td>2,250</td>
+<td>3</td>
+<td>10 minutes</td>
+</tr>
+<tr>
+<td>Weekly</td>
+<td>7,900</td>
+<td>10</td>
+<td>35 minutes</td>
+</tr>
+<tr>
+<td>Monthly</td>
+<td>10,000</td>
+<td>12</td>
+<td>55 minutes</td>
+</tr>
+<tr>
+<td>Quarterly</td>
+<td>no word budget</td>
+<td>40</td>
+<td>90 minutes</td>
+</tr>
+<tr>
+<td>Digital-assets addendum</td>
+<td>about 1,500</td>
+<td>2 (none drawn in its first phase)</td>
+<td>7 minutes</td>
+</tr>
+<tr>
+<td>Open note</td>
+<td>250, a hard cap</td>
+<td>1</td>
+<td>2 minutes</td>
+</tr>
+<tr>
+<td>Evening note</td>
+<td>150, a hard cap (Sunday 400)</td>
+<td>1</td>
+<td>1 minute (Sunday 3)</td>
+</tr>
+</tbody>
+</table>
+<p>Reading time is prose words ÷ 250 plus 20 seconds per chart. A firing trigger adds one chart. The runaway guard withholds a reply past twice its section's ceiling, and never past 7,000 characters. The dealer retrospective's floor: 20 scored sessions. The evening note asks for a paragraph on a weekday only when the e-mini or Nasdaq future moves past 0.75%, dollar-yen past 1.0% or an Asian index past 1.5%; always on Sunday.</p>
+<p><strong>Charts and what the dealer charts displace.</strong>
+- <strong>The close:</strong> C1 SPY's session, C2 sixty daily candles, C3 by rule, and D2 the dealer chart after C1 and any C3. With C3 drawn and no trigger, C2 is set aside.
+- <strong>The Weekly:</strong> W1 SPY six months; W2 two years; W3 the curve and the high-yield spread; W4 speculative positioning; W5 sector and style returns; W6 open contradictions (only when one is open); W7 SPY over 23-hour sessions with the overnight future; W8 six markets; W9 positioning and sentiment gauges; W10 prediction-market odds; W11 the standing decomposition, in What's priced; W12 the dealer panel. W12 enters fifth and sets W10 aside, and W11 too when W6 is open and no trigger fires.
+- <strong>The Monthly:</strong> M0 to M13, fourteen charts, M12 only when the month's dealer profiles exist; capped at twelve. Set aside first are M13, then M8 (which does not render until scenario set #1 exists), then M9, then M12.</p>
 <p><strong>Thresholds.</strong></p>
 <table>
 <thead>
@@ -1579,6 +1863,26 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>The market-state object</td>
+<td>Rules v2.0, method 11; persistence 2 sessions; a five-year window; bands 66 and 33; contradictions open at a gap z of 2.0 held 2 sessions and close after 2 failing; exceptions at 5; extremes at the 5th and 95th percentiles; the VIX bands 14, 20 and 30</td>
+<td><code>market_state.yaml</code></td>
+</tr>
+<tr>
+<td>The five added dimensions</td>
+<td>Funding stress on absolute bands (stressed at 10 bp and above, watch at 0 and above); policy at +25 and −25 bp; valuation ranked over its full history beside five years</td>
+<td><code>market_state.yaml</code></td>
+</tr>
+<tr>
+<td>Per-horizon reads</td>
+<td>5, 20 and 63 sessions (Books C, B, A); bands 66 and 33; persistence 2</td>
+<td><code>market_state.yaml</code></td>
+</tr>
+<tr>
+<td>Calibration</td>
+<td>30 independent starts per row; horizons 5, 20 and 63 sessions; add-half smoothing</td>
+<td><code>altdata/state_calibration.py</code></td>
+</tr>
 <tr>
 <td>Dealer regime word</td>
 <td>Prints only at net-to-gross ≥ 0.10 (ruled)</td>
@@ -1598,6 +1902,31 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td>The 12:30 volatility gate</td>
 <td>Upward only: +15% or +3 points</td>
 <td><code>vol_event.yaml</code>, <code>midday</code></td>
+</tr>
+<tr>
+<td>The volatile-day flag</td>
+<td>The overnight range past 1.5 times the 20-session average true range (at least 15 sessions), a gap of 1% or more, the VIX arm, a negative gamma dial, a tier-1 calendar event</td>
+<td><code>vol_event.yaml</code>, <code>volatile_day</code></td>
+</tr>
+<tr>
+<td>The one-day 10-year move</td>
+<td>The day's absolute change past the 97.5th percentile of five years of changes, either way; "not read" below 1,000 changes</td>
+<td><code>oneday_10y.yaml</code></td>
+</tr>
+<tr>
+<td>The gold event</td>
+<td>A one-day move of 2.5%, or a five-day move past its five-year 95th percentile</td>
+<td><code>gold_event.yaml</code></td>
+</tr>
+<tr>
+<td>The developed-market drawdown screen</td>
+<td>Ten- and twenty-session drawdowns past their five-year 95th percentile</td>
+<td><code>dm_drawdown.yaml</code></td>
+</tr>
+<tr>
+<td>Relative options volume</td>
+<td>1.5 times (provisional; reviewed after 19 November)</td>
+<td>the relative-volume config</td>
 </tr>
 <tr>
 <td>Outlier marks</td>
@@ -1625,17 +1954,18 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <td><code>altdata/derived.py</code></td>
 </tr>
 <tr>
-<td>The market-state object</td>
-<td>As Draft 2 (rules v1.10, method 8; persistence 2 sessions; five-year window; bands 66 and 33; contradictions at a gap z of 2.0 for 2 sessions, exceptions at 5; extremes at the 5th and 95th percentiles; the VIX bands 14, 20 and 30)</td>
-<td><code>market_state.yaml</code></td>
+<td>The store check's "dead?"</td>
+<td>Past three times a key's own allowance</td>
+<td><code>tools/check_store_registry.py</code></td>
 </tr>
 </tbody>
 </table>
+<p><strong>Publication-lag families.</strong> Fifteen on the seventh chain (among them the H.10 rates, the EIA's spot prices, the term-premium models, Z.1, TIC, the IMF, the emerging-market monthly and quarterly releases, the World Bank's pink sheet, China's statistics bureau, H.8's weekly deposits, NOAA's degree days, the Shiller housing sheet, and FRED's quarterly and monthly releases); the feed repair adds twelve (the national CPIs, the ECB's swap rates, Redfin, the New York Fed's consumer survey, the Census construction data, H.6's money funds, the bitcoin difficulty, the EIA's rig counts and the Cleveland Fed's policy rules), so 27 after its merge. Each states its publisher's documented delay, its slack and its bound. Listed with no family because their publishers state no delay: the Tuck data library and the shillerdata.com workbook's earnings and dividends.</p>
 <p><strong>The dealer scorecard's pre-registration</strong> (<code>docs/ledgers/dealer-scorecard-preregistration-2026-10.md</code>, dated 17 October 2026, never edited). A rate prints only from 20 scored sessions, and is no decision below 120 eligible sessions. 120 formation sessions, then 120 test sessions. Benjamini–Hochberg at q = 0.10 across the six tests. A flag is demoted when a rolling 120-session interval includes its base rate for two consecutive months.</p>
 <p><strong>Calibration ledgers.</strong> Every ledger's pass rule is the order's where the order states one, else the first edition's; a box re-run applies it and may not change it. First editions run on the laptop from public sources and are labelled so; the box's re-runs write new dated files.</p>
 <p><strong>The vendor writer</strong> (<code>config/flashalpha.yaml</code>). The plan ends 31 March 2027. Symbols: SPY, QQQ, IWM, SPX and MSTR. A daily call budget of 60, planned at 57: 45 at 16:25, 6 at 09:45 and 6 at 12:30. The expected-move path prints "expected move: not served" on a 403 or 404. Its implied volatility is compared only on the first expiry of 20 days or more, from the 16:25 capture. The divergence data gate's tolerances: GEX 50% relative, DEX 15%, the flip 0.5% of spot, the walls 1.5%, the regime word compared as a word.</p>
-<p><strong>Risk limits and attention.</strong> As Draft 2 (<code>risk-limits-v1</code>): capital base $300,000; net beta at the regime band's top plus 15 points; sector at most 30%; volatility exposure at most 0.5% of capital per vol point; duration at most 5% per 100 bp; Book A bands Expansion 60–80%, Overheat 40–60%, Tightening and Contraction 20–40%; Transition for 10 sessions. Attention: 7 packets a week and one sitting of at most 2 hours.</p>
-<p><strong>Prose and audits.</strong> One call per section, with one revision for a section the audit withholds (the rule broken, the failing span and the draft go back with it) in the stack, the précis, the close and the anchor; the Monthly's storyline fallback writer still makes up to three attempts on chain-2. The Monthly's ten-thousand-word budget is enforced by trimming (§4.6). Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget.</p>
+<p><strong>Risk limits and attention.</strong> As Draft 2 (<code>risk-limits-v1</code>): capital base $300,000; net beta at the regime band's top plus 15 points; sector at most 30%; volatility exposure at most 0.5% of capital per vol point; duration at most 5% per 100 bp; Book A bands Expansion 60–80%, Overheat 40–60%, Tightening and Contraction 20–40%; Transition for 10 sessions. Attention: 7 packets a week and one sitting of at most 2 hours, a rule; the third count uncapped.</p>
+<p><strong>Prose and audits.</strong> One call per section, with one revision for a section the audit withholds (the rule broken, the failing span and the draft go back with it) in the stack, the précis, the close, the anchor, the two notes and the Monthly's storyline fallback. Voices scan: at most 60 model calls a day, 10 days' lookback, a 15-minute budget; the open note's voices pass 120 seconds, inside the same cap.</p>
 <p><strong>Sources.</strong></p>
 <table>
 <thead>
@@ -1647,19 +1977,19 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tbody>
 <tr>
 <td>Price symbols</td>
-<td>115</td>
+<td>127 (124 on the feed repair's base; 127 after its merge)</td>
 </tr>
 <tr>
 <td>FRED series pulled</td>
-<td>266: the Monthly's 59, 65 signal series, and eight smaller lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12, Thailand 1, 6e 25, release lenses 45, Group B 29)</td>
+<td>283: the Monthly's 59, 65 signal series, and the smaller lists (FX scan 18, SLOOS 5, AQ-3 7, SR-43 12, Thailand 1, 6e 25, release lenses 45, Group B 29, the bank-stress legs 10, households 1, retail sales 1, the PPI and Z.1 lines of Batch 14 4, the Nikkei 225 1)</td>
 </tr>
 <tr>
 <td>Official writers</td>
-<td>31</td>
+<td>33</td>
 </tr>
 <tr>
 <td>External writers</td>
-<td>37</td>
+<td>37 (the feed repair's two refused writers stay listed and request nothing)</td>
 </tr>
 <tr>
 <td>Loggers</td>
@@ -1675,24 +2005,46 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>Voices sources</td>
-<td>as declared in <code>config/voices_sources.yaml</code>, with the disabled and unused sources listed there</td>
+<td>22 declared; 17 enabled on the seventh chain, 16 after the feed repair disables one</td>
+</tr>
+<tr>
+<td>Publication-lag families</td>
+<td>15; 27 after the feed repair</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Keys held</strong> (names only): FRED, Anthropic, the dashboard token, SMTP, Nasdaq Data Link, Massive, FlashAlpha, OpenFIGI, and the SEC contact address. <strong>Keys not pursued</strong> under the standing rule of 16 October on sources: Webstat (its keyless TEC 10 export is read instead), the Bank of Korea's ECOS, the Bank of Thailand's API (its keyless table is read instead) and Etherscan. <strong>Pending decisions:</strong> the xAI path (item 50, Tranche 1) and the December vendor month.</p>
-<p><strong>Sources that refuse, or that the system declines.</strong> CNBC (403), Goldman's insights (403), Morgan Stanley and Nuveen (time out): disabled in the voices list. S&amp;P DJI's EPS workbook: withdrawn, printed "not tracked (source withdrawn)". CoinGecko: retired, its terms bar storing its data. Bybit: a country block; the reader is switched off. State Street's GLD archive: robots refuse the API host, so the operator drops the archive once. Farside: answered the laptop 403 through Cloudflare on 17 October; the box's first run decides, and nothing is scraped around a refusal. GeckoTerminal's site robots disallow crawling, and its documented API is read under its own terms (ruled 17 October). Yahoo Finance news is an active, tier-3 source, not a refusal.</p>
-<p><strong>Scans outside the repository.</strong> Recorded in the Master Guide's record of the chat-side tasks (<code>docs/master-guide/chat-tasks.yaml</code>, the Guide's Table 2); <code>docs/scheduled-tasks.md</code> defines those it lists, and not the X digest, its reader triage or the Saturday brief: the Guide to the Markets read (the 6th of January, April, July and October), the Monthly signal scan (the 25th), the Saturday crypto mechanism scan, the AI-risk consensus-drift scan (the 20th of even months), the reading-shelf publication watch (the 12th and the 27th), the AAII weekly read (Thursdays), the FlashAlpha tasks (to be deleted once the divergence gate is clean), the X digest and its reader triage (a pilot since 17 October), and the Saturday brief, which reads the Alpha Lab's verdicts from Drive's <code>chester-lab-outbox</code>.</p>
+<p><strong>Keys held</strong> (names only): FRED, Anthropic, the dashboard token, SMTP, Nasdaq Data Link, Massive (and its flat-files pair, read by one backfill tool only), FlashAlpha, OpenFIGI, the bitcoin-data service's free key, the backup's encryption passphrase, and the SEC contact address. <strong>Keys not pursued</strong> under the standing rule of 16 October on sources: Webstat (its keyless TEC 10 export is read instead), the Bank of Korea's ECOS, the Bank of Thailand's API (its keyless table is read instead) and Etherscan. <strong>Pending decisions:</strong> the xAI path (item 50, Tranche 1) and the December vendor month.</p>
+<p><strong>Sources that refuse, or that the system declines.</strong>
+- <strong>Declared refused on the feed repair (24 October):</strong> MBA (an HTTP 403 on its robots.txt); Apartment List (403; Zillow is read alone); Farside (403 through a Cloudflare challenge). Each prints "not tracked: … refuses automated reads since 2026-10-24".
+- <strong>Disabled on the feed repair:</strong> Yahoo Finance's voices index (its feed answers 404). Its two candidate replacements were checked and refused: Yahoo's per-ticker headline feed by its robots.txt and terms, and CNBC's markets feed by its owner's terms.
+- <strong>Listed gaps:</strong> WGC's files, which need a login and whose terms forbid scraping (the central-bank leg reads the IMF's IFS instead); DTCC's per-name CDS volumes, a subscription product whose terms forbid automated extraction.
+- <strong>Disabled in the voices list:</strong> CNBC (403), Goldman's insights (403), Morgan Stanley and Nuveen (time out).
+- <strong>Withdrawn or retired:</strong> S&amp;P DJI's EPS workbook, printed "not tracked (source withdrawn)"; CoinGecko, its terms bar storing its data; the LBMA writer; the Google News story queries, by their robots.txt.
+- <strong>Other:</strong> Bybit is switched off by a country block. State Street's GLD archive is refused to the API host by robots, so the operator drops it once. GeckoTerminal's site robots disallow crawling, and its documented API is read under its own terms.</p>
+<p><strong>Superseded keys</strong> (declared on the feed repair): IOER by IORB (still pulled, read by nothing); the overnight 10-year index fields by the daily index; the LBMA price by the COMEX front future. On the seventh chain, WGC's keys are superseded by the IMF's.</p>
+<p><strong>Scans outside the repository.</strong> Recorded in the Master Guide's record of the chat-side tasks (<code>docs/master-guide/chat-tasks.yaml</code>, the Guide's Table 2), updated 20 October:
+- the Guide to the Markets read (the 6th of January, April, July and October);
+- the Monthly signal scan (the 25th, 06:57; first run due 25 October 2026);
+- the Saturday crypto mechanism scan (retiring);
+- the AI-risk consensus-drift scan (the 20th of even months);
+- the reading-shelf publication watch (the 12th and the 27th), with the six houses' capital-market-assumption files since 24 October;
+- the AAII weekly read (Thursdays);
+- the MSTR/MSCI event watch (weekdays 2–30 November, and 1 December);
+- the FlashAlpha tasks (retiring);
+- the X digest (daily 06:00) and its triage (06:50), a pilot since 17 October, with accounts that publish only on X added in a monthly batch;
+- the Saturday brief, which writes the Alpha Lab's inbox;
+- the Alternative Assets Quarterly's scan (planned for January 2027).</p>
 <hr />
       </div>
     </details>
 
-    <details class="section" id="s13-appendix-b-the-incident-log-to-date-as-of-19-october-2026">
+    <details class="section" id="s13-appendix-b-the-incident-log-to-date-as-of-24-october-2026">
       <summary class="section-head">
-        <span class="section-title">Appendix B — The Incident Log to Date (as of 19 October 2026)</span>
+        <span class="section-title">Appendix B — The Incident Log to Date (as of 24 October 2026)</span>
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><em>From <code>docs/incidents.md</code>. No incident has been logged since INC-9.</em></p>
+<p><em>From <code>docs/incidents.md</code>. No incident has been logged since INC-9, on any branch.</em></p>
 <table>
 <thead>
 <tr>
@@ -1781,15 +2133,15 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li><em>A pass rule fixed before the run keeps the calibration ledgers honest.</em> Falsified by any later edition that changes a registered rule, which the ledger writer refuses.</li>
 </ol>
 <p><strong>Regularities with dates.</strong> The Brier coin of 0.25 is arithmetic, not a regularity. The thresholds in Appendix A were set by ruling, not estimated, and are falsified in the operational sense if a trigger fires every session or never over a month. That is the test the Doctrine monthly applies.</p>
-<p><strong>Standing-register items touching this paper.</strong> The intraday layer's engines (Part VIII) are unregistered. The stacked Monthly is built and has not yet published: its first edition, on 1 November 2026, is the one to read against §4.6. The Alternative Assets Quarterly is built with its timer disabled. The Quarterly Structural, Disruptive Themes, the Top &amp; Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.</p>
-<p><strong>Dated figures in this paper.</strong> Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 19 October 2026, from the configuration files named there.</p>
+<p><strong>Standing-register items touching this paper.</strong> The intraday layer's engines (Part VIII) are unregistered. The stacked Monthly is built and has not yet published: its first edition, on 1 November 2026, is the one to read against §4.6. The object's calibration has no calibrated row yet (§3.10). The Alternative Assets Quarterly is built with its timer disabled. The Quarterly Structural, Disruptive Themes, the Top &amp; Bottom harness and the Thailand quarterly are unbuilt. The prediction-market confidence gate is unbuilt by design.</p>
+<p><strong>Dated figures in this paper.</strong> Every count, threshold, time and limit in the body is described rather than stated; the values are in Appendix A, as of 24 October 2026, from the configuration files named there.</p>
 <hr />
       </div>
     </details>
 
     <details class="section" id="s15-appendix-d-where-the-brief-disagreed-with-the-code-and-what-">
       <summary class="section-head">
-        <span class="section-title">Appendix D — Where the Brief Disagreed with the Code, and What Draft 2 Called Unbuilt: Dispositions (as of 19 October 2026)</span>
+        <span class="section-title">Appendix D — Where the Brief Disagreed with the Code, and What Drafts 2 and 3 Called Unbuilt: Dispositions (as of 24 October 2026)</span>
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
@@ -1821,8 +2173,8 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>4</td>
-<td>The brief names two kinds of knowable time; the code has three (observed, ingest instant, reconstructed), and nothing yet writes the first</td>
-<td><strong>Open.</strong> The brief is unchanged; this paper follows the code. Writing observed times waits on vintage data</td>
+<td>The brief names two kinds of knowable time; the code has three (observed, ingest instant, reconstructed), and nothing yet wrote the first</td>
+<td><strong>Fixed (AUD-3d, 15 October).</strong> The ALFRED backfill writes each FRED value as observed at its vintage's first publication. The brief is unchanged</td>
 </tr>
 <tr>
 <td>5</td>
@@ -1832,7 +2184,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>6</td>
 <td>A contradiction closes on the first session it fails, though the documents said it closes over two</td>
-<td><strong>Ruled for Audit #4.</strong> A symmetric two-session close is ruled for rules v1.13; D-2 recorded the code's present behaviour in the state-object document</td>
+<td><strong>Fixed (6f, on the seventh chain).</strong> The close is symmetric: two failing sessions, as two open it, with <em>closing</em> between (§3.5)</td>
 </tr>
 <tr>
 <td>7</td>
@@ -1874,7 +2226,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>12</td>
 <td>The deploy did not enable the Weekly, Monthly, voices and auction timers</td>
-<td><strong>Fixed in part (L-1):</strong> the Weekly, voices and auction timers are on the deploy's list. <strong>Open:</strong> the Monthly's timer is still enabled by hand</td>
+<td><strong>Fixed.</strong> L-1 put the Weekly, voices and auction timers on the deploy's list, and A-4 the Monthly's on 9 October (Draft 3 said "open" here in error)</td>
 </tr>
 <tr>
 <td>13</td>
@@ -1928,7 +2280,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>18</td>
 <td>Book Z is three benchmark ledgers, not a register book, and the Doctrine names only a 60/40 benchmark</td>
-<td><strong>Open</strong></td>
+<td><strong>Fixed in part:</strong> the scoreboard computes the Doctrine's benchmarks, Book A alone and the 60/40, as measurement; their use is on the Doctrine #2 agenda</td>
 </tr>
 <tr>
 <td>19</td>
@@ -1943,7 +2295,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>21</td>
 <td>Reconciliation's comments say hourly against a 30-minute timer, and an empty currency was read as dollars</td>
-<td><strong>Fixed in part (L-1):</strong> an empty currency is refused with a reason, never read as dollars. <strong>Open:</strong> the comments still say hourly</td>
+<td><strong>Fixed in part (L-1):</strong> an empty currency is refused with a reason, never read as dollars. <strong>Open:</strong> reconciliation's comments still say hourly; the timer's own comment says 17:30 since the third chain</td>
 </tr>
 <tr>
 <td>22</td>
@@ -1953,7 +2305,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <tr>
 <td>23</td>
 <td>The Operating Doctrine was behind the 2 October rulings</td>
-<td><strong>Fixed (LIB-2).</strong> Its dated appendix carries the rulings and the incidents, and its body changed where it contradicted a ruling. <strong>Open:</strong> Book C still cites a 10:00 report, which no ruling addresses</td>
+<td><strong>Fixed (LIB-2).</strong> Its dated appendix carries the rulings and the incidents, and its body changed where it contradicted a ruling. <strong>Open:</strong> Book C still cites a 10:00 report; the Doctrine #2 pack drafts the 09:50 open note in its place</td>
 </tr>
 <tr>
 <td>24</td>
@@ -1967,7 +2319,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 </tbody>
 </table>
-<p>Of the twenty-five, fourteen are fixed, four are fixed in part, one is ruled for Audit #4 and six are open. (The state of Draft 1's findings is as Draft 2 recorded it on 9 October; Draft 3 has not re-tested them.)</p>
+<p>Of the twenty-five, seventeen are fixed, four are fixed in part and four are open. (Draft 4 re-tested items 4, 6, 12, 18 and 21 against the code; the others stand as Draft 2 recorded them.)</p>
 <p><strong>What Draft 2 called not built, and what became of each (as of 19 October 2026)</strong></p>
 <table>
 <thead>
@@ -2011,7 +2363,102 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 </tr>
 <tr>
 <td>The broker sync's comments saying hourly</td>
-<td><strong>Open.</strong> The timer runs every 30 minutes to 17:30; its comment still says 17:00</td>
+<td><strong>Fixed in part.</strong> The timer runs every 30 minutes to 17:30, and its comment says so since the third chain; reconciliation's comments still say hourly</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What Draft 3 called not built, and what became of each (as of 24 October 2026)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Draft 3 said not built</th>
+<th>Disposition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The gauge's pre-market line; SPX's and SPCX's "awaiting the solver gate"</td>
+<td><strong>Built</strong> (third chain; §4.7)</td>
+</tr>
+<tr>
+<td>The Monthly storyline writer's one revision</td>
+<td><strong>Built</strong> (third chain; §5.3)</td>
+</tr>
+<tr>
+<td>The crypto daily paragraph and its 12:30 leverage line</td>
+<td><strong>Built behind a switch that is off</strong> (third chain)</td>
+</tr>
+<tr>
+<td>The S-2 and S-3 calibration ledgers</td>
+<td><strong>Built;</strong> both FAIL, accepted 20 October (§9.9)</td>
+</tr>
+<tr>
+<td>The retirement of the monthly restore drill's units</td>
+<td><strong>Done</strong> (third chain); the tool remains</td>
+</tr>
+<tr>
+<td>Engine 6, the grammar search and their appendices</td>
+<td><strong>Built</strong> (third chain; §8.5)</td>
+</tr>
+<tr>
+<td>Engine 7, and version 2 of the hypothesis grammar</td>
+<td><strong>Built;</strong> engine 7's registration is the operator's; one condition of the grammar's version 2 is not built</td>
+</tr>
+<tr>
+<td>6f</td>
+<td><strong>Built</strong> on the seventh chain: the five dimensions, the horizons, the calibration, the tail families, the debt-cycle branch and the bar (Part III); the weekly alignment stamp on a later branch</td>
+</tr>
+<tr>
+<td>The December vendor month</td>
+<td><strong>Still a plan;</strong> the Doctrine #2 pack drafts a start on 1 December</td>
+</tr>
+<tr>
+<td>The vendor's e-mail alerts</td>
+<td><strong>Outside the system,</strong> as ruled</td>
+</tr>
+<tr>
+<td>Crypto Tranche C</td>
+<td><strong>Not built</strong></td>
+</tr>
+<tr>
+<td>The Quarterly Structural, and the 6i brief</td>
+<td><strong>Not built;</strong> the 6i brief is a draft on a later branch</td>
+</tr>
+<tr>
+<td>Item 50 Tranche 1</td>
+<td><strong>Not built;</strong> a decision around 31 October</td>
+</tr>
+<tr>
+<td>The Enterprise Layer's EL-8 to EL-13</td>
+<td><strong>Not built;</strong> a learning-loop brief on a later branch proposes work toward them</td>
+</tr>
+<tr>
+<td>G-6; a trade tape</td>
+<td><strong>Not built</strong></td>
+</tr>
+<tr>
+<td>The Opening Setup's remaining rulings</td>
+<td><strong>Not ruled;</strong> the 0700 list and the 09:50 note are on the Doctrine #2 agenda</td>
+</tr>
+<tr>
+<td>The intake-queue entries waiting for "T&amp;B full"</td>
+<td><strong>One entry,</strong> GTM-3 (Draft 3 said two)</td>
+</tr>
+<tr>
+<td>The rates driver</td>
+<td><strong>Still withdrawn</strong></td>
+</tr>
+<tr>
+<td>The conversion of dealer levels to the e-mini</td>
+<td><strong>Still not wired</strong> into a report</td>
+</tr>
+<tr>
+<td>The PRL explorer's endpoint</td>
+<td><strong>Closed</strong> as a listed gap on 18 October (Draft 3 listed it in error)</td>
+</tr>
+<tr>
+<td>A stored macro consensus</td>
+<td><strong>Not built</strong></td>
 </tr>
 </tbody>
 </table>
@@ -2019,40 +2466,35 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </div>
     </details>
 
-    <details class="section" id="s16-appendix-e-what-draft-3-says-is-not-built-as-of-19-october-2">
+    <details class="section" id="s16-appendix-e-what-draft-4-says-is-not-built-as-of-24-october-2">
       <summary class="section-head">
-        <span class="section-title">Appendix E — What Draft 3 Says Is Not Built (as of 19 October 2026)</span>
+        <span class="section-title">Appendix E — What Draft 4 Says Is Not Built (as of 24 October 2026)</span>
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><em>So that the next draft can be checked against it. "Not built" means not on the second stitched chain; an item on a branch that merges later says so.</em></p>
-<p><strong>On branches that merge after the second chain.</strong>
-- <strong>On the third chain (session A's <code>a47-chain3</code>):</strong>
-    - the gauge's pre-market line;
-    - SPX's and SPCX's cells reading "awaiting the solver gate";
-    - the Monthly storyline writer's one revision;
-    - the crypto daily paragraph and its 12:30 leverage line, built behind a switch that is off;
-    - the S-2 and S-3 calibration ledgers;
-    - the retirement of the monthly restore drill's units.
-- <strong>On the Alpha Lab's next branches:</strong> engine 6, the grammar search and its appendices (ST-L).</p>
-<p><strong>Decisions of 18 October that are plans.</strong>
-- <strong>The December vendor month:</strong> one month of FlashAlpha's Growth plan (or Alpha, for its history) beside one month of SpotGamma's Essential plan, judged on a page of the January Monthly.
-- <strong>The vendor's e-mail alerts:</strong> outside the system, never a data line.</p>
+<p><em>So that the next draft can be checked against it. "Not built" means on neither the seventh stitched chain nor the feed repair; an item on a branch that merges later says so.</em></p>
+<p><strong>On branches that merge after the seventh chain.</strong>
+- <strong>The weekly alignment stamp</strong> (6f tranche 4): the register's second alignment, against the weekly per-horizon read, written by the decision tool at entry, its migration the operator's; and the Quarterly's split of graded packets by both alignments.
+- <strong>The capex-guidance reader:</strong> the hyperscalers' capex guidance from their own 10-Q and 10-K filings, each figure stored beside its filing's sentence, read by the capex chain's line, item 26's revisions and the Quarterly's question.
+- <strong>The Doctrine #2 pack's refresh and the dated-appendix moves</strong> (documents only).
+- <strong>The 6i brief</strong> (a draft), and <strong>a learning-loop brief</strong> (a draft for a ruling).</p>
 <p><strong>Specified, not built.</strong>
-- Engine 7, and version 2 of the hypothesis grammar.
 - <strong>Crypto Tranche C:</strong> the long-term-holder series waits on a free key, and the Dune queries are unbuilt.
-- <strong>6f.</strong>
-- The Quarterly Structural, and the 6i brief.
+- The Quarterly Structural.
 - <strong>Item 50 Tranche 1:</strong> the X digest's API path on the box, a decision around 31 October.
-- The Enterprise Layer's EL-8 to EL-13, the Doctrine's two paper engines among them (EL-12).
+- The Enterprise Layer's EL-8 to EL-13: the lessons register (EL-10) and the Doctrine's two paper engines (EL-12) among them.
 - <strong>G-6.</strong>
 - <strong>A trade tape.</strong>
-- The Opening Setup's remaining rulings.
-- The two intake-queue entries that wait for "T&amp;B full".
+- The Opening Setup's remaining rulings: the 0700 list, and the open note as the Doctrine's 1000 report.
+- The intake-queue entry that waits for "T&amp;B full".
 - The rates driver, withdrawn on 30 September and not reinstated.
 - The conversion of dealer levels to the e-mini, written and gated but not wired into a report.
-- The PRL explorer's endpoint.
-- A stored macro consensus, which the surprise index's non-FOMC legs need.</p>
+- A stored macro consensus, which the surprise index's non-FOMC legs need.
+- The earnings and geopolitical dimensions, each waiting for its source (§3.2).
+- A probability for any tail family, which waits for the prediction-market gate and a ruling.
+- The debt-cycle branch's state, which waits for the paper that will define it.
+- A reader for the MSTR/MSCI watch's Drive file.
+- The December vendor month, a plan.</p>
       </div>
     </details>
 

@@ -803,7 +803,8 @@ def group_m(m: Master) -> None:
           f"all {len(yf.SYMBOLS)} SYMBOLS resolve through the master to their seed keys")
     check(yf.resolve_basket(yf.CRYPTO_BASKET) == yf.CRYPTO_BASKET,
           f"the crypto basket's {len(yf.CRYPTO_BASKET)} names resolve likewise")
-    check("resolve_basket(symbols or SYMBOLS)" in inspect.getsource(yf.pull),
+    # A71: the call also passes the list the blocklist check fills.
+    check("resolve_basket(symbols or SYMBOLS" in inspect.getsource(yf.pull),
           "pull() takes its keys from the master's resolver, not the map")
     eq = {s for s in yf.SYMBOLS if m.resolve(s, "yahoo")["asset_class"] == "equity"}
     # b52 (Batch 14 item 63): the capex chain's single names are equities that are

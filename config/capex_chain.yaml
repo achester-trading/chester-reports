@@ -86,10 +86,11 @@ relative:
   window_months: 3
   benchmark: yfinance.mkt_spy
   min_sessions: 55
-  # The capex series the line is read against. The order says "item 26's
-  # capex-guidance series"; item 26 is ST-R4.26, the fiscal-bark flag, and no
-  # guidance series is stored, so the line reads the hyperscalers' FILED capex
-  # (EDGAR's XBRL frames, annual) and says guidance is not tracked.
+  # The capex series the line is read against: the hyperscalers' FILED capex
+  # (EDGAR's XBRL frames, annual), and beside it (A66, 24 Oct 2026) their capex
+  # GUIDANCE, each from its newest 10-Q or 10-K sentence
+  # (altdata/sources/edgar_guidance.py, edgar.capex_guidance.<ticker>), the URL in
+  # the footnote. Item 26's "capex-guidance revisions" are the same records.
   capex_key: edgar.xbrl_capex
   capex_names: [AMZN, GOOGL, META, MSFT, ORCL]
-  guidance_gap: "hyperscaler capex GUIDANCE is not tracked (no stored series; item 26 is the fiscal-bark flag): the line reads filed capex, annual, from EDGAR"
+  guidance_gap: "filed capex is annual, from EDGAR's XBRL frames; guidance is each filer's own 10-Q or 10-K sentence, beside it"

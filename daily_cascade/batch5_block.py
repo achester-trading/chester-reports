@@ -116,6 +116,15 @@ def _attribution(st, now: str, cfg: Optional[dict] = None) -> dict:
             lines.append(f"The quoted 10-year (FRED DGS10) moved {fb['quoted_bp']:+.0f} bp "
                          f"over the same months; the split is ACM's of its own fitted "
                          f"yield.")
+    # ITEM 26's CAPEX-GUIDANCE REVISIONS (A66), beside the flag: the change in each
+    # hyperscaler's filed guidance between its two newest 10-Q or 10-K filings.
+    # Report only; the flag does not read it.
+    try:
+        rv = batch5.capex_guidance_revisions(st, now, cfg)
+        lines.append("Hyperscaler capex-guidance revisions (item 26; from their own "
+                     "filings, the same fiscal year only): " + "; ".join(rv["lines"]) + ".")
+    except Exception:                                           # noqa: BLE001
+        log.warning("item 26's capex-guidance revisions faulted", exc_info=True)
     # BATCH 14 ITEM 70 (a56): the nominal-growth anchor, beside SR-43's
     # twin-deficit fit as a fair-value range. Report only.
     try:

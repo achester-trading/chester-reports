@@ -212,10 +212,12 @@ def group_c() -> None:
           f"the hyperscalers' filed capex: the five names' sum, fiscal 2025 on 2024 "
           f"({c['pct']:+.1f}%)")
     lines = cc.relative_lines(r)
-    check(any("not tracked" in x and "guidance" in x.lower() for x in lines)
+    # A66: guidance is read from the filings beside the filed capex; this fixture
+    # stores none, so the line says so by name.
+    check(any("guidance from the filings" in x and "not stored for AMZN" in x for x in lines)
           and "leads" in lines[0] and "lags" in lines[0] and not any(ISO.search(x) for x in lines),
-          "the line names the leader and the laggard, says guidance is not tracked, and "
-          "prints no ISO date")
+          "the line names the leader and the laggard, says the filings' guidance is not "
+          "stored, and prints no ISO date")
     st2 = capex_store("cc_gap", with_vrt=False)
     try:
         r2 = cc.relative(st2, CUT)

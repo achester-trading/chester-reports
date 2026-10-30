@@ -2039,6 +2039,9 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                 lines += [_sb.dial_line(ex, d) for d, _ in _sb.DIALS]
         if sb.get("benchmarks"):
             lines.append(_sb.benchmarks_line(sb["benchmarks"]))
+        # 6f tranche 4: the Quarterly's payload alone carries the split.
+        if rm.get("alignment_split"):
+            lines += _sb.alignment_lines(rm["alignment_split"])
         if sb.get("fault"):
             lines.append(f"The scoreboard: not built ({sb['fault']}).")
     except Exception as exc:                                   # noqa: BLE001

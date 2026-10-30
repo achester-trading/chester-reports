@@ -339,7 +339,7 @@ families:
       - {n: 4,  text: "Is US gas storage still above the five-year band, and is feedgas back to capacity?", series: []}
       - {n: 5,  text: "Is EU storage above or below the five-year minimum entering winter?", series: []}
       - {n: 6,  text: "Did the last PJM auction clear at the cap, and did the shortfall widen or close?", series: []}
-      - {n: 7,  text: "Did the hyperscalers raise or cut capex guidance this quarter?", series: []}
+      - {n: 7,  text: "Did the hyperscalers raise or cut capex guidance this quarter?", series: [edgar.capex_guidance.amzn, edgar.capex_guidance.googl, edgar.capex_guidance.meta, edgar.capex_guidance.msft, edgar.capex_guidance.orcl]}
       - {n: 8,  text: "Are interconnection agreements energising faster than they are being withdrawn?", series: []}
       - {n: 9,  text: "Where is the uranium term price, and has the 2028 Russian-waiver deadline moved?", series: []}
       - {n: 10, text: "Which Part VII scenario did this quarter's evidence support — and did the power column change?", series: []}

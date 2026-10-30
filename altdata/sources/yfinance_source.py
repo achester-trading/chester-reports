@@ -631,8 +631,17 @@ def _master(on=None):
     return smm.Master()
 
 
-def resolve_basket(seed: dict[str, str], on=None) -> dict[str, str]:
-    """{Yahoo symbol: bare store key ('mkt_spy')} through the master's resolver."""
+def resolve_basket(seed: dict[str, str], on=None,
+                   restricted: Optional[list] = None) -> dict[str, str]:
+    """{Yahoo symbol: bare store key ('mkt_spy')} through the master's resolver.
+
+    THE BLOCKLIST IS CHECKED HERE, AT THE SAME PLACE (A71, the audit's leftovers):
+    each symbol is asked of the master's `is_restricted`, which falls back to the
+    tracked-entities rule for a string the master does not know. A restricted
+    name is LOGGED and appended to `restricted` when a list is passed, and its
+    prices are still stored: Standing rule 1 bars a recommendation, not a price
+    (diagnostic coverage is unaffected), and the register refuses the
+    recommendation at write time. Nothing here changes a stored key."""
     try:
         m = _master()
     except Exception as exc:                                    # noqa: BLE001
@@ -640,6 +649,17 @@ def resolve_basket(seed: dict[str, str], on=None) -> dict[str, str]:
                   "are used", type(exc).__name__, exc)
         return dict(seed)
     out = {}
+    for sym in seed:
+        try:
+            hit = m.is_restricted(sym, "yahoo", on)
+        except Exception:                                       # noqa: BLE001
+            hit = False
+        if hit:
+            log.warning("security master: %s is a restricted (Brookfield-related) "
+                        "instrument -- its prices are stored for diagnostics only; "
+                        "the register refuses any recommendation on it", sym)
+            if restricted is not None:
+                restricted.append(sym)
     for sym, seed_key in seed.items():
         try:
             sk = m.resolve(sym, "yahoo", on)["identifiers"]["store_key"]
@@ -713,9 +733,11 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
     from .. import observations as obs
     from .. import session as sess
 
-    basket = resolve_basket(symbols or SYMBOLS)
+    restricted: list = []
+    basket = resolve_basket(symbols or SYMBOLS, restricted=restricted)
     summary: dict = {"total": len(basket), "success": 0, "failed": [],
-                     "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND}
+                     "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND,
+                     "restricted": restricted}
 
     db = obs.open_writer(__name__)
     try:
