@@ -1021,10 +1021,36 @@ def group_k() -> None:
               f"the role audit still fails: {c['case']}")
 
 
+# ---------------------------------------------------------------------------
+# L. THE MONTHLY'S BINDING FROM THE 29 OCT DRY RUN (A90)
+# ---------------------------------------------------------------------------
+# Dry run #2's false positives, as sentences over blocks in the rows' real
+# labels (tests/fixtures/monthly_dryrun_2026-10-29.json): each passes, each
+# must-fail case beside it fails, and summary:tape -- averages written as closes
+# -- passes the binding only to be withheld by the role audit.
+M29 = json.loads((REPO / "tests" / "fixtures" / "monthly_dryrun_2026-10-29.json")
+                 .read_text(encoding="utf-8"))
+
+
+def group_l() -> None:
+    print(f"\n{LINE}\nL. THE MONTHLY'S BINDING FROM THE 29 OCT DRY RUN (A90)\n{LINE}")
+    for c in M29["binding_pass"]:
+        a = na.audit(c["text"], c["block"])
+        check(a.passed, f"passes: {c['case']} ({a.reason()[:120]})")
+    for c in M29["binding_fail"]:
+        a = na.audit(c["text"], c["block"])
+        check(not a.passed and "is bound to" in a.reason(),
+              f"still fails: {c['case']} ({a.reason()[:120]})")
+    t = M29["tape"]
+    check(na.audit(t["text"], t["block"]).passed and na.role_faults(t["text"], t["block"]),
+          "summary:tape's averages written as closes: the binding passes them, the "
+          "role audit withholds them")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_j, group_k):
+              group_j, group_k, group_l):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
