@@ -244,7 +244,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty-five code gates (one hundred and forty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-nine code gates (one hundred and forty-six Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1259,6 +1259,47 @@ fixtures.
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
+
+**Is it getting better: decision quality and the error corpus (Learning Loop v2,
+LL-1 and LL-3; B73, ruled 25 Oct 2026).** Report only, no model call, no right.
+`altdata/decision_quality.py` computes at read, from the stored ledger and grades:
+Murphy's decomposition of the Brier score (reliability, resolution, uncertainty and
+the within-bin term, ten bins of 0.1) by source family and horizon bucket,
+"accruing (n=k of 100)" below 100 resolved rows a cell; the counterfactual ledger
+per book (taken, declined, draft, one grade a decision); the Weekly stance's implied
+book against Book Z; and the one line, the system Brier and the expectancy in ruled
+R over 13 and 52 weeks against the windows before. The Monthly appends it to the Lab
+report attachment (`with_lab_report`, outside `alpha/`); `python -m
+altdata.decision_quality pack` prints the Doctrine pack's section; the Weekly reads
+none of it. `altdata/error_corpus.py` writes the append-only `error_corpus` table:
+one row per graded miss (a ledger row past the coin's Brier, a grade below zero R)
+with what was said, what happened, the margin, and what was missing at emission --
+the object's absent dimensions and legs, and the ledger's new `missing_inputs`
+column, written once by every source's `record`. It prints nowhere; the critic
+(LL-5) reads it. `tools/validate_decision_quality.py` and
+`tools/validate_error_corpus.py` hold it.
+
+**Which missing input costs the most, and the post-mortem file (Learning Loop v2,
+LL-2 and LL-4; A80, ruled 25 Oct 2026).** `altdata/value_of_information.py` computes at read, by source family and
+horizon, the mean Brier of the resolved rows missing an input at emission (the
+row's `missing_inputs` united with the object's absent dimensions and legs held
+then; NULL with no object is unrecorded, never compared) less that of the rows that
+had it, with n, a percentile bootstrap interval (seed 20261025, 2,000 resamples)
+and the share missing; an input is ranked from 30 affected rows. It is the scans'
+and source checks' search order, the operator's to adopt; the Monthly's Lab report
+prints it after decision quality and `python -m altdata.value_of_information pack`
+prints the Doctrine pack's section. Book B's candidate rows record their unread
+legs. `tools/validate_value_of_information.py` holds it. `python -m
+altdata.postmortem week` writes, the Saturday before the Sunday session, one file
+per graded miss of the week from its corpus row (`docs/postmortems/<saturday>/<id>.md`:
+what was said, what happened, the margin, what was missing, the decision it fed) with
+the Doctrine's six 9.2 questions, the seventh field and the note blank for the
+operator; it never rewrites a file. A model may only shorten it (`--shorten`, off by
+default, through `model_meter`), and a paragraph naming a cause or a figure the rows do
+not hold is withheld (R-4). `python -m altdata.redteam_shadow run` is Red Team v1 in
+shadow: one blinded call per material packet (evidence shown, thesis withheld) to
+`docs/redteam/shadow/<date>-<packet>.md` only, the register opened `mode=ro`, so never
+`review_changed`; EL-9's gate stands. `tools/validate_postmortems.py` holds both.
 
 **Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
 59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s

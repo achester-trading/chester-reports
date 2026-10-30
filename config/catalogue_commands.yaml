@@ -91,12 +91,24 @@ commands:
   altdata.dealer_capture:
     domain: options
     line: 'The intraday dealer captures, 09:45 and 12:30 ET: chains, the exposure JSON per capture, and the 12:30 gates'
+  altdata.value_of_information:
+    domain: register
+    line: Value of information -- which missing input costs the most forecast accuracy (LL-2)
+    sources: [derived_probability]
   altdata.vendor_chains:
     domain: options
     line: 'The vendor chains at 16:31 ET (M-3): Massive SPX and SPCX, the 16:16 data (a 15-minute delay), the same chain files as before and their own completeness record'
+  altdata.decision_quality:
+    domain: register
+    line: Decision quality -- is the system getting better? (Learning Loop v2, LL-1)
+    sources: [derived_probability, derived_grade]
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report
+  altdata.error_corpus:
+    domain: register
+    line: The error corpus -- every graded miss, with what was said, what happened and what was missing (LL-3)
+    sources: [derived_probability]
   altdata.em_scorecard:
     domain: em
     line: 'The EM vulnerability scorecard: a table of lenses, never a composite'
@@ -168,6 +180,10 @@ commands:
   altdata.paper_bid:
     domain: options
     line: The two-bid decomposition, the parts that can start now
+  altdata.postmortem:
+    domain: register
+    line: Code-built post-mortems -- one file per graded miss of the week, the six questions blank for the operator (LL-4)
+    sources: [derived_probability, derived_grade]
   altdata.probability_ledger:
     domain: register
     line: The probability ledger -- every number this system states as a likelihood, scored
@@ -187,6 +203,10 @@ commands:
   altdata.rates_shape:
     domain: rates
     line: THE SELLOFF-SHAPE AXIS AND THE SELLOFF'S COMPOSITION, and the four voices adjudicated by the measures
+  altdata.redteam_shadow:
+    domain: register
+    line: Red Team v1 in shadow -- a blinded model pass on each material packet, to a file only (LL-4)
+    sources: [derived_grade]
   altdata.releases:
     domain: computed
     line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'

@@ -261,7 +261,9 @@ def write_ledger(obj: dict, m: dict, ledger, emitted_at: Optional[str] = None) -
                               resolution_criterion=criterion(dial, hd),
                               scenario_set=f"state:{dial}:{h}s:{day}",
                               emitted_at=emitted_at,
-                              emitted_by=f"regime:{obj.get('method_version')}")
+                              emitted_by=f"regime:{obj.get('method_version')}",
+                              # LL-3: the object's absent dimensions at emission
+                              missing_inputs=obj.get("absent_dimensions") or [])
                 n += 1
     return n
 
