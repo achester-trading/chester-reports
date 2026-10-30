@@ -726,6 +726,34 @@ sources:
         reliability/resolution/uncertainty decomposition that would is owed, and
         needs an n this ledger will not have for a year.
 
+  ibkr_bars:
+    name: Interactive Brokers historical daily bars via the local IB Gateway (A93)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [equity_prices]
+    geography: [US]
+    latency: daily, after the close; requested once a session per contract
+    timestamp_reliability: high
+    timestamp_notes: >-
+      A daily bar is knowable at its session's close plus the declared delay
+      (config/ibkr_bars.yaml delay_minutes): a live row is stamped no earlier
+      than that and than its pull; a backfill row is close + delay, RECONSTRUCTED.
+    license: >-
+      brokerage market data for the account holder's own use; not
+      redistributable (the price-source migration brief, section 2a); the public
+      repository never carries a stored value
+    allowed_reports: []
+    implemented_by: altdata/sources/ibkr_bars.py
+    status: disabled
+    disabled_since: "2026-10-29"
+    caveats:
+      - >-
+        BUILT AND SWITCHED OFF (A93, tranche 1 of the D38 migration). It stays off
+        until the IBKR market-data subscription exists (D38: USD 60 a month for
+        all market data) and the Security Master carries each instrument's
+        ibkr_conid. Off, the feed run does not call it and its keys are not on
+        the freshness roster. Twenty sessions in parallel beside the yfinance
+        pull before any reader moves (the brief's section 4).
   ibkr_paper:
     name: Interactive Brokers, paper account via local IB Gateway
     tier: A0

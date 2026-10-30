@@ -1,0 +1,80 @@
+# The IBKR daily-bars writer (A93; tranche 1 of the price-source migration brief,
+# docs/briefs/price-source-migration-brief-2026-10-25.md on b68, ruled D38 on
+# 26 Oct 2026): historical daily bars through the existing gateway, the primary
+# replacement for the yfinance basket's US funds and single names.
+#
+# SWITCHED OFF. It stays off until the IBKR market-data subscription the brief's
+# decision 2 names exists (ceiling USD 60 a month for all market data, D38). With
+# `enabled: false` the writer requests nothing and writes nothing, and the feed
+# run does not call it. The operator's steps after subscribing are in
+# docs/briefs/a93-notes.md.
+version: 1
+enabled: false
+disabled_since: "2026-10-29"
+disabled_reason: >-
+  Built ahead of the subscription (A93). Enable after the operator confirms the
+  IBKR market-data subscription and the Security Master carries each
+  instrument's ibkr_conid.
+
+# The shared client table's id (altdata/ibkr_clients.py, "bars").
+client: bars
+
+# THE PACING (the brief's section 2a, IBKR's historical limitations page): a
+# violation is more than 60 historical requests in any ten minutes, six or more
+# for one contract in two seconds, or an identical request inside 15 seconds.
+# The writer holds the first in code; one request per contract per run keeps the
+# other two out of reach.
+pacing:
+  max_requests: 60
+  window_seconds: 600
+
+# One request per contract: the routine pull asks for the last `routine` of
+# daily bars, the backfill for `backfill`. Regular trading hours only.
+duration:
+  routine: "10 D"
+  backfill: "5 Y"
+bar_size: "1 day"
+use_rth: true
+
+# THE POINT-IN-TIME RULE (the brief's section 4.5): a daily bar is knowable at
+# its session's close plus this declared delay, never earlier. A live row is
+# stamped no earlier than its pull; a backfill row is stamped close + delay and
+# marked RECONSTRUCTED, as tools/backfill_prices.py does. The delay is declared,
+# to be checked against the first parallel run, never assumed right.
+delay_minutes: 30
+
+# THE FAMILIES (the brief's section 3; the first family is the brief's first
+# row). Each instrument is named by its Yahoo symbol and resolved through the
+# Security Master to its ibkr_conid; an instrument without one is skipped and
+# named, never guessed. Keys are ibkr.<stem>_<field>, the stem being the
+# yfinance key's (yfinance.mkt_spy -> ibkr.spy_close): new keys, never over
+# yfinance's. `include: false` families are declared for the next tranche.
+families:
+  us_index_funds:
+    include: true
+    availability: ny_close
+    what_to_show: TRADES
+    symbols: [SPY, QQQ, IWM, DIA, RSP]
+  index_levels:
+    include: false
+    note: "^GSPC through the held Cboe indexes subscription (the brief's decision 3)"
+    availability: ny_close
+    what_to_show: TRADES
+    symbols: ["^GSPC"]
+  futures_overnight:
+    include: false
+    note: "the futures the overnight block reads; continuous contracts, settlement-based"
+    availability: ny_close
+    what_to_show: TRADES
+    symbols: ["ES=F", "NQ=F"]
+  fx:
+    include: false
+    note: "IDEALPRO; the daily bar is the UTC day"
+    availability: utc_day
+    what_to_show: MIDPOINT
+    symbols: ["JPY=X", "EURUSD=X"]
+
+# Open, high, low and close. Volume waits: the brief says IBKR may report US
+# equity volume in round lots, "checked against IBKR's documentation at build,
+# never assumed" -- it is checked on the box's first dry run, then added.
+fields: [open, high, low, close]

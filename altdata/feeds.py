@@ -231,6 +231,26 @@ def _official_modules() -> list:
     return _writer_modules(OFFICIAL_WRITERS)
 
 
+# WRITERS BUILT AHEAD OF THEIR SOURCE (A93). A writer here joins the external
+# step only while its own config enables it: off, it is not called, its keys are
+# not on the freshness roster, and nothing reads as stale for a source nobody has
+# bought. The IBKR daily bars wait for the market-data subscription (D38).
+SWITCHED_WRITERS = ("ibkr_bars",)
+
+
+def _switched_writers() -> list:
+    from importlib import import_module
+    out = []
+    for name in SWITCHED_WRITERS:
+        try:
+            mod = import_module(f"{__package__}.sources.{name}")
+            if mod.enabled():
+                out.append((name, mod))
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("switched writer %s not read: %s", name, secrets.redact(str(exc)))
+    return out
+
+
 def static_keys(name: str) -> list[str]:
     """A writer's KEYS read from its source file, for a module that will not
     import. (H-1 item 2.) An import failure used to take the writer's keys off
@@ -547,7 +567,7 @@ def pull_official(run_id: Optional[str] = None,
 
 def pull_external(run_id: Optional[str] = None) -> dict:
     """The external writers, on the same terms as the official ones."""
-    mods = _writer_modules(EXTERNAL_WRITERS)
+    mods = _writer_modules(EXTERNAL_WRITERS) + _switched_writers()
     out = _pull_writers(mods, run_id)
     record_attempted("external", _keys(mods), failed=writer_failures(mods, out),
                      awaiting=writer_awaiting(mods, out))

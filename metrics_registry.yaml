@@ -16483,6 +16483,30 @@ bulk_imports:
     mechanism_group_map:
       "7": macro_global_fx
 
+  ibkr_daily_bars:
+    description: >-
+      A93 (29 Oct 2026; tranche 1 of the price-source migration, ruled D38): the
+      IBKR daily bars' open, high, low and close for every declared family,
+      keyed ibkr.<stem>_<field> with the yfinance key's stem (ibkr.spy_close
+      beside yfinance.mkt_spy), never over yfinance's. NOT YET SOURCED: the
+      writer is built and switched off until the market-data subscription
+      exists. The first family is the US equity index funds (SPY, QQQ, IWM,
+      DIA, RSP); ^GSPC, the overnight futures and FX are declared for the next
+      tranche. Volume waits for its unit to be checked on the box.
+    source: ibkr_bars
+    members_from: altdata.sources.ibkr_bars.DECLARED_KEYS
+    status_extra: not_yet_sourced
+    family: price
+    units: price
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group: market_close
+    expected_members: 40   # 10 declared instruments x 4 fields (A93)
   market_closes:
     description: >-
       Daily closes for the 40-symbol market basket, keyed yfinance.mkt_<sym>
