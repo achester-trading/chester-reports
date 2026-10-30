@@ -69,6 +69,45 @@ families:
       The CPC's daily file carries the day before yesterday as its newest column
       (on 24 Oct 2026 its newest was 22 Oct): 2 sessions over the daily allowance,
       3 with a holiday's slack.
+  # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34). Ahead of `imf`
+  # and `noaa`-wide globs, because the first family that matches wins. The other
+  # tranche-1 readers publish inside their cadence's own allowance (weekly 8
+  # sessions: the WPSR's Wednesday, the storage report's Thursday, Crop
+  # Progress's Monday, CFTC's Friday, the SNB's Monday; daily 2: the Bank of
+  # Canada's and the Riksbank's same-evening posting; monthly 32: WASDE's release
+  # in its own month, MoF's two days after the period), so they carry no lag.
+  - id: imf_portwatch
+    keys: ["imf.portwatch.*"]
+    lag_sessions: 6
+    max_lag: 8
+    source: "IMF PortWatch, the Daily_Chokepoints_Data feature service"
+    reason: >-
+      PortWatch publishes its AIS-modelled daily counts several days behind real
+      time: a read on Sunday 25 Oct 2026 found the newest row dated Sunday 18 Oct
+      (the probe), five sessions behind, and the portal states the data lag. Six
+      sessions over the daily allowance's 2, eight with a holiday's slack.
+  - id: eia_ng_monthly
+    keys: ["eia.lng_exports"]
+    lag_sessions: 55
+    max_lag: 60
+    source: "EIA Natural Gas Monthly (N9133US2, LNG exports)"
+    reason: >-
+      The Natural Gas Monthly publishes a month's figures about two months after
+      it ends: a month observed on its 1st is available at the end of the second
+      month after, so just before the next release the newest row is about four
+      months old, some 87 sessions. 55 over the monthly allowance's 32; 60 bounds
+      a late release.
+  - id: noaa_oni
+    keys: ["noaa.oni"]
+    lag_sessions: 42
+    max_lag: 45
+    source: "NOAA CPC, the Oceanic Nino Index (oni.ascii.txt)"
+    reason: >-
+      A season is observed at its centre month and is complete only when its last
+      month ends; CPC posts it with the ENSO discussion in the following month's
+      first half. So the newest season is about 75 days old when posted and about
+      105 days (74 sessions) old just before the next: 42 over the monthly
+      allowance's 32, 45 with a late posting's slack.
   - id: term_premium_models
     keys: ["calc.attr_kw_tp_share_*", "calc.attr_acm_tp_share_*",
            "calc.attr_dkw_path_share_*"]

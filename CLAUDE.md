@@ -133,7 +133,8 @@ altdata/                  Shared ingestion package — used by every report
                           per-household deflator);
                           4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
                           1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
-                          FRED_PULL_SERIES, 283, is the union the
+                          1 in FRED_6I_SERIES (the Quarterly's OVX);
+                          FRED_PULL_SERIES, 284, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -243,7 +244,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and forty-three code gates (one hundred and forty Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and forty-five code gates (one hundred and forty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -791,6 +792,41 @@ ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
 
 `tools/validate_batch14_a2.py` holds it.
 
+**The Quarterly's readers, tranche 1 (b69-quarterly-readers-1, 25 Oct 2026; ruling
+D34; merges after the 1 Nov Monthly).** Ten official writers fill the Alternative
+Assets Quarterly's unfilled rows from the sources B67's checks passed
+(`docs/briefs/quarterly-source-checks-2026-10-25.md`), each honouring its stated
+limit in code, all report-only and barred from the market-state object:
+- **oil and energy:** `eia_buffers` (the SPR, refinery utilisation, gas storage,
+  LNG exports), `portwatch` (IMF PortWatch's four chokepoints, one request a day,
+  "IMF PortWatch" in every row's source) and OVXCLS through the FRED pull
+  (`FRED_6I_SERIES`; Cboe's copyright, own use);
+- **agriculture:** `esmis_wasde` (WASDE through USDA's release service, each
+  release its own vintage, a projection never sharing an instrument with an
+  estimate), `esmis_crop_progress`, `cpc_oni` and `cftc_grains`;
+- **currencies:** `boc_valet`, `riksbank` (one request a day), `snb_sight`
+  (attributed, non-commercial) and `mof_intervention` (PDL 1.0, cited on every row).
+
+`altdata/sources/_quarterly_common.py` reads robots.txt at every pull (401, 403,
+404 or 410 as no rules) and keeps the one-a-day guard. `tools/validate_quarterly_readers_1.py`
+holds it.
+
+**The Quarterly's readers, tranche 2 (b70-quarterly-readers-2, 25 Oct 2026; D34;
+after the 1 Nov Monthly).** Four external writers, report-only:
+- `ishares_holdings`: IBIT's and ETHA's AUM and shares, "level, not flow";
+- `llama_breadth`: DefiLlama TVL by category and by layer-2 chain, stored and
+  never republished, the AERO merge convention in code;
+- `edgar_bdc`: five BDCs' filed investments at fair value and NAV per share,
+  through the SEC contact, with OCSL refused by the blocklist;
+- `blockscout_supply`: a field check, PENDING while Blockscout's public stats
+  carry no burn or issuance field.
+
+The sources B67 refused are registered `refused`, and their rows print "not
+tracked" with the reason and the check date (`status_extra: not_yet_sourced`):
+PJM, LBNL, MOEA, TSMC, Circle, Tether, Thailand's current account and the
+construction index. The Yahoo rows (GDX, SIL, the grain fronts) print "pending
+D33". `tools/validate_quarterly_readers_2.py` holds it.
+
 **Batch 14, Part B2: the CMA table, the PEG note and the per-household line (items
 62, 67 and 68; b55-batch14-b2, 23 Oct 2026). Merges after the 1 Nov Monthly.**
 Report only.
@@ -1219,7 +1255,7 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 33 official writers, 37 external writers and 7
+**The scheduled roster is 43 official writers, 41 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.

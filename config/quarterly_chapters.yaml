@@ -172,7 +172,7 @@ families:
         section: "Falsification Tests"
         statement: "\"Mining equities offer leverage to the metal\" is falsified by continued underperformance during a sustained high-price period, which would indicate the leverage is being destroyed by cost inflation and capital allocation."
         measurable: null
-        not_measured: "the miners (GDX, SIL) are not in the price feed"
+        not_measured: "pending D33: no new yfinance symbols, so GDX and SIL are not added (yahoo_pending.gdx, .sil)"
     ten_questions:
       - {n: 1,  text: "Are central banks still buying gold at 200+ tonnes per quarter?", series: [wgc.cb_net_purchases_t, wgc.cb_gold_holdings_t]}
       - {n: 2,  text: "Are Western gold ETF holdings accumulating or bleeding?", series: []}
@@ -257,9 +257,13 @@ families:
       - {key: fred.wti,              label: "WTI, $ a barrel"}
       - {key: cftc.noncomm_net, instrument: WTI, label: "Crude futures, non-commercial net (CFTC legacy)"}
       - {key: fred.breakeven_10y,    label: "The 10-year breakeven (oil against breakevens)"}
-      - {label: "The SPR beside commercial stocks", absent: "the SPR is not stored (AQ-3)"}
+      - {key: eia.spr_stocks,        label: "The SPR beside commercial stocks, barrels (EIA, b69)"}
       - {label: "Brent M1-M6 and M1-M12", absent: "the futures curve arrives with 6b"}
       - {label: "Gulf exports and reachability-adjusted spare capacity", absent: "not stored (AQ-3; a named Gap)"}
+      - {key: imf.portwatch.transits.hormuz.tanker, label: "Strait of Hormuz, tanker transit calls a day (IMF PortWatch)"}
+      - {key: imf.portwatch.transits.bab_el_mandeb.tanker, label: "Bab el-Mandeb, tanker transit calls a day (IMF PortWatch)"}
+      - {key: imf.portwatch.transits.suez.tanker, label: "Suez Canal, tanker transit calls a day (IMF PortWatch)"}
+      - {key: imf.portwatch.transits.malacca.tanker, label: "Malacca Strait, tanker transit calls a day (IMF PortWatch)"}
       - {hook_key: eia.rigs_oil, branch: aq-3-series-1, label: "Oil rigs (Baker Hughes via the EIA, monthly)"}
       - {hook_key: eia.rigs_gas, branch: aq-3-series-1, label: "Gas rigs (Baker Hughes via the EIA, monthly)"}
       - {hook_key: eia.rigs_total, branch: aq-3-series-1, label: "Total rigs (Baker Hughes via the EIA, monthly)"}
@@ -268,8 +272,9 @@ families:
       - {hook_key: calc.crack_321, branch: aq-3-series-1, label: "The 3-2-1 crack (CL, RB, HO), $/bbl"}
       - {hook_key: cftc.dis_managed_money_net_oi, instrument: WTI, branch: aq-3-series-1, label: "WTI futures, managed money net, % of open interest"}
       - {hook_key: cftc.dis_managed_money_net_oi, instrument: NATGAS, branch: aq-3-series-1, label: "Natural gas futures, managed money net, % of open interest"}
-      - {label: "Refinery utilisation", absent: "not stored (not in AQ-3 part 1)"}
-      - {label: "OVX and crude skew", absent: "OVXCLS is not in the FRED pull (AQ-3)"}
+      - {key: eia.refinery_util,     label: "Refinery utilisation, % (EIA, b69)"}
+      - {key: fred.ovx,              label: "OVX, Cboe's crude-oil volatility index (via FRED; Cboe's copyright, own use)"}
+      - {label: "Crude skew", absent: "not stored: no crude options chain is captured"}
     structure_charts:
       - {id: brent_stocks, title: "Brent against US commercial crude stocks", kind: twin,
          series: [{key: fred.brent, label: "Brent, $ a barrel"},
@@ -280,7 +285,7 @@ families:
     implied_range_symbols: [USO]
     curve: {waits: "the Brent and WTI curves and the roll arrive with 6b; the WTI prompt spread is the one curve point stored", key: oil.prompt_spread}
     analyses:
-      - {id: disruption_divergence, title: "The disruption-price divergence", waits: "PortWatch transits are not stored (AQ-8)",
+      - {id: disruption_divergence, title: "The disruption-price divergence", waits: "the transits are stored (imf.portwatch.*, b69); the divergence analysis is not built (AQ-8)",
          kill: "if the gap persists two more quarters, adaptation wins and the chokepoint's weight is cut, in writing"}
       - {id: pass_through, title: "Commodity pass-through and its residual", waits: "not built (AQ-8)",
          kill: "lead under 2 months, or a rolling five-year lead correlation under 0.3"}
@@ -302,7 +307,7 @@ families:
         section: "Falsification Tests"
         statement: "\"The power squeeze is structural, not a two-auction phenomenon\" is falsified by two consecutive PJM auctions clearing below the cap with the shortfall closed while hyperscaler capex guidance is unchanged."
         measurable: null
-        not_measured: "PJM auction results are not stored (AQ-3)"
+        not_measured: "not tracked: PJM's terms confer no licence (B67, 25 Oct 2026) (pjm.capacity_auction)"
       - id: data_centre_load
         paper: "Energy"
         section: "Falsification Tests"
@@ -382,12 +387,12 @@ families:
       title: "The second half: gas, power and uranium"
       structure:
         - {key: fred.natgas, label: "Henry Hub spot (FRED DHHNGSP), $ per MMBtu"}
-        - {label: "US gas storage against the five-year band", absent: "EIA storage is not stored (AQ-3)"}
-        - {label: "LNG feedgas", absent: "not stored (AQ-3)"}
+        - {key: eia.gas_storage,       label: "US working gas in storage, Bcf, against the five-year band (EIA, b69)"}
+        - {key: eia.lng_exports,       label: "US LNG exports, MMcf, monthly (EIA, b69); daily feedgas not tracked"}
         - {label: "TTF and EU storage", absent: "not stored (AQ-3)"}
         - {label: "JKM", absent: "not stored (AQ-3)"}
-        - {label: "PJM's capacity auction against the cap, and the shortfall", absent: "not stored (AQ-3)"}
-        - {label: "The reserve margin, the interconnection queue, the turbine backlog", absent: "not stored (AQ-3)"}
+        - {label: "PJM's capacity auction against the cap, and the shortfall", absent: "not tracked: PJM's terms confer no licence (B67, 25 Oct 2026)"}
+        - {label: "The reserve margin, the interconnection queue, the turbine backlog", absent: "not tracked: LBNL's queue data answered HTTP 403 (B67, 25 Oct 2026); the margin and the backlog are not stored"}
         - {label: "Uranium term, SWU and the Russian waivers", absent: "not stored (AQ-3)"}
       tests: [hh_bottleneck, lng_glut, power_squeeze, data_centre_load, enrichment]
 
@@ -417,7 +422,9 @@ families:
       - {key: cfets.cny_fix,         label: "The PBoC's CNY fixing"}
       - {key: mof.jgb_10y,           label: "The 10-year JGB yield"}
       - {label: "The EM dollar index", absent: "not stored (AQ-3)"}
-      - {label: "The DXY-weighted two-year spread", absent: "the five other two-year yields are not stored (AQ-3)"}
+      - {label: "The DXY-weighted two-year spread", absent: "the UK two-year is not stored (the Bank of England's database disallows robots); CAD and SEK are (b69)"}
+      - {key: boc.yield_2y,          label: "Canada's 2-year benchmark yield, % (Bank of Canada)"}
+      - {key: riksbank.yield_2y,     label: "Sweden's 2-year government yield, % (Riksbank)"}
       - {hook_key: cftc.tff_lev_money_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, leveraged funds net, % of open interest (CFTC TFF)"}
       - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: EUR, branch: aq-3-series-1, label: "EUR futures, asset managers net, % of open interest (CFTC TFF)"}
       - {hook_key: cftc.tff_lev_money_net_oi, instrument: GBP, branch: aq-3-series-1, label: "GBP futures, leveraged funds net, % of open interest (CFTC TFF)"}
@@ -430,7 +437,8 @@ families:
       - {hook_key: cftc.tff_asset_mgr_net_oi, instrument: CAD, branch: aq-3-series-1, label: "CAD futures, asset managers net, % of open interest (CFTC TFF)"}
       - {label: "The three-month cross-currency basis", absent: "not stored (AQ-3)"}
       - {label: "Risk reversals", absent: "FXE and FXY chains are not captured"}
-      - {label: "Intervention footprints (MoF monthly, SNB sight deposits)", absent: "not stored (AQ-3)"}
+      - {key: jp.mof.intervention_jpy, label: "Japan's FX intervention in the release period, yen (Ministry of Finance, Japan)"}
+      - {key: snb.sight_deposits_total, label: "SNB total sight deposits, CHF millions (Swiss National Bank)"}
       - {hook_key: calc.cnh_cny_bp, branch: aq-3-series-1, label: "CNH-CNY, bp"}
       - {label: "Stablecoin supply", absent: "not stored (AQ-3)"}
     structure_charts:
@@ -825,8 +833,8 @@ families:
         lines: ["Read quarterly, as the tail watch reads it; a tail scenario first, a market-structure event second."]
         rows:
           - {label: "Strait war-risk quotes", absent: "the tail watch's S8 ladder is not stored"}
-          - {label: "Taiwan export orders", absent: "not stored (AQ-3)"}
-          - {label: "Foundry monthly revenue", absent: "not stored (AQ-3)"}
+          - {label: "Taiwan export orders", absent: "not tracked: MOEA answered HTTP 403 (B67, 25 Oct 2026)"}
+          - {label: "Foundry monthly revenue", absent: "not tracked: TSMC's terms allow personal viewing only (B67, 25 Oct 2026)"}
           - {label: "PLA sustainment indicators", absent: "the tail watch's S8 ladder is not stored"}
           - {label: "Customs inspections", absent: "the tail watch's S8 ladder is not stored"}
       - id: china_political
@@ -883,8 +891,11 @@ families:
       - {key: zec.crypto_cap_share,   label: "ZEC's share of crypto market cap"}
       - {label: "Stablecoin total supply (S-1)", absent: "not stored (AQ-3)"}
       - {label: "BTC long-term-holder supply (SR-29)", absent: "not stored"}
-      - {label: "ETH burn against issuance", absent: "not stored (AQ-3)"}
-      - {label: "RWA tokenised value and holder count", absent: "not stored (AQ-3)"}
+      - {label: "ETH burn against issuance", absent: "not tracked: Blockscout's public stats carry no burn or issuance field (b70, 25 Oct 2026); Etherscan's key is not registered"}
+      - {key: llama.tvl.category.rwa, label: "RWA, TVL, USD (DefiLlama, stored never republished)"}
+      - {label: "RWA holder count", absent: "not stored: DefiLlama serves value, not holders"}
+      - {key: ishares.ibit.aum,      label: "IBIT net assets, USD (iShares; level, not flow)"}
+      - {key: ishares.etha.aum,      label: "ETHA net assets, USD (iShares; level, not flow)"}
       - {hook_key: etf.ibit_shares, branch: aq-3-series-1, label: "IBIT shares outstanding (S-2's share count)"}
       - {label: "ETF flows read against float (S-2)", absent: "the float is not stored; the share count is (IBIT, above)"}
       - {label: "Exchange balances", absent: "not stored"}
@@ -919,7 +930,7 @@ families:
       - {id: stable_bills, title: "Stablecoin supply against bill issuance",
          waits: "stablecoin supply is not stored (AQ-3)", kill: "a two-quarter stall is the quiet falsifier"}
       - {id: stable_issuers, title: "Issuer-level stablecoin surveillance and reserve composition (S4, S23)",
-         waits: "issuer attestations are not stored (AQ-3)", kill: "each scenario's own re-specification rule"}
+         waits: "not tracked: Circle's terms could not be found and Tether's robots.txt disallows its file (B67, 25 Oct 2026)", kill: "each scenario's own re-specification rule"}
       - {id: pqc, title: "Post-quantum milestones against verified capability (S18)",
          waits: "milestones arrive through the scan (AQ-7)", kill: "the scenario's own re-specification rule"}
     falsification:
@@ -1112,8 +1123,10 @@ families:
         after: analyses
         rows:
           - {label: "Stablecoin supply by issuer and chain (S-1)", absent: "not stored (AQ-3)"}
-          - {label: "Tokenised treasuries and RWA", absent: "not stored (AQ-3)"}
-          - {label: "L2 value secured", absent: "not stored (AQ-3)"}
+          - {key: llama.tvl.category.rwa, label: "Tokenised treasuries and RWA, TVL, USD (DefiLlama)"}
+          - {key: llama.tvl.chain.arbitrum, label: "Arbitrum TVL, USD (DefiLlama)"}
+          - {key: llama.tvl.chain.base, label: "Base TVL, USD (DefiLlama)"}
+          - {key: llama.tvl.chain.optimism, label: "OP Mainnet TVL, USD (DefiLlama)"}
           - {key: zec.crypto_cap_share, label: "Privacy coins as a group (ZEC's share; XMR, delisted, not stored)"}
           - {label: "Memecoin froth (S-5)", absent: "not stored (AQ-3)"}
       - id: stablecoin_plumbing
@@ -1124,7 +1137,7 @@ families:
         row_head: "Issuer"
         columns: ["Reserves and attestations", "Redemption terms", "Chain and venue share", "Peg", "The bill-demand link"]
         rows: [{name: "USDT"}, {name: "USDC"}, {name: "DAI/USDS"}, {name: "USDe"}]
-        absent: "issuer attestations, on-chain supply by chain and peg history are not stored (S-1, S4, S23; AQ-3)"
+        absent: "issuer attestations are not tracked (Circle's terms not found; Tether's robots disallows (B67, 25 Oct 2026)); on-chain supply by chain and peg history are not stored (S-1, S4, S23)"
       - id: deck_items
         n: "6e"
         title: "The deck items (the Coin Metrics, Galaxy and Messari quarterlies)"
@@ -1133,7 +1146,8 @@ families:
         rows:
           - {label: "Sector returns: L1, L2, DeFi, RWA, memes, privacy", absent: "no sector index is stored (AQ-3)"}
           - {label: "Venue share: CEX against DEX, and Hyperliquid's share", absent: "not stored (AQ-3)"}
-          - {label: "Crypto ETF AUM", absent: "share counts are not stored (AQ-3)"}
+          - {key: ishares.ibit.shares, label: "IBIT shares outstanding (iShares; level, not flow)"}
+          - {key: ishares.etha.shares, label: "ETHA shares outstanding (iShares; level, not flow)"}
           - {label: "VC raises (DS-29 /raises)", absent: "not stored (DS-29)"}
           - {label: "Developer activity", absent: "a named gap"}
       - id: crypto_scan
@@ -1240,8 +1254,15 @@ families:
       - {diff: [fred.ccc_oas, fred.bb_oas], label: "BB-CCC: the CCC OAS less the BB OAS"}
       - {label: "The dual-track default rate and the LME count", absent: "PitchBook LCD is paid; not stored"}
       - {label: "The loan distress ratio", absent: "PitchBook LCD is paid; not stored"}
-      - {label: "Private-credit non-accruals and PIK share", absent: "BDC filings and the Boston Fed series are not stored (AQ-3)"}
-      - {label: "The listed-BDC discount to NAV", absent: "not stored (AQ-3)"}
+      - {key: edgar.bdc.arcc.investments_fv, label: "ARCC, investments at fair value, USD (EDGAR)"}
+      - {key: edgar.bdc.fsk.investments_fv, label: "FSK, investments at fair value, USD (EDGAR)"}
+      - {key: edgar.bdc.bxsl.investments_fv, label: "BXSL, investments at fair value, USD (EDGAR)"}
+      - {key: edgar.bdc.obdc.investments_fv, label: "OBDC, investments at fair value, USD (EDGAR)"}
+      - {key: edgar.bdc.main.investments_fv, label: "MAIN, investments at fair value, USD (EDGAR)"}
+      - {key: edgar.bdc.arcc.nav_per_share, label: "ARCC, NAV per share (EDGAR)"}
+      - {key: edgar.bdc.fsk.nav_per_share, label: "FSK, NAV per share (EDGAR)"}
+      - {label: "Private-credit non-accruals and PIK share", absent: "not tracked: no standard us-gaap tag carries a BDC's non-accruals (b70); the Boston Fed series is not stored"}
+      - {label: "The listed-BDC discount to NAV", absent: "the NAVs are stored (EDGAR); the prices are pending D33 (no new yfinance symbols)"}
       - {label: "Cross-sectional mark dispersion", absent: "filings analysis; not stored"}
       - {label: "HY spread acceleration", absent: "the Top & Bottom overlay is not on this build"}
       - {label: "Credit-equity divergence", absent: "not computed here; the HY OAS and SPY rows are printed beside each other"}
@@ -1286,7 +1307,7 @@ families:
           discount widen materially and no aggregate deterioration follows within four
           quarters — in which case the tail was contained and the aggregate was right.
         measurable: null
-        not_measured: "the listed-BDC discount is not stored (AQ-3); BB-CCC is, in item 4"
+        not_measured: "the listed-BDC discount needs the BDCs' prices, pending D33; BB-CCC is stored, in item 4"
       - id: credit_leads
         paper: "Credit"
         section: "Falsification Tests"
@@ -1521,9 +1542,9 @@ families:
       - {hook_key: fred.usd_thb, branch: aq-3-series-1, label: "USD/THB, with its percentile", namespace: thailand}
       - {label: "The BoT policy rate and its stated path", absent: "the BoT API is not pulled (AQ-3, AQ-12)", namespace: thailand}
       - {label: "Thai CPI", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
-      - {label: "The current account", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "The current account", absent: "not tracked: the BoT's public report pages have no index and its API endpoint was not verified (b70, 25 Oct 2026); thai.current_account_usd is registered", namespace: thailand}
       - {label: "Tourist arrivals", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
-      - {label: "The construction-materials price index", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
+      - {label: "The construction-materials price index", absent: "a candidate: the Commerce ministry's site answered HTTP 500 (B67, 25 Oct 2026); re-check at the next quarterly scan", namespace: thailand}
       - {label: "The construction labour cost index", absent: "not pulled (AQ-3, AQ-12)", namespace: thailand}
       - {key: fred.dxy,            label: "The broad dollar (shared; read, never fed)"}
       - {key: yfinance.mkt_usdcny, label: "USD/CNY (shared; read, never fed)", dp: 4}
@@ -1593,23 +1614,32 @@ families:
     horizon_family: agriculture
     voices_subjects: []
     five_lines:
-      - {label: "Corn (front month)", absent: "not in the price feed (AQ-3, AQ-13)"}
-      - {label: "Wheat (front month)", absent: "not in the price feed (AQ-3, AQ-13)"}
-      - {label: "Soybeans (front month)", absent: "not in the price feed (AQ-3, AQ-13)"}
+      - {label: "Corn (front month)", absent: "pending D33: no new yfinance symbols (yahoo_pending.corn_front)"}
+      - {label: "Wheat (front month)", absent: "pending D33: no new yfinance symbols (yahoo_pending.wheat_front)"}
+      - {label: "Soybeans (front month)", absent: "pending D33: no new yfinance symbols (yahoo_pending.soybeans_front)"}
       - {key: worldbank.cmo_nonenergy, label: "The World Bank non-energy commodity index"}
       - {key: fred.natgas,            label: "Henry Hub (the nitrogen complex's input)"}
     structure:
-      - {label: "WASDE corn: production, use, trade, ending stocks, stocks-to-use", absent: "waits for AQ-3's WASDE writer (AQ-13)"}
-      - {label: "WASDE wheat: production, use, trade, ending stocks, stocks-to-use", absent: "waits for AQ-3's WASDE writer (AQ-13)"}
-      - {label: "WASDE soybeans: production, use, trade, ending stocks, stocks-to-use", absent: "waits for AQ-3's WASDE writer (AQ-13)"}
+      - {key: usda.wasde.corn.stocks_to_use, instrument: "2026/27 proj", label: "WASDE corn, stocks-to-use, %, the 2026/27 projection (USDA)"}
+      - {key: usda.wasde.wheat.stocks_to_use, instrument: "2026/27 proj", label: "WASDE wheat, stocks-to-use, %, the 2026/27 projection (USDA)"}
+      - {key: usda.wasde.soybeans.stocks_to_use, instrument: "2026/27 proj", label: "WASDE soybeans, stocks-to-use, %, the 2026/27 projection (USDA)"}
+      - {key: usda.wasde.corn.ending_stocks, instrument: "2026/27 proj", label: "WASDE corn, ending stocks, million bushels, the 2026/27 projection"}
+      - {key: usda.wasde.wheat.ending_stocks, instrument: "2026/27 proj", label: "WASDE wheat, ending stocks, million bushels, the 2026/27 projection"}
+      - {key: usda.wasde.soybeans.ending_stocks, instrument: "2026/27 proj", label: "WASDE soybeans, ending stocks, million bushels, the 2026/27 projection"}
+      - {label: "WASDE production and trade lines", absent: "not stored: b69 reads ending stocks and total use only"}
       - {label: "The quarter's WASDE revisions, diffed against the stored vintage (projections kept apart from observed)", absent: "waits for AQ-3's writer; no vintage is stored"}
-      - {label: "The crop-stage window", absent: "the crop calendar is not stored"}
-      - {label: "NOAA's ENSO state (context, never extrapolated to price)", absent: "not stored"}
+      - {key: usda.crop_progress.corn, label: "Corn rated good or excellent, % (USDA NASS, in season)"}
+      - {key: usda.crop_progress.soybeans, label: "Soybeans rated good or excellent, % (USDA NASS, in season)"}
+      - {key: usda.crop_progress.wheat, label: "Wheat rated good or excellent, % (USDA NASS, winter wheat in season)"}
+      - {label: "The crop-stage window", absent: "the crop calendar is not stored; condition is (above)"}
+      - {key: noaa.oni,              label: "NOAA's ENSO state, the ONI, deg C (context, never extrapolated to price)"}
       - {label: "Export commitments, bans and corridor access", absent: "events, read through the scan (AQ-7)"}
       - {label: "The nitrogen complex: Tampa ammonia, NOLA urea, DAP (Factor III; a 2-3-quarter lead on food CPI)", absent: "not stored; a named GAP"}
       - {key: fred.natgas,            label: "Henry Hub (gas → ammonia → urea)"}
       - {label: "Calendar spreads and the roll", absent: "the futures curve arrives with 6b"}
-      - {label: "Disaggregated COT, scaled to open interest", absent: "the CFTC writer stores legacy non-commercial only (AQ-3)"}
+      - {key: cftc.disagg.corn.managed_money_net_oi, label: "Corn, managed money net, % of open interest (CFTC disaggregated)"}
+      - {key: cftc.disagg.wheat.managed_money_net_oi, label: "Wheat, managed money net, % of open interest (CFTC disaggregated)"}
+      - {key: cftc.disagg.soybeans.managed_money_net_oi, label: "Soybeans, managed money net, % of open interest (CFTC disaggregated)"}
       - {key: worldbank.cmo_nonenergy, label: "The World Bank non-energy index"}
     structure_charts:
       - {id: nonenergy_gas, title: "The non-energy index against Henry Hub", kind: twin,

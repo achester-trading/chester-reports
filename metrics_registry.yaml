@@ -16180,6 +16180,1164 @@ metrics:
     description: >-
       The J.P.Morgan Global Manufacturing PMI headline (S&P Global; 50 = no change), entered by hand from the public release: the series is S&P Global's. observed_at = the reference month's first day. ST-R5.43a's growth read beside the diffusion index.
 
+  # B69 (b69-quarterly-readers-1, 25 Oct 2026; D34): the Alternative Assets
+  # Quarterly's oil-and-energy, agriculture and currency readers. Report-only;
+  # barred from the market-state object (market_state_barred, below).
+  eia.spr_stocks:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US Strategic Petroleum Reserve stocks, barrels (EIA WCSSTUS1, thousand barrels x1000; b69). The oil chapter's buffer line beside commercial stocks; report-only.
+  eia.refinery_util:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      US refinery operable utilisation, percent (EIA WPULEUS3; b69). Report-only.
+  eia.gas_storage:
+    source: eia
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Working gas in underground storage, Lower 48, billion cubic feet (EIA NW2_EPG0_SWO_R48_BCF; b69). The five-year band is the chapter's read; report-only.
+  eia.lng_exports:
+    source: eia
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      US liquefied natural gas exports, million cubic feet, monthly (EIA N9133US2; b69). Monthly exports, not daily feedgas, which stays not tracked (B67).
+  imf.portwatch.transits.hormuz:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Strait of Hormuz, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.hormuz.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Strait of Hormuz (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.suez:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Suez Canal, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.suez.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Suez Canal (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.bab_el_mandeb:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Bab el-Mandeb Strait, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.bab_el_mandeb.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Bab el-Mandeb Strait (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.malacca:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Malacca Strait, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.malacca.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Malacca Strait (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  usda.wasde.wheat.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US wheat ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.wheat.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US wheat ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.wheat:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US wheat crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  usda.wasde.corn.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US corn ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.corn.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US corn ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.corn:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US corn crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  usda.wasde.soybeans.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US soybeans ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.soybeans.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US soybeans ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.soybeans:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US soybeans crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  noaa.oni:
+    source: noaa_cpc
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      NOAA CPC's Oceanic Nino Index: the three-month season's sea-surface anomaly, degrees C, observed at the season's centre month (b69). Context only, never extrapolated to a price.
+  cftc.disagg.corn.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT corn: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.corn.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT corn: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  cftc.disagg.wheat.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT wheat: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.wheat.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT wheat: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  cftc.disagg.soybeans.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT soybeans: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.soybeans.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT soybeans: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  boc.yield_2y:
+    source: boc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Government of Canada 2-year benchmark bond yield, percent (Bank of Canada Valet BD.CDN.2YR.DQ.YLD; attributed to the Bank of Canada; b69).
+  riksbank.yield_2y:
+    source: riksbank
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Swedish government bond yield, 2 years, percent (Riksbank SWEA SEGVB2YC; one request a day; b69).
+  snb.sight_deposits_total:
+    source: snb
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Total sight deposits in Swiss francs at the SNB, CHF millions, weekly (SNB data portal cube snbgwdchfsgw, item TG; attributed Swiss National Bank; own, non-commercial use; b69).
+  snb.sight_deposits_domestic:
+    source: snb
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Sight deposits of domestic banks at the SNB, CHF millions, weekly (cube snbgwdchfsgw, item GI; attributed; b69).
+  jp.mof.intervention_jpy:
+    source: mof_intervention
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Japan's foreign-exchange intervention for the release period, YEN, from the Ministry of Finance's monthly release (PDL 1.0, source cited on every row; b69). Observed at the period's last day.
+  # B70 (b70-quarterly-readers-2, 25 Oct 2026; D34): the Quarterly's crypto,
+  # credit and Thailand readers, and the declared gaps (status_extra:
+  # not_yet_sourced, each with its reason and check date). Report-only.
+  ishares.ibit.aum:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      iShares Bitcoin Trust (IBIT): total net assets, USD, from the product page (LEVEL, NOT FLOW; Farside's flow tables are the flow source; b70).
+  ishares.ibit.shares:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Bitcoin Trust (IBIT): shares outstanding, from the product page (level, not flow; b70).
+  ishares.etha.aum:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      iShares Ethereum Trust (ETHA): total net assets, USD, from the product page (LEVEL, NOT FLOW; Farside's flow tables are the flow source; b70).
+  ishares.etha.shares:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Ethereum Trust (ETHA): shares outstanding, from the product page (level, not flow; b70).
+  llama.tvl.category.rwa:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'RWA' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.lending:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Lending' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.liquid_staking:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Liquid Staking' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.dexs:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Dexs' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.cdp:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'CDP' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.bridge:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Bridge' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.yield:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Yield' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.derivatives:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Derivatives' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.restaking:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Restaking' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.basis_trading:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Basis Trading' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.chain.arbitrum:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Arbitrum chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.base:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Base chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.optimism:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the OP Mainnet chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.blast:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Blast chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.scroll:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Scroll chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.linea:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Linea chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.zksync_era:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the zkSync Era chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.mantle:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Mantle chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.starknet:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Starknet chain, USD, a daily snapshot (b70). Stored, never republished.
+  edgar.bdc.arcc.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ARCC: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.arcc.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      ARCC: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.arcc.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ARCC: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.fsk.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FSK: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.fsk.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      FSK: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.fsk.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FSK: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.bxsl.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      BXSL: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.bxsl.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      BXSL: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.bxsl.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      BXSL: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.obdc.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      OBDC: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.obdc.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      OBDC: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.obdc.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      OBDC: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.main.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MAIN: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.main.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      MAIN: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.main.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MAIN: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  eth.burn_daily:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ETH burnt in the UTC day -- NOT YET SOURCED: Blockscout's public /api/v2/stats carries no burn or issuance field (checked 25 Oct 2026, b70); Etherscan's key is not registered.
+  eth.issuance_daily:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ETH issued in the UTC day -- NOT YET SOURCED: Blockscout's public /api/v2/stats carries no burn or issuance field (checked 25 Oct 2026, b70); Etherscan's key is not registered.
+  eth.net_issuance:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ETH issuance less burn -- NOT YET SOURCED: Blockscout's public /api/v2/stats carries no burn or issuance field (checked 25 Oct 2026, b70); Etherscan's key is not registered.
+  thai.current_account_usd:
+    source: bot
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Thailand's current account, USD -- NOT YET SOURCED: the Bank of Thailand's statistics pages are indexed by report id with no published index (the page B67 checked, reportID 650, is direct investment abroad), and its API, which needs the operator's BOT_API_KEY, has no verified balance-of-payments endpoint here (b70, 25 Oct 2026).
+  thai.construction_materials_index:
+    source: tpso
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      Thailand's construction-materials price index (Ministry of Commerce) -- CANDIDATE, NOT BUILT: www.price.moc.go.th answered HTTP 500 at B67's check (25 Oct 2026); re-check at the next quarterly scan.
+  pjm.capacity_auction:
+    source: pjm
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      PJM's capacity auction results -- A LISTED GAP: PJM's legal page states that access "does not confer any license", and its data tools forbid non-members to republish (B67, 25 Oct 2026).
+  lbnl.interconnection_queue:
+    source: lbnl
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      LBNL's interconnection-queue data -- A LISTED GAP: emp.lbl.gov answered HTTP 403 to the project's request (B67, 25 Oct 2026); not retried.
+  moea.export_orders:
+    source: moea_tw
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Taiwan export orders (MOEA) -- A LISTED GAP: www.moea.gov.tw answered HTTP 403 to robots.txt and the page (B67, 25 Oct 2026); not retried.
+  tsmc.monthly_revenue:
+    source: tsmc
+    mechanism_group: corporate_fundamentals
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TSMC monthly revenue -- A LISTED GAP: TSMC's terms grant access 'solely for your personal, non-commercial use of viewing and browsing' (B67, 25 Oct 2026).
+  circle.usdc_reserves:
+    source: circle
+    mechanism_group: crypto_flows
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      USDC reserve attestations (Circle) -- A LISTED GAP: no general terms of use for circle.com could be found to read (B67, 25 Oct 2026).
+  tether.usdt_reserves:
+    source: tether
+    mechanism_group: crypto_flows
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      USDT reserve attestations (Tether) -- A LISTED GAP: app.tether.to's robots.txt disallows the transparency file (B67, 25 Oct 2026).
+  yahoo_pending.gdx:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      GDX (gold miners) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.sil:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      SIL (silver miners) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.corn_front:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      corn front month (ZC=F) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.wheat_front:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      wheat front month (ZW=F) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.soybeans_front:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      soybeans front month (ZS=F) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
 bulk_imports:
 
   fred_macro:
@@ -16748,6 +17906,32 @@ bulk_imports:
     mechanism_group_from_member: pillar
     mechanism_group_map:
       "2": macro_momentum
+
+  fred_6i:
+    description: >-
+      The Quarterly's readers, tranche 1 (b69-quarterly-readers-1, 25 Oct 2026; D34;
+      B67 section 5): Cboe's crude-oil volatility index through FRED (OVXCLS), for
+      the oil chapter beside realised volatility. Cboe's copyright ("Copyright,
+      2016, Chicago Board Options Exchange, Inc."): own use, never redistributed;
+      read through the FRED API with the system's key, never the graph CSV. See
+      altdata/config.py FRED_6I_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_6I_SERIES
+    member_families:
+      fred.ovx: price
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "5": macro_sentiment
 
   fred_bank_stress:
     description: >-
@@ -18980,6 +20164,96 @@ member_overrides:
 # leg or a horizon read. `pending` names a branch whose keys are not on this base
 # yet: the pattern is seeded now so the bar is in force the day they land.
 # -----------------------------------------------------------------------------
+  # B69 (25 Oct 2026): the Quarterly's readers, tranche 1
+  eia.spr_stocks: quantity
+  eia.refinery_util: ratio
+  eia.gas_storage: quantity
+  eia.lng_exports: release
+  imf.portwatch.transits.hormuz: quantity
+  imf.portwatch.transits.hormuz.tanker: quantity
+  imf.portwatch.transits.suez: quantity
+  imf.portwatch.transits.suez.tanker: quantity
+  imf.portwatch.transits.bab_el_mandeb: quantity
+  imf.portwatch.transits.bab_el_mandeb.tanker: quantity
+  imf.portwatch.transits.malacca: quantity
+  imf.portwatch.transits.malacca.tanker: quantity
+  usda.wasde.wheat.ending_stocks: quantity
+  usda.wasde.wheat.stocks_to_use: ratio
+  usda.crop_progress.wheat: conditions
+  usda.wasde.corn.ending_stocks: quantity
+  usda.wasde.corn.stocks_to_use: ratio
+  usda.crop_progress.corn: conditions
+  usda.wasde.soybeans.ending_stocks: quantity
+  usda.wasde.soybeans.stocks_to_use: ratio
+  usda.crop_progress.soybeans: conditions
+  noaa.oni: conditions
+  cftc.disagg.corn.managed_money_net: quantity
+  cftc.disagg.corn.managed_money_net_oi: ratio
+  cftc.disagg.wheat.managed_money_net: quantity
+  cftc.disagg.wheat.managed_money_net_oi: ratio
+  cftc.disagg.soybeans.managed_money_net: quantity
+  cftc.disagg.soybeans.managed_money_net_oi: ratio
+  boc.yield_2y: rate
+  riksbank.yield_2y: rate
+  snb.sight_deposits_total: quantity
+  snb.sight_deposits_domestic: quantity
+  jp.mof.intervention_jpy: quantity
+  fred.ovx: price
+  # B70 (25 Oct 2026): the Quarterly's readers, tranche 2
+  ishares.ibit.aum: quantity
+  ishares.ibit.shares: quantity
+  ishares.etha.aum: quantity
+  ishares.etha.shares: quantity
+  llama.tvl.category.rwa: quantity
+  llama.tvl.category.lending: quantity
+  llama.tvl.category.liquid_staking: quantity
+  llama.tvl.category.dexs: quantity
+  llama.tvl.category.cdp: quantity
+  llama.tvl.category.bridge: quantity
+  llama.tvl.category.yield: quantity
+  llama.tvl.category.derivatives: quantity
+  llama.tvl.category.restaking: quantity
+  llama.tvl.category.basis_trading: quantity
+  llama.tvl.chain.arbitrum: quantity
+  llama.tvl.chain.base: quantity
+  llama.tvl.chain.optimism: quantity
+  llama.tvl.chain.blast: quantity
+  llama.tvl.chain.scroll: quantity
+  llama.tvl.chain.linea: quantity
+  llama.tvl.chain.zksync_era: quantity
+  llama.tvl.chain.mantle: quantity
+  llama.tvl.chain.starknet: quantity
+  edgar.bdc.arcc.investments_fv: quantity
+  edgar.bdc.arcc.nav_per_share: price
+  edgar.bdc.arcc.nonaccrual_fv: quantity
+  edgar.bdc.fsk.investments_fv: quantity
+  edgar.bdc.fsk.nav_per_share: price
+  edgar.bdc.fsk.nonaccrual_fv: quantity
+  edgar.bdc.bxsl.investments_fv: quantity
+  edgar.bdc.bxsl.nav_per_share: price
+  edgar.bdc.bxsl.nonaccrual_fv: quantity
+  edgar.bdc.obdc.investments_fv: quantity
+  edgar.bdc.obdc.nav_per_share: price
+  edgar.bdc.obdc.nonaccrual_fv: quantity
+  edgar.bdc.main.investments_fv: quantity
+  edgar.bdc.main.nav_per_share: price
+  edgar.bdc.main.nonaccrual_fv: quantity
+  eth.burn_daily: quantity
+  eth.issuance_daily: quantity
+  eth.net_issuance: quantity
+  thai.current_account_usd: release
+  thai.construction_materials_index: release
+  pjm.capacity_auction: quantity
+  lbnl.interconnection_queue: quantity
+  moea.export_orders: quantity
+  tsmc.monthly_revenue: quantity
+  circle.usdc_reserves: quantity
+  tether.usdt_reserves: quantity
+  yahoo_pending.gdx: price
+  yahoo_pending.sil: price
+  yahoo_pending.corn_front: price
+  yahoo_pending.wheat_front: price
+  yahoo_pending.soybeans_front: price
 market_state_barred:
   - order: docs/change-order-signal-triage-2026-09-25.md (MW-2, R9)
     rule: "no calc.prl_* path to a composite, overlay, trigger, dial or dimension"
@@ -19029,6 +20303,12 @@ market_state_barred:
     keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
 
+  - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
+    rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
+    keys: ['eia.spr_stocks', 'eia.refinery_util', 'eia.gas_storage', 'eia.lng_exports', 'imf.portwatch.*', 'usda.wasde.*', 'usda.crop_progress.*', 'noaa.oni', 'cftc.disagg.*', 'boc.*', 'riksbank.*', 'snb.*', 'jp.mof.*', 'fred.ovx']
+  - order: "ruling D34 of 24 Oct 2026 (b70-quarterly-readers-2)"
+    rule: "report only: the Quarterly's tranche-2 readers and declared gaps enter no composite, flag, dial or the market-state object"
+    keys: ['ishares.*', 'llama.tvl.*', 'edgar.bdc.*', 'eth.*', 'thai.current_account_usd', 'thai.construction_materials_index', 'pjm.*', 'lbnl.*', 'moea.*', 'tsmc.*', 'circle.*', 'tether.*', 'yahoo_pending.*']
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:
