@@ -66,8 +66,8 @@ registry.*
 |---|---|---|---|---|---|---|
 | Foundational | **XXV** | Price, Time, and Edge | Price, Time, and Edge | Every markets paper — it supplies the vocabulary they cite; read second in the core track | v1.1 · ~29,500 words | The layer the library was missing — **a price is the expectation of the marginal participant, weighted by his capital and his urgency**, markets trade on the difference between reality and expectations, and price is itself a participant; the seven-rung horizon ladder and how the rungs couple, with **the weeks-to-months rung given its own craft — the five forces that move price over weeks, why the middle rung is the emptiest for a discretionary individual, entry and exit as the rung defines them, and the mechanism behind the two conversions that kill a swing book**; the participants at full depth — holders, intermediaries, speculators, issuers and sovereigns by liability, mandate, regulation and calendar, the seven forcing mechanisms, and "who is on the other side" as a method with worked identifications; and the theory of edge — six limits to arbitrage, **the twelve edges with capacity and death conditions**, the capacity arithmetic that says a small book's edges are the capacity-constrained ones and no others, and the six questions with eight worked theses, two of which pass and six of which fail one question each |
 |  | **XXVII** | Debt Cycles, Regimes, and Environments | Debt Cycles | Every markets paper's Environments section; the market-state object's debt-cycle branch; Book A's stance | v1.0 Draft 1 · ~24,600 words, 6 figure placeholders | *Draft 1, in review: the row the gate needs while the paper is on its branch; the guide's full entry is drafted in docs/briefs/library-xxvii-notes.md and is written here when the paper merges.* |
-| Macro & disruptive | **I** | Foundations and Field Guide to the Five-Force Framework | Foundations | Disruptive Themes | v1.0 · ~21,200 words | The intellectual apparatus behind the five factors — lineage, decoder ring, seven-element factor chapters, decade-horizon geopolitics |
-|  | **II** | The Twenty-Five — Tail Scenarios: Mechanism, Mutation, and Instrumentation | The Twenty-Five | Tail watch (all reports) | v1.0 · ~24,550 words | The 25 scenarios by mechanism family, with mutations, routing matrix, and the price-insensitive-buyer thesis |
+| Macro & disruptive | **I** | Foundations and Field Guide to the Five-Force Framework | Foundations | Disruptive Themes | v1.1 · ~22,100 words: a ~16,000-word timeless body, the dated appendices ~6,100 (restructured per Audit 2, 25 Oct 2026) | The intellectual apparatus behind the five factors — lineage, decoder ring, seven-element factor chapters, decade-horizon geopolitics |
+|  | **II** | The Twenty-Five — Tail Scenarios: Mechanism, Mutation, and Instrumentation | The Twenty-Five | Tail watch (all reports) | v1.1 · ~8,000 words, the 25 scenario treatments (~17,200) in its companion appendix (restructured per Audit 2, 25 Oct 2026) | The 25 scenarios by mechanism family, with mutations, routing matrix, and the price-insensitive-buyer thesis |
 |  | **III** | The Monthly Macro Report: A Working Manual | Monthly manual | Monthly Macro | v1.0 · ~29,000 words | Ten-lens treatment per pillar, named failure modes, lead-lag synthesis, conflict-resolution rules |
 |  | **IV** | The Rate and Liquidity Machine | Rates & Liquidity | Monthly Macro (liquidity, sovereign) | v1.0 · ~16,450 words | Eleven regime eras 1907–Warsh, ~fifty policy and plumbing instruments across six families, the 1942–51 yield peg as the live analogue |
 |  | **V** | Currencies: A Structural Framework | Currencies | Foundational to every dollar-priced asset | v1.0 · ~15,400 words, 8 FX figures in `docs/figures/` | How exchange rates move and who moves them, the dollar question, digital assets as currency, hedging and trading FX risk |
@@ -321,7 +321,7 @@ appendix, and the dated appendix that holds everything perishable.
 ---
 
 ## I. Foundations and Field Guide to the Five-Force Framework
-**Companion to: Disruptive Themes · ~21,700 words**
+**Companion to: Disruptive Themes · v1.1, restructured per Audit 2 (25 Oct 2026) · ~22,100 words, of which a ~16,000-word timeless body; the dispatches, the 2028 and 2036 horizons and Factor IV's debt-cycle 101 are in Appendix B**
 
 **What it contains.** The complete intellectual apparatus behind the quarterly
 structural report. It opens with the framework's lineage — Minsky and
@@ -361,7 +361,7 @@ calibration check, media scan), and a synthesis chapter on compound pathways.
 ---
 
 ## II. The Twenty-Five — Tail Scenarios: Mechanism, Mutation, and Instrumentation
-**Companion to: the tail watch across all reports · ~21,300 words**
+**Companion to: the tail watch across all reports · v1.1, restructured per Audit 2 (25 Oct 2026) · ~8,000 words: Part 0, the seven families, the operations and Part 3's mutation scan; the 25 seven-element treatments (~17,200 words) are in the companion appendix, maintained with the Monthly's Part 16**
 
 **What it contains.** The full treatment of the 25 tail scenarios, organized by
 seven *mechanism families* rather than by monitoring cadence — the reorganization
