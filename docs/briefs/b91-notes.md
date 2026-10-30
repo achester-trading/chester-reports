@@ -33,12 +33,13 @@ main merged in). The order as drafted is `docs/pastes/B91-attachment-round-9.md`
   would make the scanner read them, which no ruling asks for. So, as in
   Batch 17, the outlet rows are the order's §6 table (outlets and tags only), and
   the X-only accounts go to the X pilot's seed list chat-side.
-- **L5's two kept names:**
+- **L5's kept name:**
   - "Kakushadze & Serur", the authors of the cited book, kept as a citation
     (D31(3));
-  - "#TeamGraham", a hashtag, not a person's handle.
+  - the hashtag "#TeamGraham" was replaced by "a LinkedIn author (unattributed)"
+    on the operator's instruction of 30 Oct 2026.
 
-  If either should go, it is a one-line change.
+  If it should go, it is a one-line change.
 - **Gates,** one at a time: check_registry OK; check_library 27 papers, 0
   failures, 0 warnings; validate_official_sources 340 passed.
 

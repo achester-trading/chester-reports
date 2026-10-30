@@ -75,9 +75,8 @@
   - **107(b):** reads the Massive chain under the existing vendor terms; no new subscription (the order's own 107(c)).
   - **106 and 110:** 106's bitcointreasuries.net and 110's NY Fed HLW download get the 16 Oct check when built, not now.
 
-- **L5, names** (D5, D38, the standing rule: no person's name in committed files). Each person's name and each X or LinkedIn handle is replaced by outlet and role, in this file and in the attachment copy. The voices table lists outlets and tags only. X-only accounts go to the X pilot's seed list chat-side, not the repo. The ruler is "the operator". Two things stay, each a citation rather than a voice:
+- **L5, names** (D5, D38, the standing rule: no person's name in committed files). Each person's name and each X or LinkedIn handle is replaced by outlet and role, in this file and in the attachment copy. The voices table lists outlets and tags only. X-only accounts go to the X pilot's seed list chat-side, not the repo. The ruler is "the operator". One thing stays, a citation rather than a voice:
   - "Kakushadze & Serur", the authors of the cited *151 Trading Strategies*, and its "K&S" keys. This follows D31(3): dataset, model and statistic names are kept as citations.
-  - The hashtag "#TeamGraham".
 
   Everything else is verbatim, including the disclosure line.
 
@@ -168,7 +167,7 @@ Every item is REPORT_OK-class: no path to DECISION_BLOCKED, no composite or T&B 
 **Decision.** AMEND 54: one row per print for MSFT, GOOGL, AMZN, META, ORCL (+ NVDA) — day-1 move, revenue and cloud surprise, capex-guide change, FCF change; "good news sold" flag when cloud beats and the stock falls > 5%. Weekly in earnings season; feeds Factor I. Report and base-rate rights. 1.5 h. Post: LOG.
 
 ### 110 · Real rate vs trend growth and r*
-**Source.** LinkedIn post, "Pause and Effect" (#TeamGraham; author not captured) — *credible, neutral*.
+**Source.** LinkedIn post, "Pause and Effect" (a LinkedIn author (unattributed); author not captured) — *credible, neutral*.
 **Read.** 10y estimated real rate ≈ 2.5% (Cleveland Fed) ≈ trend growth (gap ≈ 0), ≈ 1.4 pp above NY Fed HLW r*. Either the effect is still to come (locked-in mortgages, balance sheets, fiscal support) or neutral has risen (deficits; AI/energy/defence capex); pressure falls on borrowers whose growth lags financing costs, and on federal financing.
 **Decision.** AMEND item 29 (r − g): add Cleveland Fed 10y real rate (FRED `REAINTRATREARAT10Y`) and NY Fed HLW r* and trend growth (quarterly download); print both gaps as a two-line chart in the Monthly's plumbing & rates. Base-rate rights. 1 h. Voices: author pending.
 

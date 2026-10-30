@@ -89,7 +89,7 @@ Every item is REPORT_OK-class: no path to DECISION_BLOCKED, no composite or T&B 
 **Decision.** AMEND 54: one row per print for MSFT, GOOGL, AMZN, META, ORCL (+ NVDA) — day-1 move, revenue and cloud surprise, capex-guide change, FCF change; "good news sold" flag when cloud beats and the stock falls > 5%. Weekly in earnings season; feeds Factor I. Report and base-rate rights. 1.5 h. Post: LOG.
 
 ### 109 · Real rate vs trend growth and r*
-**Source.** LinkedIn post, "Pause and Effect" (#TeamGraham; author not captured) — *credible, neutral*.
+**Source.** LinkedIn post, "Pause and Effect" (a LinkedIn author (unattributed); author not captured) — *credible, neutral*.
 **Read.** 10y estimated real rate ≈ 2.5% (Cleveland Fed) ≈ trend growth (gap ≈ 0), ≈ 1.4 pp above NY Fed HLW r*. Either the effect is still to come (locked-in mortgages, balance sheets, fiscal support) or neutral has risen (deficits; AI/energy/defence capex); pressure falls on borrowers whose growth lags financing costs, and on federal financing.
 **Decision.** AMEND item 29 (r − g): add Cleveland Fed 10y real rate (FRED `REAINTRATREARAT10Y`) and NY Fed HLW r* and trend growth (quarterly download); print both gaps as a two-line chart in the Monthly's plumbing & rates. Base-rate rights. 1 h. Voices: author pending.
 
