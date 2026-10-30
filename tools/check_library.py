@@ -67,6 +67,9 @@ REGISTRY = {
     # System shelf, Draft 1 (A72, 24 Oct 2026): the Top & Bottom manual, at the
     # numeral Audit 2 reserved for it.
     "XXXI": "tb-report-manual",
+    # System shelf, Draft 1 (A73, 24 Oct 2026): the Annual Structural Review, at
+    # the numeral Audit 2 reserved for it.
+    "XXXII": "annual-structural-review",
     # Markets shelf, Draft 1 (AQ-14, 11 Oct 2026). Numeral provisional: assigned
     # at the filing; XXXIV was the next free after XXXIII.
     "XXXIV": "emerging-markets",
@@ -607,6 +610,124 @@ def check_14_dated_appendices(papers):
                              f"register/store.py ABSTENTION_REASONS")
 
 
+REVIEW_REGISTER = ROOT / "docs" / "reading" / "structural-review-register.yaml"
+REVIEW_MONTHS = 13
+_REVIEW_ROW = re.compile(r"^\s*-\s*\{numeral:\s*([IVXL]+),.*?version_date:\s*([0-9-]+),"
+                         r"\s*last_reviewed:\s*([0-9-]+|null)", re.M)
+
+
+def check_15_structural_review(today=None):
+    """The Annual Structural Review's gate (Paper XXXII; Audit 2 section 5.2): the
+    standing register rows every roster paper, and warns when a paper's review
+    clock -- its last review, else its version date -- has run past thirteen
+    months. Warnings, as the audit specifies. The Assumptions and Falsifiers rule
+    (decision 52, 25 Oct 2026; XXXII section 15) is af_appendix_check below."""
+    import datetime as _dt
+    if not REVIEW_REGISTER.exists():
+        warn(15, f"{REVIEW_REGISTER.relative_to(ROOT)} is missing: no paper's review "
+                 f"clock can be read")
+        return
+    rows = {m.group(1): (m.group(2), m.group(3))
+            for m in _REVIEW_ROW.finditer(REVIEW_REGISTER.read_text(encoding="utf-8"))}
+    today = today or _dt.date.today()
+    for num, slug in REGISTRY.items():
+        if not (ROOT / "docs" / "whitepapers" / f"{slug}-whitepaper.md").exists():
+            continue
+        if num not in rows:
+            warn(15, f"{num} ({slug}) has no row in the structural-review register")
+            continue
+        version_date, last = rows[num]
+        start = last if last != "null" else version_date
+        try:
+            d = _dt.date.fromisoformat(start)
+        except ValueError:
+            warn(15, f"{num}: the register's date {start!r} is not a date")
+            continue
+        months = (today.year - d.year) * 12 + (today.month - d.month) - (today.day < d.day)
+        if months > REVIEW_MONTHS:
+            warn(15, f"{num} ({slug}): {'last reviewed' if last != 'null' else 'never reviewed; version dated'} "
+                     f"{start}, {months} months ago (past {REVIEW_MONTHS})")
+    for num in sorted(set(rows) - set(REGISTRY)):
+        warn(15, f"the structural-review register rows {num}, which the roster does not have")
+    af_appendix_check(rows)
+
+
+# Decision 52 (25 Oct 2026; XXXII section 15): a paper with no Assumptions and
+# Falsifiers appendix FAILS if its first version is dated on or after AF_FROM, or
+# if the register shows it reviewed at least once; any other paper WARNS, so the
+# library's older debt is listed without breaking the gate. The "first version
+# date" is the earliest date on the masthead's Version line (a revised masthead
+# keeps its earlier versions in brackets) and the register's version_date; a
+# paper with neither is read as new.
+AF_FROM = "2026-10-26"
+_AF_HEAD = re.compile(r"^## Appendix [A-Z] — Assumptions (?:and|&) Falsifiers\b", re.M | re.I)
+_MONTH = ("january february march april may june july august september october "
+          "november december").split()
+_M = "(" + "|".join(_MONTH) + ")"
+_DATE_DMY = re.compile(r"\b(\d{1,2}) " + _M + r",? (\d{4})\b", re.I)
+_DATE_MDY = re.compile(r"\b" + _M + r" (\d{1,2}), (\d{4})\b", re.I)
+_DATE_MY = re.compile(r"\b" + _M + r" (\d{4})\b", re.I)
+AF_FIXTURES = ROOT / "tests" / "fixtures" / "check_library"
+
+
+def first_version_date(text, register_date=None):
+    """The earliest ISO date on the masthead's Version line(s), with the register's."""
+    head = split_masthead(text)[0]
+    found = [register_date] if register_date and register_date != "null" else []
+    for line in head.split("\n"):
+        if not re.search(r"[Vv]ersion", line):
+            continue
+        rest = line
+        for m in _DATE_DMY.finditer(line):
+            found.append(f"{m.group(3)}-{_MONTH.index(m.group(2).lower()) + 1:02d}-{int(m.group(1)):02d}")
+        rest = _DATE_DMY.sub(" ", rest)
+        for m in _DATE_MDY.finditer(rest):
+            found.append(f"{m.group(3)}-{_MONTH.index(m.group(1).lower()) + 1:02d}-{int(m.group(2)):02d}")
+        rest = _DATE_MDY.sub(" ", rest)
+        for m in _DATE_MY.finditer(rest):
+            found.append(f"{m.group(2)}-{_MONTH.index(m.group(1).lower()) + 1:02d}-01")
+    return min(found) if found else None
+
+
+def af_verdict(text, register_date=None, reviewed=False):
+    """'ok' with the appendix; without it 'fail' for a new or reviewed paper, else 'warn'."""
+    if _AF_HEAD.search(text):
+        return "ok"
+    first = first_version_date(text, register_date)
+    if reviewed or first is None or first >= AF_FROM:
+        return "fail"
+    return "warn"
+
+
+def af_appendix_check(rows):
+    # The gate's own fixture pair first: a new paper without the appendix fails,
+    # an old one warns. A rule that has stopped telling them apart fails the gate.
+    for name, want in (("af-new-paper.md", "fail"), ("af-old-paper.md", "warn")):
+        fx = AF_FIXTURES / name
+        if not fx.exists():
+            fail(15, f"{fx.relative_to(ROOT)} is missing: the appendix rule's fixture pair")
+            continue
+        got = af_verdict(fx.read_text(encoding="utf-8"))
+        if got != want:
+            fail(15, f"the appendix rule reads {name} as {got!r}, not {want!r}")
+    owed = []
+    for num, slug in REGISTRY.items():
+        path = ROOT / "docs" / "whitepapers" / f"{slug}-whitepaper.md"
+        if not path.exists():
+            continue
+        version_date, last = rows.get(num, (None, "null"))
+        v = af_verdict(path.read_text(encoding="utf-8"), version_date, last != "null")
+        if v == "fail":
+            why = "reviewed" if last != "null" else f"first version {first_version_date(path.read_text(encoding='utf-8'), version_date) or 'undated'}"
+            fail(15, f"{num} ({slug}) has no Assumptions and Falsifiers appendix ({why}; "
+                     f"the rule binds papers first dated on or after {AF_FROM} and reviewed ones)")
+        elif v == "warn":
+            owed.append(num)
+    if owed:
+        warn(15, f"{len(owed)} older papers have no Assumptions and Falsifiers appendix "
+                 f"(owed at review, decision 52): {', '.join(owed)}")
+
+
 def main():
     rows = guide_rows()
     papers = paper_files()
@@ -624,6 +745,7 @@ def main():
     check_12_stale(papers)
     check_13_agents()
     check_14_dated_appendices(papers)
+    check_15_structural_review()
 
     for i in infos:
         print(f"info {i}")
