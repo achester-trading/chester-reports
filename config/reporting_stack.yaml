@@ -112,9 +112,11 @@ bars:
 # 2,250; the Weekly (35 - 10 x 20 s) x 250 = 7,916, rounded down to 7,900. The
 # Monthly's 10,000 is unchanged. The chart caps are unchanged (a chart is not
 # reading length).
+# THE WEEKLY'S CHART CAP RISES TO 11 (B75's needs-you (b), ruled 26 Oct 2026) so
+# W13, the gold block's chart, never pushes another out. The words stay 7,900.
 budget:
   daily: {words: 2250, charts: 3}
-  weekly: {words: 7900, charts: 10}
+  weekly: {words: 7900, charts: 11}
   monthly: {words: 10000, charts: 12}
   # THE QUARTERLY (AQ-1; change order 10 Oct 2026, section 3): two budgets. The
   # READ -- the executive summary and every chapter's lead page -- is held to a
@@ -269,6 +271,13 @@ sections:
   # code-written lines only (prose_wanted false), so its budget is 0 prose words
   # and 0 charts: it displaces nothing inside the 10,000 words or the 12 charts.
   - {id: labour,      title: "Labour", subtitle: "payrolls' cyclical core, breadth, revisions, flows and wages",                          monthly: medium}
+  # THE GOLD BLOCK, the Weekly only (signal-triage Batch 16 item 88(a), written as
+  # round 7's 81(a); ruled 26 Oct 2026; B75): between Plumbing & rates and
+  # Positioning & flows, every Sunday from 8 Nov 2026, about 400 words of desk
+  # commentary (weekly deep) and one chart (W13, inside the chart cap). Built by
+  # daily_cascade/gold_block.py; S1's config/stack_hooks/ is not on this base, so
+  # the section list carries it. The Monthly chapter (88(b)) is Tranche B.
+  - {id: gold,        title: "Gold", subtitle: "the tape, what moved it, who holds it, and the tells",                weekly: deep}
   - {id: positioning, title: "Positioning & flows", subtitle: "who holds what, and how it changed", daily: light, weekly: deep, monthly: medium, quarterly: deep, quarterly_tier: reference}
   - {id: priced,      title: "What's priced", subtitle: "what markets and surveys expect, not how they're positioned",       daily: light, deep_on: priced, weekly: medium, weekly_deep_on: priced, monthly: deep, quarterly: deep, quarterly_tier: reference}
   - {id: narratives,  title: "Narratives", subtitle: "the stories the market is telling, and who is telling them",          daily: line,  weekly: medium, monthly: deep, quarterly: medium, quarterly_tier: reference}

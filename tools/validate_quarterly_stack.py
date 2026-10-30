@@ -128,8 +128,9 @@ def group_a(cfg: dict) -> None:
           "two budgets: the read at 90 minutes, warned on; the reference "
           "unbudgeted; chart cap 40; nothing trimmed")
     # The Monthly-only sections: Reading (D1) and the labour block (Batch 7
-    # item 48, 6e-releases), neither in the Quarterly's front matter.
-    secs = [s for s in cfg["sections"] if s["id"] not in ("reading", "labour")]
+    # item 48, 6e-releases), and the Weekly-only gold block (Batch 16 item
+    # 88(a), B75), none in the Quarterly's front matter.
+    secs = [s for s in cfg["sections"] if s["id"] not in ("reading", "labour", "gold")]
     check(all(s.get("quarterly") and s.get("quarterly_tier") in q.TIERS for s in secs)
           and not next(s for s in cfg["sections"] if s["id"] == "reading").get(
               "quarterly"),

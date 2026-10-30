@@ -201,7 +201,10 @@ def main() -> int:
     heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\""
                        + re.escape(stack_render.SUBTITLE) + r"\">&mdash; "
                        r"([^<]+)</span>", html)
-    check(len(heads) == 10 and [int(h[0]) for h in heads] == list(range(1, 11)),
+    # Eleven since B75: the gold block (Batch 16 item 88(a)) is the Weekly's own
+    # section, header-only before its first edition.
+    check(len(heads) == 11 and [int(h[0]) for h in heads] == list(range(1, 12))
+          and heads[5][1] == "Gold",
           f"every header is 'number · name — subtitle', styled apart ({len(heads)})")
     check(any(h[2] == "what markets and surveys expect, not how they&#x27;re positioned"
               or h[2] == "what markets and surveys expect, not how they're positioned"
@@ -524,7 +527,8 @@ def main() -> int:
     check("def backfill(" in inspect.getsource(bars_mod) and "--dry-run" in
           inspect.getsource(bars_mod._main),
           "the one-time 60-day 5-minute backfill exists, with its dry run")
-    check(cfg["budget"]["weekly"]["charts"] == 10, "the Weekly's chart cap is 10")
+    check(cfg["budget"]["weekly"]["charts"] == 11,
+          "the Weekly's chart cap is 11 (10 from 4 Oct; 11 from 26 Oct, B75 (b))")
     check("PROSE ONLY" in inspect.getsource(stack_mod.section_words),
           "budgets count prose only, every report")
     mins = (REPO / "docs" / "briefs" / "doctrine-monthly-2026-10-minutes.md").read_text(

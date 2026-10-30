@@ -1,0 +1,14 @@
+# gold_official_bid.yaml -- the official bid's dated records (Batch 16 item 87,
+# written as round 7's 80; item 88(a)'s official-bid line). THE OPERATOR'S: the
+# one recurring by-hand row the order's sign-off allows ("81 official bid 0.5
+# h/week; 80 official bid 0.5 h/month"). A session never enters a figure here.
+#
+# One record per estimate, newest last. Each carries:
+#   date     the estimate's own date (YYYY-MM-DD)
+#   source   WGC, PBoC or press
+#   figure   the estimate as published, verbatim with its unit ("~25 t, August")
+#   outlet   who published it
+#   url      where it was read
+# altdata/gold_attribution.py prints the latest record dated on or before the
+# as-of, with its date, and "no record" while this list is empty.
+records: []

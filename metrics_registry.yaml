@@ -3887,6 +3887,108 @@ metrics:
       not-tracked ETF-flow leg, the IMF IFS central-bank trend, the residual line,
       and gold's realised 5- and 20-session change. A resolution is a new vintage,
       never an overwrite. A flag: no composite input.
+  gold.attr.real_yield:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the real yield
+      lens, the real 10-year yield's change (DFII10, fred.tips_10y), bp, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.breakeven:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the breakeven
+      lens, the 10-year breakeven's change (T10YIE, fred.breakeven_10y), bp, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.dollar:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the dollar
+      lens, the ICE dollar index's change (DX-Y.NYB, yfinance.mkt_dxy), %, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.liquidation:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the liquidation
+      lens, gold's 20-session correlation of daily log returns with the S&P 500 (^GSPC) and the Nasdaq-100 (read through QQQ), with the day's signs; filed item 74's squeeze flag is not stored, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.official_bid:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the official bid
+      lens, the latest dated record the operator enters (config/gold_official_bid.yaml), and the PBoC's monthly net purchase as the IMF IFS stores it, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.beta_real_60d:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (B75): gold's rolling 60-session beta to the real yield --
+      OLS of gold's daily log return (%) on DFII10's daily change (bp) -- one JSON
+      row a session with the beta, its n and its window (value_text only, so no
+      screen reads it as a level). Report rights only.
   equity.dm_drawdown_ledger:
     source: dm_drawdown
     mechanism_group: market_state
@@ -20161,6 +20263,7 @@ families:
   yfinance.fund_orcl_net_debt: quantity
   yfinance.fund_orcl_operating_cash_flow: quantity
   zec.beta_to_btc_60d: ratio
+  gold.beta_real_60d: ratio
   zec.btc_ratio: ratio
   zec.crypto_cap_share: ratio
   zec.market_cap_usd: quantity
@@ -20379,6 +20482,9 @@ market_state_barred:
   - order: docs/briefs/learning-loop-v2-brief-2026-10-25.md (section 3; decisions 1 and 11 ruled 25 Oct 2026; B73)
     rule: "report only: the system's own grades are evidence for the sittings, never an input to the object"
     keys: ["brier.decomposition", "grade.counterfactual", "learning.error_corpus", "learning.value_of_information"]
+  - order: change-order-signal-triage-round-7-2026-10-26.md, filed as Batch 16 (items 87, 88; ruled 25-26 Oct 2026; B75)
+    rule: "report rights only: nothing enters a composite, the market-state object, a dial or a packet"
+    keys: ["gold.attr.*", "gold.beta_real_60d"]
 
   - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
     rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
@@ -20871,3 +20977,8 @@ lens_excluded:
   zec.shielded_probe: "units 'label': not a level series"
   rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
   ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"
+  gold.attr.real_yield: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.breakeven: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.dollar: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.liquidation: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.official_bid: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"

@@ -373,6 +373,13 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                                                   session.utc_iso())
             if _ae_rows and not dry_run:
                 st.write_many(_ae_rows)
+            # BATCH 16 ITEM 87 (B75): the session's 60-day beta row and, on a
+            # 2-sigma day, the five lenses' rows.
+            from . import gold_block                            # noqa: PLC0415
+            _gold_rows = gold_block.store_rows(mech.setdefault("data", {}),
+                                               session.utc_iso())
+            if _gold_rows and not dry_run:
+                st.write_many(_gold_rows)
             # D15 (b59): a trigger day's ledger row, its attribution "awaiting"
             # until the models' inputs land (the EOD resolve).
             from . import b59_block                             # noqa: PLC0415

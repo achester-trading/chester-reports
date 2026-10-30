@@ -507,6 +507,8 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `fed-cycles-ledger-2026-10-19.md` | NO GATE | n 21 | FED-CYCLES ledger -- the hiking-cycle table, computed by rule |
 | `gex-scale-flashalpha-2026-09-30.md` | diagnostic | n — | GEX / DEX scale against FlashAlpha — 30 Sep 2026 SPY (read-only diagnostic) |
 | `gex-scale-flashalpha-2026-10-09.md` | diagnostic | n — | GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic) |
+| `gold-exhaustion-ledger-2026-10-26.md` | INSUFFICIENT | n 0 | The gold exhaustion checklist's ledger, first edition -- does a ticked tell mark a low (Batch 16 item 88(a); report only) |
+| `gold-exhaustion-preregistration-2026-10.md` | diagnostic | n — | The gold exhaustion checklist's ledger — pre-registration (Batch 16 item 88(a)) |
 | `midterm-base-rate-2026-10-26.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
 | `midterm-base-rate-2026-10-28.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
 | `oneday-10y-preregistration-2026-10.md` | diagnostic | n — | The one-day 10-year trigger's attribution against what followed — pre-registration (D15) |

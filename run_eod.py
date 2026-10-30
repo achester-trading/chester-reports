@@ -278,8 +278,17 @@ def main() -> int:
 
     # ---- Stage 2: compute ------------------------------------------------
     log.info("Stage 2: computing exposure (GEX/DEX/VEX/CHEX)")
+    # THE DECLARED EXCEPTIONS (Batch 16 item 88(c), B75): a captured symbol that
+    # config/exposure_universe.yaml grants its own exposure file beside the 13
+    # (GLD). Computed and stored (Stage 2b), never scored in the pin log or
+    # counted in the completeness gate; --symbols narrows them away.
+    exceptions = [] if args.symbols else [
+        s for s in config.exposure_exceptions() if s not in universe]
+    if exceptions:
+        log.info("  exposure exceptions (config/exposure_universe.yaml): %s",
+                 ", ".join(exceptions))
     try:
-        computed = exposure_compute.run(symbols=universe, run_id=run_id)
+        computed = exposure_compute.run(symbols=universe + exceptions, run_id=run_id)
     except Exception:
         log.exception("Stage 2 failed; chains are stored and can be recomputed "
                       "with --skip-fetch")

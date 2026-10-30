@@ -117,7 +117,7 @@ def group_a() -> None:
           "daily, weekly, monthly and (AQ-1) quarterly resolve to session, week, "
           "month and quarter")
     check(cads["daily"]["budget"] == {"words": 2250, "charts": 3}
-          and cads["weekly"]["budget"] == {"words": 7900, "charts": 10}
+          and cads["weekly"]["budget"] == {"words": 7900, "charts": 11}
           and cads["monthly"]["budget"] == {"words": 10000, "charts": 12}
           and cads["quarterly"]["budget"] == {"words": None, "charts": 40}
           and [cads[n]["reading_target_minutes"] for n in cadence.NAMES]

@@ -336,6 +336,10 @@ commands:
     domain: computed
     line: 'The gold event trigger, its attribution and ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'
     sources: [gold_event]
+  altdata.gold_attribution:
+    domain: computed
+    line: 'Gold''s five-lens attribution, the 60-day real-yield beta and the exhaustion checklist (Batch 16 items 87, 88): `show [--date D]`, `backfill [--dry-run] [--since D]`, `ledger [--out FILE]`'
+    sources: [gold_attribution]
   altdata.dm_drawdown:
     domain: computed
     line: 'The developed-market drawdown screen and its ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'

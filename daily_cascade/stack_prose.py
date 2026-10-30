@@ -767,6 +767,16 @@ WEEKLY_NOTES = {
         "from the Volatility table's 'Daily move priced, and realized' row and "
         "nowhere else, then the VIX against its percentile; MOVE and SKEW only "
         "where their rows carry a level."),
+    # THE GOLD BLOCK (Batch 16 item 88(a); B75), the Weekly only.
+    "gold": (
+        "\n\nGOLD, IN A DESK'S VOICE: what the tape did, which of the five lenses "
+        "moved with it (real yield, breakeven, dollar, liquidation, official bid), "
+        "what positioning and the flows say, and which exhaustion tells are "
+        "ticked. A lens printed 'not stored' or 'no record' gets no mention "
+        "beyond that. Report only: never a view on buying or selling, never a "
+        "target -- the targets line says they are not built. The checklist is a "
+        "pre-registered ledger with no rights: say a tell is ticked, never that "
+        "a low is in."),
     "misfit": (
         "\n\nEach open gap is described in the plain words its row gives "
         "(what each side is saying), never by an id. \"Open n sessions\" is said "
