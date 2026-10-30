@@ -2,7 +2,7 @@
 
 ### How the whole system fits together, what each part may do, and how to use it
 
-**As of:** 23 October 2026 · **As built:** chain-5 (the fifth chain, stitched 23 Oct 2026 onto main after chain-3's merge: chain-4 (a50-dealer-store, b48-scoreboard and a52-doctrine-2-pack), then a54-relative-volume, a55-box-fixes, b51-registry-html, a56-batch14-a1 and b52-batch14-a2) · **Refreshed:** at every chain merge
+**As of:** 29 October 2026 · **As built:** the chain-8 assembly (`b86-chain-8-assembly`, rehearsed 29 Oct 2026): chain-7 with main's later merges (a61b, a78, a85, a88, b84), then chain-8: s1-stitch-refactor, b70 (with b63 to b69), a80 (with b73), b75, b76, a81, b58, a71 (with a65 to a70) and a79 (with a77). It lands on main as chain-7 and then chain-8 (see Landing next) · **Refreshed:** at every chain merge
 
 ---
 
@@ -12,7 +12,7 @@ This is the front door. It shows how the reports, the inputs, the books and the 
 - **The Operating Doctrine** ([operating-doctrine-whitepaper.md](whitepapers/operating-doctrine-whitepaper.md)) is the rulebook. This Guide quotes its rules and never restates them differently.
 - **The library guide** ([white-paper-library-guide.md](white-paper-library-guide.md)) catalogues the 27 papers.
 
-Everything below is checked against the code and config on chain-5. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under **Landing next**, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.
+Everything below is checked against the code and config on the chain-8 assembly, which carries chain-7 and chain-8 whole; until they merge, main holds only what chain-5 and main's later merges carry. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under **Landing next**, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.
 
 **The one picture to keep in mind is a newsroom with a research lab and a trading desk.** The feeds are the wires. The market-state object is the single editor's view of the market. The reports are the editions. The Alpha Lab is the research lab next door. You are the desk, with four books. The Doctrine's rules and switches are compliance. The register, the grader and the ledgers are the scorekeeper.
 
@@ -477,15 +477,15 @@ Deeper: the Reader's Guide Part II (the data) and Part VI (the scans); the crypt
 
 ## Part 5. What is proven so far
 
-**In three lines.** Of twenty-four gated signals with a verdict, one passed, fourteen failed and nine are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.
+**In three lines.** Of thirty-one gated signals with a verdict, one passed, sixteen failed and fourteen are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.
 
 ### The headline counts
 
 | Status | Count | What it means |
 |---|---|---|
 | **Passed** | 1 | SR-1, the style regime. PASS on 63 years of value-minus-growth; display only until the Doctrine monthly of 7–8 November rules on its rights. |
-| **Failed** | 14 | The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings); and from the fourth chain, ST-R6.59c, the bank-stress classifier's base rate (n 18: both crises caught, but 6 of 16 corrections stayed correction against a two-thirds rule); and from the fifth chain, ST-R6.66c, the wealth-effect impulse against real consumption growth (n 65: ρ +0.06 against the rule's 0.20, though both halves are positive). Each prints display only, or not at all. |
-| **Insufficient** | 9 | SR-4, SR-5, SR-12, SR-13, SR-14, the two index studies ST-R5.31 and ST-R5.44, OS-9's outcome ledger (0 resolved builds against a floor of 30), and OS-12c's relative-volume ledger (the fifth chain; n 0, the laptop holds no captures, and the box edition waits for 20 capture sessions a name): too few episodes to judge. |
+| **Failed** | 16 | The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings); and from the fourth chain, ST-R6.59c, the bank-stress classifier's base rate (n 18: both crises caught, but 6 of 16 corrections stayed correction against a two-thirds rule); and from the fifth chain, ST-R6.66c, the wealth-effect impulse against real consumption growth (n 65: ρ +0.06 against the rule's 0.20, though both halves are positive); and from the chain-8 assembly, ST-R6.71d, the air pockets against the fragility panel (n 2965), and trend-signal breadth against what followed (n 163). Each prints display only, or not at all. |
+| **Insufficient** | 14 | SR-4, SR-5, SR-12, SR-13, SR-14, the two index studies ST-R5.31 and ST-R5.44, OS-9's outcome ledger (0 resolved builds against a floor of 30), and OS-12c's relative-volume ledger (the fifth chain; n 0, the laptop holds no captures, and the box edition waits for 20 capture sessions a name); and from the chain-8 assembly, the speed flag's attribution ST-R6.65a (n 28), the one-day 10-year trigger D15 (n 67), leveraged funds' extreme shorts ST-R6.74b (n 0), the gold exhaustion checklist (n 0) and the Top & Bottom harness (n 13 of the 3 September thirteen): too few episodes to judge. |
 | **Accruing** | 12 | The dealer scorecard's seven tests (H6, the level clusters, joins H1 to H5); the three Book B pivot setups; the prediction-market archive; the froth gauge (S-5, no print before 15 January 2027). |
 | **Untested** | about 60 | Every other flag, lens, setup, overlay, engine and composite, including ten studies whose order states no gate at all (the third chain adds the hiking-cycle table, SR-20's COFER entry and SR-24's Livingston note). |
 
@@ -612,6 +612,14 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | The mechanism watch's posted stories | narrative proposals | Untested | Each posted as PROPOSED, its base rate beside its grade; confirm or reject is yours |
 | The Card's scoreboard: heat, net exposure, the 13-week expectancy by book and regime (and by each dial and the volatile-day flag as stamped at entry), the rule-break count, the four-quarter benchmarks (b48-scoreboard) | measurement | Not a signal | Prints at the Weekly's top and in the Monthly's register month; grants nothing; accruing below ten graded decisions a cell; Doctrine #2 may amend how it is used |
 | The eleven Alpha Lab engines (engine 6, extremes reversion, and engine 7, intraday dealer regimes, join the nine) | engines | Untested | Candidates; nothing passed or promoted; engine 6 prints "awaiting (n=k of 30)" per bucket |
+| The 10-year speed flag's attribution and the one-day 10-year trigger (Batch 14 item 65, a57; D15, b59) | lens and flag | **Insufficient** (ST-R6.65a n 28; D15 n 67) | Report only: each model's split, "awaiting" any model not yet stored |
+| The fragility flag: the Amihud stand-in at its 90th with forced flow above its 90th (Batch 14 item 71, a57) | flag | **Failed** (ST-R6.71d) | Flag rights only, display only |
+| Gold's event flag and the developed-market drawdown screen (Batch 15 items 72 and 73, a58); the ES squeeze-risk flag (item 74, b56) | flags | Untested; the squeeze flag **Insufficient** (ST-R6.74b n 0) | Printed in the close's event area and the Weekly; no rights |
+| Gold's five-lens attribution, its 60-day real-yield beta and the exhaustion checklist (Batch 16 items 87 and 88, b75) | lens and tells | Lenses untested; the checklist **Insufficient** (n 0) | Report only; the Weekly's gold section from 8 November |
+| Trend-signal breadth over sixteen markets (Batch 16 item 89(b), b76) | report | **Failed** (n 163) | A table in the Weekly's Positioning & flows; enters the T&B intake queue only after a sitting reads its ledger |
+| The Top & Bottom harness: the 3 September thirteen through Part 23's overlays, its false-positive rate, the Baa credit proxy (6i, a77 and a79) | harness | **Insufficient** (n 13) | Report only, no composite; nothing reaches the market-state object |
+| Learning Loop v2: decision quality, the error corpus, value of information, the post-mortem file, Red Team in shadow (LL-1 to LL-4, b73 and a80) | measurement | Untested | Report only: the Monthly's Lab report and the Doctrine pack; no model call except the optional shortening |
+| The Quarterly's readers: oil buffers and chokepoints, WASDE, crop progress, ENSO, the disaggregated grains, BoC, Riksbank, the SNB, MoF interventions, iShares AUM, DefiLlama breadth, the BDCs (b69 and b70) | readings | Untested | Report only, barred from the object; the Quarterly ships disabled |
 
 **OS-6** (the opening setup's positioning components) has its first ledger on the third chain, and FAILs: display only, no rights (accepted 19 October, R5).
 
@@ -825,35 +833,33 @@ Deeper: the library guide.
 
 ---
 
-## Landing next (as of 23 October 2026)
+## Landing next (as of 29 October 2026)
 
-**In three lines.** Everything the fifth chain carries is now described above as built: relative options volume, the box evening's fixes and the FOMC history, the store check's clock and lags with the editions' builder, and Batch 14's Part A. No branch is waiting to land. The calendar after it runs to January.
+**In three lines.** This Guide is as built on the chain-8 assembly, so everything chain-7 and chain-8 carry is described above as built. They land on main next week, in the order below, after one small PR that makes main's gates green. Library papers land by their own PRs after review, never through a chain.
 
-| Item | As built on chain-5 | Where above |
-|---|---|---|
-| Everything of the fourth chain (a50-dealer-store, b48-scoreboard, a52-doctrine-2-pack) | Built, as the fourth chain's refresh described it | Parts 2 to 8 |
-| Batch 13, item 61: relative options volume, OS-12a to OS-12d (a54-relative-volume) | Built: the flag at 1.5 times the 20-session average, "volume, no side", in the close, the anchor and the Weekly; OS-12c's ledger INSUFFICIENT (n 0); the flat-file volume read apart | The anchor's, the close's and the Weekly's cards; Part 4.2; Part 5; Table 7b |
-| The box evening's fixes (a55-box-fixes): the FRED history's windows, the notes' paragraph aimed at 80% of its cap, the BLS feeds' contact, the FOMC event rows and history with its monthly audit, the requirements check | Built; each re-run is your box command | Part 4.1 |
-| The store check's ET clock and publication lags, the stored objects, the synthetic rows' purge tool, the editions' builder (b51-registry-html) | Built; the purge is a dry run until you rule on quarantine or removal | Part 4.1 |
-| Batch 14, items 64, 69 and 70 (a56-batch14-a1) | Built, report only: the excess CAPE yield, the PMMS-10y spread, real home prices since 1890, the nominal-growth anchor; the GSE purchase story enters as a proposal at the next seed | The Weekly's and the Monthly's cards; Table 7b |
-| Batch 14, items 63 and 66 (b52-batch14-a2) | Built, report only: the AI capex chain and its relative line (eight new symbols, backfill yours), the wealth-effect impulse and the net-transmission line; ST-R6.66c FAILs (n 65) | The Monthly's card; Part 4.2; Part 5; Table 7b |
+| Order | What lands | When | What it carries |
+|---|---|---|---|
+| 1 | One small PR: A91's fixture fix to `validate_audit_fixes` (that file's change from a90 alone) and `b85-gitattributes-lf` | Tuesday 3 November, evening, before chain-7 | Main's one red gate made green; every hash-pinned file checked out LF on every machine |
+| 2 | chain-7 | Tuesday 3 November, evening | Batch 14's Parts B1 and B2, Batch 15, the 24 October rulings' builds (b59's trigger and sources, b60, 6f), merged with main as rehearsed (B83's script) |
+| 3 | chain-8 | after chain-7 | The stitch tools (S1); the 6f tranche 4, capex guidance, the Doctrine #2 pack, the dated appendices, the Reader's Guide draft 4, Amendment #3's record and the audit's leftovers (a65 to a71); the briefs b63 to b68 and the Quarterly's readers (b69, b70); Learning Loop v2 (b73, a80); the gold spine and trend breadth (b75, b76); the T&B harness (a77, a79); Batch 17's filing (a81); the source checks (b58) |
+| 4 | a90's remainder | after chain-8 | The Monthly's second dry-run fixes |
+| 5 | a84, b81, b82, b85-crypto-derived-keys, in that order | after a90 | The feed summary and allowances; Batch 18's filing (the 23-hour session); the AAII bearish share; the eight derived crypto keys declared |
+| — | The library papers (XXVII first, then XXIX, XXX, XXXI, XXXII and the phase-3a and figure branches) | each by its own PR, after your review | — |
 
-Read from: the branches' own notes (`docs/briefs/a54-relative-volume-notes.md`, `a55-box-fixes-notes.md`, `b51-registry-html-notes.md`, `a56-batch14-a1-notes.md`, `b52-batch14-a2-notes.md`), the fourth chain's (`chain-4-stitch-notes.md`), the stitch notes (`chain-5-stitch-notes.md`) and the code on chain-5.
+Read from: `docs/briefs/b83-rehearsal-notes.md` (chain-7's script), `docs/briefs/b86-chain-8-notes.md` (chain-8's membership, merges and the order above) and each branch's own notes.
 
 ### The calendar ahead
 
 | Date | What |
 |---|---|
-| From chain-3's merge to Sunday 25 October | The secondary notes' dry runs (at least two weekday runs of each and one Sunday), mailed "[DRY RUN]" and archived under `reports/dryrun/` |
-| Monday 26 October | The secondary notes' `live_from` (moved later if chain-3 merges after Thursday 22 October) |
-| Wednesday 28 October | The 1 November Monthly's last dry run: chain-5, with Batch 12's panel and Batch 14's Part A, on main before it |
-| Sunday 25 October | The first Weekly with Book B candidates; the opening setup's tag thresholds reviewed at the dry run |
-| Sunday 1 November | The first Digital Assets addendum; daylight saving ends (UTC-held chat tasks move an hour) |
-| Sunday 1 November | The 1 November Monthly (the 1st, 07:30) |
+| Sunday 1 November | The 1 November Monthly (the 1st, 07:30); the first Digital Assets addendum; daylight saving ends (UTC-held chat tasks move an hour) |
 | 1–7 November | The grammar search's first capped step, as the nightly loop's last step in a month's first week |
 | about 31 October | The X pilot's decision point (Tranche 1 or not) |
+| Tuesday 3 November | The midterms (graded by the claims register); the small PR, then chain-7, in the evening window |
+| after chain-7 | chain-8, then a90, a84, b81, b82 and b85-crypto-derived-keys |
 | 2–30 November | The MSTR / MSCI watch |
 | Saturday 7 – Sunday 8 November | Doctrine #2, from [the preparation pack](briefs/doctrine-2-pack-2026-11.md): SR-1's rights; this Guide's Part 8; the Tranche H proposals; the volatile-day flag's actions; the scoreboard's items |
+| Sunday 8 November | The first Weekly with the gold section and trend breadth (chain-8) |
 | December | The vendor month (planned, not built) |
 | Saturday 9 January 2027 | The first Alternative Assets Quarterly (if enabled) |
 
@@ -862,7 +868,7 @@ Read from: the branches' own notes (`docs/briefs/a54-relative-volume-notes.md`, 
 ## Glossary
 
 - **Anchor:** the 07:00 morning report; it reads the close's market state and says what changed.
-- **As-built:** what the code and config on the chain this Guide is as built on (chain-5) do, as opposed to what a plan or the Doctrine specifies.
+- **As-built:** what the code and config on the chain this Guide is as built on (the chain-8 assembly) do, as opposed to what a plan or the Doctrine specifies.
 - **available_at:** the instant a row could have been known; every as-of read filters on it.
 - **Attention budget:** seven packet approvals a week and one sitting of at most two hours (Doctrine 10.2); a deferred packet is graded as an abstention.
 - **Base rate:** how often an outcome happens unconditionally, the yardstick a conditional signal must beat.

@@ -2,16 +2,26 @@
 
 Paste B86 (`docs/pastes/B86.md`), 29 Oct 2026. Branch `b86-chain-8-assembly`, a
 throwaway: the real chain-8 branch is cut from it next week. No existing branch was
-touched.
+touched. **B86b (29 Oct 2026, the rulings D42.10 to D42.13) finished it:** all
+seven branches are now merged; see "B86b" below.
 
-## Next week's order
+## Next week's order (as amended by B86b)
 
+0. **First, Tuesday 3 November in the evening window, before chain-7: one small
+   PR onto main** carrying:
+   - A91's fixture fix to `tools/validate_audit_fixes.py`, cherry-picked as that
+     one file's change from `f8819b62` (a90-monthly-dryrun-2), nothing else of
+     A90;
+   - `b85-gitattributes-lf` (`5cb338fa`).
+
+   Main is then green, and the Windows-only hash failure is gone before the
+   chains.
 1. **chain-7 into main.** B83's script (`docs/briefs/b83-rehearsal-notes.md`), now
    with main at `422ea697`. Merge 0 below rehearsed main's three later merges (A85,
    A88, B84) against it: three conflicts, exactly as B83 predicted.
-2. **chain-8.** Cut from this branch's tip; its merges are numbered below. **a71 and
-   a79 are not on it**: each waits on a needs-you.
-3. **Then, on their own, in this order:**
+2. **chain-8.** Cut from this branch's tip. All nine members are merged, including a71 and a79
+   (B86b).
+3. **Then a90's remainder, and then, on their own, in this order:**
 
 | Branch | Tip | Expected conflicts after chain-8 (`git merge-tree` against this tip) |
 |---|---|---|
@@ -184,7 +194,7 @@ fixes; CI on Linux passes it.
 `stitch_counts --check` reads 60 counts, 0 disagree, and both indexes agree with
 the tree.
 
-## Needs you
+## Needs you (B86; all four ruled 29 Oct 2026, D42.10 to D42.13, and applied by B86b below)
 
 1. **a71 waits on the order index's file pattern.** S1's
    `tools/change_orders_index.py` indexes only `change-order-*-YYYY-MM-DD.md`.
@@ -218,3 +228,69 @@ Patches of each aborted merge's resolved index, outside the repo (session B's
 scratchpad, `a71-merge-resolution.patch` and `a79-merge-resolution.patch`). Rerun:
 `git merge --no-ff --no-commit origin/<branch>`, then
 `git apply --index --3way <patch>`. Rebase the patch by hand if the tip has moved.
+
+## B86b: the rulings applied (29 Oct 2026)
+
+Base `114f1f8b`. Every commit was pushed after its ruling.
+
+- **D42.10 (a71).**
+  - `a401b3f3`: `tools/change_orders_index.py`'s `ORDER_RX` accepts a filed
+    record whose name ends in a date and a suffix
+    (`change-order-amendment-3-2026-09-13-record.md`). No record was renamed.
+    validate_stitch_tools group B gains the fixture: a suffixed record is indexed
+    in date order, and an undated name is not.
+  - `837b963b`: the a71 merge. It was recorded with `git merge -s ours
+    --no-commit`, then B86's saved resolution was applied with `git apply --3way
+    --index`. Two conflicts on the new tip: CLAUDE.md's count and the master
+    guide's HTML.
+  - Gates pass: validate_lenses, check_registry, validate_6f_calibration,
+    validate_audit_leftovers, validate_batch14_a1, 14_a2, validate_batch15_2,
+    validate_edgar_guidance, validate_security_master, validate_stitch_tools,
+    check_library, check_master_guide, validate_audit_3a 88, validate_deploy.
+  - validate_batch15_1 70/1: the Windows CRLF hash only; step 0's
+    gitattributes PR removes it.
+  - **validate_secrets fails on one item, b70's own**: `edgar_bdc.py` reads
+    data.sec.gov through edgar's User-Agent and is not on `SEC_UA_CALLERS`. It
+    fails on b70's tip alone (checked in a scratch worktree). Not fixed here; a
+    needs-you.
+- **D42.11 (a79).** `546c354a`: the a79 merge, applied the same way.
+  - Five additive conflicts on the new tip: CLAUDE.md, publication_lags,
+    the ledger table, market_state_barred, validate_audit_3a.
+  - The pin in `tools/validate_quarterly_rows_6i.py`, old to new: oil_energy
+    24 → 20, currency 18 → 17, crypto 66 → 63, agriculture 15 → 11.
+  - b69/b70's twelve rows switched off a reason are in `LATER_SWITCHED`, each
+    with the key it reads. The three split rows keep a remainder that carries a
+    reason. The logic is unchanged; its arithmetic reads 230 - 31 + 2 - 13 = 188.
+  - Gates pass: validate_lenses, check_registry, validate_quarterly_rows_6i 34,
+    validate_quarterly_readers_1 48, _2 30, validate_tb_harness,
+    _tb_harness_fpr, validate_themes_panels, validate_stack_hooks,
+    validate_st_r5_t1_rest, validate_audit_3a 88, validate_fred_history,
+    validate_b51_registry_html, check_master_guide, check_library.
+- **D42.12 (silent misplacement).** `98e86f20`: S1's notes gain "The stitch
+  checklist".
+  - After every merge, even a clean one: validate_lenses, check_registry and
+    the new `tools/yaml_section_check.py <merge>`.
+  - The tool diffs every YAML file both parents touched against both parents;
+    a key that moved section is a stop.
+  - It reports b70's 88 keys at `e21a3535` and nothing at every other merge on
+    this branch, a71's and a79's included.
+- **D42.13 (Master Guide).** The guide is refreshed:
+  - "As of" 29 October 2026, as built on this assembly;
+  - Part 5's counts: 31 with a verdict, 1 passed, 16 failed, 14 insufficient;
+  - eight Table 7b rows for the merged branches;
+  - Landing next with this order and the calendar.
+
+  The HTML is rebuilt; check_master_guide passes with no warning.
+
+**Counts, from B86's tip to B86b's:**
+- code gates 153 → 159 (Python 150 → 156): a71's two, a77/a79's four;
+- FRED_PULL_SERIES 284 → 286 (a79's DBAA and BAA);
+- stitch_counts reads 61 counts, 0 disagree.
+
+**The final membership:** s1-stitch-refactor, b70 (b63-b69), a80 (b73),
+b75, b76, a81, b58, a71 (a65-a70), a79 (a77).
+
+**Needs you:**
+1. `altdata/sources/edgar_bdc.py` (b70) is an SEC caller missing from
+   validate_secrets' `SEC_UA_CALLERS`. The same one-line registration A59 and
+   A66 made for theirs; on b70, or at chain-8's stitch?
