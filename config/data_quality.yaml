@@ -124,6 +124,21 @@ pairs:
       measured_on: "2026-10-15"
       measured_window: "2022-04-21 to 2026-05-28 (1,029 shared days)"
 
+# INACTIVE PAIRS (A93, 29 Oct 2026): the price-source migration's parallel run
+# (the brief's section 4, D38). Each pairs an IBKR daily close with the yfinance
+# close it would replace. NOT READ by the quality check until the IBKR writer is
+# enabled and a pair is moved into pairs.list above; its tolerance is measured on
+# the twenty-session overlap, stated with its reason, never assumed.
+inactive_pairs:
+  family: us_index_funds
+  writer: altdata/sources/ibkr_bars.py
+  list:
+    - {id: spy_ibkr, a: yfinance.mkt_spy, a_label: SPY (Yahoo), b: ibkr.spy_close, b_label: SPY (IBKR), unit: percent, active: false, tolerance: "to be measured on the overlap"}
+    - {id: qqq_ibkr, a: yfinance.mkt_qqq, a_label: QQQ (Yahoo), b: ibkr.qqq_close, b_label: QQQ (IBKR), unit: percent, active: false, tolerance: "to be measured on the overlap"}
+    - {id: iwm_ibkr, a: yfinance.mkt_iwm, a_label: IWM (Yahoo), b: ibkr.iwm_close, b_label: IWM (IBKR), unit: percent, active: false, tolerance: "to be measured on the overlap"}
+    - {id: dia_ibkr, a: yfinance.mkt_dia, a_label: DIA (Yahoo), b: ibkr.dia_close, b_label: DIA (IBKR), unit: percent, active: false, tolerance: "to be measured on the overlap"}
+    - {id: rsp_ibkr, a: yfinance.mkt_rsp, a_label: RSP (Yahoo), b: ibkr.rsp_close, b_label: RSP (IBKR), unit: percent, active: false, tolerance: "to be measured on the overlap"}
+
 # BACKFILL (ruled 15 Oct 2026, AUD-3c answer 3). Rows written under these
 # source strings are the FRED-history writer's (aud-3d-fred-history, session B):
 # a restated value is labelled "backfill", never a revision, and an observation
