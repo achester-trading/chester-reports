@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="source-sha256" content="c76ffb14d94b8bc2d800e89121cb2c64f2d5c598b8cceafeb153dea009cd6cc1">
+<title>Real Assets and Risk Transfer</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Real Assets and Risk Transfer</h1>
+<h2>Housing, Commercial Property, Infrastructure and Farmland as Claims Priced by Their Financing, and Insurance-Linked Risk as the One Return the Financial Cycle Does Not Drive</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XXIX</strong> — Markets shelf, the reference shelf outside the core track, consulted beside <em>Credit</em>, <em>Equities</em> and <em>Volatility</em> — per the library guide, which is canonical for numerals; cross-references in this paper are by name
+<strong>Version:</strong> 1.0 — Draft 1, 26 October 2026
+<strong>Last reviewed:</strong> 26 October 2026 (seeded with the version date; no structural review has been held)
+<strong>Status:</strong> Draft 1, for the operator's review. The body is timeless; every level, share and probability lives in Appendix B. The six figures are placeholders, named with the store keys each will draw from, and are drawn in a later edition.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-real-estate">Part I — Real Estate</a></li><li><a href="#s3-part-ii-infrastructure-and-agriculture">Part II — Infrastructure and Agriculture</a></li><li><a href="#s4-part-iii-risk-transfer">Part III — Risk Transfer</a></li><li><a href="#s5-part-iv-tactical-applications-wiring-environments-and-the-ap">Part IV — Tactical Applications, Wiring, Environments, and the Appendices</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>A house, an office tower, a toll road and a field of corn are each a claim on a physical service: shelter, floor space, passage, a harvest. The library has touched all four in passing. <em>Credit</em> treats commercial real-estate loans and the banks that hold them; <em>Tops and Bottoms</em> uses housing as an input to its episodes; <em>Energy</em> describes the power build that the data centres demand; the Quarterly carries real-estate and agriculture chapters with rows and no owning paper. What the library has not done is say what these assets have in common and how their prices are set. This paper does.</p>
+<p><strong>A real asset is a claim on a physical service whose price is set mostly by the cost and availability of the financing behind it.</strong> The service changes slowly. A house shelters about as many people this year as last. What changes quickly is what a buyer can borrow against it and at what rate, and what a lender will accept as collateral. Housing and commercial property therefore move with the rate and credit cycle more than with their own supply. Infrastructure, whose cash flows are contracted or regulated, trades as long-duration, often inflation-linked credit. Agriculture is the exception on the asset side: its price is set by a physical balance of stocks against use, and the financing matters only at the margin.</p>
+<p>The paper's last Part is about a different kind of claim. <strong>Insurance-linked risk transfer is the one asset here whose return comes from an event risk that the financial cycle does not drive.</strong> A hurricane does not read the yield curve. That makes catastrophe risk a diversifier in principle. In practice it is a small, capacity-constrained market whose correlation with everything else is low until a loss year forces its holders to sell what they can, and the paper gives it the weight the market gives it, not more.</p>
+<p>Part I is real estate: housing as an asset and as a channel, reading its cycle, commercial property and its lenders, and the listed proxy. Part II is infrastructure and, briefly, agriculture. Part III is risk transfer: what a catastrophe bond pays for, the reinsurance cycle, and insurers as allocators of the capital behind it. Part IV carries the closing chapters every markets paper carries.</p>
+<p><strong>What this paper does not do.</strong> It does not re-narrate the 2007 housing top; <em>Debt Cycles</em> and <em>Tops and Bottoms</em> own that episode, and this paper gives only the channel it ran through. It does not tell the 2022 gilt crisis, whose collateral spiral <em>Market Structure and Cascades</em> owns; it uses the episode only to show where liability-matching demand comes from. It does not restate the holders' ecology of <em>Price, Time, and Edge</em>. And it does not treat the catastrophe market as larger or more central than it is.</p>
+<p><strong>Prerequisites.</strong> <em>Credit</em>, for spreads, the banks and private credit; <em>Rates &amp; Liquidity</em>, for the term structure and the mortgage market's place in it; <em>Price, Time, and Edge</em>, for the participant classes and their mandates; <em>Debt Cycles</em>, for the eighteen environments and the 2007 top. A reader who has those can read this paper straight through, or consult one Part at a time.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-real-estate">
+      <summary class="section-head">
+        <span class="section-title">Part I — Real Estate</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 1 — Housing as an asset and as a channel</h2>
+<p>Housing is the largest asset most households own and the largest liability most of them owe. It is also the part of the economy where a change in the long rate arrives first and lands hardest. This chapter treats both faces: the house as an asset whose price is set by financing, and the housing market as the channel through which the rate cycle reaches spending.</p>
+<h3>1.1 The price is a payment</h3>
+<p>Almost nobody buys a house for cash. A buyer buys a monthly payment, and the price follows from what that payment will finance. The payment is set by the mortgage rate, the term and the down payment, and the price a buyer can bid is whatever loan the payment supports plus the deposit. When the mortgage rate rises, the same income supports a smaller loan, and the bid falls even though nothing about the house has changed.</p>
+<p><em>Worked example (illustrative).</em> A buyer can afford a monthly principal-and-interest payment of about $1,350. On a 30-year fixed mortgage at 3%, that payment carries a loan of $320,000; with a 20% deposit the buyer can bid $400,000. At 7% the same loan costs about $2,130 a month, 58% more. Held to $1,350, the payment now carries a loan of about $203,000, roughly 37% less. Nothing about the house, the town or the buyer's income has moved. The buyer's bid has fallen by more than a third because the price of the financing has more than doubled.</p>
+<p>The arithmetic is why house prices are best read against affordability rather than against incomes alone. A price-to-income ratio that looks stretched at a high rate may be ordinary at a low one, and the reverse.</p>
+<h3>1.2 Turnover moves before prices</h3>
+<p>The bid falls immediately; prices do not. The reason is that sellers are also owners with mortgages, and in a market where most mortgages are fixed for thirty years, an owner who moves gives up the old rate. An owner holding a 3% mortgage who sells and buys an equivalent house at 7% takes on the 58% higher payment of the example above for no gain in shelter. Most do not move. <strong>Higher rates cut the supply of existing homes for sale as well as the demand for them</strong>, and because both fall together, the volume of transactions collapses while the price changes little.</p>
+<p>This is the lock-in effect, and it is particular to markets with long fixed-rate mortgages. <em>It holds in the US fixed-rate market across the rate cycles since the 1980s and was most visible in 2022–24; last verified October 2026.</em> Where mortgages reset with the policy rate, as in much of the UK, Australia and Canada, a rise reaches every borrower's payment within a year or two, forced sales come sooner, and prices adjust faster.</p>
+<p>The order of events in a US rate rise is therefore fixed. Purchase applications fall within weeks. Pending sales, contracts signed but not yet closed, fall within a month or two. Closed sales follow. Inventory, rather than rising as it would in a demand shock, stays low because the owners who would list are locked in. Prices flatten and, in most cycles, fall only modestly in nominal terms unless forced sellers appear: owners who lose a job, cannot refinance an adjustable loan, or bought with little equity. <em>This is the pattern of US rate-driven slowdowns since 1980, apart from 2006–09, when forced sellers were the story; last verified October 2026.</em></p>
+<h3>1.3 From the house to the economy</h3>
+<p>Housing reaches the rest of the economy through three routes.
+- <strong>Construction.</strong> Residential investment is a small share of output but one of its most volatile parts, and builders respond to the bid within months. A falling bid cuts starts, then employment in construction and in the trades and goods that furnish a new house.
+- <strong>Transactions.</strong> Every sale carries spending on moving, furnishing and renovation, and on the brokers, lenders and lawyers who earn a fee on turnover. When turnover collapses, that spending goes with it even if prices hold.
+- <strong>Wealth and collateral.</strong> A household whose house rises in value feels richer and can borrow against it. The effect on spending is real but smaller and slower than the other two, and the system's measure of its equity-market partner has failed its ledger (Chapter 2.4).</p>
+<p><strong>Housing leads the cycle because it is the most rate-sensitive large sector, and its sensitivity shows up in volume before it shows up in price.</strong> The argument is made most famously by Leamer (2007), who found residential investment the most consistent early contributor to weakness ahead of US recessions. <em>Leamer's sample was the US post-war recessions to 2006; the lead held in 2008 and was absent in 2020, whose recession was not rate-driven; last verified October 2026.</em> The lead is a property of rate-driven downturns, not of every downturn.</p>
+<p><em>Historical instance.</em> In 2022 the US mortgage rate rose at its fastest pace in four decades. Applications and pending sales fell within months; existing-home sales fell to their lowest in more than a decade; national prices dipped modestly and then recovered, held up by the scarcity of listings. The figures are in Appendix B.</p>
+<p><em>On the day.</em> Pending sales and purchase applications falling hard while prices are still rising year on year. That combination is a turnover collapse, not yet a price decline, and it is what the channel looks like at its start.</p>
+<h3>1.4 Housing as a lead in the cycle</h3>
+<p>Permits and pending sales are the parts of the housing data that lead. A permit is issued before a foundation is poured; a pending sale is signed weeks before it closes. Both respond to the bid, so both turn first.</p>
+<p><em>Worked example (illustrative).</em> Single-family permits fall 25% on the year while the price index is still up 5%. The permit series has seen the lower bid; the price series has not, because it records closings of contracts signed months earlier and is smoothed over three months. A reader who waits for prices to turn has waited six to twelve months longer than one who read permits.</p>
+<p><em>Historical instance.</em> Permits and pending sales peaked well before prices in the mid-2000s. How that cycle ended, and how the mortgage credit behind it turned a housing slowdown into a financial crisis, is told in <em>Debt Cycles</em> and <em>Tops and Bottoms</em>. This paper gives only the channel: turnover first, construction second, prices last, and losses on the credit last of all.</p>
+<p><em>On the day.</em> The month turnover peaks: pending sales roll over while the price index still prints records.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>What moves</th>
+<th>When, after a rate rise</th>
+<th>Read through</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The bid</td>
+<td>The loan a payment carries</td>
+<td>At once</td>
+<td>The mortgage rate; affordability</td>
+</tr>
+<tr>
+<td>Applications</td>
+<td>Purchase demand</td>
+<td>Weeks</td>
+<td>MBA purchase index (item 37)</td>
+</tr>
+<tr>
+<td>Pending sales</td>
+<td>Contracts signed</td>
+<td>One to two months</td>
+<td>Redfin pending sales (item 36)</td>
+</tr>
+<tr>
+<td>Supply</td>
+<td>Owners who would list</td>
+<td>Months; held by lock-in</td>
+<td>Inventory; months of supply</td>
+</tr>
+<tr>
+<td>Construction</td>
+<td>Permits, starts</td>
+<td>Months</td>
+<td>Permits and starts</td>
+</tr>
+<tr>
+<td>Prices</td>
+<td>Closed transactions</td>
+<td>Six to eighteen months, often modestly</td>
+<td>Case-Shiller; the real price (item 69)</td>
+</tr>
+</tbody>
+</table>
+<h3>1.5 New homes when existing homes are locked</h3>
+<p>When owners are locked in, the builders become the marginal seller. A builder holds inventory it must turn, has no low-rate mortgage to protect, and can do what an existing owner cannot: buy the buyer's rate down. A builder that pays a lender to cut the buyer's mortgage rate for the first years, or for the whole term, sells the payment rather than the price, which is exactly what the buyer is shopping for (Chapter 1.1). The headline price holds while the effective price falls by the cost of the buydown.</p>
+<p>Two consequences follow for a reader. First, new-home sales can hold up, or rise, while existing-home sales collapse, and the share of new homes in total sales rises. A reader who reads only existing-home turnover overstates the slowdown in construction; one who reads only new-home sales understates the slowdown in the market. Second, builders' margins, not their prices, absorb the rate rise. Homebuilder equities therefore track the mortgage rate and the builders' cost of incentives more than the house price indices. <em>The pattern was clear in the US in 2022–24, when the new-home share of sales rose to its highest in decades; last verified October 2026.</em></p>
+<p><em>On the day.</em> New-home sales steady and builders' stocks recovering while existing-home sales are at their lows. The builders have found the payment the buyer can afford; the existing stock has not moved.</p>
+<h3>1.6 The mortgage machine</h3>
+<p>A US mortgage is unusual in two ways: it is fixed for thirty years and the borrower can prepay it at any time without penalty. That combination is possible only because most mortgages are pooled, guaranteed by government-sponsored enterprises and sold as agency mortgage-backed securities to banks, the Federal Reserve, foreign official holders, insurers and funds. <em>Rates &amp; Liquidity</em> treats the market's place in the term structure; this section gives what it means for housing.</p>
+<p>The prepayment option belongs to the borrower. When rates fall, borrowers refinance and the bondholder is repaid at par just when the bond would have risen in value; when rates rise, nobody refinances and the bond lengthens just when the holder would want it shorter. The holder of a mortgage bond is short that option, and is paid for it in the spread of Chapter 2.2. The short option is why mortgage bonds are <strong>negatively convex</strong>, and why their holders hedge: as rates rise and the bonds lengthen, holders who manage duration sell Treasuries or pay fixed in swaps, which pushes rates higher still. The feedback is smaller than it was before the largest holders stopped hedging actively, but it is part of why the long end can overshoot in a selloff.</p>
+<p>For housing, the machine has two effects. The guarantee and the pooling make the thirty-year fixed rate possible at all, so the lock-in of Chapter 1.2 is a product of the machine. And the spread is set by whoever is the marginal buyer of the bonds. When the Federal Reserve was buying, the spread was compressed; when it stopped and the banks stopped too, the spread widened and the mortgage rate rose further than the 10-year. The bid for houses depends on a bond market most homebuyers have never heard of.</p>
+<p><em>Worked example (illustrative).</em> The 10-year is at 4% and the mortgage spread at 1.7 points, so the mortgage rate is 5.7%. The 10-year falls to 3.5%, but the bond market's marginal buyer is now a price-sensitive fund rather than the central bank, and the spread widens to 2.4 points. The mortgage rate rises to 5.9% while the Treasury yield falls. A reader who expected the rate cut to help housing has read the wrong rate.</p>
+<h3>1.7 Rent, ownership and the price</h3>
+<p>A house is also a claim on a rent: the rent its owner saves by living in it, or collects by letting it. The ratio of price to rent is therefore the housing market's valuation multiple, the counterpart of a stock's price-to-earnings. When prices rise faster than rents, the owner is accepting a lower rent yield, as an equity buyer accepts a lower earnings yield, and the gap is justified only if financing is cheap or rents are expected to grow. Case and Shiller (1989) showed that house prices are not an efficient market in the usual sense: returns are persistent from one year to the next, because transactions are slow, costly and made by households rather than arbitrageurs. <em>Their sample was four US cities, 1970–86; the persistence has been found in later and wider samples; last verified October 2026.</em></p>
+<p>Rents move differently from prices. They are set by the balance of households against homes, are sticky because leases run for a year, and respond to rates only indirectly: a rate rise that stops would-be buyers from buying keeps them renting, which supports rents while it hurts prices. Rents also reach inflation. Shelter is the largest component of US consumer prices, and the official measure follows market rents with a long lag because it averages over existing leases. That lag runs the other way to the price lag of Chapter 1.2: market rents turn before the inflation figure does. <em>The lag of official shelter inflation behind new-lease market rents has been of the order of a year in the US data since the market-rent indices began; last verified October 2026.</em></p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>What it is</th>
+<th>What it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Price to rent</td>
+<td>The housing multiple</td>
+<td>Is ownership expensive against renting?</td>
+</tr>
+<tr>
+<td>Price to income</td>
+<td>The affordability ratio at a given rate</td>
+<td>Can a household buy, at today's rate?</td>
+</tr>
+<tr>
+<td>Payment to income</td>
+<td>Price, rate and term together</td>
+<td>The binding constraint for most buyers</td>
+</tr>
+<tr>
+<td>Market rents</td>
+<td>New leases</td>
+<td>Where shelter inflation is going</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 2 — Reading the housing cycle</h2>
+<p>The system measures housing more completely than any other real asset, and this chapter describes those measures as they stand. It re-derives no figure the store holds and upgrades no ledger's verdict.</p>
+<h3>2.1 Activity, per household (items 36, 37 and 68)</h3>
+<p><strong>Pending sales and inventory (item 36).</strong> The system reads Redfin's pending sales, months of supply and inventory into the store, and prints them in a monthly housing block under the rates-transmission header in Plumbing &amp; rates. The National Association of Realtors' pending-sales index, the series most commentary quotes, was dropped from the build and Redfin's kept, because Redfin's could be stored under the system's source rules. The two measure the same thing with different samples, and a reader comparing a printed figure with a headline should expect them to differ.</p>
+<p><strong>Purchase applications (item 37).</strong> The Mortgage Bankers Association's purchase index is the weekly line beside it, read week on week seasonally adjusted and year on year unadjusted. It is the fastest housing series the system holds and the noisiest. A single week says little; four weeks in one direction say that the bid has moved.</p>
+<p><strong>Per household (item 68).</strong> A raw count of pending sales rises over decades because the number of households rises. Item 68 divides pending sales by the number of households, from a single source so the numerator and denominator are not mixed, and reads the result against its own history. That turns "sales are low" into "sales are low for a country this size", which is the question a reader means.</p>
+<p><strong>Figure 1 — Pending sales per household through two cycles.</strong> <em>Placeholder, drawn in a later edition: Redfin pending sales over households, with the 2022 rate rise marked. Keys: <code>redfin.pending_sales</code>, <code>fred.households</code>.</em></p>
+<h3>2.2 The mortgage spread (item 69)</h3>
+<p>The mortgage rate is the 10-year Treasury yield plus a spread. The spread pays the investor for the borrower's option to prepay, for the servicing and guarantee fees, and for whatever risk the marginal holder of mortgage bonds wants paid. Item 69 reads Freddie Mac's weekly survey rate less the 10-year on the same day, in basis points, and prints it with its dual percentiles.</p>
+<p>The spread matters because it can move against the Treasury market. When the largest holders of agency mortgage bonds stop buying, the spread widens and the mortgage rate rises further than the 10-year. <em>Spreads widened sharply in 2022–23 as the Federal Reserve ran off its holdings and banks stopped adding, and narrowed partly afterwards; last verified October 2026.</em> A reader who watches only the 10-year misses that part of the bid's movement.</p>
+<p>Two pieces of the footprint are named and not measured. The current-coupon mortgage-bond yield less the 10-year, the market's own spread, has no keyless source and prints "not tracked". So do the government-sponsored enterprises' retained portfolios, whose monthly summaries are not simple to store. The survey-rate spread is therefore a mix of the market spread and the lenders' margin, and is labelled so.</p>
+<p><strong>Figure 2 — The mortgage spread against the 10-year.</strong> <em>Placeholder, drawn in a later edition: the survey-rate spread over the 10-year, in bp. Key: <code>calc.mortgage_spread_10y_bp</code>.</em></p>
+<h3>2.3 The real price (item 69)</h3>
+<p>Nominal house prices rise with inflation; what matters for valuation is the real price. Item 69 also reads Shiller's real home-price index, which runs from 1890, and ranks the latest month against its history. Because the series is annual before 1953 and monthly after, the measure compares the latest month against one point a year, so the long annual era is not outweighed twelve to one by the recent monthly one.</p>
+<p>The long series carries a lesson that is easy to state and hard to accept. <em>For most of the twentieth century, US real house prices rose little, and the long rise began in the late 1990s; Shiller's index, 1890 to date; last verified October 2026.</em> A house is a depreciating structure on appreciating land, and the land is where scarcity lives. A percentile against this history says how expensive housing is against the century, not whether it will fall: prices that are high against the century can stay high for as long as the financing and the land scarcity that support them persist.</p>
+<p><strong>Figure 3 — The real house price over a century.</strong> <em>Placeholder, drawn in a later edition: Shiller's real home-price index, 1890 to date. Key: <code>shiller.real_home_price</code>, with <code>fred.case_shiller_national</code> for the recent months.</em></p>
+<h3>2.4 The wealth effect, as measured (item 66)</h3>
+<p>The wealth effect is housing's partner channel, and the system measures its equity-market leg. Item 66's impulse, in <code>altdata/transmission.py</code>, is the household sector's equity share of financial assets from the Federal Reserve's Z.1 accounts times the S&amp;P 500's return on the year. Between Z.1 releases the share is marked to the index and labelled as marked. It prints in the Monthly's Plumbing &amp; rates beside the tightening legs, each scaled on its own and never summed.</p>
+<p>Its calibration ledger, ST-R6.66c, asked whether a December's impulse ranks with real consumption growth over the following twelve months, one observation a year from 1960. The pass rule was pre-registered before any scoring code was written. <strong>The verdict as filed is FAIL, at n 65.</strong> The rank correlation was close to zero over the whole sample and weakly positive in each half, and the top tercile's median outcome barely exceeded the bottom's. The ruling of 24 October 2026 (D9) accepted it. The impulse stays report-only; the ledger also notes that equity returns and consumption both follow the business cycle, so even a pass would not have shown a cause.</p>
+<p>The housing leg of the wealth effect is not measured separately. The paper does not claim, for either leg, a size the ledger has not supported. It says only that wealth effects exist in the literature, run slower than the construction and transaction channels, and have not been shown in the system's own data to rank with spending a year ahead.</p>
+<h3>2.5 Reading the block in order</h3>
+<p>The housing measures are most useful read in the order the channel runs, from the bid to the price, so that each answers a question the one before it raised.
+1. <strong>The financing.</strong> The mortgage rate, and how much of its move came from the 10-year and how much from the spread (item 69). A move made by the spread is a bond-market story; one made by the 10-year is the rate cycle's.
+2. <strong>The bid.</strong> Purchase applications (item 37), read over four weeks rather than one, say whether buyers have responded.
+3. <strong>Turnover.</strong> Pending sales per household (item 68) say whether contracts have followed applications, and whether turnover is low for a country of this size.
+4. <strong>Supply.</strong> Months of supply and inventory (item 36) say whether turnover is falling because buyers left or because sellers did. Falling sales with rising inventory is a demand shock; falling sales with flat or falling inventory is lock-in.
+5. <strong>The price.</strong> The real price's percentile (item 69) says where the level stands against a century; the nominal indices say whether it has turned.</p>
+<p>Read this way, four combinations recur. A rising rate with applications and pending sales falling and inventory flat is the lock-in phase: turnover down, prices held. Applications and pending sales falling with inventory rising and prices turning is the forced-seller phase, the dangerous one. A falling rate with applications rising and inventory still thin is the recovery, in which prices can rise quickly because supply cannot follow. And everything flat is a stalled market, with low turnover and little information in any figure.</p>
+<p><em>On the day.</em> A month in which the spread, not the 10-year, made the mortgage rate's move, and applications fell with it. The block says the bond market, not the central bank, tightened housing that month.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Rate</th>
+<th>Applications, pending</th>
+<th>Inventory</th>
+<th>Prices</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lock-in</td>
+<td>Rising</td>
+<td>Falling</td>
+<td>Flat or falling</td>
+<td>Held</td>
+</tr>
+<tr>
+<td>Forced sellers</td>
+<td>Any</td>
+<td>Falling</td>
+<td>Rising</td>
+<td>Falling</td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td>Falling</td>
+<td>Rising</td>
+<td>Thin</td>
+<td>Rising quickly</td>
+</tr>
+<tr>
+<td>Stall</td>
+<td>Flat</td>
+<td>Flat, low</td>
+<td>Flat</td>
+<td>Drifting</td>
+</tr>
+</tbody>
+</table>
+<h3>2.6 What the measures cannot see</h3>
+<p>Three gaps matter. The existing-home market's forced sellers (delinquencies that turn into listings) are read only through the national mortgage delinquency rate, which is quarterly and late. Regional dispersion, where a national average hides a coastal fall and an inland rise, is read only through Redfin's metro breadth. And the insurance channel that the Twenty-Five's tail M7 describes, where cover becomes the binding constraint on the mortgage, has no stored series at all (Chapter 8.4).</p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Item</th>
+<th>Keys</th>
+<th>What it answers</th>
+<th>Verdict as filed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending sales, inventory, months of supply</td>
+<td>36</td>
+<td><code>redfin.pending_sales</code>, <code>redfin.months_of_supply</code>, <code>redfin.inventory</code></td>
+<td>Has turnover turned?</td>
+<td>Report only</td>
+</tr>
+<tr>
+<td>Purchase applications</td>
+<td>37</td>
+<td><code>mba.purchase_sa_wow</code>, <code>mba.purchase_nsa_yoy</code></td>
+<td>Has the bid moved this month?</td>
+<td>Report only</td>
+</tr>
+<tr>
+<td>Pending sales per household</td>
+<td>68</td>
+<td><code>fred.households</code>, <code>redfin.pending_sales</code></td>
+<td>Low for a country this size?</td>
+<td>Report only</td>
+</tr>
+<tr>
+<td>The mortgage spread; the real price</td>
+<td>69</td>
+<td><code>calc.mortgage_spread_10y_bp</code>, <code>shiller.real_home_price</code>, <code>fred.case_shiller_national</code></td>
+<td>Is the financing or the level stretched?</td>
+<td>Report only</td>
+</tr>
+<tr>
+<td>The wealth-effect impulse</td>
+<td>66</td>
+<td><code>altdata/transmission.py</code></td>
+<td>Does wealth lead spending?</td>
+<td>ST-R6.66c <strong>FAIL, n 65</strong></td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 3 — Commercial real estate</h2>
+<p>Commercial property is housing's harder cousin. The tenant is a business on a lease, the borrower is a professional owner on a loan that matures in five to ten years rather than thirty, and the lender is far more often a bank, an insurer or a securitisation than a government-backed agency. Its price is set by the same financing logic, but the transmission runs through the lender's balance sheet, and the marks are slower.</p>
+<h3>3.1 Four property types, four stories</h3>
+<p>The four main types have diverged enough that "commercial real estate" is now four markets.
+- <strong>Office</strong> faces a demand shock that the financing cycle compounds: hybrid work cut the floor space tenants need, and the tenants renew at lower rents or leave as leases expire. <em>The office vacancy rise has run in most large US metropolitan markets since 2020; last verified October 2026.</em>
+- <strong>Retail</strong> went through its own structural repricing a decade earlier, as spending moved online, and the survivors are the centres where the remaining shopping happens.
+- <strong>Industrial</strong>, warehouses and logistics, rose on the same move online and is the type most driven by its own supply cycle.
+- <strong>Data centres</strong> are the newest type and the one whose demand is set outside property: by the power and computing build that <em>Energy</em> describes. A data centre is as much a power contract as a building, and its constraint is the grid connection rather than the land.</p>
+<p>The common element is the financing. Each type's value is its net operating income divided by a capitalisation rate, and the cap rate moves with the long rate and the spread lenders demand. When rates rise, all four lose value at once; their own stories decide how much.</p>
+<h3>3.2 The loan and the choice at maturity</h3>
+<p>A commercial mortgage is usually interest-only or lightly amortising, with a balloon at maturity that must be refinanced. The stress arrives at that date. A loan written at a low rate on a value set by a low cap rate meets maturity in a world where the rate and the cap rate are both higher, the property is worth less, and a new lender will lend less against it. The owner must put in equity, sell, or hand back the keys.</p>
+<p>The lender faces a choice of its own: extend the loan and wait, or foreclose and take the loss now. Extension is the default, because foreclosure crystallises a loss, costs time and money, and leaves the lender owning a building it does not want. <strong>The share of maturing loans resolved by extension rather than foreclosure or a discounted payoff is the tell of whether lenders are still deferring.</strong> <em>Credit</em>'s test for its commercial real-estate scenario names that share as what would settle the question; the Quarterly's real-estate chapter lists it as a row the store cannot yet fill, because the special servicers' data is not stored.</p>
+<h3>3.3 The banks</h3>
+<p>Commercial real-estate credit concentrates where deposits are least diversified. Regional and community banks hold a large share of US commercial real-estate loans, and for many of them those loans are a large share of the book. <em>Credit</em> carries the full account; this paper adds the arithmetic of why the concentration matters.</p>
+<p><em>Worked example (illustrative).</em> A regional bank's loans are 70% of its assets and commercial real estate is 40% of its loans, so 28% of assets. Office is 15% of the real-estate book, 4.2% of assets. If half the office loans default and the bank loses 40% on each, the loss is 0.84% of assets. Against equity of 9% of assets, that is close to a tenth of the bank's capital, from one property type, before any loss elsewhere. The loss is survivable spread over years and dangerous if depositors decide in a week that they would rather not find out.</p>
+<p><em>Historical instance.</em> In March 2023 several US regional banks failed or were rescued. The proximate cause was not commercial real estate. It was losses on securities bought at low rates, and deposits that left once those losses were noticed. Commercial real estate was the concern that followed, because the banks the deposits left were the banks holding the loans. <em>Credit</em> tells the episode, and <em>Price, Time, and Edge</em> uses it as the worked example of a holder's loop.</p>
+<p><em>On the day.</em> The deposit flight: depositors moving uninsured balances out of banks whose books they suddenly doubt, and the regional-bank equity index falling far faster than the broad market. The system's bank-stress panel (Batch 12's item 59) carries the regional banks against the financials and the deposit-flight flag; this paper only names it.</p>
+<h3>3.4 Private real-estate funds and appraisal smoothing</h3>
+<p>Much commercial real estate is owned through private funds whose values are set by appraisal rather than by trade: open-end core funds, which let investors in and out quarterly at the appraised value, and non-traded real-estate investment trusts sold to individuals with monthly or quarterly liquidity.</p>
+<p>An appraiser values a property from recent comparable transactions and an assumed cap rate. In a falling market there are few transactions, the comparables are old, and appraisers move cautiously. The reported value is therefore a weighted average of the true value now and the reported value last period. Geltner (1993) wrote this down as a smoothing model and showed that it explains why appraisal-based indices show lower volatility and lag the listed market. <em>The smoothing appears in US appraisal-based property indices since their 1978 start; last verified October 2026.</em></p>
+<p><em>Worked example (illustrative).</em> Suppose the true value of a portfolio falls 20% at once, and each quarter the appraisal moves 40% of the way from its last mark to the true value. After one quarter the fund reports a fall of 8%. After two, 12.8%; after three, 15.7%; after four, 17.4%. A year after the fall the reported value is still above the true one, and an investor who redeems at the reported value is paid more than the property is worth. The investors who stay pay the difference.</p>
+<p><strong>That arithmetic is the redemption run's cause.</strong> Investors who can see a listed market down 20% and a fund down 8% have every reason to redeem at the fund's stale mark. A fund that pays them all must sell properties at the true value or borrow, and the losses fall on the remaining holders. So the fund documents carry gates: limits on redemptions per period, which the manager imposes when requests exceed them. A gate is not a failure; it is the contract working as written. But it is the moment an investor learns that the quarterly liquidity was conditional.</p>
+<p>The mechanism is the same as private credit's unanchored marks, which <em>Credit</em> and the Quarterly's credit chapter already flag. Whenever a vehicle offers liquidity at a mark that is not a trade, the first to leave are paid with the patience of the last.</p>
+<p><em>Historical instance.</em> In late 2022 and through 2023, several large US non-traded real-estate investment trusts hit their redemption limits and prorated withdrawals, while the open-end core funds reported their first declines months after the listed REIT index had fallen.</p>
+<p><em>On the day.</em> A redemption gate on a non-traded fund, announced while its reported value is down a few percent and the listed index is down several times that.</p>
+<h3>3.5 Who lends, and who replaces them</h3>
+<p>Four groups lend against US commercial property, and each pulls back for its own reason.
+- <strong>Banks</strong>, the largest group, lend on their balance sheets and pull back when their capital or deposits are under strain, as in 2023.
+- <strong>Securitisations</strong> pool loans into commercial mortgage-backed securities, the most transparent segment, whose delinquencies are published loan by loan. <em>Credit</em> treats the structure. When their spreads widen, new issuance stops and maturing loans cannot be refinanced through them.
+- <strong>Life insurers</strong> lend on the best properties at low leverage, matching long liabilities (Chapter 8.3). They are the steadiest lender and the most selective.
+- <strong>Debt funds and private credit</strong> lend at higher rates and higher leverage, and have grown as banks retreated. They are the lender of the next resort rather than the last: they lend when the price is right, and their capital comes from insurers and pensions whose own appetite moves with the cycle.</p>
+<p>The order matters for a reader. When the banks retreat, the property market does not stop; the loans move to lenders who charge more. A maturity wall is survivable if someone replaces the departing lender at a price the property can bear, and dangerous if no one does. <em>Credit</em>'s private-credit chapters carry the risk on the other side: loans that leave the banks do not leave the system, and their marks are as unanchored as the appraisals of Chapter 3.4.</p>
+<p><strong>Figure 4 — CRE delinquency against the regional-bank episodes.</strong> <em>Placeholder, drawn in a later edition: the delinquency rate on commercial real-estate loans at US banks, with 1990–91, 2009–11 and 2023 marked. Key: <code>fred.cre_delinq</code>.</em></p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Worked example</th>
+<th>Historical instance</th>
+<th>On the day</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cap rate and the long rate</td>
+<td>Value is income over the cap rate; both rise together</td>
+<td>2022</td>
+<td>All four types repricing at once</td>
+</tr>
+<tr>
+<td>The maturity wall</td>
+<td>A balloon refinanced at a lower value</td>
+<td>2023–26</td>
+<td>The extension-versus-foreclosure share</td>
+</tr>
+<tr>
+<td>Bank concentration</td>
+<td>A tenth of capital from one property type</td>
+<td>March 2023 (cite <em>Credit</em>)</td>
+<td>The deposit flight</td>
+</tr>
+<tr>
+<td>Appraisal smoothing</td>
+<td>A 20% fall reported as 8% in the first quarter</td>
+<td>2022–23</td>
+<td>Redemption gates on non-traded funds</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 4 — REITs: the listed proxy</h2>
+<p>A real-estate investment trust is a company that owns property and pays out most of its income, in return for not paying corporate tax on it. A listed REIT trades every second; the property it owns is appraised every quarter. That difference makes the listed market the faster read on property values, and occasionally the wrong one.</p>
+<h3>4.1 What the listed market front-runs</h3>
+<p>Because a REIT's shares price continuously, they move when the rate moves, before any appraisal does. The price implies a cap rate on the trust's properties, and when that implied cap rate is above the rate appraisers use, the shares trade below the net asset value the appraisals give.</p>
+<p><em>Worked example (illustrative).</em> A REIT's properties earn net operating income of $6 a share. Appraisers apply a cap rate of 5%, giving a net asset value of $120. The shares trade at $92, which implies a cap rate of 6.5%. The 23% discount is the listed market's statement that the appraisals are stale. <em>The listed REIT index has led appraisal-based indices at turning points by roughly a year in the US since the 1980s; last verified October 2026.</em> Either the appraisals fall towards the share price over the following quarters, or private buyers who believe the appraisals buy the trust and close the discount.</p>
+<p><em>Historical instance.</em> In 2022 the US listed REIT index fell sharply while the open-end core funds' index reported a gain for the year; the core funds' declines arrived through 2023 (the figures are in Appendix B).</p>
+<p><em>On the day.</em> The listed drawdown preceding the appraisals: REITs falling with the 10-year yield rising, while private funds report flat marks.</p>
+<h3>4.2 What it misprices</h3>
+<p>The listed market is faster, not always right. A REIT carries leverage, so its equity moves more than its properties. It carries the general equity market's mood, so it falls in a broad selloff when nothing about property has changed. And it trades on the rate as much as on rent, so a REIT index can fall on a rise in the long yield that later reverses. <em>The correlation of REITs with the broad equity market rises in selloffs; US data since the 1990s; last verified October 2026.</em> Reading the listed index as an exact estimate of private values overstates the private decline in a liquidity event and understates it when rents, not rates, are the problem.</p>
+<h3>4.3 REITs against the market (AQ-3)</h3>
+<p>The Quarterly's real-estate chapter reads two relative series: the broad US REIT ETF against the S&amp;P 500 (<code>calc.vnq_spy</code>) and the real-estate sector fund against it (<code>calc.xlre_spy</code>), with the commercial real-estate delinquency rate beside them. The relative series strip out the market's mood and leave what is particular to property: the rate, the credit and the rent. A REIT index falling against the market while the 10-year rises is the rate channel; falling while the 10-year falls is the credit or rent channel, and the more worrying of the two.</p>
+<p><strong>Figure 5 — REITs against the market.</strong> <em>Placeholder, drawn in a later edition: the REIT ETF and the real-estate sector fund, each against SPY, with the 10-year beside them. Keys: <code>calc.vnq_spy</code>, <code>calc.xlre_spy</code>.</em></p>
+<table>
+<thead>
+<tr>
+<th>Read</th>
+<th>REITs against the market</th>
+<th>The 10-year</th>
+<th>What it says</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rate channel</td>
+<td>Falling</td>
+<td>Rising</td>
+<td>Financing repricing all property</td>
+</tr>
+<tr>
+<td>Credit or rent channel</td>
+<td>Falling</td>
+<td>Falling</td>
+<td>Property-specific stress</td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td>Rising</td>
+<td>Falling or flat</td>
+<td>Financing easing; appraisals still lagging</td>
+</tr>
+<tr>
+<td>Equity beta</td>
+<td>Falling with the market</td>
+<td>Any</td>
+<td>Not a property signal</td>
+</tr>
+</tbody>
+</table>
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-infrastructure-and-agriculture">
+      <summary class="section-head">
+        <span class="section-title">Part II — Infrastructure and Agriculture</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 5 — Infrastructure</h2>
+<p>Infrastructure is the real asset whose service is most essential and whose price is least free. A toll road, a regulated electricity network, a pipeline under a long contract, a cell tower leased to carriers: each earns a return that is either set by a regulator or fixed by a contract for years ahead. That makes infrastructure, for a reader of markets, mostly a question of duration and credit rather than of the asset's own economics.</p>
+<h3>5.1 Regulated and contracted returns</h3>
+<p>Two kinds of cash flow dominate. A <strong>regulated</strong> asset, such as a power or water network, earns an allowed return on its asset base, reset by its regulator every few years; its revenue rises when the base grows and when the allowed return is raised. A <strong>contracted</strong> asset, such as a pipeline, a renewable plant with a power-purchase agreement or a tower under a long lease, earns what the contract says, often with an escalator tied to inflation, from a counterparty whose credit is the main risk.</p>
+<p>Either way the cash flow is long, predictable and, within limits, protected against inflation. Its value is that cash flow discounted at a rate set by the long Treasury yield plus a spread for the regulator's and the counterparty's risk. That is the description of a long bond.</p>
+<h3>5.2 Why it trades as credit</h3>
+<p><em>Worked example (illustrative).</em> A contract pays $100 a year for 25 years. Discounted at 4%, it is worth about $1,562. At 6% it is worth about $1,278, some 18% less. The road carries the same traffic and the contract pays the same amounts; the value has fallen by more than most investment-grade corporate bonds would in the same move, because the cash flow is longer.</p>
+<p><strong>Infrastructure's sensitivity to the long rate is its defining market characteristic, and its inflation link only partly offsets it.</strong> An escalator protects the cash flow against inflation, but when inflation brings a rise in real rates, the discount rate rises too and the value falls anyway. The asset is protected against inflation that the bond market does not price into real yields, and exposed to the inflation that it does. <em>Listed infrastructure fell with long-duration bonds in 2022 despite the inflation linkage in many of its contracts; last verified October 2026.</em></p>
+<p>The credit half matters too. A contracted asset is worth what its counterparty will pay, and a regulated one what its regulator will allow. A utility whose regulator refuses a rate increase, or a renewable plant whose offtaker fails, is a credit event dressed as a property one.</p>
+<p><em>Historical instance.</em> In 2022, listed infrastructure indices fell with the long Treasury and with utilities, the long-duration selloff that also took REITs and long-dated growth stocks.</p>
+<p><em>On the day.</em> The long-duration selloff: listed infrastructure, utilities and REITs falling together on a day the 30-year yield jumps, with no change in traffic, volumes or allowed returns.</p>
+<h3>5.3 The power and data-centre build as demand</h3>
+<p>The one part of infrastructure where demand, not financing, sets the story is power. The build of data centres for computing has turned electricity from a utility's slow-growth business into a scarce input, and the constraint is generation and grid connection. <em>Energy</em> owns the account: power as the commodity whose 2020s story is a demand shock, the interconnection queue and the price regimes it produces. For this paper the consequence is that a regulated network or a contracted plant in a constrained grid has more pricing power than its history suggests, and that the data centre's value (Chapter 3.1) is in large part the value of its power contract.</p>
+<h3>5.4 Listed and private infrastructure</h3>
+<p>Most infrastructure is owned privately, by funds, pensions and insurers, and valued by appraisal on a discounted cash flow. The listed market is smaller: utilities, pipelines, tower and toll-road companies, and the index funds that hold them. The two differ in the same way as listed and private real estate (Chapter 3.4). The private marks move slowly because the discount rate in the appraisal moves slowly, and the listed prices move with the long rate every day. <em>Private infrastructure funds reported far smaller declines than listed infrastructure in 2022; last verified October 2026.</em> The private fund's lower volatility is mostly smoothing, not safety.</p>
+<p>For a reader without access to private funds, the listed utilities sector and the listed global infrastructure indices are the observable proxies, and both are, in practice, long-duration equity with a credit tilt. They are best read against the long Treasury yield and against investment-grade credit spreads, not against the broad equity market.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Regulated</th>
+<th>Contracted</th>
+<th>What sets its price in markets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Revenue</td>
+<td>Allowed return on the asset base</td>
+<td>The contract's schedule</td>
+<td>The long rate plus a spread</td>
+</tr>
+<tr>
+<td>Inflation link</td>
+<td>Through the rate review</td>
+<td>Through the escalator</td>
+<td>Real yields, not breakeven inflation</td>
+</tr>
+<tr>
+<td>Credit risk</td>
+<td>The regulator</td>
+<td>The counterparty</td>
+<td>Spread; the counterparty's rating</td>
+</tr>
+<tr>
+<td>Demand risk</td>
+<td>Low</td>
+<td>Low within the term</td>
+<td>Except power, where demand is the story</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 6 — Agriculture, in brief</h2>
+<p>Agriculture is the one real asset in this paper priced mostly by its physical balance rather than by its financing. The Quarterly's agriculture chapter holds the series; this chapter gives the frame they are read in.</p>
+<p><strong>Stocks-to-use is the price.</strong> For a storable crop, the ending stocks expected at the close of a marketing year, divided by the year's expected use, is the single number most closely tied to price. When the ratio is high, a poor harvest is absorbed by the stocks and the price barely moves. When it is low, there is no buffer, and price must ration demand. The relationship is convex: the same shortfall moves the price far more at a low ratio than at a high one. The theory of storage, set out by Working (1949), explains why: stocks are held only while the expected price rise covers the cost of carry, so a thin buffer means the spot price must rise far above the forward price before anyone is paid to hold. <em>The convexity appears in US corn, wheat and soybean balances in the USDA's WASDE series since the 1970s; last verified October 2026.</em></p>
+<p><em>Worked example (illustrative).</em> A crop's stocks-to-use is 15%. A drought cuts the harvest so that ending stocks fall to 10% of use. The price must rise until enough demand is rationed (feed switched, exports cancelled, ethanol cut) to leave 10% at the end of the year. At 25% stocks-to-use, the same shortfall would have left 20% and moved the price little.</p>
+<p><strong>The crop calendar sets when the balance changes.</strong> For US corn and soybeans the risk is concentrated in a few weeks: planting in spring, and above all the weeks of pollination and pod-setting in July and August, when heat and drought do most of their damage. Brazil's second-crop corn and its soybean harvest run on the opposite calendar, so the world has two weather windows a year. Outside them, the balance changes mainly with the USDA's monthly estimates.</p>
+<p><strong>Weather and policy are the shocks.</strong> The El Niño–Southern Oscillation shifts the odds of drought in the Americas and Australia. Export bans, corridor closures and war move the balance overnight. And fertiliser links the crop to energy: nitrogen fertiliser is made from natural gas, so a gas shock is a fertiliser shock and, a season later, a yield and food-price shock. <em>Energy</em> covers the gas side; the Quarterly's agriculture chapter lists the nitrogen complex as a named gap.</p>
+<p><em>Historical instance.</em> In 2012 a US drought during pollination drove corn to records from an already thin balance. In 2022 the war in Ukraine closed a large share of world wheat and corn exports for months.</p>
+<p><em>On the day.</em> A USDA report that cuts expected ending stocks when the ratio is already low; the move is out of proportion to the size of the cut, which is the convexity at work.</p>
+<table>
+<thead>
+<tr>
+<th>Driver</th>
+<th>How it moves the balance</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stocks-to-use</td>
+<td>The buffer; the price is convex in it</td>
+<td>Monthly, through the USDA's estimates</td>
+</tr>
+<tr>
+<td>The crop calendar</td>
+<td>Concentrates weather risk in a few weeks</td>
+<td>Northern summer; the southern harvest</td>
+</tr>
+<tr>
+<td>Weather</td>
+<td>Yield</td>
+<td>The calendar's windows</td>
+</tr>
+<tr>
+<td>Policy and war</td>
+<td>Trade flows</td>
+<td>Any time</td>
+</tr>
+<tr>
+<td>Fertiliser and gas</td>
+<td>Cost and next season's yield</td>
+<td>A season's lag</td>
+</tr>
+</tbody>
+</table>
+<p>The Quarterly's agriculture chapter reads its rows as gaps until a WASDE writer exists; its book rule makes every agriculture draft a no draft until the operator names a contract understood. This chapter gives a reader the frame without implying the system can trade it.</p>
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-risk-transfer">
+      <summary class="section-head">
+        <span class="section-title">Part III — Risk Transfer</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 7 — Insurance-linked securities and catastrophe bonds</h2>
+<p>An insurer that writes home and business cover in hurricane and earthquake country holds a risk it cannot diversify away inside its own book: one storm can produce claims across every policy in a region at once. It passes part of that risk on. Most goes to reinsurers. Some goes to the capital markets, through insurance-linked securities, of which the catastrophe bond is the best known.</p>
+<h3>7.1 What the investor is paid for</h3>
+<p>A catastrophe bond is a note issued by a special-purpose vehicle. The investor's principal is held in collateral, usually Treasury bills or money-market funds. The investor receives the collateral's yield plus a spread. If a defined event happens, a hurricane causing losses above an agreed level, or an earthquake of a given strength in a given place, the collateral is used to pay the sponsor and the investor loses part or all of the principal. Otherwise the principal is returned at maturity, typically in three to four years.</p>
+<p>The investor is paid for one thing: bearing the chance of a defined natural catastrophe. The price is quoted against the <strong>expected loss</strong>, the modelled annual loss as a share of principal, and the market reads the <strong>multiple</strong>, spread over expected loss.</p>
+<p><em>Worked example (illustrative).</em> A bond has a modelled annual attachment probability of 3% and an expected loss of 2%. It pays a spread of 6% over the collateral yield, a multiple of three. In a year with no event, the investor earns the bill yield plus 6%. In a year with an event that exhausts the bond, the investor loses the principal. The multiple pays for model error, for the illiquidity of the bond and for the scarcity of capital willing to hold the risk. After a loss year, the same expected loss may be priced at a spread of 9%, a multiple of four and a half: the risk has not changed, the price of bearing it has.</p>
+<h3>7.2 The low-correlation claim and where it fails</h3>
+<p>The case for holding catastrophe risk is that hurricanes and earthquakes are not caused by recessions, rate rises or credit cycles, so their losses are uncorrelated with the returns of stocks and bonds. On the loss side, the claim is close to true. <em>The annual returns of catastrophe-bond indices have shown low correlation with equity and credit returns; index data since 2002; last verified October 2026.</em></p>
+<p>It fails in three ways, and the reader should know all three.
+- <strong>Loss years cluster.</strong> 2005, with three major Gulf hurricanes; 2011, with the Japanese earthquake and tsunami, the Thai floods and the New Zealand earthquakes; and 2017–18, with three Atlantic hurricanes in 2017 and California wildfires and further storms in 2018, each took several years of premium at once. The returns are uncorrelated with markets but not smooth.
+- <strong>The holders are financial.</strong> In a market crisis, funds holding catastrophe bonds may have to sell them to meet redemptions or margin, and the price falls with everything else even though no storm has struck. <em>Catastrophe-bond prices fell during the 2008 crisis and in March 2020; last verified October 2026.</em> The correlation of the losses is low; the correlation of the prices, in a liquidity event, is not.
+- <strong>Climate shifts the model.</strong> The expected loss is a model output. If the frequency or severity of the modelled perils is changing, the models lag, and a market priced on yesterday's climate pays too little for today's risk.</p>
+<p><em>Historical instance.</em> After the 2017–18 losses, collateral was held back against claims not yet settled. Losses on some events rose for years after the storms ("loss creep"), and some investors could not redeploy capital they had thought free.</p>
+<p><em>On the day.</em> The post-event secondary market: in the days after a large storm makes landfall, bonds exposed to it trade at deep discounts on early loss estimates, and bonds in unaffected regions also soften as holders raise cash.</p>
+<h3>7.3 Capacity</h3>
+<p>The catastrophe-bond market is small. <em>Its outstanding size is a small fraction of the global reinsurance capital it supplements, which is itself small against the bond and equity markets; Appendix B dates the figures; last verified October 2026.</em> Much of the wider insurance-linked market is private: collateralised reinsurance and sidecars written directly with reinsurers. Neither is liquid, and neither can absorb a large investor quickly. That is the honest measure of its place in a portfolio. A diversifier that cannot be bought in size, cannot be sold in stress without a discount, and earns its spread in exchange for rare, large losses is a niche allocation, and no part of this library's books holds it.</p>
+<h3>7.4 Triggers, and what the investor does not know</h3>
+<p>A catastrophe bond pays out on a trigger, and the trigger decides how much the investor must trust the sponsor.
+- <strong>Indemnity</strong> triggers pay on the sponsor's own losses. The sponsor gets cover that matches its book, and the investor bears the sponsor's underwriting as well as the storm.
+- <strong>Industry-index</strong> triggers pay on the industry's estimated losses from an event. The investor no longer bears the sponsor's underwriting, and the sponsor bears <strong>basis risk</strong>: its own losses may differ from the industry's.
+- <strong>Parametric</strong> triggers pay on a physical measure, a wind speed at given points or an earthquake's magnitude and location. They settle fastest and are the most transparent, and they carry the most basis risk for the sponsor.</p>
+<p>The same choice runs through the private market: collateralised reinsurance and sidecars are written on indemnity, and industry-loss warranties on the index. The investor's real uncertainty is in the model. An expected loss is the output of a catastrophe model built on a historical event set and an exposure database, and two models can differ widely on the same bond. The multiple of Chapter 7.1 is partly payment for that disagreement. <em>Modelled expected losses on the same exposures have differed materially across the main vendors' models, and the industry has repeatedly revised them after large events; last verified October 2026.</em></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>What it means</th>
+<th>Where the claim fails</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Event risk, not financial risk</td>
+<td>Losses uncorrelated with the cycle</td>
+<td>Prices fall with everything in a liquidity event</td>
+</tr>
+<tr>
+<td>Expected loss and multiple</td>
+<td>The spread prices model error and scarce capital</td>
+<td>The model lags a changing climate</td>
+</tr>
+<tr>
+<td>Collateral in bills</td>
+<td>No credit risk on principal outside the event</td>
+<td>Trapped collateral after loss years</td>
+</tr>
+<tr>
+<td>Market size</td>
+<td>Small, private, illiquid</td>
+<td>Cannot be bought or sold in size</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 8 — The reinsurance cycle</h2>
+<p>The price of catastrophe risk is not set in the bond market. It is set once or twice a year, at the reinsurance renewals, by negotiation between insurers buying cover and reinsurers and capital-market investors selling it. The bond market follows the renewals.</p>
+<h3>8.1 Capital, losses and price</h3>
+<p>Reinsurance pricing runs in a cycle with one driver: the capital available to bear risk, against the risk insurers want to cede. When capital is plentiful, reinsurers compete for business, prices fall, terms loosen, and the market is soft. A large loss year destroys capital. The remaining reinsurers, and investors whose capital is trapped behind unsettled claims, can write less. Prices rise and terms tighten: the market hardens. High prices then attract new capital, from new reinsurers and from the capital markets, and as it arrives the market softens again. Froot (2001) showed that catastrophe reinsurance was priced far above expected losses after large events, and argued the reason was capital that is costly and slow to replace rather than risk aversion alone.</p>
+<p>Capital-market money changed the cycle's shape without ending it. Investors in catastrophe bonds and collateralised reinsurance can enter within a renewal season rather than the years it takes to build a reinsurer, so after a loss year that destroys capital but leaves investors willing, prices rise less and soften sooner than they used to. The damping fails when the investors themselves are the ones who lost, or whose capital is trapped, as after 2017–18; then the new money is slow and the hard market long. <em>Hard markets after 1992, 2001 and 2005 each lasted several years; after 2011 the hardening was brief as capital-market money flowed in; after 2017–18 it was gradual and prolonged; last verified October 2026.</em> The cycle's turn is therefore set as much by the willingness of capital to return as by the losses.</p>
+<p>The cycle is a loop between three things the paper names together.</p>
+<p><strong>Figure 6 — The reinsurance cycle as a loop: capital, losses, price.</strong> <em>Placeholder, drawn in a later edition: a conceptual diagram, no series. Capital sets capacity; a loss year cuts capital and traps collateral; scarce capacity raises the price; high prices draw new capital; abundant capital lowers the price. No insurance-linked or reinsurance price index is stored.</em></p>
+<h3>8.2 How a loss year reprices the next renewal</h3>
+<p><em>Worked example (illustrative).</em> Reinsurers hold 100 units of capital and write cover at a rate-on-line, premium over limit, of 10%. A loss year takes 15 units, and another 10 are trapped as collateral behind claims not yet settled. Usable capital falls to 75 while the cover insurers want has not fallen; if anything, the loss has made them want more. At the next renewal the capital that remains can demand more, and the rate-on-line rises to, say, 13%. The rise is the price that draws new capital in. If new capital arrives within a year, the next renewal softens; if investors who lost in the loss year hold back, the hard market lasts.</p>
+<p><strong>A trapped-capital hard market is longer than a pure-loss one.</strong> The 2017–18 losses were followed by loss creep and trapped collateral, which kept investors from returning, and the hardening that began then was compounded by the inflation of rebuild costs and the rise in rates after 2021.</p>
+<p><em>Historical instance.</em> At the January 2023 renewals, property-catastrophe reinsurance repriced more sharply than in any year for more than a decade. Several years of losses, the 2022 Florida hurricane, the inflation of rebuild costs and higher rates on reinsurers' bond portfolios had drained capital together, and reinsurers also raised the level at which their cover began, pushing more of the frequent losses back onto insurers.</p>
+<p><em>On the day.</em> The January renewals: the published pricing of the 1 January treaties, which is the definitive read on whether a loss year destroyed capital. The Twenty-Five's catastrophe-capital tail names that renewal pricing as its slowest and most reliable first mover.</p>
+<h3>8.3 Insurers as allocators</h3>
+<p>Behind the reinsurance cycle sits a much larger subject: insurers as holders of assets. An insurer collects premium now and pays claims later, and it invests the premium in the meantime. For a life insurer, the liabilities are annuities and policies paying out over decades; for a property and casualty insurer, claims paid over a few years. Each holds assets chosen to match its liabilities, and that matching makes insurers one of the largest steady buyers of long bonds, corporate credit and, increasingly, private credit. <em>Price, Time, and Edge</em> places insurers in the holders' ecology; this section gives the matching mechanism and where it touches the rest of this paper.</p>
+<p><em>Worked example (illustrative).</em> A life insurer owes liabilities worth 1,000 with a duration of 12 years. It holds assets worth 1,050. To match, its asset duration must be about 11.4 years, so that a 1-point rise in rates cuts the assets by about 120, as it cuts the liabilities. The insurer buys long bonds because its liabilities are long, not because it has a view on rates. Koijen and Yogo (2015) showed how capital and accounting rules shape what life insurers hold and when they will sell, which is why the mandate can matter more than the price.</p>
+<p>Three links run out of the matching.
+- <strong>Housing and commercial property.</strong> Life insurers are large commercial mortgage lenders and large buyers of mortgage and real-estate securities. Their demand narrows the spreads of Chapters 2.2 and 3.2. When rates rise and policyholders surrender to chase higher yields elsewhere, or when the insurer's own capital is squeezed, that demand slows.
+- <strong>Private credit.</strong> The growth of private credit has been financed in large part by insurers, whose long liabilities can hold assets that do not trade. <em>Credit</em> covers the asset class; the point here is that the holder's patience is the asset's liquidity.
+- <strong>Municipal markets.</strong> Property and casualty insurers hold municipal bonds, and the Twenty-Five's tail M7, the insurance retreat, describes a chain that runs the other way: insurers leaving exposed regions, homes becoming uninsurable and so unmortgageable, property values and tax bases falling, and municipal credit following. M7 is a slow scenario with no stored series in this system.</p>
+<p>Where the matching is leveraged, it can force sales. The 2022 gilt episode was a liability-driven pension story rather than an insurance one, and <em>Market Structure and Cascades</em> owns its collateral spiral; <em>Debt Cycles</em> owns its fiscal side. This paper uses it only as the reminder that duration demand from liability matching is steady until the matching is done with borrowed money.</p>
+<h3>8.4 What the system does not measure</h3>
+<p>No insurance-linked or reinsurance price index is in the store. The catastrophe-bond indices are published by their sponsors and the renewal indices by brokers, and none is stored. The insured catastrophe losses against reinsurance capital, the standing register's tripwire (Appendix A), are read from published reports rather than measured. Nor are the state insurance-of-last-resort plans' policy counts or non-renewal rates stored, which M7 names as its earliest observables. The paper therefore gives this Part's mechanisms without a measure, and says so.</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Worked example</th>
+<th>Historical instance</th>
+<th>On the day</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Catastrophe-bond pricing</td>
+<td>Expected loss 2%, spread 6%, multiple three</td>
+<td>The 2017–18 loss years</td>
+<td>The post-event secondary market</td>
+</tr>
+<tr>
+<td>Reinsurance repricing</td>
+<td>Capital 100 to 75; rate-on-line 10% to 13%</td>
+<td>The January 2023 renewal</td>
+<td>The January renewals</td>
+</tr>
+<tr>
+<td>Insurer allocation</td>
+<td>Liabilities of duration 12 matched by assets</td>
+<td>The gilt episode's liability-driven demand (cite <em>Market Structure and Cascades</em>, <em>Debt Cycles</em>)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-tactical-applications-wiring-environments-and-the-ap">
+      <summary class="section-head">
+        <span class="section-title">Part IV — Tactical Applications, Wiring, Environments, and the Appendices</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 9 — Tactical applications, by horizon</h2>
+<p>This paper's tradeable content is mostly about the financing cycle's reach into real assets: which of them reprice first, which lag, and which marks are stale. Risk transfer is described here because it is a market, not because the books trade it. What follows lays that against the seven rungs, in prose and then as a cheat sheet.</p>
+<p><em>Nothing in this chapter is investment advice. It describes how one operator, running one book under one set of rules, decides which opportunities are theirs and which are not.</em></p>
+<p><strong>Intraday.</strong> Nothing is tradeable. Housing and property data arrive weekly at the fastest, and listed REITs and infrastructure move intraday on the 10-year, which is a rates trade wearing a property label. The edge type would be the rate move's, and the counterparty is the rates market itself, transacting on every print. Competition has removed nothing because there is nothing particular to real assets here to remove. Nothing would end that. There is no expression and no book. The read is the 10-year's, in the 07:00 anchor and the close.</p>
+<p><strong>Days.</strong> What is tradeable is the release-day reaction in rate-sensitive equities: REITs, homebuilders and utilities on a pending-sales, applications or mortgage-rate print that surprises. The edge is information timing, weak. The counterparty is the generalist who trades the sector as a rates proxy and transacts on the headline. Competition has largely removed it, because the prints are public and quickly priced. It would end entirely if the prints were never surprising. The expression would be a defined-risk options position in the sector fund; the book would be C; the read is the close's Plumbing &amp; rates on the release day. This rung is mostly a reason not to chase a print.</p>
+<p><strong>Weeks.</strong> What is tradeable is the gap between the listed and private marks. When the listed REIT index has fallen far below the appraisals, it carries the private market's coming markdowns, and the relative series against the market say whether the move is rates or credit. The edges are horizon and structural. The counterparty is the private-fund investor who redeems at the stale mark, and the manager who must pay them. Competition has not removed it because the private funds' rules prevent their holders from arbitraging their own marks. It would end if private vehicles marked to listed prices. The expression is the listed REIT or real-estate sector fund, sized inside the Doctrine's bands. The book is B. The read is the Weekly's Plumbing &amp; rates and the Quarterly's real-estate chapter.</p>
+<p><strong>Months.</strong> What is tradeable is the housing channel's turn. When pending sales, applications and permits have turned with the rate and prices have not, the economy's most rate-sensitive sector is telling the reader where the cycle is. The edge is regime recognition. The counterparty is the allocator who reads prices, which lag, rather than turnover, which leads. Competition has not removed it because the lead is long and uncomfortable to hold. It would end if the lock-in effect faded, as fixed-rate mortgages written at low rates mature. The expression is duration and rate-sensitive equity, through Book A's allocation. The read is the Monthly's Plumbing &amp; rates (items 36, 37, 68, 69).</p>
+<p><strong>Cyclical.</strong> What is usable is the commercial real-estate workout and the reinsurance cycle's phase. The workout takes years and runs through bank capital; the reinsurance cycle turns on loss years and capital. Neither is a position for this book; each is an input to the credit stance and the tail watch. The edge is regime recognition, with no transacting counterparty at this rung. Competition is absent because few participants carry a view across a workout or a cycle. It would end if the extension-versus-foreclosure share and the renewal pricing were stored and timely. It feeds Book A's stance through <em>Credit</em>, and is read in the Monthly's slow layers and the Quarterly.</p>
+<p><strong>Secular.</strong> What is usable is the structural shifts: office demand after hybrid work, the power-constrained data-centre build, the insurance retreat from exposed regions, and the growth of private real assets held by insurers. The edge is analytical, and weak. There is no counterparty and no position. They feed the annual structural review's questions and the standing register.</p>
+<p><strong>Generational.</strong> The real price of housing over a century and the land scarcity under it are the generational content. There is no edge for this book and no counterparty, expression or book.</p>
+<table>
+<thead>
+<tr>
+<th>Horizon</th>
+<th>What is tradeable</th>
+<th>Edges</th>
+<th>Counterparty</th>
+<th>Book</th>
+<th>Read in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Intraday</strong></td>
+<td>Nothing; a rates move</td>
+<td>—</td>
+<td>The rates market</td>
+<td>—</td>
+<td>The 07:00 anchor; the close</td>
+</tr>
+<tr>
+<td><strong>Days</strong></td>
+<td>Release-day reactions, weakly</td>
+<td>Information timing</td>
+<td>Sector generalists</td>
+<td>C</td>
+<td>The close's Plumbing &amp; rates</td>
+</tr>
+<tr>
+<td><strong>Weeks</strong></td>
+<td>Listed against private marks</td>
+<td>Horizon; structural</td>
+<td>Private-fund redeemers</td>
+<td>B</td>
+<td>The Weekly; the Quarterly's real-estate chapter</td>
+</tr>
+<tr>
+<td><strong>Months</strong></td>
+<td>The housing channel's turn</td>
+<td>Regime recognition</td>
+<td>Allocators reading prices</td>
+<td>A</td>
+<td>The Monthly's Plumbing &amp; rates</td>
+</tr>
+<tr>
+<td><strong>Cyclical</strong></td>
+<td>The CRE workout; the reinsurance phase</td>
+<td>Regime recognition</td>
+<td>None</td>
+<td>A, as input</td>
+<td>The Monthly's slow layers; the Quarterly</td>
+</tr>
+<tr>
+<td><strong>Secular</strong></td>
+<td>Office, power, the insurance retreat</td>
+<td>Analytical</td>
+<td>None</td>
+<td>—</td>
+<td>The annual review; the register</td>
+</tr>
+<tr>
+<td><strong>Generational</strong></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>The principle this chapter states in this paper's terms: <strong>a real asset's price is a financing decision first, and the small book's edge is reading the financing before the marks.</strong></p>
+<h2>Chapter 10 — Wiring</h2>
+<p>This paper owns mechanisms the system measures in part. Its wiring is mostly where those measures print.</p>
+<p><strong>The 16:45 close.</strong> Plumbing &amp; rates carries the 10-year and the curve that set the mortgage rate and the cap rate, and, on the Wednesday the applications index is released, the purchase-applications line (item 37). The bank-stress panel's line, with the regional banks against the financials, sits in Plumbing and The read.</p>
+<p><strong>The 07:00 anchor.</strong> It reads the object and the stored rows; no real-asset measure is computed there.</p>
+<p><strong>The Weekly.</strong> Plumbing &amp; rates carries one "Rates transmission" sub-section: the applications line (item 37) and the monthly housing block (item 36, with items 68 and 69 beside it), each figure carrying its month. The bank-stress panel prints one line.</p>
+<p><strong>The Monthly.</strong> The same "Rates transmission" sub-section of Plumbing &amp; rates, at the Monthly's depth: pending sales, months of supply and inventory (item 36), applications (item 37), pending sales per household (item 68), the mortgage spread and the real house price with their dual percentiles (item 69). The wealth-effect impulse prints in Plumbing &amp; rates beside the tightening legs (item 66), and the Monthly's full bank-stress panel sits there too.</p>
+<p><strong>The Quarterly.</strong> The real-estate chapter's rows: REITs against the market (<code>calc.vnq_spy</code>, <code>calc.xlre_spy</code>), commercial real-estate delinquency (<code>fred.cre_delinq</code>), the mortgage rate and spread, starts, permits and sales, and its named gaps (CMBS delinquency by type, the extension-versus-foreclosure share, commercial property prices). The agriculture chapter's rows and its gaps (the WASDE balances, the crop calendar, the nitrogen complex). Both chapters name no owning paper today; this paper is the one they were reserved for.</p>
+<p><strong>Register fields this paper populates.</strong> A decision on a real-asset expression should carry three things: which channel it believes is moving (the rate, credit, rent, or the physical balance); whether the marks it is reading are listed or appraised; and, for a REIT or sector fund, whether the relative series against the market say rates or credit. These are categorical so they can be counted.</p>
+<p><strong>Claims-registry entries this paper owns.</strong> Real assets as claims priced by their financing (the organising claim); turnover before prices and the lock-in effect (Chapter 1); appraisal smoothing as the cause of private real-estate redemption runs (Chapter 3.4); infrastructure as long-duration credit (Chapter 5); stocks-to-use convexity (Chapter 6); catastrophe risk's low loss correlation and its failure in liquidity events (Chapter 7.2); the reinsurance cycle as a capital loop (Chapter 8).</p>
+<p><strong>What the annual review re-verifies.</strong> Whether the wealth-effect ledger's verdict has changed on a box re-run; whether the listed REIT index still leads the appraisal-based indices; whether the lock-in effect is fading as low-rate mortgages mature; whether a keyless source for the current-coupon spread, the extension-versus-foreclosure share or a renewal price index has appeared; and the standing register's catastrophe-capital tripwire.</p>
+<h2>Chapter 11 — Environments</h2>
+<p>The master environment matrix belongs to <em>Debt Cycles</em>. This paper's contribution is, for each of the eighteen, how real assets and risk transfer behave. No entry carries a probability; the words describe mechanism, not frequency.</p>
+<ul>
+<li><strong>Expansion.</strong> Turnover and construction rise; cap rates are stable; reinsurance softens as capital accumulates.</li>
+<li><strong>Recession.</strong> If rate-driven, housing has already turned; forced sellers appear with job losses; commercial delinquencies rise; catastrophe risk is untouched.</li>
+<li><strong>Inflation.</strong> Rates rise and every financed real asset reprices down despite rising replacement costs; contracted escalators help less than they promise; claims costs inflate, hardening reinsurance.</li>
+<li><strong>Disinflation.</strong> Falling rates lift the bid; listed REITs and infrastructure recover first; lock-in eases.</li>
+<li><strong>Deflation.</strong> Debt's real burden rises; forced sales and foreclosures dominate property; agriculture's prices fall with demand.</li>
+<li><strong>Stagnation.</strong> Low turnover and slow price drift; the appraisals and the listed market agree because little happens.</li>
+<li><strong>Bubble.</strong> Credit expands into property, permits soar, and prices outrun rents; <em>Debt Cycles</em> owns the 2007 instance.</li>
+<li><strong>Crash.</strong> Listed real assets fall with equities; private marks hold; catastrophe bonds fall with everything as holders raise cash.</li>
+<li><strong>Liquidity crisis.</strong> Redemption gates on private funds; the listed index is the only price; insurers stop buying.</li>
+<li><strong>Banking crisis.</strong> Commercial real-estate credit is the transmission; extension stops and foreclosures begin.</li>
+<li><strong>Fiscal crisis.</strong> The long rate and its term premium set every financed real asset's value; liability-matching demand can turn into forced selling where it is leveraged.</li>
+<li><strong>Currency crisis.</strong> Real assets held abroad carry the currency; <em>Currencies</em> treats real assets as the debasement hedge they partly are.</li>
+<li><strong>War.</strong> Agriculture's trade flows break first; infrastructure is a target and a strategic asset; n≈0 for most modern developed markets.</li>
+<li><strong>Technological revolution.</strong> Demand moves between property types: office down, data centres and power up.</li>
+<li><strong>Financial repression.</strong> Real rates held below inflation flatter every financed real asset; housing and infrastructure benefit most; gold, which <em>Metals</em> owns, is the other real asset.</li>
+<li><strong>Capital controls.</strong> Domestic property becomes the trapped saver's store of value.</li>
+<li><strong>Monetary-system change.</strong> Real assets keep their service when money loses its value; their financing does not survive the change intact. n≈0 in the modern sample.</li>
+<li><strong>Structural break.</strong> A change in mortgage structure, insurance regulation or the climate's loss distribution changes the relationships this paper relies on; they should be re-verified, not assumed.</li>
+</ul>
+<hr />
+<h2>Appendix A — Assumptions and falsifiers</h2>
+<p><em>The instrument the annual structural review reads. Sections (a) to (e) in the fixed format.</em></p>
+<p><strong>(a) Mechanisms treated as durable.</strong></p>
+<ol>
+<li>A financed real asset's price is set by the payment or cap rate its financing supports, more than by its own supply (Chapters 1, 3).</li>
+<li>In a long fixed-rate mortgage market, a rate rise cuts turnover before prices, because it cuts listings as well as demand (Chapter 1).</li>
+<li>Appraisal-based values are smoothed and lag the listed market, and vehicles offering liquidity at appraised values invite redemption runs (Chapter 3).</li>
+<li>Contracted and regulated infrastructure trades as long-duration credit (Chapter 5).</li>
+<li>A storable crop's price is convex in its stocks-to-use ratio (Chapter 6).</li>
+<li>Catastrophe losses are independent of the financial cycle; catastrophe-bond prices are not, in a liquidity event (Chapter 7).</li>
+<li>Reinsurance prices are set by capital against demand for cover, and a loss year that destroys or traps capital hardens the next renewal (Chapter 8).</li>
+</ol>
+<p><strong>(b) Empirical relationships relied on, with sample, regime and last verification.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Relationship</th>
+<th>Sample</th>
+<th>Regime measured in</th>
+<th>Last verified</th>
+<th>Where used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Residential investment weakens ahead of rate-driven US recessions</td>
+<td>US post-war recessions to 2006 (Leamer, 2007); held in 2008, absent in 2020</td>
+<td>Rate-driven downturns</td>
+<td>October 2026</td>
+<td>Chapter 1</td>
+</tr>
+<tr>
+<td>Lock-in: turnover falls more than prices after a rate rise</td>
+<td>US fixed-rate market since the 1980s</td>
+<td>Rate rises</td>
+<td>October 2026</td>
+<td>Chapter 1</td>
+</tr>
+<tr>
+<td>The listed REIT index leads appraisal-based indices at turns</td>
+<td>US, since the 1980s; appraisal indices from 1978</td>
+<td>All</td>
+<td>October 2026</td>
+<td>Chapters 3, 4</td>
+</tr>
+<tr>
+<td>Infrastructure falls with long bonds when real rates rise</td>
+<td>Listed infrastructure indices, 2022</td>
+<td>Inflation with rising real rates</td>
+<td>October 2026</td>
+<td>Chapter 5</td>
+</tr>
+<tr>
+<td>Price convex in stocks-to-use</td>
+<td>USDA WASDE balances since the 1970s</td>
+<td>All</td>
+<td>October 2026</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Catastrophe-bond returns have low correlation with equities and credit</td>
+<td>Index data since 2002; exceptions 2008, March 2020</td>
+<td>Outside liquidity events</td>
+<td>October 2026</td>
+<td>Chapter 7</td>
+</tr>
+<tr>
+<td>The wealth-effect impulse ranks with real consumption a year ahead</td>
+<td>Decembers 1960–2024 (ST-R6.66c)</td>
+<td>One sample</td>
+<td>October 2026 (FAIL, n 65)</td>
+<td>Chapter 2.4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>(c) The falsifier for each relationship.</strong></p>
+<ul>
+<li><em>Housing leads:</em> a rate-driven US recession in which residential investment does not weaken first. Then the lead is an artefact of past mortgage structure.</li>
+<li><em>Lock-in:</em> a rate rise in which listings rise and prices fall quickly without forced sellers. Then the fixed-rate stock no longer binds, perhaps because the low-rate mortgages have matured.</li>
+<li><em>The REIT lead:</em> a turn in which appraisal indices move first, or in which the listed discount closes by the share price rising to the appraisals. Then the listed market's information advantage has gone.</li>
+<li><em>Infrastructure as credit:</em> a real-rate rise in which inflation-linked contracted assets hold their value. Then the linkage protects more than the paper says.</li>
+<li><em>Stocks-to-use convexity:</em> a shortfall at a low ratio that does not move the price disproportionately, outside a policy that caps it.</li>
+<li><em>Catastrophe-bond correlation:</em> a liquidity event in which catastrophe-bond prices do not fall, or a calm market in which they move with credit. Either changes Chapter 7.2.</li>
+<li><em>The wealth effect:</em> a box re-run that passes the pre-registered rule would reverse the FAIL; a change in the rule after the fact would not count.</li>
+</ul>
+<p><strong>(d) Standing-register items that touch this paper.</strong></p>
+<p>Three changes are watched. <em>Insured catastrophe losses against reinsurance capital</em> is the tripwire for Part III: a loss year large enough against capital to harden the market across perils, or a sequence of loss years that keeps capital from returning, would make the cycle's hard phase the paper's live case, and would make the Twenty-Five's catastrophe-capital tail and M7 relevant to credit, not only to insurance. <em>The growth of private markets</em>, read as private credit and private real-asset holdings against their public counterparts, would enlarge Chapter 3.4's appraisal problem and Chapter 8.3's insurer channel. <em>A new risk-transfer contract crossing $1 trillion in notional or 5% of its parent market's daily volume</em> would mean risk transfer has outgrown the weight this paper gives it, and Part III would need to be rewritten at a larger scale.</p>
+<table>
+<thead>
+<tr>
+<th>Change</th>
+<th>Tripwire</th>
+<th>What it would do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Catastrophe capital</td>
+<td>Insured catastrophe losses against reinsurance capital</td>
+<td>Part III's hard market; the Twenty-Five's catastrophe tail and M7</td>
+</tr>
+<tr>
+<td>Private markets</td>
+<td>Private credit and private real assets against public markets</td>
+<td>Chapters 3.4 and 8.3</td>
+</tr>
+<tr>
+<td>New risk-transfer contracts</td>
+<td>$1 trillion notional, or 5% of the parent's daily volume</td>
+<td>Part III's weight</td>
+</tr>
+</tbody>
+</table>
+<p><strong>(e) Inventory of dated figures.</strong> The six figures are placeholders in this draft, each named with its store keys: Figure 1, pending sales per household (<code>redfin.pending_sales</code>, <code>fred.households</code>); Figure 2, the mortgage spread (<code>calc.mortgage_spread_10y_bp</code>); Figure 3, the real house price (<code>shiller.real_home_price</code>, <code>fred.case_shiller_national</code>); Figure 4, commercial real-estate delinquency (<code>fred.cre_delinq</code>); Figure 5, REITs against the market (<code>calc.vnq_spy</code>, <code>calc.xlre_spy</code>); Figure 6, the reinsurance cycle (conceptual, no series). Every episode figure the text quotes is in Appendix B.</p>
+<hr />
+<h2>Appendix B — Dated: the figures behind the body (as of 26 October 2026)</h2>
+<p><em>Everything in this appendix carries an as-of date and is history rather than a read if that date is more than a year old. Nothing here is investment advice, and no security is recommended. Figures are rounded as published by the named source; each is to be re-checked against that source at the annual review.</em></p>
+<h3>B.1 — The ledger, as filed</h3>
+<ul>
+<li><strong>ST-R6.66c, the wealth-effect impulse against real consumption a year ahead (item 66): FAIL.</strong> <em>(laptop first edition of 21 October 2026, public sources; accepted under ruling D9 of 24 October 2026)</em><ul>
+<li><em>Window:</em> each December from 1960 to 2024, n 65.</li>
+<li><em>Rank correlation over the whole sample:</em> +0.06, against the rule's 0.20.</li>
+<li><em>By half:</em> +0.13 (Decembers 1960 to 1992) and +0.12 (the rest), against the rule's above zero; this condition was met.</li>
+<li><em>Terciles:</em> the top tercile's median real consumption growth +3.74% against the bottom's +3.29%; this condition was met.</li>
+<li>The first condition failed, so the verdict is FAIL. The ledger claims no cause.</li>
+</ul>
+</li>
+</ul>
+<h3>B.2 — The episodes' figures</h3>
+<table>
+<thead>
+<tr>
+<th>Episode</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022 mortgage rates</td>
+<td>The 30-year fixed rate rose from about 3.1% in early January to about 7.1% in late October and early November 2022 (to verify: Freddie Mac PMMS)</td>
+<td>Freddie Mac PMMS</td>
+</tr>
+<tr>
+<td>2022 listed against private</td>
+<td>The FTSE Nareit All Equity REITs index returned about −25% in 2022; the NCREIF ODCE index returned about +7% (to verify: FTSE Russell; NCREIF)</td>
+<td>FTSE Russell; NCREIF</td>
+</tr>
+<tr>
+<td>2017 loss year</td>
+<td>Insured natural-catastrophe losses of roughly $140 billion, a record at the time (to verify: Swiss Re Institute, sigma)</td>
+<td>Swiss Re Institute, sigma</td>
+</tr>
+<tr>
+<td>2005 loss year</td>
+<td>The Gulf hurricanes of 2005 were then the costliest insured catastrophe season on record (to verify: Swiss Re Institute, sigma)</td>
+<td>Swiss Re Institute, sigma</td>
+</tr>
+<tr>
+<td>March 2023</td>
+<td>Three US regional banks failed in March and early May 2023 (to verify: FDIC)</td>
+<td>FDIC</td>
+</tr>
+</tbody>
+</table>
+<h3>B.3 — Markets as they stand</h3>
+<ul>
+<li><strong>The catastrophe-bond market</strong> is commonly reported at roughly $50 billion outstanding, against global reinsurance capital of roughly $700 billion, of which alternative (capital-market) capital is roughly $100 billion. Each figure varies by source and definition. <em>(Artemis; Aon; as of late 2025)</em> (to verify: Artemis; Aon)</li>
+<li><strong>US commercial real-estate debt</strong> is commonly reported at about $5 trillion outstanding, with banks the largest holders. <em>(Federal Reserve, Z.1; MBA)</em> (to verify: Federal Reserve, Z.1; MBA)</li>
+<li><strong>The US housing stock</strong> is mostly financed with 30-year fixed-rate mortgages; the share of outstanding mortgages carrying a rate below the prevailing new-loan rate remained large through 2026. <em>(FHFA; ICE Mortgage Monitor)</em> (to verify: FHFA; ICE Mortgage Monitor)</li>
+</ul>
+<h3>B.4 — What the store does not yet hold</h3>
+<ul>
+<li>No current-coupon mortgage-bond spread and no GSE retained-portfolio series (item 69's named gaps).</li>
+<li>No CMBS delinquency by property type, no extension-versus-foreclosure share and no commercial property price index (the Quarterly's real-estate gaps).</li>
+<li>No WASDE balances, crop-calendar windows, ENSO state or nitrogen-complex prices (the Quarterly's agriculture gaps).</li>
+<li>No catastrophe-bond index, reinsurance renewal index, insured-loss series or insurance-of-last-resort policy counts.</li>
+</ul>
+<p>Every gap is named in the body; this list dates them.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/real-assets-and-risk-transfer-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>
