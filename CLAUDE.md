@@ -244,7 +244,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and fifty-two code gates (one hundred and forty-nine Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and fifty-three code gates (one hundred and fifty Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -880,6 +880,31 @@ nothing enters a composite or the market-state object.
   (`daily_cascade/b59_block.py`).
 
 `tools/validate_b59.py` holds it.
+
+**Trend breadth is our own cross-asset signal, a report (Batch 16 item 89(b),
+written as round 7's 82(b); ruled 26 Oct 2026; B76).** `altdata/trend_breadth.py`
+(`config/trend_breadth.yaml`) reads sixteen markets from their stored closes only:
+the Treasury 2-, 10- and 30-year, the Bund and JGB 10-year, SOFR, ES and NQ's
+front settles, copper, oil and gold, the dollar index, EUR/USD, USD/JPY, AUD/USD
+and BTC. A market with no stored key prints "not stored" and leaves n.
+- **The signal is declared, not fitted.** The sign at 20, 60, 120 and 250 sessions
+  is the close against its lookback mean. A market is trending when all four
+  agree, reversing when the 20-session sign has flipped against the 250-session
+  inside five sessions, mixed otherwise.
+- **Stored:** `trend.<market>.<lookback>`, `trend.flips_week` and
+  `trend.reversing_share`. The features pass computes recent days; the history
+  is `python -m altdata.trend_breadth backfill` (dry run first). All are barred
+  from the market-state object.
+- **Where it prints:** a table in the Weekly's Positioning & flows, which the
+  Monthly reads too (`daily_cascade/trend_breadth_block.py`), with no paragraph;
+  nothing in the daily close.
+- **The ledger:** `docs/ledgers/trend-breadth-2026-10-26.md`, pre-registered at
+  its head and held by SHA-256, reads the reversing share against the S&P 500's
+  and the Nasdaq-100's +5 and +20 returns. It grants nothing until Audit #5 or a
+  sitting reads it. Only then may the signal enter the Top & Bottom intake queue,
+  first of the three positioning series.
+
+`tools/validate_trend_breadth.py` holds it.
 
 **Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
 breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the

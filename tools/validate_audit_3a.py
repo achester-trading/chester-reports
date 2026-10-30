@@ -178,7 +178,9 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # Batch 15 item 73 (a58, 23 Oct 2026): the DM screen's NIKKEI225
                   "fred_batch15_a",
                   # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34): OVXCLS
-                  "fred_6i"}
+                  "fred_6i",
+                  # Batch 16 item 89(b) (B76, 26 Oct 2026): the trend-breadth signs
+                  "trend_breadth_signs"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).

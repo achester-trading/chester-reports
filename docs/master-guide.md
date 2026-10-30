@@ -556,6 +556,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `st-r6.65a-ledger-2026-10-23.md` | INSUFFICIENT | n 28 | ST-R6.65a ledger -- the 10-year speed flag's attribution against the next 20 sessions (Batch 14 item 65; report only) |
 | `st-r6.71d-ledger-2026-10-23.md` | FAIL | n 2965 | ST-R6.71d ledger -- the air pockets against the fragility panel (Batch 14 item 71; flag rights only) |
 | `st-r6.74b-ledger-2026-10-23.md` | INSUFFICIENT | n 0 | ST-R6.74b ledger -- leveraged funds' extreme net shorts in ES against the S&P 500's next 20 sessions (Batch 15 item 74; flag rights only) |
+| `trend-breadth-2026-10-26.md` | FAIL | n 163 | Trend-signal breadth against what followed -- calibration ledger (Batch 16 item 89(b); report only) |
 | `vendor-divergence-notes.md` | diagnostic | n — | Vendor divergence notes -- FlashAlpha against the engine |
 | `wealth-effect-preregistration-2026-10.md` | diagnostic | n — | The wealth-effect impulse against real consumption -- pre-registration (ST-R6.66c, Batch 14 item 66) |
 <!-- /table -->
