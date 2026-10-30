@@ -64,6 +64,9 @@ REGISTRY = {
     # (Markets XXVI-XXX, the Top & Bottom manual XXXI, the Annual Structural
     # Review XXXII), so the next free numeral was XXXIII.
     "XXXIII": "reporting-system",
+    # System shelf, Draft 1 (A72, 24 Oct 2026): the Top & Bottom manual, at the
+    # numeral Audit 2 reserved for it.
+    "XXXI": "tb-report-manual",
     # Markets shelf, Draft 1 (AQ-14, 11 Oct 2026). Numeral provisional: assigned
     # at the filing; XXXIV was the next free after XXXIII.
     "XXXIV": "emerging-markets",
