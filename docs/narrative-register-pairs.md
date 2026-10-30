@@ -46,3 +46,15 @@ The pair itself is session B's item-26 draft (`st-r4-tranche-1` notes), and its 
 - **The pass-through flag** (item 46b) is printed beside the verdict and does not score: it says whether the shock is spreading through the energy-sensitive basket, which is what side A's own question asks.
 - **Review:** monthly, in the Monthly's inflation block.
 - **Session-set in this draft:** the "half of the categories" line (50%), and "does not rise" read on the three-month average so one month's median does not decide it.
+
+## Narrative claims logged from Batch 19 (not stories; no implied outcome)
+
+**Added 30 October 2026 (paste B91, filing).** Not a story in `config/narratives.yaml`:
+it carries no implied outcome on a stored series and no right.
+
+- **"Gold and silver could go negative in 2027"** (item 103; a precious-metals fund
+  manager at Crescat, on LinkedIn, 28 Oct 2026, long precious metals: conflicted).
+  It is logged as **media capitulation (source likely fabricated)**: the cited
+  "Horizon Capital Research" article is untraceable (V5), and the claim is
+  mechanically unsound. It sits beside 88(a)'s exhaustion checklist and is not
+  scored.
