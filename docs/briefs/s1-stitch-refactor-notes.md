@@ -57,3 +57,32 @@ CI is read once after the push and reported with the run id.
    it now warns rather than fails on the Master Guide's built edition, so it
    agrees with `check_master_guide`; `registry-check.yml` reaches the gate list
    through `make list-code`.
+
+## The stitch checklist (added at the chain-8 assembly, B86b; D42.12, 29 Oct 2026)
+
+After **every** merge at a stitch, including a merge that reports no conflict:
+
+1. Resolve the conflicts by the repo's rules. Additive lines keep both sides.
+   A gate added by a branch built before S1 gets `GATE_KIND` in its own file,
+   never a Makefile line.
+2. Run the tools, `--check` then `--write`:
+   - `tools/stitch_counts.py`, the counts;
+   - `tools/change_orders_index.py`, the orders index and the register's
+     batch-orders cell;
+   - `tools/appendix_queue_index.py`, the dated-appendix queue, one file per
+     entry.
+3. **Must run, whatever the conflicts were:**
+   - `tools/validate_lenses.py` and `tools/check_registry.py`;
+   - `python tools/yaml_section_check.py <merge>`. It diffs every YAML file both
+     parents touched against both parents and lists any key that left a
+     top-level section a parent had it in for a section that parent did not
+     use.
+
+   **A block that moved section is a stop.** Move it back, then rerun step 3.
+4. Run the gates whose files the merge touched, one at a time.
+
+Why step 3 exists: at the chain-8 assembly the b70 merge (`e21a3535`) put b69/b70's
+88 `families` lines inside `member_overrides`, with no conflict marker. git
+appended them after the wrong anchor once main's `member_overrides` block sat
+between the two. The keys lost their family, and only validate_lenses noticed.
+`yaml_section_check.py e21a3535` reports those 88 keys; the fix was `068a72aa`.
