@@ -1,0 +1,42 @@
+# DTH-1, the day-trading layer's box pieces (ruling D41, 27 Oct 2026; A92).
+#
+# The ledger, the brief and the playbook live OUTSIDE this public repo (a private
+# Drive folder; the box's inbox). Orders and sizes print on the chat-side card
+# only, never in a box report. The box prints two things:
+#   - the rules checklist, a fixed block in the 07:00 anchor after the ES read;
+#   - the ledger reader's AGGREGATES in the Weekly's book section: counts and
+#     R-multiples only, never a currency, never a single trade's row.
+# The checklist's wording lives here so it changes without code.
+version: 1
+
+checklist:
+  enabled: true                 # false: the anchor prints no block at all
+  title: "Day-trade rules (DTH-1)"
+  rules:
+    - "Stop on the right side of the structure."
+    - "Size within the day's risk budget."
+    - "Re-screen the position after each fill."
+    - "No re-entry within 60 minutes of a stop-out."
+  promotion: >-
+    Promotion test to Book C at 15:45 ET: up at least +1R, holding beyond the
+    range edge, 2R of room to the next level, and the backdrop agrees.
+  footer: "Rules only: no prices, no sizes, no orders."
+
+ledger:
+  # The operator's file, copied from the private Drive folder by the nightly
+  # sweep (scripts/rclone_sync.sh, pull_inbox_file dth1). Never read from the repo.
+  path: "~/chester-data/inbox/dth1/dth1-manual-ledger.csv"
+  # Columns are read by header name: lower-cased, non-alphanumerics as "_", and
+  # the first header that matches one of a field's names wins. A missing
+  # required field is named in the block, never guessed.
+  columns:
+    date: [date, trade_date, entry_date, session, day]
+    result_r: [result_r, r_result, result_in_r, r_multiple, result]
+    rule_broken: [rule_broken, rule_break, broke_rule, rules_broken, rule_broken_flag]
+    status: [status, check, verify, verified]
+    promoted: [promoted, promoted_to_book_c, promotion, book_c]
+  required: [date, result_r, rule_broken]
+  # A row whose status says one of these, or whose result is blank, waits for
+  # the broker statement: counted and named, never filled or scored.
+  awaiting_words: [verify, pending, unverified, check]
+  truthy: ["y", "yes", "true", "1", "x"]

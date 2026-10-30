@@ -1842,6 +1842,10 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
         subs = [{"title": book_b.HEADING, "lines": [book_b.NO_SCANNER],
                  "candidates": []}]
         notes = ["The candidates and the productivity line could not be read."]
+    # DTH-1 (D41; A92): the manual day-trade ledger's aggregates, after Book B.
+    from .weekly_sections import dth1_subsection               # noqa: PLC0415
+    dth1 = dth1_subsection(ending)
+    subs.append({"title": dth1["title"], "lines": dth1["lines"]})
     # GRADING FROM DAY ONE (decision 6): every candidate, taken or not, a ledger
     # forecast under its setup and id -- a dry run under its own namespace --
     # and the open ones the stored closes now decide, resolved.

@@ -482,6 +482,10 @@ log "  zips: $ZIPS"
 # <folder>/, copied into ~/chester-data/inbox/<folder>/ for its reader:
 #   aaii   aaii-weekly.csv       the chat-side task "AAII weekly read -- Thursday"
 #                                appends a row a week (altdata/sources/aaii.py)
+#   dth1   dth1-manual-ledger.csv  the operator's manual day-trade ledger, kept in
+#                                a private Drive folder outside the public repo
+#                                (D41; A92); read for aggregates only by
+#                                altdata/dth1_ledger.py
 # Read from the main Drive (CHESTER_RCLONE_INBOX_REMOTE), never the backup remote. `copyto` of one file, never a sync: the inbox
 # only gains or overwrites that file, and copyto carries Drive's modification
 # time over, which the S&P DJI reader takes as the drop time. They run after the
@@ -508,6 +512,7 @@ pull_inbox_file() {
     return 0
 }
 pull_inbox_file aaii aaii-weekly.csv || true
+pull_inbox_file dth1 dth1-manual-ledger.csv || true
 # spdji's sp-500-eps-est.xlsx is no longer pulled: S&P DJI withdrew the workbook
 # (item 40's forward leg, ruled 17 Oct 2026; weekly-fixes-7 took it off the roster).
 

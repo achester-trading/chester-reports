@@ -67,6 +67,9 @@ commands:
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report
+  altdata.dth1_ledger:
+    domain: portfolio
+    line: "DTH-1 (D41): the anchor's day-trade rules checklist and the manual ledger's aggregates for the Weekly -- counts and R only, read from the box's inbox"
   altdata.em_scorecard:
     domain: em
     line: 'The EM vulnerability scorecard: a table of lenses, never a composite'

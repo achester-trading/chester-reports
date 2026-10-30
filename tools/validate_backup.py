@@ -606,11 +606,13 @@ def group_e() -> None:
         bad(f"the inbox pull is not a single named copyto ({pulls})")
     # S&P DJI's workbook is withdrawn (item 40's forward leg, ruled 17 Oct 2026),
     # so one named file comes back.
-    if calls == [("aaii", "aaii-weekly.csv")]:
-        ok("one named file comes back: AAII's weekly row (S&P DJI's workbook is "
-           "withdrawn)")
+    # A92 (D41): and the operator's manual DTH-1 ledger, from a private folder,
+    # read for aggregates only.
+    if calls == [("aaii", "aaii-weekly.csv"), ("dth1", "dth1-manual-ledger.csv")]:
+        ok("two named files come back: AAII's weekly row and the DTH-1 manual "
+           "ledger (S&P DJI's workbook is withdrawn)")
     else:
-        bad(f"the inbound files are not the one named one ({calls})")
+        bad(f"the inbound files are not the two named ones ({calls})")
     first = code.find("pull_inbox_file aaii")
     if body and "RC=" not in body and "finish " not in body \
             and first > code.find('log "  prune: $PRUNE"') \
