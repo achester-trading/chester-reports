@@ -1,0 +1,73 @@
+# DISRUPTIVE THEMES, STAGE 1: THE INSTRUMENT PANELS (6i-5; A77, 26 Oct 2026). Read by
+# daily_cascade/themes_block.py; held by tools/validate_themes_panels.py.
+#
+# The architecture's Part 28.3: "Stage 1 instrument panels auto-refresh from the
+# store, gaps render as GAP cells, never pretended." The rows are the inputs the
+# change orders carried "into the next Disruptive Themes refresh brief": Batch 5
+# items 22, 23 and 26; Batch 7 item 47; Batch 14 items 63 and 65 (written 56 and
+# 58; the batch renumbered at filing, its F1); Batch 15 items 75 and 76. All are
+# Factor I inputs, and NONE IS SCORED: no factor score, no composite, no delta.
+#
+# A row is a stored key (with its instrument where the key is per-instrument) or a
+# `gap` with the repository's own reason. A key with nothing stored by the
+# edition's cutoff prints as a GAP that says so. No row is a proxy for another.
+
+version: themes-stage1-1
+updated: 2026-10-26
+title: "Disruptive Themes — the Stage 1 panels (Factor I's queued inputs, unscored)"
+subtitle: "Part 28.3's Stage 1; Stages 2 to 4 are 6i-6"
+lines:
+  - "The inputs the change orders queued for the next Disruptive Themes refresh, read from the store as of the quarter's end. Unscored: the refresh rules on them, not this page."
+
+panels:
+  - id: real_economy
+    title: "Factor I · the real economy: AI investment and construction (Batch 5, items 22 and 23)"
+    rows:
+      - {label: "Information-processing equipment, contribution to real GDP growth (pp)", key: fred.contrib_info_equipment, queued: "Batch 5 item 22"}
+      - {label: "Software, contribution to real GDP growth (pp)", key: fred.contrib_software, queued: "Batch 5 item 22"}
+      - {label: "Construction spending: data centres (Census VIP, SAAR)", key: census.vip_data_center, queued: "Batch 5 item 23"}
+      - {label: "Construction spending: private nonresidential (the share's denominator)", key: census.vip_private_nonresidential, queued: "Batch 5 item 23"}
+      - {label: "Construction spending: total", key: census.vip_total, queued: "Batch 5 item 23"}
+      - {label: "Construction spending: power (the XII disagreement item)", key: census.vip_power, queued: "Batch 5 item 23"}
+      - {label: "PPI, construction inputs (the deflator)", key: fred.ppi_construction, queued: "Batch 5 item 23"}
+
+  - id: capex_chain
+    title: "Factor I · capex and the chain (Batch 5 item 26; Batch 14 item 63)"
+    rows:
+      - {label: "Hyperscaler capex guidance revisions", gap: "not tracked: guidance lives in call transcripts, which are not free; the line reads filed capex, annual, from EDGAR (config/capex_chain.yaml, guidance_gap)", queued: "Batch 5 item 26"}
+      - {label: "Filed capex: Microsoft", key: edgar.xbrl_capex, instrument: MSFT, queued: "Batch 5 item 26"}
+      - {label: "Filed capex: Amazon", key: edgar.xbrl_capex, instrument: AMZN, queued: "Batch 5 item 26"}
+      - {label: "Filed capex: Alphabet", key: edgar.xbrl_capex, instrument: GOOGL, queued: "Batch 5 item 26"}
+      - {label: "Filed capex: Meta", key: edgar.xbrl_capex, instrument: META, queued: "Batch 5 item 26"}
+      - {label: "Filed capex: Oracle", key: edgar.xbrl_capex, instrument: ORCL, queued: "Batch 5 item 26"}
+      - {label: "The chain's proxies: SMH", key: yfinance.mkt_smh, queued: "Batch 14 item 63"}
+      - {label: "NVDA", key: yfinance.mkt_nvda, queued: "Batch 14 item 63"}
+      - {label: "AVGO", key: yfinance.mkt_avgo, queued: "Batch 14 item 63"}
+      - {label: "MU", key: yfinance.mkt_mu, queued: "Batch 14 item 63"}
+      - {label: "AMD", key: yfinance.mkt_amd, queued: "Batch 14 item 63"}
+      - {label: "ASML", key: yfinance.mkt_asml, queued: "Batch 14 item 63"}
+      - {label: "ANET", key: yfinance.mkt_anet, queued: "Batch 14 item 63"}
+      - {label: "VRT", key: yfinance.mkt_vrt, queued: "Batch 14 item 63"}
+      - {label: "GRID", key: yfinance.mkt_grid, queued: "Batch 14 item 63"}
+      - {label: "XLU", key: yfinance.mkt_xlu, queued: "Batch 14 item 63"}
+      - {label: "PAVE", key: yfinance.mkt_pave, queued: "Batch 14 item 63"}
+
+  - id: unit_economics
+    title: "Factor I · unit economics and the labs (Batch 7 item 47; Batch 15 item 75)"
+    rows:
+      - {label: "Constant-capability inference cost (Epoch AI)", gap: "item 47 is ruled yes but no key or writer exists: not built (docs/master-guide.md, Item 47; tools/manual_input.py)", queued: "Batch 7 item 47"}
+      - {label: "Token-volume proxy", gap: "item 47: no key or writer exists (as above)", queued: "Batch 7 item 47"}
+      - {label: "Implied provider revenue (price x volume)", gap: "item 47: no key or writer exists (as above)", queued: "Batch 7 item 47"}
+      - {label: "The Jevons test (volume growth against price decline)", gap: "item 47: no key or writer exists (as above)", queued: "Batch 7 item 47"}
+      - {label: "AI lab financials", gap: "a dated file, not a stored series: docs/ledgers/ai-lab-financials-ledger.md, read by altdata/ai_lab_ledger.py in the Monthly", queued: "Batch 15 item 75"}
+
+  - id: bottlenecks_credit
+    title: "Factor I · bottlenecks, credit and concentration (Batch 14 item 65; Batch 15 item 76)"
+    rows:
+      - {label: "PPI: printed circuit assembly", key: fred.ppi_pcb_assembly, queued: "Batch 14 item 65"}
+      - {label: "PPI: storage devices", key: fred.ppi_storage_devices, queued: "Batch 14 item 65"}
+      - {label: "PPI: semiconductors", key: fred.ppi_semiconductors, queued: "Batch 14 item 65"}
+      - {label: "The concentration split, a proxy: AIQ", key: yfinance.mkt_aiq, queued: "Batch 14 item 65"}
+      - {label: "The concentration split, a proxy: SPXT (the S&P 500 ex technology)", key: yfinance.mkt_spxt, queued: "Batch 14 item 65"}
+      - {label: "AI credit watch (CoreWeave, Oracle, SpaceX spreads)", gap: "not tracked: no keyless source, no by-hand line (item 65, F2; config/ai_trade.yaml, credit_watch_gap)", queued: "Batch 14 item 65"}
+      - {label: "Protection demand (DTCC per-name CDS volumes)", gap: "a subscription product whose site terms forbid automated extraction (config/ai_trade.yaml, credit_watch_gap)", queued: "Batch 15 item 76"}

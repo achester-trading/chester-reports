@@ -187,7 +187,7 @@ def group_c(p: dict) -> dict:
     ids = [s["id"] for s in ed["sections"]]
     chs = q.chapters(ed)
     check(ids[:10] == list(stack_mod.SECTION_ORDER) and len(chs) == 11
-          and ids[10:] == [c["id"] for c in chs],
+          and ids[10:10 + len(chs)] == [c["id"] for c in chs],
           "the stack's ten sections as the front matter, then the eleven chapters")
     check(all(s.get("period") == "quarter" for s in ed["sections"])
           and ed["reading_target_minutes"] == 90 and ed["budget"]["charts"] == 40,
@@ -639,7 +639,8 @@ def group_g(r: dict) -> None:
             got = qi.spec_keys(s_)
             if got:
                 keys += got
-            elif not (s_.get("absent") or (s_.get("hook_key") and s_.get("branch"))):
+            elif not (s_.get("absent") or s_.get("harness_overlay")
+                      or (s_.get("hook_key") and s_.get("branch"))):
                 bad.append(f"{fid}: {s_.get('label')} has neither a key nor absent")
         for c in f.get("structure_charts") or []:
             keys += [x["key"] for x in c["series"] if x.get("key")]
@@ -1037,11 +1038,13 @@ def group_g2(r: dict, fams: dict, chs: dict) -> None:
           and "yfinance.mkt_btc_usd" in btc["Market structure and liquidity by venue"]
           and "observed" in btc["Source and vintage log"]
           and prl["Bull / base / bear"].startswith("not yet — ")
-          and eth["Market structure and liquidity by venue"].startswith("not yet — ")
+          # 6i-1: ETH's market field reads its stored key, no longer "not yet"
+          and eth["Market structure and liquidity by venue"].startswith("yfinance.mkt_eth_usd")
           and "MW-7" in prl["Measurable falsifiers"]
           and all(v for v in list(btc.values()) + list(prl.values())),
           "every field reads a stored series, the vendored case file or the tests -- "
-          "or prints its not-yet reason (BTC from the store; ETH and PRL not yet)")
+          "or prints its not-yet reason (BTC from the store; ETH's market from its "
+          "key, 6i-1; PRL's cases not yet)")
     lt = cr["light_tier"]["table"]["rows"]
     cfg_lt = next(p_ for p_ in fams["crypto"]["panels"] if p_["id"] == "light_tier")
     check([x[0].split()[0] for x in lt] == ["HYPE", "TAO", "LINK", "AAVE"]

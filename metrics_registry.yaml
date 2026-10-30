@@ -581,6 +581,43 @@ defaults:
 # double-counting one chain.
 
 metrics:
+  calc.baa_less_10y:
+    # 6i-3 (A79): its inputs, so it inherits their publication lag.
+    inputs: [fred.dbaa, fred.yield_10y]
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Moody's Baa yield (DBAA) less the 10-year Treasury yield (DGS10), same
+      session, in basis points. The Top & Bottom harness's long credit proxy
+      (6i-3; decision 6 of 25 Oct 2026, both proxies side by side): HY OAS
+      reaches no episode before 2023 on FRED, DBAA reaches every one from 1986.
+      Report only: barred from the market-state object, no dial, band or
+      packet reads it.
+  calc.baa_less_10y_m:
+    inputs: [fred.baa, fred.yield_10y]
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Moody's monthly Baa yield (BAA, a monthly average) less the month's mean
+      10-year yield, in basis points, dated the month's first day and knowable
+      once both are. The harness reads it only before DBAA exists (1962 to
+      1985; DGS10 begins in 1962). Report only, as calc.baa_less_10y.
 
   # --- GEX family -----------------------------------------------------------
   exposure.net_gex:
@@ -18391,6 +18428,34 @@ bulk_imports:
     mechanism_group_map:
       "7": macro_global_fx
 
+  fred_6i3:
+    description: >-
+      6i-3 (A79, 26 Oct 2026; the 6i brief's decision 6, both credit proxies):
+      Moody's Seasoned Baa Corporate Bond Yield, DBAA (percent, daily, from
+      1986-01-02) and BAA (percent, monthly average, from 1919-01), read off
+      FRED; the legs of calc.baa_less_10y and calc.baa_less_10y_m, the T&B
+      harness's long credit proxy beside HY OAS. See altdata/config.py
+      FRED_6I3_SERIES. Report only: barred from the market-state object.
+    source: fred
+    members_from: altdata.config.FRED_6I3_SERIES
+    member_families:
+      fred.dbaa: rate
+      fred.baa: rate
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 2
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "6": macro_valuation_credit
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -19801,6 +19866,8 @@ families:
   calc.vx_front_slope: ratio
   calc.xlre_spy: ratio
   calc.yield_curve_2s10s: ratio
+  calc.baa_less_10y: spread
+  calc.baa_less_10y_m: spread
   calc.yoy_ahe: ratio   # ambiguous: a return series, not a level; alternative: price
   calc.yoy_core_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
   calc.yoy_core_pce: ratio   # ambiguous: a return series, not a level; alternative: price
@@ -20693,6 +20760,9 @@ market_state_barred:
   - order: docs/change-order-signal-triage-round-7-2026-10-26.md (Batch 16 item 89(b), written as 82(b); B76)
     rule: "trend breadth is a report; it enters the Top & Bottom intake queue only after its calibration ledger is read"
     keys: ["trend.*"]
+  - order: the 6i brief's decision 6 (25 Oct 2026; 6i-3, A79)
+    rule: "the T&B harness's long credit proxy: report only; nothing enters a composite, the market-state object, a dial, a band or a packet"
+    keys: ["fred.dbaa", "fred.baa", "calc.baa_less_10y", "calc.baa_less_10y_m"]
 
   - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
     rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
@@ -20896,6 +20966,10 @@ series_kinds:
   fred.iorb: rate
   fred.fed_funds: rate
   calc.yield_curve_2s10s: spread
+  calc.baa_less_10y: spread
+  calc.baa_less_10y_m: spread
+  fred.dbaa: yield
+  fred.baa: yield
   acm.term_premium_10y: spread
   fred.ig_oas: spread
   fred.hy_oas: spread

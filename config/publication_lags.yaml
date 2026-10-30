@@ -225,6 +225,31 @@ families:
       longest stretch between filings is the third quarter's 10-Q to the 10-K:
       a quarter plus the 10-K's 20 extra days, about 14 sessions over the
       quarterly allowance's 95; 16 is the bound.
+  # 6i-3 (A79, 26 Oct 2026): Moody's Baa yields, the T&B harness's long credit
+  # proxy. Before the FRED catch-alls below, so BAA does not take the monthly
+  # release family's 22 sessions, which are BLS's and BEA's schedules, not Moody's.
+  - id: fred_moodys_daily
+    fred_ids: ["DBAA"]
+    keys: ["calc.baa_less_10y"]
+    lag_sessions: 2
+    max_lag: 3
+    source: "Moody's Seasoned Baa Corporate Bond Yield, daily, through FRED"
+    reason: >-
+      FRED posts Moody's daily yields a business day or two after the session
+      they are dated (the series page's update stamps), against the daily
+      allowance; one more for a holiday. The spread over the 10-year reads the
+      same print, so it is named here rather than left to inherit.
+  - id: fred_moodys_monthly
+    fred_ids: ["BAA"]
+    keys: ["calc.baa_less_10y_m"]
+    lag_sessions: 12
+    max_lag: 14
+    source: "Moody's Seasoned Baa Corporate Bond Yield, monthly average, through FRED"
+    reason: >-
+      The monthly average is dated the month's first day and posted in the first
+      two sessions after the month ends, so by the file's own arithmetic lag = D
+      + 10 with D = 2: just before the next print the newest is about 44
+      sessions old against the monthly allowance's 32. Two more for a holiday.
   - id: fred_quarterly_release
     fred_ids: ["*"]
     keys: ["calc.naive_expectation.*"]

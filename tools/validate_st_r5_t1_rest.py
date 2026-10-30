@@ -247,11 +247,12 @@ def group_a() -> None:
     # 281 since a57 added Batch 14 B1's four (items 65 and 71, 23 Oct 2026); 65 /
     # 283 at chain-6 with b55's Census household estimates (Batch 14 item 68)
     # and a58's NIKKEI225 (Batch 15 item 73); 65 / 284 since b69 added OVXCLS
-    # (FRED_6I_SERIES, the Quarterly's readers, 25 Oct 2026).
-    check(len(acfg.FRED_SIGNAL_SERIES) == 65 and len(acfg.FRED_PULL_SERIES) == 284
-          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 284
-          and len({s.fred_id for s in acfg.FRED_PULL_SERIES}) == 284,
-          f"FRED_SIGNAL_SERIES 65, FRED_PULL_SERIES 284, no key or id twice "
+    # (FRED_6I_SERIES, the Quarterly's readers, 25 Oct 2026); 286 with A79's DBAA and
+    # BAA (6i-3's Baa proxy, FRED_6I3_SERIES), merged at the chain-8 assembly.
+    check(len(acfg.FRED_SIGNAL_SERIES) == 65 and len(acfg.FRED_PULL_SERIES) == 286
+          and len({s.key for s in acfg.FRED_PULL_SERIES}) == 286
+          and len({s.fred_id for s in acfg.FRED_PULL_SERIES}) == 286,
+          f"FRED_SIGNAL_SERIES 65, FRED_PULL_SERIES 286, no key or id twice "
           f"({len(acfg.FRED_SIGNAL_SERIES)}, {len(acfg.FRED_PULL_SERIES)})")
     s = bis_cbpol.parse_all(ALL_CSV)
     check(set(s) == {"US", "XM", "DE"} and s["US"] == {"2026-08-31": 4.25, "2026-09-30": 4.0},

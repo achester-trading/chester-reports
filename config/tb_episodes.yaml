@@ -1,0 +1,347 @@
+# THE TOP & BOTTOM HARNESS'S EPISODES, INPUTS AND OVERLAYS (6i-2; A77, 26 Oct 2026;
+# docs/briefs/6i-spec-draft-2026-10-25.md section 2, decisions 2, 3 and 6 as
+# recommended, ruled 25 Oct 2026). Read by altdata/tb_harness.py; held by
+# tools/validate_tb_harness.py.
+#
+# WHAT THIS FILE KEEPS:
+#   - the 3 Sep thirteen (three tops, six bottoms, four controls), reconstructed
+#     from the papers because the hand-keyed table of calibrate_thresholds.py
+#     stayed in the 3 Sep session (the brief, Notes). Each episode names the
+#     passage it comes from; a date or a class the papers do not fix is
+#     `session_set: true`, with the reason in `basis`.
+#   - the extended set (the eight bears, the six near-misses, the five pre-1970
+#     episodes, the false bottoms inside bears), flagged `extended` and NEVER
+#     pooled with the thirteen (decision 2: "merges calibration and test samples").
+#   - the three overlays as the architecture's Part 23 states them, each firing at
+#     three or more of its triggers. Every threshold is Part 23's; where Part 23
+#     names a trigger without defining it (ERP, the windows), the definition is
+#     session-set and says so.
+#   - the inputs, each with the date the series begins to exist. Before it the
+#     reading is "not existent", never back-filled from a later series.
+#   - the pass rule, pre-registered here before the first edition ran. The
+#     ledger prints it at its head with the SHA-256 of `pass_rule`'s text; the
+#     gate holds the two equal. A change is a new registration and a new dated
+#     ledger, never an edit.
+#
+# NO COMPOSITE (decision 3): the harness stores nothing, and no top_bottom.*
+# key is registered. Report-only: nothing here enters a composite, the
+# market-state object, a dial, a band or a packet.
+
+version: tb-episodes-1
+updated: 2026-10-26
+
+# THE CONTINUOUS FALSE-POSITIVE RATE (6i-3; A79, 26 Oct 2026). Pre-registered in
+# docs/ledgers/tb-harness-fpr-2026-10-26.md, whose head was committed alone
+# before the code that runs it; this text is that head's quote, and
+# tools/validate_tb_harness_fpr.py holds the two hashes equal. A change is a new
+# registration and a new dated ledger, never an edit.
+fpr_rule: >-
+  The continuous false-positive rate (6i-3), pre-registered on 26 Oct 2026
+  before its first run. SESSIONS: every session on which the store holds an S&P
+  500 close (yfinance.mkt_gspc), from its first to its last. SCORING: each
+  session is read through each of Part 23's three overlays as
+  config/tb_episodes.yaml defines them (Concentration & Complacency, HY Spread
+  Acceleration, Liquidity & Funding Stress), and through the credit leg's Baa
+  proxy, every input read as of that session's close by available_at, exactly
+  as the calibration reads a decision date. The Baa proxy is the HY Spread
+  Acceleration overlay's four triggers read on Baa less the 10-year
+  (calc.baa_less_10y, daily from DBAA; before DBAA exists, calc.baa_less_10y_m,
+  monthly from BAA): at least +50% off its 12-month low, its 30-day change at
+  least +40bp, its 30-day change at least +15bp, and its level at least 225bp,
+  firing at three of four; the first three carry Part 23's HY and IG thresholds
+  unchanged, the level is session-set because Part 23's IG at least 110bp has
+  no Baa analogue. A reading is FIRED when the overlay's state is FIRES; CLEAR,
+  UNREAD and NOT EXISTENT readings are counted and never enter the rate.
+  EPISODES: an episode begins at its top, the three calibration tops and the
+  tops of the extended set's eight post-1970 bears and five pre-1970 episodes;
+  controls and near-misses begin no episode, because the calibration scores a
+  fire before one as a false call. WINDOW: 365 calendar days forward. A fired
+  reading on session d is a TRUE POSITIVE if an episode begins on a day t with
+  d <= t <= d + 365 days, and a FALSE POSITIVE otherwise; a fired reading whose
+  window runs past the store's last session and holds no episode start is
+  CENSORED and enters neither count. STATISTIC: per overlay, false positives
+  over true plus false positives, printed with n (that denominator), the scored
+  sessions (FIRES or CLEAR), the censored count and the number of distinct
+  firing runs (consecutive fired sessions). No threshold, window or episode is
+  tuned on the result; a change is a new registration and a new dated ledger.
+  Report-only: the rate enters no composite, the market-state object, a dial, a
+  band or a packet.
+fpr:
+  window_days: 365
+  sessions_key: yfinance.mkt_gspc
+  overlays: [concentration, hy_accel, liquidity, hy_accel_baa]
+  preregistration: docs/ledgers/tb-harness-fpr-2026-10-26.md
+
+pass_rule: >-
+  The harness's first edition is read twice. First, the ledger's own question:
+  does it reproduce the 3 Sep record (tops 0/3, bottoms 4/6, controls 4/4)? That
+  record was the composite's, and decision 3 stores no composite, so the answer
+  is REPRODUCED only if every class is read and each class's k of n equals the
+  record's; otherwise NOT REPRODUCIBLE ON THIS BUILD, with the class that cannot
+  be read named. Second, the overlays' own record on the thirteen: a top is
+  called when any overlay FIRES at its decision date; a control is refused when
+  no overlay FIRES at either of its decision dates; the bottoms are not scored
+  by the overlays, which are top-side. PASS when all three tops and all four
+  controls are read, at least 2 of 3 tops are called and at least 3 of 4
+  controls are refused; INSUFFICIENT when any top or control is unread (an
+  overlay neither FIRES nor is CLEAR because too few of its triggers are read);
+  FAIL otherwise. The extended set is reported beside it and never enters
+  either count.
+
+point_in_time:
+  # The value knowable at the decision date's close, Eastern time: the store's
+  # available_at (FRED rows carry ALFRED's first vintage where AUD-3d's backfill
+  # wrote them).
+  cutoff_time_et: "23:59"
+  # Shiller's workbook carries no vintage: its rows are stamped with the file's
+  # Last-Modified (altdata/sources/shiller.py), and config/publication_lags.yaml
+  # states no lag for its earnings (A64). A month's CAPE is therefore read from
+  # the current file and treated as knowable three months after the month's
+  # first day. Session-set: the earnings column "lags the price by months"
+  # (the writer's own docstring). The values are the current vintage, not first
+  # prints, and the ledger says so.
+  shiller_lag_months: 3
+  shiller_lag_source: "session-set (A77): config/publication_lags.yaml states no lag for the shillerdata.com workbook (A64); its earnings lag the price by months (altdata/sources/shiller.py)"
+  # A reading older than this at the cutoff is "not stored as of" the date.
+  max_age_days: {daily: 10, weekly: 21, monthly: 125}
+  max_age_source: "session-set (A77): two trading weeks for a daily series, three weeks for a weekly one, a quarter plus a month for a monthly one after its lag"
+  # Where the harness's reading and the papers' hand-keyed value differ by more
+  # than this share of the hand-keyed value, the ledger prints "differs".
+  differs_pct: 10
+  differs_source: "session-set (A77): the papers state their figures to about two significant figures (\"~24.5x\", \"~575bp\")"
+  # A decision date is checked against the store's own S&P 500 closes: the
+  # extreme within this many calendar days either side is printed beside it.
+  extreme_window_days: 10
+
+inputs:
+  spx:      {key: yfinance.mkt_gspc,  freq: daily,   exists_from: "1927-12-30", source: "the yfinance module's long history (^GSPC from 30 Dec 1927)"}
+  cape:     {key: shiller.cape,       freq: monthly, exists_from: "1881-01-01", shiller: true, source: "Shiller's P/E10 needs ten years of earnings; his file begins in 1871"}
+  gs10:     {key: shiller.gs10,       freq: monthly, exists_from: "1871-01-01", shiller: true, source: "Shiller's long rate, from 1871"}
+  fwd_pe:   {key: index.forward_pe,   freq: daily,   exists_from: "1995-01-01", source: "the paper: \"reliable forward-earnings estimate archives begin in the mid-1990s\" (Tops and Bottoms, \"Data sources and honest gaps\"); session-set to 1 Jan 1995"}
+  top10:    {reader: concentration_twin, freq: daily, exists_from: null, source: "GTM-3's concentration twin (altdata/gtm_equities.py), the top ten's share of the S&P 500's market cap from the stored SPY holdings; recent only"}
+  vix:      {key: yfinance.mkt_vix,   freq: daily,   exists_from: "1990-01-02", source: "the paper: \"no VIX exists before 1990\""}
+  hy_oas:   {key: fred.hy_oas,        freq: daily,   exists_from: "1996-12-31", units_to_bp: 100,
+             source: "the paper: \"no high-yield OAS series exists before late 1996\"; ICE BofA BAMLH0A0HYM2 begins 31 Dec 1996. FRED serves it only from 2023 (the false-bottom ledger), so before the store holds it the credit leg's Baa proxy is the reading printed beside it (6i-3; decision 6, both proxies)"}
+  # 6i-3 (A79): the credit leg's long proxy, Baa less the 10-year, in bp. Daily
+  # from DBAA's first day; before it, the monthly from BAA (`fallback`), which
+  # reaches back to DGS10's first month, 1962. Before 1962: not existent.
+  baa_10y:  {key: calc.baa_less_10y,  freq: daily,   exists_from: "1986-01-02", fallback: baa_10y_m,
+             source: "DBAA (Moody's, daily) begins 2 Jan 1986; less DGS10 the same session (altdata/market_features.py)"}
+  baa_10y_m: {key: calc.baa_less_10y_m, freq: monthly, exists_from: "1962-01-01",
+             source: "BAA (Moody's, monthly average, from 1919) less the month's mean DGS10, which begins 2 Jan 1962"}
+  ig_oas:   {key: fred.ig_oas,        freq: daily,   exists_from: "1996-12-31", units_to_bp: 100, source: "ICE BofA BAMLC0A0CM begins 31 Dec 1996"}
+  net_liq:  {key: calc.net_liquidity, freq: weekly,  exists_from: "2002-12-18", source: "WALCL, its asset leg, begins 18 Dec 2002 (CLAUDE.md, the net-liquidity units)"}
+  reserves: {key: fred.bank_reserves, freq: weekly,  exists_from: null, units: "millions", source: "WRESBAL, millions (CLAUDE.md); its start is not fixed here, so before the store holds it the reading is not stored, never not existent"}
+  sofr:     {key: fred.sofr,          freq: daily,   exists_from: "2018-04-02", source: "SOFR's first publication, 3 Apr 2018, for 2 Apr"}
+  iorb:     {key: fred.iorb,          freq: daily,   exists_from: "2021-07-29", source: "IORB replaced IOER on 29 Jul 2021"}
+  rrp:      {key: fred.rrp,           freq: daily,   exists_from: null, units: "billions", source: "RRPONTSYD, billions (CLAUDE.md); its start is not fixed here"}
+  tga:      {key: fred.tga,           freq: weekly,  exists_from: null, units: "millions", source: "WTREGEN, millions (CLAUDE.md); its start is not fixed here"}
+
+overlays:
+  - id: concentration
+    title: "Concentration & Complacency"
+    top_type: "2000/2022 valuation"
+    fires_at: 3
+    source: "the architecture's Part 23, \"The three parallel overlays\""
+    triggers:
+      - {id: fwd_pe, text: "FwdPE ≥ 20",  input: fwd_pe, rule: at_least, threshold: 20}
+      - {id: cape,   text: "CAPE ≥ 30",   input: cape,   rule: at_least, threshold: 30}
+      - {id: erp,    text: "ERP ≤ 1.5%",  input: [cape, gs10], rule: erp_at_most, threshold: 1.5,
+         definition: "100 / CAPE less Shiller's 10-year rate, percent; session-set (A77): Part 23 names ERP ≤ 1.5% and does not define it"}
+      - {id: top10,  text: "Top10 ≥ 25%", input: top10,  rule: at_least, threshold: 25}
+      - {id: vix,    text: "VIX ≤ 18",    input: vix,    rule: at_most,  threshold: 18}
+  - id: hy_accel
+    title: "HY Spread Acceleration"
+    top_type: "2007 credit"
+    fires_at: 3
+    source: "the architecture's Part 23, \"The three parallel overlays\""
+    triggers:
+      - {id: hy_off_low, text: "HY ≥ +50% off its 12-month low", input: hy_oas, rule: pct_off_low, window_days: 365, threshold: 50}
+      - {id: hy_30d,     text: "30-day HY ≥ +40bp",  input: hy_oas, rule: change_at_least, window_days: 30, threshold: 40}
+      - {id: ig_30d,     text: "30-day IG ≥ +15bp",  input: ig_oas, rule: change_at_least, window_days: 30, threshold: 15}
+      - {id: ig_level,   text: "IG ≥ 110bp",         input: ig_oas, rule: at_least, threshold: 110}
+  # 6i-3 (A79; decision 6, both credit proxies side by side): the overlay above
+  # read on Baa less the 10-year, which reaches every episode from 1962. Printed
+  # BESIDE HY Spread Acceleration with its own window, never in its place: the
+  # calibration's record and A77's pass rule count the three overlays only
+  # (`proxy_of`). Its thresholds are pre-registered in `fpr_rule` above.
+  - id: hy_accel_baa
+    title: "HY Spread Acceleration (Baa proxy)"
+    proxy_of: hy_accel
+    top_type: "2007 credit"
+    fires_at: 3
+    source: "the architecture's Part 23 overlay's triggers on Baa less the 10-year (6i-3)"
+    triggers:
+      - {id: baa_off_low, text: "Baa−10y ≥ +50% off its 12-month low", input: baa_10y, rule: pct_off_low, window_days: 365, threshold: 50}
+      - {id: baa_30d_hy,  text: "30-day Baa−10y ≥ +40bp", input: baa_10y, rule: change_at_least, window_days: 30, threshold: 40}
+      - {id: baa_30d_ig,  text: "30-day Baa−10y ≥ +15bp", input: baa_10y, rule: change_at_least, window_days: 30, threshold: 15}
+      - {id: baa_level,   text: "Baa−10y ≥ 225bp",        input: baa_10y, rule: at_least, threshold: 225,
+         definition: "session-set (A79): Part 23's IG ≥ 110bp has no Baa analogue; 225bp is near Baa less the 10-year's post-1986 middle as 110bp is near IG OAS's, not measured on the store before the registration"}
+  - id: liquidity
+    title: "Liquidity & Funding Stress"
+    top_type: "2019/2020 plumbing"
+    fires_at: 3
+    source: "the architecture's Part 23, \"The three parallel overlays\""
+    triggers:
+      - {id: netliq_yoy, text: "NetLiq YoY ≤ −10%", input: net_liq, rule: yoy_at_most, threshold: -10,
+         definition: "the year-on-year change only; Part 23's \"accel\" is not read (session-set, A77)"}
+      - {id: reserves,   text: "reserves ≤ $3.15T", input: reserves, rule: at_most, threshold: 3150000}
+      - {id: sofr_iorb,  text: "SOFR−IORB ≥ +5bp, 5 days", input: [sofr, iorb], rule: spread_avg_at_least, sessions: 5, threshold: 5,
+         definition: "the mean of SOFR less IORB over the last five sessions both are stored, bp (session-set, A77)"}
+      - {id: rrp,        text: "RRP ≤ $200B", input: rrp, rule: at_most, threshold: 200}
+      - {id: tga_move,   text: "|TGAΔ| ≥ $200B", input: tga, rule: abs_change_at_least, window_days: 28, threshold: 200000,
+         definition: "the change over four weeks, millions (session-set, A77: Part 23 gives no window)"}
+
+# ---------------------------------------------------------------------------
+# THE 3 SEP THIRTEEN (decision 2, option a). Classes are the record's:
+# "tops 0/3, bottoms 4/6, controls 4/4" (Part 23).
+# ---------------------------------------------------------------------------
+calibration:
+  - id: top_2000
+    class: top
+    dates: ["2000-03-24"]
+    source: "Tops and Bottoms §6 (\"March 24, 2000\"); Part 23: v8 \"moves the 2000 top to OVEREXTENDED\""
+    session_set: false
+    hand_keyed: {cape: 43.8, fwd_pe: 24.5, erp: 0.4, vix: 22.5, hy_oas_bp: 575}
+    hand_keyed_source: "Tops and Bottoms §6, Key Metrics, \"At the Top\""
+  - id: top_2007
+    class: top
+    dates: ["2007-10-09"]
+    source: "Tops and Bottoms §7 (\"October 9, 2007\"; \"the composite missed this top\")"
+    session_set: false
+    hand_keyed: {cape: 27.3, fwd_pe: 15.5, vix: 18, hy_oas_bp: 410}
+    hand_keyed_source: "Tops and Bottoms §7, Key Metrics, \"At the Top\""
+  - id: top_2022
+    class: top
+    dates: ["2022-01-03"]
+    source: "Tops and Bottoms §9 (\"January 3, 2022\"); Part 23: \"rebalancing alone cannot catch 2007/2022-type tops\""
+    session_set: false
+    hand_keyed: {cape: 39.4, fwd_pe: 21.7, erp: 1.4, vix: 16.6, hy_oas_bp: 315}
+    hand_keyed_source: "Tops and Bottoms §9, Key Metrics, \"At the Top\""
+  - id: bottom_1990
+    class: bottom
+    dates: ["1990-10-11"]
+    source: "Tops and Bottoms §5 (\"October 11, 1990\")"
+    session_set: true
+    basis: "the papers do not list the six bottoms; the six are the post-1990 bear and near-miss lows whose signature the paper reads (§11: \"Bottoms ... share a recognizable signature in six of eight cases\"), 1990 being the first with a VIX"
+    hand_keyed: {cape: 14.8}
+    hand_keyed_source: "Tops and Bottoms §5, Key Metrics, \"At the Bottom\""
+  - id: bottom_2002
+    class: bottom
+    dates: ["2002-10-09"]
+    source: "Tops and Bottoms §6 (\"October 9, 2002\")"
+    session_set: true
+    basis: "as bottom_1990"
+    hand_keyed: {cape: 21.5, fwd_pe: 14.5, erp: 2.8, vix: 42, hy_oas_bp: 1010}
+    hand_keyed_source: "Tops and Bottoms §6, Key Metrics, \"At the Bottom\""
+  - id: bottom_2009
+    class: bottom
+    dates: ["2009-03-09"]
+    source: "Tops and Bottoms §7 (\"March 9, 2009\")"
+    session_set: true
+    basis: "as bottom_1990"
+    hand_keyed: {cape: 13.3, fwd_pe: 10.3, vix: 50, hy_oas_bp: 1600}
+    hand_keyed_source: "Tops and Bottoms §7, Key Metrics, \"At the Bottom\""
+  - id: bottom_2011
+    class: bottom
+    dates: ["2011-10-03"]
+    source: "Tops and Bottoms §10, 2011: \"The October 2011 low scored as a bottom on this study's calibration\""
+    session_set: true
+    basis: "the class is the paper's; the day is the S&P 500's closing low of 3 Oct 2011, session-set (the paper says \"October 2011\")"
+    hand_keyed: {vix: 48, hy_oas_bp: 800}
+    hand_keyed_source: "Tops and Bottoms §10, 2011 (\"VIX reached 48; HY spreads widened past 800bp\"; peaks in the episode, not at the low)"
+  - id: bottom_2020
+    class: bottom
+    dates: ["2020-03-23"]
+    source: "Tops and Bottoms §8 (\"March 23, 2020\")"
+    session_set: true
+    basis: "as bottom_1990"
+    hand_keyed: {cape: 24.8, fwd_pe: 13.3, vix: 61.6, hy_oas_bp: 1087}
+    hand_keyed_source: "Tops and Bottoms §8, Key Metrics, \"At the Bottom\""
+  - id: bottom_2022
+    class: bottom
+    dates: ["2022-10-12"]
+    source: "Tops and Bottoms §9 (\"October 12, 2022\"; \"This study's calibration missed the 2022 bottom\")"
+    session_set: false
+    hand_keyed: {cape: 27.1, fwd_pe: 15.2, erp: 1.6, vix: 33.6, hy_oas_bp: 540}
+    hand_keyed_source: "Tops and Bottoms §9, Key Metrics, \"At the Bottom\""
+  - id: control_1998
+    class: control
+    dates: ["1998-07-17", "1998-10-08"]
+    source: "Tops and Bottoms §10, 1998 (\"A −19.3% decline in ten weeks (July–October)\"); §11: \"the 1994/1998/2015/2018/2024-type events it correctly refuses to call\""
+    session_set: true
+    basis: "the papers name five control-type events for four places; 1994 is left out (\"maximum drawdown was under 9%\", a time correction, and before the HY series begins). Dates: the S&P 500's closing high and low, session-set"
+    hand_keyed: {}
+    hand_keyed_source: "§10 gives \"VIX reached the mid-40s\" as an episode peak, not at either date"
+  - id: control_2015
+    class: control
+    dates: ["2015-05-21", "2016-02-11"]
+    source: "Tops and Bottoms §10, 2015–16"
+    session_set: true
+    basis: "as control_1998"
+    hand_keyed: {}
+    hand_keyed_source: "§10 gives \"HY spreads reached 887bp\" as an episode peak"
+  - id: control_2018
+    class: control
+    dates: ["2018-09-20", "2018-12-24"]
+    source: "Tops and Bottoms §10, 2018: \"−19.8% from September 20 to December 24, 2018 ... This study's calibration used December 24, 2018 as a control\""
+    session_set: false
+    hand_keyed: {hy_oas_bp: 545}
+    hand_keyed_source: "Tops and Bottoms §10, 2018 (\"HY to ~545bp\"), read at the low"
+  - id: control_2024
+    class: control
+    dates: ["2024-07-16", "2024-08-05"]
+    source: "Tops and Bottoms §10, 2024 (\"roughly −8.5% into August 5, 2024\"); Part 23: the Concentration overlay's \"known false-fire Aug 2024\""
+    session_set: true
+    basis: "as control_1998; the high is the S&P 500's closing high of 16 Jul 2024"
+    hand_keyed: {}
+    hand_keyed_source: "§10 gives \"VIX printed 65 intraday\", not a close"
+
+# ---------------------------------------------------------------------------
+# THE EXTENDED SET (Base Rates, chapter 12's first amendment): flagged, reported
+# beside the thirteen, never pooled with them.
+# ---------------------------------------------------------------------------
+extended:
+  bears:
+    source: "Tops and Bottoms, \"Episode selection\" and each chapter's opening line"
+    episodes:
+      - {id: bear_1973, top: "1973-01-11", bottom: "1974-10-03"}
+      - {id: bear_1980, top: "1980-11-28", bottom: "1982-08-12"}
+      - {id: bear_1987, top: "1987-08-25", bottom: "1987-12-04"}
+      - {id: bear_1990, top: "1990-07-16", bottom: "1990-10-11"}
+      - {id: bear_2000, top: "2000-03-24", bottom: "2002-10-09"}
+      - {id: bear_2007, top: "2007-10-09", bottom: "2009-03-09"}
+      - {id: bear_2020, top: "2020-02-19", bottom: "2020-03-23"}
+      - {id: bear_2022, top: "2022-01-03", bottom: "2022-10-12"}
+  near_misses:
+    source: "Tops and Bottoms §10; the dates are the S&P 500's closing high and low, session-set where §10 gives only months"
+    episodes:
+      - {id: near_1994, high: "1994-02-02", low: "1994-04-04", session_set: true}
+      - {id: near_1998, high: "1998-07-17", low: "1998-10-08", session_set: true}
+      - {id: near_2011, high: "2011-04-29", low: "2011-10-03", session_set: true}
+      - {id: near_2015, high: "2015-05-21", low: "2016-02-11", session_set: true}
+      - {id: near_2018, high: "2018-09-20", low: "2018-12-24", session_set: false}
+      - {id: near_2024, high: "2024-07-16", low: "2024-08-05", session_set: true}
+  pre_1970:
+    source: "Base Rates 11.6, the pre-1970 aggregate; the days are session-set (11.6 gives years), from the S&P composite's closing extremes where the store holds them, the Dow's for 1907"
+    episodes:
+      - {id: pre_1907, top: "1906-01-19", bottom: "1907-11-15", session_set: true}
+      - {id: pre_1929, top: "1929-09-16", bottom: "1932-06-01", session_set: true}
+      - {id: pre_1937, top: "1937-03-10", bottom: "1938-03-31", session_set: true}
+      - {id: pre_1946, top: "1946-05-29", bottom: "1947-05-19", session_set: true}
+      - {id: pre_1961, top: "1961-12-12", bottom: "1962-06-26", session_set: true}
+  false_bottoms:
+    source: "docs/ledgers/false-bottom-audit-2026-episodes.csv, kind false: the troughs inside the four bears that a rally of 10% or more did not hold"
+    episodes:
+      - {id: fb_1973_08, bear: "1973-74", trough: "1973-08-22"}
+      - {id: fb_1974_02, bear: "1973-74", trough: "1974-02-11"}
+      - {id: fb_2000_04, bear: "2000-02", trough: "2000-04-14"}
+      - {id: fb_2001_04, bear: "2000-02", trough: "2001-04-04"}
+      - {id: fb_2001_09, bear: "2000-02", trough: "2001-09-21"}
+      - {id: fb_2002_07, bear: "2000-02", trough: "2002-07-23"}
+      - {id: fb_2008_03, bear: "2007-09", trough: "2008-03-10"}
+      - {id: fb_2008_10a, bear: "2007-09", trough: "2008-10-10"}
+      - {id: fb_2008_10b, bear: "2007-09", trough: "2008-10-27"}
+      - {id: fb_2008_11, bear: "2007-09", trough: "2008-11-20"}
+      - {id: fb_2022_03, bear: "2022", trough: "2022-03-08"}
+      - {id: fb_2022_06, bear: "2022", trough: "2022-06-16"}
