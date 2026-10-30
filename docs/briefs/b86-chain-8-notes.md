@@ -294,3 +294,12 @@ b75, b76, a81, b58, a71 (a65-a70), a79 (a77).
 1. `altdata/sources/edgar_bdc.py` (b70) is an SEC caller missing from
    validate_secrets' `SEC_UA_CALLERS`. The same one-line registration A59 and
    A66 made for theirs; on b70, or at chain-8's stitch?
+
+## B87 Part 0: a stitch fix (29 Oct 2026, D42.14)
+
+B86b's one needs-you is ruled and applied here, on the assembly; b70 is not touched.
+`altdata/sources/edgar_bdc.py` is added to validate_secrets' `SEC_UA_CALLERS`. It is
+the same one-line registration A59 and A66 made for their SEC readers, so the gate's
+rule is unchanged. edgar_bdc reads data.sec.gov's company concepts and
+www.sec.gov's company_tickers.json.
+Gates: validate_secrets passes; check_registry: OK.
