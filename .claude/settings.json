@@ -99,6 +99,9 @@
       "Bash(*execution_framework*)",
       "Bash(*reqGlobalCancel*)",
       "Bash(*--allow-live*)",
+      "Bash(*paper_exec run*)",
+      "Bash(*paper_exec clear-kill*)",
+      "Bash(*paper_exec resume*)",
 
       "Bash(*cat*.env*)",
       "Bash(*tail*.env*)",
