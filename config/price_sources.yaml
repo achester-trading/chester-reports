@@ -1,0 +1,67 @@
+# THE PRICE SOURCES, family by family (A96; tranche 2b of the price-source
+# migration, docs/briefs/price-source-migration-brief-2026-10-25.md on b68;
+# decisions 4 and 5 ruled D38 on 26 Oct 2026).
+#
+# One switch per family. Every reader asks altdata/price_sources.py for a
+# family's key, through a reference "price:<family>.<member>" in config or
+# price_sources.key() in code, and gets the ACTIVE source's key. Every family
+# ships on yfinance, so nothing printed changes until a family is switched.
+#
+# THE CUTOVER (the brief's section 4): a family runs in parallel for 20 sessions
+# (the parallel_run record below, its cross-source pair in config/data_quality.
+# yaml's inactive_pairs); then `source` flips, every reader moves at once
+# through the resolver, and the old keys are marked superseded in the registry.
+# History stays as stored: before `switched_on` a series is drawn from the old
+# key, after it from the new, never spliced, and every block that prints the
+# series prints `break_label` once beneath its first figure.
+version: 1
+
+families:
+  us_yields:
+    source: yfinance                  # yfinance (as today) | fred
+    members:
+      y10: {yfinance: yfinance.mkt_tnx, fred: fred.yield_10y}
+      y30: {yfinance: yfinance.mkt_tyx, fred: fred.yield_30y}
+    break_label: >-
+      series change {switched_on}: FRED's constant-maturity yields (DGS10, DGS30)
+      replace Yahoo's ^TNX and ^TYX; not spliced
+    switched_on: null                 # the first session on the new source
+    parallel_run:
+      started: null
+      sessions_counted: 0
+      sessions_required: 20
+      max_gap: null
+      tolerance: "to be measured on the overlap"
+  dollar_index:
+    source: yfinance                  # yfinance (as today) | fred
+    members:
+      dxy: {yfinance: yfinance.mkt_dxy, fred: fred.dxy}    # fred.dxy is DTWEXBGS
+    break_label: >-
+      series change {switched_on}: the Fed's broad dollar index (DTWEXBGS)
+      replaces ICE's DXY, a different index; not spliced
+    switched_on: null
+    parallel_run:
+      started: null
+      sessions_counted: 0
+      sessions_required: 20
+      max_gap: null
+      tolerance: "to be measured on the overlap"
+  # STUBS for the families A93's IBKR writer will serve (config/ibkr_bars.yaml).
+  # Declared so their readers can move to the resolver when the writer is live;
+  # no reader is routed through them yet.
+  us_index_funds:
+    source: yfinance                  # yfinance (as today) | ibkr
+    members: {}
+    stub: "A93's first family (SPY, QQQ, IWM, DIA, RSP); members added with its cutover"
+  index_levels:
+    source: yfinance
+    members: {}
+    stub: "^GSPC through IBKR's Cboe indexes subscription"
+  futures_overnight:
+    source: yfinance
+    members: {}
+    stub: "ES=F and NQ=F through IBKR"
+  fx:
+    source: yfinance
+    members: {}
+    stub: "JPY=X and EURUSD=X through IBKR IDEALPRO (H.10 for the daily fix)"

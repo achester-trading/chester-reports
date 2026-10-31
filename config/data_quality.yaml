@@ -130,6 +130,19 @@ pairs:
 # it writes first is never a new print for the outlier rule.
 backfill_sources: ["fred:backfill"]
 
+# INACTIVE PAIRS, THE FRED FAMILIES (A96, 31 Oct 2026; the price-source
+# migration's tranche 2b, decisions 4 and 5): each family's parallel run pairs
+# its FRED replacement with the Yahoo key it replaces (config/price_sources.yaml).
+# NOT READ by the quality check: a pair joins pairs.list with its tolerance,
+# measured on the twenty-session overlap and stated with its reason -- never
+# assumed. (The ^TNX/DGS10 and ^TYX/DGS30 pairs above already measure the yields;
+# the dollar's two indices are different series, so its gap is a level gap, not
+# an error.) The keys are pinned to their sources, as a cross-source pair must be.
+inactive_pairs_fred:
+  - {id: dxy_broad, family: dollar_index, a: "price:dollar_index.dxy@yfinance", a_label: "DXY (ICE, Yahoo)", b: "price:dollar_index.dxy@fred", b_label: "DTWEXBGS", unit: percent, active: false, tolerance: "to be measured on the overlap"}
+  - {id: y10_fred, family: us_yields, a: "price:us_yields.y10@yfinance", a_label: "^TNX", b: "price:us_yields.y10@fred", b_label: "DGS10", unit: bp, active: false, tolerance: "to be measured on the overlap (the active tnx_dgs10 pair's own measurement is the first read)"}
+  - {id: y30_fred, family: us_yields, a: "price:us_yields.y30@yfinance", a_label: "^TYX", b: "price:us_yields.y30@fred", b_label: "DGS30", unit: bp, active: false, tolerance: "to be measured on the overlap (the active tyx_dgs30 pair's own measurement is the first read)"}
+
 # STEP SERIES (ruled 15 Oct 2026, AUD-3c answer 4). A policy rate moves in steps:
 # flat for months, then 25 bp. Its last 60 changes are mostly zero, so the
 # standard-deviation rule would flag every decision. A step series' change
