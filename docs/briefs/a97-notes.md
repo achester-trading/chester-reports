@@ -159,8 +159,9 @@ The replay reads reason strings, so A90's binding change does not move it.
 So the section's prose call cannot see a chart's data block. The lines come from
 **one call per section, fed only that section's charts' blocks**, metered as
 `see:<section>`. The section's own prose, its prompt and its audits are
-untouched. **This differs from the order's "the section's model call"; it is for
-the operator to accept or redirect.**
+untouched. This differs from the order's "the section's model call". **D46
+addendum, accepted 31 Oct 2026 13:10 ET:** the "What to see" lines come from one
+small call per section after the charts are drawn, as built.
 
 **The Weekly's chart drawing now comes before its prose** (the reorder commit,
 after the notes' first commit). CI's
