@@ -61,6 +61,7 @@ from typing import Any, Optional
 from altdata import labels, observations, session
 from altdata import model_meter
 
+from daily_cascade import audit_retry
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
 from daily_cascade import stack_render as sr
@@ -2508,7 +2509,10 @@ PHASE_A_PROSE = {"month_in_markets": ("read", None),
 # run's archive held only the last reason, and what a withheld section needed
 # had to be inferred from it.
 PROSE_ARCHIVED = ("state", "published", "reason", "attempts", "first_reason",
-                  "reasons", "words", "figures_cited", "rejected_text")
+                  "reasons", "words", "figures_cited", "rejected_text",
+                  # W10-1 (D46): a partial publication's count, its withheld
+                  # sentences with their reasons, and why a section stayed whole.
+                  "partial", "withheld_sentences", "fallback")
 
 
 def apply_prose(ed: dict, written: dict) -> dict:
@@ -2528,6 +2532,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
     for key, r in written.items():
         ok = bool(r.get("published") and r.get("text"))
         why = r.get("reason") or r.get("state")
+        # W10-1 (D46): published with k sentences withheld -- the status line.
+        part = (f"Commentary {audit_retry.status(int(r['partial']))} by the figure audit."
+                if ok and r.get("partial") else None)
         if key.startswith("stack:"):
             s = secs.get(key.split(":", 1)[1])
             if s is None:
@@ -2536,6 +2543,8 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
                 s["paragraphs"] = s["paragraphs"][:1] if s.get("depth") in (
                     "deep", "medium") and not s.get("claim_only") else []
+                if part:
+                    s["partial_withheld"] = int(r["partial"])
             else:
                 s["withheld"] = why
             continue
@@ -2544,6 +2553,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
             owner, ss = subs[key]
             if ok:
                 ss["paragraphs"] = _paras(r["text"])
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
@@ -2560,12 +2572,17 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 ss["paragraphs"] = _paras(r["text"])
                 # The takeaways now print as their prose: the lines are its data.
                 ss["lines"] = []
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
             continue
         if ok:
             s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
+            if part:
+                s["partial_withheld"] = int(r["partial"])
         else:
             s["withheld"] = why
     ed["prose"] = {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}

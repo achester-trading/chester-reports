@@ -50,6 +50,11 @@ from altdata import levels as levels_mod
 from altdata import model_meter
 
 from . import audit_retry, direction, readability
+
+# W10-1 (D46, 31 Oct 2026): the cadences whose twice-withheld sections go through
+# the sentence fallback (daily_cascade/audit_retry.py). The Monthly's stack goes
+# through monthly_macro/prose.py; the close keeps the whole-section rule.
+FALLBACK_CADENCES = ("weekly", "monthly")
 from . import opener as opener_mod
 
 # The read's depth on every cadence (config `sections`): its opener band.
@@ -1081,8 +1086,19 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             return attempt(sid, payload, system + note.replace(
                 "YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1),
                 max_chars, dup_ok=True)
-        return audit_retry.run(call, report=cadence, section=sid,
-                               retryable=lambda r: not not_retried(r))
+        res = audit_retry.run(call, report=cadence, section=sid,
+                              retryable=lambda r: not not_retried(r))
+        if cadence not in FALLBACK_CADENCES or res.get("published"):
+            return res
+        # W10-1 (D46): withhold the failing sentence, not the section; the
+        # remainder is held to every check a draft is.
+        res = audit_retry.apply_fallback(
+            res, report=cadence, section=sid,
+            recheck=lambda clean: checks(sid, clean, payload, True))
+        if res.get("published"):
+            res["text"], res["unsigned_rewrites"] = readability.unsign_after_verbs(
+                res["text"])
+        return res
 
     def attempt(sid: str, payload: dict, system: str, max_chars: int,
                 dup_ok: bool = False) -> dict:
@@ -1098,9 +1114,32 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             return {"state": "fault", "published": False,
                     "reason": f"FAULT {type(exc).__name__}: {exc}"}
         text = r.text if r.published else None
-        faults = []
-        if text:
-            faults = (style_faults(text, cfg) + id_faults(text)
+        faults = checks(sid, text, payload, dup_ok) if text else []
+        if faults:
+            # The printed line keeps the first four; the retry hears them all.
+            return {"state": "tape_rules", "published": False,
+                    "reason": "withheld: " + "; ".join(faults[:4]),
+                    "retry_reason": "withheld: " + "; ".join(faults),
+                    "rejected_text": text}
+        if not r.published:
+            audit = getattr(r, "audit", None)
+            return {"state": r.state, "published": False,
+                    "reason": r.withheld_note() or r.reason,
+                    "rejected_text": getattr(r, "rejected_text", None),
+                    # The audit's whole list, which the reason cuts at six (W10-1).
+                    "unmatched_figures": ([f.text for f in audit.unmatched]
+                                          if audit is not None and r.state == "audit_failed"
+                                          else None)}
+        # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1a item 4): "fell -3 bp"
+        # prints "fell 3 bp", after every audit, and the rewrite is counted.
+        text, n_unsigned = readability.unsign_after_verbs(text)
+        return {"state": "published", "published": True, "text": text,
+                "model": r.model, "unsigned_rewrites": n_unsigned}
+
+    def checks(sid: str, text: str, payload: dict, dup_ok: bool = False) -> list:
+        """The code's checks after the audit, over a published draft or (W10-1)
+        the fallback's remainder."""
+        return (style_faults(text, cfg) + id_faults(text)
                       + policy_word_faults(text, pm_cfg) + excess_faults(text)
                       + (book_window_faults(text, ed) if sid == "book" else [])
                       + na_signed_zero(text)
@@ -1139,21 +1178,6 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                           readability.duplicates_of(text,
                                                     readability.section_sentences(ed))]
                          if sid == "read" and not dup_ok else []))
-        if faults:
-            # The printed line keeps the first four; the retry hears them all.
-            return {"state": "tape_rules", "published": False,
-                    "reason": "withheld: " + "; ".join(faults[:4]),
-                    "retry_reason": "withheld: " + "; ".join(faults),
-                    "rejected_text": text}
-        if not r.published:
-            return {"state": r.state, "published": False,
-                    "reason": r.withheld_note() or r.reason,
-                    "rejected_text": getattr(r, "rejected_text", None)}
-        # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1a item 4): "fell -3 bp"
-        # prints "fell 3 bp", after every audit, and the rewrite is counted.
-        text, n_unsigned = readability.unsign_after_verbs(text)
-        return {"state": "published", "published": True, "text": text,
-                "model": r.model, "unsigned_rewrites": n_unsigned}
 
     for s in ed["sections"]:
         if s["id"] == "read":
@@ -1166,6 +1190,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         res = run(s["id"], section_slice(s, ed, cadence), section_prompt(s, cadence, base),
                   section_max_chars(s, cadence))
         results[s["id"]] = res
+        if res.get("partial"):
+            s["partial_withheld"] = res["partial"]
         if res.get("published"):
             sents = _sentences(res["text"].split("\n\n")[0])
             s["claim"] = sents[0] if sents else res["text"]
@@ -1213,7 +1239,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         read["withheld"] = res.get("reason")
     ed["prose"] = {k: {kk: v.get(kk) for kk in ("state", "published", "reason",
                                                  "rejected_text", "attempts",
-                                                 "first_reason", "unsigned_rewrites")}
+                                                 "first_reason", "unsigned_rewrites",
+                                                 "partial", "withheld_sentences",
+                                                 "fallback")}
                    for k, v in results.items()}
     ed["unsigned_rewrites"] = sum(int(v.get("unsigned_rewrites") or 0)
                                   for v in results.values())

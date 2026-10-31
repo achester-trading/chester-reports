@@ -1290,6 +1290,21 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
     if secs is None:
         secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
 
+    def post_faults(sec: dict, text: str) -> list[str]:
+        """The checks _attempt makes after the audit, over W10-1's remainder:
+        the system's vocabulary, list fragments, the tape rules (a stack
+        section's) or the stance and T3.6 checks (a v2 section's), and a bare
+        large change."""
+        stack = sec.get("kind") == "stack"
+        out = [f"writes about the system ({', '.join(internal_terms(text))})"
+               ] if internal_terms(text) else []
+        out += ["list fragments"] if list_lines(text) else []
+        out += (_stack_faults(text, sec, ed or {}, pm_cfg) if stack else
+                readability.stance_faults(text) + t36_faults(text, sec, ed))
+        out += [f"bare large change {b}" for b in na.bare_deltas(
+            text, na.accepted_deltas([sec.get("slice"), sec.get("audit_extra")]))]
+        return out
+
     def attempt(sec: dict, system: str) -> dict:
         """One call, metered under the section's key (AUD-2 item 4)."""
         from altdata import model_meter                         # noqa: PLC0415
@@ -1414,6 +1429,15 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
         if not res["published"] and len(reasons) > 1:
             res["first_reason"] = reasons[0]
             res["reasons"] = reasons
+            # W10-1 (D46): withhold the failing sentence, not the section; the
+            # remainder is held to the same checks a published draft is.
+            res = audit_retry.apply_fallback(
+                {**res, "unmatched_figures": res.get("unmatched")}, report="monthly",
+                section=sec["key"], recheck=lambda clean, sec=sec: post_faults(sec, clean))
+            if res.get("published"):
+                res["text"], res["unsigned_rewrites"] = (
+                    readability.unsign_after_verbs(res["text"]))
+                res["words"] = words(res["text"])
         out[sec["key"]] = res
         log.info("section %s: %s (%s words, %d attempt(s))", sec["key"],
                  res["state"], res["words"], res["attempts"])

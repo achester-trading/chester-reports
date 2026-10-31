@@ -265,6 +265,11 @@ def foot_parts(s: dict, fold_subsections: bool = True,
         why = re.sub(r"^(?:narrative\s+)?withheld:\s*", "", str(s["withheld"]),
                      flags=re.I)
         parts.append("Commentary withheld by the audit: " + why)
+    if s.get("partial_withheld"):
+        # W10-1 (D46): the section printed with its failing sentences removed.
+        from . import audit_retry                               # noqa: PLC0415
+        parts.append(f"Commentary {audit_retry.status(int(s['partial_withheld']))} "
+                     f"by the figure audit.")
     parts += list(s.get("notes") or [])
     if s.get("trimmed"):
         parts.append(trimmed_note)
