@@ -49,7 +49,7 @@ markets:
   - {id: copper,  label: "Copper (front)",      keys: [{key: yfinance.mkt_copper_front}]}
   - {id: oil,     label: "WTI crude (front)",   keys: [{key: yfinance.mkt_wti_front}]}
   - {id: gold,    label: "Gold (front)",        keys: [{key: yfinance.mkt_gold_front}]}
-  - {id: dxy,     label: "Dollar index",        keys: [{key: yfinance.mkt_dxy}]}
+  - {id: dxy,     label: "Dollar index",        keys: [{key: "price:dollar_index.dxy"}]}
   - {id: eurusd,  label: "EUR/USD",             keys: [{key: yfinance.mkt_eurusd}, {key: fred.usd_eur}]}
   - {id: usdjpy,  label: "USD/JPY",             keys: [{key: yfinance.mkt_usdjpy}, {key: fred.usd_jpy}]}
   - {id: audusd,  label: "AUD/USD",             keys: [{key: fred.usd_aud}]}
