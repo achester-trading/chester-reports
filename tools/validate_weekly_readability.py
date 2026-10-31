@@ -218,8 +218,82 @@ def group_a() -> None:
           "the Monthly marks the section and the sub-section, and archives the count")
 
 
+def group_b() -> None:
+    head("B. THE 'WHAT TO SEE' LINE (W10-2)")
+    from daily_cascade import chart_lines as cl                 # noqa: PLC0415
+    from daily_cascade import stack_render as sr                # noqa: PLC0415
+    pts = [{"date": f"2026-10-{d:02d}", "value": v} for d, v in
+           ((5, 1.20), (12, 1.45), (19, 2.10), (26, 1.80))]
+    chart = {"id": "W6", "caption": "Synthetic gap z", "titles": ["Synthetic gap z"],
+             "series": {"Synthetic gap": pts}, "svg_path": "w6.svg"}
+    block = cl.data_block(chart)
+    check(block and block["series"][0]["last"] == 1.8 and block["series"][0]["high"] == 2.1
+          and block["series"][0]["from"] == "2026-10-05",
+          "the block is the chart's own data: the series, the window, the last values")
+    calls: list = []
+
+    def fake(replies):
+        def call(payload, system):
+            calls.append((payload, system))
+            return replies[min(len(calls) - 1, len(replies) - 1)]
+        return call
+
+    good = "W6: The synthetic gap ends the window at 1.80, below its 2.10 high."
+    charts = {"W6": dict(chart)}
+    got = cl.write_section("misfit", charts, ["W6"], call=fake([good]))
+    check(got == {"W6": {"see": good[4:]}} and len(calls) == 1
+          and "never an action" in calls[0][1]
+          and calls[0][0] == {"charts": [{"id": "W6", **block}]},
+          "the line renders from a synthetic block, in one call fed that block alone")
+    charts["W6"].update(got["W6"])
+    html = sr._chart_html(charts["W6"], "archive")                # noqa: SLF001
+    check(html.index("figcaption") < html.index("What to see: The synthetic gap ends")
+          and html.count("What to see:") == 1
+          and "What to see: The synthetic gap" in "".join(sr.md_charts(["W6"], charts)),
+          "it prints beneath the chart's caption, in the HTML and the Markdown")
+
+    calls.clear()
+    bad = "W6: The synthetic gap ends the window at 9.99."
+    got = cl.write_section("misfit", {"W6": dict(chart)}, ["W6"], call=fake([bad, bad]))
+    check("see_withheld" in got.get("W6", {}) and "see" not in got["W6"] and len(calls) == 2
+          and "THESE LINES FAILED" in calls[1][1],
+          "a figure not in the block fails, is revised once, and is withheld on the second failure")
+    withheld = {**chart, **got["W6"]}
+    check("What to see" not in sr._chart_html(withheld, "archive"),   # noqa: SLF001
+          "a withheld line: the chart prints without it")
+    calls.clear()
+    got = cl.write_section("misfit", {"W6": dict(chart)}, ["W6"], call=fake([bad, good]))
+    check(got == {"W6": {"see": good[4:]}}, "a revision that passes prints")
+
+    long31 = " ".join(["word"] * 31)
+    ok, why, audited = cl.check_line(long31, block)
+    ok30, _, aud30 = cl.check_line(" ".join(["word"] * 30), block)
+    check(not ok and "31 words" in why and not audited and ok30 and aud30,
+          "a 31-word line is refused before the audit; 30 words reach it")
+    for word in ("buy", "Sell", "long", "short", "add", "trims"):
+        ok, why, audited = cl.check_line(f"The gap invites traders to {word} here.", block)
+        check(not ok and "action word" in why and not audited,
+              f"'{word}': an action word is refused (observation, never recommendation)")
+
+    calls.clear()
+    bare = {"id": "W12", "caption": "a dealer panel", "png": b"x"}
+    check(cl.data_block(bare) is None
+          and cl.write_section("mechanics", {"W12": bare}, ["W12"], call=fake([good])) == {}
+          and not calls and cl.data_block({"id": "W1", "unavailable": "no bars"}) is None,
+          "a chart with no data block (or not drawn) has no line, and no call is made")
+    ed = {"sections": [{"id": "misfit", "charts_rendered": ["W6"]},
+                       {"id": "positioning", "subsections": [{"charts_rendered": ["W5"]}]}]}
+    w5 = {"id": "W5", "caption": "returns", "series": [{"name": "XLK", "return_pct": 1.23},
+                                                         {"name": "XLE", "return_pct": -0.5}]}
+    cs = {"W6": dict(chart), "W5": w5}
+    calls.clear()
+    n = cl.write(ed, cs, call=fake([good, "W5: XLK leads the week at 1.23%."]))
+    check(n == 2 and cs["W5"].get("see") == "XLK leads the week at 1.23%." and len(calls) == 2,
+          "one call per section, a sub-section's charts with their section's")
+
+
 def main() -> int:
-    for g in (group_a,):
+    for g in (group_a, group_b):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

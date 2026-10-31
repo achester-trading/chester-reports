@@ -136,7 +136,10 @@ def _chart_html(ch: dict, mode: str, width: int = 700) -> str:
             f'<img src="{src}" alt="{esc(ch.get("caption"))}" style="{IMG}" '
             f'width="{width}">'
             f'<figcaption style="{CAPTION}">{esc(ch.get("caption"))}</figcaption>'
-            f'</figure>')
+            # W10-2: the "What to see" line, when its checks passed.
+            + (f'<p style="{FOOT}" class="see">What to see: {esc(ch["see"])}</p>'
+               if ch.get("see") else "")
+            + '</figure>')
 
 
 # weekly-fixes-7 item 13: charts printed as a pair, half width, side by side --
@@ -814,6 +817,8 @@ def md_charts(ids: list, charts: Optional[dict]) -> list[str]:
         svg = str(x.get("svg_path") or "").replace("\\", "/").split("/")[-1]
         out.append(f"![{_md_cell(x.get('caption'))}]({svg})\n" if svg else
                    f"*{_md_cell(x.get('caption'))}*\n")
+        if x.get("see"):
+            out.append(f"What to see: {_md_cell(x['see'])}\n")
     return out
 
 

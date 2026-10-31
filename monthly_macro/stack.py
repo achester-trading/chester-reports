@@ -2838,6 +2838,10 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     except Exception:                                           # noqa: BLE001
         log.exception("the Monthly's charts faulted; the edition prints none")
         charts = {}
+    # THE "WHAT TO SEE" LINE (W10-2): as the Weekly's, after the drawing.
+    if narrative:
+        from daily_cascade import chart_lines                   # noqa: PLC0415
+        chart_lines.write(ed, charts, model=model, client=client)
     ed["levels"] = book
     polish(ed, charts)
     # THE EXECUTIVE SUMMARY, BUILT LAST FROM THE FINISHED SECTIONS (T3.1 item

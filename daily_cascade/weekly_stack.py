@@ -2515,6 +2515,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             subs[sub].setdefault("charts_rendered", []).append(cid)
         else:
             s.setdefault("charts_rendered", []).append(cid)
+    # THE "WHAT TO SEE" LINE (W10-2): one call per section over its charts' own
+    # data blocks, after the drawing; a line that fails twice is withheld.
+    if narrative:
+        from . import chart_lines                               # noqa: PLC0415
+        chart_lines.write(ed, charts, model=model, client=client)
     ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
                     for k, c in charts.items()}
     ed["levels"] = book
