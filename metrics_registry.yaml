@@ -18460,6 +18460,18 @@ member_overrides:
   farside.eth_total: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
   farside.btc_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
   farside.eth_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  # HELD (D45, 31 Oct 2026; paste B95): the two Cboe readers. Declared, never
+  # stale; the rows are kept. Lifting the hold removes these lines.
+  cboe.cor1m: {status_extra: held, held_source: cboe_indices, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cboe.cor3m: {status_extra: held, held_source: cboe_indices, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cboe.dspx: {status_extra: held, held_source: cboe_indices, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx_settle: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx1: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx2: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx3: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  calc.vx_front_slope: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  calc.vx_front_ratio: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  calc.vx1_vix_basis: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
   # Bitcoin's difficulty is set every 2,016 blocks, about 14 days: one row an
   # adjustment, not a day. Weekly cadence plus the btc_difficulty lag.
   mempool.difficulty: {freq: weekly, native_horizon: weekly, information_half_life: until_next_release}

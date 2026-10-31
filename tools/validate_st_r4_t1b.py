@@ -34,6 +34,18 @@ model. No figure here is real.
      nothing; not held, on the external roster, its KEYS read from source; the
      panel reads Cboe's key first and Yahoo's as the fallback, never spliced,
      and says which.
+  H  THE CBOE HOLD (D45, 31 Oct 2026; paste B95): against the real registry,
+     the reader is held from 2026-11-03 and makes no request (no robots read, no
+     file) and writes nothing, the stored rows kept and the newest date
+     reported; its keys are declared held, not stale, and a held run is no
+     writer failure; the panel prints "not tracked: held pending Doctrine #2
+     (Cboe terms)" with the last stored date and no Yahoo fallback, the flag
+     withheld; the vol-event breadth lens prints the line; the dispersion
+     story's series evidence and its grade read "input held".
+
+  Groups A-G test the reader and the panel on fixtures, so they read an EMPTY
+  source registry (altdata/refusals.set_registry({"sources": {}})), as a61b's
+  gates do for the refused writers; group H restores the file.
 
     python tools/validate_st_r4_t1b.py
 """
@@ -530,16 +542,17 @@ def group_g() -> None:
     check("cboe_indices" in feeds.EXTERNAL_WRITERS
           and feeds.static_keys("cboe_indices") == cb.KEYS
           and not hasattr(cb, "HELD_FOR_D1C"),
-          "not held (the D1c ruling); on the external roster, its KEYS read from source")
+          "no D1c hold left in the module (lifted 16 Oct; the D45 hold is the "
+          "registry's, group H); on the external roster, its KEYS read from source")
     got = {k: derived.registry_entry(k).get("units") for k in cb.KEYS}
     check(got == {"cboe.cor1m": "index_points", "cboe.cor3m": "index_points",
                   "cboe.dspx": "vol_index"},
           f"the three keys registered with their units ({got})")
     reg = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
     ent = reg["sources"].get("cboe_indices") or {}
-    check(ent.get("status") == "live"
+    check(ent.get("status") == "held" and ent.get("held_since") == "2026-11-03"
           and ent.get("implemented_by") == "altdata/sources/cboe_indices.py",
-          "source_registry: live, implemented_by the module")
+          "source_registry: held from 2026-11-03 (D45), implemented_by the module")
     from daily_cascade import batch5b_block as blk
     days = weekdays_back("2026-10-09", 300)
     yrows = [("yfinance.mkt_dspx", x, 1.0 + i) for i, x in enumerate(days[-20:])]
@@ -560,14 +573,95 @@ def group_g() -> None:
           "the panel says when it reads Yahoo's fallback, and only then")
 
 
+HELD_LINE = "not tracked: held pending Doctrine #2 (Cboe terms)"
+
+
+def group_h() -> None:
+    head("H. THE CBOE HOLD (D45; paste B95)")
+    from altdata import feeds, narratives, refusals, vol_event
+    from altdata.sources import cboe_indices as cb
+    from daily_cascade import batch5b_block as blk
+    refusals.set_registry(None)
+    h = refusals.hold("cboe_indices")
+    check(h is not None and h["since"] == "2026-11-03"
+          and "storage in a retrieval system forbidden (checked 30 Oct 2026)"
+          in str(h["reason"]) and "Doctrine #2" in str(h["reason"]),
+          f"the real registry declares cboe_indices held from 2026-11-03 with its "
+          f"reason ({h and h['since']})")
+    calls = []
+    saved = (cb.http_get_response, cb._robots_text)
+    days = weekdays_back("2026-10-09", 300)
+    crows = [("cboe.dspx", x, 1.0 + i) for i, x in enumerate(days)]
+    path = store(crows)
+    try:
+        cb.http_get_response = lambda url, **kw: calls.append(url) or (b"", {})
+        cb._robots_text = lambda u: calls.append(u) or ""
+        with observations.ObservationStore(path) as db:
+            before = len(db.as_of("cboe.dspx"))
+            r = cb.pull(db=db)
+            after = len(db.as_of("cboe.dspx"))
+    finally:
+        cb.http_get_response, cb._robots_text = saved
+    check(r.get("status") == "HELD" and r.get("written") == 0 and not calls
+          and before == after == 300,
+          f"a held reader asks nothing (no robots.txt, no file) and writes nothing; "
+          f"the 300 stored rows are kept ({r.get('status')}, {len(calls)} requests)")
+    check(r.get("last_stored") == days[-1] and r.get("reason") == HELD_LINE
+              + f", last stored {days[-1]}",
+          f"it reports the hold as its status, with the last stored date "
+          f"({r.get('reason')})")
+    check(feeds.writer_failures([("cboe_indices", cb)], {"cboe_indices": r}) == {},
+          "a HELD run is no writer failure")
+    got = {k: derived.declared_status(derived.registry_entry(k)) for k in cb.KEYS}
+    check(set(got.values()) == {"held"},
+          f"its keys are declared held, never stale ({got})")
+    with observations.ObservationStore(path) as st:
+        d = batch5b.dispersion(st, CUT, CFG)
+        sub = blk.dispersion_subsection(st, CUT, CFG)
+    row = [x for x in sub["table"]["rows"] if "DSPX" in x[0]][0]
+    check(d["rows"]["dspx"].get("held") and row[1] == HELD_LINE
+          + f", last stored {days[-1]}" and row[4] == days[-1],
+          f"the panel's DSPX row prints the hold with its last stored date ({row[1]})")
+    yrows = [("yfinance.mkt_dspx", x, 1.0 + i) for i, x in enumerate(days[-20:])]
+    with observations.ObservationStore(store(yrows + crows)) as st:
+        d2 = batch5b.dispersion(st, CUT, CFG)
+    check(d2["rows"]["dspx"].get("held") and "source" not in d2["rows"]["dspx"]
+          and d2["flag"]["state"] is None and "held" in d2["flag"]["why"],
+          "no Yahoo fallback while held (the substitute is Doctrine #2's), and the "
+          "flag is withheld")
+    with observations.ObservationStore(path) as st:
+        ser = vol_event.read_series(st, CUT)
+    lb = vol_event.lens_breadth(ser, "2026-10-09")
+    check(lb["state"] == "held" and HELD_LINE in lb["line"],
+          f"the vol-event breadth lens prints the line ({lb['line'][:80]})")
+    with observations.ObservationStore(path) as st:
+        mv = narratives.series_move("cboe.dspx", {"sign": "+", "horizon": 5,
+                                                  "percentile": 10}, CUT, st)
+        g = narratives.resolve_one({"horizon_date": "2026-10-01", "metrics":
+                                    ["cboe.dspx"], "comparison": "up",
+                                    "baseline": {"cboe.dspx": {"observed_at":
+                                                 days[0], "value": 1.0}}},
+                                   st, CUT)
+    check(mv.get("sign") == 0 and "input held" in mv.get("reason", ""),
+          "the dispersion story's series evidence is not counted: input held")
+    check(g.get("outcome") is None and str(g.get("reason")).startswith("input held"),
+          f"its grade line reads input held, never a grade ({str(g.get('reason'))[:60]})")
+
+
 def main() -> int:
-    group_a()
-    group_b()
-    group_c()
-    group_d()
-    group_e()
-    group_f()
-    group_g()
+    from altdata import refusals
+    refusals.set_registry({"sources": {}})
+    try:
+        group_a()
+        group_b()
+        group_c()
+        group_d()
+        group_e()
+        group_f()
+        group_g()
+    finally:
+        refusals.set_registry(None)
+    group_h()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

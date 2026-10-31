@@ -559,6 +559,15 @@ sources:
 
   cboe:
     name: Cboe public per-contract futures settlement files
+    # HELD (D45, ruled 31 Oct 2026; paste B95): the terms check of 30 Oct
+    # (docs/briefs/cboe-terms-check-2026-10.md) found the storage clause fails
+    # the 16 Oct sources rule. New pulls stop at the merge of 3 Nov 2026; the
+    # stored rows are kept; Doctrine #2 (7-8 Nov) rules on retention, the
+    # substitutes and a licence. To lift: status back to the line below the hold.
+    held_since: "2026-11-03"
+    held_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03, the date of the merge"
+    held_line: "held pending Doctrine #2 (Cboe terms)"
+    short_name: "Cboe VX futures settlements"
     tier: A1
     epistemic_role: primary_fact
     domain: [volatility]
@@ -579,7 +588,7 @@ sources:
       no account, no terms accepted in code.
     allowed_reports: [daily_cascade, monthly_macro, gamma_weekly]
     implemented_by: altdata/loggers/vxcurve.py
-    status: active
+    status: held          # was: active (lift: status: active)
     caveats:
       - >-
         THERE IS NO DIRECTORY LISTING AND NO ALL-PRODUCTS DAILY FILE. Both return
@@ -1350,6 +1359,15 @@ sources:
 
   cboe_indices:
     name: Cboe Global Markets -- daily index history files (COR1M, COR3M, DSPX)
+    # HELD (D45, ruled 31 Oct 2026; paste B95): the terms check of 30 Oct
+    # (docs/briefs/cboe-terms-check-2026-10.md) found the storage clause fails
+    # the 16 Oct sources rule. New pulls stop at the merge of 3 Nov 2026; the
+    # stored rows are kept; Doctrine #2 (7-8 Nov) rules on retention, the
+    # substitutes and a licence. To lift: status back to the line below the hold.
+    held_since: "2026-11-03"
+    held_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03, the date of the merge"
+    held_line: "held pending Doctrine #2 (Cboe terms)"
+    short_name: "Cboe index history files"
     tier: A0
     epistemic_role: primary_fact
     domain: [equity_prices, volatility]
@@ -1365,7 +1383,7 @@ sources:
       RFC 9309), checked on every pull
     allowed_reports: [weekly_tactical, monthly_macro, daily_cascade]
     implemented_by: altdata/sources/cboe_indices.py
-    status: live
+    status: held          # was: live (lift: status: live)
     caveats:
       - >-
         The CLOSE only for COR1M and COR3M; DSPX's file carries one value column.
