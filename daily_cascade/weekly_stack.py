@@ -2399,38 +2399,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # the canonical figure.
     from . import consistency                                   # noqa: PLC0415
     consistency.reconcile(ed)
-    if narrative:
-        stack_prose.write(ed, client=client, model=model, outlooks=[],
-                          cadence="weekly")
-        storyline_pass(ed, prior, ending, client=client, model=model,
-                       db_path=db_path, dry_run=dry_run)
-        playbook_pass(ed, client=client, model=model)
-    else:
-        ed["precis"] = {"state": "skipped", "published": False}
-    book_terms(ed, ending)
-    # THE COVERAGE TABLE (W10-3): the store check's lists, one row per family
-    # and state, at the end of section 10, before the Detail Tables.
-    from . import coverage                                      # noqa: PLC0415
-    cov = coverage.build(db_path, ed.get("as_of"))
-    tenth = next((s for s in ed["sections"] if s["id"] == "book"), None)
-    if cov and tenth is not None:
-        tenth["coverage"] = cov
-    from . import storyline                                     # noqa: PLC0415
-    storyline.layout(ed, stack_mod.config())
-    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
-    # glossary carries the config's version.
-    ta = wsec.technical_appendix(stack_mod.config())
-    if ta:
-        ed.setdefault("detail", []).append(ta)
-    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
-    # reference tier (a table: outside the word budget; it displaces nothing).
-    try:
-        from . import opening_setup as _os                      # noqa: PLC0415
-        with observations.ObservationStore(db_path) as _st:
-            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
-    except Exception:                                           # noqa: BLE001
-        log.warning("the per-name volatility table faulted", exc_info=True)
-    ed["definitions_version"] = wsec.definitions_version()
+    # THE CHARTS ARE DRAWN BEFORE THE PROSE (A97, W10-2): the "What to see"
+    # lines read each chart's own data, and are written after the sections'
+    # prose and before the précis, which stays the last commentary written. The
+    # drawing reads only what build() made; the alias check and the placement
+    # stay below, after the layout.
     # W12 (6b part 2) joins the plan only when the week's last settled dealer
     # profile exists under the payload's computed_dir.
     from . import dealer_block as _db                           # noqa: PLC0415
@@ -2510,6 +2483,43 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "W6", extras["contradictions"], charts_mod.span_title(
                 "Open contradictions: gap z-score", n6, "sessions", d0, now,
                 "since each opened"), f"{base}_w6", out_dir, min_points=5)
+    if narrative:
+        stack_prose.write(ed, client=client, model=model, outlooks=[],
+                          cadence="weekly")
+        # THE "WHAT TO SEE" LINE (W10-2): one call per section over its charts'
+        # own data blocks; a line that fails twice is withheld.
+        from . import chart_lines                               # noqa: PLC0415
+        chart_lines.write_groups(chart_lines.groups_from(PLACE, charts), charts,
+                                 model=model, client=client)
+        storyline_pass(ed, prior, ending, client=client, model=model,
+                       db_path=db_path, dry_run=dry_run)
+        playbook_pass(ed, client=client, model=model)
+    else:
+        ed["precis"] = {"state": "skipped", "published": False}
+    book_terms(ed, ending)
+    # THE COVERAGE TABLE (W10-3): the store check's lists, one row per family
+    # and state, at the end of section 10, before the Detail Tables.
+    from . import coverage                                      # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    tenth = next((s for s in ed["sections"] if s["id"] == "book"), None)
+    if cov and tenth is not None:
+        tenth["coverage"] = cov
+    from . import storyline                                     # noqa: PLC0415
+    storyline.layout(ed, stack_mod.config())
+    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
+    # glossary carries the config's version.
+    ta = wsec.technical_appendix(stack_mod.config())
+    if ta:
+        ed.setdefault("detail", []).append(ta)
+    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
+    # reference tier (a table: outside the word budget; it displaces nothing).
+    try:
+        from . import opening_setup as _os                      # noqa: PLC0415
+        with observations.ObservationStore(db_path) as _st:
+            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the per-name volatility table faulted", exc_info=True)
+    ed["definitions_version"] = wsec.definitions_version()
     # ONE INSTRUMENT, SEVERAL SERIES (W-1.1a item 6): the tape's levels against
     # the charts' FRED levels of the same instrument, before anything prints.
     from . import consistency as cons_mod                       # noqa: PLC0415
@@ -2522,11 +2532,6 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             subs[sub].setdefault("charts_rendered", []).append(cid)
         else:
             s.setdefault("charts_rendered", []).append(cid)
-    # THE "WHAT TO SEE" LINE (W10-2): one call per section over its charts' own
-    # data blocks, after the drawing; a line that fails twice is withheld.
-    if narrative:
-        from . import chart_lines                               # noqa: PLC0415
-        chart_lines.write(ed, charts, model=model, client=client)
     ed["charts"] = {k: {kk: v for kk, v in c.items() if kk != "png"}
                     for k, c in charts.items()}
     ed["levels"] = book

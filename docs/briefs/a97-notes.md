@@ -15,7 +15,8 @@ is `docs/pastes/A97-attachment-weekly-readability.md`; D46 accepted it on 31 Oct
 | `a144f17b` | Part 2 |
 | `09f7b061` | Part 3 |
 | `b16a2fdb` | a Part 2 fix found by the Monthly's gate |
-| this commit | the notes |
+| `cd5cda66` | the notes |
+| the reorder commit | the Weekly draws its charts before its prose, so the précis stays last |
 
 ## Part 1 · W10-1, the fallback
 
@@ -156,13 +157,30 @@ The replay reads reason strings, so A90's binding change does not move it.
   Weekly's".
 
 So the section's prose call cannot see a chart's data block. The lines come from
-**one call per section after the drawing**, fed only that section's charts'
-blocks, metered as `see:<section>`. The section's own prose, its prompt and its
-audits are untouched.
+**one call per section, fed only that section's charts' blocks**, metered as
+`see:<section>`. The section's own prose, its prompt and its audits are
+untouched. **This differs from the order's "the section's model call"; it is for
+the operator to accept or redirect.**
 
-The alternative was to move the drawing before the prose in both editions, a
-reorder the order did not ask for. **This differs from the order's "the
-section's model call"; it is for the operator to accept or redirect.**
+**The Weekly's chart drawing now comes before its prose** (the reorder commit,
+after the notes' first commit). CI's
+first runs failed `validate_weekly_storyline`, which holds the précis as the last
+commentary written; only the playbook pass may follow it. Lines written after
+the drawing came after the précis. So:
+
+- only the drawing moved: the plan, the data reads and the draw calls, W3's
+  levels with them;
+- the alias check, the placement into sections and the edition's chart record
+  stay where they were, after the layout;
+- the order is now: draw, the sections' prose, the lines (grouped by the
+  Weekly's fixed `PLACE` map), the précis, the playbook;
+- the drawing reads only what `build()` made. Nothing between the prose and the
+  old drawing point changes what it reads: the précis, the playbook, the book's
+  terms, the coverage table and the layout (which rewrites the gap table's
+  status column).
+
+The Monthly draws after its sections' prose as before. Its lines follow the
+drawing and come before the executive summary, which stays its last prose.
 
 **What changed.**
 
@@ -179,7 +197,9 @@ section's model call"; it is for the operator to accept or redirect.**
     `see_withheld` on the chart, which prints without the line.
 - **Rendering:** `stack_render._chart_html` prints "What to see: ..." beneath
   the caption, and `md_charts` does the same in the Markdown.
-- **Wiring:** both editions' `produce()`, when narrative.
+- **Wiring:** both editions' `produce()`, when narrative. The Weekly calls
+  `write_groups(groups_from(PLACE, charts))`; the Monthly calls `write(ed,
+  charts)`, grouped by `charts_rendered`.
 - **Cost:** about one call per section that carries charts (the Weekly's 11
   charts sit in five or six sections), plus a revision where a line fails.
 
@@ -199,7 +219,9 @@ built on its own.
 - six action words are refused;
 - a chart with no block has no line and no call;
 - a close-only series, and an odd chart beside a good one;
-- one call per section.
+- one call per section;
+- the Weekly's grouping by `PLACE`;
+- the order (draw, prose, lines, précis), held by source.
 
 ## Part 3 · W10-3, the Coverage table
 
@@ -261,7 +283,7 @@ built on its own.
 
 ## Part 4 · Gates
 
-`tools/validate_weekly_readability.py`, 54/0. One Makefile line. The count goes
+`tools/validate_weekly_readability.py`, 56/0. One Makefile line. The count goes
 from 135/132 to 136/133, by hand: main has no stitch tools.
 
 **Merge-order recount.** A92, A93, A96 and A97 each make the same +1 on their
@@ -271,9 +293,15 @@ Each gate ran one at a time in the foreground, on the final branch unless noted:
 
 | Gate | Result |
 |---|---|
-| `validate_weekly_readability` | 54/0 |
+| `validate_weekly_readability` | 56/0 |
 | `validate_weekly_stack` | 83/0 |
 | `validate_weekly_edits` | 91/0 |
+| `validate_weekly_storyline` | 31/0 (it failed in CI before the reorder) |
+| `validate_weekly_complete` | 96/0 |
+| `validate_weekly_analytics` | 35/0 |
+| `validate_weekly_calendar` | 44/0 |
+| `validate_weekly_opener` | 46/0 |
+| `validate_digital_addendum` | 94/0 |
 | `validate_readability` | 67/0 |
 | `validate_monthly` | 360/0, 1 skipped |
 | `validate_audit_fixes` | 135/1. The one failure, B84's ordinal expectation, fails identically on main `422ea697`. A91 updated it on `a90-monthly-dryrun-2`, and on the dry-merged tree the gate is 158/0. |

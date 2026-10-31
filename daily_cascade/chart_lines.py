@@ -194,21 +194,39 @@ def chart_ids(s: dict) -> list:
     return ids
 
 
-def write(ed: dict, charts: dict, *, model=None, client=None, call=None) -> int:
-    """Each section's charts' lines onto the charts (`see` or `see_withheld`);
-    the number of lines written. Never raises."""
+def groups_from(place: dict, charts: dict) -> dict:
+    """{section id: [chart ids]} from a placement map ({chart id: (section id,
+    sub-section index)}, the Weekly's PLACE), in the charts' drawn order."""
+    out: dict = {}
+    for c in charts or {}:
+        if c in place:
+            out.setdefault(place[c][0], []).append(c)
+    return out
+
+
+def write_groups(groups: dict, charts: dict, *, model=None, client=None,
+                 call=None) -> int:
+    """Each group's charts' lines onto the charts (`see` or `see_withheld`); the
+    number of lines written. Never raises."""
     n = 0
-    for s in ed.get("sections") or []:
-        ids = [c for c in chart_ids(s) if c in (charts or {})]
+    for sid, ids in groups.items():
+        ids = [c for c in ids if c in (charts or {})]
         if not ids:
             continue
         try:
-            got = write_section(str(s.get("id")), charts, ids, model=model,
+            got = write_section(str(sid), charts, ids, model=model,
                                 client=client, call=call)
         except Exception:                                       # noqa: BLE001
-            log.warning("what-to-see: %s faulted", s.get("id"), exc_info=True)
+            log.warning("what-to-see: %s faulted", sid, exc_info=True)
             continue
         for c, v in got.items():
             charts[c].update(v)
             n += 1 if v.get("see") else 0
     return n
+
+
+def write(ed: dict, charts: dict, *, model=None, client=None, call=None) -> int:
+    """As write_groups, grouped by the sections' placed charts (the Monthly's
+    `charts_rendered`, a sub-section's with its section's)."""
+    return write_groups({s.get("id"): chart_ids(s) for s in ed.get("sections") or []},
+                        charts, model=model, client=client, call=call)

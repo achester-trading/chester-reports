@@ -302,6 +302,17 @@ def group_b() -> None:
     n = cl.write(ed, cs, call=fake([good, "W5: XLK leads the week at 1.23%."]))
     check(n == 2 and cs["W5"].get("see") == "XLK leads the week at 1.23%." and len(calls) == 2,
           "one call per section, a sub-section's charts with their section's")
+    from daily_cascade import weekly_stack as wks                # noqa: PLC0415
+    check(cl.groups_from(wks.PLACE, {"W5": {}, "W4": {}, "W3": {}, "ZZ": {}})
+          == {"positioning": ["W5", "W4"], "plumbing": ["W3"]},
+          "the Weekly groups its charts by section from its placement map")
+    src = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
+    body = src[src.index("def produce("):]
+    i_draw, i_prose = body.index("charts_mod.w1("), body.index("stack_prose.write(ed")
+    i_lines, i_precis = body.index("chart_lines.write_groups("), body.index("storyline_pass(ed")
+    check(i_draw < i_prose < i_lines < i_precis,
+          "the Weekly draws its charts, writes the sections' prose, then the lines, "
+          "then the précis: the précis stays the last commentary written")
 
 
 OBS_DDL = """
