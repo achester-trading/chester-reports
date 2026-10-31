@@ -76,12 +76,15 @@ def data_block(chart: Optional[dict]) -> Optional[dict]:
                              "points": len(vals)})
     elif isinstance(s, list) and s and isinstance(s[0], dict) and "close" in s[0]:
         closes = [float(b["close"]) for b in s if b.get("close") is not None]
+        # A bar may carry no high or low (a close-only series): the range is the
+        # bars' own where they have one, else the closes'.
+        highs = [float(b["high"]) for b in s if b.get("high") is not None] or closes
+        lows = [float(b["low"]) for b in s if b.get("low") is not None] or closes
         if closes:
             rows.append({"series": "close", "from": str(s[0].get("observed_at"))[:10],
                          "to": str(s[-1].get("observed_at"))[:10], "first": _r(closes[0]),
                          "last": _r(closes[-1]), "change": _r(closes[-1] - closes[0]),
-                         "high": _r(max(float(b["high"]) for b in s)),
-                         "low": _r(min(float(b["low"]) for b in s)), "bars": len(s)})
+                         "high": _r(max(highs)), "low": _r(min(lows)), "bars": len(s)})
     elif isinstance(s, list) and s and isinstance(s[0], dict) and "return_pct" in s[0]:
         rows = [{"series": r["name"], "return_pct": _r(r["return_pct"])} for r in s]
     elif isinstance(chart.get("stats"), dict):
@@ -138,8 +141,17 @@ def write_section(section: str, charts: dict, ids: list, *, model=None,
     """{chart id: {"see": line} or {"see_withheld": reason}} for the section's
     charts that carry a block. `call(payload, system) -> reply` stands in for the
     model in the gates."""
-    blocks = {c: data_block(charts.get(c)) for c in ids}
-    blocks = {c: b for c, b in blocks.items() if b}
+    blocks = {}
+    for c in ids:
+        try:
+            b = data_block(charts.get(c))
+        except Exception as exc:                                # noqa: BLE001
+            # One chart's odd data costs that chart its line, never its section's.
+            log.warning("what-to-see: %s/%s has no block: %s: %s", section, c,
+                        type(exc).__name__, exc)
+            b = None
+        if b:
+            blocks[c] = b
     if not blocks:
         return {}
     call = call or (lambda pl, sy: _call(pl, sy, section=section, model=model,

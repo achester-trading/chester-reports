@@ -281,6 +281,18 @@ def group_b() -> None:
           and cl.write_section("mechanics", {"W12": bare}, ["W12"], call=fake([good])) == {}
           and not calls and cl.data_block({"id": "W1", "unavailable": "no bars"}) is None,
           "a chart with no data block (or not drawn) has no line, and no call is made")
+    closes_only = {"id": "M7", "series": [{"observed_at": "2026-10-01", "close": 5.0},
+                                          {"observed_at": "2026-10-02", "close": 5.5,
+                                           "high": None}]}
+    cb = cl.data_block(closes_only)
+    calls.clear()
+    odd = {"id": "M8", "series": [{"observed_at": "x", "close": "not a number"}]}
+    got = cl.write_section("mechanics", {"M7": closes_only, "M8": odd}, ["M8", "M7"],
+                           call=fake(["M7: The close ends at 5.50, its high."]))
+    check(cb and cb["series"][0]["high"] == 5.5 and cb["series"][0]["low"] == 5.0
+          and got == {"M7": {"see": "The close ends at 5.50, its high."}},
+          "a close-only series takes its range from the closes; one chart's odd data "
+          "costs that chart its line, never its section's")
     ed = {"sections": [{"id": "misfit", "charts_rendered": ["W6"]},
                        {"id": "positioning", "subsections": [{"charts_rendered": ["W5"]}]}]}
     w5 = {"id": "W5", "caption": "returns", "series": [{"name": "XLK", "return_pct": 1.23},
