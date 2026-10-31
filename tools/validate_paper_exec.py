@@ -485,6 +485,150 @@ def group_i() -> None:
     check(not units, "no unit and no timer in this tranche")
 
 
+def _paper_trades(lg, rets, engine="eng_t", start=1000):
+    """Closed paper trades with the given net returns (synthetic)."""
+    for k, r in enumerate(rets):
+        t = f"2026-11-{(k % 27) + 1:02d}T15:{k % 60:02d}:00+00:00"
+        fid = lg.add_fill({
+            "signal_id": None, "engine_id": engine, "instrument": "MES", "purpose": "entry",
+            "side": 1, "qty": 1.0, "fill_kind": "quote", "reference_price": 6000.0,
+            "modelled_price": 6000.0, "stored_quote": None, "cost_class": "future",
+            "cost_spread": 0, "cost_slippage": 0, "cost_commission": 0, "cost_borrow": 0,
+            "cost_roll": 0, "cost_funding": 0, "cost_fx": 0, "cost_total": 0,
+            "filled_at": t, "as_of": t, "source": "paper_exec",
+            "venue_order_id": str(start + k), "venue_fill_time": t})
+        pid = lg.open_position({"engine_id": engine, "signal_id": None, "instrument": "MES",
+                                "cost_class": "future", "direction": 1, "qty": 1.0,
+                                "entry_fill_id": fid, "entry_price": 6000.0,
+                                "opened_at": t, "as_of": t})
+        lg.close_position(pid, fid, 6000.0, "paper target", t)
+        lg.add_grade({"position_id": pid, "engine_id": engine, "day": t[:10],
+                      "gross_pnl": 0, "costs": 0, "net_pnl": r, "net_return": r,
+                      "win": int(r > 0), "regime_key": None, "as_of": t})
+
+
+def group_j() -> None:
+    head("J. THE EDGE-DECAY PAUSE (D43)")
+    import math
+    from paper_exec import pause
+    fresh_state()
+    c = cfg(enabled=True, dry_run=False)
+    st = State(pcfg.state_dir(c))
+    lg = ledger()                     # backtest: expectancy 0.004, sd 0.02, n 400
+    _paper_trades(lg, [-0.01] * 19)
+    f = pause.figures(lg, "eng_t", c)
+    check(f["state"] == "accruing (n=19)" and not pause.evaluate(lg, st, "eng_t", c)["paused"],
+          "below 20 closed paper trades: accruing (n=19), never a pause")
+    rets = [-0.01] * 19 + [0.002]
+    lg2 = ledger()
+    _paper_trades(lg2, rets)
+    f = pause.figures(lg2, "eng_t", c)
+    mean = sum(rets) / 20
+    sd = math.sqrt(sum((r - mean) ** 2 for r in rets) / 19)
+    se = math.sqrt(sd ** 2 / 20 + (0.02 / math.sqrt(400)) ** 2)
+    z = (mean - 0.004) / se
+    check(abs(f["paper_mean"] - mean) < 1e-12 and abs(f["se"] - se) < 1e-12
+          and abs(f["z"] - z) < 1e-9 and f["backtest_se"] == 0.001 and f["state"] == "trip",
+          f"the arithmetic: mean {mean:+.4f} against 0.0040, SE {se:.5f} (paper sd/sqrt20 "
+          f"and the backtest's sd/sqrt(n_signals)), z {z:+.2f} <= -2: trips")
+    check("validated_metrics.expectancy" in f["fields"],
+          "the backtest fields are named: engines.validated_metrics.expectancy, .sd, .n_signals")
+    lg3 = ledger()
+    _paper_trades(lg3, [0.004 + 0.0005 * ((-1) ** k) for k in range(20)])
+    check(pause.figures(lg3, "eng_t", c)["state"] == "within",
+          "a paper record matching the backtest does not trip")
+    ev = pause.evaluate(lg2, st, "eng_t", c)
+    rep, ib, _, _ = run(c, [intent()], lg=lg2)
+    check(ev["paused"] and st.pause("eng_t") and rep["results"][0]["state"].startswith("paused")
+          and not ib.placed, "a tripped pause is written to state, and the engine sends nothing")
+    _paper_trades(lg2, [0.05] * 20, start=5000)
+    check(pause.figures(lg2, "eng_t", c)["state"] == "within"
+          and pause.evaluate(lg2, st, "eng_t", c)["paused"] and st.pause("eng_t"),
+          "it never clears itself: twenty good trades later it is still paused")
+    from paper_exec.__main__ import status_lines
+    check(any(x.startswith("PAUSED eng_t") and "standard errors" in x for x in status_lines(c)),
+          "the status command prints the pause with its figures")
+    try:
+        pause.resume(st, "eng_t", "")
+        ok = False
+    except ValueError:
+        ok = True
+    check(ok and pause.resume(st, "eng_t", "reviewed the fills") and not st.pause("eng_t")
+          and "reviewed the fills" in (st.root / "resumed.jsonl").read_text(encoding="utf-8"),
+          "only the operator's resume, with a reason, lifts it; the resume is recorded")
+
+
+def group_k() -> None:
+    head("K. 'WHY THIS COULD FAIL' (D43)")
+    import json
+    import yaml
+    from alpha import critique
+    from alpha_proposer import critic
+    h = {"id": "H-0001", "title": "t", "family": "trend", "mechanism": "m",
+         "rule_text": "buy MES on a 20-day high", "rule_dsl": '{"x": 1}', "instruments": '["MES"]',
+         "status": "failed", "status_reason": "holdout", "result": '{"expectancy": -0.01}',
+         "engine_id": "eng_t", "expected_size": 0.01, "spec": "{}", "pre_registered_at": "x"}
+    inp = critique.inputs(h)
+    check(set(inp) <= set(critique.INPUT_FIELDS) and not critique.leaks(inp)
+          and inp["rule_dsl"] == {"x": 1} and "result" not in inp and "status" not in inp,
+          "the critic's inputs are the hypothesis's text and rule only: no result field")
+    check(critique.leaks({"a": [{"expectancy": 1}]}) == ["expectancy"],
+          "the leak check finds a result field anywhere in a payload")
+    from alpha.ledger import Ledger
+    lg = Ledger(TD / "critic.db")
+    lg._insert("hypotheses", {                                   # noqa: SLF001
+        "id": "H-0001", "batch_id": "B", "local_id": "1", "title": "t", "family": "trend",
+        "mechanism": "m", "rule_text": "buy MES on a 20-day high", "rule_hash": "h",
+        "needs_code": 0, "spec": "{}", "source": "operator", "channel": "c",
+        "model_idea_rule": 0, "pre_registered_at": "2026-10-31T00:00:00+00:00",
+        "status": "failed", "result": '{"expectancy": -0.01}', "as_of": "x"})
+    inbox, logs = TD / "inbox", TD / "logs"
+    seen: list = []
+    reply = json.dumps({"modes": [{"mode": "cost", "sentence": "below the cost cliff"},
+                                  {"mode": "regime", "sentence": "trend-only"}]})
+    rec0 = critic.run(lg, "2026-10-31T23:00:00+00:00", cfg={"critic": {"daily_call_budget": 0}},
+                      call=lambda i: seen.append(i) or (reply, "m"), inbox=inbox, log_dir=logs)
+    check(critic.budget() == 0 and rec0["called"] == 0 and not seen
+          and rec0["state"] == "budget 0: no call made",
+          "the budget ships at 0 (config/alpha.yaml): no call is made")
+    rec = critic.run(lg, "2026-10-31T23:00:00+00:00", cfg={"critic": {"daily_call_budget": 5}},
+                     call=lambda i: seen.append(i) or (reply, "m"), inbox=inbox, log_dir=logs)
+    check(rec["called"] == 1 and len(seen) == 1 and not critique.leaks(seen[0])
+          and "result" not in json.dumps(seen[0]) and "failed" not in json.dumps(seen[0]),
+          "with a budget, one call per hypothesis, its inputs free of any result "
+          "(the hypothesis's 'failed' and its result never reach it)")
+    f = inbox / "critiques-2026-10-31.yaml"
+    doc = yaml.safe_load(f.read_text(encoding="utf-8")) if f.exists() else {}
+    man = (inbox / "manifest-proposer.jsonl").read_text(encoding="utf-8") if f.exists() else ""
+    check(doc.get("schema") == critique.SCHEMA and doc["critiques"][0]["hypothesis_id"] == "H-0001"
+          and f.name in man, "written as the proposer writes: an inbox file with its manifest line")
+    check(critic.calls_today("2026-10-31", logs) == 1
+          and critic.run(lg, "2026-10-31T23:30:00+00:00", cfg={"critic": {"daily_call_budget": 1}},
+                         call=lambda i: (reply, "m"), inbox=inbox, log_dir=logs)["called"] == 0,
+          "the day's calls count against the budget")
+    from alpha import inbox as ib_mod
+    res = ib_mod.ingest(lg, None, "2026-11-01T00:00:00+00:00", inbox=inbox)
+    row = lg.one("SELECT * FROM hypothesis_critiques WHERE hypothesis_id='H-0001'")
+    check(row and json.loads(row["modes"])[0]["mode"] == "cost" and row["author"] == "critic"
+          and any(x["file"] == f.name for x in res["ingested"]),
+          "the nightly ingestion stores the critique beside the hypothesis")
+    try:
+        lg.conn.execute("UPDATE hypothesis_critiques SET modes='[]'")
+        ok = False
+    except sqlite3.IntegrityError:
+        ok = True
+    again = critique.ingest(lg, doc, "x.yaml", "y")
+    check(ok and not again["stored"] and "written once" in again["refused"][0]["why"],
+          "a critique is written once: no update, and a second one is refused")
+    bad = critique.check([{"mode": "vibes", "sentence": "x"}, {"mode": "cost", "sentence": "y"}])
+    check(bad and "vocabulary" in bad and critique.check([{"mode": "cost", "sentence": "y"}]),
+          "the closed vocabulary, and two to five modes")
+    src = (REPO / "alpha_proposer" / "critic.py").read_text(encoding="utf-8")
+    check("model_meter.scope(report=REPORT" in src and "model_meter.create(" in src
+          and "Ledger(" not in src,
+          "the call is metered (report alpha_critic), and the package never writes alpha.db")
+
+
 def main() -> int:
     for g in GROUPS:
         g()
@@ -493,7 +637,8 @@ def main() -> int:
     return 0 if FAIL == 0 else 1
 
 
-GROUPS = [group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h, group_i]
+GROUPS = [group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h, group_i,
+          group_j, group_k]
 
 if __name__ == "__main__":
     sys.exit(main())

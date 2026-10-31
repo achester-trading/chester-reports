@@ -3,8 +3,10 @@ python -m paper_exec status                      # never connects
 python -m paper_exec run [--ledger PATH]         # by hand, on the box; dry unless
                                                  # the operator set both flags
 python -m paper_exec clear-kill --reason "..."   # the operator's, after a kill
+python -m paper_exec resume --engine X --reason "..."   # the operator's, after a
+                                                 # decay pause
 
-`run` and `clear-kill` are on the deny list: a session never runs them.
+`run`, `clear-kill` and `resume` are on the deny list: a session never runs them.
 """
 
 from __future__ import annotations
@@ -51,8 +53,16 @@ def _main(argv: list[str]) -> int:
     r.add_argument("--ledger")
     c = sub.add_parser("clear-kill")
     c.add_argument("--reason", required=True)
+    rs = sub.add_parser("resume", help="the operator's resume of an edge-decay pause")
+    rs.add_argument("--engine", required=True)
+    rs.add_argument("--reason", required=True)
     a = ap.parse_args(argv)
     cfg = pcfg.load()
+    if a.cmd == "resume":
+        from . import pause                                     # noqa: PLC0415
+        had = pause.resume(State(pcfg.state_dir(cfg)), a.engine, a.reason)
+        print(f"{a.engine} resumed" if had else f"{a.engine} is not paused")
+        return 0
     if a.cmd == "status":
         print("\n".join(status_lines(cfg)))
         return 0

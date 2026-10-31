@@ -436,6 +436,28 @@ CREATE TABLE IF NOT EXISTS carry_accruals (
     PRIMARY KEY (carry_id, day)
 );
 
+-- A98 (D43): "WHY THIS COULD FAIL" -- one critique per hypothesis from the
+-- critic call that never sees results (alpha/critique.py), written once.
+CREATE TABLE IF NOT EXISTS hypothesis_critiques (
+    hypothesis_id   TEXT PRIMARY KEY REFERENCES hypotheses(id),
+    modes           TEXT NOT NULL,
+    author          TEXT NOT NULL,
+    model_id        TEXT,
+    prompt_version  TEXT,
+    inputs_sha256   TEXT NOT NULL,
+    file_name       TEXT,
+    as_of           TEXT NOT NULL,
+    written_at      TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS hypothesis_critiques_fixed
+BEFORE UPDATE ON hypothesis_critiques
+BEGIN SELECT RAISE(ABORT, 'a critique is written once'); END;
+
+CREATE TRIGGER IF NOT EXISTS hypothesis_critiques_no_delete
+BEFORE DELETE ON hypothesis_critiques
+BEGIN SELECT RAISE(ABORT, 'a critique is kept'); END;
+
 CREATE INDEX IF NOT EXISTS positions_open ON positions (status, engine_id);
 CREATE INDEX IF NOT EXISTS events_by_time ON loop_events (written_at);
 

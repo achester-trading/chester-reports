@@ -28,6 +28,14 @@ def _main(argv: list[str]) -> int:
     st = ReadOnlyStore(a.store)
     try:
         rec = propose.run(st, lg, a.as_of)
+        # A98 (D43): the critic, after the proposer -- "why this could fail" for
+        # each hypothesis without one, within its budget (0 ships: no call).
+        from . import critic                                    # noqa: PLC0415
+        try:
+            crec = critic.run(lg, a.as_of)
+            print(json.dumps({"critic": crec.get("state"), "called": crec.get("called")}))
+        except Exception as exc:                                # noqa: BLE001
+            print(json.dumps({"critic": f"faulted: {type(exc).__name__}"}))
     finally:
         st.close()
         if lg is not None:

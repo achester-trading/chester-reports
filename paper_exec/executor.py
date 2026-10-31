@@ -104,6 +104,11 @@ def run(intents: list[orders.Intent], cfg: dict, ledger, *,
             return rep
         limits = limits if limits is not None else pcfg.risk_limits()
         risk = open_risk(ledger, cfg)
+        # THE EDGE-DECAY PAUSE (D43), per engine with an intent, over the fills
+        # just captured; a tripped pause stays until the operator resumes it.
+        from . import pause                                     # noqa: PLC0415
+        rep["decay"] = {e: pause.evaluate(ledger, st, e, cfg)
+                        for e in dict.fromkeys(i.engine_id for i in intents)}
         for i in intents:
             res = {"intent": i.as_dict()}
             rep["results"].append(res)
