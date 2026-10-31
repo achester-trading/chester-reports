@@ -586,17 +586,17 @@ Three changes are watched. *Insured catastrophe losses against reinsurance capit
 
 | Episode | Figure | Source |
 |---|---|---|
-| 2022 mortgage rates | The 30-year fixed rate rose from about 3.1% in early January to about 7.1% in late October and early November 2022 (to verify: Freddie Mac PMMS) | Freddie Mac PMMS |
-| 2022 listed against private | The FTSE Nareit All Equity REITs index returned about −25% in 2022; the NCREIF ODCE index returned about +7% (to verify: FTSE Russell; NCREIF) | FTSE Russell; NCREIF |
-| 2017 loss year | Insured natural-catastrophe losses of roughly $140 billion, a record at the time (to verify: Swiss Re Institute, sigma) | Swiss Re Institute, sigma |
-| 2005 loss year | The Gulf hurricanes of 2005 were then the costliest insured catastrophe season on record (to verify: Swiss Re Institute, sigma) | Swiss Re Institute, sigma |
-| March 2023 | Three US regional banks failed in March and early May 2023 (to verify: FDIC) | FDIC |
+| 2022 mortgage rates | The 30-year fixed rate rose from 3.22% in the first week of January to 7.08% on 27 October and again on 10 November 2022 *(Freddie Mac PMMS, weekly, via FRED `MORTGAGE30US`; read 31 October 2026)* | Freddie Mac PMMS |
+| 2022 listed against private | The FTSE Nareit All Equity REITs index returned −24.9% in 2022; the NCREIF ODCE index returned +7.47% gross of fees *(Nareit, market commentary of 10 January 2023; NCREIF, NFI-ODCE fourth-quarter 2022 release)* | Nareit; NCREIF |
+| 2017 loss year | Insured losses from catastrophe events, natural and man-made, of $144 billion, the highest sigma had recorded for a single year *(Swiss Re Institute, sigma No. 1/2018; release of 10 April 2018)* | Swiss Re Institute, sigma |
+| 2005 loss year | The Gulf hurricanes of 2005 made it the costliest hurricane season on record, a rank it still held after 2017 *(Swiss Re Institute, sigma No. 1/2018; release of 10 April 2018)* | Swiss Re Institute, sigma |
+| March 2023 | Three US regional banks failed, on 10 and 12 March and 1 May 2023 *(FDIC, failed bank list; read 31 October 2026)* | FDIC |
 
 ### B.3 — Markets as they stand
 
-- **The catastrophe-bond market** is commonly reported at roughly $50 billion outstanding, against global reinsurance capital of roughly $700 billion, of which alternative (capital-market) capital is roughly $100 billion. Each figure varies by source and definition. *(Artemis; Aon; as of late 2025)* (to verify: Artemis; Aon)
-- **US commercial real-estate debt** is commonly reported at about $5 trillion outstanding, with banks the largest holders. *(Federal Reserve, Z.1; MBA)* (to verify: Federal Reserve, Z.1; MBA)
-- **The US housing stock** is mostly financed with 30-year fixed-rate mortgages; the share of outstanding mortgages carrying a rate below the prevailing new-loan rate remained large through 2026. *(FHFA; ICE Mortgage Monitor)* (to verify: FHFA; ICE Mortgage Monitor)
+- **The catastrophe-bond market** stood at just over $61 billion outstanding at the end of 2025, against global reinsurance capital of $785 billion, of which alternative (capital-market) capital was $136 billion. Each figure varies by source and definition. *(Artemis, cat bond market report of 8 January 2026, 144A and tracked private deals; Aon, Reinsurance Market Dynamics, midyear 2026, Exhibit 1; as of 31 December 2025)*
+- **US commercial real-estate debt** was about $4.0 trillion of commercial mortgages and $2.5 trillion of multifamily mortgages outstanding at the end of the second quarter of 2026, with banks the largest holders: commercial banks held $3.1 trillion of commercial real-estate loans in September 2026. *(Federal Reserve, Z.1, via FRED `ASCMA` and `ASMRMA`, 2026 Q2; Federal Reserve, H.8, via FRED `CREACBM027NBOG`, September 2026)*
+- **The US housing stock** is mostly financed with 30-year fixed-rate mortgages (83.1% of outstanding mortgages by count); 77.5% of outstanding mortgages carried a rate below 6%, and their average rate was 4.4%, against a prevailing new-loan rate of 6.49%. *(FHFA, National Mortgage Database, outstanding mortgage statistics, 2026 Q2; Freddie Mac PMMS of 25 June 2026)*
 
 ### B.4 — What the store does not yet hold
 

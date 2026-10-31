@@ -136,3 +136,31 @@ reserved for.
 - **5. The Master Guide's generated files.** The stitch regenerates them, so conflicts there are expected and are not fixed per branch. XXX's CI failure is fixed in B78 on `library-xxx` (the same "no group" failure, confirmed locally). The Quarterly's owning-paper config (`config/quarterly_chapters.yaml`, `paper: null` for real estate and agriculture) belongs to the merge paste.
 
 `check_library` after the marks: 0 failures, 1 warning (check 11, unchanged).
+
+## B94, 31 Oct 2026: the eight "(to verify)" marks cleared (session B)
+
+Base: this branch at `88574593` (paste `docs/pastes/B94.md`). The only body edits are
+the eight sentences in Appendix B (B.2's five rows, B.3's three bullets). Every source
+is a public page read on 31 Oct 2026. Swiss Re's English release and MBA's release page
+answered 403; neither was worked around. Swiss Re's own German release and the Federal
+Reserve's series were read instead.
+
+| # | Mark | Source | Result |
+|---|---|---|---|
+| 1 | 2022 mortgage rates, "about 3.1% … to about 7.1%" | Freddie Mac PMMS via FRED `MORTGAGE30US`: 3.22% on 6 Jan 2022 (3.11% was 30 Dec 2021); 7.08% on 27 Oct and 10 Nov 2022 | **Corrected**: 3.1% → 3.22%, the first 2022 print; 7.1% → 7.08% with both dates |
+| 2 | 2022 REITs "about −25%", ODCE "about +7%" | Nareit, market commentary of 10 Jan 2023: "a total return of -24.9%"; NCREIF, NFI-ODCE Q4 2022 release: "For the one-year ended December 31, 2022, the NFI-ODCE total return gross of fees was 7.47%" | **Confirmed**, made precise (−24.9%; +7.47% gross). The source column now reads Nareit, the index's co-owner and publisher of its returns, for FTSE Russell |
+| 3 | 2017, "insured natural-catastrophe losses of roughly $140 billion, a record" | Swiss Re Institute, sigma No. 1/2018, release of 10 Apr 2018: insured losses from catastrophe events of USD 144 bn, "dem höchsten je von sigma verzeichneten Wert" | **Corrected**: the record figure is $144bn and covers natural *and* man-made events; the release gives no natural-only figure, so the sentence now states the source's scope |
+| 4 | 2005, "then the costliest insured catastrophe season" | The same release: "Damit war 2017 nach 2005 die zweitteuerste Hurrikansaison" | **Confirmed**, wording narrowed to the source's "hurricane season", and noted that the rank still held after 2017 |
+| 5 | "Three US regional banks failed in March and early May 2023" | FDIC failed bank list: 10 Mar, 12 Mar and 1 May 2023 | **Confirmed**, with the dates (banks not named in the paper) |
+| 6 | Cat bonds ~$50bn, reinsurance capital ~$700bn, alternative ~$100bn, "late 2025" | Artemis, 8 Jan 2026: the market "ended 2025 at a record size of just over $61.3 billion" (144A and tracked private); Aon, Reinsurance Market Dynamics midyear 2026, Exhibit 1: 2025 total $785bn, alternative $136bn | **Corrected**: $61bn, $785bn and $136bn, as of 31 Dec 2025 |
+| 7 | US CRE debt "about $5 trillion", banks largest | Federal Reserve Z.1 via FRED: `ASCMA` $4.01tn and `ASMRMA` $2.49tn at 2026 Q2; H.8 `CREACBM027NBOG` $3.14tn, Sep 2026. MBA's release ($5.1tn, its narrower commercial/multifamily measure) answered 403 | **Corrected**: restated on the primary Z.1 series ($4.0tn commercial, $2.5tn multifamily), banks' $3.1tn added |
+| 8 | Mostly 30-year fixed; the share below the prevailing rate "remained large through 2026" | FHFA NMDB, outstanding mortgage statistics, national, all mortgages, 2026 Q2: 30-year FRM 83.1% of loans; rate 6% or higher 22.5% (so 77.5% below 6%); average rate 4.4%; Freddie Mac PMMS 6.49% on 25 Jun 2026 | **Confirmed**, with the figures; ICE Mortgage Monitor no longer needed |
+
+No mark is left: none unsourced, none removed. No person is named and no
+Brookfield-group instrument appears.
+
+**HTML.** The paper's edition is now built (`docs/html/real-assets-and-risk-transfer-whitepaper.html`,
+`tools/build_paper_html.py`). It had none on this branch before.
+
+**Gates**, one at a time: check_library 28 papers, 0 failures, 1 warning (check 11,
+the guide's word total, unchanged); check_master_guide passed.
