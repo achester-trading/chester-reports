@@ -8,6 +8,14 @@
 
 **What this is.** This is the pack for the second Doctrine sitting, refreshed with October's rulings (A67, 24 Oct 2026). It replaces the agenda of the 20 Oct edition (a52-doctrine-2-pack) and keeps every item of that edition that still applies (Part 8, with its full text in Annexes A and B). It gathers in one place everything October left "proposed", "session-set" or "to Doctrine #2".
 
+**The B96 refresh (31 Oct 2026).** Session B refreshed this edition with everything ruled or filed between 24 and 31 Oct:
+- **Part 9 of the decision list:** D2-73 to D2-83, options only, each with its source.
+- **Part 9 of the text:** the merges to main since 22 Oct, the rulings D30 to D48 as they bear on the pack, and the evidence for the new items.
+- **Part 10:** the ledgers written since the 20 Oct evidence table, each with its verdict, n and as-of.
+- **Part 11:** the order of business for Sat 7 and Sun 8 Nov, the decisions that hold or release a build first.
+- **Unchanged:** D2-1 to D2-72 and the annexes, except where Part 9 says a row is amended.
+- **Reading time:** the refresh adds about 3,100 words (about 14 minutes).
+
 **How to take it.** The sitting's shape follows the standing ruling of 24 Oct: "present decision sets as one list with recommendations; Ari accepts in one read unless he disagrees".
 - Each item is a numbered decision, **D2-n**. Each states the value as set, the alternative, and a one-line recommendation.
 - Parts 1 to 8 give the evidence behind each.
@@ -147,6 +155,45 @@ Each row is the 20 Oct edition's item and its draft, unchanged unless a note say
 - **Deferrals to Audit #5:** D2-46, D2-71.
 
 **Not for a block**, because each changes what a book may do: D2-26, D2-32, D2-35, D2-39, D2-45, D2-49, D2-63, D2-65, D2-67, D2-72.
+
+### Part 9. Added since the A67 edition (B96, 31 Oct 2026)
+
+Every item since 24 Oct that a ruling, an order or a brief sends "to Doctrine #2" or "after Doctrine #2". **Options only.** Where an earlier document drafted a recommendation, the last column names it and its source. B96 adds no recommendation of its own. The evidence for each is in Part 9 below.
+
+| # | Item | Source | To decide | Options already drafted | Drafted earlier |
+|---|---|---|---|---|---|
+| D2-73 | The price-source migration: the plan and the deadline | D33(4) (24 Oct); `price-source-migration-brief-2026-10-25.md` (b68, on chain-8), section 7; D38 (26 Oct) | Under D33(4), the plan and the deadline, "with the exposure stated" | (a) confirm D38's acceptance of b68's ten decisions as the plan: IBKR daily bars primary, Massive for the S&P members and corporate actions; a $60 a month ceiling; DTWEXBGS with its lag labelled; the uncovered keys (^MOVE, the foreign cash indices, ^SET.BK, consensus, the earnings calendar's forward dates) listed gaps; retirement **Fri 8 Jan 2027**; (b) a 22 Dec 2026 deadline; (c) no deadline, family by family | b68: (a) for each; D38 accepted all ten "as recommended" |
+| D2-74 | The Cboe readers: `cboe_indices` (COR1M, COR3M, DSPX) and the VX-curve logger | D40 (27 Oct); D45 (31 Oct); `cboe-terms-check-2026-10.md` (b89), "Decisions for Doctrine #2"; the hold on `b95-cboe-held` | (a) `cboe_indices`; (b) the VX curve; (c) the stored rows; (d) the substitutes; (e) the dispersion story's grade; (f) whether to ask Cboe for a licence; (g) the VIX term-structure dual run | (a) freeze, retire or licence; (b) freeze, retire before 23 Dec with the dual run ended in a v1.13 note, or licence; (c) purge after a backup, or keep frozen; (d) Yahoo's ^VIX and ^VIX3M (the vol dial and the published VIX3M/VIX leg) follow D33's ruling; FRED's VIXCLS, VXVCLS and VXNCLS as the substitute of record (nothing reads VXVCLS today); the VX1-VIX basis a listed gap (D45); the dispersion panel's Yahoo fallback (^DSPX from May 2024; ^COR1M and ^COR3M quotes without history), unused while held; (e) re-point to `yfinance.mkt_dspx`, or void; (f) ask, or not; (g) end at 23 Dec as planned, or end now | b89: retire both; purge after a backup. D45 kept the rows "for now" and held new pulls from the 3 Nov merge |
+| D2-75 | The 23-hour equity session's three adjustments (item 98) | Batch 18 (`change-order-signal-triage-batch-18-2026-10-28.md`, on the filing branches), "built after Doctrine #2"; D42.5 | When 98(a) session-aware bars, 98(b) the overnight read and 98(c) the night bars' source are built | (i) released by this sitting, in the order's work order: 98(c) inside the price migration (D2-73), then (a), then (b); (ii) held for Audit #5's placement of SR-68 | The order: "phase after Doctrine #2"; SR-68 "provisional, placed by Audit #5" |
+| D2-76 | Paper XXXI's roll-up tiers | D38 item 53 ("unconfirmed until Doctrine #2"); D48 (31 Oct) | Whether D48 is the confirmation D38 asked for | (a) record D48 (the memo's decision 7: count fired mechanism families; CLEAR 0–1, WATCH 2, ALERT 3+) as confirmed; (b) reopen | The library review memo (B93), decision 7; accepted by D48 |
+| D2-77 | The Weekly readability order (W10-1 to W10-3) | D36 (25 Oct); `change-order-weekly-readability-2026-10-30.md`; D46 (31 Oct) | Nothing: ruled and filed | For the record. Built by A97 for the 8 Nov Weekly | D46: decisions 1–4 as recommended |
+| D2-78 | The Phase 4 paper engine | D35 (24 Oct); `phase-4-paper-engine-assessment-2026-10.md` (b90); D43 (31 Oct); D44 | Nothing: ruled | For the record: D43 (a)–(f), no live orders before 2027; D44, Pillar 5H from EDGAR 13F, Tranche B | D43 accepted b90's recommendations |
+| D2-79 | Whether D41 closes D2-45 (W-1, the DTH-1 scope) | D41 (27 Oct): the Day-Trading Layer brief's ten decisions accepted; the brief lives outside the repository (D41(i)) | Whether D2-45's question, which engine first and when the Book B scanner's daily candidates are released, was settled by D41 | (a) record D2-45 as closed by D41; (b) rule D2-45 as drafted where D41's brief did not settle it. The pack cannot quote the brief | — |
+| D2-80 | The SR numbering collision (amends D2-22) | Table 5.1's draft (SR-60 to SR-93 for items 45–78); the provisional rows filed since: SR-60–64 (Batch 16, on main), SR-65–67 (Batch 17, `a81-batch-17-filing`), SR-68 (Batch 18), SR-69–72 (Batch 19), SR-73–75 (Batch 20), SR-76 (Batch 21) | Which set keeps SR-60 onward | (a) items 45–78 take SR-77 onward; (b) the batches' provisional rows renumber after items 45–78; (c) both wait for Audit #5, which places every provisional row | Every provisional row reads "placed by Audit #5" |
+| D2-81 | `alignment_weekly`'s split: the hit definition | `a65-6f-tranche4-notes.md` (on chain-8), needs-you 3: "Doctrine #2 can amend it" | What counts as a hit when the split is read | (a) as built: a positive return in the decision's direction, over all graded statuses; (b) ruled R > 0 over taken decisions, as the scoreboard reads | — |
+| D2-82 | A66's capex-guidance extraction rules | `a66-capex-guidance-notes.md` (on chain-8), needs-you 4: "Ratify or amend at Doctrine #2" | The session-set extraction rules and markers (Part 3 of the notes), and the brief's 400-character window | (a) ratify with D2-4's block; (b) amend | — |
+| D2-83 | The Reporting System paper, Drafts 3 and 4 | Table 5.2 (Draft 3, outside the block); `readers-guide-draft-4-notes.md` (on chain-8), needs-you 2 | Whether Draft 4 is accepted under rule 31, and Draft 3's pending acceptance with it | (a) accept Draft 4 as drafted, Draft 3 superseded; (b) review first | — |
+
+**Rows of the A67 edition that this refresh amends.**
+- **D2-22:** read with D2-80. The SR numbers it drafts are now partly taken.
+- **D2-29 and Table 7.1:** add the dated items of Part 9 below.
+- **D2-45:** read with D2-79.
+- **D2-68 (the v1.13 bump):** read with D2-74(b). A dual run ended early would be a v1.13 note too, so the two can be one bump.
+- **D2-33 (the flag's stamp, "record as done"):** unchanged.
+
+**Not for this sitting.** Tranche B and C placements wait for Audit #5 (week of 23 Nov). Listed so that none is mistaken for an open item:
+- Batch 17 (items 92–97; 97(a)–(c) merge after 8 Nov, D39);
+- Batch 19 (items 99–110);
+- Batch 20 (items 111–114, with 111(d) applying under D44);
+- Batch 21 (item 115, the evening X read, D47);
+- SR-68's placement (item 98), once D2-75 is taken;
+- D26's new sources, each pre-registered as an Alpha Lab hypothesis first;
+- the late publishers left stale (D42.4);
+- the Category 2 triggers (D2-46);
+- the dealer engine's later enhancements (D2-71);
+- the debt-cycle branch rule (D30(2): Doctrine #3, early December).
+
+**Blocks, with the additions.** D2-82 can join the values block (D2-1 to D2-4). D2-76, D2-77 and D2-78 are records, taken together. D2-73, D2-74, D2-75, D2-79 and D2-80 each want their own ruling: each releases or holds a build.
 
 ---
 
@@ -517,6 +564,136 @@ No t2-* notes file exists. T2's changes are in the config comments and the minut
 | The Alternative Assets Quarterly's first run (timer disabled until January) | January 2027 | the 20 Oct pack, T8-7 |
 
 ---
+## Part 9. Since the last pack (B96, 31 Oct 2026)
+
+### The merges to main since 22 Oct
+
+A67 was written on 24 Oct, on top of chain-5 (merged 23 Oct, PR #41). Five merges have landed on main since then. Each is listed with what it changed in the reports.
+
+| Merged (ET) | Branch (PR) | What changed in the reports |
+|---|---|---|
+| 28 Oct, 18:34 | A61b, the feed repair (#42) | The refused sources ask nothing: MBA, Farside and Apartment List (`source_registry.yaml` `status: refused`). The MBA line and every ETF-flow line print "not tracked: … refuses automated reads since 2026-10-24". The store check and the heartbeat list declared keys apart (superseded, refused, gap, while_held), never stale. FRED's fetch retries with the status in its reason. A derived key inherits its inputs' largest lag, and ten lag families were added. fed_funds runs ahead of prediction_markets (D29.2). AERO follows DefiLlama's merged parent as a labelled break (D29.3) |
+| 28 Oct, 19:34 | A78, Batch 16's midterm table (#43) | Items 80(b) and 90: the midterm base-rate ledger and the 3 Nov row in the Weekly's Ahead, with its Table 7a row in the Master Guide |
+| 28 Oct, 20:22 | A85, the midterm copy-back (#44) | The box editions of the midterm ledger (2026-10-28) and the wealth ledger (ST-R6.66c, 2026-10-28) replace the laptop's. The Weekly's midterm row reads the box edition. D35–D41 are filed (`rulings-2026-10-25-27.md`) |
+| 29 Oct, 14:42 | A88, the Monthly's audit binding (#45) | From the 28 Oct dry run's 14 withheld sections, by cause: the numeral audit binds the series the prose names, and the role audit skips dates, windows and named weights |
+| 29 Oct, 14:42 | B84, the Monthly's tape, delta and state withholds (#46) | The Monthly's `tape_rules`, `bare_delta` and `state_misstated` withholds of the 28 Oct dry run, fixed by class. One case of `validate_audit_fixes` (B84's looking-ahead calendar) is red on main since: 135 passed, 1 failed |
+
+**Merging Tue 3 Nov, after the 1 Nov Monthly** (branch-only today): chain-8 (`b86-chain-8-assembly`, which carries A67's and A70's editions of this pack); the library papers (B88's rehearsal, D48); the Cboe hold (`b95-cboe-held`, D45); and the filings of Batches 19, 20 and 21 with the rulings record (`docs/briefs/rulings-2026-10-28-31.md`, D42–D48).
+
+### The rulings since the A67 edition
+
+| Ruling | Date | What it settles for this pack |
+|---|---|---|
+| D30 | 24 Oct | XXVII's debt-cycle branch rule goes to Doctrine #3, not #2 |
+| D33 | 24 Oct | yfinance: no new symbols; the migration plan and its deadline to Doctrine #2 (D2-73) |
+| D35, D43 | 24 and 31 Oct | The Phase 4 engine: assessed (b90), then ruled (D2-78) |
+| D36, D46 | 25 and 31 Oct | The Weekly Letter, and the readability order ruled (D2-77) |
+| D37, D39, D42.15–16, D47 | 26–30 Oct | Batches 16, 17, 19, 20 and 21 filed. Their placements are Audit #5's ("not for this sitting") |
+| D38 | 26 Oct | The 60-item morning list accepted, including b68's ten decisions (D2-73) and item 53, XXXI's tiers "unconfirmed until Doctrine #2" (D2-76) |
+| D40, D45 | 27 and 31 Oct | The Cboe readers: a terms check, then a declared hold from 3 Nov, with the rest to this sitting (D2-74) |
+| D41 | 27 Oct | The Day-Trading Layer brief accepted (D2-79) |
+| D42 | 28–30 Oct | The box run's follow-ups: lag allowances, line endings, the chain-8 assembly. Item 98 accepted as filed (D2-75) |
+| D44 | 31 Oct | Pillar 5H built from 13F, Tranche B |
+| D48 | 31 Oct | The twelve library review decisions (D2-76's tiers among them) |
+
+### The evidence for Part 9's items
+
+- **D2-73.** b68's exposure table (section 1) is the "exposure stated" D33(4) asks for. D38 accepted the brief's ten decisions on 26 Oct, so the sitting confirms a plan already in force or amends it. 98(c) depends on it: night bars come from the gateway under the migration's terms.
+- **D2-74.** The b89 check of 30 Oct: both readers fail the terms' storage clause. D45 held new pulls from the 3 Nov merge and kept the stored rows. The hold's notes (`docs/briefs/b95-notes.md` on `b95-cboe-held`) list what goes dark:
+  - the dispersion panel's three rows (Weekly and Monthly Mechanics);
+  - the term structure's champion leg and the VX1-VIX basis;
+  - the Monthly v2's front-month VIX future;
+  - a fired volatility event's breadth lens;
+  - the dispersion story's evidence and grade.
+  The vol dial is untouched: its members are `yfinance.mkt_vix`, `fred.vix` and `calc.vol_spy_realized_20d`. So is the published VIX3M/VIX leg, Yahoo's ^VIX3M over ^VIX. Both are Cboe's index values relayed by Yahoo, which is why b89 puts them under D33. The dual run ends 23 Dec. Until then the champion counts "not comparable" once its rows are stale.
+- **D2-75.** The order (Batch 18, K1–K4) leaves the cadence unchanged. Its work order puts 98(c) first, inside the migration: "whether the gateway serves night-session bars for SPY and QQQ".
+- **D2-80.** The register on each branch: main ends at SR-60–64 (Batch 16); `a81-batch-17-filing` adds SR-65–67; `b91`, `b92` and `b95` add SR-68 to SR-76. None of items 45–78 has a number yet.
+
+### The dated items added to Table 7.1
+
+| Item | Date | Source |
+|---|---|---|
+| The post-Monthly merges (chain-8, the library, the Cboe hold, the filings) | Tue 3 Nov, evening | the pastes B91 to B96 ("merges Tuesday 3 Nov evening"); D45 |
+| The Cboe readers' new pulls stop | Tue 3 Nov (the merge) | D45 |
+| The first Weekly with the readability fixes | Sun 8 Nov | D46 |
+| Doctrine #3 (the debt-cycle branch rule, D30(2)) | early December | D30 |
+| The yfinance retirement | Fri 8 Jan 2027 (22 Dec 2026 the earliest) | D38 (b68, decision 9); D2-73 |
+| The library's corpus review pass | Sat 16 Jan 2027 | D48 (decision 9) |
+
+---
+
+## Part 10. The evidence, refreshed
+
+The 20 Oct evidence table (Annex A, "The evidence in one place") is unchanged: no new edition of any ledger in it has reached main. These are the ledgers written since, with each one's verdict, n and as-of as the ledger states them.
+
+**On main:**
+
+| Ledger | Tests | Verdict | n | As of |
+|---|---|---|---|---|
+| midterm-base-rate-2026-10-28.md (box edition; supersedes 2026-10-26) | the midterm year's drawdown and the low's place (items 80(b), 90) | NO GATE IN THE ORDER, base rate recorded | 19 midterm years; 57 others | 2026-10-28 (S&P 500 close) |
+| st-r6.66c-ledger-2026-10-28.md (box edition; supersedes 2026-10-21) | the wealth-effect impulse against real PCE (item 66) | FAIL: rho +0.06 (rule ≥ 0.20) | 65 | real PCE 2026-08-01; Z.1 2026-04-01; SPX 2026-10-28 |
+| st-r6.59c-ledger-2026-10-20.md | the bank-stress classifier (item 59) | FAIL: crises caught 2 of 2; corrections stayed correction 6 of 16 (the rule needs two-thirds) | 18 | 2026-10-20 |
+| os-12c-ledger-2026-10-20.md | relative options volume (OS-12) | INSUFFICIENT: 0 scored flagged name-days | 0 | 2026-10-20 |
+
+**The midterm base rate's headline** (2026-10-28): the year's drawdown, median −16.6% (mean −17.5%), against −9.9% (mean −12.4%) in the 57 other years. The year's low came before election day in 17 of 19. Base-rate rights only (item 90): it prints beside the 3 Nov row, never as a forecast.
+
+**On chain-8, merging 3 Nov:**
+
+| Ledger | Verdict | n | As of |
+|---|---|---|---|
+| d15-ledger-2026-10-24.md (the one-day 10-year trigger, D15) | INSUFFICIENT: term premium 2, expected short rates 65 episodes (needs 15 each) | 67 | DGS10 2026-10-22 |
+| st-r6.65a-ledger-2026-10-23.md | INSUFFICIENT: 14 and 14 episodes (needs 15 each) | 28 | DGS10 2026-10-22 |
+| st-r6.71d-ledger-2026-10-23.md | FAIL: on before 0 of 3 air pockets (rule 2) | 2,965 | SPY 2026-10-23 |
+| st-r6.74b-ledger-2026-10-23.md | INSUFFICIENT: no ES rows yet | 0 | 2026-10-23 |
+| trend-breadth-2026-10-26.md (item 89(b)) | FAIL (the S&P 500 at +20, the rule's cell) | 163 weeks | 26 Oct 2026 (laptop first edition) |
+| gold-exhaustion-ledger-2026-10-26.md | INSUFFICIENT | 0 weeks | 2026-10-26 |
+| tb-harness-2026-10-26.md (6i's harness) | INSUFFICIENT: 3 of 3 tops and 4 of 4 controls unread | 13 episodes, 17 decision dates | 2026-10-26 |
+
+D9 accepted the 65a, 66c, 71d and 74b first verdicts as rule-31 drafts on 24 Oct. Their 23 and 28 Oct editions keep the verdicts.
+
+**The calibration ledgers.**
+- 6f's first calibration read is unchanged since A67: k = 0 on the laptop, and the box's read follows the post-Monthly merge (D29.9).
+- No transition probability prints (D2-20).
+- The ST-7 and ST-8 calibration editions (sr-NN-ledger-2026-10-18) have no later edition.
+
+**The Master Guide's count** (Part 5, as on main): of twenty-one gated signals with a verdict, one passed, twelve failed and eight are insufficient. The verdicts above add to the failed and insufficient columns once Table 7a carries them.
+
+---
+
+## Part 11. The sitting's order of business
+
+Two sittings, each inside the attention budget's two hours (D2-26). The decisions that hold or release a build come first, so that the week of 9 Nov can start on them. Minutes are planning figures.
+
+### Saturday 7 November (about 110 minutes)
+
+| Slot | Minutes | Items | Why here |
+|---|---|---|---|
+| 1 | 15 | D2-73 the price migration | Releases the gateway and Massive writers and 98(c). The deadline is 8 Jan |
+| 2 | 20 | D2-74 the Cboe readers (a)–(g), with D2-68 (the v1.13 bump) | Lifts or keeps the hold. One bump can carry the dual run's end and the "and climbing" leg |
+| 3 | 10 | D2-75 the 23-hour session | Releases 98(a)–(c) or leaves them to Audit #5 |
+| 4 | 10 | D2-79 and D2-45, the DTH-1 scope | The Book B scanner's daily candidates wait on it |
+| 5 | 20 | D2-32 the volatile-day flag's actions; D2-49, D2-50, D2-63 and D2-64, Book C's touches; D2-41 the entry fill; D2-58, D2-62 and D2-69 | Gate C's build list depends on them |
+| 6 | 15 | D2-35 SR-1's rights; D2-39 the false-bottom rule | Each changes what a book may do |
+| 7 | 10 | D2-80 and D2-22 to D2-25, the register | Audit #5 numbers by them |
+| 8 | 10 | D2-21 and D2-81, `alignment_weekly`'s floor and its hit definition | The stamp's build |
+
+### Sunday 8 November (about 110 minutes)
+
+Not before 06:00 ET, after the Weekly's 05:00 run, which is the first edition with the readability fixes.
+
+| Slot | Minutes | Items | Why here |
+|---|---|---|---|
+| 1 | 15 | The blocks: values (D2-1 to D2-4, D2-8, D2-34, D2-82), standing rules (D2-11 to D2-17), reading rules (D2-36 to D2-38, D2-40) | One ruling each |
+| 2 | 10 | The blocks: measurement, renames, dormant markings, deferrals | One ruling each |
+| 3 | 15 | D2-5 to D2-7, D2-9, D2-10 (budgets and structure); D2-18 to D2-20; D2-47 (the October trigger counts) | Ratifications and one recalibration |
+| 4 | 15 | D2-26 to D2-28, the attention budget | The November build phase |
+| 5 | 30 | D2-65 the first alternative-asset theses (1Q27), with D2-66 and D2-67 | Measurables only, under AQ-6's procedure. The longest item |
+| 6 | 15 | D2-72, the setup stubs (Annex B) | Book by book |
+| 7 | 5 | D2-33, D2-70, D2-76 to D2-78 and D2-83, the records | Read and recorded |
+| 8 | 5 | D2-29 to D2-31, the calendar, with Part 9's dated items | Closes the sitting |
+
+**Spare.** About 20 minutes across the two days, for an item the sitting pulls from the annexes.
+
 ## Annex A. The 20 Oct edition's items in full
 
 Parts A and B of the 20 Oct edition (a52-doctrine-2-pack), as written then, with its evidence table. They are the full text behind Part 8's rows. Read an item here only if the sitting pulls it. Where Part 8 notes a change (V-2 done, V-3's count corrected, W-3, W-4 and W-6 moved), Part 8 governs.
@@ -1059,6 +1236,30 @@ Every draft holds `target_n: 40`, the Enterprise Layer order's figure. **Evidenc
 - **Evidence status:** Untested.
 
 ---
+
+## The sources added in this edition (B96)
+
+Read on 31 Oct 2026. Files not on main are read from the branch named.
+
+- **Rulings:**
+  - `docs/briefs/rulings-2026-10-24-evening.md` (D30–D34);
+  - `docs/briefs/rulings-2026-10-25-27.md` (D35–D41);
+  - `docs/briefs/rulings-2026-10-28-31.md` (D42–D48), on `b95-batch-21-filing`.
+- **Orders:**
+  - `docs/change-order-signal-triage-batch-16-2026-10-26.md`, on main;
+  - `docs/change-order-signal-triage-batch-17-2026-10-26.md`, on `a81-batch-17-filing`;
+  - `docs/change-order-signal-triage-batch-18-2026-10-28.md` and `-19-2026-10-29.md`, on `b91-batch-19-filing`;
+  - `docs/change-order-signal-triage-batch-20-2026-10-29.md`, on `b92-batch-20-filing`;
+  - `docs/change-order-signal-triage-batch-21-2026-10-30.md` and `docs/change-order-weekly-readability-2026-10-30.md`, on `b95-batch-21-filing`.
+- **Briefs:**
+  - `docs/briefs/cboe-terms-check-2026-10.md`, on `b89-cboe-terms-check`;
+  - `docs/briefs/phase-4-paper-engine-assessment-2026-10.md`, on `b90-nautilus-assessment`;
+  - the b63–b68 briefs (6i, cloud sessions, Learning Loop v2, Phase 4, the quarterly source checks, the price-source migration), on chain-8 (`b86-chain-8-assembly`);
+  - `docs/briefs/library-review-decisions-2026-10-30.md`, on `b88-library-rehearsal`.
+- **Notes with a Doctrine #2 item:** `a65-6f-tranche4-notes.md`, `a66-capex-guidance-notes.md`, `a70-amendment-3-record-notes.md`, `b60-reading-budgets-notes.md` and `readers-guide-draft-4-notes.md` (all on chain-8); `docs/briefs/b95-notes.md`, on `b95-cboe-held`. The a84, b85 and b86 notes carry no Doctrine #2 item.
+- **The register:** `docs/signal-triage-register.md` on main, `a81-batch-17-filing`, `b91-batch-19-filing`, `b92-batch-20-filing` and `b95-batch-21-filing` (D2-80).
+- **Ledgers:** `docs/ledgers/` on main and on chain-8 (Part 10).
+- **Merges:** `git log --merges origin/main` since 22 Oct (Part 9).
 
 ## The sources added in this edition (A67)
 
