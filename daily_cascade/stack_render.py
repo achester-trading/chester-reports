@@ -290,6 +290,26 @@ def footnote(s: dict, cadence: str = "daily") -> str:
                             _trimmed_note(cad)))
 
 
+def coverage_html(b: dict, wrap: bool = False) -> str:
+    """W10-3: the Coverage table (daily_cascade/coverage.py), last in its block
+    before the footnote, under its own heading, its note beneath it."""
+    t = b.get("coverage")
+    if not t or not t.get("rows"):
+        return ""
+    return (f'<h3 style="{H3}">{esc(t.get("title") or "Coverage")}</h3>'
+            + _table({"columns": t["columns"], "rows": t["rows"]}, wrap)
+            + (f'<p style="{FOOT}">{esc(t["note"])}</p>' if t.get("note") else ""))
+
+
+def md_coverage(b: dict) -> list[str]:
+    t = b.get("coverage")
+    if not t or not t.get("rows"):
+        return []
+    return ([f"**{t.get('title') or 'Coverage'}**\n"]
+            + md_table({"columns": t["columns"], "rows": t["rows"]})
+            + ([f"<sub>{t['note']}</sub>\n"] if t.get("note") else []))
+
+
 def tables_html(b: dict, wrap: bool = False) -> str:
     """A block's table, then any further tables it carries (`tables`)."""
     return (_table(b.get("table"), wrap)
@@ -453,6 +473,7 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     # A CODE-AND-FRAME CLOSING LINE (W-1.2 item 2.5: the book's terms).
     for ln in s.get("closing_lines") or []:
         out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
+    out.append(coverage_html(s, wrap))
     out.append(footnote(s, cadence))
     return "".join(out)
 
@@ -516,6 +537,7 @@ def opener_section_html(s: dict, out: list, charts: dict, mode: str, cad: dict,
     out.append(charts_seq_html(ids, charts, mode))
     for ln in s.get("closing_lines") or []:
         out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
+    out.append(coverage_html(s, wrap))
     out.append(_foot(foot_parts({**s, "withheld": None}, not cad.get(
         "subsection_paragraphs"), _trimmed_note(cad))))
     return "".join(out)
@@ -531,6 +553,7 @@ def detail_html(d: dict, cadence: str = "daily") -> str:
            lines_table(d.get("lines") or [], f"This {period}", wrap=wrap)]
     for ss in d.get("subsections") or []:
         out.append(subsection_html(ss, period, cad))
+    out.append(coverage_html(d, wrap))
     out.append(_foot(foot_parts(d, False, _trimmed_note(cad))))
     return "".join(out)
 
@@ -891,6 +914,7 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
         out += md_charts(ids, charts)
         paras = s.get("paragraphs") or []
         out += [f"{p}\n" for p in (paras[:limit] if limit else paras)]
+        out += md_coverage(s)
         out += _md_foot(foot_parts(s, not cad.get("subsection_paragraphs"),
                                    _trimmed_note(cad)))
     if ed.get("detail"):
@@ -900,6 +924,7 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
             out += md_block(d)
             for ss in d.get("subsections") or []:
                 out += _md_sub(ss, cad, charts, "####", with_charts=False)
+            out += md_coverage(d)
             out += _md_foot(foot_parts(d, False, _trimmed_note(cad)))
     out.append(f"\n*Stack {ed.get('config_version')} · "
                f"{rd.plural(int(ed.get('words') or 0), 'word')} · "

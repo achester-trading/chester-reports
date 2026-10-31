@@ -2821,6 +2821,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     # EL-6: THE SYSTEM-METRICS BLOCK, the last detail table. Data, not prose:
     # it counts in neither the word budget nor the chart cap.
     ed["detail"].append(system_metrics_block(p, ed, db_path, archive_dir, "monthly"))
+    # THE COVERAGE TABLE (W10-3): the Weekly's, in the appendix.
+    from daily_cascade import coverage                          # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    apx = next((d for d in ed["detail"] if d.get("id") == "appendix"), None)
+    if cov and apx is not None:
+        apx["coverage"] = cov
     if not narrative:
         written = {}
     elif write is not None:

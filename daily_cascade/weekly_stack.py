@@ -2408,6 +2408,13 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     else:
         ed["precis"] = {"state": "skipped", "published": False}
     book_terms(ed, ending)
+    # THE COVERAGE TABLE (W10-3): the store check's lists, one row per family
+    # and state, at the end of section 10, before the Detail Tables.
+    from . import coverage                                      # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    tenth = next((s for s in ed["sections"] if s["id"] == "book"), None)
+    if cov and tenth is not None:
+        tenth["coverage"] = cov
     from . import storyline                                     # noqa: PLC0415
     storyline.layout(ed, stack_mod.config())
     # W-1.3a item 3.7: the technical appendix closes the reference tier, and the

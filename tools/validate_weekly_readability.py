@@ -292,8 +292,121 @@ def group_b() -> None:
           "one call per section, a sub-section's charts with their section's")
 
 
+OBS_DDL = """
+CREATE TABLE observations (
+    id INTEGER PRIMARY KEY, registry_key TEXT NOT NULL, instrument TEXT,
+    observed_at TEXT NOT NULL, available_at TEXT NOT NULL, ingested_at TEXT NOT NULL,
+    value_num REAL, value_text TEXT, source TEXT NOT NULL, run_id TEXT,
+    availability_kind TEXT);
+"""
+
+
+def _m(**kw) -> dict:
+    return {"source": "fred", "units": "index", "freq": "daily", "family": "price",
+            "information_half_life": "session", **kw}
+
+
+# One synthetic key per state; every name invented.
+SYN_REG = {"metrics": {
+    "fred.syn_stored": _m(),
+    "fred.syn_stale": _m(),
+    "fred.syn_await": _m(added_date="2026-10-20"),
+    "fred.syn_nys": _m(status_extra="not_yet_sourced", added_date="2026-10-22"),
+    "fred.syn_gap": _m(status_extra="gap", gap_reason="its portal will not load"),
+    "fred.syn_refused": _m(status_extra="refused", gap_reason="robots.txt forbids a writer"),
+    "fred.syn_held": _m(status_extra="while_held", gap_reason="held for a ruling"),
+    "fred.syn_super": _m(status_extra="superseded", superseded_by="fred.syn_stored"),
+    "fred.syn_rate": _m(family="rate"),
+}}
+SYN_ROWS = [("fred.syn_stored", "2026-10-30"), ("fred.syn_stale", "2026-06-01"),
+            ("fred.syn_refused", "2026-09-15"), ("fred.syn_super", "2026-08-01"),
+            ("fred.syn_rate", "2026-10-29"), ("zzz.syn_unknown", "2026-10-30")]
+
+
+def group_c() -> None:
+    head("C. THE COVERAGE TABLE (W10-3)")
+    import sqlite3                                              # noqa: PLC0415
+    from daily_cascade import coverage as cov                   # noqa: PLC0415
+    from daily_cascade import stack_render as sr                # noqa: PLC0415
+    from tools import check_store_registry as csr               # noqa: PLC0415
+    db = str(TD / "syn_store.db")
+    conn = sqlite3.connect(db)
+    conn.executescript(OBS_DDL)
+    conn.executemany(
+        "INSERT INTO observations (registry_key, observed_at, available_at, "
+        "ingested_at, value_num, source) VALUES (?,?,?,?,1.0,'fred')",
+        [(k, d, d + "T21:00:00+00:00", d + "T21:00:00+00:00") for k, d in SYN_ROWS])
+    conn.commit()
+    conn.close()
+    before = Path(db).read_bytes()
+    t = cov.build(db, "2026-10-30T22:00:00+00:00", SYN_REG)
+    rows = {(r[0], r[1]): r for r in (t or {}).get("rows") or []}
+    want = {("price", "stored"), ("price", "stale"), ("price", "awaiting"),
+            ("price", "declared gap"), ("price", "refused"), ("price", "held"),
+            ("price", "superseded"), ("rate", "stored"),
+            ("unregistered", "stored, unregistered")}
+    check(t and set(rows) == want and len(t["rows"]) == len(want),
+          f"a synthetic store with each state renders one row each ({sorted(rows)})")
+    check(t["columns"] == ["Family", "State", "Keys", "Reason", "Since"]
+          and rows[("price", "awaiting")][2] == "2"
+          and t["keys"] == len(SYN_REG["metrics"]) + 1
+          and sum(int(r[2]) for r in t["rows"]) == t["keys"],
+          "counts match: nine registered keys and one unregistered, each counted once "
+          "(the never-pulled and the not-yet-sourced together under awaiting)")
+    r = csr.check(db, "2026-10-30T22:00:00+00:00", SYN_REG)
+    from altdata import derived                                 # noqa: PLC0415
+    placed = [k for a in cov.rows(r, derived.resolve_registry(SYN_REG)) for k in a["keys"]]
+    check(len(placed) == len(set(placed)) == 10, "no key appears twice")
+    check(rows[("price", "refused")][3] == "robots.txt forbids a writer"
+          and rows[("price", "superseded")][3] == "superseded by syn stored"
+          and rows[("price", "stale")][3].startswith("past its own staleness allowance")
+          and "dead?" in rows[("price", "stale")][3]
+          and rows[("price", "stored")][4] == "2026-10-30"
+          and rows[("price", "awaiting")][4] == "2026-10-22"
+          and rows[("price", "declared gap")][4] == "—",
+          "the reason where declared, 'dead?' counted, and the date (newest row, or the "
+          "registry's added date, '—' where it records none)")
+    cells = " ".join(str(c) for r in t["rows"] for c in r)
+    check(not re.findall(r"\b(?:fred|calc|cftc|pm|dial|ndl|yfinance)\.[a-z0-9_]+\b", cells)
+          and cov.plain("www.mba.org answers HTTP 403", {"fred.x": {}})
+          == "www.mba.org answers HTTP 403",
+          "no registry id reaches a cell (a key prints as the edition names it); a "
+          "hostname stays")
+    check(Path(db).read_bytes() == before, "the store is read, never written")
+    check(cov.build(str(TD / "no_such.db"), None, SYN_REG) is None,
+          "no store: no table, and the edition prints without one")
+
+    # The store check's CLI output is unchanged by the list it gained.
+    out = csr.report(r)
+    check("current" not in out and "1. stored, unregistered      : 1" in out
+          and r["current"] == [{"key": "fred.syn_rate", "newest": "2026-10-29"},
+                               {"key": "fred.syn_stored", "newest": "2026-10-30"}],
+          "check() returns its current list as data; report() prints exactly what it did")
+    src = (REPO / "daily_cascade" / "coverage.py").read_text(encoding="utf-8")
+    check("csr.check(" in src and "subprocess" not in src and "csr.main(" not in src,
+          "built from the check's lists as a function, never by running the CLI")
+
+    # Where it prints: last in section 10 before its footnote; the Monthly's appendix.
+    sec = {"id": "book", "title": "The book", "claim": "A claim.",
+           "items": [], "coverage": t, "legend": "LEGEND-LINE"}
+    html = sr.section_html(sec, 10, {}, "archive", "weekly")
+    check(html.index(">Coverage<") < html.index("LEGEND-LINE")
+          and html.count(">Coverage<") == 1 and "robots.txt forbids a writer" in html,
+          "the Weekly: section 10 ends on the Coverage table, before its footnote")
+    md = sr.markdown({"sections": [sec], "detail": [{"id": "appendix", "title": "Appendix",
+                                                     "coverage": t}]}, "weekly", "T")
+    det = sr.detail_html({"id": "appendix", "title": "Appendix", "coverage": t}, "monthly")
+    check(md.count("**Coverage**") == 2 and ">Coverage<" in det,
+          "the Markdown carries it, and a detail block (the Monthly's appendix) prints it")
+    ws = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
+    ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
+    check('if s["id"] == "book"' in ws and 'tenth["coverage"] = cov' in ws
+          and 'd.get("id") == "appendix"' in ms and 'apx["coverage"] = cov' in ms,
+          "wired: the Weekly's section 10 (the book) and the Monthly's appendix")
+
+
 def main() -> int:
-    for g in (group_a, group_b):
+    for g in (group_a, group_b, group_c):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
