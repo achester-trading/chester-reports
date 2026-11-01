@@ -288,3 +288,15 @@ it.
 - (c) crypto marks become a listed gap at the yfinance retirement, as the
   brief's decision 10 does for names OKX does not list. Coinbase stays a
   cross-check only: its terms bar valuations.
+
+**The ruling (D49, 1 Nov 2026).** "A101 held; OKX's clauses 8.1 and 9.4 go to
+Doctrine #2 under D2-74 beside the Cboe readers, with the perp-venues writer
+running until the sitting."
+
+- A101 stays unbuilt on this branch: no OKX candle writer, no crypto family in
+  `config/price_sources.yaml`, no `okx.<asset>_close` keys, no pairs.
+- `perp_venues` (`altdata/sources/fut.py`) keeps running unchanged until
+  Doctrine #2 (7-8 Nov) rules; nothing here touches it.
+- Doctrine #2's agenda item is D2-74: clauses 8.1 and 9.4 (quoted above), beside
+  the Cboe readers held under D45.
+- The crypto marks stay on yfinance meanwhile; nothing printed changes.
