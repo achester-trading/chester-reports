@@ -37,16 +37,41 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
-# The same interpreter the Makefile picks, and for the same reason: a bare
-# `python` on the authoring laptop has neither PyYAML nor pandas, and the failure
-# reads as a broken validator rather than a missing interpreter.
-if [ -x .venv/bin/python ]; then
-    PY=.venv/bin/python
-elif [ -x .venv/Scripts/python.exe ]; then
-    PY=.venv/Scripts/python.exe
-else
-    PY=python
-fi
+# THE INTERPRETER (B100, 1 Nov 2026), in this order:
+#   1. $PYTHON, when set;
+#   2. .venv in this tree (the box: .venv/bin/python in the checkout, as before);
+#   3. .venv in the MAIN checkout, for a worktree that has none of its own --
+#      `git rev-parse --git-common-dir` is the main repository's .git, and the
+#      checkout is its parent;
+#   4. otherwise stop, and say so.
+# There is no fallback to a bare `python` any more. A system Python on the
+# authoring laptop has neither PyYAML nor pandas, and a run on it fails as a
+# broken validator rather than a missing interpreter: A99 met exactly that from a
+# worktree. `PY_FROM` says which rule chose it, and `list` prints both.
+resolve_py() {
+    if [ -n "${PYTHON:-}" ]; then
+        PY="$PYTHON"; PY_FROM='$PYTHON'; return 0
+    fi
+    local c
+    for c in .venv/bin/python .venv/Scripts/python.exe; do
+        if [ -x "$c" ]; then PY="$c"; PY_FROM="this tree's .venv"; return 0; fi
+    done
+    local common main
+    common="$(git rev-parse --git-common-dir 2>/dev/null | tr -d '\r')"
+    if [ -n "$common" ] && main="$(cd "$common/.." 2>/dev/null && pwd)"; then
+        for c in "$main/.venv/bin/python" "$main/.venv/Scripts/python.exe"; do
+            if [ -x "$c" ]; then
+                PY="$c"; PY_FROM="the main checkout's .venv ($main)"; return 0
+            fi
+        done
+    fi
+    echo "scripts/make.sh: no interpreter with the repo's dependencies." >&2
+    echo "  Looked for: \$PYTHON; .venv in this tree ($(pwd)); .venv in the main" >&2
+    echo "  checkout${main:+ ($main)}. Set PYTHON=/path/to/python, or create the venv." >&2
+    echo "  A system python is not used: it lacks PyYAML and pandas." >&2
+    exit 2
+}
+resolve_py
 
 # One variable out of the Makefile, continuations joined, CR stripped -- the
 # working copy may be CRLF on Windows and a trailing \r turns every path into one
@@ -92,7 +117,7 @@ list)
     echo "python:"; for v in $PY_VALIDATORS $EXTRA; do echo "  $v"; done
     echo "shell:";  for v in $SH_VALIDATORS; do echo "  $v"; done
     echo "data:";   for v in $DATA_GATES; do echo "  $v"; done
-    echo "interpreter: $PY"
+    echo "interpreter: $PY  ($PY_FROM)"
     ;;
 
 html)
@@ -144,6 +169,7 @@ validate)
 
 validate-fast)
     set -e
+    echo "interpreter: $PY  ($PY_FROM)"
     for v in $PY_VALIDATORS $EXTRA $SH_VALIDATORS; do
         echo "== $v"
         run_gate "$v" >/dev/null
