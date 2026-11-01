@@ -29,6 +29,16 @@ on:
   pull_request:
   workflow_dispatch:
 
+# ONE RUN PER BRANCH (B100, 1 Nov 2026). A push runs 150 to 175 jobs, and a second
+# push to the same branch while the first is queued doubled that: the operator
+# cancelled five such runs by hand on 28 Oct. A branch's runs share one group, so
+# a new push cancels its older queued or running run. main never cancels: each
+# push to main is its own group (its run id), so it always completes -- a shared
+# group would still let a third push cancel the second's pending run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.run_id) || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # THE RUNNER IS PINNED (T2.6, 8 Oct 2026): GitHub moves ubuntu-latest to Ubuntu
   # 26 on 19 Oct, inside the freeze week, and a gate's verdict must not change
