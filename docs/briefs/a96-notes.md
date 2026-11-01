@@ -207,3 +207,31 @@ overlap exists from day one: a parallel run is counted, not built.
   Cboe readers to a terms check and a ruling). Nothing for them is built here.
 - **The supersession and the Weekly's parallel-run line** (the brief's section
   4.4) are part of the 5 hours of checks, written with each family's switch.
+
+## A100 (31 Oct 2026): chain-8's three readers of the dollar index
+
+**The finding (A99).** On the merged tree, chain-8 brings three readers that
+name `yfinance.mkt_dxy` directly:
+
+- `config/gold_attribution.yaml:19`;
+- `config/gold_event.yaml:37`;
+- `config/trend_breadth.yaml:52`.
+
+`validate_price_sources` group C greps `config/` for the old keys, so after a96
+merges it fails 23/1.
+
+**Why A100's resolver plan was not built.** The resolver keeps no list of
+config paths: each config carries a `"price:<family>.<member>"` reference and
+its own loader calls `resolve_tree()`. Chain-8's three loaders
+(`altdata/gold_attribution.py`, `gold_event.py`, `trend_breadth.py`) call
+`yaml.safe_load` directly. The gate also reads the files' text, which a rewrite
+at load would not change. So the fix has to edit three configs and three
+loaders, and those files exist only on chain-8.
+
+**The ruling (A100, 31 Oct).** Once chain-8 is on main (Wednesday 4 Nov), main
+is merged into a96 and A99's proven change (`fbd43be8` on
+`a99-merge-week-rehearsal`) is committed on a96, before a96's PR. Each of the
+three references becomes `"price:dollar_index.dxy"`, and each loader resolves
+its tree. That is step 17a of `docs/briefs/a99-merge-week-script.md`. With it
+the stitch needs no hand edit. Rehearsed, it gave `validate_price_sources` 24/0,
+`gold_attribution` 41/0, `trend_breadth` 42/0 and `weekly_gold_block` 32/0.
