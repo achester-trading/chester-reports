@@ -24,6 +24,11 @@
 #   bash scripts/make.sh html            rebuild docs/html/ from the papers' .md
 #   bash scripts/make.sh library-check   the library's gate on its own
 #   bash scripts/make.sh list            what would run
+#   bash scripts/make.sh validate-group <gate> <group>
+#                                        one group of a long gate (B97): the
+#                                        gate's GATE_GROUPS, read by gate_list.py;
+#                                        <gate> as validate_stack or its path;
+#                                        no <group> lists them
 #
 # NOT COVERED, DELIBERATELY: `figures`. It has an ADOPT=1 mode that overwrites the
 # committed Currencies figures, which CLAUDE.md says not to run yet, and a shim is
@@ -164,9 +169,30 @@ data-gates)
     exit "$fail"
     ;;
 
+validate-group)
+    # B97: one group of a long gate, inside the laptop's ten minutes. The whole
+    # gate is still what `validate` and CI run; this is the edit loop's run.
+    gate="${2:-}"
+    case "$gate" in
+        "") echo "usage: bash scripts/make.sh validate-group <gate> [<group>]" >&2; exit 2 ;;
+        */*) ;;
+        *) gate="tools/${gate%.py}.py" ;;
+    esac
+    [ -f "$gate" ] || { echo "no such gate: $gate" >&2; exit 2; }
+    names="$("$PY" tools/gate_list.py --groups "$gate" | tr -d '\r')"
+    if [ -z "$names" ]; then
+        echo "$gate declares no GATE_GROUPS; run it whole" >&2; exit 2
+    fi
+    if [ -z "${3:-}" ]; then echo "$names"; exit 0; fi
+    if ! echo "$names" | grep -qixF -- "$3"; then
+        echo "$gate has no group $3: one of" $names >&2; exit 2
+    fi
+    exec "$PY" "$gate" --group "$3"
+    ;;
+
 *)
     echo "unknown target: $target" >&2
-    echo "one of: validate validate-fast data-gates html library-check list" >&2
+    echo "one of: validate validate-fast validate-group data-gates html library-check list" >&2
     exit 2
     ;;
 esac
