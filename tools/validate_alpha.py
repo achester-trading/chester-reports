@@ -1095,7 +1095,10 @@ def group_n() -> None:
         check(ids == [f"HYP-{i:04d}" for i in range(1, 6)]
               and reg.by_local(doc["batch_id"], "H-004")["id"] == "HYP-0004",
               "local ids map to register ids HYP-0001..0005")
-        check(all(lg.variant_count(h["family"]) == 1 for h in doc["hypotheses"]),
+        # B98: the count keys on the family_ref (H-001..H-005 map one to one).
+        from alpha import families as _fam                      # noqa: PLC0415
+        check(all(lg.variant_count(_fam.count_key(h, doc["batch_id"])) == 1
+                  for h in doc["hypotheses"]),
               "registering counts one variant in each family (10.2 c)")
         for sql, what in (("UPDATE hypotheses SET rule_text='x' WHERE id='HYP-0001'",
                            "the rule"),
@@ -1349,9 +1352,12 @@ def group_p() -> None:
             check(False, "run refuses a run before the idea's registration")
         except hyp.PreRegistrationViolation:
             check(True, "run refuses a run timed before the idea's registration")
-        n0 = lg.variant_count("credit-quality")
+        # B98: H-004 counts under its family_ref (KS §19.4), not "credit-quality".
+        from alpha import families as _fam                      # noqa: PLC0415
+        k4 = _fam.count_key(hyp.Register(lg).get(seeded["registered"]["H-004"]))
+        n0 = lg.variant_count(k4)
         r4 = workbench.run(lg, st, seeded["registered"]["H-004"], RUN_AT)
-        n1 = lg.variant_count("credit-quality")
+        n1 = lg.variant_count(k4)
         check(r4["status"] == "passed" and r4["result"]["metrics"]["n_trials"] == n1
               and n1 == n0 + 1,
               f"H-004 runs through X-1.6 and passes on the fixture; its one variant was "
@@ -1363,7 +1369,7 @@ def group_p() -> None:
               "its result carries the regime split, the variants, the hold-out check and "
               "the model-idea rule (60 = 1.5 x 40 paper signals)")
         r4b = workbench.run(lg, st, seeded["registered"]["H-004"], RUN_AT)
-        check(lg.variant_count("credit-quality") == n1 and r4b["status"] == "passed",
+        check(lg.variant_count(k4) == n1 and r4b["status"] == "passed",
               "a re-run of the unchanged rule counts nothing new")
         r2 = workbench.run(lg, st, seeded["registered"]["H-002"], RUN_AT)
         h2b = reg.get(seeded["registered"]["H-002"])
@@ -2074,9 +2080,184 @@ def group_v() -> None:
           f"holds no contracts until the operator confirms")
 
 
+def group_w() -> None:
+    """B98, Batch 19 item 99: the K&S family registry, family_ref, the count
+    keyed on it, and the two named leakage cases."""
+    head("W. THE FAMILIES: K&S REGISTRY, family_ref, THE COUNT, TWO LEAKAGE CASES (item 99)")
+    from alpha import families as fam                           # noqa: PLC0415
+    from alpha import rules                                     # noqa: PLC0415
+    reg_doc = fam.registry()
+    entries = reg_doc.get("families") or []
+    refs_list = [f["ref"] for f in entries]
+    house = [f for f in entries if f.get("house")]
+    ks = [f for f in entries if not f.get("house")]
+    check(len(refs_list) == len(set(refs_list)) and len(ks) >= 40
+          and all(f.get("section") and f.get("title") and f.get("house_description")
+                  and f.get("asset_classes") and f["ref"].startswith(f"KS §{f['section']} ")
+                  for f in ks),
+          f"the registry: {len(ks)} K&S sections, each with its section, title, house "
+          f"description and asset classes, its ref 'KS §<section> <name>', none twice")
+    check(sorted(f["ref"] for f in house) == ["KS options", "liquidity-sweep"]
+          and all(f.get("section") is None for f in house),
+          "and two house entries K&S does not carry, marked house: true: 'KS options' "
+          "(item 100) and 'liquidity-sweep' (item 101(b))")
+    # Every hypothesis registered before the change is mapped once, to a registered ref.
+    files = [SEED_BATCH, *sorted((REPO / "alpha" / "research").glob("*.yaml"))]
+    allh = []
+    for f in files:
+        d = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+        allh += [(d["batch_id"], h) for h in d.get("hypotheses") or []]
+    unmapped = [f"{b}/{h['local_id']}" for b, h in allh
+                if fam.family_ref_of(h, b) not in set(refs_list)]
+    check(allh and not unmapped and len(fam.assigned()) == len(allh),
+          f"every registered hypothesis ({len(allh)}, the inbox files from 14 Oct and "
+          f"the rosters) has one family_ref, in the registry ({unmapped[:3] or 'none missing'})")
+    check(not any("family_ref" in h for _, h in allh)
+          and sha(SEED_BATCH) == SEED_SHA256,
+          "the registered files are unchanged: the map is the registry's, and the "
+          "first batch still hashes to its pin")
+    # The schema: an optional field, validated; required on an inbox batch from the cutover.
+    doc = seed_doc()
+    ok_doc = json.loads(json.dumps(doc))
+    for h in ok_doc["hypotheses"]:
+        h["family_ref"] = fam.family_ref_of(h, ok_doc["batch_id"])
+    bad_ref = json.loads(json.dumps(ok_doc))
+    bad_ref["hypotheses"][0]["family_ref"] = "KS §99.9 nothing"
+    late = json.loads(json.dumps(doc))
+    late["written_at"] = "2026-11-02T10:00:00+00:00"
+    late_ok = json.loads(json.dumps(ok_doc))
+    late_ok["written_at"] = "2026-11-02T10:00:00+00:00"
+    check(hyp.validate_batch(doc) == [] and hyp.validate_batch(ok_doc) == []
+          and any("not in config/alpha_families.yaml" in e
+                  for e in hyp.validate_batch(bad_ref)),
+          "family_ref is an optional field before the cutover, and a ref not in the "
+          "registry is refused")
+    lerr = hyp.validate_batch(late)
+    check(len([e for e in lerr if "missing family_ref" in e]) == 5
+          and hyp.validate_batch(late_ok) == [],
+          f"an inbox batch written from {hyp.FAMILY_REF_REQUIRED_FROM} needs one "
+          f"family_ref per hypothesis ({len(lerr)} refused), and passes with them")
+    # The count keys on family_ref. One to one, the old grouping is reproduced.
+    import functools                                            # noqa: PLC0415
+    one = Path(_TMP) / "families_one_to_one.yaml"
+    by_old = {}
+    for b, h in allh:
+        by_old.setdefault(h["family"], []).append((b, h))
+    one.write_text(yaml.safe_dump({
+        "families": [{"ref": f"T {f}", "section": None, "title": f, "house": True,
+                      "house_description": "fixture", "asset_classes": ["x"]}
+                     for f in sorted(by_old)],
+        "assignments": [{"batch_id": b, "local_id": h["local_id"],
+                         "family_ref": f"T {h['family']}"} for b, h in allh]},
+        allow_unicode=True), encoding="utf-8")
+    saved = fam.REGISTRY
+    try:
+        fam.REGISTRY = one
+        for fn in (fam.registry, fam._legacy):
+            fn.cache_clear()
+        old_db, new_db = Path(_TMP) / "count_old.db", Path(_TMP) / "count_new.db"
+        with Ledger(old_db) as lo:
+            for b, h in allh:                                   # the old key, as it was
+                lo.bump_variant(h["family"], "t")
+            old = {f: lo.variant_count(f) for f in by_old}
+        with Ledger(new_db) as ln:
+            rg = hyp.Register(ln)
+            for f in files:
+                d = yaml.safe_load(f.read_text(encoding="utf-8"))
+                rg.record_batch(d, hyp.instant(d["written_at"]) or "2026-10-14T00:00:00+00:00", "t")
+                for h in d["hypotheses"]:
+                    rg.register(h, d, hyp.instant(d["written_at"]) or "2026-10-14T00:00:00+00:00",
+                                "t", "needs_code", "fixture")
+            new = {f: ln.variant_count(f"T {f}") for f in by_old}
+            stored = {r["family"] for r in ln.q("SELECT family FROM variant_counts")}
+        check(old == new and stored == {f"T {f}" for f in by_old},
+              f"one to one, the counts by family_ref reproduce the old counts by family "
+              f"({len(old)} families, {sum(old.values())} variants: {dict(list(old.items())[:3])}...)")
+        # A ref's first count starts from what is stored under its old family.
+        with Ledger(Path(_TMP) / "count_carry.db") as lc:
+            lc.bump_variant("trend", "t", by=7)                  # the box's history
+            start = lc.variant_count("T trend")
+            after = lc.bump_variant("T trend", "t")
+        check(start == 7 and after == 8,
+              "a family_ref with no row yet starts from the count stored under its old "
+              f"family (7), so no trial is lost when the key changes ({start}, then {after})")
+    finally:
+        fam.REGISTRY = saved
+        for fn in (fam.registry, fam._legacy):
+            fn.cache_clear()
+    real = {fam.family_ref_of(h, b) for b, h in allh}
+    check(all(fam.legacy_families(r) for r in real)
+          and "events" in fam.legacy_families("KS §19.5 economic announcements")
+          and "events" in fam.legacy_families("KS §3.2 earnings momentum"),
+          "with the real map, an old family split across refs (events: §19.5, §3.2, "
+          "§7.4) carries its whole count to each -- more trials, a harder deflation, "
+          "never a softer one")
+    # Leakage case 1: the HP filter's look-ahead.
+    import numpy as np                                          # noqa: PLC0415
+
+    def hp_trend(y, lam=1600.0):
+        n = len(y)
+        d = np.zeros((n - 2, n))
+        for i in range(n - 2):
+            d[i, i:i + 3] = (1.0, -2.0, 1.0)
+        return np.linalg.solve(np.eye(n) + lam * d.T @ d, np.asarray(y, float))
+    rng = random.Random(99)
+    y = [100.0]
+    for _ in range(299):
+        y.append(y[-1] + rng.gauss(0, 1))
+    t = 200
+    two_sided_then = hp_trend(y[:t + 1])[t]
+    two_sided_later = hp_trend(y)[t]
+    one_sided = [hp_trend(y[:k + 1])[k] for k in (t, t)]
+    check(abs(two_sided_later - two_sided_then) > 0.05 and one_sided[0] == one_sided[1],
+          f"HP-filter look-ahead: the two-sided trend at day {t} moves by "
+          f"{abs(two_sided_later - two_sided_then):.2f} when later days are added -- it "
+          f"read the future; the one-sided trend (refit on data to t only) does not")
+    hp_dsl = json.loads(json.dumps(translation("H-004")["rule_dsl"]))
+    hp_dsl["trigger"][1] = {"series": "fred.ig_oas", "transform": "hp_filter",
+                            "lam": 1600, "op": "<=", "value": 5}
+    try:
+        rules.compile_rule(hp_dsl)
+        hp_refused = False
+    except rules.RuleError as exc:
+        hp_refused = any("hp_filter" in e for e in exc.errors)
+    check(hp_refused, "and the grammar has no HP transform: a rule asking for one is "
+                      "refused at compile, so no rule can carry the two-sided filter")
+    # Leakage case 2: the unfinished candle.
+    day = "2026-10-15"
+    rows = [{"observed_at": "2026-10-14", "available_at": "2026-10-14T20:20:00+00:00",
+             "value_num": 100.0},
+            {"observed_at": day, "available_at": f"{day}T20:20:00+00:00",
+             "value_num": 103.0}]
+    s = rules.Series(rows)
+    t_close = rules.decision_instant(day, "this_close")
+    t_next = rules.decision_instant(day, "next_open")
+    seen_close = s.known(day, t_close, 1)
+    seen_next = s.known(day, t_next, 1)
+    check(seen_close and seen_close[-1][0] == "2026-10-14"
+          and seen_next and seen_next[-1][0] == day,
+          f"the unfinished candle: a this_close rule decides at {t_close[11:16]} UTC "
+          f"(15:50 ET), before the day's close is stored, so it reads the previous "
+          f"close ({seen_close[-1][:2] if seen_close else None}); the 17:40 decision "
+          f"reads the day's own ({seen_next[-1][:2] if seen_next else None})")
+    try:
+        av.check_pit([{"day": day, "available_at": f"{day}T20:20:00+00:00",
+                       "decided_at": t_close}])
+        voided = False
+    except av.PointInTimeViolation:
+        voided = True
+    check(voided, "and a row that read the day's close before it existed voids the run")
+    rules_md = (REPO / "docs" / "alpha-lab-rules.md").read_text(encoding="utf-8")
+    check("## 15. Families" in rules_md and "HP-filter look-ahead" in rules_md
+          and "unfinished candle" in rules_md
+          and "config/alpha_families.yaml" in rules_md,
+          "docs/alpha-lab-rules.md states the registry, the required family_ref and "
+          "the two leakage cases (section 15)")
+
+
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,
           group_h, group_i, group_j, group_k, group_l, group_m, group_n, group_o,
-          group_p, group_q, group_r, group_s, group_t, group_u, group_v]
+          group_p, group_q, group_r, group_s, group_t, group_u, group_v, group_w]
 
 
 def main() -> int:

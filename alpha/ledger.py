@@ -721,8 +721,19 @@ class Ledger:
 
     # -- the variant count and the hold-out --------------------------------
     def variant_count(self, family: str) -> int:
+        """The count stored under `family` (the variant_counts column's name).
+        From B98 a hypothesis counts under its family_ref (alpha/families.py):
+        a family_ref with no row yet starts from the counts stored under the old
+        families its hypotheses came from, so no trial is lost to the new key."""
         r = self.one("SELECT count FROM variant_counts WHERE family=?", (family,))
-        return int(r["count"]) if r else 0
+        if r:
+            return int(r["count"])
+        from alpha import families                                  # noqa: PLC0415
+        if family in families.refs():
+            return sum(int(x["count"]) for x in (
+                self.one("SELECT count FROM variant_counts WHERE family=?", (f,))
+                for f in sorted(families.legacy_families(family))) if x)
+        return 0
 
     def bump_variant(self, family: str, as_of: str, by: int = 1) -> int:
         """Every validation run is one more variant of its family. Returns the

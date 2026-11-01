@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="3e3c023ac829657642f3980ec749bd11d6ea2b9e95ea167400c115a832311575">
+<meta name="source-sha256" content="6763d8ef0bc32269e368a60a338ce841c2abacd0a642eb246dd3f8b964d744dc">
 <title>Building and Validating a Systematic Book</title>
 <style>
 :root {
@@ -145,7 +145,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     <button id="collapseAll">Collapse all</button>
   </div>
 
-  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-the-shape-of-a-systematic-book">Part I — The Shape of a Systematic Book</a></li><li><a href="#s3-part-ii-the-register-the-unit-of-action-and-the-unit-of-lear">Part II — The Register: The Unit of Action and the Unit of Learning</a></li><li><a href="#s4-part-iii-execution-and-microstructure">Part III — Execution and Microstructure</a></li><li><a href="#s5-part-iv-sizing-cost-and-the-risk-ladder-as-code">Part IV — Sizing, Cost, and the Risk Ladder as Code</a></li><li><a href="#s6-part-v-validation-before-during-and-after">Part V — Validation: Before, During, and After</a></li><li><a href="#s7-part-vi-tax-and-account-mechanics">Part VI — Tax and Account Mechanics</a></li><li><a href="#s8-part-vii-the-compliance-boundary">Part VII — The Compliance Boundary</a></li><li><a href="#s9-part-viii-the-gate-ladder-what-is-built-what-is-next-and-wha">Part VIII — The Gate Ladder: What Is Built, What Is Next, and What Would Change This Paper</a></li><li><a href="#s10-appendix-decision-1-end-to-end">Appendix — Decision #1, end to end</a></li></ol></nav>
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-the-shape-of-a-systematic-book">Part I — The Shape of a Systematic Book</a></li><li><a href="#s3-part-ii-the-register-the-unit-of-action-and-the-unit-of-lear">Part II — The Register: The Unit of Action and the Unit of Learning</a></li><li><a href="#s4-part-iii-execution-and-microstructure">Part III — Execution and Microstructure</a></li><li><a href="#s5-part-iv-sizing-cost-and-the-risk-ladder-as-code">Part IV — Sizing, Cost, and the Risk Ladder as Code</a></li><li><a href="#s6-part-v-validation-before-during-and-after">Part V — Validation: Before, During, and After</a></li><li><a href="#s7-part-vi-tax-and-account-mechanics">Part VI — Tax and Account Mechanics</a></li><li><a href="#s8-part-vii-the-compliance-boundary">Part VII — The Compliance Boundary</a></li><li><a href="#s9-part-viii-the-gate-ladder-what-is-built-what-is-next-and-wha">Part VIII — The Gate Ladder: What Is Built, What Is Next, and What Would Change This Paper</a></li><li><a href="#s10-appendix-decision-1-end-to-end">Appendix — Decision #1, end to end</a></li><li><a href="#s11-references">References</a></li></ol></nav>
 
     <details class="section" id="s1-front-matter" open>
       <summary class="section-head">
@@ -430,6 +430,19 @@ signals_used    : exposure.gamma_flip, exposure.call_wall_otm,
 <li><strong>Expected</strong> — fills at Tuesday's open on any flat tape (limit above Friday's close); commission $1.00 (Fixed minimum); Portfolio Truth catches the position on its first Tuesday sync. <strong>Expected first grades:</strong> thesis pending; expression <em>poor</em> (entry above the level the thesis wanted to buy toward); size <em>under tier</em> (100 vs a computed 219); cost model <em>verified or corrected</em> on the first fill.</li>
 </ul>
 <p>That is one decision. The paper's claim is that it is graded from birth, that its inputs can be replayed, that its rule compliance is counted, and that the next one will be measured against it. Everything else in the book is the machinery that makes that claim true at scale.</p>
+      </div>
+    </details>
+
+    <details class="section" id="s11-references">
+      <summary class="section-head">
+        <span class="section-title">References</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<ul>
+<li>Jansen, S. <em>Machine Learning for Algorithmic Trading</em>, 3rd edition; code at github.com/stefan-jansen/machine-learning-for-trading. The core reference for validating a systematic book (Batch 16 item 91(e)).</li>
+<li>Kakushadze, Z. and Serur, J. A. (2018). <em>151 Trading Strategies</em>. Palgrave Macmillan, Cham; free on SSRN, 3247865. The Alpha Lab's family taxonomy: every hypothesis's <code>family_ref</code> names one of its sections (Batch 19 item 99(c); <code>config/alpha_families.yaml</code>).</li>
+</ul>
       </div>
     </details>
 
