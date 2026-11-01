@@ -235,3 +235,56 @@ three references becomes `"price:dollar_index.dxy"`, and each loader resolves
 its tree. That is step 17a of `docs/briefs/a99-merge-week-script.md`. With it
 the stitch needs no hand edit. Rehearsed, it gave `validate_price_sources` 24/0,
 `gold_attribution` 41/0, `trend_breadth` 42/0 and `weekly_gold_block` 32/0.
+
+## A101 (1 Nov 2026): stopped at the terms check -- nothing built
+
+**The one read.** OKX's Terms of Service was read once, at
+https://www.okx.com/en-us/help/terms-of-service, on 1 Nov 2026 at 02:13 UTC
+(31 Oct, 22:13 ET), with the project's User-Agent. HTTP 200. The page reads
+**"Updated: 29 October 2026"**.
+
+**The clauses, quoted.**
+
+- **8.1:** "... you will not copy, transmit, distribute, sell, license, reverse
+  engineer, modify, publish, or participate in the transfer or sale of, create
+  derivative works from, or in any other way, exploit any of our products and
+  Services."
+- **8.2(d):** "all rights not expressly granted in these Terms are reserved."
+- **9.4:** "You may not use the OKX Platform or the Services for any commercial
+  purpose unless otherwise explicitly authorized by OKX."
+
+**Why A101 stopped.** The paste says to stop "if the clause on storage or
+redistribution has changed".
+
+- No baseline exists to compare against. When OKX was registered (17 Oct 2026,
+  crypto-tranche-a-1), `source_registry.yaml` recorded its robots.txt reading
+  and "public market-data endpoints, no key", but quoted no terms clause. No
+  notes file records one either.
+- The page changed on 29 Oct, after the registration.
+- On its face, 8.1's "copy" and "create derivative works from" reads against
+  storing OKX's candles and deriving marks from them. That is the question the
+  Cboe terms raised (D45: held pending Doctrine #2).
+
+So the clause cannot be shown unchanged. That is a ruling for the operator, not
+a session's reading.
+
+**Nothing was built.** No writer, key, switch family, pair or reader change, and
+`metrics_registry.yaml`, `source_registry.yaml`, `config/price_sources.yaml` and
+`config/data_quality.yaml` are untouched. Only the paste (`docs/pastes/A101.md`)
+and this section are committed.
+
+**Also for the operator: the same terms cover a live writer.** `perp_venues`
+(`altdata/sources/fut.py`) already stores OKX's funding, open interest and
+long/short ratio daily, live since 17 Oct. A ruling on 8.1 bears on it too:
+leave it, or hold it as B95 held the Cboe readers. This branch does not touch
+it.
+
+**For the ruling, the options as the brief and D45 frame them:**
+
+- (a) OKX's public market-data endpoints are read as permitted for own use
+  despite 8.1, and A101 is built as specified;
+- (b) hold OKX (both the candles and `perp_venues`) pending a terms check at
+  Doctrine #2, as the Cboe readers are held;
+- (c) crypto marks become a listed gap at the yfinance retirement, as the
+  brief's decision 10 does for names OKX does not list. Coinbase stays a
+  cross-check only: its terms bar valuations.
