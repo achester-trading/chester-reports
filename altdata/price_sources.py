@@ -186,10 +186,102 @@ def split_points(old: list[tuple], new: list[tuple], switched_on: Optional[str])
             "break": switched_on}
 
 
+def gap(family: str, member: str, cfg: Optional[dict] = None) -> Optional[str]:
+    """The line a reader prints in place of a member the active source does not
+    carry ("next report date: not tracked (no keyless source)"); None while the
+    active source carries it."""
+    f = _family(family, cfg)
+    m = (f.get("members") or {}).get(member) or {}
+    if source(family, cfg) in m:
+        return None
+    return str((f.get("gaps") or {}).get(member)
+               or f"{member}: not tracked (no {source(family, cfg)} source)")
+
+
+# -- EVENTS FAMILIES (A102) ---------------------------------------------------
+# An events family's member names the events table's `source` for its rows, not
+# a store key. The earnings rows are type 'earnings' and type 'scheduled' of kind
+# 'earnings' (the forward date). events_clause() is the one filter: EventStore
+# applies it to every read, and a reader with its own SQL appends it.
+EARNINGS_PRED = ("({a}type = 'earnings' OR ({a}type = 'scheduled' AND "
+                 "json_extract({a}payload, '$.kind') = 'earnings'))")
+
+
+def _event_sources(family: str, cfg: Optional[dict] = None
+                   ) -> tuple[list[str], str, Optional[str]]:
+    """(every source string the family names, the active one, switched_on)."""
+    f = _family(family, cfg)
+    srcs = sorted({str(s) for m in (f.get("members") or {}).values()
+                   for s in (m or {}).values()})
+    hist = (f.get("members") or {}).get("history") or {}
+    active = str(hist.get(source(family, cfg)) or "")
+    on = (str(f.get("switched_on") or "") or None) if switched(family, cfg) else None
+    return srcs, active, on
+
+
+def events_clause(family: str = "earnings_dates", alias: str = "",
+                  cfg: Optional[dict] = None, named: bool = False) -> tuple[str, Any]:
+    """(" AND NOT (...)", params) excluding the family's inactive rows.
+
+    Unswitched: the new source's rows (EDGAR's parallel run) are excluded, so a
+    reader sees exactly what it saw before. Switched on D: the old source's rows
+    observed from D on and the new source's before D are excluded -- the history
+    before the switch stays Yahoo's, after it EDGAR's, never both. A row from a
+    source the family does not name (a gate's fixture) passes either way.
+    `named` gives :ps_N parameters (EventStore), else qmark."""
+    srcs, active, on = _event_sources(family, cfg)
+    a = f"{alias}." if alias else ""
+    parts, vals = [], []
+    for s in srcs:
+        if s == active:
+            if on:
+                parts.append(f"({a}source = ? AND {a}observed_at < ?)")
+                vals += [s, on]
+        elif on:
+            parts.append(f"({a}source = ? AND {a}observed_at >= ?)")
+            vals += [s, on]
+        else:
+            parts.append(f"{a}source = ?")
+            vals.append(s)
+    if not parts:
+        return "", ({} if named else [])
+    sql = f" AND NOT ({EARNINGS_PRED.format(a=a)} AND ({' OR '.join(parts)}))"
+    if named:
+        out = {}
+        for i, v in enumerate(vals):
+            sql = sql.replace("?", f":ps_{i}", 1)
+            out[f"ps_{i}"] = v
+        return sql, out
+    return sql, vals
+
+
+def event_ok(row: dict, family: str = "earnings_dates",
+             cfg: Optional[dict] = None) -> bool:
+    """events_clause() for a row already in hand (the gate's mirror of the SQL)."""
+    import json as _json                                        # noqa: PLC0415
+    p = row.get("payload")
+    if isinstance(p, str):
+        try:
+            p = _json.loads(p or "{}")
+        except ValueError:
+            p = {}
+    typ = row.get("type")
+    if not (typ == "earnings" or (typ == "scheduled" and (p or {}).get("kind") == "earnings")):
+        return True
+    srcs, active, on = _event_sources(family, cfg)
+    s, obs = str(row.get("source") or ""), str(row.get("observed_at") or "")
+    if s not in srcs:
+        return True
+    if s == active:
+        return not on or obs >= on
+    return bool(on) and obs < on
+
+
 def _main(argv: list[str]) -> int:
     for fam, f in (config().get("families") or {}).items():
-        mem = ", ".join(f"{m}={key(fam, m)}" for m in (f.get("members") or {})) or "(stub)"
-        print(f"{fam:18} {source(fam):9} {mem}")
+        mem = ", ".join(f"{m}={gap(fam, m) or key(fam, m)}"
+                        for m in (f.get("members") or {})) or "(stub)"
+        print(f"{fam:18} {source(fam):9} {mem[:160]}")
     return 0
 
 

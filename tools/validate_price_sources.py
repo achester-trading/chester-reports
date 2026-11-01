@@ -18,7 +18,22 @@ family is a config held in memory, never the shipped file.
   D  NO SPLICE       across a switch a chart draws two series and the break, never
                      one series running through it
   E  PINS AND PAIRS  a pinned reference keeps its source; the inactive pairs resolve
-                     and are not in the quality check's active list
+                     and are not in the quality check's active list (A102: the 40
+                     company-quarter pairs and the earnings events pair too)
+  F  FUNDAMENTALS    (A102) the fundamentals family: 40 members, Yahoo's keys by
+                     default and EDGAR's switched; the AI FCF panel and the capex
+                     story's metrics move with it; no reader names a yfinance.fund_*
+                     key outside the writer
+  G  EARNINGS ROWS   (A102) the earnings_dates events family: unswitched, EDGAR's
+                     parallel-run rows are invisible to every EventStore read and to
+                     the direct SQL readers; switched, Yahoo's history before the
+                     switch and EDGAR's from it, never both; every SQL read of the
+                     earnings rows carries the clause; the forward-date gap line
+  H  THE EDGAR WRITER (A102) a recorded company-facts response (synthetic): the tag
+                     table, first tag wins, year-to-date quarters, the sign, net debt,
+                     availability at the acceptance, the restatement as a vintage; the
+                     8-K item 2.02 events with filed EPS, no consensus, no forward
+                     date; switched off by default; the SEC caller's pacing
 """
 
 from __future__ import annotations
@@ -62,10 +77,10 @@ def head(t: str) -> None:
     print(f"\n{LINE}\n{t}\n{LINE}")
 
 
-def switched(*families: str) -> dict:
+def switched(*families: str, to: str = "fred") -> dict:
     c = copy.deepcopy(ps.config())
     for f in families:
-        c["families"][f]["source"] = "fred"
+        c["families"][f]["source"] = to
         c["families"][f]["switched_on"] = "2026-11-23"
     return c
 
@@ -223,10 +238,301 @@ def group_e() -> None:
                            ("yfinance.mkt_tyx", "fred.yield_30y")]
           and not any(str(a).startswith("price:") for a, _ in active),
           "the three inactive pairs resolve, tolerance to be measured, none in the active list")
+    ie = dq.get("inactive_pairs_edgar") or []
+    kp = [p for p in ie if p.get("kind") != "events"]
+    check(len(kp) == 40 and len(ie) == 41 and all(p["active"] is False for p in ie)
+          and all(ps.resolve(p["a"]).startswith("yfinance.fund_")
+                  and ps.resolve(p["b"]).startswith("edgar.fund_") for p in kp)
+          and all("measured on the overlap" in p["tolerance"] for p in ie),
+          "A102's 41 inactive pairs: 40 company-quarter pairs resolve Yahoo against EDGAR, "
+          "one events pair; none active")
+
+
+FUND_EXEMPT = {
+    "altdata/sources/fundamentals.py": "the writer of the keys",
+    "altdata/sources/edgar_xbrl.py": "derives its twins' names from the writer's",
+    "config/price_sources.yaml": "the switch itself",
+}
+
+
+def group_f() -> None:
+    head("F. FUNDAMENTALS (A102)")
+    from altdata.sources import edgar_xbrl, fundamentals         # noqa: PLC0415
+    mem = ps.config()["families"]["fundamentals"]["members"]
+    check(len(mem) == 40 and sorted(m["yfinance"] for m in mem.values()) == sorted(fundamentals.KEYS)
+          and sorted(m["edgar"] for m in mem.values()) == sorted(edgar_xbrl.FUND_KEYS),
+          "40 members, Yahoo's keys and their EDGAR twins, member for member")
+    from altdata import ai_fcf, narratives                       # noqa: PLC0415
+    check(ai_fcf._key("AMZN", "capex") == "yfinance.fund_amzn_capex"   # noqa: SLF001
+          and ai_fcf._key("MU", "inventory") == "yfinance.fund_mu_inventory",  # noqa: SLF001
+          "the AI FCF panel reads Yahoo's keys by default, as before")
+    io = next((v.get("implied_outcome") for v in
+               (narratives.load_config().get("narratives") or {}).values()
+               if isinstance(v, dict) and "_capex" in str(v.get("implied_outcome"))), {}) or {}
+    check(io.get("metrics") == ["yfinance.fund_amzn_capex", "yfinance.fund_googl_capex",
+                                "yfinance.fund_msft_capex", "yfinance.fund_meta_capex"],
+          f"the capex story's metrics resolve to the keys it named before ({io.get('metrics')})")
+    with Using(switched("fundamentals", to="edgar")):
+        check(ai_fcf._key("AMZN", "capex") == "edgar.fund_amzn_capex",   # noqa: SLF001
+              "switched, the AI FCF panel reads EDGAR's key")
+        lab = ps.break_label("fundamentals")
+        check(bool(lab) and lab.startswith("series change 2026-11-23: EDGAR's filed XBRL")
+              and "leases excluded" in lab and lab.endswith("not spliced"),
+              f"the label names the definitional change ({(lab or '')[:70]}...)")
+    rx = re.compile(r"yfinance\.fund_")
+    hits = []
+    for d in ("daily_cascade", "monthly_macro", "altdata", "config", "alpha"):
+        for f in (REPO / d).rglob("*"):
+            if f.suffix not in (".py", ".yaml", ".sh") or "__pycache__" in f.parts:
+                continue
+            rel = f.relative_to(REPO).as_posix()
+            if rel in FUND_EXEMPT:
+                continue
+            for n, line in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                if rx.search(line):
+                    hits.append(f"{rel}:{n}")
+    check(not hits, f"no reader names a yfinance.fund_* key outside the exemptions ({hits[:6]})")
+    check(all((REPO / p).exists() for p in FUND_EXEMPT),
+          f"each exemption is a real file: {sorted(FUND_EXEMPT)}")
+
+
+def _event_fixture(path: str) -> None:
+    from altdata import events as ev                             # noqa: PLC0415
+    E = ev.Event
+    with ev.EventStore(path) as st:
+        st.write_many([
+            E("earnings", "2026-10-30T20:05:00Z", "yfinance", "AAPL reported EPS 1.6",
+              entities=["AAPL"], key="y1", payload={"symbol": "AAPL", "reported_eps": 1.6}),
+            E("earnings", "2026-10-30T20:05:00Z", "sec_edgar", "AAPL reported EPS 1.61",
+              entities=["AAPL"], key="e1", payload={"symbol": "AAPL", "reported_eps": 1.61}),
+            E("earnings", "2026-12-01T21:00:00Z", "yfinance", "ORCL reported EPS 1.4",
+              entities=["ORCL"], key="y2", payload={"symbol": "ORCL", "reported_eps": 1.4}),
+            E("earnings", "2026-12-01T21:00:00Z", "sec_edgar", "ORCL reported EPS 1.41",
+              entities=["ORCL"], key="e2", payload={"symbol": "ORCL", "reported_eps": 1.41}),
+            E("scheduled", "2027-01-29T21:00:00Z", "yfinance", "AAPL earnings (confirmed)",
+              entities=["AAPL"], key="c1", payload={"kind": "earnings", "symbol": "AAPL"}),
+            E("earnings", "2026-10-29T20:00:00Z", "fixture", "MSFT reported EPS 3.1",
+              entities=["MSFT"], key="f1", payload={"symbol": "MSFT", "reported_eps": 3.1}),
+            E("filing", "2026-10-30T20:05:00Z", "sec_edgar", "AAPL 8-K",
+              entities=["AAPL"], key="0000320193-26-000001", payload={"form": "8-K"}),
+        ], available_at="2026-10-01T00:00:00Z")
+
+
+def group_g() -> None:
+    head("G. EARNINGS ROWS (A102)")
+    import sqlite3                                               # noqa: PLC0415
+    import gate_tmp                                              # noqa: PLC0415
+    from altdata import events as ev                             # noqa: PLC0415
+    tmp = gate_tmp.mkdtemp("a102_ev_")
+    path = str(Path(tmp) / "ev.db")
+    _event_fixture(path)
+    cut = "2027-02-01T00:00:00Z"
+
+    def seen() -> tuple:
+        with ev.EventStore(path) as st:
+            past = {(r["source"], r["title"]) for r in st.since("2026-01-01", as_of=cut)}
+            ahead = {(r["source"], r["title"])
+                     for r in st.calendar("2027-01-01", "2027-02-28", as_of=cut)}
+        return past, ahead
+
+    past, ahead = seen()
+    check(("sec_edgar", "AAPL reported EPS 1.61") not in past
+          and ("yfinance", "AAPL reported EPS 1.6") in past
+          and ("fixture", "MSFT reported EPS 3.1") in past
+          and ("sec_edgar", "AAPL 8-K") in past
+          and ("yfinance", "AAPL earnings (confirmed)") in ahead,
+          "unswitched: EDGAR's earnings rows are invisible to since() and calendar(); "
+          "Yahoo's, a fixture's and EDGAR's filings are read as before")
+    con = sqlite3.connect(path)
+    sql, prm = ps.events_clause()
+    n_all = con.execute("SELECT COUNT(*) FROM events WHERE type='earnings'").fetchone()[0]
+    n_ok = con.execute("SELECT COUNT(*) FROM events WHERE type='earnings'" + sql, prm).fetchone()[0]
+    rows = [dict(zip(("type", "source", "observed_at", "payload"), r)) for r in
+            con.execute("SELECT type, source, observed_at, payload FROM events")]
+    check(n_all == 5 and n_ok == 3,
+          f"a direct SQL read with the clause: {n_ok} of {n_all} earnings rows")
+    check(sum(ps.event_ok(r) for r in rows) == 5,
+          "event_ok() mirrors the SQL row for row (3 earnings, the forward date, the filing)")
+    from daily_cascade import opening_setup                      # noqa: PLC0415
+    reps = opening_setup.reactions(con, "AAPL", "2027-01-01", cut)
+    check(len(reps) == 1, f"the Ahead's reactions read carries the clause ({len(reps)} AAPL report)")
+    with Using(switched("earnings_dates", to="edgar")):
+        past, ahead = seen()
+        check(("yfinance", "AAPL reported EPS 1.6") in past
+              and ("sec_edgar", "AAPL reported EPS 1.61") not in past
+              and ("sec_edgar", "ORCL reported EPS 1.41") in past
+              and ("yfinance", "ORCL reported EPS 1.4") not in past
+              and not ahead and ("fixture", "MSFT reported EPS 3.1") in past,
+              "switched on 2026-11-23: Yahoo's history before, EDGAR's from it, never "
+              "both; no forward date")
+        sql, prm = ps.events_clause()
+        n_ok = con.execute("SELECT COUNT(*) FROM events WHERE type='earnings'" + sql,
+                           prm).fetchone()[0]
+        check(n_ok == 3 and sum(ps.event_ok(r) for r in rows) == 4,
+              "the direct SQL clause and event_ok() agree, switched")
+        gap = ps.gap("earnings_dates", "next_date")
+        check(gap == "next report date: not tracked (no keyless source)"
+              and ps.gap("earnings_dates", "consensus").startswith("surprise: not tracked")
+              and ps.gap("earnings_dates", "history") is None,
+              f"the forward-date gap line ({gap})")
+        from daily_cascade import ahead as ah                    # noqa: PLC0415
+        b = ah.build({"window": ["2026-11-23", "2026-11-28"], "rows": []},
+                     {"week_ending": "2026-11-21"}, None, "2026-11-22T10:00:00Z", cfg={})
+        check(f"Earnings: {gap}." in b["notes"], "the Weekly's Ahead prints it once, in its notes")
+    con.close()
+    check(ps.gap("earnings_dates", "next_date") is None, "unswitched, no gap line")
+    from daily_cascade import ahead as ah                        # noqa: PLC0415
+    b = ah.build({"window": ["2026-11-23", "2026-11-28"], "rows": []},
+                 {"week_ending": "2026-11-21"}, None, "2026-11-22T10:00:00Z", cfg={})
+    check(not any(str(n).startswith("Earnings:") for n in b["notes"]),
+          "unswitched, the Ahead's notes are as they were")
+    rx = re.compile(r"type\s*=\s*'earnings'|type='earnings'")
+    bare = []
+    for d in ("daily_cascade", "monthly_macro", "altdata", "alpha"):
+        for f in (REPO / d).rglob("*.py"):
+            if "__pycache__" in f.parts:
+                continue
+            src = f.read_text(encoding="utf-8", errors="replace")
+            if rx.search(src) and "events_clause" not in src:
+                bare.append(f.relative_to(REPO).as_posix())
+    check(not bare, f"every module reading the earnings rows by SQL applies the clause ({bare})")
+
+
+def _facts() -> dict:
+    """A recorded company-facts response, synthetic, in AMZN's shape."""
+    def f(start, end, val, accn, filed):
+        d = {"end": end, "val": val, "accn": accn, "filed": filed}
+        if start:
+            d["start"] = start
+        return d
+
+    def usd(*fs):
+        return {"units": {"USD": list(fs)}}
+    return {"cik": 1018724, "facts": {"us-gaap": {
+        "NetCashProvidedByUsedInOperatingActivities": usd(
+            f("2025-01-01", "2025-03-31", 100.0, "A1", "2025-05-01"),
+            f("2025-01-01", "2025-06-30", 250.0, "A2", "2025-08-01"),
+            f("2025-01-01", "2025-03-31", 110.0, "A2", "2025-08-01"),   # restated in the next 10-Q
+            f("2025-01-01", "2025-09-30", 450.0, "A3", "2025-10-31"),
+            f("2025-01-01", "2025-12-31", 700.0, "A4", "2026-02-06"),   # not in the index
+            f("2017-01-01", "2017-03-31", 9.0, "A0", "2017-04-28")),    # before quarters_from
+        "PaymentsToAcquireProductiveAssets": usd(
+            f("2025-01-01", "2025-03-31", 40.0, "A1", "2025-05-01")),
+        "PaymentsToAcquirePropertyPlantAndEquipment": usd(),
+        "LongTermDebt": usd(f(None, "2025-03-31", 500.0, "A1", "2025-05-01")),
+        "CashAndCashEquivalentsAtCarryingValue": usd(
+            f(None, "2025-03-31", 200.0, "A1", "2025-05-01")),
+        "InventoryNet": usd(f(None, "2025-03-31", 80.0, "A1", "2025-05-01")),
+        "CostOfRevenue": usd(f("2025-01-01", "2025-03-31", 61.0, "A1", "2025-05-01")),
+        "CostOfGoodsAndServicesSold": usd(f("2025-01-01", "2025-03-31", 60.0, "A1", "2025-05-01")),
+        "EarningsPerShareDiluted": {"units": {"USD/shares": [
+            f("2025-01-01", "2025-03-31", 1.25, "A1", "2025-05-01")]}},
+    }}}
+
+
+def _subs() -> dict:
+    return {"filings": {"recent": {
+        "accessionNumber": ["E1", "A1", "X5", "A2", "A3", "E4", "A4b", "E9"],
+        "form": ["8-K", "10-Q", "8-K", "10-Q", "10-Q", "8-K", "10-K", "8-K"],
+        "items": ["2.02,9.01", "", "5.02", "", "", "2.02,9.01", "", "2.02"],
+        "reportDate": ["", "2025-03-31", "", "2025-06-30", "2025-09-30", "", "2025-12-31", ""],
+        "acceptanceDateTime": ["2025-04-30T20:05:00.000Z", "2025-05-01T20:00:00.000Z",
+                               "2025-06-02T12:00:00.000Z", "2025-08-01T20:00:00.000Z",
+                               "2025-10-31T20:00:00.000Z", "2026-02-05T21:00:00.000Z",
+                               "2026-02-06T21:00:00.000Z", "2026-04-29T20:05:00.000Z"]}}}
+
+
+def group_h() -> None:
+    head("H. THE EDGAR WRITER (A102)")
+    import yaml                                                  # noqa: PLC0415
+    from altdata import observations                             # noqa: PLC0415
+    from altdata.sources import edgar_xbrl as x                  # noqa: PLC0415
+    cfgall = yaml.safe_load((REPO / "config" / "edgar_xbrl.yaml").read_text(encoding="utf-8"))
+    fc, ec = cfgall["fundamentals"], cfgall["earnings"]
+    fields = fc["fields"]
+    ntags = sum(len(s.get("tags") or []) + len(s.get("debt") or []) + len(s.get("cash") or [])
+                for s in fields.values())
+    check(set(fields) == set(x.FUND_FIELDS) and all(s.get("cite") for s in fields.values())
+          and ntags == 10 and len(fc["filers"]) == 9,
+          f"the tag table: 5 fields, {ntags} us-gaap tags, each field cited, nine filers")
+    check(fc["enabled"] is False and ec["enabled"] is False
+          and 0 < float(fc["request_pause_s"]) and 1 / float(fc["request_pause_s"]) < 10,
+          "both parts ship switched off; the pacing is under the SEC's ten a second")
+    C = observations.canonical_instant
+    acc = x.acceptance_map(_subs())
+    rows = x.fundamentals_rows("AMZN", _facts(), acc, fc)
+    by: dict = {}
+    for r in rows:
+        by.setdefault(r["registry_key"], []).append(
+            (r["observed_at"], r["value"], r["available_at"], r["availability_kind"]))
+    ocf = by.get("edgar.fund_amzn_operating_cash_flow") or []
+    check(ocf[:2] == [("2025-03-31", 100.0, C("2025-05-01T20:00:00.000Z"), "observed"),
+                      ("2025-03-31", 110.0, C("2025-08-01T20:00:00.000Z"), "observed")],
+          "a quarter filed as three months, at its acceptance; the restatement a vintage at its own")
+    check(("2025-06-30", 140.0, C("2025-08-01T20:00:00.000Z"), "observed") in ocf
+          and ("2025-09-30", 200.0, C("2025-10-31T20:00:00.000Z"), "observed") in ocf,
+          "Q2 and Q3 from year-to-date less the previous year-to-date, at the later acceptance")
+    q4 = [o for o in ocf if o[0] == "2025-12-31"]
+    check(len(q4) == 1 and q4[0][1] == 250.0 and q4[0][3] == "reconstructed"
+          and q4[0][2] == C("2026-02-07T04:59:59+00:00"),
+          f"Q4 = the year less nine months; an accession not in the index takes its filed "
+          f"day's end in ET, reconstructed ({q4})")
+    check(not any(o[0] < "2019-01-01" for o in ocf), "nothing before quarters_from")
+    check(by.get("edgar.fund_amzn_capex")
+          == [("2025-03-31", -40.0, C("2025-05-01T20:00:00.000Z"), "observed")],
+          "capex: the second tag fills where the first is empty; stored negative, as Yahoo publishes it")
+    check([v for _e, v, _a, _k in by.get("edgar.fund_amzn_cogs") or []] == [60.0]
+          and [v for _e, v, _a, _k in by.get("edgar.fund_amzn_net_debt") or []] == [300.0]
+          and [v for _e, v, _a, _k in by.get("edgar.fund_amzn_inventory") or []] == [80.0],
+          "cost of goods: the first tag wins; net debt is debt less cash; inventory as filed")
+    check(not any(r["registry_key"] == "edgar.fund_meta_inventory"
+                  for r in x.fundamentals_rows("META", _facts(), acc, fc)),
+          "inventory only for the four names Yahoo carries it for")
+    check({r["registry_key"] for r in rows} <= set(x.FUND_KEYS),
+          "every row's key is a registered twin")
+    ev = x.earnings_events("AMZN", _subs(), _facts(), ec)
+    got = [(e.observed_at, a, e.payload["reported_eps"], e.payload["period_end"]) for a, e in ev]
+    check(got == [(C("2025-04-30T20:05:00.000Z"), C("2025-05-01T20:00:00.000Z"), 1.25, "2025-03-31"),
+                  (C("2026-02-05T21:00:00.000Z"), C("2026-02-06T21:00:00.000Z"), None, "2025-12-31")],
+          "the 8-K item 2.02 acceptance is the report instant; available once the quarter's "
+          "10-Q/10-K is accepted; an item-5.02 8-K is not a report")
+    p0, p1 = ev[0][1].payload, ev[1][1].payload
+    check(ev[0][1].type == "earnings" and ev[0][1].source == "sec_edgar"
+          and p0["eps_estimate"] is None and p0["surprise_pct"] is None
+          and "consensus was Yahoo's" in p0["consensus"]
+          and p1["eps_note"] == "not filed as a quarter",
+          "no consensus, so no surprise; a fourth quarter carries no EPS rather than a subtraction")
+    check(not any(a.startswith("2026-04") or e.observed_at.startswith("2026-04") for a, e in ev),
+          "a report whose quarter's 10-Q is not yet accepted is not written yet")
+    import gate_tmp                                              # noqa: PLC0415
+    from altdata import events as evm                            # noqa: PLC0415
+    path = str(Path(gate_tmp.mkdtemp("a102_w_")) / "ev.db")
+    with evm.EventStore(path) as st:
+        w = x.write_earnings(ev, st)
+        kinds = {r[0] for r in st.conn.execute("SELECT availability_kind FROM events")}
+        avail = sorted(r[0] for r in st.conn.execute("SELECT available_at FROM events"))
+        w2 = x.write_earnings(ev, st)
+    check(w["inserted"] == 2 and w2["inserted"] == 0 and kinds == {"observed"}
+          and avail == sorted(a for a, _e in ev),
+          "written at each event's own acceptance, availability observed; a re-pull writes nothing")
+    import time                                                  # noqa: PLC0415
+    from unittest import mock                                    # noqa: PLC0415
+    calls = []
+    with mock.patch.object(x, "http_get_json",
+                           lambda url, **k: calls.append(time.monotonic()) or {}):
+        x._LAST_CALL[0] = 0.0                                    # noqa: SLF001
+        for _ in range(3):
+            x._sec_get("https://data.sec.gov/x", {}, 0.15)       # noqa: SLF001
+    check(len(calls) == 3 and all(b - a >= 0.149 for a, b in zip(calls, calls[1:])),
+          "the SEC caller is paced: no two requests closer than request_pause_s")
+    with mock.patch.object(x.edgar, "contact", lambda: None):
+        r = x.pull_a102("fundamentals", dry_run=True)
+    check("not configured" in str(r),
+          "without the SEC contact the command fetches nothing")
 
 
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")

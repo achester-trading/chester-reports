@@ -300,3 +300,196 @@ running until the sitting."
 - Doctrine #2's agenda item is D2-74: clauses 8.1 and 9.4 (quoted above), beside
   the Cboe readers held under D45.
 - The crypto marks stay on yfinance meanwhile; nothing printed changes.
+
+## A102 (1 Nov 2026): earnings dates and fundamentals from EDGAR, behind the switch
+
+**Base.** `origin/a96-price-migration-fred` at `42e5e7f9` (A101 held, D49), on
+this branch. The paste is `docs/pastes/A102.md`. Both families ship on
+yfinance, so nothing printed changes.
+
+### Fundamentals: the tag table
+
+`config/edgar_xbrl.yaml` `fundamentals`. Each tag is an element of the FASB US
+GAAP taxonomy (us-gaap), as EDGAR's company facts serve it, and each field's
+`cite` names it beside the Yahoo row it replaces. The table has 5 fields and
+10 tags, for 9 filers and 40 keys:
+
+| Field | Tags, first wins | Note |
+|---|---|---|
+| `operating_cash_flow` | NetCashProvidedByUsedInOperatingActivities | Yahoo's "Operating Cash Flow" |
+| `capex` | PaymentsToAcquirePropertyPlantAndEquipment, else PaymentsToAcquireProductiveAssets (Amazon's) | filed positive, stored **negative**, as Yahoo publishes it |
+| `net_debt` | LongTermDebt (else LongTermDebtNoncurrent) less CashAndCashEquivalentsAtCarryingValue (else the restricted-cash total) | **not Yahoo's definition**: its Total Debt carries leases and commercial paper where filed there |
+| `inventory` | InventoryNet | AMZN, GOOGL, MSFT and MU only, as Yahoo |
+| `cogs` | CostOfGoodsAndServicesSold, else CostOfRevenue | Yahoo's "Cost Of Revenue" |
+
+- **Keys.** `edgar.fund_<ticker>_<field>`, 40, the twins of Yahoo's 40 member for
+  member (`edgar_xbrl.FUND_KEYS`). They never write over Yahoo's.
+- **The frame.** These are quarters, observed_at the fiscal quarter's end. A 10-Q
+  files its cash-flow lines year to date. A quarter not filed as three months is
+  the year-to-date less the previous quarter's year-to-date from the same start;
+  Q4 is the fiscal year less nine months.
+- **Availability.** Each row is available at its filing's **acceptance** (the
+  submissions index's `acceptanceDateTime` for the fact's accession), kind
+  `observed`. A derived quarter takes the later of its two acceptances. A later
+  filing restating a period is a revision row at its own acceptance. An accession
+  missing from the index takes its `filed` day's end in ET, kind `reconstructed`.
+  The history runs from `quarters_from` (2019-01-01); company facts serve back to
+  about 2009.
+- **Gaps by name.** None of the nine is an IFRS filer or a bank, so no name is
+  listed as a taxonomy gap. A field a filer does not tag writes nothing and shows
+  in the first pull's `keys_without_rows`. **Not probed live**: this paste made
+  no EDGAR call, so whether each filer carries each tag is shown by the
+  operator's dry run (below), not asserted here.
+- **Registry.** The `bulk_imports` block `edgar_fundamentals` is A93's shape:
+  `members_from: altdata.sources.edgar_xbrl.FUND_KEYS`, `status_extra:
+  not_yet_sourced` (the registry's word for "pending"), `expected_members: 40`.
+  `validate_audit_3a`'s NEW_KEY_BLOCKS declares it, placed away from A93's line so
+  the two merges do not touch.
+
+### Earnings dates: past from EDGAR, forward a listed gap
+
+- **Past dates.** Written as events of type `earnings` under source `sec_edgar`.
+  observed_at is the acceptance of the **8-K carrying item 2.02**. The quarter is
+  the latest 10-Q/10-K period end before it, within 100 days.
+- **Reported EPS.** Diluted EPS as first filed for that quarter as three months
+  (EarningsPerShareDiluted, else EarningsPerShareBasicAndDiluted).
+- **The cost of point-in-time.** The 8-K's press release carries no XBRL, so the
+  EPS is knowable only at the periodic report. The event is written once that
+  10-Q/10-K is accepted, available at the later instant. A report whose 10-Q is
+  not yet in is not written yet. Large names file within days; the banks file
+  their 10-Q about a month after the 8-K. **For the switch's paste:** the
+  Weekly's "reported this week" block would lag by that gap. The alternative,
+  a date-only event at the 8-K, means two rows per quarter or no EPS.
+- **Q4.** A fourth quarter is rarely filed as three months, so it carries no EPS
+  ("not filed as a quarter"). It is never the year less nine months, because EPS
+  does not subtract.
+- **The consensus was Yahoo's.** It came from `Ticker.calendar`'s
+  "Earnings Average" and `get_earnings_dates`' EPS estimate, in
+  `altdata/sources/earnings.py`. EDGAR has none, so **from the switch the
+  surprise is a listed gap** (`eps_estimate` and `surprise_pct` null, `consensus`
+  "not tracked (the consensus was Yahoo's; no keyless source)"). The paste's
+  "the surprise come[s] from EDGAR" holds only for the reported EPS.
+  `calc.earnings_surprise_pct` and `surprise_index`'s earnings z stop accruing at
+  the switch.
+- **The forward-date finding.** One look on 1 Nov 2026 at 13:09 UTC (08:09 ET):
+  - Nasdaq's is the only exchange earnings calendar. www.nasdaq.com/robots.txt
+    and its terms of use both timed out after 60 s to an automated client, so
+    neither could be read, and nothing that cannot be read passes the 16 Oct rule.
+  - NYSE publishes no earnings calendar.
+  - The companies' investor-relations pages carry only their own dates.
+  - So, as decision 10 says, the forward date is the listed gap: **"next report
+    date: not tracked (no keyless source)"** from the switch.
+    `price_sources.gap("earnings_dates", "next_date")` returns it. The Weekly's
+    Ahead prints it once in its notes, and the Weekly payload's earnings block
+    takes state `not_tracked` with it as the reason. Unswitched, nothing prints.
+
+### The switch and the readers moved
+
+- **`config/price_sources.yaml`, two families.**
+  - `fundamentals` has 40 members `{yfinance, edgar}`, and its break label names
+    the definitional change.
+  - `earnings_dates` is an **events family**: its members name the events
+    table's `source` (`history`: yfinance or sec_edgar; `next_date` and
+    `consensus`: yfinance only, with their `gaps` lines).
+- **`altdata/price_sources.py`.**
+  - `gap()` returns a member's gap line.
+  - `events_clause()` is the one filter, in SQL. Unswitched, it excludes EDGAR's
+    earnings rows. Switched on D, it keeps Yahoo's rows before D and EDGAR's from
+    D, never both. A source the family does not name, such as a gate's fixture,
+    passes either way.
+  - `event_ok()` is its mirror for a row in hand.
+  - The CLI prints a gap line in place of a missing key.
+- **The readers.** One central move covers about ten readers, and nine direct SQL
+  reads in six files carry the clause.
+
+| # | Where | What moved |
+|---|---|---|
+| 1 | `altdata/events.py` `EventStore._rows` | every `since()`/`calendar()` reader: `earnings_moves.record_due`, `events_block`, `evening_note`, `story_block`, `surprise` (the real surprise), `relative_volume`, `volatile_day`, `weekly_payload` (the earnings-ahead rows), `opening_setup`'s calendar read |
+| 2 | `daily_cascade/weekly_sections.py` | the week's calendar rows; `earnings_season` (both counts); `earnings_block`, the Weekly's earnings block |
+| 3 | `daily_cascade/weekly_stack.py` | the story status's earnings dates |
+| 4 | `daily_cascade/opening_setup.py` | `reactions()`, OS-11's last three reactions in the Ahead |
+| 5 | `altdata/narratives.py` | the earnings evidence |
+| 6 | `altdata/pe_dispersion.py` | `_eps` |
+| 7 | `alpha/event_rates.py` | `earnings_rows`, the lab's earnings base rates (the resolver is not on the lab's import blocklist) |
+| 8 | `altdata/ai_fcf.py` | `_key()` through `price_sources.key("fundamentals", ...)`. A name no writer carries reads as missing, as before |
+| 9 | `config/narratives.yaml` | the capex story's four metrics, as `price:fundamentals.*`, resolved by `narratives.load_config()` |
+
+- **The rest of the paste's list needs no move.** `capex_chain` reads EDGAR's
+  annual `edgar.xbrl_capex` already; `eps_overshoot` names no source (F3); the
+  forward-date half of the Ahead is the gap line above.
+- **`altdata/events.py` was not in the paste's shared files.** It is where the
+  readers' common read lives, the analogue of A96 moving a config's loader.
+  `write_many` gains `availability_kind` (default unchanged) so the backfill
+  stamps EDGAR's acceptances `observed`.
+- **For the switch's paste:** resolving the capex story's metrics in
+  `narratives.load_config()` means a switch re-seeds that story with EDGAR's keys.
+  Whether a forecast already emitted should resolve against the key it was
+  emitted on is a narrative-ledger question.
+
+### The writer and the pairs
+
+- **The writer.** `altdata/sources/edgar_xbrl.py` (no new SEC caller; it is
+  already on `validate_secrets` group J's list).
+  - It makes one companyfacts call and one submissions call per name, through
+    `edgar.user_agent()`.
+  - **The request rate is not in `user_agent.py`**, which carries the header
+    only. So the caller paces itself (`request_pause_s` 0.15 s, under the SEC's
+    ten a second), and the gate holds it.
+  - Both parts ship **`enabled: false`**. The daily `pull()` adds them only once
+    enabled.
+  - `python -m altdata.sources.edgar_xbrl fundamentals|earnings [--dry-run]` is
+    the operator's command for one part; its first run is the backfill.
+- **The pairs.** `config/data_quality.yaml` `inactive_pairs_edgar` holds 41
+  pairs: 40 company-quarter pairs pinned Yahoo against EDGAR, and one events
+  pair (report day and EPS). All are inactive with tolerance "to be measured on
+  the overlap", and the quality check does not read them. Yahoo is restated and
+  EDGAR as first filed, and net debt differs by definition, so a gap is measured,
+  not assumed away.
+
+### The operator's steps
+
+1. **The dry runs** (on the box, `CHESTER_SEC_CONTACT` set):
+
+   ```
+   python -m altdata.sources.edgar_xbrl fundamentals --dry-run
+   python -m altdata.sources.edgar_xbrl earnings --dry-run
+   ```
+
+   The first names any key without rows: a filer that does not carry a tag,
+   which the next paste lists as a gap by name. The second counts the events and
+   names the symbols with no CIK.
+2. **The backfill and the parallel run.** The same two commands without
+   `--dry-run`. Then a session paste sets both `enabled: true` and
+   `parallel_run.started`, and moves the pairs into the quality check.
+3. **Measure, then switch.** After 20 sessions:
+   `python -m altdata.quality measure --db data/chester.db`. Fundamentals change
+   quarterly, so the overlap is a season's filings, not 20 rows. Then the switch:
+   `source: edgar`, `switched_on`, and the registry's supersession, as section 4
+   asks.
+
+### Gates (one at a time, foreground)
+
+| Gate | Result |
+|---|---|
+| `validate_price_sources` | 59/0 (24 before: groups F, G and H and the EDGAR pairs added) |
+| `check_registry` | OK |
+| `validate_lenses` | passed |
+| `validate_secrets` | passed |
+| `validate_ai_fcf` | 27/0 (the TSM case first failed; `_key` now falls back) |
+| `validate_gtm` (the EDGAR gate) | passed |
+| `validate_st_t1_rest`, `validate_official_sources` | passed |
+| `validate_batch12`, `validate_events`, `validate_narratives` | passed |
+| `validate_opening_setup` | passed |
+| `validate_weekly_calendar` | 44/0 |
+| `validate_weekly_complete`, `validate_weekly_stack`, `validate_weekly`, `validate_weekly_storyline` | passed |
+| `validate_weekly_edits` | passed (check 9 first caught the gate's temporary directories; now `gate_tmp`) |
+| `validate_quarterly_stack` | passed |
+| `validate_alpha`, `validate_alpha_lab_3`, `validate_alpha_no_orders` | passed |
+| `validate_a48_batch11`, `validate_secondary_notes` | passed |
+| `validate_quality` | 48/0 |
+| `validate_audit_3a` | 88/0 (after declaring the block) |
+| `validate_monthly` | 359 passed, 1 failed, 1 skipped. **The same on the unchanged tip** (`42e5e7f9`): the refunding-window case, which depends on today's date (November), not on A102 |
+| `validate_stack` | stopped at the 9-minute foreground limit; CI runs it whole |
+| `validate_monthly_stack` | not run on the laptop (it was stopped for time on A96 too); CI runs it |
+
+No gate was added, so CLAUDE.md's counts are unchanged.

@@ -162,7 +162,10 @@ class NarrativeError(ValueError):
 def load_config(path: Optional[Path] = None) -> dict:
     import yaml  # noqa: PLC0415
     with (path or CONFIG_PATH).open(encoding="utf-8") as fp:
-        return yaml.safe_load(fp) or {}
+        cfg = yaml.safe_load(fp) or {}
+    # A102: a "price:<family>.<member>" metric resolves to the active key.
+    from . import price_sources as ps                           # noqa: PLC0415
+    return ps.resolve_tree(cfg)
 
 
 def story_queries() -> dict:
@@ -775,10 +778,12 @@ def evidence(ev_conn: sqlite3.Connection, spec: dict, cutoff: str,
     if er:
         want = 1 if str(er.get("sign", "+")) == "+" else -1
         syms = {str(s).upper() for s in er.get("symbols") or []}
+        from . import price_sources as _ps                     # noqa: PLC0415
+        _ec, _ep = _ps.events_clause()    # A102: the earnings rows' source switch
         for eid, payload in ev_conn.execute(
                 "SELECT id, payload FROM events WHERE type = 'earnings' "
-                " AND available_at <= ? AND observed_at >= ? AND observed_at <= ? "
-                "ORDER BY id", (cutoff, since, cutoff)):
+                " AND available_at <= ? AND observed_at >= ? AND observed_at <= ?"
+                + _ec + " ORDER BY id", (cutoff, since, cutoff, *_ep)):
             p = json.loads(payload or "{}")
             if str(p.get("symbol") or "").upper() not in syms:
                 continue

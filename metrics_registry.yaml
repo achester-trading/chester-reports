@@ -17488,6 +17488,35 @@ bulk_imports:
     mechanism_group: crypto_protocol_economics
     long_window: 365d
 
+  edgar_fundamentals:
+    description: >-
+      A102 (1 Nov 2026; tranche 6 of the price-source migration, ruled D38): the
+      nine AI-capex names' quarterly operating cash flow, capex (NEGATIVE, as
+      Yahoo publishes it), net debt (long-term debt less cash; leases excluded,
+      unlike Yahoo's Total Debt), inventory (AMZN, GOOGL, MSFT, MU) and cost of
+      goods, from EDGAR's XBRL company facts, keyed edgar.fund_<ticker>_<field>
+      beside Yahoo's yfinance.fund_*, never over them. Dollars, observed_at = the
+      fiscal quarter's end; available_at = the filing's acceptance (a later
+      filing with a different value is a revision row at its own acceptance); a
+      quarter filed only year to date is the difference of two year-to-dates.
+      Tags: config/edgar_xbrl.yaml `fundamentals`. NOT YET SOURCED: the writer is
+      built and switched off (`enabled: false`) until the operator starts the
+      parallel run; config/price_sources.yaml `fundamentals` is the switch.
+    source: edgar_xbrl
+    members_from: altdata.sources.edgar_xbrl.FUND_KEYS
+    status_extra: not_yet_sourced
+    family: quantity
+    units: usd
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    trigger_eligible: false
+    mechanism_group: corporate_fundamentals
+    expected_members: 40   # Yahoo's 40 keys, member for member (A102)
+
 families:
   # Signal-triage Batch 6, the rest of Tranche 1 (16 Oct 2026).
   sp500.member_weight: ratio

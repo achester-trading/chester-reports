@@ -772,12 +772,14 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
     sat = mon + dt.timedelta(days=5)
     rows: list[dict] = []
     routine: list[dict] = []
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     with events.EventStore(str(st.path)) as ev:
         recs = ev.conn.execute(
             "SELECT type, source, observed_at, title, payload FROM events WHERE "
             "type IN ('scheduled', 'session_event', 'earnings') AND observed_at >= ? "
-            "AND observed_at < ? AND available_at <= ? ORDER BY observed_at",
-            (mon.isoformat(), sat.isoformat(), now)).fetchall()
+            "AND observed_at < ? AND available_at <= ?" + _ec + " ORDER BY observed_at",
+            (mon.isoformat(), sat.isoformat(), now, *_ep)).fetchall()
     for typ, src, obs, title, payload in recs:
         p = json.loads(payload or "{}")
         d = str(obs)[:10]
@@ -1694,18 +1696,21 @@ def earnings_season(st, ending: str, now: str) -> dict:
     lo = (d - dt.timedelta(days=SEASON_DAYS)).isoformat()
     hi = (d + dt.timedelta(days=SEASON_DAYS)).isoformat() + "T23:59:59"
     try:
+        from altdata import price_sources as _ps                # noqa: PLC0415
+        _ec, _ep = _ps.events_clause()    # A102: the earnings rows' source switch
         with events.EventStore(str(st.path)) as ev:
             stored = ev.conn.execute(
                 "SELECT COUNT(*) FROM events WHERE available_at <= ? AND "
                 "(type = 'earnings' OR (type = 'scheduled' AND "
-                "json_extract(payload, '$.kind') = 'earnings'))", (now,)).fetchone()[0]
+                "json_extract(payload, '$.kind') = 'earnings'))" + _ec,
+                (now, *_ep)).fetchone()[0]
             near = ev.conn.execute(
                 "SELECT DISTINCT json_extract(payload, '$.symbol') FROM events "
                 "WHERE available_at <= ? AND observed_at >= ? AND observed_at <= ? "
                 "AND (type = 'earnings' OR (type = 'scheduled' AND "
                 "json_extract(payload, '$.kind') = 'earnings' AND "
-                "json_extract(payload, '$.date_confirmed') = 1))",
-                (now, lo, hi)).fetchall()
+                "json_extract(payload, '$.date_confirmed') = 1))" + _ec,
+                (now, lo, hi, *_ep)).fetchall()
     except Exception:                                           # noqa: BLE001
         stored, near = 0, []
     if not stored:
@@ -1730,12 +1735,14 @@ def earnings_block(st, ending: str, now: str, then: str,
     elif not earnings_season(st, ending, now)["in_season"]:
         return None
     from altdata import events                                  # noqa: PLC0415
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     rows, data = [], []
     with events.EventStore(str(st.path)) as ev:
         recs = ev.conn.execute(
             "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
-            "observed_at > ? AND observed_at <= ? AND available_at <= ?",
-            (then, now, now)).fetchall()
+            "observed_at > ? AND observed_at <= ? AND available_at <= ?" + _ec,
+            (then, now, now, *_ep)).fetchall()
     for obs, payload in recs:
         pl = json.loads(payload or "{}")
         if pl.get("reported_eps") is None:
