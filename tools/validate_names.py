@@ -23,6 +23,22 @@ WHAT IT NEVER COUNTS.
 - The measure names in ALLOWLIST (Sahm, Brier, CAPE, Taylor, Wu-Xia, ACM). They are
   removed from a line before the denylist is matched.
 - Git history: the gate never reads it.
+- AN ACCOUNT, NOT PROSE (B111, ruling (f) of 2 Nov 2026). A word that is a login
+  is removed from the line before the denylist is matched:
+    a home-path segment:  /home/<login>/..., /Users/<login>/..., C:\\Users\\<login>\\...
+    an account address:   <login>@host (ssh <login>@host among them)
+    an account command:   chown, chgrp, su, sudo -u, adduser, useradd, usermod,
+                          userdel, passwd and loginctl enable-/disable-linger, each
+                          with its arguments up to the next shell separator; and
+                          the box sheet's "user `<login>`"
+  The same word in prose is still a hit.
+
+THE PATH ALLOWLIST (B111, ruling (f)). Files that are never edited (the dated
+ledgers in docs/ledgers/) are skipped by path, read from the same place as the
+list: an entry "allow:<path>" in CHESTER_NAMES_DENYLIST or the names file, or
+CHESTER_NAMES_ALLOW_PATHS (comma-separated). The scan prints "allowlisted: n
+files" and each path, so the allowlist cannot grow silently; an allowed path that
+is not tracked is said so.
 
   python tools/validate_names.py            the self-test, then the scan if a list is set
 """
@@ -39,6 +55,8 @@ GATE_KIND = "code"
 REPO = Path(__file__).resolve().parent.parent
 ENV_LIST = "CHESTER_NAMES_DENYLIST"
 ENV_FILE = "CHESTER_NAMES_FILE"
+ENV_ALLOW = "CHESTER_NAMES_ALLOW_PATHS"
+ALLOW_PREFIX = "allow:"
 DEFAULT_FILE = ".chester-names"
 
 # Matched first and removed from the line: measures named after people.
@@ -47,6 +65,14 @@ ALLOWLIST = ("Sahm", "Brier", "CAPE", "Taylor", "Wu-Xia", "ACM")
 NEVER = ("chester",)
 _URL = re.compile(r"https?://\S+")
 _REPO_TOKEN = re.compile(r"[\w.-]*chester[\w.-]*", re.I)
+# An account, not prose (B111): removed before the denylist is matched.
+_ACCOUNT = (
+    re.compile(r"(?:/home/|/Users/|\\Users\\)[\w.-]+", re.I),          # a home-path segment
+    re.compile(r"[\w.-]+@[\w-]+(?:\.[\w-]+)*"),                          # login@host
+    re.compile(r"\b(?:chown|chgrp|su|adduser|useradd|usermod|userdel|passwd"
+               r"|sudo\s+-u|loginctl\s+(?:enable|disable)-linger)\b[^&;|\n`]*"),  # a command
+    re.compile(r"\buser\s+`[\w.-]+`"),                                   # the sheet's user `<login>`
+)
 BINARY_EXT = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".xlsx", ".xls", ".zip",
               ".gz", ".db", ".sqlite", ".parquet", ".ico", ".woff", ".woff2", ".ttf"}
 
@@ -63,14 +89,29 @@ def check(cond: bool, msg: str) -> None:
         print(f"  FAIL  {msg}")
 
 
-def denylist(environ=None) -> list[str]:
-    """The names to refuse, from the environment or the named file; [] if neither."""
-    env = os.environ if environ is None else environ
+def _entries(env) -> list[str]:
+    """Every entry of the list's one place: the variable, else the named file."""
     raw = (env.get(ENV_LIST) or "").strip()
     if not raw and (env.get(ENV_FILE) or "").strip():
         p = Path(env[ENV_FILE]).expanduser()
         raw = p.read_text(encoding="utf-8") if p.is_file() else ""
-    names = [n.strip() for n in re.split(r"[,\n]", raw) if n.strip()]
+    return [n.strip() for n in re.split(r"[,\n]", raw) if n.strip()]
+
+
+def allow_paths(environ=None) -> list[str]:
+    """The path allowlist: "allow:<path>" entries of the list, plus ENV_ALLOW."""
+    env = os.environ if environ is None else environ
+    out = [e[len(ALLOW_PREFIX):].strip() for e in _entries(env)
+           if e.lower().startswith(ALLOW_PREFIX)]
+    out += [p.strip() for p in (env.get(ENV_ALLOW) or "").split(",") if p.strip()]
+    norm = (p.replace("\\", "/") for p in out)
+    return sorted({p[2:] if p.startswith("./") else p for p in norm if p})
+
+
+def denylist(environ=None) -> list[str]:
+    """The names to refuse, from the environment or the named file; [] if neither."""
+    env = os.environ if environ is None else environ
+    names = [e for e in _entries(env) if not e.lower().startswith(ALLOW_PREFIX)]
     out = []
     for n in names:
         if n.lower() in NEVER:
@@ -83,6 +124,8 @@ def denylist(environ=None) -> list[str]:
 def _clean(line: str) -> str:
     """The line with URLs, repository tokens and allowlisted measures removed."""
     line = _URL.sub(" ", line)
+    for rx in _ACCOUNT:
+        line = rx.sub(" ", line)
     line = _REPO_TOKEN.sub(" ", line)
     for a in ALLOWLIST:
         line = re.sub(rf"(?<![\w-]){re.escape(a)}(?![\w-])", " ", line, flags=re.I)
@@ -143,6 +186,24 @@ def selftest() -> None:
     check(not (REPO / DEFAULT_FILE).exists() or DEFAULT_FILE not in
           [p.name for p in tracked_files()], "no names file is tracked")
 
+    print("B. AN ACCOUNT, NOT PROSE; THE PATH ALLOWLIST (B111, ruling (f))")
+    zed = _pattern(["Zed"])
+    acct = ["ExecStart=/home/zed/chester-reports/run.sh",
+            r"C:\Users\Zed\projects\x and /Users/zed/x",
+            "ssh zed@vps 'ls' and mail zed@example.org",
+            "sudo adduser zed && sudo usermod -aG sudo zed",
+            "sudo loginctl enable-linger zed; chown zed:zed f; su - zed; sudo -u zed id",
+            "typed at the box prompt (`ssh vps`, user `zed`)"]
+    check(not any(hits_in(a, zed) for a in acct),
+          "a login in a home path, an address or an account command is not a hit")
+    check(len(hits_in("Zed restarts the unit; the Gateway needs Zed's login", zed)) == 1
+          and hits_in("cd /home/zed && Zed signs off", zed),
+          "the same word in prose is still a hit, beside an excluded path too")
+    env = {ENV_LIST: "Zed, allow:docs/ledgers/a.md", ENV_ALLOW: "docs/ledgers/b.md,./c.md"}
+    check(denylist(env) == ["Zed"] and allow_paths(env) == ["c.md", "docs/ledgers/a.md", "docs/ledgers/b.md"],
+          "allow:<path> entries and CHESTER_NAMES_ALLOW_PATHS are paths, never names")
+    check(allow_paths({}) == [], "no allowlist set: nothing is skipped")
+
 
 def main() -> int:
     print("=" * 78 + "\nvalidate_names -- no listed person's name in a committed file (D38)\n" + "=" * 78)
@@ -154,8 +215,16 @@ def main() -> int:
         return 1 if FAIL else 0
     print(f"\nB. THE SCAN ({len(names)} name(s) from the list; never printed)")
     pat = _pattern(names)
+    allowed = allow_paths()
+    files = tracked_files()
+    rels = {str(p.relative_to(REPO)).replace("\\", "/") for p in files}
+    print(f"  allowlisted: {len(allowed)} files")
+    for a in allowed:
+        print(f"    {a}" + ("" if a in rels else "  (not a tracked file)"))
     by_file: dict[str, list] = {}
-    for p in tracked_files():
+    for p in files:
+        if str(p.relative_to(REPO)).replace("\\", "/") in allowed:
+            continue
         t = read_text(p)
         if t is None:
             continue

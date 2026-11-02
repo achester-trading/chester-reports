@@ -297,3 +297,73 @@ Until then, with the list set, the gate fails on these 33 lines and names each.
 | `tools/validate_secondary_notes.py` | 1 | 0 |
 | `tools/validate_security_master.py` | 1 | 0 |
 | `tools/validate_systemd_units.py` | 1 | 0 |
+
+## B111 (2 Nov 2026): the ruled exclusions
+
+Ruling (f) of 2 Nov 2026, from the needs-you above:
+- the gate excludes the box's login in home paths and in account commands;
+- it allowlists the three never-edited ledgers by path;
+- the seven unit-file comments and A78's paste header are swept in the merge-week
+  deploy window, not now.
+
+This was built on this branch (continued from `04439228`); the paste is on
+`b100-hygiene` (`docs/pastes/B111.md`).
+
+**An account, not prose.** These words are removed from a line before the denylist
+is matched; the rule is stated in the gate's header:
+- **a home-path segment:** `/home/<login>`, `/Users/<login>`, `C:\Users\<login>`;
+- **an address:** `<login>@host`, including `ssh <login>@host`;
+- **an account command,** with its arguments up to the next shell separator:
+  `chown`, `chgrp`, `su`, `sudo -u`, `adduser`, `useradd`, `usermod`, `userdel`,
+  `passwd`, and `loginctl enable-linger` or `disable-linger`;
+- **the box sheet's form,** "user `<login>`".
+
+The same word in prose is still a hit.
+
+**The path allowlist.** It is read from the same place as the list: an
+`allow:<path>` entry in `CHESTER_NAMES_DENYLIST` or the names file, or
+`CHESTER_NAMES_ALLOW_PATHS` (comma-separated). One repository secret can therefore
+carry both. The scan prints "allowlisted: n files" and each path, and marks an
+allowed path that is not tracked.
+
+**The seed for the operator**, appended to the secret's value as three entries:
+
+```
+allow:docs/ledgers/after-hours-earnings-preregistration-2026-10.md
+allow:docs/ledgers/os-6-ledger-2026-10-19.md
+allow:docs/ledgers/release-first-hour-preregistration-2026-10.md
+```
+
+**Swept in the merge-week deploy window (left as found).** Eight lines, each the
+same comment or header, quoted masked:
+
+| File | Line | The line, masked |
+|---|---|---|
+| `deploy/systemd/chester-backup.service` | 82 | `# again; a day's chains cannot be fetched again; the Gateway needs ***'s supervised` |
+| `deploy/systemd/chester-daily-close.service` | 68 | the same comment |
+| `deploy/systemd/chester-eod.service` | 85 | the same comment |
+| `deploy/systemd/chester-monthly.service` | 54 | the same comment |
+| `deploy/systemd/chester-voices.service` | 39 | the same comment |
+| `deploy/systemd/chester-weekly.service` | 57 | the same comment |
+| `deploy/systemd/ibgateway.service` | 90 | `# chains cannot be fetched again; the Gateway needs ***'s supervised login. So the` |
+| `docs/pastes/A78.md` | 1 | `From *** - run this (session A): A78, ...` (the standing header) |
+
+The sweep for the units is "the Gateway needs the operator's supervised", in a
+window where the operator restarts those units anyway. Every unit file whose
+comment changes is flagged restart pending by the self-deploy.
+
+**Re-run, with the operator's first name set locally as the list (never written)
+and the seed above:**
+- allowlisted: 3 files;
+- **8 hits in 8 files, every one of them the eight lines above; 0 outside them**
+  (33 before B111);
+- the same result with the list in a file (`CHESTER_NAMES_FILE`, `allow:` lines).
+
+Until the window sweep, the gate fails on those eight lines whenever the list is
+set. In CI it skips until the secret is set.
+
+| Gate | Tally |
+|---|---|
+| validate_names, no list (the self-test) | 15/0, "names gate: no denylist; skipped", exit 0 (4 new checks: the account forms, prose still a hit, `allow:` entries are paths, no allowlist set) |
+| validate_names, the list and the seed | 15/1: the 8 lines above |
+| validate_alpha | 257/0 |
