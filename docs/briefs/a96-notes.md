@@ -540,3 +540,110 @@ $ python -m altdata.sources.edgar_xbrl earnings --dry-run
 
 **Gates.** None run. No code, config or fixture changed: this commit holds the
 paste and this section only.
+
+## A104, second pass (2 Nov 2026): the dry runs live on the laptop
+
+**What changed.** The paste was sent again on 2 Nov, and `CHESTER_SEC_CONTACT`
+now resolves on the laptop (option (a) above). The base is unchanged,
+`d356e613`.
+
+**The header check, before the counted runs.** `edgar.user_agent()` is
+`chester-reports/1.0 (<contact>)`, and the contact comes from configuration
+(`.env`), not a literal in code.
+
+- Its shape was checked without printing it: two tokens, the project's name
+  and one email address.
+- No personal name sits beside the address. The address itself is the
+  operator's, the contact the 17 Oct ruling gives sec.gov alone.
+- **One fundamentals dry run was made before this check,** when the session
+  re-ran Part 1 to see whether anything had changed. It gave the same output
+  as run 1 below.
+
+**Part 1, the dry runs** (2 Nov 2026, about 21:00 UTC, the branch's venv,
+through A102's caller at 0.15 s spacing). No 429 or 403 came back.
+
+| Run | Command | Output | Time | Requests |
+|---|---|---|---|---|
+| 1 | `fundamentals --dry-run` | `{"dry_run": true, "keys_with_rows": 39, "keys_without_rows": ["edgar.fund_orcl_cogs"], "rows": 1134}` | 14 s | 18 (9 filers x companyfacts and submissions) |
+| 1 | `earnings --dry-run` | `{"dry_run": true, "events": 282, "report": {"failed": {}, "missing": [], "symbols": 29}}` | 50 s | 59 (the ticker map, then 29 x 2) |
+| 2, after the config change | `fundamentals --dry-run` | identical to run 1 | 17 s | 18 |
+| 2, after the config change | `earnings --dry-run` | identical to run 1 | 58 s | 59 |
+
+The two outputs above are the commands' whole output. Neither prints a log line
+on a clean run.
+
+- **Fundamentals: 9 companies, 40 keys, 39 with rows, 1 without.**
+- **Earnings: 29 companies**, all in the SEC's ticker map and none failed,
+  giving 282 events.
+
+**Part 2, the gaps.**
+
+- **ORCL `cogs`, the only fundamentals key without rows, is a listed gap. No
+  fallback was added.**
+  - Oracle's company facts carry neither `CostOfGoodsAndServicesSold` nor
+    `CostOfRevenue`, and none of the usual alternates for cost of revenue.
+  - Every us-gaap element with "Cost" or "Expense" in its name was read: one
+    request, tag names and period counts only.
+  - The one quarterly candidate is `CostsAndExpenses`. That is total operating
+    expenses, a different figure, so taking it would fill the field from
+    another measure.
+  - Oracle's own cost lines are company extensions, which company facts does
+    not serve.
+  - Listed under `fundamentals.gaps` in `config/edgar_xbrl.yaml`, with the
+    reason. Nothing reads that list, which is why run 2 matches run 1.
+- **None of the other fallbacks the paste names was needed.** Every other
+  company and field has rows under the tags A102 configured:
+  - revenue is not one of the ten fields;
+  - `net_debt` resolves for all nine;
+  - `capex` resolves for all nine (Amazon's through its configured second tag);
+  - `inventory` resolves for its four filers.
+- **Earnings, the dating, per company.** For each name: 8-K item 2.02 reports in
+  the 12-report window / events dated / dated events carrying an EPS. Counts
+  only; one diagnostic pass through the writer's own functions, 59 requests.
+
+  | Latest report | Names |
+  |---|---|
+  | **Dated** (22) | AAPL 12/12/9, AMZN 12/12/9, AVGO 12/12/9, BAC 4/4/3, BRK-B 12/12/0, COST 12/12/9, GOOG 12/12/9, GOOGL 12/12/9, HD 12/12/9, JNJ 12/12/10, LLY 12/12/9, MA 12/12/9, META 10/10/8, MSFT 12/12/9, NFLX 12/12/9, NVDA 12/12/9, ORCL 12/12/9, PG 12/12/9, TSLA 12/12/10, WFC 4/4/3, WMT 12/12/9, XOM 2/2/2 |
+  | **Not dated yet** (7) | ABBV 12/11/11, C 4/3/0, GS 5/4/2, JPM 4/3/2, MS 4/3/2, UNH 12/11/8, V 12/11/0 |
+
+  - **Why the seven are not dated.** The latest 8-K's quarter has no 10-Q or
+    10-K accepted yet. The newest periodic period end before it is more than
+    `max_report_lag_days` (100) earlier, so the writer skips it.
+    - That is A102's design: the EPS is knowable only at the periodic report,
+      so the event waits.
+    - It dates at the first pull after that filing. No writer fault.
+  - **The banks' short windows** (BAC, C, GS, JPM, MS, WFC; XOM's 2) count only
+    the 8-Ks filed under item 2.02, so fewer reports fall in the window. The
+    count is what the submissions index holds.
+  - **About 3 in 12 dated events carry no EPS**, which is expected. A fourth
+    quarter is filed only as a year, and A102 prints "not filed as a quarter",
+    never the year less nine months.
+- **Three EPS gaps, beyond the fourth quarters.** Listed, never filled:
+  - **BRK-B:** company facts holds no ungrouped quarterly EPS in us-gaap.
+    Berkshire states per-share earnings per Class A equivalent.
+  - **V:** the only quarterly per-share facts are dividends. Visa's EPS is filed
+    by share class, which company facts' ungrouped series does not carry.
+  - **C:** quarterly `EarningsPerShareDiluted` and `EarningsPerShareBasic` run
+    to the September 2025 quarter. None is served for Citi's 2026 10-Qs, so its
+    2026 events carry no EPS.
+  - **For a later paste.** All three print "not filed as a quarter", the
+    fourth-quarter reason, which is the wrong reason for them. A per-name
+    `eps_gap` note in the earnings config would fix the wording. It is not in
+    this paste's tag-table scope, so it is not made here.
+
+**Part 3, the fixtures.** No fallback was added, so there is no
+`validate_price_sources` case to add (one per fallback: zero).
+
+**Gates**, one at a time, on this commit:
+
+| Gate | Result |
+|---|---|
+| `validate_price_sources` | 59 passed, 0 failed |
+| `validate_ai_fcf` | 27 passed, 0 failed |
+| `validate_weekly_calendar` | 44 passed, 0 failed |
+| `validate_quality` | 48 passed, 0 failed |
+| `check_registry` | OK |
+
+**Nothing is stored and the writers stay off.** Both `enabled: false` switches
+are unchanged. No figure from the runs is in this file: only the row, key,
+event and company counts.
