@@ -1,0 +1,95 @@
+# alpha_premium_sleeve.yaml -- the premium sleeve, Batch 19 item 100 (accepted 27
+# Oct 2026; B99). Read by alpha/engines/premium_sleeve.py, written by no loop.
+#
+# THE SPEC IS PRE-REGISTERED, as engines 6 and 7's are. Everything under `spec:` is
+# the hypothesis's rule; its sha256 (alpha/manifest.batch_sha256 of `spec`) is
+# `spec_sha256` below and is quoted by the registration's P-1
+# (alpha/research/roster-2026-10-31-premium-sleeve.yaml), which the operator
+# registers BY MANIFEST before the first backtest. The engine refuses a spec that
+# no longer hashes to spec_sha256: a changed rule is a new hypothesis.
+#
+# PAPER ONLY. No live orders before 2027 (item 100), and nothing here can reach a
+# broker: alpha/ imports no order path (tools/validate_alpha_no_orders.py).
+#
+# THE RULED SPEC (item 100), and what B99 had to set where the ruling is silent,
+# each marked "session-set":
+#   XSP or SPX put spreads, cash-settled, section 1256, defined tail. The vendor
+#   chain the system holds is SPX's (altdata/vendor_chains.py, 16:31 ET, the 16:16
+#   ET data), so the sleeve is SPX; XSP is SPX at a tenth and the same rule.
+#   30-45 days to expiry at entry; the short strike at about 16-20 delta; take
+#   profit at 50% of the credit; close or roll at 21 days to expiry.
+#   Entry gates, all three: VRP above zero; IV rank in the top third; net GEX
+#   positive or spot above the flip.
+#   Stand down: the HY Spread Acceleration or the Liquidity overlay ACTIVE, or the
+#   Capitulation Count reads surrender without a T&B BOTTOM SIGNAL.
+#   Benchmark: the Cboe PUT index -- not stored under D45's hold (D2-74).
+version: 1
+spec:
+  family: "KS options"                       # the variant_counts key (family_ref, B98)
+  family_ref: "KS options"
+  underlying: SPX
+  structure: "a put credit spread: sell the short put, buy the long put below it, one expiry"
+  chain:
+    source: "the vendor chain snapshots the system holds: <CHAIN_DIR>/<session>/SPX_<HHMMSSZ>.csv (altdata.sources.massive_chain.write_snapshot), the 16:31 ET capture of the 16:16 ET data"
+    knowable_at: "each row's fetched_at; a snapshot fetched after the read's instant is never read"
+    snapshot: "the session's last SPX snapshot knowable at the read"
+    missing: "no snapshot, no expiry in the window, or no strike in the band on a day: no trade that day, logged as 'chain not stored' (or its narrower reason)"
+  decision: "the nightly loop's 17:40 ET on session D, reading the store as knowable then"
+  entry_fill: "the next session's snapshot, each leg at its executable side (sell the short at its bid, buy the long at its ask), through alpha/costs.py's index_option_spread line; never the mid"
+  dte_window: [30, 45]                       # days to expiry at entry, inclusive
+  expiry_choice: "the listed expiry in the window nearest its middle; the earlier on a tie"
+  short_delta_band: [0.16, 0.20]             # |put delta| of the short strike, inclusive
+  short_strike_choice: "the strike in the band nearest the band's middle (|delta| 0.18); the higher strike on a tie"
+  delta:
+    model: "Black-Scholes put delta from the row's own implied_vol, the snapshot's spot, the strike and dte/365"
+    rate: 0.0                                # session-set: no rate is read; at 30-45 days the delta moves by under 0.01
+    dividend_yield: 0.0                      # session-set
+    no_iv: "a row with no implied_vol is not a candidate strike"
+  width_points: 50                           # session-set: the long strike is the listed strike nearest short - 50, at or below it
+  take_profit_frac: 0.50                     # close when the debit to close is at most 50% of the entry credit
+  exit_dte: 21                               # close at the first session with 21 or fewer days to expiry
+  exit_fill: "at the session's snapshot an exit fires on, each leg at its executable side (buy the short back at its ask, sell the long at its bid); at expiry, the cash settlement against the stored SPX close"
+  roll: "a 21-DTE close is a close; the next night's gates decide a new entry like any other"
+  one_at_a_time: "at most one open spread; no new entry while one is open"
+  sizing: "whole spreads only: floor(sleeve capital / the spread's maximum loss); fewer than one, no trade. The sleeve capital is the lab's notional times the engine's min_size (its own sleeve cap under the Doctrine)"
+  gates:
+    vrp:
+      rule: "implied less realised > 0, in vol points"
+      implied_key: yfinance.mkt_vix
+      realised_key: calc.vol_spy_realized_20d
+      definition: "the house's VRP (altdata/vol_event.py lens_realised): the VIX less SPY's 20-day realised volatility"
+    iv_rank:
+      rule: "IV rank >= 66.67 (the top third)"
+      key: yfinance.mkt_vix
+      window_sessions: 252
+      definition: "(latest - min) / (max - min) x 100 over the last 252 stored sessions knowable at the decision; fewer than 252, the gate does not hold"
+    dealer:
+      rule: "net GEX > 0, or spot > the gamma flip"
+      instrument: SPX
+      keys: {net_gex: exposure.net_gex, flip: exposure.gamma_flip, spot: exposure.spot}
+      definition: "the session's stored dealer rows (altdata/dealer_store.py) knowable at the decision; none for the session, the gate does not hold"
+  stand_downs:
+    overlays:
+      ids: [hy_accel, liquidity]
+      reader: "altdata/tb_harness.py overlays_at, as of the session (config/tb_episodes.yaml)"
+      active: "FIRES"
+      unread: "UNREAD or NOT EXISTENT stands down too: an overlay the store cannot read is not known to be clear (session-set)"
+    capitulation:
+      count_key: capitulation.count_band     # pending: B79's module computes the count and stores none
+      verdict_key: top_bottom.verdict        # pending: no writer stores it (CLAUDE.md)
+      rule: "stand down when the count's band is surrender and the T&B verdict is not BOTTOM SIGNAL"
+      missing: "the count not stored: stand down, 'count not stored' (item 100)"
+  benchmark:
+    ruled: "the Cboe PUT index"
+    state: "not stored: pending Doctrine #2 (D2-74). Under D45's hold no new Cboe series is pulled; the sleeve's returns are ledgered against cash until it is ruled"
+  costs: "config/alpha_costs.yaml index_option_spread: each leg crosses its own quoted spread, plus slippage and a commission per leg"
+  promotion: "only through RAS (item 91(b)) and the cost cliff (item 91(c)), under the constitution; its own sleeve cap under the Doctrine"
+  never: "OTM and LEAP buying stays a separate Book D sleeve, never funded by premium; nothing here buys a lone option"
+  variants:
+    # Each a counted variant (item 100's paste): the base plus one change each.
+    - {name: delta_band_low_end, replace: {short_delta_band: [0.14, 0.20]}}
+    - {name: delta_band_high_end, replace: {short_delta_band: [0.16, 0.22]}}
+    - {name: dte_low_bound, replace: {dte_window: [25, 45]}}
+    - {name: dte_high_bound, replace: {dte_window: [30, 50]}}
+    - {name: take_profit_level, replace: {take_profit_frac: 0.60}}
+spec_sha256: "e5986830db0027e4057ffebc06ac8093838089528878f5fd48980a81fde84a01"

@@ -79,7 +79,7 @@ def week_days(as_of: str) -> list[str]:
 # 1-2. Walk-forward and the bounded re-fit
 # ---------------------------------------------------------------------------
 def _loaded(ledger: Ledger, registry_path=None) -> dict[str, engine_mod.Engine]:
-    entries = list(engine_mod.registered(registry_path)) + promote.register_engines(ledger)
+    entries = list(engine_mod.active(registry_path)) + promote.register_engines(ledger)  # B99
     out = {}
     for e in entries:
         eng = engine_mod.load(e)

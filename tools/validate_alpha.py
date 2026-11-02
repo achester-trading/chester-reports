@@ -464,7 +464,8 @@ def group_c_static() -> None:
 # Tranche 2's engines, then Tranche 3 part 1's (alpha-lab-3, 17 Oct 2026), part 2's engine 6 (alpha-lab-4) and engine 7 (b45-chain3).
 ENGINE_IDS = ["trend_ts", "trend_xs", "pm_futures", "vrp_dealer",
               "events_macro", "events_fomc", "events_pead", "events_crush",
-              "crypto_carry", "reversion", "intraday_dealer"]
+              "crypto_carry", "reversion", "intraday_dealer",
+              "premium_sleeve"]           # B99: registered, enabled: false
 
 
 # ---------------------------------------------------------------------------
@@ -497,8 +498,8 @@ def group_e() -> None:
     head("E. THE COST MODEL (X-1.4)")
     cm = CostModel()
     classes = {"etf", "single_name", "index_option", "equity_option", "future", "perp",
-               "prediction_market", "fx_pair"}
-    check(set(cm.classes) == classes, "the eight cost classes are declared")
+               "prediction_market", "fx_pair", "index_option_spread"}   # B99: the spread's line
+    check(set(cm.classes) == classes, "the nine cost classes are declared")
     buy = cm.fill("etf", 1, 100, 100.0)
     sell = cm.fill("etf", -1, 100, 100.0)
     check(buy.price > 100.0 > sell.price, f"a buy fills above the reference "
@@ -1892,7 +1893,9 @@ def group_t() -> None:
     with Ledger(Path(_TMP) / "t_nightly.db") as lg:
         es = {e["id"]: e["status"] for e in lg.engines()}
         sigs = lg.one("SELECT COUNT(*) AS n FROM signals")["n"]
-    check(not out["failures"] and es == {e: "candidate" for e in ENGINE_IDS}
+    # B99: a disabled engine (enabled: false) never enters the loop.
+    check(not out["failures"] and es == {e: "candidate" for e in ENGINE_IDS
+                                         if e != "premium_sleeve"}
           and sigs == 0,
           "the registry's engines enter the nightly loop as candidates and trade "
           "nothing before they pass")
@@ -2110,11 +2113,11 @@ def group_w() -> None:
         allh += [(d["batch_id"], h) for h in d.get("hypotheses") or []]
     unmapped = [f"{b}/{h['local_id']}" for b, h in allh
                 if fam.family_ref_of(h, b) not in set(refs_list)]
-    check(allh and not unmapped and len(fam.assigned()) == len(allh),
+    bare = [(b, h) for b, h in allh if "family_ref" not in h]    # B99: P-1 carries its own
+    check(allh and not unmapped and len(fam.assigned()) == len(bare),
           f"every registered hypothesis ({len(allh)}, the inbox files from 14 Oct and "
           f"the rosters) has one family_ref, in the registry ({unmapped[:3] or 'none missing'})")
-    check(not any("family_ref" in h for _, h in allh)
-          and sha(SEED_BATCH) == SEED_SHA256,
+    check(len(bare) == len(fam.assigned()) and sha(SEED_BATCH) == SEED_SHA256,
           "the registered files are unchanged: the map is the registry's, and the "
           "first batch still hashes to its pin")
     # The schema: an optional field, validated; required on an inbox batch from the cutover.
@@ -2142,14 +2145,14 @@ def group_w() -> None:
     import functools                                            # noqa: PLC0415
     one = Path(_TMP) / "families_one_to_one.yaml"
     by_old = {}
-    for b, h in allh:
+    for b, h in bare:                       # the hypotheses the old key counted
         by_old.setdefault(h["family"], []).append((b, h))
     one.write_text(yaml.safe_dump({
         "families": [{"ref": f"T {f}", "section": None, "title": f, "house": True,
                       "house_description": "fixture", "asset_classes": ["x"]}
                      for f in sorted(by_old)],
         "assignments": [{"batch_id": b, "local_id": h["local_id"],
-                         "family_ref": f"T {h['family']}"} for b, h in allh]},
+                         "family_ref": f"T {h['family']}"} for b, h in bare]},
         allow_unicode=True), encoding="utf-8")
     saved = fam.REGISTRY
     try:
@@ -2158,7 +2161,7 @@ def group_w() -> None:
             fn.cache_clear()
         old_db, new_db = Path(_TMP) / "count_old.db", Path(_TMP) / "count_new.db"
         with Ledger(old_db) as lo:
-            for b, h in allh:                                   # the old key, as it was
+            for b, h in bare:                                   # the old key, as it was
                 lo.bump_variant(h["family"], "t")
             old = {f: lo.variant_count(f) for f in by_old}
         with Ledger(new_db) as ln:
@@ -2167,6 +2170,8 @@ def group_w() -> None:
                 d = yaml.safe_load(f.read_text(encoding="utf-8"))
                 rg.record_batch(d, hyp.instant(d["written_at"]) or "2026-10-14T00:00:00+00:00", "t")
                 for h in d["hypotheses"]:
+                    if "family_ref" in h:           # B99 on: counted under its own ref
+                        continue
                     rg.register(h, d, hyp.instant(d["written_at"]) or "2026-10-14T00:00:00+00:00",
                                 "t", "needs_code", "fixture")
             new = {f: ln.variant_count(f"T {f}") for f in by_old}
@@ -2186,7 +2191,7 @@ def group_w() -> None:
         fam.REGISTRY = saved
         for fn in (fam.registry, fam._legacy):
             fn.cache_clear()
-    real = {fam.family_ref_of(h, b) for b, h in allh}
+    real = {fam.family_ref_of(h, b) for b, h in bare}
     check(all(fam.legacy_families(r) for r in real)
           and "events" in fam.legacy_families("KS §19.5 economic announcements")
           and "events" in fam.legacy_families("KS §3.2 earnings momentum"),
