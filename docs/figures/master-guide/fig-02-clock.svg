@@ -110,7 +110,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="ink" x="54.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">02:30  Backup sweep</text>
 <circle class="chat" cx="36" cy="850" r="11"/>
 <text class="onbox" x="36.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">3</text>
-<text class="ink" x="54.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">06:00  Grok X digest (Ari&#x27;s automation)</text>
+<text class="ink" x="54.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">06:00  Grok X digest (the operator&#x27;s automation)</text>
 <circle class="box" cx="36" cy="880" r="11"/>
 <text class="onbox" x="36.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">4</text>
 <text class="ink" x="54.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">06:15  Voices scan</text>

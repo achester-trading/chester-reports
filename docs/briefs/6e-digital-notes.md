@@ -25,7 +25,7 @@ items 2 and 5, filing notes 1-5 and 9-10.
 | SHA-256 over LF | `c0aa024ebe4d17b4364c338e644fae822b062283bc7ff78febf733e06314121e`: **matches** |
 | Branch | `docs-batch-8` from `origin/main` (`1148c66`) |
 | Commit | `1388967` "docs: Batch 8 change order, signal-triage round 6 part 3 (items 49-51, digital assets), filed 17 Oct 2026"; the staged blob hashes to the same SHA-256 |
-| Merge | Ari's, with Monday's chain, after `docs-batch-7`. Not merged here. |
+| Merge | the operator's, with Monday's chain, after `docs-batch-7`. Not merged here. |
 
 ## Verify item 5: can the Sunday build carry a second page without change?
 
@@ -97,7 +97,7 @@ not yet stored, the cell reads **"awaiting Tranche A"**, never a guess.
 
 The page ends with the **dated line for the Digital Assets paper**. Code writes it from the
 page: the week, the closes and weekly changes, the stablecoin change and the next dated
-event. It is a draft for Ari's accept-all, never the model's.
+event. It is a draft for the operator's accept-all, never the model's.
 
 ## Item 49c: the index-event entries
 
@@ -125,7 +125,7 @@ source.
 - Its index-review page (`/indexes/index-resources/index-review`) answers with a browser
   challenge, a JavaScript proof-of-work page, so no keyless client can read it.
 - Under the 16 Oct rule that is a gap, not something to work around. The marker stays
-  until Ari reads the date in a browser and removes it.
+  until the operator reads the date in a browser and removes it.
 
 ## The sweep: folders added, inbox paths
 
@@ -153,7 +153,7 @@ sweep's exit.
 - **`tools/validate_backup.py`** holds the new pull and the five inboxes. It passes 66/66
   locally.
 
-## Session-set values (for Ari)
+## Session-set values (for the operator)
 
 | Value | Set at | Reason |
 |---|---|---|
@@ -189,9 +189,9 @@ command is printed below and in CLAUDE.md.
 ## The Digital Assets paper's dated appendix
 
 `docs/whitepapers/digital-assets-whitepaper.md` gains **Appendix E: Dated Record**, a
-draft for Ari's accept-all.
+draft for the operator's accept-all.
 - **How the weekly lines enter:** code writes each from that week's page. A line waits
-  beside the addendum in the archive until Ari accepts it.
+  beside the addendum in the archive until the operator accepts it.
 - **Item 49's base-rate note** is written by hand.
 - The appendix holds no line yet.
 
@@ -354,7 +354,7 @@ Bitcoin closed the week at $70,984, +0.7% on the week and +6.4% over 30 days, al
 
 **For the Digital Assets paper (draft):** **Week to 31 Oct 2026.** BTC $70,984 (+0.7% on the week); ETH $3,549 (+0.7% on the week); SOL $177.46 (+0.7% on the week); ZEC $47.32 (+0.7% on the week). Stablecoin supply +$3.5bn on the week. Next dated event: MSCI, November 2026 Index Review announced, the first under the non-operating company rules (Strategy's inclusion decided), 11 Nov.
 
-## Box commands, for Ari (printed, not run; inside a window)
+## Box commands, for the operator (printed, not run; inside a window)
 
 Run them on weekdays 09:05-15:40 or 17:20-23:30 ET, or on a weekend clear of Sunday 05:00.
 

@@ -343,7 +343,7 @@ disagreements:
 
 # COMMITTED PROPOSALS -- PENDING THE OPERATOR'S CONFIRM
 # Ruling (c) of 16 Oct 2026: "Judgment drafts (narrative lines, appendix notes,
-# rule-table edits) are committed by the session as drafted and listed for Ari's
+# rule-table edits) are committed by the session as drafted and listed for the operator's
 # accept-all; the register's confirm step stays his." So these enter the register
 # at the next seed as `proposed` (origin config_proposal), emerging, never
 # evaluated, and the Weekly prints each beside its confirm and reject commands,

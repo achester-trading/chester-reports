@@ -62,7 +62,7 @@ aud-3d, alpha-lab-2, t3-6, vp-1 and aud-3b. Where the same line differed, the
 chain's version won and this line's additions were kept. The list of files and
 how each was resolved is in the branch report.
 
-## Box steps (Ari's; nothing here was run on the box)
+## Box steps (the operator's; nothing here was run on the box)
 
 1. Optionally put `CHESTER_MEME_DROP` in `.env`, set to the meme checkout's drop
    directory. Without it, the default is `~/chester-meme/drop`. This step names

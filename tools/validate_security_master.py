@@ -701,7 +701,7 @@ def group_j(m: Master) -> None:
     raw = yaml.safe_load(smod.MASTER_PATH.read_text(encoding="utf-8"))
     check(not any(e.get("identifiers", {}).get(k) for e in raw["instruments"]
                   for k in ("pm_id", "ibkr_conid")),
-          "until Ari's paste is committed, both schemes stay empty in the master")
+          "until the operator's paste is committed, both schemes stay empty in the master")
     _ = contextlib, io
 
 

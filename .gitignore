@@ -259,3 +259,6 @@ daily_close_*_stack.json
 morning_anchor_*
 weekly_tactical_*
 monthly_macro_*
+
+# The names gate's denylist (tools/validate_names.py, B109): never committed
+.chester-names

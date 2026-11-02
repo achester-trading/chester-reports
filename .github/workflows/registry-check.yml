@@ -103,6 +103,11 @@ jobs:
       # Shell gates run under bash, Python gates under python. The suffix is
       # the only difference and the Makefile already encodes which is which.
       - name: ${{ matrix.gate }}
+        # THE NAMES GATE'S LIST (B109): read from a repository secret by
+        # tools/validate_names.py's job only, empty for every other gate; with it
+        # unset the gate runs its self-test and skips the scan.
+        env:
+          CHESTER_NAMES_DENYLIST: ${{ matrix.gate == 'tools/validate_names.py' && secrets.CHESTER_NAMES_DENYLIST || '' }}
         run: |
           case "${{ matrix.gate }}" in
             *.sh) bash "${{ matrix.gate }}" ;;

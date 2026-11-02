@@ -35,7 +35,7 @@ scorecard:
   - {id: btc,  label: "Bitcoin",            metric: yfinance.mkt_btc_usd}
 
 themes:
-  # EACH THEME SEES EVERYTHING THE STORE HOLDS FOR IT (Ari's second round, 1 Oct):
+  # EACH THEME SEES EVERYTHING THE STORE HOLDS FOR IT (the operator's second round, 1 Oct):
   # `metrics` is that list, each with a plain-language label -- the label is what
   # the prose may call it. A metric whose last print is too old, or that the store
   # does not hold, goes to the section's "Not yet tracked" footnote with its last
@@ -246,7 +246,7 @@ calendar:
 # `months`: an item expected only in those calendar months (quarterly or one-off)
 # is only checked in a window that contains one of them -- the refunding is not
 # missing from October, it is a February/May/August/November event.
-# THE COVERAGE CHECK (Ari's second round): every release the look-ahead should
+# THE COVERAGE CHECK (the operator's second round): every release the look-ahead should
 # carry, how to recognise it in the events table, and -- when it is missing --
 # whether a free source exists. `match` is a regex over an event's title or its
 # FRED release name; `sources` limits which event sources may satisfy it.

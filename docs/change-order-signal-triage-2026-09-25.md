@@ -6,7 +6,7 @@
 |---|---|
 | Status | **SIGNED 2026-09-26 (§13)** — all tranches approved; sequence and placements recorded in §13 |
 | Date | 2026-09-25 (evening); **revision 2, 2026-09-26** — the 19 Sep Digital Asset Mechanism Watch order integrated as Thread D and register entry SR-10 |
-| Proposed by | Ari Chester |
+| Proposed by | the operator |
 | Contents | Twenty-eight signal-triage entries (SR-1…SR-9 from Batch 1, 10–19 Sep; SR-10 the Mechanism Watch — Pearl (PRL) and the emerging-mechanism scan, 19 Sep; SR-12…SR-27 from Batch 2, 24–25 Sep; SR-11 reserved for the consensus-drift order of 19 Sep, carried in Appendix C), re-reviewed for coordination with each other and with the repository as it stands on 25–26 Sep 2026, and integrated into one governance section, six threads, one rights ledger, one data-feed table, one sequenced work order |
 | Encoding | Post-Freeze Amendment #4 — Signal Triage and Mechanism Watch (single amendment). Encodes as the next free architecture Part; the Mechanism Watch adds no Part of its own (its 19 Sep draft's provisional "#5" label is retired). Amendment number to be confirmed at sign-off (G-1). |
 | Precedence | Below Part 26 (Final Architecture Change Order), Part 28 (automation addendum), Part 30 (Track D and its standing rules 30.2–30.4) and the current change-orders edition. Consistent with Amendments #1–#3. **Binds to the repository's one-regime rule** (`docs/market-state.md`: "Nothing else in the system computes a regime") and to 30.4 (reports never fetch). |
@@ -104,7 +104,7 @@ A session that writes to the register uses these strings and no others; the firs
 
 **1.11 Library conventions.** Papers cited by short name; numerals are accession IDs only; dated content in dated appendices policed by `make library-check`; one library session for this whole order on the `library` worktree, merged by PR.
 
-**1.12 Interim external scans.** Two scheduled Claude tasks run outside the pipeline: the weekly Pearl scan (Saturdays ~08:00 ET, first run 26 Sep 2026; S1–S8 deltas against a carried baseline plus the new-mechanism sweep, ≤700 words) and the bimonthly consensus-drift scan (20th of even months). The Pearl scan belongs to this order and retires under MW-9 (§2.7) once the Sunday Mechanism Watch block has published clean for four consecutive weeks, on Ari's confirmation; until then the pipeline is authoritative for stored data and the external scan for narrative. The consensus-drift scan belongs to Part C in the backlog.
+**1.12 Interim external scans.** Two scheduled Claude tasks run outside the pipeline: the weekly Pearl scan (Saturdays ~08:00 ET, first run 26 Sep 2026; S1–S8 deltas against a carried baseline plus the new-mechanism sweep, ≤700 words) and the bimonthly consensus-drift scan (20th of even months). The Pearl scan belongs to this order and retires under MW-9 (§2.7) once the Sunday Mechanism Watch block has published clean for four consecutive weeks, on the operator's confirmation; until then the pipeline is authoritative for stored data and the external scan for narrative. The consensus-drift scan belongs to Part C in the backlog.
 
 ---
 
@@ -139,7 +139,7 @@ Consumers: the Monthly's Rate machine summary and Duration Absorption block; the
 
 **2.1.4 De-anchoring flag (SR-24).** `DEANCHOR` = `fred.breakeven_5y5y` above its 2022 high for 20 sessions, confirmed by `fedboard.cie` above its 2022 high or `umich.expect_5_10y` ≥ 3.5% for three months. Definition-only rights; rendered with `calc.be5y5y_range_pos` (percentile within 2010–2026). It is the consequence gauge for the `fed_path`-cell "Fed declines the priced hike" branch.
 
-**2.1.5 Warsh matrix — one edit, by hand.** Add: `rates.driver` as a matrix variable (SR-6/17); the reaction-function variable "defends the front end or the long end", adjudicated by the driver in real time (SR-9); the cell "market prices a hike, Fed declines" with both branches — refuse → term premium repricing, gauged by DEANCHOR; concede → bear-flatten then resolve, 1994→1995 (SR-21/24). One session of Ari's time, ≈45 min.
+**2.1.5 Warsh matrix — one edit, by hand.** Add: `rates.driver` as a matrix variable (SR-6/17); the reaction-function variable "defends the front end or the long end", adjudicated by the driver in real time (SR-9); the cell "market prices a hike, Fed declines" with both branches — refuse → term premium repricing, gauged by DEANCHOR; concede → bear-flatten then resolve, 1994→1995 (SR-21/24). One session of the operator's time, ≈45 min.
 
 ### 2.2 Thread X — External position and funding currencies (owner: Currencies)
 
@@ -209,7 +209,7 @@ Two additions to ongoing reporting: systematic coverage of Pearl (PRL) — Pearl
 - **MW-6 Intake path.** A candidate passing the bar is written to the register with status CANDIDATE. Only a human changes status: PROMOTE to WATCH (creates a `crypto.watch` instrument entry and a signpost set) or REJECT (kept, so it is not re-surfaced). Nothing auto-promotes. Status changes go through a one-line CLI, never by editing rendered output.
 - **MW-7 PRL exit and promotion.** PROMOTE to core Digital Assets coverage when all three hold: ≥2 paid-compute partners live; a tier-1 listing; week-one overhang ratio (D2) < 25%. DEMOTE to a quarterly note when two consecutive quarterly reviews show no new partner, no listing progress and market cap < $50M. REMOVE when the chain stops producing blocks for 7 days, or the Together AI endpoint is withdrawn with no replacement partner within a quarter. Changes are recorded in the register and the change-orders edition.
 - **MW-8 Documentation.** Digital Assets receives a dated appendix entry ("Mechanism watch — Pearl and proof-of-useful-work, as of 2026-09") carrying the dated figures; the timeless body gets one mechanism paragraph on proof-of-useful-work as a class only if none exists. `make library-check` must pass.
-- **MW-9 Decommission of the interim scan.** The external Saturday scan retires after the Sunday block has published clean (validators green, no STALE PRL series) for four consecutive weeks, on Ari's confirmation.
+- **MW-9 Decommission of the interim scan.** The external Saturday scan retires after the Sunday block has published clean (validators green, no STALE PRL series) for four consecutive weeks, on the operator's confirmation.
 - **MW-10 Publish behaviour.** The Sunday anchor always publishes (Part 28). On any fetch failure the block prints the last good values with their `available_at` and a STALE marker; it never blocks the anchor.
 
 **2.7.3 PRL signposts S1–S8** (baseline as of 2026-09-19; each reported as a delta from the stored prior value).
@@ -874,7 +874,7 @@ One ID scheme: **ST-n**. Each item is one Claude Code session pasted from the la
 
 **Slot L — one library session on the `library` worktree (≈6.5 h).** ST-L: Digital Assets dated appendix "Mechanism watch — Pearl and proof-of-useful-work, as of 2026-09" and one timeless mechanism paragraph on proof-of-useful-work if none exists (MW-8; was Pearl WO-10); The Rate and Liquidity Machine (rates driver, Duration Absorption chapter note, auction base rate, de-anchoring definition, Livingston note, hedge substitution); Equities (Growth/Value mechanism and pair, tech/defensives, memory-cycle table, one-factor-market note); Currencies (funding-currency stack, China position, devaluation tell, US-vs-RoW and the dollar cycle, reserve scorecard and regimes, external-financing composition and holder fragility); Metals and Energy (gold window fragility, buffer variable, producers-vs-spot); Credit (capex funding transition and rings); Base Rates ledgers (SR-1, 2, 5, 6, 7, 12, 13, 15, 21, 22, 25) as dated appendices; Debt Cycles brief (hiking into a bubble; Koo case for China; supply regimes; fiscal-dominance cross-reference); Market Structure & Cascades brief (risk-parity/target-vol de-levering; leveraged-ETF rebalancing); Positioning & Flows (fuel metrics); Operating Doctrine (candidate rules from SR-8 and SR-22); operator behavioral paper (dip-buying cohort, rally trap); Portfolio Construction brief (Book A rule table, barbell, Cheap-and-Unloved block); Warsh matrix variables. Dated content in dated appendices; `make library-check` once at the end; merge by PR.
 
-**Tranche H — by hand (Ari; ≈5 h once, then recurring).**
+**Tranche H — by hand (the operator; ≈5 h once, then recurring).**
 
 | Item | Once | Recurring |
 |---|---|---|
@@ -977,7 +977,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 | Jan 2027 Monthly | ST-8 gate results (SR-1/13, 5, 14, 2, 4); thresholds into config; first calibration of SR-2/SR-4 thresholds |
 | T&B full (Track D) | ST-11; overlay queue opens with SR-2 |
 | Weekly (Sat / Sun) | Interim Saturday Pearl scan until MW-9; Sunday Mechanism Watch block once ST-10 lands; CANDIDATE rows reviewed by hand |
-| Four clean Sunday blocks after ST-10 | MW-9: retire the interim Saturday scan on Ari's confirmation |
+| Four clean Sunday blocks after ST-10 | MW-9: retire the interim Saturday scan on the operator's confirmation |
 | Dec 2026 quarter-end Monthly | First PRL MW-7 review |
 | Jan 2027 Monthly | D4/D6 threshold review (90 days of stored data); 2.7.8 usefulness test |
 | Annual Structural Review | SR-20 regime classification; SR-7 table refresh; SR-13/SR-15 window tests; Base Rates ledgers; §1.5–1.6 fixture review; SR-19 calibration ledger status; whether "novel-mechanism coins" stays a watch category (2.7.8) |
@@ -1029,7 +1029,7 @@ Session 2 (ST-1) is written only after D1c has landed and the FRED pull is sched
 | Batch 1 deferrals confirmed (G-19) | ☒ as Appendix C | | | | | | |
 | Changes noted | Sequence of sessions: ST-0 → [D1c, 6c complete] → ST-1 → ST-2 → ST-3 → ST-4 → ST-6 → Tranche 2 (ST-7, ST-5, ST-9) → Tranche 5 (ST-13 → ST-14 → ST-15) → Tranche 3 (ST-8) → ST-L → Tranche 4 at its milestones. The false-bottom audit (ST-9) is the item that may slide if hours must be cut. | | | | | | |
 
-Signed: Ari Chester — date: 2026-09-26 (decisions taken in chat, recorded here; approved as revision 2)
+Signed: the operator — date: 2026-09-26 (decisions taken in chat, recorded here; approved as revision 2)
 
 On sign-off: §1 and the §3 rulings consolidate into the next `docs/change-orders-<date>.md` edition; §8 becomes its work-order addendum; the four superseded drafts, if ever committed, move to `docs/archive/`; Appendix C is carried in that edition's backlog appendix beside the 19 Sep Part C.
 
@@ -1119,7 +1119,7 @@ Batch 1 (10–19 Sep 2026): J. Weniger, Growth/Value chart (8 Sep) · chat quest
 
 Use verbatim as the system/task prompt for the candidate-assessment call; substitute the bracketed fields from the pre-filter output.
 
-> You are assessing candidate cryptocurrency projects for Ari Chester's mechanism-watch register. Ari is an experienced trader and P&C reinsurance executive; write densely, bottom line first, no beginner explanations, no disclaimers.
+> You are assessing candidate cryptocurrency projects for the operator's mechanism-watch register. The operator is an experienced trader and P&C reinsurance executive; write densely, bottom line first, no beginner explanations, no disclaimers.
 >
 > A candidate qualifies only if ALL of the following hold: (i) an identifiable team with checkable credentials, or a paper on arXiv, IACR ePrint, or a peer-reviewed venue; (ii) a live mainnet, or a credible testnet with public code; (iii) at least one of: an enterprise partner, a tier-1 listing (Coinbase, Binance, Kraken, OKX, Bybit, Upbit), market cap above $50M, notable mining or hashrate interest, or coverage by a serious outlet. Exclude memecoins, forks and rebrands, GPU-marketplace tokens without a novel mechanism, L2s and rollups without a consensus novelty, and restaking or yield derivatives. Inclusion classes: proof-of-useful-work and AI-compute-backed chains; verifiable-compute consensus; new proof-of-work primitives with a paper; compute- or energy-backed monetary designs; fair-launch L1s grounded in peer-reviewed cryptography; post-quantum-native chains.
 >

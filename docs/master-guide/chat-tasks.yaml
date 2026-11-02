@@ -1,9 +1,9 @@
 # chat-tasks.yaml -- the repo's record of the scheduled tasks that run on claude.ai,
-# and of Ari's own Grok automation (the Master Guide's specification of 19 Oct
+# and of the operator's own Grok automation (the Master Guide's specification of 19 Oct
 # 2026, section 5). No prompts and no secrets: the prompts live in the scheduler.
 # docs/master-guide.md's Table 2 and Figure 2 (tools/figures/master_guide.py) read
 # this file, and tools/check_master_guide.py fails when Table 2 and this file
-# disagree. When Ari adds, changes or retires a chat-side task, a session edits
+# disagree. When the operator adds, changes or retires a chat-side task, a session edits
 # this file, regenerates Figure 2 and refreshes Table 2.
 #
 # Fields: name; cadence_et (in words, with the daylight-saving note where the
@@ -23,10 +23,10 @@ dst_note: >-
   when daylight saving ends on Sunday 1 Nov 2026: 12:00 UTC is 08:00 ET until then
   and 07:00 ET after.
 tasks:
-  - name: Grok X digest (Ari's automation)
+  - name: Grok X digest (the operator's automation)
     cadence_et: daily 06:00
     when: {kind: daily, time_et: "06:00"}
-    reads: X, through Ari's own Grok automation (outside Claude)
+    reads: X, through the operator's own Grok automation (outside Claude)
     writes: "Drive chester-x-digest/x-digest-YYYY-MM-DD.md"
     consumer: the X digest triage; the box's nightly sweep copies the folder into the inbox (scripts/rclone_sync.sh)
     rights: attention only; an X post never earns measurement rights by volume alone
@@ -38,7 +38,7 @@ tasks:
     reads: "Drive chester-x-digest/"
     writes: "Drive chester-vendor-checks/x-triage/ (x-attention-ledger.csv, x-voices-ledger.csv) and a push summary"
     consumer: the box's sweep copies the ledgers in; the Digital Assets addendum reads them (daily_cascade/digital_addendum.py)
-    rights: attention, voices and rumour tracking only; candidates go to the intake for Ari's ruling
+    rights: attention, voices and rumour tracking only; candidates go to the intake for the operator's ruling
     status: pilot
     retire_when: the pilot's decision point (Batch 8 item 50)
   - name: AAII weekly read
@@ -64,7 +64,7 @@ tasks:
     when: {kind: weekly, days: Sat, time_et: "08:00"}
     reads: public crypto sources
     writes: a message only
-    consumer: Ari
+    consumer: the operator
     rights: none (a read)
     status: retiring
     retire_when: interim, due to retire now the box's emerging-mechanism scan runs (altdata/mechanism_scan.py, Saturdays)
@@ -72,7 +72,7 @@ tasks:
     cadence_et: the 12th and 27th, 06:58
     when: {kind: monthly, dom: 12, time_et: "06:58", label: "Publication watch (also the 27th)"}
     reads: the publishers on the reading shelf
-    writes: a reading-watch file that Ari commits to docs/scans/
+    writes: a reading-watch file that the operator commits to docs/scans/
     consumer: the library (the papers' refresh queue)
     rights: none (a read)
     status: active
@@ -81,8 +81,8 @@ tasks:
     cadence_et: the 25th, 06:57
     when: {kind: monthly, dom: 25, time_et: "06:57"}
     reads: the month's public commentary
-    writes: "docs/scans/signal-scan-YYYY-MM.md, for Ari to rule on"
-    consumer: the signal-triage register (Ari's rulings)
+    writes: "docs/scans/signal-scan-YYYY-MM.md, for the operator to rule on"
+    consumer: the signal-triage register (the operator's rulings)
     rights: none until ruled
     status: active
     retire_when: ""
@@ -100,7 +100,7 @@ tasks:
     when: {kind: quarterly, time_et: "06:56", label: "JPM Guide read (6th, quarterly)"}
     reads: J.P. Morgan's quarterly Guide to the Markets
     writes: "docs/scans/jpm-gtm-YYYYqN.md"
-    consumer: Ari's rulings (change-order-jpm-gtm-2026-10-03.md)
+    consumer: the operator's rulings (change-order-jpm-gtm-2026-10-03.md)
     rights: none until ruled
     status: active
     retire_when: ""

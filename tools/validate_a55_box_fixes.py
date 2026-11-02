@@ -19,7 +19,7 @@ a55-box-fixes (session A, 20-21 Oct 2026): five defects the box evening of 20 Oc
      of range is named with its version, a satisfied one is not; the heartbeat
      block warns and never changes the verdict or the exit code.
 
-Round 2 (21 Oct 2026, Ari's rulings of 00:41 ET):
+Round 2 (21 Oct 2026, the operator's rulings of 00:41 ET):
 
   F  THE FOMC HISTORY. cal.fomc_history's rows: dated, kinded, each citing the
      Board page it was read from and its statement; ascending and unique, from the

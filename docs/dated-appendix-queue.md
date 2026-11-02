@@ -4,7 +4,7 @@
 the order names by a paper's numeral, and by-hand layouts, committed as drafted
 under ruling (c) of 16 October 2026 ("judgment drafts (narrative lines, appendix
 notes, rule-table edits) are committed by the session as drafted and listed for
-Ari's accept-all"). An entry moves into its paper's dated appendix when that
+The operator's accept-all"). An entry moves into its paper's dated appendix when that
 paper is written or next revised, and is then struck from here. Entries are
 added, never rewritten; a correction is a new line under the entry.*
 
@@ -22,7 +22,7 @@ added, never rewritten; a correction is a new line under the entry.*
 ## The dated appendix line for the stock-bond flag (Batch 5 item 24)
 
 The order says "dated appendix" without naming a paper; XXVII, which carries the
-regimes, is the likely home, and Ari's accept-all decides.
+regimes, is the likely home, and the operator's accept-all decides.
 
 > The 10-year Treasury yield (FRED DGS10) closed at or above 5.25% in the week of
 > 5 Oct 2026 — 5.31% on 5 Oct, 5.27% on 6 Oct and 5.28% on 7 Oct — after first
@@ -36,7 +36,7 @@ the cross came the week before 5 Oct, so the line carries the verified dates.*
 ## For XII, as the order names it (Batch 5 item 23)
 
 The order calls it "XII's power-buildout narrative"; the library's XII is the
-Daily Cascade paper, so the numeral is the order's and the home is Ari's to name
+Daily Cascade paper, so the numeral is the order's and the home is the operator's to name
 (the power-buildout thesis is argued in Foundations' Factor I chapter).
 
 ### Disagreement note: power construction against data centers
@@ -56,7 +56,7 @@ Daily Cascade paper, so the numeral is the order's and the home is Ari's to name
 
 Under Factor IV in the Monthly's slow layers, quarterly, from the IMF Fiscal
 Monitor and the OECD. **Not live:** it is a recurring by-hand data line, and
-ruling (b) of 16 Oct 2026 says none survives without Ari's explicit yes. The
+ruling (b) of 16 Oct 2026 says none survives without the operator's explicit yes. The
 layout, as drafted:
 
 | Country | GFN / GDP | Interest / revenue | Weighted average maturity | Foreign-held share | Primary balance / GDP | Source and vintage |

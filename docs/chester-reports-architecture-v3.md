@@ -936,7 +936,7 @@ becomes "3rd percentile since 1997."
 ## Session 7 — Alerting and dormancy resilience
 **~2 hours. [CHANGED — scoped for multi-week absences]**
 
-The design assumption is not "Ari checks daily." It is **"Ari may be gone for six
+The design assumption is not "the operator checks daily." It is **"the operator may be gone for six
 weeks and the system must still be alive when he returns."** Four pieces.
 
 ### 1. Basic alerting
@@ -2361,7 +2361,7 @@ restricted entity is rejected, not warned. Enforce it in code rather than in a
 prompt: a narrative instruction is a suggestion, a schema constraint is a rule.
 Any instrument added to the complex inherits the flag.
 
-Rationale: Ari works within the structure (Argo → Clearbrook → Brookfield Wealth
+Rationale: the operator works within the structure (Argo → Clearbrook → Brookfield Wealth
 Solutions → BAM). He has stated he will not trade Brookfield-related securities;
 the restriction makes that structural rather than a matter of discipline.
 
@@ -2374,7 +2374,7 @@ different times, and BAM alone shows little.
 |---|---|
 | BN, BAM | Parent and manager; the FRE-vs-carry split lives here |
 | BIP / BIPC, BEP / BEPC | Infrastructure and renewables — the AI-power adjacency |
-| BBU, BNT | Business services, wealth solutions (Ari's own chain) |
+| BBU, BNT | Business services, wealth solutions (the operator's own chain) |
 | **Property preferreds** | **The canary — these moved hard during office stress while parent equity stayed calm** |
 
 **Stress instruments, in order of usefulness:**
@@ -3372,7 +3372,7 @@ read through rather than regenerated.
    than in general.
 3. **Transmission.** Which pillars it hits, in what order, over what timescale.
 4. **What it does to positioning.** Which trades break, which hedges work, what
-   stops functioning. *(Written by Ari — this depends on the actual book and
+   stops functioning. *(Written by the operator — this depends on the actual book and
    horizons, and a generic version is worse than none.)*
 5. **Historical analogue, and how this differs.** The second half matters more.
 6. **What would retire it.** The condition under which it stops being live.
@@ -3704,7 +3704,7 @@ them.**
 Reconcile with Tail Scan first (see Part 16). Then add what it likely lacks:
 
 - **Cyber insurance pricing and loss ratios** — *the best single series in this
-  domain.* Market-priced, capital-backed, and directly in Ari's professional
+  domain.* Market-priced, capital-backed, and directly in the operator's professional
   wheelhouse without requiring his judgement to populate
 - Patch-to-exploit interval trend — **the AI-offense tell.** If AI-discovered
   vulnerabilities are changing attack economics, this interval compresses first

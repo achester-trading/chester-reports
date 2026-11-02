@@ -2069,7 +2069,7 @@ def group_v() -> None:
     committed = pm_futures.mapping().get("contracts") or []
     check(not [c for c in committed if c.get("confirmed") is True],
           f"the committed map confirms nothing ({len(committed)} entries): engine 3 "
-          f"holds no contracts until Ari confirms")
+          f"holds no contracts until the operator confirms")
 
 
 GROUPS = [group_a, group_b, group_c_static, group_d, group_e, group_f, group_g,

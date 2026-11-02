@@ -43,7 +43,7 @@ So this is a new item, placed beside OS-10. It adds same-day activity, which OS-
 
 **History (D5, OS-12d).** The D4 flat-file backfill (Batch 11, `tools/massive_flatfiles_backfill.py`) is extended to also store each name's daily total, call and put volume, under its flat-file source.
 - **Read apart:** its rows are kept apart from the captured rows, under the same rule as A48's pre-registered agreement. Volume's tolerance is session-set and stated.
-- **Use:** once Ari has added the flat-file keys and run the backfill, the ledger's first edition can read two years. Until then it accrues from the captures.
+- **Use:** once the operator has added the flat-file keys and run the backfill, the ledger's first edition can read two years. Until then it accrues from the captures.
 
 **Placement.**
 - **The 16:45 close:** flagged names only, five rows at most, as a table. It is data, so it is outside the word budget.
@@ -69,4 +69,4 @@ So this is a new item, placed beside OS-10. It adds same-day activity, which OS-
 - **D2:** a 1.5× threshold against the 20-session average, provisional and frozen for 30 days.
 - **D3:** the volume-spike ledger is pre-registered.
 - **D4:** whether the volume became open interest prints the next morning (the OS-9 tag) and in the next close's line, because it cannot be known at 16:45 on the flag day.
-- **D5:** the flat-file backfill also stores daily volume, read apart from the captures, so the ledger can use two years once Ari runs it.
+- **D5:** the flat-file backfill also stores daily volume, read apart from the captures, so the ledger can use two years once the operator runs it.

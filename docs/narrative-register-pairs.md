@@ -8,7 +8,7 @@ A **disagreement pair** is two published views of one market question, each tied
 
 **Status.** The narrative register's code (`altdata/narratives.py`) holds stories, and its one human gate is the confirm step for a proposed story. It has no pair kind, so a pair cannot be a pending entry there.
 
-Under the ruling of 16 October 2026, judgment drafts are committed as drafted and listed for Ari's accept-all. That is the status of every entry below until Ari accepts them. A pair does not grade itself and has no decision rights; its monthly adjudication is a line in the Monthly.
+Under the ruling of 16 October 2026, judgment drafts are committed as drafted and listed for the operator's accept-all. That is the status of every entry below until the operator accepts them. A pair does not grade itself and has no decision rights; its monthly adjudication is a line in the Monthly.
 
 ## what_driving_5_3 — "What's driving 5.3%" (Batch 5 item 26)
 
@@ -34,7 +34,7 @@ The pair itself is session B's item-26 draft (`st-r4-tranche-1` notes), and its 
 
 ## energy_contained_vs_broad — "An energy shock, contained" against "broad acceleration" (Batch 7 item 46)
 
-**Added 16 October 2026 (6e-releases, session B). A draft for Ari's accept-all.**
+**Added 16 October 2026 (6e-releases, session B). A draft for the operator's accept-all.**
 
 - **The question:** is September 2026's CPI an energy shock that stays in energy, or the start of a broader acceleration?
 - **Side A, "An energy shock, contained"** (Charles-Henry Monchau, Syz, public post on the September 2026 CPI; Schwab chart of BLS data as of 30 September 2026). Headline CPI rose 0.6% on the month, and gasoline (+9.1%) was roughly half of it. Rent rose 0.2% and owners' equivalent rent 0.3%; dairy, meat and medical goods fell. The question is pass-through into airfares, shipping and business prices.

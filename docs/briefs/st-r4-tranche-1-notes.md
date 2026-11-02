@@ -183,7 +183,7 @@ block prints "not read — the Census writer is held until D1c's write lock land
 - **The catalogue:** `altdata.batch5` and `altdata.sources.census_vip`, and the
   ECB line names Greece.
 
-## The session-set thresholds, for Ari
+## The session-set thresholds, for the operator
 
 All are in `config/batch5_tranche_1.yaml`, marked `session-set`.
 
@@ -230,7 +230,7 @@ All are in `config/batch5_tranche_1.yaml`, marked `session-set`.
   (18) and the Factor IV fiscal impulse (22) belong to items outside this tranche
   and were not checked.
 
-## The by-hand drafts, for Ari
+## The by-hand drafts, for the operator
 
 **26, the narrative-register disagreement pair "what's driving 5.3%".** Draft:
 `id: what_driving_5_3; kind: disagreement; side_a: fiscal -- the term premium is
@@ -280,7 +280,7 @@ the OECD. Columns: GFN/GDP, interest-to-revenue, weighted average maturity,
 foreign-held share and primary balance, for US, DE, FR, IT, GR, JP and UK.
 Nothing drafted beyond the layout.
 
-## Box commands, for Ari (inside a window; nothing here was run on the box)
+## Box commands, for the operator (inside a window; nothing here was run on the box)
 
 No unit file changed, so there is nothing to deploy or restart. PPIDCS and Greece
 arrive at the next scheduled pulls after the merge.

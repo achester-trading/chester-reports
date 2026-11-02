@@ -194,8 +194,8 @@ def group_d() -> None:
               and "**Adjudicated by:**" in s and measure in s,
               f"item {item}: dated, its scenario, and the measure that adjudicates "
               f"it ({measure})")
-    check("accept-all" in text and "weights stay Ari's" in text,
-          "listed for Ari's accept-all; the matrix's weights stay his")
+    check("accept-all" in text and "weights stay the operator's" in text,
+          "listed for the operator's accept-all; the matrix's weights stay his")
     notes = (REPO / "docs" / "briefs" / "st-r5-t1-rest-notes.md").read_text(encoding="utf-8")
     check("hikes-resume cell up" not in notes and "docs/warsh-matrix-lines.md" in notes,
           "item 42's line moved: the t1-rest notes point to the file")

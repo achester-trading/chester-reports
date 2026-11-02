@@ -72,7 +72,7 @@ groups:
 - the naive expectations and surprises;
 - the overnight block, which mixes levels and changes.
 
-**Found while assigning, also for Ari:**
+**Found while assigning, also for the operator:**
 - **295 boolean flags were already declared `family: ratio`** before this branch
   (`correlation_shift_flags`, `driver_attribution_sign_stability`,
   `calc.yields_up_dollar_down.flag`). The rule is not to change a declaration, so

@@ -4,15 +4,15 @@
 
 | | |
 |---|---|
-| Status | **Rulings R-1, R-2, R-3 signed in chat 2026-09-27 18:21 ET** ("yes to all three"). **Rulings R-4…R-8 signed in chat 2026-10-02 14:52 ET** ("sign all"), item 0 of the Doctrine monthly. The work order in §8 is filed for Ari's word at Audit #4 (14–15 Oct); nothing in it starts before that word except EL-0 (filing, done). |
+| Status | **Rulings R-1, R-2, R-3 signed in chat 2026-09-27 18:21 ET** ("yes to all three"). **Rulings R-4…R-8 signed in chat 2026-10-02 14:52 ET** ("sign all"), item 0 of the Doctrine monthly. The work order in §8 is filed for the operator's word at Audit #4 (14–15 Oct); nothing in it starts before that word except EL-0 (filing, done). |
 | Date | 2026-09-27 (evening) |
-| Proposed by | Ari Chester, as two specifications: *Enterprise Trading Intelligence, Learning, Risk and Governance Architecture* and *Day Trading Layer (DTH-1)*, both filed verbatim under `docs/briefs/` (§9) |
+| Proposed by | the operator, as two specifications: *Enterprise Trading Intelligence, Learning, Risk and Governance Architecture* and *Day Trading Layer (DTH-1)*, both filed verbatim under `docs/briefs/` (§9) |
 | Contents | A mapping of both specifications onto the repository as it stands on 27 Sep 2026 (§1); eight rulings (§2); the additions specified literally enough for a session to build them (§3–§7); a work order with placements and hours (§8); filing and precedence (§9) |
 | Encoding | **Post-Freeze Amendment #5 — Enterprise Layer and Intraday Tactics** (provisional number, confirmed at filing; the 19 Sep "#5" label was retired unused). Encodes as the next free architecture Part. |
 | Precedence | Below Part 26 (Final Architecture Change Order), Part 28 (automation addendum), Part 30 (Track D and 30.2–30.4), the current change-orders edition and Amendment #4. Binds to the one-regime rule (`docs/market-state.md`) and to 30.4 (reports never fetch). **The two specifications are requirements documents cited by this order; they are not controlling and do not compete with Part 26.** |
 | Supersedes | Nothing. Adds to Phase 5, 6b, Gate 1.5, the Doctrine monthly and Audit #4; leaves the execution order of Audit #3 §N unchanged. |
 | Filing state | No Enterprise Layer or DTH-1 document exists in `docs/` on `main` at 61e9b4b (27 Sep 17:51 ET); `DTH-1` appears nowhere in the repository. This order is the first filing. |
-| Binding on | Claude Code sessions executing §8 after Ari's word |
+| Binding on | Claude Code sessions executing §8 after the operator's word |
 
 ---
 
@@ -235,4 +235,4 @@ Tranche A (EL-0…EL-7): ≈ 20–30 h, all inside work already scheduled. Tranc
   - **INC-1 2026-09-27** — the off-box backup never ran under its unit: `CHESTER_RCLONE_REMOTE` was never set on the box (every 02:30 sweep since deploy ended `no_remote rc=1`), and with it set the snapshot failed because the unit starts in `$HOME` (`ModuleNotFoundError: altdata`). Found by hand 27 Sep; by-hand copy taken 16:04 UTC; drop-in `remote.conf` added by hand; fix B-1 at 61e9b4b; first unit-run proof due 28 Sep 02:30 ET. Monitoring gap: the heartbeat's verdict line had no `backup=` field (H-1 adds it).
   - **INC-2 2026-09-27** — narrative prompts were truncated silently from first light until 27 Sep 11:02 ET (style guide cut at 6,000 characters, payload at 12,000); every close since 23 Sep and the first Weekly were written from a partial brief. Editions stand as published (each passed the audits); first whole-brief editions are 28 Sep 07:00 and 16:45. Fix W-1 item 7 at 1846815; a gate now confirms every template and the full Weekly payload reach the model whole.
 
-Precedence and numbering as in the header. Rulings R-1…R-8 are signed (R-1…R-3 on 27 Sep; R-4…R-8 on 2 Oct); §8 is filed for Ari's word at Audit #4.
+Precedence and numbering as in the header. Rulings R-1…R-8 are signed (R-1…R-3 on 27 Sep; R-4…R-8 on 2 Oct); §8 is filed for the operator's word at Audit #4.
