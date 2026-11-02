@@ -1,6 +1,8 @@
 # Proposals for the Doctrine monthly of 7-8 November 2026 (Tranche H)
 
-**Rule-31 drafts (library-st-l, session B, 19 October 2026), for Ari's accept-all and the monthly's agenda.** The signal-triage order's Tranche H lists five by-hand items. Each is drafted here as a proposal: none is a rule, a register status or a right until the monthly rules on it. Each states the register's own words where it quotes them, and the evidence the ledgers on chain-2 give.
+**Rule-31 drafts (library-st-l, session B, 19 October 2026), for the operator's accept-all and the monthly's agenda.** The signal-triage order's Tranche H lists five by-hand items. Each is drafted here as a proposal: none is a rule, a register status or a right until the monthly rules on it. Each states the register's own words where it quotes them, and the evidence the ledgers on chain-2 give.
+
+**Status at 31 Oct 2026 (B96).** None of the five is ruled. On the Doctrine #2 pack (`docs/briefs/doctrine-2-pack-2026-11.md`) they are D2-36 to D2-40. Proposal 2's bridge question (`calc.infl_vol`, D3) is D2-18. No ledger cited below has a later edition on main.
 
 ## 1. Tail-register edits (SR-3, China's external position)
 
