@@ -1603,6 +1603,8 @@ _ALIAS_NOISE = re.compile(r"\b(?:the|treasury|total|rate|level)\b", re.I)
 _ALIAS_HEAD = re.compile(r",\s|\s(?:at|of|for|in|on|against|versus|vs\.?)\s")
 _ALIAS_TENOR = re.compile(r"^(\d+-(?:year|month|week|day))\b\s*", re.I)
 _ALIAS_PAIR = re.compile(r"\b([A-Z]{3})/([A-Z]{3})\b")
+_ALIAS_TO_TENOR = re.compile(
+    r"^(\S+(?:\s\S+)*?\s\d+(?:-\d+)?[- ](?:year|month|week|day))\b", re.I)
 
 
 def _derived_aliases(label: str) -> list[str]:
@@ -1622,9 +1624,24 @@ def _derived_aliases(label: str) -> list[str]:
                 # A90: and without its last word ("the 10-year breakeven" for
                 # "10-year breakeven inflation", "the 30-year Treasury").
                 forms.append(" ".join(words[:-1]))
+            # A111: a long name without one inner word ("China's gold holdings"
+            # for "China's official gold holdings", 1 Nov's geopolitics).
+            if len(words) >= 4:
+                forms += [" ".join(words[:i] + words[i + 1:])
+                          for i in range(1, len(words) - 1)]
+            # A111: a name up to its tenor ("the Michigan 5-10 year measure"
+            # for "Michigan 5-10 year inflation expectations", 1 Nov's
+            # sentiment); a word before the tenor at least.
+            m = _ALIAS_TO_TENOR.match(form)
+            if m and m.group(1) != form:
+                forms.append(m.group(1))
     t = _ALIAS_TENOR.match(bare)
     if t:
         forms.append(t.group(1))
+    # A111: "27+ weeks" is also written "27 weeks" ("unemployed 27 weeks or
+    # longer" for "Unemployed 27+ weeks", 1 Nov's pillar 1).
+    if re.search(r"\d\+", bare):
+        forms.append(re.sub(r"(\d)\+", r"\1", bare))
     names = currency_names()
     for m in _ALIAS_PAIR.finditer(lab):
         forms += [names[c] for c in m.groups() if c in names]
@@ -1649,8 +1666,13 @@ def _alias_rx(a: str) -> "re.Pattern":
             ch + r"[a-z]+" for ch in a[len(_ACRONYM):]) + r"(?![\w-])")
     flags = 0 if re.fullmatch(r"[A-Z0-9.=^\-]{2,8}", a) else re.I
     first, sp, rest = a.partition(" ")
-    body = (re.escape(first) + r"(?:['’]s)?\s" + re.escape(rest)
-            if sp and re.fullmatch(r"[\w.&-]+", first) else re.escape(a))
+    # A111: a phrase's words may be joined by hyphens ("gold-over-copper" for
+    # "Gold over copper", 1 Nov's metals block).
+    gap = r"[\s-]"
+    body = (re.escape(first) + r"(?:['’]s)?" + gap
+            + re.escape(rest).replace(r"\ ", gap).replace(" ", gap)
+            if sp and re.fullmatch(r"[\w.&-]+", first)
+            else re.escape(a).replace(r"\ ", gap).replace(" ", gap))
     return re.compile(r"(?<![\w-])" + body + r"(?![\w-])", flags)
 
 
@@ -1695,6 +1717,15 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
     rows = series_rows(payload)
     if not rows or not figures:
         return []
+
+    def say(r: dict) -> str:
+        """A111: the row's short name, or its whole label where another series
+        goes by the same short name ("bound to SAFE but belongs to SAFE" named
+        neither China's reserves nor its gold to the retry)."""
+        n = r["name"]
+        if any(x["name"] == n and x["aliases"][0] != r["aliases"][0] for x in rows):
+            return r["aliases"][0]
+        return n
     by_alias: dict[str, list[dict]] = {}
     for r in rows:
         for a in r["aliases"]:
@@ -1788,7 +1819,7 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
         _, _, _, alias = min(hits)
         mine = by_alias[alias]
         mine_ids = {id(r) for r in mine}
-        said = mine[0]["name"]
+        said = say(mine[0])
         fields = [k for r in mine for k in _holds(r["values"], f)]
         want = (TYPE_PERCENT if _OF_OI.match(text, f.position + len(f.text))
                 else f.unit_type)
@@ -1808,7 +1839,7 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
             continue
         others = [r for r in rows if id(r) not in mine_ids and _holds(r["values"], f)]
         if others:
-            names = list(dict.fromkeys(r["name"] for r in others))
+            names = list(dict.fromkeys(say(r) for r in others))
             out.append((f, f"{f.text.strip()} is bound to {said} but belongs to "
                            f"{' and '.join(names[:2])}"))
     return out

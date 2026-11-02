@@ -162,3 +162,169 @@ withheld. The audit is unchanged.
   - `validate_numeral_audit.py`: 172/0;
   - `validate_monthly.py`: 360/0, 1 skipped;
   - `validate_monthly_frames.py`: 39/0.
+
+## A111 (2 Nov 2026): the first edition's six binding sections
+
+**Base.** `origin/a90-monthly-dryrun-2` at `f8819b62`. A95's branch is not merged
+in. Its replay table (`docs/briefs/a95-notes.md` on `a95-monthly-first-edition`)
+was read for the combined count.
+
+**The evidence.** The 1 Nov run log, on the laptop, outside the repo, as A95
+read it.
+
+- The edition's data blocks are on the box, so each section was rebuilt:
+  - its rows' real labels: themes from `config/monthly_themes.yaml`, pillar 1
+    from `altdata/config.py`, the plumbing blocks from
+    `weekly_sections.plumbing_rows`, and summary:priced from the log's own names;
+  - each row holding the values its draft quotes.
+- Run through main's audit (`422ea697`), the rebuilt blocks reproduce every
+  message the log printed for the six sections, word for word.
+- The script is `scratchpad/a111_six.py`, uncommitted because it needs the log.
+
+### The six sections
+
+| Section | The sentence | Figure | Bound to (main) | Belongs to | On A90's tip | Class | The fix |
+|---|---|---|---|---|---|---|---|
+| block:plumbing:liquidity | "Net liquidity at $5.75tn fell −$24bn in October against bank reserves at $2.89tn" | $5.75tn | H.4.1 (bank reserves, after the figure in its clause: main knew "Net liquidity" only as a derived name the table row and the data row shared) | Net liquidity (Fed balance sheet less TGA and RRP) | **passes** (A90: a derived name unique to one series binds even when printed twice) | (i) | none needed here |
+| summary:priced | "the base rate for a cut at the 17 March 2027 FOMC meeting fell −4.5 pts" | −4.5 | Yes (the recession rows' bracket name, the nearest name before, in another clause) | FOMC 2027-03-17: cut | **passes** (A90 rule 9: "FOMC" stands between, naming no row, so the figure goes to the plain match) | (i) | none needed here. **Not an unplaced figure:** the row holds it |
+| block:plumbing:metals | "while gold-over-copper fell −5.43% to 604" | −5.43% | Copper, front future ($/lb; a growth gauge), the sentence's first name | Gold over copper (rises when growth fears rise) | fails | (i) | **A phrase's words may be joined by hyphens** (`_alias_rx`) |
+| theme:geopolitics_reserve | "China's gold holdings rose by 740,000 ounces to 77.47 million ounces" | 77.47 million | GC=F, through its derived name "gold" | China's official gold holdings (SAFE) | fails | (i) | **A name of four or more words also goes by itself without one inner word**, unique to one series ("China's gold holdings"). **Not an unplaced figure:** the SAFE row holds it |
+| pillar:1 | "even as the ranks of those unemployed 27 weeks or longer grew by +14,000 people to 1.94 million" | 1.94 million | Initial claims, 4-week avg, the nearest name before, in another clause | Unemployed 27+ weeks | fails | (i) | **"27+ weeks" also goes by "27 weeks"** |
+| theme:sentiment | "the Michigan 5-10 year measure rose +10 bp to 3.5%" | +10, 3.5% (both drafts) | University of Michigan consumer sentiment, the nearest name before, across the colon | Michigan 5-10 year inflation expectations | fails (the NY Fed's +6.3 and 3.25% pass there, by rule 9's tenor) | (i) | **A name also goes by its words up to its tenor**, a word before it at least ("Michigan 5-10 year") |
+
+**The pattern A95 named in the plumbing block** was in the matcher, not the
+data block. The writer was given net liquidity under its own name, with its
+display string.
+
+**One retry message improved, (iii).** "77.47 million is bound to SAFE but
+belongs to SAFE" named neither series: the two SAFE rows share the bracket's
+short name. Where another series goes by the same short name, the message now
+gives each row's whole label ("bound to China's foreign-exchange reserves
+(SAFE) but belongs to China's official gold holdings (SAFE)"). Message only; no
+verdict changes.
+
+**What did not change.**
+
+- Every new name binds only where it is unique to one series, as A88's
+  derived names do.
+- No check was loosened. A figure bound to its own row is checked against that
+  row, value and kind, as before.
+- The writer's data blocks (`monthly_macro/stack.py`, `prose.py`) are
+  unchanged: no class (ii) was found among the six.
+- **Sentiment and pillar 1 still need A95.** On this branch alone their figures
+  bind to the right rows, but:
+  - 3.5% and 3.25% (and pillar 1's 4.2%, 61.8% and 59.2%) still fail the
+    percent type, because a "%" row reaches the writer as `latest_level`. A95's
+    `latest_pct` fixes that.
+  - Sentiment's 99 and 19 need A95's sign rule.
+  - Checked: those figures fail the same way on A90's tip, bound or not.
+
+### The fixtures
+
+`tests/fixtures/monthly_binding_2026-11-01.json`, run by
+`validate_audit_fixes.py` group M:
+
+- 4 must-pass cases, each a logged sentence over its rebuilt block;
+- 8 must-fail cases beside them:
+  - copper given gold over copper's change, and the reverse through the
+    hyphenated name;
+  - the gold future given China's holdings, and China's reserves given them;
+  - initial claims given the long-term unemployed's level, and the reverse;
+  - Michigan sentiment given its expectations;
+  - the Michigan 5-10 year measure given the NY Fed's figures;
+- the message check.
+
+On A90's tip, 0 of the 4 pass, and 3 of the 8 must-fail cases pass because the
+names they use are not recognised there. On this branch all 4 pass and all 8
+fail.
+
+### The replay
+
+`scratchpad/a111_replay.py`, uncommitted (it needs the log). A90's method: each
+bindable figure's row under main, A90's tip and this branch, with rows in the
+sections' real labels.
+
+- **43 drafts** in the log.
+- **23 bind identically** under all three.
+- **11 have changed bindings against A90's tip** (20 against main).
+- **Sections that newly pass:**
+  - against A90's tip: block:plumbing:metals and theme:geopolitics_reserve, both
+    drafts;
+  - against main, this branch with A90's work: also block:plumbing:liquidity
+    and summary:priced, both drafts.
+- **0 newly fail.**
+
+**Every changed binding, against A90's tip** (A90 → this branch). Each now
+binds to the series its sentence names:
+
+- theme:sentiment: +10 and 3.5% (draft 1), and 3.5 percent (draft 2):
+  University of Michigan consumer sentiment → Michigan 5-10 year inflation
+  expectations;
+- theme:sentiment, both drafts: 0.02 and 2.48 (unbound → SPY short interest,
+  days to cover), "SPY short-interest days-to-cover rose by 0.02 to 2.48";
+- theme:geopolitics_reserve, both drafts: 77.47 million, GC=F → China's
+  official gold holdings (SAFE);
+- pillar:1, both drafts: 1.94 million, Initial claims → Unemployed 27+ weeks;
+- block:plumbing:metals, both drafts: −5.43%, Copper → Gold over copper;
+- theme:fiscal_dollar, both drafts: −22.1 and 0.66% (unbound → 10-year term
+  premium (NY Fed ACM model)), "the NY Fed's term-premium estimate fell ...,
+  down −22.1 bp to 0.66%";
+- theme:equity_positioning, draft 1: +0.02 and 0.29, S&P 500 → Equal-weight
+  against cap-weight S&P 500, "The equal-weight-against-cap-weight S&P 500
+  reading ticked up +0.02 to 0.29".
+
+**The newly bound figures could newly fail on kind.** 0.66% and 3.5% are now
+bound to their own rows. Over those rows as this base hands them over (a "%"
+level as `latest_level`, typed a price), both fail. A90's tip fails them the
+same way, through the plain match's percent check ("written as percent but the
+payload carries this value as ['price']"). So no verdict changes, and A95's
+`latest_pct` cures both.
+
+### The combined count
+
+The 16 sections the edition withheld, judged per figure on the logged drafts
+under A95's branch, A90's tip and this branch together. **11 publish from a
+logged draft:**
+
+| Section | Whose fix |
+|---|---|
+| theme:liquidity_plumbing | A90 |
+| pillar:7 | A90 |
+| block:plumbing:liquidity | A90 |
+| summary:priced | A90 |
+| theme:fed_path (draft 1) | A95 |
+| stack:positioning (draft 2) | A95 |
+| block:slow:metals | A95 |
+| block:plumbing:metals | A111 |
+| theme:geopolitics_reserve | A111 |
+| theme:sentiment (draft 1) | A95 for 99, 19 and the two percents; A90 for the NY Fed's; A111 for Michigan's |
+| pillar:1 (draft 1) | A95 for the three percents; A111 for 1.94 million |
+
+The five others are class (ii): the drafts are wrong. A95's fixes to the writer
+and the retry act in the next run, not on these drafts:
+
+- month_in_markets;
+- theme:fiscal_dollar;
+- stack:misfit;
+- stack:priced;
+- block:plumbing:yields.
+
+pillar:1's draft 1 is cut at "argue against compl" in the log. Its figures are
+all before the cut.
+
+### Gates (one at a time)
+
+| Gate | Tally |
+|---|---|
+| `validate_numeral_audit.py` | passed |
+| `validate_audit_fixes.py` | 171 passed, 0 failed (group M included) |
+| `validate_monthly.py` | 359 passed, 1 failed, 1 skipped |
+| `validate_monthly_frames.py` | passed |
+| `validate_monthly_stack.py` | 267 passed, 0 failed (whole, 537 s; the first 590 s run hit its cap) |
+
+**The one `validate_monthly` failure is the date drift B101 and B101b fixed on
+b101.** It is the refunding window ({'November': True, 'December–January':
+False}), and it fails the same on A90's untouched tip, 359/1/1. It started with
+November. b101 merges at step 0 of the merge week.
+
+B97's `--group` flag is not on this base, so `validate_monthly_stack` ran whole.

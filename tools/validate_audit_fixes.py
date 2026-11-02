@@ -1052,10 +1052,41 @@ def group_l() -> None:
           "role audit withholds them")
 
 
+# ---------------------------------------------------------------------------
+# M. THE MONTHLY'S BINDING FROM THE FIRST EDITION (A111, 1 Nov 2026)
+# ---------------------------------------------------------------------------
+# The four binding false positives A90's tip still withheld on 1 Nov, as their
+# logged sentences over blocks in the rows' real labels
+# (tests/fixtures/monthly_binding_2026-11-01.json): a hyphenated name, a long
+# name without an inner word, "27+ weeks" written "27 weeks", a name up to its
+# tenor. Each passes; each must-fail case beside it still fails; and a short
+# name two series share is printed as each one's label in the retry's message.
+M01 = json.loads((REPO / "tests" / "fixtures" / "monthly_binding_2026-11-01.json")
+                 .read_text(encoding="utf-8"))
+
+
+def group_m() -> None:
+    print(f"\n{LINE}\nM. THE MONTHLY'S BINDING FROM THE FIRST EDITION (A111)\n{LINE}")
+    for c in M01["binding_pass"]:
+        a = na.audit(c["text"], c["block"])
+        check(a.passed, f"passes: {c['case']} ({a.reason()[:120]})")
+    for c in M01["binding_fail"]:
+        a = na.audit(c["text"], c["block"])
+        check(not a.passed and "is bound to" in a.reason(),
+              f"still fails: {c['case']} ({a.reason()[:120]})")
+    geo = next(c["block"] for c in M01["binding_pass"] if "geopolitics" in c["case"])
+    why = na.audit("China's foreign-exchange reserves rose to 77.47 million ounces.",
+                   geo).reason()
+    check("bound to China's foreign-exchange reserves (SAFE) but belongs to China's "
+          "official gold holdings (SAFE)" in why,
+          f"two series sharing the name SAFE are each named by label in the message "
+          f"({why[:110]})")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_j, group_k, group_l):
+              group_j, group_k, group_l, group_m):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
