@@ -2,9 +2,9 @@
 
 **Reading time.**
 - **Decision list:** about 21 minutes for the decision list (D2-1 to D2-90, 4,903 words). It can be taken in one read.
-- **Supporting text:** about 37 minutes for Parts 1–12 (8,564 words), the evidence behind the decisions.
+- **Supporting text:** about 37 minutes for Parts 1–12 (8,586 words), the evidence behind the decisions.
 - **Whole pack:** about 96 minutes including the annexes. The annexes are read only for an item the sitting pulls.
-- **Basis:** 230 words a minute, 21,969 words in all by `wc -w`, inside the two-hour sitting.
+- **Basis:** 230 words a minute, 21,991 words in all by `wc -w`, inside the two-hour sitting.
 - **The B104 addition (1 Nov 2026):** Part 12, in the decision list and in the text, with its line in Part 11, adds 1,791 words (about 8 minutes).
 - **The B105 addition (1 Nov 2026):** D2-90, the EM shock screen's amendment, adds 364 words (about 2 minutes).
 - **The B118 addition (2 Nov 2026):** Part 10's addendum of 2 Nov (the measurements since B96) and two source fixes in Part 12 add 699 words (about 3 minutes).
@@ -733,6 +733,8 @@ Not before 06:00 ET, after the Weekly's 05:00 run, which is the first edition wi
 **Spare.** About 20 minutes across the two days, for an item the sitting pulls from the annexes.
 
 **Part 12 (D2-84 to D2-90)** is taken after Part 9, before the builds it releases: D2-85 before any X-layer build; D2-86 before Audit #5's agenda.
+
+**The agenda (B120, 2 Nov 2026):** `docs/briefs/doctrine-2-sitting-2026-11-agenda.md` takes this order into nine blocks, each accepted whole, with the minutes template beside it.
 
 ## Part 12. The decisions of 1 Nov (B104, 1 Nov 2026)
 
