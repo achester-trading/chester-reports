@@ -101,8 +101,16 @@ if [ -z "$(echo "$PY_VALIDATORS" | tr -d ' \n')" ]; then
     exit 2
 fi
 
+# BOTH LINE ENDINGS (B111, 2 Nov 2026). A105 found every gate path arriving with a
+# trailing CR on the laptop ("check_library.py\r", so nearly every gate failed to
+# open): the list reader's `tr -d` had lost its \r (a literal CR in a file
+# normalised to LF). Here, wherever the list came from: a CR is a word separator in
+# the list loops, and run_gate strips any CR left on a path. What runs is unchanged.
+IFS=$' \t\n\r'
+
 # How one gate runs. Shell gates go through bash, everything else through $PY.
 run_gate() {
+    set -- "${1//$'\r'/}"
     case "$1" in
         *.sh) bash "$1" ;;
         *)    "$PY" "$1" ;;

@@ -145,3 +145,18 @@ of the merge week's superseded main runs outright.
 **For Doctrine #2 or later:**
 - grouping the small gates (b), once (a) shows the floor that remains;
 - any narrowing of what a branch push runs (c), which the brief does not recommend.
+
+## Part 4: built (B111, 2 Nov 2026)
+
+Ruled 2 Nov 2026 from Part 3's recommended set. Built on `b100-hygiene`, which
+merges in Tuesday's first small PR. Details are in `docs/briefs/b111-notes.md`.
+
+| Ruling | What was built |
+|---|---|
+| (a) B97 first | Nothing to build: the merge sheet places it in the first small PR |
+| (b) the package cache | `actions/cache@v4` on the interpreter's tree (`env.pythonLocation`), keyed `gates-pkgs-<OS>-py<exact version>-<hash of requirements.txt>`, in the gate and data-gate jobs; `pip install` runs only on a miss |
+| (c) the docs-only push | The enumerate job reads the push's changed files and, when all are under `docs/briefs/` or `docs/pastes/`, narrows the matrix to check_library, check_registry and check_master_guide, with no data gates |
+| (d) one pending run for main | main shares one concurrency group and never cancels in progress, so the newest pending run replaces older pending ones |
+| (e) `make.sh`'s CR | `run_gate` strips a CR from each path, and CR is a word separator in the list loops |
+
+Not taken: the slow gates on main only.
