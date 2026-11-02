@@ -245,7 +245,10 @@ def _dimension_items(p: dict, dims: list[str]) -> tuple[list, list]:
             continue
         it = {"kind": "dimension", "dimension": name, "state": now,
               "previous_state": was, "sources": [source],
-              "text": f"The {name} dimension moved from {was or 'absent'} to "
+              # A95: the reader's words, not the object's -- the 1 Nov Monthly's
+              # misfit paragraph copied "The breadth dimension ..." from here and
+              # was withheld for naming the report's machinery.
+              "text": f"Our {name} read moved from {was or 'absent'} to "
                       f"{now or 'absent'}"
                       + (f" (percentile {row.get('percentile')})"
                          if row.get("percentile") is not None else "")}

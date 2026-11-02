@@ -1313,6 +1313,105 @@ def group_j() -> None:
           "still lines only: zero words in the Monthly's budget")
 
 
+def group_k() -> None:
+    """A95: THE MONTHLY OF 1 NOV 2026, ITS WITHHELD SECTIONS
+    (tests/fixtures/monthly_first_edition_2026-11-01.json). The one revision hears
+    every fault the draft carries, not only the first; the policy-word message
+    quotes the sentence at fault and names the fix, so the retry's failing span is
+    that sentence; an intensity word's message names its fix; a rate or share
+    reaches the writer as a percent and a raw large level with its separators;
+    the misfit data names a read, not a dimension. Every check is unchanged:
+    each must-fail case still fails."""
+    import json
+    import logging
+    print(f"\n{LINE}\nK. THE MONTHLY OF 1 NOV 2026: WHAT IT WITHHELD (A95)\n{LINE}")
+    from altdata import bars as bars_mod
+    from altdata import numeral_audit as na
+    from daily_cascade import audit_retry, stack_prose as sp
+    from monthly_macro import prose as mp, v2
+    import validate_audit_fixes as vaf
+    fx = json.loads((REPO / "tests" / "fixtures" / "monthly_first_edition_2026-11-01"
+                     ".json").read_text(encoding="utf-8"))
+    sec = vaf.monthly_plumbing()
+    d1 = fx["retry_all_faults"]["text"]
+    res, seen = vaf.run_monthly([sec], [d1, d1], kind="v2")
+    r2 = seen[1] if len(seen) > 1 else ""
+    check("7580.07" in r2 and "+29,000" in r2 and mp.ALSO.strip("; ") in r2
+          and not res.get("published") and "separators" in str(res.get("reason")),
+          f"{fx['retry_all_faults']['case']}: the revision now hears both, and the "
+          f"verdict is unchanged ({res.get('state')})")
+    fixed = d1.replace("7580.07", "7,580.07").replace("+29,000 while", "+29,000 jobs while")
+    res, _ = vaf.run_monthly([sec], [d1, fixed], kind="v2")
+    check(res.get("published") and res.get("attempts") == 2,
+          "a revision that mends both faults publishes on the second attempt")
+    res, seen = vaf.run_monthly([sec], [fixed], kind="v2")
+    check(res.get("published") and res.get("attempts") == 1,
+          "a clean draft publishes at once, with nothing added")
+    pol = fx["policy"]
+    msgs = sp.policy_word_faults(pol["draft"])
+    spans = audit_retry.failing_spans("withheld: " + "; ".join(msgs), pol["draft"])
+    check(msgs and all(pol["sentence_starts"] in m and "separate sentences" in m
+                       for m in msgs)
+          and spans and all(s.startswith(pol["sentence_starts"]) for s in spans),
+          f"stack:priced: the policy-word message quotes the sentence at fault and "
+          f"names the fix; the retry's failing span is that sentence ({len(msgs)} "
+          f"fault(s), spans {[s[:24] for s in spans]})")
+    check(sp.policy_word_faults("Odds of hiking rose as the recession market fell.")
+          and not sp.policy_word_faults("Futures price a hike in December."),
+          "the policy-word rule itself is unchanged")
+    sf = sp.style_faults(fx["intensity"]["text"], bars_mod.load_config())
+    check(any("'sharply' with no figure in its sentence" in f
+              and "put the figure that measures it" in f for f in sf),
+          f"block:plumbing:yields: 'sharply' is still withheld, and the message names "
+          f"the fix ({[f[:60] for f in sf]})")
+    ps = fx["percent_share"]
+    rows = mp._series(ps["rows"])
+    a, b = na.audit(ps["pass"], {"series": rows}), na.audit(ps["fail"], {"series": rows})
+    check(rows[0].get("latest_pct") == 4.2 and "latest_level" not in rows[0]
+          and a.passed and not b.passed,
+          f"pillar:1 and theme:fed_path: the unemployment rate reaches the writer as "
+          f"a percent, so '4.2%' passes ({a.reason()[:70]}); average weekly hours, a "
+          f"level, written as a percent still fails")
+    sp_ = fx["separated"]
+    rows = mp._series(sp_["rows"])
+    a = na.audit(sp_["pass"], {"series": rows})
+    check(rows[0].get("latest_level_display") == "3,898.9" and a.passed
+          and na.separator_faults(sp_["raw"]),
+          f"theme:fiscal_dollar: a raw large level reaches the writer with its "
+          f"separators ('3,898.9'), which passes; '3898.9' is still withheld")
+    mv = mp._move_row({"label": "S&P 500", "start_level": 7651.0,
+                       "end_level": 7580.07, "change": -0.93, "change_unit": "percent"})
+    check(mv.get("end_level_display") == "7,580.07" and mv.get("end_level") == 7580.07,
+          "month_in_markets: a scorecard level carries its display beside its value")
+    items, _ = v2._dimension_items(
+        {"regime": {"session": "2026-10-30", "dimensions": [
+            {"dimension": "breadth", "state": "broad", "previous_state": "narrow",
+             "changed": True, "percentile": 68.6}]}}, ["breadth"])
+    check(items and not mp.internal_terms(items[0]["text"])
+          and mp.internal_terms(fx["misfit_vocabulary"]),
+          f"stack:misfit: the data says '{items[0]['text'] if items else ''}', not "
+          f"'the breadth dimension'; the draft that wrote it is still withheld")
+    seen_lv: list = []
+
+    class _H(logging.Handler):
+        def emit(self, rec):
+            seen_lv.append((rec.levelno, rec.getMessage()))
+    lg = logging.getLogger(audit_retry.__name__)
+    h = _H()
+    lg.addHandler(h)
+    old = lg.level
+    lg.setLevel(logging.INFO)
+    try:
+        audit_retry.log_attempt("monthly", "x", 1, True, None, None)
+        audit_retry.log_attempt("monthly", "x", 1, False, "a reason", "a draft")
+    finally:
+        lg.removeHandler(h)
+        lg.setLevel(old)
+    check(seen_lv and seen_lv[0][0] == logging.INFO
+          and all(lv == logging.WARNING for lv, _ in seen_lv[1:]),
+          "a published attempt logs at INFO; a withheld one still warns")
+
+
 def isolate_and_seed() -> str:
     """Point every store the payload reads at a temporary database, and seed it.
 
@@ -1395,6 +1494,7 @@ def main() -> int:
     group_h()
     group_i()
     group_j()
+    group_k()
     built = None
     try:
         from monthly_macro import payload

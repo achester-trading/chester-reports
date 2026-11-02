@@ -354,7 +354,10 @@ def style_faults(text: str, cfg: dict, attributed: bool = False) -> list[str]:
     for s in _sentences(text):
         for w in st.get("intensity_words") or []:
             if re.search(rf"\b{re.escape(w)}\b", s, re.I) and not re.search(r"\d", s):
-                out.append(f"'{w}' with no figure in its sentence")
+                # A95: the message names the fix (the 1 Nov Monthly's yields
+                # block was withheld on it with no instruction).
+                out.append(f"'{w}' with no figure in its sentence -- put the figure "
+                           f"that measures it in that sentence, or drop '{w}'")
     return out + basis_faults(text)
 
 
@@ -498,7 +501,13 @@ def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
         hit = next((t for t in terms
                     if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", s, re.I)), None)
         if hit:
-            out.append(f"a policy word ('{word}') attached to a {hit} market")
+            # A95: the message quotes the SENTENCE, not the word, and names the
+            # fix. The 1 Nov Monthly's What's priced was told "('hike')", so the
+            # retry's failing span was the first sentence holding "hike" -- a
+            # correct one -- and the sentence at fault came back unchanged twice.
+            out.append(f"a policy word ({word}) attached to a {hit} market in the "
+                       f"sentence '{s.strip()[:90]}' -- put the Fed's path and the "
+                       f"{hit} market in separate sentences")
     return out
 
 
