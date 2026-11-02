@@ -493,3 +493,50 @@ GAAP taxonomy (us-gaap), as EDGAR's company facts serve it, and each field's
 | `validate_monthly_stack` | not run on the laptop (it was stopped for time on A96 too); CI runs it |
 
 No gate was added, so CLAUDE.md's counts are unchanged.
+
+## A104 (2 Nov 2026): A102's EDGAR dry runs on the laptop -- PENDING, no request made
+
+The paste names `docs/briefs/a102-notes.md`, but A102's notes are the section
+above in this file, so A104's section sits here beside them.
+
+**Base.** `origin/a96-price-migration-fred` at `1ee24f78` (A102).
+
+**The header check.** `edgar.user_agent()` builds the SEC header as
+`chester-reports/1.0 (<contact>)`. The contact is `CHESTER_SEC_CONTACT`, read
+through `altdata/secrets.get` from the environment or `.env`, so it is
+configuration and never a literal in code. On the laptop it is **unset**, so
+there is no header at all and the caller sends nothing to sec.gov (the 16 Oct
+rule: no SEC request without the operator's contact).
+
+**Part 1, the dry runs, as written** (2 Nov 2026, about 04:00 UTC, from the
+branch's venv):
+
+```
+$ python -m altdata.sources.edgar_xbrl fundamentals --dry-run
+edgar_xbrl: PENDING -- not configured: CHESTER_SEC_CONTACT is unset, and EDGAR serves no request without a contact (nothing written; nothing stored yet)
+{"reason": "not configured: CHESTER_SEC_CONTACT is unset, and EDGAR serves no request without a contact", "run_id": null, "session": "2026-11-01", "source": "edgar_xbrl", "status": "PENDING", "written": 0}
+(1 s; 0 requests)
+
+$ python -m altdata.sources.edgar_xbrl earnings --dry-run
+(the same PENDING line and record; 0 s; 0 requests)
+```
+
+**Parts 2 and 3 were not run.**
+
+- With no request made there are no rows, so there is no gap to name, no
+  alternate tag to look up in a company's facts, and no earnings dating to read.
+- `config/edgar_xbrl.yaml` and the fixtures are unchanged. No fallback was added
+  and no `validate_price_sources` case, since a fallback without the dry run's
+  evidence would be a guess.
+- I did not set a contact. The address is the operator's, and the paste allows
+  no source but A102's caller.
+
+**What is needed, the operator's choice:**
+
+- **(a)** Put `CHESTER_SEC_CONTACT` in the laptop's `.env` (the same value as the
+  box's), and a session re-runs A104 from Part 1.
+- **(b)** Run the two commands on the box, where the contact is set, and paste
+  the output to a session for Parts 2 and 3.
+
+**Gates.** None run. No code, config or fixture changed: this commit holds the
+paste and this section only.
