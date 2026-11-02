@@ -391,4 +391,11 @@ them. The list is A99's, plus the weekend's.
 
 ## 7. CI
 
-CI_PLACEHOLDER
+**CI queued, run 41388944633**, for `a88f5dc9`: the merges through b109 plus this
+script. Read once on 2 Nov 2026.
+
+- The earlier pushes' runs: 41388163495 (in progress at the read), and
+  41388693070 and 41388529031, cancelled as superseded by the next push.
+- The next paste on this branch reads the result.
+- **Any red is a finding.** The laptop's gate-by-gate run of the same tree passed
+  every Python gate (section 4).
