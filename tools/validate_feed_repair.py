@@ -41,6 +41,14 @@ network, no model, no live store (each store here is the gate's own).
      history is never restated; the four keys are no longer declared a gap; a
      reader prints the label wherever a figure reaches the date, refuses a change
      measured across it, and a name without a break is unchanged.
+  I  THE CBOE HOLD (D45, 31 Oct 2026; paste B95). Both Cboe sources are
+     declared held from 2026-11-03 with the reason; the VX-curve logger makes no
+     request (no contract file, no probe) and writes nothing, the stored rows
+     kept and the newest date reported; a held key is declared, not stale, in
+     the store check, and the ten Cboe keys are held in the real registry; a
+     HELD run is no writer failure; the term-structure champion and the basis
+     print the hold, the stored object unchanged; the vol dial's members and the
+     published challenger (VIX3M/VIX) hold nothing held.
 
     python tools/validate_feed_repair.py
 """
@@ -530,8 +538,101 @@ def group_h() -> None:
           "the Quarterly's page prints the labelled break")
 
 
+HELD_LINE = "not tracked: held pending Doctrine #2 (Cboe terms)"
+CBOE_KEYS = ("cboe.cor1m", "cboe.cor3m", "cboe.dspx", "cfe.vx_settle", "cfe.vx1",
+             "cfe.vx2", "cfe.vx3", "calc.vx_front_slope", "calc.vx_front_ratio",
+             "calc.vx1_vix_basis")
+
+
+def group_i() -> None:
+    import yaml
+    from altdata import derived, feeds, observations, refusals
+    from altdata.loggers import vxcurve
+    import check_store_registry as csr
+    head("I. THE CBOE HOLD (D45)")
+    refusals.set_registry(None)
+    reg = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))
+    ents = {s: reg["sources"][s] for s in ("cboe", "cboe_indices")}
+    check(all(e.get("status") == "held" and e.get("held_since") == "2026-11-03"
+              and e.get("held_reason", "").startswith(
+                  "Cboe terms, storage in a retrieval system forbidden (checked 30 "
+                  "Oct 2026); held pending Doctrine #2")
+              and e.get("held_line") == "held pending Doctrine #2 (Cboe terms)"
+              for e in ents.values()),
+          "cboe (the VX curve) and cboe_indices are declared held from 2026-11-03, "
+          "with the reason and the line")
+    calls = []
+    saved = (vxcurve.fetch_contract, vxcurve.probe)
+    p = TD / "vx_held.db"
+    with observations.ObservationStore(str(p)) as st:
+        st.write("cfe.vx1", None, "2026-10-30", "2026-10-30T20:45:00+00:00", 18.2,
+                 "cboe")
+    try:
+        vxcurve.fetch_contract = lambda e: calls.append(e) or {"rows": []}
+        vxcurve.probe = lambda: calls.append("probe") or {}
+        with observations.ObservationStore(str(p)) as st:
+            r = vxcurve.pull(store=st)
+            n_vx, n_probe = len(st.as_of("cfe.vx1")), len(st.as_of("cfe.vx_probe"))
+    finally:
+        vxcurve.fetch_contract, vxcurve.probe = saved
+    check(r.get("status") == "HELD" and r.get("written") == 0 and not calls
+          and n_vx == 1 and n_probe == 0,
+          f"the VX-curve logger asks nothing (no contract, no probe) and writes "
+          f"nothing; the stored row is kept ({r.get('status')}, {len(calls)} calls)")
+    check(r.get("reason") == f"{HELD_LINE}, last stored 2026-10-30",
+          f"it reports the hold with the last stored date ({r.get('reason')})")
+    check(feeds.writer_failures([("vx_curve", vxcurve)], {"vx_curve": r}) == {},
+          "a HELD run is no writer failure")
+    base = {"source": "cboe", "native_horizon": "daily", "freq": "daily",
+            "information_half_life": "until_next_release", "units": "ratio"}
+    sreg = {"metrics": {"t.live": dict(base), "t.cboe": dict(base)},
+            "member_overrides": {"t.cboe": {"status_extra": "held",
+                                            "held_source": "cboe",
+                                            "gap_reason": "Cboe terms"}}}
+    q = TD / "held_store.db"
+    with observations.ObservationStore(str(q)) as st:
+        for k in ("live", "cboe"):
+            st.write(f"t.{k}", None, "2026-09-01", "2026-09-01T21:00:00+00:00", 1.0,
+                     "fred")
+    cr = csr.check(str(q), EVENING, reg=sreg)
+    stale = {s["key"] for s in cr["stale"]}
+    dec = {d["key"]: (d["status"], d["newest"]) for d in cr["declared"]}
+    check(stale == {"t.live"} and dec == {"t.cboe": ("held", "2026-09-01")},
+          f"the store check lists a held key apart, declared with its newest date, "
+          f"never stale ({sorted(stale)}, {dec})")
+    res = derived.resolve_registry(yaml.safe_load(
+        (REPO / "metrics_registry.yaml").read_text(encoding="utf-8")))
+    got = {k: derived.declared_status(res.get(k)) for k in CBOE_KEYS}
+    check(set(got.values()) == {"held"},
+          f"the ten Cboe keys are declared held in the registry "
+          f"({[k for k in got if got[k] != 'held'] or 'all'})")
+    champ = {"metric": "calc.vx_front_ratio", "state": "contango", "ratio": 1.04,
+             "requires_store_keys": ["cfe.vx1", "cfe.vx2"]}
+    with observations.ObservationStore(str(p)) as st:
+        h = refusals.held_leg(champ, st)
+        b = refusals.held_leg({"metric": "calc.vx1_vix_basis", "value": 1.1}, st)
+    check(h and h["state"] is None and h["ratio"] is None
+          and h["absent_reason"].startswith(HELD_LINE) and champ["state"] == "contango",
+          "the champion leg prints the hold, never a state from rows that stopped; "
+          "the stored object is not changed")
+    check(b and b["value"] is None and b["absent_reason"].startswith(HELD_LINE),
+          "the VX1-VIX basis prints the hold")
+    ms = yaml.safe_load((REPO / "config" / "market_state.yaml").read_text(
+        encoding="utf-8"))
+    vol = ms["dimensions"]["volatility"]
+    ts = ms["dials"]["vol"]["term_structure"]
+    members = [m["metric"] for m in vol["members"]]
+    chall = ts["challenger"]["metric"]
+    untouched = members + [chall, "yfinance.mkt_vix3m"]
+    check(ts["published"] == "challenger"
+          and not any(refusals.key_hold(k) for k in untouched),
+          f"the vol dial's members and the published challenger hold nothing held "
+          f"({', '.join(untouched)})")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h):
+    for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
+              group_i):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

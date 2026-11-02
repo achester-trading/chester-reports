@@ -406,7 +406,9 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
 #               writer no longer requests it and the readers print the gap
 #   gap         a listed gap: not written, with `gap_reason`
 #   while_held  written only while a position is held; a flat book is not stale
-DECLARED_STATUSES = ("superseded", "refused", "gap", "while_held")
+#   held        its source is on a declared hold pending a ruling (D45, 31 Oct
+#               2026: Cboe's terms); the writer asks nothing, the rows are kept
+DECLARED_STATUSES = ("superseded", "refused", "gap", "while_held", "held")
 
 
 def declared_status(e: Optional[dict]) -> Optional[str]:

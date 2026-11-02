@@ -418,7 +418,8 @@ def writer_failures(mods: list, out: dict) -> dict:
         # REFUSED (the feed repair of 24 Oct 2026): the source refuses automated
         # reads, the writer asked nothing, and its keys are declared in the
         # registry -- a listed gap, not a failure of this run.
-        if r.get("status") in ("OK", "PENDING", "REFUSED"):
+        # HELD (D45, 31 Oct 2026) likewise: a declared hold asks nothing.
+        if r.get("status") in ("OK", "PENDING", "REFUSED", "HELD"):
             continue
         why = f"{name}: {r.get('reason') or 'status ' + str(r.get('status'))}"
         for k in _keys([(name, mod)]):
