@@ -44,6 +44,7 @@ from typing import Any, Optional
 import yaml
 
 from altdata import session
+from alpha import families
 from alpha import hypotheses as hyp
 from alpha import intake, rules
 
@@ -64,13 +65,37 @@ def prompt_version(path: Optional[Path] = None) -> str:
     return m.group(1)
 
 
+def family_refs_text() -> str:
+    """The registry's family_refs for the prompt, one a line with its house
+    description, read from config/alpha_families.yaml at run time -- never a
+    copy, so a registry change reaches the next prompt (A113)."""
+    lines = []
+    for f in families.registry().get("families") or []:
+        d = str(f.get("house_description") or "").strip()
+        lines.append(f"- {f['ref']}" + (f": {d}" if d else ""))
+    return "\n".join(lines)
+
+
+NEEDS_REF = "needs family_ref"
+
+
+def ref_check(h: dict) -> Optional[str]:
+    """(A113) None when the proposal's family_ref is a registered one; else why
+    not. The caller keeps the proposal without the ref, flagged, never drops it:
+    the lab counts it under its own `family` until a human sets the ref."""
+    if "family_ref" not in h or h.get("family_ref") in (None, ""):
+        return "no family_ref given"
+    return families.validate_ref(h["family_ref"])
+
+
 def build_prompt(pkt: dict, path: Optional[Path] = None) -> tuple[str, str]:
     text = Path(path or PROMPT_PATH).read_text(encoding="utf-8")
     text = re.sub(r"^<!--.*?-->\s*", "", text, flags=re.S)       # the version line
     text = re.sub(r"^<!--.*?-->\s*", "", text, flags=re.S)       # the header comment
     system, _, user = text.partition("\nUSER\n")
     system = system.replace("SYSTEM\n", "", 1).replace(
-        "{{RULES}}", RULES_DOC.read_text(encoding="utf-8"))
+        "{{RULES}}", RULES_DOC.read_text(encoding="utf-8")).replace(
+        "{{FAMILY_REFS}}", family_refs_text())
     user = user.replace("{{PACKET}}", json.dumps(pkt, indent=1, default=str))
     return system.strip(), user.strip()
 
@@ -130,6 +155,15 @@ def check(props: list[dict], store, ledger, day: str) -> tuple[list[dict], list[
     for i, raw in enumerate(props, start=1):
         h = _normalise(raw, i)
         why = None
+        # A113: a missing or unknown family_ref keeps the proposal, without the
+        # ref and flagged in its translation note (no schema change), so nothing
+        # is lost; the lab counts it under its own `family` until a human sets it.
+        bad_ref = ref_check(h)
+        if bad_ref:
+            h.pop("family_ref", None)
+            note = f"{NEEDS_REF}: {bad_ref}"
+            h["translation_note"] = (f"{h['translation_note']}; {note}"
+                                     if h.get("translation_note") else note)
         probe = {"schema": hyp.SCHEMA_ID, "batch_id": "probe", "source": "model",
                  "proposer": "probe", "channel": CHANNEL,
                  "written_at": "2026-01-01T00:00:00+00:00", "model_idea_rule": True,
@@ -167,7 +201,9 @@ def check(props: list[dict], store, ledger, day: str) -> tuple[list[dict], list[
         if why is None and len(accepted) >= budget["per_batch"]:
             why = f"over the {budget['per_batch']} a session day"
         if why is None:
-            f = h["family"]
+            # A113: the budget keys on what the lab counts under -- the
+            # family_ref, else (null) the proposal's own family (B98's count_key).
+            f = families.count_key(h)
             used = (reg.family_week_count(f, day, channel=CHANNEL) if reg else 0) \
                 + fam_used.get(f, 0)
             if used >= budget["per_family_per_week"]:
@@ -176,7 +212,7 @@ def check(props: list[dict], store, ledger, day: str) -> tuple[list[dict], list[
             rejected.append({"local_id": h["local_id"], "title": h.get("title"),
                              "why": why})
             continue
-        fam_used[h["family"]] = fam_used.get(h["family"], 0) + 1
+        fam_used[families.count_key(h)] = fam_used.get(families.count_key(h), 0) + 1
         accepted.append(h)
     for k, h in enumerate(accepted, start=1):
         h["local_id"] = f"P-{k}"
@@ -231,7 +267,11 @@ def run(store, ledger, as_of: Optional[str] = None, cl=None, model: Optional[str
                        reply=text[:2000])
             return rec
         accepted, rejected = check(props, store, ledger, day)
-        rec.update(proposed=len(props), rejected=rejected)
+        rec.update(proposed=len(props), rejected=rejected,
+                   needs_family_ref=[{"local_id": h["local_id"], "title": h["title"],
+                                      "why": h["translation_note"]}
+                                     for h in accepted
+                                     if NEEDS_REF in str(h.get("translation_note") or "")])
         if not accepted:
             rec.update(state="nothing_written")
             return rec

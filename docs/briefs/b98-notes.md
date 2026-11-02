@@ -179,3 +179,76 @@ refs: 24 rows in all.
   are and are never rewritten. Each ref's first count starts from them.
 - **Weak fits.** H-004 (§19.4) and E-3 (§6.2) are named in the table above. A
   ruling may move either.
+
+## A113 (2 Nov 2026): the daily proposer asks for family_ref
+
+**Base.** `origin/b98-ks-family-registry` at `f0343d55`. This closes the first
+"For the operator" item above.
+
+**The files changed:**
+
+- `config/alpha_proposer_prompt.md`: now `alpha-proposer-v2`. Rule 10 asks for
+  exactly one `family_ref` per hypothesis, copied from the list. The output
+  template gains the field, and a `{{FAMILY_REFS}}` block sits before the
+  grammar.
+- `alpha_proposer/propose.py`:
+  - `family_refs_text()` fills the block;
+  - `ref_check()` and `NEEDS_REF` check the ref;
+  - `check()` flags the ref and keys the budget on `count_key`;
+  - `run()` logs `needs_family_ref`.
+- `tools/validate_alpha_proposer.py`: group C2.
+- `docs/alpha-lab-rules.md` section 15: one bullet.
+- `alpha/hypotheses.py` is **unchanged**. No schema change: `family_ref` was
+  already optional there, and the daily-proposer channel is not in
+  `FAMILY_REF_CHANNELS`, so a batch without it is still valid.
+
+**How the ref list reaches the prompt.** `build_prompt` replaces
+`{{FAMILY_REFS}}` with `family_refs_text()`, which reads
+`families.registry()`, i.e. `config/alpha_families.yaml`, at run time. Each
+entry prints its ref and its house description, one a line. There is no copy,
+so a registry change reaches the next prompt. Group C2 checks that all 63 refs
+are in the built prompt.
+
+**The parser, case by case** (group C2's fixtures, `check()` on the fixture
+store):
+
+| Proposal | What happens |
+|---|---|
+| A valid ref (`KS §3.4 low-volatility anomaly`) | Kept with the ref; no flag |
+| An unknown ref (`KS §99 made up`) | Kept. The ref is removed, and the translation note reads "needs family_ref: family_ref 'KS §99 made up' is not in config/alpha_families.yaml" |
+| A missing ref | Kept, with the translation note "needs family_ref: no family_ref given" |
+| Three of one ref under three different `family` labels, in one week | Two kept, the third "over 2 of family KS §3.4 low-volatility anomaly this week" |
+
+- None of the three was dropped.
+- The batch holding the flagged two passes the unchanged schema.
+- `run()`'s log line lists each flagged proposal under `needs_family_ref`, with
+  its reason.
+
+**Why the flag is in the translation note.** The schema refuses an unknown
+hypothesis field (`validate_batch`), and the paste allows no schema change. So
+"needs family_ref" travels in the existing optional `translation_note`, which
+the register stores in the hypothesis's spec. A human sets the ref later by a
+registry assignment, as B98's `assignments` do.
+
+**The budget's handling of null.** B98's code already treats a null ref as its
+own family. `families.count_key(h)` is the `family_ref`, else the hypothesis's
+own `family`, and the register counts, bumps and deflates under that key. The
+one change needed was in the proposer:
+
+- its weekly family budget keyed on `h["family"]`;
+- it now keys on `count_key(h)`, so the daily channel's two a family a week is
+  counted on the same key as every other channel.
+
+The budget is weekly per family (`hyp.BUDGETS`), with three a session day. That
+covers the paste's "two per family per batch", since a batch is one session
+day.
+
+**Gates (one at a time):**
+
+| Gate | Tally |
+|---|---|
+| `validate_alpha_proposer.py` | 49 passed, 1 failed. Group C2 is 8/8. The one failure is the date drift B106 pinned on b101: "four valid proposals of one family ... (1 kept)", the fixture's week of 2026-11-02 under the real clock. The untouched base fails the same way, 41/1 |
+| `validate_alpha.py` | passed |
+| `validate_alpha_lab_4.py` | passed |
+| `validate_ll6.py` | not on this base (A94's branch is not merged into b98) |
+| `check_registry.py` | OK |

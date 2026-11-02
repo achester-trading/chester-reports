@@ -375,6 +375,53 @@ def group_c_d() -> None:
     check(len(cut[0]) == 3 and any("a session day" in r["why"] for r in cut[1]),
           "four of four families: at most three a session day")
 
+    head("C2. THE FAMILY_REF (A113): ASKED FOR, CHECKED, NOTHING DROPPED")
+    from alpha import families                                  # noqa: PLC0415
+    system, _ = propose.build_prompt({"fixture": True})
+    regs = sorted(families.refs())
+    check("{{FAMILY_REFS}}" not in system and all(r in system for r in regs)
+          and propose.prompt_version() == "alpha-proposer-v2",
+          f"the prompt (alpha-proposer-v2) lists all {len(regs)} registry refs, read from "
+          f"config/alpha_families.yaml at run time")
+    REF = "KS §3.4 low-volatility anomaly"
+    good, unknown, missing = (dict(_valid(2), family_ref=REF),
+                              dict(_valid(3), family_ref="KS §99 made up"), _valid(4))
+    ro = Ledger(lp, read_only=True)
+    try:
+        acc, rej = propose.check([good, unknown, missing], st, ro, "2026-11-16")
+        over = propose.check([dict(_valid(5, "fam-a"), family_ref=REF),
+                              dict(_valid(6, "fam-b"), family_ref=REF),
+                              dict(_valid(7, "fam-c"), family_ref=REF)], st, ro, "2026-11-16")
+    finally:
+        ro.close()
+    by = {h["title"]: h for h in acc}
+    g, u, m = (by.get(x["title"]) for x in (good, unknown, missing))
+    check(len(acc) == 3 and not rej, f"all three kept, none dropped for want of a ref "
+                                     f"({len(acc)} kept, {len(rej)} rejected)")
+    check(g is not None and g.get("family_ref") == REF
+          and propose.NEEDS_REF not in str(g.get("translation_note") or ""),
+          "a valid ref: kept with it, no flag")
+    check(u is not None and "family_ref" not in u
+          and "needs family_ref: family_ref 'KS §99 made up' is not in "
+              "config/alpha_families.yaml" in str(u.get("translation_note")),
+          f"an unknown ref: kept, the ref removed, flagged with the reason "
+          f"({u and u.get('translation_note')})")
+    check(m is not None and "family_ref" not in m
+          and "needs family_ref: no family_ref given" in str(m.get("translation_note")),
+          "a missing ref: kept, flagged 'needs family_ref: no family_ref given'")
+    check(families.count_key(u) == u["family"] and families.count_key(m) == m["family"],
+          "a null ref counts under the proposal's own family (B98's count_key)")
+    batch = {"schema": hyp.SCHEMA_ID, "batch_id": "2026-11-16-daily-proposer",
+             "source": "model", "proposer": "fake-model-1", "channel": "daily-proposer",
+             "written_at": "2026-11-16T23:10:00+00:00", "model_idea_rule": True,
+             "inputs": [], "hypotheses": acc}
+    check(not hyp.validate_batch(batch),
+          f"the batch with the flagged proposals passes the unchanged schema "
+          f"({hyp.validate_batch(batch)[:2] or 'no errors'})")
+    check(len(over[0]) == 2 and any(f"of family {REF}" in r["why"] for r in over[1]),
+          f"three of one ref under three different families: the weekly budget (2) keys "
+          f"on the ref ({len(over[0])} kept)")
+
     head("D. THE PACKET, BUILT BY CODE")
     ro = Ledger(lp, read_only=True)
     try:

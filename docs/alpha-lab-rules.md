@@ -302,6 +302,7 @@ A `zscore` or `mean_band` key must be in `metrics_registry.yaml`; `instrument` r
 **Every hypothesis carries one `family_ref`** (Batch 19 item 99, accepted 27 Oct 2026). It names a section of Kakushadze and Serur's *151 Trading Strategies* (2018; SSRN 3247865), written `KS §<section> <short name>`, for example `KS §3.1 price momentum`. It may instead name one of the two house entries K&S does not carry: `KS options` (the premium sleeve, item 100) and `liquidity-sweep` (item 101(b)).
 - **The registry** is `config/alpha_families.yaml`: one entry per K&S section the lab could use, with its section number, its title, a one-line house description and the asset classes it applies to. A `family_ref` not in it is refused.
 - **Required from the next inbox batch.** A weekly-brief or sitting batch written from 1 Nov 2026 needs a `family_ref` on every hypothesis. Before that, the field is optional.
+- **The daily proposer asks for it too** (A113, 2 Nov 2026). Its prompt (`alpha-proposer-v2`) lists the registry's refs and asks for one per hypothesis. A missing or unknown ref keeps the idea, without the ref and flagged "needs family_ref" in its translation note, and it counts under its own `family` until a human sets the ref.
 - **Hypotheses registered before the change** are mapped once, in the registry's `assignments`. Their files are not edited, because a registered batch is held by its manifest's sha256 and its translations by the file's.
 - **`family` stays.** It is the hypothesis's own short label, and nothing about it changes.
 

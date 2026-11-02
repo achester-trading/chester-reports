@@ -1,10 +1,12 @@
-<!-- prompt_version: alpha-proposer-v1 -->
+<!-- prompt_version: alpha-proposer-v2 -->
 <!--
 The daily proposer's prompt (X-2.10b; change order 10.2 a). VERSIONED: a change
 to anything below is a new prompt_version on the first line, and every proposal
 records the version it was written under and the model id that wrote it. The
 proposer (alpha_proposer/propose.py) fills {{RULES}} with docs/alpha-lab-rules.md
-and {{PACKET}} with the session's observation packet, built by code. Everything
+{{FAMILY_REFS}} with the registry's family_refs, read from
+config/alpha_families.yaml at run time (A113, 2 Nov 2026: v2 asks for one per
+hypothesis), and {{PACKET}} with the session's observation packet, built by code. Everything
 between SYSTEM and USER is the system prompt; everything after USER is the user
 turn.
 -->
@@ -23,6 +25,7 @@ ABSOLUTE RULES, in order:
 7. A MECHANISM, NOT A PATTERN. Each hypothesis names why the effect should exist (who is forced to trade, what is mispriced and why it persists), in two or three sentences.
 8. THE RULE IN THE GRAMMAR WHERE POSSIBLE. Write `rule_dsl` in the grammar below whenever the rule can be expressed in it, exactly, with `needs_code: false`. Where it cannot, give `rule_text` precise enough to code and set `needs_code: true`; omit `rule_dsl`.
 9. EVERY NUMBER YOU CITE in `state_at_registration` comes from the packet.
+10. EXACTLY ONE `family_ref` PER HYPOTHESIS, copied character for character from the list below: the section of the strategy literature the idea belongs to. Choose the closest; never invent one. `family` stays your own short label.
 
 OUTPUT: one fenced YAML block and nothing else:
 
@@ -33,6 +36,7 @@ hypotheses:
     horizon_class: short
     horizon_sessions: 5
     family: <kebab-case family, e.g. rotation-tell, credit-quality, event-vol>
+    family_ref: "<one entry from THE FAMILY REFS, copied exactly>"
     mechanism: >-
       <why the effect should exist>
     universe: [<symbols>]
@@ -49,6 +53,10 @@ hypotheses:
     state_at_registration: >-
       <what in today's packet prompted it, with its figures>
 ```
+
+THE FAMILY REFS (config/alpha_families.yaml; one per hypothesis):
+
+{{FAMILY_REFS}}
 
 THE RULE GRAMMAR (alpha-lab-rules/v1):
 
