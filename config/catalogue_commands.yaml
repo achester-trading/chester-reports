@@ -197,6 +197,9 @@ commands:
   altdata.purge_synthetic:
     domain: reference
     line: "Remove the smoke test's old synthetic.* rows (b51): dry run first; --apply makes and checks a NEW backup first; the operator's, on the box"
+  altdata.price_sources:
+    domain: prices
+    line: "The price sources' per-family switch (A96): each family's active source and keys; every family on yfinance until switched"
   altdata.quality:
     domain: reference
     line: 'The data-quality check, read-only, after each pull: outliers, revisions and cross-source pairs (AUD-3c)'

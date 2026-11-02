@@ -95,7 +95,10 @@ plt.rcParams.update({
 # Configuration and the universe
 # ---------------------------------------------------------------------------
 def load_config(path: Optional[Path] = None) -> dict:
-    return yaml.safe_load(Path(path or CONFIG).read_text(encoding="utf-8"))
+    """The charts' config, its "price:" references resolved (A96)."""
+    from altdata import price_sources                           # noqa: PLC0415
+    return price_sources.resolve_tree(
+        yaml.safe_load(Path(path or CONFIG).read_text(encoding="utf-8")))
 
 
 def universe(cfg: dict, repo: Path = REPO) -> tuple[list[dict], str]:
@@ -107,7 +110,9 @@ def universe(cfg: dict, repo: Path = REPO) -> tuple[list[dict], str]:
     src = repo / cfg.get("universe_file", "config/correlation.yaml")
     skip = set(cfg.get("universe_skip") or [])
     if src.exists():
-        uni = (yaml.safe_load(src.read_text(encoding="utf-8")) or {}).get("universe") or []
+        from altdata import price_sources                       # noqa: PLC0415
+        uni = price_sources.resolve_tree(
+            (yaml.safe_load(src.read_text(encoding="utf-8")) or {}).get("universe") or [])
         origin = str(src.relative_to(repo)).replace("\\", "/")
     else:
         uni, origin = cfg["universe"], "config/horizon_charts.yaml (own copy)"

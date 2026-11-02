@@ -25,3 +25,105 @@ memory:
   tags:
     inventory: [InventoryNet]
     cogs: [CostOfGoodsAndServicesSold, CostOfRevenue]
+
+# A102 (1 Nov 2026; tranche 6 of the price-source migration): FUNDAMENTALS FROM
+# XBRL COMPANY FACTS, the edgar.fund_<ticker>_<field> keys beside Yahoo's
+# fund keys (altdata/sources/fundamentals.py), behind config/
+# price_sources.yaml `fundamentals`. One companyfacts call and one submissions
+# call per filer; every row is available at its filing's ACCEPTANCE
+# (submissions' acceptanceDateTime for the fact's accession), a later filing
+# with a different value is a revision row at its own acceptance, and a fact
+# whose accession is not in the submissions index takes its `filed` date's end
+# (23:59:59 ET), availability `reconstructed`.
+#
+# THE TAGS. Each is an element of the FASB US GAAP Financial Reporting Taxonomy
+# (namespace us-gaap), as EDGAR's company facts serve it
+# (https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json; the elements'
+# definitions are the taxonomy's, https://xbrl.fasb.org). The first tag in a
+# field's list that carries a period wins for that period. Cash-flow lines are
+# filed YEAR TO DATE in a 10-Q: a quarter not filed as three months is the
+# year-to-date less the previous quarter's year-to-date from the same start
+# (Q4 = the fiscal year less nine months), available when the later of the two
+# was accepted.
+fundamentals:
+  enabled: false            # the parallel run's switch: off until the operator starts it
+  quarters_from: "2019-01-01"
+  request_pause_s: 0.15     # SEC fair access: at most 10 requests a second; this is under 7
+  filers:                   # the nine names of fundamentals.TICKERS, the SEC's CIKs
+    - {ticker: AMZN, cik: 1018724}
+    - {ticker: GOOGL, cik: 1652044}
+    - {ticker: MSFT, cik: 789019}
+    - {ticker: META, cik: 1326801}
+    - {ticker: ORCL, cik: 1341439}
+    - {ticker: MU, cik: 723125}
+    - {ticker: NVDA, cik: 1045810}
+    - {ticker: AVGO, cik: 1730168}
+    - {ticker: AMAT, cik: 6951}
+  fields:
+    operating_cash_flow:
+      kind: flow
+      sign: 1
+      tags: [NetCashProvidedByUsedInOperatingActivities]
+      cite: "us-gaap:NetCashProvidedByUsedInOperatingActivities -- Yahoo's 'Operating Cash Flow'"
+    capex:
+      kind: flow
+      sign: -1                # filed as a positive payment; stored NEGATIVE, as Yahoo publishes it
+      tags: [PaymentsToAcquirePropertyPlantAndEquipment, PaymentsToAcquireProductiveAssets]
+      cite: >-
+        us-gaap:PaymentsToAcquirePropertyPlantAndEquipment, else
+        PaymentsToAcquireProductiveAssets (Amazon's purchases of property and
+        equipment, as the GTM-4 bridge reads it) -- Yahoo's 'Capital Expenditure'
+    net_debt:
+      kind: net               # debt less cash, the SAME balance sheet (period end)
+      debt: [LongTermDebt, LongTermDebtNoncurrent]
+      cash: [CashAndCashEquivalentsAtCarryingValue,
+             CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents]
+      cite: >-
+        us-gaap:LongTermDebt (current maturities included; LongTermDebtNoncurrent
+        where a filer tags only that) less CashAndCashEquivalentsAtCarryingValue.
+        NOT Yahoo's definition: its 'Total Debt' includes lease liabilities and
+        commercial paper where the filer reports them there, so the pair measures a
+        definitional gap as well as a source one
+    inventory:
+      kind: stock
+      only: [AMZN, GOOGL, MSFT, MU]   # fundamentals.INVENTORY_TICKERS
+      tags: [InventoryNet]
+      cite: "us-gaap:InventoryNet -- Yahoo's 'Inventory'"
+    cogs:
+      kind: flow
+      sign: 1
+      tags: [CostOfGoodsAndServicesSold, CostOfRevenue]
+      cite: "us-gaap:CostOfGoodsAndServicesSold, else CostOfRevenue -- Yahoo's 'Cost Of Revenue'"
+  # Filers that report under a different taxonomy or a different statement shape
+  # write nothing for the field and are listed, never approximated. None of the
+  # nine is an IFRS filer (ifrs-full) or a bank (no inventory or cost of goods).
+  # A field a filer does not tag prints "not stored" downstream, as Yahoo's
+  # missing cells do; the first pull's summary names each (keys_without_rows).
+  gaps: []
+
+# A102: PAST EARNINGS DATES AND REPORTED EPS FROM EDGAR, events of type
+# 'earnings' under source 'sec_edgar', behind config/price_sources.yaml
+# `earnings_dates`. One submissions call (the 8-K items and the periodic
+# reports) and one companyfacts call (the EPS) per name in
+# altdata/sources/earnings.universe().
+#
+# THE REPORT INSTANT is the acceptance of the 8-K carrying item 2.02 ("Results
+# of Operations and Financial Condition"). The quarter is the latest 10-Q/10-K
+# period end before it, within `max_report_lag_days`. The EPS is the diluted EPS
+# FILED for that quarter as a three-month period (us-gaap
+# EarningsPerShareDiluted, else EarningsPerShareBasicAndDiluted), as first filed.
+# The 8-K's press release carries no XBRL, so the EPS is knowable only at the
+# periodic report's acceptance: the event is written once that report is
+# accepted, available at the later of the two instants. A fourth quarter is
+# rarely filed as three months, so its event carries no EPS ("not filed as a
+# quarter"), never a year less nine months: EPS does not subtract.
+#
+# NO FORWARD DATE (the brief's decision 10; A102 looked once for a keyless
+# exchange calendar on 1 Nov 2026, none passed) and NO CONSENSUS: the consensus
+# was Yahoo's (Ticker.calendar's 'Earnings Average', get_earnings_dates' EPS
+# estimate), so from the switch the surprise is a listed gap.
+earnings:
+  enabled: false
+  eps_tags: [EarningsPerShareDiluted, EarningsPerShareBasicAndDiluted]
+  max_report_lag_days: 100
+  quarters_back: 12

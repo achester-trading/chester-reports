@@ -36,9 +36,9 @@ tape:
   - {id: spy,  label: "SPY",              bars: SPY,      kind: price, dealer: SPY, daily: yfinance.mkt_spy, unit: "$"}
   - {id: qqq,  label: "QQQ",              bars: QQQ,      kind: price, dealer: QQQ, daily: yfinance.mkt_qqq, unit: "$"}
   - {id: iwm,  label: "IWM",              bars: IWM,      kind: price, dealer: IWM, daily: yfinance.mkt_iwm, unit: "$"}
-  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, daily: yfinance.mkt_tnx, fallback: {daily: fred.yield_10y, label: "FRED DGS10"}, aliases: ["10-year yield", "10-year", "ten-year"]}
-  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, daily: yfinance.mkt_tyx, fallback: {daily: fred.yield_30y, label: "FRED DGS30"}, aliases: ["30-year yield", "30-year", "long bond"]}
-  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: yfinance.mkt_dxy, fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"], unit: index}
+  - {id: y10,  label: "10-year yield",    bars: "^TNX",   kind: yield, daily: "price:us_yields.y10", fallback: {daily: fred.yield_10y, label: "FRED DGS10"}, aliases: ["10-year yield", "10-year", "ten-year"]}
+  - {id: y30,  label: "30-year yield",    bars: "^TYX",   kind: yield, daily: "price:us_yields.y30", fallback: {daily: fred.yield_30y, label: "FRED DGS30"}, aliases: ["30-year yield", "30-year", "long bond"]}
+  - {id: dxy,  label: "DXY",              bars: "DX-Y.NYB", kind: price, daily: "price:dollar_index.dxy", fallback: {daily: yfinance.mkt_uup, label: "UUP"}, aliases: ["DXY", "dollar index", "the dollar"], unit: index}
   - {id: gold, label: "Gold (front future)", bars: "GC=F", kind: price, daily: yfinance.mkt_gold_front, fallback: {daily: yfinance.mkt_gld, label: "GLD"}, aliases: ["gold"], unit: "$"}
   - {id: oil,  label: "WTI (front future)",  bars: "CL=F", kind: price, daily: yfinance.mkt_wti_front, fallback: {daily: yfinance.mkt_uso, label: "USO"}, aliases: ["WTI", "oil", "crude"], unit: "$"}
   - {id: btc,  label: "Bitcoin",          bars: "BTC-USD", kind: price, continuous: true, daily: yfinance.mkt_btc_usd, aliases: ["bitcoin", "BTC"], unit: "$"}
