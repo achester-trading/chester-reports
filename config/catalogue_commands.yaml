@@ -101,6 +101,9 @@ commands:
   altdata.decision_quality:
     domain: register
     line: Decision quality -- is the system getting better? (Learning Loop v2, LL-1)
+  altdata.forecasters:
+    domain: register
+    line: "The forecasters (Learning Loop v2, LL-6): two Anthropic and one Gemini, independent, metered under a zero-call budget until set; status and run"
     sources: [derived_probability, derived_grade]
   altdata.derived:
     domain: computed
