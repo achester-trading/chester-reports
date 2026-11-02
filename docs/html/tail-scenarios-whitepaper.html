@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="74ff7c8fb8f16a039eb777127807829379068019731d9feda9985cb28d5f40ed">
+<meta name="source-sha256" content="a198f5edaa8cc9f763bdff5f42432d353b4077aaf64ace34ebe86277daa7645d">
 <title>THE TWENTY-FIVE — WHITE PAPER II</title>
 <style>
 :root {
@@ -133,7 +133,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   <div class="masthead">
 <h1>THE TWENTY-FIVE — WHITE PAPER II</h1>
 <h3>Tail Scenarios: Mechanism, Mutation, and Instrumentation</h3>
-<p><strong>Version 1.0 · August 29, 2026 · Companion to the Monthly Macro Report, Part 16, and to Disruptive Themes v3.0-prototype</strong></p>
+<p><strong>Version 1.1 · 25 October 2026 · restructured per Audit 2 (first edition 29 August 2026) · Companion to the Monthly Macro Report, Part 16, and to Disruptive Themes v3.0-prototype</strong></p>
 <p><em>Second in the series. White Paper I supplied the foundations of the five-force framework; this paper takes the twenty-five tail scenarios that sit alongside it and gives each one a mechanism, a precedent, a tripwire, a current state, a transmission path into the factor framework, a map of how it might mutate beyond its own scoping, and a routing instruction naming which report carries it.</em></p>
 <p><em>Epistemic status: every probability statement here is structured judgment, and a weaker form of it than in White Paper I, because the effective sample size for each of these scenarios is approximately zero. Nothing in this document is a trading signal. The design principle that governs the entire paper is the one the source list states plainly: these are conditioners, never triggers. A tripwire firing changes the language of a report and tightens a related predicate. It does not generate a position.</em></p>
   </div>
@@ -240,128 +240,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 1, 2, 9, 11, 19. The family that fails fastest, transmits most mechanically, and has the best instrumentation of any group on the list. Five scenarios that are, on close inspection, three variants of one failure: someone must sell a Treasury security into a market that has lost its capacity to absorb it.</em></p>
-<h2>Scenario 1 · Funding-market accident</h2>
-<p><strong>Tier A · daily</strong></p>
-<h3>Mechanism</h3>
-<p>The plumbing failure runs in five steps, and each one is observable.</p>
-<p>Bank reserves fall below the level at which dealers are willing to intermediate freely. That threshold is not a published number; it is a behavioral property of the system that reveals itself only by being crossed, which is the single most important fact about this scenario. As reserves tighten, dealers ration balance sheet: repo becomes expensive, then selective, then unavailable to the weakest counterparties. Secured overnight rates spike above the rate the Fed pays on reserves, which should be an arbitrage and is not, because the arbitrage requires balance sheet nobody will lend. Leveraged positions financed in that market — the Treasury basis trade above all, but also mortgage carry, swap spread positions, and relative-value books — face margin calls and cannot roll their funding. They liquidate into a market where the natural buyer is the same dealer community that just stopped intermediating. Prices gap, volatility rises, margin requirements rise mechanically with volatility, and the liquidation feeds itself.</p>
-<p>The reason this sits at the top of the list is that every subsequent scenario in this family, and several outside it, terminate in this mechanism. It is the common failure mode.</p>
-<p><strong>What makes today structurally different from 2019.</strong> The September 2019 repo episode occurred at reserve levels <em>higher</em> than those prevailing now. Three buffers that existed then are diminished or gone. The reverse repo facility, which held over $2 trillion at its peak and functioned as a shock absorber that could be drained without touching reserves, is effectively exhausted. Reserves stand near $2.94 trillion, and every dollar of new bill issuance now drains them directly rather than pulling from the RRP. And the Treasury General Account, at roughly $950 billion, is both large and, per the Twist discussion in the <em>Foundations</em> paper, potentially mobile: a TGA drawdown <em>adds</em> reserves, a TGA build <em>drains</em> them, and the account is currently the subject of an unresolved policy question about funding buybacks. The system's shock absorber has been replaced by a variable that policy might move for unrelated reasons.</p>
-<h3>Precedent</h3>
-<p><strong>September 17, 2019</strong> is the clean instance: a corporate tax date and a large Treasury settlement coincided, SOFR printed near 10% intraday against an IORB near 2.10%, and the Fed was conducting emergency repo operations within twenty-four hours and buying bills within three weeks. Nothing was fundamentally wrong with the economy. The episode was purely mechanical, and its lesson is that the reserve threshold is discovered by crossing it.</p>
-<p><strong>March 2020</strong> is the severe instance and the more instructive one, because the failure occurred in the asset that is supposed to be the refuge. For roughly a week, Treasuries sold off during a flight to safety, as leveraged basis positions unwound and dealers refused to absorb the paper. The world's hedge asset failed at its one job until the Fed bought at a scale that made the failure moot. Every subsequent conversation about market functioning descends from that week.</p>
-<p><strong>The disanalogy that matters:</strong> in both episodes the Fed's balance sheet was available and its use was uncontroversial. The current configuration adds a complication the <em>Foundations</em> paper develops at length — a central bank whose chairman has staked his credibility on discipline and on the proposition that inflation is a choice, facing a fiscal authority whose financing needs are large and growing. The plumbing response is technically identical to easing, and will be read as easing by some portion of the market regardless of how it is framed.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: SOFR–IORB spread, standing repo facility usage, settlement fails.</em></p>
-<p><strong>SOFR–IORB</strong> is the primary instrument. Persistent positive readings mean secured funding is trading above the risk-free floor, which should not happen if balance sheet were freely available. A few basis points at a quarter-end is calendar noise. Persistent positive readings away from quarter-ends are the signal, and the elevated readings that matter arrive as a <em>sequence</em>, not a spike.</p>
-<p><strong>Standing repo facility usage</strong> is the stigma-adjusted confession. The SRF exists so that this scenario cannot happen, and non-trivial usage away from quarter-end means the mechanism it was built to prevent is already engaging. The instrument's weakness is stigma: usage may lag the stress it measures, so a zero reading is weaker evidence than a positive one.</p>
-<p><strong>Settlement fails</strong> are the slowest and most diagnostic of the three: a rising fails-to-deliver volume in Treasuries means the collateral chain itself is jamming rather than merely repricing.</p>
-<p><strong>What a firing does not mean.</strong> It does not mean a crisis has begun; it means the buffer is thinner than assumed. The 2019 episode resolved in weeks with no market damage outside the funding complex. The correct response is to tighten language on liquidity conditions and to raise attention on the leveraged structures in scenarios 19 and 20, not to reposition.</p>
-<h3>Current state</h3>
-<p><strong>Armed.</strong> Reserves near $2.94 trillion with the RRP buffer exhausted, roughly a third of marketable debt repricing within twelve months, bill-heavy issuance following the August 19 Twist, and a live policy question over whether the TGA gets drawn to fund buybacks. Every precondition the source list names is present. What is absent is a trigger, and triggers in this scenario are typically calendar events — a tax date, a large settlement, a quarter-end — which is precisely why the cadence is daily.</p>
-<h3>Transmission</h3>
-<p>Lands squarely on <strong>Factor IV</strong>, and is the fastest of that factor's transmission paths: the slow fiscal thesis meeting its fast clock. Secondary transmission to <strong>Factor II</strong> through forced deleveraging and volatility-driven de-risking, and to <strong>Factor V</strong> if a stablecoin issuer is holding bills that must be liquidated into the same impaired market. The framework's own composite is not designed to move on this scenario, and should not: a funding accident is a condition of the plumbing, not of the cycle.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the accident migrates to a market with no facility.</strong> The Fed's tools are built for the Treasury repo market. The same mechanism operating in cross-currency basis, in the FX swap market, or in cleared derivatives margin has no equivalent domestic backstop, and the counterparties are frequently foreign. <em>Instrument:</em> cross-currency basis, FIMA repo usage (already promoted in early August as part of the yen intervention architecture, which is itself evidence this mutation is live).</p>
-<p><strong>Substitution — the leveraged holder is not a hedge fund.</strong> The basis trade is the named villain, but the same forced-seller dynamic now runs through leveraged Treasury ETFs, through insurance general accounts using repo for yield enhancement, and through the growing set of digital-asset treasury vehicles financing balance sheets against volatile collateral. Each has a different regulator, different disclosure, and different speed. <em>Instrument:</em> none consolidated. <strong>Gap.</strong></p>
-<p><strong>Aliasing — this becomes indistinguishable from scenarios 19 and 9 within one session.</strong> A funding accident, an LDI-style deleveraging, and a failed auction all present as the same tape: long-end volatility, widening bid-offer, and a collateral chain under stress. The report's language when any one of them fires should acknowledge that the framework cannot yet tell which it is looking at.</p>
-<p><strong>Re-specification trigger.</strong> If SRF usage becomes routine rather than exceptional — a standing feature of month-end funding rather than an emergency valve — then the scenario has stopped being a tail and has become a description of the operating regime. At that point it should be rewritten as a <em>current condition</em> in Factor IV, and the tail slot should be re-scoped to the accident that occurs <em>despite</em> the facility.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Daily Cascade, daily.</strong> SOFR–IORB and SRF usage belong in the morning report as a standing liquidity block; both update intraday and neither is currently instrumented there. <strong>Secondary: Top &amp; Bottom, via the Liquidity &amp; Funding Stress overlay</strong>, which is the natural home for the persistence reading — the overlay's question is not whether the spread ticked positive but whether it has stayed positive. <strong>Tertiary: Monthly Macro</strong>, which carries the slow-moving context (reserve levels, TGA path, bill share of issuance) in the liquidity pillar. Settlement fails data has no home in any of the five reports today and goes to the build queue.</p>
-<p><strong>What a firing changes:</strong> Daily Cascade adds an explicit funding-conditions line and elevates it above the equity narrative; Top &amp; Bottom's Liquidity overlay tightens; Disruptive Themes, at its next refresh, moves Factor IV's timing language from "the fast clock under a slow thesis" to a statement that the clock has started.</p>
-<hr />
-<h2>Scenario 19 · LDI-style forced deleveraging</h2>
-<p><strong>Tier A · daily</strong></p>
-<h3>Mechanism</h3>
-<p>An allocator with long-duration liabilities — a pension fund, an insurer, a liability-driven mandate — hedges those liabilities with leveraged long-duration assets, typically via repo or swaps. The leverage is rational: the liability is long, the capital available to match it is small, and derivatives close the gap efficiently. The vulnerability is that the hedge is collateralized. When long yields rise sharply, the hedge loses value, collateral is called, and the allocator must post cash. The cash is raised by selling assets. The most liquid assets are the same long-duration bonds whose price is falling. Each round of selling pushes yields higher, which generates the next collateral call.</p>
-<p>The structure is a self-reinforcing loop with no natural stabilizer inside it. It stops when someone outside the loop buys, which in practice means the central bank.</p>
-<h3>Precedent</h3>
-<p><strong>The UK gilt crisis, September 2022.</strong> A mis-sized fiscal announcement produced a gilt selloff into pension LDI structures; the spiral ran for days; the Bank of England was buying long gilts within a week, against its own tightening program, and explicitly framed the intervention as financial stability rather than monetary policy. The episode's most portable lesson is institutional: the central bank's stated policy direction lasted precisely as long as the plumbing held.</p>
-<p><strong>The disanalogy:</strong> the UK system was unusually concentrated in a single technique with a single regulator, and the market was small enough for the spiral to be visible in real time. The equivalent US structures are more diffuse, less uniformly leveraged, and spread across insurers, corporate plans, and public funds with heterogeneous disclosure. Diffusion is not safety. It means the same aggregate exposure is harder to see, and the diagnosis will arrive later.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: long-end realized volatility, term premium spikes, cross-asset correlation.</em></p>
-<p>Long-end <strong>realized</strong> volatility rather than implied is the correct primary, because the loop is driven by actual price movement generating actual collateral calls. A term premium spike distinguishes a duration event from a policy-expectations event, which matters: this scenario is indifferent to why yields rose. Rising cross-asset correlation is the confirmation that selling has become indiscriminate — the signature of a liquidation rather than a repricing.</p>
-<p><strong>What a firing does not mean:</strong> volatility at the long end is common and mostly benign. The scenario requires volatility <em>plus</em> evidence of forced flow, which means the confirmation series matter more here than the primary.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> The 30-year sits near 5.21%, a level the <em>Foundations</em> paper notes as above the threshold strategists had flagged. Rate volatility has been elevated through the guidance withdrawal. What is unknown, and unknowable from public data, is the leverage embedded in US liability-matching structures at these yields. That opacity is the scenario's defining feature.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong> primarily, through the same long-end channel as scenarios 1 and 9. Secondary to <strong>Factor II</strong>: a forced seller of duration in size is frequently also a holder of equities, and correlated liquidation is how a bond-market accident becomes an equity drawdown without any change in earnings.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the technique is no longer only pensions.</strong> Any leveraged liability-matcher qualifies. Insurance general accounts running duration against annuity books, leveraged endowment overlays, and increasingly the digital-asset treasury companies discussed in the <em>Foundations</em> paper's Chapter 5, which hold volatile assets against fixed obligations and margin structures. The physics are identical; only the collateral differs. <em>Instrument:</em> none consolidated. <strong>Gap.</strong></p>
-<p><strong>Substitution — the collateral call arrives through clearing rather than bilateral repo.</strong> Centrally cleared margin rises mechanically with volatility, which means a clearinghouse can generate the same forced-selling loop without any bilateral counterparty making a decision. This mutation is systemically <em>more</em> dangerous because it is fully automatic. <em>Instrument:</em> clearing margin requirement changes, which are published but not tracked anywhere in the system today. <strong>Gap.</strong></p>
-<p><strong>Aliasing — indistinguishable from 1 and 9 in the first days</strong>, and from 24 if the forced selling occurs in credit rather than governments.</p>
-<p><strong>Re-specification trigger.</strong> If a US structure delivers even a contained version of the gilt spiral, this scenario ceases to be an analogy borrowed from another jurisdiction and becomes a domestic condition with a named cohort. The rewrite would move it from Tier A tail to a standing surveillance item in the Liquidity overlay.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Top &amp; Bottom, Liquidity &amp; Funding Stress overlay</strong>, which is the correct home because the scenario is a stress-state question rather than a daily-tape question. <strong>Secondary: Daily Cascade</strong> for long-end realized volatility, which FlashAlpha's data can support directly. <strong>Monthly Macro</strong> carries term premium in the rates pillar. The confirmation series — evidence of forced flow — has no instrument and goes to the build queue as an acknowledged gap rather than a weak proxy.</p>
-<hr />
-<h2>Scenario 9 · Failed Treasury auction</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p>Not a literal failure, which is essentially impossible given primary dealer obligations. The scenario is an auction that <em>tails</em> badly: the yield awarded comes in materially above the pre-auction market level, indicating that bidders demanded a concession to absorb the size. A single bad auction is noise. A sequence, particularly at the long end and particularly with falling indirect bidder participation, is a repricing of the term premium driven by demand rather than by policy expectations, and it forces every holder of duration to reconsider what they are being paid for it.</p>
-<p>The structural aggravator is issuance composition. Bill-heavy issuance following the Twist means the coupon auctions that remain are being absorbed by a narrower buyer base, and the elevated near-term maturity share means the calendar is relentless: roughly a third of marketable debt reprices within twelve months, so the test recurs continuously.</p>
-<h3>Precedent</h3>
-<p>There is no clean US instance, which is exactly why the scenario merits a slot. The closest analogs are foreign: the 2022 gilt episode, and periodic Japanese long-bond auctions that have cleared poorly enough to move global term premia. The US instance would be historically novel, and novelty in this domain means the market's reaction function is unknown.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: auction tails, bid-to-cover, indirect bidder share, term premium.</em></p>
-<p>Tails are the primary and should be read as a rolling sequence. Bid-to-cover is the weakest of the four and is frequently misread as a headline. Indirect bidder share is the one that carries information about foreign demand specifically, and it is the series that connects this scenario to 11 and 21.</p>
-<p><strong>What a firing does not mean:</strong> a single tail reflects the auction's timing, its size, and what happened in the two hours before it. The signal is persistence with deteriorating indirect participation.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> 10-year at 4.72% and 30-year at 5.21% with guidance withdrawn, record issuance volumes, and a demand base whose largest foreign component is being actively managed through intervention and FIMA repo arrangements rather than behaving freely.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong>, directly, and it is one of the pre-registered falsifiers in Disruptive Themes' What Would Change My Mind list: a genuine tail event in 10s or 30s with indirect share falling moves the score toward TOP SIGNAL. This is the rare tail scenario that is formally wired into the composite's own falsification criteria.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the failure appears in the bill market instead.</strong> Bill auctions are assumed to be trivially absorbed; that assumption depends on money funds and stablecoin issuers continuing to buy. A bill auction clearing poorly would be far more alarming than a bond auction clearing poorly, and no one is watching for it. <em>Instrument:</em> bill auction stop-out versus secondary levels. <strong>Gap.</strong></p>
-<p><strong>Substitution — the buyer strike is silent rather than visible.</strong> Foreign demand can decline without a single bad auction, by simply reinvesting less at each maturity. This is scenario 11's mechanism and it produces no observable event at all, only a slow drift in indirect share and TIC data.</p>
-<p><strong>Aliasing — with 1, 11, 19 and 21.</strong> Falling indirect share could be Japanese repatriation, sovereign fund liquidation, a strategic reduction by a large official holder, or simple price sensitivity. The tripwire cannot distinguish them, and the report's language should not pretend otherwise.</p>
-<p><strong>Re-specification trigger.</strong> If a tail sequence occurs and the Treasury responds with issuance composition changes rather than the market clearing at higher yields, the scenario becomes a story about debt management under stress rather than about demand, and belongs inside Factor IV's Twist analysis rather than in the tail list.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, which is the right cadence for auction statistics and term premium. <strong>Secondary: Disruptive Themes</strong>, where it is already a named falsifier. Auction tails and indirect share are published by Treasury and are not currently in any pipeline; both go to the build queue, and they are among the cheapest items on it.</p>
-<hr />
-<h2>Scenario 2 · Yen carry unwind</h2>
-<p><strong>Tier A · daily</strong></p>
-<h3>Mechanism</h3>
-<p>The yen is the world's funding currency: low domestic rates make it the cheapest liability with which to finance holdings of higher-yielding assets, and the resulting carry positions are enormous, diffuse, and largely unmeasured. Japan is simultaneously the largest foreign holder of US Treasuries. The unwind mechanism is a single loop: yen appreciation raises the cost of the funding leg, forcing position closure, which requires buying yen, which appreciates the yen further. Because the assets financed by the carry are global and heterogeneous, the liquidation is cross-asset and correlated by construction.</p>
-<p>The trigger can be a faster-than-expected Bank of Japan normalization, a widening of Japanese yields that closes the carry's economics, or a <em>failed intervention</em> — the case where the authorities act and the market keeps going, which converts a policy floor into a proven ceiling.</p>
-<h3>Precedent</h3>
-<p><strong>August 2024</strong> is the recent live-fire test: a modest BoJ move and a soft US payroll print together produced a violent multi-day unwind, a Nikkei decline of over 12% in a session, and a global volatility spike that resolved within weeks. The episode calibrates the <em>speed</em> and <em>breadth</em> of this mechanism without telling us anything reliable about its ceiling. <strong>1998</strong> is the deeper precedent, when a yen move of roughly 15% in days contributed to LTCM's failure.</p>
-<p><strong>Today's specific configuration:</strong> the early-August coordinated intervention described in the <em>Foundations</em> paper — Japan selling European assets rather than Treasuries, with the Fed promoting FIMA repo — was explicitly designed to prevent the largest foreign holder from having to sell US paper. That the architecture was necessary is the evidence that this scenario is not dormant.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: USD/JPY intramonth path divergence, JGB 30-year, cross-asset correlation spike.</em></p>
-<p>Path divergence rather than level: the scenario is about the <em>speed</em> of yen appreciation, not its destination. The JGB 30-year carries the carry's economics. A cross-asset correlation spike is the confirmation that an FX move has become a global deleveraging.</p>
-<h3>Current state</h3>
-<p><strong>Armed, and actively managed.</strong> Intervention held in early August; the structural pressure that made intervention necessary is unresolved.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong> through the Treasury demand channel and <strong>Factor II</strong> through correlated liquidation. The scenario's band in the Disruptive Themes tail table is currently unchanged, with the note that intervention held while the structural pressure did not resolve.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the funding currency changes.</strong> Carry structures migrate to whichever currency offers the cheapest liability. Renminbi-funded carry and, at the margin, stablecoin-denominated leverage perform the same function with different plumbing and far worse disclosure. <em>Instrument:</em> none. <strong>Gap.</strong></p>
-<p><strong>Substitution — repatriation replaces unwind.</strong> Scenario 11 is this scenario's slow twin, and the two are frequently conflated. The unwind is fast, leveraged, and reversible by intervention; the repatriation is slow, unleveraged, and not reversible by intervention. Distinguishing them in real time requires TIC data that arrives with a two-month lag.</p>
-<p><strong>Aliasing — with 11 and 15.</strong> A dollar squeeze in emerging markets and a yen unwind both present as correlated cross-asset liquidation with a strong dollar.</p>
-<p><strong>Re-specification trigger.</strong> A <em>failed</em> intervention would convert this scenario from a tail into a regime statement about the limits of official capacity, and would require re-scoping toward the broader question of coordinated intervention credibility.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Daily Cascade</strong>, where USD/JPY path and cross-asset correlation belong on the intraday clock. <strong>Secondary: Alternative Asset Report</strong>, whose Correlations tab is the natural home for the correlation-spike detection across its 18 assets. <strong>Monthly Macro</strong> carries JGB yields and the TIC context.</p>
-<hr />
-<h2>Scenario 11 · Japanese repatriation from the domestic side</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Distinct from the carry unwind in every operationally relevant way. Japanese life insurers and pension funds hold foreign bonds because domestic yields have been inadequate for a generation. If JGB yields rise far enough that domestic paper compensates on an <em>unhedged</em> basis — the hedging cost being the decisive variable, not the headline yield — the rational allocation is to bring the money home. This is not a leveraged position being liquidated. It is a strategic reallocation by unleveraged holders with long horizons, and it is therefore slow, persistent, and immune to intervention. Nobody can be talked out of it, because nothing is going wrong.</p>
-<p>The consequence for Treasuries is a structural withdrawal of the largest foreign bid, arriving at maturity rather than through sales.</p>
-<h3>Precedent</h3>
-<p>No clean instance, because the condition that would cause it — adequate domestic Japanese yields — has not existed since the 1990s. Partial analogs exist in periods when hedging costs made unhedged Treasuries unattractive for Japanese buyers, producing observable slowdowns in purchase flows.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: Treasury International Capital data for Japan, JGB 30-year, hedged-yield spreads.</em></p>
-<p>Hedged-yield spreads are the actual decision variable and should be the primary. TIC data confirms with a lag of roughly two months, making it a confirmation instrument rather than an early warning.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> JGB long yields have been normalizing for several years; the hedged-yield calculus has been at or near the indifference point for domestic institutions repeatedly.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV.</strong> This is the scenario most likely to be mistaken for a benign environment while it is happening, because it produces no volatility, only a persistent absence of a buyer.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the same logic applies to every major foreign holder.</strong> European institutions face the same hedged-yield arithmetic. A generalized version is not "Japanese repatriation" but "the end of the global reach-for-yield bid," which would be a far larger scenario requiring its own scoping.</p>
-<p><strong>Substitution — the seller is official rather than institutional.</strong> Scenario 21's sovereign fund and central bank reserve managers execute the same withdrawal for different reasons, and both show up in the same TIC series.</p>
-<p><strong>Aliasing — with 9 and 21</strong>, and materially with 2, since a repatriation trend and a carry unwind can coexist and would be reported as a single "foreign selling" narrative.</p>
-<p><strong>Re-specification trigger.</strong> If TIC data confirms two consecutive quarters of net Japanese reduction, this ceases to be a tail and becomes a structural input to Factor IV's demand analysis.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, correct cadence and the natural home for TIC and JGB series. Hedged-yield spreads are not currently computed anywhere in the system and go to the build queue; the calculation is straightforward from available inputs and would be one of the higher-value additions in this family.</p>
-<hr />
+<p><em>This family's scenarios (1, 19, 9, 2 and 11), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
@@ -372,74 +251,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 5, 6, 14. Credit stress that transmits through </em>rules<em> — marking conventions, capital requirements, and central bank reaction functions — rather than through defaults. In each case the underlying assets could be perfectly serviceable and the damage would occur anyway.</em></p>
-<h2>Scenario 6 · Private credit mark event</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p>Private credit's structural vulnerability is a timing mismatch between three clocks. The loans are <strong>floating rate</strong>, so borrower interest costs reprice immediately with policy. The borrowers are the <strong>most refinancing-exposed cohort in credit</strong>: sponsor-backed, levered, and originated in a rate regime that no longer exists. But the <strong>marks are quarterly</strong>, model-driven, and set by the manager whose fee depends on them.</p>
-<p>The result is that deterioration accumulates invisibly. Interest coverage compresses in real time; the reported value does not. The adjustment, when it comes, arrives as a step function rather than a drift, and it arrives simultaneously across a sector holding assets that were originated under similar assumptions by managers using similar models.</p>
-<p>The tell that leads the marks is payment-in-kind income: a borrower that cannot pay cash interest is permitted to accrue it, which converts a liquidity problem into a reported-earnings improvement. Rising PIK share is a portfolio deteriorating while its income statement improves.</p>
-<p>Business development companies are the crack in the wall. They hold similar assets, and their <em>shares</em> trade daily. A BDC trading at a persistent discount to net asset value is the public market stating that it does not believe the private mark.</p>
-<h3>Precedent</h3>
-<p>No systemic instance, because the asset class at this scale is roughly fifteen years old and has not experienced a full default cycle. The closest analog is the pre-2008 experience with model-marked structured credit, where the gap between reported and transactable value closed abruptly once a forced seller established a print. The relevant lesson is not about credit quality; it is that <strong>a mark is a claim, not a price, until someone has to sell.</strong></p>
-<h3>Tripwire</h3>
-<p><em>First mover: BDC price-to-net-asset-value, CCC spreads, payment-in-kind income share.</em></p>
-<p>BDC price-to-NAV is the primary because it is daily and public. A persistent, sector-wide discount is the signal; individual discounts are manager-specific. CCC spreads, currently near 855 basis points against BB, are the corroborating public-market read on the same borrower cohort. PIK share is the slowest and most diagnostic.</p>
-<p><strong>What a firing does not mean:</strong> BDC discounts widen for reasons unrelated to asset quality, including rate sensitivity and equity beta. The scenario requires the discount <em>plus</em> corroboration from CCC or PIK.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> The CCC−BB differential near 855 basis points is the credit market's own statement that the marginal borrower is distressed while the index is calm, which the <em>Foundations</em> paper identifies as Factor II's central dissent. Private credit is where a large share of that marginal borrower now lives.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> directly, since the CCC dissent is one of Factor II's named indicators, and <strong>Factor I</strong> at the intersection where AI-adjacent lending has migrated into private credit books. The triple-confirmation falsifier in Disruptive Themes — CCC−BB, BDC discounts, and the unprofitable-small-cap spread widening together — is precisely this scenario's confirmation set.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the mark problem migrates to interval funds and retail-distributed vehicles.</strong> The fastest-growing distribution channel for private assets is now semi-liquid vehicles sold to individuals with periodic redemption windows. A redemption queue in a semi-liquid vehicle produces a forced seller, which produces a print, which resets the marks for everyone. This mutation converts a slow scenario into a fast one. <em>Instrument:</em> redemption gate and queue disclosures, which are public but scattered. <strong>Gap.</strong></p>
-<p><strong>Substitution — the stress appears in the bank channel instead.</strong> Private credit's growth was partly a migration of assets off bank balance sheets, but banks retained exposure through subscription lines, fund financing, and NAV loans. The same borrower distress can therefore surface as a bank credit event with no private mark ever changing. <em>Instrument:</em> bank disclosures on fund finance exposure. <strong>Gap.</strong></p>
-<p><strong>Aliasing — with 24 and 14.</strong> All three are credit events transmitted by mandate and marking conventions, and in a stress episode they would be narrated as a single credit cycle turning.</p>
-<p><strong>Re-specification trigger.</strong> The first large forced sale that establishes a transactable print for a broad private book converts this from a tail scenario into a repricing already underway, and the scenario should be rewritten around the <em>pace</em> of mark convergence rather than its possibility.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Top &amp; Bottom, HY Spread Acceleration overlay</strong>, which already carries CCC dynamics and is the right structural home. <strong>Secondary: Monthly Macro</strong> for the spread series. BDC price-to-NAV and PIK share are not instrumented anywhere and go to the build queue; BDC discount data is publicly available and cheap to add, making it one of the highest value-per-effort items in the entire audit.</p>
-<hr />
-<h2>Scenario 14 · Commercial real estate credit cascade</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p>Three conditions compound. Regional banks hold a disproportionate share of commercial real estate exposure relative to their capital. A maturity wall of loans originated at low rates requires refinancing at current rates against properties whose income has not risen proportionally. And office valuations have not cleared, because transaction volume collapsed rather than prices adjusting, so the marks reflect an absence of trades rather than a market level.</p>
-<p>The transmission is the important part and is frequently misdescribed. It does not run through property prices into the economy. It runs through <strong>bank capital</strong>: a wave of realized losses forces capital rebuilding, which forces lending contraction across every category the bank serves, most of it unrelated to real estate. The mechanism is a credit contraction in the small-business economy caused by an office building in a different city.</p>
-<h3>Precedent</h3>
-<p><strong>The 1990–91 episode</strong> is the direct template: a commercial real estate downturn transmitted through bank capital into a broad credit contraction, contributing to a recession whose proximate cause looked unrelated. <strong>March 2023</strong> demonstrated the modern speed of the deposit side of the same institutions, where the run occurred in hours rather than days.</p>
-<p><strong>The disanalogy:</strong> post-2008 capital requirements are materially higher, and the regional banking system has already absorbed one shock in 2023 with substantial regulatory attention since.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: CMBS spreads by rating tier, regional bank options skew, bank CRE delinquencies.</em></p>
-<p>CMBS spreads <strong>by tier</strong> is the correct specification, because the distress is concentrated in specific vintages and property types, and an aggregate index will mask it. Regional bank options skew is the fastest of the three and is available through the FlashAlpha subscription. Delinquencies are the confirmation, and they lag by construction.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> The maturity wall is a calendar fact rather than a forecast, and the refinancing arithmetic worsens with every month that long yields stay near current levels.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> through credit conditions and <strong>Factor IV</strong> through the possibility that a regional banking event forces a policy response inconsistent with the Fed's stated stance. The 2023 precedent is instructive: the facility created then was framed as financial stability and functioned as easing.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the exposure is in the non-bank lender.</strong> Debt funds, mortgage REITs, and insurance company allocations hold a growing share of the same assets with lower disclosure and, in several cases, leverage. <em>Instrument:</em> mortgage REIT price-to-book, partially available. <strong>Partial gap.</strong></p>
-<p><strong>Substitution — the asset class is data centers rather than offices.</strong> This is the mutation most relevant to this framework. Data-center financing has grown rapidly, is frequently structured as asset-backed paper against long-term contracts with a concentrated set of tenants, and depends on the durability of the AI capex cycle in scenario 3. A buildout pause converts high-quality contracted infrastructure into a vacancy problem with the same maturity-wall arithmetic. <em>Instrument:</em> data-center ABS spreads. <strong>Gap</strong>, and a priority one, because it is the direct link between scenarios 3 and 14.</p>
-<p><strong>Aliasing — with 6</strong>, since both are private-market credit stress marked by convention, and with any regional banking event, which would be reported as a deposit story regardless of the asset cause.</p>
-<p><strong>Re-specification trigger.</strong> If data-center ABS becomes a larger share of the relevant maturity wall than office, the scenario should be renamed and re-scoped around infrastructure credit rather than commercial real estate.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, weekly-to-monthly cadence in the credit pillar. <strong>Secondary: Daily Cascade</strong> for regional bank options skew from FlashAlpha data. CMBS tier spreads and data-center ABS spreads both go to the build queue.</p>
-<hr />
-<h2>Scenario 5 · European sovereign fragmentation</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p>Peripheral and semi-core spreads widen to the point where the ECB's willingness to intervene is tested. The euro area's structural problem is unchanged since 2012: a shared currency without a shared fiscal authority means sovereign spreads carry redenomination risk as well as credit risk, and the backstop is discretionary and politically constrained. France's inclusion in the relevant series reflects that this is no longer only a periphery question.</p>
-<h3>Precedent</h3>
-<p><strong>2011–12</strong>, resolved by verbal commitment rather than by purchases. <strong>2018 Italy</strong> and <strong>2024–25 France</strong> are lesser instances that repriced without escalating.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: OAT–Bund and BTP–Bund spreads.</em> Persistent widening in OAT–Bund is the more informative of the two, because a semi-core widening tests the framework in a way a peripheral widening does not.</p>
-<h3>Current state</h3>
-<p><strong>Dormant.</strong> Mechanism intact, no elevated pressure evident.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong> through global term premium, and the channel the source list identifies correctly: this is the only euro-area mechanism that reliably becomes a global event.</p>
-<h3>Mutations</h3>
-<p><strong>Substitution — the stress appears in bank-sovereign linkage rather than in spreads.</strong> European banks hold domestic sovereign debt in size; a spread event and a bank event are the same event viewed from two sides.</p>
-<p><strong>Scope drift — the defense-spending path is the new fiscal variable.</strong> European rearmament changes the debt trajectories that spreads price, and does so in a direction and at a speed that the 2012-era framework did not contemplate.</p>
-<p><strong>Aliasing — with 15</strong>, since both present as sovereign credit stress under a strong dollar.</p>
-<p><strong>Re-specification trigger.</strong> An actual ECB intervention under the current framework would answer the question the scenario poses, and the tail would need rewriting around what remains untested after that answer.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, rates pillar. Both spread series are available and low-cost additions.</p>
-<hr />
+<p><em>This family's scenarios (6, 14 and 5), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
@@ -450,61 +262,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 3 and 20. The two scenarios that sit directly on top of the </em>Foundations<em> paper's Factors I and II, and the pair most likely to fire together, because the buildout and the concentration are the same ten companies viewed from two angles.</em></p>
-<h2>Scenario 3 · AI capex halt</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p><strong>One hyperscaler cutting capital expenditure guidance is sufficient.</strong> That is the scenario's entire thesis, and the reason it is sufficient is circularity.</p>
-<p>In a normally structured supply chain, one customer reducing orders costs the supplier that customer's revenue. In the current structure it does considerably more, because the buildout's financing has become reflexive at four separate joints. The supplier takes equity stakes in and lends to its customers, so a customer's distress is also a mark on the supplier's balance sheet. Forward purchase commitments — roughly $530 billion against about $96 billion of quarterly sales — mean the supplier has pre-committed capacity spending against orders that assume the cycle continues. Neocloud borrowers financed their fleets against contracted revenue from a small set of counterparties, so one cut reprices their debt. And data-center asset-backed paper, power purchase agreements, and construction financing are all underwritten against the same demand assumption.</p>
-<p>A single guidance cut therefore propagates simultaneously through chip orders, neocloud debt, data-center ABS, power contracts, and the supplier's own receivables, which stand at $63 billion with roughly 70% owed by five customers and 64% growth in six months. The mechanism is not "demand falls." It is <strong>"one decision reprices five markets at once, because they were all underwritten against the same sentence."</strong></p>
-<p>The second-order mechanism is the bullwhip. Because scarcity produced double-ordering, the observed order book overstates true end demand by an unknown margin. A modest genuine slowdown therefore produces an outsized cancellation wave, which is what the 2021–22 GPU cycle demonstrated: two to three quarters from commitment peak to revenue miss.</p>
-<h3>Precedent</h3>
-<p><strong>2021–22 in the same complex</strong> is the direct template and is discussed at length in the <em>Foundations</em> paper: crypto-driven scarcity, double-ordering, an air pocket, channel inventory, a revenue miss, and a roughly 60% drawdown in the supplier's equity against an end market that remained healthy.</p>
-<p><strong>Lucent and Nortel, 1999–2002</strong>, are the vendor-financing precedent and the darker one. Both booked revenue on sales financed with their own capital to thinly capitalized customers. When the customers failed, the receivables and the recognized revenue vanished together. The structural feature that made it fatal was not the credit loss; it was that <strong>the income statement could not distinguish financed demand from earned demand until the financing stopped.</strong></p>
-<p><strong>The disanalogy that the bull case rests on:</strong> deferred revenue tripled to $6.4 billion including $2.8 billion of customer advances. Prepayment runs in the direction circular financing cannot fake. Today's supplier is enormously cash-generative, and its forward earnings have tracked and at times led its price. Cisco in 2000 was a multiple story; this is not, yet.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: supplier inventory and forward purchase commitments, hyperscaler capex as a share of operating cash flow, Korean semiconductor export data.</em></p>
-<p><strong>Forward purchase commitments as a ratio to revenue</strong> is the primary and is the single best early-warning line in the entire framework. Its 2021–22 trace is the template; two consecutive declining quarters <em>with stable margins</em> is the benign reading, which is why margin must be read alongside it.</p>
-<p><strong>Inventory</strong>, currently up 48% since January, distinguishes strategic buffer from involuntary accumulation only when read against margins and against the commitment ratio.</p>
-<p><strong>Hyperscaler capex as a share of operating cash flow</strong> is the discipline gauge: capex funded from cash flow is a strategic choice, capex funded from debt at a rising share is a commitment that becomes hard to reverse and harder to sustain.</p>
-<p><strong>Korean semiconductor exports</strong>, particularly the 20-day series, are the most valuable instrument in the set because they sit <em>outside</em> the reflexive American financing loop. Foreign, mandatory, high-frequency, and unspinnable.</p>
-<p><strong>What a firing does not mean:</strong> a single quarter of commitment decline is digestion, not a halt. The scenario requires the ratio to decline <em>while</em> margins compress, or a guidance cut from a top-five spender.</p>
-<h3>Current state</h3>
-<p><strong>Loading, with the strongest counter-evidence of any scenario on the list.</strong> Every input above is at or near an extreme, and the demand ledger simultaneously argues the boom is real: $96.2 billion in quarterly revenue at 106% growth, guidance of $108 billion, and prepayments rising. The correct reading is the one Disruptive Themes gives Factor I: level positive, derivative negative.</p>
-<h3>Transmission</h3>
-<p><strong>Factor I</strong> at the source, <strong>Factor II</strong> through the concentration channel, since the ten names that would reprice are the index's premium, and <strong>Factor IV</strong> through the disappearance of AI-related issuance from the credit calendar and, more consequentially, through the removal of the productivity story that is the debt arithmetic's only painless exit.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the halt is a <em>deceleration in growth rate</em>, not a cut.</strong> The scenario as scoped waits for a guidance cut, which is a discrete and highly visible event that management teams have every incentive to avoid. The realistic version is capex growth decelerating from 40% to 10% across three quarters with no announcement at all, which produces the same effect on suppliers and neoclouds while never firing a tripwire built around cuts. <em>Instrument:</em> second derivative of aggregate capex guidance across the top five. <strong>Gap</strong>, and the most important single addition this scenario needs.</p>
-<p><strong>Substitution — the constraint is power, not capital.</strong> The buildout can halt because electricity cannot be delivered on schedule, with no financial decision involved. Interconnection queues, transformer lead times, and turbine availability would produce a capex <em>deferral</em> that looks operational rather than financial and would be reported as a delay rather than a cut. <em>Instrument:</em> interconnection queue data and utility capex commentary. <strong>Gap.</strong></p>
-<p><strong>Substitution — the failure is a financed customer, not a hyperscaler.</strong> A neocloud or a leveraged lab defaulting produces the credit-event variant: receivables written down, vendor financing repriced as counterparty risk, contagion through AI-adjacent debt. This is faster and gappier than the demand-side version and lands on scenario 14's data-center ABS mutation. <em>Instrument:</em> neocloud debt spreads. <strong>Gap.</strong></p>
-<p><strong>Aliasing — with 20 and 14.</strong> An AI capex halt, an index concentration accident, and a data-center credit cascade would be a single narrative in the press within a week.</p>
-<p><strong>Re-specification trigger.</strong> If the commitment ratio declines two consecutive quarters with margins stable, the benign falsifier has fired and the scenario should be re-scoped from "halt" to "digestion pace," moving from tail list to Factor I's standing analysis.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Disruptive Themes, Factor I</strong>, where the commitment ratio, inventory, receivables, and margin lines already live. <strong>Secondary: Monthly Macro</strong> for the Korean export series, which is available and belongs in the trade or industrial pillar. <strong>Tertiary: Daily Cascade</strong>, which already tracks the complex's equities intraday and would carry the first evidence of a repricing. Hyperscaler capex-to-cash-flow and the capex second derivative go to the build queue; the second derivative is the highest-priority instrumentation gap in this family.</p>
-<hr />
-<h2>Scenario 20 · Index concentration accident</h2>
-<p><strong>Tier A · daily</strong></p>
-<h3>Mechanism</h3>
-<p>Purely mechanical, with no fundamental content required. As the top-ten weight in the index rises, the arithmetic of a single-name failure changes character: at 15% combined weight, a 30% decline in one large constituent is a sector story; at current concentrations it is an index event. The amplifier is passive ownership. <strong>Index funds must sell proportionally regardless of view</strong>, so a decline in a large constituent generates mechanical selling in that constituent from every fund tracking the index, with no valuation judgment available to arrest it.</p>
-<p>The second amplifier is options structure. Single-name gamma on the largest constituents has grown to the point where dealer hedging flows in one name can move the index, and the relationship is reflexive: as dealers hedge short gamma into a decline, they sell into weakness, which extends the decline.</p>
-<p>The scenario does not require the large constituent to be <em>wrong</em>. It requires it to move.</p>
-<h3>Precedent</h3>
-<p><strong>October 1987</strong> is the pure case: no recession, no credit event, an extended market plus a mechanical seller (portfolio insurance) producing a 22% single-day decline. <strong>August 2024</strong> is the modern miniature: a concentrated unwind amplified by positioning, resolved in weeks. <strong>2000–02</strong> provides the concentration-unwind template with fundamentals attached.</p>
-<p><strong>The disanalogy:</strong> 1987's mechanical seller was a strategy sold to a subset of institutions. Today's mechanical seller is the <em>ownership structure of the market itself</em>, which is both larger and more predictable in behavior.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: single-name gamma on the largest constituents, top-ten weight, implied correlation.</em></p>
-<p>Single-name gamma is available through the FlashAlpha subscription and is the fast instrument. Top-ten weight is the slow structural context. <strong>Implied correlation</strong> is the most diagnostic of the three: rising implied correlation means the market is pricing the constituents as one asset, which is the precondition for the accident.</p>
-<h3>Current state</h3>
-<p><strong>Armed.</strong> Top-ten weight near historic highs, equal-weight at 19.8x against cap-weight at 25.5x locating the entire premium in those names, and an earnings yield below the risk-free rate at the index level.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> directly, and it is the mechanism by which Factor I's problems become index problems. Disruptive Themes' Concentration &amp; Complacency framing in the Top &amp; Bottom overlay is the same analysis in a different report.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the accident is in a sector ETF or a thematic wrapper rather than the index.</strong> Concentrated thematic products hold overlapping constituents at higher weights with less liquidity, and their forced flows hit the same names. <em>Instrument:</em> thematic ETF flows and holdings overlap. <strong>Gap.</strong></p>
-<p><strong>Substitution — the mechanical seller is a leveraged retail structure.</strong> Single-stock leveraged ETFs and covered-call funds on individual mega-caps have grown substantially. They rebalance daily and mechanically, in the direction of the move. This is portfolio insurance rebuilt, with a ticker. <em>Instrument:</em> AUM and daily rebalancing requirements of single-stock leveraged products. <strong>Gap</strong>, and a genuinely under-watched one.</p>
-<p><strong>Aliasing — with 3, and with any single-name event.</strong> The framework will not be able to distinguish a concentration accident from the fundamental event that triggered it, and should not try in real time.</p>
-<p><strong>Re-specification trigger.</strong> If implied correlation reaches a level at which the index trades as a single asset for a sustained period, the scenario stops being about an accident and becomes a description of market structure, belonging in Factor II's standing analysis.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Top &amp; Bottom, Concentration &amp; Complacency overlay</strong>, which exists for exactly this and is the correct structural home. <strong>Secondary: Daily Cascade</strong>, using FlashAlpha's dealer-positioning and gamma data on the intraday clock. Implied correlation and single-stock leveraged product AUM go to the build queue.</p>
-<hr />
+<p><em>This family's scenarios (3 and 20), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
@@ -515,103 +273,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 7, 8, 12, 17. The family whose events happen in the physical world and whose transmission depends on whether markets choose to price them. The </em>Foundations<em> paper's Chapter 3 supplies the machinery; this family supplies the tail cases.</em></p>
-<h2>Scenario 7 · Chokepoint disruption–price divergence resolves</h2>
-<p><strong>Tier A · daily · re-specified</strong></p>
-<h3>Mechanism</h3>
-<p>This scenario is the source list's own worked example of re-specification, and the reason principle 6 exists. It was originally scoped as <strong>closure risk</strong>: the tail was that a chokepoint would shut. The chokepoint shut. Holding the original scoping would have meant carrying a tail scenario that had already occurred, which is the exact failure that Disruptive Themes' premise fields were later built to prevent.</p>
-<p>The re-specified scenario is the <strong>divergence</strong>, and it is more interesting than the original. Physical disruption sits at crisis extremes — Hormuz effectively closed roughly 181 days, three transits counted on August 23 against an 85-per-day baseline, Gulf exports down some 47%, war-risk premiums near 10% of hull value against 0.05% pre-war, a 200-fold repricing by the market that pays claims. Brent sits near $89.</p>
-<p>Two readings explain that, with opposite implications. <strong>Adaptation:</strong> shadow fleets, rerouting, inventory draws, strategic reserve releases, and demand destruction have genuinely absorbed the disruption, and the price is correct. <strong>Mispricing:</strong> finite buffers are papering over an unresolved physical problem, underwritten at normal premiums, and the gap will close violently.</p>
-<p><strong>The tail is the divergence closing from the price side.</strong> Not the closure, which has happened, and not the adaptation, which would be benign. The tail is a $30–60 move in crude arriving into an economy that has already banked the disinflation.</p>
-<h3>Precedent</h3>
-<p><strong>1973</strong> is the case where price closed every divergence violently. <strong>The Tanker War, 1984–88</strong>, is the case where it did not: four years of attacks on over 400 vessels, premiums elevated throughout, traffic never stopping, and oil falling through most of the period. <strong>Abqaiq 2019</strong> is the modern reversion reflex: 5% of world supply removed, a 15% spike, round-tripped within weeks.</p>
-<p>The honest summary of the precedent set is that it splits, which is why the source list gives the scenario two readings rather than a direction.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: transit counts as a ratio to pre-crisis baseline, against crude.</em></p>
-<p>The instrument is explicitly a <strong>ratio against a price</strong>, which is the correct construction: neither series alone carries the information. The supporting instrument, and arguably the better one, is the war-risk premium, because an insurance rate is a probability-times-severity estimate made by people paying claims, while a crude price is a probability estimate made by people who can also be positioned.</p>
-<p><strong>What a firing does not mean:</strong> the divergence widening further is not confirmation of mispricing. It is equally consistent with adaptation succeeding. The instrument's honest property is that it measures the <em>size of the disagreement</em>, not who is right.</p>
-<h3>Current state</h3>
-<p><strong>Armed, at the widest reading the construction can produce.</strong> Disruptive Themes carries a standing decision rule: divergence persisting two more quarters resolves in favor of adaptation, with the date recorded in advance.</p>
-<h3>Transmission</h3>
-<p><strong>Factor III</strong> directly. If the divergence closes via price, the disinflation path inverts and the Fed's easing option disappears, which lands on <strong>Factor IV</strong> and connects to scenario 16. If it closes via adaptation, Factor III de-escalates in writing and the chokepoint weight is cut.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the divergence construction applies to every chokepoint, not just this one.</strong> The same physical-versus-priced gap can be built for Bab el-Mandeb, the Panama Canal, the Taiwan Strait, and for non-maritime chokepoints such as critical-mineral licensing. A generalized divergence index across chokepoints would be a considerably more powerful instrument than the single-strait version. <em>Instrument:</em> a composite requiring transit and premium data by chokepoint. <strong>Gap</strong>, and a high-value one.</p>
-<p><strong>Substitution — the closure moves from oil to a non-substitutable good.</strong> Crude has reserves, substitutes, and demand elasticity, which is why adaptation is possible. Fertilizer, refined products, and above all semiconductors do not. The same physical disruption in a non-substitutable good produces no divergence at all, because the price closes immediately. <em>Instrument:</em> the nitrogen complex, Tampa ammonia and NOLA urea, already named in Factor III. <strong>Partial gap</strong> — the series are identified but unfetched.</p>
-<p><strong>Aliasing — with 8 and 17.</strong> A chokepoint event, a Taiwan event, and a catastrophe-driven insurance event all present initially as a shipping and insurance repricing.</p>
-<p><strong>Re-specification trigger.</strong> Already fired once. The next one: if the two-quarter rule resolves for adaptation, the scenario should be re-scoped again, from divergence to <strong>precedent risk</strong> — the question of what the demonstrated survivability of a closed chokepoint does to the price of the next closure elsewhere. That mutation is the direct bridge to scenario 8 and is developed in the <em>Foundations</em> paper's revised Chapter 3.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Disruptive Themes, Factor III</strong>, which carries the divergence as a named indicator and ties the score to its resolution. <strong>Secondary: Daily Cascade</strong> for the crude leg. PortWatch transit data and war-risk quotations are both identified and neither is automated; both go to the build queue under the S3c line already named in the Disruptive Themes gaps register.</p>
-<hr />
-<h2>Scenario 8 · Taiwan</h2>
-<p><strong>Tier D · quarterly</strong></p>
-<h3>Mechanism</h3>
-<p>The source list's description is four words longer than it needs to be: <em>low probability, near-unbounded impact</em>. The mechanism is that a Taiwan contingency removes the semiconductor supply chain and the artificial intelligence trade simultaneously, and adds the shipping and insurance consequences of a regional conflict on top.</p>
-<p>What makes this categorically different from every other item on the list is <strong>irreplaceability</strong>. Roughly nine-tenths of leading-edge logic is fabricated on one island, along with the advanced packaging that converts wafers into accelerators. Oil has substitutes, routes, reserves, and elastic demand, which is why scenario 7 has an adaptation branch. Leading-edge silicon has none on any relevant timescale: a fab is a three-to-five-year, multi-tens-of-billions project, and the onshoring underway in Arizona, Kumamoto and Dresden will not relocate the center of gravity before the early 2030s.</p>
-<p>The escalation ladder matters more than the binary. Sustained gray-zone pressure, then <strong>customs quarantine</strong>, then blockade, then strike campaign, then invasion. The quarantine rung is the most likely and the least modeled: coast-guard-led rather than navy-led, framed as law enforcement rather than war, reversible, deniable, and specifically engineered to place the escalation decision on Washington's desk. Public analysis concentrates on invasion because it is dramatic and militarily difficult. The cheap option is the one that gets chosen.</p>
-<h3>Precedent</h3>
-<p><strong>The Taiwan Strait crises of 1954–55, 1958 and 1995–96</strong> all de-escalated, and the base rate they establish is the most misleading number in this paper. Each de-escalated because the local balance of forces made testing it unattractive and because, in 1996, the American answer — sail two carrier groups through the strait — was available at acceptable risk. That specific answer is no longer available at the same risk. A base rate computed from a period whose decisive variable has since changed is not a base rate.</p>
-<p><strong>1914</strong> is the standing rebuke to the interdependence argument. <strong>The Cuban missile crisis</strong> supplies the market's structural blind spot: equities fell roughly 3% and recovered within weeks, because there is no hedge that pays in the tail of an existential binary, so the tail is not priced.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: Taiwan export orders, foundry revenue, semiconductor equities, shipping and war-risk insurance rates.</em></p>
-<p>The cadence question is the instructive one. This is the highest-impact scenario on the list and it is checked quarterly, because these series update monthly to quarterly. Checking daily would be theatre.</p>
-<p><strong>War-risk insurance rates for Taiwan Strait transits are the best instrument in the set</strong>, and they are portable from scenario 7: the same capital-backed sensor that repriced Hormuz by 200x would reprice the strait before any government said anything. Taiwan export orders and foundry revenue are the economic thermometers. Semiconductor equities are the fastest and the least informative, because they reflect the AI cycle far more than the strait.</p>
-<p><strong>Additional instruments not in the source list, recommended:</strong> PLA exercise <em>duration and sustainment</em> rather than sortie counts, which distinguishes demonstration from rehearsal; customs and coast-guard inspection precedents against individual vessels, which is the quarantine rung's leading edge; fab qualification milestones outside Taiwan, which is the only variable that reduces the exposure; and Chinese strategic reserve builds in grain and crude, since pre-positioning is visible in inventories long before it is visible in policy.</p>
-<h3>Current state</h3>
-<p><strong>Dormant as an event, loading as a structure.</strong> No market-transmitting escalation. The structural drivers — capability trajectory, the semiconductor concentration, and the precedent supplied by six months of a closed Hormuz with no decisive cost imposed on the party that closed it — all move in one direction.</p>
-<h3>Transmission</h3>
-<p><strong>All five factors on the same day</strong>, which no other scenario on this list can claim. Factor I at its physical substrate; Factor II through the concentration channel, since the ten names largely <em>are</em> the semiconductor complex; Factor III as the chokepoint case that has no adaptation branch; Factor IV through a simultaneous fiscal and defense shock into a record interest burden; Factor V through a reserve-weaponization question applied to the second-largest holder of Treasuries, whose response options include the one thing Factor IV cannot absorb.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the event is economic rather than military.</strong> Export controls, entity listings, or a mineral-licensing cutoff can remove a large share of the same value without a single ship moving. This mutation is already partly realized, and it is the reason the <em>Foundations</em> paper's revised Chapter 3 argues the geoeconomic half of the factor is the near-certain path while the military half is the tail. <em>Instrument:</em> export license issuance, entity list additions, effective tariff rates. <strong>Gap.</strong></p>
-<p><strong>Substitution — the chokepoint is the undersea cable, not the strait.</strong> Taiwan's connectivity runs through a small number of cables that have already proven cuttable, and a connectivity interruption produces financial and operational disruption with full deniability. <em>Instrument:</em> cable incident reporting. <strong>Gap.</strong></p>
-<p><strong>Aliasing — with 18 and 13</strong> in the first hours if the opening move is cyber or infrastructure rather than kinetic, and with 3 and 20 in market terms, since the immediate tape would be a semiconductor and index event.</p>
-<p><strong>Re-specification trigger.</strong> A customs quarantine, even a brief one conducted as an exercise, converts this scenario from a tail into a current condition with a named mechanism, and the tail slot would need re-scoping toward escalation beyond quarantine.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Disruptive Themes</strong>, where the <em>Foundations</em> paper's revised Chapter 3 now carries the theater analysis, the escalation ladder, and the decade probabilities. <strong>Secondary: Monthly Macro, Tail Scan section</strong>, which is the correct quarterly home. Taiwan export orders, foundry revenue, war-risk quotations, and PLA activity data are all uninstrumented and go to the build queue. Semiconductor equities are already visible through the Daily Cascade.</p>
-<hr />
-<h2>Scenario 12 · China property or LGFV event</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Three transmission channels from one event, which is what earns it a slot. A property or local-government financing vehicle credit event in China <strong>exports deflation</strong> through goods prices, as excess capacity is dumped into export markets at falling prices. It <strong>applies currency pressure</strong>, since the policy response involves easing into capital-flight risk. And it delivers a <strong>commodity demand shock</strong>, because construction is the marginal buyer of industrial metals.</p>
-<p>The three channels point in different directions for different assets, which is why the scenario is frequently misread as unambiguously deflationary. Goods deflation and a commodity demand shock are disinflationary for the US; a materially weaker renminbi is disinflationary for goods and destabilizing for everything else.</p>
-<h3>Precedent</h3>
-<p><strong>2015–16</strong> is the direct instance: a currency adjustment and a growth scare that transmitted globally through commodities and risk sentiment. <strong>2021 onward</strong> is the slow-burn version already underway in the property sector, which has so far been managed rather than resolved.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: renminbi, copper-to-gold ratio, Chinese export prices.</em></p>
-<p>The copper-to-gold ratio is the elegant instrument here, since it nets the growth signal against the debasement signal in a single line. Chinese export prices are the deflation-export instrument and the most directly relevant to US inflation.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> The property adjustment continues without resolution; the policy stance manages rather than repairs.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong> through the inflation path, in the disinflationary direction, which makes this the rare scenario that would <em>relieve</em> pressure on one factor while creating it elsewhere. <strong>Factor I</strong> through the demand channel for the buildout's inputs, and <strong>Factor V</strong> through reserve and gold behavior.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the event is a policy choice rather than an accident.</strong> A deliberate devaluation as a response to tariffs would produce the same transmission with none of the credit-event signature.</p>
-<p><strong>Substitution — the deflation arrives through the AI supply chain.</strong> Chinese overcapacity in solar, batteries, EVs and increasingly in commodity semiconductors exports price declines that read as disinflation in US data while destroying margin in specific sectors.</p>
-<p><strong>Aliasing — with 15</strong>, since a China event and an emerging-market dollar squeeze share the strong-dollar signature.</p>
-<p><strong>Re-specification trigger.</strong> A disorderly renminbi move of sufficient size would convert this from a credit scenario into a currency-regime scenario requiring its own scoping.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, global pillar. <strong>Secondary: Alternative Asset Report</strong>, whose Correlations tab would carry copper-gold and the commodity complex.</p>
-<hr />
-<h2>Scenario 17 · Insurance or reinsurance capital event</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>A very large catastrophe, or several correlated ones in a single season, forces insurers and reinsurers to fund claims. Claims are paid in cash; general accounts hold long-duration corporate and structured credit. The result is a large, price-insensitive seller of credit arriving in a market that may already be under stress, for reasons entirely unrelated to credit fundamentals.</p>
-<p>The under-appreciated feature is scale: <strong>insurance capital is a significant and under-monitored holder of corporate and structured credit</strong>, and its selling is driven by loss experience rather than by any view on the assets. This is the same structural property that defines Family G, which is why the scenario is arguably misfiled in the source list's tiering, though correctly placed by cadence.</p>
-<p>The compounding condition is a hard market that follows: capital destroyed by losses raises the price of risk transfer, which constrains capacity across the economy at the same moment credit conditions tighten.</p>
-<h3>Precedent</h3>
-<p><strong>2005 (Katrina, Rita, Wilma)</strong> and <strong>2017 (Harvey, Irma, Maria)</strong> are the capital-event templates, both followed by hard markets. <strong>2022 (Ian)</strong> compounded losses with a bond portfolio already marked down by rate increases, which is the modern configuration: the asset side and the liability side deteriorating together.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: catastrophe bond spreads, reinsurer equity, January renewal pricing.</em></p>
-<p>Cat bond spreads are the market-priced view of the tail. Reinsurer equity is fast and noisy. January renewal pricing is the definitive read on whether capital was actually destroyed, and it arrives once a year.</p>
-<h3>Current state</h3>
-<p><strong>Dormant, seasonally loading.</strong> The scenario has an explicit calendar: Atlantic season risk concentrates in the third quarter and resolves at January renewals.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> through credit conditions and <strong>Factor IV</strong> if the selling lands in a market with impaired dealer capacity. The link to scenario 1 is direct: a forced seller of credit into a balance-sheet-constrained market is how a natural disaster becomes a funding event.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the correlated event is not weather.</strong> Wildfire, earthquake, and increasingly cyber losses aggregate in ways the catastrophe models handle poorly. Cyber in particular has correlated-loss properties that natural catastrophe does not, since a single vulnerability can trigger simultaneous claims across an entire book with no geographic limit.</p>
-<p><strong>Substitution — the capital event happens in life and annuity rather than P&amp;C.</strong> Rate-driven surrender activity in annuity books forces asset sales with the same mechanics and a completely different trigger, and this cohort holds substantially more long-duration credit than the property side.</p>
-<p><strong>Aliasing — with 19</strong>, since an insurer selling duration under stress is an LDI event by another name, and with 6 if the sales occur in private credit allocations.</p>
-<p><strong>Re-specification trigger.</strong> If cyber becomes a material share of aggregated catastrophe exposure, the scenario should be re-scoped to sit alongside 13 rather than as a weather-driven event.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro, Tail Scan</strong>, which already covers the relevant risk domains and is the correct cadence. Cat bond spreads and renewal pricing are uninstrumented and go to the build queue. This is the scenario where the framework's own professional expertise most exceeds its instrumentation, which makes it a natural early build.</p>
-<hr />
+<p><em>This family's scenarios (7, 8, 12 and 17), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
@@ -622,74 +284,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 10, 15, 16. The family that operates on beliefs rather than balance sheets: what the market thinks policy will do, and whether it trusts the institution doing it.</em></p>
-<h2>Scenario 16 · Inflation reacceleration forcing hikes</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Three inputs combine, none of which requires an economic boom. <strong>Tariff pass-through</strong> raises goods prices with a lag that depends on inventory cycles and margin absorption. <strong>An energy floor</strong> arrives through the physical channel of scenario 7, and — the piece most dashboards structurally cannot see — through the fertilizer chain, where gas to ammonia to urea to planting economics to harvest to food CPI runs on a two-to-three-quarter lag. <strong>Services stickiness</strong> persists because shelter and wage-driven components adjust slowly and asymmetrically.</p>
-<p>The mechanism's danger is not the level of inflation. It is the <strong>conditional structure of every portfolio and every policy framework built on the assumption of a disinflation path</strong>. If inflation re-accelerates, the Fed's option to ease disappears exactly when the rest of the system needs it: equity multiples lose the discount-rate support that justifies them, the fiscal arithmetic in Factor IV loses the nominal-growth cushion it depends on, and the stock-bond correlation stays positive, which means the hedge fails at the moment it is needed.</p>
-<p>The source list flags this as <strong>the scenario most frameworks are least positioned for</strong>, and adds the correct reason: contemporary analysis is generally built on an assumed disinflation path, which makes the asymmetry itself a reason to weight it. That is a statement about <em>crowding of assumptions</em>, not about probability, and it is the sharpest single line in the source document.</p>
-<h3>Precedent</h3>
-<p><strong>1966–1982</strong> is the multi-wave template, and its central lesson is that the second and third waves were larger than the first because credibility had been spent. <strong>1974</strong> is the supply-shock-into-extended-market case that the <em>Foundations</em> paper identifies as the closest historical rhyme to the current factor configuration. <strong>2021–22</strong> is the recent instance of the assumption failing: almost no participant pre-specified what data, by what date, would count as being wrong about transitory, so nobody was.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: sticky core CPI, five-year five-year forward inflation, policy path dispersion.</em></p>
-<p>Sticky core is the correct primary because it filters the volatile components that produce false signals in both directions. Five-year five-year forwards measure whether expectations are becoming unanchored, which is the variable that separates an inflation <em>episode</em> from an inflation <em>regime</em>. <strong>Policy path dispersion</strong> is the subtlest of the three and the most useful in the current environment: with forward guidance withdrawn on principle, dispersion widens mechanically, which means it must be read against a baseline rather than in levels.</p>
-<p><strong>What a firing does not mean:</strong> a single hot print in a guidance-free regime moves market-implied paths violently and reverses just as fast. September hike odds moved from 35% to 57% on one speech. The signal is a <em>sequence</em> of sticky-core prints with forwards rising alongside.</p>
-<h3>Current state</h3>
-<p><strong>Loading, with the fuse visibly lit.</strong> July CPI at 3.4% year over year with core at 2.5%; May PPI at 6.5%, a four-year high; energy down 1.5% on the month but up 14.7% year over year; September hike odds at 57% after Jackson Hole; a July FOMC that held 9–3 with three dissents <em>for</em> a hike; and June dots penciling an increase. The fertilizer chain's food-CPI echo of this summer's disruption is scheduled for the winter prints, arriving after the consensus that the shock is absorbed has hardened.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong> primarily, and it is explicitly named there as the path the framework is least positioned for. <strong>Factor II</strong> through the multiple, since every basis point of policy path subtracts from the justified multiple at a starting equity risk premium already near negative 80 basis points. <strong>Factor III</strong> as the origin of the energy and food components.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the reacceleration is in food rather than energy or services.</strong> Food CPI has different political properties than any other component: it transmits into social stability with the longest lag and the least market anticipation, and it is the component least amenable to policy response. <em>Instrument:</em> the nitrogen complex named in Factor III. <strong>Partial gap.</strong></p>
-<p><strong>Substitution — the inflation is structural rather than cyclical, and monetary policy cannot address it.</strong> Fragmentation, duplicated supply chains, friend-shored capacity, tariffs and defense spending raise the cost of producing the same output. A supply-side inflation floor does not respond to demand suppression except by breaking the economy, which converts the scenario from a policy question into a political one. <em>Instrument:</em> effective tariff rate, trade-weighted input costs. <strong>Gap.</strong></p>
-<p><strong>Substitution — the hikes are not the Fed's.</strong> A foreign central bank, particularly the Bank of Japan, tightening faster than expected produces global rate transmission with no domestic decision, and aliases directly with scenario 2.</p>
-<p><strong>Aliasing — with 10.</strong> A hiking Fed and a Fed whose independence is in question produce opposite signatures at the front end and can produce similar ones at the long end, since both raise term premium. The distinguishing series is breakevens versus term premium, which is scenario 10's instrument.</p>
-<p><strong>Re-specification trigger.</strong> If a hike is delivered and followed by a second, the scenario ceases to be a tail and becomes the base case, requiring re-scoping toward the <em>depth</em> of the tightening cycle and the point at which something in Families A or B breaks.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, inflation pillar, correct cadence, all three series available from FRED. <strong>Secondary: Disruptive Themes, Factor IV</strong>, which already names this as scenario 16 and carries the asymmetry argument. <strong>Tertiary: Daily Cascade</strong> for policy-path repricing on CPI days and Fed speeches. Policy path dispersion needs an explicit construction rather than a level reading and goes to the build queue as the S3b policy-path item already named in Disruptive Themes' gaps register.</p>
-<hr />
-<h2>Scenario 10 · Fed independence event</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Appointments, sustained political pressure, or a policy decision that markets read as politically rather than economically driven. The scenario's distinctive property is <em>where it prices</em>. The front end reflects expected policy, so a Fed under political pressure to ease would show lower front-end rates, which looks benign. The long end reflects <strong>trust in the institution setting policy</strong>, and so does the currency, and so does gold's speculative bid. An independence event therefore shows up as a curve steepening driven by term premium, a weaker dollar, and a stronger gold bid, all while the front end is doing what politics wanted.</p>
-<p>That signature — front end down, term premium up, currency down, gold up — is the specific fingerprint that distinguishes this scenario from ordinary easing.</p>
-<h3>Precedent</h3>
-<p><strong>1972</strong> is the classic instance, with monetary accommodation ahead of an election contributing to the inflation of the following decade. <strong>1951</strong> is the resolution precedent: the Treasury–Fed Accord ended a period in which the Treasury effectively set monetary policy, and it stands as the institutional wall that the fiscal-dominance mechanics of Factor IV would breach from the other direction. <strong>Turkey, repeatedly</strong>, is the modern demonstration of the full sequence.</p>
-<p><strong>The current configuration is genuinely ambiguous</strong>, which the <em>Foundations</em> paper develops as the Warsh A/B question: an orthodox hawk executing regime change on the Fed's own terms, versus hawkish rhetoric providing cover while the institution accommodates the fiscal need. Both theses predict identical <em>rhetoric</em>. Only the realized mean path separates them.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: breakevens versus term premium divergence, dollar, gold's speculative bid.</em></p>
-<p>The divergence construction is the important part: breakevens rising <em>with</em> term premium is an inflation story; term premium rising <em>without</em> breakevens is an institutional-credibility story. Gold's speculative bid — the paper leg of the two-bid decomposition, currently at roughly 2.4 million net call-minus-put open interest against a 0.8 million mean — is already elevated, which makes it a poor discriminator at present and a good one if physical joins it.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> A chairman whose committee dissented 9–3 in July, guidance withdrawn on principle, a Treasury conducting maturity operations with a floated central-bank-account funding source, and a coordinated intervention in early August. None of that is an independence event. All of it raises the variance of how the next one would be read.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong>, and it is the scenario that would most directly validate the fiscal-dominance thesis. <strong>Factor V</strong> through the debasement rails, since an independence event is the cleanest possible confirmation for the official gold bid.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the erosion is procedural rather than an event.</strong> Independence can be lost through the appointment cycle, the composition of the board, and the gradual normalization of Treasury operations that create reserves, with no identifiable event to price. This is the more likely form and the harder one to instrument. <em>Instrument:</em> the TGA-versus-reserves series named in Factor IV, which is the closest available proxy.</p>
-<p><strong>Substitution — the institution under pressure is a foreign one.</strong> The same signature in another major central bank transmits globally through term premium and currency.</p>
-<p><strong>Aliasing — with 16 and 4.</strong> Rising term premium with a weaker dollar has several possible causes, and the framework should say so rather than attribute.</p>
-<p><strong>Re-specification trigger.</strong> If a TGA-funded buyback is confirmed at scale — TGA down and reserves up together — the scenario has partially realized through the procedural mutation rather than the event, and should be re-scoped accordingly. This condition is already a pre-registered falsifier in Disruptive Themes.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Disruptive Themes, Factor IV</strong>, where the Warsh A/B separator and the TGA-versus-reserves series already live. <strong>Secondary: Monthly Macro</strong> for breakevens and term premium. <strong>Tertiary: Alternative Asset Report</strong> for gold's bid decomposition, which is its natural home given the 18-asset coverage.</p>
-<hr />
-<h2>Scenario 15 · Emerging market debt crisis with a dollar squeeze</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Dollar strength combined with refinancing walls in frontier sovereigns. Dollar-denominated debt becomes more expensive to service in local-currency terms exactly as refinancing comes due; cross-currency funding markets tighten; the IMF-programme wave is the slow-burn version, and a disorderly version compounds through the same funding channels that Family A instruments.</p>
-<h3>Precedent</h3>
-<p><strong>1997–98</strong> for the full sequence, <strong>2018</strong> and <strong>2022</strong> for the contained versions. The consistent pattern is that contagion runs through <em>funding</em> channels rather than through trade linkages.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: EM sovereign spreads, dollar path, cross-currency basis.</em> Cross-currency basis is the instrument that connects this scenario to Family A, and it is the one that would fire first in a disorderly version.</p>
-<h3>Current state</h3>
-<p><strong>Dormant.</strong> Mechanism intact, no acute pressure.</p>
-<h3>Transmission</h3>
-<p><strong>Factor IV</strong> through dollar dynamics and funding channels; secondary transmission to <strong>Factor II</strong> through credit sentiment.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the borrower is a corporate rather than a sovereign.</strong> EM corporate dollar debt exceeds sovereign in several major markets and has weaker disclosure.</p>
-<p><strong>Substitution — the squeeze is relieved by a non-dollar channel.</strong> Renminbi swap lines and, increasingly, stablecoin-denominated dollar access change the transmission in ways that have not been tested in a stress episode. This mutation connects directly to Family G's scenario 23: if dollar access for frontier borrowers has migrated partly to token rails, then a regulatory reversal in those rails is an EM funding event.</p>
-<p><strong>Aliasing — with 2 and 12.</strong></p>
-<p><strong>Re-specification trigger.</strong> A cluster of three or more IMF programmes in a single quarter converts this from tail to current condition.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, global pillar. Cross-currency basis is not currently instrumented and goes to the build queue, where it earns priority for being shared with scenarios 1 and 2.</p>
-<hr />
+<p><em>This family's scenarios (16, 10 and 15), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
@@ -700,80 +295,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 4, 18, 13. The family where the failure is in the machinery that moves money rather than in the value of anything. It contains the list's most consequential recent promotion (4), its longest-dated structural risk (18), and its one deliberate blind spot (13).</em></p>
-<h2>Scenario 4 · Stablecoin depeg at scale</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p><strong>No longer a crypto event</strong>, and the reason is statutory and fiscal rather than technological. Issuers hold Treasury bill reserves as a matter of law, which makes stablecoin growth mechanical bill demand. Official financing plans increasingly count on that demand to absorb bill issuance, which makes the issuers <strong>load-bearing</strong> in sovereign finance. A private payment instrument has become part of the government's funding plan.</p>
-<p>The failure sequence: a reserve loss, a custody failure, an operational incident, or simply a large redemption wave breaks the peg. Redemption demand forces the issuer to liquidate bills. The liquidation arrives in a bill market where reserves stand near $2.94 trillion with the RRP buffer exhausted, so the sale lands in a system with no shock absorber. A payment-instrument problem becomes a Treasury-market problem inside a settlement day.</p>
-<p>The property that makes this faster than its closest precedent: <strong>redemption at chain speed</strong>. A money-market fund redemption takes a day. A token redemption takes a block.</p>
-<h3>Precedent</h3>
-<p><strong>Reserve Primary Fund, September 2008</strong> is the canonical instance. A money fund broke the buck on Lehman paper; a run on the entire $3.5 trillion money-fund complex followed within days; a blanket Treasury guarantee stopped it. The template maps directly with one amendment that worsens it, which is speed.</p>
-<p><strong>Terra/Luna, May 2022</strong> is the demonstration of the failure mode at full speed — roughly $40 billion — and, more importantly, the demonstration of <em>containment</em>. It did not matter systemically because nothing sovereign depended on it. <strong>That containment property has been spent.</strong> The next depeg happens to an asset class the Treasury's issuance calendar assumes.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: aggregate stablecoin supply, issuer reserve attestations, bill yields.</em></p>
-<p>Aggregate supply is the structural instrument and the one that tests the load-bearing thesis: if supply stalls for two quarters while bill issuance proceeds, the marginal-buyer assumption fails quietly, with no depeg required. That is scenario 23's territory and shows how tightly the two are coupled.</p>
-<p>Reserve attestations are the quality instrument, and their weakness is that they are periodic, self-reported, and vary in rigor. Bill yields are the confirmation, and by the time they move the event is underway.</p>
-<p><strong>What a firing does not mean:</strong> a small issuer trading off par is idiosyncratic. The scenario requires a large issuer, or a correlated move across issuers indicating a quality question being asked of everyone simultaneously, which is the free-banking-era failure mode.</p>
-<h3>Current state</h3>
-<p><strong>Armed.</strong> Issuers are load-bearing by design, the reserve buffer that would absorb a forced bill liquidation is gone, and the framework's own Factor V was promoted specifically because of this linkage. Disruptive Themes sharpened both this scenario and its mirror this cycle.</p>
-<h3>Transmission</h3>
-<p><strong>Factor V</strong> at the source and <strong>Factor IV</strong> immediately after, through the bill market. This is the single tightest coupling between a tail scenario and a factor pair anywhere in the framework, and it runs in both directions: stablecoin growth absorbs the bill wave the Twist creates, while a depeg dumps the same bills back into a bufferless market.</p>
-<h3>Mutations</h3>
-<p><strong>Substitution — the depeg happens in a tokenized money-market fund or tokenized Treasury vehicle instead.</strong> This is the most important mutation in the paper. The fastest-growing part of the tokenized-collateral complex is not stablecoins but tokenized funds used as collateral in institutional settlement. They sit outside the stablecoin reserve-attestation regime, they are held by leveraged counterparties as margin, and a break in par there transmits directly into derivatives margin rather than into retail payments. <em>Instrument:</em> tokenized fund AUM and collateral usage. <strong>Gap.</strong></p>
-<p><strong>Scope drift — the failure is operational rather than a reserve loss.</strong> A chain halt, a bridge exploit, or an oracle failure produces a functional depeg with fully solvent reserves. The instrument set built around reserve quality is silent in this case. <em>Instrument:</em> none. <strong>Gap.</strong></p>
-<p><strong>Substitution — the issuer fails through its banking relationship.</strong> The 2023 regional banking episode produced exactly this: a large stablecoin depegged because its reserve deposits sat at a failing bank. The reserve was adequate and inaccessible. This mutation aliases the scenario directly into 14.</p>
-<p><strong>Aliasing — with 23, 1 and 14.</strong> A depeg, a regulatory reversal, a funding accident and a bank event can all present as bill-market disruption with a token symptom.</p>
-<p><strong>Re-specification trigger.</strong> If a major issuer depegs and the Treasury or the Fed backstops the redemption, the scenario is answered and must be rewritten around <strong>moral hazard and contingent sovereign liability</strong> rather than around the depeg itself. That rewrite would be one of the more consequential in the framework, because it would formalize private money as a public obligation.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Disruptive Themes, Factor V</strong>, which carries the load-bearing thesis and the aggregate-supply test. <strong>Secondary: Alternative Asset Report</strong>, whose Surveillance tab is the natural home for issuer-level monitoring. <strong>Tertiary: Monthly Macro</strong> for bill yields. Aggregate supply and reserve attestations are uninstrumented and go to the build queue; aggregate supply is publicly available and cheap, making it a priority build given the scenario's armed state.</p>
-<hr />
-<h2>Scenario 18 · Cryptographic break in settlement infrastructure</h2>
-<p><strong>Tier D · quarterly</strong></p>
-<h3>Mechanism</h3>
-<p><strong>Not primarily a cryptocurrency question</strong>, which is the misreading the scenario's placement invites. The exposure is the public-key cryptography underlying settlement, custody, clearing, messaging and authentication across the entire financial system. A capability that can break it retroactively compromises everything encrypted before the migration, including data already harvested and stored for that purpose.</p>
-<p>The scenario's crucial framing, and the reason it is instrumented the way it is: <strong>the tracked variable is the gap between capability milestones and post-quantum migration progress.</strong> The threat is bounded by migration speed, not by raw capability. A capability breakthrough into a fully migrated system is a non-event. A modest capability arriving into an unmigrated custody chain is a catastrophe. The risk is therefore a <em>race</em>, and only one of the two runners is being publicly timed.</p>
-<h3>Precedent</h3>
-<p>None, which is the honest statement. The closest structural analogs are large-scale cryptographic transitions conducted under deadline pressure, and the general lesson from those is that migration always takes longer than planned and that the last ten percent of legacy systems is where the exposure concentrates.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: post-quantum standard adoption in settlement, custody and banking infrastructure, measured against verified capability milestones.</em></p>
-<p>This is the correct construction and the hardest to instrument, because it requires tracking two series that update irregularly and are reported by parties with incentives in both directions: vendors overstate migration progress, and capability claims are frequently demonstrations rather than verified results. <strong>Verified capability only, never announcements</strong>, is the same discipline Disruptive Themes applies in its Part 19 technology block.</p>
-<h3>Current state</h3>
-<p><strong>Dormant, with a widening gap.</strong> The migration is behind schedule against an uncertain clock. The <em>Foundations</em> paper carries the PQC migration gap as Factor V's designated structural headwind for this reason.</p>
-<h3>Transmission</h3>
-<p><strong>Factor V</strong> structurally, and <strong>everything</strong> operationally if realized, since settlement is upstream of all pricing.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the break is partial and targeted rather than general.</strong> A single custody or messaging system compromised produces a confidence event without any general cryptographic failure, and would be reported as a hack rather than as a cryptographic break.</p>
-<p><strong>Substitution — the exposure is harvest-now-decrypt-later.</strong> Data already collected and stored against future capability means the loss event may predate the capability by years, and no instrument can detect it.</p>
-<p><strong>Aliasing — with 13, almost perfectly.</strong> In the first hours, a cryptographic break and a cyberattack on infrastructure are indistinguishable, and the operational signature is identical: settlement stops.</p>
-<p><strong>Re-specification trigger.</strong> A verified capability milestone that materially shortens the estimated timeline converts this from a quarterly structural item into an active migration-race scenario requiring monthly cadence.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro, Tail Scan</strong>, cyber domain, quarterly. <strong>Secondary: Disruptive Themes, Part 19</strong>, where quantum and PQC migration are already named as a tracked variable with an acknowledged gap. Migration-progress tracking against NIST timelines is uninstrumented in both places and goes to the build queue as a documentation task rather than a data pipeline, since the series is qualitative.</p>
-<hr />
-<h2>Scenario 13 · Cyberattack on financial infrastructure — the documented blind spot</h2>
-<p><strong>Tier: none assigned · reviewed quarterly as an instrumentation problem</strong></p>
-<p>This scenario receives an extended treatment despite carrying no tripwire, because the reasoning behind that absence is the most valuable epistemics on the list and deserves to be argued rather than noted.</p>
-<h3>Mechanism</h3>
-<p>An attack on a central securities depository, a major exchange, or a systemically important custodian. Not a data breach and not a fraud: an availability or integrity failure in the infrastructure that records who owns what. If a depository's records are compromised, the question is not what securities are worth but <em>who holds them</em>, and no market can function while that question is open.</p>
-<h3>Why price-based indicators fail by construction</h3>
-<p>This is the analytically important part, and it is a structural claim rather than a difficulty. <strong>Settlement stops before prices move.</strong> Every leading indicator in this entire paper is a price or a quantity derived from trading activity: spreads, volatility, transit counts, positioning, flows. Each of them requires a functioning market to be observed. In this scenario the market's recording layer is the thing that fails, which means the usual leading indicators are silent <em>precisely when the event occurs</em>, and are silent because of the event rather than despite it.</p>
-<p>That is a different situation from a scenario that is merely hard to instrument. A poorly instrumented scenario can be improved with better data. This one cannot be improved with better price data at all, because the failure mode is the absence of the data.</p>
-<h3>Why the blind spot is retained with no tripwire</h3>
-<p>The source list's reasoning is exactly right and worth restating in full force: <strong>attaching a weak proxy would be worse than documenting the gap, because it would create false confidence in a domain where the failure mode is invisibility.</strong></p>
-<p>Consider what a weak proxy would look like. Cybersecurity firm equity prices. Reported incident counts. A vendor threat index. Each would produce a comforting green light on a dashboard, and each would be uncorrelated with the actual event. Worse, the presence of <em>any</em> indicator in the slot would cause a reader scanning the report to register the domain as monitored. The gap would become invisible, which is the specific failure the whole list is designed to avoid.</p>
-<p>An acknowledged gap stays visible at every review. That is the entire argument, and it generalizes: <strong>in a system built on instrumentation, the most dangerous entry is not a missing instrument but a decorative one.</strong></p>
-<h3>What can be done instead</h3>
-<p>Three things, none of which is a tripwire.</p>
-<p><strong>Resilience posture rather than detection.</strong> The question shifts from "will I see it coming" to "what is the position if it happens." Settlement-failure exposure, custodian concentration, and the operational dependencies of any automated system are answerable in advance.</p>
-<p><strong>Aftermath instrumentation.</strong> Once an event occurs, the relevant series are operational rather than price-based: settlement fails, exchange status notices, custodian communications. These are worth identifying now so the first hour is not spent looking for them, and they overlap with scenario 1's fails instrumentation.</p>
-<p><strong>Correlation awareness.</strong> This scenario aliases with 18 in the opening hours and with 8 if an escalation opens with infrastructure attack rather than kinetic action. A report that has thought about the aliasing will hedge its language correctly rather than confidently misattribute.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the target is a third-party vendor rather than the institution.</strong> Concentration in market data providers, cloud infrastructure, and post-trade software means a single vendor compromise reaches many institutions at once, and the vendor is outside the regulatory perimeter that covers its customers.</p>
-<p><strong>Substitution — the attack is on integrity rather than availability.</strong> A system that keeps running while producing subtly wrong records is far worse than one that stops, because the damage compounds silently and the recovery point is unknown.</p>
-<p><strong>Aliasing — with 18 and 8</strong>, as above.</p>
-<p><strong>Re-specification trigger.</strong> Any successful attack on a systemically important institution, anywhere in the world, converts this from a hypothetical instrumentation problem into a case study with observable aftermath data, and the scenario should be rewritten around the observed transmission rather than the anticipated one.</p>
-<h3>Report routing</h3>
-<p><strong>Monthly Macro, Tail Scan</strong>, cyber domain, retained explicitly as an open instrumentation problem reviewed each quarter. The correct report language when this domain is reviewed is not "no signal" but "no instrument," and the distinction should be visible in the rendered output.</p>
-<hr />
+<p><em>This family's scenarios (4, 18 and 13), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
@@ -784,127 +306,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
       </summary>
       <div class="section-body">
 <p><em>Scenarios 21, 22, 23, 24, 25. The class argued in §0.3 as the paper's central claim. Five mechanisms with one shared property: the buyer was never expressing a view, so its withdrawal is not reversed by cheapness. Standard macro indicators say nothing about any of them.</em></p>
-<h2>Scenario 24 · BBB downgrade cascade</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Roughly half of the investment-grade market sits at the BBB tier, one notch above high yield. A large share of the holders of that paper — insurance general accounts, pension mandates, index funds tracking investment-grade benchmarks, and separately managed accounts with ratings floors — <strong>cannot hold high yield</strong>. Not "would prefer not to." Cannot, as a matter of mandate, statute, or capital treatment.</p>
-<p>A downgrade to high yield therefore triggers selling that is entirely independent of the bond's price or prospects. The seller is not making a decision. The mandate is.</p>
-<p>The arithmetic is what makes this dangerous rather than merely disruptive. The high-yield market is a fraction of the size of the BBB tier. A modest wave of downgrades — a few percent of the BBB stock — produces forced supply that overwhelms high yield's capacity to absorb it. The market that must buy is far smaller than the market that must sell, and the ratings agencies determine the timing.</p>
-<p>This is structurally identical to tail-tier credit stress at far larger notional, and it converts a ratings decision into a market event.</p>
-<h3>Precedent</h3>
-<p><strong>March 2020</strong> is the near-miss: a downgrade wave began, "fallen angel" volumes reached records, and the Fed's decision to purchase fallen angels — an unprecedented step explicitly designed to interrupt this mechanism — stopped it. The precedent therefore establishes both that the mechanism is real and that the authorities regard it as requiring intervention. <strong>2015–16</strong> is the energy-sector version, contained because it was sectoral.</p>
-<p><strong>The disanalogy:</strong> the BBB tier is larger now than in 2020, and the intervention precedent creates its own hazard, since holders may be underwriting the expectation of a repeat.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: BBB share of investment grade, ratings action counts, BBB–BB spread.</em></p>
-<p>BBB share is the slow structural instrument that sizes the exposure. Ratings action counts, particularly outlook changes and watch placements, are the leading indicator, because agencies telegraph before they act. <strong>BBB–BB spread is the market's own estimate of the cliff</strong>, and its compression is a warning rather than a comfort: a narrow BBB–BB spread means the market is not pricing the mandate discontinuity at all.</p>
-<p><strong>What a firing does not mean:</strong> individual downgrades are routine. The scenario requires clustering, and clustering is visible in outlook changes before it is visible in actions.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> The CCC−BB differential near 855 basis points indicates the market is discriminating sharply within high yield, which is the environment in which absorbing fallen-angel supply would be most difficult.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> through credit conditions and <strong>Factor IV</strong> if the forced selling coincides with impaired dealer capacity, which is the scenario 1 intersection.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the cliff is in bank capital treatment rather than ratings mandates.</strong> Capital requirements step at ratings boundaries, so the same discontinuity exists in bank holdings with a different trigger and different disclosure.</p>
-<p><strong>Substitution — the forced seller is passive rather than active.</strong> Investment-grade index funds must sell a downgraded bond at the index rebalance date regardless of price, which makes the selling both mechanical and <em>calendar-predictable</em>, and therefore front-runnable. This mutation belongs jointly to scenarios 24 and 22. <em>Instrument:</em> index rebalance calendars against downgrade timing. <strong>Gap.</strong></p>
-<p><strong>Substitution — the downgraded issuers are AI-adjacent.</strong> A material share of recent investment-grade issuance financed data-center and AI infrastructure. If scenario 3 realizes, the fallen-angel wave and the capex halt are the same event, and the credit transmission would be faster than the equity transmission. <em>Instrument:</em> AI-related IG issuance tracking. <strong>Gap</strong>, and a direct bridge between Families C and G.</p>
-<p><strong>Aliasing — with 6 and 14</strong>, all three being mandate-and-marking credit events.</p>
-<p><strong>Re-specification trigger.</strong> If a fallen-angel wave occurs and is again absorbed by official purchases, the scenario should be re-scoped around the moral-hazard equilibrium rather than the cascade, since the cascade would have been demonstrated to be backstopped.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Top &amp; Bottom, HY Spread Acceleration overlay</strong>, which is the correct structural home. <strong>Secondary: Monthly Macro</strong> for the spread series. BBB share of investment grade and ratings action counts are uninstrumented; BBB share is available from index data and belongs in the build queue near the top of this family.</p>
-<hr />
-<h2>Scenario 22 · Passive-flow reversal</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>Passive is the largest price-insensitive bid in equities. Its purchases are driven by contributions — payroll deferrals, automatic enrollment, target-date rebalancing — not by any assessment of value. The flow has been positive and growing for four decades, through every drawdown, which means <strong>no version of this market has ever operated with the passive bid in reverse.</strong></p>
-<p>Two mechanisms could reverse it. <strong>Demographic decumulation</strong>: retirees drawing down while contributions from a smaller cohort fail to offset, producing net negative flow as an arithmetic fact rather than a sentiment shift. <strong>A change to retirement default treatment</strong>: default enrollment rules, qualified default investment alternatives, and tax treatment of retirement accounts are the plumbing that makes the flow automatic, and a policy change to any of them alters the flow by decree.</p>
-<p>The withdrawal's character is the defining feature: <strong>mechanical, gradual, and unresponsive to valuation.</strong> It does not reverse when stocks look cheap. There is no capitulation and no bottom-tick, because no one involved is making a market judgment at all. And it lands hardest on the most concentrated names, since capitalization-weighted flows exit in the same proportions they entered.</p>
-<h3>Precedent</h3>
-<p><strong>None.</strong> This is the scenario with the weakest historical grounding on the entire list, and it is precisely why it is dangerous: the structure is roughly forty years old and has only ever operated in one direction. <strong>Japan post-1990</strong> is the loose analog for demographic decumulation meeting a domestic equity market, and its lesson is that the effect is measured in decades rather than quarters.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: fund flow data, net passive creation, retirement account net flows.</em></p>
-<p>Net passive creation is the primary and is available at weekly frequency. Retirement account net flows are the structural instrument and arrive with long lags. The honest characterization is that all three are <strong>confirmation instruments rather than early warnings</strong>: they measure the flow as it happens, not before.</p>
-<p><strong>What a firing does not mean:</strong> a month of negative flows is noise and is usually a tax-season or rebalancing artifact. This scenario is a trend measured in years.</p>
-<h3>Current state</h3>
-<p><strong>Dormant as a flow, loading as a demographic.</strong> The arithmetic of the boomer decumulation is a calendar fact; whether it exceeds contribution growth is the open question.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> structurally. This is the scenario that would most cleanly produce the <em>Foundations</em> paper's Lost-Decade Grind: no crash, no crisis, simply the disappearance of a mechanical bid that made every dip buyable for four decades.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the reversal is in a single vehicle type rather than passive as a whole.</strong> Target-date funds mechanically shift from equity to fixed income on a glide path, so an aging cohort produces automatic equity selling <em>within</em> the passive complex without any net outflow. This is happening now and is invisible in headline flow data. <em>Instrument:</em> target-date fund AUM by vintage and glide-path schedules. <strong>Gap</strong>, and an unusually tractable one, since the schedules are published.</p>
-<p><strong>Substitution — the withdrawal is a policy change rather than demographics.</strong> Any change to retirement account tax treatment, contribution limits, or default investment rules alters the mechanical bid by decree and on a policy timetable rather than a demographic one. <em>Instrument:</em> the legislative and rulemaking calendar, which is the same instrument scenario 23 requires. <strong>Gap.</strong></p>
-<p><strong>Aliasing — with 21 and 24.</strong> All three are price-insensitive withdrawals and would be reported as a single "structural selling" narrative.</p>
-<p><strong>Re-specification trigger.</strong> Two consecutive quarters of net negative passive equity creation would convert this from a demographic hypothesis into a market condition, requiring re-scoping around the pace of withdrawal and its concentration effects.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, flows pillar, monthly cadence. <strong>Secondary: Top &amp; Bottom, Concentration &amp; Complacency overlay</strong>, since the withdrawal lands hardest on the concentrated names the overlay already tracks. Net passive creation and target-date glide-path data are uninstrumented and go to the build queue.</p>
-<hr />
-<h2>Scenario 23 · Stablecoin regulatory reversal</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p>The mirror of scenario 4, and the more likely of the pair. Not a depeg but a <strong>rule change</strong>: forced reserve divestment, issuance restriction, licensing withdrawal, or a change in permitted reserve composition. If issuers are the marginal buyer of bills, a regulatory reversal removes that bid <strong>directly and by decree</strong>, with no market event, no credit loss, and no failure of any kind.</p>
-<p>That property is what places this scenario in Family G rather than Family F. The depeg is a failure; the reversal is a policy. One is an accident, the other is a decision, and the decision requires nothing to go wrong.</p>
-<p>The mechanism's severity depends on a fact established in Factor V: official financing plans lean on stablecoin growth to absorb bill issuance. Removing a bid that the issuance calendar assumes is a funding problem regardless of how orderly the removal is.</p>
-<h3>Precedent</h3>
-<p><strong>The National Banking Acts of 1863–64</strong> are the deep precedent: private banknote issuance ended by legislation and taxation rather than by failure. <strong>Money-market fund reform after 2008 and again in 2014</strong> is the modern instance, where rule changes on floating NAV and gates moved trillions between fund categories in an orderly and entirely mandated fashion.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: legislative and rulemaking calendar, issuer reserve composition.</em></p>
-<p>This is the only scenario on the list whose primary instrument is a <strong>calendar rather than a series</strong>, which makes it the easiest to monitor and the most likely to be neglected, since it requires reading rather than fetching. Issuer reserve composition is the second instrument and reveals what a rule change would force.</p>
-<h3>Current state</h3>
-<p><strong>Loading.</strong> Legislation has been a tailwind; the same legislative capacity that created the framework can amend it, and the issuers' load-bearing status raises the political salience of every future amendment.</p>
-<h3>Transmission</h3>
-<p><strong>Factor V</strong> and <strong>Factor IV</strong>, identically to scenario 4 but arriving through policy rather than failure.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the reversal is foreign.</strong> A major jurisdiction restricting dollar-token access, or a CBDC mandate displacing private issuance abroad, removes demand without any domestic rule changing.</p>
-<p><strong>Substitution — the change is to reserve composition rather than to issuance.</strong> Permitting or requiring different reserve assets — longer bills, repo, deposits — alters the bid's composition and duration without touching supply. A subtle version of this could remove the bill demand while leaving the industry untouched, which would satisfy every political constituency and hit the Treasury market anyway.</p>
-<p><strong>Aliasing — with 4.</strong> The consequence set is nearly identical; only the cause differs.</p>
-<p><strong>Re-specification trigger.</strong> Any concrete legislative proposal that would restrict reserve composition converts this from tail to active policy tracking, and it belongs in Factor V's adoption ledger rather than in the tail list at that point.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Disruptive Themes, Factor V adoption ledger</strong>, which already tracks stablecoin legislation as a named tailwind and is the correct home for a calendar-based instrument. <strong>Secondary: Alternative Asset Report, Surveillance tab</strong> for reserve composition. No pipeline build is required; this needs a reading discipline rather than a fetcher, which makes it the cheapest item in the entire audit and correspondingly easy to let slide.</p>
-<hr />
-<h2>Scenario 21 · Sovereign wealth fund forced selling</h2>
-<p><strong>Tier C · monthly</strong></p>
-<h3>Mechanism</h3>
-<p>A large reserve manager or sovereign fund liquidates assets to fund a domestic deficit. The usual trigger is a persistent oil price collapse that pushes revenue below fiscal breakeven, forcing the fund from accumulation into distribution. These entities are among the largest price-insensitive holders of global equities and bonds, and the source list's characterization of their behavior is the important part: <strong>when they turn, they turn slowly and relentlessly rather than in a single event.</strong></p>
-<p>There is no announcement, no forced-seller headline, and no capitulation. There is a persistent bid that was there and is now absent, and then a persistent offer.</p>
-<h3>Precedent</h3>
-<p><strong>2015–16</strong> is the direct instance: oil below Gulf fiscal breakevens produced sustained sovereign fund selling that was identified largely after the fact. <strong>2020</strong> produced a briefer repeat.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: oil against Gulf fiscal breakevens, sovereign fund disclosures.</em></p>
-<p>The oil-against-breakeven construction is the leading instrument and is genuinely predictive, since fiscal breakevens are published and oil is observable. Fund disclosures are periodic, lagged, and incomplete.</p>
-<p><strong>The current configuration is worth noting:</strong> Brent near $89 sits above most Gulf breakevens, so this scenario is currently <em>dormant</em>. But it is directly coupled to scenario 7's adaptation branch: if the chokepoint divergence resolves toward adaptation and oil falls further, this scenario begins loading precisely because the geopolitical risk receded. A benign resolution in one scenario is a loading condition in another.</p>
-<h3>Current state</h3>
-<p><strong>Dormant</strong>, with the coupling above making it conditionally live.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> through equity flows and <strong>Factor IV</strong> through official Treasury demand, aliasing with scenario 11 in the TIC data.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the seller is a central bank reserve manager rather than a sovereign fund.</strong> Reserve drawdowns to defend currencies produce the same Treasury selling with a different trigger, and are visible in reserve statistics with a lag.</p>
-<p><strong>Substitution — the fund reallocates rather than sells.</strong> A shift from equities into domestic investment or gold produces the same withdrawal of the bid from public markets without any headline liquidation, and connects directly to Factor V's official gold bid, where the accumulation is already running at roughly 860 tonnes in 2025 and 244 tonnes in the first quarter of 2026.</p>
-<p><strong>Aliasing — with 11 and 22.</strong></p>
-<p><strong>Re-specification trigger.</strong> Sustained oil below the weighted Gulf breakeven for two quarters converts this to an active flow scenario.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, global or flows pillar. Fiscal breakeven data is published by the IMF and is a straightforward build; sovereign fund disclosures are partial by nature and should be documented as such rather than proxied.</p>
-<hr />
-<h2>Scenario 25 · ETF wrapper liquidity failure</h2>
-<p><strong>Tier B · weekly</strong></p>
-<h3>Mechanism</h3>
-<p><strong>Not a fund failing.</strong> The scenario is the failure of the <em>authorized-participant arbitrage mechanism</em> that keeps an ETF's price tethered to its net asset value. In normal conditions, APs create and redeem shares against the underlying basket whenever a gap appears, and the gap closes. The mechanism requires the AP to be able to transact in the underlying, and to want to.</p>
-<p>In less liquid underlyings — high yield, bank loans, emerging market debt, and increasingly private credit — the underlying may not be transactable at scale during stress, and the AP has no obligation to make markets. When APs step back, the ETF trades at a discount that is not an anomaly but an accurate price for immediate liquidity in an illiquid asset.</p>
-<p><strong>The wrapper promises intraday liquidity the underlying cannot deliver.</strong> That promise is honored by an intermediary with no obligation to honor it, which is the structural flaw.</p>
-<h3>Precedent</h3>
-<p><strong>March 2020</strong> is the demonstration: high-yield and municipal bond ETFs traded at material discounts to stated NAV for several days. The instructive part of the resolution is that the ETF price was arguably <em>correct</em> and the NAV was stale, since the underlying bonds were not trading. <strong>2008</strong> produced similar dislocations in less-developed wrappers.</p>
-<h3>Tripwire</h3>
-<p><em>First mover: premium and discount to net asset value in high-yield ETFs, creation-redemption activity.</em></p>
-<p>Persistent discount is the primary. Creation-redemption activity is the mechanism instrument, and its <em>cessation</em> is the actual signal: an absence of activity where activity should be occurring.</p>
-<p><strong>What a firing does not mean:</strong> a discount during a fast selloff is the wrapper working as a price-discovery venue, which is arguably its most valuable function. The scenario requires the discount to persist alongside halted creation-redemption.</p>
-<h3>Current state</h3>
-<p><strong>Dormant.</strong> The mechanism is untested at the current scale of credit ETF assets, and the growth of semi-liquid and private-credit wrappers has extended the same promise to considerably less liquid underlyings.</p>
-<h3>Transmission</h3>
-<p><strong>Factor II</strong> through credit conditions, with the aliasing to scenarios 6 and 24 running strongly, since a wrapper failure in credit and a mark event in private credit would be narrated as one story.</p>
-<h3>Mutations</h3>
-<p><strong>Scope drift — the wrapper is an interval fund or a semi-liquid private vehicle.</strong> These extend the liquidity promise to genuinely illiquid assets with periodic gates, and a gate is a wrapper failure with a legal document attached. This mutation connects directly to scenario 6's fastest path.</p>
-<p><strong>Substitution — the failure is in a leveraged or derivative-based wrapper.</strong> Products holding futures, swaps, or options rather than the underlying face a different failure mode: the derivative market's own liquidity. Single-stock leveraged products, discussed in scenario 20's mutations, sit here as well.</p>
-<p><strong>Aliasing — with 6 and 24.</strong></p>
-<p><strong>Re-specification trigger.</strong> A sustained discount with halted creations in any major credit wrapper converts this from a structural hypothesis into a demonstrated event, and the rewrite should focus on which wrapper types held and which did not.</p>
-<h3>Report routing</h3>
-<p><strong>Primary: Monthly Macro</strong>, credit pillar. <strong>Secondary: Alternative Asset Report, Surveillance tab</strong>, since ETF wrapper behavior across its 18 assets is directly observable there. Premium-discount data and creation-redemption activity are uninstrumented and go to the build queue; both are publicly available daily and are among the cheapest builds in the audit.</p>
-<hr />
+<p><em>This family's scenarios (24, 22, 23, 21 and 25), each on the seven-element template, are in <a href="companions/tail-scenarios-companion-appendix.md">the companion appendix</a>, maintained with the Monthly's Part 16 and moved there unchanged under Audit 2.</em></p>
       </div>
     </details>
 
