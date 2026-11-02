@@ -12,6 +12,15 @@ A gate declares itself in its own file, so no branch edits a shared list:
     python tools/gate_list.py --kind code|data|shell
 
 prints one path a line, sorted by path, so every caller sees the same order.
+
+One optional field (B97): a long gate may declare its groups,
+
+    GATE_GROUPS = "A B C"   the names its --group flag takes (tools/gate_groups.py)
+
+    python tools/gate_list.py --groups tools/validate_stack.py
+
+prints them one a line (nothing for a gate that declares none), which is what
+`scripts/make.sh validate-group <gate> <group>` checks a name against.
 The Makefile builds PY_VALIDATORS, SH_VALIDATORS and DATA_GATES from it,
 scripts/make.sh reads them the same way, and validate_audit_3a, validate_deploy
 and validate_gates count from it. smoke_test.py is EXTRA, kept in the Makefile.
@@ -32,6 +41,7 @@ REPO = Path(__file__).resolve().parent.parent
 KINDS = ("code", "data", "shell")
 PY_DECL = re.compile(r"^GATE_KIND\s*=\s*[\"'](\w+)[\"']", re.M)
 SH_DECL = re.compile(r"^#\s*GATE_KIND:\s*(\w+)\b", re.M)
+GROUPS_DECL = re.compile(r"^GATE_GROUPS\s*=\s*[\"']([^\"']*)[\"']", re.M)
 
 
 def declared(p: Path) -> str | None:
@@ -53,6 +63,13 @@ def gates(kind: str, root: Path = REPO) -> list[str]:
     return out
 
 
+def groups(gate: str, root: Path = REPO) -> list[str]:
+    """The groups a gate declares (GATE_GROUPS), or [] if it declares none."""
+    p = Path(gate) if Path(gate).is_absolute() else root / gate
+    m = GROUPS_DECL.search(p.read_text(encoding="utf-8", errors="replace"))
+    return m.group(1).split() if m else []
+
+
 def by_kind(root: Path = REPO) -> dict[str, list[str]]:
     return {k: gates(k, root) for k in KINDS}
 
@@ -68,9 +85,17 @@ def makefile_text(root: Path = REPO) -> str:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="the gate list, by declared kind")
-    ap.add_argument("--kind", required=True, choices=KINDS)
+    ap.add_argument("--kind", choices=KINDS)
+    ap.add_argument("--groups", metavar="GATE",
+                    help="print the groups GATE declares, one a line")
     ap.add_argument("--root", default=str(REPO))
     a = ap.parse_args(argv)
+    if a.groups:
+        for g in groups(a.groups, Path(a.root)):
+            print(g)
+        return 0
+    if not a.kind:
+        ap.error("one of --kind or --groups is required")
     for g in gates(a.kind, Path(a.root)):
         print(g)
     return 0
