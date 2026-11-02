@@ -86,7 +86,7 @@ tasks:
     when: {kind: weekly, days: Sat, time_et: "07:00"}
     reads: public crypto sources
     writes: a message only
-    consumer: Ari
+    consumer: the operator
     rights: none (a read)
     status: retiring
     retire_when: interim, due to retire now the box's emerging-mechanism scan runs (altdata/mechanism_scan.py, Saturdays)
@@ -94,7 +94,7 @@ tasks:
     cadence_et: the 12th and 27th, 06:58
     when: {kind: monthly, dom: 12, time_et: "06:58", label: "Publication watch (also the 27th)"}
     reads: the publishers on the reading shelf
-    writes: a reading-watch file that Ari commits to docs/scans/
+    writes: a reading-watch file that the operator commits to docs/scans/
     consumer: the library (the papers' refresh queue)
     rights: none (a read)
     status: active
@@ -103,8 +103,8 @@ tasks:
     cadence_et: the 25th, 06:57
     when: {kind: monthly, dom: 25, time_et: "06:57"}
     reads: the month's public commentary
-    writes: "docs/scans/signal-scan-YYYY-MM.md, for Ari to rule on"
-    consumer: the signal-triage register (Ari's rulings)
+    writes: "docs/scans/signal-scan-YYYY-MM.md, for the operator to rule on"
+    consumer: the signal-triage register (the operator's rulings)
     rights: none until ruled
     status: active
     retire_when: ""
@@ -122,7 +122,7 @@ tasks:
     when: {kind: quarterly, time_et: "06:56", label: "JPM Guide read (6th, quarterly)"}
     reads: J.P. Morgan's quarterly Guide to the Markets
     writes: "docs/scans/jpm-gtm-YYYYqN.md"
-    consumer: Ari's rulings (change-order-jpm-gtm-2026-10-03.md)
+    consumer: the operator's rulings (change-order-jpm-gtm-2026-10-03.md)
     rights: none until ruled
     status: active
     retire_when: ""
