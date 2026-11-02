@@ -870,7 +870,8 @@ numbers (L1).
 - 29 (r−g) is amended by 110, the real rate against trend growth and r*.
 - SR-12 and item 30 (investor allocation) are amended by 108, money market funds.
 - `em_scorecard` is amended by 105(b), EM local bonds. Item 10 (Batch 4, SR-46, the
-  EM shock screen) is audited by 105(a).
+  EM shock screen) is audited by 105(a): read 1 Nov 2026; amendment drafted in
+  b91-notes.md Part 3, pending the operator's ruling.
 - The Digital Assets chapter and 88(b), the Monthly gold chapter, are amended by
   106, who owns BTC and gold.
 - `docs/alpha-lab-rules.md` is amended by 99: family_ref keys and two leakage cases.
