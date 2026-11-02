@@ -50,7 +50,7 @@ from typing import Optional
 
 from altdata import session
 
-from .. import book, files, governor, promote, rules, screen
+from .. import book, families, files, governor, promote, rules, screen
 from .. import config as acfg
 from .. import engine as engine_mod
 from .. import hypotheses as hyp
@@ -149,7 +149,7 @@ def _grammar_extend(ledger, store, e: dict, as_of: str) -> dict:
                 for s in cmp.instruments)
     tr = rules.backtest(cmp, store, first, last, data=data)["trades"]
     x = [t["net"] for t in tr]
-    n_trials = max(1, ledger.variant_count(h["family"]))
+    n_trials = max(1, ledger.variant_count(families.count_key(h)))   # B98
     ds = av.deflated_sharpe(x, n_trials, acfg.periods_per_year(cmp.horizon))
     out = {"n": len(x), "expectancy": ds["mean"], "deflated_sharpe": ds["deflated_sharpe"],
            "through": last, "n_trials": n_trials}
