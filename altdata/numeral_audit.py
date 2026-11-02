@@ -1598,7 +1598,9 @@ def currency_names() -> dict:
 # the registry's name for a currency in an ISO pair. A derived form binds only
 # where it is unique to one row in the block; shared, it is no name at all.
 _ALIAS_NOISE = re.compile(r"\b(?:the|treasury|total|rate|level)\b", re.I)
-_ALIAS_HEAD = re.compile(r",\s|\s(?:at|of|for|in|on)\s")
+# A90: "against", "versus" and "vs" end a head too ("Equal-weight against
+# cap-weight S&P 500" goes by "equal-weight", as the 29 Oct draft wrote it).
+_ALIAS_HEAD = re.compile(r",\s|\s(?:at|of|for|in|on|against|versus|vs\.?)\s")
 _ALIAS_TENOR = re.compile(r"^(\d+-(?:year|month|week|day))\b\s*", re.I)
 _ALIAS_PAIR = re.compile(r"\b([A-Z]{3})/([A-Z]{3})\b")
 
@@ -1617,6 +1619,9 @@ def _derived_aliases(label: str) -> list[str]:
             words = form.split(" ")
             if len(words) >= 3:
                 forms.append(" ".join(words[1:]))
+                # A90: and without its last word ("the 10-year breakeven" for
+                # "10-year breakeven inflation", "the 30-year Treasury").
+                forms.append(" ".join(words[:-1]))
     t = _ALIAS_TENOR.match(bare)
     if t:
         forms.append(t.group(1))
@@ -1663,6 +1668,16 @@ _BIND_CLAUSE = re.compile(r"[;:—–]|,(?!\d)|\s-\s")
 _RESPECTIVELY = re.compile(r"\brespectively\b", re.I)
 
 
+_UNNAMED = re.compile(r"(?<![\w-])(?:\d+-(?:year|month)|[A-Z]{3,5})(?![\w-])")
+
+
+def _unnamed_subject(text: str, start: int, end: int, taken: list) -> bool:
+    """Is there, between `start` and `end`, a bare tenor ("the 10-year") or a
+    capitalised ticker-like word ("PCE") outside every name the block knows?"""
+    return any(not any(s <= m.start() < e for s, e in taken)
+               for m in _UNNAMED.finditer(text, start, end))
+
+
 def _enclosed(text: str, start: int, end: int) -> bool:
     """Is position `start` inside a bracket that closes before `end`?"""
     depth = 0
@@ -1683,7 +1698,10 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
     by_alias: dict[str, list[dict]] = {}
     for r in rows:
         for a in r["aliases"]:
-            by_alias.setdefault(a, []).append(r)
+            # A90: a noise word alone ("level") is no name; it matched "an index
+            # level of 130.9" and bound core PCE's level to a row called that.
+            if not _ALIAS_NOISE.fullmatch(a.strip()):
+                by_alias.setdefault(a, []).append(r)
     derived: dict[str, list[dict]] = {}
     for r in rows:
         for lab in list(r["aliases"]):
@@ -1695,7 +1713,10 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
                         by_alias[a].append(r)
                 elif all(x is not r for x in derived.get(a, [])):
                     derived.setdefault(a, []).append(r)
-    by_alias.update({a: rs for a, rs in derived.items() if len(rs) == 1})
+    # A90: unique means one SERIES -- a label printed twice in the block (the
+    # same table in two places) is still one row's name ("PRL fees, 30 days").
+    by_alias.update({a: rs for a, rs in derived.items()
+                     if len({r["aliases"][0] for r in rs}) == 1})
     alias_rx = [(_alias_rx(a), a) for a in sorted(by_alias, key=len, reverse=True)]
     bounds = [0] + [m.end() for m in _SENTENCE_END.finditer(text)] + [len(text) + 1]
     out = []
@@ -1705,13 +1726,7 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
         lo = max(b for b in bounds if b <= f.position)
         hi = min(b for b in bounds if b > f.position)
         end = f.position + len(f.text)
-        c_lo = max([lo] + [m.end() for m in _BIND_CLAUSE.finditer(text, lo, f.position)])
-        c_hi = next((m.start() for m in _BIND_CLAUSE.finditer(text, end, hi)), hi)
-        if _RESPECTIVELY.search(text, c_lo, c_hi):
-            continue
-        tag = re.match(r"\s*\(", text[end:hi])
-        tag_hi = text.find(")", end, hi) if tag else -1
-        hits, taken = [], []
+        names, taken = [], []
         for rx, a in alias_rx:
             for m in rx.finditer(text, lo, hi):
                 if any(m.start() < e and s < m.end() for s, e in taken):
@@ -1719,18 +1734,55 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
                 if m.start() <= f.position < m.end():
                     continue       # the figure is part of the name ("S&P 500")
                 taken.append((m.start(), m.end()))
-                before = m.end() <= f.position
-                d = f.position - m.end() if before else m.start() - end
-                if tag and end < m.start() and m.end() <= tag_hi:
-                    tier = 0                         # its own tag: "(XLY/XLP)"
-                elif c_lo <= m.start() < c_hi:
-                    tier = (2 if _enclosed(text, m.start(), f.position) else 1) \
-                        if before else 3
-                elif before:
-                    tier = 5 if _enclosed(text, m.start(), f.position) else 4
-                else:
-                    continue                         # after it, in another clause
-                hits.append((tier, d, m.group(0), a))
+                names.append((m, a))
+        # A90: a comma inside a name ("Implied correlation, 1 month (Cboe
+        # COR1M)") does not end a clause.
+        cuts = [c for c in _BIND_CLAUSE.finditer(text, lo, hi)
+                if not any(s <= c.start() < e for s, e in taken)]
+        c_lo = max([lo] + [c.end() for c in cuts if c.end() <= f.position])
+        c_hi = next((c.start() for c in cuts if c.start() >= end), hi)
+        if _RESPECTIVELY.search(text, c_lo, c_hi):
+            continue
+        tag = re.match(r"\s*\(", text[end:hi])
+        tag_hi = text.find(")", end, hi) if tag else -1
+        # A90: "a 7.03% mortgage rate" -- after "a" or "an", the name straight
+        # after the figure is the figure's own.
+        attributive = re.search(r"\b(?:a|an)\s+$", text[lo:f.position], re.I)
+        # A90: a sentence that opens on a name alone, set off by a comma ("Net
+        # liquidity, the Fed balance sheet less ..., closed September at"), has
+        # that name for its subject; the appositive after it does not.
+        first_cut = next((c.start() for c in cuts), hi)
+        hits = []
+        for m, a in names:
+            before = m.end() <= f.position
+            d = f.position - m.end() if before else m.start() - end
+            # A90: an unnamed subject between a name and the figure takes the
+            # figure from it -- "the 2-year yield rose ... and the 10-year rose
+            # ... to 5.29%", "Brent crude surged ..., WTI rose ... to 97.18",
+            # "core CPI climbed ... and core PCE rose +0.32%": a bare tenor or a
+            # capitalised ticker-like word that names no row. The figure is left
+            # to the plain match.
+            if before and _unnamed_subject(text, m.end(), f.position, taken):
+                continue
+            lone_tag = (re.search(r"\(\s*$", text[lo:m.start()]) is not None
+                        and re.match(r"\s*\)", text[m.end():hi]) is not None)
+            if tag and end < m.start() and m.end() <= tag_hi:
+                tier = 0                             # its own tag: "(XLY/XLP)"
+            elif attributive and not before and re.match(r"\s+$", text[end:m.start()]):
+                tier = 0                             # "a 7.03% mortgage rate"
+            elif c_lo <= m.start() < c_hi:
+                # A90: a bracket that holds only a name is a tag naming the
+                # series ("(Cboe COR1M) at 8.73"), not a qualifier to step over.
+                enclosed = _enclosed(text, m.start(), f.position) and not lone_tag
+                tier = (2 if enclosed else 1) if before else 3
+            elif before and text[lo:m.start()].strip() in ("", "The", "the") \
+                    and m.end() <= first_cut and not text[m.end():first_cut].strip():
+                tier = 3.5                           # the sentence's bare subject
+            elif before:
+                tier = 5 if _enclosed(text, m.start(), f.position) else 4
+            else:
+                continue                             # after it, in another clause
+            hits.append((tier, d, m.group(0), a))
         if not hits:
             continue
         _, _, _, alias = min(hits)
