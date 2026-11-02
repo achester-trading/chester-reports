@@ -428,8 +428,118 @@ def group_c() -> None:
           "wired: the Weekly's section 10 (the book) and the Monthly's appendix")
 
 
+class _FakeStore:
+    """{key: [(observed_at, value, available_at)]}: as_of and latest_as_of."""
+
+    def __init__(self, rows: dict, path=None):
+        self.rows, self.path = rows, path
+
+    def as_of(self, key, as_of=None, instrument=None, **_kw):
+        cut = str(as_of or "9999")
+        return [{"observed_at": o, "value_num": v, "available_at": a}
+                for o, v, a in sorted(self.rows.get(key, [])) if a <= cut]
+
+    def latest_as_of(self, key, cut, instrument=None):
+        r = self.as_of(key, cut)
+        return r[-1] if r else None
+
+
+def group_d() -> None:
+    """A103: THE SEVEN PLACES THE WEEKLY OF W/E 30 OCT CONTRADICTED ITSELF (the
+    Weekly Letter's W1-W7; tests/fixtures/weekly_consistency_2026-10-30.json).
+    Each pair of prints now reads one source, and each case is held here."""
+    import sqlite3
+    head("D. A103: THE WEEKLY AGAINST ITSELF (W1-W7)")
+    from daily_cascade import batch5_block, precis as pc, stack_prose as sp
+    from daily_cascade import weekly_sections as wsec, weekly_stack as ws
+    fx = json.loads((REPO / "tests" / "fixtures" / "weekly_consistency_2026-10-30.json")
+                    .read_text(encoding="utf-8"))
+    # W1 -- the précis's week against the tape's.
+    w1 = fx["w1"]
+    ed = {"sections": [{"id": "tape", "table": w1["tape"]},
+                       {"id": "mechanics", "items": fx["w2"]["items"]},
+                       {"id": "ahead", "data": {"calendar": fx["w7"]["calendar"]}}]}
+    fr = pc.frame(ed, None)
+    spy = pc.spy_week(fr["the_week_in_markets"])
+    check(spy and spy[1] == -0.56 and any("0.56" in f for f in fr["figures_you_may_cite"])
+          and all(pc.week_sign_faults([s], spy) for s in w1["fail"])
+          and not any(pc.week_sign_faults([s], spy) for s in w1["pass"]),
+          f"W1: the précis's block carries the tape's week, signed ({spy and spy[0]}); "
+          f"'a positive week' against it is withheld, a down week or another market's "
+          f"is not")
+    check("week_sign_faults(prose_fields(p)" in (REPO / "daily_cascade" / "precis.py")
+          .read_text(encoding="utf-8"),
+          "W1: the précis's own audit runs it")
+    # W2 -- the five-session summary, apart from the week-end reading.
+    g = fr["dealer_gamma_this_week"] or {}
+    check("2 in positive net GEX, 3 in negative" in str(g.get("the_week_session_by_session"))
+          and "week's end" in str(g.get("at_the_week_end_only"))
+          and "dealer_gamma_this_week" in pc.PRINTS_NOTE,
+          "W2: the précis reads the session table's five-session summary, and the "
+          "week-end reading only under its own name")
+    # W3 -- the term premium's change: one computation for both tables.
+    w3 = fx["w3"]
+    st = _FakeStore({w3["key"]: [tuple(r) for r in w3["rows"]]})
+    attr = batch5_block._attribution(st, w3["now"], None, w3["then"])
+    tp = (attr.get("data") or {}).get("term_premium") or {}
+    pl = ws.change_over(st, w3["key"], w3["now"], w3["then"])
+    old = batch5_block._attribution(st, w3["now"], None)["data"]["term_premium"]
+    check(pl and tp.get("change_bp") == pl["change"] and old.get("change_bp") != pl["change"]
+          and attr["table"]["rows"][0][2].startswith(("−", "-")),
+          f"W3: the attribution table's term-premium change is Plumbing's "
+          f"({tp.get('change_bp')} bp since the last edition; the prior print's "
+          f"{old.get('change_bp')} bp was the second figure)")
+    # W4 -- the gap's direction over the week, of the printed z.
+    w4 = fx["w4"]
+    hist = {w4["gap"]["id"]: [tuple(r) for r in w4["history"]]}
+    new = wsec.gap_table([w4["gap"]], hist, None, then=w4["then"])["data"][0]["direction"]
+    was = wsec.gap_table([w4["gap"]], hist, None)["data"][0]["direction"]
+    check(new == "rising" and was == "falling",
+          "W4: a gap whose printed z rose over the week (2.1 to 2.8) reads 'rising'; "
+          "the last two sessions alone read 'falling'")
+    # W5 -- the narratives' counts are the stories table's.
+    w5 = fx["w5"]
+    ed5 = {"sections": [{"id": "narratives", "data": {"stories": w5["stories"]}}]}
+    check(all(sp.narrative_count_faults(s, ed5) for s in w5["fail"])
+          and not any(sp.narrative_count_faults(s, ed5) for s in w5["pass"]),
+          "W5: 'nine for and none against this week' against a table of two for and "
+          "one against is withheld; the table's pair, or the register's said 'to date', "
+          "passes")
+    # W6 -- the FOMC decision prints with the week's tier-1 releases.
+    w6 = fx["w6"]
+    db = TD / "a103_events.db"
+    from altdata import events as ev_mod
+    with ev_mod.EventStore(str(db)) as evs:
+        e = w6["event"]
+        evs.conn.execute(
+            "INSERT INTO events (content_hash, type, observed_at, available_at, "
+            "ingested_at, source, title) VALUES (?,?,?,?,?,?,?)",
+            ("a103", e["type"], e["observed_at"], e["available_at"], e["available_at"],
+             e["source"], e["title"]))
+        evs.conn.commit()
+    av = "2026-10-30T12:00:00+00:00"
+    st6 = _FakeStore({"fred.fed_target_upper": [(d, v, av) for d, v in w6["upper"]],
+                      "fred.fed_target_lower": [(d, v, av) for d, v in w6["lower"]]},
+                     path=db)
+    rel = ws.tier1_releases(st6, w6["now"], w6["then"])
+    fomc = [r for r in rel if r["release"].startswith("FOMC")]
+    check(len(fomc) == 2 and {r["series"] for r in fomc}
+          == {"fred.fed_target_upper", "fred.fed_target_lower"}
+          and all(r["actual"] == r["prior"] for r in fomc),
+          f"W6: the 28 Oct hold prints among the week's tier-1 releases, the target "
+          f"range's two limits each against its prior ({len(fomc)} rows)")
+    # W7 -- a CHANGE line's date is the calendar's.
+    w7 = fx["w7"]
+    check(pc.change_date_faults(w7["fail"], w7["calendar"])
+          and not pc.change_date_faults(w7["pass"], w7["calendar"])
+          and fr["calendar_ahead"] == w7["calendar"],
+          "W7: 'what would change our mind' dating payrolls 7 Nov against the "
+          "calendar's 6 Nov is withheld; the calendar's dates pass; the précis's block "
+          "carries the calendar")
+
+
 def main() -> int:
-    for g in (group_a, group_b, group_c):
+    for g in (group_a, group_b, group_c, group_d):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
