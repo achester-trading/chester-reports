@@ -29,6 +29,22 @@ on:
   pull_request:
   workflow_dispatch:
 
+# ONE RUN PER BRANCH (B100, 1 Nov 2026). A push runs 150 to 175 jobs, and a second
+# push to the same branch while the first is queued doubled that: the operator
+# cancelled five such runs by hand on 28 Oct. A branch's runs share one group, so
+# a new push cancels its older queued or running run.
+#
+# ONE PENDING RUN FOR MAIN (B111, ruling (d) of 2 Nov 2026). main now shares one
+# group too, but never cancels in progress: the run already going always
+# completes, and of the runs waiting behind it GitHub keeps only the newest (a new
+# pending run replaces the older pending one). During the merge week that is one
+# run per merge burst rather than one per merge. A run for a given merge commit
+# can therefore be cancelled while pending: read the newest COMPLETED run for the
+# merge commit, never the run listed first.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # THE RUNNER IS PINNED (T2.6, 8 Oct 2026): GitHub moves ubuntu-latest to Ubuntu
   # 26 on 19 Oct, inside the freeze week, and a gate's verdict must not change
@@ -44,6 +60,16 @@ jobs:
   # so on a CI runner, which has no captured chains at all, its answer says nothing
   # about the commit. `make list-code` and `make list-data` print them bare, one
   # per line, so nothing here has to parse the human-readable `make list`.
+  #
+  # THE DOCS-ONLY PUSH (B111, ruling (c) of 2 Nov 2026). A push whose changed files
+  # are ALL under docs/briefs/ or docs/pastes/ runs the docs set only:
+  # check_library, check_registry and check_master_guide, taken from
+  # `make list-code` so the set cannot name a gate the Makefile lacks. Every other
+  # push, every pull request and every manual run gets the full lists. `paths-ignore`
+  # cannot say "only these paths" for one subset of the jobs, so this job computes
+  # the changed files (the push's before..after) and narrows the matrix itself; one
+  # workflow keeps one required check. When the changed set cannot be read -- a new
+  # branch, a force-push whose old tip is gone, an empty diff -- it runs the full set.
   enumerate:
     runs-on: ubuntu-24.04
     outputs:
@@ -51,13 +77,39 @@ jobs:
       data: ${{ steps.list.outputs.data }}
     steps:
       - uses: actions/checkout@v5
+      - id: scope
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          scope=full
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git fetch --no-tags --depth=1 origin "$BEFORE" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" "$AFTER" || true)
+            if [ -n "$changed" ] && ! echo "$changed" | grep -Ev '^docs/(briefs|pastes)/' | grep -q .; then
+              scope=docs
+            fi
+            echo "Changed files:"; echo "$changed" | sed 's/^/  /'
+          fi
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "Scope: $scope"
       - id: list
+        env:
+          SCOPE: ${{ steps.scope.outputs.scope || 'full' }}
         run: |
           as_json() { python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))'; }
-          gates=$(make list-code | grep -E '\.(py|sh)$' | as_json)
-          data=$(make list-data  | grep -E '\.(py|sh)$' | as_json)
+          if [ "$SCOPE" = docs ]; then
+            gates=$(make list-code | grep -E '\.(py|sh)$' \
+              | grep -Fx -e tools/check_library.py -e tools/check_registry.py -e tools/check_master_guide.py | as_json)
+            data='[]'
+          else
+            gates=$(make list-code | grep -E '\.(py|sh)$' | as_json)
+            data=$(make list-data  | grep -E '\.(py|sh)$' | as_json)
+          fi
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
           echo "data=$data"  >> "$GITHUB_OUTPUT"
+          echo "Scope: $SCOPE"
           echo "Code gates: $gates"
           echo "Data gates: $data"
 
@@ -86,16 +138,32 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
+        id: py
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
 
+      # THE INSTALLED PACKAGES ARE CACHED (B111, ruling (b) of 2 Nov 2026). `cache:
+      # pip` above keeps only pip's downloads, so every job still installed: 53 of
+      # the green run's 134.5 job-minutes, about 20 s in each of 165 jobs (B107).
+      # This restores the interpreter's whole tree, packages installed, keyed on the
+      # OS, the exact Python version and requirements.txt's hash; any change to
+      # either is a new key. A hit skips the install; a miss runs it as before.
+      - name: Restore installed packages
+        id: pkgs
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pythonLocation }}
+          key: gates-pkgs-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+
       # The full requirements, not a hand-picked subset. The old workflow
       # installed only PyYAML and worked because no covered module happened to
       # import pandas -- an undeclared invariant that one new import would have
       # broken, with a failure message about the import rather than the rule.
+      # It is the cache-miss path: on a hit the packages are already installed.
       - name: Install dependencies
+        if: steps.pkgs.outputs.cache-hit != 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -134,11 +202,19 @@ jobs:
     name: "data: ${{ matrix.gate }}"
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - id: py
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
-      - run: |
+      # The same cache as the gate job's (B111): one key, one restore.
+      - id: pkgs
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pythonLocation }}
+          key: gates-pkgs-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+      - if: steps.pkgs.outputs.cache-hit != 'true'
+        run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: ${{ matrix.gate }}
