@@ -661,7 +661,9 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # BATCH 5 TRANCHE 1 (ST-R4.21b, 26a, 17a): the attribution's term premium
     # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
     from . import batch5_block                                  # noqa: PLC0415
-    subs += batch5_block.plumbing_subsections(st, now, then, cadence)
+    # A103 (W3): passed the same cutoffs and prior rule as Plumbing's own table.
+    subs += batch5_block.plumbing_subsections(st, now, then, cadence,
+                                              month_aligned=month_aligned)
     # 6E, THE REST (16 Oct 2026): the lens columns the brief left for "later",
     # as one table of Plumbing's series, and the inflation block (the CPI lead
     # composite, the core CPI-PCE gap; Batch 7 items 46 and 48 attach to it).
