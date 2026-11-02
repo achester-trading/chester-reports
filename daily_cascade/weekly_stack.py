@@ -759,9 +759,11 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
             continue
         for h in heads[rel]:
             key, form = h["key"], h.get("form") or "level"
-            if (rel, key, form) in seen:
+            # By series and form, not by release name (A103, W6): the calendar
+            # and the statement name one FOMC decision two ways, and it prints once.
+            if (key, form) in seen:
                 continue
-            seen.add((rel, key, form))
+            seen.add((key, form))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
             got = headline_form([r["value_num"] for r in pts], form,
