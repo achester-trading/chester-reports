@@ -646,18 +646,11 @@ def dev_point(theme: str, it: dict) -> dict:
 
 def month_direction(h: list, then: Optional[str]) -> Optional[tuple[str, float]]:
     """(rising | falling, the |z| at the month's start): a gap's direction over the
-    MONTH -- its |z| at the latest point against its |z| at the month's start --
-    where the Weekly's reads its last two sessions (T3.6 M5)."""
-    pts = [(str(d)[:10], v) for d, v in h or [] if v is not None]
-    if not pts or not then:
-        return None
-    start = [v for d, v in pts if d <= then[:10]]
-    if not start:
-        return None
-    a, b = abs(float(start[-1])), abs(float(pts[-1][1]))
-    if a == b:
-        return None
-    return ("rising" if b > a else "falling"), float(start[-1])
+    MONTH -- its |z| at the latest point against its |z| at the month's start
+    (T3.6 M5). A103: one rule, weekly_sections.period_direction, which the
+    Weekly's gap table now reads over the week."""
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    return wsec.period_direction(h, then)
 
 
 def misfit_section(p: dict, st, now: str, pmb: Optional[dict],

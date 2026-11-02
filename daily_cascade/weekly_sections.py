@@ -685,8 +685,28 @@ def gap_window_words() -> str:
     return f"{in_words(years)}-year window" if years >= 1 else f"{days}-day window"
 
 
+def period_direction(h: list, then: Optional[str],
+                     z_now: Optional[float] = None) -> Optional[tuple[str, float]]:
+    """(rising | falling, the |z| at the period's start): a gap's direction over
+    the edition's period -- its |z| now against its |z| on or before `then`.
+    `z_now` is the z the table prints, where given; else the history's last.
+    The Monthly's month_direction (T3.6 M5) reads this; A103 gives it to the
+    Weekly too."""
+    pts = [(str(d)[:10], v) for d, v in h or [] if v is not None]
+    if not pts or not then:
+        return None
+    start = [v for d, v in pts if d <= then[:10]]
+    if not start:
+        return None
+    a = abs(float(start[-1]))
+    b = abs(float(z_now if isinstance(z_now, (int, float)) else pts[-1][1]))
+    if a == b:
+        return None
+    return ("rising" if b > a else "falling"), float(start[-1])
+
+
 def gap_table(opened: list[dict], history: dict[str, list],
-              dates: Optional[dict] = None) -> dict:
+              dates: Optional[dict] = None, then: Optional[str] = None) -> dict:
     from altdata import labels                                  # noqa: PLC0415
     rows, data = [], []
     dates = dates or {}
@@ -694,10 +714,18 @@ def gap_table(opened: list[dict], history: dict[str, list],
         cid = c.get("id")
         plain = labels.contradiction_plain(cid)
         h = history.get(cid) or []
-        trend = "—"
-        if len(h) >= 2 and None not in (h[-1][1], h[-2][1]):
-            trend = "rising" if abs(h[-1][1]) > abs(h[-2][1]) else "falling"
         z = c.get("magnitude")
+        trend = "—"
+        if then:
+            # A103 (W4, the Weekly Letter of w/e 30 Oct): THE DIRECTION IS THE
+            # WEEK'S, OF THE Z THE TABLE PRINTS. It compared the history's last
+            # two sessions, so a gap whose printed z had risen over the week could
+            # read "falling" on one soft session. Now: the printed z against the
+            # z on or before the week's start (the Monthly's rule, over the week).
+            pd_ = period_direction(h, then, z)
+            trend = pd_[0] if pd_ else "—"
+        elif len(h) >= 2 and None not in (h[-1][1], h[-2][1]):
+            trend = "rising" if abs(h[-1][1]) > abs(h[-2][1]) else "falling"
         dd = dates.get(cid) or {"gap_since": c.get("since"),
                                 "sessions": c.get("persistence_days")}
         rows.append([labels.contradiction(cid).capitalize(), plain.get("legs") or "—",

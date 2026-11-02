@@ -456,7 +456,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
                 screen: Optional[dict] = None,
                 dates: Optional[dict] = None, st=None,
-                now: Optional[str] = None) -> dict:
+                now: Optional[str] = None, then: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
@@ -506,7 +506,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
     # market disagreements and the week's openings.
-    gaps = wsec.gap_table(opened, history or {}, dates)
+    gaps = wsec.gap_table(opened, history or {}, dates, then=then)   # A103 (W4)
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
@@ -683,7 +683,9 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # BATCH 5 TRANCHE 1 (ST-R4.21b, 26a, 17a): the attribution's term premium
     # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
     from . import batch5_block                                  # noqa: PLC0415
-    subs += batch5_block.plumbing_subsections(st, now, then, cadence)
+    # A103 (W3): passed the same cutoffs and prior rule as Plumbing's own table.
+    subs += batch5_block.plumbing_subsections(st, now, then, cadence,
+                                              month_aligned=month_aligned)
     # 6E, THE REST (16 Oct 2026): the lens columns the brief left for "later",
     # as one table of Plumbing's series, and the inflation block (the CPI lead
     # composite, the core CPI-PCE gap; Batch 7 items 46 and 48 attach to it).
@@ -779,9 +781,11 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
             continue
         for h in heads[rel]:
             key, form = h["key"], h.get("form") or "level"
-            if (rel, key, form) in seen:
+            # By series and form, not by release name (A103, W6): the calendar
+            # and the statement name one FOMC decision two ways, and it prints once.
+            if (key, form) in seen:
                 continue
-            seen.add((rel, key, form))
+            seen.add((key, form))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
             got = headline_form([r["value_num"] for r in pts], form,
@@ -1543,10 +1547,21 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
                                  "state": s.get("state"),
                                  "status": (status.get(str(s.get("id")))
                                             or ("long-term theme", ""))[0],
+                                 # A103 (W5, the Weekly Letter of w/e 30 Oct):
+                                 # the stories table's own count, as its cell
+                                 # prints it, and the register's to-date
+                                 # evidence under its own name. The commentary
+                                 # quoted the register's evidence as the week's
+                                 # counts beside a table that printed clusters.
                                  "clusters": (week.get(str(s.get("name"))) or {})
                                  .get("clusters"),
-                                 "evidence_for": s.get("evidence_for"),
-                                 "evidence_against": s.get("evidence_against"),
+                                 "this_week_as_the_table_prints_it":
+                                     analytics.count_text(
+                                         (week.get(str(s.get("name"))) or {})
+                                         .get("clusters") or {"for": 0, "against": 0}),
+                                 "register_evidence_to_date_for": s.get("evidence_for"),
+                                 "register_evidence_to_date_against":
+                                     s.get("evidence_against"),
                                  "last_changed": s.get("last_changed")}
                                 for s in stories]}}
     if voices is not None:
@@ -2176,7 +2191,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "mechanics": mech,
             "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
-                                  st=st, now=now),
+                                  st=st, now=now, then=then),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
