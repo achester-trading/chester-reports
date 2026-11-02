@@ -113,13 +113,23 @@ def asof_cell(x: dict) -> str:
 
 
 def change_over(st, key: str, now_cut: str, then_cut: str,
-                instrument: Optional[str] = None) -> Optional[dict]:
+                instrument: Optional[str] = None,
+                month_aligned: bool = False) -> Optional[dict]:
     """{level, prior, change, unit, observed_at} between two cutoffs.
 
     NO DATE AFTER THE EDITION'S SESSION (W8-9): an observation dated after the
     session a cutoff closes is read only for a series the registry declares
     forward-dated (IORB's effective day), and it then carries `effective`; any
-    other series is read at its newest observation on or before the session."""
+    other series is read at its newest observation on or before the session.
+
+    `month_aligned` (A95, M2 of the Monthly Letter of 1 Nov): the prior is the
+    MONTH'S, as the Monthly's scorecard and theme tables read it
+    (monthly_macro.v2.metric_month, the one definition): the newest observation
+    on or before the earlier of the then-session and the latest print less 25
+    days, as known at `now_cut`. Without it the prior is what was knowable at
+    `then_cut`, which for a series FRED posts the next morning (the OAS) is the
+    day before the month-end, so the Monthly printed one spread's month change
+    two ways. The Weekly keeps its since-the-last-report prior."""
     def at(cut: str):
         r = st.latest_as_of(key, cut, instrument)
         day = edition_session(cut)
@@ -128,7 +138,15 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
                     if str(x.get("observed_at"))[:10] <= day]
             r = max(rows, key=lambda x: str(x["observed_at"])) if rows else None
         return r
-    a, b = at(now_cut), at(then_cut)
+    a = at(now_cut)
+    if month_aligned and a:
+        from monthly_macro import v2 as _v2                      # noqa: PLC0415
+        target = _v2.prior_target(dt.date.fromisoformat(edition_session(then_cut)),
+                                  dt.date.fromisoformat(str(a["observed_at"])[:10]))
+        b = _v2._level_on(sorted(st.as_of(key, now_cut, instrument),
+                                 key=lambda x: str(x.get("observed_at"))), target)
+    else:
+        b = at(then_cut)
     if not a or a.get("value_num") is None:
         return None
     lv = a["value_num"]
@@ -515,12 +533,14 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                   cadence: str = "weekly", liquidity_deltas: bool = False,
                   yudd_line: Optional[bool] = None,
-                  auction_block: bool = False) -> dict:
+                  auction_block: bool = False,
+                  month_aligned: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
     for k, name in PLUMB:
-        x = change_over(st, k, now, then)
+        # A95 (M2): the Monthly reads the month's prior (change_over's docstring).
+        x = change_over(st, k, now, then, month_aligned=month_aligned)
         fr = frames.get(BAR_YIELDS.get(k, ""), {})
         if k in BAR_YIELDS and fr.get("last") is not None \
                 and fr.get("wtd_change_bps") is not None:
@@ -742,7 +762,8 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
             seen.add((rel, key, form))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
-            got = headline_form([r["value_num"] for r in pts], form)
+            got = headline_form([r["value_num"] for r in pts], form,
+                                [str(r["observed_at"])[:10] for r in pts])
             if not got or not h.get("label"):
                 continue
             out.append({"release": rel, "date": str(obs_at)[:10], "series": key,
@@ -753,21 +774,42 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
     return out
 
 
-def headline_form(vals: list, form: str) -> Optional[tuple]:
+def headline_form(vals: list, form: str,
+                  dates: Optional[list] = None) -> Optional[tuple]:
     """(actual, prior) in the declared form, or None when the store holds too
-    few prints to compute it (rulings of 5 Oct, item 1)."""
+    few prints to compute it (rulings of 5 Oct, item 1).
+
+    `dates` (A95, M6 of the Monthly Letter of 1 Nov): each value's observation
+    date. A year-on-year then compares the same month a year earlier and a
+    month-on-month the month before, BY DATE; a month the source never
+    published (BLS's October 2025, lost to the shutdown) leaves that form n/a
+    rather than reaching one print further back. Counted by position, every CPI
+    year-on-year across the gap compared thirteen months, so the release row's
+    actual and prior disagreed with the edition's date-based tables."""
     need = {"level": 1, "change": 2, "mom": 2, "yoy": 13, "annualised": 2}[form]
+    by_month = ({str(d)[:7]: v for d, v in zip(dates, vals)}
+                if dates and len(dates) == len(vals) else None)
+
+    def back(n: int, months: int) -> Optional[float]:
+        """The value `months` before print n, by date (None if unpublished)."""
+        y, m = int(str(dates[n])[:4]), int(str(dates[n])[5:7]) - months
+        while m < 1:
+            y, m = y - 1, m + 12
+        return by_month.get(f"{y:04d}-{m:02d}")
 
     def at(k: int) -> Optional[float]:
         """The form `k` prints back (0 = latest)."""
         n = len(vals) - 1 - k
-        if n - (need - 1) < 0:
+        if n - (need - 1) < 0 and not (by_month and form in ("mom", "yoy") and n >= 0):
             return None
         v = vals[n]
         if form == "level":
             return v
         if form == "change":
             return v - vals[n - 1]
+        if form in ("mom", "yoy") and by_month is not None:
+            p0 = back(n, 1 if form == "mom" else 12)
+            return 100.0 * (v / p0 - 1.0) if p0 else None
         if form == "mom":
             return 100.0 * (v / vals[n - 1] - 1.0) if vals[n - 1] else None
         if form == "yoy":

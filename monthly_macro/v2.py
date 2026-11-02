@@ -401,12 +401,16 @@ def what_changed(p: dict, conn, window: tuple[str, str]) -> dict:
             rows.append({"what": f"story {s['narrative_id']}", "from": None,
                          "to": f"opened ({s.get('state')})",
                          "source": src("narrative", s["narrative_id"], s["opened"])})
-    for f in _q(conn, "SELECT probability_id, claim, probability, emitted_at"
+    # A95 (M3): each forecast carries its ledger source, so the header can say
+    # how many of the month's forecasts are scenario weights -- the count the
+    # scenario record keeps -- beside the ledger's whole count.
+    for f in _q(conn, "SELECT probability_id, claim, probability, emitted_at, source"
                       " FROM probabilities WHERE emitted_at >= ? AND emitted_at <= ?",
                 (start, cutoff)):
         rows.append({"what": "forecast emitted", "from": None,
                      "to": f"p {f['probability']}: {str(f['claim'])[:90]}",
                      "probability": f.get("probability"),
+                     "ledger_source": f.get("source"),
                      "source": src("forecast", f["probability_id"], f["emitted_at"])})
     # T3.6 M6: a resolved forecast carries its probability and outcome, so the
     # Monthly's header can say how many were right without re-reading the ledger.
@@ -659,6 +663,15 @@ def month_in_markets(p: dict) -> dict:
 STALE_DAYS = 75
 
 
+def prior_target(start: dt.date, latest: dt.date) -> dt.date:
+    """THE MONTH'S PRIOR (A95, M2): the print on or before the earlier of the
+    previous month-end and the latest print less 25 days. One definition, read
+    by metric_month and by the stack's month-aligned change
+    (daily_cascade.weekly_stack.change_over), so a series' month change prints
+    the same in every Monthly table that prints it."""
+    return min(start, latest - dt.timedelta(days=25))
+
+
 def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
     """One series over the month: its latest print on or before the month-end,
     the change since the print about a month before it, and its level percentile.
@@ -680,8 +693,7 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
     b_day = dt.date.fromisoformat(str(b["observed_at"])[:10])
     if (month_end - b_day).days > STALE_DAYS:
         return {**out, "state": "stale", "last_print": b_day.isoformat()}
-    prev_target = min(month_end.replace(day=1) - dt.timedelta(days=1),
-                      b_day - dt.timedelta(days=25))
+    prev_target = prior_target(month_end.replace(day=1) - dt.timedelta(days=1), b_day)
     a = _level_on(obs, prev_target)
     unit, _ = derived.delta_unit_for(key)
     s1 = float(b["value_num"])
@@ -847,11 +859,26 @@ def our_read(p: dict, conn, ahead: dict) -> dict:
     else:
         parts.append("The register holds no active position, so the books state "
                      "no view either.")
-    if bz.get("line"):
-        parts.append(f"Against Book Z: {bz['line']}.")
+    if book_z_sentence(bz):
+        parts.append(book_z_sentence(bz))
     return {"state": "ok", "paragraph": " ".join(parts),
             "bounded_to": ["probabilities", "decisions", "benchmark"],
             "live_weights": len(scen), "active_decisions": len(open_)}
+
+
+def book_z_sentence(bz: dict) -> Optional[str]:
+    """A95 (M4, the Monthly Letter of 1 Nov): THE ONE BOOK Z SENTENCE, read by
+    the read's paragraph and the book section alike. "Against Book Z" is the
+    book against Book Z over one window, with the excess (benchmark.book_line,
+    the Weekly's line). Book Z's own ledgers (benchmark.line) are returns, not
+    excesses, and say so: the 1 Nov edition printed them under "Against Book Z"
+    beside the real excess line, two figures under one label."""
+    if bz.get("book_line"):
+        return f"Against Book Z, {bz['book_line']}."
+    if bz.get("line"):
+        return (f"Book Z's own ledgers, each a return and not an excess: "
+                f"{bz['line']}.")
+    return None
 
 
 # ---------------------------------------------------------------------------

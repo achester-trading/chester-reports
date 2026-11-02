@@ -391,10 +391,17 @@ def our_read_slice(p: dict) -> dict:
                               "resolves": s.get("resolve_by")}
                              for s in la.get("scenarios") or []],
             "active_positions": r.get("active_decisions"),
-            "books_against_benchmark": ((p.get("register_month") or {})
-                                        .get("books_vs_benchmark") or {})
-            .get("line"),
+            # A95 (M4): the book against Book Z with its excess, the line the
+            # book section and the Weekly print; Book Z's own ledgers ride under
+            # their own name. The 1 Nov "Our read" wrote "the book stands at
+            # +0.66% versus cash" from the ledgers' returns.
+            "book_against_book_z": _bz(p).get("book_line"),
+            "book_z_ledgers_own_returns_not_excess": _bz(p).get("line"),
             "our_regime_reads": _regime(p)}
+
+
+def _bz(p: dict) -> dict:
+    return (p.get("register_month") or {}).get("books_vs_benchmark") or {}
 
 
 def pillar_slice(p: dict, num: str, pillar: dict) -> dict:
@@ -983,6 +990,10 @@ def summary_frame(s: dict, ed: dict) -> dict:
     finished section."""
     from daily_cascade import figure_budget as fb               # noqa: PLC0415
     frame = fb.summary_frame(s, summary_figures(), MONTH_COLUMN)
+    if s["id"] == "misfit":
+        # A95 (M1): the section's open counts, in words, so the summary states
+        # what section 4 lists even when the section's own paragraph is withheld.
+        frame["open_now"] = misfit_count_words(s)
     if s["id"] in SUMMARISES_ALL:
         pool = [m for x in ed.get("sections") or [] if x is not s
                 and not x.get("empty") for m in fb.section_moves(x, MONTH_COLUMN)]
@@ -1014,6 +1025,48 @@ def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
     if sec["sid"] == "mechanics" and ed.get("_retro"):
         from . import dealer                                    # noqa: PLC0415
         out += dealer.flag_word_faults(text, ed["_retro"])
+    if str(sec.get("key") or "").startswith("summary:") and sec["sid"] == "misfit":
+        out += misfit_count_faults(text, next(
+            (s for s in ed.get("sections") or [] if s.get("id") == "misfit"), {}))
+    return out
+
+
+# A95 (M1, the Monthly Letter of 1 Nov): THE SUMMARY HOLDS SECTION 4'S COUNTS.
+# "What doesn't fit"'s summary paragraph said no contradiction was open while
+# section 4 listed seven exceptions: the summary's frame carried the section's
+# masked claim and paragraphs, and the section's paragraph was withheld, so it
+# had nothing that counted them. The frame now carries the counts (in words),
+# and a summary that says "no open contradiction / exception / gap" while the
+# section counts one is withheld, naming the count.
+_MISFIT_KINDS = (("open_gaps", "gaps", r"gaps?"),
+                 ("open_contradictions", "open_contradictions", r"contradictions?"),
+                 ("exceptions_open_now", "exceptions_open_now", r"exceptions?"),
+                 ("five_year_extremes", "extremes", r"extremes?"))
+_NUM_WORDS = ("none", "one", "two", "three", "four", "five", "six", "seven", "eight",
+              "nine", "ten", "eleven", "twelve")
+
+
+def misfit_counts(s: dict) -> dict:
+    """Section 4's open counts, from its own data: {name: n}."""
+    d = s.get("data") or {}
+    return {name: len(d.get(key) or []) for name, key, _ in _MISFIT_KINDS}
+
+
+def misfit_count_words(s: dict) -> dict:
+    return {k: (_NUM_WORDS[n] if n < len(_NUM_WORDS) else str(n))
+            for k, n in misfit_counts(s).items()}
+
+
+def misfit_count_faults(text: Optional[str], s: dict) -> list[str]:
+    counts = misfit_counts(s)
+    out = []
+    for name, _, rx in _MISFIT_KINDS:
+        n = counts.get(name) or 0
+        if n and re.search(rf"\bno\s+(?:\w+\s+)?{rx}\b|\bnone\s+of\s+the\s+{rx}\b",
+                           text or "", re.I):
+            out.append(f"says there is no {rx.split('s?')[0].rstrip('?')} open while "
+                       f"section 4 counts {_NUM_WORDS[n] if n < 13 else n} "
+                       f"({name.replace('_', ' ')}) -- state section 4's count")
     return out
 
 
