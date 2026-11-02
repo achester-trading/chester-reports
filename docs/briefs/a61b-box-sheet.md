@@ -1,4 +1,4 @@
-# The box sheet for the feed repair (for Ari): Tuesday 27 October 2026, evening
+# The box sheet for the feed repair (for the operator): Tuesday 27 October 2026, evening
 
 **What this is.** Every box step `a61b-feed-repair` asks for, in order, for the evening it merges to main **alone** (D29.1; it merges before the Monthly's last dry run, and chain-7 then takes main, D31.5). Each step gives the exact command, what to expect, and when to stop. The sources:
 - `docs/briefs/a61b-feed-repair-notes.md` ("The box sheet", and the A64 section);

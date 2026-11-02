@@ -148,11 +148,11 @@ grep FAILED ~/logs/fred_history.log
 
 `alpha/event_rates.py`, `release_days`: the FOMC query reads source `IN ('claims_registry', 'claims')` in place of `= 'claims'`. Its tests keep their shape.
 
-## Round 2 (21 Oct 2026): Ari's rulings on the two A55 decisions
+## Round 2 (21 Oct 2026): the operator's rulings on the two A55 decisions
 
 ### The rulings, as ruled
 
-1. **The BLS contact.** Ruled 21 Oct 2026, 00:41 ET: "accepted as you built it. bls.gov gets the same contact as the SEC, read from .env at run time and never written to a file; this extends the 17 Oct ruling, which gave it to the SEC alone." Ari will make a permanent alias address for automated requests and put it in `.env` himself.
+1. **The BLS contact.** Ruled 21 Oct 2026, 00:41 ET: "accepted as you built it. bls.gov gets the same contact as the SEC, read from .env at run time and never written to a file; this extends the 17 Oct ruling, which gave it to the SEC alone." the operator will make a permanent alias address for automated requests and put it in `.env` himself.
 2. **The FOMC history.** Ruled 21 Oct 2026, 00:41 ET: "the history is entered once as a claim, and a check audits it every so often."
 
 ### Part 1: a55's CI

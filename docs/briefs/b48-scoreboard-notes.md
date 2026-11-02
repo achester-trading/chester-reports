@@ -58,7 +58,7 @@ Read from `register/store.py` (the `decisions`, `rule_breaks` and `decision_pack
   - The active books (B, C, D) and Book A alone are each shown as the realised P&L of their taken decisions closed in the window, over the declared capital.
   - The 60/40 is Book Z's stored `sixty_forty` marks over the same window, read from its first mark where Book Z began later.
 
-## Every session-set value, with its reason (for Ari)
+## Every session-set value, with its reason (for the operator)
 
 | Value | Set to | Reason |
 |---|---|---|
@@ -123,11 +123,11 @@ Ruled 20 Oct 2026, "accept all" on decisions 1 to 8 of that morning's list. Appl
 
 - **Where it is read.** `heat.regime_band()`, which the order gate already calls at entry, reads the Volatility and Gamma dials' states from the newest stored market-state object, the one the anchor prints. It also reads the gamma dial's provisional mark and the object's session. Nothing is computed: an absent dial is None with its reason.
 - **Where it is written.** The order gate's existing entry write: `decide.py record` puts the gate's detail in the decision's own `gate_detail` field, and its `regime` part now carries `vol_state`, `gamma_state`, `gamma_provisional` and `dials_session` beside the Doctrine regime. No other register write, and no new decision right.
-- **No schema change, so no migration.** `gate_detail` is the decision's existing JSON field, so the register needs no new column and Ari has no migration command to run.
+- **No schema change, so no migration.** `gate_detail` is the decision's existing JSON field, so the register needs no new column and the operator has no migration command to run.
 - **The score.** `expectancy_13w()` cuts by each stamped dial (`by_vol`, `by_gamma`). A decision entered before B49 prints "not stamped"; one stamped while the dial was absent prints "(dial absent at entry)". The Monthly's register month prints both cuts.
 - **The volatile-day flag** joins the stamp only once a50-dealer-store, which carries it, is on main. That is listed for the merge after it (needs-you 3).
 
-### Box command (Ari's; inside a window)
+### Box command (the operator's; inside a window)
 
 The superseding batch registers by manifest, from the checkout after the merge:
 ```

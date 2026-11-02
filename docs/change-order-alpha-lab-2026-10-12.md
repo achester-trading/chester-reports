@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **Ruled, 12 Oct 2026.** Nine decisions in the brief (`docs/briefs/alpha-lab-brief-2026-10-12.md`): 1–8 accepted as a list at 20:28 ET, 9 (the learning loop) at 20:40 ET. Tabled at Audit #4 as a new layer. Build: Tranche 1 the week of 19 Oct, after Friday's merges. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Inputs | The brief of 12 Oct; the Operating Doctrine; the Enterprise Layer change order (`docs/change-order-enterprise-layer-2026-09-27.md`, Part VIII and the order gate); the 2 Oct ruling "never orders stands for the engines"; the gate ladder (Gate 1 mark-to-market, Gate 1.5 paper orders through the order gate, Gate 3 live, not before 2027). |
 | Why | The operator asked for "a new layer … independent … unrestrained, with singular focus on profitability", then "a self-learning loop … continuously learning, as well as innovating". The reports are the operator's intelligence and the Doctrine's books his capital; neither is a machine's book. This order builds one beside them, in ledger-paper, that reads the whole store and writes nothing back. |
 

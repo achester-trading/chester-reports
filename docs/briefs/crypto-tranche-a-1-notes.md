@@ -162,7 +162,7 @@ page, so no rules apply.
 1 Feb 2018 in one call, so every pull is its own backfill.
 
 **The Ethereum decision under rule (b)** (`altdata/sources/blockscout.py`).
-- Etherscan needs `ETHERSCAN_API_KEY`, a registration Ari has not made.
+- Etherscan needs `ETHERSCAN_API_KEY`, a registration the operator has not made.
 - The keyless path within robots is **Blockscout's Ethereum explorer**,
   `eth.blockscout.com/api/v2`, whose robots.txt says Allow /. It serves:
   - `blockscout.gas_gwei`: slow, average, fast;
@@ -225,7 +225,7 @@ gate, as the order rules.
   2,757 keys and 289 ambiguous. The two new ambiguous ones are BTC's and ETH's caps,
   flagged "quantity, alternative: price" the way the basket's are.
 
-## Session-set values (for Ari's accept-all)
+## Session-set values (for the operator's accept-all)
 
 | Value | Set at | Reason |
 |---|---|---|
@@ -238,7 +238,7 @@ gate, as the order rules.
 | The daily window | 14 days | catches a missed weekend; an empty key's first pull writes all of it |
 | Bybit | off | geo-blocked (above) |
 
-## Box commands, for Ari (printed, not run; inside a window)
+## Box commands, for the operator (printed, not run; inside a window)
 
 Run them after the second chain merges, on weekdays 09:05-15:40 or 17:20-23:30 ET, or
 on a weekend clear of Sunday 05:00. Nothing here needs a key. The first timer run
@@ -360,7 +360,7 @@ recorded here.
 | 39034690356 (Gates, push) | `6e-digital`, `938b5e2` (the fix) | green: 87 of 87 jobs |
 | 39034892068 (Gates, push) | `crypto-tranche-a-1`, `d2da8ad` | green: 88 of 88 jobs |
 
-Read 17 Oct 2026. Ari's rulings of 17 Oct on this report are applied on
+Read 17 Oct 2026. The operator's rulings of 17 Oct on this report are applied on
 `crypto-tranche-a-2`:
 - Bybit stays out, with its reader switched off by config and no call path.
 - `/global` stays unbuilt; total market cap and dominance come from a keyless source or are a listed gap.

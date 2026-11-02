@@ -50,7 +50,7 @@ Record the 27 Sep ruling: Books A–D stand; intraday is a tactics layer for Boo
 
 ## 9. Order of work after the session
 
-*Amended 2 Oct 14:21 ET* — Ari pulled 6d forward to follow the daily commentary build. Proposed: T1 daily close (reporting stack, ~14 h) → 6d prediction markets + rate path (~6 h) → T2 Weekly (~10 h) → T3 Monthly (~12 h, for 1 Nov) → cloud migration → 6b intraday slots → 6e with the metric lenses → 6f → Quarterly Structural; Audit #4 holds 14–15 Oct. Confirm or reorder.
+*Amended 2 Oct 14:21 ET* — the operator pulled 6d forward to follow the daily commentary build. Proposed: T1 daily close (reporting stack, ~14 h) → 6d prediction markets + rate path (~6 h) → T2 Weekly (~10 h) → T3 Monthly (~12 h, for 1 Nov) → cloud migration → 6b intraday slots → 6e with the metric lenses → 6f → Quarterly Structural; Audit #4 holds 14–15 Oct. Confirm or reorder.
 
 ## 10. The reporting stack (docs/briefs/reporting-stack-brief-2026-10-02.md)
 

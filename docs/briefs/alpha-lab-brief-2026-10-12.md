@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **Ruled, 12 Oct 2026 — decisions 1–8 accepted as a list at 20:28 ET ("Accept all"); decision 9, the learning loop, added on the operator's instruction and accepted at 20:40 ET.** Change order: `docs/change-order-alpha-lab-2026-10-12.md`. Build: Tranche 1 the week of 19 Oct, after Friday's merges. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | The ask | "Build a new layer. It can draw upon all of the data, but it should be independent. Draft on all of Claude's intelligence and resources: a world-class trading system that is unrestrained, with a singular focus on profitability." |
 | Standing rules that are not this brief's to touch | Paper only, and *paper* in the system's own sense — ledger entries graded against stored prices, never orders of any kind before the Gate 3 ruling (ruled 2 Oct; live not before 2027). No Brookfield-complex instruments (the blocklist in Python and SQLite). No secrets in chat, commits or files. Sessions never place orders. |
 | Rulings of yours this brief would set aside **inside the lab only** (decision 3) | Part VIII of the Enterprise Layer: "at most two paper engines", "the intraday layer is not a fifth book", the register's fixed kill criterion and sample, the attention budget, the sitting as the only route to a trade. Outside the lab every one of them stands untouched. |

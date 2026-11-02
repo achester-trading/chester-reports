@@ -153,7 +153,7 @@ whose series the store has no key for. Today that is all of them:
 
 So `public` is the re-run to use until those writers exist.
 
-## Box steps, in order (Ari's; Thursday evening, inside the windows)
+## Box steps, in order (the operator's; Thursday evening, inside the windows)
 
 1. Pull the branch once it is merged. Unit files follow at the next self-deploy
    tick, or run `bash scripts/deploy.sh` from the laptop.
