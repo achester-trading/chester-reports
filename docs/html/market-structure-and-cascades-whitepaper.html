@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="source-sha256" content="59cee95ed8fcc7e31e8ab88e405f5ab31e5c84ba58d32e73b10f59fb6acb40ca">
+<title>Market Structure and Cascades</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Market Structure and Cascades</h1>
+<h2>How a Trade Becomes a Price, Who Stands in the Middle and Why They Step Away, and How Forced Flow Turns a Move into a Cascade</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XXX</strong> — Markets shelf, reading-plan position 8 beside <em>Positioning &amp; Flows</em> and <em>Technical Indicators</em>, after the options sequence — per the library guide, which is canonical for numerals; cross-references in this paper are by name
+<strong>Version:</strong> 1.0 — Draft 1, 26 October 2026
+<strong>Last reviewed:</strong> 26 October 2026 (seeded with the version date; no structural review has been held)
+<strong>Status:</strong> Draft 1, for the operator's review. The body is timeless; every level, share and probability lives in Appendix B. The seven figures are numbered by order of appearance. Figures 1, 3 and 5 are drawn (26 October 2026; 3 and 5 from the laptop's store, which the box regenerates). Figures 2, 4, 6 and 7 are placeholders named with their store keys, drawn at merge from the box's store.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-how-a-trade-becomes-a-price">Part I — How a Trade Becomes a Price</a></li><li><a href="#s3-part-ii-cascades-as-one-subject">Part II — Cascades as One Subject</a></li><li><a href="#s4-part-iii-the-cases">Part III — The Cases</a></li><li><a href="#s5-part-iv-the-fragility-read-as-measured">Part IV — The Fragility Read, as Measured</a></li><li><a href="#s6-part-v-tactical-applications-wiring-environments-and-the-app">Part V — Tactical Applications, Wiring, Environments, and the Appendices</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>The library has explained, paper by paper, how particular participants are obliged to trade: dealers hedging gamma, volatility-targeting funds cutting exposure, pensions matching liabilities, index funds buying at the close. What it has not done is put those obligations in one place and asked the question they share. When does a move that one set of participants must answer become larger than the willingness of everyone else to absorb it? That question is this paper's subject.</p>
+<p><strong>Liquidity is not a stock that markets hold but a flow that intermediaries supply when it pays and withdraw when it does not.</strong> A cascade is what happens when the flow that must trade exceeds the flow that is willing to. Margin calls, rebalancing, hedging and redemptions must trade; dealers, market makers and patient capital may. The size of a move is therefore set less by the news than by the ratio of forced flow to depth, and the claim this paper defends is that the ratio can be estimated before the move. The system's own attempt to estimate it has, so far, failed its ledger, and Part IV says so plainly. A paper that teaches "measurable before the move" owes its reader the measurement, including when the measurement does not work.</p>
+<p>Part I is the plumbing: venues, intermediaries, ETFs, clearing and margin, depth. Part II treats cascades as one subject rather than a list of disasters. Part III teaches the mechanisms through cases, weighted to where the system's measures reach. Part IV is the fragility read as the system measures it, with each ledger's verdict as filed. Part V carries the closing chapters every markets paper carries.</p>
+<p><strong>What this paper does not do.</strong> It does not teach options mechanics; <em>The Dealer's Hand</em> does, once, in its Part I, and this paper cites it. It does not re-narrate an episode that <em>Tops and Bottoms</em> tells; it gives the mechanism and cites the episode. It does not tell the 2022 gilt crisis as a fiscal story, which belongs to <em>Debt Cycles</em>; it tells the collateral mechanics. And it does not restate the participant ecology of <em>Price, Time, and Edge</em>; it uses it.</p>
+<p><strong>Prerequisites.</strong> <em>Price, Time, and Edge</em>, for the participant classes, the forcing mechanisms and the horizon ladder; <em>The Dealer's Hand</em>, Part I, for how a dealer's options book becomes a hedging flow; <em>Volatility</em>, for volatility targeting and the variance risk premium's unwinds; <em>Rates &amp; Liquidity</em>, for the Treasury market and repo; <em>Positioning &amp; Flows</em>, for the calendar of mechanical holders. A reader who has those can read this paper straight through.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-how-a-trade-becomes-a-price">
+      <summary class="section-head">
+        <span class="section-title">Part I — How a Trade Becomes a Price</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 1 — Venues and auctions</h2>
+<p>A price is not discovered in one place. In a modern equity market it forms across a dozen lit exchanges, several dozen off-exchange venues, and the internal books of wholesalers who fill retail orders before they reach any exchange. Two mechanisms organise that sprawl: the continuous limit order book, which runs through the session, and the auction, which opens and closes it.</p>
+<h3>1.1 The continuous book</h3>
+<p>The continuous book is a queue of resting limit orders at each price, bids below and offers above. A marketable order consumes the queue on the other side until it is filled. Price moves when a queue empties. That is the whole mechanism, and its consequence is easy to miss: the price change a trade causes depends on how much sits in the queues it walks through, not on how large the trade is in the abstract. A thousand shares that meet a thin offer move the price more than a hundred thousand shares that meet a deep one.</p>
+<p>The queues are mostly supplied by intermediaries, the subject of Chapter 2, and they are cancellable at no cost. A resting order is an option the market maker has written and can withdraw in microseconds. What a screen displays as depth is the depth the suppliers are willing to show at that instant. Depth that has been displayed is not depth that has been promised.</p>
+<h3>1.2 The auctions</h3>
+<p>The opening and closing auctions collect orders over a period and clear them at a single price that maximises the volume matched. Before the match, the exchange publishes the imbalance: how many more shares are to buy than to sell at the indicative price. That publication invites the other side to arrive. The auction is a call market grafted onto a continuous one, and it exists because some participants need a single, verifiable price rather than the best price.</p>
+<p><strong>The close is the day's largest trade, and the reason is mandate rather than preference.</strong> Index funds are measured against a closing price, so they trade at the close. Mutual funds strike their net asset value at the close, so their flows land there. Leveraged and inverse funds rebalance into it. Derivatives settle against it. Every participant whose benchmark, liability or contract names the closing price has an incentive to trade at that price and at no other. The closing auction has therefore grown as indexation has grown, <em>in US-listed equities since the mid-2000s; last verified October 2026</em>, and its share of the day's volume is large enough that a session's continuous trading is in a sense price discovery for the auction rather than the reverse. The shares are dated and live in Appendix B.</p>
+<p><em>Worked example (illustrative).</em> Into an index rebalance close, the published imbalance is 4 million shares to buy in a stock whose closing auction normally matches 6 million. The imbalance is two-thirds of the auction's usual size. Liquidity providers who sell into it must be paid to carry the position overnight, and the payment is the auction price's concession above the last continuous trade. If they demand 30 basis points for warehousing that much inventory, the close prints 30 basis points above where the stock traded at 15:59, and the price reverses partly the next morning as the inventory is distributed. The concession is the price of immediacy at a moment when everyone who must trade has chosen the same instant.</p>
+<p><em>Historical instance.</em> Index reconstitution days, when the largest index families rebalance together, produce the year's largest closing auctions and the clearest imbalance-driven concessions.</p>
+<p><em>On the day.</em> The imbalance publications in the final minutes of the session are the tell. A large, one-sided imbalance that grows rather than shrinks as the close approaches means the other side has not arrived at the indicative price.</p>
+<h3>1.3 Dark venues and internalisation</h3>
+<p>Off-exchange venues match orders without displaying them. Dark pools let institutions trade size without signalling. Wholesalers internalise retail orders against their own inventory, paying for the flow because uninformed orders are cheap to trade against. Both take volume away from the lit book, and both depend on it, because they price their matches against the displayed quote. A cascade therefore reaches the dark venues last and leaves them first. When the lit quote becomes unreliable, venues that reference it stop matching, and their flow is pushed back onto the book at exactly the moment the book is thinnest.</p>
+<h3>1.4 Non-US structure, in brief</h3>
+<p>The book trades US instruments, but three differences abroad change how a cascade travels.
+- <strong>Europe is fragmented by law.</strong> The same share trades on its primary exchange, on multilateral trading facilities and through systematic internalisers. For most of the period the market has had no single consolidated tape, so "the price" is less a fact than a reconstruction.
+- <strong>Asia's sessions are interrupted.</strong> Several major exchanges break for lunch. The sessions do not overlap with New York, so a shock that begins in the US afternoon is first priced in Tokyo, Seoul and Hong Kong through futures and through their own opening auctions.
+- <strong>Price limits differ.</strong> Some Asian markets cap daily moves per stock. A capped market cannot clear, so selling pressure is pushed into the next session or into whatever related instrument is still open.</p>
+<p>The common lesson is that when one venue cannot clear, the order flow it would have absorbed goes to whatever venue can. In a cascade, that is usually the futures market or the most liquid ETF. The US equity index future is the instrument the world sells when it cannot sell what it holds.</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>What it does</th>
+<th>What a cascade does to it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Continuous book</td>
+<td>Clears marketable orders against resting quotes</td>
+<td>The quotes are cancelled; depth vanishes before price moves</td>
+</tr>
+<tr>
+<td>Opening and closing auctions</td>
+<td>Clear at one price after publishing the imbalance</td>
+<td>Mandated flow concentrates there; the concession widens</td>
+</tr>
+<tr>
+<td>Dark venues and internalisers</td>
+<td>Match against the lit quote without displaying</td>
+<td>Stop matching when the quote is unreliable; flow returns to the book</td>
+</tr>
+<tr>
+<td>Non-US venues</td>
+<td>Fragmented, interrupted, price-limited</td>
+<td>Pressure moves to futures and to whatever is open</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 2 — Who supplies liquidity</h2>
+<p><em>Price, Time, and Edge</em> lays out the participant ecology, and this chapter does not restate it. It asks one narrower question of each class that stands in the middle of a trade: what is it paid for, and what makes it stop?</p>
+<h3>2.1 Bank dealers</h3>
+<p>A bank dealer warehouses risk on its balance sheet: it buys a block it cannot immediately resell and holds it until it can. It is paid for immediacy and for risk-bearing, and its capacity is set by the capital its regulators make it hold against the inventory. A dealer stops when the balance sheet is full, when the risk limits on the desk bind, or when the capital charge on the position exceeds the spread it earns. None of those is a decision about the market. They are constraints, and they bind hardest when volatility rises, because value-at-risk limits shrink the inventory a desk may hold exactly when inventory is cheapest to buy.</p>
+<h3>2.2 Non-bank market makers</h3>
+<p>Electronic market makers quote continuously on both sides of thousands of instruments and hold inventory for seconds or minutes rather than days. They are paid the spread, and in some venues a rebate for posting liquidity. Their capacity is set by their models' confidence and by their own risk limits, not by regulatory capital. They stop when the variance of the next price exceeds what the spread pays for, when their data feeds disagree, or when their models detect that the flow is informed. Each of those conditions arrives suddenly. A non-bank market maker does not reduce its quoting gradually as risk rises; it widens, then pulls.</p>
+<h3>2.3 Automated liquidity</h3>
+<p>High-frequency firms that are not formal market makers supply much of the displayed depth and take much of it back. They trade against short-lived imbalances and among themselves. Their contribution is real in calm markets: narrower spreads, deeper top-of-book quotes. In stress it can reverse, because a strategy that supplies liquidity for a profit in a fraction of a second will consume it if consuming pays. Inventory passed between automated traders is the "hot potato" of the 2010 flash crash (Chapter 13). The volume rises, and the price falls anyway, because no participant is willing to hold.</p>
+<h3>2.4 Patient capital</h3>
+<p>Behind the intermediaries stand the participants who are the market's true risk absorbers: long-only funds with cash, pensions with rebalancing rules, corporate buyback desks, and value investors who buy what is cheap. They are not paid to supply liquidity. They supply it because price has moved past their own valuation. They are slow; their decisions are made over days. The gap between the intermediaries' withdrawal, which takes seconds, and patient capital's arrival, which takes days, is the window in which a cascade runs.</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Paid for</th>
+<th>Capacity set by</th>
+<th>Stops when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bank dealer</td>
+<td>Immediacy and warehousing</td>
+<td>Regulatory capital; risk limits</td>
+<td>The balance sheet or the VaR limit binds</td>
+</tr>
+<tr>
+<td>Non-bank market maker</td>
+<td>The spread, rebates</td>
+<td>Model confidence; own limits</td>
+<td>Variance outruns the spread; feeds disagree; flow looks informed</td>
+</tr>
+<tr>
+<td>Automated liquidity</td>
+<td>Short-lived imbalances</td>
+<td>Latency and risk budget</td>
+<td>Consuming pays more than supplying</td>
+</tr>
+<tr>
+<td>Patient capital</td>
+<td>Nothing; it buys value</td>
+<td>Its own cash and mandate</td>
+<td>It is slow to start, not quick to stop</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 3 — Exchange-traded funds</h2>
+<p>An exchange-traded fund is a share whose price is tied to a basket by arbitrage. The tie is enforced by authorised participants, dealers who may create new shares by delivering the basket to the fund, or redeem shares by taking the basket out. When the fund's price rises above the value of its holdings, an authorised participant buys the basket, creates shares and sells them; when it falls below, it buys shares, redeems them and sells the basket. The premium or discount to net asset value is the arbitrage's error term.</p>
+<h3>3.1 What the arbitrage needs</h3>
+<p>The arbitrage works when the basket can be traded at the price used to value it. For a large-capitalisation equity fund it can, and the premium is a rounding error. For a corporate bond fund it often cannot: many of the bonds do not trade on a given day, and the fund's net asset value is computed from evaluated prices, which are models of where the bonds would trade. The fund's own price is the only observed price. In calm markets the two agree. In stress they separate, and the separation is information rather than error.</p>
+<h3>3.2 What a fund does to its underlying</h3>
+<p>In calm markets an ETF adds liquidity to its underlying. Investors who would otherwise trade a hundred bonds trade one share, and the authorised participants net the flows and touch the bonds only when the imbalance is persistent. In stress the direction can reverse. A wave of selling in the fund produces redemptions, and redemptions deliver bonds to the authorised participant, who must sell them into a market that is not bidding. The fund has transmitted the selling from the most liquid instrument to the least. Whether it does depends on whether the authorised participants step in at all. They are not obliged to, and they will not when their own balance sheets are full (Chapter 2).</p>
+<p><em>Worked example (illustrative).</em> A bond fund holds bonds whose evaluated prices sum to a net asset value of 100. On a stressed day the bonds barely trade, but the fund's shares trade heavily at 95. The 5% discount says that sellers who need liquidity today will pay 5% for it; the evaluated prices say where the bonds would trade if anyone were trading them. An authorised participant could buy the shares at 95 and redeem them for bonds worth 100 on paper, but only if it can sell those bonds at something near 100, which the day's market does not offer. The arbitrage does not close, because its second leg is the trade nobody can do.</p>
+<p><em>Historical instance.</em> March 2020, when the largest corporate bond funds traded at discounts to net asset value that would be absurd in normal markets, and the discount closed only when the central bank announced it would buy both the bonds and the funds (Chapter 15).</p>
+<p><em>On the day.</em> The discount opened while the underlying bonds were barely quoted. A reader who treated the net asset value as the true price and the fund's price as the error had the roles reversed.</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>ETF's premium or discount</th>
+<th>What the fund does to its underlying</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Liquid basket, calm market</td>
+<td>Rounding error</td>
+<td>Adds liquidity; flows net</td>
+</tr>
+<tr>
+<td>Illiquid basket, calm market</td>
+<td>Small, stable</td>
+<td>Adds liquidity; authorised participants touch the basket rarely</td>
+</tr>
+<tr>
+<td>Illiquid basket, stress</td>
+<td>Large discount; the fund is the price</td>
+<td>Transmits selling to the basket if authorised participants redeem; otherwise the discount stays open</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 4 — Settlement, clearing, collateral and margin</h2>
+<p>Every cascade in Part III turns at some point on a payment that had to be made. The price of an asset is a fact about the market; the margin on a position is a fact about a contract, and it falls due whether or not the market is open, liquid or kind. This chapter is the plumbing through which a price move becomes a cash demand.</p>
+<h3>4.1 The clearing house</h3>
+<p>A central counterparty steps between the two sides of every cleared trade, becoming the buyer to every seller and the seller to every buyer. It replaces a web of bilateral exposures with one hub, and it makes the hub safe by charging for it. Members post initial margin against what a position could lose over the time it would take to close out after a default. Variation margin is settled at least daily, so that losses are paid as they accrue rather than at the end. Behind the margin sits a default waterfall: the defaulter's margin, then its contribution to a default fund, then the clearing house's own capital, then the surviving members' contributions.</p>
+<p>The design concentrates risk in order to manage it. A clearing house is a shock absorber, but it absorbs shocks by charging the survivors, and the charge arrives at the worst time.</p>
+<h3>4.2 Why margin is procyclical</h3>
+<p>Initial margin is computed from a model of how far prices can move. When realised volatility rises, the model says prices can move further, and the margin rises. That is correct risk management for the clearing house and a cash demand on every member at once. A rise in volatility thus does two things. It produces losses, which are paid as variation margin, and it raises the margin on positions that have not lost anything. Both are paid in cash or eligible collateral, on the clearing house's schedule. The participant who cannot pay must sell, and the selling moves the price, which raises realised volatility, which raises the margin. Margin models carry anti-procyclicality tools (floors, buffers and long look-back windows) precisely because the loop is known. The tools damp it; they do not remove it.</p>
+<p><em>Worked example (illustrative).</em> A futures position of $100 million notional carries initial margin of 5%, so $5 million. Realised volatility doubles over three sessions, and the margin model steps the rate to 9%. The position has not changed, but its margin is now $9 million, a $4 million cash call due at the next settlement. If the same move has also cost the position $3 million in variation margin, the member must find $7 million in cash in three days. A member that holds its liquidity in the same asset it is hedging must sell that asset to pay.</p>
+<p><em>Historical instances.</em> January 2021, when a clearing deposit charged to a retail broker rose so sharply that the broker restricted its customers' buying (Chapter 16). September 2022, when the collateral calls on leveraged liability-matching funds forced the sale of the very bonds whose fall had triggered the calls (Chapter 17).</p>
+<p><em>On the day.</em> Margin events look like operational events: a broker restricting trading, a fund suspending redemptions, a central bank announcing a facility at an unusual hour. The price action follows the cash, not the other way round.</p>
+<h3>4.3 Collateral and haircuts</h3>
+<p>Outside cleared markets, leverage is financed by repo and securities lending: a borrower posts a security and receives cash, less a haircut. The haircut is margin by another name, and it is just as procyclical. Lenders raise haircuts when the collateral becomes volatile or hard to value. A borrower whose collateral is suddenly worth less, and whose haircut has risen, receives less cash against the same securities. The difference must be found or the position cut. <em>Rates &amp; Liquidity</em> carries the repo market's mechanics and its 2019 dysfunction; what this paper adds is that haircuts and initial margin are one mechanism wearing two contracts.</p>
+<h3>4.4 Settlement</h3>
+<p>Settlement is the delivery of the security against the cash. A shorter settlement cycle reduces the exposure a clearing house must margin between trade and delivery, which lowers margin in calm markets. It also compresses the time a participant has to find the cash or the security when something goes wrong. Each shortening of the cycle trades one risk for another: less counterparty exposure for less operational slack. The dates are in Appendix B.</p>
+<h3>4.5 Who must post, and when</h3>
+<p>The cascade question is not who has losses but who must post cash before they can choose not to. Four classes are forced at once:
+- <strong>Futures and options holders</strong> post variation margin daily and initial margin on the clearing house's schedule.
+- <strong>Leveraged long holders of securities on margin</strong> at a broker receive margin calls, and the broker sells if they do not answer.
+- <strong>Repo and swap counterparties</strong> post collateral against marks, usually daily.
+- <strong>Funds</strong> with redemptions due must pay in cash on their own settlement terms.</p>
+<p>The first three are contractual and arrive within a day. The fourth arrives on the fund's terms, which is why daily-dealing funds holding illiquid assets are fragile in a way closed-end and long-lock vehicles are not.</p>
+<table>
+<thead>
+<tr>
+<th>Contract</th>
+<th>The margin</th>
+<th>Procyclical because</th>
+<th>Arrives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cleared futures and options</td>
+<td>Initial and variation</td>
+<td>The model's volatility input rises</td>
+<td>Daily; intraday in stress</td>
+</tr>
+<tr>
+<td>Securities on margin</td>
+<td>Maintenance margin</td>
+<td>Losses reduce equity below the requirement</td>
+<td>On the call; the broker sells</td>
+</tr>
+<tr>
+<td>Repo, securities lending</td>
+<td>The haircut</td>
+<td>Lenders widen it on volatile collateral</td>
+<td>On renewal, often overnight</td>
+</tr>
+<tr>
+<td>Swaps (bilateral, cleared)</td>
+<td>Collateral against marks</td>
+<td>The mark moves</td>
+<td>Daily</td>
+</tr>
+<tr>
+<td>Fund shares</td>
+<td>Redemptions in cash</td>
+<td>Losses drive redemptions</td>
+<td>On the fund's dealing terms</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 5 — Depth and impact</h2>
+<p>Liquidity is talked about as one thing and measured as several. Volume is how much traded. Depth is how much could have traded without moving the price. Impact is how far the price moved per unit traded. The three diverge, and the divergence is where cascades hide.</p>
+<h3>5.1 Price impact per unit of flow</h3>
+<p>Kyle (1985) modelled a market maker who cannot tell informed orders from uninformed ones and protects itself by moving the price in proportion to net order flow. The constant of proportionality, Kyle's lambda, is the price impact of a unit of flow. It is high when the market maker believes much of the flow is informed and when little uninformed flow is there to hide it. Lambda is a property of the market's beliefs about flow, not of the flow itself, so it can jump without any change in the trading.</p>
+<p>Amihud (2002) offered a measure that needs only daily data: the absolute return divided by the dollar volume. It reads how far price moved per dollar traded. It is crude, it mixes information with illiquidity, and it rises when volume falls for any reason, but it is computable for any instrument with a price and a volume. That is why the system uses it as its depth stand-in (Chapter 19), and why Chapter 20 is devoted to what it cannot see.</p>
+<h3>5.2 Why volume and depth diverge</h3>
+<p>In a cascade, volume rises and depth falls together. The rise in volume is the forced flow arriving and the intermediaries passing inventory among themselves; the fall in depth is the intermediaries withdrawing their resting orders. A market that is trading record volume can be at its least liquid, because none of that volume is anyone willing to hold. A reader who equates volume with liquidity will read a cascade's peak as its healthiest moment.</p>
+<p><em>Worked example (illustrative).</em> On a calm day an index fund trades $40 billion and moves 0.5%; its Amihud measure is 0.5% ÷ $40 billion, about 1.25 basis points of move per billion dollars. On a stressed day it trades $80 billion and moves 4%: about 5 basis points per billion. Volume doubled, and so did the willingness to trade. But the price impact per dollar quadrupled, which says the market was absorbing each dollar of selling at four times the cost. The second day's volume is evidence of distress, not of depth.</p>
+<p><em>Historical instance.</em> 6 May 2010, when depth in the index futures fell to a small fraction of its normal level within minutes while volume surged (Chapter 13).</p>
+<p><em>On the day.</em> The quoted size at the top of the book thinning while the volume tape accelerates.</p>
+<h3>5.3 Resilience</h3>
+<p>A third dimension is how fast depth returns after it is consumed. A resilient market refills its queues within seconds; a fragile one leaves them empty. Resilience is the hardest of the three to measure from daily data and the most important in a cascade, because a market that refills is one where the next forced order meets the same depth as the last.</p>
+<h3>5.4 The microstructure the book's execution actually uses</h3>
+<p><em>This section moved here from the Systematic Book on 26 October 2026. It records the pieces of microstructure the book's execution layer consumes; the Systematic Book keeps the broker, Portfolio Truth, brackets and the session rule.</em></p>
+<p><strong>The closing auction is where the book's most important prices form.</strong> The settled 16:10 capture is timed to it, and the pin log grades against it. The Doctrine's Book C setups are entered from the 07:00 list and exited by bracket, but their <em>reference</em> (the pin, the wall, the flip) is a closing-auction price. Change Order #3 adds the auction's own flow, NYSE-family imbalance ticks through the Gateway with a 15:50–16:00 sampler, as the other side of the picture. Dealer gamma says how the close <em>reacts</em> to a move; the imbalance says what <em>pushes</em> it. For execution, the practical rule is the Doctrine's: no Book C entry after 10:30 without the 10:00 report's confirmation, and no entry into the last ten minutes at all unless the packet is explicitly a closing-auction expression.</p>
+<p><strong>Options spreads are a cost the packet must pay for.</strong> Doctrine Rule 13 says no trade whose expected R is less than three times its round-trip cost in commissions, spread and slippage. <em>Illustratively,</em> for a single-name option with a $0.10 wide market, a one-lot round trip costs $0.20 of spread before commission. On a $2.00 contract that is 10% of the premium, a cost that makes a 1.5R expectation impossible. The expression check's forward work (Gate 1.5) is to read the live spread from the chain and refuse the packet's R arithmetic when the spread makes it unattainable. Until then, the operator applies the rule from the chain the report shows.</p>
+<p><strong>The data is fifteen minutes stale at the time it matters most.</strong> The book's chain source is delayed. At the 09:45 intraday refresh, where the day's zero-day structure is captured, fifteen minutes is the difference between a live quote and a memory. The real-time options entitlement exists for that window alone. The settled 16:10 capture does not need it; by then the quotes are, in the Systematic Book's phrase, corpses.</p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>What it reads</th>
+<th>Rises in a cascade?</th>
+<th>Measurable from daily data?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Volume</td>
+<td>How much traded</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Depth</td>
+<td>How much could trade without moving price</td>
+<td>No: it falls</td>
+<td>No; top-of-book depth needs quote data</td>
+</tr>
+<tr>
+<td>Impact (Kyle's lambda, Amihud)</td>
+<td>Price move per unit traded</td>
+<td>Yes</td>
+<td>Amihud, yes; lambda needs signed flow</td>
+</tr>
+<tr>
+<td>Resilience</td>
+<td>How fast depth refills</td>
+<td>No: it slows</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-cascades-as-one-subject">
+      <summary class="section-head">
+        <span class="section-title">Part II — Cascades as One Subject</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 6 — Endogenous risk and feedback loops</h2>
+<p>Most risk models treat price moves as weather: something that happens to the participants, drawn from a distribution they did not make. Danielsson and Shin (2003) named the alternative <em>endogenous risk</em>: the risk that arises because participants respond to prices, and their responses move prices. A move that changes the participants' constraints produces the next move. The distribution is not given. The market makes it.</p>
+<h3>6.1 The loop</h3>
+<p>The loop has four steps. A price move changes some participants' constraints: their margin, their value-at-risk, their volatility target, their fund's redemptions, their dealer's hedge ratio. The changed constraint obliges them to trade in the direction of the move. The trade moves the price further. The further move tightens the constraint again. Whether the loop dies or runs depends on two things: how much of the market's capital sits under constraints of the same shape, and how deep the market is relative to the flow the constraints release.</p>
+<p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 404" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11"><rect x="0" y="0" width="680" height="404" fill="#fff"/><defs><marker id="f01-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a1a1a"/></marker></defs><text x="62" y="20" font-size="12.5" font-weight="600" fill="#1a1a1a">Figure 1 · The cascade as a loop: a move that changes constraints produces the next move</text><rect x="240" y="52" width="200" height="44" rx="8" fill="#fff" stroke="#3a5f8a" stroke-width="1.6"/><text x="340" y="78" text-anchor="middle" font-weight="600" fill="#3a5f8a" font-size="12">1. A price move</text><rect x="435" y="145" width="210" height="66" rx="8" fill="#fff" stroke="#3a5f8a" stroke-width="1.6"/><text x="540" y="174" text-anchor="middle" font-weight="600" fill="#3a5f8a" font-size="12">2. Constraints tighten</text><text x="540" y="190" text-anchor="middle" fill="#5b5b5b" font-size="10">margin, value-at-risk, volatility targets,</text><text x="540" y="202" text-anchor="middle" fill="#5b5b5b" font-size="10">redemptions, the dealer's hedge</text><rect x="235" y="251" width="210" height="54" rx="8" fill="#fff" stroke="#3a5f8a" stroke-width="1.6"/><text x="340" y="274" text-anchor="middle" font-weight="600" fill="#3a5f8a" font-size="12">3. Forced flow meets depth</text><text x="340" y="290" text-anchor="middle" fill="#5b5b5b" font-size="10">trades in the move's direction</text><rect x="40" y="151" width="200" height="54" rx="8" fill="#fff" stroke="#3a5f8a" stroke-width="1.6"/><text x="140" y="174" text-anchor="middle" font-weight="600" fill="#3a5f8a" font-size="12">4. The move extends</text><text x="140" y="190" text-anchor="middle" fill="#5b5b5b" font-size="10">by flow divided by depth</text><line x1="440" y1="84" x2="520" y2="144" stroke="#1a1a1a" stroke-width="1.4" marker-end="url(#f01-ah)"/><line x1="520" y1="212" x2="430" y2="262" stroke="#1a1a1a" stroke-width="1.4" marker-end="url(#f01-ah)"/><line x1="250" y1="268" x2="170" y2="206" stroke="#1a1a1a" stroke-width="1.4" marker-end="url(#f01-ah)"/><line x1="160" y1="150" x2="238" y2="90" stroke="#1a1a1a" stroke-width="1.4" marker-end="url(#f01-ah)"/><text x="340" y="182" text-anchor="middle" fill="#1a1a1a" font-size="11.5" font-weight="600">the loop</text><text x="340" y="198" text-anchor="middle" fill="#5b5b5b" font-size="10">each turn tightens the next</text><path d="M235,290 C180,320 130,330 96,334" fill="none" stroke="#2f6f4f" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#f01-ah)"/><text x="62" y="350" fill="#2f6f4f" font-size="10.5" font-weight="600">Damps</text><text fill="#5b5b5b" font-size="10"><tspan x="106" y="350">depth absorbs the flow, or a buyer</tspan><tspan x="106" y="362">outside the constraints steps in</tspan></text><path d="M445,290 C500,320 560,330 600,334" fill="none" stroke="#9c3b3b" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#f01-ah)"/><text x="658" y="350" fill="#9c3b3b" font-size="10.5" font-weight="600" text-anchor="end">Runs</text><text fill="#5b5b5b" font-size="10" text-anchor="end"><tspan x="618" y="350">shared constraint shapes, thin depth:</tspan><tspan x="618" y="362">the loop goes round again</tspan></text><text fill="#5b5b5b" font-size="10"><tspan x="62" y="383">Conceptual: no series. Whether the loop dies or runs depends on how much capital sits under constraints </tspan><tspan x="62" y="396">of the same shape, and on how deep the market is (Chapter 6).</tspan></text></svg>
+<figcaption>Figure 1 — The cascade as a loop: a price move tightens constraints, forced flow meets depth, the move extends, and the loop either damps or runs</figcaption></figure></p>
+<p>The loop explains why the same news produces small moves in some markets and enormous ones in others. The news is the first step. Everything after it is the market's own structure, and the structure can be read beforehand: who is under which constraint, at what size, against what depth.</p>
+<h3>6.2 Homogeneity is the amplifier</h3>
+<p>A market of participants with different constraints damps shocks. A seller forced by margin meets a buyer whose rebalancing rule says buy, and the price barely moves. A market in which most capital sits under the same constraint amplifies them, because every participant receives the same instruction at the same time. Risk management that is prudent for each firm becomes destabilising for all of them together. The fallacy of composition is the core of endogenous risk. Each firm's value-at-risk limit is sensible, and their sum is a selling programme.</p>
+<h3>6.3 Why this is measurable before the move</h3>
+<p>If the loop's strength depends on like constraints and on depth, both can in principle be estimated in advance, from positioning, margin debt, the leveraged and volatility-targeting products, dealer gamma and a depth measure. Part IV reports how the system's test of that has gone.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What happens</th>
+<th>What sets its strength</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A move</td>
+<td>Prices change on news, or on nothing</td>
+<td>The news</td>
+</tr>
+<tr>
+<td>Constraints tighten</td>
+<td>Margin, VaR, vol targets, redemptions, hedge ratios</td>
+<td>The share of capital under like constraints</td>
+</tr>
+<tr>
+<td>Forced flow</td>
+<td>Participants trade with the move</td>
+<td>The size of the constrained capital</td>
+</tr>
+<tr>
+<td>The next move</td>
+<td>Forced flow meets depth</td>
+<td>Depth, and how fast it refills</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 7 — Forced flows</h2>
+<p><em>Price, Time, and Edge</em> lists the forcing mechanisms and argues the asymmetry that matters most here: forced buying is gradual and stabilising, while forced selling is abrupt and destabilising, because the triggers for selling are functions of price. This chapter takes the five forced flows that matter most to cascades and states, for each, what triggers it, how large it can be, and when it arrives.</p>
+<h3>7.1 Margin</h3>
+<p>Margin is the forced flow of Chapter 4: a participant whose losses or whose margin rate rise must post cash or cut the position. It arrives within a day and it is contractual. Its size is a function of leverage, which is why margin debt and futures positioning are the first places to look. Margin flows are the mechanism most likely to cross asset classes, because a participant that must raise cash sells what it can sell, not what fell.</p>
+<h3>7.2 Volatility targeting</h3>
+<p>A fund that targets a constant volatility holds exposure inversely proportional to realised volatility. When volatility doubles, the fund halves its exposure. <em>Volatility</em> carries the strategy, its scale and its unwinds, and this paper does not repeat them. What matters here is the shape of the flow: it lags the move, because realised volatility is measured over a trailing window, and it continues for days after the shock. A vol-targeting fund sells on the second, third and fourth days of a sell-off, after the first day's move has entered its window.</p>
+<p><em>Worked example (illustrative).</em> A fund targets 10% annualised volatility and holds $10 billion of equity exposure when realised volatility is 10%. A shock lifts the trailing 20-day realised volatility to 20% over a week. The fund's exposure target falls to $5 billion, and it sells $5 billion over the days the window takes to absorb the shock. The selling is predictable in direction and roughly in size, and it does not wait for the price to recover.</p>
+<h3>7.3 Leveraged and inverse products' rebalancing</h3>
+<p>A fund that promises a multiple L of the daily return must rebalance every day to keep its leverage constant. The rebalance is, to first order, AUM × L × (L − 1) × the day's return (Cheng and Madhavan, 2009). For a leveraged long fund (L = 2 or 3) the term is positive on an up day and negative on a down day: it buys strength and sells weakness. For an inverse fund (L = −1, −2, −3), L × (L − 1) is also positive, so it too buys on up days and sells on down days. Every daily-reset product, long or inverse, trades with the day's move, and it trades at the close.</p>
+<p><em>Worked example (illustrative).</em> A 3× long fund with $10 billion of assets on a −4% day must sell 10 × 3 × 2 × 4% = $2.4 billion at the close. A −2× inverse fund with $3 billion on the same day: 3 × (−2) × (−3) × (−4%) = −$0.72 billion, also a sale. The complex's combined rebalance is one-sided and concentrated in the closing auction, which is why it is the flow arm of the system's fragility flag (Chapter 19).</p>
+<h3>7.4 Dealer gamma</h3>
+<p>When dealers are net short options, their delta hedging trades with the move: they sell as prices fall and buy as they rise. When they are net long, the hedging trades against the move and damps it. <em>The Dealer's Hand</em> teaches the mechanics, in its Part I, once for the library, and this paper does not teach them again. Its contribution here is placement. Short dealer gamma is a forced flow of the same shape as margin and volatility targeting: it trades with the move, mechanically, at a size set by positioning the dealers did not choose. Zero-day options concentrate that flow inside the session. Their gamma is largest near expiry and at the money, so their hedging can amplify an intraday move and then vanish at the close. <em>The Dealer's Hand</em> and <em>Volatility</em> carry the zero-day market at depth; a fourth treatment here would be the duplication the library's audit warned against.</p>
+<p><strong>Figure 2 — Dealer gamma and the session's range.</strong> <em>Placeholder, drawn at merge from the box's store: the stored net gamma exposure (<code>exposure.net_gex</code>) against SPY's daily range (<code>yfinance.mkt_spy</code>), from the captures' first stored session.</em></p>
+<h3>7.5 Redemptions</h3>
+<p>A fund whose investors redeem must sell to pay them. Open-end funds holding illiquid assets are the fragile case: they promise daily liquidity on assets that do not offer it, so the first redeemers are paid at a price that does not yet reflect the cost of selling. That gives every investor an incentive to redeem first, and the incentive is a run.</p>
+<table>
+<thead>
+<tr>
+<th>Forced flow</th>
+<th>Trigger</th>
+<th>Direction</th>
+<th>When it arrives</th>
+<th>Size set by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Margin</td>
+<td>Losses; a higher margin rate</td>
+<td>Sells what it can</td>
+<td>Within a day</td>
+<td>Leverage</td>
+</tr>
+<tr>
+<td>Volatility targeting</td>
+<td>Realised volatility rising</td>
+<td>With the move, lagged</td>
+<td>Days two to five</td>
+<td>Assets under the strategy</td>
+</tr>
+<tr>
+<td>Leveraged and inverse ETPs</td>
+<td>The day's return</td>
+<td>With the move</td>
+<td>The close</td>
+<td>AUM × L × (L − 1)</td>
+</tr>
+<tr>
+<td>Short dealer gamma</td>
+<td>Price moving through strikes</td>
+<td>With the move</td>
+<td>Intraday</td>
+<td>Dealers' option positioning</td>
+</tr>
+<tr>
+<td>Redemptions</td>
+<td>Losses; a run incentive</td>
+<td>Sells the fund's assets</td>
+<td>On the dealing terms</td>
+<td>Fund size; asset illiquidity</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 8 — Liquidity spirals</h2>
+<p>Brunnermeier and Pedersen (2009) gave the loop between funding and markets its standard form. <em>Funding liquidity</em> is a trader's ability to finance its positions: margin, haircuts, credit lines. <em>Market liquidity</em> is the ease of trading an asset. Each depends on the other. When market liquidity falls, prices become more volatile, lenders raise margins, and funding liquidity falls. When funding liquidity falls, traders must sell, and their selling reduces market liquidity. The two reinforce each other, and the result is a spiral.</p>
+<h3>8.1 The two spirals</h3>
+<p>The model has two spirals running together:
+- <strong>The loss spiral.</strong> A leveraged trader's losses reduce its capital, and at constant leverage a smaller capital supports a smaller position, so it sells.
+- <strong>The margin spiral.</strong> Volatility raises margins, which forces de-leveraging even without losses.</p>
+<p>Each sale depresses the price and raises volatility, feeding both spirals at once. The model's sharpest result is that liquidity can be fragile: a small shock can switch a market from a high-liquidity equilibrium to a low one, because the spiral, once started, does not need the original shock to continue.</p>
+<h3>8.2 What breaks the spiral</h3>
+<p>The spiral stops when someone with unencumbered capital buys: patient capital at a price far enough below value, or a central bank willing to lend against the collateral at a fixed haircut. That is why the end of so many cascades in Part III is an announcement rather than a trade. A lender of last resort breaks the margin spiral by refusing to let haircuts rise. A buyer of last resort breaks the loss spiral by putting a floor under the price.</p>
+<p><em>Worked example (illustrative).</em> A relative-value fund runs $10 billion of positions on $500 million of capital, 20× leverage, financed at a 5% haircut. The positions fall 1%, a $100 million loss, so capital falls to $400 million. At the same 20× it can now carry $8 billion, so it must sell $2 billion. Meanwhile lenders raise the haircut to 8% because the positions have become volatile, and at 8% the $400 million supports only $5 billion. The fund must sell half its book into a market where everyone running the same trade is selling too, and its selling widens the next lender's haircut.</p>
+<p><em>Historical instance.</em> 1998, and the dealers whose own books held the same trades as the fund they were financing (Chapter 12).</p>
+<p><em>On the day.</em> The trades that should converge diverge further, in instruments whose fundamentals have not changed. The divergence is the cost of the forced sale, not news about the instruments.</p>
+<table>
+<thead>
+<tr>
+<th>Spiral</th>
+<th>Mechanism</th>
+<th>What stops it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Loss</td>
+<td>Losses cut capital; leverage held constant forces sales</td>
+<td>A buyer with unencumbered capital</td>
+</tr>
+<tr>
+<td>Margin</td>
+<td>Volatility raises margins and haircuts</td>
+<td>A lender at a fixed haircut</td>
+</tr>
+<tr>
+<td>Both together</td>
+<td>Each sale feeds both</td>
+<td>Usually an announcement by an official lender or buyer</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 9 — Correlation breakdown and path dependence</h2>
+<h3>9.1 Why diversification fails exactly when it is needed</h3>
+<p>Diversification works through low correlation, and correlations measured in calm markets are low because the assets are being priced on their own news. In a cascade the marginal seller is not pricing news; it is raising cash, and it sells whatever can be sold. The assets become correlated because they share a seller, not because their fundamentals moved together. Longin and Solnik (2001) found that equity-market correlations rise in down markets more than a normal model predicts. <em>The finding is measured on developed equity markets from the 1960s to the late 1990s; last verified October 2026.</em> The mechanism is the shared forced seller of Chapter 7.</p>
+<p>The stock–bond correlation is the case that matters most to a portfolio that holds both, and its sign is a property of the regime rather than a constant. When inflation is the dominant risk, stocks and bonds fall together, because both are being repriced by the same rise in rates. When growth is the dominant risk, bonds rally as stocks fall. A 60/40 portfolio is diversified in the second regime and concentrated in the first. <em>Debt Cycles</em> carries the environments in which each sign holds; the cascade mechanism adds only that a forced seller of everything can briefly make the correlation positive in any regime.</p>
+<p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 404" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11"><rect x="0" y="0" width="680" height="404" fill="#fff"/><text x="62" y="20" font-size="12.5" font-weight="600" fill="#1a1a1a">Figure 3 · The stock–bond correlation's sign: 60-session SPY–TLT return correlation</text><defs><clipPath id="f03-plotbox"><rect x="62" y="34" width="596" height="300"/></clipPath></defs><line x1="68.3" y1="334" x2="68.3" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="68.3" y="349" text-anchor="middle" fill="#5b5b5b">2022</text><line x1="193.4" y1="334" x2="193.4" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="193.4" y="349" text-anchor="middle" fill="#5b5b5b">2023</text><line x1="318.6" y1="334" x2="318.6" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="318.6" y="349" text-anchor="middle" fill="#5b5b5b">2024</text><line x1="443.7" y1="334" x2="443.7" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="443.7" y="349" text-anchor="middle" fill="#5b5b5b">2025</text><line x1="568.9" y1="334" x2="568.9" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="568.9" y="349" text-anchor="middle" fill="#5b5b5b">2026</text><line x1="62" y1="334.0" x2="658" y2="334.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="337.5" text-anchor="end" fill="#5b5b5b">-1.0</text><line x1="62" y1="259.0" x2="658" y2="259.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="262.5" text-anchor="end" fill="#5b5b5b">-0.5</text><line x1="62" y1="184.0" x2="658" y2="184.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="187.5" text-anchor="end" fill="#5b5b5b">0</text><line x1="62" y1="109.0" x2="658" y2="109.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="112.5" text-anchor="end" fill="#5b5b5b">+0.5</text><line x1="62" y1="34.0" x2="658" y2="34.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="37.5" text-anchor="end" fill="#5b5b5b">+1.0</text><text x="16" y="184.0" text-anchor="middle" fill="#5b5b5b" transform="rotate(-90 16 184.0)">correlation</text><path d="M62.0,184.0 L62.0,184.0 L62.3,184.0 L62.7,184.0 L63.0,184.0 L64.1,184.0 L64.4,184.0 L64.7,184.0 L65.1,184.0 L66.5,184.0 L66.8,184.0 L67.1,184.0 L67.5,184.0 L67.8,184.0 L68.9,184.0 L69.3,184.0 L69.6,184.0 L70.0,184.0 L70.3,184.0 L71.3,184.0 L71.7,184.0 L72.0,184.0 L72.4,184.0 L72.7,184.0 L74.1,184.0 L74.4,184.0 L74.8,184.0 L75.1,184.0 L76.1,184.0 L76.5,184.0 L76.8,184.0 L77.2,184.0 L77.5,184.0 L78.5,184.0 L78.9,184.0 L79.2,184.0 L79.6,184.0 L79.9,184.0 L80.9,184.0 L81.3,184.0 L81.6,184.0 L82.0,184.0 L82.3,184.0 L83.3,184.0 L83.7,184.0 L84.0,184.0 L84.4,184.0 L84.7,184.0 L86.1,184.0 L86.4,184.0 L86.8,184.0 L87.1,184.0 L88.1,184.0 L88.5,184.0 L88.8,184.0 L89.2,184.0 L89.5,184.0 L90.5,184.0 L90.9,184.0 L91.2,184.0 L91.6,184.0 L91.9,184.0 L92.9,184.0 L93.3,184.0 L93.6,184.0 L94.0,184.0 L94.3,184.0 L95.3,184.0 L95.7,184.0 L96.0,184.0 L96.4,184.0 L96.7,184.0 L97.7,184.0 L98.1,184.0 L98.4,184.0 L98.8,184.0 L99.1,184.0 L100.1,184.0 L100.5,184.0 L100.8,184.0 L101.2,184.0 L101.5,184.0 L102.5,184.0 L102.9,184.0 L103.2,184.0 L103.5,184.0 L104.9,184.0 L105.3,184.0 L105.6,184.0 L105.9,184.0 L106.3,184.0 L107.3,184.0 L107.7,184.0 L108.0,184.0 L108.3,184.0 L108.7,184.0 L109.7,184.0 L110.1,184.0 L110.4,184.0 L110.7,173.4 L111.1,173.7 L112.1,181.0 L112.5,176.3 L112.8,180.5 L113.1,178.4 L113.5,182.7 L114.5,180.2 L114.9,181.8 L115.2,184.0 L115.5,184.0 L115.9,184.0 L116.9,184.0 L117.3,184.0 L117.6,184.0 L117.9,184.0 L118.3,184.0 L119.7,184.0 L120.0,184.0 L120.3,184.0 L120.7,184.0 L121.7,184.0 L122.1,184.0 L122.4,184.0 L122.7,184.0 L123.1,184.0 L124.1,176.0 L124.5,177.8 L124.8,173.0 L125.1,175.2 L125.5,172.0 L126.9,175.9 L127.2,174.7 L127.5,174.5 L127.9,180.6 L128.9,180.2 L129.3,180.9 L129.6,180.8 L129.9,180.9 L130.3,181.5 L131.6,181.6 L132.0,182.1 L132.3,183.4 L132.7,184.0 L133.7,184.0 L134.0,184.0 L134.4,184.0 L134.7,184.0 L135.1,184.0 L136.1,184.0 L136.4,184.0 L136.8,184.0 L137.1,184.0 L137.5,184.0 L138.5,184.0 L138.8,184.0 L139.2,184.0 L139.5,184.0 L139.9,184.0 L140.9,184.0 L141.2,184.0 L141.6,184.0 L141.9,184.0 L142.3,184.0 L143.3,184.0 L143.6,184.0 L144.0,184.0 L144.3,184.0 L144.7,184.0 L145.7,180.4 L146.0,180.1 L146.4,178.8 L146.7,174.9 L147.1,169.3 L148.1,169.3 L148.4,168.0 L148.8,169.1 L149.1,167.8 L149.5,172.5 L150.5,172.0 L150.8,172.7 L151.2,170.8 L151.5,173.5 L151.9,175.4 L153.2,173.2 L153.6,171.2 L153.9,184.0 L154.3,184.0 L155.3,184.0 L155.6,184.0 L156.0,184.0 L156.3,184.0 L156.7,182.9 L157.7,183.9 L158.0,175.3 L158.4,180.9 L158.7,176.0 L159.1,177.2 L160.1,173.5 L160.4,174.8 L160.8,165.7 L161.1,164.0 L161.5,160.1 L162.5,155.5 L162.8,153.8 L163.2,152.6 L163.5,151.0 L163.9,149.4 L164.9,150.1 L165.2,151.2 L165.6,149.3 L165.9,153.4 L166.3,154.7 L167.3,153.4 L167.6,152.5 L168.0,151.0 L168.3,148.4 L168.7,156.0 L169.7,157.0 L170.0,150.2 L170.4,152.9 L170.7,157.1 L171.1,158.8 L172.1,158.2 L172.4,158.2 L172.8,158.4 L173.1,156.9 L173.5,159.1 L174.5,163.1 L174.8,162.2 L175.2,164.4 L175.5,143.5 L175.9,143.9 L176.9,145.3 L177.2,144.0 L177.6,146.8 L177.9,146.4 L178.3,148.6 L179.3,144.0 L179.6,142.6 L180.0,141.3 L180.7,141.8 L181.7,141.5 L182.0,140.5 L182.4,139.0 L182.7,143.3 L183.1,142.9 L184.1,141.1 L184.4,142.4 L184.8,140.1 L185.1,140.5 L185.4,139.5 L186.5,140.1 L186.8,139.7 L187.2,141.0 L187.5,138.2 L187.8,137.9 L188.9,135.7 L189.2,137.7 L189.6,137.3 L189.9,141.9 L190.2,143.8 L191.6,145.2 L192.0,147.7 L192.3,143.8 L192.6,143.7 L194.1,145.9 L194.4,147.3 L194.8,149.3 L195.1,145.4 L196.2,145.2 L196.5,142.8 L196.8,142.9 L197.2,140.1 L197.5,140.6 L198.9,141.7 L199.2,149.4 L199.6,141.0 L199.9,144.5 L201.0,149.5 L201.3,148.3 L201.6,147.4 L202.0,144.9 L202.3,145.7 L203.4,144.7 L203.7,144.7 L204.0,144.9 L204.4,141.0 L204.7,137.1 L205.8,136.7 L206.1,137.3 L206.4,160.3 L206.8,158.0 L207.1,159.0 L208.2,159.5 L208.5,155.6 L208.8,156.8 L209.2,153.1 L209.5,153.3 L210.9,150.3 L211.2,151.9 L211.6,151.2 L211.9,148.0 L212.9,147.9 L213.3,150.1 L213.6,147.8 L214.0,148.8 L214.3,146.4 L215.3,141.7 L215.7,142.3 L216.0,141.9 L216.4,146.2 L216.7,158.9 L217.7,160.3 L218.1,165.5 L218.4,166.5 L218.8,172.3 L219.1,179.7 L220.1,180.9 L220.5,183.6 L220.8,184.0 L221.2,184.0 L221.5,184.0 L222.5,184.0 L222.9,184.0 L223.2,184.0 L223.6,184.0 L223.9,184.0 L224.9,184.0 L225.3,184.0 L225.6,184.0 L226.0,184.0 L227.3,184.0 L227.7,184.0 L228.0,184.0 L228.4,184.0 L228.7,184.0 L229.7,184.0 L230.1,184.0 L230.4,184.0 L230.8,184.0 L231.1,184.0 L232.1,184.0 L232.5,184.0 L232.8,184.0 L233.2,184.0 L233.5,184.0 L234.5,184.0 L234.9,184.0 L235.2,184.0 L235.6,184.0 L235.9,184.0 L236.9,184.0 L237.3,184.0 L237.6,184.0 L238.0,184.0 L238.3,184.0 L239.3,184.0 L239.7,184.0 L240.0,184.0 L240.4,184.0 L240.7,184.0 L241.7,184.0 L242.1,184.0 L242.4,184.0 L242.8,184.0 L243.1,184.0 L244.5,184.0 L244.8,184.0 L245.2,184.0 L245.5,184.0 L246.5,184.0 L246.9,184.0 L247.2,184.0 L247.6,184.0 L247.9,184.0 L248.9,184.0 L249.3,184.0 L249.6,184.0 L250.0,184.0 L250.3,184.0 L251.7,184.0 L252.0,184.0 L252.4,184.0 L252.7,184.0 L253.7,184.0 L254.1,184.0 L254.4,184.0 L254.8,184.0 L255.1,184.0 L256.1,184.0 L256.8,184.0 L257.2,184.0 L257.5,184.0 L258.5,184.0 L258.9,184.0 L259.2,184.0 L259.6,184.0 L259.9,184.0 L260.9,184.0 L261.3,184.0 L261.6,184.0 L262.0,184.0 L262.3,175.7 L263.3,178.0 L263.7,171.3 L264.0,175.5 L264.4,171.9 L264.7,153.7 L265.7,150.5 L266.1,150.8 L266.4,142.6 L266.7,140.7 L267.1,147.5 L268.1,151.7 L268.5,153.5 L268.8,156.7 L269.1,155.7 L269.5,155.9 L270.5,154.7 L270.9,150.5 L271.2,149.3 L271.5,148.7 L271.9,145.8 L272.9,149.9 L273.3,150.9 L273.6,146.3 L273.9,144.4 L274.3,140.6 L275.3,140.6 L275.7,129.6 L276.0,129.8 L276.3,130.5 L276.7,133.9 L278.1,133.9 L278.4,135.5 L278.7,136.9 L279.1,134.1 L280.1,136.0 L280.5,141.5 L280.8,141.7 L281.1,141.8 L281.5,140.1 L282.5,138.4 L282.9,133.4 L283.2,135.4 L283.5,124.5 L283.9,125.7 L284.9,128.1 L285.3,133.2 L285.6,132.8 L285.9,132.1 L286.3,134.3 L287.3,135.8 L287.7,130.5 L288.0,128.9 L288.3,131.5 L288.7,139.5 L289.7,136.2 L290.1,136.5 L290.4,136.0 L290.7,134.7 L291.1,139.6 L292.1,145.2 L292.4,145.2 L292.8,144.2 L293.1,141.7 L293.5,146.9 L294.5,149.1 L294.8,146.6 L295.2,141.7 L295.5,149.4 L295.9,149.2 L296.9,148.4 L297.2,146.7 L297.6,140.6 L297.9,131.2 L298.3,129.2 L299.3,130.0 L299.6,129.2 L300.0,130.1 L300.3,128.5 L300.7,128.1 L301.7,128.0 L302.0,120.0 L302.4,120.2 L302.7,123.7 L303.1,124.0 L304.1,123.6 L304.4,123.7 L304.8,125.3 L305.5,125.6 L306.5,126.9 L306.8,125.3 L307.2,126.8 L307.5,127.3 L307.9,125.9 L308.9,125.7 L309.2,125.8 L309.6,126.6 L309.9,128.0 L310.3,127.0 L311.3,127.6 L311.6,127.4 L312.0,123.7 L312.3,122.6 L312.7,129.7 L313.7,130.1 L314.0,126.5 L314.4,130.2 L314.7,132.4 L315.1,132.5 L316.4,132.5 L316.8,133.1 L317.1,139.2 L317.5,139.3 L318.9,138.6 L319.3,134.7 L319.6,135.0 L319.9,134.8 L321.0,133.9 L321.3,136.7 L321.7,133.8 L322.0,128.1 L322.3,128.0 L323.7,128.9 L324.1,133.0 L324.4,133.0 L324.7,131.8 L325.8,133.1 L326.1,142.4 L326.5,133.2 L326.8,133.8 L327.1,130.4 L328.2,128.1 L328.5,132.2 L328.9,149.6 L329.2,146.1 L329.5,154.6 L330.6,151.6 L330.9,150.3 L331.3,158.4 L331.6,159.3 L331.9,160.1 L333.0,172.5 L333.3,162.4 L333.7,161.0 L334.0,160.2 L334.3,159.9 L335.7,160.3 L336.1,160.5 L336.4,159.3 L336.7,157.5 L337.8,157.0 L338.1,155.6 L338.5,155.2 L338.8,156.5 L339.1,156.9 L340.2,153.7 L340.5,157.7 L340.9,155.6 L341.2,155.3 L341.5,154.8 L342.6,155.0 L342.9,167.2 L343.3,167.3 L343.6,164.9 L343.9,164.4 L345.0,165.9 L345.3,159.4 L345.7,157.4 L346.0,157.1 L346.3,159.3 L347.4,158.0 L347.7,158.8 L348.0,157.4 L348.4,158.7 L349.8,154.4 L350.1,155.4 L350.4,155.3 L350.8,165.6 L351.1,171.6 L352.2,170.9 L352.5,170.6 L352.8,162.3 L353.2,165.9 L353.5,170.3 L354.6,160.9 L354.9,161.8 L355.2,165.4 L355.6,164.3 L355.9,165.9 L357.0,167.6 L357.3,167.4 L357.6,170.2 L358.0,168.8 L358.3,158.6 L359.4,165.0 L359.7,151.6 L360.0,154.1 L360.4,153.2 L360.7,147.3 L361.8,146.0 L362.1,145.6 L362.4,145.6 L362.8,152.5 L363.1,154.2 L364.2,155.6 L364.5,155.8 L364.8,150.0 L365.2,149.7 L365.5,152.2 L366.6,151.5 L366.9,151.6 L367.2,151.4 L367.6,148.8 L367.9,148.8 L369.3,150.8 L369.6,148.0 L370.0,143.3 L370.3,142.2 L371.4,142.3 L371.7,142.7 L372.0,140.2 L372.4,135.5 L372.7,136.3 L373.7,137.6 L374.1,136.5 L374.4,134.0 L374.8,134.8 L375.1,134.3 L376.1,138.5 L376.5,136.7 L377.2,136.6 L377.5,136.4 L378.5,139.5 L378.9,139.4 L379.2,140.6 L379.6,141.8 L379.9,139.8 L380.9,136.8 L381.3,128.2 L381.6,127.3 L382.3,125.9 L383.3,132.7 L383.7,130.7 L384.0,124.0 L384.4,137.5 L384.7,137.9 L385.7,134.1 L386.1,133.4 L386.4,133.2 L386.8,129.3 L387.1,126.2 L388.1,129.1 L388.5,130.2 L388.8,125.9 L389.2,129.0 L389.5,130.7 L390.5,130.1 L390.9,131.8 L391.2,131.2 L391.6,136.7 L391.9,164.0 L392.9,169.9 L393.3,177.9 L393.6,176.1 L394.0,181.1 L394.3,180.7 L395.3,184.0 L395.7,182.4 L396.0,181.7 L396.4,184.0 L396.7,184.0 L397.7,184.0 L398.1,184.0 L398.4,184.0 L398.8,184.0 L399.1,184.0 L400.1,184.0 L400.5,184.0 L400.8,184.0 L401.2,184.0 L401.5,184.0 L402.9,184.0 L403.2,184.0 L403.6,184.0 L403.9,184.0 L404.9,184.0 L405.3,184.0 L405.6,184.0 L406.0,184.0 L406.3,184.0 L407.3,184.0 L407.7,184.0 L408.0,184.0 L408.4,184.0 L408.7,184.0 L409.7,184.0 L410.1,184.0 L410.4,184.0 L410.8,184.0 L411.1,184.0 L412.1,184.0 L412.5,184.0 L412.8,184.0 L413.2,184.0 L413.5,184.0 L414.5,184.0 L414.9,184.0 L415.2,184.0 L415.6,184.0 L415.9,184.0 L416.9,184.0 L417.3,184.0 L417.6,184.0 L418.0,184.0 L418.3,184.0 L419.3,184.0 L419.7,184.0 L420.0,184.0 L420.4,184.0 L420.7,184.0 L421.7,184.0 L422.1,184.0 L422.4,184.0 L422.8,184.0 L423.1,184.0 L424.1,184.0 L424.5,184.0 L424.8,184.0 L425.2,184.0 L425.5,184.0 L426.5,184.0 L426.9,184.0 L427.2,184.0 L427.6,184.0 L427.9,184.0 L428.9,184.0 L429.3,184.0 L429.6,184.0 L429.9,184.0 L430.3,184.0 L431.3,184.0 L431.7,184.0 L432.0,184.0 L432.7,184.0 L433.7,184.0 L434.1,184.0 L434.4,184.0 L434.7,184.0 L435.1,184.0 L436.1,184.0 L436.5,184.0 L436.8,184.0 L437.1,184.0 L437.5,184.0 L438.5,184.0 L438.9,184.0 L439.2,180.5 L439.5,180.8 L439.9,179.2 L440.9,180.1 L441.3,177.7 L441.9,175.6 L442.3,173.4 L443.3,178.2 L443.7,174.4 L444.1,176.7 L444.4,178.5 L445.5,178.1 L445.8,174.5 L446.1,173.9 L446.8,172.1 L447.9,168.1 L448.2,168.9 L448.5,159.0 L448.9,159.6 L449.2,159.4 L450.6,157.1 L450.9,158.2 L451.3,159.5 L451.6,160.4 L452.7,166.9 L453.0,167.1 L453.3,166.5 L453.7,163.5 L454.0,160.0 L455.0,159.3 L455.4,160.5 L455.7,130.1 L456.1,132.4 L456.4,131.9 L457.4,132.7 L457.8,133.5 L458.1,132.3 L458.5,126.1 L458.8,126.2 L460.2,128.3 L460.5,128.6 L460.9,129.7 L461.2,140.3 L462.2,141.0 L462.6,145.7 L462.9,144.8 L463.3,141.2 L463.6,137.9 L464.6,140.4 L465.0,136.5 L465.3,142.0 L465.7,141.6 L466.0,142.5 L467.0,154.9 L467.4,153.9 L467.7,152.3 L468.1,157.0 L468.4,160.8 L469.4,160.1 L469.8,160.3 L470.1,171.9 L470.5,171.4 L470.8,172.5 L471.8,177.1 L472.2,178.6 L472.5,176.1 L472.9,178.5 L473.2,184.0 L474.2,182.7 L474.6,182.1 L474.9,180.8 L475.3,184.0 L475.6,184.0 L476.6,184.0 L477.0,184.0 L477.3,184.0 L477.7,168.8 L478.0,171.5 L479.0,170.5 L479.4,170.8 L479.7,173.5 L480.1,173.4 L481.4,168.2 L481.8,166.5 L482.1,162.6 L482.5,160.0 L482.8,159.4 L483.8,159.6 L484.2,159.2 L484.5,159.2 L484.9,160.5 L485.2,163.4 L486.2,163.2 L486.6,164.0 L486.9,163.5 L487.3,164.6 L487.6,164.6 L488.6,170.6 L489.0,171.0 L489.3,170.5 L489.7,170.0 L490.0,169.6 L491.0,166.7 L491.4,166.3 L491.7,161.9 L492.1,161.9 L492.4,163.1 L493.8,162.0 L494.1,161.1 L494.5,162.2 L494.8,161.2 L495.8,162.7 L496.2,162.6 L496.5,158.9 L496.9,159.7 L497.2,161.0 L498.2,159.0 L498.6,157.4 L498.9,158.1 L499.3,157.6 L499.6,157.1 L500.6,158.2 L501.0,160.3 L501.3,158.0 L502.0,158.0 L503.0,158.4 L503.4,157.7 L503.7,153.2 L504.1,153.3 L504.4,153.6 L505.4,153.5 L505.8,147.9 L506.1,132.8 L506.5,131.5 L507.8,134.0 L508.2,125.4 L508.5,149.4 L508.9,151.1 L509.2,150.6 L510.2,149.8 L510.6,141.3 L510.9,141.3 L511.2,153.8 L511.6,157.3 L512.6,162.1 L513.0,170.1 L513.3,173.0 L513.6,172.3 L514.0,173.2 L515.0,173.1 L515.4,175.4 L515.7,168.3 L516.0,170.2 L516.4,177.5 L517.4,176.6 L517.8,174.9 L518.1,176.2 L518.4,160.0 L518.8,160.4 L519.8,160.4 L520.2,164.5 L520.5,164.4 L520.8,164.1 L521.2,164.5 L522.2,179.6 L522.6,181.3 L522.9,181.1 L523.2,184.0 L523.6,184.0 L524.6,184.0 L525.0,184.0 L525.3,184.0 L525.6,184.0 L526.0,181.5 L527.4,175.4 L527.7,165.4 L528.0,162.6 L528.4,168.1 L529.4,167.0 L529.8,168.9 L530.1,175.4 L530.4,167.4 L530.8,158.7 L531.8,158.3 L532.2,159.4 L532.5,159.8 L532.8,166.1 L533.2,166.2 L534.2,168.9 L534.6,170.5 L534.9,171.4 L535.2,171.6 L535.6,170.3 L536.6,165.9 L536.9,171.9 L537.3,172.4 L537.6,175.5 L538.0,175.3 L539.0,181.6 L539.3,183.3 L539.7,184.0 L540.0,184.0 L540.4,184.0 L541.4,184.0 L541.7,184.0 L542.1,184.0 L542.4,184.0 L542.8,184.0 L543.8,184.0 L544.1,184.0 L544.5,184.0 L544.8,184.0 L545.2,184.0 L546.2,184.0 L546.5,184.0 L546.9,184.0 L547.2,184.0 L547.6,184.0 L548.6,184.0 L548.9,184.0 L549.3,184.0 L549.6,184.0 L550.0,184.0 L551.0,184.0 L551.3,184.0 L551.7,184.0 L552.0,184.0 L552.4,184.0 L553.4,184.0 L553.7,184.0 L554.1,184.0 L554.4,184.0 L554.8,184.0 L555.8,184.0 L556.1,184.0 L556.5,184.0 L557.2,184.0 L558.2,184.0 L558.5,184.0 L558.9,184.0 L559.2,184.0 L559.6,184.0 L560.6,184.0 L560.9,184.0 L561.3,184.0 L561.6,184.0 L562.0,184.0 L563.0,184.0 L563.3,184.0 L563.7,184.0 L564.0,184.0 L564.4,184.0 L565.4,184.0 L565.7,184.0 L566.1,184.0 L566.8,184.0 L567.8,184.0 L568.1,184.0 L568.5,184.0 L569.2,184.0 L570.3,184.0 L570.6,184.0 L571.0,162.2 L571.3,161.3 L571.6,158.3 L572.7,158.0 L573.0,153.3 L573.4,156.0 L573.7,158.3 L574.0,157.6 L575.4,143.5 L575.8,136.5 L576.1,135.6 L576.4,137.5 L577.5,136.7 L577.8,137.2 L578.2,139.7 L578.5,139.3 L578.8,137.6 L579.9,136.6 L580.2,135.3 L580.6,124.9 L580.9,138.3 L581.2,138.0 L582.3,138.4 L582.6,142.4 L583.0,148.8 L583.3,164.7 L583.6,162.9 L585.0,162.8 L585.4,163.6 L585.7,158.8 L586.0,161.4 L587.1,169.0 L587.4,169.6 L587.8,171.5 L588.1,171.4 L588.4,178.2 L589.5,179.0 L589.8,178.4 L590.2,179.7 L590.5,177.5 L590.8,175.1 L591.9,170.5 L592.2,171.4 L592.5,171.0 L592.9,175.3 L593.2,173.8 L594.3,168.5 L594.6,168.3 L594.9,166.5 L595.3,164.2 L595.6,149.4 L596.7,146.8 L597.0,147.5 L597.3,145.0 L597.7,139.8 L598.0,137.6 L599.1,141.8 L599.4,146.8 L599.7,150.0 L600.1,149.1 L601.5,148.7 L601.8,148.4 L602.1,148.7 L602.5,149.1 L602.8,149.0 L603.9,146.7 L604.2,144.8 L604.5,146.3 L604.9,155.4 L605.2,154.7 L606.3,155.4 L606.6,154.1 L606.9,154.3 L607.3,152.9 L607.6,152.5 L608.7,152.8 L609.0,153.7 L609.3,152.4 L609.7,151.7 L610.0,152.1 L611.1,143.6 L611.4,141.9 L611.7,138.9 L612.1,135.2 L612.4,134.1 L613.5,121.0 L613.8,120.1 L614.1,120.4 L614.5,119.4 L614.8,114.8 L615.9,114.2 L616.2,109.7 L616.5,108.3 L616.9,108.5 L617.2,106.3 L618.6,102.9 L618.9,101.3 L619.3,100.7 L619.6,99.7 L620.6,100.4 L621.0,100.5 L621.3,101.0 L621.7,100.6 L622.0,100.2 L623.0,99.6 L623.4,102.5 L623.7,104.3 L624.1,100.5 L624.4,102.2 L625.4,102.1 L625.8,112.3 L626.1,116.2 L626.5,116.1 L627.8,115.2 L628.2,122.4 L628.5,129.7 L628.9,123.1 L629.2,117.3 L630.2,116.0 L630.6,121.3 L630.9,121.0 L631.3,121.1 L632.6,121.7 L633.0,119.5 L633.3,119.4 L633.7,119.9 L634.0,121.7 L635.0,118.4 L635.4,117.3 L635.7,120.2 L636.1,120.5 L636.4,125.3 L637.4,125.7 L637.8,127.3 L638.1,127.7 L638.5,126.6 L638.8,125.9 L639.8,126.1 L640.2,125.2 L640.5,117.8 L640.9,120.4 L641.2,124.5 L642.2,129.0 L642.6,125.4 L642.9,127.1 L643.3,126.1 L643.6,125.6 L644.6,125.5 L645.0,126.4 L645.3,131.7 L645.7,130.6 L646.0,131.8 L647.0,133.7 L647.4,135.9 L647.7,138.4 L648.1,137.3 L648.4,137.8 L649.4,140.3 L649.8,140.1 L650.1,139.7 L650.5,140.4 L650.8,141.0 L651.8,140.9 L652.2,141.1 L652.5,140.3 L652.9,138.3 L653.2,139.2 L654.6,148.0 L654.9,146.3 L655.3,142.4 L655.6,139.1 L656.6,136.5 L657.0,138.0 L657.3,139.9 L657.7,131.1 L658.0,127.3 L658.0,184.0 Z" fill="#9c3b3b" opacity="0.22" stroke="none" clip-path="url(#f03-plotbox)"/><path d="M62.0,184.0 L62.0,230.6 L62.3,233.0 L62.7,234.3 L63.0,232.9 L64.1,229.8 L64.4,230.8 L64.7,242.3 L65.1,243.1 L66.5,242.8 L66.8,245.2 L67.1,247.1 L67.5,246.1 L67.8,246.8 L68.9,245.1 L69.3,245.7 L69.6,240.8 L70.0,240.5 L70.3,240.3 L71.3,243.8 L71.7,240.9 L72.0,241.4 L72.4,241.9 L72.7,240.4 L74.1,231.0 L74.4,232.4 L74.8,233.5 L75.1,237.7 L76.1,238.0 L76.5,236.8 L76.8,236.2 L77.2,236.3 L77.5,233.8 L78.5,233.4 L78.9,235.8 L79.2,236.8 L79.6,231.0 L79.9,231.8 L80.9,236.2 L81.3,236.9 L81.6,234.7 L82.0,227.3 L82.3,231.7 L83.3,230.7 L83.7,233.7 L84.0,233.5 L84.4,236.4 L84.7,237.1 L86.1,240.1 L86.4,226.8 L86.8,224.0 L87.1,216.6 L88.1,214.9 L88.5,219.0 L88.8,226.1 L89.2,224.5 L89.5,224.3 L90.5,218.4 L90.9,216.7 L91.2,219.5 L91.6,217.0 L91.9,217.9 L92.9,212.8 L93.3,211.8 L93.6,203.7 L94.0,205.8 L94.3,203.2 L95.3,204.1 L95.7,205.4 L96.0,210.5 L96.4,211.6 L96.7,212.2 L97.7,210.4 L98.1,208.1 L98.4,207.2 L98.8,207.8 L99.1,209.2 L100.1,209.9 L100.5,205.3 L100.8,204.3 L101.2,206.2 L101.5,205.8 L102.5,199.9 L102.9,199.9 L103.2,202.5 L103.5,197.4 L104.9,196.1 L105.3,192.8 L105.6,192.6 L105.9,191.2 L106.3,189.9 L107.3,187.3 L107.7,193.9 L108.0,193.8 L108.3,191.7 L108.7,187.1 L109.7,190.3 L110.1,188.5 L110.4,184.9 L110.7,184.0 L111.1,184.0 L112.1,184.0 L112.5,184.0 L112.8,184.0 L113.1,184.0 L113.5,184.0 L114.5,184.0 L114.9,184.0 L115.2,192.3 L115.5,194.7 L115.9,195.0 L116.9,199.1 L117.3,200.4 L117.6,197.7 L117.9,191.3 L118.3,189.1 L119.7,186.3 L120.0,188.0 L120.3,187.9 L120.7,185.7 L121.7,187.0 L122.1,184.4 L122.4,185.4 L122.7,187.2 L123.1,189.5 L124.1,184.0 L124.5,184.0 L124.8,184.0 L125.1,184.0 L125.5,184.0 L126.9,184.0 L127.2,184.0 L127.5,184.0 L127.9,184.0 L128.9,184.0 L129.3,184.0 L129.6,184.0 L129.9,184.0 L130.3,184.0 L131.6,184.0 L132.0,184.0 L132.3,184.0 L132.7,185.9 L133.7,187.7 L134.0,188.6 L134.4,191.1 L134.7,191.0 L135.1,188.2 L136.1,188.0 L136.4,190.2 L136.8,191.6 L137.1,190.1 L137.5,188.5 L138.5,188.2 L138.8,189.0 L139.2,195.9 L139.5,193.4 L139.9,194.2 L140.9,196.8 L141.2,207.8 L141.6,206.0 L141.9,203.5 L142.3,202.5 L143.3,199.3 L143.6,199.1 L144.0,196.7 L144.3,196.2 L144.7,191.5 L145.7,184.0 L146.0,184.0 L146.4,184.0 L146.7,184.0 L147.1,184.0 L148.1,184.0 L148.4,184.0 L148.8,184.0 L149.1,184.0 L149.5,184.0 L150.5,184.0 L150.8,184.0 L151.2,184.0 L151.5,184.0 L151.9,184.0 L153.2,184.0 L153.6,184.0 L153.9,189.2 L154.3,189.5 L155.3,194.4 L155.6,191.6 L156.0,191.3 L156.3,185.4 L156.7,184.0 L157.7,184.0 L158.0,184.0 L158.4,184.0 L158.7,184.0 L159.1,184.0 L160.1,184.0 L160.4,184.0 L160.8,184.0 L161.1,184.0 L161.5,184.0 L162.5,184.0 L162.8,184.0 L163.2,184.0 L163.5,184.0 L163.9,184.0 L164.9,184.0 L165.2,184.0 L165.6,184.0 L165.9,184.0 L166.3,184.0 L167.3,184.0 L167.6,184.0 L168.0,184.0 L168.3,184.0 L168.7,184.0 L169.7,184.0 L170.0,184.0 L170.4,184.0 L170.7,184.0 L171.1,184.0 L172.1,184.0 L172.4,184.0 L172.8,184.0 L173.1,184.0 L173.5,184.0 L174.5,184.0 L174.8,184.0 L175.2,184.0 L175.5,184.0 L175.9,184.0 L176.9,184.0 L177.2,184.0 L177.6,184.0 L177.9,184.0 L178.3,184.0 L179.3,184.0 L179.6,184.0 L180.0,184.0 L180.7,184.0 L181.7,184.0 L182.0,184.0 L182.4,184.0 L182.7,184.0 L183.1,184.0 L184.1,184.0 L184.4,184.0 L184.8,184.0 L185.1,184.0 L185.4,184.0 L186.5,184.0 L186.8,184.0 L187.2,184.0 L187.5,184.0 L187.8,184.0 L188.9,184.0 L189.2,184.0 L189.6,184.0 L189.9,184.0 L190.2,184.0 L191.6,184.0 L192.0,184.0 L192.3,184.0 L192.6,184.0 L194.1,184.0 L194.4,184.0 L194.8,184.0 L195.1,184.0 L196.2,184.0 L196.5,184.0 L196.8,184.0 L197.2,184.0 L197.5,184.0 L198.9,184.0 L199.2,184.0 L199.6,184.0 L199.9,184.0 L201.0,184.0 L201.3,184.0 L201.6,184.0 L202.0,184.0 L202.3,184.0 L203.4,184.0 L203.7,184.0 L204.0,184.0 L204.4,184.0 L204.7,184.0 L205.8,184.0 L206.1,184.0 L206.4,184.0 L206.8,184.0 L207.1,184.0 L208.2,184.0 L208.5,184.0 L208.8,184.0 L209.2,184.0 L209.5,184.0 L210.9,184.0 L211.2,184.0 L211.6,184.0 L211.9,184.0 L212.9,184.0 L213.3,184.0 L213.6,184.0 L214.0,184.0 L214.3,184.0 L215.3,184.0 L215.7,184.0 L216.0,184.0 L216.4,184.0 L216.7,184.0 L217.7,184.0 L218.1,184.0 L218.4,184.0 L218.8,184.0 L219.1,184.0 L220.1,184.0 L220.5,184.0 L220.8,188.0 L221.2,186.6 L221.5,188.1 L222.5,190.2 L222.9,194.0 L223.2,195.4 L223.6,193.4 L223.9,191.4 L224.9,190.5 L225.3,199.3 L225.6,199.8 L226.0,197.8 L227.3,202.0 L227.7,203.7 L228.0,203.0 L228.4,205.2 L228.7,196.7 L229.7,198.4 L230.1,192.4 L230.4,191.3 L230.8,192.1 L231.1,192.1 L232.1,190.9 L232.5,196.1 L232.8,196.1 L233.2,203.0 L233.5,202.1 L234.5,201.1 L234.9,210.0 L235.2,211.8 L235.6,208.3 L235.9,208.0 L236.9,209.8 L237.3,209.1 L237.6,210.5 L238.0,210.7 L238.3,209.9 L239.3,215.7 L239.7,214.7 L240.0,226.5 L240.4,227.4 L240.7,228.2 L241.7,232.7 L242.1,233.0 L242.4,231.4 L242.8,233.6 L243.1,229.6 L244.5,240.8 L244.8,241.8 L245.2,240.4 L245.5,242.6 L246.5,243.6 L246.9,235.0 L247.2,231.9 L247.6,225.2 L247.9,222.2 L248.9,219.0 L249.3,213.7 L249.6,212.1 L250.0,205.8 L250.3,197.3 L251.7,198.9 L252.0,200.3 L252.4,201.4 L252.7,204.0 L253.7,203.8 L254.1,205.1 L254.4,213.1 L254.8,214.3 L255.1,208.0 L256.1,206.6 L256.8,206.0 L257.2,201.9 L257.5,201.2 L258.5,201.1 L258.9,197.5 L259.2,195.6 L259.6,192.3 L259.9,191.8 L260.9,191.8 L261.3,188.7 L261.6,188.6 L262.0,185.1 L262.3,184.0 L263.3,184.0 L263.7,184.0 L264.0,184.0 L264.4,184.0 L264.7,184.0 L265.7,184.0 L266.1,184.0 L266.4,184.0 L266.7,184.0 L267.1,184.0 L268.1,184.0 L268.5,184.0 L268.8,184.0 L269.1,184.0 L269.5,184.0 L270.5,184.0 L270.9,184.0 L271.2,184.0 L271.5,184.0 L271.9,184.0 L272.9,184.0 L273.3,184.0 L273.6,184.0 L273.9,184.0 L274.3,184.0 L275.3,184.0 L275.7,184.0 L276.0,184.0 L276.3,184.0 L276.7,184.0 L278.1,184.0 L278.4,184.0 L278.7,184.0 L279.1,184.0 L280.1,184.0 L280.5,184.0 L280.8,184.0 L281.1,184.0 L281.5,184.0 L282.5,184.0 L282.9,184.0 L283.2,184.0 L283.5,184.0 L283.9,184.0 L284.9,184.0 L285.3,184.0 L285.6,184.0 L285.9,184.0 L286.3,184.0 L287.3,184.0 L287.7,184.0 L288.0,184.0 L288.3,184.0 L288.7,184.0 L289.7,184.0 L290.1,184.0 L290.4,184.0 L290.7,184.0 L291.1,184.0 L292.1,184.0 L292.4,184.0 L292.8,184.0 L293.1,184.0 L293.5,184.0 L294.5,184.0 L294.8,184.0 L295.2,184.0 L295.5,184.0 L295.9,184.0 L296.9,184.0 L297.2,184.0 L297.6,184.0 L297.9,184.0 L298.3,184.0 L299.3,184.0 L299.6,184.0 L300.0,184.0 L300.3,184.0 L300.7,184.0 L301.7,184.0 L302.0,184.0 L302.4,184.0 L302.7,184.0 L303.1,184.0 L304.1,184.0 L304.4,184.0 L304.8,184.0 L305.5,184.0 L306.5,184.0 L306.8,184.0 L307.2,184.0 L307.5,184.0 L307.9,184.0 L308.9,184.0 L309.2,184.0 L309.6,184.0 L309.9,184.0 L310.3,184.0 L311.3,184.0 L311.6,184.0 L312.0,184.0 L312.3,184.0 L312.7,184.0 L313.7,184.0 L314.0,184.0 L314.4,184.0 L314.7,184.0 L315.1,184.0 L316.4,184.0 L316.8,184.0 L317.1,184.0 L317.5,184.0 L318.9,184.0 L319.3,184.0 L319.6,184.0 L319.9,184.0 L321.0,184.0 L321.3,184.0 L321.7,184.0 L322.0,184.0 L322.3,184.0 L323.7,184.0 L324.1,184.0 L324.4,184.0 L324.7,184.0 L325.8,184.0 L326.1,184.0 L326.5,184.0 L326.8,184.0 L327.1,184.0 L328.2,184.0 L328.5,184.0 L328.9,184.0 L329.2,184.0 L329.5,184.0 L330.6,184.0 L330.9,184.0 L331.3,184.0 L331.6,184.0 L331.9,184.0 L333.0,184.0 L333.3,184.0 L333.7,184.0 L334.0,184.0 L334.3,184.0 L335.7,184.0 L336.1,184.0 L336.4,184.0 L336.7,184.0 L337.8,184.0 L338.1,184.0 L338.5,184.0 L338.8,184.0 L339.1,184.0 L340.2,184.0 L340.5,184.0 L340.9,184.0 L341.2,184.0 L341.5,184.0 L342.6,184.0 L342.9,184.0 L343.3,184.0 L343.6,184.0 L343.9,184.0 L345.0,184.0 L345.3,184.0 L345.7,184.0 L346.0,184.0 L346.3,184.0 L347.4,184.0 L347.7,184.0 L348.0,184.0 L348.4,184.0 L349.8,184.0 L350.1,184.0 L350.4,184.0 L350.8,184.0 L351.1,184.0 L352.2,184.0 L352.5,184.0 L352.8,184.0 L353.2,184.0 L353.5,184.0 L354.6,184.0 L354.9,184.0 L355.2,184.0 L355.6,184.0 L355.9,184.0 L357.0,184.0 L357.3,184.0 L357.6,184.0 L358.0,184.0 L358.3,184.0 L359.4,184.0 L359.7,184.0 L360.0,184.0 L360.4,184.0 L360.7,184.0 L361.8,184.0 L362.1,184.0 L362.4,184.0 L362.8,184.0 L363.1,184.0 L364.2,184.0 L364.5,184.0 L364.8,184.0 L365.2,184.0 L365.5,184.0 L366.6,184.0 L366.9,184.0 L367.2,184.0 L367.6,184.0 L367.9,184.0 L369.3,184.0 L369.6,184.0 L370.0,184.0 L370.3,184.0 L371.4,184.0 L371.7,184.0 L372.0,184.0 L372.4,184.0 L372.7,184.0 L373.7,184.0 L374.1,184.0 L374.4,184.0 L374.8,184.0 L375.1,184.0 L376.1,184.0 L376.5,184.0 L377.2,184.0 L377.5,184.0 L378.5,184.0 L378.9,184.0 L379.2,184.0 L379.6,184.0 L379.9,184.0 L380.9,184.0 L381.3,184.0 L381.6,184.0 L382.3,184.0 L383.3,184.0 L383.7,184.0 L384.0,184.0 L384.4,184.0 L384.7,184.0 L385.7,184.0 L386.1,184.0 L386.4,184.0 L386.8,184.0 L387.1,184.0 L388.1,184.0 L388.5,184.0 L388.8,184.0 L389.2,184.0 L389.5,184.0 L390.5,184.0 L390.9,184.0 L391.2,184.0 L391.6,184.0 L391.9,184.0 L392.9,184.0 L393.3,184.0 L393.6,184.0 L394.0,184.0 L394.3,184.0 L395.3,185.0 L395.7,184.0 L396.0,184.0 L396.4,185.9 L396.7,186.0 L397.7,185.1 L398.1,187.3 L398.4,187.6 L398.8,185.0 L399.1,186.7 L400.1,184.6 L400.5,185.8 L400.8,185.3 L401.2,185.2 L401.5,190.1 L402.9,196.9 L403.2,198.9 L403.6,198.8 L403.9,198.3 L404.9,198.7 L405.3,198.9 L405.6,199.4 L406.0,198.5 L406.3,198.8 L407.3,199.3 L407.7,199.4 L408.0,197.6 L408.4,199.1 L408.7,198.5 L409.7,198.7 L410.1,202.1 L410.4,201.2 L410.8,202.3 L411.1,204.2 L412.1,206.0 L412.5,206.7 L412.8,206.5 L413.2,206.4 L413.5,207.0 L414.5,205.4 L414.9,204.3 L415.2,208.2 L415.6,208.2 L415.9,211.0 L416.9,212.4 L417.3,214.2 L417.6,213.8 L418.0,222.8 L418.3,221.6 L419.3,221.5 L419.7,221.6 L420.0,219.9 L420.4,225.7 L420.7,223.7 L421.7,206.9 L422.1,201.2 L422.4,196.0 L422.8,200.1 L423.1,197.2 L424.1,200.9 L424.5,197.6 L424.8,224.3 L425.2,220.7 L425.5,215.5 L426.5,215.6 L426.9,214.8 L427.2,213.7 L427.6,215.6 L427.9,217.5 L428.9,220.7 L429.3,219.9 L429.6,219.9 L429.9,219.9 L430.3,219.8 L431.3,212.6 L431.7,203.9 L432.0,203.7 L432.7,200.4 L433.7,200.7 L434.1,202.6 L434.4,201.1 L434.7,201.8 L435.1,200.9 L436.1,199.1 L436.5,198.7 L436.8,200.8 L437.1,199.8 L437.5,198.8 L438.5,198.8 L438.9,199.5 L439.2,184.0 L439.5,184.0 L439.9,184.0 L440.9,184.0 L441.3,184.0 L441.9,184.0 L442.3,184.0 L443.3,184.0 L443.7,184.0 L444.1,184.0 L444.4,184.0 L445.5,184.0 L445.8,184.0 L446.1,184.0 L446.8,184.0 L447.9,184.0 L448.2,184.0 L448.5,184.0 L448.9,184.0 L449.2,184.0 L450.6,184.0 L450.9,184.0 L451.3,184.0 L451.6,184.0 L452.7,184.0 L453.0,184.0 L453.3,184.0 L453.7,184.0 L454.0,184.0 L455.0,184.0 L455.4,184.0 L455.7,184.0 L456.1,184.0 L456.4,184.0 L457.4,184.0 L457.8,184.0 L458.1,184.0 L458.5,184.0 L458.8,184.0 L460.2,184.0 L460.5,184.0 L460.9,184.0 L461.2,184.0 L462.2,184.0 L462.6,184.0 L462.9,184.0 L463.3,184.0 L463.6,184.0 L464.6,184.0 L465.0,184.0 L465.3,184.0 L465.7,184.0 L466.0,184.0 L467.0,184.0 L467.4,184.0 L467.7,184.0 L468.1,184.0 L468.4,184.0 L469.4,184.0 L469.8,184.0 L470.1,184.0 L470.5,184.0 L470.8,184.0 L471.8,184.0 L472.2,184.0 L472.5,184.0 L472.9,184.0 L473.2,184.4 L474.2,184.0 L474.6,184.0 L474.9,184.0 L475.3,185.2 L475.6,200.7 L476.6,199.3 L477.0,195.5 L477.3,184.7 L477.7,184.0 L478.0,184.0 L479.0,184.0 L479.4,184.0 L479.7,184.0 L480.1,184.0 L481.4,184.0 L481.8,184.0 L482.1,184.0 L482.5,184.0 L482.8,184.0 L483.8,184.0 L484.2,184.0 L484.5,184.0 L484.9,184.0 L485.2,184.0 L486.2,184.0 L486.6,184.0 L486.9,184.0 L487.3,184.0 L487.6,184.0 L488.6,184.0 L489.0,184.0 L489.3,184.0 L489.7,184.0 L490.0,184.0 L491.0,184.0 L491.4,184.0 L491.7,184.0 L492.1,184.0 L492.4,184.0 L493.8,184.0 L494.1,184.0 L494.5,184.0 L494.8,184.0 L495.8,184.0 L496.2,184.0 L496.5,184.0 L496.9,184.0 L497.2,184.0 L498.2,184.0 L498.6,184.0 L498.9,184.0 L499.3,184.0 L499.6,184.0 L500.6,184.0 L501.0,184.0 L501.3,184.0 L502.0,184.0 L503.0,184.0 L503.4,184.0 L503.7,184.0 L504.1,184.0 L504.4,184.0 L505.4,184.0 L505.8,184.0 L506.1,184.0 L506.5,184.0 L507.8,184.0 L508.2,184.0 L508.5,184.0 L508.9,184.0 L509.2,184.0 L510.2,184.0 L510.6,184.0 L510.9,184.0 L511.2,184.0 L511.6,184.0 L512.6,184.0 L513.0,184.0 L513.3,184.0 L513.6,184.0 L514.0,184.0 L515.0,184.0 L515.4,184.0 L515.7,184.0 L516.0,184.0 L516.4,184.0 L517.4,184.0 L517.8,184.0 L518.1,184.0 L518.4,184.0 L518.8,184.0 L519.8,184.0 L520.2,184.0 L520.5,184.0 L520.8,184.0 L521.2,184.0 L522.2,184.0 L522.6,184.0 L522.9,184.0 L523.2,194.8 L523.6,190.6 L524.6,190.8 L525.0,190.7 L525.3,187.7 L525.6,186.3 L526.0,184.0 L527.4,184.0 L527.7,184.0 L528.0,184.0 L528.4,184.0 L529.4,184.0 L529.8,184.0 L530.1,184.0 L530.4,184.0 L530.8,184.0 L531.8,184.0 L532.2,184.0 L532.5,184.0 L532.8,184.0 L533.2,184.0 L534.2,184.0 L534.6,184.0 L534.9,184.0 L535.2,184.0 L535.6,184.0 L536.6,184.0 L536.9,184.0 L537.3,184.0 L537.6,184.0 L538.0,184.0 L539.0,184.0 L539.3,184.0 L539.7,186.5 L540.0,186.1 L540.4,210.5 L541.4,210.7 L541.7,211.7 L542.1,212.2 L542.4,212.2 L542.8,212.9 L543.8,212.1 L544.1,213.0 L544.5,211.0 L544.8,213.9 L545.2,214.0 L546.2,203.4 L546.5,205.7 L546.9,203.7 L547.2,195.9 L547.6,196.6 L548.6,194.9 L548.9,195.8 L549.3,194.3 L549.6,201.1 L550.0,201.6 L551.0,203.2 L551.3,203.2 L551.7,201.5 L552.0,191.5 L552.4,192.6 L553.4,199.7 L553.7,200.2 L554.1,200.4 L554.4,202.6 L554.8,202.2 L555.8,200.7 L556.1,205.7 L556.5,207.5 L557.2,212.0 L558.2,203.6 L558.5,205.8 L558.9,205.0 L559.2,205.7 L559.6,209.4 L560.6,209.1 L560.9,210.1 L561.3,208.0 L561.6,208.4 L562.0,199.5 L563.0,199.5 L563.3,199.6 L563.7,196.8 L564.0,195.3 L564.4,197.4 L565.4,197.8 L565.7,198.7 L566.1,197.0 L566.8,196.8 L567.8,197.8 L568.1,197.6 L568.5,192.7 L569.2,191.5 L570.3,190.0 L570.6,190.6 L571.0,184.0 L571.3,184.0 L571.6,184.0 L572.7,184.0 L573.0,184.0 L573.4,184.0 L573.7,184.0 L574.0,184.0 L575.4,184.0 L575.8,184.0 L576.1,184.0 L576.4,184.0 L577.5,184.0 L577.8,184.0 L578.2,184.0 L578.5,184.0 L578.8,184.0 L579.9,184.0 L580.2,184.0 L580.6,184.0 L580.9,184.0 L581.2,184.0 L582.3,184.0 L582.6,184.0 L583.0,184.0 L583.3,184.0 L583.6,184.0 L585.0,184.0 L585.4,184.0 L585.7,184.0 L586.0,184.0 L587.1,184.0 L587.4,184.0 L587.8,184.0 L588.1,184.0 L588.4,184.0 L589.5,184.0 L589.8,184.0 L590.2,184.0 L590.5,184.0 L590.8,184.0 L591.9,184.0 L592.2,184.0 L592.5,184.0 L592.9,184.0 L593.2,184.0 L594.3,184.0 L594.6,184.0 L594.9,184.0 L595.3,184.0 L595.6,184.0 L596.7,184.0 L597.0,184.0 L597.3,184.0 L597.7,184.0 L598.0,184.0 L599.1,184.0 L599.4,184.0 L599.7,184.0 L600.1,184.0 L601.5,184.0 L601.8,184.0 L602.1,184.0 L602.5,184.0 L602.8,184.0 L603.9,184.0 L604.2,184.0 L604.5,184.0 L604.9,184.0 L605.2,184.0 L606.3,184.0 L606.6,184.0 L606.9,184.0 L607.3,184.0 L607.6,184.0 L608.7,184.0 L609.0,184.0 L609.3,184.0 L609.7,184.0 L610.0,184.0 L611.1,184.0 L611.4,184.0 L611.7,184.0 L612.1,184.0 L612.4,184.0 L613.5,184.0 L613.8,184.0 L614.1,184.0 L614.5,184.0 L614.8,184.0 L615.9,184.0 L616.2,184.0 L616.5,184.0 L616.9,184.0 L617.2,184.0 L618.6,184.0 L618.9,184.0 L619.3,184.0 L619.6,184.0 L620.6,184.0 L621.0,184.0 L621.3,184.0 L621.7,184.0 L622.0,184.0 L623.0,184.0 L623.4,184.0 L623.7,184.0 L624.1,184.0 L624.4,184.0 L625.4,184.0 L625.8,184.0 L626.1,184.0 L626.5,184.0 L627.8,184.0 L628.2,184.0 L628.5,184.0 L628.9,184.0 L629.2,184.0 L630.2,184.0 L630.6,184.0 L630.9,184.0 L631.3,184.0 L632.6,184.0 L633.0,184.0 L633.3,184.0 L633.7,184.0 L634.0,184.0 L635.0,184.0 L635.4,184.0 L635.7,184.0 L636.1,184.0 L636.4,184.0 L637.4,184.0 L637.8,184.0 L638.1,184.0 L638.5,184.0 L638.8,184.0 L639.8,184.0 L640.2,184.0 L640.5,184.0 L640.9,184.0 L641.2,184.0 L642.2,184.0 L642.6,184.0 L642.9,184.0 L643.3,184.0 L643.6,184.0 L644.6,184.0 L645.0,184.0 L645.3,184.0 L645.7,184.0 L646.0,184.0 L647.0,184.0 L647.4,184.0 L647.7,184.0 L648.1,184.0 L648.4,184.0 L649.4,184.0 L649.8,184.0 L650.1,184.0 L650.5,184.0 L650.8,184.0 L651.8,184.0 L652.2,184.0 L652.5,184.0 L652.9,184.0 L653.2,184.0 L654.6,184.0 L654.9,184.0 L655.3,184.0 L655.6,184.0 L656.6,184.0 L657.0,184.0 L657.3,184.0 L657.7,184.0 L658.0,184.0 L658.0,184.0 Z" fill="#3a5f8a" opacity="0.22" stroke="none" clip-path="url(#f03-plotbox)"/><path d="M62.0,230.6 L62.3,233.0 L62.7,234.3 L63.0,232.9 L64.1,229.8 L64.4,230.8 L64.7,242.3 L65.1,243.1 L66.5,242.8 L66.8,245.2 L67.1,247.1 L67.5,246.1 L67.8,246.8 L68.9,245.1 L69.3,245.7 L69.6,240.8 L70.0,240.5 L70.3,240.3 L71.3,243.8 L71.7,240.9 L72.0,241.4 L72.4,241.9 L72.7,240.4 L74.1,231.0 L74.4,232.4 L74.8,233.5 L75.1,237.7 L76.1,238.0 L76.5,236.8 L76.8,236.2 L77.2,236.3 L77.5,233.8 L78.5,233.4 L78.9,235.8 L79.2,236.8 L79.6,231.0 L79.9,231.8 L80.9,236.2 L81.3,236.9 L81.6,234.7 L82.0,227.3 L82.3,231.7 L83.3,230.7 L83.7,233.7 L84.0,233.5 L84.4,236.4 L84.7,237.1 L86.1,240.1 L86.4,226.8 L86.8,224.0 L87.1,216.6 L88.1,214.9 L88.5,219.0 L88.8,226.1 L89.2,224.5 L89.5,224.3 L90.5,218.4 L90.9,216.7 L91.2,219.5 L91.6,217.0 L91.9,217.9 L92.9,212.8 L93.3,211.8 L93.6,203.7 L94.0,205.8 L94.3,203.2 L95.3,204.1 L95.7,205.4 L96.0,210.5 L96.4,211.6 L96.7,212.2 L97.7,210.4 L98.1,208.1 L98.4,207.2 L98.8,207.8 L99.1,209.2 L100.1,209.9 L100.5,205.3 L100.8,204.3 L101.2,206.2 L101.5,205.8 L102.5,199.9 L102.9,199.9 L103.2,202.5 L103.5,197.4 L104.9,196.1 L105.3,192.8 L105.6,192.6 L105.9,191.2 L106.3,189.9 L107.3,187.3 L107.7,193.9 L108.0,193.8 L108.3,191.7 L108.7,187.1 L109.7,190.3 L110.1,188.5 L110.4,184.9 L110.7,173.4 L111.1,173.7 L112.1,181.0 L112.5,176.3 L112.8,180.5 L113.1,178.4 L113.5,182.7 L114.5,180.2 L114.9,181.8 L115.2,192.3 L115.5,194.7 L115.9,195.0 L116.9,199.1 L117.3,200.4 L117.6,197.7 L117.9,191.3 L118.3,189.1 L119.7,186.3 L120.0,188.0 L120.3,187.9 L120.7,185.7 L121.7,187.0 L122.1,184.4 L122.4,185.4 L122.7,187.2 L123.1,189.5 L124.1,176.0 L124.5,177.8 L124.8,173.0 L125.1,175.2 L125.5,172.0 L126.9,175.9 L127.2,174.7 L127.5,174.5 L127.9,180.6 L128.9,180.2 L129.3,180.9 L129.6,180.8 L129.9,180.9 L130.3,181.5 L131.6,181.6 L132.0,182.1 L132.3,183.4 L132.7,185.9 L133.7,187.7 L134.0,188.6 L134.4,191.1 L134.7,191.0 L135.1,188.2 L136.1,188.0 L136.4,190.2 L136.8,191.6 L137.1,190.1 L137.5,188.5 L138.5,188.2 L138.8,189.0 L139.2,195.9 L139.5,193.4 L139.9,194.2 L140.9,196.8 L141.2,207.8 L141.6,206.0 L141.9,203.5 L142.3,202.5 L143.3,199.3 L143.6,199.1 L144.0,196.7 L144.3,196.2 L144.7,191.5 L145.7,180.4 L146.0,180.1 L146.4,178.8 L146.7,174.9 L147.1,169.3 L148.1,169.3 L148.4,168.0 L148.8,169.1 L149.1,167.8 L149.5,172.5 L150.5,172.0 L150.8,172.7 L151.2,170.8 L151.5,173.5 L151.9,175.4 L153.2,173.2 L153.6,171.2 L153.9,189.2 L154.3,189.5 L155.3,194.4 L155.6,191.6 L156.0,191.3 L156.3,185.4 L156.7,182.9 L157.7,183.9 L158.0,175.3 L158.4,180.9 L158.7,176.0 L159.1,177.2 L160.1,173.5 L160.4,174.8 L160.8,165.7 L161.1,164.0 L161.5,160.1 L162.5,155.5 L162.8,153.8 L163.2,152.6 L163.5,151.0 L163.9,149.4 L164.9,150.1 L165.2,151.2 L165.6,149.3 L165.9,153.4 L166.3,154.7 L167.3,153.4 L167.6,152.5 L168.0,151.0 L168.3,148.4 L168.7,156.0 L169.7,157.0 L170.0,150.2 L170.4,152.9 L170.7,157.1 L171.1,158.8 L172.1,158.2 L172.4,158.2 L172.8,158.4 L173.1,156.9 L173.5,159.1 L174.5,163.1 L174.8,162.2 L175.2,164.4 L175.5,143.5 L175.9,143.9 L176.9,145.3 L177.2,144.0 L177.6,146.8 L177.9,146.4 L178.3,148.6 L179.3,144.0 L179.6,142.6 L180.0,141.3 L180.7,141.8 L181.7,141.5 L182.0,140.5 L182.4,139.0 L182.7,143.3 L183.1,142.9 L184.1,141.1 L184.4,142.4 L184.8,140.1 L185.1,140.5 L185.4,139.5 L186.5,140.1 L186.8,139.7 L187.2,141.0 L187.5,138.2 L187.8,137.9 L188.9,135.7 L189.2,137.7 L189.6,137.3 L189.9,141.9 L190.2,143.8 L191.6,145.2 L192.0,147.7 L192.3,143.8 L192.6,143.7 L194.1,145.9 L194.4,147.3 L194.8,149.3 L195.1,145.4 L196.2,145.2 L196.5,142.8 L196.8,142.9 L197.2,140.1 L197.5,140.6 L198.9,141.7 L199.2,149.4 L199.6,141.0 L199.9,144.5 L201.0,149.5 L201.3,148.3 L201.6,147.4 L202.0,144.9 L202.3,145.7 L203.4,144.7 L203.7,144.7 L204.0,144.9 L204.4,141.0 L204.7,137.1 L205.8,136.7 L206.1,137.3 L206.4,160.3 L206.8,158.0 L207.1,159.0 L208.2,159.5 L208.5,155.6 L208.8,156.8 L209.2,153.1 L209.5,153.3 L210.9,150.3 L211.2,151.9 L211.6,151.2 L211.9,148.0 L212.9,147.9 L213.3,150.1 L213.6,147.8 L214.0,148.8 L214.3,146.4 L215.3,141.7 L215.7,142.3 L216.0,141.9 L216.4,146.2 L216.7,158.9 L217.7,160.3 L218.1,165.5 L218.4,166.5 L218.8,172.3 L219.1,179.7 L220.1,180.9 L220.5,183.6 L220.8,188.0 L221.2,186.6 L221.5,188.1 L222.5,190.2 L222.9,194.0 L223.2,195.4 L223.6,193.4 L223.9,191.4 L224.9,190.5 L225.3,199.3 L225.6,199.8 L226.0,197.8 L227.3,202.0 L227.7,203.7 L228.0,203.0 L228.4,205.2 L228.7,196.7 L229.7,198.4 L230.1,192.4 L230.4,191.3 L230.8,192.1 L231.1,192.1 L232.1,190.9 L232.5,196.1 L232.8,196.1 L233.2,203.0 L233.5,202.1 L234.5,201.1 L234.9,210.0 L235.2,211.8 L235.6,208.3 L235.9,208.0 L236.9,209.8 L237.3,209.1 L237.6,210.5 L238.0,210.7 L238.3,209.9 L239.3,215.7 L239.7,214.7 L240.0,226.5 L240.4,227.4 L240.7,228.2 L241.7,232.7 L242.1,233.0 L242.4,231.4 L242.8,233.6 L243.1,229.6 L244.5,240.8 L244.8,241.8 L245.2,240.4 L245.5,242.6 L246.5,243.6 L246.9,235.0 L247.2,231.9 L247.6,225.2 L247.9,222.2 L248.9,219.0 L249.3,213.7 L249.6,212.1 L250.0,205.8 L250.3,197.3 L251.7,198.9 L252.0,200.3 L252.4,201.4 L252.7,204.0 L253.7,203.8 L254.1,205.1 L254.4,213.1 L254.8,214.3 L255.1,208.0 L256.1,206.6 L256.8,206.0 L257.2,201.9 L257.5,201.2 L258.5,201.1 L258.9,197.5 L259.2,195.6 L259.6,192.3 L259.9,191.8 L260.9,191.8 L261.3,188.7 L261.6,188.6 L262.0,185.1 L262.3,175.7 L263.3,178.0 L263.7,171.3 L264.0,175.5 L264.4,171.9 L264.7,153.7 L265.7,150.5 L266.1,150.8 L266.4,142.6 L266.7,140.7 L267.1,147.5 L268.1,151.7 L268.5,153.5 L268.8,156.7 L269.1,155.7 L269.5,155.9 L270.5,154.7 L270.9,150.5 L271.2,149.3 L271.5,148.7 L271.9,145.8 L272.9,149.9 L273.3,150.9 L273.6,146.3 L273.9,144.4 L274.3,140.6 L275.3,140.6 L275.7,129.6 L276.0,129.8 L276.3,130.5 L276.7,133.9 L278.1,133.9 L278.4,135.5 L278.7,136.9 L279.1,134.1 L280.1,136.0 L280.5,141.5 L280.8,141.7 L281.1,141.8 L281.5,140.1 L282.5,138.4 L282.9,133.4 L283.2,135.4 L283.5,124.5 L283.9,125.7 L284.9,128.1 L285.3,133.2 L285.6,132.8 L285.9,132.1 L286.3,134.3 L287.3,135.8 L287.7,130.5 L288.0,128.9 L288.3,131.5 L288.7,139.5 L289.7,136.2 L290.1,136.5 L290.4,136.0 L290.7,134.7 L291.1,139.6 L292.1,145.2 L292.4,145.2 L292.8,144.2 L293.1,141.7 L293.5,146.9 L294.5,149.1 L294.8,146.6 L295.2,141.7 L295.5,149.4 L295.9,149.2 L296.9,148.4 L297.2,146.7 L297.6,140.6 L297.9,131.2 L298.3,129.2 L299.3,130.0 L299.6,129.2 L300.0,130.1 L300.3,128.5 L300.7,128.1 L301.7,128.0 L302.0,120.0 L302.4,120.2 L302.7,123.7 L303.1,124.0 L304.1,123.6 L304.4,123.7 L304.8,125.3 L305.5,125.6 L306.5,126.9 L306.8,125.3 L307.2,126.8 L307.5,127.3 L307.9,125.9 L308.9,125.7 L309.2,125.8 L309.6,126.6 L309.9,128.0 L310.3,127.0 L311.3,127.6 L311.6,127.4 L312.0,123.7 L312.3,122.6 L312.7,129.7 L313.7,130.1 L314.0,126.5 L314.4,130.2 L314.7,132.4 L315.1,132.5 L316.4,132.5 L316.8,133.1 L317.1,139.2 L317.5,139.3 L318.9,138.6 L319.3,134.7 L319.6,135.0 L319.9,134.8 L321.0,133.9 L321.3,136.7 L321.7,133.8 L322.0,128.1 L322.3,128.0 L323.7,128.9 L324.1,133.0 L324.4,133.0 L324.7,131.8 L325.8,133.1 L326.1,142.4 L326.5,133.2 L326.8,133.8 L327.1,130.4 L328.2,128.1 L328.5,132.2 L328.9,149.6 L329.2,146.1 L329.5,154.6 L330.6,151.6 L330.9,150.3 L331.3,158.4 L331.6,159.3 L331.9,160.1 L333.0,172.5 L333.3,162.4 L333.7,161.0 L334.0,160.2 L334.3,159.9 L335.7,160.3 L336.1,160.5 L336.4,159.3 L336.7,157.5 L337.8,157.0 L338.1,155.6 L338.5,155.2 L338.8,156.5 L339.1,156.9 L340.2,153.7 L340.5,157.7 L340.9,155.6 L341.2,155.3 L341.5,154.8 L342.6,155.0 L342.9,167.2 L343.3,167.3 L343.6,164.9 L343.9,164.4 L345.0,165.9 L345.3,159.4 L345.7,157.4 L346.0,157.1 L346.3,159.3 L347.4,158.0 L347.7,158.8 L348.0,157.4 L348.4,158.7 L349.8,154.4 L350.1,155.4 L350.4,155.3 L350.8,165.6 L351.1,171.6 L352.2,170.9 L352.5,170.6 L352.8,162.3 L353.2,165.9 L353.5,170.3 L354.6,160.9 L354.9,161.8 L355.2,165.4 L355.6,164.3 L355.9,165.9 L357.0,167.6 L357.3,167.4 L357.6,170.2 L358.0,168.8 L358.3,158.6 L359.4,165.0 L359.7,151.6 L360.0,154.1 L360.4,153.2 L360.7,147.3 L361.8,146.0 L362.1,145.6 L362.4,145.6 L362.8,152.5 L363.1,154.2 L364.2,155.6 L364.5,155.8 L364.8,150.0 L365.2,149.7 L365.5,152.2 L366.6,151.5 L366.9,151.6 L367.2,151.4 L367.6,148.8 L367.9,148.8 L369.3,150.8 L369.6,148.0 L370.0,143.3 L370.3,142.2 L371.4,142.3 L371.7,142.7 L372.0,140.2 L372.4,135.5 L372.7,136.3 L373.7,137.6 L374.1,136.5 L374.4,134.0 L374.8,134.8 L375.1,134.3 L376.1,138.5 L376.5,136.7 L377.2,136.6 L377.5,136.4 L378.5,139.5 L378.9,139.4 L379.2,140.6 L379.6,141.8 L379.9,139.8 L380.9,136.8 L381.3,128.2 L381.6,127.3 L382.3,125.9 L383.3,132.7 L383.7,130.7 L384.0,124.0 L384.4,137.5 L384.7,137.9 L385.7,134.1 L386.1,133.4 L386.4,133.2 L386.8,129.3 L387.1,126.2 L388.1,129.1 L388.5,130.2 L388.8,125.9 L389.2,129.0 L389.5,130.7 L390.5,130.1 L390.9,131.8 L391.2,131.2 L391.6,136.7 L391.9,164.0 L392.9,169.9 L393.3,177.9 L393.6,176.1 L394.0,181.1 L394.3,180.7 L395.3,185.0 L395.7,182.4 L396.0,181.7 L396.4,185.9 L396.7,186.0 L397.7,185.1 L398.1,187.3 L398.4,187.6 L398.8,185.0 L399.1,186.7 L400.1,184.6 L400.5,185.8 L400.8,185.3 L401.2,185.2 L401.5,190.1 L402.9,196.9 L403.2,198.9 L403.6,198.8 L403.9,198.3 L404.9,198.7 L405.3,198.9 L405.6,199.4 L406.0,198.5 L406.3,198.8 L407.3,199.3 L407.7,199.4 L408.0,197.6 L408.4,199.1 L408.7,198.5 L409.7,198.7 L410.1,202.1 L410.4,201.2 L410.8,202.3 L411.1,204.2 L412.1,206.0 L412.5,206.7 L412.8,206.5 L413.2,206.4 L413.5,207.0 L414.5,205.4 L414.9,204.3 L415.2,208.2 L415.6,208.2 L415.9,211.0 L416.9,212.4 L417.3,214.2 L417.6,213.8 L418.0,222.8 L418.3,221.6 L419.3,221.5 L419.7,221.6 L420.0,219.9 L420.4,225.7 L420.7,223.7 L421.7,206.9 L422.1,201.2 L422.4,196.0 L422.8,200.1 L423.1,197.2 L424.1,200.9 L424.5,197.6 L424.8,224.3 L425.2,220.7 L425.5,215.5 L426.5,215.6 L426.9,214.8 L427.2,213.7 L427.6,215.6 L427.9,217.5 L428.9,220.7 L429.3,219.9 L429.6,219.9 L429.9,219.9 L430.3,219.8 L431.3,212.6 L431.7,203.9 L432.0,203.7 L432.7,200.4 L433.7,200.7 L434.1,202.6 L434.4,201.1 L434.7,201.8 L435.1,200.9 L436.1,199.1 L436.5,198.7 L436.8,200.8 L437.1,199.8 L437.5,198.8 L438.5,198.8 L438.9,199.5 L439.2,180.5 L439.5,180.8 L439.9,179.2 L440.9,180.1 L441.3,177.7 L441.9,175.6 L442.3,173.4 L443.3,178.2 L443.7,174.4 L444.1,176.7 L444.4,178.5 L445.5,178.1 L445.8,174.5 L446.1,173.9 L446.8,172.1 L447.9,168.1 L448.2,168.9 L448.5,159.0 L448.9,159.6 L449.2,159.4 L450.6,157.1 L450.9,158.2 L451.3,159.5 L451.6,160.4 L452.7,166.9 L453.0,167.1 L453.3,166.5 L453.7,163.5 L454.0,160.0 L455.0,159.3 L455.4,160.5 L455.7,130.1 L456.1,132.4 L456.4,131.9 L457.4,132.7 L457.8,133.5 L458.1,132.3 L458.5,126.1 L458.8,126.2 L460.2,128.3 L460.5,128.6 L460.9,129.7 L461.2,140.3 L462.2,141.0 L462.6,145.7 L462.9,144.8 L463.3,141.2 L463.6,137.9 L464.6,140.4 L465.0,136.5 L465.3,142.0 L465.7,141.6 L466.0,142.5 L467.0,154.9 L467.4,153.9 L467.7,152.3 L468.1,157.0 L468.4,160.8 L469.4,160.1 L469.8,160.3 L470.1,171.9 L470.5,171.4 L470.8,172.5 L471.8,177.1 L472.2,178.6 L472.5,176.1 L472.9,178.5 L473.2,184.4 L474.2,182.7 L474.6,182.1 L474.9,180.8 L475.3,185.2 L475.6,200.7 L476.6,199.3 L477.0,195.5 L477.3,184.7 L477.7,168.8 L478.0,171.5 L479.0,170.5 L479.4,170.8 L479.7,173.5 L480.1,173.4 L481.4,168.2 L481.8,166.5 L482.1,162.6 L482.5,160.0 L482.8,159.4 L483.8,159.6 L484.2,159.2 L484.5,159.2 L484.9,160.5 L485.2,163.4 L486.2,163.2 L486.6,164.0 L486.9,163.5 L487.3,164.6 L487.6,164.6 L488.6,170.6 L489.0,171.0 L489.3,170.5 L489.7,170.0 L490.0,169.6 L491.0,166.7 L491.4,166.3 L491.7,161.9 L492.1,161.9 L492.4,163.1 L493.8,162.0 L494.1,161.1 L494.5,162.2 L494.8,161.2 L495.8,162.7 L496.2,162.6 L496.5,158.9 L496.9,159.7 L497.2,161.0 L498.2,159.0 L498.6,157.4 L498.9,158.1 L499.3,157.6 L499.6,157.1 L500.6,158.2 L501.0,160.3 L501.3,158.0 L502.0,158.0 L503.0,158.4 L503.4,157.7 L503.7,153.2 L504.1,153.3 L504.4,153.6 L505.4,153.5 L505.8,147.9 L506.1,132.8 L506.5,131.5 L507.8,134.0 L508.2,125.4 L508.5,149.4 L508.9,151.1 L509.2,150.6 L510.2,149.8 L510.6,141.3 L510.9,141.3 L511.2,153.8 L511.6,157.3 L512.6,162.1 L513.0,170.1 L513.3,173.0 L513.6,172.3 L514.0,173.2 L515.0,173.1 L515.4,175.4 L515.7,168.3 L516.0,170.2 L516.4,177.5 L517.4,176.6 L517.8,174.9 L518.1,176.2 L518.4,160.0 L518.8,160.4 L519.8,160.4 L520.2,164.5 L520.5,164.4 L520.8,164.1 L521.2,164.5 L522.2,179.6 L522.6,181.3 L522.9,181.1 L523.2,194.8 L523.6,190.6 L524.6,190.8 L525.0,190.7 L525.3,187.7 L525.6,186.3 L526.0,181.5 L527.4,175.4 L527.7,165.4 L528.0,162.6 L528.4,168.1 L529.4,167.0 L529.8,168.9 L530.1,175.4 L530.4,167.4 L530.8,158.7 L531.8,158.3 L532.2,159.4 L532.5,159.8 L532.8,166.1 L533.2,166.2 L534.2,168.9 L534.6,170.5 L534.9,171.4 L535.2,171.6 L535.6,170.3 L536.6,165.9 L536.9,171.9 L537.3,172.4 L537.6,175.5 L538.0,175.3 L539.0,181.6 L539.3,183.3 L539.7,186.5 L540.0,186.1 L540.4,210.5 L541.4,210.7 L541.7,211.7 L542.1,212.2 L542.4,212.2 L542.8,212.9 L543.8,212.1 L544.1,213.0 L544.5,211.0 L544.8,213.9 L545.2,214.0 L546.2,203.4 L546.5,205.7 L546.9,203.7 L547.2,195.9 L547.6,196.6 L548.6,194.9 L548.9,195.8 L549.3,194.3 L549.6,201.1 L550.0,201.6 L551.0,203.2 L551.3,203.2 L551.7,201.5 L552.0,191.5 L552.4,192.6 L553.4,199.7 L553.7,200.2 L554.1,200.4 L554.4,202.6 L554.8,202.2 L555.8,200.7 L556.1,205.7 L556.5,207.5 L557.2,212.0 L558.2,203.6 L558.5,205.8 L558.9,205.0 L559.2,205.7 L559.6,209.4 L560.6,209.1 L560.9,210.1 L561.3,208.0 L561.6,208.4 L562.0,199.5 L563.0,199.5 L563.3,199.6 L563.7,196.8 L564.0,195.3 L564.4,197.4 L565.4,197.8 L565.7,198.7 L566.1,197.0 L566.8,196.8 L567.8,197.8 L568.1,197.6 L568.5,192.7 L569.2,191.5 L570.3,190.0 L570.6,190.6 L571.0,162.2 L571.3,161.3 L571.6,158.3 L572.7,158.0 L573.0,153.3 L573.4,156.0 L573.7,158.3 L574.0,157.6 L575.4,143.5 L575.8,136.5 L576.1,135.6 L576.4,137.5 L577.5,136.7 L577.8,137.2 L578.2,139.7 L578.5,139.3 L578.8,137.6 L579.9,136.6 L580.2,135.3 L580.6,124.9 L580.9,138.3 L581.2,138.0 L582.3,138.4 L582.6,142.4 L583.0,148.8 L583.3,164.7 L583.6,162.9 L585.0,162.8 L585.4,163.6 L585.7,158.8 L586.0,161.4 L587.1,169.0 L587.4,169.6 L587.8,171.5 L588.1,171.4 L588.4,178.2 L589.5,179.0 L589.8,178.4 L590.2,179.7 L590.5,177.5 L590.8,175.1 L591.9,170.5 L592.2,171.4 L592.5,171.0 L592.9,175.3 L593.2,173.8 L594.3,168.5 L594.6,168.3 L594.9,166.5 L595.3,164.2 L595.6,149.4 L596.7,146.8 L597.0,147.5 L597.3,145.0 L597.7,139.8 L598.0,137.6 L599.1,141.8 L599.4,146.8 L599.7,150.0 L600.1,149.1 L601.5,148.7 L601.8,148.4 L602.1,148.7 L602.5,149.1 L602.8,149.0 L603.9,146.7 L604.2,144.8 L604.5,146.3 L604.9,155.4 L605.2,154.7 L606.3,155.4 L606.6,154.1 L606.9,154.3 L607.3,152.9 L607.6,152.5 L608.7,152.8 L609.0,153.7 L609.3,152.4 L609.7,151.7 L610.0,152.1 L611.1,143.6 L611.4,141.9 L611.7,138.9 L612.1,135.2 L612.4,134.1 L613.5,121.0 L613.8,120.1 L614.1,120.4 L614.5,119.4 L614.8,114.8 L615.9,114.2 L616.2,109.7 L616.5,108.3 L616.9,108.5 L617.2,106.3 L618.6,102.9 L618.9,101.3 L619.3,100.7 L619.6,99.7 L620.6,100.4 L621.0,100.5 L621.3,101.0 L621.7,100.6 L622.0,100.2 L623.0,99.6 L623.4,102.5 L623.7,104.3 L624.1,100.5 L624.4,102.2 L625.4,102.1 L625.8,112.3 L626.1,116.2 L626.5,116.1 L627.8,115.2 L628.2,122.4 L628.5,129.7 L628.9,123.1 L629.2,117.3 L630.2,116.0 L630.6,121.3 L630.9,121.0 L631.3,121.1 L632.6,121.7 L633.0,119.5 L633.3,119.4 L633.7,119.9 L634.0,121.7 L635.0,118.4 L635.4,117.3 L635.7,120.2 L636.1,120.5 L636.4,125.3 L637.4,125.7 L637.8,127.3 L638.1,127.7 L638.5,126.6 L638.8,125.9 L639.8,126.1 L640.2,125.2 L640.5,117.8 L640.9,120.4 L641.2,124.5 L642.2,129.0 L642.6,125.4 L642.9,127.1 L643.3,126.1 L643.6,125.6 L644.6,125.5 L645.0,126.4 L645.3,131.7 L645.7,130.6 L646.0,131.8 L647.0,133.7 L647.4,135.9 L647.7,138.4 L648.1,137.3 L648.4,137.8 L649.4,140.3 L649.8,140.1 L650.1,139.7 L650.5,140.4 L650.8,141.0 L651.8,140.9 L652.2,141.1 L652.5,140.3 L652.9,138.3 L653.2,139.2 L654.6,148.0 L654.9,146.3 L655.3,142.4 L655.6,139.1 L656.6,136.5 L657.0,138.0 L657.3,139.9 L657.7,131.1 L658.0,127.3" fill="none" stroke="#1a1a1a" stroke-width="1.2" clip-path="url(#f03-plotbox)"/><line x1="62" y1="184.0" x2="658" y2="184.0" stroke="#5b5b5b" stroke-width="1.0" stroke-dasharray="2 3"/><line x1="160.8" y1="334" x2="160.8" y2="38" stroke="#9c3b3b" stroke-width="1.0" stroke-dasharray="3 3"/><text x="164.8" y="47" fill="#9c3b3b">2022 gilts</text><line x1="392.9" y1="334" x2="392.9" y2="38" stroke="#9c3b3b" stroke-width="1.0" stroke-dasharray="3 3"/><text x="396.9" y="60" fill="#9c3b3b">Aug 2024</text><line x1="477.0" y1="334" x2="477.0" y2="38" stroke="#9c3b3b" stroke-width="1.0" stroke-dasharray="3 3"/><text x="481.0" y="47" fill="#9c3b3b">Apr 2025</text><text x="73.9" y="301.0" fill="#9c3b3b" text-anchor="start" font-size="10">positive (red): stocks and bonds fall together</text><text x="73.9" y="319.0" fill="#3a5f8a" text-anchor="start" font-size="10">negative (blue): bonds hedge stocks</text><text fill="#5b5b5b" font-size="10"><tspan x="62" y="370">From the stored SPY and TLT closes (yfinance.mkt_spy, yfinance.mkt_tlt), the correlation layer's method;</tspan><tspan x="62" y="383">2021-12-14 to 2026-09-18. Laptop store; the box regenerates. Cases before the series: 1987, 1998, 2010, Feb</tspan><tspan x="62" y="396">2018, Mar 2020, Jan 2021.</tspan></text></svg>
+<figcaption>Figure 3 — The stock–bond correlation&#x27;s sign through regimes: the 60-session correlation of SPY and TLT returns, its sign shaded</figcaption></figure></p>
+<p><em>Worked example (illustrative).</em> A 60/40 portfolio in a regime where the stock–bond correlation is −0.3 has a volatility well below the equity sleeve's. If the correlation flips to +0.5 while equity falls 20% and bonds fall 10%, the portfolio falls 16% against the equity sleeve's 20%: diversification saved four points, not the ten a negative correlation had seemed to promise. The joint drawdown is not a tail of the old distribution. It is the normal behaviour of the new regime.</p>
+<p><em>Historical instance.</em> 2022, when stocks and bonds fell together through most of the year.</p>
+<p><em>On the day.</em> The days on which the hedge sleeve fell with the risk sleeve; there were many, and none of them looked like a cascade.</p>
+<h3>9.2 Path dependence</h3>
+<p>The order in which moves arrive matters because constraints are evaluated along the path, not at its end. A position that falls 20% and recovers ends where it began, but if a margin call, a stop or a volatility target was triggered on the way down, the participant is no longer holding it when it recovers. Two paths with the same end point can produce completely different forced flows. That is why a cascade is often followed by a recovery that the forced sellers do not participate in, and why the participants who were not forced are the ones who are paid.</p>
+<table>
+<thead>
+<tr>
+<th>Effect</th>
+<th>Mechanism</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Correlation rises in a cascade</td>
+<td>A shared forced seller sells everything</td>
+<td>Diversification fails when needed</td>
+</tr>
+<tr>
+<td>The stock–bond sign is regime-dependent</td>
+<td>Inflation risk versus growth risk dominating</td>
+<td>A 60/40 is diversified in one regime and concentrated in the other</td>
+</tr>
+<tr>
+<td>Path dependence</td>
+<td>Constraints evaluated along the path</td>
+<td>Same end point, different forced flows; the forced miss the recovery</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 10 — Short squeezes</h2>
+<p>A short squeeze is the cascade mechanism run upward. Short sellers who have borrowed shares must buy them back to close. When the price rises, their losses and their margin rise, and some are forced to buy. Their buying lifts the price, which forces the next. The squeeze is a cascade with the forced flow on the bid.</p>
+<h3>10.1 What makes a short crowded</h3>
+<p>Three things make a short position fragile:
+- <strong>short interest large against the float</strong>, so the shorts' buying is large against what is available to buy;
+- <strong>borrow that is expensive or scarce</strong>, so holding the short costs money every day;
+- <strong>the lender's right to recall the shares</strong>, which forces a cover regardless of price.</p>
+<p>A position can be crowded by any one of the three. All three together make it a forced buyer waiting for a trigger.</p>
+<h3>10.2 The forced buyer and the options channel</h3>
+<p>In the modern squeeze, a second forced buyer often matters more than the shorts: the dealer who has sold call options. When buyers of out-of-the-money calls push the dealers short gamma, the dealers' hedging buys the stock as it rises (Chapter 7). <em>The Dealer's Hand</em> carries that mechanism, and this paper cites it.</p>
+<h3>10.3 What stops a squeeze</h3>
+<p>A squeeze stops when supply arrives: a secondary offering, lenders returning shares, the shorts exhausted, or a constraint on the buyers. The last is the case this library has most reason to study, because in 2021 it was a clearing deposit rather than a price that stopped the buying (Chapter 16).</p>
+<p><em>Worked example (illustrative).</em> A stock has 50 million shares of float, of which 60 million are reported short; lent shares have been re-lent, so short interest can exceed the float. Borrow costs 50% a year. A 30% rise in the stock lifts each short's loss and margin. If a third of the shorts must cover, 20 million shares must be bought in a stock that trades 10 million a day. The buying is two days' volume, all on the bid, and the shorts know that every other short knows it.</p>
+<p><em>Historical instance.</em> January 2021.</p>
+<p><em>On the day.</em> The borrow rate spiking, recalls, trading halts on volatility, and the brokers' restrictions.</p>
+<p><strong>Figure 4 — Leveraged funds' net in ES against the squeeze cases.</strong> <em>Placeholder, drawn at merge from the box's store: CFTC Traders in Financial Futures, leveraged funds' net in the E-mini S&amp;P 500 as a share of open interest (<code>cftc.tff_lev_money_net_oi</code>), with the squeeze cases marked.</em></p>
+<table>
+<thead>
+<tr>
+<th>Ingredient</th>
+<th>What it does</th>
+<th>The tell</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Short interest against float</td>
+<td>Makes the cover large against supply</td>
+<td>Short interest, days to cover</td>
+</tr>
+<tr>
+<td>Expensive or scarce borrow</td>
+<td>Makes the short costly to hold</td>
+<td>The borrow rate, utilisation</td>
+</tr>
+<tr>
+<td>Recall</td>
+<td>Forces a cover regardless of price</td>
+<td>Recall notices; fails to deliver</td>
+</tr>
+<tr>
+<td>Short dealer gamma from call buying</td>
+<td>Adds a second forced buyer</td>
+<td>Call volume, dealer positioning</td>
+</tr>
+<tr>
+<td>A constraint on the buyers</td>
+<td>Stops the squeeze</td>
+<td>Broker restrictions; clearing deposits</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-the-cases">
+      <summary class="section-head">
+        <span class="section-title">Part III — The Cases</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>The cases are weighted to where the system's measures reach. February 2018 and March 2020 are told in full, 2021 and 2022 at medium length. 1987, 1998 and 2010 predate the store, so they are mechanism chapters cited to their histories. August 2024 and April 2025 are short instances that the air-pocket ledger scores (Chapter 19). Each chapter gives the mechanism; <em>Tops and Bottoms</em> tells the episodes. The cases' figures are in Appendix B, dated.</p>
+<p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 404" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11"><rect x="0" y="0" width="680" height="404" fill="#fff"/><text x="62" y="20" font-size="12.5" font-weight="600" fill="#1a1a1a">Figure 5 · The volatility index through the cases, from its first stored observation</text><defs><clipPath id="f05-plotbox"><rect x="62" y="34" width="596" height="300"/></clipPath></defs><line x1="163.6" y1="334" x2="163.6" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="163.6" y="349" text-anchor="middle" fill="#5b5b5b">2023</text><line x1="308.9" y1="334" x2="308.9" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="308.9" y="349" text-anchor="middle" fill="#5b5b5b">2024</text><line x1="454.2" y1="334" x2="454.2" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="454.2" y="349" text-anchor="middle" fill="#5b5b5b">2025</text><line x1="599.5" y1="334" x2="599.5" y2="34" stroke="#d8d4cc" stroke-width="0.6"/><text x="599.5" y="349" text-anchor="middle" fill="#5b5b5b">2026</text><line x1="62" y1="334.0" x2="658" y2="334.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="337.5" text-anchor="end" fill="#5b5b5b">0</text><line x1="62" y1="284.0" x2="658" y2="284.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="287.5" text-anchor="end" fill="#5b5b5b">10</text><line x1="62" y1="234.0" x2="658" y2="234.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="237.5" text-anchor="end" fill="#5b5b5b">20</text><line x1="62" y1="184.0" x2="658" y2="184.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="187.5" text-anchor="end" fill="#5b5b5b">30</text><line x1="62" y1="134.0" x2="658" y2="134.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="137.5" text-anchor="end" fill="#5b5b5b">40</text><line x1="62" y1="84.0" x2="658" y2="84.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="87.5" text-anchor="end" fill="#5b5b5b">50</text><line x1="62" y1="34.0" x2="658" y2="34.0" stroke="#d8d4cc" stroke-width="0.6"/><text x="55" y="37.5" text-anchor="end" fill="#5b5b5b">60</text><text x="16" y="184.0" text-anchor="middle" fill="#5b5b5b" transform="rotate(-90 16 184.0)">VIX, daily close</text><path d="M62.0,220.6 L62.4,192.9 L63.6,198.9 L64.0,166.4 L64.4,176.0 L64.8,184.1 L65.2,167.0 L66.4,172.3 L66.8,187.8 L67.2,206.9 L67.6,178.0 L68.0,183.1 L69.2,160.2 L69.6,169.0 L70.0,171.2 L70.4,175.2 L70.8,189.7 L71.9,196.7 L72.3,203.5 L72.7,179.2 L73.1,187.2 L73.5,186.8 L74.7,191.6 L75.1,186.8 L75.5,192.2 L75.9,196.5 L76.3,205.4 L77.5,201.3 L77.9,203.1 L78.3,205.5 L78.7,210.4 L79.1,210.1 L80.3,208.7 L80.7,213.9 L81.1,214.2 L81.5,203.5 L81.9,195.2 L83.1,163.9 L83.5,170.6 L83.9,185.9 L84.3,169.2 L84.7,178.3 L85.9,178.8 L86.3,183.1 L86.7,189.2 L87.1,188.8 L87.5,197.8 L88.7,199.2 L89.1,192.2 L89.5,193.2 L89.9,190.4 L90.2,200.5 L91.4,196.3 L91.8,196.3 L92.2,200.3 L92.6,203.6 L93.0,210.8 L94.2,203.1 L94.6,197.6 L95.0,199.9 L95.4,202.0 L95.8,212.9 L97.0,207.5 L97.4,211.5 L97.8,214.6 L98.2,218.4 L98.6,218.8 L99.8,217.2 L100.2,210.6 L100.6,217.8 L101.0,222.4 L101.4,227.4 L102.6,219.8 L103.0,214.4 L103.4,224.2 L103.8,226.8 L104.2,228.2 L105.4,227.6 L105.8,225.1 L106.2,235.3 L106.6,233.0 L107.0,236.3 L108.2,234.2 L108.6,235.6 L108.9,234.5 L109.3,236.2 L109.7,231.0 L110.9,215.0 L111.3,213.4 L111.7,219.9 L112.1,225.1 L112.5,206.2 L113.7,202.9 L114.1,202.9 L114.5,204.6 L114.9,206.2 L115.3,206.7 L116.5,204.1 L116.9,199.4 L117.3,210.8 L117.7,215.9 L118.1,220.1 L119.3,214.6 L119.7,197.7 L120.1,203.2 L120.5,202.7 L120.9,202.5 L122.1,205.2 L122.5,198.2 L122.9,194.1 L123.3,197.2 L123.7,184.4 L124.9,172.7 L125.3,171.0 L125.7,183.1 L126.1,174.8 L126.5,175.9 L127.6,183.5 L128.0,188.7 L128.4,191.2 L128.8,181.4 L129.2,177.2 L130.4,171.7 L130.8,165.8 L131.2,166.2 L131.6,174.3 L132.0,173.9 L133.2,177.1 L133.6,181.5 L134.0,180.2 L134.4,184.1 L134.8,185.5 L136.0,184.8 L136.4,191.7 L136.8,197.6 L137.2,197.0 L137.6,205.2 L138.8,204.6 L139.2,205.0 L139.6,204.7 L140.0,207.5 L140.4,211.2 L141.6,212.2 L142.0,206.3 L142.4,203.5 L142.8,216.3 L143.2,221.4 L144.4,215.3 L144.8,211.3 L145.2,213.4 L145.6,214.4 L145.9,218.4 L147.1,222.2 L147.5,227.6 L147.9,232.2 L148.3,231.9 L148.7,231.5 L149.9,222.9 L150.3,224.6 L150.7,231.1 L151.1,234.8 L151.5,238.7 L152.7,230.2 L153.1,223.1 L153.5,220.6 L153.9,222.6 L154.3,219.9 L155.5,209.0 L155.9,221.2 L156.3,228.3 L156.7,219.9 L157.1,220.9 L158.3,221.9 L158.7,226.6 L159.1,233.6 L159.5,224.2 L159.9,229.7 L161.5,225.8 L161.9,223.3 L162.3,226.8 L162.7,225.6 L164.4,219.5 L164.7,223.9 L165.1,221.7 L165.5,228.4 L166.7,224.2 L167.1,231.1 L167.5,228.6 L167.9,239.9 L168.3,242.2 L169.5,236.6 L169.9,237.2 L170.3,232.3 L170.7,231.4 L171.1,234.8 L172.3,234.9 L172.7,238.0 L173.1,238.6 L173.5,240.4 L173.9,241.4 L175.1,234.3 L175.5,237.0 L175.9,244.6 L176.3,240.4 L176.7,242.4 L177.9,236.9 L178.3,240.7 L178.7,235.9 L179.1,230.4 L179.5,231.3 L180.7,232.3 L181.1,239.4 L181.5,242.8 L181.9,233.2 L182.3,233.9 L183.4,227.8 L183.8,219.6 L184.2,222.6 L184.6,228.3 L185.0,225.6 L186.2,229.2 L186.6,230.5 L187.0,231.1 L187.4,236.1 L187.8,241.6 L189.0,240.9 L189.4,236.1 L189.8,238.4 L190.2,221.0 L190.6,210.0 L191.8,201.4 L192.2,215.3 L192.6,203.3 L193.0,219.1 L193.4,206.4 L194.6,213.2 L195.0,227.1 L195.4,222.7 L195.8,221.0 L196.2,225.3 L197.4,231.0 L197.8,234.2 L198.2,238.4 L198.6,238.9 L199.0,240.5 L200.2,241.2 L200.6,239.0 L201.0,238.6 L201.4,242.0 L202.9,239.2 L203.3,238.5 L203.7,238.6 L204.1,245.0 L204.5,248.6 L205.7,249.2 L206.1,249.9 L206.5,251.7 L206.9,248.1 L207.3,250.2 L208.5,249.6 L208.9,240.2 L209.3,239.8 L209.7,248.9 L210.1,255.1 L211.3,253.6 L211.7,245.1 L212.1,242.3 L212.5,233.6 L212.9,248.1 L214.1,249.1 L214.5,245.4 L214.9,249.3 L215.3,249.3 L215.7,248.9 L216.9,248.4 L217.3,244.1 L217.7,249.6 L218.1,253.8 L218.5,250.0 L219.7,247.9 L220.1,241.3 L220.4,233.8 L220.8,238.3 L221.2,244.2 L222.4,246.7 L222.8,246.7 L223.2,244.3 L223.6,255.8 L224.0,261.0 L225.2,260.4 L225.6,264.2 L226.0,264.3 L226.4,265.8 L226.8,264.9 L228.0,258.9 L228.4,260.9 L228.8,264.6 L229.2,261.5 L229.6,266.3 L230.8,263.1 L231.2,264.6 L231.6,268.0 L232.0,269.4 L232.4,266.8 L233.6,262.8 L234.0,265.3 L234.4,266.9 L234.8,266.3 L235.2,266.1 L236.4,266.1 L236.8,265.5 L237.2,263.1 L237.6,256.8 L238.0,259.9 L239.1,258.6 L239.5,259.8 L239.9,266.3 L240.3,265.9 L240.7,267.3 L241.9,266.6 L242.3,267.5 L242.7,265.2 L243.1,264.1 L243.5,266.0 L244.7,264.4 L245.1,264.7 L245.5,268.1 L245.9,261.9 L246.3,267.4 L247.5,265.9 L247.9,264.4 L248.3,253.6 L248.7,254.4 L249.1,248.5 L250.3,255.2 L250.7,254.1 L251.1,254.2 L251.5,254.8 L251.9,259.8 L253.1,259.9 L253.5,251.7 L253.9,250.1 L254.3,244.6 L254.7,247.5 L255.9,248.4 L256.3,249.2 L256.7,254.1 L257.1,248.0 L257.5,255.6 L258.6,258.6 L259.0,261.8 L259.4,264.6 L259.8,266.1 L260.2,268.6 L261.4,264.9 L261.8,263.9 L262.2,261.8 L262.6,262.0 L263.0,264.8 L264.2,265.0 L264.6,262.9 L265.0,266.6 L265.4,269.9 L265.8,265.1 L267.0,264.0 L267.4,263.4 L267.8,258.3 L268.2,246.3 L268.6,248.0 L269.8,249.5 L270.2,239.3 L270.6,242.9 L271.0,247.3 L271.4,246.4 L272.6,245.9 L273.0,235.1 L273.4,241.1 L273.8,241.6 L274.2,246.8 L275.4,245.5 L275.8,248.9 L276.2,253.6 L276.5,250.6 L276.9,237.4 L278.1,247.9 L278.5,244.6 L278.9,237.9 L279.3,227.0 L279.7,225.4 L280.9,232.1 L281.3,239.2 L281.7,233.1 L282.1,230.6 L282.5,227.7 L283.7,235.2 L284.1,243.3 L284.5,249.6 L284.9,255.7 L285.3,259.4 L286.5,259.6 L286.9,259.9 L287.3,261.8 L287.7,257.6 L288.1,263.1 L289.3,260.2 L289.7,263.2 L290.1,263.1 L290.5,262.4 L290.9,265.0 L292.1,266.9 L292.5,267.2 L292.9,269.8 L293.3,270.0 L293.7,271.7 L294.8,270.6 L295.2,270.6 L295.6,269.1 L296.0,269.4 L296.4,270.9 L297.6,268.6 L298.0,269.8 L298.4,269.1 L298.8,268.7 L299.2,272.2 L300.4,270.9 L300.8,273.6 L301.2,273.1 L301.6,271.6 L302.0,272.6 L303.2,271.2 L303.6,271.4 L304.0,265.6 L304.4,265.8 L304.8,268.9 L306.4,269.1 L306.8,271.9 L307.2,271.6 L307.6,271.8 L309.3,268.0 L309.7,263.8 L310.1,263.4 L310.5,267.2 L311.7,268.6 L312.1,270.2 L312.5,270.6 L312.9,271.8 L313.3,270.5 L314.4,267.8 L314.8,264.8 L315.2,260.1 L315.6,263.4 L316.0,267.5 L317.2,268.1 L317.6,271.2 L318.0,268.3 L318.4,266.8 L318.8,267.7 L320.0,266.0 L320.4,267.4 L320.8,262.2 L321.2,264.6 L321.6,264.8 L322.8,265.6 L323.2,268.7 L323.6,269.9 L324.0,270.1 L324.4,269.4 L325.6,264.4 L326.0,254.8 L326.4,262.1 L326.8,263.9 L327.2,262.8 L328.4,260.4 L328.8,256.9 L329.2,257.3 L329.6,261.3 L330.0,265.2 L331.2,265.3 L331.6,266.9 L332.0,264.8 L332.3,267.0 L332.7,268.4 L333.9,266.6 L334.3,261.7 L334.7,261.5 L335.1,261.8 L335.5,260.3 L336.7,257.9 L337.1,264.8 L337.5,265.2 L337.9,262.0 L338.3,261.9 L339.5,262.4 L339.9,264.9 L340.3,268.8 L340.7,269.4 L341.1,268.7 L342.3,268.1 L342.7,267.8 L343.1,270.1 L343.5,268.9 L345.1,265.8 L345.5,260.9 L345.9,262.4 L346.3,252.2 L346.7,253.8 L347.9,258.1 L348.3,259.1 L348.7,255.0 L349.1,259.4 L349.5,247.4 L350.7,237.8 L351.0,242.0 L351.4,242.9 L351.8,244.0 L352.2,240.4 L353.4,249.3 L353.8,255.6 L354.2,254.2 L354.6,257.1 L355.0,258.9 L356.2,260.6 L356.6,255.8 L357.0,257.1 L357.4,260.6 L357.8,266.6 L359.0,266.6 L359.4,267.9 L359.8,269.0 L360.2,270.6 L360.6,271.2 L361.8,266.0 L362.2,266.9 L362.6,271.8 L363.0,271.9 L363.4,274.1 L364.6,273.2 L365.0,274.7 L365.4,272.6 L365.8,270.1 L366.2,274.4 L367.4,272.2 L367.8,269.4 L368.2,262.6 L368.6,261.6 L369.0,269.4 L370.1,268.4 L370.5,268.2 L370.9,270.9 L371.3,271.1 L371.7,272.9 L372.9,270.3 L373.3,269.8 L373.7,273.8 L374.1,274.3 L374.5,270.7 L375.7,270.2 L376.1,272.5 L376.5,271.6 L376.9,267.6 L377.3,268.0 L378.5,267.4 L378.9,269.8 L379.3,271.2 L379.7,272.8 L380.1,271.8 L381.3,272.9 L381.7,273.9 L382.1,273.6 L382.5,272.7 L382.9,271.6 L384.1,272.1 L384.5,271.4 L384.9,269.8 L385.3,269.4 L385.7,271.7 L386.9,268.4 L387.3,268.1 L387.7,261.6 L388.0,254.3 L388.4,251.4 L389.6,259.4 L390.0,260.4 L390.4,243.8 L390.8,241.7 L391.2,252.1 L392.4,251.0 L392.8,245.6 L393.2,252.2 L393.6,241.1 L394.0,217.1 L395.2,141.1 L395.6,195.4 L396.0,194.8 L396.4,215.1 L396.8,232.1 L398.0,230.4 L398.4,243.4 L398.8,253.0 L399.2,257.9 L399.6,260.0 L400.8,260.8 L401.2,254.6 L401.6,252.7 L402.0,246.2 L402.4,254.7 L403.6,253.2 L404.0,256.9 L404.4,248.4 L404.8,255.8 L405.2,259.0 L406.4,256.2 L406.7,230.4 L407.1,227.4 L407.5,234.5 L407.9,222.1 L409.1,236.8 L409.5,238.6 L409.9,245.6 L410.3,248.6 L410.7,251.2 L411.9,248.3 L412.3,245.9 L412.7,242.8 L413.1,252.4 L413.5,253.2 L414.7,254.6 L415.1,257.1 L415.5,256.9 L415.9,257.1 L416.3,249.2 L417.5,250.4 L417.9,237.7 L418.3,239.5 L418.7,231.6 L419.1,237.9 L420.3,220.8 L420.7,226.9 L421.1,229.7 L421.5,229.3 L421.9,231.7 L423.1,235.5 L423.5,230.8 L423.9,236.1 L424.3,238.4 L424.7,243.8 L425.8,242.1 L426.2,243.0 L426.6,237.8 L427.0,238.6 L427.4,232.4 L428.6,235.0 L429.0,237.3 L429.4,232.2 L429.8,218.2 L430.2,224.6 L431.4,224.1 L431.8,231.6 L432.2,252.7 L432.6,258.0 L433.0,259.3 L434.2,259.1 L434.6,260.4 L435.0,263.9 L435.4,262.4 L435.8,253.3 L437.0,256.1 L437.4,252.2 L437.8,248.2 L438.2,249.6 L438.6,257.8 L439.8,261.0 L440.2,263.5 L440.6,263.5 L441.0,264.5 L441.4,266.4 L442.6,267.3 L443.0,267.5 L443.4,266.8 L443.8,266.3 L444.1,270.1 L445.3,263.1 L445.7,263.1 L446.1,266.1 L446.5,264.4 L446.9,264.9 L448.1,260.6 L448.5,254.6 L448.9,195.9 L449.3,213.6 L449.7,242.2 L450.9,250.1 L451.3,262.6 L452.1,260.4 L452.5,254.2 L453.7,247.0 L454.1,247.2 L454.6,244.3 L455.0,253.4 L456.2,253.8 L456.6,244.9 L457.0,245.5 L457.4,243.6 L457.8,236.3 L459.0,238.1 L459.4,240.4 L459.8,253.4 L460.2,251.0 L460.6,254.2 L461.8,254.9 L462.2,258.7 L462.5,258.5 L462.9,258.9 L463.3,259.8 L464.5,244.5 L464.9,251.9 L465.3,251.2 L465.7,254.8 L466.1,251.9 L467.3,240.9 L467.7,247.9 L468.1,255.2 L468.5,256.5 L468.9,251.3 L470.1,254.9 L470.5,253.9 L470.9,254.6 L471.3,258.5 L471.7,260.1 L472.9,257.1 L473.3,257.2 L473.7,257.6 L474.1,255.7 L474.5,242.9 L475.7,239.1 L476.1,236.9 L476.5,238.5 L476.9,228.4 L477.3,235.9 L478.5,220.1 L478.9,216.4 L479.3,224.4 L479.7,209.6 L480.1,217.1 L481.2,194.7 L481.6,199.4 L482.0,212.9 L482.4,210.7 L482.8,225.1 L484.0,231.4 L484.4,225.5 L484.8,234.5 L485.2,235.0 L485.6,237.6 L486.8,246.6 L487.2,248.2 L487.6,242.4 L488.0,240.6 L488.4,225.8 L489.6,222.6 L490.0,225.1 L490.4,226.4 L490.8,183.9 L491.2,107.5 L492.4,99.1 L492.8,72.4 L493.2,165.9 L493.6,130.4 L494.0,146.2 L495.2,179.5 L495.6,183.4 L496.0,170.8 L496.4,185.8 L498.0,164.9 L498.4,181.2 L498.8,191.8 L499.2,201.7 L499.6,209.8 L500.7,208.2 L501.1,213.1 L501.5,210.5 L501.9,211.0 L502.3,220.6 L503.5,215.8 L503.9,210.2 L504.3,216.2 L504.7,221.6 L505.1,224.5 L506.3,242.1 L506.7,242.9 L507.1,240.9 L507.5,244.9 L507.9,247.8 L509.1,243.3 L509.5,243.6 L509.9,229.7 L510.3,232.6 L510.7,222.6 L511.9,231.2 L512.3,239.2 L512.7,237.4 L513.1,238.1 L513.5,241.2 L514.7,242.2 L515.1,245.6 L515.5,245.9 L515.9,241.6 L516.3,250.2 L517.5,248.2 L517.9,249.2 L518.3,247.7 L518.6,243.9 L519.0,229.9 L520.2,238.4 L520.6,226.0 L521.0,233.3 L521.4,223.1 L521.8,230.9 L523.0,234.9 L523.4,246.6 L523.8,250.2 L524.2,251.1 L524.6,252.4 L525.8,250.4 L526.2,249.9 L526.6,250.8 L527.0,252.1 L527.4,246.6 L528.6,245.1 L529.0,250.0 L529.4,254.3 L529.8,255.1 L530.2,252.0 L531.4,248.0 L531.8,247.1 L532.2,248.2 L532.6,251.4 L533.0,251.9 L534.2,250.8 L534.6,251.5 L535.0,257.1 L535.4,257.1 L535.8,259.4 L536.9,258.9 L537.3,254.1 L537.7,256.6 L538.1,250.4 L538.5,232.1 L539.7,246.4 L540.1,244.8 L540.5,250.2 L540.9,251.2 L541.3,258.2 L542.5,252.8 L542.9,260.4 L543.3,261.6 L543.7,259.9 L544.1,258.6 L545.3,259.1 L545.7,256.1 L546.1,255.6 L546.5,251.0 L546.9,262.9 L548.1,260.1 L548.5,260.9 L548.9,259.8 L549.3,261.9 L549.7,257.2 L550.9,253.4 L551.3,248.1 L551.7,252.2 L552.1,257.5 L552.5,258.1 L553.7,258.5 L554.1,258.8 L554.5,257.2 L554.9,260.4 L555.3,260.2 L556.4,255.6 L556.8,252.2 L557.2,255.4 L557.6,255.5 L558.0,256.8 L559.2,253.5 L559.6,250.8 L560.0,253.1 L560.4,250.3 L560.8,257.6 L562.0,253.4 L562.4,252.6 L562.8,252.6 L563.2,250.8 L563.6,250.8 L564.8,252.1 L565.2,247.8 L565.6,252.5 L566.0,251.9 L566.4,225.7 L567.6,238.8 L568.0,229.9 L568.4,230.8 L568.8,207.4 L569.2,230.1 L570.4,242.8 L570.8,244.6 L571.2,241.0 L571.6,247.5 L572.0,252.1 L573.2,255.1 L573.6,251.9 L574.0,249.4 L574.3,249.4 L574.7,246.8 L575.9,248.1 L576.3,239.0 L576.7,243.9 L577.1,236.5 L577.5,238.6 L578.7,246.0 L579.1,247.6 L579.5,246.4 L579.9,234.0 L580.3,234.9 L581.5,222.1 L581.9,210.6 L582.3,215.7 L582.7,201.9 L583.1,216.8 L584.3,231.4 L584.7,241.2 L585.1,248.1 L585.5,247.9 L585.9,252.2 L587.1,247.8 L587.5,251.1 L587.9,253.6 L588.3,255.1 L588.7,256.9 L589.9,250.7 L590.3,249.3 L590.7,255.2 L591.1,259.8 L591.5,255.3 L592.7,251.5 L593.0,251.6 L593.4,245.9 L593.8,249.6 L594.2,259.4 L595.4,263.6 L595.8,264.0 L596.2,266.6 L597.0,266.0 L598.2,263.0 L598.6,262.4 L599.0,259.2 L599.9,261.4 L601.1,259.5 L601.5,260.2 L601.9,257.1 L602.3,256.8 L602.7,261.6 L603.9,258.4 L604.3,254.1 L604.7,250.2 L605.1,254.8 L605.5,254.7 L606.7,239.8 L607.1,233.6 L607.5,249.5 L607.9,255.8 L608.3,253.6 L609.5,253.2 L609.9,252.2 L610.3,252.2 L610.7,249.6 L611.1,246.8 L612.2,252.3 L612.6,244.0 L613.0,240.8 L613.4,225.1 L613.8,245.2 L615.0,247.2 L615.4,245.1 L615.8,245.8 L616.2,229.9 L616.6,231.0 L617.8,228.0 L618.2,232.6 L618.6,235.9 L619.0,232.8 L619.4,238.6 L620.6,228.9 L621.0,236.2 L621.4,244.3 L621.8,240.8 L622.2,234.7 L623.4,226.8 L623.8,216.2 L624.2,228.2 L624.6,215.2 L625.0,186.6 L626.2,206.5 L626.6,209.4 L627.0,212.9 L627.4,197.6 L627.8,198.1 L629.0,216.4 L629.4,222.1 L629.8,208.6 L630.1,213.7 L630.5,200.1 L631.7,203.2 L632.1,199.2 L632.5,207.4 L632.9,196.8 L633.3,178.8 L634.5,180.9 L634.9,207.8 L635.3,211.3 L635.7,214.6 L637.3,213.1 L637.7,205.1 L638.1,228.8 L638.5,236.6 L638.9,237.8 L640.1,238.4 L640.5,242.2 L640.9,243.1 L641.3,244.3 L641.7,246.6 L642.9,239.7 L643.3,236.5 L643.7,239.4 L644.1,237.4 L644.5,240.4 L645.7,243.9 L646.1,244.9 L646.5,239.9 L646.9,249.6 L647.3,249.1 L648.5,242.6 L648.8,247.1 L649.2,247.1 L649.6,248.6 L650.0,248.1 L651.2,242.1 L651.6,244.1 L652.0,244.6 L652.4,247.7 L652.8,241.9 L654.0,244.9 L654.4,243.7 L654.8,246.8 L655.2,250.2 L655.6,250.5 L656.8,251.1 L657.2,248.9 L657.6,252.6 L658.0,255.3" fill="none" stroke="#3a5f8a" stroke-width="1.1" clip-path="url(#f05-plotbox)"/><line x1="125.7" y1="334" x2="125.7" y2="38" stroke="#9c3b3b" stroke-width="1.0" stroke-dasharray="3 3"/><text x="129.7" y="47" fill="#9c3b3b">2022 gilts</text><line x1="395.2" y1="334" x2="395.2" y2="38" stroke="#9c3b3b" stroke-width="1.0" stroke-dasharray="3 3"/><text x="399.2" y="60" fill="#9c3b3b">Aug 2024</text><line x1="492.8" y1="334" x2="492.8" y2="38" stroke="#9c3b3b" stroke-width="1.0" stroke-dasharray="3 3"/><text x="496.8" y="47" fill="#9c3b3b">Apr 2025</text><text fill="#5b5b5b" font-size="10"><tspan x="62" y="383">fred.vix, 2022-04-21 to 2026-05-28: laptop store; the box regenerates from its full history. Cases before the</tspan><tspan x="62" y="396">store's first observation, not marked: 1987, 1998, 2010, Feb 2018, Mar 2020, Jan 2021.</tspan></text></svg>
+<figcaption>Figure 5 — The volatility index through the cases: the VIX&#x27;s daily close from its first stored observation, the cases inside the series marked</figcaption></figure></p>
+<h2>Chapter 11 — 1987: portfolio insurance as a forced seller</h2>
+<p><em>Tops and Bottoms</em> tells October 1987 as a turning point, and <em>Debt Cycles</em> places it among the environments. This chapter takes only the mechanism.</p>
+<p>Portfolio insurance was a dynamic hedging strategy: it replicated a put option on an equity portfolio by selling index futures as prices fell and buying them back as prices rose. It was a short-gamma position held by the insured portfolios themselves, and it gave a large pool of capital the same rule: sell more as the market falls. The strategy's designers assumed that the market could absorb the selling continuously. Grossman (1988) argued the deeper flaw: because the insurance was synthetic rather than a traded option, nobody could see how much of it there was, so the market could not price the selling it would release.</p>
+<p>In the week before the crash the market fell, and the insurers fell behind their hedge ratios. On the Monday they sold futures in size, and the futures traded at a deep discount to the cash index. Index arbitrageurs, who would normally buy futures and sell stocks to close the gap, sold stocks into a specialist system that could not process the orders. The order-routing system backed up, quotes became stale, and the arbitrage link between futures and stocks broke. Each market's price was then uninformative about the other's, which made every participant less willing to supply liquidity.</p>
+<p>The lessons are the paper's in miniature. A strategy that sells into weakness is a forced flow (Chapter 7). Synthetic positions whose size is unknown cannot be priced (Chapter 6). And the link between a derivative and its underlying is only as strong as the venue that carries the arbitrage (Chapter 1). The Brady Commission's report (1988) is the official history; the circuit breakers it recommended are the structure the market still uses.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>In 1987</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>Portfolio insurance's futures selling, a synthetic short gamma</td>
+</tr>
+<tr>
+<td>What failed</td>
+<td>The futures–cash arbitrage, through an overloaded venue</td>
+</tr>
+<tr>
+<td>What it taught</td>
+<td>Synthetic positions of unknown size cannot be priced</td>
+</tr>
+<tr>
+<td>What stayed</td>
+<td>Circuit breakers; coordinated halts across venues</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 12 — 1998: leverage, crowded relative value and the dealers' own books</h2>
+<p>Long-Term Capital Management ran relative-value trades: long the cheaper of two closely related instruments and short the dearer, betting the spread would converge. The trades were individually small in expected return and safe in normal markets, so the fund levered them heavily. Lowenstein (2000) and the President's Working Group report (1999) are the histories.</p>
+<p>The mechanism was the liquidity spiral of Chapter 8, with an amplifier that made it systemic: the fund's counterparties ran the same trades on their own books. When Russia's default in August 1998 triggered a flight to the most liquid instruments, spreads that should have converged widened. Every holder of the convergence trade lost at once, and every lender raised haircuts at once. The fund needed to sell, and the only buyers of what it held were the dealers. But the dealers held the same positions and knew the fund was forced, so they had every reason to wait or to sell ahead of it.</p>
+<p>The episode ended when the Federal Reserve Bank of New York convened the fund's creditors, who recapitalised it and unwound its book over time. No public money was lent. The intervention broke the spiral by removing the forced seller from the market, which is the general form of every resolution in Part III.</p>
+<p>The lesson for this paper is about homogeneity. A trade that is safe at one fund's size is fragile at the industry's, because the exit is shared. The fund's leverage made it the first forced seller; the dealers' copies made the market unable to absorb the sale.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>In 1998</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>De-leveraging of crowded relative-value trades</td>
+</tr>
+<tr>
+<td>Spiral</td>
+<td>Loss and margin together; haircuts rising across lenders</td>
+</tr>
+<tr>
+<td>Amplifier</td>
+<td>The dealers held the same trades</td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td>The creditors recapitalised the fund and unwound it slowly</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 13 — 2010: the flash crash</h2>
+<p>On 6 May 2010 the US equity market fell several percent in minutes and recovered most of it within the hour. The joint CFTC–SEC report (2010) and Kirilenko, Kyle, Samadi and Tuzun (2017) are the histories.</p>
+<p>The trigger was a large sell programme in the E-mini S&amp;P 500 futures, executed by an algorithm that sized its orders to a fraction of recent volume without regard to price or time. As the futures fell, high-frequency traders bought the contracts and then sold them to each other, rapidly. Volume surged, and the algorithm, which read volume as liquidity, sold faster. That was Chapter 5's divergence made literal: record volume and vanishing depth at the same moment. Depth in the futures fell to a small fraction of its normal level. The futures exchange's automatic pause halted the contract for five seconds, and the pause let depth return.</p>
+<p>In individual stocks the collapse was worse, because market makers withdrew entirely and the only orders left were stub quotes, placeholders set far from the market to meet a quoting obligation. Market orders executed against them at prices near zero, and the exchanges later cancelled trades far from the pre-crash price.</p>
+<p>The mechanism is automated withdrawal (Chapter 2): intermediaries whose models detected abnormal conditions stopped quoting, as their design required, all at once. The lessons were structural, and they produced single-stock circuit breakers, then the limit up–limit down bands, and the end of stub quotes.</p>
+<p><em>Worked example (illustrative).</em> An instrument normally shows $50 million at the top of its book. Within ten minutes the quoted size falls to $5 million. A sell order of $20 million that would have moved the price by a few ticks now walks through four levels of a thin book and moves it several percent. Nothing about the instrument's value has changed; its depth has.</p>
+<p><em>On the day.</em> Stub-quote executions at absurd prices, and the busted trades afterwards.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>In 2010</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>A volume-sized sell programme blind to price</td>
+</tr>
+<tr>
+<td>What failed</td>
+<td>Automated liquidity: withdrawal, then the hot potato</td>
+</tr>
+<tr>
+<td>Signature</td>
+<td>Volume up, depth down; stub-quote prints</td>
+</tr>
+<tr>
+<td>What stayed</td>
+<td>Single-stock circuit breakers; limit up–limit down; no stub quotes</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 14 — February 2018: the short-volatility products and the vol-control sellers</h2>
+<p><em>Volatility</em> carries February 2018 as the variance risk premium's unwind and <em>Tops and Bottoms</em> as an episode. This chapter assembles the forced flows that made a small equity decline into the largest one-day rise in the volatility index on record, <em>in Cboe's VIX history from 1990; last verified October 2026</em>. It is told in full because the store reaches it: the leveraged-product, margin, positioning and volatility series all cover it.</p>
+<h3>14.1 The setting</h3>
+<p>Through 2017 realised volatility was exceptionally low, and a large pool of capital was positioned to collect the premium between implied and realised volatility. Some of it sat in exchange-traded products that delivered the inverse of the daily return on short-dated VIX futures. Those products were daily-reset funds of exactly the kind Chapter 7 describes: L was −1, so L × (L − 1) was 2, and the rebalance traded with the day's move in VIX futures. When VIX futures rose, the inverse products had to <em>buy</em> VIX futures at the close to restore their exposure. Their buying was predictable in direction, concentrated at the close, and large against the depth of the futures they traded.</p>
+<p>A second pool sat in volatility-targeting and risk-parity strategies, whose equity exposure was large because realised volatility had been low. Their exposure was inversely proportional to realised volatility (Chapter 7), and a year of calm had levered them up.</p>
+<h3>14.2 The mechanism</h3>
+<p>Equities fell in the last days of January and on Friday 2 February, after a strong wage print raised rate expectations. The fall raised realised volatility and VIX futures. On Monday 5 February the equity decline continued into the afternoon, and VIX futures rose sharply. The inverse products' rebalance, which is a function of the day's percentage move in the futures, grew with the move and was due at the close, in a market everyone could see would have to absorb it. Participants who understood the arithmetic bought VIX futures ahead of the close, which raised the futures further and enlarged the rebalance. The loop ran into the closing minutes. After the close, the largest inverse note's indicative value had fallen by so much that its issuer exercised its right to terminate it.</p>
+<p>The equity side followed over the next sessions. The vol-control and risk-parity strategies, reading a trailing volatility that had now jumped, cut equity exposure on the second, third and fourth days. That was the lagged selling of Chapter 7.2, arriving after the initial shock and extending it.</p>
+<h3>14.3 What the store sees, and what the ledger said</h3>
+<p>February 2018 is the first of the system's three air pockets (Chapter 19). The system's fragility panel, replayed on public history, shows the leveraged-ETF flow arm firing in the sessions before the drop, the estimate at or near the top of its five-year range. The depth arm stayed off: SPY's Amihud measure was low, because volume was high and the moves before the drop were modest. The flag, which needs both arms, never fired. The case is therefore a clean lesson about the stand-in. The forced flow was visible beforehand. The depth that failed was the VIX futures' depth, not SPY's, and an equity depth measure could not see it. The figures are in Appendix B.</p>
+<p><em>Worked example (illustrative).</em> An inverse VIX-futures product with $2 billion of assets faces a day on which its futures rise 80%. Its rebalance is 2 × 2 × 80%, about $3.2 billion of futures to buy at the close. If the market's depth in those futures at the close is a fraction of that, the buying alone moves the price far enough to enlarge the rebalance before it is done. A product whose rebalance is large against the depth of its own underlying is one bad day from self-destruction, and the arithmetic says so in advance.</p>
+<p><em>On the day.</em> The volatility index doubling, and the after-hours notices: indicative values collapsing, then a termination announcement before the next open.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>February 2018</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>The inverse VIX products' close rebalance; then vol-control selling</td>
+</tr>
+<tr>
+<td>Where depth failed</td>
+<td>VIX futures at the close, not equities</td>
+</tr>
+<tr>
+<td>The store's read</td>
+<td>The flow arm fired; the depth arm, on SPY, did not</td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td>The largest product was terminated; the vol sellers finished in days</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 15 — March 2020: the dash for cash</h2>
+<p><em>Rates &amp; Liquidity</em> tells March 2020 as a Treasury-market event. This chapter tells the cascade: how a shock to growth became, for about two weeks, a demand for cash so broad that the market's safest assets were sold to meet it. It is told in full because the store's margin, positioning, volatility and correlation series cover it.</p>
+<h3>15.1 The sequence</h3>
+<p>The pandemic's spread was a real shock to growth, and equities and credit fell on it in the last week of February. The cascade began in the second week of March, when the selling spread to assets that should have rallied. Treasuries fell while equities fell. The stock–bond correlation, negative through most of the preceding two decades <em>(US data, 2000–2020; last verified October 2026)</em>, turned positive for days (Chapter 9). Gold fell. Investment-grade corporate bond funds traded at discounts to net asset value of a size the funds had not shown before. Haddad, Moreira and Muir (2021) document the bond-fund dislocation; Duffie (2020) and the Financial Stability Board's review of the turmoil (2020) document the Treasury market's.</p>
+<h3>15.2 The forced flows</h3>
+<p>Every forced flow of Chapter 7 arrived together:
+- <strong>Margin.</strong> Futures margins rose with realised volatility, and the calls were paid by selling whatever was liquid. The most liquid asset in the world, the US Treasury, was the first thing sold.
+- <strong>Leveraged relative value.</strong> Funds running the cash–futures basis trade in Treasuries (long cash bonds financed in repo, short futures) faced rising futures margins and repo haircuts together, which is Chapter 8's spiral in its purest form. Their unwind sold cash Treasuries into dealers whose balance sheets were already full.
+- <strong>Redemptions.</strong> Open-end bond funds and money funds holding commercial paper met redemptions, and sold the bonds they could sell, not the ones they would have chosen.
+- <strong>Volatility targeting.</strong> The vol-control and risk-parity sellers cut on the lag, as in 2018, but this time on a much larger move.
+- <strong>Foreign official holders,</strong> short of dollars, sold Treasuries to raise them.</p>
+<p>Market makers, constrained by balance-sheet rules that counted Treasuries against leverage limits, could not absorb what was sold. The safest asset became, for days, hard to sell at a quoted price.</p>
+<h3>15.3 The ETF that was the price</h3>
+<p>Chapter 3's mechanism ran in public. The largest investment-grade and high-yield bond funds traded at deep discounts. Their net asset values, built from evaluated prices on bonds that were barely trading, said the bonds were worth more than anyone would pay. The authorised participants, whose own balance sheets were full, did not close the gap. The fund's price was the market's only real-time read of what the bonds would fetch, and it was the read the central bank's own announcement eventually acted on.</p>
+<h3>15.4 What stopped it</h3>
+<p>The Federal Reserve broke both spirals in a sequence of announcements. It bought Treasuries and agency mortgages in unlimited quantity, which put a floor under the price of the most-sold collateral. It opened dollar swap lines and a repo facility for foreign official holders, removing a forced seller. It announced corporate bond facilities that would buy both bonds and bond ETFs, which closed the funds' discounts before most of the buying had happened. The announcement was the trade, because it replaced a forced seller's market with a buyer of last resort.</p>
+<h3>15.5 What the store sees</h3>
+<p>The store covers March 2020 end to end: margin debt (Figure 7), futures positioning, the volatility index (Figure 5) and the stock–bond correlation (Figure 3). It is the library's clearest case of that correlation turning positive without an inflation regime, because a shared forced seller overrode the regime's sign (Chapter 9). It is not one of the air-pocket ledger's events, which are one-day drops after calm (Chapter 19).</p>
+<p><em>Worked example (illustrative).</em> A basis-trade fund holds $10 billion of cash Treasuries financed in repo at a 2% haircut, $200 million of its own capital, and is short the equivalent futures. Futures initial margin rises from 3% to 6%, a $300 million call against futures worth $10 billion, and the repo haircut rises to 4%, another $200 million. The fund must raise $500 million against $200 million of capital. It cannot, so it sells cash Treasuries, and every fund running the same trade sells the same bonds. The trade was hedged against price; it was not hedged against margin.</p>
+<p><em>On the day.</em> Treasuries selling off on days equities fell; bond ETFs at discounts; central-bank announcements arriving outside market hours, one after another.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>March 2020</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>Margin, basis-trade unwind, redemptions, vol targeting, official dollar demand: all together</td>
+</tr>
+<tr>
+<td>Where depth failed</td>
+<td>Treasuries, under dealers' balance-sheet limits; corporate bonds</td>
+</tr>
+<tr>
+<td>Signature</td>
+<td>Stocks and bonds falling together; bond ETFs at deep discounts</td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td>A buyer and lender of last resort, by announcement</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 16 — 2021: GameStop and the clearing deposit</h2>
+<p>The January 2021 squeeze is the clearest case of Chapter 10 in the record, and the clearest case of a cascade stopped by a margin call rather than by a price. The SEC staff's report on the episode (2021) is the history.</p>
+<h3>16.1 The squeeze</h3>
+<p>Short interest in the stock exceeded its float, borrow was expensive, and the position was widely known. Retail buyers, coordinating in public, bought the stock and short-dated out-of-the-money calls. The call buying left dealers short gamma, so their hedging bought the stock as it rose (Chapter 7.4). The rising price forced shorts to cover. Two forced buyers, the shorts and the dealers, met a float that was largely held by passive and long-term owners who were not selling.</p>
+<h3>16.2 What stopped it</h3>
+<p>What stopped the buying was a clearing deposit. The equity clearing house computes a deposit for each member broker from the risk of its unsettled trades. The settlement cycle was two days at the time, so the clearing house was exposed to two days of each broker's customers' trades, and the deposit's model charged heavily for concentrated, volatile positions. One morning the deposit charged to the largest retail broker rose to a multiple of its usual level, overnight, because its customers' buying was concentrated in a handful of stocks whose volatility had exploded. The broker could not post it on the schedule, and it restricted its customers to closing their positions in those stocks. Other brokers did the same. The forced buyers lost their access to the market, and the price fell.</p>
+<p>The case is Chapter 4 in public: a margin model, behaving correctly, became the binding constraint on an entire class of market participants. The clearing house did not act on the price. It acted on the risk of the unsettled trades, and the risk was a function of the price.</p>
+<p><em>Worked example (illustrative).</em> A broker's customers have $3 billion of unsettled buying concentrated in a few stocks. The clearing house's model charges a deposit of 5% on diversified flow, but adds a concentration charge and a volatility charge that bring the requirement on this flow to 30%: $900 million, against a usual deposit an order of magnitude smaller. The broker has hours to post it. Restricting buying reduces the unsettled flow and therefore the deposit, so the restriction is the cheapest way to meet the call.</p>
+<p><em>On the day.</em> The broker's restrictions announced before the open; the borrow rate and the halts; the price falling on the restrictions, not on news about the company.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>January 2021</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>Short covering and dealers' gamma hedging, both buying</td>
+</tr>
+<tr>
+<td>The constraint that stopped it</td>
+<td>A clearing deposit on unsettled trades</td>
+</tr>
+<tr>
+<td>Signature</td>
+<td>Buying restricted by brokers; the price falling on access, not news</td>
+</tr>
+<tr>
+<td>What stayed</td>
+<td>A shorter settlement cycle; scrutiny of deposit models</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 17 — 2022: the gilts and the LDI collateral spiral</h2>
+<p><em>Debt Cycles</em> tells the September 2022 gilt crisis as a fiscal crisis: a budget the market did not believe, and a sovereign whose financing cost jumped. This chapter tells only the collateral mechanics, which would have run the same way whatever the cause of the first move.</p>
+<h3>17.1 The structure</h3>
+<p>UK defined-benefit pension schemes hedged their long-dated liabilities with liability-driven investment strategies, many held in pooled funds. To match the liabilities' interest-rate sensitivity without holding only gilts, the funds used leverage: long gilts financed in repo, and interest-rate swaps that paid the fund when long yields fell. When long yields rose, the hedges lost value, and the funds owed collateral to their repo and swap counterparties. In normal markets the losses on the hedges were matched by the falling value of the liabilities, so the schemes were not worse off. They did, however, owe cash, and the cash was due within days, while the liability gain was an accounting entry decades away.</p>
+<h3>17.2 The spiral</h3>
+<p>When long gilt yields rose very sharply over a few sessions, the collateral calls exceeded the funds' cash buffers. To meet them, the funds sold what they held, which was gilts. Their selling pushed long yields higher, which raised the next round of calls. This was Chapter 8's margin spiral with an unusual feature: the forced seller was selling the asset whose fall was creating the call. The pension schemes behind the pooled funds could have injected cash, but on a timescale of weeks, while the calls arrived in days. The Bank of England's Financial Policy Committee record (2022) is the official account.</p>
+<h3>17.3 What stopped it</h3>
+<p>The Bank of England announced a temporary programme to buy long-dated gilts, explicitly to restore orderly market conditions rather than as monetary policy. It broke the spiral by putting a buyer of last resort under the asset the forced sellers were selling, for long enough for the funds to rebuild their buffers. The programme bought far less than its stated capacity, as the 2020 corporate facilities had: the announcement was the trade.</p>
+<p><em>Worked example (illustrative).</em> A pooled fund holds £1 billion of capital and hedges £4 billion of liability sensitivity, so it is levered four times through repo and swaps. A 100 basis point rise in long yields costs the hedges, at a duration of 20, roughly 20% of £4 billion: £800 million owed in collateral. The fund holds £300 million of cash. It must sell £500 million of gilts within days into a market where every similar fund is selling the same gilts.</p>
+<p><em>On the day.</em> Long gilt yields rising in a straight line; the central bank's announcement after three sessions; the yields reversing on the announcement.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>September 2022</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced flow</td>
+<td>Collateral calls on leveraged liability hedges</td>
+</tr>
+<tr>
+<td>Spiral</td>
+<td>The forced sale was of the asset whose fall caused the call</td>
+</tr>
+<tr>
+<td>Timing mismatch</td>
+<td>Calls in days; the schemes' cash in weeks</td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td>A temporary buyer of last resort, by announcement</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 18 — Two short instances: August 2024 and April 2025</h2>
+<p>The system's air-pocket ledger scores three events: February 2018 (Chapter 14), and the two below. They are told briefly because their value to this paper is less the mechanism than the honesty: they are where the system's measure was tested, and failed.</p>
+<h3>18.1 August 2024</h3>
+<p>Through mid-2024 a large carry position had built up: borrowing in yen, at near-zero rates, to hold higher-yielding assets. The Bank of Japan raised rates at the end of July, and a weak US employment report on the following Friday lowered US yields. The interest-rate differential that paid the carry narrowed from both ends at once. On the Monday, Japanese equities fell further in one session than on any day since 1987, <em>by the Nikkei 225's daily history; last verified October 2026</em>. In the US, the volatility index printed an intraday spike far larger than the realised move. That was partly a measurement artefact of the pre-open: the index is computed from option quotes, and wide quotes in a thin pre-market produce a high index value without a trade. The equity decline itself was modest by the standard of the cases, and it reversed within weeks.</p>
+<p>The mechanism is the carry unwind, a forced flow of margin and funding type across currencies (<em>Currencies</em> carries the yen carry), meeting a thin overnight market. The fragility panel's flow arm fired in the sessions before; the depth arm did not.</p>
+<h3>18.2 April 2025</h3>
+<p>At the start of April 2025 the United States announced tariffs far larger than markets had priced. Equities fell sharply over two sessions, and the following week Treasury yields rose while equities fell, with swap spreads and the cash–futures basis moving in ways that pointed to leveraged relative-value positions being cut. The shock was policy rather than leverage. The cascade element was the speed of the Treasury market's move and the brief reappearance of March 2020's signature, stocks and bonds falling together. The tariffs were then partly paused within days, and the market recovered much of the loss.</p>
+<p>The fragility panel's flow arm fired once in the week before; the depth arm did not.</p>
+<table>
+<thead>
+<tr>
+<th>Instance</th>
+<th>Trigger</th>
+<th>Forced flow</th>
+<th>The panel before it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>August 2024</td>
+<td>A policy-rate hike and a weak payroll report</td>
+<td>The yen carry unwind</td>
+<td>Flow arm on; depth arm off; flag off</td>
+</tr>
+<tr>
+<td>April 2025</td>
+<td>A tariff announcement</td>
+<td>Leveraged relative-value cuts in Treasuries</td>
+<td>Flow arm on once; depth arm off; flag off</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-the-fragility-read-as-measured">
+      <summary class="section-head">
+        <span class="section-title">Part IV — The Fragility Read, as Measured</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>The organising claim says the ratio of forced flow to depth is measurable before the move. This Part describes how the system measures it and what its ledgers say. It re-derives no figure the store holds, and it does not upgrade a FAIL or an INSUFFICIENT into a finding. The verdicts are stated as filed; their figures are in Appendix B.</p>
+<h2>Chapter 19 — Forced flow against depth</h2>
+<h3>19.1 The fragility panel (item 71)</h3>
+<p>The system's direct measure of the organising claim is the liquidity-fragility panel, signal-triage item 71. It is computed by the fragility module from stored series and printed in the close's and the Weekly's Mechanics. It has four legs:
+- <strong>The depth stand-in:</strong> SPY's Amihud measure, absolute return per dollar of volume (Chapter 5), with its range per unit of volume beside it. Top-of-book depth in the index futures is a listed gap: the system has no source it may store.
+- <strong>Margin debt:</strong> FINRA's margin statistics, and their share of the Federal Reserve's Z.1 equity market value, the leverage leg of Chapter 7.1.
+- <strong>The leveraged-ETF rebalance estimate:</strong> AUM × L × (L − 1) × the day's return, summed over seven ProShares equity funds whose net asset values are published without a key, the forced flow of Chapter 7.3.
+- <strong>Dealer gamma:</strong> the stored net gamma exposure from the system's own captures (<em>The Dealer's Hand</em>), the forced flow of Chapter 7.4.</p>
+<p>The panel's <strong>fragility flag</strong> fires when two arms are on together: the depth stand-in at or above its 90th percentile over five years, and the forced-flow estimate above its 90th. It carries flag rights only. It modifies nothing, and any right it could earn is the operator's ruling after its ledger. The panel also supplies the "liquidity" row of the volatility-event lenses (item 52) and a line in the ES levels read (item 45).</p>
+<p><strong>Figure 6 — Forced flow against depth.</strong> <em>Placeholder, drawn at merge from the box's store: the leveraged-ETF rebalance estimate and SPY's Amihud stand-in, the three air pockets marked. Keys: <code>levetf.aum</code> and <code>yfinance.mkt_spy</code>; the estimate and the measure are computed by the fragility module, not stored as keys.</em></p>
+<p><strong>Figure 7 — Margin debt through the cases.</strong> <em>Placeholder, drawn at merge from the box's store: FINRA margin debit balances (<code>finra.margin_debit</code>), with the cases marked.</em></p>
+<h3>19.2 Its ledger: ST-R6.71d, FAIL</h3>
+<p>The panel's calibration ledger, ST-R6.71d, asks whether the flag was on before the three air pockets of February 2018, August 2024 and April 2025, and whether sessions with the flag on were followed by a sharp fall more often than sessions with it off. Its pass rule was pre-registered before the scoring code was written. The flag must be on in at least one of the five sessions before at least two of the three air pockets, with at least 20 flag-on sessions in the sample. The share of flag-on sessions followed within five sessions by an SPY fall of 2.5% or more must also be at least twice the flag-off share.</p>
+<p><strong>The verdict as filed is FAIL.</strong> The flag was on before none of the three air pockets. The second condition was met: the fall-after share with the flag on was more than twice the share with it off. But the ledger itself notes that both arms rise with volatility, so part of that lift is volatility clustering rather than fragility. The ruling of 24 October 2026 (D9) accepted the verdict. The flag keeps a flag's rights and nothing more.</p>
+<p>The FAIL is informative, and Chapters 14 and 18 have already said why. In each of the three events the flow arm fired in the week before and the depth arm did not. The forced flow was visible. What the system could not see was depth, because its depth measure is a stand-in that reads low when volume is high, which is exactly when the forced flow is building (Chapter 20).</p>
+<h3>19.3 The squeeze line (item 74)</h3>
+<p>The second measure is item 74's hedge-fund positioning line, printed in the Weekly's Positioning &amp; flows. It reads leveraged funds' net positions in the E-mini S&amp;P 500 and Nasdaq-100 futures from the CFTC's Traders in Financial Futures report, with the net short share's dual percentiles, beside FINRA short interest. Its <strong>squeeze-risk flag</strong> pairs ES's net short at or above its 90th percentile with the Amihud stand-in at or above its 90th. That is Chapter 10's crowded short meeting thin depth, written as a rule. It prints in Positioning &amp; flows and as a context line in the ES levels read.</p>
+<h3>19.4 Its ledger: ST-R6.74b, INSUFFICIENT at n 0</h3>
+<p>The squeeze line's ledger, ST-R6.74b, asks whether the S&amp;P 500's 20-session outcome after an episode of extreme leveraged-fund net shorts beats the baseline. Its pass rule was pre-registered: at least 12 episodes; the episodes' median 20-session outcome at least one percentage point above the baseline's, and at least 60% of episodes positive.</p>
+<p><strong>The verdict as filed is INSUFFICIENT, at n 0.</strong> The ledger reads the stored history only, and when it was first run the store held no ES rows: the futures report's pull added ES in the same build. The ruling of 24 October 2026 (D9) accepted it. The verdict says nothing about squeezes. It says the measure has not yet been tested.</p>
+<h3>19.5 The other measures that touch this paper</h3>
+<p>Four more items measure pieces of the mechanism, each with its own ledger:
+- <strong>The three-timeframe ES read (item 45)</strong> prints levels and a lean each morning and at the close, and the ES ledger scores them on the next session.
+- <strong>The volatility-event flag (item 52)</strong> fires on a one-day VIX change of 15% or 3 points, attributes the event by its lenses, and enters its own ledger. It earns no modifier right before 30 events.
+- <strong>Relative options volume (item 61)</strong> flags a name whose session options volume runs at 1.5 times its 20-session average. It prints "volume, no side", because volume says nothing about direction, and its ledger is pre-registered.
+- <strong>The dealer captures (6b)</strong> store net gamma, the gamma flip and the walls at three slots a session. The regime word prints only at a net-to-gross of 0.10 or more, and the scorecard prints "insufficient sessions" below 20.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Measures</th>
+<th>Ledger</th>
+<th>Verdict as filed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>71</td>
+<td>Forced flow against depth; the fragility flag</td>
+<td>ST-R6.71d (the air pockets)</td>
+<td><strong>FAIL</strong></td>
+</tr>
+<tr>
+<td>74</td>
+<td>Leveraged-fund shorts in ES and NQ; the squeeze-risk flag</td>
+<td>ST-R6.74b (extreme net shorts)</td>
+<td><strong>INSUFFICIENT, n 0</strong></td>
+</tr>
+<tr>
+<td>45</td>
+<td>The ES read's levels and lean</td>
+<td>the ES ledger</td>
+<td>scored daily</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Volatility events and their lenses</td>
+<td>the volatility-event ledger</td>
+<td>no right before 30 events</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Relative options volume, no side</td>
+<td>OS-12c</td>
+<td>pre-registered</td>
+</tr>
+<tr>
+<td>6b</td>
+<td>Dealer gamma, flip, walls</td>
+<td>the dealer scorecard</td>
+<td>insufficient sessions below 20</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 20 — What the measures cannot see</h2>
+<p>The FAIL in Chapter 19 is a result about the measures as much as about the mechanism, and the honest reading separates the two.</p>
+<p><strong>Top-of-book depth is a listed gap.</strong> The quantity the organising claim needs is how much the market would absorb at the moment of the forced flow: the depth at the top of the futures book, and its resilience. The system has no source for it that its rules allow it to store, and it names no vendor's proprietary depth figure as a measured series. The Amihud measure is a stand-in. It reads price impact per dollar traded over a whole session, so it mixes information with illiquidity. And it falls when volume rises, which in a building cascade is exactly the wrong way. Volume rises before depth fails (Chapter 5), so the stand-in reads "deep" in the sessions when depth is about to vanish.</p>
+<p><strong>The flow estimate is partial.</strong> The leveraged-ETF estimate covers seven equity funds. It does not cover inverse volatility products, which were the decisive flow in February 2018, nor volatility-targeting and risk-parity funds, whose exposure is not published, nor commodity trading advisers, nor the basis trade. The system sees one forced flow of five, and the one it sees was not the largest in two of the three events.</p>
+<p><strong>The other legs are slow.</strong> Margin debt is monthly, and published weeks after the month. The futures positioning report is weekly, measured on a Tuesday and released on the Friday. FINRA short interest is twice monthly. Dealer gamma is inferred from open interest and an assumption about who holds which side, which is why the system prints "inferred, not observed" above every dealer table.</p>
+<p><strong>No series sees the clearing house.</strong> The margin rates the clearing houses charge, the deposits they call and the haircuts repo lenders apply are not in the store. Two of the seven cases (2021 and 2022) turned on exactly those numbers.</p>
+<p>The consequence is a sharp distinction. The mechanism in Part II is argued from first principles and is expected to hold. The system's present ability to measure it before the move is unproven, and on its one completed test it failed. A reader should hold the first with confidence and the second not at all, until a ledger says otherwise.</p>
+<table>
+<thead>
+<tr>
+<th>What the claim needs</th>
+<th>What the system has</th>
+<th>The gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top-of-book depth and resilience</td>
+<td>SPY's Amihud measure</td>
+<td>A stand-in that reads deep as volume rises</td>
+</tr>
+<tr>
+<td>All forced flows</td>
+<td>Seven leveraged equity funds' rebalance</td>
+<td>Inverse vol products, vol targeting, CTAs, basis trades unmeasured</td>
+</tr>
+<tr>
+<td>Leverage now</td>
+<td>Monthly margin debt; weekly positioning</td>
+<td>Weeks of lag</td>
+</tr>
+<tr>
+<td>Dealer positioning</td>
+<td>Inferred gamma from captures</td>
+<td>Inferred, not observed</td>
+</tr>
+<tr>
+<td>Clearing margins and haircuts</td>
+<td>Nothing stored</td>
+<td>The binding constraint in 2021 and 2022</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s6-part-v-tactical-applications-wiring-environments-and-the-app">
+      <summary class="section-head">
+        <span class="section-title">Part V — Tactical Applications, Wiring, Environments, and the Appendices</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 21 — Tactical applications, by horizon</h2>
+<p>This paper's tradeable content is the identification of fragility: who is forced, at what size, against what depth. Its most valuable application is defensive, because a cascade is a moment when the small book should be absent, or present only as patient capital after the forced flow is done. What follows lays that against the seven rungs, in prose and then as a cheat sheet.</p>
+<p><em>Nothing in this chapter is investment advice. It describes how one operator, running one book under one set of rules, decides which opportunities are theirs and which are not.</em></p>
+<p><strong>Intraday.</strong> What is tradeable is nothing: the closing-auction concession and the zero-day hedging flow are visible, but the edge is a latency and inventory edge that belongs to market makers. The edge type would be liquidity, and the operator is not the one paid for it. The counterparty is the automated liquidity supplier, who transacts because it is paid the spread and can pull its quotes in microseconds. Competition has not removed the edge; it has removed the operator's access to it. Nothing would end that, because the asymmetry is structural. There is no expression and no book. The read is defensive, in the 12:30 slot's volatility-event gate and the close's Mechanics: a reason to delay an entry, never a reason to make one.</p>
+<p><strong>Days.</strong> What is tradeable is the aftermath of a forced flow that has finished: the reversal after a close rebalance, a vol-control unwind or a margin-driven liquidation, once the flow is spent and the price has overshot. The edges are liquidity and positioning and flow. The counterparty is the forced seller, who transacts because a constraint requires it, not because the price is right. Competition has not removed the edge because the capital that could supply it is the same capital under the constraint. Dealers and market makers withdraw exactly when the concession is largest. It would end if the forced flows became so well known that patient capital pre-positioned against them and the overshoot vanished. The expression is a defined-risk options position entered after the flow is spent, never into it. The book is C. It is read in the close's Mechanics (the fragility line, the volatility-event block, the dealer block) and the next 07:00 anchor's volatile-day flag.</p>
+<p><strong>Weeks.</strong> What is tradeable is the vol-control and risk-parity re-leveraging that follows a cascade: the strategies cut on the lag and re-buy on the lag, so their buying arrives weeks after the low. The edges are positioning and flow and horizon. The counterparty is the volatility-targeting fund, transacting because its trailing window says so. Competition has not removed the edge because the strategies' rules are public but their capital is large, and they cannot re-enter faster than their windows allow. It would end if the strategies shortened their windows or the pool shrank. The expression is equity or index exposure built over the re-leveraging window. The book is B. It is read in the Weekly's Positioning &amp; flows and its volatility lens table.</p>
+<p><strong>Months.</strong> What is tradeable is the stance: the decision to hold less leverage when the forced-flow-to-depth ratio is high, and to be a buyer of last resort in size the book can afford when a cascade has run. The edges are patience and regime recognition. The counterparty is the forced seller at the bottom of a cascade and the de-risking allocator. They transact because a mandate or a margin call requires it. Competition has not removed the edge because the institutions able to buy are the ones under the constraint. It would end if a standing official backstop made every cascade end before it overshot, which the 2020 and 2022 announcements went some way towards. The expression is index and Treasury exposure inside the Doctrine's bands, added after the forced flow is spent. The book is A. It is read in the Monthly's Mechanics and slow layers, and in the Top &amp; Bottom composite once it exists.</p>
+<p><strong>Cyclical.</strong> What is usable is the knowledge of where leverage has built: margin debt against equity value, the size of the leveraged-product and vol-targeting complex, the carry trades. It is an input to stance, not a trade. The edge is regime recognition. There is no transacting counterparty at this rung. Competition is absent because few participants hold a view across a leverage cycle. It would end if leverage became continuously and accurately measured, which Chapter 20 says it is not. It is expressed through the months-rung stance; it feeds Book A; and it is read in the Monthly's slow layers.</p>
+<p><strong>Secular.</strong> What is usable is structural change in who supplies liquidity: the shift from bank dealers to non-bank market makers, the growth of the closing auction, shorter settlement cycles. Each changes how cascades travel. The edge is analytical, and weak. There is no counterparty and no position. It feeds the annual structural review's questions and the standing register.</p>
+<p><strong>Generational.</strong> There is no edge for this book at this horizon. The usable content is that market structure is made by rules, and the rules change after each cascade. There is no counterparty, no expression and no book.</p>
+<table>
+<thead>
+<tr>
+<th>Horizon</th>
+<th>What is tradeable</th>
+<th>Edges</th>
+<th>Counterparty</th>
+<th>Book</th>
+<th>Read in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Intraday</strong></td>
+<td>Nothing; a reason to wait</td>
+<td>—</td>
+<td>Automated liquidity</td>
+<td>—</td>
+<td>The 12:30 slot; the close's Mechanics</td>
+</tr>
+<tr>
+<td><strong>Days</strong></td>
+<td>The aftermath of a spent forced flow</td>
+<td>Liquidity; positioning and flow</td>
+<td>The forced seller</td>
+<td>C</td>
+<td>The close's Mechanics; the 07:00 volatile-day flag</td>
+</tr>
+<tr>
+<td><strong>Weeks</strong></td>
+<td>The vol-control re-leveraging</td>
+<td>Positioning and flow; horizon</td>
+<td>Vol-targeting funds</td>
+<td>B</td>
+<td>The Weekly's Positioning &amp; flows</td>
+</tr>
+<tr>
+<td><strong>Months</strong></td>
+<td>Stance: less leverage when fragile; buying after</td>
+<td>Patience; regime recognition</td>
+<td>Forced sellers; de-risking allocators</td>
+<td>A</td>
+<td>The Monthly's Mechanics and slow layers</td>
+</tr>
+<tr>
+<td><strong>Cyclical</strong></td>
+<td>Where leverage has built</td>
+<td>Regime recognition</td>
+<td>None</td>
+<td>A, as input</td>
+<td>The Monthly's slow layers</td>
+</tr>
+<tr>
+<td><strong>Secular</strong></td>
+<td>Who supplies liquidity, and how that changes</td>
+<td>Analytical</td>
+<td>None</td>
+<td>—</td>
+<td>The annual review; the register</td>
+</tr>
+<tr>
+<td><strong>Generational</strong></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>The principle this chapter states in this paper's terms: <strong>the small book's edge in a cascade is that it is not forced.</strong> Every edge above is the reward for transacting when someone else must. The operator who is leveraged, margined or volatility-targeted has given that edge away before the cascade begins.</p>
+<h2>Chapter 22 — Wiring</h2>
+<p>This paper owns a mechanism the system measures in part. Its wiring is mostly where those measures print.</p>
+<p><strong>The 16:45 close.</strong> The close's Mechanics carries the fragility panel's line (item 71), the volatility-event block and its lenses (item 52), the dealer block (6b) and the ES read's levels (item 45, with the squeeze line's context from item 74). The close's detail tables carry relative options volume (item 61). A cascade day reads first there.</p>
+<p><strong>The 07:00 anchor.</strong> The volatile-day flag's arms (the VIX, ES's overnight range, the gap, the Gamma dial) and the ES read. The anchor recomputes nothing; it reads the object and the stored rows.</p>
+<p><strong>The 12:30 slot.</strong> It opens on a volatility rise of 15% or 3 points: the intraday rung's one defensive read.</p>
+<p><strong>The Weekly.</strong> Positioning &amp; flows carries the hedge-fund positioning line and the squeeze-risk flag (item 74). Mechanics carries the fragility panel's week and the dealer block's facts.</p>
+<p><strong>The Monthly.</strong> Mechanics and the slow layers carry the panel at the Monthly's horizons, margin debt's share of equity value, and the dealer retrospective.</p>
+<p><strong>Register fields this paper populates.</strong> A decision taken on a cascade day should carry three things: the forced-flow class it believes is transacting (margin, vol targeting, leveraged-product rebalance, dealer gamma, redemptions, or squeeze cover); whether that flow is still running or spent; and the depth read at entry, with the stand-in named as a stand-in. These are categorical so they can be counted.</p>
+<p><strong>Claims-registry entries this paper owns.</strong> The forced-flow-to-depth ratio as the organising claim; the five forced flows and their timing (Chapter 7); the leveraged-product rebalance formula; margin and haircuts as one procyclical mechanism (Chapter 4); and the ETF as the price when its basket does not trade (Chapter 3). Other papers that use these cite this one.</p>
+<p><strong>What the annual review re-verifies.</strong> Whether the fragility ledger's verdict has changed on a box re-run; whether the squeeze ledger has reached its 12 episodes; whether a depth source the rules allow has appeared; whether the leveraged-product and vol-targeting complex has grown or shrunk; and whether any structural change (settlement, auctions, the clearing models) has altered how a cascade travels.</p>
+<h2>Chapter 23 — Environments</h2>
+<p>The master environment matrix belongs to <em>Debt Cycles</em>. This paper's contribution is, for each of the eighteen, which forced flow dominates, what happens to depth, and how likely a cascade is to run. No entry carries a probability; the words describe mechanism, not frequency.</p>
+<ul>
+<li><strong>Expansion.</strong> Calendar flows dominate and depth is ample. Leverage builds quietly, which is the cascade's preparation rather than its occasion.</li>
+<li><strong>Recession.</strong> Redemptions and de-risking dominate. Depth thins in credit first. Cascades run where funds offer daily liquidity on illiquid assets.</li>
+<li><strong>Inflation.</strong> Rate-driven repricing dominates, and stocks and bonds fall together. The cascade risk is in leveraged duration hedges, as in 2022.</li>
+<li><strong>Disinflation.</strong> Duration buying dominates. Depth is good, and the stock–bond hedge works.</li>
+<li><strong>Deflation.</strong> Margin and collateral dominate. Leveraged real assets are the forced sellers.</li>
+<li><strong>Stagnation.</strong> Low turnover and thin depth that nobody notices until a flow arrives.</li>
+<li><strong>Bubble.</strong> Momentum and leveraged-product flows dominate, and short squeezes are common. Depth is plentiful and illusory.</li>
+<li><strong>Crash.</strong> Every forced flow at once; depth withdrawn. This is the environment Part II describes.</li>
+<li><strong>Liquidity crisis.</strong> Margin and haircuts dominate everything. Whoever still quotes sets the price. The ETF is often the only price.</li>
+<li><strong>Banking crisis.</strong> Deposit flight becomes asset sales. Dealers' own balance sheets are the constraint, and Treasury market depth can fail.</li>
+<li><strong>Fiscal crisis.</strong> Collateral calls on leveraged sovereign-debt structures dominate. The gilts' mechanism belongs here; the fiscal story belongs to <em>Debt Cycles</em>.</li>
+<li><strong>Currency crisis.</strong> Carry unwinds and official dollar demand. A foreign official seller of Treasuries is possible, as in 2020.</li>
+<li><strong>War.</strong> State-imposed rules and venue closures. Price limits and halts push flow to whatever is open. n≈0 for most modern markets.</li>
+<li><strong>Technological revolution.</strong> Issuance and lockup expiries; retail and options flow; squeezes in narrative names.</li>
+<li><strong>Financial repression.</strong> Captive buyers supply depth in the repressed asset. A cascade is unlikely there and likely in whatever the repression pushes capital into.</li>
+<li><strong>Capital controls.</strong> The permitted participants are the only depth. Forced flow cannot leave, so it moves the domestic price.</li>
+<li><strong>Monetary-system change.</strong> The collateral's own value is in question. n≈0 in the modern sample.</li>
+<li><strong>Structural break.</strong> A change in the rules of market structure itself (settlement, auctions, clearing) changes how every cascade travels. The relationships measured before it should be re-verified, not assumed.</li>
+</ul>
+<hr />
+<h2>Appendix A — Assumptions and falsifiers</h2>
+<p><em>The instrument the annual structural review reads. Sections (a) to (e) in the fixed format.</em></p>
+<p><strong>(a) Mechanisms treated as durable.</strong></p>
+<ol>
+<li>Liquidity is supplied by intermediaries when it pays and withdrawn when it does not; displayed depth is not promised depth (Chapters 1–2).</li>
+<li>The size of a move is set more by the ratio of forced flow to depth than by the news (Chapter 6).</li>
+<li>Margin, haircuts and collateral calls are procyclical: volatility raises them and they force sales that raise volatility (Chapter 4).</li>
+<li>Funding liquidity and market liquidity reinforce each other into spirals that need no further shock to continue (Chapter 8).</li>
+<li>Daily-reset leveraged and inverse products trade with the day's move at the close, in proportion to AUM × L × (L − 1) (Chapter 7).</li>
+<li>Volatility-targeting strategies sell on the lag of a volatility rise and re-buy on the lag of its fall (Chapter 7).</li>
+<li>A shared forced seller raises correlations across assets regardless of their fundamentals (Chapter 9).</li>
+<li>A cascade ends when a participant with unencumbered capital, often an official lender or buyer, replaces the forced seller (Chapters 8, 15, 17).</li>
+</ol>
+<p><strong>(b) Empirical relationships relied on, with sample, regime and last verification.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Relationship</th>
+<th>Sample</th>
+<th>Regime measured in</th>
+<th>Last verified</th>
+<th>Where used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Equity correlations rise more in down markets than a normal model predicts</td>
+<td>Developed equity markets, 1960s to the late 1990s (Longin and Solnik, 2001)</td>
+<td>Multiple</td>
+<td>October 2026</td>
+<td>Chapter 9</td>
+</tr>
+<tr>
+<td>The stock–bond correlation's sign depends on whether inflation or growth risk dominates</td>
+<td>US data across the post-war period</td>
+<td>Multiple; positive in inflationary regimes</td>
+<td>October 2026</td>
+<td>Chapter 9 (owned by <em>Debt Cycles</em>)</td>
+</tr>
+<tr>
+<td>Bond ETF discounts open in stress when the basket does not trade</td>
+<td>US corporate and municipal bond funds, 2008 and 2020</td>
+<td>Stress</td>
+<td>October 2026</td>
+<td>Chapters 3, 15</td>
+</tr>
+<tr>
+<td>Leveraged and inverse products' close rebalance is predictable from the day's return</td>
+<td>US daily-reset ETPs, since their launch</td>
+<td>All</td>
+<td>October 2026</td>
+<td>Chapters 7, 14</td>
+</tr>
+<tr>
+<td>The fragility flag (item 71) is not on before the air pockets</td>
+<td>US, 2015–2026, three events (ST-R6.71d)</td>
+<td>One sample</td>
+<td>October 2026 (FAIL)</td>
+<td>Chapter 19</td>
+</tr>
+</tbody>
+</table>
+<p><strong>(c) The falsifier for each relationship.</strong></p>
+<ul>
+<li><em>Down-market correlation:</em> correlations measured on a recent window fail to rise in drawdowns. Then Chapter 9's first section is a historical regularity, not a mechanism's footprint.</li>
+<li><em>The stock–bond sign:</em> the sign stops tracking the inflation-versus-growth balance over a full cycle. <em>Debt Cycles</em> owns the falsifier.</li>
+<li><em>Bond ETF discounts:</em> a stress episode in which the basket stops trading and the discount does not open. Then the ETF is no longer the price in stress, perhaps because authorised participants' capacity has grown.</li>
+<li><em>The close rebalance:</em> a stress close in which the leveraged-product complex's estimated rebalance does not appear in the imbalance. Then the estimate's AUM or leverage inputs are wrong.</li>
+<li><em>The fragility flag:</em> a box re-run in which the flag is on before at least two of the three air pockets would reverse the FAIL. A new depth source might do that; a change in the rule after the fact would not count.</li>
+</ul>
+<p><strong>(d) Standing-register items that touch this paper.</strong></p>
+<p>Four changes are watched. <em>Automated liquidity provision</em>: a liquidity event with no bank dealer in it would reorder Chapter 2's account of who withdraws first. <em>Faster settlement or a round-the-clock venue</em> would change Chapter 4.4's trade-off and weaken the close's role in Chapter 1. <em>Growth in the leveraged-product and vol-targeting complex</em> would make Chapter 19's flow arm, and Chapter 20's coverage gap, matter more. <em>A rising zero-day share of index options</em> would enlarge Chapter 7.4's intraday flow, which <em>The Dealer's Hand</em> owns.</p>
+<table>
+<thead>
+<tr>
+<th>Change</th>
+<th>Tripwire</th>
+<th>What it would do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Automated liquidity provision</td>
+<td>A dealerless liquidity event; the non-bank share</td>
+<td>Chapter 2's withdrawal ordering</td>
+</tr>
+<tr>
+<td>Faster settlement; continuous markets</td>
+<td>A shorter cycle; a 24-hour venue</td>
+<td>Chapters 1 and 4.4</td>
+</tr>
+<tr>
+<td>Leveraged-product and vol-targeting growth</td>
+<td>A stated asset level</td>
+<td>Chapters 19 and 20</td>
+</tr>
+<tr>
+<td>Zero-day options</td>
+<td>A stated volume share</td>
+<td>Chapter 7.4; possibly a new case</td>
+</tr>
+</tbody>
+</table>
+<p><strong>(e) Inventory of dated figures.</strong> The seven figures, by order of appearance, each with its store keys (<code>tools/figures/market_structure.py</code> draws them): Figure 1, the cascade loop (conceptual, no series; drawn); Figure 2, dealer gamma and the session's range (<code>exposure.net_gex</code>, <code>yfinance.mkt_spy</code>; placeholder); Figure 3, the stock–bond correlation (<code>calc.corr_spy_tlt_60d</code>, drawn from the stored SPY and TLT closes by the correlation layer's method); Figure 4, leveraged funds' net in ES (<code>cftc.tff_lev_money_net_oi</code>; placeholder); Figure 5, the volatility index through the cases (<code>fred.vix</code>; drawn); Figure 6, forced flow against depth (<code>levetf.aum</code>, <code>yfinance.mkt_spy</code>, computed by the fragility module; placeholder); Figure 7, margin debt (<code>finra.margin_debit</code>; placeholder). The drawn series figures are from the laptop's store and the box regenerates them; the placeholders are drawn at merge from the box's store. Every case figure the text quotes is in Appendix B.</p>
+<hr />
+<h2>Appendix B — The dated appendix</h2>
+<p><em>Everything in this appendix carries an as-of date and is history rather than a read if that date is more than a year old. Nothing here is investment advice, and no security is recommended.</em></p>
+<p><strong>As of: 26 October 2026.</strong></p>
+<p><strong>B.1 — The fragility chain's ledgers, as filed.</strong> <em>(laptop first editions of 23 October 2026, public sources; a box re-run supersedes each; verdicts accepted under ruling D9 of 24 October 2026)</em></p>
+<ul>
+<li><strong>ST-R6.71d, the air pockets against the fragility panel (item 71): FAIL.</strong><ul>
+<li><em>Sample:</em> 2,965 sessions from January 2015 to October 2026.</li>
+<li><em>The first condition, on before the air pockets:</em> the flag was on before 0 of 3 against the rule's 2.</li>
+<li><em>The second condition, the fall-after share:</em> an SPY fall of 2.5% or more within five sessions followed 31.1% of flag-on sessions and 6.4% of flag-off sessions; the rule asks at least twice.</li>
+<li><em>Flag-on sessions:</em> 135.</li>
+<li><em>Context outside the rule:</em> after sessions with SPY's 20-session realised volatility at its 90th percentile or above, 27.4% were followed by such a fall.</li>
+<li><em>In the five sessions before each air pocket,</em> the flow arm was on: February 2018 twice (the estimate's percentile 91 and 100), August 2024 three times (98, 96 and 96), April 2025 once (97). The depth arm's percentile never exceeded 71.</li>
+<li><em>Dealer gamma</em> is left out of the replay, having no stored history before the captures began.</li>
+</ul>
+</li>
+<li><strong>ST-R6.74b, extreme leveraged-fund net shorts in ES (item 74): INSUFFICIENT, n 0.</strong> No ES rows were stored at the edition; the futures-positioning pull adds ES from the same build. The rule needs 12 episodes.</li>
+</ul>
+<p><strong>B.2 — The cases' figures.</strong> <em>(as recorded in the cited histories; last verified October 2026)</em></p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19 October 1987</td>
+<td>The Dow Jones Industrial Average fell 22.6% in one session</td>
+<td>Brady Commission (1988)</td>
+</tr>
+<tr>
+<td>1998</td>
+<td>LTCM's creditors' recapitalisation was about $3.6 billion</td>
+<td>President's Working Group (1999)</td>
+</tr>
+<tr>
+<td>6 May 2010</td>
+<td>The sell programme was 75,000 E-mini contracts, about $4.1 billion; trades more than 60% from the pre-crash price were cancelled</td>
+<td>CFTC–SEC (2010)</td>
+</tr>
+<tr>
+<td>5 February 2018</td>
+<td>The VIX rose about 116% in one session, its largest one-day percentage rise</td>
+<td>Cboe</td>
+</tr>
+<tr>
+<td>March 2020</td>
+<td>The VIX closed at a record of about 82.7 on 16 March</td>
+<td>Cboe</td>
+</tr>
+<tr>
+<td>January 2021</td>
+<td>The clearing deposit charged to the largest retail broker rose to about $3 billion on 28 January</td>
+<td>SEC staff report (2021)</td>
+</tr>
+<tr>
+<td>September 2022</td>
+<td>The Bank of England's temporary purchases totalled about £19 billion against a stated capacity of £65 billion</td>
+<td>Bank of England (2022)</td>
+</tr>
+<tr>
+<td>5 August 2024</td>
+<td>The Nikkei 225 fell about 12.4% in one session</td>
+<td>Japan Exchange Group</td>
+</tr>
+</tbody>
+</table>
+<p><strong>B.3 — Structure as it stands.</strong> <em>(as of October 2026)</em>
+- <strong>US equity settlement</strong> is T+1, since 28 May 2024; it was T+2 in January 2021.
+- <strong>The market-wide circuit breakers</strong> halt trading at declines of 7%, 13% and 20% in the S&amp;P 500 from the prior close.
+- <strong>Single stocks</strong> trade inside limit up–limit down bands.
+- <strong>The closing auction</strong> is commonly reported as roughly a tenth of US-listed equity volume, and more on index rebalance days. The figure varies by venue and by source.
+- <strong>The futures exchange's</strong> automatic pause on the index futures is five seconds.</p>
+<p><strong>B.4 — What the store does not yet hold.</strong> <em>(as of October 2026)</em>
+- No top-of-book depth series.
+- No clearing-house margin or repo haircut series.
+- No assets for volatility-targeting strategies or inverse volatility products.
+- ES rows for the squeeze ledger began only with the build that added them.</p>
+<p>Every gap is named in Chapter 20; this list dates them.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/market-structure-and-cascades-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

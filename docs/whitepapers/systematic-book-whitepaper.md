@@ -127,13 +127,7 @@ The constraint will also be the reason a second username is eventually worth hav
 
 ### 3.5 Microstructure the book actually uses
 
-The library's *Dealer's Hand* and *Daily Cascade* papers carry the microstructure theory; this paper records the pieces the execution layer consumes.
-
-**The closing auction is where the book's most important prices form.** The settled 16:10 capture is timed to it; the pin log grades against it; the doctrine's Book C setups are entered from the 07:00 list and exited by bracket, but their *reference* — the pin, the wall, the flip — is a closing-auction price. Change Order #3 adds the auction's own flow (NYSE-family imbalance ticks through the Gateway, with a 15:50–16:00 sampler) as the other side of the picture: dealer gamma says how the close *reacts* to a move; the imbalance says what *pushes* it. For execution, the practical rule is the doctrine's: no Book C entry after 10:30 without the 10:00 report's confirmation, and no entry into the last ten minutes at all unless the packet is explicitly a closing-auction expression.
-
-**Options spreads are a cost the packet must pay for.** Doctrine Rule 13 says no trade whose expected R is less than three times its round-trip cost in commissions, spread and slippage. For a single-name option with a $0.10 wide market, a one-lot round trip costs $0.20 of spread before commission — which on a $2.00 contract is 10% of the premium, a cost that makes a 1.5R expectation impossible. The expression check's forward work (Gate 1.5) is to read the live spread from the chain and refuse the packet's R arithmetic when the spread makes it unattainable. Until then, the rule is applied by the operator from the chain the report shows.
-
-**The data is fifteen minutes stale at the only time that matters most.** Massive's Starter tier, the book's chain source, is delayed; at the 09:45 intraday refresh — where the day's 0DTE structure is captured — fifteen minutes is the difference between a live quote and a memory. The OPRA real-time entitlement, subscribed on 5 September, exists for that window alone. The settled 16:10 capture does not need it; by then the quotes are, in the paper's own phrase, corpses.
+Moved to *Market Structure and Cascades* on 26 October 2026 (its section 5.4, "The microstructure the book's execution actually uses"): the closing auction, the options spread as a cost and the delayed chain, as this book's execution layer consumes them.
 
 ### 3.6 The opportunistic book's execution rules
 

@@ -340,7 +340,8 @@ GROUPS = [
                                                        "XXXIV", "XV", "XXI", "XXIV",
                                                        "XXIX"]),
     ("Price, positioning, expression (B, C, D)", ["XXV", "XVI", "XIII", "XI", "XXII",
-                                                    "XIV", "XII"]),
+                                                    "XIV", "XII",
+                                                    "XXX"]),
 ]
 BOOKS = {
     "XVIII": "ABCD", "XXXIII": "ABCD", "XXXII": "ABCD", "XIX": "C", "XXIII": "ABCD", "XVII": "A",
@@ -350,6 +351,7 @@ BOOKS = {
     "XXV": "BC", "XVI": "BCD", "XIII": "C", "XI": "CD", "XXII": "BCD", "XIV": "BC",
     "XII": "C",
     "XXIX": "AB",
+    "XXX": "BCD",
 }
 
 
