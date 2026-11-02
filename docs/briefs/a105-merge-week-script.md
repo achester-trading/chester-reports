@@ -46,6 +46,9 @@ The planned order held. Nothing had to move.
 | 20 | `a103-weekly-consistency` | `b3a1b9f5` | **A103** |
 | 21 | `a98-paper-executor` | `73d12a1c` | |
 | 22 | `b96-doctrine-2-pack-refresh` | `c23c6413` | **B104** (Part 12) |
+| 22a | `b97-slow-gates` | `267bd42b` | B97 (A106; **in the real week it goes into step 0's small PR**, see below) |
+| 22b | `b98-ks-family-registry` | `f0343d55` | B98 (A106) |
+| 22c | `b99-premium-sleeve` | `da345be9` | B99 (A106; carries B98's commits) |
 | 23 | `b100-hygiene` | `12d7f940` | B100, **B107** (the CI-time audit brief) |
 | 24 | `b102-readable-editions-register` | `f6bdc7c3` | **B102, B103** |
 | 25 | `b109-names-gate` | `04439228` | **B109** |
@@ -58,6 +61,21 @@ None had not reported.
 - **A104** reported a stop. Its dry runs returned PENDING on the laptop, because
   `CHESTER_SEC_CONTACT` is unset there. Its branch holds the paste and that
   finding, and no fallback was built (see 6).
+
+**A106 added 22a-22c** (2 Nov 2026, on `c1844825`). b97, b98 and b99 were
+written after A99's list, so neither pass had them. Rehearsed after b96 and
+before b100, each a merge commit. Rehearsal tips: 22a `2c3fdbc9`, 22b
+`fc50adc5`, 22c `80f6aca1`.
+
+- **b97 in the real week.** B107's Monday set says "merge B97 first", so b97
+  goes into **step 0's small PR**, with A91's fixture fix and b101. It was
+  rehearsed at 22a all the same. The docs-only branches after it do not depend
+  on where it lands, and it merged clean onto a tree that already held b100's
+  and b109's Makefile and CI changes. So at step 0 it meets fewer changes, not
+  more.
+- **b99 contains b98.** b99 was built on b98, so 22b must precede 22c. In the
+  real week, b98's PR merges first and b99's PR then shows only B99's own
+  commits.
 
 ## 2. Per merge
 
@@ -160,9 +178,38 @@ replaced the same names in their own words under D38.
   stay the operator's"`), because b109's change to the document text merged
   clean; with ours alone the gate failed.
 
+**A106's three (22a-22c).**
+
+- **22a, b97-slow-gates: clean.**
+  - `scripts/make.sh` auto-merged. It gains `validate-group`, and its new line
+    strips the CR with the escaped `'\r'`.
+  - `tools/gate_list.py` gains `--groups`, read from each gate's `GATE_GROUPS`.
+  - No gate was added, and `validate_gates` and `validate_deploy` pass.
+  - The Makefile and `registry-check.yml` are untouched by b97, so b100's and
+    b109's changes stand.
+- **22b, b98-ks-family-registry: clean.**
+  - `alpha/ledger.py` and `validate_alpha.py` auto-merged against A94's
+    forecasters and A98's executor.
+  - No gate was added, and B98's registry checks live in `validate_alpha` and
+    `validate_alpha_lab_4`.
+  - Both pass, with `check_library` (the systematic-book paper and its html).
+- **22c, b99-premium-sleeve: one conflict, CLAUDE.md's gate-count line only.**
+  - Resolved by A99's pattern: ours, then `stitch_counts --write`.
+  - b99's only CLAUDE.md change was that count, so nothing else was lost.
+  - `validate_premium_sleeve` joins by `GATE_KIND` with no Makefile line, which
+    makes the count 167.
+  - The gates that pass after it: `validate_premium_sleeve`, `validate_alpha`,
+    `validate_alpha_lab_3`, `validate_alpha_lab_4`, `validate_alpha_no_orders`,
+    `validate_alpha_proposer`, `validate_ll6` (A94), `validate_paper_exec` (A98),
+    `validate_gates`, `validate_audit_3a` (88/0) and `check_library`.
+- **At every merge,** the three tools' `--check`, `validate_lenses`,
+  `check_registry` and `yaml_section_check` were all clean.
+- **No needs-you** came from the three.
+
 **The final counts**, set by `tools/stitch_counts.py --write`: **one hundred and
-sixty-six code gates (one hundred and sixty-three Python, three shell)** and
-eight data gates.
+sixty-seven code gates (one hundred and sixty-four Python, three shell)** and
+eight data gates, after 22c. Through step 25 without the three it was one
+hundred and sixty-six (one hundred and sixty-three Python):
 
 - That is A99's 165 plus B109's `validate_names`.
 - `stitch_counts --check` agrees on all 62 counts.
@@ -261,6 +308,24 @@ A99's recommendation stands: b88's split keeps B, and A68's records become C.
   the date-drift gates included. The one thing outside the run is N3's scan,
   which needs the list.
 
+**A106: the two long stack gates by group, on the tree through 22c.** Each group
+was run with B97's flags, `bash scripts/make.sh validate-group <gate> <group>`,
+one at a time in the foreground, 590 s cap. Every group passed. Each group
+repeats the gate's shared setup (about 10 s), so the sum is a ceiling, not the
+whole run's time.
+
+| Gate | Group: passed/failed, seconds | Total |
+|---|---|---|
+| `validate_stack` (11 groups) | A 13/0 13s; B 8/0 11s; C 13/0 12s; D 8/0 7s; E 12/0 14s; F 6/0 8s; G 4/0 11s; H 2/0 10s; M 6/0 6s; I 3/0 10s; V 9/0 10s | **84 passed, 0 failed, 112 s** |
+| `validate_monthly_stack` (25 groups) | A 9/0 14s; B 3/0 13s; C 12/0 30s; D 13/0 14s; E 5/0 14s; F 6/0 15s; N1 4/0 15s; N2 8/0 14s; N3 7/0 15s; N4 11/0 17s; N5 7/0 14s; N6 6/0 14s; N7 3/0 14s; N8 8/0 13s; N9 7/0 13s; N10 10/0 13s; O 16/0 13s; P 44/0 15s; H 14/0 13s; I 11/0 13s; J 10/0 12s; K 27/0 42s; L 20/0 31s; M 6/0 35s; G 1/0 14s | **268 passed, 0 failed, 430 s** |
+
+- No group comes near the laptop's ten minutes. The longest are monthly K
+  (42 s), M (35 s) and L (31 s).
+- B97's three weekly gates, which it also split, pass whole after the merges:
+  - `validate_weekly_complete`, 118 s;
+  - `validate_weekly_stack`, 139 s;
+  - `validate_weekly_storyline`, 70 s.
+
 ## 5. The box steps after the deploys, in merge order
 
 Each step is the operator's, inside the operating windows. Sessions run none of
@@ -353,6 +418,21 @@ them. The list is A99's, plus the weekend's.
       run under (`.env`).
 14. **b96, b89, b90, b91 (with B105), b92, b95-batch-21 (with B108), b81, b87,
     a90, b85-gitattributes, b100 (with B107), b102 (B102, B103):** no box step.
+15. **b97 (A106's 22a; step 0 in the real week):** no box step. `--group` and
+    `make.sh validate-group` are the laptop's edit loop; CI and `make validate`
+    still run every gate whole.
+16. **b98 (22b):** no box step. `config/alpha_families.yaml` and `family_ref`
+    are read by the lab's loops at their next run.
+    - **One chat-side point, not a box step.** Every hypothesis in an inbox
+      batch written from 1 Nov 2026 00:00 ET must carry `family_ref`
+      (`FAMILY_REF_REQUIRED_FROM`). The weekly-brief and sitting templates need
+      the field before the next batch goes into the Drive inbox. Without it,
+      the batch is refused.
+17. **b99 (22c):** no box step. The premium sleeve (P-1) is registered first and
+    disabled (`config/alpha_engines.yaml` `enabled: false`). Its engine stands
+    down, "count not stored", until a writer stores `capitulation.count_band`,
+    which is a later paste's work.
+    Nothing is enabled until a paste does it.
 
 ## 6. What A99's script said that this pass changes
 
@@ -388,8 +468,40 @@ them. The list is A99's, plus the weekend's.
   for the next hygiene paste: `tr -d '\r'` where `make.sh` reads
   `tools/gate_list.py`.
 - **Unchanged:** N2, the LF re-checkout and the A-branch pattern.
+- **The trailing CR, pinned down (A106).** The failing line is
+  `scripts/make.sh:99`:
+
+  ```
+  gate_list() { "$PY" tools/gate_list.py --kind "$1" | tr -d '<CR>'; }
+  ```
+
+  - **What is wrong.** Between the quotes is a literal carriage return (byte
+    0x0d), not the two characters `\r`.
+  - **What bash runs.** Git Bash discards that byte when it parses the script,
+    so `bash -x scripts/make.sh list` traces it as `tr -d ''`, which deletes
+    nothing.
+    - On Windows, `gate_list.py` prints CRLF, so every path in `PY_VALIDATORS`,
+      `SH_VALIDATORS` and `DATA_GATES` keeps its CR, and the run fails to open
+      the file (`tools/check_library.py\r`).
+    - The line alone in a scratch script reproduces it.
+    - Lines 96 (`mk_list`) and 208 (b97's `validate-group`) write the escape
+      `'\r'`, and they work.
+  - **A side effect.** Git sees `make.sh` as non-text (`git ls-files --eol`:
+    `i/-text`), so diffs of it print as binary in some views.
+  - **The fix, for B111, not made here.** Write line 99 as `tr -d '\r'`, the
+    backslash and `r` in ASCII, as the other two lines do. Either of these also
+    works: have `gate_list.py` write with `newline="\n"`, or set
+    `sys.stdout.reconfigure(newline="\n")` there. The escape is the one-line
+    fix, and `validate_deploy`'s make.sh checks should then grep for a literal
+    0x0d in the script.
 
 ## 7. CI
+
+**A105's run is green.** Run 41393587121 (for `c1844825`), as the A106 paste
+states.
+
+**A106's run is recorded below.** Pushed after 22c (`80f6aca1`) and again with
+this script; see the line at the end of this section.
 
 **CI queued, run 41388944633**, for `a88f5dc9`: the merges through b109 plus this
 script. Read once on 2 Nov 2026.
