@@ -391,6 +391,7 @@ def group_d() -> None:
 
     db = temp_store()
     try:
+        # THE GATE'S CLOCK (B106): reads today on purpose -- a future-dated row is refused, which is a rule about today. Next attention: none.
         tomorrow = (session.session_date_obj() + dt.timedelta(days=3)).isoformat()
         patch_fetch(dkw, dkw_csv(DATES + [tomorrow]).encode(), LM_HEADERS)
         r = dkw.pull(db=db)
