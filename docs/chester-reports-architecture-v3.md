@@ -1681,6 +1681,16 @@ The architecture only stays durable if the maintenance is scheduled.
 The annual cut matters more than it sounds. Systems like this accrete metrics and
 never shed them, and the report gets longer and less useful every year.
 
+**The readable editions (1 November 2026).** Readable editions now sit in front of the
+Weekly and the Monthly, chat-side: the Weekly Letter (Sunday 06:12) and the Monthly
+Letter (the 1st, 10:43), with the Letters index, the ES day-trading cards and Sunday
+map (DTH-1's manual edition) and the X triage pushes beside them. They run under the
+six-line contract in the Master Guide (Part 2, "The readable editions"): each is a
+reading of the edition, every figure copied from it; they have no rights and no reader
+in the system, and nothing on the box knows they exist. The Reporting System paper
+records them in its dated appendix at its reread. Order:
+`docs/change-order-readable-editions-2026-11-01.md`.
+
 ---
 
 # Part 5 — Deferred backlog

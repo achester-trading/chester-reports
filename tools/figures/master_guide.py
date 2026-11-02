@@ -213,10 +213,12 @@ def clock_svg() -> str:
         if w.get("kind") == "daily":
             hh, mm = (int(x) for x in str(w["time_et"]).split(":"))
             daily.append({"name": task["name"], "h": hh + mm / 60.0,
-                          "hm": f"{hh:02d}:{mm:02d}", "src": "chat"})
+                          "hm": f"{hh:02d}:{mm:02d}", "src": "chat",
+                          "label": w.get("label")})
         elif w.get("kind") == "weekly":
             weekly.append({"name": task["name"], "days": w.get("days", ""),
-                           "hm": str(w.get("time_et", "")), "src": "chat"})
+                           "hm": str(w.get("time_et", "")), "src": "chat",
+                           "label": w.get("label")})
         elif w.get("kind") in ("monthly", "quarterly", "event"):
             monthly.append({"name": task["name"], "dom": w.get("dom"), "kind": w["kind"],
                             "hm": str(w.get("time_et", "")), "src": "chat",
@@ -263,7 +265,7 @@ def clock_svg() -> str:
         cls = "box" if d["src"] == "box" else "chat"
         out.append(f'<circle class="{cls}" cx="{x + 12}" cy="{yy - 6}" r="11"/>')
         out.append(text(x + 12, yy - 1, str(i), "onbox", 13, "middle", "700"))
-        lab = SHORT.get(d["name"], d["name"])
+        lab = d.get("label") or SHORT.get(d["name"], d["name"])
         mark = " ◉" if d["name"] in TOUCHES else ""
         out.append(text(x + 30, yy, f"{d['hm']}  {lab}{mark}", "ink", 16))
     y = y + 24 + half * line_h + 24
@@ -295,7 +297,8 @@ def clock_svg() -> str:
             cls = "box" if w["src"] == "box" else "chat"
             out.append(f'<circle class="{cls}" cx="{x + 14 + k * 16:.1f}" cy="{y + 46}" r="6"/>')
     y += 82
-    y = listed(weekly, y, lambda w: f"{w['days'][:3]} {w['hm']}")
+    y = listed(weekly, y, lambda w: f"{w['days'] if '-' in w['days'] else w['days'][:3]} "
+                                    f"{w['hm']}")
     y += 16
 
     # the month strip
@@ -316,8 +319,8 @@ def clock_svg() -> str:
                                       f"quarterly, {m['hm']}" if m["kind"] == "quarterly"
                                       else f"by event, {m['hm']}"))
     y += 10
-    out.append(text(24, y, "Times are ET. A task held in UTC moves an hour", "mute", 15))
-    out.append(text(24, y + 22, "when daylight saving ends on 1 Nov.", "mute", 15))
+    out.append(text(24, y, "Times are ET. The two tasks held in UTC print", "mute", 15))
+    out.append(text(24, y + 22, "their winter ET times (daylight saving ended 1 Nov).", "mute", 15))
     y += 40
     out.append("</svg>")
     return "\n".join(out).replace(f'viewBox="0 0 {W} {H}"', f'viewBox="0 0 {W} {y}"', 1) \
