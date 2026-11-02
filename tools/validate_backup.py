@@ -594,10 +594,15 @@ def group_e() -> None:
     # DJI's EPS workbook -- through one function, one copyto of one named file;
     # 12 Oct 2026: and the GLD archive's folder, each file by name (its own copyto).
     pulls = [ln for ln in code.splitlines() if re.search(r"\brclone\s+copyto\b", ln)]
-    body = code[code.find("pull_inbox_file() {"):code.find("pull_inbox_file aaii")]
-    calls = re.findall(r"^pull_inbox_file (\S+) (\S+) \|\| true$", code, re.M)
+    # A92b: the body is pull_inbox_path's, which takes the Drive folder by path;
+    # pull_inbox_file is it with the chester-vendor-checks/<folder> prefix.
+    body = code[code.find("pull_inbox_path() {"):code.find("pull_inbox_file aaii")]
+    calls = (re.findall(r"^pull_inbox_file (\S+) (\S+) \|\| true$", code, re.M)
+             + [(f, n) for _, n, f in re.findall(
+                 r"^pull_inbox_path (\S+) (\S+) (\S+) \|\| true$", code, re.M)])
     if (len(pulls) == 3 and all('"$src" "$dest"' in x for x in pulls)
-            and 'src="$rname:chester-vendor-checks/$folder/$name"' in body
+            and 'src="$rname:$dir/$name"' in body
+            and 'pull_inbox_path "chester-vendor-checks/$1" "$2" "$1"' in body
             and 'dest="$DATA_DIR/inbox/$folder/$name"' in body
             and 'rname="$INBOX_RNAME"' in body):
         ok("an inbox pull is one `rclone copyto` of one named file, from the inbox "
@@ -644,7 +649,9 @@ def group_e() -> None:
             and '"$rname:chester-x-digest/$f"' in xb
             and '"$DATA_DIR/inbox/x-digest/$f"' in xb
             and "x-attention-ledger.csv" in xb and "x-voices-ledger.csv" in xb
-            and r"^x-digest-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$" in xb
+            # A92b: the A file, the B file and the evening file.
+            and r"^x-digest-(eqmacro-|evening-)?[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$" in xb
+            and 'grep -cxF "chester-x-digest/"' in xb
             and '>"$dest.copied_at"' in xb and "sha256sum" in xb
             and "RC=" not in xb and "finish " not in xb and "absent" in xb
             and code.find("pull_x_pilot || true") > code.find('log "  prune: $PRUNE"')
@@ -655,6 +662,24 @@ def group_e() -> None:
            "setting the sweep's exit")
     else:
         bad("the X pilot pull is not a stamped per-file copyto into its inboxes")
+    # A92b (D52, D54): the ledger from chester-cards; the letters and cards
+    # archives and AAII's weekly folder, each an rclone copy (never a sync),
+    # timeout-capped, after the trees, never setting the sweep's exit.
+    fb = code[code.find("pull_folder() {"):code.find("pull_folder chester-vendor-checks/aaii/weekly")]
+    if (fb and "rclone copy " in fb and "rclone sync" not in fb and "timeout" in fb
+            and "--max-depth 1" in fb and "absent" in fb and "RC=" not in fb
+            and "finish " not in fb
+            and "pull_folder chester-letters letters" in code
+            and "pull_folder chester-cards cards" in code
+            and "pull_folder chester-vendor-checks/aaii/weekly aaii/weekly" in code
+            and "pull_inbox_path chester-cards dth1-manual-ledger.csv dth1" in code
+            and code.find("pull_folder chester-cards cards") > code.find('log "  prune: $PRUNE"')
+            and code.find("pull_folder chester-cards cards") < code.find("finish ok 0")):
+        ok("A92b: the DTH-1 ledger comes from chester-cards; the letters and cards "
+           "archives and AAII's weekly folder are copied (never synced) into the "
+           "inbox, capped, after the trees, never setting the sweep's exit")
+    else:
+        bad("A92b: the ledger's home or the folder copies are not as ruled")
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
     rw = m.group(1).split() if m else []

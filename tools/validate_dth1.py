@@ -14,6 +14,11 @@ checklist in the 07:00 anchor and the manual ledger's aggregates in the Weekly.
                      reads the ledger from the box's inbox, never the repo
   D  THE WIRING      the anchor's payload and render carry the block, the Weekly's
                      book section the lines, and the sweep pulls the one file
+                     from its home, chester-cards (A92b, D52)
+  E  THE CARDS' HEADER (A92b)  the canonical header reads; an open trade is
+                     counted apart; "FILL FROM STATEMENT" awaits the statement; no
+                     column the reader never reads reaches the text; the old
+                     spellings read as the canonical ones
 
 The fixtures (tests/fixtures/dth1/) are SYNTHETIC: invented rows, no real trade,
 price, size, P&L or account.
@@ -153,8 +158,52 @@ def group_d() -> None:
     check("dth1_subsection(ending)" in ws and 'subs.append({"title": dth1["title"]' in ws,
           "the Weekly's book section carries the DTH-1 lines after Book B")
     sync = (REPO / "scripts" / "rclone_sync.sh").read_text(encoding="utf-8")
-    check(re.search(r"^pull_inbox_file dth1 dth1-manual-ledger\.csv \|\| true$", sync, re.M)
-          is not None, "the nightly sweep pulls the one file into the dth1 inbox")
+    # A92b (D52): the ledger's one home is chester-cards, named by path.
+    check(re.search(r"^pull_inbox_path chester-cards dth1-manual-ledger\.csv dth1 \|\| true$",
+                    sync, re.M) is not None
+          and not re.search(r"^pull_inbox_file dth1 ", sync, re.M),
+          "the nightly sweep pulls chester-cards/dth1-manual-ledger.csv into the dth1 "
+          "inbox, and no longer the chester-vendor-checks copy")
+
+
+CARDS = FIX / "synthetic-ledger-cards.csv"
+# The synthetic values of the columns the reader never reads (A92b, D52).
+NEVER = ("5123.25", "5110.50", "5148.75", "637.50", "892.50", "5177.75", "562.50",
+         "1125.00", "2250.00", "5133.00", "600.00", "612.50", "ESZ6", "09:52")
+
+
+def group_e() -> None:
+    head("E. THE CARDS' HEADER (A92b, D52)")
+    sys.path.insert(0, str(REPO / "tools"))
+    import gate_tmp                                             # noqa: PLC0415
+    hdr = (CARDS.read_text(encoding="utf-8").splitlines() or [""])[0]
+    check(hdr == "date,time_et,instrument,side,entry,stop,target,contracts,risk_usd,"
+                 "exit,result_r,result_usd,status,rule_broken,notes"
+          and "date, time_et, instrument, side, entry" in (REPO / "config" / "dth1.yaml")
+          .read_text(encoding="utf-8"),
+          "the fixture carries the canonical header, documented in config/dth1.yaml")
+    a = dl.read(str(CARDS), ENDING)
+    want = {"total_n": 3, "week_n": 3, "clean_n": 2, "wins": 2, "open": 1, "awaiting": 2}
+    check(a["state"] == "ok" and all(a.get(k) == v for k, v in want.items()),
+          f"the cards' ledger reads: three closed trades scored, one open counted "
+          f"apart, 'FILL FROM STATEMENT' and 'verify' awaiting "
+          f"({ {k: a.get(k) for k in want} })")
+    lines = dl.weekly_lines(a)
+    check("1 open, not scored." in lines and "2 row(s) awaiting the statement." in lines,
+          f"the Weekly says 'k open' and 'awaiting' ({lines[1:]})")
+    sub = dl.weekly_subsection("2026-11-01", str(CARDS))
+    out = "\n".join(sub["lines"]) + str(sub.get("data"))
+    leak = [v for v in NEVER if v in out]
+    check(not leak and not CURRENCY.search("\n".join(sub["lines"])),
+          f"none of entry, stop, target, contracts, risk_usd, result_usd, the "
+          f"instrument or the time reaches the rendered text or its data ({leak})")
+    f = Path(gate_tmp.mkdtemp("a92b_")) / "aliases.csv"
+    f.write_text("Date,Result R,Rule broken,Status\n2026-10-27,1.4,no,closed\n",
+                 encoding="utf-8")
+    b = dl.read(str(f), ENDING)
+    check(b["state"] == "ok" and b["total_n"] == 1,
+          "the old spellings ('Date', 'Result R', 'Rule broken', 'Status') read as the "
+          "canonical ones")
 
 
 def main() -> int:
@@ -162,6 +211,7 @@ def main() -> int:
     group_b()
     group_c()
     group_d()
+    group_e()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 0 if FAIL == 0 else 1

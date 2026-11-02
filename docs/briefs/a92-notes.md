@@ -128,3 +128,100 @@ to `~/chester-data/inbox/dth1/dth1-manual-ledger.csv`.
 
 **Nothing else.** No new timer, unit or key. Until the file lands, the Weekly
 prints "DTH-1 ledger not stored."
+
+## A92b (1 Nov 2026): the ledger's single home, the archive copies, the X patterns, AAII's weekly folder
+
+**Base.** `origin/a92-dth1-box-pieces` at `c566dcd9`. Main is still at
+`422ea697`, already in this branch, so nothing was merged in. The paste is
+`docs/pastes/A92b.md`, the recreated text of 1 Nov 22:10 ET; no earlier A92b
+had run.
+
+**Part 1: the ledger's home (D52).**
+
+- The sweep reads `chester-cards/dth1-manual-ledger.csv`, a top-level Drive
+  folder named by path, and lands it unchanged at
+  `~/chester-data/inbox/dth1/dth1-manual-ledger.csv`.
+- `pull_inbox_file` assumed the `chester-vendor-checks/` prefix. So
+  `pull_inbox_path <folder by path> <file> <inbox folder>` is the variant, and
+  `pull_inbox_file` now calls it with the prefix, so its other callers are
+  unchanged.
+- `config/dth1.yaml` documents the canonical header: date, time_et, instrument,
+  side, entry, stop, target, contracts, risk_usd, exit, result_r, result_usd,
+  status, rule_broken, notes.
+- **Header aliases.** The reader already reads a header by name, lower-cased with
+  non-alphanumerics as "_". So "Date" / "date", "Result R" / "result_r", "Rule
+  broken" / "rule_broken" and "Status" / "status" are the same column, and no
+  code alias was needed; the gate proves both spellings.
+- **Open rows.** A status of "open" is excluded from the closed-trade aggregates
+  and printed as "k open, not scored." (`open_words`).
+- **Awaiting the statement.** "FILL FROM STATEMENT" joins `awaiting_words`. A
+  non-numeric or blank result already waited for the statement, as A92 ruled.
+
+**Part 2: the archive copies (D54).** `pull_folder` does an `rclone copy` of a
+folder's top-level files, every type, never a sync. Each copy is capped by
+`timeout`, logged by count, and skipped with a log line when the folder is
+absent. It never touches the sweep's RC.
+
+- `chester-letters/` goes to `~/chester-data/inbox/letters/`.
+- `chester-cards/` goes to `~/chester-data/inbox/cards/`.
+- **Nothing in the repo reads either.**
+- **The backup's include list.** The trees copy `chester-data` whole, with no
+  exclude (`copy_tree "$DATA_DIR" "chester-data" 15`), so both folders, and
+  AAII's `weekly/`, fall inside the encrypted backup. The inbox pulls run after
+  the trees, so a night's new files are backed up by the next night's sweep.
+
+**Part 3: the X patterns.**
+
+- The digest's pattern takes `x-digest-YYYY-MM-DD.md`,
+  `x-digest-eqmacro-YYYY-MM-DD.md` and `x-digest-evening-YYYY-MM-DD.md`.
+  Nothing on the box reads the B or the evening file; they are archive only.
+- One log line counts the top-level Drive folders named `chester-x-digest`, so a
+  second one shows in the sweep's log.
+
+**Part 4: AAII's weekly folder.**
+
+- **The finding.** B102 established that since 24 Oct the AAII task writes one
+  file a week to `chester-vendor-checks/aaii/weekly/YYYY-MM-DD.csv`, and that
+  the sweep pulled only `aaii-weekly.csv` (one row, 14 Oct), on main and on b82
+  alike. The box's AAII history stopped at that file.
+- **(a) The sweep.** `pull_folder chester-vendor-checks/aaii/weekly aaii/weekly`.
+- **(b) The reader.** `altdata/sources/aaii.py`:
+  - `weekly_files()` gives the old file first, then `weekly/*.csv` in name
+    order;
+  - `weekly_rows()` reads each with `rows_from_weekly` and unions by (key,
+    Reported Date). For a week in two files, the row with the newest
+    retrieved_at wins. A "disagrees" cross-check stays on the row as
+    `crosscheck` and in the run log; the row is never dropped. The store has no
+    flag column, and no store key was added;
+  - `_produce` calls it, and the history file still wins on a shared date
+    (`union`).
+- **(c) The gate.** The writer's gate is `tools/validate_official_sources.py`,
+  new group W. Its fixture holds the old file, two weekly files and one week in
+  both. The module also points the weekly folder at nothing for every other
+  group, so a machine whose inbox holds it cannot change their verdicts.
+- **b82, for the merge sheet.** b82 (`b82-aaii-bearish-share`) changes the end
+  of `rows_from_weekly`, `union`, `_from_file` and `_produce`, giving the parsers
+  a `keys` argument. This branch adds new functions and changes two lines of
+  `_produce`, so the two meet there. The resolution:
+  - keep b82's body;
+  - call `weekly_rows(KEYS)` in place of b82's `rows_from_weekly(w.read_bytes(),
+    KEYS)` (the arguments pass through);
+  - change b82's `union`, keyed on (key, date), not at all.
+
+  Both branches also add a group to `validate_official_sources` (b82's V, this
+  branch's W), meeting on `main()`'s group list: keep both.
+
+**Gates.** Run one at a time in the foreground:
+
+| Gate | Result |
+|---|---|
+| `validate_dth1` | 27/0 (group E added: the canonical header, the open and awaiting rows, no unread column in the text, the old spellings) |
+| `validate_official_sources` (the AAII writer's gate) | 344/0 (group W added) |
+| `bash -n scripts/rclone_sync.sh` | ok (shellcheck is not installed on the laptop) |
+| `check_registry` | OK |
+| `validate_secrets` | 58/0. It scans for keys and secrets; the currency, price and row-date scan of the DTH-1 text is `validate_dth1` group C, with E's synthetic values |
+| `validate_backups` | 29/0 (the inbound pulls that read the inbox remote are now five) |
+| `validate_backup` | 89/0 (the X pattern, the pull_inbox_path body, the folder copies) |
+| `validate_deploy` | 154/0 |
+
+No gate was added.

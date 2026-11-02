@@ -81,6 +81,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 _TMP = gate_mkdtemp(prefix="validate_official_")
 os.environ.setdefault("CHESTER_STATE_DIR", _TMP)
+# A92b: AAII's weekly folder points at nothing unless a group gives it one, so a
+# machine whose inbox holds the folder cannot change S's and T's verdicts.
+os.environ["AAII_WEEKLY_DIR"] = str(Path(_TMP) / "no_such_aaii_weekly_dir")
 
 import yaml  # noqa: E402
 
@@ -1762,6 +1765,74 @@ def group_u() -> None:
           "anchor -- never a recurring drop (rule 30)")
 
 
+# ---------------------------------------------------------------------------
+# W. A92b PART 4 (1 Nov 2026): AAII'S WEEKLY FOLDER, UNIONED BY WEEK
+# ---------------------------------------------------------------------------
+# The old aaii-weekly.csv (one row, 2026-10-14), two files of the weekly folder,
+# and one week in two files: the union by week, the newest retrieved_at winning,
+# a "disagrees" cross-check kept on its row, and a pull writing it all with no
+# network call. Synthetic shares.
+_WK_HEAD = "week_ending,bullish,neutral,bearish,spread,source_url,retrieved_at,crosscheck\n"
+_WK_OLD = _WK_HEAD + "2026-10-14,40.0,30.0,30.0,10.0,https://www.aaii.com,2026-10-16T13:00:00Z,ok\n"
+_WK_23 = _WK_HEAD + ("2026-10-22,35.0,30.0,35.0,0.0,https://www.aaii.com,2026-10-24T13:00:00Z,ok\n")
+# 22 Oct again, restated two days later, and 29 Oct flagged by the cross-check.
+_WK_30 = _WK_HEAD + ("2026-10-22,36.0,30.0,34.0,2.0,https://www.aaii.com,2026-10-26T13:00:00Z,ok\n"
+                     "2026-10-29,30.0,30.0,40.0,-10.0,https://www.aaii.com,"
+                     "2026-10-31T13:00:00Z,disagrees with the AAII page (synthetic)\n")
+
+
+def group_w() -> None:
+    print(f"\n{LINE}\nW. A92b: AAII'S WEEKLY FOLDER\n{LINE}")
+    from altdata.sources import aaii
+    d = Path(_TMP) / "aaii_weekly"
+    d.mkdir(exist_ok=True)
+    old = Path(_TMP) / "aaii-weekly-a92b.csv"
+    old.write_text(_WK_OLD, encoding="utf-8")
+    (d / "2026-10-23.csv").write_text(_WK_23, encoding="utf-8")
+    (d / "2026-10-30.csv").write_text(_WK_30, encoding="utf-8")
+    saved = {v: os.environ.get(v) for v in (aaii.WEEKLY_VAR, aaii.WEEKLY_DIR_VAR,
+                                             aaii.FILE_VAR)}
+    fetched: list = []
+    real = aaii.http_get_text
+    db = temp_store()
+    try:
+        os.environ[aaii.WEEKLY_VAR] = str(old)
+        os.environ[aaii.WEEKLY_DIR_VAR] = str(d)
+        os.environ[aaii.FILE_VAR] = str(Path(_TMP) / "no_such_history.csv")
+        files = [p.name for p in aaii.weekly_files()]
+        check(files == ["aaii-weekly-a92b.csv", "2026-10-23.csv", "2026-10-30.csv"],
+              f"the old file first, then the weekly folder in name order ({files})")
+        rows = aaii.weekly_rows()
+        got = [(r["observed_at"], r["value"]) for r in rows]
+        dup = next((r for r in rows if r["value"] == 2.0), {})
+        check(len(rows) == 3 and (dup.get("available_at") or "").startswith("2026-10-26")
+              and 0.0 not in [v for _, v in got],
+              f"one row a week; the week in two files keeps the newer retrieved_at's "
+              f"row (+2.0 from 26 Oct, not 0.0 from 24 Oct) ({got})")
+        flag = [r for r in rows if r.get("crosscheck")]
+        check(len(flag) == 1 and flag[0]["value"] == -10.0
+              and flag[0]["crosscheck"].startswith("disagrees"),
+              "the 'disagrees' cross-check stays on its row, which is kept")
+        aaii.http_get_text = lambda url, *a, **k: fetched.append(url) or ""
+        r = aaii.pull(db=db)
+        st = db.conn.execute("SELECT observed_at, value_num FROM observations WHERE "
+                             "registry_key = ? ORDER BY observed_at",
+                             (aaii.KEY,)).fetchall()
+        check(r["status"] == pub.OK and not fetched and len(st) == 3
+              and [round(v, 1) for _, v in st] == [10.0, 2.0, -10.0],
+              f"a pull with the folder and the old file writes the three weeks, "
+              f"nothing fetched ({[(o[:10], v) for o, v in st]})")
+    finally:
+        aaii.http_get_text = real
+        for v, val in saved.items():
+            if val is None:
+                os.environ.pop(v, None)
+            else:
+                os.environ[v] = val
+        os.environ[aaii.WEEKLY_DIR_VAR] = str(Path(_TMP) / "no_such_aaii_weekly_dir")
+        db.close()
+
+
 def main() -> int:
     # THE PARSERS ARE TESTED AS IF LIVE (the feed repair of 24 Oct 2026): MBA,
     # Farside and Apartment List are declared refused in source_registry.yaml, and
@@ -1772,7 +1843,7 @@ def main() -> int:
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g,
               group_h, group_i, group_j, group_k, group_l, group_m, group_o,
               group_p, group_n, group_q, group_r, group_s, group_t,
-              group_u):
+              group_u, group_w):
         try:
             g()
         except Exception as exc:                              # noqa: BLE001

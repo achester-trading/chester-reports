@@ -23,12 +23,24 @@ checklist:
   footer: "Rules only: no prices, no sizes, no orders."
 
 ledger:
-  # The operator's file, copied from the private Drive folder by the nightly
-  # sweep (scripts/rclone_sync.sh, pull_inbox_file dth1). Never read from the repo.
+  # The operator's file. Its one home is the private Drive folder chester-cards
+  # (D52, 1 Nov 2026), beside the chat-side ES cards; the nightly sweep copies
+  # chester-cards/dth1-manual-ledger.csv to this path (scripts/rclone_sync.sh,
+  # pull_inbox_path). Never read from the repo.
   path: "~/chester-data/inbox/dth1/dth1-manual-ledger.csv"
+  # THE CANONICAL HEADER (D52; documentation, and the gate's fixture), the
+  # cards' richer columns:
+  #   date, time_et, instrument, side, entry, stop, target, contracts, risk_usd,
+  #   exit, result_r, result_usd, status, rule_broken, notes
+  # The reader reads only date, result_r, rule_broken, status (and promoted where
+  # a column carries it). entry, stop, target, contracts, risk_usd, result_usd,
+  # notes, instrument and side are never read and never printed (the gate proves
+  # it with synthetic values in every column).
   # Columns are read by header name: lower-cased, non-alphanumerics as "_", and
-  # the first header that matches one of a field's names wins. A missing
-  # required field is named in the block, never guessed.
+  # the first header that matches one of a field's names wins. So either
+  # spelling works: "Date" / "date", "Result R" / "result_r", "Rule broken" /
+  # "rule_broken", "Status" / "status". A missing required field is named in the
+  # block, never guessed.
   columns:
     date: [date, trade_date, entry_date, session, day]
     result_r: [result_r, r_result, result_in_r, r_multiple, result]
@@ -36,7 +48,11 @@ ledger:
     status: [status, check, verify, verified]
     promoted: [promoted, promoted_to_book_c, promotion, book_c]
   required: [date, result_r, rule_broken]
-  # A row whose status says one of these, or whose result is blank, waits for
-  # the broker statement: counted and named, never filled or scored.
-  awaiting_words: [verify, pending, unverified, check]
+  # A row whose status says one of these, or whose result is blank or not a
+  # number ("verify", "FILL FROM STATEMENT"), waits for the broker statement:
+  # counted and named, never filled or scored.
+  awaiting_words: [verify, pending, unverified, check, fill from statement]
+  # A row whose status says one of these is a trade still open: excluded from
+  # the closed-trade aggregates and counted as "k open" (A92b).
+  open_words: [open]
   truthy: ["y", "yes", "true", "1", "x"]

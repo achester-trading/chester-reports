@@ -122,6 +122,8 @@ def read(path: Optional[str] = None, ending: Optional[dt.date] = None,
         return {"state": "missing_columns", "missing": missing}
     truthy = {str(t).lower() for t in lc.get("truthy") or []}
     waiting = {str(w).lower() for w in lc.get("awaiting_words") or []}
+    # A92b (D52): an open trade is counted apart, never scored as closed.
+    opened = {str(w).lower() for w in lc.get("open_words") or []}
 
     def cell(r: list, f: str) -> str:
         i = col.get(f)
@@ -129,9 +131,12 @@ def read(path: Optional[str] = None, ending: Optional[dt.date] = None,
 
     ending = ending or dt.date.today()
     start = ending - dt.timedelta(days=6)
-    done, awaiting, undated = [], 0, 0
+    done, awaiting, undated, open_n = [], 0, 0, 0
     for r in rows[1:]:
         if not any(x.strip() for x in r):
+            continue
+        if cell(r, "status").lower() in opened:
+            open_n += 1
             continue
         res = _r(cell(r, "result_r"))
         if res is None or cell(r, "status").lower() in waiting:
@@ -158,7 +163,7 @@ def read(path: Optional[str] = None, ending: Optional[dt.date] = None,
         "win_rate": (sum(1 for v in rs if v > 0) / n) if n else None,
         "largest_loss_r": min([v for v in rs if v < 0], default=None),
         "promotions": sum(1 for x in done if x[3]),
-        "awaiting": awaiting, "undated": undated,
+        "awaiting": awaiting, "undated": undated, "open": open_n,
         "promotion_column": col.get("promoted") is not None,
     }
 
@@ -187,6 +192,8 @@ def weekly_lines(agg: dict) -> list[str]:
                f"{_rr(agg['largest_loss_r']) if agg['largest_loss_r'] is not None else 'none'}; "
                f"promotions to Book C: "
                f"{agg['promotions'] if agg['promotion_column'] else 'not tracked (no column)'}."]
+    if agg.get("open"):
+        out.append(f"{agg['open']} open, not scored.")
     if agg.get("awaiting"):
         out.append(f"{agg['awaiting']} row(s) awaiting the statement.")
     if agg.get("undated"):
