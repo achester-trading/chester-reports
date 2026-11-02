@@ -739,7 +739,7 @@ Each entry carries, in this order:
 
 No entry has been posted yet.
 
-## Appendix B — Dated: Records from the signal-triage orders (as of 24 October 2026)
+## Appendix C — Dated: Records from the signal-triage orders (as of 24 October 2026)
 
 *Moved here from `docs/dated-appendix-queue.md` on 24 October 2026 by session A (A68). Each entry is dated in its heading, keeps its wording as queued, and names the batch or ruling it came from. It changes nothing in the paper's body and grants no right; a figure here is a dated record, not a series.* *These are dated records, not Appendix A's evidence-log entries: none was posted through the mechanism scan or to the narrative register, so none takes Appendix A's form.*
 

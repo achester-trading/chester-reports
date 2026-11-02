@@ -472,7 +472,7 @@ def group_e() -> None:
 
 def appendix_records() -> str:
     """Item 76's dated records: in the queue under APPENDIX_HEAD until A68 (24 Oct
-    2026) moved them into Disruptive Themes' dated Appendix B (SR-16's home)."""
+    2026) moved them into Disruptive Themes' dated Appendix C (SR-16's home; B110)."""
     q = appendix_queue_index.queue_text(REPO)
     if APPENDIX_HEAD in q:
         return q[q.find(APPENDIX_HEAD):]

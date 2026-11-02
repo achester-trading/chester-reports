@@ -16,13 +16,13 @@ Eight entries moved into their papers' dated appendices, each kept as queued wit
 | Entry (as queued) | Moved to | Placed by |
 |---|---|---|
 | The dated appendix line for the stock-bond flag (Batch 5 item 24) | The Rate and Liquidity Machine, Appendix B | the register entry it amends: SR-9's home |
-| For XII, as the order names it (Batch 5 item 23): both notes | Disruptive Themes, Appendix B | the order's numeral is not the library's XII; Factor I argues the thesis |
+| For XII, as the order names it (Batch 5 item 23): both notes | Disruptive Themes, Appendix C | the order's numeral is not the library's XII; Factor I argues the thesis |
 | For the Book A rule table: A-6 (Batch 5 item 24) | Base Rates, Appendix C, as row A-8 | A-6 and A-7 were taken first; rows are never renumbered |
 | The dated record of the 10-year and the real 10-year (Batch 14 item 64) | The Rate and Liquidity Machine, Appendix B | its subject (DGS10, DFII10) |
 | The 10-year at 8%, a forecast (Batch 14 item 70) | The Rate and Liquidity Machine, Appendix B | its subject (the 10-year attribution) |
 | For XV, Equities: A Structural Framework, its AI-rings section (Batch 14 item 63) | Equities, Appendix D | named by the queue; the AI-rings section's body is not edited |
 | For the positioning record (Batch 15 item 74) | Positioning and Flows, Appendix B | the paper that carries the positioning chapter |
-| For the AI-credit watch and SR-16: CDS levels and AI borrowing (Batch 15 item 76) | Disruptive Themes, Appendix B, marked unverified | the register entry it amends: SR-16's home |
+| For the AI-credit watch and SR-16: CDS levels and AI borrowing (Batch 15 item 76) | Disruptive Themes, Appendix C, marked unverified | the register entry it amends: SR-16's home |
 
 ## Open items: no home
 
