@@ -401,6 +401,7 @@ def group_g() -> None:
     try:
         fr.key = lambda: "fixture"
         fr.release_map = lambda refresh=False: {}
+        # THE GATE'S CLOCK (B106): reads today on purpose -- release dates written relative to today, so the window always holds them. Next attention: none.
         today = dt.date.fromisoformat(session.session_date())
         def fake(path, **kw):
             if path == "releases":

@@ -179,6 +179,7 @@ def group_b() -> None:
           f"WEO: each edition's instant is the later of its PUBLICATION_DATE and UPDATE_DATE "
           f"({cur['published']}, {oct_['published']})")
     rows = imf_weo.rows_from(cur, now="2026-10-11T12:00:00Z")
+    # THE GATE'S CLOCK (B106): reads today on purpose -- no projection past today is stored. Next attention: none (the fixture's rows end in 2025).
     today = session.session_date()
     check(rows and max(r["observed_at"] for r in rows) <= today
           and not any(r["observed_at"] > today for r in rows),
