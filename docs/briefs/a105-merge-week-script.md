@@ -503,6 +503,12 @@ states.
 **A106's run is recorded below.** Pushed after 22c (`80f6aca1`) and again with
 this script; see the line at the end of this section.
 
+- **CI queued, run 41522379720**, for `80f6aca1` (the merges through 22c). It
+  was in progress at the one read on 2 Nov 2026. The script commits that follow
+  it are docs only, and their runs may supersede it.
+- The next paste on this branch reads the result. The laptop's gates for the
+  three merges and both stack gates by group all passed (sections 2 and 4).
+
 **CI queued, run 41388944633**, for `a88f5dc9`: the merges through b109 plus this
 script. Read once on 2 Nov 2026.
 
