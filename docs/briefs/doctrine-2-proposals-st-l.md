@@ -35,3 +35,5 @@ The register's note, quoted: "Drawdown of a constant-duration fund is yield arit
 **Evidence.** SR-22's absorption ledger FAILS for the contrarian read (`docs/ledgers/sr-22-ledger-2026-10-18.md`: median 3-month 10-year change −2.0 bp, a fall in 51.8% of 1,034 auctions, against the rule's 60%), so the stress flag stays display only, and ABS_STRESS prints its firing base rate beside it.
 
 **Proposal.** Adopt the note as a reading rule: a price low in a constant-duration fund is read as a yield level, never as a level of its own.
+
+**Added by B89 (30 Oct 2026):** the Cboe terms check for the two live Cboe readers (D40), with its ruling options, is `docs/briefs/cboe-terms-check-2026-10.md`.
