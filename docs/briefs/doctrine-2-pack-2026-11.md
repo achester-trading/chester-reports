@@ -1,10 +1,11 @@
 # The Doctrine #2 preparation pack (7–8 November 2026)
 
 **Reading time.**
-- **Decision list:** about 11 minutes for the decision list (D2-1 to D2-72). It can be taken in one read.
-- **Supporting text:** about 21 minutes for Parts 1–7, the evidence behind the decisions.
-- **Whole pack:** about 68 minutes including the annexes. The annexes are read only for an item the sitting pulls.
-- **Basis:** 230 words a minute, 15,603 words in all, inside the two-hour sitting.
+- **Decision list:** about 17 minutes for the decision list (D2-1 to D2-89, 3,799 words). It can be taken in one read.
+- **Supporting text:** about 34 minutes for Parts 1–12 (7,762 words), the evidence behind the decisions.
+- **Whole pack:** about 91 minutes including the annexes. The annexes are read only for an item the sitting pulls.
+- **Basis:** 230 words a minute, 20,906 words in all by `wc -w`, inside the two-hour sitting.
+- **The B104 addition (1 Nov 2026):** Part 12, in the decision list and in the text, with its line in Part 11, adds 1,791 words (about 8 minutes).
 
 **What this is.** This is the pack for the second Doctrine sitting, refreshed with October's rulings (A67, 24 Oct 2026). It replaces the agenda of the 20 Oct edition (a52-doctrine-2-pack) and keeps every item of that edition that still applies (Part 8, with its full text in Annexes A and B). It gathers in one place everything October left "proposed", "session-set" or "to Doctrine #2".
 
@@ -24,6 +25,21 @@
 **Nothing here is ruled.** Every recommendation is a **rule-31 draft (for the operator's accept-all)**: a session's judgment draft that grants nothing until the operator rules on it. The Doctrine is not edited, and neither is any config.
 
 **Sources.** Every quoted value names its notes file, by path under `docs/briefs/` unless another path is given.
+
+### Part 12. Added on 1 Nov (B104, 1 Nov 2026)
+
+The decisions that arose on 1 Nov: the readable editions, the X layer under the Grok two-slot cap, the readers' findings, the MSTR/MSCI 1 Dec read and the Monthly's first-edition withholds. **Options only**, in Part 9's shape. Every row is a rule-31 draft that grants nothing, and B104 adds no recommendation. The evidence for each is in Part 12 below. The files named "on b102" are on `b102-readable-editions-register`, filed by B102 and B103.
+
+| # | Item | Source | To decide | Options | Note |
+|---|---|---|---|---|---|
+| D2-84 | The readable editions' contract | The 1 Nov order (`change-order-readable-editions-2026-11-01.md`, on b102), rulings D50–D56, "accept all"; the Master Guide's subsection "The readable editions" (on b102) | Whether to ratify the six-line contract as a standing rule of the reporting system, and the reading order (the Letter first on Sunday and the 1st) over §10.3 of the Reporting System paper | (a) ratify as written; (b) ratify, with the Letters' word budget made a configured target like the editions'; (c) hold until three Monthly Letters exist | The Reporting System paper's Appendix F (B103, on b102) records the reading order as superseding §10.3; the body keeps its text |
+| D2-85 | The X layer's cadence under the operator's Grok plan | The 1 Nov order, findings F1–F6 and D56 (with D57, proposed there); the register row "Grok X digest, evening (the operator's automation)", planned, blocked (`docs/master-guide/chat-tasks.yaml`, on b102) | The plan allows two automations, both taken by the 06:00 and 06:15 runs. The evening run (item 115) and a midday run need a third | (a) a plan change for a third slot: the evening run first, the midday run only if a fourth is cheap; (b) swap: the 06:15 equity-vol run becomes the evening run (the eqmacro attention ledger and the ES card's X read lose their morning input); (c) hold at two until item 50's decision point, and judge the pilot on the morning runs alone | The morning window (about 10:00 UTC the day before, up to the run) already covers the previous evening's after-hours posts. The evening run's value is same-day timing, not coverage (the B104 paste) |
+| D2-86 | The readers' findings as a standing loop | The contract's line 4; `docs/briefs/letter-findings.md` (on b102); A95 Part 6 and A103 | Whether "what a reader finds, the box fixes, then the prompt drops it" becomes a standing practice with a home (the findings file, read at each Audit). And whether the cross-table comparisons A103 adds become a named gate class ("consistency": one figure printed in two places must agree) | (a) standing, with the findings file as the Audit's input and the comparisons folded into the existing frame checks; (b) standing, with a new consistency gate; (c) one-off, closed when A95 and A103 merge | A95's paste already sends a comparison with no gate to "the Monthly's own consistency check … rather than a new gate" |
+| D2-87 | The MSTR/MSCI post-effective read | The register row "MSTR / MSCI event watch" (on b102); the 1 Nov order, F5 | The task's schedule covers November only, and its prompt stands any December run down. How the 1 Dec read happens | (a) a one-shot task for 1 Dec 07:10, with the December clause lifted for that date; (b) fold the read into the 2 Dec morning triage; (c) drop it, so the watch ends 30 Nov | The order's F5 drafted (a) for late November |
+| D2-88 | The ES cards and the Sunday map in the register | The register rows "ES day-trading card (DTH-1's manual edition)" and "ES Sunday map" (on b102); A92 (`a92-notes.md`, on `a92-dth1-box-pieces`) and the A92 addendum the order schedules (F3, D52, D54) | Whether the operator's private cards, read by nothing in the system, belong in Table 2 at all, and whether their Drive folder's archive copy (D54) is the right record | (a) keep the rows and the archive (as ruled); (b) keep the rows, no archive; (c) move the rows to a private note outside the repo | D50 and D54 are the rulings that option (a) restates |
+| D2-89 | The Monthly's first-edition withholds as an incident | A95's paste (`docs/pastes/A95.md`, on `a95-monthly-first-edition`; its notes are not yet pushed); the 1 Nov order, F4; the Reporting System paper's Appendix F.1 (B103, on b102) | Whether sixteen withheld paragraphs on the first stacked Monthly are logged as an incident under Part IX §9.8 of the Reporting System paper (a failure that reached production), with its lesson, or as the audit's expected behaviour on a first run | (a) an incident, with the lesson "the writer's data block must carry every scaled figure's display string and series name before the audit binds"; (b) not an incident: the audit worked as designed; (c) an incident only if the 1 Dec edition withholds more than three | Appendix F.1 records the run and A95's disposition, and says the audit held. It does not rule the question |
+
+**How Part 12 is taken.** D2-85 holds any X-layer build, and D2-86 holds Audit #5's agenda; Part 11 places them. D2-84, D2-87 and D2-88 each want their own ruling. D2-89 is a record, and can be taken with D2-83.
 
 ---
 
@@ -693,6 +709,43 @@ Not before 06:00 ET, after the Weekly's 05:00 run, which is the first edition wi
 | 8 | 5 | D2-29 to D2-31, the calendar, with Part 9's dated items | Closes the sitting |
 
 **Spare.** About 20 minutes across the two days, for an item the sitting pulls from the annexes.
+
+**Part 12 (D2-84 to D2-89)** is taken after Part 9, before the builds it releases: D2-85 before any X-layer build; D2-86 before Audit #5's agenda.
+
+## Part 12. The decisions of 1 Nov (B104, 1 Nov 2026)
+
+The evidence behind the six rows of the decision list's Part 12. Every citation is to a committed file; the files "on b102" are on `b102-readable-editions-register`. No prompt text, no figure from a Letter and no handle is quoted.
+
+- **D2-84, the contract.**
+  - **What exists:** the order (`docs/change-order-readable-editions-2026-11-01.md` (filed by B102, on `b102-readable-editions-register`)) records the readable editions, the Weekly Letter, the Monthly Letter, the Letters index, the ES cards and map and the X triage pushes, with its six-line contract in section 2.
+  - **What was accepted:** the operator accepted D50–D56 "as recommended" on 1 Nov at 12:11 ET. The filed order's status says the rulings record under `docs/briefs/` does not yet carry them.
+  - **Where the contract is written:** B102 wrote it into the Master Guide's Part 2 subsection "The readable editions", and B103 copied it into the Reporting System paper's Appendix F.2. There, the Letter-first reading order is recorded as superseding §10.3's Sunday and first-of-month lines, with the body unchanged.
+  - **What is open:** whether a chat-side layer's contract becomes a standing rule of the system, and whether the Letters' length becomes a configured target like the editions' (option (b)).
+- **D2-85, the X cadence.**
+  - **The two slots:** the register (`docs/master-guide/chat-tasks.yaml`, on b102) records two morning Grok digests, 06:00 (A) and 06:15 (B). It records that "the operator's Grok plan allows two automations". It carries the evening digest as planned and "blocked on 1 Nov", with the evening triage paused until its input exists.
+  - **What waits on a third slot:** the order's D56 holds the evening automation on a third slot, and a midday run (D57, proposed 1 Nov) "waits on the same slot".
+  - **Who reads the B digest:** the register's morning triage row names the ES card as a reader of the day's triage file. The ledger `x-attention-ledger-eqmacro.csv` is fed from the B digest, which is what option (b) would move to the evening.
+  - **What the evening run would add:** the B104 paste notes that the morning window already covers the previous evening's posts, so the evening run adds timing, not coverage.
+  - **Related:** finding F1 of the same order, the duplicate `chester-x-digest` folder, is the operator's Drive fix and not this decision.
+- **D2-86, the findings loop.**
+  - **The loop as ruled:** the contract's line 4 makes the Letters' known patterns a defect feed (D53).
+  - **The file:** `docs/briefs/letter-findings.md` (on b102) holds fourteen of them. M1–M7 belong to A95 Part 6, W1–W7 to A103, and all are open as of 1 Nov.
+  - **No new gate so far:** the A95 paste tells the session to add a comparison that no gate makes "to the Monthly's own consistency check (validate_monthly_frames or the stack's frame check …) rather than a new gate". That is option (a)'s shape. Option (b) would name the class and give it a gate of its own.
+  - **What the sitting decides:** whether the loop outlives A95 and A103.
+- **D2-87, the 1 Dec read.**
+  - **The gap:** the register row (on b102) reads "weekdays 2-30 Nov, 07:10 … the post-effective read on 1 Dec is not yet scheduled", and still says it retires "after the 1 Dec post-effective read".
+  - **What was drafted:** the order's F5 says the prompt "tells any December run to stand down", and drafts a one-shot for 1 Dec 07:10 "late November, not now".
+  - **The three ways:** the options are that one-shot, the 2 Dec triage, or ending the watch on 30 Nov.
+- **D2-88, the cards in the register.**
+  - **What the register says:** the rows (on b102) say the cards and the map are "the operator only: the system never reads a card", with rights "none: the operator's private tool".
+  - **What was ruled:** D52 put the DTH-1 ledger's single home in `chester-cards/` with the cards' columns. D54 has the nightly sweep copy `chester-cards/` into the inbox as an archive, "no reader", and the A92 addendum is to build that copy.
+  - **The box side today:** A92 (`docs/briefs/a92-notes.md`, on `a92-dth1-box-pieces`) reads a ledger at `~/chester-data/inbox/dth1/` through a sweep line of its own. That is the path F3 says must change before A92 merges.
+  - **What the sitting decides:** whether a private tool is recorded in Table 2 and archived by the box (as ruled), recorded only, or kept out of the repo.
+- **D2-89, the first edition's withholds.**
+  - **The run:** the A95 paste (on `a95-monthly-first-edition`) gives the run of 1 Nov: 48 body sections with 33 published and 15 withheld, and the executive summary's 13 paragraphs with 1 withheld. The Reporting System paper's Appendix F.1 (on b102) records it, with A95's disposition: false positives narrowed with must-pass fixtures, wrong drafts kept withheld and the writers' data blocks fixed, no check loosened.
+  - **The incident question:** Part IX §9.8 of that paper defines an incident as "a failure that reached production or nearly did". The question is whether a withheld paragraph, which is the audit doing what §5.3 says, is such a failure.
+  - **The lesson option (a) drafts** names the cause class the A95 commit `ba1d289b` fixed: scaled figures without their display string.
+  - **Option (c)** makes the 1 Dec edition the test.
 
 ## Annex A. The 20 Oct edition's items in full
 
