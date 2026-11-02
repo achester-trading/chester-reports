@@ -99,7 +99,16 @@ fundamentals:
   # nine is an IFRS filer (ifrs-full) or a bank (no inventory or cost of goods).
   # A field a filer does not tag prints "not stored" downstream, as Yahoo's
   # missing cells do; the first pull's summary names each (keys_without_rows).
-  gaps: []
+  # A104 (2 Nov 2026), from the first live dry run (39 of 40 keys with rows):
+  gaps:
+    - ticker: ORCL
+      field: cogs
+      reason: >-
+        Oracle tags no cost of revenue in us-gaap: neither
+        CostOfGoodsAndServicesSold nor CostOfRevenue appears in its company
+        facts, and its cost lines are its own. The only us-gaap candidate,
+        CostsAndExpenses, is total operating expenses, a different figure, so
+        it is not a fallback. edgar.fund_orcl_cogs is not stored.
 
 # A102: PAST EARNINGS DATES AND REPORTED EPS FROM EDGAR, events of type
 # 'earnings' under source 'sec_edgar', behind config/price_sources.yaml
