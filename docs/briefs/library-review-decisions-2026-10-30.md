@@ -18,21 +18,21 @@ Decision 3 is what remains of (5).
 
 ## Summary
 
-| # | Paper | Question (ten words) | Recommendation |
-|---|---|---|---|
-| 1 | XXVII | Length 24,647 against ~20,000: keep, move to companion, split? | Keep, as D30(4) ruled; cuts marked on review only |
-| 2 | XXVII | Does 17.4's proposed rule need rewording before the PR? | No; it stays "a proposal", ruled at Doctrine #3 (D30(2)) |
-| 3 | XXVII | Cite the missing 13 Sep order as pending, or wait? | Cite A70's record by name; merge XXVII after chain-8 lands |
-| 4 | Phase 3a | Foundations' numbering gaps: renumber, note, or cross-reference? | Leave, with one reader's-note sentence pointing to Appendix B |
-| 5 | Phase 3a | Companion appendix home: `companions/` folder or a gate exclusion? | Keep `docs/whitepapers/companions/`; no gate change |
-| 6 | Phase 3a | Two dated passages left in the bodies: move or keep? | Keep for now; a Phase 3b at the papers' next edition |
-| 7 | XXXI | The ten triggers' roll-up tiers: which rule assigns them? | Count fired mechanism families; CLEAR 0–1, WATCH 2, ALERT 3+ |
-| 8 | XXXI | The gap-patch's unrecorded inputs: reconstruct, or state the gap? | State the gap; the manual stays as written |
-| 9 | XXXII | The review calendar: spread across the year, or all-January? | Spread; corpus pass 16 Jan 2027; XXIX March, XXX July |
-| 10 | E&I | The five drawn figures: accept as drawn? | Accept; each foot line cites its formula and chapter |
-| 11 | XXX | Draw the four store figures from a box export first? | Yes: the export on Tue 3 Nov, drawn before XXX's PR |
-| 12 | XXIX | Clear the eight "(to verify)" marks before the PR? | Yes, by B94 against the named public sources |
-| — | all | The mechanical checklist (section 9) | Do at each PR; not a decision |
+| # | Paper | Question (ten words) | Recommendation | Status (B117, 2 Nov 2026) |
+|---|---|---|---|---|
+| 1 | XXVII | Length 24,647 against ~20,000: keep, move to companion, split? | Keep, as D30(4) ruled; cuts marked on review only | (iii) ruled by D30(4); nothing to build. Cuts are marked on review only |
+| 2 | XXVII | Does 17.4's proposed rule need rewording before the PR? | No; it stays "a proposal", ruled at Doctrine #3 (D30(2)) | (iii) ruled by D30(2); no change. 17.4 stays "a proposal" |
+| 3 | XXVII | Cite the missing 13 Sep order as pending, or wait? | Cite A70's record by name; merge XXVII after chain-8 lands | (i) **built** on `library-xxvii`, `26302feb`: B.7 in XXVII's dated Appendix B cites the amendment by name. The merge after chain-8 holds in B116's order |
+| 4 | Phase 3a | Foundations' numbering gaps: renumber, note, or cross-reference? | Leave, with one reader's-note sentence pointing to Appendix B | (iv) **the operator**: the sentence goes in Foundations' reader's note, which is body text, and B117 allows no body edit. Next step: the operator's go to add, at phase 3a's PR, "Moved sections keep their numbers and are in Appendix B." |
+| 5 | Phase 3a | Companion appendix home: `companions/` folder or a gate exclusion? | Keep `docs/whitepapers/companions/`; no gate change | (iii) no change: `docs/whitepapers/companions/` stays, and check_library passes |
+| 6 | Phase 3a | Two dated passages left in the bodies: move or keep? | Keep for now; a Phase 3b at the papers' next edition | (iii) no change now: a Phase 3b at the papers' next edition |
+| 7 | XXXI | The ten triggers' roll-up tiers: which rule assigns them? | Count fired mechanism families; CLEAR 0–1, WATCH 2, ALERT 3+ | (iv) **Doctrine #2** (7–8 Nov): the tier rule is ruled there. Next step: a writing paste on `library-xxxi` records the ruled rule at its PR |
+| 8 | XXXI | The gap-patch's unrecorded inputs: reconstruct, or state the gap? | State the gap; the manual stays as written | (iii) no change: the gap is stated in the notes, the manual stays as written, and the build declares the inputs |
+| 9 | XXXII | The review calendar: spread across the year, or all-January? | Spread; corpus pass 16 Jan 2027; XXIX March, XXX July | (i) **built** on `library-xxxii`, `197883df`: the register's rows XXIX (review_month 3) and XXX (review_month 7) |
+| 10 | E&I | The five drawn figures: accept as drawn? | Accept; each foot line cites its formula and chapter | (iii) accepted as drawn; no change |
+| 11 | XXX | Draw the four store figures from a box export first? | Yes: the export on Tue 3 Nov, drawn before XXX's PR | (ii) **a box step**: the read-only export on Tue 3 Nov after 17:20 ET (section 11's command, quoted in `docs/briefs/b116-library-script.md`), then a drawing paste on `library-xxx` before its PR |
+| 12 | XXIX | Clear the eight "(to verify)" marks before the PR? | Yes, by B94 against the named public sources | (iii) **done** by B94 on `library-xxix`, `c148862b` |
+| — | all | The mechanical checklist (section 9) | Do at each PR; not a decision | not a decision: done at each PR (B116's script) |
 
 ---
 
