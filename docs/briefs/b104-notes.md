@@ -68,3 +68,7 @@ block's own edit.
   "How to take it" quotation of the 24 Oct ruling, and in Part 6's quotation of the
   attention budget. Both lie outside this paste's shared files. Under D38 they are a
   one-line follow-up each.
+
+## Correction (B105, 1 Nov 2026)
+
+B104 placed the decision list's Part 12 table above the "## The decision list" heading, in the pack's header, because its insertion point matched the list's own "### Part 1. Values" heading. B105 moved the table to the end of the decision list, after Part 9, and recounted. The decision list (D2-1 to D2-90, Part 12 now inside it) is 4,898 words, about 21 minutes. B104's 3,799 had left Part 12 out. The pack's total by `wc -w` is unaffected by the move: 21,270 with D2-90.
