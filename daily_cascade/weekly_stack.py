@@ -1505,10 +1505,21 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
                                  "state": s.get("state"),
                                  "status": (status.get(str(s.get("id")))
                                             or ("long-term theme", ""))[0],
+                                 # A103 (W5, the Weekly Letter of w/e 30 Oct):
+                                 # the stories table's own count, as its cell
+                                 # prints it, and the register's to-date
+                                 # evidence under its own name. The commentary
+                                 # quoted the register's evidence as the week's
+                                 # counts beside a table that printed clusters.
                                  "clusters": (week.get(str(s.get("name"))) or {})
                                  .get("clusters"),
-                                 "evidence_for": s.get("evidence_for"),
-                                 "evidence_against": s.get("evidence_against"),
+                                 "this_week_as_the_table_prints_it":
+                                     analytics.count_text(
+                                         (week.get(str(s.get("name"))) or {})
+                                         .get("clusters") or {"for": 0, "against": 0}),
+                                 "register_evidence_to_date_for": s.get("evidence_for"),
+                                 "register_evidence_to_date_against":
+                                     s.get("evidence_against"),
                                  "last_changed": s.get("last_changed")}
                                 for s in stories]}}
     if voices is not None:

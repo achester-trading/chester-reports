@@ -473,6 +473,51 @@ _POLICY = re.compile(r"\b(hike[sd]?|hiking|cut|cuts|cutting|hold|holds|holding)\
                      re.I)
 
 
+# A103 (W5, the Weekly Letter of w/e 30 Oct): THE NARRATIVES' COUNTS ARE THE
+# STORIES TABLE'S. The commentary wrote counts of evidence for and against that
+# the stories table, which counts the week by event cluster, did not print: it
+# had read the register's to-date evidence as the week's. A "<n> for ... <m>
+# against" pair in the commentary must be a story's pair in the table -- or,
+# where the sentence says "to date", "in all" or "the register", the register's
+# to-date evidence -- and a pair that is neither is withheld, naming the table's.
+_N_WORDS = {w: i for i, w in enumerate(("no", "one", "two", "three", "four", "five",
+                                        "six", "seven", "eight", "nine", "ten",
+                                        "eleven", "twelve"))}
+_N_WORDS["none"] = 0
+_NUM = r"(\d+|" + "|".join(sorted(_N_WORDS, key=len, reverse=True)) + r")"
+_PAIR = re.compile(r"\b" + _NUM + r"\s+(?:[a-z-]+\s+){0,4}?for\b[^.;]{0,30}?\b"
+                   + _NUM + r"\s+(?:[a-z-]+\s+){0,3}?against\b", re.I)
+_TO_DATE = re.compile(r"\b(?:to date|in all|all told|the register|cumulative|since "
+                      r"it opened)\b", re.I)
+
+
+def _n(tok: str) -> int:
+    return int(tok) if tok.isdigit() else _N_WORDS[tok.lower()]
+
+
+def narrative_count_faults(text: str, ed: dict) -> list[str]:
+    sec = next((s for s in ed.get("sections") or [] if s.get("id") == "narratives"), {})
+    stories = (sec.get("data") or {}).get("stories") or []
+    table = {(int((s.get("clusters") or {}).get("for") or 0),
+              int((s.get("clusters") or {}).get("against") or 0)) for s in stories}
+    reg = {(int(s.get("register_evidence_to_date_for") or 0),
+            int(s.get("register_evidence_to_date_against") or 0)) for s in stories}
+    if not stories:
+        return []
+    out = []
+    for s in _sentences(text):
+        for m in _PAIR.finditer(s):
+            pair = (_n(m.group(1)), _n(m.group(2)))
+            ok = (reg if _TO_DATE.search(s) else table)
+            if pair not in ok:
+                out.append(f"counts {pair[0]} for and {pair[1]} against, which the "
+                           f"stories table does not print: '{s.strip()[:90]}' -- copy "
+                           f"each story's 'this week' count from the table "
+                           f"(this_week_as_the_table_prints_it), or say 'to date' "
+                           f"for the register's evidence")
+    return out
+
+
 def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
     """T2 ruling 2: a sentence with a policy word (hike, cut, hold) may cite only
     the fomc_decision item or the fed-funds path. A policy word in a sentence that
@@ -1164,6 +1209,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                       # session's flag is True. The close has no scored session
                       # at prose time, so it carries none.
                       + (dealer_flag_faults(text, ed) if sid == "mechanics" else [])
+                      # A103 (W5): the narratives' counts are the stories table's.
+                      + (narrative_count_faults(text, ed) if sid == "narratives"
+                         else [])
                       + tail_faults(text, stored_tails(ed))
                       # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
                       # Takeaway, last, carrying no figure.
