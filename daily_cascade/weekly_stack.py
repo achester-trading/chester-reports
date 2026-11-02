@@ -434,7 +434,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
                 screen: Optional[dict] = None,
                 dates: Optional[dict] = None, st=None,
-                now: Optional[str] = None) -> dict:
+                now: Optional[str] = None, then: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
@@ -484,7 +484,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
     # market disagreements and the week's openings.
-    gaps = wsec.gap_table(opened, history or {}, dates)
+    gaps = wsec.gap_table(opened, history or {}, dates, then=then)   # A103 (W4)
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
@@ -2134,7 +2134,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "mechanics": mech,
             "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
-                                  st=st, now=now),
+                                  st=st, now=now, then=then),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
