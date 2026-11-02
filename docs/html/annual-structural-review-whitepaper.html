@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="source-sha256" content="aaa8429fb29e861f620c0f806191667be8e7727ecfe833341161505572ed94b0">
+<title>The Annual Structural Review</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>The Annual Structural Review</h1>
+<h2>How Every Paper in the Library Is Re-examined Once a Year, and What Makes the Review a Mechanism Rather Than an Intention</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XXXII</strong> — System shelf, the protocol for the whole library, per the library guide, which is canonical for numerals; cross-references in this paper are by name
+<strong>Version:</strong> 1.0 — 24 October 2026
+<strong>Status:</strong> Draft 1, for the operator's review. The protocol, its questionnaire, its calendar, the standing register the library gate reads, and the gate check. No paper has yet been reviewed under it.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-what-a-structural-review-asks">Part I — What a Structural Review Asks</a></li><li><a href="#s3-part-ii-the-four-instruments">Part II — The Four Instruments</a></li><li><a href="#s4-part-iii-the-questionnaire">Part III — The Questionnaire</a></li><li><a href="#s5-part-iv-the-calendar">Part IV — The Calendar</a></li><li><a href="#s6-part-v-the-standing-register">Part V — The Standing Register</a></li><li><a href="#s7-part-vi-the-gate">Part VI — The Gate</a></li><li><a href="#s8-part-vii-the-log">Part VII — The Log</a></li><li><a href="#s9-part-viii-a-review-worked-through">Part VIII — A Review, Worked Through</a></li><li><a href="#s10-appendix-a-dated-the-register-at-seeding-as-of-24-october-20">Appendix A — Dated: The Register at Seeding (as of 24 October 2026)</a></li><li><a href="#s11-appendix-b-assumptions-and-falsifiers">Appendix B — Assumptions and Falsifiers</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>The papers in this library are written to be timeless. Their mechanisms are meant to hold for years: what a credit spread prices, why dealers hedge the way they do, how a debt cycle turns. But the plumbing changes, the participants change, the relationships the papers rely on drift, and the technology that decides who provides liquidity changes fastest of all. A library that is never re-examined teaches its reader the market of the year it was written.</p>
+<p>Before this protocol, the library's review was an intention: a "next edition" note in three papers and a mutation scan in one. Audit 2 proposed turning it into a mechanism, with four instruments, a schedule, a log, tripwires and a gate, and the operator approved the roster that reserved this numeral for it on 7 September 2026. This paper is that mechanism, written as a protocol. It says what a structural review asks of a paper, what the questionnaire is, when each paper is reviewed, what the standing register holds and how the gate reads it, and what the review is not.</p>
+<p>Its rule of thumb is the audit's: <em>the absence of an edit is a recorded decision, not a default.</em> A paper that comes through the review with every mechanism holding gets a one-line log entry and no change. That line is the point.</p>
+<p><strong>Prerequisites.</strong> The library guide, for the roster and each paper's shelf; <em>Evidence and Inference</em>, for what it means to re-verify an empirical claim; and Audit 2's Part 4 standards, which every content paper is written to.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-what-a-structural-review-asks">
+      <summary class="section-head">
+        <span class="section-title">Part I — What a Structural Review Asks</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>1. Four questions of every paper</h3>
+<p>A structural review asks four questions of a paper, in this order, and records an answer to each.</p>
+<p><strong>Does its mechanism still hold?</strong> A paper's timeless body rests on mechanisms: causal claims about why markets behave as they do. The review asks of each whether anything in the year contradicts it. A mechanism is not falsified by a bad year for the trades it implies. It is falsified when the cause it names stops producing the effect, or when a new cause produces the same effect in a way the paper cannot accommodate. The answer is recorded per mechanism: holding, strained, or broken.</p>
+<p><strong>Are its empirical claims still true?</strong> Every empirical claim a paper makes carries its sample period and its last-verified date, under the house presentation standard. The review re-verifies each one on the most recent window against the sample it was measured in, and records the result as <em>holding</em>, <em>weakening</em>, <em>broken</em> or <em>re-attached</em>. A broken claim is the review's first agenda item, because it is where a paper is now teaching something false.</p>
+<p><strong>Is its dated appendix fresh?</strong> Every level, probability or "today" read lives in a dated appendix with an as-of date. The review refreshes each figure from the store, so that the appendix carries this year's read and the body is untouched.</p>
+<p><strong>Are its tactical applications still true, by horizon?</strong> Each content paper closes with tactical applications across the seven horizons: what is tradeable, the edge, who is on the other side and why, why competition has not removed it, what would end it, the expression, the book and the report section. The review asks of each horizon whether the edge still exists and whether its counterparty is still there. An edge whose counterparty has left is gone, however good the mechanism.</p>
+<p>The review ends with one decision per section: <strong>reaffirm</strong>, <strong>amend</strong>, <strong>rewrite</strong> or <strong>retire</strong>, each with its reason. A section reaffirmed is unchanged. One amended changes in place, with the masthead's version bumped. One to be rewritten is queued as a writing task. One retired is moved to the archive.</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Unit</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Does the mechanism hold?</td>
+<td>Each mechanism in the body</td>
+<td>Holding, strained, broken</td>
+</tr>
+<tr>
+<td>Are the empirical claims true?</td>
+<td>Each claim with its sample and date</td>
+<td>Holding, weakening, broken, re-attached</td>
+</tr>
+<tr>
+<td>Is the dated appendix fresh?</td>
+<td>Each dated figure</td>
+<td>Refreshed from the store, with its new as-of</td>
+</tr>
+<tr>
+<td>Are the tactical applications true?</td>
+<td>Each horizon</td>
+<td>Edge present or gone; counterparty present or gone</td>
+</tr>
+<tr>
+<td>The decision</td>
+<td>Each section</td>
+<td>Reaffirm, amend, rewrite, retire</td>
+</tr>
+</tbody>
+</table>
+<h3>2. What the review is not</h3>
+<p>It is <strong>not a re-forecast</strong>. The appendices carry the year's read. The body changes only when a mechanism or an empirical claim has been shown to have changed, never because the year's market was different from the last.</p>
+<p>It is <strong>not a rewrite on taste</strong>. A paper whose prose has aged but whose mechanisms hold is reaffirmed, not polished. Style is the writing sessions' business, not the review's.</p>
+<p>It is <strong>not a decision about the books</strong>. The review may find that a paper's tactical application at a horizon is gone. That finding goes to the Doctrine monthly, which decides what the books do about it, under the change ladder. The review informs a rule; it never changes one.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-the-four-instruments">
+      <summary class="section-head">
+        <span class="section-title">Part II — The Four Instruments</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p>The review reads four instruments. The first is written once per paper and maintained; the second and third are computed; the fourth is a session's written answers.</p>
+<h3>3. Instrument 1: the Assumptions and Falsifiers appendix</h3>
+<p>Every content paper carries an Assumptions and Falsifiers appendix in a fixed format, and it is what the review reads. Without it, the review is an essay. The appendix lists:
+- <strong>(a)</strong> the mechanisms the paper treats as durable;
+- <strong>(b)</strong> every empirical claim it relies on, with the sample period, the regime it was measured in and the date last verified;
+- <strong>(c)</strong> for each, the falsifier: the observation that would mean the section is wrong;
+- <strong>(d)</strong> the items from the standing register of what could change (Part V) that touch this paper;
+- <strong>(e)</strong> an inventory of every dated figure in the paper's appendices, with the stored series it can be recomputed from.</p>
+<p>Section (b) is the one the gate is meant to police. Audit 2 specifies that the library gate fails when a paper's (b) is missing. On 24 October 2026 two of the roster's papers carried the appendix at all, so the failing check is adopted in a form that binds new and reviewed papers and lists the rest (section 15). Until its review, an older paper without the appendix is reviewed by its review session reading the body for its claims, and the first output of that review is the appendix.</p>
+<h3>4. Instrument 2: the dated-figure recomputation</h3>
+<p>Every figure in a paper's dated appendices is recomputed annually from the point-in-time store, as of the review date, stored as an observation, and compared with the published value. A move beyond a stated tolerance is flagged for the review session. <em>Base Rates</em> already specifies this for its own tables; the protocol makes it the rule for every appendix. It is a computed step, not a session, and it is specified as a build target the review runs before its sessions. It is not built yet. Until it is, the review session refreshes the appendix by hand from the store, and says so in the log.</p>
+<h3>5. Instrument 3: the relationship health check</h3>
+<p>For each empirical claim in a paper's section (b), a rolling test on the most recent window against the sample the claim was measured in. Does credit still lead equities, and by how long? Does curve inversion still precede recession? Has the gold–real-rates relationship re-attached or stayed broken? Does the gap between implied and realised volatility still carry its premium? Does the closing auction's imbalance still predict the next open? Each test returns <em>holding</em>, <em>weakening</em>, <em>broken</em> or <em>re-attached</em>, with its numbers. Where the system already grades a claim, as the calibration ledgers grade proposed signals, the health check reads the ledger rather than re-testing. It is semi-automated: the tests are code, and the review session reads them.</p>
+<h3>6. Instrument 4: the structural scan</h3>
+<p>A session answers a fixed questionnaire in writing, once a year for the corpus and once for each paper. Its questions are in Part III.</p>
+<table>
+<thead>
+<tr>
+<th>Instrument</th>
+<th>Kind</th>
+<th>Built?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Assumptions and Falsifiers appendix</td>
+<td>Written per paper, maintained</td>
+<td>In two papers</td>
+</tr>
+<tr>
+<td>2. Dated-figure recomputation</td>
+<td>Computed, before the sessions</td>
+<td>Specified, not built</td>
+</tr>
+<tr>
+<td>3. Relationship health check</td>
+<td>Semi-automated tests</td>
+<td>Specified, not built; the calibration ledgers serve where they exist</td>
+</tr>
+<tr>
+<td>4. Structural scan</td>
+<td>A session, a questionnaire</td>
+<td>This paper</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-the-questionnaire">
+      <summary class="section-head">
+        <span class="section-title">Part III — The Questionnaire</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>7. The adversarial questions</h3>
+<p>The scan opens with ten adversarial questions, asked of the corpus and then of each paper. They are meant to be uncomfortable, because the questions a library never asks are the ones its reader pays for.</p>
+<ol>
+<li>What if the prevailing explanation is wrong?</li>
+<li>What if a relationship thought stable stops working?</li>
+<li>What if a major participant changes its behaviour?</li>
+<li>What if technology changes who provides liquidity or information?</li>
+<li>What if a currently insignificant asset class becomes systemic?</li>
+<li>What if the next crisis resembles none we study?</li>
+<li>What if a source of alpha disappears?</li>
+<li>Where might new alpha emerge?</li>
+<li>What is too small to notice today?</li>
+<li>What does the corpus assume only because today's system makes it look natural?</li>
+</ol>
+<p>Each answer is a paragraph, and an answer of "nothing" must say why. The last question is the hardest. Every library assumes the market its first papers described, and the assumptions that look most natural are the ones no review would think to question.</p>
+<h3>8. What are we not thinking about</h3>
+<p>The second pass is the "what are we not thinking about" pass. Three forced inputs keep it from becoming an exercise in inspiration.</p>
+<p><strong>The mutation scan.</strong> The Twenty-Five's ten mutations beyond its listed tails become a living list, re-run against the year's events, with each mutation promoted to a listed tail, kept, or retired.</p>
+<p><strong>The size scan.</strong> Any market, structure or participant class that crossed a stated threshold in the year is a candidate subject: a notional, a share of volume or a share of ownership. A market that was too small to matter last year and is not this year is the clearest kind of thing a library misses.</p>
+<p><strong>The register's own anomalies.</strong> Trades that worked or failed for reasons no paper explains are the library's most honest gap detector, and the decision register records them. The review reads the year's graded decisions for outcomes the papers cannot account for.</p>
+<h3>9. The per-paper record</h3>
+<p>For each paper the scan records, in the review log:
+- each mechanism's word (holding, strained, broken);
+- each empirical claim's word from the health check (holding, weakening, broken, re-attached);
+- the dated appendix refreshed, with the figures that moved past tolerance;
+- each horizon's tactical application, present or gone;
+- the answers to the questions that touch the paper;
+- the standing-register items that touch it, and whether any tripwire crossed;
+- the decision per section, with its reason;
+- the version the paper leaves at, and the date of the next review.</p>
+<p>The masthead owns the version, and the guide copies it. A review that changes nothing still records the review date, so the clock restarts.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-the-calendar">
+      <summary class="section-head">
+        <span class="section-title">Part IV — The Calendar</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>10. January for the corpus; the papers across the year</h3>
+<p>Audit 2 scheduled the whole review in January. This protocol keeps January for the corpus and spreads the papers across the year, for two reasons. A review of thirty papers in one month would be thirty shallow reviews, because the attention budget allows one sitting of two hours a week, and three or four papers fit a sitting. And a library reviewed all at once ages all at once; one reviewed across the year always has a part that is fresh.</p>
+<p><strong>January: the corpus pass.</strong> The dated-figure recomputation and the health check run for every paper. The corpus questionnaire is answered. The papers are ranked by how many broken or weakening claims each carries, and a paper with a broken claim is pulled forward into the month after January, whatever its scheduled month.</p>
+<p><strong>February to December: the papers.</strong> Two or three papers a month, grouped so that papers which cite each other are reviewed together. Each paper's month is its <code>review_month</code> in the standing register.</p>
+<table>
+<thead>
+<tr>
+<th>Month</th>
+<th>Papers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>January</td>
+<td>The corpus pass: Instruments 2 and 3 for every paper; the corpus questionnaire; the ranking</td>
+</tr>
+<tr>
+<td>February</td>
+<td>Tops and Bottoms, Base Rates, Evidence and Inference</td>
+</tr>
+<tr>
+<td>March</td>
+<td>The Monthly manual, Rates and Liquidity, Credit</td>
+</tr>
+<tr>
+<td>April</td>
+<td>Currencies, Energy, Metals</td>
+</tr>
+<tr>
+<td>May</td>
+<td>Digital Assets, International Equities, Emerging Markets</td>
+</tr>
+<tr>
+<td>June</td>
+<td>Equities, Positioning and Flows, Earnings</td>
+</tr>
+<tr>
+<td>July</td>
+<td>Volatility, the Dealer's Hand, Options as Expression</td>
+</tr>
+<tr>
+<td>August</td>
+<td>The Daily Cascade, Technical Indicators, Price, Time, and Edge</td>
+</tr>
+<tr>
+<td>September</td>
+<td>Disruptive Themes, the Twenty-Five, and Debt Cycles when it joins the roster</td>
+</tr>
+<tr>
+<td>October</td>
+<td>Portfolio Construction, the Operating Doctrine, the Systematic Book</td>
+</tr>
+<tr>
+<td>November</td>
+<td>The Reporting System, and the T&amp;B Manual when it joins</td>
+</tr>
+<tr>
+<td>December</td>
+<td>This protocol; spare capacity for papers pulled forward</td>
+</tr>
+</tbody>
+</table>
+<p>The first cycle runs in 2027. The calendar is set so that no paper on the roster today passes thirteen months without a review in the first cycle. The oldest paper, Tops and Bottoms (May 2026), falls in February.</p>
+<h3>11. Off-cycle: the tripwires</h3>
+<p>Any item in the standing register whose indicator crosses its threshold triggers the review of the papers it touches, within the month. The Doctrine's rule that changes are made only at the monthly session is preserved: the tripwire opens the question, and the monthly session decides. A tripwire review covers only the sections the register item touches, and records itself in the log like any other.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s6-part-v-the-standing-register">
+      <summary class="section-head">
+        <span class="section-title">Part V — The Standing Register</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>12. One file, read by the gate</h3>
+<p>The standing register is one file, <code>docs/reading/structural-review-register.yaml</code>, and the library gate reads it. It holds two lists.</p>
+<p><strong>The papers.</strong> One row per paper on the roster: its numeral and file, the version and its date as the guide and masthead carry them, the date of its last structural review (empty while it has never had one), the month of its annual review, its status, and where its last review's log lives. The file was seeded on 24 October 2026 from the guide's at-a-glance rows and each paper's masthead. Every paper's status is "never reviewed", because no review has been held under this protocol. Each row is written on one line, so the gate can read it without a parser.</p>
+<p><strong>The changes.</strong> Audit 2's table of what could change, each row naming the change, the papers it touches and a measurable tripwire, with a status word: <em>watching</em> (no measurement stored yet), <em>quiet</em>, <em>near</em> or <em>crossed</em>. The first version is the audit's fifteen rows, from AI changing research and agents trading, through tokenisation and private markets, to entirely new asset classes. Every row is "watching" on 24 October 2026, because no tripwire's indicator is yet stored and measured. Turning each tripwire into a stored series is work for the review's first January.</p>
+<p>The register is the library's answer to the warning not to let the existing papers define the boundaries of what is studied. It lists what lies outside them, reviewed on a schedule, with a rule for when something outside becomes a subject.</p>
+<h3>13. Who writes it</h3>
+<p>A review session writes the register when it reviews a paper: the review date, the status and the log. A writing session never does. A new version of a paper moves the row's version and version date, through the guide's own update. It does not move the review date, because a new version is not a review. The register is otherwise edited only by a ruling.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Written by</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>version, version_date</td>
+<td>The session that publishes a new version</td>
+<td>With the masthead and the guide row</td>
+</tr>
+<tr>
+<td>last_reviewed, status, log</td>
+<td>The review session</td>
+<td>At the review</td>
+</tr>
+<tr>
+<td>review_month</td>
+<td>A ruling</td>
+<td>When the calendar changes</td>
+</tr>
+<tr>
+<td>changes[].status</td>
+<td>The review session</td>
+<td>At the January pass, or on a tripwire</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s7-part-vi-the-gate">
+      <summary class="section-head">
+        <span class="section-title">Part VI — The Gate</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>14. What the gate checks</h3>
+<p>The library gate gains one check, the fifteenth, which reads the register on every run:
+- a paper on the roster with no row in the register is a <strong>warning</strong>;
+- a paper whose review clock has passed <strong>thirteen months</strong> is a <strong>warning</strong>. The clock runs from the last review, or from the version date while the paper has never been reviewed;
+- a register row naming a paper the roster does not have is a <strong>warning</strong>.</p>
+<p>These are the warnings Audit 2 specifies: "library-check warns when any paper's last-reviewed date is more than thirteen months old". They are warnings, not failures, because a late review is a debt to be paid, not a broken library.</p>
+<h3>15. The appendix rule</h3>
+<p>Audit 2 also specifies that the gate <strong>fails</strong> when a paper's Assumptions and Falsifiers section (b) is missing. The rule is adopted (decision 52, ruled 25 October 2026), in a form that does not fail the library for a debt it has known about since September. A paper with no Assumptions and Falsifiers appendix fails the gate if its first version is dated on or after 26 October 2026, or if the standing register shows it reviewed at least once. Every other paper without the appendix is listed in one warning, and its first review pays the debt. The first version date is the earliest date on the masthead's Version line, or the register's version date if earlier. The check reads the appendix's heading rather than section (b) alone, because the papers that carry the appendix label its sections differently. A fixture pair holds the rule: a new paper without the appendix fails, an old one warns.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Effect</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A roster paper has a register row</td>
+<td>Warning if not</td>
+<td>Adopted (check 15)</td>
+</tr>
+<tr>
+<td>A paper reviewed within thirteen months</td>
+<td>Warning if not</td>
+<td>Adopted (check 15)</td>
+</tr>
+<tr>
+<td>A register row names a roster paper</td>
+<td>Warning if not</td>
+<td>Adopted (check 15)</td>
+</tr>
+<tr>
+<td>A paper's Assumptions and Falsifiers appendix exists</td>
+<td>Failure if first dated on or after 26 Oct 2026, or once reviewed; otherwise one warning listing the papers</td>
+<td>Adopted (check 15, decision 52)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s8-part-vii-the-log">
+      <summary class="section-head">
+        <span class="section-title">Part VII — The Log</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>16. One file per review</h3>
+<p>Each review writes a log, one file per paper per review, in the library's review folder, holding the per-paper record of Part III. The corpus pass writes one log of its own, with the questionnaire's answers, the mutation, size and anomaly scans, and the ranking. A tripwire review writes a log naming its tripwire. The register's <code>log</code> field points at the latest.</p>
+<p>The log is the review's only product apart from the edits it decides, and it is the thing a reader consults to know whether a paper's claims were checked this year, by whom and with what result. A paper whose log says every claim held and nothing changed has been reviewed as surely as one rewritten.</p>
+<table>
+<thead>
+<tr>
+<th>Log</th>
+<th>Written</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The corpus log</td>
+<td>Each January</td>
+<td>The questionnaire's corpus answers; the three scans; the ranking</td>
+</tr>
+<tr>
+<td>A paper's log</td>
+<td>In its review month</td>
+<td>The per-paper record; the decision per section</td>
+</tr>
+<tr>
+<td>A tripwire log</td>
+<td>Within the month of a crossing</td>
+<td>The tripwire, the sections touched, the decision</td>
+</tr>
+</tbody>
+</table>
+      </div>
+    </details>
+
+    <details class="section" id="s9-part-viii-a-review-worked-through">
+      <summary class="section-head">
+        <span class="section-title">Part VIII — A Review, Worked Through</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>17. One paper, one month</h3>
+<p>What follows is how a review of one paper runs, using <em>Credit</em> in its March slot as the example. It is illustrative: it describes the steps and the kinds of finding, not a result, because no review has been held.</p>
+<p><strong>Before the session.</strong> The January pass has already run <em>Credit</em>'s dated figures through the recomputation and its claims through the health check. The session opens with three things in hand: the paper's Assumptions and Falsifiers appendix; the recomputation's list of appendix figures that moved past tolerance; and the health check's word for each claim in section (b). Suppose the health check reads one claim as <em>weakening</em>: that a spread's percentile regime still dates the default cycle the way it did before private credit grew.</p>
+<p><strong>The mechanisms.</strong> The session reads the paper's durable mechanisms (what a spread prices, the lending-standards cycle, the credit lead over equities) against the year. None is contradicted by the year's events, so each is marked <em>holding</em>. One is marked <em>strained</em>: the private-credit growth the standing register tracks under its private-markets item has moved part of the default cycle off the public market, where the paper's indicators cannot see it. Strained is not broken. It is a finding the decision must answer.</p>
+<p><strong>The claims.</strong> The weakening claim is examined against its sample. It was measured before private credit was large, so the regime it was measured in is not today's. The finding is recorded in the paper's words, with its numbers from the health check, and the falsifier in section (c) is checked: has the observation that would mean the section is wrong occurred? Suppose it has not, yet. The claim stays, with its weakening recorded and its last-verified date moved.</p>
+<p><strong>The appendix.</strong> Every dated figure is refreshed from the store. Two moved past tolerance; each is replaced with its new value and as-of date. The body is untouched.</p>
+<p><strong>The tactical applications.</strong> For each of the seven horizons, the session asks whether the edge and its counterparty remain. Suppose the months horizon's edge depends on a forced seller who still exists, and the days horizon's on a liquidity provider whose share has fallen. The first is marked <em>present</em>; the second is marked <em>present, counterparty thinning</em>, and goes to the Doctrine monthly as a finding, not a change.</p>
+<p><strong>The questionnaire.</strong> Of the ten adversarial questions, three touch the paper most. What if a relationship thought stable stops working (the weakening claim)? What if a currently insignificant asset class becomes systemic (private credit's share)? What does the paper assume only because today's system makes it look natural (that defaults are observable on the public market)? Each gets a paragraph.</p>
+<p><strong>The decision.</strong> Section by section: most are <em>reaffirmed</em>. The section on the default cycle is <em>amended</em>, with a paragraph naming the private-credit channel and pointing to the private-markets register item. The masthead's version moves from 1.0 to 1.1, and the guide copies it. Nothing is rewritten or retired.</p>
+<p><strong>The record.</strong> The log is written, the register row gains its review date, status "reviewed: amended" and the log's path, and the next review falls in the following March. The private-markets item's status moves from <em>watching</em> to <em>near</em>, so the January pass measures it first.</p>
+<p>The whole review is one sitting of under two hours, inside the attention budget, because the computation was done before the session and the questionnaire tells the session what to ask. That is what makes the review a mechanism: the expensive part runs without the operator, and the operator's two hours go on the judgments only a reader can make.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s10-appendix-a-dated-the-register-at-seeding-as-of-24-october-20">
+      <summary class="section-head">
+        <span class="section-title">Appendix A — Dated: The Register at Seeding (as of 24 October 2026)</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p><em>From <code>docs/reading/structural-review-register.yaml</code> as seeded. Every paper: never reviewed. Every change: watching.</em></p>
+<h3>A.1 What the seeding found (24 October 2026)</h3>
+<ul>
+<li>Twenty-eight papers rowed, from the guide's at-a-glance rows and the mastheads. The oldest version date is Tops and Bottoms, May 2026, whose thirteen-month warning would fall in June 2027. Its review month is February 2027.</li>
+<li>Two papers on open library branches (Debt Cycles, Regimes, and Environments; the T&amp;B Manual) are noted for rowing at their merge.</li>
+<li>Two of the roster's papers carry an Assumptions and Falsifiers appendix: <em>Price, Time, and Edge</em> and the Reporting System.</li>
+<li>Instruments 2 and 3 are specified and not built.</li>
+</ul>
+<h3>A.2 The first cycle (as of 24 October 2026)</h3>
+<p>The corpus pass in January 2027; the papers from February to December 2027, by the calendar of Part IV.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s11-appendix-b-assumptions-and-falsifiers">
+      <summary class="section-head">
+        <span class="section-title">Appendix B — Assumptions and Falsifiers</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<p><strong>Mechanisms this protocol assumes.</strong>
+1. <em>A library's mechanisms outlast its figures.</em> Falsified if a year's reviews amend more mechanisms than they refresh figures: the body would then be dated, not timeless.
+2. <em>A recorded "no change" is worth recording.</em> Falsified if no review ever reaffirms a section; the protocol would then be a rewrite cycle in disguise.
+3. <em>Spreading the papers across the year keeps each review deep.</em> Falsified if the monthly reviews run short of the questionnaire's per-paper record.</p>
+<p><strong>Empirical claims.</strong> None. The protocol makes no claim about markets.</p>
+<p><strong>Standing-register items touching this paper.</strong> All of them, since the register is this paper's subject.</p>
+<p><strong>Dated figures in this paper.</strong> None in the body; the seeding's facts are in Appendix A.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/annual-structural-review-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

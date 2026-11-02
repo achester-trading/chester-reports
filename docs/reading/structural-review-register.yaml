@@ -1,0 +1,82 @@
+# The standing structural-review register (Paper XXXII, The Annual Structural
+# Review; Audit 2 §5, decision 1 of 7 September 2026: "the standing register as a
+# file the gate reads"). Seeded 24 October 2026 by session A (A73) from the library
+# guide's at-a-glance rows and each paper's masthead.
+#
+# THE GATE READS THIS FILE. tools/check_library.py check 15 warns when a paper on
+# the roster has no row here, and when a paper's review clock is past thirteen
+# months: the clock runs from `last_reviewed`, or from `version_date` while a
+# paper has never been reviewed. One row per paper, in flow style, one line each,
+# so the gate can read it without a YAML parser.
+#
+# Fields:
+#   numeral        the paper's roster numeral (the guide is canonical for it)
+#   slug           its file, docs/whitepapers/<slug>-whitepaper.md
+#   version        as the guide's at-a-glance row and the masthead carry it
+#   version_date   the version's date (a month-only date is that month's first)
+#   last_reviewed  the date of the paper's last structural review, or null
+#   review_month   the month of the paper's annual review (1-12; XXXII §4)
+#   status         never reviewed | reviewed: <decision> | in review
+#   log            where the last review's log lives, or null
+#
+# Edited by the review session that reviews a paper, never by a writing session:
+# a new version moves `version` and `version_date`, not `last_reviewed`.
+version: structural-review-register-1
+seeded: 2026-10-24
+
+papers:
+  - {numeral: I, slug: disruptive-themes, version: "1.0", version_date: 2026-08-29, last_reviewed: null, review_month: 9, status: never reviewed, log: null}
+  - {numeral: II, slug: tail-scenarios, version: "1.0", version_date: 2026-08-29, last_reviewed: null, review_month: 9, status: never reviewed, log: null}
+  - {numeral: III, slug: monthly-macro, version: "1.0", version_date: 2026-09-06, last_reviewed: null, review_month: 3, status: never reviewed, log: null}
+  - {numeral: IV, slug: rates-liquidity, version: "1.0", version_date: 2026-08-30, last_reviewed: null, review_month: 3, status: never reviewed, log: null}
+  - {numeral: V, slug: currencies, version: "1.0", version_date: 2026-08-01, last_reviewed: null, review_month: 4, status: never reviewed, log: null}
+  - {numeral: VI, slug: credit, version: "1.0", version_date: 2026-08-01, last_reviewed: null, review_month: 3, status: never reviewed, log: null}
+  - {numeral: VII, slug: energy, version: "1.0", version_date: 2026-08-01, last_reviewed: null, review_month: 4, status: never reviewed, log: null}
+  - {numeral: VIII, slug: metals, version: "1.0", version_date: 2026-08-01, last_reviewed: null, review_month: 4, status: never reviewed, log: null}
+  - {numeral: IX, slug: digital-assets, version: "1.0", version_date: 2026-08-01, last_reviewed: null, review_month: 5, status: never reviewed, log: null}
+  - {numeral: X, slug: tops-and-bottoms, version: "1.0", version_date: 2026-05-01, last_reviewed: null, review_month: 2, status: never reviewed, log: null}
+  - {numeral: XI, slug: volatility, version: "1.0", version_date: 2026-08-01, last_reviewed: null, review_month: 7, status: never reviewed, log: null}
+  - {numeral: XII, slug: daily-cascade, version: "2.0", version_date: 2026-09-06, last_reviewed: null, review_month: 8, status: never reviewed, log: null}
+  - {numeral: XIII, slug: dealers-hand, version: "1.1", version_date: 2026-09-19, last_reviewed: null, review_month: 7, status: never reviewed, log: null}
+  - {numeral: XIV, slug: technical-indicators, version: "1.1", version_date: 2026-09-01, last_reviewed: null, review_month: 8, status: never reviewed, log: null}
+  - {numeral: XV, slug: equities, version: "1.0", version_date: 2026-09-01, last_reviewed: null, review_month: 6, status: never reviewed, log: null}
+  - {numeral: XVI, slug: positioning-and-flows, version: "1.2 Draft", version_date: 2026-09-06, last_reviewed: null, review_month: 6, status: never reviewed, log: null}
+  - {numeral: XVII, slug: portfolio-construction, version: "Draft 1", version_date: 2026-08-31, last_reviewed: null, review_month: 10, status: never reviewed, log: null}
+  - {numeral: XVIII, slug: operating-doctrine, version: "1.2", version_date: 2026-10-17, last_reviewed: null, review_month: 10, status: never reviewed, log: null}
+  - {numeral: XIX, slug: systematic-book, version: "1.0 Draft", version_date: 2026-09-06, last_reviewed: null, review_month: 10, status: never reviewed, log: null}
+  - {numeral: XX, slug: base-rates, version: "1.4", version_date: 2026-09-30, last_reviewed: null, review_month: 2, status: never reviewed, log: null}
+  - {numeral: XXI, slug: international-equities, version: "1.1", version_date: 2026-09-01, last_reviewed: null, review_month: 5, status: never reviewed, log: null}
+  - {numeral: XXII, slug: options-expression, version: "1.4", version_date: 2026-09-01, last_reviewed: null, review_month: 7, status: never reviewed, log: null}
+  - {numeral: XXIII, slug: evidence-inference, version: "1.0", version_date: 2026-09-01, last_reviewed: null, review_month: 2, status: never reviewed, log: null}
+  - {numeral: XXIV, slug: earnings, version: "1.0", version_date: 2026-09-01, last_reviewed: null, review_month: 6, status: never reviewed, log: null}
+  - {numeral: XXV, slug: price-time-and-edge, version: "1.1", version_date: 2026-09-01, last_reviewed: null, review_month: 8, status: never reviewed, log: null}
+  - {numeral: XXXII, slug: annual-structural-review, version: "1.0", version_date: 2026-10-24, last_reviewed: null, review_month: 12, status: never reviewed, log: null}
+  - {numeral: XXXIII, slug: reporting-system, version: "Draft 3", version_date: 2026-10-19, last_reviewed: null, review_month: 11, status: never reviewed, log: null}
+  - {numeral: XXXIV, slug: emerging-markets, version: "Draft 1", version_date: 2026-10-01, last_reviewed: null, review_month: 5, status: never reviewed, log: null}
+
+# Papers on open library branches, rowed here when they merge: XXVII (Debt
+# Cycles, Regimes, and Environments; review month 9) and XXXI (the Top & Bottom
+# Report Manual; review month 11).
+
+# THE STANDING REGISTER OF WHAT COULD CHANGE (Audit 2 §5.3, "the first version,
+# from the brief"). Each change names the papers it touches and a measurable
+# tripwire. `status` is the review's word for its indicator: watching (no
+# measurement stored yet), quiet, near, crossed. A crossed tripwire opens the
+# review of the papers it touches within the month (XXXII §5); the Doctrine
+# monthly decides.
+changes:
+  - {id: C01, change: "AI transforms research; autonomous agents trade", papers: [XXV, XVIII, XIX, XXX, XII], tripwire: "share of volume attributed to algorithmic/agentic flow; a named agentic-trading incident; a change in the dispersion of analyst estimates", status: watching}
+  - {id: C02, change: "Widespread algorithmic price discovery; automated liquidity provision", papers: [XXX, XIII, XVI], tripwire: "non-bank market-maker share of equity/options volume; a liquidity event with no dealer in the middle", status: watching}
+  - {id: C03, change: "Tokenization; blockchain settlement; 24/7 markets", papers: [IX, XXX, XII, XV], tripwire: "tokenized Treasury/equity notional; a major exchange extending hours; T+0 in a major market", status: watching}
+  - {id: C04, change: "Prediction markets as information markets", papers: [XII, XXIV, XVIII], tripwire: "open interest on a macro/earnings contract exceeding a stated notional; a documented lead over consensus", status: watching}
+  - {id: C05, change: "New derivative structures; changing exchanges; clearing/collateral changes", papers: [XXII, XIII, XI, XXX], tripwire: "a new listed product class crossing a volume threshold; a CCP margin-model change; a clearing failure", status: watching}
+  - {id: C06, change: "Growth of private markets; changing public participation", papers: [VI, XV, XXIX], tripwire: "private credit AUM vs. HY market size; number of listed companies; IPO volume regime", status: watching}
+  - {id: C07, change: "Passive ownership; concentration", papers: [XV, XVI, XXX], tripwire: "passive share of US equity ownership; top-10 weight; a rebalance-driven dislocation", status: watching}
+  - {id: C08, change: "Dealer balance-sheet capacity", papers: [IV, VI, XXX], tripwire: "primary-dealer Treasury holdings vs. issuance; repo-spread events; SLR changes", status: watching}
+  - {id: C09, change: "Central-bank balance sheets; fiscal dominance; structurally higher debt; financial repression; YCC", papers: [IV, XXVII, V, VIII, I], tripwire: "reserve balances vs. GDP; interest cost vs. revenue; a stated cap on yields; term-premium regime change", status: watching}
+  - {id: C10, change: "Reserve diversification; de-dollarization; stablecoins; CBDCs; capital controls", papers: [V, VIII, IX, XXVII], tripwire: "official gold share of reserves; non-dollar share of trade settlement; stablecoin supply and its Treasury holdings; a G20 capital-control episode", status: watching}
+  - {id: C11, change: "Demographics; labor-capital shifts; automation", papers: [XXVIII, XXVII, XV], tripwire: "labor share; dependency ratios; a productivity-shock print outside the sample", status: watching}
+  - {id: C12, change: "Fragmentation; deglobalization; reglobalization; supply chains; sanctions; economic warfare", papers: [I, XXI, VII, VIII, V], tripwire: "trade-restriction counts; a sanctions event on a G20 economy; reshoring capex", status: watching}
+  - {id: C13, change: "Energy transition; scarcity; resource constraints; climate where financially relevant", papers: [VII, VIII, XXIX], tripwire: "power-price regime; a grid-constrained market event; insured catastrophe losses vs. capital", status: watching}
+  - {id: C14, change: "New corporate structures; regulation; taxation", papers: [XV, XXIV, XIX], tripwire: "a change in buyback or capital-gains taxation; a listing-regime change", status: watching}
+  - {id: C15, change: "Entirely new asset classes and risk-transfer mechanisms", papers: [XXIX, II, XXV], tripwire: "any asset or contract class crossing $1T notional or 5% of daily volume in its parent market", status: watching}
