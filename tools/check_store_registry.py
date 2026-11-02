@@ -134,7 +134,7 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
     # written on Monday as "2 sessions" -- 389 corr.* keys and the session
     # half-life keys among them.
     last = session.last_completed_session(as_of).isoformat()
-    stale, declared = [], []
+    stale, declared, current = [], [], []
     for k in sorted(have):
         if k not in resolved or not have[k]["newest"]:
             continue
@@ -150,6 +150,7 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
             continue
         allow, why = derived.staleness_allowance_of(resolved[k], k)
         if allow is None:
+            current.append({"key": k, "newest": str(have[k]["newest"])[:10]})
             continue
         n, _basis = derived.sessions_between(str(have[k]["newest"])[:10], last)
         if n > allow:
@@ -158,6 +159,8 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
                           # Past three times its allowance, a key has stopped,
                           # whatever its source's lag: the dead-key list.
                           "dead": n > DEAD_MULTIPLE * max(allow, 1)})
+        else:
+            current.append({"key": k, "newest": str(have[k]["newest"])[:10]})
     # Read with the row's key: a `by_key_family` alias (a bare `ibkr`) names its
     # id by the key's family.
     detail: dict = {}
@@ -171,6 +174,10 @@ def check(db: str, as_of: Optional[str] = None, reg: Optional[dict] = None) -> d
     return {"db": db, "as_of": as_of, "last_session": last, "stored": len(have),
             "unregistered": unregistered, "no_rows": no_rows, "quiet": quiet,
             "stale": stale, "declared": declared, "off_list_sources": srcs,
+            # W10-3 (A97): the registered keys stored and within their
+            # allowance, for the editions' Coverage table; report() prints none
+            # of it, so the CLI's output is unchanged.
+            "current": current,
             "off_list_detail": {s: {"rows": detail[s]["rows"],
                                     "keys": len(detail[s]["keys"]),
                                     "examples": detail[s]["keys"][:EXAMPLE_KEYS]}

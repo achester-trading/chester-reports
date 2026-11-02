@@ -61,6 +61,7 @@ from typing import Any, Optional
 from altdata import labels, observations, session
 from altdata import model_meter
 
+from daily_cascade import audit_retry
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
 from daily_cascade import stack_render as sr
@@ -2534,7 +2535,10 @@ PHASE_A_PROSE = {"month_in_markets": ("read", None),
 # run's archive held only the last reason, and what a withheld section needed
 # had to be inferred from it.
 PROSE_ARCHIVED = ("state", "published", "reason", "attempts", "first_reason",
-                  "reasons", "words", "figures_cited", "rejected_text")
+                  "reasons", "words", "figures_cited", "rejected_text",
+                  # W10-1 (D46): a partial publication's count, its withheld
+                  # sentences with their reasons, and why a section stayed whole.
+                  "partial", "withheld_sentences", "fallback")
 
 
 def apply_prose(ed: dict, written: dict) -> dict:
@@ -2554,6 +2558,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
     for key, r in written.items():
         ok = bool(r.get("published") and r.get("text"))
         why = r.get("reason") or r.get("state")
+        # W10-1 (D46): published with k sentences withheld -- the status line.
+        part = (f"Commentary {audit_retry.status(int(r['partial']))} by the figure audit."
+                if ok and r.get("partial") else None)
         if key.startswith("stack:"):
             s = secs.get(key.split(":", 1)[1])
             if s is None:
@@ -2562,6 +2569,8 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
                 s["paragraphs"] = s["paragraphs"][:1] if s.get("depth") in (
                     "deep", "medium") and not s.get("claim_only") else []
+                if part:
+                    s["partial_withheld"] = int(r["partial"])
             else:
                 s["withheld"] = why
             continue
@@ -2570,6 +2579,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
             owner, ss = subs[key]
             if ok:
                 ss["paragraphs"] = _paras(r["text"])
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
@@ -2586,12 +2598,17 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 ss["paragraphs"] = _paras(r["text"])
                 # The takeaways now print as their prose: the lines are its data.
                 ss["lines"] = []
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
             continue
         if ok:
             s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
+            if part:
+                s["partial_withheld"] = int(r["partial"])
         else:
             s["withheld"] = why
     ed["prose"] = {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
@@ -2829,6 +2846,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     # EL-6: THE SYSTEM-METRICS BLOCK, the last detail table. Data, not prose:
     # it counts in neither the word budget nor the chart cap.
     ed["detail"].append(system_metrics_block(p, ed, db_path, archive_dir, "monthly"))
+    # THE COVERAGE TABLE (W10-3): the Weekly's, in the appendix.
+    from daily_cascade import coverage                          # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    apx = next((d for d in ed["detail"] if d.get("id") == "appendix"), None)
+    if cov and apx is not None:
+        apx["coverage"] = cov
     if not narrative:
         written = {}
     elif write is not None:
@@ -2846,6 +2869,10 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     except Exception:                                           # noqa: BLE001
         log.exception("the Monthly's charts faulted; the edition prints none")
         charts = {}
+    # THE "WHAT TO SEE" LINE (W10-2): as the Weekly's, after the drawing.
+    if narrative:
+        from daily_cascade import chart_lines                   # noqa: PLC0415
+        chart_lines.write(ed, charts, model=model, client=client)
     ed["levels"] = book
     polish(ed, charts)
     # THE EXECUTIVE SUMMARY, BUILT LAST FROM THE FINISHED SECTIONS (T3.1 item

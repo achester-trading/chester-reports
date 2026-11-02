@@ -136,7 +136,10 @@ def _chart_html(ch: dict, mode: str, width: int = 700) -> str:
             f'<img src="{src}" alt="{esc(ch.get("caption"))}" style="{IMG}" '
             f'width="{width}">'
             f'<figcaption style="{CAPTION}">{esc(ch.get("caption"))}</figcaption>'
-            f'</figure>')
+            # W10-2: the "What to see" line, when its checks passed.
+            + (f'<p style="{FOOT}" class="see">What to see: {esc(ch["see"])}</p>'
+               if ch.get("see") else "")
+            + '</figure>')
 
 
 # weekly-fixes-7 item 13: charts printed as a pair, half width, side by side --
@@ -269,6 +272,11 @@ def foot_parts(s: dict, fold_subsections: bool = True,
         why = re.sub(r"^(?:narrative\s+)?withheld:\s*", "", str(s["withheld"]),
                      flags=re.I)
         parts.append("Commentary withheld by the audit: " + why)
+    if s.get("partial_withheld"):
+        # W10-1 (D46): the section printed with its failing sentences removed.
+        from . import audit_retry                               # noqa: PLC0415
+        parts.append(f"Commentary {audit_retry.status(int(s['partial_withheld']))} "
+                     f"by the figure audit.")
     parts += list(s.get("notes") or [])
     if s.get("trimmed"):
         parts.append(trimmed_note)
@@ -284,6 +292,26 @@ def footnote(s: dict, cadence: str = "daily") -> str:
     cad = _cadence(cadence)
     return _foot(foot_parts(s, not cad.get("subsection_paragraphs"),
                             _trimmed_note(cad)))
+
+
+def coverage_html(b: dict, wrap: bool = False) -> str:
+    """W10-3: the Coverage table (daily_cascade/coverage.py), last in its block
+    before the footnote, under its own heading, its note beneath it."""
+    t = b.get("coverage")
+    if not t or not t.get("rows"):
+        return ""
+    return (f'<h3 style="{H3}">{esc(t.get("title") or "Coverage")}</h3>'
+            + _table({"columns": t["columns"], "rows": t["rows"]}, wrap)
+            + (f'<p style="{FOOT}">{esc(t["note"])}</p>' if t.get("note") else ""))
+
+
+def md_coverage(b: dict) -> list[str]:
+    t = b.get("coverage")
+    if not t or not t.get("rows"):
+        return []
+    return ([f"**{t.get('title') or 'Coverage'}**\n"]
+            + md_table({"columns": t["columns"], "rows": t["rows"]})
+            + ([f"<sub>{t['note']}</sub>\n"] if t.get("note") else []))
 
 
 def tables_html(b: dict, wrap: bool = False) -> str:
@@ -449,6 +477,7 @@ def section_html(s: dict, n: int, charts: dict, mode: str,
     # A CODE-AND-FRAME CLOSING LINE (W-1.2 item 2.5: the book's terms).
     for ln in s.get("closing_lines") or []:
         out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
+    out.append(coverage_html(s, wrap))
     out.append(footnote(s, cadence))
     return "".join(out)
 
@@ -512,6 +541,7 @@ def opener_section_html(s: dict, out: list, charts: dict, mode: str, cad: dict,
     out.append(charts_seq_html(ids, charts, mode))
     for ln in s.get("closing_lines") or []:
         out.append(f'<p style="{PARA}" class="closing"><b>{esc(ln)}</b></p>')
+    out.append(coverage_html(s, wrap))
     out.append(_foot(foot_parts({**s, "withheld": None}, not cad.get(
         "subsection_paragraphs"), _trimmed_note(cad))))
     return "".join(out)
@@ -527,6 +557,7 @@ def detail_html(d: dict, cadence: str = "daily") -> str:
            lines_table(d.get("lines") or [], f"This {period}", wrap=wrap)]
     for ss in d.get("subsections") or []:
         out.append(subsection_html(ss, period, cad))
+    out.append(coverage_html(d, wrap))
     out.append(_foot(foot_parts(d, False, _trimmed_note(cad))))
     return "".join(out)
 
@@ -817,6 +848,8 @@ def md_charts(ids: list, charts: Optional[dict]) -> list[str]:
         svg = str(x.get("svg_path") or "").replace("\\", "/").split("/")[-1]
         out.append(f"![{_md_cell(x.get('caption'))}]({svg})\n" if svg else
                    f"*{_md_cell(x.get('caption'))}*\n")
+        if x.get("see"):
+            out.append(f"What to see: {_md_cell(x['see'])}\n")
     return out
 
 
@@ -889,6 +922,7 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
         out += md_charts(ids, charts)
         paras = s.get("paragraphs") or []
         out += [f"{p}\n" for p in (paras[:limit] if limit else paras)]
+        out += md_coverage(s)
         out += _md_foot(foot_parts(s, not cad.get("subsection_paragraphs"),
                                    _trimmed_note(cad)))
     if ed.get("detail"):
@@ -898,6 +932,7 @@ def markdown(ed: dict, cadence: str, title: str, changed_head: Optional[str] = N
             out += md_block(d)
             for ss in d.get("subsections") or []:
                 out += _md_sub(ss, cad, charts, "####", with_charts=False)
+            out += md_coverage(d)
             out += _md_foot(foot_parts(d, False, _trimmed_note(cad)))
     if ed.get("target_line"):
         out.append(f"\n*{ed['target_line']}*")
