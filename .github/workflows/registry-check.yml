@@ -70,13 +70,27 @@ jobs:
   # the changed files (the push's before..after) and narrows the matrix itself; one
   # workflow keeps one required check. When the changed set cannot be read -- a new
   # branch, a force-push whose old tip is gone, an empty diff -- it runs the full set.
+  #
+  # THE JOBS ARE GROUPED (B122, 2 Nov 2026; B107's "later" item). The fast gates run
+  # a group to a job, one at a time, each still reported by name; the slow ones
+  # and the two with a job of their own run alone. `tools/ci_groups.py matrix`
+  # makes both lists from `make list-code` and config/ci_groups.yaml, so the
+  # workflow never names a gate, and validate_gates group E holds every code gate
+  # to exactly one job. `gates` stays the full list, for the record and the log.
   enumerate:
     runs-on: ubuntu-24.04
     outputs:
       gates: ${{ steps.list.outputs.gates }}
       data: ${{ steps.list.outputs.data }}
+      alone: ${{ steps.list.outputs.alone }}
+      groups: ${{ steps.list.outputs.groups }}
     steps:
       - uses: actions/checkout@v5
+      # ci_groups.py reads its YAML; the runner's own python3 may not carry PyYAML.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --quiet pyyaml
       - id: scope
         if: github.event_name == 'push'
         env:
@@ -103,18 +117,23 @@ jobs:
             gates=$(make list-code | grep -E '\.(py|sh)$' \
               | grep -Fx -e tools/check_library.py -e tools/check_registry.py -e tools/check_master_guide.py | as_json)
             data='[]'
+            make list-code | grep -E '\.(py|sh)$' | python tools/ci_groups.py matrix --docs >> "$GITHUB_OUTPUT"
           else
             gates=$(make list-code | grep -E '\.(py|sh)$' | as_json)
             data=$(make list-data  | grep -E '\.(py|sh)$' | as_json)
+            make list-code | grep -E '\.(py|sh)$' | python tools/ci_groups.py matrix >> "$GITHUB_OUTPUT"
           fi
           echo "gates=$gates" >> "$GITHUB_OUTPUT"
           echo "data=$data"  >> "$GITHUB_OUTPUT"
           echo "Scope: $SCOPE"
           echo "Code gates: $gates"
           echo "Data gates: $data"
+          make list-code | grep -E '\.(py|sh)$' | python tools/ci_groups.py --by-group
 
+  # The gates that run ALONE (B122): config/ci_groups.yaml's `alone` list.
   gate:
     needs: enumerate
+    if: needs.enumerate.outputs.alone != '[]'
     runs-on: ubuntu-24.04
     # STOPGAP, 12 Oct 2026: tools/validate_session_calendar.sh alone gets 20.
     # Diagnosis: its stand-in interpreter passed every `-m` call through, so the
@@ -129,7 +148,7 @@ jobs:
       # THE POINT OF THIS FILE. Every gate reports, whatever the others do.
       fail-fast: false
       matrix:
-        gate: ${{ fromJson(needs.enumerate.outputs.gates) }}
+        gate: ${{ fromJson(needs.enumerate.outputs.alone) }}
 
     name: ${{ matrix.gate }}
 
@@ -176,6 +195,53 @@ jobs:
             *.sh) bash "${{ matrix.gate }}" ;;
             *)    python "${{ matrix.gate }}" ;;
           esac
+
+  # THE GROUPED GATES (B122). One job per group of config/ci_groups.yaml. The job
+  # runs its gates one at a time (python, or bash for .sh, as above), prints a
+  # PASS or FAIL line per gate with its name and tally, writes the same lines to
+  # the job summary, and fails if any gate failed -- so a red still names its gate.
+  # Each gate keeps its ten minutes (ci_groups.GATE_TIMEOUT_S); the job's
+  # allowance is the group's, at most 45 minutes.
+  group:
+    needs: enumerate
+    if: needs.enumerate.outputs.groups != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJson(needs.enumerate.outputs.groups) }}
+
+    name: "group: ${{ matrix.group }}"
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        id: py
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # The same cache as the gate job's (B111): one key, one restore.
+      - name: Restore installed packages
+        id: pkgs
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pythonLocation }}
+          key: gates-pkgs-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        if: steps.pkgs.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "group: ${{ matrix.group }}"
+        run: |
+          make list-code | grep -E '\.(py|sh)$' | python tools/ci_groups.py run "${{ matrix.group }}"
 
   # DATA GATES, REPORTED AND NOT REQUIRED.
   #
@@ -227,19 +293,35 @@ jobs:
   # A single required check to point branch protection at, since the matrix
   # legs have generated names that change when a gate is added.
   gates-passed:
-    needs: gate
+    needs: [enumerate, gate, group]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: All gates passed
+        env:
+          ALONE: ${{ needs.enumerate.outputs.alone }}
+          GROUPS: ${{ needs.enumerate.outputs.groups }}
         run: |
-          # needs: [gate] only. The data-gate job is EXCLUDED on purpose -- its
-          # verdict is about the data on the machine that runs it, and a CI runner
-          # has no captured chains, so its result says nothing about this commit.
-          # Adding it here would make the required check depend on data CI does
-          # not have. See the data-gate job's comment.
-          if [ "${{ needs.gate.result }}" != "success" ]; then
+          # needs: the code jobs only (enumerate is there for its outputs). The
+          # data-gate job is EXCLUDED on purpose -- its verdict is about the data on
+          # the machine that runs it, and a CI runner has no captured chains, so its
+          # result says nothing about this commit. Adding it here would make the
+          # required check depend on data CI does not have. See its comment.
+          #
+          # B122: two code jobs, `gate` (the lone gates) and `group`. Each must be
+          # success. The one exception is a job skipped because its list was empty
+          # (the docs-only push has no lone gates); a cancelled leg, a failed one,
+          # or a job skipped for any other reason still fails this check.
+          if [ "${{ needs.enumerate.result }}" != "success" ]; then
+            echo "The enumerate job did not succeed -- no gate list, so no verdict."
+            exit 1
+          fi
+          if [ "${{ needs.gate.result }}" != "success" ] && ! { [ "${{ needs.gate.result }}" = "skipped" ] && [ "$ALONE" = "[]" ]; }; then
             echo "At least one CODE gate failed -- see the individual jobs above."
+            exit 1
+          fi
+          if [ "${{ needs.group.result }}" != "success" ] && ! { [ "${{ needs.group.result }}" = "skipped" ] && [ "$GROUPS" = "[]" ]; }; then
+            echo "At least one CODE gate in a group failed -- see the group jobs' PASS/FAIL lines."
             exit 1
           fi
           echo "Every code gate passed. Data gates report separately."

@@ -160,3 +160,51 @@ merges in Tuesday's first small PR. Details are in `docs/briefs/b111-notes.md`.
 | (e) `make.sh`'s CR | `run_gate` strips a CR from each path, and CR is a word separator in the list loops |
 
 Not taken: the slow gates on main only.
+
+## Part 5: grouping, as built (B122, 2 Nov 2026)
+
+Built on `b122-ci-job-grouping` (from main at `422ea697`, with this branch merged
+in). It merges in the week after the merge week, once the cache has had its first
+hit. Details are in `docs/briefs/b122-notes.md`.
+
+**The jobs.** On main's 135 code gates there are 19 code jobs where there were 135:
+- **11 run alone.** These are the ten slowest above, plus
+  `validate_session_calendar.sh` (its 20-minute allowance). `validate_names.py` is
+  listed alone too, for its secret, and joins when B109 reaches main.
+- **8 groups, by subsystem:**
+
+  | Group | Gates |
+  |---|---|
+  | library-and-guide | 8 |
+  | box-and-deploy | 19 |
+  | weekly | 12 |
+  | reports | 13 |
+  | register-and-books | 22 |
+  | dealer-and-tape | 15 |
+  | rates-and-releases | 24 |
+  | sources-and-quality | 11 |
+
+  Each group runs its gates one at a time and prints a PASS or FAIL line per gate.
+
+`config/ci_groups.yaml` places the gates and `tools/ci_groups.py` makes the
+matrices, both from `make list-code`. `validate_gates` group E holds every code
+gate to exactly one job.
+
+**The estimate.** It uses this audit's per-step totals, and needs these assumptions:
+- B111's restore costs about 5 s a job (not yet measured);
+- the gates take 52.8 job-minutes in all, as measured;
+- the fixed cost of a job, without the install, is about 5.4 s (set-up 0.7 s,
+  checkout 2.2 s, interpreter 2.5 s, from the green run's totals over 165 jobs).
+
+| Code jobs | Jobs | Job-minutes (code jobs) | Wall at 3.8 jobs at once (B107's busy evenings) | Wall on an idle pool |
+|---|---|---|---|---|
+| As measured (B107, no cache) | 165 | 121.0 | about 32 (35.3 measured after the first job) | about 9, bounded by `validate_stack` |
+| B111's cache, one job a gate | 165 | about 81 (165 × 10.4 s + 52.8) | about 21 | about 9 |
+| **B111's cache and B122's groups** | **about 20** | **about 56** (20 × 10.4 s + 52.8) | **about 15** | **about 9** |
+
+- **The floor.** On an idle pool the wall stays near `validate_stack`'s nine minutes,
+  because no group is longer: the longest, weekly, is about 5 minutes of gate time.
+- **The saving.** It is in job-minutes, and in runner allocations: 20 a run against
+  165. B107 measured the queue for runners, not the gates, as what made runs long.
+- **Unchanged:** the data-gate jobs, enumerate and gates-passed (about 13.5
+  job-minutes in the green run).

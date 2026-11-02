@@ -324,6 +324,50 @@ def group_d() -> None:
           "so a skipped or cancelled leg cannot pass for a green one")
 
 
+def exactly_once(gates: list[str], jobs: dict[str, list[str]]) -> tuple[list, list]:
+    """(missing, repeated): code gates in no job, and gates in more than one."""
+    placed = [g for v in jobs.values() for g in v]
+    missing = sorted(set(gates) - set(placed))
+    repeated = sorted({g for g in placed if placed.count(g) > 1})
+    return missing, repeated
+
+
+def group_e() -> None:
+    """THE CI JOB GROUPS (B122). The workflow runs the fast gates a group to a job
+    (config/ci_groups.yaml, tools/ci_groups.py). A gate in no job would leave CI
+    without anyone noticing, and a gate in two would run twice: every code gate
+    must land in exactly one job."""
+    print(f"\n{LINE}\nE. EVERY CODE GATE IN EXACTLY ONE CI JOB (B122)\n{LINE}")
+    sys.path.insert(0, str(REPO / "tools"))
+    import ci_groups
+    v = makefile_vars()
+    code = [g for g in v["PY_VALIDATORS"] + v["EXTRA"] + v["SH_VALIDATORS"]
+            if g.endswith((".py", ".sh"))]
+    cfg = ci_groups.load()
+    jobs = ci_groups.assign(code, cfg)
+    missing, repeated = exactly_once(code, jobs)
+    alone, groups = ci_groups.lone_and_groups(code, cfg)
+    check(not missing and not repeated,
+          f"each of the {len(code)} code gates is in exactly one of {len(jobs)} jobs "
+          f"({len(alone)} alone, {len(groups)} groups; missing {missing or 'none'}, "
+          f"repeated {repeated or 'none'})")
+    check(all(jobs[k] for k in jobs), "no job is empty")
+    check(set(cfg["docs_set"]) <= set(code),
+          f"the docs-only push's set is three code gates ({cfg['docs_set']})")
+    # The check is shown to fire: a gate dropped and a gate doubled are both caught.
+    fake = {"a": code[:2], "b": [code[1]]}
+    m2, r2 = exactly_once(code[:3], fake)
+    check(m2 == [code[2]] and r2 == [code[1]],
+          "must-fail: a gate in no job and a gate in two jobs are both reported")
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    check("ci_groups.py matrix" in wf and "ci_groups.py run" in wf,
+          "the workflow's matrices come from ci_groups.py, never a typed list")
+    m = re.search(r"gates-passed:\s*needs:\s*(\[[^\]]*\]|\S+)", wf, re.S)
+    needs = m.group(1) if m else ""
+    check("group" in needs and "gate" in needs and re.search(r'needs\.group\.result.*!=.*success', wf),
+          f"the required check needs both code jobs, lone and grouped ({needs!r})")
+
+
 def main() -> int:
     print(f"{LINE}\nGate-harness validation -- a validator that cannot run is a "
           f"failed validator\n{LINE}")
@@ -331,6 +375,7 @@ def main() -> int:
     group_b()
     group_c()
     group_d()
+    group_e()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")
