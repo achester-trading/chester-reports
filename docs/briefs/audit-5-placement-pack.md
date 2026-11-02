@@ -61,21 +61,25 @@ plus 7). Batch 19 was written as 98–109 and filed as 99–110 (L1, plus 1). Ba
 | 75 | 20 | 111(c) | TARGET2 balances (Italy and Spain debtors, Germany creditor), monthly, beside SR-30's OAT–Bund and BTP–Bund | Report only | B | Order only | ECB SDMX | none (M5) | D42.16 |
 | 76 | 21 | 115 | The evening X read: the evening triage pulled into the box's x-triage inbox the same evening, and an "X after hours" block in the 21:30 evening note (Sun–Thu) | Rumour-track (item 50's rights: attention and rumour tracking, never measurement) | B, after 8 Nov (D47) | Order only on the box. The chat side is planned and paused: the Grok evening automation waits on a third slot (the register, B102; D56) | the Grok evening digest; the sweep's evening pull | none (N3: the automation and the triage run themselves) | D47, 30 Oct |
 
-**Where two documents disagree** (each quoted; none resolved here):
-- **SR-74.** Batch 20's order wrote "the global-liquidity-momentum proxy (… the
-  order's "93" …)"; the register files it as **92**, under M2's correction.
-- **SR-75.** Batch 20's order wrote "SR-29"; the register files it as **SR-30**
-  (OAT–Bund and BTP–Bund), under M2.
-- **SR-60's status.** It reads "table built, branch a78-batch-16-midterm" on every
-  branch's register. The table merged to main on 28 Oct (PR #43), so the status text
-  is behind the merge.
-- **SR-65 to SR-67.** b95's register cites them ("Batch 17's SR-65 to SR-67 (paste
-  A81, on its unmerged branch)") but holds no rows for them. The rows live on
-  `a81-batch-17-filing` and chain-8 (three rows there). A99's step 5 resolved the
-  register's SR blocks as "both (65–67, then 68)".
-- **SR-60 to SR-76 against Table 5.1.** The Doctrine #2 pack's Table 5.1 drafts
-  SR-60 to SR-93 for items 45–78 (D2-22). Seventeen of those numbers are the
-  batches' provisional ones: Part 2.
+**Where two documents disagree** (B108 found five; settled by B115, 2 Nov 2026).
+
+The rule (B115):
+- **A number** the filing assigned: the order's own section-0 amendment table
+  decides.
+- **A status:** the branch state decides.
+- **A ruling or its wording:** nothing changes; both texts are quoted, and the
+  operator rules at Audit #5.
+
+The check found no sixth disagreement: each order's provisional SR range matches
+the register's headings.
+
+| # | Disagreement | Class | Deciding source | Fix |
+|---|---|---|---|---|
+| 1 | **SR-74.** Batch 20's order: "item 93's central-bank balance-sheet proxy"; the register: "the global-liquidity-momentum proxy (filed 92; the order's "93", M2)" | Number | Batch 20's M2 table: "93 ("central-bank balance-sheet proxy") → **92**", and "The order's text keeps its numbers as written; this table governs" | **None needed.** The register already follows M2 and names the order's word. The order's text is kept as written, by M2's own rule |
+| 2 | **SR-75.** Batch 20's order: "Monthly line beside SR-29 (BTP–Bund, OAT–Bund)"; the register: "beside SR-30's OAT–Bund and BTP–Bund (the order's "SR-29", M2)" | Number | Batch 20's M2 table: "SR-29 ("BTP–Bund, OAT–Bund") → **SR-30**" | **None needed**, as in row 1 |
+| 3 | **SR-60's status.** The register: "table built, branch a78-batch-16-midterm"; `a78-batch-16-midterm` merged to main on 28 Oct 2026 (PR #43, `8166d430`) | Status | The branch state: `a78-batch-16-midterm`'s tip is an ancestor of `origin/main` | **Corrected on this branch.** The register's SR-60 status now reads "table built, on main since 28 Oct 2026 (PR #43)", with "corrected 2 Nov 2026 to match the branch state (B115)". main's register still carries the old text until this branch merges |
+| 4 | **SR-65 to SR-67.** b95's register cites "Batch 17's SR-65 to SR-67 (paste A81, on its unmerged branch)" and holds no rows for them | Status | The branch state: 3 rows on `a81-batch-17-filing` and 3 on `b86-chain-8-assembly` (chain-8); 0 on main and 0 here; `a81-batch-17-filing` is not merged | **None needed.** The citation is accurate as written. The rows reach this register through chain-8 at A99's step 5 ("both (65–67, then 68)"); adding them here would duplicate chain-8's |
+| 5 | **SR-60 to SR-76 against Table 5.1.** The batches filed SR-60 to SR-76 as provisional; the Doctrine #2 pack's Table 5.1 drafts "SR-60 to SR-93 for items 45–78" (D2-22) | Ruling | D2-80, unruled: the numbering is the audit's to place | **Left for the operator,** at Audit #5. Both texts are quoted here, and Part 2 drafts the three options |
 
 ## Part 2. The collision (D2-80), the three options drafted
 
