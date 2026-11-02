@@ -400,6 +400,12 @@ def classify(members: list[dict], cfg: dict) -> dict:
     same = sum(1 for z in zs if z * med > 0) / len(zs) if med else 0.0
     disp = statistics.pstdev(zs)
     countries = sorted({m["country"] for m in live if m.get("flagged")})
+    # D2-90 (a), ruled 2 Nov 2026: a member's 1-day move at `same_day_sigma` or
+    # more opens its country's shock on that session whatever the other
+    # countries do (contagion_states). Either direction, as every flag here.
+    big = float(e.get("same_day_sigma") or 4.0)
+    same_day = sorted({m["country"] for m in live
+                       if m.get("z1") is not None and abs(m["z1"]) >= big})
     systemic = (same >= float(e.get("co_movement_share") or 0.8)
                 and abs(med) >= float(e.get("systemic_median_z") or 1.0))
     if systemic:
@@ -412,7 +418,7 @@ def classify(members: list[dict], cfg: dict) -> dict:
         state = "quiet"
     return {"state": state, "members": len(live), "median_stress_z5": round(med, 2),
             "co_movement": round(same, 2), "dispersion": round(disp, 2),
-            "countries_flagged": countries,
+            "countries_flagged": countries, "countries_same_day": same_day,
             "direction": "stress" if med > 0 else "relief"}
 
 
@@ -512,49 +518,84 @@ def sessions_back(day: str, n: int) -> list[str]:
 
 def contagion_states(days: list[dict], window: int) -> list[dict]:
     """From each session's EM classification and spread z's, oldest first --
-    [{day, state, countries_flagged, spread_widening}] -- the shocks and where
-    each stands: `watching` inside its window, `passed` (and when) once the
-    basket goes systemic or a spread widens, `lapsed` when the window closes
-    without either."""
+    [{day, state, countries_flagged, countries_same_day, spread_widening,
+    classified_as_of}] -- the shocks and where each stands: `watching` inside
+    its window, `passed` (and when) once the basket goes systemic or a spread
+    widens, `lapsed` when the window closes without either.
+
+    A shock opens on a session for (D2-90 (a), ruled 2 Nov 2026):
+      - its one country, when the session is idiosyncratic (exactly one country
+        flagged), as built;
+      - each country with a member's 1-day move at `same_day_sigma` or more
+        (`countries_same_day`), whatever the other countries do -- a mixed
+        session included -- except a systemic one, which is contagion already.
+    A country opens one shock a session, whichever way it qualifies."""
     out = []
     for i, d in enumerate(days):
-        if d.get("state") != "idiosyncratic":
+        opens: list[tuple[str, str]] = []
+        if d.get("state") == "idiosyncratic":
+            opens.append((d["countries_flagged"][0], "single country"))
+        if d.get("state") != "systemic":
+            opens += [(c, "same-day 1-day move") for c in d.get("countries_same_day") or []
+                      if c not in {o[0] for o in opens}]
+        if not opens:
             continue
-        country = d["countries_flagged"][0]
         after = days[i + 1:i + 1 + window]
         passed = next((a for a in after if a.get("state") == "systemic"
                        or a.get("spread_widening")), None)
         st_ = ("passed" if passed else
                "watching" if len(after) < window else "lapsed")
-        out.append({"country": country, "shock_date": d["day"],
-                    "window_sessions": window,
-                    "window_end": after[-1]["day"] if len(after) == window else None,
-                    "status": st_, "passed_on": passed["day"] if passed else None,
-                    "passed_to": (None if not passed else
-                                  "the basket" if passed.get("state") == "systemic"
-                                  else "EM spreads")})
+        for country, why in opens:
+            out.append({"country": country, "shock_date": d["day"], "opened_by": why,
+                        "classified_as_of": d.get("classified_as_of"),
+                        "window_sessions": window,
+                        "window_end": after[-1]["day"] if len(after) == window else None,
+                        "status": st_, "passed_on": passed["day"] if passed else None,
+                        "passed_to": (None if not passed else
+                                      "the basket" if passed.get("state") == "systemic"
+                                      else "EM spreads")})
     return out
+
+
+def session_close_cutoff(day: str, cfg: Optional[dict] = None) -> str:
+    """A session's own close-report instant (`em.classify_as_of`, 16:45 ET), in
+    UTC: what the close that day could know (D2-90 (a), ruled 2 Nov 2026)."""
+    hh, mm = str(((cfg or {}).get("em") or {}).get("classify_as_of") or "16:45").split(":")
+    t = dt.datetime.combine(dt.date.fromisoformat(day), dt.time(int(hh), int(mm)),
+                            tzinfo=session._eastern_tz())          # noqa: SLF001
+    return observations.canonical_instant(t.astimezone(dt.timezone.utc).isoformat())
 
 
 def contagion(st, day: str, cutoff: Optional[str], cfg: dict,
               today: Optional[dict] = None) -> list[dict]:
-    """The states over the last window's sessions, recomputed from the store as
-    of `cutoff` -- the shocks still in a window and those that passed or
-    lapsed in it."""
+    """The states over the last window's sessions -- the shocks still in a
+    window and those that passed or lapsed in it.
+
+    EACH SESSION AS OF ITS OWN CLOSE (D2-90 (a), ruled 2 Nov 2026): a past
+    session is classified from what was knowable at its own close-report
+    instant (`session_close_cutoff`), or at `cutoff` if that is earlier -- never
+    from rows that arrived later (H.10's weekly batch, a restatement), so a
+    shock's history is what that session's close knew. Each day carries the
+    instant it was classified as of, and each stored shock row carries its own
+    (`classified_as_of`)."""
     e = cfg.get("em") or {}
     w = int(e.get("contagion_sessions") or 5)
     th = float(e.get("spread_sigma") or 2.0)
     out = []
     for d in sessions_back(day, 2 * w):
+        own = session_close_cutoff(d, cfg)
+        at = own if cutoff is None else min(own, observations.canonical_instant(cutoff))
         if d == day and today is not None:
             c, sp = today, today.get("spreads") or []
+            at = cutoff
         else:
-            c = classify(em_member_moves(st, d, cutoff, cfg), cfg)
-            sp = em_spreads(st, d, cutoff, cfg)
+            c = classify(em_member_moves(st, d, at, cfg), cfg)
+            sp = em_spreads(st, d, at, cfg)
         widen = any((s.get("z5") or 0) >= th for s in sp if s.get("available"))
         out.append({"day": d, "state": c.get("state"),
                     "countries_flagged": c.get("countries_flagged") or [],
-                    "spread_widening": widen})
+                    "countries_same_day": c.get("countries_same_day") or [],
+                    "spread_widening": widen, "classified_as_of": at})
     return contagion_states(out, w)
 
 

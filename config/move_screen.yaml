@@ -102,3 +102,20 @@ em:
   # (a spread's 5-day widening at `spread_sigma` or more) within the window.
   contagion_sessions: 5
   spread_sigma: 2.0
+  # D2-90 (a), RULED 2 Nov 2026 (accept (a)-(d) of B105's draft, b91-notes Part
+  # 3): a member's 1-day move at this many sigma or more opens its country's
+  # shock on that session whatever the other countries do (a mixed session
+  # included; a systemic one is contagion already); the exactly-one rule stays
+  # for smaller moves. On October's reading this adds Brazil's shock of 26 Oct
+  # (EWZ z1 -12.38), one session before the 27 Oct shock the build opened.
+  same_day_sigma: 4.0
+  # D2-90 (a), ruled: each past session is classified as of its own close
+  # report (this time, ET), never from rows that arrived after it; each stored
+  # shock row carries the instant it was classified as of.
+  classify_as_of: "16:45"
+  # D2-90 (b) and (c), ruled: Brazil's same-day FX source (the central bank's
+  # SGS PTAX) is a candidate whose terms were unread on 2 Nov (HTTP 502), so no
+  # pair is declared yet, and its local rates are a listed gap
+  # (source_registry.yaml bcb_sgs; docs/briefs/a112-notes.md).
+  # Report-only (D2-90 (d)): nothing here reaches a flag, dial, weight or
+  # decision.

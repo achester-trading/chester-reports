@@ -38,6 +38,14 @@ network, no box:
   H  THE QUARTERLY'S HOOK. quarter_episodes(st, now): a member's shock is one
      episode (its 5-day run collapsed), idiosyncratic with contagion passed;
      the spread's widening is one contagion event; oldest first; [] before it.
+  J  D2-90 (a), RULED 2 NOV 2026: a member's 1-day move at 4 sigma or more
+     opens its country's shock the same session whatever the others do
+     (October's reading: one firing added, Brazil 26 Oct); below 4 the
+     exactly-one rule stays; a systemic session opens none; one shock a country.
+  K  D2-90 (a): each past session classified as of its own 16:45 close; a row
+     written late never reclassifies it; each shock row carries
+     classified_as_of. Group E also holds D2-90 (d): no regime, dial, register,
+     weight or lab module reads the screen.
 
     python tools/validate_move_screen.py
 """
@@ -45,6 +53,7 @@ network, no box:
 from __future__ import annotations
 
 import datetime as dt
+import json
 import math
 import random
 import sys
@@ -275,6 +284,21 @@ def group_e() -> None:
     src = (REPO / "altdata" / "move_screen.py").read_text(encoding="utf-8")
     check("narratives confirm" not in src and "register.store" not in src
           and "decide.py" not in src, "the screen writes nothing to any register")
+    # D2-90 (d), ruled 2 Nov 2026: report-only after the amendment. Nothing that
+    # sets a flag, a dial, a weight or a decision reads the screen's EM output.
+    readers = []
+    for p in ([REPO / "altdata" / "regime.py", REPO / "config" / "market_state.yaml",
+               REPO / "altdata" / "state_vector.py"]
+              + sorted((REPO / "register").glob("*.py"))
+              + sorted((REPO / "alpha").rglob("*.py"))):
+        if p.exists():
+            t = p.read_text(encoding="utf-8", errors="replace")
+            readers += [f"{p.relative_to(REPO)}:{w}" for w in
+                        ("em_contagion", "countries_same_day", "same_day_sigma",
+                         "screen.em", "contagion_states", "em_screen(") if w in t]
+    check(not readers,
+          f"D2-90 (d): no regime, dial, register, weight or lab module reads the EM "
+          f"screen or its shocks ({readers[:4] or 'none'}); report-only")
 
 
 def group_f() -> None:
@@ -500,6 +524,148 @@ def group_i(td: str) -> None:
           "prevents")
 
 
+# ---------------------------------------------------------------------------
+# J. D2-90 (a): THE SAME-DAY OPENING (ruled 2 Nov 2026)
+# ---------------------------------------------------------------------------
+# October's reading (docs/briefs/b91-notes.md Part 3, the box on 1 Nov): the
+# stored states of 19-30 Oct, Indonesia's passing to EM spreads on 22 Oct, and
+# EWZ's z1 of -12.38 on 26 Oct, the one member z1 past 4 the reading holds
+# (the other countries' z1s are not in it).
+OCT = [("2026-10-19", "mixed", ["India", "Indonesia"], [], False),
+       ("2026-10-20", "mixed", ["India", "Indonesia"], [], False),
+       ("2026-10-21", "mixed", ["India", "Indonesia"], [], False),
+       ("2026-10-22", "mixed", ["India", "Indonesia", "Taiwan"], [], True),
+       ("2026-10-23", "idiosyncratic", ["India"], [], False),
+       ("2026-10-26", "mixed", ["Brazil", "Indonesia"], ["Brazil"], False),
+       ("2026-10-27", "idiosyncratic", ["Brazil"], [], False),
+       ("2026-10-28", "idiosyncratic", ["Brazil"], [], False),
+       ("2026-10-29", "mixed", ["Brazil", "Indonesia"], [], False),
+       ("2026-10-30", "mixed", ["Brazil", "Korea", "Taiwan"], [], False)]
+
+
+def group_j() -> None:
+    print(f"\n{LINE}\nJ. D2-90 (a): A 4-SIGMA 1-DAY MOVE OPENS ITS COUNTRY'S SHOCK THE SAME "
+          f"DAY\n{LINE}")
+    cfg = ms.load_config()
+    check(float(cfg["em"]["same_day_sigma"]) == 4.0,
+          "config: same_day_sigma 4.0 (ruled 2 Nov 2026), the exactly-one rule kept below it")
+
+    def seq(same_day: bool):
+        return [{"day": d, "state": s, "countries_flagged": c,
+                 "countries_same_day": big if same_day else [], "spread_widening": w}
+                for d, s, c, big, w in OCT]
+    before = [(s["country"], s["shock_date"]) for s in ms.contagion_states(seq(False), 5)]
+    after = ms.contagion_states(seq(True), 5)
+    got = [(s["country"], s["shock_date"]) for s in after]
+    check(before == [("India", "2026-10-23"), ("Brazil", "2026-10-27"),
+                     ("Brazil", "2026-10-28")],
+          f"October as built: India 23 Oct, Brazil 27 and 28 Oct ({before})")
+    check(got == [("India", "2026-10-23"), ("Brazil", "2026-10-26"),
+                  ("Brazil", "2026-10-27"), ("Brazil", "2026-10-28")],
+          f"October as ruled: one firing added, Brazil dated 26 Oct, a mixed session "
+          f"({got})")
+    b26 = next(s for s in after if s["shock_date"] == "2026-10-26")
+    check(b26["opened_by"] == "same-day 1-day move" and b26["status"] == "watching",
+          f"Brazil 26 Oct: opened by the same-day move, watching ({b26['status']})")
+
+    def mem(country, kind, s5, z1, flagged):
+        return {"country": country, "kind": kind, "available": True, "stress5": s5,
+                "z1": z1, "flagged": flagged}
+    base = [mem(c, k, (0.3 if i % 2 else -0.4), 0.2, False)
+            for i, c in enumerate(COUNTRIES) for k in ("fx", "etf")
+            if c not in ("Brazil", "Indonesia")]
+    day26 = base + [mem("Brazil", "etf", -4.98, -12.38, True),
+                    mem("Brazil", "fx", 0.1, 0.0, False),
+                    mem("Indonesia", "etf", 2.7, 1.1, True),
+                    mem("Indonesia", "fx", 0.3, 0.4, False)]
+    c = ms.classify(day26, cfg)
+    check(c["state"] == "mixed" and c["countries_same_day"] == ["Brazil"],
+          f"EWZ at z1 -12.38 beside Indonesia's flag: mixed, Brazil past 4σ on the day "
+          f"({c['state']}, {c['countries_same_day']})")
+    under = base + [mem("Brazil", "etf", -3.0, -3.9, True),
+                    mem("Brazil", "fx", 0.1, 0.0, False),
+                    mem("Indonesia", "etf", 2.7, 1.1, True),
+                    mem("Indonesia", "fx", 0.3, 0.4, False)]
+    c2 = ms.classify(under, cfg)
+    s2 = ms.contagion_states([{"day": "2026-10-26", **c2, "spread_widening": False}], 5)
+    check(c2["countries_same_day"] == [] and s2 == [],
+          "a 3.9σ 1-day move on a mixed session opens nothing: the exactly-one rule "
+          "stays below 4σ")
+    sysd = [{"day": "2026-10-26", "state": "systemic", "countries_flagged": ["Brazil"],
+             "countries_same_day": ["Brazil"], "spread_widening": False}]
+    check(ms.contagion_states(sysd, 5) == [],
+          "a systemic session opens no single-country shock (it is contagion already)")
+    one = [{"day": "2026-10-26", "state": "idiosyncratic", "countries_flagged": ["Brazil"],
+            "countries_same_day": ["Brazil"], "spread_widening": False}]
+    check(len(ms.contagion_states(one, 5)) == 1,
+          "a country qualifying both ways opens one shock, not two")
+
+
+# ---------------------------------------------------------------------------
+# K. D2-90 (a): EACH PAST SESSION AS OF ITS OWN CLOSE (ruled 2 Nov 2026)
+# ---------------------------------------------------------------------------
+# Four countries' ETFs on about 340 sessions; EWZ falls 20% on 27 Oct, but its
+# rows from that day are written late (available 30 Oct 12:00Z, as H.10's batch
+# or a restatement would be). A run on 30 Oct classifies 27 Oct as of 27 Oct's
+# own close: no shock is dated 27 Oct, the late rows count first on 30 Oct, and
+# each shock row carries the instant it was classified as of.
+K_RUN, K_LATE = "2026-10-30", "2026-10-27"
+
+
+def group_k(td: str) -> None:
+    print(f"\n{LINE}\nK. D2-90 (a): EACH PAST SESSION CLASSIFIED AS OF ITS OWN CLOSE\n{LINE}")
+    path = str(Path(td) / "asof.db")
+    days = bdays(K_RUN, 1.3)
+    keys = {"Brazil": "yfinance.mkt_ewz", "Mexico": "yfinance.mkt_eww",
+            "South Africa": "yfinance.mkt_eza", "India": "yfinance.mkt_inda"}
+    st = observations.ObservationStore(path)
+    try:
+        for i, (country, key) in enumerate(keys.items()):
+            vals = price_walk(20 + i, days, 0.01)
+            rs = rows(key, None, days, vals)
+            if country == "Brazil":
+                j = days.index(K_LATE)
+                for r in rs[j:]:
+                    r["value"] = r["value"] * 0.8
+                    r["available_at"] = "2026-10-30T12:00:00+00:00"
+            st.write_many(rs)
+    finally:
+        st.close()
+    cfg = ms.load_config()
+    cfg = {**cfg, "min_observations": 60, "history_days": 500,
+           "em": {**cfg["em"], "spreads": [],
+                  "members": [{"country": c, "key": k, "kind": "etf"}
+                              for c, k in keys.items()]}}
+    run_cut = "2026-10-30T22:00:00+00:00"
+    own = ms.session_close_cutoff(K_LATE, cfg)
+    check(own == observations.canonical_instant("2026-10-27T20:45:00+00:00"),
+          f"27 Oct's own close: 16:45 ET, {own}")
+    with observations.ObservationStore(path) as st:
+        late = ms.classify(ms.em_member_moves(st, K_LATE, run_cut, cfg), cfg)
+        at_close = ms.classify(ms.em_member_moves(st, K_LATE, own, cfg), cfg)
+        shocks = ms.contagion(st, K_RUN, run_cut, cfg)
+    check(late["countries_flagged"] == ["Brazil"] and at_close["countries_flagged"] == [],
+          f"27 Oct read with the late rows is Brazil alone ({late['state']}); as of its "
+          f"own close it was {at_close['state']}")
+    dates = [(s["country"], s["shock_date"]) for s in shocks]
+    check(("Brazil", K_LATE) not in dates,
+          f"the run of 30 Oct dates no shock 27 Oct: that session is never "
+          f"reclassified by the late rows ({dates})")
+    b = [s for s in shocks if s["country"] == "Brazil"]
+    check(bool(b) and all(s["shock_date"] == K_RUN for s in b),
+          f"the late rows first count on 30 Oct, the first close that could know them "
+          f"({dates})")
+    check(bool(shocks) and all(s.get("classified_as_of") == ms.session_close_cutoff(
+              s["shock_date"], cfg) for s in shocks),
+          "each shock carries the instant its session was classified as of: its own close")
+    rows_ = ms.to_rows({"day": K_RUN, "screened": 0, "flags": [], "em": {},
+                        "contagion": shocks}, run_cut)
+    stored = [json.loads(r["value"]) for r in rows_
+              if r["registry_key"] == "screen.em_contagion"]
+    check(bool(stored) and all("classified_as_of" in s for s in stored),
+          "the stored screen.em_contagion rows carry classified_as_of")
+
+
 def main() -> int:
     print(f"{LINE}\nTHE STORE-WIDE MOVE SCREEN AND THE EM SCREEN\n{LINE}")
     td = gate_mkdtemp("validate_move_screen_")
@@ -514,6 +680,8 @@ def main() -> int:
     group_g(res)
     group_h()
     group_i(td)
+    group_j()
+    group_k(td)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 
