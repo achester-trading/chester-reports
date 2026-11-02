@@ -23,6 +23,7 @@ CLIENT_IDS: dict[str, int] = {
     "watchdog": 18,         # scripts/ibgateway_watchdog.sh -- the health probe
     "costs": 19,            # altdata/sources/ibkr_costs.py
     "whatif": 20,           # altdata/sources/ibkr_whatif.py; tools/decide.py preview
+    "paper_exec": 21,       # paper_exec/client.py (A98; paper port only, ships off)
     "auction": 23,          # altdata/loggers/auction.py
     "borrow": 25,           # altdata/loggers/borrow.py
     "bars": 27,             # altdata/sources/ibkr_bars.py (A93; built, switched off)

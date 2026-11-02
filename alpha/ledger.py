@@ -221,7 +221,14 @@ CREATE TABLE IF NOT EXISTS fills (
     cost_total       REAL NOT NULL,
     filled_at        TEXT NOT NULL,
     as_of            TEXT NOT NULL,
-    written_at       TEXT NOT NULL
+    written_at       TEXT NOT NULL,
+    -- A98's paper-fill fields (Ledger._paper_fill_fields adds them to an older
+    -- ledger): who wrote the row -- 'model' for the lab's modelled fill,
+    -- 'paper_exec' for an IBKR paper fill -- and, for a paper fill, the venue's
+    -- order id and the fill's own time.
+    source           TEXT NOT NULL DEFAULT 'model',
+    venue_order_id   TEXT,
+    venue_fill_time  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS positions (
@@ -429,6 +436,28 @@ CREATE TABLE IF NOT EXISTS carry_accruals (
     PRIMARY KEY (carry_id, day)
 );
 
+-- A98 (D43): "WHY THIS COULD FAIL" -- one critique per hypothesis from the
+-- critic call that never sees results (alpha/critique.py), written once.
+CREATE TABLE IF NOT EXISTS hypothesis_critiques (
+    hypothesis_id   TEXT PRIMARY KEY REFERENCES hypotheses(id),
+    modes           TEXT NOT NULL,
+    author          TEXT NOT NULL,
+    model_id        TEXT,
+    prompt_version  TEXT,
+    inputs_sha256   TEXT NOT NULL,
+    file_name       TEXT,
+    as_of           TEXT NOT NULL,
+    written_at      TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS hypothesis_critiques_fixed
+BEFORE UPDATE ON hypothesis_critiques
+BEGIN SELECT RAISE(ABORT, 'a critique is written once'); END;
+
+CREATE TRIGGER IF NOT EXISTS hypothesis_critiques_no_delete
+BEFORE DELETE ON hypothesis_critiques
+BEGIN SELECT RAISE(ABORT, 'a critique is kept'); END;
+
 CREATE INDEX IF NOT EXISTS positions_open ON positions (status, engine_id);
 CREATE INDEX IF NOT EXISTS events_by_time ON loop_events (written_at);
 
@@ -514,6 +543,7 @@ class Ledger:
             self.conn.execute("PRAGMA foreign_keys = ON")
             self._migrate()
             self.conn.executescript(SCHEMA)
+            self._paper_fill_fields()
             self.sync_restrictions()
             self.conn.commit()
 
@@ -531,6 +561,24 @@ class Ledger:
             raise RuntimeError(f"alpha.db holds {n} hypotheses in the Tranche 1 shape; "
                                "the register is not rewritten in place")
         self.conn.execute("DROP TABLE hypotheses")
+
+    # A98: THE PAPER-FILL FIELDS, added in place (ADD COLUMN only: no row is
+    # rewritten). `fill_kind`'s CHECK is left as it is -- widening it would mean
+    # rebuilding the table on the box's live ledger -- so a paper fill is told
+    # apart by `source`, and must carry the venue's order id and fill time.
+    PAPER_FILL_COLUMNS = (("source", "TEXT NOT NULL DEFAULT 'model'"),
+                          ("venue_order_id", "TEXT"), ("venue_fill_time", "TEXT"))
+
+    def _paper_fill_fields(self) -> None:
+        have = {r[1] for r in self.conn.execute("PRAGMA table_info(fills)")}
+        for col, decl in self.PAPER_FILL_COLUMNS:
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE fills ADD COLUMN {col} {decl}")
+        self.conn.execute(
+            "CREATE TRIGGER IF NOT EXISTS fills_paper_exec_fields BEFORE INSERT ON fills "
+            "WHEN NEW.source = 'paper_exec' AND (NEW.venue_order_id IS NULL "
+            "OR NEW.venue_fill_time IS NULL) BEGIN SELECT RAISE(ABORT, "
+            "'a paper_exec fill carries the venue order id and the fill time'); END")
 
     # -- plumbing -----------------------------------------------------------
     def close(self) -> None:
