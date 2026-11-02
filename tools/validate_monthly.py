@@ -1032,11 +1032,18 @@ def group_h() -> None:
               "fixture's FOMC is present, ISM is missing and footnoted")
         # QUARTERLY AND ONE-OFF ITEMS ONLY IN THEIR OWN MONTHS.
         ref = cov["Treasury quarterly refunding"]["windows"]
-        months_of = {w["name"]: {int(w["first"][5:7]), int(w["last"][5:7])}
+        months_of = {w["name"]: set(window_months(w["first"], w["last"]))
                      for w in la["windows"]}
-        refund_due = {n for n, ms in months_of.items()
-                      if ms & {2, 5, 8, 11} or any(m in (2, 5, 8, 11) for m in
-                                                   range(min(ms), max(ms) + 1))}
+        refund_due = {n for n, ms in months_of.items() if ms & {2, 5, 8, 11}}
+        # THE YEAR-END WRAP (B101b, ruled 1 Nov 2026): a window across 31 Dec
+        # holds exactly its own months, so December-January is never due.
+        dj = window_months("2026-12-01", "2027-01-31")
+        nj = window_months("2026-11-01", "2027-01-31")
+        check(dj == [12, 1] and nj == [11, 12, 1]
+              and window_months("2026-10-15", "2026-10-31") == [10]
+              and not set(dj) & {2, 5, 8, 11} and set(nj) & {2, 5, 8, 11},
+              f"a window across the year end holds exactly its own months "
+              f"(December-January {dj}, not due; November-January {nj}, due)")
         check(all((ref[n].get("expected") is False) == (n not in refund_due)
                   for n in ref)
               and not any(g.startswith("Treasury quarterly refunding for ")
@@ -1386,6 +1393,18 @@ def isolate_and_seed() -> str:
     print(f"  seeded {len(rows):,} observations, one market-state object for "
           f"{last} and one ledger forecast into {db}")
     return td
+
+
+def window_months(first: str, last: str) -> list[int]:
+    """The calendar months a look-ahead window holds, first to last, in order,
+    walking across the year end (B101b): 2026-12-01..2027-01-31 is [12, 1]."""
+    y, m = int(first[:4]), int(first[5:7])
+    ly, lm = int(last[:4]), int(last[5:7])
+    out = []
+    while (y, m) <= (ly, lm):
+        out.append(m)
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
 
 
 # THE GATE'S CLOCK (B101, 1 Nov 2026; A88's pattern). Every fixture here is dated

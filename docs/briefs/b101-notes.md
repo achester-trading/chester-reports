@@ -89,3 +89,80 @@ which shows it reaches the clock the gates read.
   skipped, and validate_st_t5_render 46/0.
 - **Mid-November on the base:** validate_monthly also fails at 16 Nov, the same
   check, so its failure is the whole month of November and not one day.
+
+## B101b: validate_voices pinned; the year-end wrap fixed
+
+Paste B101b (`docs/pastes/B101b.md`), 1 Nov 2026, continuing on this branch
+from `cc718cfb`.
+
+### validate_voices
+
+**The failing check on main (1 Nov 2026), verbatim:**
+
+```
+  FAIL  the Monthly's section 4: monthly status, 13F dated to its period of report, the weeks rolled up by story, the consensus line
+72 passed, 1 failed
+```
+
+The failing part of the check is the 13F column: Kilo's row printed "—" where
+"13F-HR for 2026-06-30" was expected.
+
+**Where the clock entered.**
+- The 13F pull (`voices_scan.pull_13f`) stamps `retrieved_at` with
+  `session.utc_iso()`, the real clock. So do the store's other writes.
+- The gate reads the Monthly's block as of a fixed `2026-11-01T12:00Z`.
+- From that instant on, the filing was retrieved after the cutoff, and the block
+  rightly left it out.
+
+That is point-in-time behaviour, and it is correct, so there was nothing to
+report as a defect. It is also why the base fails at 2 Dec.
+
+**The pin.**
+- `GATE_NOW = "2026-11-01T11:00:00+00:00"`. It falls after every fixture row and
+  before the month block's cutoff, which is the last instant the base passed.
+- `pin_clock()`, first in `main()`, sets `session.utc_now` to it for the gate's
+  run only.
+- Two cutoffs had been taken from the real clock so that they would follow the
+  scan's stamp (T3.2): the daily line and the week section. They now read
+  `session.utc_now()`, the same clock the scan stamps with.
+
+| validate_voices | 29 Oct | 1 Nov | 2 Dec |
+|---|---|---|---|
+| base | 73 / 0 | 72 / 1 | 72 / 1 |
+| branch | 73 / 0 | 73 / 0 | 73 / 0 |
+
+The branch on the real clock, unshifted: 73 / 0.
+
+### validate_monthly: the window-months helper
+
+**Before**, inline in the refunding check:
+
+```python
+months_of = {w["name"]: {int(w["first"][5:7]), int(w["last"][5:7])} ...}
+refund_due = {n for n, ms in months_of.items()
+              if ms & {2, 5, 8, 11} or any(m in (2, 5, 8, 11) for m in
+                                           range(min(ms), max(ms) + 1))}
+```
+
+For {12, 1} that range is January to December, so December–January counted as
+due.
+
+**After.** `window_months(first, last)` walks month by month from the first to
+the last, across the year end. The due set is `window_months(...) ∩ {2, 5, 8,
+11}`. The refunding rule is unchanged.
+
+**The fixture case added.** One check, "a window across the year end holds
+exactly its own months":
+- December–January is `[12, 1]`, not due;
+- November–January is `[11, 12, 1]`, due;
+- a single October window is `[10]`.
+
+**Tallies.** B101's pin is kept at `2026-10-15T20:45Z`.
+
+| Run | Windows | Tally |
+|---|---|---|
+| pinned, as committed | October, November–December | 361 / 0 (1 skipped) |
+| GATE_NOW set to 2026-11-16, a temporary copy, never committed | November, December–January | 361 / 0 (1 skipped) |
+
+In the 16 Nov run, the refunding check printed
+`{'November': True, 'December–January': False}` and passed.
