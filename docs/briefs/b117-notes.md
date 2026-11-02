@@ -20,7 +20,7 @@ only the column appended.
 | 1 | XXVII | Keep the length (24,647) | (iii) | — | Ruled by D30(4); cuts are marked on review |
 | 2 | XXVII | No rewording of 17.4's proposed rule | (iii) | — | Ruled by D30(2); it stays a proposal, for Doctrine #3 |
 | 3 | XXVII | Cite the missing 13 Sep order by name, as its record; merge after chain-8 | **(i)** | `library-xxvii` | **`26302feb`**: B.7 in XXVII's dated Appendix B, citing "Post-Freeze Amendment #3 (13 Sep 2026; its record, original not committed)" by name. Not as a link: the record file reaches main with chain-8 and is not on this branch. The order (chain-8 first) holds in B116's script |
-| 4 | Phase 3a | One reader's-note sentence on Foundations' numbering gaps | **(iv)** | `library-phase-3a` | The reader's note is body text, and B117's rule allows no body edit. Next step: the operator's go to add, at phase 3a's PR, "Moved sections keep their numbers and are in Appendix B." |
+| 4 | Phase 3a | One reader's-note sentence on Foundations' numbering gaps | **(i) built, B119 `fc336a4e`** | `library-phase-3a` | Ruled 2 Nov: the reader's note is the paper's status block, not its body. The sentence added: "Moved sections keep their numbers and are in Appendix B." (B117 had classed it (iv)) |
 | 5 | Phase 3a | Keep `docs/whitepapers/companions/` | (iii) | — | No change; the gate passes today |
 | 6 | Phase 3a | Keep the two dated passages in the bodies | (iii) | — | No change now; a Phase 3b at the papers' next edition |
 | 7 | XXXI | The ten triggers' roll-up tiers | **(iv)** | `library-xxxi` | Ruled at Doctrine #2 (7–8 Nov). Next step: a writing paste records the ruled rule on the branch before its PR |
