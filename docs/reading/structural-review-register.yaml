@@ -50,6 +50,8 @@ papers:
   - {numeral: XXIII, slug: evidence-inference, version: "1.0", version_date: 2026-09-01, last_reviewed: null, review_month: 2, status: never reviewed, log: null}
   - {numeral: XXIV, slug: earnings, version: "1.0", version_date: 2026-09-01, last_reviewed: null, review_month: 6, status: never reviewed, log: null}
   - {numeral: XXV, slug: price-time-and-edge, version: "1.1", version_date: 2026-09-01, last_reviewed: null, review_month: 8, status: never reviewed, log: null}
+  - {numeral: XXIX, slug: real-assets-and-risk-transfer, version: "1.0 Draft 1", version_date: 2026-10-26, last_reviewed: null, review_month: 3, status: never reviewed, log: null}
+  - {numeral: XXX, slug: market-structure-and-cascades, version: "1.0 Draft 1", version_date: 2026-10-26, last_reviewed: null, review_month: 7, status: never reviewed, log: null}
   - {numeral: XXXII, slug: annual-structural-review, version: "1.0", version_date: 2026-10-24, last_reviewed: null, review_month: 12, status: never reviewed, log: null}
   - {numeral: XXXIII, slug: reporting-system, version: "Draft 3", version_date: 2026-10-19, last_reviewed: null, review_month: 11, status: never reviewed, log: null}
   - {numeral: XXXIV, slug: emerging-markets, version: "Draft 1", version_date: 2026-10-01, last_reviewed: null, review_month: 5, status: never reviewed, log: null}
