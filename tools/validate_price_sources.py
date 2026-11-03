@@ -504,6 +504,35 @@ def group_h() -> None:
           "no consensus, so no surprise; a fourth quarter carries no EPS rather than a subtraction")
     check(not any(a.startswith("2026-04") or e.observed_at.startswith("2026-04") for a, e in ev),
           "a report whose quarter's 10-Q is not yet accepted is not written yet")
+    # A114: why an event carries no EPS, matched exactly. The fixture's two
+    # written reports are an ordinary quarter (10-Q, 2025-03-31) and a fourth
+    # quarter (10-K, 2025-12-31); with no EPS fact, each name's reason prints.
+    noeps = _facts()
+    del noeps["facts"]["us-gaap"]["EarningsPerShareDiluted"]
+
+    def notes(sym):
+        return [(e.payload["period_end"], e.payload["reported_eps"], e.payload["eps_note"])
+                for _a, e in x.earnings_events(sym, _subs(), noeps, ec)]
+    check(set(ec.get("gaps") or {}) == {"BRK-B", "V", "C"}
+          and all(g.get("reason") and g.get("dated") and "dry run" in g.get("cited", "")
+                  for g in ec["gaps"].values()),
+          "A114: earnings.gaps lists BRK-B, V and C, each with its reason, date and the dry run cited")
+    check(notes("BRK-B") == [("2025-03-31", None, "no quarterly EPS tag in us-gaap"),
+                             ("2025-12-31", None, "no quarterly EPS tag in us-gaap")],
+          "A114: BRK-B prints its gap reason, on a fourth quarter too")
+    check(notes("V") == [("2025-03-31", None, "EPS filed by share class only"),
+                         ("2025-12-31", None, "EPS filed by share class only")],
+          "A114: V prints its gap reason")
+    check(notes("C") == [("2025-03-31", None, "EPS not found"),
+                         ("2025-12-31", None, "quarterly EPS series ends 2025-Q3")],
+          "A114: C's reason applies only after its series ends (2025-09-30); before it, the ordinary reason")
+    check(notes("AMZN") == [("2025-03-31", None, "EPS not found"),
+                            ("2025-12-31", None, "not filed as a quarter")],
+          "A114: an unlisted name: the fourth-quarter reason only on a 10-K quarter, "
+          "'EPS not found' on an ordinary quarter")
+    check([e.payload["eps_note"] for _a, e in x.earnings_events("BRK-B", _subs(), _facts(), ec)][0] is None
+          and [e.payload["reported_eps"] for _a, e in x.earnings_events("BRK-B", _subs(), _facts(), ec)][0] == 1.25,
+          "A114: a filed EPS prints with no reason, whatever the gaps table says")
     import gate_tmp                                              # noqa: PLC0415
     from altdata import events as evm                            # noqa: PLC0415
     path = str(Path(gate_tmp.mkdtemp("a102_w_")) / "ev.db")

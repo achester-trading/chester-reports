@@ -430,6 +430,26 @@ def fetch_fundamentals(cfg: dict, headers: dict) -> list[dict]:
 
 
 # -- past earnings dates ------------------------------------------------------
+FOURTH_QUARTER_REASON = "not filed as a quarter"
+NOT_FOUND_REASON = "EPS not found"
+
+
+def eps_gap_reason(symbol: str, period_end: str, periodic_form: str,
+                   cfg: dict) -> str:
+    """Why an event carries no EPS (A114): the name's listed gap in
+    config/edgar_xbrl.yaml `earnings.gaps` (for a quarter ending after its
+    `after` date, when one is given); the fourth-quarter reason only when the
+    quarter's periodic report is a 10-K; "EPS not found" otherwise. Only the
+    reason: the figure stays absent, never filled from another source."""
+    gap = (cfg.get("gaps") or {}).get(symbol) or {}
+    after = str(gap.get("after") or "")
+    if gap.get("reason") and (not after or period_end > after):
+        return str(gap["reason"])
+    if periodic_form == "10-K":
+        return FOURTH_QUARTER_REASON
+    return NOT_FOUND_REASON
+
+
 def earnings_events(symbol: str, submissions: dict, companyfacts: dict,
                     cfg: dict) -> list[tuple[str, "object"]]:
     """[(available_at, Event)] for one name's past reports: the 8-K item 2.02's
@@ -453,7 +473,7 @@ def earnings_events(symbol: str, submissions: dict, companyfacts: dict,
         elif forms[i] in ("10-Q", "10-K") and periods[i]:
             p = str(periods[i])[:10]
             if p not in periodic or acc < periodic[p][0]:
-                periodic[p] = (acc, accns[i])
+                periodic[p] = (acc, accns[i], forms[i])
     eps = period_facts(companyfacts, list(cfg.get("eps_tags") or []),
                        acceptance_map(submissions), unit="USD/shares")
     lag = int(cfg.get("max_report_lag_days", 100))
@@ -464,7 +484,7 @@ def earnings_events(symbol: str, submissions: dict, companyfacts: dict,
         if not prior:
             continue
         end = max(prior)
-        p_acc, p_accn = periodic[end]
+        p_acc, p_accn, p_form = periodic[end]
         q =[v for (s, e), v in eps.items() if e == end and s and 80 <= _days(s, e) <= 100]
         first = q[0][0] if q else None
         avail = max(acc, p_acc, first[0] if first else "")
@@ -476,7 +496,7 @@ def earnings_events(symbol: str, submissions: dict, companyfacts: dict,
             entities=[symbol], key=f"edgar-earnings-{symbol}-{day}",
             payload={"symbol": symbol, "reported_eps": reported,
                      "eps_note": (None if reported is not None
-                                  else "not filed as a quarter"),
+                                  else eps_gap_reason(symbol, end, p_form, cfg)),
                      "eps_estimate": None, "surprise_pct": None,
                      "consensus": NO_CONSENSUS, "surprise_kind": None,
                      "period_end": end, "report_accession": accn,

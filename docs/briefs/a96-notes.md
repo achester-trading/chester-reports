@@ -647,3 +647,57 @@ on a clean run.
 **Nothing is stored and the writers stay off.** Both `enabled: false` switches
 are unchanged. No figure from the runs is in this file: only the row, key,
 event and company counts.
+
+## A114 (2 Nov 2026): the EPS gaps print their own reasons
+
+Base `8f72548d` (origin/a96-price-migration-fred at its tip). Paste committed
+first as `docs/pastes/A114.md`.
+
+**The gaps table**, `config/edgar_xbrl.yaml` `earnings.gaps`, each dated
+2026-11-02 and citing A104's earnings dry run:
+
+| Name | Reason printed | Applies to |
+|---|---|---|
+| BRK-B | "no quarterly EPS tag in us-gaap" | every quarter |
+| V | "EPS filed by share class only" | every quarter |
+| C | "quarterly EPS series ends 2025-Q3" | quarters ending after 2025-09-30 (`after`) |
+
+**The reader's three reason paths** (`eps_gap_reason` in
+`altdata/sources/edgar_xbrl.py`), only when no EPS is filed for the quarter:
+1. the name's listed gap, within its `after` date when one is given;
+2. "not filed as a quarter" only when the quarter's periodic report is a 10-K
+   (the reader now keeps each periodic report's form);
+3. "EPS not found" otherwise.
+
+The figure stays absent on every path; no other source fills it. A filed EPS
+prints with no reason, whatever the table says. No other module reads
+`eps_note` (the Weekly's blocks do not print it), so nothing else changed.
+
+**Fixtures** (`validate_price_sources` group H, exact text): BRK-B and V on an
+ordinary and a fourth quarter; C before its series end ("EPS not found") and
+after it (its gap); an unlisted name on an ordinary quarter ("EPS not found")
+and a 10-K quarter ("not filed as a quarter"); a filed EPS with a listed gap
+(no reason).
+
+**The dry run, once** (2 Nov 2026, the laptop, the contact set; the dry run's
+own code path from a scratch script that also tallied each event's reason by
+name; 59 requests, 71 s, nothing written):
+
+```
+{"dry_run": true, "events": 282, "report": {"symbols": 29, "missing": [], "failed": {}}}
+BRK-B {'no quarterly EPS tag in us-gaap': 12}
+V {'EPS filed by share class only': 11}
+C {'quarterly EPS series ends 2025-Q3': 3}
+```
+
+Across all 29 names: 197 events print an EPS, 59 "not filed as a quarter",
+26 a listed gap, 0 "EPS not found".
+
+| Gate | Result |
+|---|---|
+| `validate_price_sources` | 65 passed, 0 failed |
+| `validate_weekly_calendar` | 44 passed, 0 failed |
+| `validate_quality` | 48 passed, 0 failed |
+| `check_registry` | OK |
+
+The writers stay off; nothing stored.

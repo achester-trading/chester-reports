@@ -131,8 +131,29 @@ fundamentals:
 # exchange calendar on 1 Nov 2026, none passed) and NO CONSENSUS: the consensus
 # was Yahoo's (Ticker.calendar's 'Earnings Average', get_earnings_dates' EPS
 # estimate), so from the switch the surprise is a listed gap.
+#
+# WHY AN EVENT CARRIES NO EPS (A114, 2 Nov 2026). The reader prints one reason,
+# in this order: the name's entry in `gaps` (for a quarter ending after its
+# `after` date, when one is given); "not filed as a quarter" only when the
+# quarter's periodic report is a 10-K (a fourth quarter); "EPS not found"
+# otherwise. The figure stays absent in every case: no other source fills it
+# (Yahoo's EPS is the pair's other side, never a filler).
 earnings:
   enabled: false
   eps_tags: [EarningsPerShareDiluted, EarningsPerShareBasicAndDiluted]
   max_report_lag_days: 100
   quarters_back: 12
+  gaps:
+    BRK-B:
+      reason: "no quarterly EPS tag in us-gaap"
+      dated: "2026-11-02"
+      cited: "A104's earnings dry run, 2 Nov 2026 (docs/briefs/a96-notes.md): company facts holds no ungrouped quarterly EPS; Berkshire states per-share earnings per Class A equivalent"
+    V:
+      reason: "EPS filed by share class only"
+      dated: "2026-11-02"
+      cited: "A104's earnings dry run, 2 Nov 2026 (docs/briefs/a96-notes.md): the only quarterly per-share facts are dividends; Visa's EPS is filed by class, which the ungrouped series does not carry"
+    C:
+      reason: "quarterly EPS series ends 2025-Q3"
+      after: "2025-09-30"
+      dated: "2026-11-02"
+      cited: "A104's earnings dry run, 2 Nov 2026 (docs/briefs/a96-notes.md): EarningsPerShareDiluted and EarningsPerShareBasic run to the quarter ending 30 Sep 2025; none is served for Citi's 2026 10-Qs"
