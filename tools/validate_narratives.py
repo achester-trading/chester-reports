@@ -681,6 +681,7 @@ def group_e() -> None:
         # after groups A-C wrote their evaluations, is later than all of them on
         # any date; the as-of read itself is proved below, against those rows.
         from altdata import session  # noqa: PLC0415
+        # THE GATE'S CLOCK (B106): reads today on purpose -- the register read as of the run's instant. Next attention: none.
         cut = session.utc_iso(timespec="microseconds")
         rows = contra.narrative_rows(spec, {"credit": {"state": "neutral",
                                                        "direction": "-"}},

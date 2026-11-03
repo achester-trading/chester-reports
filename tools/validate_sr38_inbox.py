@@ -575,7 +575,23 @@ def group_f() -> None:
                 os.environ[k] = v
 
 
+# THE GATE'S CLOCK (A110, 3 Nov 2026; B101's pattern). The fixture's workbook is
+# as of 2026-09-30 and the freshness roster judges it against now: by 15 Mar
+# 2027 the first drop's keys are past their allowance, so "the three keys are
+# fresh" fails (the sweep's 15 Mar clock). The clock is pinned to the gate's own
+# cut (group E's) for the gate's run only; the code keeps its rule.
+GATE_NOW = "2026-10-12T00:00:00+00:00"
+
+
+def pin_clock() -> None:
+    import datetime as dt
+    from altdata import session
+    session.utc_now = lambda: dt.datetime.fromisoformat(GATE_NOW)
+
+
 def main() -> int:
+    pin_clock()
+    print(f"the gate's clock is pinned to {GATE_NOW}")
     print(f"{LINE}\nSR-38: S&P DJI'S EPS WORKBOOK, FROM THE INBOX (SYNTHETIC FIXTURE)\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f):
         g()

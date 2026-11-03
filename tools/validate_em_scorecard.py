@@ -177,7 +177,9 @@ def group_b() -> None:
           f"WEO: each edition's instant is the later of its PUBLICATION_DATE and UPDATE_DATE "
           f"({cur['published']}, {oct_['published']})")
     rows = imf_weo.rows_from(cur, now="2026-10-11T12:00:00Z")
-    today = session.session_date()
+    # THE GATE'S CLOCK (B106): reads today on purpose -- no projection past today is stored. Next attention: none (the fixture's rows end in 2025).
+    # (A110: still the REAL today, read past the gate's pin below.)
+    today = session.session_date(REAL_UTC_NOW() if REAL_UTC_NOW else None)
     check(rows and max(r["observed_at"] for r in rows) <= today
           and not any(r["observed_at"] > today for r in rows),
           f"WEO: projections (to 2031 in the response) are not stored -- latest row "
@@ -416,7 +418,28 @@ def group_h() -> None:
           "the Monthly's slow layers print the scorecard's line")
 
 
+# THE GATE'S CLOCK (A110, 3 Nov 2026; B101's pattern). The fixture stores WEO
+# GDP rows to 2026-12-31 (a projection) and the scorecard reads them as of now:
+# from 1 Jan 2027 that row is knowable, so "the latest full year's GDP" and
+# Brazil's debt as-of move (the sweep's 4 Jan and 15 Mar clocks). The clock is
+# pinned to the fixture's own instant for the gate's run only; the code keeps
+# its rule. B106's one deliberate read of today (group B) still reads the real
+# clock, through REAL_UTC_NOW.
+GATE_NOW = "2026-10-11T12:00:00+00:00"
+REAL_UTC_NOW = None
+
+
+def pin_clock() -> None:
+    import datetime as dt
+    from altdata import session
+    global REAL_UTC_NOW
+    REAL_UTC_NOW = session.utc_now
+    session.utc_now = lambda: dt.datetime.fromisoformat(GATE_NOW)
+
+
 def main() -> int:
+    pin_clock()
+    print(f"the gate's clock is pinned to {GATE_NOW}")
     print(f"{LINE}\nTHE EM VULNERABILITY SCORECARD (AQ-9a)\n{LINE}")
     group_a()
     group_b()

@@ -60,6 +60,7 @@ FIX = REPO / "tests" / "fixtures" / "security_master"
 TMP = Path(mkdtemp("gate_secmaster_"))
 LINE = "=" * 78
 PASSED = FAILED = 0
+# THE GATE'S CLOCK (B106): reads today on purpose -- the real master's identifiers resolved today. Next attention: the next active window in config/security_master.yaml that ends.
 TODAY = dt.date.today().isoformat()
 
 

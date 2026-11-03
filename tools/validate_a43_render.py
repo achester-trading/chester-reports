@@ -59,6 +59,7 @@ TD = Path(mkdtemp("a43-render-gate-"))
 # A cutoff after this run: the vendor pull's fixture rows are available at the
 # wall clock's instant.
 import datetime as _dt                                          # noqa: E402
+# THE GATE'S CLOCK (B106): reads today on purpose -- a cutoff one day after the run, so every row the run writes is visible. Next attention: none.
 AFTER_RUN = (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(days=1)).isoformat()
 CAL = REPO / "tools" / "calibration"
 LEDGERS = REPO / "docs" / "ledgers"
