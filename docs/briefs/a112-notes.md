@@ -24,6 +24,10 @@ Part 4 can point to this file when b91 next moves.
     mixed session included.
 - **A systemic session opens no single-country shock.** It is contagion
   already. That is option (i) of B105's draft, "systemic excepted".
+  - **Confirmed by the operator, 2 Nov 2026, after A112 reported:** "your
+    reading stands — a systemic session opens no single-country shock (it is
+    already contagion); the 4-sigma same-day rule applies on idiosyncratic and
+    mixed sessions only." The build already does this; no code changed.
 - A country qualifying both ways opens one shock, not two.
 - Each shock row now carries `opened_by` ("single country" or "same-day 1-day
   move").
