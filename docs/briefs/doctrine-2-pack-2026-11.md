@@ -1,13 +1,14 @@
 # The Doctrine #2 preparation pack (7–8 November 2026)
 
 **Reading time.**
-- **Decision list:** about 21 minutes for the decision list (D2-1 to D2-90, 4,903 words). It can be taken in one read.
-- **Supporting text:** about 37 minutes for Parts 1–12 (8,586 words), the evidence behind the decisions.
-- **Whole pack:** about 96 minutes including the annexes. The annexes are read only for an item the sitting pulls.
-- **Basis:** 230 words a minute, 21,991 words in all by `wc -w`, inside the two-hour sitting.
+- **Decision list:** about 22 minutes for the decision list (D2-1 to D2-91, 5,162 words). It can be taken in one read.
+- **Supporting text:** about 40 minutes for Parts 1–12 (9,210 words), the evidence behind the decisions.
+- **Whole pack:** about 100 minutes including the annexes. The annexes are read only for an item the sitting pulls.
+- **Basis:** 230 words a minute, 22,906 words in all by `wc -w`, inside the two-hour sitting.
 - **The B104 addition (1 Nov 2026):** Part 12, in the decision list and in the text, with its line in Part 11, adds 1,791 words (about 8 minutes).
 - **The B105 addition (1 Nov 2026):** D2-90, the EM shock screen's amendment, adds 364 words (about 2 minutes).
 - **The B118 addition (2 Nov 2026):** Part 10's addendum of 2 Nov (the measurements since B96) and two source fixes in Part 12 add 699 words (about 3 minutes).
+- **The B125 addition (2 Nov 2026):** D2-91, the X pilot at its decision point, with Part 10's "X pilot" table and its Part 12 evidence, adds 915 words (about 4 minutes).
 
 **What this is.** This is the pack for the second Doctrine sitting, refreshed with October's rulings (A67, 24 Oct 2026). It replaces the agenda of the 20 Oct edition (a52-doctrine-2-pack) and keeps every item of that edition that still applies (Part 8, with its full text in Annexes A and B). It gathers in one place everything October left "proposed", "session-set" or "to Doctrine #2".
 
@@ -212,8 +213,9 @@ The decisions that arose on 1 Nov: the readable editions, the X layer under the 
 | D2-88 | The ES cards and the Sunday map in the register | The register rows "ES day-trading card (DTH-1's manual edition)" and "ES Sunday map" (on b102); A92 (`a92-notes.md`, on `a92-dth1-box-pieces`) and the A92 addendum the order schedules (F3, D52, D54) | Whether the operator's private cards, read by nothing in the system, belong in Table 2 at all, and whether their Drive folder's archive copy (D54) is the right record | (a) keep the rows and the archive (as ruled); (b) keep the rows, no archive; (c) move the rows to a private note outside the repo | D50 and D54 are the rulings that option (a) restates |
 | D2-89 | The Monthly's first-edition withholds as an incident | A95's paste (`docs/pastes/A95.md`, on `a95-monthly-first-edition`; its notes, `docs/briefs/a95-notes.md`, are on the same branch at `a2737d15`, B118); the 1 Nov order, F4; the Reporting System paper's Appendix F.1 (B103, on b102) | Whether sixteen withheld paragraphs on the first stacked Monthly are logged as an incident under Part IX §9.8 of the Reporting System paper (a failure that reached production), with its lesson, or as the audit's expected behaviour on a first run | (a) an incident, with the lesson "the writer's data block must carry every scaled figure's display string and series name before the audit binds"; (b) not an incident: the audit worked as designed; (c) an incident only if the 1 Dec edition withholds more than three | Appendix F.1 records the run and A95's disposition, and says the audit held. It does not rule the question |
 | D2-90 | The EM shock screen's amendment (filed 105(a), Batch 19) | `docs/briefs/b91-notes.md` Part 3 (B105, on `b91-batch-19-filing`): the operator's box reading of 1 Nov and the drafted amendment; `altdata/move_screen.py` | Whether the screen opens a country's shock on the day of a very large single-member move (Brazil's EWZ, z1 -12.38 on 26 Oct, opened nothing because the session was "mixed"), and what it adds for Brazil's FX and rates legs | (a)(i) a member's \|z1\| at or past a bar (drafted: 4) opens its country's shock that session; (a)(ii) every flagged country on a mixed session opens one; (a)(iii) the dating as built; separately, past sessions classified as of their own close; (b) the central bank's daily PTAX rate as a candidate FX source for the 16 Oct check (A96's switch), FRED's H.10 the reference until then; (c) the policy rate and a DI-pre tenor from the same service as a listed gap with a named candidate; (d) report-only confirmed | B105's notes recommend (a)(i) at 4 with the as-of-close fix, (b) and (c) as candidates for the check, and (d). Those are drafts; the sitting rules |
+| D2-91 | Item 50, the X pilot, at its decision point (B125) | The operator's reading of `x-rumour-ledger.csv`, 2 Nov 2026 (a Drive file, `chester-vendor-checks/x-triage/`, not in the repo): Part 10's "X pilot" table; the register rows of the Grok digests and the triage (`docs/master-guide/chat-tasks.yaml`, on b102); D2-85 | Continue, promote or stop the pilot after fifteen morning runs (19 Oct–2 Nov) | (a) **continue** to Audit #5 as a pilot, the evening run added only if a third Grok slot exists (D2-85), the rumour ledger kept as the base-rate record. Cost: one morning run a day (about 10 minutes), the two Grok slots as now, a third only for the evening run. (b) **promote**: the rumour ledger becomes a registered base-rate source (a read-only row in the register; rights unchanged, attention and rumour tracking only), the evening-note block (item 115) built after the sitting, and the morning triage shortened to the principals, the rumours and the checkable claims, the attention statistics dropped until the ledgers are whole. Cost: the morning run, shorter; the two slots; the evening block's input needs a third slot or D2-85's swap; one build after the sitting. (c) **stop** the pilot and keep the ledgers as a dated record. Cost: none going forward; the two slots and the morning run freed | Options only; no recommendation beyond the rule-31 form. Taken with D2-85, whose option (c) waits on this decision point |
 
-**How Part 12 is taken.** D2-85 holds any X-layer build, and D2-86 holds Audit #5's agenda; Part 11 places them. D2-90 (B105) is taken with them; it releases no build until its sources pass the 16 Oct check. D2-84, D2-87 and D2-88 each want their own ruling. D2-89 is a record, and can be taken with D2-83.
+**How Part 12 is taken.** D2-85 holds any X-layer build, and D2-86 holds Audit #5's agenda; Part 11 places them. D2-91 (B125), the X pilot's decision point, is taken with D2-85: the two decide the X layer's runs and slots together. D2-90 (B105) is taken with them; it releases no build until its sources pass the 16 Oct check. D2-84, D2-87 and D2-88 each want their own ruling. D2-89 is a record, and can be taken with D2-83.
 
 ---
 
@@ -696,6 +698,23 @@ branch since B96, so the tables above stand.
 | The merge week rehearsed, A105 and A106 | A105's run green (41393587121). A106 added b97, b98 and b99 (steps 22a–22c): the gate count is 167, and the merged tree's code gates pass on the laptop. A106's run, 41522379720, was queued at its one read; at B118's read, GitHub lists it cancelled, superseded by the script's later push | `docs/briefs/a105-merge-week-script.md`; `a105-merge-week-rehearsal-2`, `b8023fba` |
 | A110's sweep | Pending: no A110 branch was pushed by 2 Nov | — |
 
+**X pilot** (B125, for D2-91). The operator's reading of `x-rumour-ledger.csv`,
+2 Nov 2026: the file `chester-vendor-checks/x-triage/x-rumour-ledger.csv`, rows
+19 Oct to 2 Nov, every figure counted by hand from the file. The ledger lives in
+Drive and the box's inbox, not in the repository, and its handles stay there.
+
+| Item | The operator's reading |
+|---|---|
+| Runs | 15 morning triage days (19 Oct–2 Nov); 0 evening runs (the evening automation has no Grok slot: the plan allows two automations) |
+| Rumours tracked | 37 claim keys: chapter A (crypto) 22, chapter B (equity-vol and macro) 15 |
+| Status per key at 2 Nov | Confirmed 2: both the Binance incident of 29–30 Oct, confirmed on the issuer's own statements (the ~$6.3bn figure, and the founder's post on covering the gap). Denied 1: the CoinDCX outflow, denied by the issuer and contested on-chain. Faded 22: absent three consecutive runs, never resolved against a primary source. Unverified and open 12, among them the MSTR/MSCI exclusion claim (recurring since 19 Oct in eight forms, resolving on MSCI's 11 Nov list), the Iran operation reports, and the DPRK attribution of the Binance hack |
+| Credibility at first sighting, as the triage labelled it | Slogan about 14: every one faded or still circulating as a slogan, none resolved. Recycled about 6: all restatements of the same MSCI methodology or the JPMorgan conditional estimate, none resolved. Doubtful about 7: none confirmed, one contradicted at post time (the "Ibovespa -20%" claim while the market was closed). Plausible about 8: 2 confirmed, both issuer-sourced news rather than rumour; the rest open or faded |
+| So far | 2 of 37 rumours confirmed (5%), both issuer statements of a real event that reached X first; 59% faded without any primary-source resolution; the "slogan" and "recycled" labels were right in every case that resolved |
+| Verification | At most three to five primary-source checks a run (the budget). The morning file's A-chatter sections (reply sentiment, disagreements) have been absent since 29 Oct (the v3 layout) |
+| Data | The attention ledgers' daily rows have been staged in pending files since 31 Oct, because the chat-side task cannot rewrite the full ledgers. A117 fixes the box's reader; the chat-side fold is the operator's |
+| Costs | One Opus run a day of about 10 minutes (morning). The evening run is paused. The Grok side is the operator's subscription, with two automation slots |
+| Not produced | No signal-triage candidate adopted from X: the triage's "candidates" line has read "none" on every run the operator has seen. The x-triage files' Candidates sections could be counted if the sweep's inbox copies were committed; they are not. No measured attention shock preceded a move the system's own readings missed: no such case is recorded |
+
 ---
 
 ## Part 11. The sitting's order of business
@@ -775,6 +794,11 @@ The evidence behind the six rows of the decision list's Part 12. Every citation 
   - **Why, from the code:** `contagion_states` in `altdata/move_screen.py` opens a shock only on an idiosyncratic session (one country flagged); 26 Oct was mixed (Brazil and Indonesia). The shocks are dated 27 and 28 Oct, when Brazil was alone.
   - **Two more findings there:** the FX leg (`fred.usd_brl`, H.10) was last dated 23 Oct, inside its 7-day allowance; and `contagion` reclassifies past sessions as of the run, so a shock can appear or vanish between runs.
   - **The options** are B105's draft; nothing is built or fetched before the sitting rules.
+- **D2-91, the X pilot at its decision point (B125).**
+  - **The evidence:** Part 10's "X pilot" table, the operator's reading of `x-rumour-ledger.csv` on 2 Nov 2026 (a Drive file, not committed). Fifteen morning runs, 37 rumours, 2 confirmed, 22 faded, 12 open.
+  - **No existing row carried it:** D2-85 decides the X layer's cadence, and its option (c) is to "hold at two until item 50's decision point". No row decided that point itself, so it is D2-91. Item 50 sits in Table 5.1 as SR-65 (drafted), "not built (Tranche 0 chat-side; Tranche 1 awaits a ruling)".
+  - **What the evidence does not reach:** the attention statistics, staged since 31 Oct until A117's reader and the operator's fold make the ledgers whole; and the candidates count, which needs the triage files committed.
+  - **The options** are the paste's, with each one's runs and slots; nothing is built before the sitting rules.
 
 ## Annex A. The 20 Oct edition's items in full
 
