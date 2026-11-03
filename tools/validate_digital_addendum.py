@@ -480,6 +480,10 @@ def main() -> int:
           "a file without its copy stamp falls back to its modification time and the "
           "footnote says so")
 
+    # --- D2 -------------------------------------------------------------------
+    head("D2. THE PENDING LEDGERS (A117)")
+    pending_group(da, cfg, inbox, kw, db_a)
+
     # --- E --------------------------------------------------------------------
     head("E. AHEAD: DATED ENTRIES, MARKERS, THE WEEKLY'S AHEAD")
     ed_e = da.build("2026-10-23", as_of="2026-10-25T09:00:00+00:00", db_path=db_a,
@@ -706,6 +710,107 @@ def main() -> int:
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 0 if FAIL == 0 else 1
+
+
+HDR = "date,theme,volume_class,grok_estimate,representative_url,shock_flag,notes\n"
+
+
+def pending_group(da, cfg: dict, inbox: Path, kw: dict, db_a: str) -> None:
+    """A117: the reader unions each attention ledger with its pending files."""
+    import logging                                               # noqa: PLC0415
+    base = TD / "inbox-pending"
+    tri = base / "x-triage"
+    tri.mkdir(parents=True)
+    for name in ("x-attention-ledger.csv", "x-voices-ledger.csv"):
+        (tri / name).write_text((inbox / "x-triage" / name).read_text(encoding="utf-8"),
+                                encoding="utf-8")
+        stamp(tri / name, "2026-11-01T08:00:00+00:00")
+    files = {
+        # duplicates a main date: both keys are the main file's, so both shadowed
+        "x-attention-ledger-pending-2026-10-27.csv": HDR
+        + "2026-10-27,flows,low,low,https://x.com/f/status/90,no,PENDING MERGE\n"
+        + "2026-10-27,treasury-co,low,low,https://x.com/t/status/91,no,PENDING MERGE\n",
+        # adds a date the main file lacks
+        "x-attention-ledger-pending-2026-10-30.csv": HDR
+        + "2026-10-30,flows,high,high,https://x.com/f/status/92,yes,PENDING MERGE\n"
+        + "2026-10-30,stablecoins,medium,medium,https://x.com/s/status/93,no,PENDING MERGE\n",
+        # malformed: no date and theme columns
+        "x-attention-ledger-pending-2026-10-29.csv": "day,topic\n2026-10-29,flows\n",
+        # chapter B's pair
+        "x-attention-ledger-eqmacro.csv": HDR
+        + "2026-10-30,rates,high,high,https://x.com/r/status/94,no,\n"
+        + "2026-10-30,dollar,low,low,https://x.com/d/status/95,no,\n",
+        "x-attention-ledger-eqmacro-pending-2026-10-31.csv": HDR
+        + "2026-10-30,rates,low,low,https://x.com/r/status/96,no,PENDING MERGE\n"
+        + "2026-10-31,rates,medium,medium,https://x.com/r/status/97,no,PENDING MERGE\n",
+    }
+    for name, text in files.items():
+        (tri / name).write_text(text, encoding="utf-8")
+        stamp(tri / name, "2026-11-01T08:00:00+00:00")
+    late = tri / "x-attention-ledger-pending-2026-10-31.csv"     # copied after the cutoff
+    late.write_text(HDR + "2026-10-31,late-theme,high,high,https://x.com/l/status/98,no,\n",
+                    encoding="utf-8")
+    stamp(late, "2026-11-01T12:00:00+00:00")
+    before = {q.name: hashlib.sha256(q.read_bytes()).hexdigest() for q in tri.iterdir()}
+
+    msgs: list[str] = []
+
+    class _H(logging.Handler):
+        def emit(self, rec):
+            msgs.append(rec.getMessage())
+    lg = logging.getLogger("daily_cascade.digital_addendum")
+    h = _H()
+    lg.addHandler(h)
+    try:
+        rows, how, info = da.read_ledger_union(tri / "x-attention-ledger.csv", AS_OF)
+        rows_b, _how_b, info_b = da.read_ledger_union(tri / "x-attention-ledger-eqmacro.csv",
+                                                      AS_OF)
+    finally:
+        lg.removeHandler(h)
+    keys = [(r["date"], r["theme"]) for r in rows]
+    check(len(rows) == 7 and info["pending_rows"] == 2 and info["pending_shadowed"] == 2,
+          f"chapter A: the main file's 5 rows, plus the new date's 2 pending rows; the "
+          f"2 pending rows for a main key are shadowed (7 rows; {info})")
+    f27 = next(r for r in rows if (r["date"], r["theme"]) == ("2026-10-27", "flows"))
+    check(f27["representative_url"] == "https://x.com/f/status/3"
+          and "PENDING" not in f27["notes"],
+          "a main-file row wins over a pending row for the same date and theme")
+    check(("2026-10-30", "stablecoins") in keys and ("2026-10-30", "flows") in keys,
+          "pending rows for a date the main file lacks are included")
+    check(info["pending_files"] == ["x-attention-ledger-pending-2026-10-27.csv",
+                                    "x-attention-ledger-pending-2026-10-30.csv"]
+          and ("2026-10-31", "late-theme") not in keys,
+          "a pending file copied after the cutoff is not read, and chapter B's "
+          "pending file is never chapter A's")
+    check(info["skipped"] == ["x-attention-ledger-pending-2026-10-29.csv"]
+          and any("skipped x-attention-ledger-pending-2026-10-29.csv" in m for m in msgs),
+          f"a malformed pending file is skipped with a logged line, never fatal ({msgs})")
+    check(len(rows_b) == 3 and info_b["pending_rows"] == 1 and info_b["pending_shadowed"] == 1
+          and next(r for r in rows_b if (r["date"], r["theme"]) == ("2026-10-30", "rates"))
+          ["representative_url"] == "https://x.com/r/status/94"
+          and info_b["pending_files"] == ["x-attention-ledger-eqmacro-pending-2026-10-31.csv"],
+          f"chapter B (eqmacro): 2 main rows plus 1 new pending row, its duplicate "
+          f"shadowed (3 rows; {info_b})")
+    only = TD / "inbox-pending-only" / "x-triage"
+    only.mkdir(parents=True)
+    (only / "x-attention-ledger-pending-2026-10-30.csv").write_text(
+        files["x-attention-ledger-pending-2026-10-30.csv"], encoding="utf-8")
+    stamp(only / "x-attention-ledger-pending-2026-10-30.csv", "2026-11-01T08:00:00+00:00")
+    r_o, how_o, _i = da.read_ledger_union(only / "x-attention-ledger.csv", AS_OF)
+    check(len(r_o) == 2 and how_o == "pending files only",
+          "with no main file, the pending rows still count, and say so")
+    ed = da.build(ENDING, as_of=AS_OF, db_path=db_a, inbox=base, narrative=False,
+                  cfg=cfg, **kw)
+    at = sec(ed, "attention")
+    th = {r_[0]: r_ for r_ in {t["title"]: t for t in at["tables"]}
+          ["The week's attention map"]["rows"]}
+    check(set(th) == {"flows", "treasury-co", "privacy", "stablecoins"}
+          and th["flows"][1:4] == ["3", "high", "2"]
+          and at["data"]["ledger_rows"] == 6 and at["data"]["pending_rows"] == 2,
+          f"the addendum's attention map sees the pending day: flows on 3 days with "
+          f"2 shock days, stablecoins added, 6 week rows ({at['data'].get('ledger_rows')})")
+    after = {q.name: hashlib.sha256(q.read_bytes()).hexdigest() for q in tri.iterdir()}
+    check(after == before, "the union is in memory only: no inbox file is written")
 
 
 def phase2(cfg: dict, kw: dict) -> None:

@@ -43,6 +43,9 @@ import zipfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+# The sweep's filter for the attention ledgers (A117), as written in
+# scripts/rclone_sync.sh's pull_x_pilot.
+ATT_LEDGER_RX = r"^x-attention-ledger(-eqmacro)?(-pending-[0-9]{4}-[0-9]{2}-[0-9]{2})?\.csv$"
 sys.path.insert(0, str(REPO))
 
 from altdata import observations  # noqa: E402
@@ -641,7 +644,7 @@ def group_e() -> None:
             and '"$DATA_DIR/inbox/x-triage/$f"' in xb
             and '"$rname:chester-x-digest/$f"' in xb
             and '"$DATA_DIR/inbox/x-digest/$f"' in xb
-            and "x-attention-ledger.csv" in xb and "x-voices-ledger.csv" in xb
+            and ATT_LEDGER_RX in xb and "x-voices-ledger.csv" in xb
             and r"^x-digest-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$" in xb
             and '>"$dest.copied_at"' in xb and "sha256sum" in xb
             and "RC=" not in xb and "finish " not in xb and "absent" in xb
@@ -653,6 +656,23 @@ def group_e() -> None:
            "setting the sweep's exit")
     else:
         bad("the X pilot pull is not a stamped per-file copyto into its inboxes")
+    # A117 (2 Nov 2026): the attention ledgers' filter takes chapter A's and
+    # chapter B's (eqmacro) main files and both chapters' dated staging files,
+    # and nothing else. The bash pattern is read as Python's, which is the same
+    # language for this expression.
+    att = re.compile(ATT_LEDGER_RX)
+    want = ["x-attention-ledger.csv", "x-attention-ledger-eqmacro.csv",
+            "x-attention-ledger-pending-2026-10-31.csv",
+            "x-attention-ledger-eqmacro-pending-2026-11-01.csv"]
+    never = ["x-attention-ledger-old.csv", "x-attention-ledger-pending-31-10-2026.csv",
+             "x-attention-ledger-pending-2026-10-31.csv.bak", "x-voices-ledger.csv",
+             "notes.txt"]
+    if all(att.match(f) for f in want) and not any(att.match(f) for f in never):
+        ok("A117: the sweep copies both attention ledgers and their pending files "
+           "(x-attention-ledger[-eqmacro][-pending-YYYY-MM-DD].csv), nothing else")
+    else:
+        bad("A117: the attention-ledger filter does not take exactly the ledgers "
+            "and their pending files")
     u = (REPO / "deploy/systemd/chester-backup.service").read_text(encoding="utf-8")
     m = re.search(r"^ReadWritePaths=(.*)$", u, re.M)
     rw = m.group(1).split() if m else []

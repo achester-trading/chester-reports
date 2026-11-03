@@ -482,6 +482,69 @@ def read_ledger(path: Path, cutoff: str) -> tuple[list[dict], str]:
     return [{k.strip(): _clean(v) for k, v in r.items() if k} for r in rows], how
 
 
+LEDGER_KEY_FIELDS = ("date", "theme")
+
+
+def pending_files(path: Path) -> list[tuple[str, Path]]:
+    """A ledger's staging files beside it, [(date, path)] by date (A117): for
+    x-attention-ledger.csv, x-attention-ledger-pending-YYYY-MM-DD.csv; for
+    x-attention-ledger-eqmacro.csv, x-attention-ledger-eqmacro-pending-YYYY-MM-DD.csv.
+    The stem is matched whole, so chapter A's pattern never takes chapter B's."""
+    d, stem = path.parent, path.stem
+    rx = re.compile(rf"^{re.escape(stem)}-pending-(\d{{4}}-\d{{2}}-\d{{2}})\.csv$")
+    if not d.is_dir():
+        return []
+    return sorted((m.group(1), p) for p in d.iterdir()
+                  if p.is_file() and (m := rx.match(p.name)))
+
+
+def read_ledger_union(path: Path, cutoff: str) -> tuple[list[dict], str, dict]:
+    """The main ledger unioned with its pending files, in memory only (A117).
+
+    Since 31 Oct the chat-side morning triage stages a day's rows in
+    <stem>-pending-YYYY-MM-DD.csv when it cannot rewrite the whole ledger. Keyed
+    by (date, theme): a main-file row wins over a pending row for the same key
+    (the pending copy is the staging copy), and an earlier pending file wins over
+    a later one. A pending file follows the main file's visibility rule (its copy
+    stamp at or before the cutoff). One that is unreadable or lacks the date and
+    theme columns is skipped with a logged line, never fatal. The inbox files are
+    never rewritten: the chat-side task owns them."""
+    rows, how = read_ledger(path, cutoff)
+    seen = {(str(r.get("date") or "")[:10], r.get("theme") or "") for r in rows}
+    info = {"pending_files": [], "pending_rows": 0, "pending_shadowed": 0,
+            "skipped": []}
+    for day, p in pending_files(path):
+        if not _visible(p, cutoff)[0]:
+            continue
+        try:
+            reader = csv.DictReader(io.StringIO(p.read_text(encoding="utf-8-sig")))
+            raw = list(reader)
+            fields = [f.strip() for f in (reader.fieldnames or []) if f]
+        except (OSError, csv.Error, UnicodeDecodeError) as exc:
+            log.warning("attention ledger: skipped %s (unreadable: %s)", p.name,
+                        type(exc).__name__)
+            info["skipped"].append(p.name)
+            continue
+        if not all(k in fields for k in LEDGER_KEY_FIELDS):
+            log.warning("attention ledger: skipped %s (no date and theme columns)",
+                        p.name)
+            info["skipped"].append(p.name)
+            continue
+        info["pending_files"].append(p.name)
+        for r in raw:
+            r = {k.strip(): _clean(v) for k, v in r.items() if k}
+            key = (str(r.get("date") or "")[:10], r.get("theme") or "")
+            if key in seen:
+                info["pending_shadowed"] += 1
+                continue
+            seen.add(key)
+            rows.append(r)
+            info["pending_rows"] += 1
+    if how in ("absent", "copied after the cutoff", "unreadable") and info["pending_rows"]:
+        how = "pending files only"
+    return rows, how, info
+
+
 def digest_files(d: Path, sun: str, sat: str, cutoff: str) -> list[tuple[str, Path]]:
     out = []
     if not d.is_dir():
@@ -559,8 +622,8 @@ def attention_section(st, cutoff: str, sun: str, sat: str, cfg: dict,
     ac = cfg.get("attention") or {}
     base = inbox or inbox_dir()
     tri = base / (ac.get("triage_dir") or "x-triage")
-    led, how_a = read_ledger(tri / (ac.get("attention_ledger") or "x-attention-ledger.csv"),
-                             cutoff)
+    led, how_a, pend = read_ledger_union(
+        tri / (ac.get("attention_ledger") or "x-attention-ledger.csv"), cutoff)
     voices, how_v = read_ledger(tri / (ac.get("voices_ledger") or "x-voices-ledger.csv"),
                                 cutoff)
     week = [r for r in led if sun <= str(r.get("date") or "")[:10] <= sat]
@@ -631,6 +694,8 @@ def attention_section(st, cutoff: str, sun: str, sat: str, cfg: dict,
                                  "shock_days": len(themes[k]["shocks"])} for k in order],
                      "pairs": len(pairs), "new_voices": len(new_v),
                      "scan_items": len(scan), "ledger_rows": len(week),
+                     "pending_files": pend["pending_files"],
+                     "pending_rows": pend["pending_rows"],
                      "digests": [d for d, _ in digs]},
             "footnote": foot}
 

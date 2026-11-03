@@ -558,6 +558,9 @@ pull_etf_archive || true
 #   chester-x-digest/x-digest-YYYY-MM-DD.md   -> ~/chester-data/inbox/x-digest/
 #   chester-vendor-checks/x-triage/x-attention-ledger.csv, x-voices-ledger.csv
 #                                             -> ~/chester-data/inbox/x-triage/
+#   A117 (2 Nov 2026): also chapter B's x-attention-ledger-eqmacro.csv and both
+#   chapters' staging files, x-attention-ledger[-eqmacro]-pending-YYYY-MM-DD.csv,
+#   which the morning triage writes when it cannot rewrite a ledger whole.
 # `copyto` of each named file, never a sync. Each copied file gets a stamp
 # beside it, <file>.copied_at, holding the instant its bytes arrived: that is
 # the addendum's available_at (copyto carries Drive's modification time over,
@@ -583,7 +586,8 @@ pull_x_pilot() {
     if files=$(timeout 2m rclone lsf "$rname:chester-vendor-checks/x-triage" \
             --files-only --max-depth 1 $RCLONE_LIMITS 2>>"$LOG"); then
         while IFS= read -r f; do
-            [[ "$f" == "x-attention-ledger.csv" || "$f" == "x-voices-ledger.csv" ]] \
+            [[ "$f" == "x-voices-ledger.csv" \
+               || "$f" =~ ^x-attention-ledger(-eqmacro)?(-pending-[0-9]{4}-[0-9]{2}-[0-9]{2})?\.csv$ ]] \
                 || continue
             x_copy "$rname:chester-vendor-checks/x-triage/$f" \
                 "$DATA_DIR/inbox/x-triage/$f" && n=$((n + 1))
