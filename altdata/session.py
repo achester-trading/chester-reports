@@ -91,6 +91,18 @@ def utc_iso(timespec: str = "seconds") -> str:
     return utc_now().isoformat(timespec=timespec)
 
 
+def local_today() -> dt.date:
+    """The machine's local calendar date, exactly what `date.today()` gives
+    (CPython computes it as `date.fromtimestamp(time.time())`), but read through
+    utc_now() so a pin or a replay reaches it (A119, the clock burn-down).
+
+    It is the MACHINE's date: UTC on the box, ET on the laptop. Where the ET
+    trading date is meant, use session_date_obj() instead; moving a call site
+    from this to that is a behaviour change on the box between 20:00 and 24:00
+    ET, and is decided per call site, not here."""
+    return dt.date.fromtimestamp(utc_now().timestamp())
+
+
 def utc_stamp(fmt: str = "%Y%m%dT%H%M%SZ") -> str:
     """Current UTC instant formatted for a filename."""
     return utc_now().strftime(fmt)
