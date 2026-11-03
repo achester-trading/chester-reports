@@ -243,3 +243,53 @@ When A116 and A119 have both merged, the allowlist drops those 33 entries.
 | the 25 above | identical before and after |
 | validate_clock_reads (A116's copy, this tree) | 8 passed, 0 failed; 33 burned down |
 | check_registry | OK |
+
+### A122 (3 Nov 2026): durations onto the monotonic clock
+
+Base `18a24e94`. Paste committed first as `docs/pastes/A122.md`.
+
+**What was searched.** Every module A119 converted, for a deadline or an elapsed
+time computed by subtracting two clock reads, session helpers included.
+- **Found:** A119's two modules, three measurements, all converted.
+- **Already right:** `altdata/fred_history.py` already times its run with
+  `time.monotonic()`. `altdata/loggers/auction.py`'s `_seconds_until` is a
+  duration to a fixed instant, read once, and stays on session.
+- **Nothing else** measures elapsed time with the clock.
+
+| Module | What it measured | Now |
+|---|---|---|
+| altdata/loggers/auction.py, `probe()` | the probe's window (`seconds`, default 12) | `deadline = time.monotonic() + seconds`; loop while `time.monotonic() < deadline` |
+| altdata/loggers/auction.py, `sample()` | the sampler's window: `seconds`, or the time left to 16:00 ET | the length is read once (`seconds`, or `_seconds_until(16:00)` from session), then counted down on `time.monotonic()` |
+| alpha/search.py, `step_budget()` | what the unit had spent: now less the unit's start (`CHESTER_UNIT_STARTED`, a wall epoch, else the process's start) | the pre-process part (`_T0 - started`, a wall difference read once at import) plus this process's elapsed time on `time.monotonic()` (`_T0_MONO`). With explicit `now` and `started` (the gate's grid) the arithmetic is unchanged |
+
+**Timestamps did not move.** Every timestamp that is written, logged or printed
+still comes from `altdata.session` as A119 left it: each auction row's
+`observed_at`, the probe's `checked_at`, `_T0`. For the same instant the values
+are the same; only how a duration is counted changed.
+
+**The proof under a pinned clock.** A scratch runner, not committed, used the
+b101 shape (`GATE_NOW`, `pin_clock()`) at 2026-11-16T20:55Z, with a fake
+Gateway and `ib_async`. `session.utc_now()` was frozen, the same value 0.3 s
+apart.
+- `probe(seconds=1.5)` returned in 1.62 s.
+- `sample(seconds=1.5)` returned in 1.62 s: 8 samples, 352 rows, every row
+  stamped with the pinned session instant.
+- `sample()` with 1.2 s left to 16:00 returned in 1.20 s.
+- `step_budget`, uncapped, counted down 0.50 s over 0.5 s of wall time, and the
+  gate's explicit `now=1300, started=1000` still gives 600.0.
+
+Under A119's version each loop's condition compared a frozen clock with a fixed
+deadline, so it could not end.
+
+**The clock-reads gate.** A116's `validate_clock_reads`, from its branch's
+copy, scanned this tree with the new `time.monotonic()` calls in it: 9 passed,
+0 failed, 0 new. The gate does not count `time.monotonic()`.
+
+| Gate | Result |
+|---|---|
+| validate_alpha_lab_4 | 65/0 |
+| validate_audit_2 | 26/0 |
+| validate_audit_3a | 88/0 |
+| validate_alpha_no_orders | 73/0 |
+| validate_clock_reads (A116's copy, this tree) | 9/0, 0 new |
+| check_registry | OK |

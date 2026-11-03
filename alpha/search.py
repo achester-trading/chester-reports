@@ -100,7 +100,8 @@ LOOP = "search"
 FIT_ROWS, TEST_ROWS = 1, 10            # the workbench's, for a rule with nothing fitted
 NONE = "none"
 LOCK_NAME = ".lock"
-_T0 = session.utc_now().timestamp()                      # the process's start, when the unit's is not exported
+_T0 = session.utc_now().timestamp()    # the process's start (wall), when the unit's is not exported
+_T0_MONO = time.monotonic()            # the same instant on the monotonic clock (A122)
 
 
 class FamilyChanged(ValueError):
@@ -639,7 +640,13 @@ def step_budget(cfg: dict, now: Optional[float] = None,
             started = float(env) if env else _T0
         except ValueError:
             started = _T0
-    spent = max(0.0, (session.utc_now().timestamp() if now is None else now) - started)
+    if now is None:
+        # A122: what the unit spent before this process (a wall difference, read
+        # once at import) plus this process's own elapsed time on the monotonic
+        # clock, so a pinned or shifted wall clock cannot freeze the budget.
+        spent = max(0.0, (_T0 - started) + (time.monotonic() - _T0_MONO))
+    else:
+        spent = max(0.0, now - started)
     left = (float(cad.get("unit_timeout_seconds", 1200))
             - float(cad.get("spare_seconds", 180)) - spent)
     return min(float((cfg.get("caps") or {}).get("max_wall_seconds", 600)), left)

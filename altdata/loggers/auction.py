@@ -171,9 +171,11 @@ def probe(port: int = 4002, seconds: float = 12.0,
         c = Stock("SPY", "SMART", "USD")
         ib.qualifyContracts(c)
         ticker = ib.reqMktData(c, genericTickList=GENERIC_TICKS, snapshot=False)
-        deadline = session.utc_now().timestamp() + seconds
+        # A duration, so the monotonic clock (A122): a pinned or shifted wall
+        # clock must not freeze or skip the probe's window.
+        deadline = time.monotonic() + seconds
         seen: dict[str, Any] = {}
-        while session.utc_now().timestamp() < deadline:
+        while time.monotonic() < deadline:
             ib.sleep(1.0)
             for field in ("auctionPrice", "auctionVolume", "auctionImbalance",
                           "regulatoryImbalance"):
@@ -279,9 +281,12 @@ def sample(port: int = 4002, seconds: Optional[float] = None,
             contracts[sym] = (c, ib.reqMktData(c, genericTickList=GENERIC_TICKS,
                                                snapshot=False))
         day = session.session_date()
-        deadline = (session.utc_now().timestamp() + seconds if seconds
-                    else _seconds_until(WINDOW_END_ET) + session.utc_now().timestamp())
-        while session.utc_now().timestamp() < deadline:
+        # The window's length is read once from the session clock (to 16:00 ET);
+        # the loop then counts it down on the monotonic clock (A122), so a pinned
+        # wall clock cannot hold it open. Each row's stamp stays session.utc_iso().
+        deadline = time.monotonic() + (seconds if seconds
+                                       else _seconds_until(WINDOW_END_ET))
+        while time.monotonic() < deadline:
             ib.sleep(SAMPLE_SECONDS)
             stamp = session.utc_iso(timespec="microseconds")
             rows = []
