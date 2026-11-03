@@ -171,9 +171,9 @@ def probe(port: int = 4002, seconds: float = 12.0,
         c = Stock("SPY", "SMART", "USD")
         ib.qualifyContracts(c)
         ticker = ib.reqMktData(c, genericTickList=GENERIC_TICKS, snapshot=False)
-        deadline = time.time() + seconds
+        deadline = session.utc_now().timestamp() + seconds
         seen: dict[str, Any] = {}
-        while time.time() < deadline:
+        while session.utc_now().timestamp() < deadline:
             ib.sleep(1.0)
             for field in ("auctionPrice", "auctionVolume", "auctionImbalance",
                           "regulatoryImbalance"):
@@ -279,9 +279,9 @@ def sample(port: int = 4002, seconds: Optional[float] = None,
             contracts[sym] = (c, ib.reqMktData(c, genericTickList=GENERIC_TICKS,
                                                snapshot=False))
         day = session.session_date()
-        deadline = (time.time() + seconds if seconds
-                    else _seconds_until(WINDOW_END_ET) + time.time())
-        while time.time() < deadline:
+        deadline = (session.utc_now().timestamp() + seconds if seconds
+                    else _seconds_until(WINDOW_END_ET) + session.utc_now().timestamp())
+        while session.utc_now().timestamp() < deadline:
             ib.sleep(SAMPLE_SECONDS)
             stamp = session.utc_iso(timespec="microseconds")
             rows = []
