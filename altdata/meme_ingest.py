@@ -66,6 +66,7 @@ import sqlite3
 import sys
 from pathlib import Path
 from typing import Any, Optional
+from . import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ def _open(db_path: Optional[str]):
 def ingest(drop: Optional[str] = None, db_path: Optional[str] = None,
            dry_run: bool = False, now: Optional[str] = None) -> dict:
     root = drop_dir(drop)
-    now = now or dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    now = now or session.utc_now().isoformat(timespec="seconds")
     out: dict = {"drop": str(root), "drafts": 0, "seen": 0, "refused": 0,
                  "invalid": 0, "unreadable": 0, "dry_run": dry_run, "detail": []}
     schema, version, sha = held_schema()
@@ -315,7 +316,7 @@ def status_line(db_path: Optional[str] = None, today: Optional[str] = None) -> O
     path = Path(db_path or DEFAULT_DB)
     if not path.exists():
         return None
-    today = today or dt.date.today().isoformat()
+    today = today or session.local_today().isoformat()
     since = (dt.date.fromisoformat(today[:10])
              - dt.timedelta(days=REFUSED_WINDOW_DAYS)).isoformat()
     try:

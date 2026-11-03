@@ -843,7 +843,7 @@ def _main(argv: list[str]) -> int:
     ls = sub.add_parser("list")
     ls.add_argument("--days", type=int, default=30)
     stp = sub.add_parser("status")
-    stp.add_argument("--end", default=dt.date.today().isoformat())
+    stp.add_argument("--end", default=session.local_today().isoformat())
     stp.add_argument("--cadence", default="weekly",
                      choices=("daily", "weekly", "monthly"))
     sub.add_parser("seed")
@@ -860,7 +860,7 @@ def _main(argv: list[str]) -> int:
                       f"voices={r['voices']:<3} {r.get('reason') or ''}")
         return 0
     if a.cmd == "list":
-        since = (dt.date.today() - dt.timedelta(days=a.days)).isoformat()
+        since = (session.local_today() - dt.timedelta(days=a.days)).isoformat()
         with VoicesStore() as vs:
             for r in vs.rows(since=since):
                 dirs = ", ".join(f"{d['subject']} {d['direction']}"

@@ -61,6 +61,7 @@ from statistics import median
 from typing import Any, Optional
 
 from .ai_fcf import load_config, tagged
+from . import session  # the clock, through altdata.session (A119)
 
 
 def _pts(st, key: str, cutoff: Optional[str],
@@ -293,7 +294,7 @@ def revisions(st, cutoff: Optional[str] = None, cfg: Optional[dict] = None) -> d
     r = cfg.get("revision") or {}
     key = r.get("key") or "yf.forward_eps"
     wins = r.get("windows_days") or {"4-week": 28, "13-week": 91}
-    end = (cutoff or dt.datetime.now(dt.timezone.utc).isoformat())[:10]
+    end = (cutoff or session.utc_now().isoformat())[:10]
     names = []
     for sym in r.get("names") or []:
         pts = [x for x in _pts(st, key, cutoff, sym) if x[0] <= end]

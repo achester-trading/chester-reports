@@ -63,6 +63,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import MultipleLocator  # noqa: E402
 
 from . import fx_anchors  # packaged reconstructed dataset
+from . import session  # the clock, through altdata.session (A119)
 
 # ---------------------------------------------------------------------------
 # Series catalogue
@@ -113,7 +114,7 @@ def _cache_path(cache_dir: str, name: str) -> str:
 def _fresh(path: str, max_age_days: int) -> bool:
     if not os.path.exists(path):
         return False
-    age = dt.date.today() - dt.date.fromtimestamp(os.path.getmtime(path))
+    age = session.local_today() - dt.date.fromtimestamp(os.path.getmtime(path))
     return age.days <= max_age_days
 
 
@@ -243,7 +244,7 @@ def load_series(key: str, cache_dir: str, max_age_days: int = 7,
 
 
 def _five_slice(s: pd.Series) -> pd.Series:
-    start = pd.Timestamp(dt.date.today() - dt.timedelta(days=int(5.6 * 365)))
+    start = pd.Timestamp(session.local_today() - dt.timedelta(days=int(5.6 * 365)))
     return s[s.index >= start]
 
 
@@ -396,7 +397,7 @@ ANCHOR_H2 = {  # figure key -> h2 id in the white paper
 
 def _caption(key: str, src: str) -> str:
     name, fred_id, yf_ticker, *_ = CATALOG[key]
-    today = dt.date.today().isoformat()
+    today = session.local_today().isoformat()
     if src.startswith("fred:"):
         return (f"Daily history via FRED {src.split(':',1)[1]} (monthly "
                 f"resolution shown; extremes from daily data), fetched {today}.")

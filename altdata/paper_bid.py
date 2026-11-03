@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from . import config, observations
+from . import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -235,7 +236,7 @@ def backfill(days: int = 60, dry_run: bool = False, base: Optional[Path] = None,
     """ONE-TIME: the readings for every session on disk in the last `days`
     calendar days. Idempotent: only a changed value is written."""
     root = base or chain_dir()
-    since = (dt.date.today() - dt.timedelta(days=days)).isoformat()
+    since = (session.local_today() - dt.timedelta(days=days)).isoformat()
     sessions = sorted(p.name for p in root.iterdir() if p.is_dir() and p.name >= since) \
         if root.is_dir() else []
     out = {"days": days, "dry_run": dry_run, "sessions": {}}

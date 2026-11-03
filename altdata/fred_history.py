@@ -56,6 +56,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Callable, Optional
+from . import session  # the clock, through altdata.session (A119)
 
 REPO = Path(__file__).resolve().parent.parent
 BASE = "https://api.stlouisfed.org/fred"
@@ -251,7 +252,7 @@ def plan(spec, get: Get, policy_of: Callable[[str], Optional[str]],
     else:
         policy = policy_of(f"fred.{key}")
         if policy in RECONSTRUCTABLE_POLICIES:
-            today = dt.date.today().isoformat()            # the current vintage only
+            today = session.local_today().isoformat()            # the current vintage only
             obs = _observations(sid, get, today, today, obs_from)
             for o in obs:
                 v = _num(o.get("value"))
@@ -301,7 +302,7 @@ def backfill(specs: list, get: Get, db=None, dry_run: bool = False,
     from . import derived  # noqa: PLC0415
     policy_of = policy_of or (lambda m: derived.registry_entry(m).get("revision_policy"))
     times = release_times() if times is None else times
-    run_id = run_id or "fred_history:" + dt.datetime.now(dt.timezone.utc).strftime(
+    run_id = run_id or "fred_history:" + session.utc_now().strftime(
         "%Y%m%dT%H%M%SZ")
     t0 = time.monotonic()
     res = {"run_id": run_id, "dry_run": dry_run, "series": [], "written": 0,

@@ -54,6 +54,7 @@ from typing import Any, Optional
 import yaml
 
 from . import derived
+from . import session  # the clock, through altdata.session (A119)
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "config" / "basis_proxy.yaml"
@@ -489,7 +490,7 @@ def _main(argv: list[str]) -> int:
                              indent=1, default=str))
             return 0
         eps = ledger(st)
-        md = ledger_markdown(eps, dt.date.today().isoformat(), a.provenance)
+        md = ledger_markdown(eps, session.local_today().isoformat(), a.provenance)
         if a.out:
             Path(a.out).write_text(md + "\n", encoding="utf-8")
         else:

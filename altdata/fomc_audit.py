@@ -35,6 +35,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Callable, Optional
+from . import session  # the clock, through altdata.session (A119)
 
 URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 # Half a year: the Board posts the next year's calendar by the summer, and six
@@ -170,7 +171,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     c.add_argument("--today", default=None)
     c.add_argument("--page", default=None, help="a saved copy of the page, not fetched")
     a = ap.parse_args(argv)
-    today = dt.date.fromisoformat(a.today) if a.today else dt.date.today()
+    today = dt.date.fromisoformat(a.today) if a.today else session.local_today()
     get = (lambda _u: Path(a.page).read_bytes()) if a.page else None
     rc, lines = run(today, get)
     print("\n".join(lines))

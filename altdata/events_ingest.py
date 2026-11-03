@@ -163,7 +163,7 @@ def claims_events() -> tuple[list[ev_mod.Event], dict]:
         value = str(claim.get("value") or "")
         report["claims_read"].append(cid)
         year_m = re.search(r"(20\d\d)", cid + " " + value)
-        year = int(year_m.group(1)) if year_m else dt.date.today().year
+        year = int(year_m.group(1)) if year_m else session.local_today().year
         if "fomc" in cid:
             # cal.fomc_history (a55 round 2) carries one dated row per statement,
             # 1994-2025, with its kind and page; a year's calendar is parsed from

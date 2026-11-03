@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
+from . import session  # the clock, through altdata.session (A119)
 
 REPO = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = REPO / "docs" / "interface" / "security_master.schema.json"
@@ -151,7 +152,7 @@ def build(master, listings_dir: Optional[Path] = None, figi_dir: Optional[Path] 
             **({"restricted_reason": reason_of(hit)} if hit else {}),
         })
     doc = {"schema_version": "1.1",
-           "exported_at": exported_at or dt.datetime.now(dt.timezone.utc)
+           "exported_at": exported_at or session.utc_now()
            .strftime("%Y-%m-%dT%H:%M:%SZ"),
            "source": "chester-reports", "securities": out}
     summary = {"securities": len(out), "restricted": sum(s["restricted"] for s in out),

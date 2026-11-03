@@ -40,6 +40,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from . import config, observations
+from . import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -492,7 +493,7 @@ def backfill(days: int = 60, dry_run: bool = False, base: Optional[Path] = None)
     """ONE-TIME: the readings for every session whose capture is on disk in the
     last `days` calendar days. Idempotent: the store ignores a duplicate row."""
     root = base or chain_dir()
-    since = (dt.date.today() - dt.timedelta(days=days)).isoformat()
+    since = (session.local_today() - dt.timedelta(days=days)).isoformat()
     out = {"days": days, "dry_run": dry_run, "sessions": {}}
     sessions = sorted(p.name for p in root.iterdir() if p.is_dir() and p.name >= since) \
         if root.is_dir() else []
@@ -530,7 +531,7 @@ def _main(argv: list[str]) -> int:
         print(json.dumps(readings(a.session), indent=2, default=str))
     elif a.cmd == "backfill-names":
         root = chain_dir()
-        since = (dt.date.today() - dt.timedelta(days=a.days)).isoformat()
+        since = (session.local_today() - dt.timedelta(days=a.days)).isoformat()
         days = sorted(x.name for x in root.iterdir() if x.is_dir() and x.name >= since) \
             if root.is_dir() else []
         res = {}

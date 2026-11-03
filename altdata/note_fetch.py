@@ -45,6 +45,7 @@ import json
 import logging
 import sys
 from typing import Callable, Optional
+from . import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger("altdata.note_fetch")
 
@@ -345,7 +346,7 @@ def open_fetch(day: str, now: Optional[dt.datetime] = None, db_path=None, dry_ru
     """The open note's fetch. `steps` replaces any step (the gate's fakes)."""
     from . import bars as bars_mod                               # noqa: PLC0415
     s = steps or {}
-    now = now or dt.datetime.now(dt.timezone.utc)
+    now = now or session.utc_now()
     cfg = bars_mod.load_config().get("secondary_notes") or {}
     out = {"bars": fetch_bars(OPEN_IDS, _et(day, "08:00"), now, db_path, dry_run, fetcher)}
     rels = (s.get("releases") or todays_0830)(day, db_path)
@@ -364,7 +365,7 @@ def evening_fetch(day: str, now: Optional[dt.datetime] = None, db_path=None,
     """The evening note's fetch. `day` is the ET date of the evening; on a
     Sunday the bars start at Friday 16:00."""
     s = steps or {}
-    now = now or dt.datetime.now(dt.timezone.utc)
+    now = now or session.utc_now()
     d = dt.date.fromisoformat(day)
     since = (d - dt.timedelta(days=2)).isoformat() if d.weekday() == 6 else day
     out = {"bars": fetch_bars(EVENING_IDS, _et(since, "15:30"), now, db_path, dry_run,

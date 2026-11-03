@@ -39,6 +39,7 @@ from __future__ import annotations
 import datetime as dt
 from pathlib import Path
 from typing import Any, Optional
+from . import session  # the clock, through altdata.session (A119)
 
 REPO = Path(__file__).resolve().parent.parent
 CLAIMS_PATH = REPO / "config" / "claims.yaml"
@@ -151,7 +152,7 @@ def overdue(as_of: Optional[dt.date] = None,
     citation still resolves does not need rechecking, and alarming on it would be
     asking for work that cannot be done.
     """
-    today = as_of or dt.date.today()
+    today = as_of or session.local_today()
     out = []
     for cid, c in sorted(all_claims(path).items()):
         if c.get("status") in ("withdrawn", "superseded"):
