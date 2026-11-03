@@ -48,6 +48,7 @@ from typing import Optional
 
 from . import config as acfg
 from . import lab_line
+from altdata import session  # the clock, through altdata.session (A119)
 
 GOVERNOR_KINDS = ("halve", "stop", "restore", "lab_halt", "lab_resume", "kill")
 REFIT_KINDS = ("refit_accepted", "refit_rejected", "refit_out_of_range")
@@ -442,7 +443,7 @@ def _main(argv: list[str]) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="python -m alpha.report")
-    ap.add_argument("month", nargs="?", default=dt.date.today().strftime("%Y-%m"))
+    ap.add_argument("month", nargs="?", default=session.local_today().strftime("%Y-%m"))
     ap.add_argument("--ledger")
     a = ap.parse_args(argv)
     with Ledger(a.ledger, read_only=True) as lg:
