@@ -16,6 +16,7 @@ from pathlib import Path
 
 from . import write_ledger
 from . import sources as src
+from .. import session  # the clock, through altdata.session (A119)
 
 ITEMS = {"30b": "st_r5_30b", "32b": "st_r5_32b", "35b": "st_r5_35b",
          "36b": "st_r5_36b", "43b": "st_r5_43b",
@@ -63,7 +64,7 @@ def run(item: str, source: str = "public", out=None, db=None,
     r["source_mode"] = MODE[source]
     r["sources"] = [f"{n}: {k} {a or ''}".strip() for n, (k, a) in mod.SERIES_PUBLIC.items()] \
         if source == "public" else [f"{n}: store key {k}" for n, k in mod.SERIES_STORE.items()]
-    r["sources"].append(f"read {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')}")
+    r["sources"].append(f"read {session.utc_now().isoformat(timespec='seconds')}")
     return write_ledger(r, out, run_date), r
 
 

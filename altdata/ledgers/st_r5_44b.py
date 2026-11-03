@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import Series, episodes, mean, write_ledger
+from .. import session  # the clock, through altdata.session (A119)
 
 ITEM = "ST-R5.44b"
 TITLE = "how wide average-member vs index drawdown gaps resolved"
@@ -252,7 +253,7 @@ def run(source: str = "public", out=None, db=None, run_date=None) -> tuple:
     r = study(series)
     r["source_mode"] = MODE[source]
     r["sources"] = series["sources"] + [
-        f"read {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')}"]
+        f"read {session.utc_now().isoformat(timespec='seconds')}"]
     return write_ledger(r, out, run_date), r
 
 

@@ -40,6 +40,7 @@ import math
 import os
 from pathlib import Path
 from typing import Callable, Iterable, Optional, Sequence
+from .. import session  # the clock, through altdata.session (A119)
 
 REPO = Path(__file__).resolve().parent.parent.parent
 LEDGER_DIR = REPO / "docs" / "ledgers"
@@ -227,7 +228,7 @@ def write_ledger(r: dict, out_dir: Optional[Path] = None,
     faults = ledger_faults(r)
     if faults:
         raise ValueError(f"{r.get('item')}: not a ledger: {faults}")
-    run_date = run_date or dt.date.today().isoformat()
+    run_date = run_date or session.local_today().isoformat()
     out_dir = Path(out_dir or LEDGER_DIR)
     reg = registered_rule(r["item"], out_dir)
     if reg is not None and reg != str(r["pass_rule"]).strip():

@@ -51,6 +51,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import Series, episodes, write_ledger
+from .. import session  # the clock, through altdata.session (A119)
 
 ITEM = "ST-R5.31b"
 TITLE = "post-peak paths of top-10 concentration at the 40-44% band"
@@ -271,7 +272,7 @@ def run(source: str = "public", out=None, db=None, run_date=None) -> tuple:
     r = study(series)
     r["source_mode"] = MODE[source]
     r["sources"] = series["sources"] + [
-        f"read {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')}"]
+        f"read {session.utc_now().isoformat(timespec='seconds')}"]
     return write_ledger(r, out, run_date), r
 
 
