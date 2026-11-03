@@ -166,3 +166,16 @@ exactly its own months":
 
 In the 16 Nov run, the refunding check printed
 `{'November': True, 'December–January': False}` and passed.
+
+## B126 (2 Nov 2026): chain-9's pre-flight on the real clock
+
+B121's CI run (41540308064, main's code) was red on four date gates on 2 Nov. On this branch, at `666611e1`, each already carries its pin, and each passes on the real clock: 2 Nov 2026, 22:38 ET (3 Nov 03:38 UTC).
+
+| Gate | Pinned by | Run on the real clock |
+|---|---|---|
+| `validate_monthly` | `cc718cfb` (B101) | 361 passed, 0 failed, 1 skipped |
+| `validate_voices` | `eb9688b4` (B101b) | 73 passed, 0 failed |
+| `validate_st_t5_render` | `cc718cfb` (B101) | 46 passed, 0 failed |
+| `validate_alpha_proposer` | `666611e1` (B106) | 42 passed, 0 failed |
+
+Nothing was pinned tonight and no gate changed. No defect was found. The branch had not moved since `666611e1` when B126 read it, so A110's sweep had not pushed here. validate_gates: 32 passed, 0 failed. check_registry: OK.
