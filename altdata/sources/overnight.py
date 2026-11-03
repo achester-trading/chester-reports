@@ -377,7 +377,7 @@ def fetch(symbols: Optional[dict[str, str]] = None,
           now_et: Optional[dt.datetime] = None) -> dict:
     """Read every symbol. Returns rows ready for the store, plus a summary."""
     symbols = symbols or SYMBOLS
-    now_et = now_et or dt.datetime.now(ET)
+    now_et = now_et or session.utc_now().astimezone(ET)
     settle_at = prior_us_settlement(now_et)
     # A live quote is knowable at the instant it is read -- there is no release
     # lag -- so available_at is the fetch instant. That is the same reasoning

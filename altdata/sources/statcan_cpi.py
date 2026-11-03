@@ -51,6 +51,7 @@ from zoneinfo import ZoneInfo
 
 from . import _publication as pub
 from ._base import http_get_response
+from .. import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -129,7 +130,7 @@ def rows_from(data: bytes, content_type: Optional[str] = None) -> list[dict]:
 
 
 def fetch_rows() -> list[dict]:
-    end = dt.date.today().replace(day=1).isoformat()
+    end = session.local_today().replace(day=1).isoformat()
     url = url_of(end)
     allowed, rule = pub.robots_allows(SITE, url)
     if not allowed:

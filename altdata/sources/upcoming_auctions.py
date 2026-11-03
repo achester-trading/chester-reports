@@ -24,6 +24,7 @@ from typing import Optional
 
 from .. import events as ev_mod
 from ._base import http_get_json
+from .. import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def events_from_rows(rows: list[dict]) -> list[ev_mod.Event]:
 
 
 def calendar_events(now: Optional[str] = None) -> tuple[list[ev_mod.Event], dict]:
-    since = (dt.date.today() - dt.timedelta(days=7)).isoformat()
+    since = (session.local_today() - dt.timedelta(days=7)).isoformat()
     try:
         j = http_get_json(URL, params={"filter": f"auction_date:gte:{since}",
                                        "sort": "auction_date",

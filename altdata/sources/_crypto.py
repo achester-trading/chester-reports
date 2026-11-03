@@ -18,6 +18,7 @@ from __future__ import annotations
 import datetime as dt
 from pathlib import Path
 from typing import Any, Optional
+from .. import session  # the clock, through altdata.session (A119)
 
 REPO = Path(__file__).resolve().parents[2]
 CONFIG_PATH = REPO / "config" / "crypto_sources.yaml"
@@ -38,7 +39,7 @@ def utc_day(ms_or_s: Any) -> str:
 
 
 def today_utc() -> str:
-    return dt.datetime.now(dt.timezone.utc).date().isoformat()
+    return session.utc_now().date().isoformat()
 
 
 def now_iso() -> str:

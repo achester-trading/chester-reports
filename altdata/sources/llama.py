@@ -63,6 +63,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from ._base import FetchError, http_get_json
+from .. import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -278,7 +279,7 @@ def _post_json(url: str, body: dict, retries: int = 3) -> Any:
 
 
 def _today() -> str:
-    return dt.datetime.now(dt.timezone.utc).date().isoformat()
+    return session.utc_now().date().isoformat()
 
 
 def _rows(key: str, points: list[tuple[str, float]], now: str,

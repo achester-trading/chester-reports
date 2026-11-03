@@ -55,6 +55,7 @@ from urllib.parse import quote
 
 from .. import events as ev_mod
 from ._base import FetchError, http_get_bytes
+from .. import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -339,7 +340,7 @@ def mechanism_items(now: Optional[str] = None,
     from urllib.parse import urlparse                           # noqa: PLC0415
     from .aaii import robots_verdict                            # noqa: PLC0415
     cfg = load_queries().get("mechanism_watch") or {}
-    now_dt = dt.datetime.fromisoformat((now or dt.datetime.now(dt.timezone.utc)
+    now_dt = dt.datetime.fromisoformat((now or session.utc_now()
                                         .isoformat()).replace("Z", "+00:00"))
     since = (now_dt - dt.timedelta(days=int(cfg.get("window_days") or 14))).isoformat()
     fetch = fetch or http_get_bytes

@@ -44,6 +44,7 @@ from zoneinfo import ZoneInfo
 
 from . import _publication as pub
 from ._base import http_get_response
+from .. import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ def parse(text: str, cdid: str) -> tuple[str, dict[str, float]]:
         raise ValueError(f"the ONS file for {cdid} states no release date "
                          f"({head.get('Release date')!r})") from None
     released = day.replace(hour=RELEASE_HOUR, tzinfo=LONDON).astimezone(dt.timezone.utc)
-    if released > dt.datetime.now(dt.timezone.utc):
+    if released > session.utc_now():
         raise ValueError(f"the ONS file for {cdid} states a release in the future "
                          f"({head['Release date']})")
     return released.isoformat(timespec="microseconds"), months

@@ -46,6 +46,7 @@ from typing import Optional
 
 from . import _publication as pub
 from ._base import http_get_response
+from .. import session  # the clock, through altdata.session (A119)
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ def parse(text: str, series: str) -> list[tuple[str, float, str]]:
 
 
 def rows_from(files: dict[str, str], now: Optional[str] = None) -> list[dict]:
-    now = now or dt.datetime.now(dt.timezone.utc).isoformat(timespec="microseconds")
+    now = now or session.utc_now().isoformat(timespec="microseconds")
     rows = []
     for series, key in SERIES.items():
         rows += [{"registry_key": key, "instrument": None, "observed_at": day,
