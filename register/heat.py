@@ -67,6 +67,7 @@ REFERENCE_PATH = REPO / "config" / "instrument_reference.yaml"
 
 # Options families: an expression whose vega is part of the decision.
 from register.store import EXPRESSION_FAMILIES, GATE_OUTCOMES  # noqa: E402
+from altdata import session  # the clock, through altdata.session (A119)
 
 OPTION_FAMILIES = tuple(f for f in EXPRESSION_FAMILIES if f not in (
     "outright", "buffered_fund", "synthetic_ppn"))
@@ -148,7 +149,7 @@ def _volatile_day_stamp(out: dict, as_of: Optional[str],
     try:
         from daily_cascade import volatile_day  # noqa: PLC0415
         t = (_dt.datetime.fromisoformat(str(as_of).replace("Z", "+00:00"))
-             if as_of else _dt.datetime.now(_dt.timezone.utc))
+             if as_of else session.utc_now())
         day = t.astimezone(ZoneInfo("America/New_York")).date().isoformat()
         vd = volatile_day.printed(day, as_of, archive_dir)
     except Exception as exc:                                  # noqa: BLE001
