@@ -94,3 +94,37 @@ sweep both name the files.
 | `validate_weekly_stack --group` | not run: B97's flag is not on main; the addendum's gate was run alone |
 | `validate_backup` | 89 passed, 0 failed (its X-pilot check names the new pattern; one new case) |
 | `check_registry` | OK |
+
+## A125 (3 Nov 2026): stopped at the ruling search, nothing changed
+
+Base `450455af`. Paste committed first as `docs/pastes/A125.md`.
+
+**What was searched:**
+- docs/ and config/, for "chapter A", "chapter B" and "eqmacro";
+- the X pilot's change order, `docs/change-order-signal-triage-batch-8-2026-10-17.md`
+  (items 50 and 51);
+- the addendum's config, `config/digital_addendum.yaml`;
+- the Reporting System paper, `docs/whitepapers/reporting-system-whitepaper.md`,
+  which has no Appendix F.
+
+**The ruling found.** Batch 8 says "Three items ruled 17 Oct 2026, all in the
+digital-assets thread" and, under item 51, defines the page:
+
+> *Weekly addendum (own page linked from the Sunday Weekly; ten-section stack in
+> miniature, crypto only):* ... 6 narratives and attention -- the week's X
+> attention map from the seven digests (themes, shocks, disagreement pairs, new
+> voices) and the Saturday mechanism scan's output incl. PRL; ...
+
+Chapter B is the triage's equities-and-macro chapter. A page ruled "crypto only"
+shows chapter A's attention, so by the paste's first step A125 stops here.
+
+**Unchanged:**
+- the renderer (`daily_cascade/digital_addendum.py`'s `attention_section`);
+- its fixtures and `scripts/rclone_sync.sh`;
+- chapter A's output.
+
+A117's union stays ready for chapter B if a later ruling places chapter B's
+attention somewhere else, for example the Weekly's own narratives or the
+Monthly's attention map.
+
+**Gates:** none run, since no code changed. `check_registry` is OK.
