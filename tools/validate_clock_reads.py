@@ -11,8 +11,20 @@ unless `config/clock_reads_allowlist.yaml` lists it.
 
 The scan is static and by AST, not regex: a string or a comment mentioning
 "now" is no hit, and an alias (`import datetime as dt`, `from time import time`,
-`import pandas as pd`) is resolved from the file's own imports. tools/ is not
-scanned: the gates' pins are B106's and B110's business.
+`import pandas as pd`) is resolved from the file's own imports.
+
+WHAT IS SCANNED (A124, 3 Nov 2026): every .py file in the repository, except
+these, each for its reason:
+  tools/          the gates and the operator's tools; the gates pin their clocks
+                  on purpose (B106's and B110's business, not this gate's)
+  tests/          tests and their fixtures, dated on purpose
+  smoke_test.py   the synthetic-store smoke test, a test
+  docs/           documents (no module the box runs)
+  .git/ .venv/ venv/ .claude/ build/ node_modules/ __pycache__/
+                  version control, interpreters, the session harness's scratch
+                  worktrees, build output and vendored packages: not this repo's
+                  code under test
+  altdata/session.py  the one place the clock is read
 
 The allowlist names, per module, how many reads of each call it carries (B106's
 inventory of 1 Nov 2026 as its seed; line numbers kept for reference only, since
@@ -42,11 +54,12 @@ from typing import Optional
 REPO = Path(__file__).resolve().parent.parent
 ALLOWLIST = REPO / "config" / "clock_reads_allowlist.yaml"
 
-# What is scanned: the packages the paste names. weekly* and paper_exec/ are
-# globbed, so a package of that name is scanned the day it exists.
-SCAN_ROOTS = ("altdata", "daily_cascade", "monthly_macro", "alpha", "paper_exec",
-              "scripts")
-SCAN_GLOBS = ("weekly*",)
+# What is scanned (A124): the whole tree, less these named exclusions (the
+# header gives each one's reason). A116 scanned altdata/, daily_cascade/,
+# monthly_macro/, weekly*, alpha/, paper_exec/ and scripts/ only.
+EXCLUDE_DIRS = ("tools", "tests", "docs", ".git", ".venv", "venv", ".claude",
+                "build", "node_modules", "__pycache__")
+EXCLUDE_FILES = {"smoke_test.py"}
 EXEMPT = {"altdata/session.py"}           # the one place the clock is read
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -143,18 +156,15 @@ def hits_in_source(src: str, rel: str = "<scratch>") -> list[tuple[int, str]]:
 
 
 def scanned_files(repo: Path = REPO) -> list[Path]:
-    files: list[Path] = []
-    roots = [repo / r for r in SCAN_ROOTS]
-    for g in SCAN_GLOBS:
-        roots += [p for p in repo.glob(g)]
-    for r in roots:
-        if r.is_file() and r.suffix == ".py":
-            files.append(r)
-        elif r.is_dir():
-            files += sorted(r.rglob("*.py"))
-    return [f for f in files
-            if f.relative_to(repo).as_posix() not in EXEMPT
-            and "__pycache__" not in f.parts]
+    out = []
+    for f in sorted(repo.rglob("*.py")):
+        rel = f.relative_to(repo)
+        if rel.parts[0] in EXCLUDE_DIRS or "__pycache__" in rel.parts:
+            continue
+        if rel.as_posix() in EXCLUDE_FILES or rel.as_posix() in EXEMPT:
+            continue
+        out.append(f)
+    return out
 
 
 def scan(repo: Path = REPO) -> dict[str, list[tuple[int, str]]]:
@@ -228,14 +238,21 @@ def group_a(allow: dict) -> None:
               and len(str(e.get("burn_down") or "")) > 20 for e in mods.values()),
           "each carries its calls with counts and a burn-down note")
     b106 = [r for r, e in mods.items() if e.get("source") == "B106"]
-    a116 = [r for r, e in mods.items() if e.get("source") == "A116 scan"]
-    check(len(b106) + len(a116) == len(mods),
+    a124 = [r for r, e in mods.items() if e.get("source") == "A124 scan"]
+    check(len(b106) + len(a124) == len(mods),
           f"each says where it came from: B106's inventory ({len(b106)}) or "
-          f"this gate's first scan ({len(a116)})")
-    out = allow.get("b106_outside_scope") or {}
-    check(all(not str(r).startswith(SCAN_ROOTS) for r in out),
-          f"B106's modules outside the scanned packages are listed apart, never "
-          f"scanned ({sorted(out)})")
+          f"the whole-tree scan of A124 ({len(a124)})")
+    check(all(e.get("reason") == "pending burn-down" and e.get("group") in ("IN", "OUT")
+              for e in mods.values() if e.get("source") == "A124 scan"),
+          "each A124 entry is 'pending burn-down' with its group by A119's rule "
+          "(IN: the rehearsed tree leaves it alone; OUT: it touches it)")
+    check(not allow.get("b106_outside_scope"),
+          "nothing is listed apart any more: the whole tree is scanned")
+    excl = [f for f in REPO.rglob("*.py")
+            if f.relative_to(REPO).parts[0] in ("tools", "tests")]
+    check(excl and not any(f in scanned_files() for f in excl),
+          f"the named exclusions hold: tools/ and tests/ are never scanned "
+          f"({len(excl)} files)")
 
 
 def group_b(allow: dict) -> None:

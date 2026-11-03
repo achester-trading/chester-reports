@@ -5,8 +5,9 @@
 # touches). Seeded from B106's inventory (docs/briefs/b106-notes.md on
 # b101-date-drift-gates, 1 Nov 2026), checked against this gate's first scan of
 # main at 422ea697: 41 of B106's 42 files, 57 reads, every line where B106 put
-# it. The 42nd, register/heat.py, sits outside the scanned packages and is
-# listed apart below.
+# it. A124 (3 Nov 2026) widened the scan to the whole tree less its named
+# exclusions (tools/, tests/, docs/, smoke_test.py, the harness's directories):
+# the 42nd, register/heat.py, is now scanned and carried here like the rest.
 #
 # An entry is matched by its calls and their counts, never its lines (lines
 # drift); `lines_b106` is kept for reference. `burn_down` is what routing it
@@ -221,11 +222,10 @@ modules:
     calls: {datetime.datetime.now: 1}
     lines_b106: [96]
     burn_down: "the as-of fallback: session.utc_now(), identical value; a report path, so do it after the merge week"
-
-# B106's modules outside the scanned packages (the paste's list: altdata/,
-# daily_cascade/, monthly_macro/, weekly*, alpha/, paper_exec/, scripts/). Never
-# scanned; kept so the burn-down list is B106's whole inventory.
-b106_outside_scope:
   register/heat.py:
+    source: A124 scan
+    reason: pending burn-down
+    group: IN
+    calls: {datetime.datetime.now: 1}
     lines_b106: [151]
-    burn_down: "the band's as-of fallback: session.utc_now(); register/ is outside this gate's packages"
+    burn_down: "the heat band's as-of fallback: session.utc_now(), identical value (A119 converted it on its branch; this entry burns down when A119 merges)"
