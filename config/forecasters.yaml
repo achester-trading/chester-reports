@@ -5,14 +5,18 @@
 # provider's key is the operator's. Each answers the same code-built packet
 # independently (decision 5) and never sees the others' answers.
 #
-# NOTHING SPENDS BY SURPRISE. Every provider's budget starts at ZERO calls a
-# day: a forecaster whose provider has no budget left is skipped and says so.
-# The operator sets the budgets after the merge (docs/briefs/a94-notes.md).
+# NOTHING SPENDS BY SURPRISE. A forecaster whose provider has no key, or no
+# budget left, is skipped and says so, before any call is made.
+# THE BUDGETS (A120, 2 Nov 2026): decision 4's ceiling of three calls a day,
+# anthropic 2 and gemini 1, set by a session paste as docs/briefs/a94-notes.md's
+# box steps ask. They shipped at zero (A94). Without GEMINI_API_KEY in .env the
+# gemini forecaster prints "skipped, key not configured" and spends nothing; the
+# operator's one box step left is adding that key.
 version: 1
 
 budgets:
-  anthropic: {calls_per_day: 0}
-  gemini: {calls_per_day: 0}
+  anthropic: {calls_per_day: 2}
+  gemini: {calls_per_day: 1}
 
 # The second provider: Gemini's REST API (generateContent), the key sent as a
 # header (x-goog-api-key), never in a URL, so it cannot reach a log through one.

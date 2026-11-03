@@ -161,3 +161,51 @@ to 145/142, by hand: this base has no stitch tools.
 5. **Then the next tranche.** Choosing the ledger's open questions and writing the
    answers into the ledger, plus its timer, is a later paste. No timer runs the
    forecasters yet.
+
+## A120 (2 Nov 2026): the budgets set
+
+Base `d70205dd` (origin/a94-ll6-forecasters at its tip). Paste committed first as
+`docs/pastes/A120.md`.
+
+**The budgets.** `config/forecasters.yaml` now holds `anthropic: {calls_per_day: 2}`
+and `gemini: {calls_per_day: 1}`: decision 4's ceiling, as box step 3 above
+names it. The header comment says they were set here and shipped at zero.
+
+**The model id.** `gemini-a`'s `model` in the config is `gemini-2.5-pro`, the id
+these notes name. That is the string compared, and it matches. No call was made,
+so whether Google still serves that id is unchecked.
+
+**The no-key path, proved first** (`validate_ll6` group C, three new cases, on
+the shipped config with `GEMINI_API_KEY` absent):
+- **status:** `gemini-a (gemini): skipped, key not configured`, and both Anthropic
+  forecasters `ready, model claude-opus-5-5, budget 2 a day, 0 used`. The
+  paste's "not_configured" is this line; the wording is A94's and is unchanged.
+- **a run** raises nothing, prints `gemini: skipped, key not configured`, and
+  spends no gemini budget (0 gemini rows in `model_calls`).
+- **the Anthropic forecasters** run as before: 2 answered, 2 calls, inside the
+  budget of 2.
+
+The zero-budget case ("a zero budget blocks the call before it is made") now
+runs on an explicit zero config, since the shipped one is no longer zero.
+
+**On the laptop,** `python -m altdata.forecasters status` with `GEMINI_API_KEY`
+unset printed:
+
+```
+opus-a (anthropic): skipped, ANTHROPIC_API_KEY is not set (checked environment, then .env)
+opus-b (anthropic): skipped, ANTHROPIC_API_KEY is not set (checked environment, then .env)
+gemini-a (gemini): skipped, key not configured
+```
+
+The worktree has no `.env`, so both providers skip and say why. No call was
+made, and no key was read into any output.
+
+**The box step, the only one left:** add GEMINI_API_KEY to .env; then python -m
+altdata.forecasters status shows gemini-a configured; the budgets are already set.
+
+| Gate | Result |
+|---|---|
+| `validate_ll6` | 22 passed, 0 failed (was 19; group C gains the three cases) |
+| `validate_deploy` | 154 passed, 0 failed |
+| `validate_secrets` | 58 passed, 0 failed |
+| `check_registry` | OK |

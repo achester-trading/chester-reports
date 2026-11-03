@@ -11,7 +11,10 @@ and a SYNTHETIC key. Nothing here calls a provider.
                    the URL, a printed line, a log record, a manifest, the client's repr
                    or an error's text
   C  THE BUDGET    zero calls a day blocks the call before it is made; the shipped
-                   config's budgets are zero; a spent budget skips and says so
+                   config's budgets are decision 4's (anthropic 2, gemini 1; A120);
+                   a spent budget skips and says so; with the budgets set and no
+                   Gemini key, gemini-a is skipped, spends nothing and raises
+                   nothing, and the Anthropic forecasters run as before
   D  THE AGGREGATE the extremized log-odds mean, by hand; n printed; clipping
   E  MANIFESTS     one line per forecaster per run, appended: a second run leaves the
                    first run's lines as they were; the module opens the file only to
@@ -170,14 +173,14 @@ def group_b() -> None:
 def group_c() -> None:
     head("C. THE BUDGET")
     shipped = fc.config()["budgets"]
-    check(shipped == {"anthropic": {"calls_per_day": 0}, "gemini": {"calls_per_day": 0}},
-          f"the shipped budgets are zero calls a day ({shipped})")
+    check(shipped == {"anthropic": {"calls_per_day": 2}, "gemini": {"calls_per_day": 1}},
+          f"the shipped budgets are decision 4's, anthropic 2 and gemini 1 (A120; {shipped})")
     fa = FakeAnthropic('{"q1": 0.6}')
     blocked = False
     with meter.scope(report="forecasters", db_path=str(TD / "c.db")):
         try:
             meter.create_metered("anthropic", fa, model="claude-opus-5-5", prompt="x",
-                                 cfg=fc.config())
+                                 cfg=cfg_with(0, 0))
         except meter.BudgetExhausted:
             blocked = True
     check(blocked and fa.calls == 0, "a zero budget blocks the call before it is made")
@@ -188,6 +191,32 @@ def group_c() -> None:
     check(fa2.calls == 1 and any(l.startswith("opus-b (anthropic): skipped, budget 1 call(s) a day, 1 used")
                                 for l in r["lines"]),
           "a spent budget: the first forecaster calls, the second is skipped and says so")
+    # A120: the shipped budgets set, the Gemini key absent.
+    os.environ.pop(KEY_NAME, None)
+    ship = fc.config()
+    gcli, gwhy = meter.gemini_client(ship)
+    fa3 = FakeAnthropic('{"q1": 0.6, "q2": 0.3}')
+    cl3 = {"anthropic": (fa3, ""), "gemini": (gcli, gwhy)}
+    st = fc.status(cfg=ship, clients=cl3, db_path=str(TD / "c3.db"))
+    check(gcli is None and "gemini-a (gemini): skipped, key not configured" in st
+          and "opus-a (anthropic): ready, model claude-opus-5-5, budget 2 a day, 0 used" in st,
+          f"status with the budgets set and no Gemini key: gemini-a not configured, "
+          f"the Anthropic forecasters ready at budget 2 ({st})")
+    raised = None
+    try:
+        r3 = fc.run(QS, "2026-10-30T20:45:00+00:00", cfg=ship, clients=cl3,
+                    db_path=str(TD / "c3.db"), manifests=TD / "c3.jsonl")
+    except Exception as exc:                                    # noqa: BLE001
+        raised, r3 = exc, {"lines": []}
+    check(raised is None and "gemini: skipped, key not configured" in r3["lines"]
+          and meter.calls_today(str(TD / "c3.db"), "gemini") == 0,
+          f"a run with no Gemini key raises nothing and spends no gemini budget "
+          f"(raised: {raised}; gemini calls today: "
+          f"{meter.calls_today(str(TD / 'c3.db'), 'gemini')})")
+    check(fa3.calls == 2 and "opus-a (anthropic): answered 2 of 2" in r3["lines"]
+          and "opus-b (anthropic): answered 2 of 2" in r3["lines"]
+          and meter.calls_today(str(TD / "c3.db"), "anthropic") == 2,
+          "and the two Anthropic forecasters run as before, within the budget of 2")
 
 
 def group_d() -> None:
