@@ -59,6 +59,36 @@ LAST_OK="$STATE_DIR/heartbeat_check_last_ok"
 ALERT="$STATE_DIR/alerts/eod_heartbeat.json"
 LOG_GLOB="$SANDBOX/logs/heartbeat_check-*.log"
 
+# B124 (2 Nov 2026): THE GATE'S OWN ENVIRONMENT, for its runs only. The wrapper
+# honours each of these already, or by default does what it does today:
+# - CHESTER_STATE_PY: the venv this gate seeds with (as FEED_PY below), so the
+#   wrapper's checks and the gate's seeding use one interpreter on every machine;
+# - the four checks no section here asserts on, skipped in every run but the
+#   section that tests one (run_exc turns the exceptions check back on;
+#   listings_run the listings check). Each check costs an interpreter start per
+#   run, and this gate runs the wrapper about seventy times.
+GATE_PY="$REPO/.venv/bin/python"
+[[ -x "$GATE_PY" ]] || GATE_PY="$REPO/.venv/Scripts/python.exe"
+[[ -x "$GATE_PY" ]] || GATE_PY="$(command -v python3 || command -v python || true)"
+GATE_ENV=(CHESTER_SKIP_EXCEPTION_CHECK=1 CHESTER_SKIP_LISTINGS_CHECK=1
+          CHESTER_SKIP_REQUIREMENTS_CHECK=1 CHESTER_SKIP_FOMC_AUDIT=1)
+[[ -n "$GATE_PY" ]] && GATE_ENV+=(CHESTER_STATE_PY="$GATE_PY")
+# - CHESTER_UNIT_SRC: the repo's own bytes of every unit a check here names, and
+#   box-config.allow, copied to the sandbox. The wrapper compares and queries each
+#   unit in its source directory, a few processes a unit, so the whole of
+#   deploy/systemd/ cost 7-14 s a run on the laptop. The one check that is about
+#   the repo's whole set ("installed units matching the repo -> clean") still
+#   passes CHESTER_UNIT_SRC=deploy/systemd itself.
+GATE_UNITS="$SANDBOX/unit-src"
+mkdir -p "$GATE_UNITS"
+for u in chester-backup.service chester-eod.service chester-eod.timer \
+         chester-heartbeat.service chester-monthly.timer chester-overnight.service \
+         chester-weekly.timer ibgateway.service box-config.allow; do
+    cp "$REPO/deploy/systemd/$u" "$GATE_UNITS/" \
+        || { echo "  FAIL  the gate's unit fixture: deploy/systemd/$u is missing"; exit 1; }
+done
+GATE_ENV+=(CHESTER_UNIT_SRC="$GATE_UNITS")
+
 # run <checker_rc> [extra env assignments...] -> sets RC
 run() {
     local rc="$1"; shift
@@ -72,6 +102,7 @@ run() {
         CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
+        "${GATE_ENV[@]}" \
         "$@" \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
@@ -231,7 +262,7 @@ else
 fi
 
 cp "$REPO"/deploy/systemd/*.service "$REPO"/deploy/systemd/*.timer "$UNITS/"
-run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS"
+run 0 CHESTER_SYSTEMD_USER_DIR="$UNITS" CHESTER_UNIT_SRC="$REPO/deploy/systemd"
 if [[ "$(drift_of)" == "clean" ]] && [[ "$RC" == "0" ]]; then
     ok "installed units matching the repo -> clean, exit 0"
 else
@@ -519,6 +550,7 @@ env CHECKER_RC=0 \
     CHESTER_SKIP_BACKUP_CHECK=1 \
     CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty.db" \
+    "${GATE_ENV[@]}" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
 if [[ "$(state_of)" == "no_state_object" ]] && [[ "$RC" == "10" ]]; then
@@ -540,6 +572,7 @@ env CHECKER_RC=1 \
     CHESTER_SKIP_BACKUP_CHECK=1 \
     CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty.db" \
+    "${GATE_ENV[@]}" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
 if [[ "$(state_of)" == "stale" ]] && [[ "$RC" == "1" ]]; then
@@ -578,6 +611,7 @@ env CHECKER_RC=0 \
     CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
+    "${GATE_ENV[@]}" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
 if [[ "$(feeds_of)" == "fresh" ]] && [[ "$RC" == "0" ]]; then
@@ -608,6 +642,7 @@ env CHECKER_RC=0 \
     CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
+    "${GATE_ENV[@]}" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
 if [[ "$(state_of)" == "feed_stale" ]] && [[ "$RC" == "11" ]]; then
@@ -647,6 +682,7 @@ env CHECKER_RC=2 \
     CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DB="$SANDBOX/empty-feeds.db" \
+    "${GATE_ENV[@]}" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
 if [[ "$(state_of)" == "no_heartbeat" ]] && [[ "$RC" == "2" ]]; then
@@ -708,6 +744,7 @@ run_exc() {                      # run_exc <checker_rc>
         CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
+        "${GATE_ENV[@]}" CHESTER_SKIP_EXCEPTION_CHECK= \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
 }
@@ -785,6 +822,7 @@ run_backup() {                   # run_backup <checker_rc> [extra env...]
         CHESTER_SKIP_STATE_CHECK=1 \
         CHESTER_SKIP_FEED_CHECK=1 \
         CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
+        "${GATE_ENV[@]}" \
         "$@" \
         bash "$WRAPPER" >"$SANDBOX/out" 2>&1
     RC=$?
@@ -887,6 +925,7 @@ env CHECKER_RC=0 \
     CHESTER_SKIP_STATE_CHECK=1 \
     CHESTER_DISK_PCT="${GATE_DISK_PCT:-10}" CHESTER_SWAP_USED_KB="${GATE_SWAP_KB:-0}" CHESTER_MEM_AVAILABLE_KB="${GATE_MEMAVAIL_KB:-3000000}" CHESTER_MEM_TOTAL_KB="${GATE_MEMTOTAL_KB:-4000000}" \
     CHESTER_DB="$SANDBOX/empty-feeds-b.db" \
+    "${GATE_ENV[@]}" \
     bash "$WRAPPER" >"$SANDBOX/out" 2>&1
 RC=$?
 if [[ "$(state_of)" == "backup_failed" ]] && [[ "$RC" == "12" ]]; then
@@ -1170,7 +1209,7 @@ mkdir -p "$LDIR"
 listings_run() {
     rm -f "$LDIR"/*.csv "$STATUS"
     [[ -n "$1" ]] && printf 'symbol,name\nAAA,Fixture\n' >"$LDIR/$1.csv"
-    run 0 CHESTER_LISTINGS_DIR="$LDIR" CHESTER_LISTINGS_TODAY="$2"
+    run 0 CHESTER_SKIP_LISTINGS_CHECK= CHESTER_LISTINGS_DIR="$LDIR" CHESTER_LISTINGS_TODAY="$2"
 }
 listings_run 2026-10-16 2026-10-19      # Fri -> Mon: one session (the weekend is not a miss)
 if [[ "$(listings_of)" == "fresh" ]] && [[ "$RC" == "0" ]]; then
