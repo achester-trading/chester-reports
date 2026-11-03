@@ -2342,6 +2342,9 @@ sources:
       portal's dataset page for SGS series 1, "Taxa de cambio - Livre - Dolar
       americano (venda) - diario" -- answered HTTP 502 twice (an error page,
       5,015 bytes), so the licence is unread and the check is not passed.
+      Third attempt, A118, 3 Nov 2026 02:48 UTC: the same page answered HTTP
+      502 again (the same 5,015-byte error page), and api.bcb.gov.br/robots.txt
+      404 again. Terms unread; the check waits for the portal.
     allowed_reports: []
     implemented_by: none
     status: candidate

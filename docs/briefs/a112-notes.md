@@ -115,6 +115,20 @@ stops at the terms, and by (b) the build stops at the gap:
 `allowed_reports: []` and `implemented_by: none`. Its licence field records the
 check as above.
 
+**The third attempt (A118, 3 Nov 2026), outcome (3): unreachable again.** One
+terms fetch and one robots fetch, with the project's generic User-Agent:
+
+| Request | Answer |
+|---|---|
+| The terms page (the same URL as A112's) at 02:48:06 UTC | **HTTP 502**, the same 5,015-byte error page |
+| `https://api.bcb.gov.br/robots.txt` at 02:48:07 UTC | 404: still no robots file |
+
+The candidate stays `status: candidate` with its licence "terms unread". Nothing
+was fetched beyond those two requests: no sample request was made, nothing was
+stored, and no pair was declared. The check waits for the portal. A later paste
+can try the page again, or read the BCB's own terms of use on www.bcb.gov.br,
+whose robots allows `/`. Nothing here scrapes around the 502.
+
 **The next step, by a later paste.** Read the terms (the portal page, or the
 BCB's own terms of use), then make the one sample request (record its first
 rows' dates). Then declare `fred.usd_brl` against it as an inactive pair,
@@ -157,3 +171,14 @@ The screen stays report-only:
 | `validate_quality.py` | 48 passed, 0 failed (no inactive pair added) |
 | `check_registry.py` | OK |
 | `validate_stack.py --group` | not run: B97's `--group` flag is on the rehearsed tree, not on main |
+
+## A118 gates (one at a time, 2 Nov 2026 evening)
+
+No pair was declared, so the quality config is unchanged; `validate_quality` was
+run anyway as the pair's gate.
+
+| Gate | Result |
+|---|---|
+| `validate_official_sources` | 340 passed, 0 failed |
+| `validate_quality` | 48 passed, 0 failed |
+| `check_registry` | OK |
