@@ -701,3 +701,80 @@ Across all 29 names: 197 events print an EPS, 59 "not filed as a quarter",
 | `check_registry` | OK |
 
 The writers stay off; nothing stored.
+
+## A115 (2 Nov 2026): the FRED families' parallel runs start
+
+Base `9c26b625` (A114's tip on origin/a96-price-migration-fred). Paste committed
+first as `docs/pastes/A115.md`.
+
+**The pairs moved.** `config/data_quality.yaml` `inactive_pairs_fred`'s three
+entries are now in `pairs.list` as A96 wrote them: id, family, the pinned
+references and labels, the unit. Each has tolerance null and A96's "to be
+measured on the overlap" as its `unmeasured_reason`, so it prints "not measured"
+and never flags. `inactive_pairs_fred` is now `[]`.
+
+| Pair | Family | Resolves to |
+|---|---|---|
+| dxy_broad | dollar_index | yfinance.mkt_dxy vs fred.dxy (DTWEXBGS) |
+| y10_fred | us_yields | yfinance.mkt_tnx vs fred.yield_10y |
+| y30_fred | us_yields | yfinance.mkt_tyx vs fred.yield_30y |
+
+y10_fred and y30_fred read the same keys as the existing tnx_dgs10 and tyx_dgs30
+pairs, through the family's pins.
+
+**The started dates.** `config/price_sources.yaml` `parallel_run.started` is
+"2026-11-04" for us_yields and dollar_index ("the first deploy that carries A96;
+counted by the quality measure"). Every family's `source` is still yfinance.
+
+**Two small code changes**, both needed for the move to count:
+- `altdata/quality.py` `load_config` resolves a listed pair's pinned
+  `price:<family>.<member>@<source>` reference through `price_sources.resolve_tree`.
+  Without it the check would read a key literally named `price:...`, and the pair
+  would only ever be "absent". A pin names one source whatever is active, so no
+  pair or reader moves with a switch.
+- `altdata/price_sources.py` gains `parallel_line()`, which the resolver prints
+  under a started family: "parallel run: started 2026-11-04, 0 of 20 sessions".
+
+**The EDGAR families stay inactive.** A102 declared them in
+`config/data_quality.yaml` `inactive_pairs_edgar` (41 pairs: 40 company-quarter,
+one events pair). A102's notes ("The operator's steps", 2) start them differently:
+the backfill first, then a paste that sets `enabled: true` **and**
+`parallel_run.started`, and moves the pairs. Not this mechanism, for three
+reasons:
+- **Nothing is written yet.** Both EDGAR parts ship `enabled: false` and A114
+  keeps them off, so no EDGAR row accrues. A started date would count an overlap
+  that does not exist.
+- **The overlap is per filing.** A102 says so itself: "Fundamentals change
+  quarterly, so the overlap is a season's filings, not 20 rows." The quality
+  measure counts shared dates, not sessions.
+- **The events pair is not in the observation store** the quality check reads.
+
+They start with the paste A102 names, after the operator's backfill.
+
+**The resolver's printout** (`python -m altdata.price_sources`, abridged):
+
+```
+us_yields          yfinance  y10=yfinance.mkt_tnx, y30=yfinance.mkt_tyx
+                   parallel run: started 2026-11-04, 0 of 20 sessions
+dollar_index       yfinance  dxy=yfinance.mkt_dxy
+                   parallel run: started 2026-11-04, 0 of 20 sessions
+fundamentals       yfinance  amzn_operating_cash_flow=yfinance.fund_amzn_operating_cash_flow, ...
+earnings_dates     yfinance  history=yfinance, next_date=yfinance, consensus=yfinance
+```
+
+The measure has no dry form beyond `--db`. `validate_quality`'s new group G2
+runs `quality.check` and `quality.measure` on a fixture store. The started pairs
+are read as "not measured", never flagged, and absent where a leg is missing;
+the measure counts their shared days (3, 3, 0).
+
+**The box step after Wednesday's deploy, unchanged:** after 20 sessions,
+`python -m altdata.quality measure --db data/chester.db`. Nothing else for the
+box.
+
+| Gate | Result |
+|---|---|
+| `validate_price_sources` | 65 passed, 0 failed (group E's pair check now states the moved pairs) |
+| `validate_quality` | 54 passed, 0 failed (new G2, 6 cases; A and G state the six pairs) |
+| `validate_feed_repair` | not run: it does not read `data_quality.yaml` |
+| `validate_outliers` | 37 passed, 0 failed (run as well: it reads the quality config) |
+| `check_registry` | OK |

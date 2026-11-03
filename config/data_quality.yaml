@@ -123,6 +123,60 @@ pairs:
       measured_p99: 0.0000012
       measured_on: "2026-10-15"
       measured_window: "2022-04-21 to 2026-05-28 (1,029 shared days)"
+    # A115 (2 Nov 2026): the two FRED families' parallel-run pairs, moved here
+    # from inactive_pairs_fred exactly as A96 wrote them, with tolerance null:
+    # each prints "not measured" and never flags until the overlap is measured
+    # (python -m altdata.quality measure after 20 sessions). Their pinned
+    # references resolve through altdata/price_sources.py (quality.load_config).
+    # y10_fred and y30_fred read the same keys as tnx_dgs10 and tyx_dgs30, through
+    # the family's pins, so the switch's measurement is the family's own.
+    - id: dxy_broad
+      family: dollar_index
+      a: "price:dollar_index.dxy@yfinance"
+      a_label: "DXY (ICE, Yahoo)"
+      b: "price:dollar_index.dxy@fred"
+      b_label: "DTWEXBGS"
+      unit: percent
+      scale: 1
+      tolerance: null
+      measured_on: null
+      measured_window: null
+      unmeasured_reason: >-
+        A96's parallel run, started 2026-11-04 (A115): to be measured on the
+        overlap. DXY and the broad dollar are different indices, so the gap is a
+        level gap, not an error. Until measured, "not measured", never a flag.
+    - id: y10_fred
+      family: us_yields
+      a: "price:us_yields.y10@yfinance"
+      a_label: "^TNX"
+      b: "price:us_yields.y10@fred"
+      b_label: "DGS10"
+      unit: bp
+      scale: 100
+      floor: 0.01
+      tolerance: null
+      measured_on: null
+      measured_window: null
+      unmeasured_reason: >-
+        A96's parallel run, started 2026-11-04 (A115): to be measured on the
+        overlap (the active tnx_dgs10 pair's own measurement is the first read).
+        Until measured, "not measured", never a flag.
+    - id: y30_fred
+      family: us_yields
+      a: "price:us_yields.y30@yfinance"
+      a_label: "^TYX"
+      b: "price:us_yields.y30@fred"
+      b_label: "DGS30"
+      unit: bp
+      scale: 100
+      floor: 0.01
+      tolerance: null
+      measured_on: null
+      measured_window: null
+      unmeasured_reason: >-
+        A96's parallel run, started 2026-11-04 (A115): to be measured on the
+        overlap (the active tyx_dgs30 pair's own measurement is the first read).
+        Until measured, "not measured", never a flag.
 
 # BACKFILL (ruled 15 Oct 2026, AUD-3c answer 3). Rows written under these
 # source strings are the FRED-history writer's (aud-3d-fred-history, session B):
@@ -138,10 +192,9 @@ backfill_sources: ["fred:backfill"]
 # assumed. (The ^TNX/DGS10 and ^TYX/DGS30 pairs above already measure the yields;
 # the dollar's two indices are different series, so its gap is a level gap, not
 # an error.) The keys are pinned to their sources, as a cross-source pair must be.
-inactive_pairs_fred:
-  - {id: dxy_broad, family: dollar_index, a: "price:dollar_index.dxy@yfinance", a_label: "DXY (ICE, Yahoo)", b: "price:dollar_index.dxy@fred", b_label: "DTWEXBGS", unit: percent, active: false, tolerance: "to be measured on the overlap"}
-  - {id: y10_fred, family: us_yields, a: "price:us_yields.y10@yfinance", a_label: "^TNX", b: "price:us_yields.y10@fred", b_label: "DGS10", unit: bp, active: false, tolerance: "to be measured on the overlap (the active tnx_dgs10 pair's own measurement is the first read)"}
-  - {id: y30_fred, family: us_yields, a: "price:us_yields.y30@yfinance", a_label: "^TYX", b: "price:us_yields.y30@fred", b_label: "DGS30", unit: bp, active: false, tolerance: "to be measured on the overlap (the active tyx_dgs30 pair's own measurement is the first read)"}
+# A115 (2 Nov 2026) started both families' parallel runs (2026-11-04) and moved
+# the three entries into pairs.list, so this list is empty.
+inactive_pairs_fred: []   # A115 (2 Nov 2026): all three moved into pairs.list above
 
 # A102: EDGAR's filed figure against Yahoo's for the same company-quarter (the
 # fundamentals family) and EDGAR's report date and EPS against Yahoo's (the

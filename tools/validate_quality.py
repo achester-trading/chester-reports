@@ -173,8 +173,9 @@ def group_a() -> None:
                                               cfg.get("close_lines_reason"))),
           "each with its reason, in the one config file")
     ids = [x["id"] for x in p["list"]]
-    check(ids == ["tnx_dgs10", "tyx_dgs30", "vix_vixcls"],
-          f"the three pairs the brief names ({ids})")
+    check(ids[:3] == ["tnx_dgs10", "tyx_dgs30", "vix_vixcls"]
+          and ids[3:] == ["dxy_broad", "y10_fred", "y30_fred"],
+          f"the three pairs the brief names, then A115's three parallel-run pairs ({ids})")
     ok = all((x.get("tolerance") is not None and x.get("measured_on")
               and x.get("measured_window"))
              or (x.get("tolerance") is None and len(str(x.get("unmeasured_reason")
@@ -338,6 +339,52 @@ def group_f(td: str, db: str) -> None:
     check(0 < i_q < i_r, "produce() adds the lines before it renders the close")
 
 
+def group_a115(cfg: dict, td: str) -> None:
+    """A115: the two FRED families' parallel runs have started."""
+    head("G2. THE PARALLEL RUNS STARTED (A115)")
+    from altdata import observations, price_sources, quality
+    fam = [x for x in cfg["pairs"]["list"] if x.get("family")]
+    check([(x["id"], x["family"], x["a"], x["b"]) for x in fam]
+          == [("dxy_broad", "dollar_index", "yfinance.mkt_dxy", "fred.dxy"),
+              ("y10_fred", "us_yields", "yfinance.mkt_tnx", "fred.yield_10y"),
+              ("y30_fred", "us_yields", "yfinance.mkt_tyx", "fred.yield_30y")],
+          "the moved pairs' pinned references resolve to Yahoo's key and FRED's, "
+          "whatever source is active")
+    check(all(x["tolerance"] is None and "started 2026-11-04" in x["unmeasured_reason"]
+              for x in fam),
+          "each with tolerance null and its reason: not measured until the overlap is")
+    pcfg = price_sources.config()
+    lines = {f: price_sources.parallel_line(f, pcfg) for f in ("us_yields", "dollar_index")}
+    check(lines == {f: "parallel run: started 2026-11-04, 0 of 20 sessions"
+                    for f in lines},
+          f"a started family with no sessions yet prints '0 of 20' ({lines})")
+    check(price_sources.parallel_line("fundamentals", pcfg) is None
+          and price_sources.parallel_line("earnings_dates", pcfg) is None
+          and all(price_sources.source(f, pcfg) == "yfinance"
+                  for f in ("us_yields", "dollar_index", "fundamentals", "earnings_dates")),
+          "the EDGAR families have not started; every family is still on yfinance")
+    db = str(Path(td) / "a115.db")
+    days = bdays(DAY, 3)
+    st = observations.ObservationStore(db)
+    try:
+        st.write_many(rows("yfinance.mkt_dxy", days, [104.0, 104.2, 104.1])
+                      + rows("fred.dxy", days, [121.0, 121.3, 121.2])
+                      + rows("yfinance.mkt_tnx", days, [4.20, 4.22, 4.25])
+                      + rows("fred.yield_10y", days, [4.21, 4.23, 4.27]))
+    finally:
+        st.close()
+    pr = {x["id"]: x for x in quality.check(db, DAY, cfg=cfg)["pairs"]}
+    check(pr["dxy_broad"]["state"] == "not measured" and not pr["dxy_broad"]["flagged"]
+          and abs(pr["dxy_broad"]["gap"] - 17.1) < 1e-6
+          and pr["y10_fred"]["state"] == "not measured" and not pr["y10_fred"]["flagged"]
+          and pr["y30_fred"]["state"] == "absent",
+          "on a fixture store the started pairs are read: 'not measured', never "
+          "flagged, and absent where a leg is not stored")
+    m = {x["id"]: x for x in quality.measure(db, cfg=cfg)}
+    check(m["dxy_broad"]["n"] == 3 and m["y10_fred"]["n"] == 3 and m["y30_fred"]["n"] == 0,
+          "and the measure counts their shared days (3, 3 and 0 here)")
+
+
 def group_g(td: str) -> None:
     head("G. THE 15 OCT RULINGS")
     from altdata import observations, quality
@@ -346,11 +393,13 @@ def group_g(td: str) -> None:
     check("RULED 15 Oct 2026" in p["floor_reason"]
           and next(x for x in p["list"] if x["id"] == "vix_vixcls")["tolerance"] == 0.01,
           "the VIX pair keeps its 0.01 floor, and the config says it is a ruling")
+    brief = [x for x in p["list"] if not x.get("family")]
     check(all("week of 19 Oct" in x["unmeasured_reason"] or "As ^TNX" in
-              x["unmeasured_reason"] for x in p["list"] if x["tolerance"] is None)
-          and [x["id"] for x in p["list"] if x["tolerance"] is None]
+              x["unmeasured_reason"] for x in brief if x["tolerance"] is None)
+          and [x["id"] for x in brief if x["tolerance"] is None]
           == ["tnx_dgs10", "tyx_dgs30"],
           "^TNX and ^TYX wait for the box, after the backfills (not measured)")
+    group_a115(cfg, td)
     sk = quality.step_keys(cfg)
     check({"fred.iorb", "fred.ecb_dfr", "fred.jp_call_rate"} <= sk
           and all(len(str(s.get("why") or "")) > 10 for s in cfg["steps"]["series"]),

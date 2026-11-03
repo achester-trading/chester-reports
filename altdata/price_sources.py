@@ -277,11 +277,26 @@ def event_ok(row: dict, family: str = "earnings_dates",
     return bool(on) and obs < on
 
 
+def parallel_line(family: str, cfg: Optional[dict] = None) -> Optional[str]:
+    """A started family's parallel run, "parallel run: started D, n of 20
+    sessions" (A115); None while it has not started. The count is the config's
+    record; the overlap itself is measured by python -m altdata.quality measure."""
+    pr = _family(family, cfg).get("parallel_run") or {}
+    if not pr.get("started"):
+        return None
+    return (f"parallel run: started {pr['started']}, "
+            f"{int(pr.get('sessions_counted') or 0)} of "
+            f"{int(pr.get('sessions_required') or 20)} sessions")
+
+
 def _main(argv: list[str]) -> int:
     for fam, f in (config().get("families") or {}).items():
         mem = ", ".join(f"{m}={gap(fam, m) or key(fam, m)}"
                         for m in (f.get("members") or {})) or "(stub)"
         print(f"{fam:18} {source(fam):9} {mem[:160]}")
+        pl = parallel_line(fam)
+        if pl:
+            print(f"{'':18} {pl}")
     return 0
 
 

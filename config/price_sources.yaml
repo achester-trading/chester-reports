@@ -27,7 +27,7 @@ families:
       replace Yahoo's ^TNX and ^TYX; not spliced
     switched_on: null                 # the first session on the new source
     parallel_run:
-      started: null
+      started: "2026-11-04"   # the first deploy that carries A96; counted by the quality measure
       sessions_counted: 0
       sessions_required: 20
       max_gap: null
@@ -41,7 +41,7 @@ families:
       replaces ICE's DXY, a different index; not spliced
     switched_on: null
     parallel_run:
-      started: null
+      started: "2026-11-04"   # the first deploy that carries A96; counted by the quality measure
       sessions_counted: 0
       sessions_required: 20
       max_gap: null

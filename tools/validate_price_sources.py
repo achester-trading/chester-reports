@@ -228,16 +228,21 @@ def group_e() -> None:
               "switched, a pinned reference keeps Yahoo's key; the plain one moves")
     import yaml                                                 # noqa: PLC0415
     dq = yaml.safe_load((REPO / "config" / "data_quality.yaml").read_text(encoding="utf-8"))
+    # A115: the three FRED-family pairs moved into pairs.list (tolerance null,
+    # "not measured"), and their families' parallel runs started 2026-11-04.
     ip = dq.get("inactive_pairs_fred") or []
-    resolved = [(ps.resolve(p["a"]), ps.resolve(p["b"])) for p in ip]
-    active = {(p.get("a"), p.get("b")) for p in (dq.get("pairs") or {}).get("list") or []}
-    check(len(ip) == 3 and all(p["active"] is False and "measured on the overlap" in p["tolerance"]
-                               for p in ip)
+    fam = [p for p in (dq.get("pairs") or {}).get("list") or [] if p.get("family")]
+    resolved = [(ps.resolve(p["a"]), ps.resolve(p["b"])) for p in fam]
+    check(ip == [] and [p["id"] for p in fam] == ["dxy_broad", "y10_fred", "y30_fred"]
+          and all(p["tolerance"] is None and "measured on the" in p["unmeasured_reason"]
+                  for p in fam)
           and resolved == [("yfinance.mkt_dxy", "fred.dxy"),
                            ("yfinance.mkt_tnx", "fred.yield_10y"),
                            ("yfinance.mkt_tyx", "fred.yield_30y")]
-          and not any(str(a).startswith("price:") for a, _ in active),
-          "the three inactive pairs resolve, tolerance to be measured, none in the active list")
+          and all((ps.config()["families"][f]["parallel_run"]["started"] == "2026-11-04"
+                   and ps.source(f) == "yfinance") for f in ("us_yields", "dollar_index")),
+          "A115: the three FRED pairs are in pairs.list, pinned, tolerance null; "
+          "both families started 2026-11-04 and still on yfinance")
     ie = dq.get("inactive_pairs_edgar") or []
     kp = [p for p in ie if p.get("kind") != "events"]
     check(len(kp) == 40 and len(ie) == 41 and all(p["active"] is False for p in ie)
