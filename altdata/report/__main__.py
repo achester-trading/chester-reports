@@ -18,6 +18,7 @@ import os
 from ..store import Store
 from .generate import generate_report
 from .export import export_json
+from .. import session  # the clock, through altdata.session (A119)
 
 
 def main():
@@ -37,7 +38,7 @@ def main():
     out = args.out
     if not out:
         os.makedirs("reports", exist_ok=True)
-        out = os.path.join("reports", f"alt-asset-report-{dt.date.today().isoformat()}.md")
+        out = os.path.join("reports", f"alt-asset-report-{session.local_today().isoformat()}.md")
     with open(out, "w") as f:
         f.write(md)
     print(f"Wrote {out} ({len(md):,} chars)")
@@ -46,7 +47,7 @@ def main():
         jpath = args.json
         if not jpath:
             os.makedirs("reports", exist_ok=True)
-            jpath = os.path.join("reports", f"alt-asset-data-{dt.date.today().isoformat()}.json")
+            jpath = os.path.join("reports", f"alt-asset-data-{session.local_today().isoformat()}.json")
         export_json(store, jpath, monthly_fg_snapshot=args.monthly_fg)
         sz = os.path.getsize(jpath)
         print(f"Wrote {jpath} ({sz:,} bytes) — load this into the dashboard")

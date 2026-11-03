@@ -32,6 +32,7 @@ from .. import analytics
 from ..config import ASSETS, ASSETS_BY_ID
 from .signals import build_signal_set, SignalSet, CORR_BREAK_DELTA
 from .assets import build_all_summaries, AssetSummary
+from .. import session  # the clock, through altdata.session (A119)
 
 
 # --------------------------------------------------------------------------
@@ -67,7 +68,7 @@ def _section_status(store: Store, sig: SignalSet, run_meta: dict) -> str:
         "## 0 · Status & Provenance",
         "",
         f"- **As-of (latest close in store):** {sig.asof.isoformat()}",
-        f"- **Report generated:** {run_meta.get('generated', dt.datetime.utcnow().isoformat())} UTC",
+        f"- **Report generated:** {run_meta.get('generated', session.utc_now().replace(tzinfo=None).isoformat())} UTC",
         f"- **Metrics available in store:** {len(metrics)} ({', '.join(metrics[:12])}{'…' if len(metrics) > 12 else ''})",
         f"- **Correlation break threshold:** |Δ| ≥ {CORR_BREAK_DELTA:.2f} (30d vs 120d)",
     ]
@@ -311,7 +312,7 @@ def generate_report(store: Store, monthly_fg_snapshot: Optional[float] = None) -
     """Produce the full Alternative Asset Report as Markdown."""
     sig = build_signal_set(store, monthly_fg_snapshot=monthly_fg_snapshot)
     summaries = build_all_summaries(store)
-    run_meta = {"generated": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")}
+    run_meta = {"generated": session.utc_now().replace(tzinfo=None).strftime("%Y-%m-%d %H:%M:%S")}
 
     corr_md, cm = _correlation_matrix_section(store)
 

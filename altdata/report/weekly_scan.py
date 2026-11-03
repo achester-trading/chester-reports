@@ -37,6 +37,7 @@ from ..config import ASSETS_BY_ID
 from ..store import Store, Observation
 from .weekly_scan_prompt import build_prompt
 from .assets import build_all_summaries
+from .. import session  # the clock, through altdata.session (A119)
 
 
 # ─── LLM CLIENT HOOKS ────────────────────────────────────────────────────────
@@ -196,7 +197,7 @@ def run_weekly_scan(store: Store,
         List of Observations (one per asset, metric='weekly_update') that
         the caller should persist via store.write().
     """
-    asof = dt.datetime.now(tz=dt.timezone.utc)
+    asof = session.utc_now()
     today = asof.date()
     target_assets = asset_ids if asset_ids else list(ASSETS_BY_ID.keys())
     out: List[Observation] = []

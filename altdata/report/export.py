@@ -34,6 +34,7 @@ from .narratives_extended import NARRATIVES_EXTENDED
 from .peers import PEERS
 from .sources import SOURCES
 from .cases_and_positioning import CASES_AND_POSITIONING
+from .. import session  # the clock, through altdata.session (A119)
 
 SCHEMA_VERSION = 5   # v5 adds LLM weekly_update field per asset
 
@@ -467,7 +468,7 @@ def build_payload(store: Store, monthly_fg_snapshot: Optional[float] = None) -> 
 
     return {
         "schema_version": SCHEMA_VERSION,
-        "generated": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        "generated": session.utc_now().replace(tzinfo=None).strftime("%Y-%m-%d %H:%M:%S"),
         "asof": str(sig.asof),
         "posture": posture,
         "thresholds": {

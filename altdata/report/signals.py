@@ -36,6 +36,7 @@ import pandas as pd
 from ..store import Store
 from .. import analytics
 from ..config import ASSETS, BENCHMARKS
+from .. import session  # the clock, through altdata.session (A119)
 
 # --- thresholds (tunable in one place) --------------------------------------
 CORR_BREAK_DELTA = 0.30      # |short - baseline| above this = regime break
@@ -231,5 +232,5 @@ def build_signal_set(store: Store, monthly_fg_snapshot: Optional[float] = None) 
     recon = crypto_sentiment_reconciliation(store, monthly_fg_snapshot)
     # asof = latest close date in the store
     panel = store.price_panel()
-    asof = panel.index[-1].date() if not panel.empty else dt.date.today()
+    asof = panel.index[-1].date() if not panel.empty else session.local_today()
     return SignalSet(asof=asof, breaks=breaks, triggers=triggers, crypto_reconciliation=recon)
