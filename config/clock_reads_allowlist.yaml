@@ -1,0 +1,231 @@
+# THE CLOCK-READS ALLOWLIST (A116, 2 Nov 2026), read by tools/validate_clock_reads.py.
+#
+# The direct clock reads the code under test still makes, to be burned down one
+# paste per group (A119 takes the first: the modules no merge-week branch
+# touches). Seeded from B106's inventory (docs/briefs/b106-notes.md on
+# b101-date-drift-gates, 1 Nov 2026), checked against this gate's first scan of
+# main at 422ea697: 41 of B106's 42 files, 57 reads, every line where B106 put
+# it. The 42nd, register/heat.py, sits outside the scanned packages and is
+# listed apart below.
+#
+# An entry is matched by its calls and their counts, never its lines (lines
+# drift); `lines_b106` is kept for reference. `burn_down` is what routing it
+# through altdata.session would take. A read beyond its count fails the gate; an
+# entry with no read left is reported "burned down, remove from the allowlist".
+# date.today() is the MACHINE's date (UTC on the box) where session's dates are
+# ET, so each date.today() conversion states whether the ET date is meant.
+version: 1
+modules:
+  alpha/ledger.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [483]
+    burn_down: "the lab's write instant: session.utc_iso('microseconds'), identical text; validate_alpha's store-hash proof must hold"
+  alpha/report.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [445]
+    burn_down: "the CLI's default month: session.session_date()[:7]"
+  alpha/search.py:
+    source: B106
+    calls: {time.time: 2}
+    lines_b106: [103, 642]
+    burn_down: "the step's wall budget (_T0 and spent): a duration, so time.monotonic(); the unit's own start is exported when present, so keep that path"
+  altdata/basis_proxy.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [492]
+    burn_down: "the ledger's run date: session.session_date() (an ET date where date.today() is the machine's; same on the laptop, differs 20:00-24:00 ET on the UTC box)"
+  altdata/chain_metrics.py:
+    source: B106
+    calls: {datetime.date.today: 2}
+    lines_b106: [495, 533]
+    burn_down: "both CLI windows' start: session.session_date_obj() - timedelta(days); check the ET-vs-local date on the box"
+  altdata/claims.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [154]
+    burn_down: "the default as-of: session.session_date_obj() (already takes as_of; only the fallback changes)"
+  altdata/events.py:
+    source: B106
+    calls: {datetime.date.today: 1, datetime.datetime.now: 1}
+    lines_b106: [411, 473]
+    burn_down: "411 session.utc_now(), identical value; 473 the CLI's default since: session.session_date_obj() - 7 days"
+  altdata/events_ingest.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [166]
+    burn_down: "the year fallback: session.session_date_obj().year"
+  altdata/fomc_audit.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [173]
+    burn_down: "the --today fallback: session.session_date_obj()"
+  altdata/fred_history.py:
+    source: B106
+    calls: {datetime.date.today: 1, datetime.datetime.now: 1}
+    lines_b106: [254, 304]
+    burn_down: "254 the current vintage's date: session.session_date(); 304 the run id: session.new_run_id('fred_history'), or utc_stamp() to keep the format byte-identical"
+  altdata/fx_charts.py:
+    source: B106
+    calls: {datetime.date.today: 3}
+    lines_b106: [116, 246, 399]
+    burn_down: "three today()s (the cache's age, the five-year start, the caption date): session.session_date_obj(); touches the committed figures' captions, so do it with the generator's catch-up"
+  altdata/ledgers/__init__.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [230]
+    burn_down: "write_ledger's default run date: session.session_date()"
+  altdata/ledgers/__main__.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [66]
+    burn_down: "the 'read <instant>' provenance: session.utc_iso(), identical text"
+  altdata/ledgers/st_r5_31b.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [274]
+    burn_down: "the 'read <instant>' provenance: session.utc_iso(), identical text"
+  altdata/ledgers/st_r5_44b.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [255]
+    burn_down: "the 'read <instant>' provenance: session.utc_iso(), identical text"
+  altdata/loggers/auction.py:
+    source: B106
+    calls: {time.time: 5}
+    lines_b106: [174, 176, 282, 283, 284]
+    burn_down: "five time.time()s for the polling deadline: a duration, so time.monotonic() is the right clock (not a wall read; the scan does not count it), or session.utc_now().timestamp() if the deadline must follow a pin"
+  altdata/mechanism_watch.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [108]
+    burn_down: "_now(): session.utc_iso(), identical text; B101 pins _now for its gate, which a session pin then replaces"
+  altdata/meme_ingest.py:
+    source: B106
+    calls: {datetime.date.today: 1, datetime.datetime.now: 1}
+    lines_b106: [212, 318]
+    burn_down: "212 the default now: session.utc_iso(); 318 the default today: session.session_date()"
+  altdata/note_fetch.py:
+    source: B106
+    calls: {datetime.datetime.now: 2}
+    lines_b106: [348, 367]
+    burn_down: "both default nows: session.utc_now(), identical value"
+  altdata/paper_bid.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [238]
+    burn_down: "the CLI window's start: session.session_date_obj() - timedelta(days)"
+  altdata/report/__main__.py:
+    source: B106
+    calls: {datetime.date.today: 2}
+    lines_b106: [40, 49]
+    burn_down: "the two output file names: session.session_date(); content, not a pipeline (CLAUDE.md), so lowest priority"
+  altdata/report/export.py:
+    source: B106
+    calls: {datetime.datetime.utcnow: 1}
+    lines_b106: [470]
+    burn_down: "'generated' (naive UTC): session.utc_now().strftime(...), identical text; content, not a pipeline"
+  altdata/report/generate.py:
+    source: B106
+    calls: {datetime.datetime.utcnow: 2}
+    lines_b106: [70, 314]
+    burn_down: "two naive utcnow()s: session.utc_now() with the same format; content, not a pipeline"
+  altdata/report/signals.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [234]
+    burn_down: "the empty-panel as-of fallback: session.session_date_obj(); content, not a pipeline"
+  altdata/report/weekly_scan.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [199]
+    burn_down: "the as-of: session.utc_now(), identical value; content, not a pipeline"
+  altdata/return_attribution.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [296]
+    burn_down: "the default cutoff: session.utc_iso(), identical text"
+  altdata/security_master.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [99]
+    burn_down: "the default as-of date: session.session_date(); the export and the resolver read it, so prove resolve() unchanged across 20:00-24:00 ET"
+  altdata/sm_export.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [154]
+    burn_down: "the default exported_at: session.utc_now(), identical value"
+  altdata/sources/_crypto.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [41]
+    burn_down: "the UTC day: session.utc_now().date().isoformat(), identical (a UTC date, deliberately not session_date)"
+  altdata/sources/aaii.py:
+    source: B106
+    calls: {datetime.date.today: 2}
+    lines_b106: [191, 293]
+    burn_down: "two future-date guards: session.session_date_obj() + 7 days"
+  altdata/sources/bdf_webstat.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [87]
+    burn_down: "the default now: session.utc_iso('microseconds'), identical text"
+  altdata/sources/fed_calendar.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [53]
+    burn_down: "the default today: session.session_date_obj()"
+  altdata/sources/llama.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [281]
+    burn_down: "the UTC day: session.utc_now().date().isoformat(), identical"
+  altdata/sources/news.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [342]
+    burn_down: "the default now: session.utc_now(), identical value"
+  altdata/sources/ons_cpi.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [95]
+    burn_down: "the release-not-yet-out check: session.utc_now(), identical value"
+  altdata/sources/overnight.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [380]
+    burn_down: "the default ET now: session.to_eastern(), identical instant in ET"
+  altdata/sources/statcan_cpi.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [132]
+    burn_down: "the request's end month: session.session_date_obj().replace(day=1)"
+  altdata/sources/upcoming_auctions.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [60]
+    burn_down: "the window's start: session.session_date_obj() - 7 days"
+  altdata/sources/voices_scan.py:
+    source: B106
+    calls: {datetime.date.today: 1}
+    lines_b106: [838]
+    burn_down: "the year-ago bound: session.session_date_obj() - 365 days"
+  altdata/voices.py:
+    source: B106
+    calls: {datetime.date.today: 2}
+    lines_b106: [846, 863]
+    burn_down: "two CLI defaults (--end, the since window): session.session_date()/session_date_obj()"
+  daily_cascade/morning_payload.py:
+    source: B106
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [96]
+    burn_down: "the as-of fallback: session.utc_now(), identical value; a report path, so do it after the merge week"
+
+# B106's modules outside the scanned packages (the paste's list: altdata/,
+# daily_cascade/, monthly_macro/, weekly*, alpha/, paper_exec/, scripts/). Never
+# scanned; kept so the burn-down list is B106's whole inventory.
+b106_outside_scope:
+  register/heat.py:
+    lines_b106: [151]
+    burn_down: "the band's as-of fallback: session.utc_now(); register/ is outside this gate's packages"

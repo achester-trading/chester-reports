@@ -147,6 +147,7 @@ PY_VALIDATORS := \
 	tools/validate_ledgers_b6.py \
 	tools/validate_outliers.py \
 	tools/validate_quality.py \
+	tools/validate_clock_reads.py \
 	tools/validate_fred_history.py \
 	tools/validate_alpha.py \
 	tools/validate_alpha_no_orders.py \
