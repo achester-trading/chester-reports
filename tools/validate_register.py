@@ -412,6 +412,7 @@ def seed_fresh_signals(td: str) -> dict:
     """
     root = Path(td) / "signals"
     computed = root / "computed"
+    # THE GATE'S CLOCK (B106): reads today on purpose -- decide.py runs as a subprocess on the real clock, so the fixture is written against the same clock. Next attention: a market holiday's eve (verified on 2 Nov, a Sunday).
     last = session.last_trading_session().isoformat()
     (computed / last).mkdir(parents=True, exist_ok=True)
     (computed / last / f"SPY_{last}_exposure.json").write_text(

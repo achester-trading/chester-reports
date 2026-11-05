@@ -79,6 +79,7 @@ def code_of(path: Path) -> str:
 
 def seed(db: str, *, age_minutes: float = 1.0, symbols=None) -> None:
     """Write one overnight vintage into a fresh store."""
+    # THE GATE'S CLOCK (B106): reads today on purpose -- a fetch instant just before the run, read back as current. Next attention: none.
     fetched = (dt.datetime.now(dt.timezone.utc)
                - dt.timedelta(minutes=age_minutes)).isoformat()
     store = observations.ObservationStore(db)

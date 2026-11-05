@@ -253,6 +253,15 @@ and a local run cannot hold different lists — which is how four validators
 drifted out of CI while still passing locally. Adding a gate means adding one
 line to the Makefile.
 
+**A gate pins its clock to its fixture's date.** A gate that must read today
+says so in a comment and names the day it will next need attention. The pin is
+a `GATE_NOW` constant and a `pin_clock()` run first in `main()`, which fixes
+`session.utc_now` (and any module-level `_now` on the gate's path) for the
+gate's run only. This rule came from B106 (2 Nov 2026), after five gates went
+red on the calendar between 28 Oct and 2 Nov: A88, B101, B101b and B106 pinned
+them. `docs/briefs/b106-notes.md` holds the inventory, and the code under test
+that reads the clock directly rather than through `altdata.session`.
+
 `make` is absent on a stock Windows box, so **`scripts/make.sh` is the same
 targets for a machine without make** — `bash scripts/make.sh validate`,
 `validate-fast`, `data-gates`, `html`, `library-check`, `list`. It parses the gate

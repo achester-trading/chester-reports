@@ -173,6 +173,7 @@ def seed(db: str, *, bars_5m: int = 78, cpi_today: bool = False,
 
 def payload(obj: dict) -> dict:
     from altdata import session
+    # THE GATE'S CLOCK (B106): reads today on purpose -- the fixed SESSION is read as of the run's instant, always after it. Next attention: none.
     return {"report": "daily_close", "session": SESSION, "as_of": session.utc_iso(),
             "run_id": "fixture", "tolerance_bps": 25.0, "universe": {},
             "exposure": [{"symbol": "SPY", "spot": 500.0, "net_gex": -1.0e9,
