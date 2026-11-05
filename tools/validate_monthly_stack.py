@@ -89,6 +89,8 @@ T3.3, THE FIXES FROM THE SECOND BOX DRY RUN (10 Oct 2026, 20:53 UTC):
 from __future__ import annotations
 
 GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+# B97: the groups --group takes (tools/gate_groups.py; gate_list.py --groups).
+GATE_GROUPS = "A B C D E F N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 O P H I J K L M G"
 
 import datetime as dt
 import json
@@ -103,6 +105,8 @@ _here = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _here if os.path.basename(_here) == "tools"
                 else os.path.join(_here, "tools"))
 from gate_tmp import mkdtemp as gate_mkdtemp                   # noqa: E402
+import gate_groups                                             # noqa: E402
+import gate_yaml_cache                                         # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -115,6 +119,8 @@ REPORT_DATE = "2026-10-01"
 AS_OF = "2026-10-01T10:00:00+00:00"
 M_START, M_END = "2026-08-31", "2026-09-30"
 PREV = "2026-09-01"
+# B97: every group, with no flag; main() reads --group / --list-groups.
+G = gate_groups.Groups(GATE_GROUPS, argv=[])
 
 # THE STORES ARE POINTED AWAY BEFORE ANY IMPORT THAT OPENS ONE.
 TD = gate_mkdtemp(prefix="validate_monthly_stack_")
@@ -437,6 +443,7 @@ def scans_group(p: dict, cfg: dict, ed: dict, out: dict) -> None:
     from daily_cascade import cadence as cadence_mod, stack_render as sr
     print(f"\n{LINE}\nH. THE SCANS INGEST: SOURCED FIGURES, NO STORED SOURCE NOT "
           f"PRINTED\n{LINE}")
+    G.mark("H")
     jpm = REPO / "docs" / "scans" / "jpm-gtm-2026q4.md"
     sdir = Path(TD) / "scans"
     sdir.mkdir(exist_ok=True)
@@ -556,6 +563,7 @@ def ytd_group(cfg: dict, ed: dict, out: dict) -> None:
     """I: GTM-14, the cross-asset year to date (T3 second half, step 2)."""
     print(f"\n{LINE}\nI. GTM-14: THE CROSS-ASSET YEAR TO DATE, FROM THE STORE'S "
           f"PROXIES\n{LINE}")
+    G.mark("I")
     tape = next(s for s in ed["sections"] if s["id"] == "tape")
     sub = next((ss for ss in tape["subsections"]
                 if ss["title"] == "Across assets, year to date"), None)
@@ -628,6 +636,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
     """J: the slow layers in triple form (T3 second half, step 3)."""
     print(f"\n{LINE}\nJ. THE SLOW LAYERS' TRIPLE: LATEST, LONG-RUN AVERAGE, "
           f"PERCENTILE\n{LINE}")
+    G.mark("J")
     slow = next(s for s in ed["sections"] if s["id"] == "slow")
     subs = {ss["title"]: ss for ss in slow["subsections"]}
     val = subs.get("Valuation") or {}
@@ -745,6 +754,7 @@ def charts_group(cfg: dict) -> None:
     from monthly_macro import charts as mch, run as run_mod, stack as ms
     print(f"\n{LINE}\nK. THE CHARTS, M1-M9: THE WEEKLY'S MECHANICS AT THE MONTHLY'S "
           f"SPANS\n{LINE}")
+    G.mark("K")
     db3 = str(Path(TD) / "charts.db")
     seed(db3, dealer_sessions=21)
     seed_chart_history(db3)
@@ -1001,6 +1011,7 @@ def reading_group(cfg: dict) -> None:
     from daily_cascade import stack as sm, stack_render as sr
     print(f"\n{LINE}\nL. THE READING CHAPTER: AFTER NARRATIVES, STORED TEXT VERBATIM\n"
           f"{LINE}")
+    G.mark("L")
     reg, wl = reading_fixture(Path(TD))
     saved = (reading.REGISTER, reading.WATCHLIST)
     reading.REGISTER, reading.WATCHLIST = reg, wl
@@ -1142,6 +1153,7 @@ def dryrun_group(p: dict, prior: dict) -> None:
     from monthly_macro import stack as ms
     print(f"\n{LINE}\nM. THE DRY RUN: WRITES ONLY reports/dryrun/, READS THE REAL "
           f"ARCHIVE\n{LINE}")
+    G.mark("M")
     root = Path(TD)
     reports = root / "box" / "reports"
     reports.mkdir(parents=True, exist_ok=True)
@@ -1210,6 +1222,7 @@ def t31_phone_group(ed: dict, out: dict) -> None:
     """N1: text wraps on the phone (T3.1 item 1)."""
     from daily_cascade import stack_render as sr
     print(f"\n{LINE}\nN1. T3.1 ITEM 1: TEXT WRAPS ON THE PHONE\n{LINE}")
+    G.mark("N1")
     html = out["html_email"]
     check(sr.TDL_WRAP in html and sr.TDL + '"' not in html,
           "at the Monthly's cadence every text cell wraps (overflow-wrap:anywhere)")
@@ -1232,6 +1245,7 @@ def t31_phone_group(ed: dict, out: dict) -> None:
 def t31_tape_group(ed: dict, out: dict) -> None:
     """N2: the tape (T3.1 items 2-4; the charts, items 5-6, in K)."""
     print(f"\n{LINE}\nN2. T3.1 ITEMS 2-6: THE TAPE\n{LINE}")
+    G.mark("N2")
     tape = next(s for s in ed["sections"] if s["id"] == "tape")
     t = tape.get("table") or {}
     rows = {r[0]: r for r in t.get("rows") or []}
@@ -1283,6 +1297,7 @@ def t31_misfit_group(ed: dict, out: dict) -> None:
     """N3: What doesn't fit as headers, a sentence and bullets (T3.1 item 7)."""
     from daily_cascade import stack_render as sr, weekly_stack as ws
     print(f"\n{LINE}\nN3. T3.1 ITEM 7: WHAT DOESN'T FIT, HEADERS AND BULLETS\n{LINE}")
+    G.mark("N3")
     mis = next(s for s in ed["sections"] if s["id"] == "misfit")
     pts = mis.get("points") or []
     gt = (mis.get("data") or {}).get("gap_table") or {}
@@ -1324,6 +1339,7 @@ def t31_plumbing_group(cfg: dict, ed: dict, out: dict) -> None:
     from altdata import derived
     from monthly_macro import stack as ms
     print(f"\n{LINE}\nN4. T3.1 ITEM 8: PLUMBING & RATES IN SIX BUCKETS\n{LINE}")
+    G.mark("N4")
     bcfg = cfg.get("monthly_plumbing_buckets") or {}
     pl = next(s for s in ed["sections"] if s["id"] == "plumbing")
     titles = [ss["title"] for ss in pl["subsections"]]
@@ -1399,6 +1415,7 @@ def t31_positioning_group(ed: dict, out: dict) -> None:
     from altdata import observations
     from daily_cascade import weekly_sections as wsec
     print(f"\n{LINE}\nN5. T3.1 ITEMS 9-11: POSITIONING & FLOWS\n{LINE}")
+    G.mark("N5")
     pos = next(s for s in ed["sections"] if s["id"] == "positioning")
     subs = {ss["title"]: ss for ss in pos["subsections"]}
     sec = subs.get("Sector rotation and leadership") or {}
@@ -1446,6 +1463,7 @@ def t31_priced_group(ed: dict, out: dict) -> None:
     """N6: What's priced in blocks, each with its read (T3.1 items 12-13)."""
     from monthly_macro import prose as prose_mod, stack as ms
     print(f"\n{LINE}\nN6. T3.1 ITEMS 12-13: WHAT'S PRICED, BLOCK BY BLOCK\n{LINE}")
+    G.mark("N6")
     pr = next(s for s in ed["sections"] if s["id"] == "priced")
     titles = [ss["title"] for ss in pr["subsections"]]
     check(titles[:4] == ["FOMC pricing: the fed-funds path", "Breakevens",
@@ -1487,6 +1505,7 @@ def t31_ahead_group(ed: dict) -> None:
     """N7: Ahead's weekday and 1-5 significance rank (T3.1 item 14)."""
     from daily_cascade import events_block as eb
     print(f"\n{LINE}\nN7. T3.1 ITEM 14: AHEAD, WEEKDAY AND SIGNIFICANCE\n{LINE}")
+    G.mark("N7")
     ah = next(s for s in ed["sections"] if s["id"] == "ahead")
     rows = [r for ss in ah["subsections"] for r in (ss.get("table") or {}).get("rows")
             or [] if (ss.get("table") or {}).get("columns", [""])[0] == "Date"]
@@ -1513,6 +1532,7 @@ def t31_narratives_group(ed: dict, out: dict) -> None:
     """N8: the Narratives' longer horizons and the voices as prose (T3.1
     items 16-17)."""
     print(f"\n{LINE}\nN8. T3.1 ITEMS 16-17: NARRATIVES\n{LINE}")
+    G.mark("N8")
     nar = next(s for s in ed["sections"] if s["id"] == "narratives")
     subs = {ss["title"]: ss for ss in nar["subsections"]}
     roll = next((ss for t, ss in subs.items() if t.startswith("The four weeks")), {})
@@ -1569,6 +1589,7 @@ def t31_scenarios_themes_group(ed: dict, out: dict) -> None:
     asset family (item 19)."""
     from monthly_macro import stack as ms
     print(f"\n{LINE}\nN9. T3.1 ITEMS 18-19: SCENARIOS, AND THE THEMES BY FAMILY\n{LINE}")
+    G.mark("N9")
     ah = next(s for s in ed["sections"] if s["id"] == "ahead")
     sc = next(ss for ss in ah["subsections"]
               if ss["title"] == "Scenarios, and what would change our mind")
@@ -1618,6 +1639,7 @@ def t31_summary_group(ed: dict, out: dict) -> None:
     from daily_cascade import stack as stack_mod, stack_render as sr
     from monthly_macro import prose as prose_mod, stack as ms
     print(f"\n{LINE}\nN10. T3.1 ITEMS 20 AND 22: THE EXECUTIVE SUMMARY, THE BUDGET\n{LINE}")
+    G.mark("N10")
     summ = ed.get("summary") or []
     check([e["id"] for e in summ] == [s["id"] for s in ed["sections"]],
           f"item 20: one summary paragraph per section, in stack order, the read "
@@ -1692,6 +1714,7 @@ def t32_group(ed: dict, out: dict) -> None:
     from daily_cascade import cadence as cad_mod, stack_prose as sp
     from monthly_macro import prose as prose_mod, stack as ms
     print(f"\n{LINE}\nO. T3.2: THE FIXES FROM THE FIRST REAL DRY RUN\n{LINE}")
+    G.mark("O")
 
     # O1 -- the paragraph figure cap.
     caps = {c: cad_mod.figure_cap(cad_mod.get(c)) for c in cad_mod.NAMES}
@@ -1878,6 +1901,7 @@ def t33_group(ed: dict, out: dict) -> None:
     from daily_cascade import stack_prose as sp, weekly_sections as wsec
     from monthly_macro import charts as mch, prose as prose_mod, stack as ms, v2
     print(f"\n{LINE}\nP. T3.3: THE FIXES FROM THE SECOND BOX DRY RUN\n{LINE}")
+    G.mark("P")
 
     # P1 -- each series in its own units (item 1).
     units = {k: (derived.registry_entry(f"fred.{k}") or {}).get("units")
@@ -2309,6 +2333,10 @@ def t34a_group(ed: dict, client) -> None:
 
 
 def main() -> int:
+    global G
+    G = gate_groups.Groups(GATE_GROUPS)
+    # B97: each distinct config text parsed once (tools/gate_yaml_cache.py).
+    gate_yaml_cache.install()
     seed(DB, dealer_sessions=21)
     import yaml
     from daily_cascade import readability as rd
@@ -2350,305 +2378,339 @@ def main() -> int:
     out = ms.produce(p, archive_dir=arch, client=client(calls, script), db_path=DB)
     ed = out["edition"]
     written = out["written"]
-    mlines = [x for x in out["html_email"].split("<p") if "Model, " in x
-              or "daily_close: " in x or "weekly: " in x]
-    check(any("5 calls, 11,000 input / 750 output tokens" in x for x in mlines)
-          and any("daily_close: 3 calls, 3,000 input / 150 output tokens" in x
-                  for x in mlines)
-          and any("weekly: 2 calls, 8,000 input / 600 output tokens" in x
-                  for x in mlines),
-          f"AUD-2: the Monthly's footer prints the month's model calls and tokens, "
-          f"by report, from the meter's rows ({month}; {len(mlines)} lines)")
+    if G.on("A"):
+        mlines = [x for x in out["html_email"].split("<p") if "Model, " in x
+                  or "daily_close: " in x or "weekly: " in x]
+        check(any("5 calls, 11,000 input / 750 output tokens" in x for x in mlines)
+              and any("daily_close: 3 calls, 3,000 input / 150 output tokens" in x
+                      for x in mlines)
+              and any("weekly: 2 calls, 8,000 input / 600 output tokens" in x
+                      for x in mlines),
+              f"AUD-2: the Monthly's footer prints the month's model calls and tokens, "
+              f"by report, from the meter's rows ({month}; {len(mlines)} lines)")
     sec = {s["id"]: s for s in ed["sections"]}
     cfg = stack_mod.config()
 
     # --- A. STACK --------------------------------------------------------------
     print(f"\n{LINE}\nA. TEN SECTIONS AT MONTHLY DEPTH, THEN SLOW LAYERS AND THE "
           f"DETAIL TABLES\n{LINE}")
-    ten = list(stack_mod.SECTION_ORDER)
-    order = ten[:ten.index("narratives") + 1] + ["reading"] \
-        + ten[ten.index("narratives") + 1:] + ["slow"]
-    # The labour block (Batch 7 item 48, 6e-releases) follows Plumbing.
-    order.insert(order.index("plumbing") + 1, "labour")
-    check([s["id"] for s in ed["sections"]] == order,
-          "the ten sections in the brief's order, the labour block after Plumbing, "
-          "Reading between Narratives and Ahead (D1), Slow layers last")
-    want = {"read": "deep", "tape": "light", "mechanics": "deep", "misfit": "deep",
-            "plumbing": "deep", "labour": "medium", "positioning": "medium",
-            "priced": "deep",
-            "narratives": "deep", "reading": "deep", "ahead": "deep",
-            "book": "medium", "slow": "deep"}
-    got = {k: sec[k]["depth"] for k in want}
-    check(got == want, f"each at the matrix's Monthly depth ({got})")
-    declared = {s["id"]: s.get("monthly") for s in cfg["sections"]}
-    check(all(declared[k] == v for k, v in want.items() if k != "slow")
-          and (cfg.get("monthly_slow_layers") or {}).get("monthly") == "deep",
-          "and the depths are read from config/reporting_stack.yaml's Monthly column")
-    check([d["id"] for d in ed["detail"]] == ["regime", "scenarios", "register",
-                                              "appendix", "system_metrics"],
-          "the old record follows as the detail tables, in order: regime, scenario "
-          "record, the register's month, the appendix, then EL-6's system metrics")
-    check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
-          # The four cadences' targets (the secondary notes add their own keys).
-          and {k: (cfg.get("reading_targets_minutes") or {}).get(k)
-               for k in ("daily", "weekly", "monthly", "quarterly")}
-          == {"daily": 10, "weekly": 35, "monthly": 55, "quarterly": 90},
-          "the Monthly budget (10,000 words, 12 charts; T3.1) and the four "
-          "reading targets (10, 35, 55 minutes since D19/D20; the Quarterly's read "
-          "90, AQ-1) are configuration")
-    check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
-              and s["id"] not in ("positioning",)),
-          "every non-empty section opens with a claim line (Positioning's call "
-          "faulted, F)")
-    ms.save_edition(ed, arch)
-    p2 = dict(p, report_date="2026-11-01")
-    prior = ms.load_prior("2026-11-01", arch)
-    ed2 = ms.build(p2, prior, DB)
-    check(prior and prior.get("report_date") == REPORT_DATE
-          and ms.load_prior(REPORT_DATE, arch) is None,
-          "the prior edition is the previous Monthly's, never this one")
-    check(any(s.get("collapsed") for s in ed2["sections"])
-          and not next(s for s in ed2["sections"] if s["id"] == "read")["collapsed"],
-          "an unchanged section collapses against the prior Monthly; The read never "
-          "does")
+    G.mark("A")
+    if G.on("A"):
+        ten = list(stack_mod.SECTION_ORDER)
+        order = ten[:ten.index("narratives") + 1] + ["reading"] \
+            + ten[ten.index("narratives") + 1:] + ["slow"]
+        # The labour block (Batch 7 item 48, 6e-releases) follows Plumbing.
+        order.insert(order.index("plumbing") + 1, "labour")
+        check([s["id"] for s in ed["sections"]] == order,
+              "the ten sections in the brief's order, the labour block after Plumbing, "
+              "Reading between Narratives and Ahead (D1), Slow layers last")
+        want = {"read": "deep", "tape": "light", "mechanics": "deep", "misfit": "deep",
+                "plumbing": "deep", "labour": "medium", "positioning": "medium",
+                "priced": "deep",
+                "narratives": "deep", "reading": "deep", "ahead": "deep",
+                "book": "medium", "slow": "deep"}
+        got = {k: sec[k]["depth"] for k in want}
+        check(got == want, f"each at the matrix's Monthly depth ({got})")
+        declared = {s["id"]: s.get("monthly") for s in cfg["sections"]}
+        check(all(declared[k] == v for k, v in want.items() if k != "slow")
+              and (cfg.get("monthly_slow_layers") or {}).get("monthly") == "deep",
+              "and the depths are read from config/reporting_stack.yaml's Monthly column")
+        check([d["id"] for d in ed["detail"]] == ["regime", "scenarios", "register",
+                                                  "appendix", "system_metrics"],
+              "the old record follows as the detail tables, in order: regime, scenario "
+              "record, the register's month, the appendix, then EL-6's system metrics")
+        check(cfg["budget"]["monthly"] == {"words": 10000, "charts": 12}
+              # The four cadences' targets (the secondary notes add their own keys).
+              and {k: (cfg.get("reading_targets_minutes") or {}).get(k)
+                   for k in ("daily", "weekly", "monthly", "quarterly")}
+              == {"daily": 10, "weekly": 35, "monthly": 55, "quarterly": 90},
+              "the Monthly budget (10,000 words, 12 charts; T3.1) and the four "
+              "reading targets (10, 35, 55 minutes since D19/D20; the Quarterly's read "
+              "90, AQ-1) are configuration")
+        check(all(s.get("claim") for s in ed["sections"] if not s.get("empty")
+                  and s["id"] not in ("positioning",)),
+              "every non-empty section opens with a claim line (Positioning's call "
+              "faulted, F)")
+        ms.save_edition(ed, arch)
+        p2 = dict(p, report_date="2026-11-01")
+        prior = ms.load_prior("2026-11-01", arch)
+        ed2 = ms.build(p2, prior, DB)
+        check(prior and prior.get("report_date") == REPORT_DATE
+              and ms.load_prior(REPORT_DATE, arch) is None,
+              "the prior edition is the previous Monthly's, never this one")
+        check(any(s.get("collapsed") for s in ed2["sections"])
+              and not next(s for s in ed2["sections"] if s["id"] == "read")["collapsed"],
+              "an unchanged section collapses against the prior Monthly; The read never "
+              "does")
 
     # --- B. READING TIME ---------------------------------------------------------
     print(f"\n{LINE}\nB. THE READING TIME, COMPUTED AND PRINTED\n{LINE}")
-    words = stack_mod.edition_words(ed)
-    mins = max(1, math.ceil((words + rd.stored_words(ed)) / rd.WORDS_PER_MINUTE
-                            + int(ed["chart_count"]) * rd.SECONDS_PER_CHART / 60.0))
-    check(ed["words"] == words and ed["reading_minutes"] == mins,
-          f"{words} prose words and {ed['chart_count']} charts read in "
-          f"{ed['reading_minutes']} minute(s), by the Weekly's formula")
-    check(f"about {rd.plural(mins, 'minute')} to read" in out["html_email"]
-          and "target 55 minutes" in out["html_email"]
-          and f"about {rd.plural(mins, 'minute')} to read" in out["markdown"],
-          "the header prints it the way the Weekly's does, beside its 55-minute "
-          "target, in the HTML and the Markdown")
-    check("Changed since last Monthly" in out["html_email"],
-          "and the header carries what changed since the last Monthly")
+    G.mark("B")
+    if G.on("B"):
+        words = stack_mod.edition_words(ed)
+        mins = max(1, math.ceil((words + rd.stored_words(ed)) / rd.WORDS_PER_MINUTE
+                                + int(ed["chart_count"]) * rd.SECONDS_PER_CHART / 60.0))
+        check(ed["words"] == words and ed["reading_minutes"] == mins,
+              f"{words} prose words and {ed['chart_count']} charts read in "
+              f"{ed['reading_minutes']} minute(s), by the Weekly's formula")
+        check(f"about {rd.plural(mins, 'minute')} to read" in out["html_email"]
+              and "target 55 minutes" in out["html_email"]
+              and f"about {rd.plural(mins, 'minute')} to read" in out["markdown"],
+              "the header prints it the way the Weekly's does, beside its 55-minute "
+              "target, in the HTML and the Markdown")
+        check("Changed since last Monthly" in out["html_email"],
+              "and the header carries what changed since the last Monthly")
 
     # --- C. DEALER ---------------------------------------------------------------
     print(f"\n{LINE}\nC. THE DEALER RETROSPECTIVE\n{LINE}")
-    retro = ms.build(p, None, DB)["_retro"]
-    c = retro["counts"]
-    check(c["sessions"] == 21 and not retro["insufficient"]
-          and c["pinned"] == 7 and c["pinned_scored"] == 21
-          and retro["rates"]["pinned"] == round(100 * 7 / 21, 1),
-          f"21 stored sessions: pinned {c['pinned']} of {c['pinned_scored']} "
-          f"({retro['rates']['pinned']}%), from the stored rows by the Weekly's rule")
-    check(c["amplified"] == 6 and c["flip_crossed"] == 6
-          and c["largest_move"]["return_pct"] == 1.8,
-          f"amplified {c['amplified']}, flip crossed {c['flip_crossed']}, the "
-          f"largest move with its regime and morning net GEX")
-    mech = sec["mechanics"]
-    titles = [ss["title"] for ss in mech["subsections"]]
-    check("The month's counts and hit rates" in titles
-          and any("Hit rate" in (ss.get("table") or {}).get("columns", [])
-                  for ss in mech["subsections"])
-          and len((mech.get("table") or {}).get("rows") or []) == 21,
-          "Mechanics prints the per-session table and the month's counts and hit "
-          "rates")
-    check(any(k == "stack:mechanics" for k in written),
-          "and its prose is asked for at 20+ sessions")
-    db2 = str(Path(TD) / "thin.db")
-    seed(db2, dealer_sessions=12)
-    point(db2)
-    p_thin = build_payload()
-    calls2: list = []
-    out2 = ms.produce(p_thin, archive_dir=None, client=client(calls2, {}), db_path=db2)
-    m2 = next(s for s in out2["edition"]["sections"] if s["id"] == "mechanics")
-    check("insufficient sessions (n=12)" in json.dumps(m2)
-          and "insufficient sessions (n=12)" in out2["html_email"],
-          "12 stored sessions print \"insufficient sessions (n=12)\"")
-    check("stack:mechanics" not in out2["written"]
-          and not any("THE SECTION: Mechanics" in x for x in calls2)
-          and (m2.get("claim") or "").startswith("Insufficient sessions (n=12)")
-          and not m2.get("paragraphs"),
-          "no prose is asked for: the claim is the count, written by code")
-    check(not any(ss.get("table") and "Hit rate" in ss["table"]["columns"]
-                  for ss in m2["subsections"]),
-          "and no hit rate prints below the threshold")
-    check(cfg.get("dealer_retrospective_min_sessions") == 20
-          and dealer.min_sessions(cfg) == 20
-          and dealer.min_sessions({"dealer_retrospective_min_sessions": 25}) == 25
-          and retro["min_sessions"] == 20,
-          "the threshold is configuration (dealer_retrospective_min_sessions: 20, "
-          "ruled 8 Oct), read by the code rather than written into it")
-    point(DB)
-    pinned_day = next(r for r in retro["sessions"] if r["flags"]["pinned"])
-    free_day = next(r for r in retro["sessions"] if r["flags"]["pinned"] is False)
-    fmt = lambda d: f"{int(d[8:10])} Sep"                      # noqa: E731
-    check(not dealer.flag_word_faults(f"SPY pinned on {fmt(pinned_day['session'])}.",
-                                      retro),
-          "a session whose flag is set may be called pinned")
-    check(dealer.flag_word_faults(f"SPY pinned on {fmt(free_day['session'])}.", retro),
-          "a session whose flag is not set may not")
-    check(not dealer.flag_word_faults("The close pinned to max pain on 7 sessions.",
-                                      retro)
-          and dealer.flag_word_faults("Dealers amplified the month's moves.", retro),
-          "the month's own count may be stated; a bare flag word is refused")
-    calls3: list = []
-    bad = f"SPY pinned on {fmt(free_day['session'])}.\n\nThe flip held."
-    out3 = ms.produce(p, archive_dir=None, db_path=DB,
-                      client=client(calls3, {"THE SECTION: Mechanics": [bad]}))
-    w3 = out3["written"]["stack:mechanics"]
-    check(not w3["published"] and w3["attempts"] == 2
-          and "flag is not set" in str(w3["reason"]),
-          "in the pipeline, Mechanics prose that calls an unflagged session "
-          "pinned is withheld, after its one revision")
+    G.mark("C")
+    if G.on("C"):
+        retro = ms.build(p, None, DB)["_retro"]
+        c = retro["counts"]
+        check(c["sessions"] == 21 and not retro["insufficient"]
+              and c["pinned"] == 7 and c["pinned_scored"] == 21
+              and retro["rates"]["pinned"] == round(100 * 7 / 21, 1),
+              f"21 stored sessions: pinned {c['pinned']} of {c['pinned_scored']} "
+              f"({retro['rates']['pinned']}%), from the stored rows by the Weekly's rule")
+        check(c["amplified"] == 6 and c["flip_crossed"] == 6
+              and c["largest_move"]["return_pct"] == 1.8,
+              f"amplified {c['amplified']}, flip crossed {c['flip_crossed']}, the "
+              f"largest move with its regime and morning net GEX")
+        mech = sec["mechanics"]
+        titles = [ss["title"] for ss in mech["subsections"]]
+        check("The month's counts and hit rates" in titles
+              and any("Hit rate" in (ss.get("table") or {}).get("columns", [])
+                      for ss in mech["subsections"])
+              and len((mech.get("table") or {}).get("rows") or []) == 21,
+              "Mechanics prints the per-session table and the month's counts and hit "
+              "rates")
+        check(any(k == "stack:mechanics" for k in written),
+              "and its prose is asked for at 20+ sessions")
+        db2 = str(Path(TD) / "thin.db")
+        seed(db2, dealer_sessions=12)
+        point(db2)
+        p_thin = build_payload()
+        calls2: list = []
+        out2 = ms.produce(p_thin, archive_dir=None, client=client(calls2, {}), db_path=db2)
+        m2 = next(s for s in out2["edition"]["sections"] if s["id"] == "mechanics")
+        check("insufficient sessions (n=12)" in json.dumps(m2)
+              and "insufficient sessions (n=12)" in out2["html_email"],
+              "12 stored sessions print \"insufficient sessions (n=12)\"")
+        check("stack:mechanics" not in out2["written"]
+              and not any("THE SECTION: Mechanics" in x for x in calls2)
+              and (m2.get("claim") or "").startswith("Insufficient sessions (n=12)")
+              and not m2.get("paragraphs"),
+              "no prose is asked for: the claim is the count, written by code")
+        check(not any(ss.get("table") and "Hit rate" in ss["table"]["columns"]
+                      for ss in m2["subsections"]),
+              "and no hit rate prints below the threshold")
+        check(cfg.get("dealer_retrospective_min_sessions") == 20
+              and dealer.min_sessions(cfg) == 20
+              and dealer.min_sessions({"dealer_retrospective_min_sessions": 25}) == 25
+              and retro["min_sessions"] == 20,
+              "the threshold is configuration (dealer_retrospective_min_sessions: 20, "
+              "ruled 8 Oct), read by the code rather than written into it")
+        point(DB)
+        pinned_day = next(r for r in retro["sessions"] if r["flags"]["pinned"])
+        free_day = next(r for r in retro["sessions"] if r["flags"]["pinned"] is False)
+        fmt = lambda d: f"{int(d[8:10])} Sep"                      # noqa: E731
+        check(not dealer.flag_word_faults(f"SPY pinned on {fmt(pinned_day['session'])}.",
+                                          retro),
+              "a session whose flag is set may be called pinned")
+        check(dealer.flag_word_faults(f"SPY pinned on {fmt(free_day['session'])}.", retro),
+              "a session whose flag is not set may not")
+        check(not dealer.flag_word_faults("The close pinned to max pain on 7 sessions.",
+                                          retro)
+              and dealer.flag_word_faults("Dealers amplified the month's moves.", retro),
+              "the month's own count may be stated; a bare flag word is refused")
+        calls3: list = []
+        bad = f"SPY pinned on {fmt(free_day['session'])}.\n\nThe flip held."
+        out3 = ms.produce(p, archive_dir=None, db_path=DB,
+                          client=client(calls3, {"THE SECTION: Mechanics": [bad]}))
+        w3 = out3["written"]["stack:mechanics"]
+        check(not w3["published"] and w3["attempts"] == 2
+              and "flag is not set" in str(w3["reason"]),
+              "in the pipeline, Mechanics prose that calls an unflagged session "
+              "pinned is withheld, after its one revision")
 
     # --- D. PHASE A, ONCE ----------------------------------------------------------
     print(f"\n{LINE}\nD. MONTHLY v2 PHASE A: NOTHING LOST, NOTHING TWICE\n{LINE}")
-    ids = [i for s in ed["sections"] for i in s.get("phase_a") or []] \
-        + [i for d in ed["detail"] for i in d.get("phase_a") or []] \
-        + list(ed.get("changed_since_phase_a") or [])
-    dup = sorted({i for i in ids if ids.count(i) > 1})
-    check(ids and not dup, f"{len(ids)} Phase A facts placed, none twice"
-                           + (f" (twice: {dup[:4]})" if dup else ""))
-    expect = {"month_in_markets:prose", "month_in_one_page:takeaways",
-              "looking_ahead:prose", "our_read:prose", "our_read:bound",
-              "regime:dials", "regime:dimensions", "register_month"}
-    expect |= {f"month_in_markets:row:{r['id']}"
-               for r in p["month_in_markets"]["rows"]}
-    expect |= {f"theme:{t['theme']}:prose" for t in p["looking_back"]["themes"]}
-    expect |= {f"looking_back:{t['theme']}:item:{n}"
-               for t in p["looking_back"]["themes"]
-               for n, _ in enumerate(t.get("items") or [])}
-    expect |= {f"looking_ahead:scenario:{n}"
-               for n, _ in enumerate(p["looking_ahead"]["scenarios"])}
-    expect |= {f"looking_back:what_changed:{n}" for n, _ in enumerate(
-        p["looking_back"]["what_changed"]["rows"])}
-    lost = sorted(expect - set(ids))
-    check(not lost and p["month_in_markets"]["rows"]
-          and p["looking_back"]["what_changed"]["rows"]
-          and p["looking_ahead"]["scenarios"],
-          f"every Phase A part is placed: the scorecard ({len(p['month_in_markets']['rows'])} "
-          f"rows), the takeaways, the themes, what changed, the look-ahead and its "
-          f"weights, our read" + (f" (lost: {lost[:4]})" if lost else ""))
-    rows = printed_rows(ed)
-    seen: dict = {}
-    twice = []
-    for r, where in rows:
-        if r in seen and seen[r] != where:
-            twice.append((r[:2], seen[r], where))
-        seen.setdefault(r, where)
-    check(not twice, f"{len(rows)} table rows printed, none in two places"
-                     + (f" ({twice[:2]})" if twice else ""))
-    pm = [k for k, _ in ed.get("printed_metrics") or []]
-    again = sorted({k for k in pm if pm.count(k) > 1})
-    pl_rows = [r[0] for r in (sec["plumbing"].get("table") or {}).get("rows") or []]
-    check(pm and not again and "10-year" not in pl_rows
-          and "fred.yield_10y" in dict(ed["printed_metrics"])
-          and dict(ed["printed_metrics"])["fred.yield_10y"] == "tape",
-          f"each series' month prints in one table: the 10-year's in The tape, not "
-          f"again in Plumbing or under a theme ({len(pm)} series)"
-          + (f" (twice: {again})" if again else ""))
-    html = out["html_email"]
-    for t in p["month_in_one_page"]["takeaways"]:
-        n = html.count(rd.polish(t["text"]) or "") + html.count(t["text"])
-        check(n <= 2 and json.dumps(ed).count(t["text"]) <= 2,
-              f"takeaway {t['n']} prints once: {t['text'][:50]}")
-    check("In one line each" not in out["markdown"]
-          and "In one line each" not in html,
-          "the themes' first sentences are not printed a second time as a summary")
-    nk = [k for k in written if k.startswith("theme:")]
-    check(nk and all(next(ss for s in ed["sections"] for ss in s["subsections"]
-                          if ss.get("phase") == k).get("paragraphs")
-                     or not written[k]["published"] for k in nk),
-          f"each theme's prose sits in its Narratives sub-section ({len(nk)})")
-    rp = sec["read"]
-    check(rp.get("claim") and not any(rp["claim"] in x for x in rp["paragraphs"]),
-          "The read's claim is the month-in-markets prose's first sentence, and "
-          "is not printed again in its paragraphs")
-    check("## 1. The month in markets" not in out["markdown"]
-          and "Where our read lands" in out["markdown"]
-          and "The month in one page" in out["markdown"],
-          "the six-part storyline prints inside the stack, not beside it")
+    G.mark("D")
+    if G.on("D"):
+        ids = [i for s in ed["sections"] for i in s.get("phase_a") or []] \
+            + [i for d in ed["detail"] for i in d.get("phase_a") or []] \
+            + list(ed.get("changed_since_phase_a") or [])
+        dup = sorted({i for i in ids if ids.count(i) > 1})
+        check(ids and not dup, f"{len(ids)} Phase A facts placed, none twice"
+                               + (f" (twice: {dup[:4]})" if dup else ""))
+        expect = {"month_in_markets:prose", "month_in_one_page:takeaways",
+                  "looking_ahead:prose", "our_read:prose", "our_read:bound",
+                  "regime:dials", "regime:dimensions", "register_month"}
+        expect |= {f"month_in_markets:row:{r['id']}"
+                   for r in p["month_in_markets"]["rows"]}
+        expect |= {f"theme:{t['theme']}:prose" for t in p["looking_back"]["themes"]}
+        expect |= {f"looking_back:{t['theme']}:item:{n}"
+                   for t in p["looking_back"]["themes"]
+                   for n, _ in enumerate(t.get("items") or [])}
+        expect |= {f"looking_ahead:scenario:{n}"
+                   for n, _ in enumerate(p["looking_ahead"]["scenarios"])}
+        expect |= {f"looking_back:what_changed:{n}" for n, _ in enumerate(
+            p["looking_back"]["what_changed"]["rows"])}
+        lost = sorted(expect - set(ids))
+        check(not lost and p["month_in_markets"]["rows"]
+              and p["looking_back"]["what_changed"]["rows"]
+              and p["looking_ahead"]["scenarios"],
+              f"every Phase A part is placed: the scorecard ({len(p['month_in_markets']['rows'])} "
+              f"rows), the takeaways, the themes, what changed, the look-ahead and its "
+              f"weights, our read" + (f" (lost: {lost[:4]})" if lost else ""))
+        rows = printed_rows(ed)
+        seen: dict = {}
+        twice = []
+        for r, where in rows:
+            if r in seen and seen[r] != where:
+                twice.append((r[:2], seen[r], where))
+            seen.setdefault(r, where)
+        check(not twice, f"{len(rows)} table rows printed, none in two places"
+                         + (f" ({twice[:2]})" if twice else ""))
+        pm = [k for k, _ in ed.get("printed_metrics") or []]
+        again = sorted({k for k in pm if pm.count(k) > 1})
+        pl_rows = [r[0] for r in (sec["plumbing"].get("table") or {}).get("rows") or []]
+        check(pm and not again and "10-year" not in pl_rows
+              and "fred.yield_10y" in dict(ed["printed_metrics"])
+              and dict(ed["printed_metrics"])["fred.yield_10y"] == "tape",
+              f"each series' month prints in one table: the 10-year's in The tape, not "
+              f"again in Plumbing or under a theme ({len(pm)} series)"
+              + (f" (twice: {again})" if again else ""))
+        html = out["html_email"]
+        for t in p["month_in_one_page"]["takeaways"]:
+            n = html.count(rd.polish(t["text"]) or "") + html.count(t["text"])
+            check(n <= 2 and json.dumps(ed).count(t["text"]) <= 2,
+                  f"takeaway {t['n']} prints once: {t['text'][:50]}")
+        check("In one line each" not in out["markdown"]
+              and "In one line each" not in html,
+              "the themes' first sentences are not printed a second time as a summary")
+        nk = [k for k in written if k.startswith("theme:")]
+        check(nk and all(next(ss for s in ed["sections"] for ss in s["subsections"]
+                              if ss.get("phase") == k).get("paragraphs")
+                         or not written[k]["published"] for k in nk),
+              f"each theme's prose sits in its Narratives sub-section ({len(nk)})")
+        rp = sec["read"]
+        check(rp.get("claim") and not any(rp["claim"] in x for x in rp["paragraphs"]),
+              "The read's claim is the month-in-markets prose's first sentence, and "
+              "is not printed again in its paragraphs")
+        check("## 1. The month in markets" not in out["markdown"]
+              and "Where our read lands" in out["markdown"]
+              and "The month in one page" in out["markdown"],
+              "the six-part storyline prints inside the stack, not beside it")
 
     # --- E. BUDGET -------------------------------------------------------------------
     print(f"\n{LINE}\nE. THE BUDGET, PROSE ONLY\n{LINE}")
-    check(ed["words"] <= 10000 and ed["chart_count"] <= 12,
-          f"{ed['words']} prose words of 10,000 and {ed['chart_count']} charts of 12")
-    e = json.loads(json.dumps(ed))
-    before = stack_mod.edition_words(e)
-    e["sections"][1]["table"]["rows"] += [["filler"] * 5] * 200
-    check(stack_mod.edition_words(e) == before, "a 200-row table adds no words: tables "
-                                         "are data")
-    deep = next(s for s in e["sections"] if s["id"] == "narratives")
-    deep["subsections"][0]["paragraphs"] = ["Prose printed in full past the target. "
-                                            * 900] * 4
-    paras = list(deep["subsections"][0]["paragraphs"])
-    n_items = sum(len(s["items"]) for s in e["sections"])
-    n_rows = len(printed_rows(e))
-    claims = [s.get("claim") for s in e["sections"]]
-    ms.enforce_budget(e)
-    check(e["words"] > 10000 and deep["subsections"][0]["paragraphs"] == paras
-          and not any(s.get("trimmed") for s in e["sections"] + e["detail"]),
-          f"over its 10,000 words and 55 minutes nothing is cut (D19/D20): every "
-          f"paragraph prints ({e['words']} words)")
-    check(sum(len(s["items"]) for s in e["sections"]) == n_items
-          and len(printed_rows(e)) == n_rows
-          and [s.get("claim") for s in e["sections"]] == claims,
-          "and no item, table row or claim line is cut")
-    html_e = ms.html(e)
-    check("(trimmed)" not in html_e and str(e.get("target_line") or "").endswith(
-              "against a 55-minute target.") and e["target_line"] in html_e,
-          f"the page prints one foot line instead: {e.get('target_line')!r}")
+    G.mark("E")
+    if G.on("E"):
+        check(ed["words"] <= 10000 and ed["chart_count"] <= 12,
+              f"{ed['words']} prose words of 10,000 and {ed['chart_count']} charts of 12")
+        e = json.loads(json.dumps(ed))
+        before = stack_mod.edition_words(e)
+        e["sections"][1]["table"]["rows"] += [["filler"] * 5] * 200
+        check(stack_mod.edition_words(e) == before, "a 200-row table adds no words: tables "
+                                             "are data")
+        deep = next(s for s in e["sections"] if s["id"] == "narratives")
+        deep["subsections"][0]["paragraphs"] = ["Prose printed in full past the target. "
+                                                * 900] * 4
+        paras = list(deep["subsections"][0]["paragraphs"])
+        n_items = sum(len(s["items"]) for s in e["sections"])
+        n_rows = len(printed_rows(e))
+        claims = [s.get("claim") for s in e["sections"]]
+        ms.enforce_budget(e)
+        check(e["words"] > 10000 and deep["subsections"][0]["paragraphs"] == paras
+              and not any(s.get("trimmed") for s in e["sections"] + e["detail"]),
+              f"over its 10,000 words and 55 minutes nothing is cut (D19/D20): every "
+              f"paragraph prints ({e['words']} words)")
+        check(sum(len(s["items"]) for s in e["sections"]) == n_items
+              and len(printed_rows(e)) == n_rows
+              and [s.get("claim") for s in e["sections"]] == claims,
+              "and no item, table row or claim line is cut")
+        html_e = ms.html(e)
+        check("(trimmed)" not in html_e and str(e.get("target_line") or "").endswith(
+                  "against a 55-minute target.") and e["target_line"] in html_e,
+              f"the page prints one foot line instead: {e.get('target_line')!r}")
 
     # --- F. THE ONE RETRY --------------------------------------------------------------
     print(f"\n{LINE}\nF. THE ONE RETRY, IN THE MONTHLY'S SECTION WRITER\n{LINE}")
-    pl = written.get("stack:plumbing") or {}
-    check(pl.get("published") and pl.get("attempts") == 2,
-          "a section the audit withheld (a motive word) is retried once and "
-          "publishes")
-    retry_prompt = [x for x in calls if "THE SECTION: Plumbing & rates" in x]
-    check(len(retry_prompt) == 2 and "WITHHELD BY THE AUDIT" in retry_prompt[1]
-          and "because" in retry_prompt[1],
-          "with the audit's reason fed back")
-    cc = written.get("theme:credit_cycle") or {}
-    check(not cc.get("published") and cc.get("attempts") == 2
-          and "999" in str(cc.get("first_reason")) and "998" in str(cc.get("reason"))
-          and len(cc.get("reasons") or []) == 2,
-          "a Phase A section that fails its draft and its revision is withheld, "
-          "both reasons kept")
-    cc_calls = [x for x in calls if "THE SECTION: Credit Cycle" in x]
-    check(len(cc_calls) == 2 and "Credit widened by 999 basis points." in cc_calls[1]
-          and "YOUR DRAFT:" in cc_calls[1] and "THE RULE" in cc_calls[1],
-          "the revision carries the rule it broke, the failing span and the draft "
-          "(the stack's revision note)")
-    pos = written.get("stack:positioning") or {}
-    check(pos.get("state") == "call_failed" and pos.get("attempts") == 1
-          and sum(1 for x in calls if "THE SECTION: Positioning & flows" in x) == 1,
-          "a fault (the API) is not retried")
-    check(all(r.get("attempts") == 1 for k, r in written.items()
-              if r.get("published") and k not in ("stack:plumbing",)),
-          "and a section published first time is called once")
+    G.mark("F")
+    if G.on("F"):
+        pl = written.get("stack:plumbing") or {}
+        check(pl.get("published") and pl.get("attempts") == 2,
+              "a section the audit withheld (a motive word) is retried once and "
+              "publishes")
+        retry_prompt = [x for x in calls if "THE SECTION: Plumbing & rates" in x]
+        check(len(retry_prompt) == 2 and "WITHHELD BY THE AUDIT" in retry_prompt[1]
+              and "because" in retry_prompt[1],
+              "with the audit's reason fed back")
+        cc = written.get("theme:credit_cycle") or {}
+        check(not cc.get("published") and cc.get("attempts") == 2
+              and "999" in str(cc.get("first_reason")) and "998" in str(cc.get("reason"))
+              and len(cc.get("reasons") or []) == 2,
+              "a Phase A section that fails its draft and its revision is withheld, "
+              "both reasons kept")
+        cc_calls = [x for x in calls if "THE SECTION: Credit Cycle" in x]
+        check(len(cc_calls) == 2 and "Credit widened by 999 basis points." in cc_calls[1]
+              and "YOUR DRAFT:" in cc_calls[1] and "THE RULE" in cc_calls[1],
+              "the revision carries the rule it broke, the failing span and the draft "
+              "(the stack's revision note)")
+        pos = written.get("stack:positioning") or {}
+        check(pos.get("state") == "call_failed" and pos.get("attempts") == 1
+              and sum(1 for x in calls if "THE SECTION: Positioning & flows" in x) == 1,
+              "a fault (the API) is not retried")
+        check(all(r.get("attempts") == 1 for k, r in written.items()
+                  if r.get("published") and k not in ("stack:plumbing",)),
+              "and a section published first time is called once")
 
-    t31_phone_group(ed, out)
-    t31_tape_group(ed, out)
-    t31_misfit_group(ed, out)
-    t31_plumbing_group(cfg, ed, out)
-    t31_positioning_group(ed, out)
-    t31_priced_group(ed, out)
-    t31_ahead_group(ed)
-    t31_narratives_group(ed, out)
-    t31_scenarios_themes_group(ed, out)
-    t31_summary_group(ed, out)
-    t32_group(ed, out)
-    t33_group(ed, out)
-    scans_group(p, cfg, ed, out)
-    ytd_group(cfg, ed, out)
-    triple_group(cfg, ed, out)
-    charts_group(cfg)
-    reading_group(cfg)
-    dryrun_group(p, ed)
+    if G.on("N1"):
+        t31_phone_group(ed, out)
+    if G.on("N2"):
+        t31_tape_group(ed, out)
+    if G.on("N3"):
+        t31_misfit_group(ed, out)
+    if G.on("N4"):
+        t31_plumbing_group(cfg, ed, out)
+    if G.on("N5"):
+        t31_positioning_group(ed, out)
+    if G.on("N6"):
+        t31_priced_group(ed, out)
+    if G.on("N7"):
+        t31_ahead_group(ed)
+    if G.on("N8"):
+        t31_narratives_group(ed, out)
+    if G.on("N9"):
+        t31_scenarios_themes_group(ed, out)
+    if G.on("N10"):
+        t31_summary_group(ed, out)
+    if G.on("O"):
+        t32_group(ed, out)
+    if G.on("P"):
+        t33_group(ed, out)
+    if G.on("H"):
+        scans_group(p, cfg, ed, out)
+    if G.on("I"):
+        ytd_group(cfg, ed, out)
+    if G.on("J"):
+        triple_group(cfg, ed, out)
+    if G.on("K"):
+        charts_group(cfg)
+    if G.on("L"):
+        reading_group(cfg)
+    if G.on("M"):
+        dryrun_group(p, ed)
 
     # --- G. REGISTRY ---------------------------------------------------------------------
     print(f"\n{LINE}\nG. THE GATE IS REGISTERED\n{LINE}")
-    mk = __import__("gate_list").makefile_text(REPO)
-    check("tools/validate_monthly_stack.py" in mk, "the Makefile's list carries it")
+    G.mark("G")
+    if G.on("G"):
+        mk = __import__("gate_list").makefile_text(REPO)
+        check("tools/validate_monthly_stack.py" in mk, "the Makefile's list carries it")
     del yaml
+    G.done()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if FAIL == 0 else "VALIDATION FAILED")
     return 1 if FAIL else 0
