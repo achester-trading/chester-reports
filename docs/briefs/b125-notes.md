@@ -74,6 +74,7 @@ minutes.
 **The minutes template is not in this paste's file list**
 (`docs/briefs/doctrine-2-sitting-2026-11-minutes.md`), so it still has 90 rows and
 no D2-91 row. Adding it is a one-row edit, for a later paste or the operator.
+B127 (5 Nov 2026) added it in block 1 after D2-85, so the template has 91 rows, one for each decision-list row.
 
 ## Word totals
 
