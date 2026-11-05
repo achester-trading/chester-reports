@@ -303,3 +303,6 @@ the same one-line registration A59 and A66 made for their SEC readers, so the ga
 rule is unchanged. edgar_bdc reads data.sec.gov's company concepts and
 www.sec.gov's company_tickers.json.
 Gates: validate_secrets passes; check_registry: OK.
+
+**A108 (5 Nov 2026).** `ed5e0cb0` merges main `2fac29d5` (chain-9) into the assembly at `faac8c48` with no conflicts, then 133 files re-checked out LF on the laptop; `09afefd3` merges b97 `267bd42b`: B97's 11 files only, no conflicts, b101's pins intact. `stitch_counts --check`: 61 counts agree (nothing written).
+Gates, one at a time: every gate both merges touched passed (26 of b101's and A91's, B97's five whole: stack 84, monthly_stack 268, weekly_complete 96, weekly_stack 83, weekly_storyline 31), validate_batch15_1 71/0, the must-runs clean, and `bash scripts/make.sh validate-group validate_stack A` 13/0 (the flag proved).
