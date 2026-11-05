@@ -1896,6 +1896,7 @@ def group_u() -> None:
     head("U. THE NIGHTLY HARNESS, THE CLOSE'S LINE, THE LAB REPORT, THE SITTING (X-2.7, X-2.8)")
     from alpha import report                                    # noqa: PLC0415
     from altdata import session                                 # noqa: PLC0415
+    # THE GATE'S CLOCK (B106): reads today on purpose -- the lab line as of the run's own instant. Next attention: none.
     now = session.utc_iso(timespec="microseconds")
     none = Path(_TMP) / "u_none.db"
     check(lab_line.daily_line(now, none) == "Alpha Lab today: not yet live"

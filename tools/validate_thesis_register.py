@@ -490,7 +490,25 @@ def group_e(d: Path, b: dict) -> None:
           "seed-alt-asset --dry-run prints the refusals and exits 2")
 
 
+# THE GATE'S CLOCK (A110, 3 Nov 2026; B101's pattern). The CLI case
+# (`seed-alt-asset --dry-run`) cannot pass `now`, so it seeds a file written
+# 2026-11-09 at the real instant: refused as "in the future" before 9 Nov and as
+# "more than seven days" after 16 Nov, but ACCEPTED from 9 to 16 Nov, when the
+# check fails (the sweep's 16 Nov clock; CI would see it on those days). Every
+# other seeding here runs at SEED_AT, so the clock is pinned there, for the
+# gate's run only; the code under test keeps its rules.
+GATE_NOW = SEED_AT
+
+
+def pin_clock() -> None:
+    import datetime as dt
+    from altdata import session
+    session.utc_now = lambda: dt.datetime.fromisoformat(GATE_NOW)
+
+
 def main() -> int:
+    pin_clock()
+    print(f"the gate's clock is pinned to {GATE_NOW}")
     print(f"{LINE}\nAQ-6 -- the thesis register (fixtures only)\n{LINE}")
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         d = Path(td)
