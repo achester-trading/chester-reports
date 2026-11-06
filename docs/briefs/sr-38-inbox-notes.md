@@ -88,7 +88,7 @@ CLAUDE.md's gate count is now fifty-one code gates, forty-eight of them Python.
 - D, the printed lines at zero, one and two drops, with the forward split exact in logs and the same-quarter revision against the rolled window;
 - E, wiring.
 
-## For Ari: the steps (printed, not run)
+## For the operator: the steps (printed, not run)
 
 **Once, on the box, inside the windows:**
 

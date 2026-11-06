@@ -76,9 +76,12 @@ def trailing(closes, eps) -> dict:
 
 
 def _eps(st, sym: str, cutoff: str) -> list[tuple[str, float]]:
+    from . import price_sources as _ps                         # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     try:
         cur = st.conn.execute("SELECT observed_at, payload FROM events WHERE "
-                              "type='earnings' AND available_at<=?", (cutoff,))
+                              "type='earnings' AND available_at<=?" + _ec,
+                              (cutoff, *_ep))
     except Exception:                                           # noqa: BLE001
         return []
     out = {}

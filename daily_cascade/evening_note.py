@@ -361,7 +361,10 @@ def crypto_block(ref: str, cutoff: str, db_path=None) -> dict:
     except Exception:                                           # noqa: BLE001
         etf = []
     fresh = etf and etf[-1][0] >= (dt.date.fromisoformat(ref) - dt.timedelta(days=3)).isoformat()
-    out["lines"].append(f"ETF flows ({etf[-1][0]}): {etf[-1][1]:,.1f}." if fresh
+    from altdata import refusals                                # noqa: PLC0415
+    gap = refusals.text("farside")
+    out["lines"].append(f"ETF flows: {gap}." if gap else
+                        f"ETF flows ({etf[-1][0]}): {etf[-1][1]:,.1f}." if fresh
                         else "ETF flows: gap.")
     return out
 

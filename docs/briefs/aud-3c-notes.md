@@ -108,7 +108,7 @@ Before handing it to CI I ran the check alone on that gate's seed store, with no
 
 No gate reads the live store, fetches or calls a model. The measure and the real-day check above were session runs on the laptop's copy, read-only, not gates. Windows raised no low-memory warning; I ran no background watcher.
 
-## Box commands, for Ari (none run here)
+## Box commands, for the operator (none run here)
 
 After the merge, inside a window (weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20):
 
@@ -170,7 +170,7 @@ Compared against each branch's own changes since its base:
 
 ## 15 Oct
 
-Ari's answers to the four needs-you items, built on this branch.
+The operator's answers to the four needs-you items, built on this branch.
 
 1. **The VIX pair keeps the 0.01 floor**, the quote's precision. `config/data_quality.yaml`'s `floor_reason` now opens "RULED 15 Oct 2026".
 2. **^TNX and ^TYX are measured on the box after next week's price backfill and FRED history have run**, when the pairs share hundreds of days. Until then they print "not measured" and never flag, and both pairs' `unmeasured_reason` says so. The command for that day, inside a window, read-only:

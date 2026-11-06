@@ -30,6 +30,8 @@ No gate here reads the live store, fetches, or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import re
 import sys
@@ -95,10 +97,13 @@ def fixture_store() -> str:
     return path
 
 
+# The two ETF lines print the refusal (the feed repair of 24 Oct 2026, a61b item
+# 5: farside.co.uk refuses automated reads), whatever is stored.
+REFUSED_FARSIDE = ("not tracked: Farside refuses automated reads since 2026-10-24 "
+                   "(HTTP 403, a Cloudflare challenge, on farside.co.uk/btc/ and /eth/).")
 WANT = [
-    "BTC spot ETF flows (T-1): +$123.4m on 16 Oct 2026; streak 3 inflow sessions; "
-    "the 5-day sum at the 96th percentile since January 2024.",
-    "ETH spot ETF flows (T-1): STALE, last good 9 Oct 2026.",
+    "BTC spot ETF flows (T-1): " + REFUSED_FARSIDE,
+    "ETH spot ETF flows (T-1): " + REFUSED_FARSIDE,
     "Perp funding, OI-weighted across exchanges (annualised): BTC 8.50%; z-score "
     "from 15 Dec 2026; ETH 11.25%; z-score from 15 Dec 2026 (16 Oct 2026).",
     "Perp open interest, BTC + ETH: $51.0bn, +2.0% on the day (16 Oct 2026).",
@@ -176,7 +181,7 @@ def group_c(db: str) -> None:
     check(stack.section_words(withp) == stack.section_words(base),
           f"the close's prose count is unchanged by the paragraph "
           f"({stack.section_words(base)} words either way): it displaces nothing in "
-          f"the 1,000-word budget")
+          f"the 2,250-word target (D19/D20)")
     check(len(b["lines"]) <= 6 and max(len(x.split()) for x in b["lines"]) <= 40,
           "at most six lines, none past 40 words, in the anchor")
     from altdata.sources import _crypto as C

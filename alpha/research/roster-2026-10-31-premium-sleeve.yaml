@@ -1,0 +1,94 @@
+# The premium sleeve as a hypothesis, for the register (Batch 19 item 100, accepted
+# 27 Oct 2026; B99). An operator-ruled item, not a model's idea: model_idea_rule
+# is false. Its every rule is config/alpha_premium_sleeve.yaml's `spec`, quoted
+# below by its sha256: the engine (alpha/engines/premium_sleeve.py, built after
+# this file is committed) refuses to run if the spec no longer hashes to it.
+#
+# NOT YET PRE-REGISTERED. A file in the repository is not a registration. On the
+# box, inside a window, after this branch merges, the operator registers it BY
+# MANIFEST before any backtest:
+#
+#   python -m alpha.manifest register alpha/research/roster-2026-10-31-premium-sleeve.yaml
+#
+# This file is the lab's workbench channel (the rosters' path, alpha/research/),
+# not the Drive inbox: an operator's ruled item enters as the X-3 engines did.
+# No backtest was run before it was written, and none is run by B99.
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-31-roster-premium-sleeve
+source: operator
+proposer: "Batch 19 item 100 (docs/change-order-signal-triage-batch-19-2026-10-29.md), built by session B (B99)"
+channel: workbench
+written_at: "2026-10-31T23:55:00-04:00"
+model_idea_rule: false
+inputs:
+  - "docs/change-order-signal-triage-batch-19-2026-10-29.md item 100 (accepted 27 Oct 2026)"
+  - "config/alpha_premium_sleeve.yaml spec (sha256 e5986830db0027e4057ffebc06ac8093838089528878f5fd48980a81fde84a01)"
+  - "config/alpha_costs.yaml index_option_spread"
+  - "config/alpha_families.yaml (family_ref KS options, house)"
+hypotheses:
+  - local_id: P-1
+    title: "A gated SPX put credit spread earns the volatility premium after costs"
+    horizon_class: medium
+    horizon_sessions: 20
+    family: premium-sleeve
+    family_ref: "KS options"
+    mechanism: >-
+      Index put buyers pay for insurance, so implied volatility runs above
+      realised on average and a short put spread with a defined tail collects the
+      difference. The premium is worth collecting only when it is large (implied
+      above realised, implied high in its own year) and when dealers' hedging
+      damps the tape (net gamma positive, or spot above the flip). It is not
+      worth collecting into credit or funding stress or a selling climax that is
+      not yet a bottom, which is when the tail is paid.
+    universe: [SPX]
+    rule_text: >-
+      Nightly at 17:40 ET on session D, from the store as knowable then. Enter
+      only when all three gates hold: the VIX less SPY's 20-day realised
+      volatility is above zero; the VIX's IV rank over its last 252 stored
+      sessions, (latest - min) / (max - min) x 100, is at least 66.67; and SPX's
+      stored net GEX for the session is above zero or its spot is above its
+      gamma flip. Stand down, whatever the gates, when the T&B harness reads the
+      HY Spread Acceleration or the Liquidity overlay as FIRES (or cannot read
+      it), or when the Capitulation Count's band is surrender without a T&B
+      BOTTOM SIGNAL, or when that count is not stored ("count not stored"). On an
+      entry, sell one SPX put spread from the session's stored vendor chain
+      snapshot: the listed expiry 30 to 45 days out nearest the window's middle;
+      the short put the strike whose Black-Scholes |delta|, from the row's own
+      implied volatility, lies in 0.16 to 0.20 nearest 0.18; the long put the
+      listed strike nearest 50 points below it. No snapshot, expiry or strike:
+      no trade that day ("chain not stored"). Fill at the next session's
+      snapshot, each leg at its executable side, through the cost model's
+      index_option_spread line, never the mid; whole spreads by the sleeve
+      capital over the maximum loss. Exit at the first session whose debit to
+      close is at most 50% of the entry credit, or at the first session with 21
+      or fewer days to expiry, each leg at its executable side; at expiry,
+      cash-settled against the stored SPX close. One spread at a time; a 21-DTE
+      close is a close, and the next night's gates decide a new entry.
+    conditioning:
+      - {name: delta_band_low_end, replace: {short_delta_band: [0.14, 0.20]}}
+      - {name: delta_band_high_end, replace: {short_delta_band: [0.16, 0.22]}}
+      - {name: dte_low_bound, replace: {dte_window: [25, 45]}}
+      - {name: dte_high_bound, replace: {dte_window: [30, 50]}}
+      - {name: take_profit_level, replace: {take_profit_frac: 0.60}}
+    expected:
+      sign: positive_expectancy_after_costs
+      size: "about +2% to +5% of the spread's maximum loss per trade after costs, with a left tail; an operator-ruled prior, not a measured one"
+      benchmark: "the Cboe PUT index when stored; against cash until then"
+    sample:
+      min_independent_signals: 100
+      estimate: >-
+        At most about 12 entries a year (one spread open at a time, held 10 to 24
+        sessions), fewer with the gates closed; about 4 to 8 a year is likely.
+        The constitution's daily minimum of 100 needs well over a decade of
+        stored chains. The system's SPX chain snapshots begin in October 2026 and
+        no historical SPX chain is stored, so coverage is a data gap for years:
+        the hypothesis waits, registered, and the harness says so.
+    data:
+      spec: config/alpha_premium_sleeve.yaml
+      spec_sha256: e5986830db0027e4057ffebc06ac8093838089528878f5fd48980a81fde84a01
+      in_store: ["yfinance.mkt_vix", "calc.vol_spy_realized_20d", "exposure.net_gex, exposure.gamma_flip, exposure.spot (SPX)", "the T&B overlays' inputs (config/tb_episodes.yaml, read by altdata/tb_harness.py)", "the vendor chain snapshots (SPX, data/chains)", "the SPX close for settlement (yfinance.mkt_gspc)"]
+      gaps: ["the benchmark, the Cboe PUT index: not stored, pending Doctrine #2 (D2-74); under D45's hold no new Cboe series is pulled, so returns are ledgered against cash", "the Capitulation Count: B79 computes it and stores none (capitulation.count_band pending), so the engine stands down, 'count not stored'", "the T&B verdict: no writer stores top_bottom.verdict", "historical SPX option chains: none stored before October 2026", "the vendor chain carries no Greeks (greeks_status pending_solver_gate): the delta is the engine's own, from the row's implied volatility"]
+    needs_code: false
+    kill: constitution
+    state_at_registration: "Written 31 Oct 2026 before the engine's code; no backtest run; the store holds a few weeks of SPX snapshots and no stored count."
+    engine: premium_sleeve

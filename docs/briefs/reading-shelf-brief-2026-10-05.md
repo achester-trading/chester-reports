@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | Drafted 2026-10-05 in answer to "pull and read these as they are published; consider what emerging themes, new insights or new analytics to add; list them in their own chapter of the Monthly with hyperlinks; skip the insurance reporting." The scheduled task exists (created 5 Oct); the chapter is built in **T3, second half** (week of 19 Oct) and first prints in the **1 Nov Monthly**. Three decisions below are taken in chat. **Ruled 2026-10-05 09:10 ET in chat:** D1 after narratives, before ahead; D2 the 12th and 27th; D3 ECB and BoE stability reports promoted to deep, Hussman and Pew kept. **Amended 2026-10-08** by docs/change-order-reading-shelf-2026-10-08.md: eight shelf additions; tiers now 19 deep, 22 skim, 15 list across 56 items. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Binding on | The scheduled task "Publication watch — reading shelf"; the Claude Code session building T3's second half; Phase B (voices) |
 | Precedence | Below Part 26, the change orders, Amendments #3–#5, the reporting-stack brief, the metric-lenses brief and `docs/change-order-jpm-gtm-2026-10-03.md`. The shelf has no decision rights. A publication's figures print in the Monthly only as sourced figures (URL stored); a publication's recommendations never print; the watch's own recommendations never print — they are governance candidates ruled in chat. |
 
@@ -11,7 +11,7 @@
 
 A standing mechanism with two halves.
 
-**The watch.** A scheduled task fires twice a month (the 12th and the 27th, 06:58 ET, cloud-only, web sources only). It checks the shelf — the publications in `docs/reading/watchlist.json` — for editions published since the register's last entry for each, reads the new ones to the depth the watchlist sets, and delivers one file, `docs/scans/reading-watch-YYYY-MM-DD.md`, plus a short chat summary. The file carries the reads, the framework candidates in the signal-triage intake template, an emerging-themes roll-up, the new analytics seen, voices entries, and — as a fenced JSON block at the end — the register additions. Ari places the file in `docs/scans/` and commits, as with the other scans.
+**The watch.** A scheduled task fires twice a month (the 12th and the 27th, 06:58 ET, cloud-only, web sources only). It checks the shelf — the publications in `docs/reading/watchlist.json` — for editions published since the register's last entry for each, reads the new ones to the depth the watchlist sets, and delivers one file, `docs/scans/reading-watch-YYYY-MM-DD.md`, plus a short chat summary. The file carries the reads, the framework candidates in the signal-triage intake template, an emerging-themes roll-up, the new analytics seen, voices entries, and — as a fenced JSON block at the end — the register additions. The operator places the file in `docs/scans/` and commits, as with the other scans.
 
 **The chapter.** The Monthly gains a chapter, **Reading**, rendered from `docs/reading/register.json`: every shelf edition published in the Monthly's month, hyperlinked, with its publisher, date, a **summary paragraph** of the report's key findings and major themes (so the reader knows what to expect before opening it), and a link to its scan where one exists; then the shelf items due before the next Monthly. Nothing else — no candidates, no rulings, no stance of ours. (Clarified 5 Oct 2026 08:59 ET: a robust paragraph per report, not a one-liner.)
 
@@ -93,7 +93,7 @@ Reading time: with summaries, a typical month (five to ten editions) runs 1,000�
 
 In T3's second half (week of 19 Oct), about **4 hours** of session time: the two JSON files and their loader (0.5 h), `tools/reading_register.py add|check` with its `make validate` hook, including the summary-length check by depth (1 h), the chapter renderer for Markdown and HTML with the title-plus-paragraph form, the withheld-count footnote and the empty-month case (2 h), a fixture-month test and the dry-run check (0.5 h). No new data sources, no LLM call, no store writes.
 
-The paste for that session (Ari's own line goes on top; expected run time about 4 hours of session work, first report-back after about an hour):
+The paste for that session (the operator's own line goes on top; expected run time about 4 hours of session work, first report-back after about an hour):
 
 ```
 Read docs/briefs/reading-shelf-brief-2026-10-05.md in full, then build §4 and §5 exactly as specified, applying the decisions D1–D3 as ruled in the brief's §2 (the chapter goes immediately after narratives and before ahead). Create tools/reading_register.py with `add <watch-file>` and `check` (ids unique, URL present on every printable entry, watch_id exists, dates parse, summary present for deep and skim items and absent for list items, summary within the length bands), wire `check` into make validate, and add the Reading chapter to the Monthly renderer in both editions, placed per D1: title line plus the stored summary paragraph for entries that carry one, title line plus the one-liner for list items, the withheld-count footnote, the due-next-month list, and the empty-month case. Use docs/reading/register.json and docs/reading/watchlist.json as committed. Test against a fixture month containing the jpm-gtm-2026q4 entry (which carries a summary) and against an empty month. Do not call any LLM for this chapter, do not rewrite or trim stored summaries, do not touch the store, and do not change any other chapter. Report back after the loader and tool are in with the gate passing, then after the renderer, with the rendered chapter for the fixture month pasted in the report.
@@ -104,5 +104,5 @@ Read docs/briefs/reading-shelf-brief-2026-10-05.md in full, then build §4 and �
 - The shelf is read for the framework's benefit; it does not trade. No entry, theme or analytic gains rights except through a ruling in chat and the register.
 - A theme the watch raises twice without a ruling stays a proposal; it is not escalated by repetition.
 - The watch's reads are inputs to the Monthly signal scan on the 25th, not a replacement for it; the two may cite each other.
-- Insurance and reinsurance reporting stays off the shelf unless Ari puts it on.
-- After each run, Ari places the watch file and runs `tools/reading_register.py add`; until the tool exists (T3), entries are added by hand or wait.
+- Insurance and reinsurance reporting stays off the shelf unless the operator puts it on.
+- After each run, the operator places the watch file and runs `tools/reading_register.py add`; until the tool exists (T3), entries are added by hand or wait.

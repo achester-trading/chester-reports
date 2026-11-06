@@ -10,7 +10,7 @@
 - Section 1 renames files. Every later section uses the **new** filenames.
 - After Section 10 exists, run `make library-check` at the end of every section and keep it green.
 - Do not touch: numeric market levels in any paper (see D7); anything under `reports/`, `snapshots/`, `state/`, `register/`, `data_store/`; the appendix of the guide.
-- Anything marked **REVIEW** is left for Ari to read before merge — commit it, flag it in the final summary, do not merge-squash it into other sections.
+- Anything marked **REVIEW** is left for the operator to read before merge — commit it, flag it in the final summary, do not merge-squash it into other sections.
 
 ## Decisions (already made — apply, don't revisit)
 
@@ -51,7 +51,7 @@
 | `technical-indicators-white-paper.md` | `technical-indicators-whitepaper.md` |
 | `paper-portfolio-construction-across-regimes-draft1.md` | `portfolio-construction-whitepaper.md` |
 
-   Already conforming, leave as is: base-rates, daily-cascade, dealers-hand, earnings, evidence-inference, international-equities, operating-doctrine, options-expression, positioning-and-flows, systematic-book. Reserved for when Ari commits it: `tops-and-bottoms-whitepaper.md`.
+   Already conforming, leave as is: base-rates, daily-cascade, dealers-hand, earnings, evidence-inference, international-equities, operating-doctrine, options-expression, positioning-and-flows, systematic-book. Reserved for when the operator commits it: `tops-and-bottoms-whitepaper.md`.
 
 5. `git grep -n` every old filename across the whole repo (known hits: `CLAUDE.md`, `TODO.md`) and update. In `CLAUDE.md`, the line naming `docs/options-expression-whitepaper.md` as XXII becomes `docs/whitepapers/options-expression-whitepaper.md`.
 6. Replace the empty `docs/whitepapers/readme.md` with three lines: what the folder is, "the library guide (`docs/white-paper-library-guide.md`) is canonical for the roster and numerals", and a pointer to `archive/`.
@@ -150,8 +150,8 @@ Leave Version 1.0 in `systematic-book-whitepaper.md`, `evidence-inference`, `ear
 2. **CLAUDE.md** — add, after the numerals paragraph, a short block titled **Library conventions** containing D1, D3, D4, D6, D7, D8 in one line each (copy the wording from the Decisions table).
 3. **Guide, formats note** (the blockquote at the top): list the same six papers; remove Base Rates (XX) and International Equities (XXI).
 4. **Guide**: `*Numerals are the canonical series IDs, assigned here in reading order from the top down — the macro and disruptive layer first, then the structural asset classes, then market timing, then the micro and execution layer.` → `*Numerals are the canonical series IDs. They were first assigned in reading order and are now stable accession numbers — later papers took the next free numeral wherever they sit — so reading order is what the tables above show, not the numeral sequence. Numerals are never reassigned.`
-5. Create `docs/html/README.md`: what belongs here (the six built editions), the naming rule, "regenerate from the .md; an HTML that disagrees with its .md is stale." Ari drops the files in; the check only warns.
-6. Note for the final summary (not an edit): `fx_charts.py`, described for regenerating the Currencies charts, is not in `altdata/`; Ari has it in `altdata.zip` from the 3 September session.
+5. Create `docs/html/README.md`: what belongs here (the six built editions), the naming rule, "regenerate from the .md; an HTML that disagrees with its .md is stale." the operator drops the files in; the check only warns.
+6. Note for the final summary (not an edit): `fx_charts.py`, described for regenerating the Currencies charts, is not in `altdata/`; the operator has it in `altdata.zip` from the 3 September session.
 
 ---
 
@@ -199,9 +199,9 @@ Wire it: `make library-check` target; add it to the `make gates` list (or whatev
 
 ---
 
-## Final summary to Ari (Claude Code writes this at the end)
+## Final summary to the operator (Claude Code writes this at the end)
 
 1. Commits made, one line each.
 2. `make library-check` output.
-3. Items needing Ari: commit `tops-and-bottoms-whitepaper.md`; drop the six HTML editions into `docs/html/`; regenerate the Evidence and Inference HTML with figures renumbered; add `fx_charts.py` from `altdata.zip`; review Section 9's six guide entries.
+3. Items needing the operator: commit `tops-and-bottoms-whitepaper.md`; drop the six HTML editions into `docs/html/`; regenerate the Evidence and Inference HTML with figures renumbered; add `fx_charts.py` from `altdata.zip`; review Section 9's six guide entries.
 4. Anything the work order said that didn't match the files, and what was done instead.

@@ -285,7 +285,7 @@ shell) and six data gates.
 
 CI: **#416 green** (`d6e5512`, every gate, validate_events included).
 
-## Box commands, printed for Ari, run by no session
+## Box commands, printed for the operator, run by no session
 
 All of these run after this branch is on main, inside a window (weekdays
 09:05-15:40 or 17:20-23:30 ET; not 16:00-17:20).
@@ -366,7 +366,7 @@ shared with none.
 ## 15 Oct
 
 Two parts on this branch, from the paste that replaced the one of 07:26: Part 1,
-Ari's answers to the needs-you list; Part 2, the export rebuilt to chester-meme's
+The operator's answers to the needs-you list; Part 2, the export rebuilt to chester-meme's
 contract.
 
 ### Part 1: the answers, as built
@@ -417,7 +417,7 @@ contract.
    - It opens the store mode=ro with query_only on and prints master YAML to the
      screen, with ids proposed from next_id. It writes nothing.
    - It reads the conId key alone, never a size, price or value.
-   - Both schemes stay empty until Ari's paste is committed.
+   - Both schemes stay empty until the operator's paste is committed.
 7. **The heartbeat watching the listings snapshot's date** is for the refresh
    after aud-1 merges, because the heartbeat is aud-1's file. Not built here.
 8. **The new classes** `preferred`, `note` and `closed_end_fund` are added.
@@ -535,7 +535,7 @@ A sample of the fixture export (two hand-written days, saved responses):
 
 Other gates that read `fetch_overnight.sh` are CI's. CI: in the report.
 
-### Box commands, printed for Ari, run by no session
+### Box commands, printed for the operator, run by no session
 
 All after this branch is on main, inside a window (weekdays 09:05–15:40 or
 17:20–23:30 ET).
@@ -590,7 +590,7 @@ MEME_SM_EXPORT=/home/ari/chester-data/export/security_master.json
    - the heartbeat watches the listings snapshot's date (answer 7);
    - the call sites move onto the master, the yfinance basket first (answer 9).
 
-### 15 Oct, later: Ari's answers to the needs-you list above
+### 15 Oct, later: the operator's answers to the needs-you list above
 
 1. **Exchange code F is the Texas Stock Exchange.** `config/listing_exchanges.yaml`
    maps F to MIC TXSE and venue TXSE. It cites TXSE's two pages, both read
@@ -665,7 +665,7 @@ resolve to one restricted entry by date, and F → TXSE.
 - That file is not in git and is edited by hand (`deploy/install-user.sh:16,
   51-52`).
 - The units carry no sandboxing that would hide `~/chester-data`.
-- **The line and the place, for Ari.** Add this one line to
+- **The line and the place, for the operator.** Add this one line to
   `~/.config/chester-meme/meme.env` on the box:
 
 ```

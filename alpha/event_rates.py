@@ -307,8 +307,11 @@ def earnings_rows(store, cfg: dict, cutoff: str) -> list[dict]:
     uni = set(ec.get("universe") or [])
     hs = [int(h) for h in ec.get("drift_sessions") or [1, 20]]
     out = []
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     for r in _events(store, "SELECT observed_at, available_at, payload FROM events "
-                     "WHERE type='earnings' AND observed_at<=?", (pit.canon(cutoff),)):
+                     "WHERE type='earnings' AND observed_at<=?" + _ec,
+                     (pit.canon(cutoff), *_ep)):
         try:
             p = json.loads(r["payload"] or "{}") or {}
         except ValueError:

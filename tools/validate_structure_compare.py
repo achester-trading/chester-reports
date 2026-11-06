@@ -39,6 +39,8 @@ TABLE. Everything below is that sentence made checkable.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import json
 import sys
 from pathlib import Path
@@ -187,6 +189,7 @@ def group_f(m: dict) -> None:
     tmp = gate_mkdtemp(prefix="validate_structure_compare_")
     db = observations.ObservationStore(str(Path(tmp) / "sc.db"))
     try:
+        # THE GATE'S CLOCK (B106): reads today on purpose -- the last completed session, as the comparison reads it live. Next attention: none.
         last = sc.session.last_completed_session()
 
         def seed(sym: str, days_ago: int) -> None:

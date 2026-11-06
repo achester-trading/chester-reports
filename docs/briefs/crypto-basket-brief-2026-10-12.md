@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **Ruled, 12 Oct 2026, 17:25 ET** — six as proposed; decision 3 as the alternative (the model restates odds each quarter beside the operator's original as the reference). Amends the Alternative Assets change order §4.6 (crypto tiers) and the Weekly's and Monthly's digital blocks. Built by session B, Tue 13 → Wed 14 Oct. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Input | *Crypto long-shot basket*, 12 Oct 2026 (ten names plus Venice new and Pearl demoted; the odds of 10× and 100× over five to ten years; "what pays the token"; US exchange access; the case for and against each), itself drawn from the 10 Oct scan `docs/scans/crypto-outlook-2026-10-10.md`. |
 | The ask | "In weekly, monthly, quarterly reporting, there should be some level of monitoring across this expanded box of crypto assets, in addition to the classics (Bitcoin, Solana, Ethereum, Zcash)." |
 

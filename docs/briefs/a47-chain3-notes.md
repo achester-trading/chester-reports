@@ -167,7 +167,7 @@ The rest are CI's, including:
 
 CI: see the table at the end.
 
-## Box commands for Ari, after the third chain merges (each dry run first)
+## Box commands for the operator, after the third chain merges (each dry run first)
 
 1. **The drill's unit files, if the self-deploy copied them.** It copies unit files, and chain-2 shipped the drill's.
    ```

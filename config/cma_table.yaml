@@ -1,0 +1,68 @@
+# cma_table.yaml -- signal-triage Batch 14, item 62 (written as 55; ST-R6.62a),
+# the cross-house capital-market-assumptions table
+# (docs/change-order-signal-triage-batch-14-2026-10-20.md, section 0, F2: "62's
+# cross-house CMA table is not updated by hand. It becomes a reference table of
+# the reading shelf's publication watch ... The scans ingest stores them as
+# sourced figures; code computes the median and the dispersion; the Monthly's
+# slow layers print the table").
+#
+# Read by altdata/cma_table.py; printed by the Monthly's slow layers
+# (monthly_macro/stack.py) and, as item 30's Book A long-horizon expected-return
+# line, by the allocation block (daily_cascade/index_carry_block.py).
+#
+# NO NUMBER LIVES HERE. Each house's figures come only from its edition's scan
+# file (docs/scans/cma-<house>-<YYYY>q<N>.md, written by the chat-side
+# publication watch), stored by `python -m altdata.scans ingest` as sourced
+# figures with their URL, edition and as-of. A house with no stored edition
+# prints "no edition stored", never a recalled figure. The horizon and the basis
+# (nominal or real) are each edition's own, read from its scan's reference
+# table, because they differ by house and change between editions.
+#
+# Report only: the medians are printed and read by one line; nothing enters a
+# composite, the market-state object or a decision. RULING D17 (24 Oct 2026):
+# two medians, nominal and real, each with its count of houses, never mixed;
+# each house prints on its own basis and horizon beside them.
+version: cma-table-v1
+updated: 2026-10-23
+title: "Capital market assumptions across houses: 10-year expected returns"
+
+# The scan family prefix: a scan file named cma-<house>-2026q4.md is family
+# cma-<house> (altdata/scans.py FAMILY_SUFFIX).
+family_prefix: "cma-"
+
+# SESSION-SET. An edition whose data as-of is more than 15 months before the
+# cutoff is dropped from the median and the count says so: an annual edition
+# stays in for one cycle and a quarter's slack, and no longer.
+stale_months: 15
+
+# The houses, in the order the ruling names them (item 62's ruling 2). `watch`
+# is the reading shelf's id (docs/reading/watchlist.json).
+houses:
+  - {id: jpm, name: "J.P. Morgan AM, Long-Term Capital Market Assumptions", watch: jpm-ltcma}
+  - {id: aqr, name: "AQR, Capital Market Assumptions", watch: aqr-cma}
+  - {id: gmo, name: "GMO, 7-Year Asset Class Forecast", watch: gmo-7yr}
+  - {id: ra, name: "Research Affiliates, Asset Allocation Interactive", watch: ra-aai}
+  - {id: hsbc, name: "HSBC AM, Capital Market Assumptions", watch: hsbc-cma}
+  - {id: vanguard, name: "Vanguard, Capital Markets Model outlook", watch: vanguard-vcmm}
+
+# The assets, in the ruling's order. `metric` is the row label the scan's
+# reference table carries for that asset (matched exactly).
+assets:
+  - {id: us_equity, label: "US equity", metric: "US equity"}
+  - {id: exus_dev_equity, label: "Ex-US developed equity", metric: "Ex-US developed equity"}
+  - {id: em_equity, label: "EM equity", metric: "EM equity"}
+  - {id: treasuries, label: "Treasuries", metric: "Treasuries"}
+  - {id: ig, label: "IG credit", metric: "IG credit"}
+  - {id: hy, label: "HY credit", metric: "HY credit"}
+  - {id: sixty_forty, label: "60/40", metric: "60/40"}
+
+# The two descriptive rows every CMA scan's reference table carries.
+horizon_metric: "Horizon"
+basis_metric: "Basis"
+
+# Item 30's Book A long-horizon expected-return line reads this asset's NOMINAL
+# median, or the real one when fewer than two nominal houses have a current
+# edition, labelled which (ruling D17, 24 Oct 2026).
+book_a_asset: us_equity
+
+no_edition: "no edition stored"

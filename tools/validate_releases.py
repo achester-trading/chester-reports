@@ -33,6 +33,8 @@ here is real.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import re
 import sys
@@ -652,7 +654,7 @@ def group_h() -> None:
           "the diffusion's 24 categories, distinct, each registered")
     src = yaml.safe_load((REPO / "source_registry.yaml").read_text(encoding="utf-8"))["sources"]
     cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check(src.get("rent_indices", {}).get("status") == "live"
           and src.get("clevfed_rules", {}).get("status") == "live"
           and "altdata.sources.rent_indices:" in cat and "altdata.releases:" in cat

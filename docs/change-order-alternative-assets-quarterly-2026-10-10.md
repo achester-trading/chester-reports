@@ -7,7 +7,7 @@
 | Encoding | Post-Freeze Amendment #6 (provisional; confirmed at filing). Restores, in a new form, the Alternative Asset report that the redesign folded into the Monthly; the `alt_asset` state key reserved in `state/emit.py` is the report's identity. |
 | Precedence | Below Part 26 and the Doctrine; beside the signal-triage orders (Amendment #4), whose Thread D (crypto) and EM/commodity entries this order reads rather than re-rules. §26.8's moratorium holds: nothing below is a new composite, oscillator, crypto-cycle indicator or geopolitical index; every analysis is a lens, a scorecard or a ledger entry with the paper's own kill condition. |
 | Supersedes | The standalone Thailand quarterly as a *report* (its personal-finance core stays private; §4.9). Nothing else. |
-| Owner | Ari Chester |
+| Owner | the operator |
 
 ## 1. Why
 

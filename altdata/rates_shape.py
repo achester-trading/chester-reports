@@ -243,14 +243,22 @@ def read(st, cutoff: str, anchors: Optional[dict] = None,
             "tag": cfg.get("tag")}
 
 
-TEN_YEAR_LEGS = (("fred.yield_10y", "FRED"), ("yfinance.mkt_tnx", "Yahoo Finance"))
+def ten_year_legs() -> tuple:
+    """FRED's 10-year and the tape's, the tape's key from the price-source
+    resolver (A96): one leg once the family is switched to FRED."""
+    from . import price_sources                                 # noqa: PLC0415
+    tape = price_sources.key("us_yields", "y10")
+    legs = [("fred.yield_10y", "FRED")]
+    if tape != "fred.yield_10y":
+        legs.append((tape, "Yahoo Finance"))
+    return tuple(legs)
 
 
 def ten_year_level(st, cutoff: str) -> Optional[dict]:
     """The 10-year's newest close at the cutoff, FRED's or else the tape's,
     with its source and date (W8-10)."""
     best = None
-    for key, src in TEN_YEAR_LEGS:
+    for key, src in ten_year_legs():
         rows = [r for r in st.as_of(key, cutoff) if r.get("value_num") is not None]
         if rows:
             r = max(rows, key=lambda x: str(x["observed_at"]))

@@ -1,13 +1,13 @@
 # W-1.1a — the audit fixes from the Weekly dry run of 12 Oct: session notes
 
-Branch `w-1-1a-audit-fixes` from `main` at 7754d0d (the T3.5 merge). Spec: Ari's
+Branch `w-1-1a-audit-fixes` from `main` at 7754d0d (the T3.5 merge). Spec: the operator's
 paste of 13 Oct (six items). Inputs: the dry run of 12 Oct 22:21 ET (run
 weekly-20261013T021911), as quoted in the paste. That archive is on the box, so
 the fixtures rebuild its figures from the paste's quotes
 (`tests/fixtures/weekly_run5_2026-10-12.json`). Session A, 13 Oct 2026.
 
 **The first copy of the paste was cut off** partway through "WHAT THE DRY RUN
-SHOWED". Ari resent it whole, and this branch is built from the full text.
+SHOWED". The operator resent it whole, and this branch is built from the full text.
 
 ## Gates run
 

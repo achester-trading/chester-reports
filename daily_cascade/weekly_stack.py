@@ -113,13 +113,23 @@ def asof_cell(x: dict) -> str:
 
 
 def change_over(st, key: str, now_cut: str, then_cut: str,
-                instrument: Optional[str] = None) -> Optional[dict]:
+                instrument: Optional[str] = None,
+                month_aligned: bool = False) -> Optional[dict]:
     """{level, prior, change, unit, observed_at} between two cutoffs.
 
     NO DATE AFTER THE EDITION'S SESSION (W8-9): an observation dated after the
     session a cutoff closes is read only for a series the registry declares
     forward-dated (IORB's effective day), and it then carries `effective`; any
-    other series is read at its newest observation on or before the session."""
+    other series is read at its newest observation on or before the session.
+
+    `month_aligned` (A95, M2 of the Monthly Letter of 1 Nov): the prior is the
+    MONTH'S, as the Monthly's scorecard and theme tables read it
+    (monthly_macro.v2.metric_month, the one definition): the newest observation
+    on or before the earlier of the then-session and the latest print less 25
+    days, as known at `now_cut`. Without it the prior is what was knowable at
+    `then_cut`, which for a series FRED posts the next morning (the OAS) is the
+    day before the month-end, so the Monthly printed one spread's month change
+    two ways. The Weekly keeps its since-the-last-report prior."""
     def at(cut: str):
         r = st.latest_as_of(key, cut, instrument)
         day = edition_session(cut)
@@ -128,7 +138,15 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
                     if str(x.get("observed_at"))[:10] <= day]
             r = max(rows, key=lambda x: str(x["observed_at"])) if rows else None
         return r
-    a, b = at(now_cut), at(then_cut)
+    a = at(now_cut)
+    if month_aligned and a:
+        from monthly_macro import v2 as _v2                      # noqa: PLC0415
+        target = _v2.prior_target(dt.date.fromisoformat(edition_session(then_cut)),
+                                  dt.date.fromisoformat(str(a["observed_at"])[:10]))
+        b = _v2._level_on(sorted(st.as_of(key, now_cut, instrument),
+                                 key=lambda x: str(x.get("observed_at"))), target)
+    else:
+        b = at(then_cut)
     if not a or a.get("value_num") is None:
         return None
     lv = a["value_num"]
@@ -253,6 +271,28 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     from . import gtm_block                                     # noqa: PLC0415
     subs = gtm_block.place_mechanics(subs, gtm_block.mechanics_subsections(
         st, cutoff, "weekly"))
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from . import batch14_b1_block                              # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, cutoff)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the edition's sessions. Tables and lines only.
+    from . import batch15_a_block                               # noqa: PLC0415
+    if sessions:
+        subs = batch15_a_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                                     sessions[-1])
+        # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+        # degree days beside natural gas after the oil-shock signature.
+        from . import b59_block                                 # noqa: PLC0415
+        subs = b59_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                               sessions[-1])
+    # 6f TRANCHE 3 (a62): the tail families, one line, read from the object.
+    from . import state_v2_block                                # noqa: PLC0415
+    tl = state_v2_block.weekly_subsection(st, cutoff)
+    if tl:
+        subs.append(tl)
+    # 6f TRANCHE 2 (a63): the dials' transition table.
+    subs += state_v2_block.calibration_subsection(st, cutoff)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}
@@ -416,7 +456,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
                 screen: Optional[dict] = None,
                 dates: Optional[dict] = None, st=None,
-                now: Optional[str] = None) -> dict:
+                now: Optional[str] = None, then: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
@@ -466,7 +506,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
     # market disagreements and the week's openings.
-    gaps = wsec.gap_table(opened, history or {}, dates)
+    gaps = wsec.gap_table(opened, history or {}, dates, then=then)   # A103 (W4)
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
@@ -515,12 +555,14 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                   cadence: str = "weekly", liquidity_deltas: bool = False,
                   yudd_line: Optional[bool] = None,
-                  auction_block: bool = False) -> dict:
+                  auction_block: bool = False,
+                  month_aligned: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
     for k, name in PLUMB:
-        x = change_over(st, k, now, then)
+        # A95 (M2): the Monthly reads the month's prior (change_over's docstring).
+        x = change_over(st, k, now, then, month_aligned=month_aligned)
         fr = frames.get(BAR_YIELDS.get(k, ""), {})
         if k in BAR_YIELDS and fr.get("last") is not None \
                 and fr.get("wtd_change_bps") is not None:
@@ -641,7 +683,9 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # BATCH 5 TRANCHE 1 (ST-R4.21b, 26a, 17a): the attribution's term premium
     # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
     from . import batch5_block                                  # noqa: PLC0415
-    subs += batch5_block.plumbing_subsections(st, now, then, cadence)
+    # A103 (W3): passed the same cutoffs and prior rule as Plumbing's own table.
+    subs += batch5_block.plumbing_subsections(st, now, then, cadence,
+                                              month_aligned=month_aligned)
     # 6E, THE REST (16 Oct 2026): the lens columns the brief left for "later",
     # as one table of Plumbing's series, and the inflation block (the CPI lead
     # composite, the core CPI-PCE gap; Batch 7 items 46 and 48 attach to it).
@@ -737,12 +781,15 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
             continue
         for h in heads[rel]:
             key, form = h["key"], h.get("form") or "level"
-            if (rel, key, form) in seen:
+            # By series and form, not by release name (A103, W6): the calendar
+            # and the statement name one FOMC decision two ways, and it prints once.
+            if (key, form) in seen:
                 continue
-            seen.add((rel, key, form))
+            seen.add((key, form))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
-            got = headline_form([r["value_num"] for r in pts], form)
+            got = headline_form([r["value_num"] for r in pts], form,
+                                [str(r["observed_at"])[:10] for r in pts])
             if not got or not h.get("label"):
                 continue
             out.append({"release": rel, "date": str(obs_at)[:10], "series": key,
@@ -753,21 +800,42 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
     return out
 
 
-def headline_form(vals: list, form: str) -> Optional[tuple]:
+def headline_form(vals: list, form: str,
+                  dates: Optional[list] = None) -> Optional[tuple]:
     """(actual, prior) in the declared form, or None when the store holds too
-    few prints to compute it (rulings of 5 Oct, item 1)."""
+    few prints to compute it (rulings of 5 Oct, item 1).
+
+    `dates` (A95, M6 of the Monthly Letter of 1 Nov): each value's observation
+    date. A year-on-year then compares the same month a year earlier and a
+    month-on-month the month before, BY DATE; a month the source never
+    published (BLS's October 2025, lost to the shutdown) leaves that form n/a
+    rather than reaching one print further back. Counted by position, every CPI
+    year-on-year across the gap compared thirteen months, so the release row's
+    actual and prior disagreed with the edition's date-based tables."""
     need = {"level": 1, "change": 2, "mom": 2, "yoy": 13, "annualised": 2}[form]
+    by_month = ({str(d)[:7]: v for d, v in zip(dates, vals)}
+                if dates and len(dates) == len(vals) else None)
+
+    def back(n: int, months: int) -> Optional[float]:
+        """The value `months` before print n, by date (None if unpublished)."""
+        y, m = int(str(dates[n])[:4]), int(str(dates[n])[5:7]) - months
+        while m < 1:
+            y, m = y - 1, m + 12
+        return by_month.get(f"{y:04d}-{m:02d}")
 
     def at(k: int) -> Optional[float]:
         """The form `k` prints back (0 = latest)."""
         n = len(vals) - 1 - k
-        if n - (need - 1) < 0:
+        if n - (need - 1) < 0 and not (by_month and form in ("mom", "yoy") and n >= 0):
             return None
         v = vals[n]
         if form == "level":
             return v
         if form == "change":
             return v - vals[n - 1]
+        if form in ("mom", "yoy") and by_month is not None:
+            p0 = back(n, 1 if form == "mom" else 12)
+            return 100.0 * (v / p0 - 1.0) if p0 else None
         if form == "mom":
             return 100.0 * (v / vals[n - 1] - 1.0) if vals[n - 1] else None
         if form == "yoy":
@@ -1002,6 +1070,22 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
+    # SIGNAL-TRIAGE BATCH 15, ITEM 74 (b56): the hedge-fund positioning line and
+    # the squeeze-risk flag, beside the CFTC table. The Weekly's only (TFF is
+    # weekly; the Monthly's Positioning keeps its five read blocks).
+    if cadence == "weekly":
+        from . import batch15_b2_block                          # noqa: PLC0415
+        hfp = batch15_b2_block.positioning_subsection(st, now)
+        if hfp:
+            out.append(hfp)
+    # SIGNAL-TRIAGE BATCH 16, ITEM 89(b) (B76): trend breadth, our own
+    # cross-asset trend signal, one table; the Monthly reads the same table.
+    # Nothing in the daily close.
+    if cadence in ("weekly", "monthly"):
+        from . import trend_breadth_block                       # noqa: PLC0415
+        tbs = trend_breadth_block.positioning_subsection(st, now)
+        if tbs:
+            out.append(tbs)
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
     # slow-money set and of SR-36's unwind watch, never a flag of its own. The
@@ -1343,11 +1427,13 @@ def story_statuses(stories: list[dict], st, now: str,
         try:
             from altdata import events as ev_mod                # noqa: PLC0415
             end = (dt.date.fromisoformat(now[:10]) + dt.timedelta(days=win)).isoformat()
+            from altdata import price_sources as _ps            # noqa: PLC0415
+            _ec, _ep = _ps.events_clause()  # A102: the earnings rows' source switch
             with ev_mod.EventStore(str(st.path)) as ev:
                 for (payload, obs) in ev.conn.execute(
                         "SELECT payload, observed_at FROM events WHERE type = "
                         "'scheduled' AND observed_at >= ? AND observed_at <= ? "
-                        "AND available_at <= ?", (now[:10], end, now)):
+                        "AND available_at <= ?" + _ec, (now[:10], end, now, *_ep)):
                     pl = json.loads(payload or "{}")
                     if pl.get("kind") == "earnings" and pl.get("symbol"):
                         earn.setdefault(str(pl["symbol"]).upper(), str(obs)[:10])
@@ -1461,10 +1547,21 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
                                  "state": s.get("state"),
                                  "status": (status.get(str(s.get("id")))
                                             or ("long-term theme", ""))[0],
+                                 # A103 (W5, the Weekly Letter of w/e 30 Oct):
+                                 # the stories table's own count, as its cell
+                                 # prints it, and the register's to-date
+                                 # evidence under its own name. The commentary
+                                 # quoted the register's evidence as the week's
+                                 # counts beside a table that printed clusters.
                                  "clusters": (week.get(str(s.get("name"))) or {})
                                  .get("clusters"),
-                                 "evidence_for": s.get("evidence_for"),
-                                 "evidence_against": s.get("evidence_against"),
+                                 "this_week_as_the_table_prints_it":
+                                     analytics.count_text(
+                                         (week.get(str(s.get("name"))) or {})
+                                         .get("clusters") or {"for": 0, "against": 0}),
+                                 "register_evidence_to_date_for": s.get("evidence_for"),
+                                 "register_evidence_to_date_against":
+                                     s.get("evidence_against"),
                                  "last_changed": s.get("last_changed")}
                                 for s in stories]}}
     if voices is not None:
@@ -1842,6 +1939,10 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
         subs = [{"title": book_b.HEADING, "lines": [book_b.NO_SCANNER],
                  "candidates": []}]
         notes = ["The candidates and the productivity line could not be read."]
+    # DTH-1 (D41; A92): the manual day-trade ledger's aggregates, after Book B.
+    from .weekly_sections import dth1_subsection               # noqa: PLC0415
+    dth1 = dth1_subsection(ending)
+    subs.append({"title": dth1["title"], "lines": dth1["lines"]})
     # GRADING FROM DAY ONE (decision 6): every candidate, taken or not, a ledger
     # forecast under its setup and id -- a dry run under its own namespace --
     # and the open ones the stored closes now decide, resolved.
@@ -2090,7 +2191,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "mechanics": mech,
             "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
-                                  st=st, now=now),
+                                  st=st, now=now, then=then),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
@@ -2104,11 +2205,33 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),
         }
+        # SIGNAL-TRIAGE BATCH 16 ITEM 88(a) (B75): the gold block, its own section
+        # between Plumbing & rates and Positioning & flows (config order).
+        from . import gold_block                                # noqa: PLC0415
+        try:
+            built[gold_block.SECTION_ID] = gold_block.weekly_section(
+                st, now, ending, computed_dir=p.get("computed_dir"),
+                events=(cal or {}).get("rows"))
+        except Exception:                                       # noqa: BLE001
+            log.warning("the gold block faulted", exc_info=True)
         # SIGNAL-TRIAGE BATCH 6 item 43: the growth lead's line in Ahead.
         from . import t1_rest_block                             # noqa: PLC0415
         ah43 = t1_rest_block.ahead_subsection(st, now)
         if ah43:
             built["ahead"].setdefault("subsections", []).append(ah43)
+        # SIGNAL-TRIAGE BATCH 15, ITEM 77 (b56): the tail register's cyber-
+        # pressure line, report only.
+        from . import batch15_b2_block                          # noqa: PLC0415
+        cyb = batch15_b2_block.cyber_subsection(st, now)
+        if cyb:
+            built["ahead"].setdefault("subsections", []).append(cyb)
+        # D26 (b59): GDELT's geopolitical line in the tail register, and in
+        # Narratives the stories' GDELT counts and the model-release line.
+        from . import b59_block                                 # noqa: PLC0415
+        tl = b59_block.tail_subsection(st, now)
+        if tl:
+            built["ahead"].setdefault("subsections", []).append(tl)
+        b59_block.weekly_narratives(built["narratives"], st, now)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.
@@ -2156,6 +2279,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    from . import gold_block                                    # noqa: PLC0415
+    gold_block.mark_before_first(sections, built)
     # W-1.3a: the keys assemble does not carry -- a section's one-line summaries
     # (W-1.2 item 2.6), its reference rows and its notes.
     for s in sections:
@@ -2263,6 +2388,12 @@ def chart_plan(ed: dict) -> list[str]:
         want.insert(4, "W12")
     if (misfit.get("data") or {}).get("open_contradictions"):
         want.insert(4, "W6")
+    # W13, THE GOLD BLOCK'S CHART (Batch 16 item 88(a); B75): after W3, inside the
+    # cap, from the block's first edition on (a section printing its header only
+    # draws nothing).
+    gold = next((s for s in ed["sections"] if s["id"] == "gold"), None)
+    if gold is not None and not gold.get("empty"):
+        want.insert(want.index("W3") + 1, "W13")
     return want[:cap]
 
 
@@ -2272,7 +2403,7 @@ PLACE = {"W1": ("tape", None), "W2": ("tape", None), "W8": ("tape", None),
          "W6": ("misfit", None), "W5": ("positioning", 0),
          "W4": ("positioning", 1), "W9": ("positioning", 3),
          "W10": ("priced", 1), "W11": ("priced", None),
-         "W12": ("mechanics", None)}
+         "W12": ("mechanics", None), "W13": ("gold", None)}
 
 # W8's six panels: (tape id, panel title).
 W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY"),
@@ -2359,6 +2490,15 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
         log.warning("W10 odds unavailable", exc_info=True)
     out["odds"] = odds
     try:
+        from altdata import gold_attribution as ga               # noqa: PLC0415
+        from . import gold_block                                # noqa: PLC0415
+        gcfg = ga.config()
+        out["gold"] = gold_block.chart_series(
+            ga.read_series(st, now, gcfg).get("gold") or [], ending, gcfg)
+    except Exception:                                           # noqa: BLE001
+        log.warning("W13 series unavailable", exc_info=True)
+        out["gold"] = None
+    try:
         from altdata import st_r5_index                          # noqa: PLC0415
         out["carry"] = st_r5_index.chart_series(st, now, "twelve_months")
     except Exception:                                           # noqa: BLE001
@@ -2399,31 +2539,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # the canonical figure.
     from . import consistency                                   # noqa: PLC0415
     consistency.reconcile(ed)
-    if narrative:
-        stack_prose.write(ed, client=client, model=model, outlooks=[],
-                          cadence="weekly")
-        storyline_pass(ed, prior, ending, client=client, model=model,
-                       db_path=db_path, dry_run=dry_run)
-        playbook_pass(ed, client=client, model=model)
-    else:
-        ed["precis"] = {"state": "skipped", "published": False}
-    book_terms(ed, ending)
-    from . import storyline                                     # noqa: PLC0415
-    storyline.layout(ed, stack_mod.config())
-    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
-    # glossary carries the config's version.
-    ta = wsec.technical_appendix(stack_mod.config())
-    if ta:
-        ed.setdefault("detail", []).append(ta)
-    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
-    # reference tier (a table: outside the word budget; it displaces nothing).
-    try:
-        from . import opening_setup as _os                      # noqa: PLC0415
-        with observations.ObservationStore(db_path) as _st:
-            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
-    except Exception:                                           # noqa: BLE001
-        log.warning("the per-name volatility table faulted", exc_info=True)
-    ed["definitions_version"] = wsec.definitions_version()
+    # THE CHARTS ARE DRAWN BEFORE THE PROSE (A97, W10-2): the "What to see"
+    # lines read each chart's own data, and are written after the sections'
+    # prose and before the précis, which stays the last commentary written. The
+    # drawing reads only what build() made; the alias check and the placement
+    # stay below, after the layout.
     # W12 (6b part 2) joins the plan only when the week's last settled dealer
     # profile exists under the payload's computed_dir.
     from . import dealer_block as _db                           # noqa: PLC0415
@@ -2488,6 +2608,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W11" in plan:
         charts["W11"] = charts_mod.index_carry("W11", cd.get("carry"), "twelve months",
                                                f"{base}_w11", out_dir)
+    if "W13" in plan:
+        charts["W13"] = charts_mod.gold_chart("W13", cd.get("gold"), f"{base}_w13",
+                                              out_dir)
     if "W12" in plan:
         from . import dealer_block                              # noqa: PLC0415
         mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})
@@ -2503,6 +2626,43 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "W6", extras["contradictions"], charts_mod.span_title(
                 "Open contradictions: gap z-score", n6, "sessions", d0, now,
                 "since each opened"), f"{base}_w6", out_dir, min_points=5)
+    if narrative:
+        stack_prose.write(ed, client=client, model=model, outlooks=[],
+                          cadence="weekly")
+        # THE "WHAT TO SEE" LINE (W10-2): one call per section over its charts'
+        # own data blocks; a line that fails twice is withheld.
+        from . import chart_lines                               # noqa: PLC0415
+        chart_lines.write_groups(chart_lines.groups_from(PLACE, charts), charts,
+                                 model=model, client=client)
+        storyline_pass(ed, prior, ending, client=client, model=model,
+                       db_path=db_path, dry_run=dry_run)
+        playbook_pass(ed, client=client, model=model)
+    else:
+        ed["precis"] = {"state": "skipped", "published": False}
+    book_terms(ed, ending)
+    # THE COVERAGE TABLE (W10-3): the store check's lists, one row per family
+    # and state, at the end of section 10, before the Detail Tables.
+    from . import coverage                                      # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    tenth = next((s for s in ed["sections"] if s["id"] == "book"), None)
+    if cov and tenth is not None:
+        tenth["coverage"] = cov
+    from . import storyline                                     # noqa: PLC0415
+    storyline.layout(ed, stack_mod.config())
+    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
+    # glossary carries the config's version.
+    ta = wsec.technical_appendix(stack_mod.config())
+    if ta:
+        ed.setdefault("detail", []).append(ta)
+    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
+    # reference tier (a table: outside the word budget; it displaces nothing).
+    try:
+        from . import opening_setup as _os                      # noqa: PLC0415
+        with observations.ObservationStore(db_path) as _st:
+            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the per-name volatility table faulted", exc_info=True)
+    ed["definitions_version"] = wsec.definitions_version()
     # ONE INSTRUMENT, SEVERAL SERIES (W-1.1a item 6): the tape's levels against
     # the charts' FRED levels of the same instrument, before anything prints.
     from . import consistency as cons_mod                       # noqa: PLC0415

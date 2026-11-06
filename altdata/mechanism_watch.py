@@ -253,7 +253,10 @@ class Register:
 
     def note_refused(self, entry_id: int, why: str) -> None:
         self.conn.execute("UPDATE mechanism_watch_entries SET post_note=? WHERE id=?",
-                          (str(why)[:300], entry_id))
+                          # 600, not 300 (6f, a62): the object v2 lists fifteen
+                          # dimensions in a refusal, and the reason after it must
+                          # still fit.
+                          (str(why)[:600], entry_id))
         self.conn.commit()
 
     def set_status(self, mw_id: str, to: str, by: str, reason: str,

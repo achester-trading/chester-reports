@@ -1,0 +1,158 @@
+# THE PRICE SOURCES, family by family (A96; tranche 2b of the price-source
+# migration, docs/briefs/price-source-migration-brief-2026-10-25.md on b68;
+# decisions 4 and 5 ruled D38 on 26 Oct 2026).
+#
+# One switch per family. Every reader asks altdata/price_sources.py for a
+# family's key, through a reference "price:<family>.<member>" in config or
+# price_sources.key() in code, and gets the ACTIVE source's key. Every family
+# ships on yfinance, so nothing printed changes until a family is switched.
+#
+# THE CUTOVER (the brief's section 4): a family runs in parallel for 20 sessions
+# (the parallel_run record below, its cross-source pair in config/data_quality.
+# yaml's inactive_pairs); then `source` flips, every reader moves at once
+# through the resolver, and the old keys are marked superseded in the registry.
+# History stays as stored: before `switched_on` a series is drawn from the old
+# key, after it from the new, never spliced, and every block that prints the
+# series prints `break_label` once beneath its first figure.
+version: 1
+
+families:
+  us_yields:
+    source: yfinance                  # yfinance (as today) | fred
+    members:
+      y10: {yfinance: yfinance.mkt_tnx, fred: fred.yield_10y}
+      y30: {yfinance: yfinance.mkt_tyx, fred: fred.yield_30y}
+    break_label: >-
+      series change {switched_on}: FRED's constant-maturity yields (DGS10, DGS30)
+      replace Yahoo's ^TNX and ^TYX; not spliced
+    switched_on: null                 # the first session on the new source
+    parallel_run:
+      started: "2026-11-04"   # the first deploy that carries A96; counted by the quality measure
+      sessions_counted: 0
+      sessions_required: 20
+      max_gap: null
+      tolerance: "to be measured on the overlap"
+  dollar_index:
+    source: yfinance                  # yfinance (as today) | fred
+    members:
+      dxy: {yfinance: yfinance.mkt_dxy, fred: fred.dxy}    # fred.dxy is DTWEXBGS
+    break_label: >-
+      series change {switched_on}: the Fed's broad dollar index (DTWEXBGS)
+      replaces ICE's DXY, a different index; not spliced
+    switched_on: null
+    parallel_run:
+      started: "2026-11-04"   # the first deploy that carries A96; counted by the quality measure
+      sessions_counted: 0
+      sessions_required: 20
+      max_gap: null
+      tolerance: "to be measured on the overlap"
+  # STUBS for the families A93's IBKR writer will serve (config/ibkr_bars.yaml).
+  # Declared so their readers can move to the resolver when the writer is live;
+  # no reader is routed through them yet.
+  us_index_funds:
+    source: yfinance                  # yfinance (as today) | ibkr
+    members: {}
+    stub: "A93's first family (SPY, QQQ, IWM, DIA, RSP); members added with its cutover"
+  index_levels:
+    source: yfinance
+    members: {}
+    stub: "^GSPC through IBKR's Cboe indexes subscription"
+  futures_overnight:
+    source: yfinance
+    members: {}
+    stub: "ES=F and NQ=F through IBKR"
+  fx:
+    source: yfinance
+    members: {}
+    stub: "JPY=X and EURUSD=X through IBKR IDEALPRO (H.10 for the daily fix)"
+  # A102 (1 Nov 2026; tranche 6 of the price-source migration): earnings dates
+  # and fundamentals from EDGAR instead of Yahoo. Both ship on yfinance.
+  #
+  # FUNDAMENTALS: the 40 yfinance.fund_* keys (altdata/sources/fundamentals.py)
+  # against XBRL company facts (altdata/sources/edgar_xbrl.py, the mapping in
+  # config/edgar_xbrl.yaml `fundamentals`), each EDGAR row available at its
+  # filing's acceptance. Member = <ticker>_<field>.
+  fundamentals:
+    source: yfinance                  # yfinance (as today) | edgar
+    members:
+      amzn_operating_cash_flow: {yfinance: yfinance.fund_amzn_operating_cash_flow, edgar: edgar.fund_amzn_operating_cash_flow}
+      amzn_capex: {yfinance: yfinance.fund_amzn_capex, edgar: edgar.fund_amzn_capex}
+      amzn_net_debt: {yfinance: yfinance.fund_amzn_net_debt, edgar: edgar.fund_amzn_net_debt}
+      amzn_inventory: {yfinance: yfinance.fund_amzn_inventory, edgar: edgar.fund_amzn_inventory}
+      amzn_cogs: {yfinance: yfinance.fund_amzn_cogs, edgar: edgar.fund_amzn_cogs}
+      googl_operating_cash_flow: {yfinance: yfinance.fund_googl_operating_cash_flow, edgar: edgar.fund_googl_operating_cash_flow}
+      googl_capex: {yfinance: yfinance.fund_googl_capex, edgar: edgar.fund_googl_capex}
+      googl_net_debt: {yfinance: yfinance.fund_googl_net_debt, edgar: edgar.fund_googl_net_debt}
+      googl_inventory: {yfinance: yfinance.fund_googl_inventory, edgar: edgar.fund_googl_inventory}
+      googl_cogs: {yfinance: yfinance.fund_googl_cogs, edgar: edgar.fund_googl_cogs}
+      msft_operating_cash_flow: {yfinance: yfinance.fund_msft_operating_cash_flow, edgar: edgar.fund_msft_operating_cash_flow}
+      msft_capex: {yfinance: yfinance.fund_msft_capex, edgar: edgar.fund_msft_capex}
+      msft_net_debt: {yfinance: yfinance.fund_msft_net_debt, edgar: edgar.fund_msft_net_debt}
+      msft_inventory: {yfinance: yfinance.fund_msft_inventory, edgar: edgar.fund_msft_inventory}
+      msft_cogs: {yfinance: yfinance.fund_msft_cogs, edgar: edgar.fund_msft_cogs}
+      meta_operating_cash_flow: {yfinance: yfinance.fund_meta_operating_cash_flow, edgar: edgar.fund_meta_operating_cash_flow}
+      meta_capex: {yfinance: yfinance.fund_meta_capex, edgar: edgar.fund_meta_capex}
+      meta_net_debt: {yfinance: yfinance.fund_meta_net_debt, edgar: edgar.fund_meta_net_debt}
+      meta_cogs: {yfinance: yfinance.fund_meta_cogs, edgar: edgar.fund_meta_cogs}
+      orcl_operating_cash_flow: {yfinance: yfinance.fund_orcl_operating_cash_flow, edgar: edgar.fund_orcl_operating_cash_flow}
+      orcl_capex: {yfinance: yfinance.fund_orcl_capex, edgar: edgar.fund_orcl_capex}
+      orcl_net_debt: {yfinance: yfinance.fund_orcl_net_debt, edgar: edgar.fund_orcl_net_debt}
+      orcl_cogs: {yfinance: yfinance.fund_orcl_cogs, edgar: edgar.fund_orcl_cogs}
+      mu_operating_cash_flow: {yfinance: yfinance.fund_mu_operating_cash_flow, edgar: edgar.fund_mu_operating_cash_flow}
+      mu_capex: {yfinance: yfinance.fund_mu_capex, edgar: edgar.fund_mu_capex}
+      mu_net_debt: {yfinance: yfinance.fund_mu_net_debt, edgar: edgar.fund_mu_net_debt}
+      mu_inventory: {yfinance: yfinance.fund_mu_inventory, edgar: edgar.fund_mu_inventory}
+      mu_cogs: {yfinance: yfinance.fund_mu_cogs, edgar: edgar.fund_mu_cogs}
+      nvda_operating_cash_flow: {yfinance: yfinance.fund_nvda_operating_cash_flow, edgar: edgar.fund_nvda_operating_cash_flow}
+      nvda_capex: {yfinance: yfinance.fund_nvda_capex, edgar: edgar.fund_nvda_capex}
+      nvda_net_debt: {yfinance: yfinance.fund_nvda_net_debt, edgar: edgar.fund_nvda_net_debt}
+      nvda_cogs: {yfinance: yfinance.fund_nvda_cogs, edgar: edgar.fund_nvda_cogs}
+      avgo_operating_cash_flow: {yfinance: yfinance.fund_avgo_operating_cash_flow, edgar: edgar.fund_avgo_operating_cash_flow}
+      avgo_capex: {yfinance: yfinance.fund_avgo_capex, edgar: edgar.fund_avgo_capex}
+      avgo_net_debt: {yfinance: yfinance.fund_avgo_net_debt, edgar: edgar.fund_avgo_net_debt}
+      avgo_cogs: {yfinance: yfinance.fund_avgo_cogs, edgar: edgar.fund_avgo_cogs}
+      amat_operating_cash_flow: {yfinance: yfinance.fund_amat_operating_cash_flow, edgar: edgar.fund_amat_operating_cash_flow}
+      amat_capex: {yfinance: yfinance.fund_amat_capex, edgar: edgar.fund_amat_capex}
+      amat_net_debt: {yfinance: yfinance.fund_amat_net_debt, edgar: edgar.fund_amat_net_debt}
+      amat_cogs: {yfinance: yfinance.fund_amat_cogs, edgar: edgar.fund_amat_cogs}
+    break_label: >-
+      series change {switched_on}: EDGAR's filed XBRL figures (as first filed, at
+      the filing's acceptance; quarters derived from year-to-date where filed so;
+      net debt is long-term debt less cash, leases excluded) replace Yahoo's
+      restated quarterly statements; not spliced
+    switched_on: null
+    parallel_run:
+      started: null
+      sessions_counted: 0
+      sessions_required: 20
+      max_gap: null
+      tolerance: "to be measured on the overlap (company-quarter against company-quarter)"
+  # EARNINGS DATES: an EVENTS family, not a key family. Its members name the
+  # events table's `source` for the earnings rows (type 'earnings', and
+  # 'scheduled' rows of kind 'earnings'). Readers never filter by source
+  # themselves: EventStore applies price_sources.events_clause() to every read,
+  # and a direct SQL read appends it. Unswitched, EDGAR's earnings rows are
+  # excluded; switched, Yahoo's rows from `switched_on` on are excluded and
+  # EDGAR's before it, never both for one date.
+  earnings_dates:
+    source: yfinance                  # yfinance (as today) | edgar
+    kind: events
+    members:
+      history: {yfinance: yfinance, edgar: sec_edgar}   # past report dates and reported EPS
+      next_date: {yfinance: yfinance}                   # forward dates: no keyless source (decision 10)
+      consensus: {yfinance: yfinance}                   # the analyst mean the surprise needs
+    gaps:
+      next_date: "next report date: not tracked (no keyless source)"
+      consensus: "surprise: not tracked (the consensus was Yahoo's; no keyless source)"
+    break_label: >-
+      series change {switched_on}: report dates from EDGAR's filings (the 8-K
+      item 2.02 acceptance) and EPS as filed (diluted, XBRL) replace Yahoo's
+      earnings calendar; no forward date and no consensus surprise from
+      {switched_on}; not spliced
+    switched_on: null
+    parallel_run:
+      started: null
+      sessions_counted: 0
+      sessions_required: 20
+      max_gap: null
+      tolerance: "to be measured on the overlap (report date and EPS, company-quarter)"

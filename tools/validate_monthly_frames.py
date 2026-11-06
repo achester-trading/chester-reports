@@ -26,11 +26,18 @@ and no network -- the writer is scripted.
   E  A VOICE'S VIEW IS ATTRIBUTED. Lane's "driven by" -- paraphrased, in single
      quotes or double -- prints in the voices block; the same words in our own
      prose are still a motive fault.
+  F  B84, THE BARE DELTAS OF THE 28 OCT DRY RUN. China's gold carries "ounces";
+     the bare-delta retry quotes the frame's display for each bare figure
+     ("write '+29,000 jobs'"); the CFTC level carries "−964,293 contracts", the
+     dry run's bare draft is withheld naming it, and the corrected draft
+     publishes. Each dry-run sentence still fails as written.
 
     python tools/validate_monthly_frames.py
 """
 
 from __future__ import annotations
+
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
 
 import sys
 import types
@@ -312,6 +319,208 @@ def group_e() -> None:
           "single quotes strike the quotation; an apostrophe does not")
 
 
+def group_f() -> None:
+    print(f"\n{LINE}\nF. B84: THE BARE DELTAS OF THE 28 OCT DRY RUN\n{LINE}")
+    from monthly_macro import stack as stk
+    # summary:narratives -- official gold in ounces, stored as a plain count.
+    gold = na.change_display(740000.0, "count", "safe.gold_reserves_oz")
+    check(gold == "+740,000 ounces"
+          and na.change_display(740000.0, "count",
+                                "imf.ifs.gold_reserves_oz.chn") == "+740,000 ounces",
+          f"China's official gold carries its noun ({gold})")
+    drafted = ("China's official gold holdings (SAFE) rose +740,000, speculators "
+               "added +118,738 contracts to net yen futures positioning (CFTC).")
+    check(na.bare_deltas(drafted) == ["+740,000"]
+          and not na.bare_deltas(drafted.replace("+740,000", gold)),
+          "the dry run's sentence is still withheld; the same sentence with the "
+          "display copied publishes")
+    # month_in_markets -- the retry names the form to copy.
+    hint = pr.bare_hint(["+29,000"], [{"rows": [{"metric": "fred.nfp",
+                                                 "change_display": "+29,000 jobs",
+                                                 "latest_level_display":
+                                                     "159.04 million"}]}])
+    check("write '+29,000 jobs' for +29,000" in hint,
+          f"the bare-delta retry quotes the frame's display for the figure ({hint})")
+    check("noun or scale" in pr.bare_hint(["+29,000"], [{"rows": []}]),
+          "with no display in the frame, the retry says to add the noun or scale")
+    sec = block("plumbing", "Plumbing & rates", "Macro: employment, income, GDP",
+                "block:plumbing:macro", ["Series", "Latest", "The month"],
+                [["Nonfarm payrolls", "159.04 million", "+29,000 jobs"]])
+    bad = write(edition(sec), {"THE BLOCK: Macro": [
+        "Payrolls rose +29,000 to 159.04 million over the month."]}, [])
+    r = bad["block:plumbing:macro"]
+    why = str(r.get("first_reason") or r.get("reason"))
+    check(not r["published"] and "write '+29,000 jobs'" in why,
+          f"month_in_markets' sentence is withheld, the retry quoting '+29,000 jobs' "
+          f"({why[-70:]})")
+    # block:positioning:cftc -- the level carries its display, the bare level
+    # still fails.
+    disp = stk.count_level_display(-964293.0, "cftc.noncomm_net")
+    check(disp == "−964,293 contracts"
+          and stk.count_level_display(-964293.0, "aaii.bull_bear_spread") is None,
+          f"the CFTC level has a display with its noun ({disp}); a series with no "
+          f"noun gets none")
+    hist = {"history": [{"group": "cftc", "series": "CFTC 10-year note",
+                         "latest": -964293.0, "latest_level_display": disp,
+                         "as_of": "2026-10-20"}]}
+    cftc = block("positioning", "Positioning & flows", "Speculative positioning (CFTC)",
+                 "block:positioning:cftc", ["Contract", "Net", "Change"],
+                 [["10-year note", "−964,293", "−125,318 contracts"]], data=hist)
+    drafts = ["Positioning split along the curve into October. Net speculative "
+              "contracts in 10-year note futures stood at -964,293 as of 2026-10-20, "
+              "a change of −125,318 contracts on the month.",
+              f"Positioning split along the curve into October. Net speculative "
+              f"contracts in 10-year note futures stood at {disp} as of 2026-10-20, "
+              f"a change of −125,318 contracts on the month."]
+    calls: list = []
+    res = write(edition(cftc), {"THE BLOCK: Speculative": drafts}, calls)
+    r = res["block:positioning:cftc"]
+    check(r["published"] and r.get("attempts") == 2 and disp in (r.get("text") or "")
+          and len(calls) == 2 and f"write '{disp}'" in calls[1],
+          f"the dry run's CFTC draft is withheld and the retry names '{disp}'; the "
+          f"draft that copies it publishes ({r.get('attempts')} attempts)")
+
+
+class _FakeStore:
+    """A store of {key: [(observed_at, value, available_at)]}: as_of and
+    latest_as_of, point in time, nothing else."""
+
+    def __init__(self, rows: dict):
+        self.rows = rows
+
+    def as_of(self, key, as_of=None, instrument=None, **_kw):
+        cut = str(as_of or "9999")
+        return [{"observed_at": o, "value_num": v, "available_at": a}
+                for o, v, a in sorted(self.rows.get(key, [])) if a <= cut]
+
+    def latest_as_of(self, key, cut, instrument=None):
+        r = self.as_of(key, cut)
+        return r[-1] if r else None
+
+
+def group_g() -> None:
+    """A95 PART 6: THE SEVEN PLACES THE 1 NOV EDITION CONTRADICTED ITSELF (the
+    Monthly Letter's M1-M7). Each pair of prints now reads one source or carries
+    its own label, and each case is checked here, the Monthly's consistency
+    gate, rather than in a new one."""
+    import datetime as dt
+    import inspect
+    import yaml
+    print(f"\n{LINE}\nG. A95 PART 6: THE EDITION AGAINST ITSELF (M1-M7)\n{LINE}")
+    from daily_cascade import weekly_stack as ws
+    from monthly_macro import stack as ms, v2
+    # M1 -- the summary carries section 4's counts and may not deny them.
+    mis = {"id": "misfit", "title": "What doesn't fit", "subsections": [],
+           "data": {"exceptions_open_now": ["a", "b", "c", "d", "e", "f", "g"],
+                    "open_contradictions": [{"id": "equity_credit"}],
+                    "gaps": [{"gap": "equities against high-yield credit"}],
+                    "extremes": []}}
+    fr = pr.summary_frame(mis, {"sections": [mis]})
+    deny = "No contradiction is open at month end, and the record is quiet."
+    check(fr.get("open_now", {}).get("exceptions_open_now") == "seven"
+          and fr["open_now"].get("open_contradictions") == "one"
+          and pr.misfit_count_faults(deny, mis)
+          and not pr.misfit_count_faults("One contradiction is open, with seven "
+                                         "exceptions beside it.", mis)
+          and not pr.misfit_count_faults(deny, {"data": {}}),
+          f"M1: the summary's frame carries section 4's counts "
+          f"({fr.get('open_now')}); 'no contradiction' against one open is withheld")
+    sec = {"key": "summary:misfit", "sid": "misfit", "slice": {}}
+    check(any("section 4 counts" in f for f in pr._stack_faults(deny, sec,
+                                                                {"sections": [mis]}, None)),
+          "M1: the summary paragraph's own checks carry it")
+    # M2 -- one month change for a spread: the yields table reads v2's prior.
+    st = _FakeStore({"fred.hy_oas": [
+        ("2026-08-31", 3.20, "2026-09-01T13:00:00+00:00"),
+        ("2026-09-29", 3.10, "2026-09-30T13:00:00+00:00"),
+        ("2026-09-30", 3.12, "2026-10-01T13:00:00+00:00"),
+        ("2026-10-30", 3.26, "2026-10-31T13:00:00+00:00")]})
+    now, then = "2026-11-01T12:36:16+00:00", "2026-09-30T23:59:59+00:00"
+    old = ws.change_over(st, "fred.hy_oas", now, then)
+    new = ws.change_over(st, "fred.hy_oas", now, then, month_aligned=True)
+    vm = v2.metric_month(st, {"metric": "fred.hy_oas", "label": "HY"}, now,
+                         dt.date(2026, 10, 31))
+    check(old and new and old["change"] == 16.0 and new["change"] == 14.0
+          and vm.get("change_bps") == new["change"]
+          and new["prior_observed_at"] == "2026-09-30",
+          f"M2: the yields table's month change is the themes' (+{new and new['change']} "
+          f"bp from 30 Sep, = metric_month's {vm.get('change_bps')}); the prior "
+          f"knowable at the month-end cutoff gave +{old and old['change']} bp from 29 Sep")
+    check("month_aligned=True" in inspect.getsource(ms.plumbing_section),
+          "M2: the Monthly's Plumbing reads the month-aligned change")
+    # M3 -- the header names what it counts.
+    ln = ms.forecast_count_line([{"ledger_source": "daily_close_outlook"},
+                                 {"ledger_source": "narrative_register"}])
+    ln1 = ms.forecast_count_line([{"ledger_source": "monthly_macro"},
+                                  {"ledger_source": "daily_close_outlook"}])
+    check("probability ledger" in ln and "none of them a scenario weight" in ln
+          and "1 of them scenario weight" in ln1,
+          f"M3: the header counts the ledger and says how many are scenario weights "
+          f"('{ln}'), so it cannot contradict 'No probability has been emitted'")
+    # M4 -- one Book Z sentence in the read's paragraph and the book section.
+    bz = {"line": "vs cash +0.66% / SPY −0.55% / 60-40 −0.48% since 2026-09-01",
+          "book_line": "since 2026-09-05: the book +0.10% (Portfolio Truth NAV); "
+                       "cash +0.62%, SPY −0.40%, 60-40 −0.31%; excess vs cash / SPY / "
+                       "60-40: −0.52 / +0.50 / +0.41 pts"}
+    p = {"register_month": {"books_vs_benchmark": bz}, "our_read": {}}
+    book = ms.book_section(p)
+    zline = next(s for s in book["subsections"] if s["title"] == "Against Book Z")["lines"][0]
+    sl = pr.our_read_slice(p)
+    only = v2.book_z_sentence({"line": bz["line"]})
+    check(zline == v2.book_z_sentence(bz) == f"Against Book Z, {bz['book_line']}."
+          and sl["book_against_book_z"] == bz["book_line"]
+          and "not an excess" in only and not only.startswith("Against Book Z"),
+          "M4: the read and the book section print one Against-Book-Z sentence, the "
+          "Weekly's excess line; Book Z's own ledgers are labelled returns, not excesses")
+    # M5 -- the gap's age is read from the stored objects, as the Weekly's is.
+    src = inspect.getsource(ms.misfit_section)
+    check("state_dates(ws.stored_objects(st, now))" in src and "dates=dates" in src,
+          "M5: the Monthly's gap table takes its dates from the stored objects, as "
+          "the Weekly's does (weekly_stack.build)")
+    # M6 -- a release's year on year by date, across a month never published.
+    days = [f"{y}-{m:02d}-01" for y, m in
+            [(2024, 9)] + [(2024, m) for m in (10, 11, 12)] + [(2025, m) for m in range(1, 13)]
+            + [(2026, m) for m in range(1, 10)] if not (y == 2025 and m == 10)]
+    vals = [100.0 + i for i in range(len(days))]
+    pos, dat = ws.headline_form(vals, "yoy"), ws.headline_form(vals, "yoy", days)
+    i26, i25 = days.index("2026-09-01"), days.index("2025-09-01")
+    want = 100.0 * (vals[i26] / vals[i25] - 1.0)
+    nov = ws.headline_form(vals[:days.index("2025-11-01") + 1], "mom",
+                           days[:days.index("2025-11-01") + 1])
+    check(abs(dat[0] - want) < 1e-9 and abs(pos[0] - want) > 0.1
+          and (nov is None or nov[0] is None),
+          f"M6: CPI's year on year compares the same month a year back by date "
+          f"({dat[0]:.2f}% against {pos[0]:.2f}% by position across the missing "
+          f"October 2025); a month on month against an unpublished month is n/a")
+    # M7 -- one label, one series: FRED's VIX is not printed as the tape's VIX.
+    th = yaml.safe_load((REPO / "config" / "monthly_themes.yaml").read_text(encoding="utf-8"))
+    labs: dict = {}
+    for r in th.get("scorecard") or []:
+        labs.setdefault(r["label"], set()).add(r["metric"])
+    for t in (th.get("themes") or {}).values():
+        for r in t.get("metrics") or []:
+            labs.setdefault(r["label"], set()).add(r["metric"])
+    rs = yaml.safe_load((REPO / "config" / "reporting_stack.yaml").read_text(encoding="utf-8"))
+    tape = set(ws.PLUMB_ROW_KEYS)
+
+    def walk(o):
+        if isinstance(o, dict):
+            if o.get("label") and o.get("bars"):
+                tape.add(str(o["label"]))
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(rs)
+    clash = sorted(lb for lb, ks in labs.items()
+                   if lb in tape and any(k.startswith("fred.") for k in ks))
+    two = sorted(lb for lb, ks in labs.items() if len(ks) > 1)
+    check(not clash and not two and any("VIXCLS" in lb for lb in labs),
+          f"M7: no label prints two series -- FRED's VIXCLS has its own name beside "
+          f"the tape's VIX (clashes {clash}, labels over two keys {two})")
+
+
 def main() -> int:
     print(f"{LINE}\nT3.5 -- THE MONTHLY'S FRAMES TAKE THE WEEKLY'S BUDGET DISCIPLINE\n{LINE}")
     group_a()
@@ -319,6 +528,8 @@ def main() -> int:
     group_c()
     group_d()
     group_e()
+    group_f()
+    group_g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     print("VALIDATION PASSED" if not FAIL else "VALIDATION FAILED")
     return 1 if FAIL else 0

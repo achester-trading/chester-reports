@@ -66,8 +66,11 @@ HOURS = {"y10": ("08:00", "15:00"), "y30": ("08:00", "15:00")}
 
 
 def load_config(path: Optional[Path] = None) -> dict:
+    """The stack's config, every "price:<family>.<member>" reference resolved
+    to its family's active key (A96, config/price_sources.yaml)."""
+    from . import price_sources                                 # noqa: PLC0415
     with open(path or CONFIG_PATH, encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        return price_sources.resolve_tree(yaml.safe_load(fh))
 
 
 def tape() -> list[dict]:

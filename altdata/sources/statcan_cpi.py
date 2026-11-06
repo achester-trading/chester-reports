@@ -27,6 +27,14 @@ releaseTime (local Ottawa time).
 THE CHANGE ON THE YEAR is computed from the published index (the month and the
 same month a year earlier), to one decimal, as the agency rounds its own.
 
+A BODY THAT IS NOT JSON (the feed repair of 24 Oct 2026, a61b). The box logged
+"statcan_cpi: STALE -- JSONDecodeError: Expecting value: line 1 column 1" on
+every run in the extract, while the laptop's one probe of the same URL that day
+(robots.txt allowing /t1/wds/) answered 200 application/json with both vectors.
+The cause on the box is not reproducible from the laptop, so the writer now
+refuses such a body by name -- its Content-Type and its first 120 characters --
+and the next run's STALE reason says what the box was sent.
+
 AVAILABILITY. Each point's releaseTime is the instant that month was first
 released (or, for history loaded before 2007, the database's load day, later
 than the truth and safe), `observed`. A year-on-year row is available at the
@@ -65,11 +73,27 @@ def _instant(local: str) -> str:
     return t.astimezone(dt.timezone.utc).isoformat(timespec="microseconds")
 
 
-def parse(data: bytes) -> dict[int, dict[str, tuple[float, str]]]:
+class NotJSON(ValueError):
+    """The service answered with a body that is not JSON."""
+
+
+def load(data: bytes, content_type: Optional[str] = None) -> list:
+    """The response's JSON, or NotJSON naming the Content-Type and the body's
+    first 120 characters (whitespace folded)."""
+    try:
+        return json.loads(data)
+    except ValueError:
+        head = " ".join(data[:120].decode("utf-8", "replace").split())
+        raise NotJSON(f"body not JSON (Content-Type {content_type or 'not stated'}): "
+                      f"{head!r}") from None
+
+
+def parse(data: bytes, content_type: Optional[str] = None
+          ) -> dict[int, dict[str, tuple[float, str]]]:
     """{vector id: {YYYY-MM: (index, release instant UTC)}}. Refuses a response
-    missing a vector, carrying a failed block, or with no point."""
+    that is not JSON, missing a vector, carrying a failed block, or with no point."""
     out: dict[int, dict[str, tuple[float, str]]] = {}
-    for block in json.loads(data):
+    for block in load(data, content_type):
         obj = block.get("object") or {}
         vid = obj.get("vectorId")
         if block.get("status") != "SUCCESS" or vid not in VECTORS:
@@ -89,9 +113,9 @@ def parse(data: bytes) -> dict[int, dict[str, tuple[float, str]]]:
     return out
 
 
-def rows_from(data: bytes) -> list[dict]:
+def rows_from(data: bytes, content_type: Optional[str] = None) -> list[dict]:
     rows = []
-    for vid, pts in parse(data).items():
+    for vid, pts in parse(data, content_type).items():
         for m, (v, released) in sorted(pts.items()):
             prior = pts.get(f"{int(m[:4]) - 1}{m[4:]}")
             if not prior or not prior[0]:
@@ -110,8 +134,9 @@ def fetch_rows() -> list[dict]:
     allowed, rule = pub.robots_allows(SITE, url)
     if not allowed:
         raise PermissionError(f"www150.statcan.gc.ca robots.txt disallows {url} ({rule})")
-    body, _ = http_get_response(url, timeout=60)
-    return rows_from(body)
+    body, headers = http_get_response(url, timeout=60,
+                                      headers={"Accept": "application/json"})
+    return rows_from(body, headers.get("content-type"))
 
 
 def pull(run_id: Optional[str] = None, db=None) -> dict:

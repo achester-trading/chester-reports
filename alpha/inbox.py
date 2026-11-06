@@ -45,7 +45,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from . import files, intake
+import yaml
+
+from . import critique, files, intake
 from . import hypotheses as hyp
 
 DRIVE_MANIFEST = "manifest-drive.json"
@@ -181,6 +183,27 @@ def ingest(ledger, store, as_of: str, inbox: Optional[Path] = None,
             # Not refused: the sweep lists the folder before it copies, so a file
             # that landed between the two waits for the next night's listing.
             out["waiting"].append(f"{p.name}: no manifest entry yet")
+            continue
+        # A98 (D43): the critic's file -- "why this could fail", one critique per
+        # hypothesis -- is stored beside the register, never registered as a batch.
+        if p.name.startswith(critique.PREFIX):
+            cdoc, res = None, {"stored": [], "refused": []}
+            if meta.get("via") != "proposer" or sha != meta.get("sha256"):
+                res["refused"].append({"why": "a critiques file comes from the critic, "
+                                              "its bytes matching the proposer's sha256"})
+            else:
+                try:
+                    cdoc = yaml.safe_load(raw)
+                except yaml.YAMLError as exc:
+                    res["refused"].append({"why": f"YAML: {type(exc).__name__}"})
+            if cdoc is not None:
+                res = critique.ingest(ledger, cdoc, p.name, as_of)
+            _log(ledger, p.name, sha, "ingested" if res["stored"] else "refused",
+                 f"{len(res['stored'])} critique(s) stored, {len(res['refused'])} refused",
+                 as_of, None, meta.get("created"), meta.get("modified"))
+            ledger.event("inbox", "critiques_ingested", as_of, None,
+                         after={"file": p.name, "sha256": sha, **res})
+            out["ingested" if res["stored"] else "refused"].append({"file": p.name, **res})
             continue
         doc, why = check_file(raw, meta)
         bid = doc.get("batch_id") if isinstance(doc, dict) else None

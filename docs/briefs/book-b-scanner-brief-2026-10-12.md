@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **Ruled, 12 Oct 2026 — all eight decisions yes, one at a time, 16:08–16:15 ET.** Built tonight by session A; merged with the W-1 branches on Tue 13 evening if green and read, else Fri 16; the first candidates then print in the Weekly of Sun 18 Oct. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Why | Workplan v6 scheduled "the Book B scanner (the paste from the Enterprise Layer spec)" — but the Enterprise Layer spec defines packets, ledgers and engines, not what the scanner scans. Session A found that gap while building W-1.3a's candidates list. The Operating Doctrine §4.2 and §6 do define Book B, in detail; this brief turns those definitions into a scanner the Weekly can run, and leaves the parameters the Doctrine does not state as decisions. |
 
 ## 1. What the Doctrine already fixes (not decisions)

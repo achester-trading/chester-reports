@@ -90,6 +90,19 @@ tier1_headlines:
     - {key: fred.real_gdp, form: annualised, label: "real GDP, quarterly annualised"}
   "Unemployment Insurance Weekly Claims":
     - {key: fred.claims_4wk, form: level, label: "jobless claims, four-week average"}
+  # A103 (W6, the Weekly Letter of w/e 30 Oct): THE FOMC DECISION IS A TIER-1
+  # RELEASE WITH A HEADLINE. The 28 Oct hold printed nowhere the edition records
+  # decisions: tier1_releases prints only a release this block names, and the FOMC
+  # statement (tier 1 in the rows above, "the rate decision itself") had no entry.
+  # The target range's two limits are the decision as stored (FRED DFEDTARU and
+  # DFEDTARL, daily; the prior is the print before). The vote and its dissents
+  # are stored by no writer: a listed gap, never typed in.
+  "FOMC statement":
+    - {key: fred.fed_target_upper, form: level, label: "fed funds target, upper limit"}
+    - {key: fred.fed_target_lower, form: level, label: "fed funds target, lower limit"}
+  "FOMC Meeting":
+    - {key: fred.fed_target_upper, form: level, label: "fed funds target, upper limit"}
+    - {key: fred.fed_target_lower, form: level, label: "fed funds target, lower limit"}
 
 # THE READING FORMS OF TWO TIER-2 RELEASES (A49's answer (b), ruled 19 Oct 2026),
 # beside the tier-1 headlines and in the same declared forms: the 09:50 open note

@@ -24,10 +24,10 @@ The branch has three parts:
 ## The rulings of 16 October this branch applies
 
 - **(a) Prefer public, easy-to-access sources.** Friction is a gap, not a key. That rules out the Banque de France Webstat key, the Bank of Korea (ECOS) key and the Bank of Thailand key.
-- **(b) No recurring by-hand data line survives without Ari's explicit yes.**
+- **(b) No recurring by-hand data line survives without the operator's explicit yes.**
   - There are two yeses so far: the global PMI headline (Batch 6 item 43) and item 47's quarterly AI unit-economics line (Batch 7).
   - The S&P DJI estimates workbook is pending (its public link answered 404 on 16 Oct). Nothing about it changes here.
-- **(c) Judgment drafts are committed as drafted** and listed for Ari's accept-all.
+- **(c) Judgment drafts are committed as drafted** and listed for the operator's accept-all.
 - **(d) The blocklist may be strengthened, never weakened.** This branch does not touch it.
 
 ## Part 1 — the by-hand audit
@@ -36,7 +36,7 @@ The branch has three parts:
 
 Every source named below was probed from the laptop with the repo's own agent (`chester-reports/1.0`). Its robots.txt was read first with the wildcard-aware reader, and nothing was registered for.
 
-- **AUTOMATE:** a free source reads within robots, with no key or with a key Ari already holds. The reader is built when it takes under an hour; otherwise it is listed with an estimate.
+- **AUTOMATE:** a free source reads within robots, with no key or with a key the operator already holds. The reader is built when it takes under an hour; otherwise it is listed with an estimate.
 - **DROP:** no such source exists. The line prints "not tracked" with the reason, and the key is removed.
 - **KEEP:** only for the two explicit yeses.
 
@@ -48,8 +48,8 @@ Every source named below was probed from the laptop with the repo's own agent (`
 
 | Item | What it feeds | Cadence | The source a human would read | Verdict | Reason |
 |---|---|---|---|---|---|
-| `manual.global_pmi` | ST-R5.43a, the global PMI headline beside the diffusion index | monthly | S&P Global's J.P.Morgan Global Manufacturing PMI release | **KEEP** | Ari's yes (Batch 6 item 43). Automation is also closed: pmi.spglobal.com answers this agent with 403, robots.txt included. |
-| `manual.sep_median_next2` | SR-21's Fed–market gap (`calc.fed_mkt_gap_m1/_m2`, unbuilt); nothing read the key | quarterly, at each SEP | the Fed's SEP tables | **AUTOMATE** (listed, about 1.5 h) | FRED, whose key Ari holds, publishes the SEP median as FEDTARMD, one value per projection year, revised each SEP. The reader maps the current and next year-ends, with ALFRED vintages. Not built: over an hour, and no reader waits. |
+| `manual.global_pmi` | ST-R5.43a, the global PMI headline beside the diffusion index | monthly | S&P Global's J.P.Morgan Global Manufacturing PMI release | **KEEP** | the operator's yes (Batch 6 item 43). Automation is also closed: pmi.spglobal.com answers this agent with 403, robots.txt included. |
+| `manual.sep_median_next2` | SR-21's Fed–market gap (`calc.fed_mkt_gap_m1/_m2`, unbuilt); nothing read the key | quarterly, at each SEP | the Fed's SEP tables | **AUTOMATE** (listed, about 1.5 h) | FRED, whose key the operator holds, publishes the SEP median as FEDTARMD, one value per projection year, revised each SEP. The reader maps the current and next year-ends, with ALFRED vintages. Not built: over an hour, and no reader waits. |
 | `manual.sep_median_12m` | SR-21, `calc.fed_mkt_gap_12m` (unbuilt) | quarterly | the Fed's SEP tables | **AUTOMATE** (listed, with the row above) | Same as the row above. |
 | `manual.fedwatch_next_meeting_prob` | SR-21's headline object | daily | CME FedWatch | **AUTOMATE** (exists) | The prediction-market writer already pulls Kalshi's FOMC decision markets (`config/prediction_markets.yaml`, `fomc_decision`, series KXFEDDECISION). CME FedWatch has no free API (G-4). |
 | `manual.cbo_deficit_path` | SR-23's projection input; GTM-12 | at each CBO baseline | CBO's budget projections | **DROP** | cbo.gov answers this agent with 403, robots.txt included (checked 16 Oct 2026). |
@@ -80,7 +80,7 @@ Every source named below was probed from the laptop with the repo's own agent (`
 
 | Item | What it feeds | Cadence | The source a human would read | Verdict | Reason |
 |---|---|---|---|---|---|
-| Item 47, AI unit economics (Batch 7) | Factor I | quarterly | Epoch AI, plus the token-volume and revenue proxies | **KEEP** | Ari's yes (Batch 7). Epoch's data page loads for this agent and robots allows it, so the constant-capability cost series may automate later. Not tested beyond that. |
+| Item 47, AI unit economics (Batch 7) | Factor I | quarterly | Epoch AI, plus the token-volume and revenue proxies | **KEEP** | the operator's yes (Batch 7). Epoch's data page loads for this agent and robots allows it, so the constant-capability cost series may automate later. Not tested beyond that. |
 | UK CPI, headline and core (Batch 6 item 39's gap) | ST-R5.39a's UK real yield | monthly | ONS MM23 | **AUTOMATE** (built) | `altdata/sources/ons_cpi.py`. |
 | Canada CPI, headline and core (item 39's gap) | ST-R5.39a's Canada real yield | monthly | Statistics Canada, table 18-10-0004-01 | **AUTOMATE** (built) | `altdata/sources/statcan_cpi.py`. |
 | Korea 2-year (ST-R5.34b's G8 panel) | the market-does-the-tightening panel | daily | KOFIA's bond service; the BoK's ECOS | **DROP** | The ECOS key is ruled out by (a). KOFIA's site is a script-driven frameset with no export URL a writer can read. The panel's gap reason now says so (`config/st_r5_rates.yaml`). |
@@ -96,7 +96,7 @@ Every source named below was probed from the laptop with the repo's own agent (`
 | Item 33, analysts' buy-rating share (Batch 6) | a sentiment line | — | consensus vendors | **DROP** | No free source; the order says drop if none. |
 | Item 37, the MBA level, and item 41, euro CCC (Batch 6) | ST-R5.37a; ST-R5.41a | weekly; when reported | MBA members' file; public reporting | **DROP** | Done on `st-r5-fixes`: the level is chained from the weekly changes, and euro high yield prints as the labelled proxy. |
 | Item 39, the scorecard's real-yield column (Batch 6) | item 21's scorecard | quarterly | — | **AUTOMATE** (exists) | The t1-rest real-yield panel computes it, now including the UK and Canada. |
-| Item 45, FlashAlpha levels in the interim (Batch 6) | the ES block | daily | FlashAlpha, whose key Ari holds | **AUTOMATE** (planned) | It ends when the self-computed dealer engine (6b) is live (ST-R6.45c). |
+| Item 45, FlashAlpha levels in the interim (Batch 6) | the ES block | daily | FlashAlpha, whose key the operator holds | **AUTOMATE** (planned) | It ends when the self-computed dealer engine (6b) is live (ST-R6.45c). |
 | GTM-6, the HY rating mix (JPM GTM) | the credit twin | quarterly | ICE index constituents | **DROP** | Licensed. |
 | GTM-12, the CBO debt path (JPM GTM) | Factor IV | at each CBO update | CBO | **DROP** | As `manual.cbo_deficit_path`. |
 | World equity capitalisation (item 38) | the gold/equity ratio | quarterly | WFE (login), MSCI (PDF) | **DROP** | Done on `st-r5-fixes`. It prints "not tracked: no free source for world equity capitalisation". |
@@ -197,7 +197,7 @@ The entries:
 
 The file is listed below for accept-all.
 
-## Drafts committed, for Ari's accept-all
+## Drafts committed, for the operator's accept-all
 
 | Draft | File | Lines |
 |---|---|---|
@@ -239,7 +239,7 @@ No gate reads the live store, fetches or calls a model.
 
 **The repair (17 Oct, the 6b part 2 paste, Part 0):** the check is stated positively, so the gap must say it "needs a registered key (ruled out". It was first committed on `6b-dealer-1` as `d7c1593` (CI 39033223933 green), and is cherry-picked here so the branch is green on its own. `validate_by_hand_audit` 17/0.
 
-## Box commands (Ari's, after the merge, inside a window: weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20, clear of Sunday 05:00)
+## Box commands (the operator's, after the merge, inside a window: weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20, clear of Sunday 05:00)
 
 ```
 cd ~/chester-reports

@@ -95,8 +95,15 @@ housing:
   metro_universe: 50                          # Redfin's top-50 metros file
   mortgage_key: fred.mortgage_30y
   # Redfin alone, printed single-source: NAR's index has no free series, and no
-  # recurring by-hand line survives without Ari's yes (ruled 16 Oct 2026).
+  # recurring by-hand line survives without the operator's yes (ruled 16 Oct 2026).
   absent_reason: "Redfin has not been pulled yet (altdata/sources/redfin.py, weekly)"
+  # Batch 14 item 68 (written as 61; ST-R6.61a, b55, 23 Oct 2026): Redfin's
+  # pending sales per 1,000 households, the Census household estimates through
+  # FRED (TTLHHM156N, thousands) as the deflator, the latest estimate on or
+  # before each month carried forward. Single-source (F3: NAR's index has no free
+  # series). Dual percentiles over five years and the full stored history.
+  households_key: fred.households
+  per_household_years: 5
 
 # ---------------------------------------------------------------------------
 # ST-R5.37a -- the MBA purchase index, the block's weekly line (item 37)

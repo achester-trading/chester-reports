@@ -226,12 +226,15 @@ class EventStore:
     # -- write ------------------------------------------------------------
     def write_many(self, events: Iterable[Event],
                    available_at: Optional[str] = None,
-                   ingested_at: Optional[str] = None) -> dict:
+                   ingested_at: Optional[str] = None,
+                   availability_kind: str = "ingest_instant") -> dict:
         """Insert, ignoring what is already here. Returns counts, never raises.
 
         `available_at` defaults to now, which is the correct default and the whole
         rule: this system could know an event when it pulled it. A backfill may
-        pass an earlier instant ONLY if it can argue one, and no source here can.
+        pass an earlier instant ONLY if it can argue one, and no source here can
+        -- but EDGAR's acceptance instant, which A102's earnings backfill passes
+        with `availability_kind` "observed" (the instant the filing was public).
         """
         now = session.utc_iso()
         avail = available_at or now
@@ -247,7 +250,7 @@ class EventStore:
                 (e.content_hash, e.type, e.observed_at, avail, ing, e.source,
                  e.title, e.body, e.url,
                  json.dumps(e.payload, sort_keys=True, default=str),
-                 "ingest_instant"))
+                 availability_kind))
             if not cur.rowcount:
                 continue                      # already here; a re-pull is a no-op
             inserted += 1
@@ -262,6 +265,17 @@ class EventStore:
 
     # -- read -------------------------------------------------------------
     def _rows(self, where: str, args: dict) -> list[dict]:
+        # THE EARNINGS ROWS' SOURCE IS A SWITCH (A102): config/price_sources.yaml
+        # `earnings_dates` decides whether Yahoo's or EDGAR's earnings rows are
+        # read, and every since()/calendar() reader moves with it here. Shipped
+        # on yfinance, EDGAR's parallel-run rows are excluded and nothing a
+        # reader sees changes.
+        from . import price_sources as _ps                     # noqa: PLC0415
+        try:
+            extra, params = _ps.events_clause("earnings_dates", alias="e", named=True)
+        except KeyError:
+            extra, params = "", {}
+        where, args = f"({where}){extra}", {**args, **params}
         cur = self.conn.execute(
             "SELECT e.*, (SELECT group_concat(entity) FROM event_entities"
             "              WHERE event_id = e.id) AS entities"
