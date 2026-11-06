@@ -671,6 +671,12 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
                  key=lambda r: str(r.get("observed_at")))
     b = _level_on(obs, month_end)
     out = {"label": spec.get("label") or key, "metric": key, "instrument": inst}
+    # HELD (D45, 31 Oct 2026): a series on a declared hold prints the hold's
+    # line with its last stored date, never a month computed from frozen rows.
+    from altdata import refusals                                # noqa: PLC0415
+    held = refusals.key_text(key, str(b["observed_at"])[:10] if b else None)
+    if held:
+        return {**out, "state": "held", "why": held}
     if not b:
         return {**out, "state": "missing",
                 "why": "no print knowable at the cutoff"}
@@ -729,6 +735,8 @@ def theme_metrics(p: dict, theme_cfg: dict) -> dict:
                 rows.append(r)
             elif r["state"] == "stale":
                 gaps.append(f"{r['label']} (latest print {r['last_print']})")
+            elif r["state"] == "held":
+                gaps.append(f"{r['label']} ({r['why']})")
             else:
                 gaps.append(r["label"])
     return {"rows": rows,

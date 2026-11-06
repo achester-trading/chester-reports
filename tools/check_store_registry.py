@@ -39,7 +39,8 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 REPO = Path(__file__).resolve().parent.parent
-QUIET_STATUSES = ("not_yet_sourced", "superseded", "refused", "gap", "while_held")
+QUIET_STATUSES = ("not_yet_sourced", "superseded", "refused", "gap", "while_held",
+                  "held")
 # Blocks whose members are a table's or a file's COLUMNS, or a vocabulary's values
 # -- registered so a new column cannot appear unregistered, never stored as keys.
 # Left out of list 2, where they would read as 101 missing series.

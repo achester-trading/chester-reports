@@ -433,6 +433,13 @@ def lens_realised(vix, spx, day, cfg) -> dict:
 
 
 def lens_breadth(series, day) -> dict:
+    held = series.get("held") or {}
+    if held:
+        parts = [f"implied correlation (COR3M) {held['implied_corr']}"
+                 if "implied_corr" in held else None,
+                 f"dispersion (DSPX) {held['dispersion']}"
+                 if "dispersion" in held else None]
+        return {"state": "held", "line": "; ".join(p for p in parts if p)}
     ic = _val(series.get("implied_corr") or [], day)[0]
     ds = _val(series.get("dispersion") or [], day)[0]
     if ic is None and ds is None:
@@ -720,6 +727,16 @@ def read_series(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
                  "implied_corr", "dispersion", "dvol_btc"):
         out[name] = _series(st, k[name], cutoff)
     out["cftc_net"] = _series(st, k["cftc_net"], cutoff, "VIX")
+    # HELD (D45, 31 Oct 2026): a lens input whose source is on a declared hold
+    # prints the hold's line with its last stored date, never a frozen value.
+    from . import refusals                                      # noqa: PLC0415
+    held = {}
+    for name in ("implied_corr", "dispersion"):
+        last = out[name][-1][0] if out[name] else None
+        t = refusals.key_text(k[name], last)
+        if t:
+            held[name] = t
+    out["held"] = held
     return out
 
 
