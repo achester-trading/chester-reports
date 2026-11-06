@@ -50,6 +50,11 @@ from altdata import levels as levels_mod
 from altdata import model_meter
 
 from . import audit_retry, direction, readability
+
+# W10-1 (D46, 31 Oct 2026): the cadences whose twice-withheld sections go through
+# the sentence fallback (daily_cascade/audit_retry.py). The Monthly's stack goes
+# through monthly_macro/prose.py; the close keeps the whole-section rule.
+FALLBACK_CADENCES = ("weekly", "monthly")
 from . import opener as opener_mod
 
 # The read's depth on every cadence (config `sections`): its opener band.
@@ -353,7 +358,10 @@ def style_faults(text: str, cfg: dict, attributed: bool = False) -> list[str]:
     for s in _sentences(text):
         for w in st.get("intensity_words") or []:
             if re.search(rf"\b{re.escape(w)}\b", s, re.I) and not re.search(r"\d", s):
-                out.append(f"'{w}' with no figure in its sentence")
+                # A95: the message names the fix (the 1 Nov Monthly's yields
+                # block was withheld on it with no instruction).
+                out.append(f"'{w}' with no figure in its sentence -- put the figure "
+                           f"that measures it in that sentence, or drop '{w}'")
     return out + basis_faults(text)
 
 
@@ -469,6 +477,51 @@ _POLICY = re.compile(r"\b(hike[sd]?|hiking|cut|cuts|cutting|hold|holds|holding)\
                      re.I)
 
 
+# A103 (W5, the Weekly Letter of w/e 30 Oct): THE NARRATIVES' COUNTS ARE THE
+# STORIES TABLE'S. The commentary wrote counts of evidence for and against that
+# the stories table, which counts the week by event cluster, did not print: it
+# had read the register's to-date evidence as the week's. A "<n> for ... <m>
+# against" pair in the commentary must be a story's pair in the table -- or,
+# where the sentence says "to date", "in all" or "the register", the register's
+# to-date evidence -- and a pair that is neither is withheld, naming the table's.
+_N_WORDS = {w: i for i, w in enumerate(("no", "one", "two", "three", "four", "five",
+                                        "six", "seven", "eight", "nine", "ten",
+                                        "eleven", "twelve"))}
+_N_WORDS["none"] = 0
+_NUM = r"(\d+|" + "|".join(sorted(_N_WORDS, key=len, reverse=True)) + r")"
+_PAIR = re.compile(r"\b" + _NUM + r"\s+(?:[a-z-]+\s+){0,4}?for\b[^.;]{0,30}?\b"
+                   + _NUM + r"\s+(?:[a-z-]+\s+){0,3}?against\b", re.I)
+_TO_DATE = re.compile(r"\b(?:to date|in all|all told|the register|cumulative|since "
+                      r"it opened)\b", re.I)
+
+
+def _n(tok: str) -> int:
+    return int(tok) if tok.isdigit() else _N_WORDS[tok.lower()]
+
+
+def narrative_count_faults(text: str, ed: dict) -> list[str]:
+    sec = next((s for s in ed.get("sections") or [] if s.get("id") == "narratives"), {})
+    stories = (sec.get("data") or {}).get("stories") or []
+    table = {(int((s.get("clusters") or {}).get("for") or 0),
+              int((s.get("clusters") or {}).get("against") or 0)) for s in stories}
+    reg = {(int(s.get("register_evidence_to_date_for") or 0),
+            int(s.get("register_evidence_to_date_against") or 0)) for s in stories}
+    if not stories:
+        return []
+    out = []
+    for s in _sentences(text):
+        for m in _PAIR.finditer(s):
+            pair = (_n(m.group(1)), _n(m.group(2)))
+            ok = (reg if _TO_DATE.search(s) else table)
+            if pair not in ok:
+                out.append(f"counts {pair[0]} for and {pair[1]} against, which the "
+                           f"stories table does not print: '{s.strip()[:90]}' -- copy "
+                           f"each story's 'this week' count from the table "
+                           f"(this_week_as_the_table_prints_it), or say 'to date' "
+                           f"for the register's evidence")
+    return out
+
+
 def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
     """T2 ruling 2: a sentence with a policy word (hike, cut, hold) may cite only
     the fomc_decision item or the fed-funds path. A policy word in a sentence that
@@ -497,7 +550,13 @@ def policy_word_faults(text: str, cfg_pm: Optional[dict] = None) -> list[str]:
         hit = next((t for t in terms
                     if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", s, re.I)), None)
         if hit:
-            out.append(f"a policy word ('{word}') attached to a {hit} market")
+            # A95: the message quotes the SENTENCE, not the word, and names the
+            # fix. The 1 Nov Monthly's What's priced was told "('hike')", so the
+            # retry's failing span was the first sentence holding "hike" -- a
+            # correct one -- and the sentence at fault came back unchanged twice.
+            out.append(f"a policy word ({word}) attached to a {hit} market in the "
+                       f"sentence '{s.strip()[:90]}' -- put the Fed's path and the "
+                       f"{hit} market in separate sentences")
     return out
 
 
@@ -1105,8 +1164,19 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             return attempt(sid, payload, system + note.replace(
                 "YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1),
                 max_chars, dup_ok=True)
-        return audit_retry.run(call, report=cadence, section=sid,
-                               retryable=lambda r: not not_retried(r))
+        res = audit_retry.run(call, report=cadence, section=sid,
+                              retryable=lambda r: not not_retried(r))
+        if cadence not in FALLBACK_CADENCES or res.get("published"):
+            return res
+        # W10-1 (D46): withhold the failing sentence, not the section; the
+        # remainder is held to every check a draft is.
+        res = audit_retry.apply_fallback(
+            res, report=cadence, section=sid,
+            recheck=lambda clean: checks(sid, clean, payload, True))
+        if res.get("published"):
+            res["text"], res["unsigned_rewrites"] = readability.unsign_after_verbs(
+                res["text"])
+        return res
 
     def attempt(sid: str, payload: dict, system: str, max_chars: int,
                 dup_ok: bool = False) -> dict:
@@ -1122,9 +1192,32 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
             return {"state": "fault", "published": False,
                     "reason": f"FAULT {type(exc).__name__}: {exc}"}
         text = r.text if r.published else None
-        faults = []
-        if text:
-            faults = (style_faults(text, cfg) + id_faults(text)
+        faults = checks(sid, text, payload, dup_ok) if text else []
+        if faults:
+            # The printed line keeps the first four; the retry hears them all.
+            return {"state": "tape_rules", "published": False,
+                    "reason": "withheld: " + "; ".join(faults[:4]),
+                    "retry_reason": "withheld: " + "; ".join(faults),
+                    "rejected_text": text}
+        if not r.published:
+            audit = getattr(r, "audit", None)
+            return {"state": r.state, "published": False,
+                    "reason": r.withheld_note() or r.reason,
+                    "rejected_text": getattr(r, "rejected_text", None),
+                    # The audit's whole list, which the reason cuts at six (W10-1).
+                    "unmatched_figures": ([f.text for f in audit.unmatched]
+                                          if audit is not None and r.state == "audit_failed"
+                                          else None)}
+        # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1a item 4): "fell -3 bp"
+        # prints "fell 3 bp", after every audit, and the rewrite is counted.
+        text, n_unsigned = readability.unsign_after_verbs(text)
+        return {"state": "published", "published": True, "text": text,
+                "model": r.model, "unsigned_rewrites": n_unsigned}
+
+    def checks(sid: str, text: str, payload: dict, dup_ok: bool = False) -> list:
+        """The code's checks after the audit, over a published draft or (W10-1)
+        the fallback's remainder."""
+        return (style_faults(text, cfg) + id_faults(text)
                       + policy_word_faults(text, pm_cfg) + excess_faults(text)
                       + (book_window_faults(text, ed) if sid == "book" else [])
                       + na_signed_zero(text)
@@ -1140,6 +1233,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                       # session's flag is True. The close has no scored session
                       # at prose time, so it carries none.
                       + (dealer_flag_faults(text, ed) if sid == "mechanics" else [])
+                      # A103 (W5): the narratives' counts are the stories table's.
+                      + (narrative_count_faults(text, ed) if sid == "narratives"
+                         else [])
                       + tail_faults(text, stored_tails(ed))
                       # THE OPENER'S SHAPE (W-1.3a item 3.0): in band, one
                       # Takeaway, last, carrying no figure.
@@ -1163,21 +1259,6 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
                           readability.duplicates_of(text,
                                                     readability.section_sentences(ed))]
                          if sid == "read" and not dup_ok else []))
-        if faults:
-            # The printed line keeps the first four; the retry hears them all.
-            return {"state": "tape_rules", "published": False,
-                    "reason": "withheld: " + "; ".join(faults[:4]),
-                    "retry_reason": "withheld: " + "; ".join(faults),
-                    "rejected_text": text}
-        if not r.published:
-            return {"state": r.state, "published": False,
-                    "reason": r.withheld_note() or r.reason,
-                    "rejected_text": getattr(r, "rejected_text", None)}
-        # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1a item 4): "fell -3 bp"
-        # prints "fell 3 bp", after every audit, and the rewrite is counted.
-        text, n_unsigned = readability.unsign_after_verbs(text)
-        return {"state": "published", "published": True, "text": text,
-                "model": r.model, "unsigned_rewrites": n_unsigned}
 
     for s in ed["sections"]:
         if s["id"] == "read":
@@ -1190,6 +1271,8 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         res = run(s["id"], section_slice(s, ed, cadence), section_prompt(s, cadence, base),
                   section_max_chars(s, cadence))
         results[s["id"]] = res
+        if res.get("partial"):
+            s["partial_withheld"] = res["partial"]
         if res.get("published"):
             sents = _sentences(res["text"].split("\n\n")[0])
             s["claim"] = sents[0] if sents else res["text"]
@@ -1241,7 +1324,9 @@ def write(ed: dict, *, market_states: Optional[dict] = None, client=None,
         read["withheld"] = res.get("reason")
     ed["prose"] = {k: {kk: v.get(kk) for kk in ("state", "published", "reason",
                                                  "rejected_text", "attempts",
-                                                 "first_reason", "unsigned_rewrites")}
+                                                 "first_reason", "unsigned_rewrites",
+                                                 "partial", "withheld_sentences",
+                                                 "fallback")}
                    for k, v in results.items()}
     ed["unsigned_rewrites"] = sum(int(v.get("unsigned_rewrites") or 0)
                                   for v in results.values())

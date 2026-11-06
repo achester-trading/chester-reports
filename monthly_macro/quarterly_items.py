@@ -63,9 +63,11 @@ AQ7 = "not yet — the quarterly scan (AQ-7)"
 
 
 def load_config(path: Optional[Path] = None) -> dict:
+    """The chapters' config, its "price:" references resolved (A96)."""
     import yaml  # noqa: PLC0415
+    from altdata import price_sources  # noqa: PLC0415
     with Path(path or CONFIG_PATH).open(encoding="utf-8") as fp:
-        return yaml.safe_load(fp) or {}
+        return price_sources.resolve_tree(yaml.safe_load(fp) or {})
 
 
 def family_config(fam_id: str, cfg: Optional[dict] = None) -> Optional[dict]:
@@ -488,6 +490,14 @@ def structure_chart(st, spec: dict, cid: str, ctx: dict) -> dict:
         ax.plot(x0, [v for _, v in p0], color=colours[0], linewidth=0.9,
                 label=s0["label"])
         ax.set_ylabel(s0["label"], fontsize=7, color=colours[0])
+        # A96: a leg whose price family has switched sources ends at the switch;
+        # the change is marked, never spliced (altdata/price_sources.py).
+        from altdata import price_sources as ps  # noqa: PLC0415
+        for s, _ in legs:
+            on = ps.switch_date_of(str(s.get("key") or ""))
+            if on:
+                ax.axvline(dt.date.fromisoformat(on), color="#898781", linewidth=0.8,
+                           linestyle="--")
         if len(legs) > 1:
             s1, p1 = legs[1]
             tgt = ax.twinx() if spec.get("kind") == "twin" else ax

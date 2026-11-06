@@ -113,13 +113,23 @@ def asof_cell(x: dict) -> str:
 
 
 def change_over(st, key: str, now_cut: str, then_cut: str,
-                instrument: Optional[str] = None) -> Optional[dict]:
+                instrument: Optional[str] = None,
+                month_aligned: bool = False) -> Optional[dict]:
     """{level, prior, change, unit, observed_at} between two cutoffs.
 
     NO DATE AFTER THE EDITION'S SESSION (W8-9): an observation dated after the
     session a cutoff closes is read only for a series the registry declares
     forward-dated (IORB's effective day), and it then carries `effective`; any
-    other series is read at its newest observation on or before the session."""
+    other series is read at its newest observation on or before the session.
+
+    `month_aligned` (A95, M2 of the Monthly Letter of 1 Nov): the prior is the
+    MONTH'S, as the Monthly's scorecard and theme tables read it
+    (monthly_macro.v2.metric_month, the one definition): the newest observation
+    on or before the earlier of the then-session and the latest print less 25
+    days, as known at `now_cut`. Without it the prior is what was knowable at
+    `then_cut`, which for a series FRED posts the next morning (the OAS) is the
+    day before the month-end, so the Monthly printed one spread's month change
+    two ways. The Weekly keeps its since-the-last-report prior."""
     def at(cut: str):
         r = st.latest_as_of(key, cut, instrument)
         day = edition_session(cut)
@@ -128,7 +138,15 @@ def change_over(st, key: str, now_cut: str, then_cut: str,
                     if str(x.get("observed_at"))[:10] <= day]
             r = max(rows, key=lambda x: str(x["observed_at"])) if rows else None
         return r
-    a, b = at(now_cut), at(then_cut)
+    a = at(now_cut)
+    if month_aligned and a:
+        from monthly_macro import v2 as _v2                      # noqa: PLC0415
+        target = _v2.prior_target(dt.date.fromisoformat(edition_session(then_cut)),
+                                  dt.date.fromisoformat(str(a["observed_at"])[:10]))
+        b = _v2._level_on(sorted(st.as_of(key, now_cut, instrument),
+                                 key=lambda x: str(x.get("observed_at"))), target)
+    else:
+        b = at(then_cut)
     if not a or a.get("value_num") is None:
         return None
     lv = a["value_num"]
@@ -438,7 +456,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
                 history: Optional[dict] = None, cadence: str = "weekly",
                 screen: Optional[dict] = None,
                 dates: Optional[dict] = None, st=None,
-                now: Optional[str] = None) -> dict:
+                now: Optional[str] = None, then: Optional[str] = None) -> dict:
     w = Period.of(cadence)
     base = stack_mod.misfit_section({"market_state": {}}, pmb)
     # THE MOVE SCREEN (Audit #4 Category 1 items 1 and 5): the week's last
@@ -488,7 +506,7 @@ def misfit_week(wis: dict, pmb: Optional[dict],
     # its z, direction and count, under a two-line note on how to read it. The
     # contradiction lines move into the table; the items keep the prediction-
     # market disagreements and the week's openings.
-    gaps = wsec.gap_table(opened, history or {}, dates)
+    gaps = wsec.gap_table(opened, history or {}, dates, then=then)   # A103 (W4)
     data["gaps"] = gaps["data"]
     items = [i for i in items if not any(i["key"] == f"misfit:{c['id']}"
                                          for c in opened)]
@@ -537,12 +555,14 @@ BAR_YIELDS = {"fred.yield_10y": "y10", "fred.yield_30y": "y30"}
 def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
                   cadence: str = "weekly", liquidity_deltas: bool = False,
                   yudd_line: Optional[bool] = None,
-                  auction_block: bool = False) -> dict:
+                  auction_block: bool = False,
+                  month_aligned: bool = False) -> dict:
     w = Period.of(cadence)
     items, rows, data = [], [], {}
     frames = {i["id"]: i.get("frame") or {} for i in (book or {}).get("instruments") or []}
     for k, name in PLUMB:
-        x = change_over(st, k, now, then)
+        # A95 (M2): the Monthly reads the month's prior (change_over's docstring).
+        x = change_over(st, k, now, then, month_aligned=month_aligned)
         fr = frames.get(BAR_YIELDS.get(k, ""), {})
         if k in BAR_YIELDS and fr.get("last") is not None \
                 and fr.get("wtd_change_bps") is not None:
@@ -663,7 +683,9 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     # BATCH 5 TRANCHE 1 (ST-R4.21b, 26a, 17a): the attribution's term premium
     # and fiscal-bark flag, and net liquidity attributed. Tables and lines only.
     from . import batch5_block                                  # noqa: PLC0415
-    subs += batch5_block.plumbing_subsections(st, now, then, cadence)
+    # A103 (W3): passed the same cutoffs and prior rule as Plumbing's own table.
+    subs += batch5_block.plumbing_subsections(st, now, then, cadence,
+                                              month_aligned=month_aligned)
     # 6E, THE REST (16 Oct 2026): the lens columns the brief left for "later",
     # as one table of Plumbing's series, and the inflation block (the CPI lead
     # composite, the core CPI-PCE gap; Batch 7 items 46 and 48 attach to it).
@@ -759,12 +781,15 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
             continue
         for h in heads[rel]:
             key, form = h["key"], h.get("form") or "level"
-            if (rel, key, form) in seen:
+            # By series and form, not by release name (A103, W6): the calendar
+            # and the statement name one FOMC decision two ways, and it prints once.
+            if (key, form) in seen:
                 continue
-            seen.add((rel, key, form))
+            seen.add((key, form))
             pts = [r for r in st.as_of(key, now) if r.get("value_num") is not None]
             pts.sort(key=lambda r: str(r["observed_at"]))
-            got = headline_form([r["value_num"] for r in pts], form)
+            got = headline_form([r["value_num"] for r in pts], form,
+                                [str(r["observed_at"])[:10] for r in pts])
             if not got or not h.get("label"):
                 continue
             out.append({"release": rel, "date": str(obs_at)[:10], "series": key,
@@ -775,21 +800,42 @@ def tier1_releases(st, now: str, then: str) -> list[dict]:
     return out
 
 
-def headline_form(vals: list, form: str) -> Optional[tuple]:
+def headline_form(vals: list, form: str,
+                  dates: Optional[list] = None) -> Optional[tuple]:
     """(actual, prior) in the declared form, or None when the store holds too
-    few prints to compute it (rulings of 5 Oct, item 1)."""
+    few prints to compute it (rulings of 5 Oct, item 1).
+
+    `dates` (A95, M6 of the Monthly Letter of 1 Nov): each value's observation
+    date. A year-on-year then compares the same month a year earlier and a
+    month-on-month the month before, BY DATE; a month the source never
+    published (BLS's October 2025, lost to the shutdown) leaves that form n/a
+    rather than reaching one print further back. Counted by position, every CPI
+    year-on-year across the gap compared thirteen months, so the release row's
+    actual and prior disagreed with the edition's date-based tables."""
     need = {"level": 1, "change": 2, "mom": 2, "yoy": 13, "annualised": 2}[form]
+    by_month = ({str(d)[:7]: v for d, v in zip(dates, vals)}
+                if dates and len(dates) == len(vals) else None)
+
+    def back(n: int, months: int) -> Optional[float]:
+        """The value `months` before print n, by date (None if unpublished)."""
+        y, m = int(str(dates[n])[:4]), int(str(dates[n])[5:7]) - months
+        while m < 1:
+            y, m = y - 1, m + 12
+        return by_month.get(f"{y:04d}-{m:02d}")
 
     def at(k: int) -> Optional[float]:
         """The form `k` prints back (0 = latest)."""
         n = len(vals) - 1 - k
-        if n - (need - 1) < 0:
+        if n - (need - 1) < 0 and not (by_month and form in ("mom", "yoy") and n >= 0):
             return None
         v = vals[n]
         if form == "level":
             return v
         if form == "change":
             return v - vals[n - 1]
+        if form in ("mom", "yoy") and by_month is not None:
+            p0 = back(n, 1 if form == "mom" else 12)
+            return 100.0 * (v / p0 - 1.0) if p0 else None
         if form == "mom":
             return 100.0 * (v / vals[n - 1] - 1.0) if vals[n - 1] else None
         if form == "yoy":
@@ -1381,11 +1427,13 @@ def story_statuses(stories: list[dict], st, now: str,
         try:
             from altdata import events as ev_mod                # noqa: PLC0415
             end = (dt.date.fromisoformat(now[:10]) + dt.timedelta(days=win)).isoformat()
+            from altdata import price_sources as _ps            # noqa: PLC0415
+            _ec, _ep = _ps.events_clause()  # A102: the earnings rows' source switch
             with ev_mod.EventStore(str(st.path)) as ev:
                 for (payload, obs) in ev.conn.execute(
                         "SELECT payload, observed_at FROM events WHERE type = "
                         "'scheduled' AND observed_at >= ? AND observed_at <= ? "
-                        "AND available_at <= ?", (now[:10], end, now)):
+                        "AND available_at <= ?" + _ec, (now[:10], end, now, *_ep)):
                     pl = json.loads(payload or "{}")
                     if pl.get("kind") == "earnings" and pl.get("symbol"):
                         earn.setdefault(str(pl["symbol"]).upper(), str(obs)[:10])
@@ -1499,10 +1547,21 @@ def narratives_week_section(nb: dict, wd: Optional[dict] = None,
                                  "state": s.get("state"),
                                  "status": (status.get(str(s.get("id")))
                                             or ("long-term theme", ""))[0],
+                                 # A103 (W5, the Weekly Letter of w/e 30 Oct):
+                                 # the stories table's own count, as its cell
+                                 # prints it, and the register's to-date
+                                 # evidence under its own name. The commentary
+                                 # quoted the register's evidence as the week's
+                                 # counts beside a table that printed clusters.
                                  "clusters": (week.get(str(s.get("name"))) or {})
                                  .get("clusters"),
-                                 "evidence_for": s.get("evidence_for"),
-                                 "evidence_against": s.get("evidence_against"),
+                                 "this_week_as_the_table_prints_it":
+                                     analytics.count_text(
+                                         (week.get(str(s.get("name"))) or {})
+                                         .get("clusters") or {"for": 0, "against": 0}),
+                                 "register_evidence_to_date_for": s.get("evidence_for"),
+                                 "register_evidence_to_date_against":
+                                     s.get("evidence_against"),
                                  "last_changed": s.get("last_changed")}
                                 for s in stories]}}
     if voices is not None:
@@ -1880,6 +1939,10 @@ def book_week(p: dict, attn: dict, trig: dict, bz: Optional[str],
         subs = [{"title": book_b.HEADING, "lines": [book_b.NO_SCANNER],
                  "candidates": []}]
         notes = ["The candidates and the productivity line could not be read."]
+    # DTH-1 (D41; A92): the manual day-trade ledger's aggregates, after Book B.
+    from .weekly_sections import dth1_subsection               # noqa: PLC0415
+    dth1 = dth1_subsection(ending)
+    subs.append({"title": dth1["title"], "lines": dth1["lines"]})
     # GRADING FROM DAY ONE (decision 6): every candidate, taken or not, a ledger
     # forecast under its setup and id -- a dry run under its own namespace --
     # and the open ones the stored closes now decide, resolved.
@@ -2128,7 +2191,7 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
             "mechanics": mech,
             "misfit": misfit_week(wis, pmb, hist, screen=screen,
                                   dates=wsec.state_dates(stored_objects(st, now)),
-                                  st=st, now=now),
+                                  st=st, now=now, then=then),
             "plumbing": plumbing_week(st, now, then, book, auction_block=True),
             "positioning": pos,
             "priced": priced_week(st, now, then, cfg, pmb, fed, fed_then),
@@ -2476,31 +2539,11 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     # the canonical figure.
     from . import consistency                                   # noqa: PLC0415
     consistency.reconcile(ed)
-    if narrative:
-        stack_prose.write(ed, client=client, model=model, outlooks=[],
-                          cadence="weekly")
-        storyline_pass(ed, prior, ending, client=client, model=model,
-                       db_path=db_path, dry_run=dry_run)
-        playbook_pass(ed, client=client, model=model)
-    else:
-        ed["precis"] = {"state": "skipped", "published": False}
-    book_terms(ed, ending)
-    from . import storyline                                     # noqa: PLC0415
-    storyline.layout(ed, stack_mod.config())
-    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
-    # glossary carries the config's version.
-    ta = wsec.technical_appendix(stack_mod.config())
-    if ta:
-        ed.setdefault("detail", []).append(ta)
-    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
-    # reference tier (a table: outside the word budget; it displaces nothing).
-    try:
-        from . import opening_setup as _os                      # noqa: PLC0415
-        with observations.ObservationStore(db_path) as _st:
-            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
-    except Exception:                                           # noqa: BLE001
-        log.warning("the per-name volatility table faulted", exc_info=True)
-    ed["definitions_version"] = wsec.definitions_version()
+    # THE CHARTS ARE DRAWN BEFORE THE PROSE (A97, W10-2): the "What to see"
+    # lines read each chart's own data, and are written after the sections'
+    # prose and before the précis, which stays the last commentary written. The
+    # drawing reads only what build() made; the alias check and the placement
+    # stay below, after the layout.
     # W12 (6b part 2) joins the plan only when the week's last settled dealer
     # profile exists under the payload's computed_dir.
     from . import dealer_block as _db                           # noqa: PLC0415
@@ -2583,6 +2626,43 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
             "W6", extras["contradictions"], charts_mod.span_title(
                 "Open contradictions: gap z-score", n6, "sessions", d0, now,
                 "since each opened"), f"{base}_w6", out_dir, min_points=5)
+    if narrative:
+        stack_prose.write(ed, client=client, model=model, outlooks=[],
+                          cadence="weekly")
+        # THE "WHAT TO SEE" LINE (W10-2): one call per section over its charts'
+        # own data blocks; a line that fails twice is withheld.
+        from . import chart_lines                               # noqa: PLC0415
+        chart_lines.write_groups(chart_lines.groups_from(PLACE, charts), charts,
+                                 model=model, client=client)
+        storyline_pass(ed, prior, ending, client=client, model=model,
+                       db_path=db_path, dry_run=dry_run)
+        playbook_pass(ed, client=client, model=model)
+    else:
+        ed["precis"] = {"state": "skipped", "published": False}
+    book_terms(ed, ending)
+    # THE COVERAGE TABLE (W10-3): the store check's lists, one row per family
+    # and state, at the end of section 10, before the Detail Tables.
+    from . import coverage                                      # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    tenth = next((s for s in ed["sections"] if s["id"] == "book"), None)
+    if cov and tenth is not None:
+        tenth["coverage"] = cov
+    from . import storyline                                     # noqa: PLC0415
+    storyline.layout(ed, stack_mod.config())
+    # W-1.3a item 3.7: the technical appendix closes the reference tier, and the
+    # glossary carries the config's version.
+    ta = wsec.technical_appendix(stack_mod.config())
+    if ta:
+        ed.setdefault("detail", []).append(ta)
+    # BATCH 11 ITEM 56: the per-name volatility table, in the technical appendix's
+    # reference tier (a table: outside the word budget; it displaces nothing).
+    try:
+        from . import opening_setup as _os                      # noqa: PLC0415
+        with observations.ObservationStore(db_path) as _st:
+            ed.setdefault("detail", []).append(_os.per_name_table(_st, ed["as_of"]))
+    except Exception:                                           # noqa: BLE001
+        log.warning("the per-name volatility table faulted", exc_info=True)
+    ed["definitions_version"] = wsec.definitions_version()
     # ONE INSTRUMENT, SEVERAL SERIES (W-1.1a item 6): the tape's levels against
     # the charts' FRED levels of the same instrument, before anything prints.
     from . import consistency as cons_mod                       # noqa: PLC0415

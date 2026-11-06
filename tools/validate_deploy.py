@@ -178,6 +178,13 @@ MUST_DENY = {
         "python x.py --allow-live",
         "python -c 'ib.bracketOrder(...)'",
         "python -m order_router",
+        # A98 (D43): the paper executor's run, the operator's clear of its kill
+        # switch and the operator's resume of an edge-decay pause. Sessions never
+        # place orders; the entry point arrives already denied.
+        "python -m paper_exec run",
+        "ssh vps 'cd ~/chester-reports && .venv/bin/python -m paper_exec run --ledger x'",
+        "python -m paper_exec clear-kill --reason x",
+        "python -m paper_exec resume --engine trend_ts --reason x",
     ],
     "secrets": [
         "ssh vps cat ~/chester-reports/.env",
@@ -202,6 +209,8 @@ MUST_DENY = {
         "ssh vps 'grep BITCOIN_DATA_API_KEY ~/chester-reports/.env'",
         "echo $CHESTER_RCLONE_CRYPT_PASSWORD",
         "python -c 'import os; print(os.getenv(\"CHESTER_RCLONE_CRYPT_SALT\"))'",
+        # A94 (30 Oct 2026): the second forecaster's key (D38: Gemini).
+        "printenv GEMINI_API_KEY",
     ],
 }
 

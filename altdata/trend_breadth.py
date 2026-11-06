@@ -63,7 +63,8 @@ PREREG_END = "<!-- prereg:end -->"
 @functools.lru_cache(maxsize=1)
 def config() -> dict:
     import yaml                                                 # noqa: PLC0415
-    return yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
+    from altdata import price_sources                          # noqa: PLC0415
+    return price_sources.resolve_tree(yaml.safe_load(CONFIG.read_text(encoding="utf-8")))
 
 
 def lookbacks(cfg: Optional[dict] = None) -> list[int]:

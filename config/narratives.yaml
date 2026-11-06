@@ -148,8 +148,10 @@ narratives:
         At least three of AMZN, GOOGL, MSFT and META report larger quarterly
         capital expenditure in their next filed quarter than in the last quarter
         known when the forecast was emitted.
-      metrics: [yfinance.fund_amzn_capex, yfinance.fund_googl_capex,
-                yfinance.fund_msft_capex, yfinance.fund_meta_capex]
+      # A102: through the fundamentals switch (config/price_sources.yaml);
+      # load_config() resolves each to the active key, Yahoo's today.
+      metrics: ["price:fundamentals.amzn_capex", "price:fundamentals.googl_capex",
+                "price:fundamentals.msft_capex", "price:fundamentals.meta_capex"]
       comparison: magnitude_up
       quorum: 3
       horizon_days: 120

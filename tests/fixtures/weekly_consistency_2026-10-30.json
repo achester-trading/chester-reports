@@ -1,0 +1,59 @@
+{
+ "source": "A103: the seven places the Weekly of w/e 30 Oct 2026 contradicted itself (the Weekly Letter's W1-W7). Synthetic fragments in the edition's own shapes: the edition and its payload are on the box and the laptop's store copy ends 30 Sep 2026, so each case rebuilds the two prints from the finding, with the week's figures as the finding quotes them (SPY -0.56% on the week; the FOMC hold of 28 Oct).",
+ "w1": {
+  "tape": {"columns": ["Market", "Last", "Session", "Week", "Month"],
+           "rows": [["SPY", "680.10", "+0.12%", "−0.56%", "+1.02%"],
+                    ["10-year", "5.050%", "−3 bp", "−12 bp", "−24 bp"]]},
+  "fail": ["Equities closed out a positive week as yields fell.",
+           "It was a positive week, with breadth intact.",
+           "Stocks rose on the week while credit lagged."],
+  "pass": ["Equities fell −0.56% on the week even as yields fell.",
+           "A negative week for equities, with credit wider.",
+           "The 10-year rose on the week.",
+           "A positive week for the dollar."]
+ },
+ "w2": {
+  "items": [{"key": "mech:week", "text": "SPY over 5 scored session(s): 2 in positive net GEX, 3 in negative; the morning flip crossed on 1; closed at max pain on 0."},
+            {"key": "mech:dials", "text": "At the week's end: dealer gamma positive; the macro regime expansion; the volatility regime normal."}]
+ },
+ "w3": {
+  "key": "acm.term_premium_10y",
+  "rows": [["2026-10-21", 0.80, "2026-10-23T12:00:00+00:00"],
+           ["2026-10-22", 0.79, "2026-10-24T12:00:00+00:00"],
+           ["2026-10-28", 0.70, "2026-10-30T12:00:00+00:00"],
+           ["2026-10-29", 0.66, "2026-10-31T12:00:00+00:00"]],
+  "now": "2026-11-01T09:00:00+00:00",
+  "then": "2026-10-24T23:59:59+00:00"
+ },
+ "w4": {
+  "gap": {"id": "equity_credit", "magnitude": 2.8, "threshold_z": 2.0,
+          "open_state": "open"},
+  "history": [["2026-10-23", 2.1], ["2026-10-28", 2.9], ["2026-10-29", 2.8]],
+  "then": "2026-10-23T23:59:59+00:00"
+ },
+ "w5": {
+  "stories": [{"title": "AI capex durability", "clusters": {"for": 2, "against": 1},
+               "register_evidence_to_date_for": 9,
+               "register_evidence_to_date_against": 0}],
+  "fail": ["The AI capex story drew nine for and none against this week."],
+  "pass": ["The AI capex story drew two for and one against this week.",
+           "Nine pieces of evidence for and none against to date keep it standing."]
+ },
+ "w6": {
+  "event": {"type": "release", "observed_at": "2026-10-28T18:00:00+00:00",
+            "available_at": "2026-10-28T18:00:00+00:00", "source": "fixture",
+            "title": "FOMC statement -- the target range held"},
+  "upper": [["2026-10-27", 4.25], ["2026-10-28", 4.25], ["2026-10-29", 4.25]],
+  "lower": [["2026-10-27", 4.00], ["2026-10-28", 4.00], ["2026-10-29", 4.00]],
+  "now": "2026-11-01T09:00:00+00:00",
+  "then": "2026-10-24T23:59:59+00:00"
+ },
+ "w7": {
+  "calendar": [{"date": "2026-11-06", "event": "Employment Situation (October)"},
+               {"date": "2026-11-13", "event": "Consumer Price Index (October)"}],
+  "fail": [{"series": "nonfarm payrolls", "window": "Fri 7 Nov", "what": "a print under 50,000 jobs"}],
+  "pass": [{"series": "nonfarm payrolls", "window": "Fri 6 Nov", "what": "a print under 50,000 jobs"},
+           {"series": "CPI, month on month", "window": "13 Nov", "what": "above 0.3%"},
+           {"series": "the 10-year", "window": "the week", "what": "through 5.20%"}]
+ }
+}

@@ -46,7 +46,9 @@ TITLE = "Gold event"
 
 def config(path: Optional[Path] = None) -> dict:
     import yaml                                                 # noqa: PLC0415
-    return yaml.safe_load((path or CONFIG).read_text(encoding="utf-8"))
+    from altdata import price_sources                          # noqa: PLC0415
+    return price_sources.resolve_tree(
+        yaml.safe_load((path or CONFIG).read_text(encoding="utf-8")))
 
 
 # ---------------------------------------------------------------------------

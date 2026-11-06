@@ -89,7 +89,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import urlsplit
 
 from . import _publication as pub
@@ -376,6 +376,64 @@ def weekly_path() -> Path:
     return Path(os.environ.get(WEEKLY_VAR) or WEEKLY).expanduser()
 
 
+# A92b PART 4 (1 Nov 2026): THE WEEKLY FOLDER. Since 24 Oct the AAII task writes
+# one file a week to chester-vendor-checks/aaii/weekly/YYYY-MM-DD.csv (the weekly
+# file's header and rules); aaii-weekly.csv holds the 2026-10-14 row alone and is
+# read-only history. The sweep copies the folder to the inbox's weekly/
+# (scripts/rclone_sync.sh, pull_folder). Every weekly file is read with
+# rows_from_weekly and unioned BY WEEK: for a week in two files the row with the
+# newest retrieved_at (its available_at) wins; a cross-check of "disagrees" stays
+# on the row as its `crosscheck` flag (and in the run log), never dropping it.
+WEEKLY_DIR_VAR = "AAII_WEEKLY_DIR"
+WEEKLY_DIR = f"{INBOX_DIR}/weekly"
+
+
+def weekly_dir() -> Path:
+    return Path(os.environ.get(WEEKLY_DIR_VAR) or WEEKLY_DIR).expanduser()
+
+
+def weekly_files() -> list[Path]:
+    """aaii-weekly.csv first, then the weekly folder's *.csv in name order."""
+    w, d = weekly_path(), weekly_dir()
+    return ([w] if w.is_file() else []) + (sorted(d.glob("*.csv")) if d.is_dir() else [])
+
+
+def _crosschecks(data: bytes) -> dict[str, str]:
+    """{Reported Date: cross-check text} for each row of one weekly file."""
+    out: dict[str, str] = {}
+    for r in csv.DictReader(io.StringIO(data.decode("utf-8-sig"))):
+        text = (r.get("week_ending") or "").strip()
+        try:
+            week: Optional[dt.date] = dt.date.fromisoformat(text)
+        except ValueError:
+            week = parse_date(text)
+        if week is not None:
+            out[reported_date(week).isoformat()] = (r.get("crosscheck") or "").strip()
+    return out
+
+
+def weekly_rows(*args: Any) -> list[dict]:
+    """Every weekly file's rows, unioned by (key, Reported Date), the newest
+    retrieved_at winning. `args` pass through to rows_from_weekly."""
+    best: dict[tuple, dict] = {}
+    for p in weekly_files():
+        data = p.read_bytes()
+        try:
+            rows = rows_from_weekly(data, *args)
+        except ValueError as exc:
+            log.warning("aaii weekly file %s skipped: %s", p.name, exc)
+            continue
+        flags = _crosschecks(data)
+        for r in rows:
+            cc = flags.get(r["observed_at"]) or ""
+            if cc.lower().startswith("disagrees"):
+                r = dict(r, crosscheck=cc)
+            k = (r["registry_key"], r["observed_at"])
+            if k not in best or str(r["available_at"]) > str(best[k]["available_at"]):
+                best[k] = r
+    return sorted(best.values(), key=lambda r: (r["registry_key"], r["observed_at"]))
+
+
 def _from_file(p: Path) -> list[dict]:
     when = dt.datetime.fromtimestamp(p.stat().st_mtime, dt.timezone.utc)
     return rows_from_bytes(p.read_bytes(), when.isoformat(timespec="microseconds"),
@@ -383,10 +441,10 @@ def _from_file(p: Path) -> list[dict]:
 
 
 def _produce() -> list[dict]:
-    p, w = inbox_path(), weekly_path()
-    if p.is_file() or w.is_file():
+    p = inbox_path()
+    if p.is_file() or weekly_files():
         history = _from_file(p) if p.is_file() else []
-        weekly = rows_from_weekly(w.read_bytes(), keys=KEYS) if w.is_file() else []
+        weekly = weekly_rows(KEYS)       # A92b with B82: both files, both keys
         return union(history, weekly)
     try:
         allowed, rule = robots_verdict(http_get_text(ROBOTS_URL, timeout=30), URL)

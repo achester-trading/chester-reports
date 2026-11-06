@@ -241,7 +241,22 @@ def _move_row(r: dict) -> dict:
     else:
         out.update(start_level=r.get("start_level"), end_level=r.get("end_level"),
                    change=r.get("change"))
+    # A95: a level of four or more integer digits rides with the form the tables
+    # print, separators included ("7,580.07"), as the separator rule's message
+    # tells the writer to copy (the 1 Nov Monthly printed "7580.07" and "3898.9").
+    for f in ("start_level", "end_level"):
+        disp = separated(out.get(f))
+        if disp:
+            out[f"{f}_display"] = disp
     return out
+
+
+def separated(v: Any) -> Optional[str]:
+    """A raw level of 1,000 or more as the tables print it, with separators;
+    None for a smaller value, a non-number or a level already scaled."""
+    if not isinstance(v, (int, float)) or isinstance(v, bool) or abs(v) < 1000:
+        return None
+    return f"{v:,}"
 
 
 def _moves(p: dict, ids: Optional[list] = None) -> dict:
@@ -266,12 +281,34 @@ def _series(rows: list[dict]) -> list[dict]:
     out = []
     for r in rows:
         d = {"series": r.get("label"), **{k: r[k] for k in keep if k in r}}
+        # A95: A RATE OR A SHARE IS HANDED OVER AS A PERCENT. The unemployment
+        # rate, participation and the employment-population ratio (units "%",
+        # moving in pp) travelled as `latest_level` -- a price -- so "the
+        # unemployment rate ticked up to 4.2%" was withheld as a price written as
+        # a percent (pillar:1 and theme:fed_path, 1 Nov 2026).
+        if "latest_level" in d and _level_units(r.get("metric")) == "%":
+            d["latest_pct"] = d.pop("latest_level")
+        # A95: a raw level of four or more digits carries the form the tables
+        # print, separators included, and only that (T3.3 item 2's rule).
+        if "latest_level" in d and "latest_level_display" not in d \
+                and separated(d["latest_level"]):
+            d["latest_level_display"] = separated(d["latest_level"])
         if "change_display" in d:
             d.pop("change", None)
         if "latest_level_display" in d:
             d.pop("latest_level", None)
         out.append(d)
     return out
+
+
+def _level_units(key: Optional[str]) -> Optional[str]:
+    if not key:
+        return None
+    try:
+        from altdata import derived                              # noqa: PLC0415
+        return derived.level_units_of(str(key))
+    except Exception:                                           # noqa: BLE001
+        return None
 
 
 def _changed(p: dict, words: Optional[list] = None) -> list[dict]:
@@ -354,10 +391,17 @@ def our_read_slice(p: dict) -> dict:
                               "resolves": s.get("resolve_by")}
                              for s in la.get("scenarios") or []],
             "active_positions": r.get("active_decisions"),
-            "books_against_benchmark": ((p.get("register_month") or {})
-                                        .get("books_vs_benchmark") or {})
-            .get("line"),
+            # A95 (M4): the book against Book Z with its excess, the line the
+            # book section and the Weekly print; Book Z's own ledgers ride under
+            # their own name. The 1 Nov "Our read" wrote "the book stands at
+            # +0.66% versus cash" from the ledgers' returns.
+            "book_against_book_z": _bz(p).get("book_line"),
+            "book_z_ledgers_own_returns_not_excess": _bz(p).get("line"),
             "our_regime_reads": _regime(p)}
+
+
+def _bz(p: dict) -> dict:
+    return (p.get("register_month") or {}).get("books_vs_benchmark") or {}
 
 
 def pillar_slice(p: dict, num: str, pillar: dict) -> dict:
@@ -658,7 +702,15 @@ def policy_word_frame(pm_cfg: Optional[dict] = None) -> str:
             + "\nA sentence that names " + ", ".join(f"'{t}'" for t in terms)
             + " carries no policy word at all -- a recession or CPI market is odds "
               "on that event, never on the Fed. Put the Fed's path and such a "
-              "market in separate sentences.")
+              "market in separate sentences."
+            # A95: the 1 Nov Monthly's What's priced closed twice on one
+            # sentence listing "a Fed ... to hike", "hike risk" and "a recession
+            # market"; the allowed phrasing, written out, before the writer writes.
+            + " Allowed: \"Futures price a December hike as more likely than "
+              "not.\" followed by \"Recession odds for 2026 fell.\" Not allowed: "
+              "one closing sentence that lists the Fed's hike and the recession "
+              "market together; a summing-up sentence names the recession market "
+              "or the Fed, never both.")
 
 
 def stack_plan(ed: dict) -> list[dict]:
@@ -939,6 +991,10 @@ def summary_frame(s: dict, ed: dict) -> dict:
     finished section."""
     from daily_cascade import figure_budget as fb               # noqa: PLC0415
     frame = fb.summary_frame(s, summary_figures(), MONTH_COLUMN)
+    if s["id"] == "misfit":
+        # A95 (M1): the section's open counts, in words, so the summary states
+        # what section 4 lists even when the section's own paragraph is withheld.
+        frame["open_now"] = misfit_count_words(s)
     if s["id"] in SUMMARISES_ALL:
         pool = [m for x in ed.get("sections") or [] if x is not s
                 and not x.get("empty") for m in fb.section_moves(x, MONTH_COLUMN)]
@@ -970,6 +1026,48 @@ def _stack_faults(text: str, sec: dict, ed: dict, pm_cfg) -> list[str]:
     if sec["sid"] == "mechanics" and ed.get("_retro"):
         from . import dealer                                    # noqa: PLC0415
         out += dealer.flag_word_faults(text, ed["_retro"])
+    if str(sec.get("key") or "").startswith("summary:") and sec["sid"] == "misfit":
+        out += misfit_count_faults(text, next(
+            (s for s in ed.get("sections") or [] if s.get("id") == "misfit"), {}))
+    return out
+
+
+# A95 (M1, the Monthly Letter of 1 Nov): THE SUMMARY HOLDS SECTION 4'S COUNTS.
+# "What doesn't fit"'s summary paragraph said no contradiction was open while
+# section 4 listed seven exceptions: the summary's frame carried the section's
+# masked claim and paragraphs, and the section's paragraph was withheld, so it
+# had nothing that counted them. The frame now carries the counts (in words),
+# and a summary that says "no open contradiction / exception / gap" while the
+# section counts one is withheld, naming the count.
+_MISFIT_KINDS = (("open_gaps", "gaps", r"gaps?"),
+                 ("open_contradictions", "open_contradictions", r"contradictions?"),
+                 ("exceptions_open_now", "exceptions_open_now", r"exceptions?"),
+                 ("five_year_extremes", "extremes", r"extremes?"))
+_NUM_WORDS = ("none", "one", "two", "three", "four", "five", "six", "seven", "eight",
+              "nine", "ten", "eleven", "twelve")
+
+
+def misfit_counts(s: dict) -> dict:
+    """Section 4's open counts, from its own data: {name: n}."""
+    d = s.get("data") or {}
+    return {name: len(d.get(key) or []) for name, key, _ in _MISFIT_KINDS}
+
+
+def misfit_count_words(s: dict) -> dict:
+    return {k: (_NUM_WORDS[n] if n < len(_NUM_WORDS) else str(n))
+            for k, n in misfit_counts(s).items()}
+
+
+def misfit_count_faults(text: Optional[str], s: dict) -> list[str]:
+    counts = misfit_counts(s)
+    out = []
+    for name, _, rx in _MISFIT_KINDS:
+        n = counts.get(name) or 0
+        if n and re.search(rf"\bno\s+(?:\w+\s+)?{rx}\b|\bnone\s+of\s+the\s+{rx}\b",
+                           text or "", re.I):
+            out.append(f"says there is no {rx.split('s?')[0].rstrip('?')} open while "
+                       f"section 4 counts {_NUM_WORDS[n] if n < 13 else n} "
+                       f"({name.replace('_', ' ')}) -- state section 4's count")
     return out
 
 
@@ -1163,7 +1261,7 @@ def retry_prompt(system: str, prev: dict, sl: Optional[dict] = None) -> str:
     writer's own lines beside the rule -- the words refused, the count against the
     cap, and after the numeral audit the figures it refused and those `sl` allows
     (T3.5). Without a draft, the note and the lines, and the old closing line."""
-    note = audit_retry.revision_note(str(prev.get("reason")), prev.get("rejected_text"))
+    note = audit_retry.revision_note(with_also(prev), prev.get("rejected_text"))
     note = note.replace("YOUR PREVIOUS DRAFT WAS", "YOUR PREVIOUS DRAFT OF THIS SECTION WAS", 1)
     extra = ""
     if prev.get("vocab_words"):
@@ -1183,6 +1281,17 @@ def retry_prompt(system: str, prev: dict, sl: Optional[dict] = None) -> str:
             head, tail = note.split(cut, 1)
             return system + head + extra + cut + tail
     return system + note + extra
+
+
+ALSO = "; THE DRAFT ALSO BREAKS (fix these in the same revision): "
+
+
+def with_also(prev: dict) -> str:
+    """The withhold message the revision hears: the reason, then (A95) every
+    other fault the draft carries, so each rule and failing span reaches it."""
+    reason = str(prev.get("reason"))
+    also = [str(a) for a in prev.get("also") or [] if a]
+    return reason + (ALSO + "; ".join(also) if also else "")
 
 
 # THE RETRY NAMES THE FIGURES (T3.5 (b), as W-1.1's did for the Weekly): after the
@@ -1291,6 +1400,47 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
     if secs is None:
         secs = plan(p) + (stack_plan(ed) + block_plan(ed) if ed else [])
 
+    def post_faults(sec: dict, text: str) -> list[str]:
+        """The checks _attempt makes after the audit, over W10-1's remainder:
+        the system's vocabulary, list fragments, the tape rules (a stack
+        section's) or the stance and T3.6 checks (a v2 section's), and a bare
+        large change."""
+        stack = sec.get("kind") == "stack"
+        out = [f"writes about the system ({', '.join(internal_terms(text))})"
+               ] if internal_terms(text) else []
+        out += ["list fragments"] if list_lines(text) else []
+        out += (_stack_faults(text, sec, ed or {}, pm_cfg) if stack else
+                readability.stance_faults(text) + t36_faults(text, sec, ed))
+        out += [f"bare large change {b}" for b in na.bare_deltas(
+            text, na.accepted_deltas([sec.get("slice"), sec.get("audit_extra")]))]
+        return out
+
+    def draft_faults(sec: dict, text: str, accepted: Any) -> list[str]:
+        """A95: every post-audit fault `text` carries, each in the words its
+        withhold would use, so the one revision hears all of them."""
+        try:
+            stack = sec.get("kind") == "stack"
+            out = []
+            jargon = internal_terms(text)
+            if jargon:
+                out.append(f"it writes about the system ({', '.join(jargon)}) -- "
+                           f"{VOCAB_RULE}")
+            if list_lines(text):
+                out.append("the section came back as list fragments, and a "
+                           "narrative section is prose")
+            out += (_stack_faults(text, sec, ed or {}, pm_cfg) if stack else
+                    readability.stance_faults(text) + t36_faults(text, sec, ed))
+            bare = na.bare_deltas(text, accepted)
+            if bare:
+                out.append(f"a change of 10,000 or more printed without its unit or "
+                           f"scale ({', '.join(bare[:3])}) -- copy its change_display "
+                           f"or latest_level_display verbatim"
+                           + bare_hint(bare[:3], [sec.get("slice"),
+                                                  sec.get("audit_extra")]))
+            return out
+        except Exception:                                       # noqa: BLE001
+            return []
+
     def attempt(sec: dict, system: str) -> dict:
         """One call, metered under the section's key (AUD-2 item 4)."""
         from altdata import model_meter                         # noqa: PLC0415
@@ -1355,6 +1505,21 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                           f"change_display or latest_level_display verbatim"
                           + bare_hint(bare[:3], [sec.get("slice"),
                                                  sec.get("audit_extra")]))
+            # A95: EVERY FAULT THE DRAFT CARRIES GOES TO THE ONE REVISION. The
+            # checks run in order and the withhold names the first that fails,
+            # so on 1 Nov four sections' revisions mended the fault they heard
+            # and were withheld for one they never heard, though the first draft
+            # carried it too: month_in_markets (told of "7580.07", withheld for
+            # "+29,000"), theme:fiscal_dollar ("4.0", then "3898.9"),
+            # block:plumbing:yields ("19, 18", then "sharply") and stack:misfit
+            # ("69th", then "the breadth dimension"). The verdict is unchanged;
+            # the other faults ride beside the reason, for the retry alone.
+            also: list[str] = []
+            if not published and drafted and state not in NOT_RETRIED:
+                also = [m for m in draft_faults(sec, drafted, accepted)
+                        if m not in str(reason or "")]
+                if not vwords:
+                    vwords = vocab_words(internal_terms(drafted), [])
             # A DIRECTIONAL VERB CARRIES THE SIGN (W-1.1b, the Weekly's W-1.1a
             # item 4): "fell -3 bp" prints "fell 3 bp", after every audit, and
             # the rewrite is counted.
@@ -1374,6 +1539,7 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
                 "figures_cited": cited,
                 "figures_over": None if published else over,
                 "vocab_words": None if published else (vwords or None),
+                "also": also or None,
                 "unmatched": (list(getattr(r, "unmatched", None) or []) or None)
                 if state == "audit_failed" else None}
         except Exception as exc:                               # noqa: BLE001
@@ -1415,6 +1581,15 @@ def write_all(p: dict, *, model: Optional[str] = None, client=None,
         if not res["published"] and len(reasons) > 1:
             res["first_reason"] = reasons[0]
             res["reasons"] = reasons
+            # W10-1 (D46): withhold the failing sentence, not the section; the
+            # remainder is held to the same checks a published draft is.
+            res = audit_retry.apply_fallback(
+                {**res, "unmatched_figures": res.get("unmatched")}, report="monthly",
+                section=sec["key"], recheck=lambda clean, sec=sec: post_faults(sec, clean))
+            if res.get("published"):
+                res["text"], res["unsigned_rewrites"] = (
+                    readability.unsign_after_verbs(res["text"]))
+                res["words"] = words(res["text"])
         out[sec["key"]] = res
         log.info("section %s: %s (%s words, %d attempt(s))", sec["key"],
                  res["state"], res["words"], res["attempts"])

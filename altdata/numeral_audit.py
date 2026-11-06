@@ -303,20 +303,53 @@ def with_signed(payload: Any, _depth: int = 0) -> Any:
     return payload
 
 
+# A95 (the Monthly of 1 Nov 2026): A NEGATIVE MOVE HANDED OVER AS ITS DISPLAY.
+# A frame (a parent's `figures_you_may_cite`, a block's table) carries a move as
+# the string its table prints -- {"change": "−169,786"}, a "Change" cell "−19
+# bp" -- not as a number beside a `_signed` sibling. Positioning's "10-year note
+# futures shed 169,786 contracts" and "the 30-year yield fell 19 bp" were
+# withheld with no fix named, because only numeric moves were read here. A string
+# under a move key, or a cell under a change column, written with a minus is
+# that negative move, read through extract() exactly as the prose is.
+_NEG_LEAD = re.compile(r"^\s*[−–-]")
+
+
+def _neg_display(v: Any) -> Optional[float]:
+    """The value of a display string written with a leading minus, else None."""
+    if not isinstance(v, str) or not _NEG_LEAD.match(v):
+        return None
+    figs = extract(v)
+    return figs[0].value if figs and figs[0].value < 0 else None
+
+
 def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]:
     """(value, field, signed display) for every NEGATIVE move the payload carries
     -- the only case where an unsigned figure can be the right magnitude with the
-    wrong sign."""
+    wrong sign. A move written as its display string counts (A95)."""
     out: list[tuple[float, str, str]] = []
     if _depth > 16:
         return out
     if isinstance(payload, dict):
+        cols = payload.get("columns")
+        if isinstance(cols, list) and isinstance(payload.get("rows"), list):
+            for row in payload["rows"]:
+                if not isinstance(row, (list, tuple)) or not row:
+                    continue
+                for j, cell in enumerate(row[1:], start=1):
+                    if j < len(cols) and role_of_column(cols[j]) == ROLE_CHANGE:
+                        nv = _neg_display(cell)
+                        if nv is not None:
+                            out.append((nv, f"{row[0]}'s {cols[j]}",
+                                        str(cell).strip()))
         for k, v in payload.items():
             if (isinstance(v, (int, float)) and not isinstance(v, bool)
                     and v < 0 and _is_move_key(str(k))):
                 out.append((float(v), f"{k}{SIGNED_FIELD}",
                             str(payload.get(f"{k}{SIGNED_FIELD}")
                                 or signed_display(v, _move_unit(k, payload)))))
+            elif isinstance(v, str) and _is_move_key(str(k)) \
+                    and _neg_display(v) is not None:
+                out.append((_neg_display(v), str(k), v.strip()))
             else:
                 out.extend(signed_fields(v, _depth + 1))
     elif isinstance(payload, (list, tuple)):
@@ -2236,6 +2269,13 @@ def role_faults(text: Optional[str], payload: Any) -> list[str]:
         figs = [f for f in extract(sent) if m.end() <= f.position < span_end]
         prev = m.end()
         for f in figs:
+            # A95: A DATE'S NUMERALS DO NOT END THE GAP. "closed October at 44.60,
+            # ..., against its full-history average since 2021-09-20 of 32.01"
+            # bound 32.01 to "closed": the date's parts each restarted the gap,
+            # so the gap before 32.01 was " of " and lost "average". A date is
+            # skipped (A88 (d)) and the gap runs on across it.
+            if any(s <= f.position < e for s, e in dates):
+                continue
             gap = sent[prev:f.position]
             prev = f.position + len(f.text)
             if f.is_percent or _CHANGE_AFTER.match(sent, f.position + len(f.text)):
@@ -2245,8 +2285,7 @@ def role_faults(text: Optional[str], payload: Any) -> list[str]:
             # A88 (d): a day of the month or a year ("1 October 2026"), a
             # window's length ("its 20-day average") and a weight or probability
             # the payload types as one are not the figure the close-word names.
-            if any(s <= f.position < e for s, e in dates) \
-                    or _WINDOW_AFTER.match(sent, f.position + len(f.text)) \
+            if _WINDOW_AFTER.match(sent, f.position + len(f.text)) \
                     or (_WEIGHT_AFTER.match(sent, f.position + len(f.text))
                         and any(abs(w - abs(f.value)) <= 1e-9 for w in weights)):
                 continue

@@ -412,7 +412,7 @@ families:
       - {key: yfinance.mkt_usdcny,   label: "USD/CNY", dp: 4}
       - {key: fred.yield_2y,         label: "The US 2-year yield"}
     structure:
-      - {key: yfinance.mkt_dxy,      label: "DXY (ICE)"}
+      - {key: "price:dollar_index.dxy",      label: "DXY (ICE)"}
       - {key: fred.dxy,              label: "The broad dollar (DTWEXBGS)"}
       - {key: fred.real_dollar_broad, label: "The real broad dollar"}
       - {key: cftc.noncomm_net, instrument: USD_INDEX, label: "Dollar index futures, non-commercial net (CFTC legacy)"}
@@ -443,7 +443,7 @@ families:
       - {key: llama.stable_total,   label: "Stablecoin supply, all chains (DefiLlama)"}
     structure_charts:
       - {id: dollar_pair, title: "DXY against the broad dollar", kind: twin,
-         series: [{key: yfinance.mkt_dxy, label: "DXY"},
+         series: [{key: "price:dollar_index.dxy@yfinance", label: "DXY"},
                   {key: fred.dxy, label: "Broad dollar (DTWEXBGS)"}]}
       - {id: yen, title: "USD/JPY against the 10-year JGB yield", kind: twin,
          series: [{key: yfinance.mkt_usdjpy, label: "USD/JPY"},

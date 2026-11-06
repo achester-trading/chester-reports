@@ -218,6 +218,161 @@ def block_figures(block: Any) -> list[str]:
     return out
 
 
+def _section(ed: dict, sid: str) -> dict:
+    return next((s for s in ed.get("sections") or [] if s.get("id") == sid), {}) or {}
+
+
+def tape_week(ed: dict) -> list[dict]:
+    """A103 (W1): each market's week as the tape table prints it, signed
+    (columns Market, Last, Session, Week, Month)."""
+    t = _section(ed, "tape").get("table") or {}
+    cols = [str(c).lower() for c in t.get("columns") or []]
+    if "week" not in cols:
+        return []
+    j = cols.index("week")
+    return [{"market": r[0], "week": r[j]} for r in t.get("rows") or []
+            if isinstance(r, (list, tuple)) and len(r) > j]
+
+
+def spy_week(rows: list) -> Optional[tuple[str, float]]:
+    """(the printed cell, its value) for SPY's week among `tape_week` rows."""
+    for r in rows or []:
+        if re.search(r"\bSPY\b|S&P 500", str(r["market"])):
+            m = re.match(r"\s*([+\-−]?)(\d+(?:\.\d+)?)", str(r["week"]))
+            if m:
+                v = float(m.group(2))
+                return str(r["week"]), (-v if m.group(1) in ("-", "−") else v)
+    return None
+
+
+def gamma_week(ed: dict) -> Optional[dict]:
+    """A103 (W2): the session table's own summary of the week's dealer gamma --
+    how many scored sessions sat in positive and negative net GEX (Mechanics'
+    `mech:week` line) -- and the reading at the week's end, each named as what
+    it is, so the précis cannot read one session's sign as the week's."""
+    m = _section(ed, "mechanics")
+    wk = next((i for i in m.get("items") or [] if i.get("key") == "mech:week"), None)
+    end = next((i for i in m.get("items") or [] if i.get("key") == "mech:dials"), None)
+    if not wk and not end:
+        return None
+    return {"the_week_session_by_session": (wk or {}).get("text"),
+            "at_the_week_end_only": (end or {}).get("text")}
+
+
+def calendar_ahead(ed: dict) -> list[dict]:
+    """A103 (W7): the Ahead's calendar, date and event, the one source for every
+    date a "what would change our mind" line names."""
+    cal = (_section(ed, "ahead").get("data") or {}).get("calendar") or []
+    return [{"date": r.get("date"), "event": r.get("event")} for r in cal
+            if isinstance(r, dict) and r.get("date") and r.get("event")]
+
+
+_UP_ADJ, _DOWN_ADJ = ("positive", "up", "higher", "winning", "green"), \
+    ("negative", "down", "lower", "losing", "red")
+_UP_VERB = ("rose", "gained", "rallied", "advanced", "climbed", "added", "finished higher",
+            "ended higher", "closed higher")
+_DOWN_VERB = ("fell", "declined", "lost", "slipped", "dropped", "shed", "sold off",
+              "finished lower", "ended lower", "closed lower")
+_EQ = r"(?:equit(?:y|ies)|stocks|SPY|the S&P(?: 500)?|the index)"
+# "a positive week", "the week ended positive", "a positive week for equities";
+# "equities rose ... on the week" -- the sign word tied to the week or to
+# equities, never any direction word elsewhere in the sentence.
+_ADJ_WEEK = re.compile(r"\b(" + "|".join(_UP_ADJ + _DOWN_ADJ) + r")\s+week\b"
+                       r"|\bweek\s+(?:was|ended|finished|closed)\s+(?:\w+\s+)?("
+                       + "|".join(_UP_ADJ + _DOWN_ADJ) + r")\b", re.I)
+_EQ_VERB = re.compile(r"\b" + _EQ + r"\s+(?:\w+\s+){0,2}?(" + "|".join(
+    _UP_VERB + _DOWN_VERB) + r")\b[^.;]{0,40}?\b(?:the|on the|over the|this) week\b",
+    re.I)
+_OTHER_ASSET = re.compile(r"\b(?:yields?|treasur|bonds?|credit|spreads?|dollar|oil|"
+                          r"gold|bitcoin|crypto|vix|volatility)\b", re.I)
+
+
+def week_sign_faults(texts: list, spy: Optional[tuple]) -> list[str]:
+    """A103 (W1): the week's direction for equities as the tape prints it. A
+    sign word tied to the week ("a positive week", "the week ended lower") in a
+    sentence that names equities or no other market, or an equity subject's
+    verb over the week ("stocks rose on the week"), against the sign of SPY's
+    week in the tape, is withheld."""
+    if not spy or not spy[1]:
+        return []
+    up = spy[1] > 0
+    out = []
+    for t in texts:
+        for s in re.split(r"(?<=[.!?])\s+", str(t or "")):
+            words = []
+            for m in _ADJ_WEEK.finditer(s):
+                if re.search(r"\b" + _EQ + r"\b", s, re.I) or not _OTHER_ASSET.search(s):
+                    words.append((m.group(1) or m.group(2)).lower())
+            words += [m.group(1).lower() for m in _EQ_VERB.finditer(s)]
+            bad = [w for w in words
+                   if (w in _DOWN_ADJ + _DOWN_VERB) == up]
+            if bad:
+                out.append(f"calls the week '{bad[0]}' for equities while the tape "
+                           f"prints SPY {spy[0]} on the week: '{s.strip()[:90]}' -- "
+                           f"write the week's direction as the tape prints it")
+    return out
+
+
+_MON = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul",
+                                    "aug", "sep", "oct", "nov", "dec"), start=1)}
+_DAY_MON = re.compile(r"\b(\d{1,2})\s+([A-Za-z]{3})[a-z]*\b")
+_MON_DAY = re.compile(r"\b([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})\b")
+_ISO_D = re.compile(r"\b\d{4}-(\d{2})-(\d{2})\b")
+_EVENT_ALIASES = {"employment situation": ("payroll", "jobs report", "nonfarm",
+                                           "employment report"),
+                  "consumer price index": ("cpi",), "fomc": ("fomc", "fed decision"),
+                  "personal income": ("pce",), "gross domestic product": ("gdp",)}
+
+
+def _month_days(text: str) -> set[tuple[int, int]]:
+    out = set()
+    for d, mo in _DAY_MON.findall(text or ""):
+        if mo.lower() in _MON:
+            out.add((_MON[mo.lower()], int(d)))
+    for mo, d in _MON_DAY.findall(text or ""):
+        if mo.lower() in _MON:
+            out.add((_MON[mo.lower()], int(d)))
+    for mo, d in _ISO_D.findall(text or ""):
+        out.add((int(mo), int(d)))
+    return out
+
+
+def _event_words(event: str) -> list[str]:
+    e = str(event or "")
+    words = [w.lower() for w in re.findall(r"\b[A-Z]{3,}\b", e)]
+    for k, al in _EVENT_ALIASES.items():
+        if k in e.lower():
+            words += list(al)
+    return sorted(set(words))
+
+
+def change_date_faults(change: list, cal: list) -> list[str]:
+    """A103 (W7): a CHANGE line naming a calendar event dates it as the calendar
+    does. A line whose date matches none of that event's calendar dates is
+    withheld, naming the calendar's date."""
+    out = []
+    for c in change or []:
+        text = f"{c.get('series') or ''} {c.get('what') or ''}"
+        mine = _month_days(str(c.get("window") or ""))
+        if not mine:
+            continue
+        for r in cal or []:
+            words = _event_words(r.get("event"))
+            if not words or not any(re.search(rf"\b{re.escape(w)}", text, re.I)
+                                    for w in words):
+                continue
+            cd = _month_days(str(r.get("date")))
+            dates = [x for x in cal if set(_event_words(x.get("event"))) & set(words)]
+            all_cd = set().union(*[_month_days(str(x.get("date"))) for x in dates]) or cd
+            if all_cd and not (mine & all_cd):
+                out.append(f"a CHANGE line dates {c.get('series')} at "
+                           f"'{c.get('window')}', but the calendar has "
+                           f"{r.get('event')} on {r.get('date')} -- take the date "
+                           f"from calendar_ahead")
+            break
+    return out
+
+
 def frame(ed: dict, prior: Optional[dict], stance_n: Optional[int] = None) -> dict:
     """THE PRÉCIS'S DATA BLOCK (W8-1b, weekly-fixes-8): the ten commentaries, the
     grader's table, the stance ledger's n and p, and the "Changed since last
@@ -228,11 +383,19 @@ def frame(ed: dict, prior: Optional[dict], stance_n: Optional[int] = None) -> di
     grader = grader_block(ed)
     stance = stance_block(prior, stance_n)
     changed = [x for x in ed.get("changed_since") or [] if isinstance(x, str)]
+    week, gamma, cal = tape_week(ed), gamma_week(ed), calendar_ahead(ed)
     seen: dict[str, str] = {_norm(f): f for f in allowed_figures(comms)}
-    for f in block_figures([grader, stance, changed]):
+    for f in block_figures([grader, stance, changed, week, gamma]):
         seen.setdefault(_norm(f), f)
     return {"week_ending": ed.get("week_ending"),
             "commentaries": comms,
+            # A103 (W1, W2, W7, the Weekly Letter of w/e 30 Oct): the tape's week
+            # column with its sign, the session table's five-session gamma
+            # summary, and the Ahead's calendar -- the prints the précis
+            # contradicted when it had only the commentaries to go on.
+            "the_week_in_markets": week,
+            "dealer_gamma_this_week": gamma,
+            "calendar_ahead": cal,
             "graded_calls": grader,
             "stance_ledger": stance,
             "changed_since_last_weekly": changed,
@@ -250,7 +413,20 @@ def system_prompt(fr: dict) -> str:
         week=WEEK_LINE.format(lo=b[0], hi=b[1]) if b else "",
         outlook=OUTLOOK_LINE if fr.get("previous_precis") else "",
         relevance=rel,
-        directions="; ".join(f"{a} -- {why}" for a, _, why in VERDICT_ASSETS))
+        directions="; ".join(f"{a} -- {why}" for a, _, why in VERDICT_ASSETS)) \
+        + PRINTS_NOTE
+
+
+# A103 (W1, W2, W7): the three prints the précis must agree with, named. No
+# figure is given as an example, so none can be copied from here.
+PRINTS_NOTE = (
+    "\n\nTHREE PRINTS YOU MUST AGREE WITH. `the_week_in_markets` is the tape's "
+    "week column, signed: the week's direction for a market is the sign printed "
+    "there (a negative week is a down week, never a positive one). "
+    "`dealer_gamma_this_week` gives the week session by session and, apart, the "
+    "reading at the week's end: describe the week from the first, and name the "
+    "second only as the week's end. Every date a CHANGE line gives an event is "
+    "that event's date in `calendar_ahead`.")
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +523,11 @@ def audit(p: dict, fr: dict) -> list[str]:
     elif (eq == "up" and sp <= 0.5) or (eq == "down" and sp >= 0.5):
         faults.append(f"STANCE p = {sp:.2f} is on the wrong side of the equities "
                       f"verdict '{eq}'")
+    # A103 (W1, W7): the week's direction against the tape; a CHANGE line's date
+    # against the calendar.
+    faults += week_sign_faults(prose_fields(p),
+                               spy_week(fr.get("the_week_in_markets") or []))
+    faults += change_date_faults(p.get("change") or [], fr.get("calendar_ahead") or [])
     bad = sorted({f for t in prose_fields(p) for f in _figs(t)
                   if _norm(f) not in allowed})
     if bad:

@@ -61,6 +61,7 @@ from typing import Any, Optional
 from altdata import labels, observations, session
 from altdata import model_meter
 
+from daily_cascade import audit_retry
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
 from daily_cascade import stack_render as sr
@@ -645,18 +646,11 @@ def dev_point(theme: str, it: dict) -> dict:
 
 def month_direction(h: list, then: Optional[str]) -> Optional[tuple[str, float]]:
     """(rising | falling, the |z| at the month's start): a gap's direction over the
-    MONTH -- its |z| at the latest point against its |z| at the month's start --
-    where the Weekly's reads its last two sessions (T3.6 M5)."""
-    pts = [(str(d)[:10], v) for d, v in h or [] if v is not None]
-    if not pts or not then:
-        return None
-    start = [v for d, v in pts if d <= then[:10]]
-    if not start:
-        return None
-    a, b = abs(float(start[-1])), abs(float(pts[-1][1]))
-    if a == b:
-        return None
-    return ("rising" if b > a else "falling"), float(start[-1])
+    MONTH -- its |z| at the latest point against its |z| at the month's start
+    (T3.6 M5). A103: one rule, weekly_sections.period_direction, which the
+    Weekly's gap table now reads over the week."""
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    return wsec.period_direction(h, then)
 
 
 def misfit_section(p: dict, st, now: str, pmb: Optional[dict],
@@ -666,7 +660,17 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict],
     mis = month_in_state(p)
     hist = {c["id"]: _contradiction_history(st, c["id"], now)
             for c in mis["contradictions"]}
-    b = _month_words(ws.misfit_week(mis, pmb, hist))
+    # A95 (M5, the Monthly Letter of 1 Nov): THE GAP'S AGE IS THE WEEKLY'S. The
+    # Weekly reads each gap's since-date and its sessions from the stored
+    # objects (weekly_sections.state_dates); the Monthly passed no dates, so the
+    # table fell back to the month object's persistence count and printed a
+    # different age for the same gap. Both now read the stored objects.
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    try:
+        dates = wsec.state_dates(ws.stored_objects(st, now))
+    except Exception:                                           # noqa: BLE001
+        dates = None
+    b = _month_words(ws.misfit_week(mis, pmb, hist, dates=dates))
     rows, ids, pts = [], [], []
     for t in (p.get("looking_back") or {}).get("themes") or []:
         for n, it in enumerate(t.get("items") or []):
@@ -830,8 +834,10 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     # yudd_line=False: the yields-up/dollar-down line is the Weekly's (AQ-8a);
     # the Monthly carries the series in the fiscal_dollar theme.
+    # month_aligned (A95, M2): the yields table's month change is the scorecard's
+    # and the themes' (v2.prior_target), not the prior knowable at the month-end.
     b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True,
-                                      yudd_line=False))
+                                      yudd_line=False, month_aligned=True))
     names = {name: k for k, name in ws.PLUMB}
     rows = (b.get("table") or {}).get("rows") or []
     moved = [r[0] for r in rows if names.get(r[0]) in on_tape]
@@ -1461,10 +1467,14 @@ def book_section(p: dict) -> dict:
     bzl = bz.get("book_line") or bz.get("line")
     why = (bz.get("book_line_absent_reason") or bz.get("absent_reason")
            or bz.get("fault") or "not read")
+    # A95 (M4): the one sentence the read's paragraph prints too (v2), so Book
+    # Z's own ledgers are never printed under "Against Book Z".
+    from . import v2 as _v2                                      # noqa: PLC0415
+    zs = _v2.book_z_sentence(bz)
     zsub = {"title": "Against Book Z",
-            "lines": [f"Against Book Z, {bzl}." if bzl else f"Book Z absent: {why}."]}
-    if bzl:
-        items.append(item("book:z", f"Against Book Z, {bzl}.", 2, bzl))
+            "lines": [zs if zs else f"Book Z absent: {why}."]}
+    if zs:
+        items.append(item("book:z", zs, 2, bzl))
         items[-1]["show"] = False
     if r.get("state") == "ok" and r.get("paragraph"):
         lines.append(f"The bound, restated from the weights and the positions: "
@@ -2205,6 +2215,23 @@ def _right(r: dict) -> Optional[bool]:
         return None
 
 
+def forecast_count_line(emitted: list[dict], tail: str = "") -> str:
+    """A95 (M3, the Monthly Letter of 1 Nov): THE HEADER NAMES WHAT IT COUNTS.
+    The header counted every forecast the probability ledger took this month
+    (the close's outlooks, the narrative register's), while the scenario record
+    counts the scenario weights alone and said "No probability has been
+    emitted": two right counters, one unlabelled. The line now says it counts
+    the ledger and how many of those are scenario weights (payload's
+    SCENARIO_SOURCES, the scenario record's own filter)."""
+    from .payload import SCENARIO_SOURCES                         # noqa: PLC0415
+    n = len(emitted)
+    k = sum(1 for r in emitted if r.get("ledger_source") in SCENARIO_SOURCES)
+    scen = ("none of them a scenario weight" if k == 0 else
+            f"{k} of them scenario weight{'' if k == 1 else 's'}")
+    return (f"{n} forecast{'' if n == 1 else 's'} emitted to the probability ledger "
+            f"({scen}){tail}.")
+
+
 def changed_since(p: dict) -> tuple[list[str], list[str]]:
     wc = (p.get("looking_back") or {}).get("what_changed") or {}
     lines, ids = [], []
@@ -2234,8 +2261,8 @@ def changed_since(p: dict) -> tuple[list[str], list[str]]:
                 tail += f": {right} right, {wrong} wrong"
             if right + wrong < len(resolved):
                 tail += f" ({len(resolved) - right - wrong} not yet graded)"
-        lines.append(f"{len(emitted)} forecast{'' if len(emitted) == 1 else 's'} "
-                     f"emitted{tail}.")
+        lines.append(forecast_count_line(
+            [(wc.get("rows") or [])[n] for n in emitted], tail))
         ids += [f"looking_back:what_changed:{n}" for n in emitted] + \
             [f"looking_back:what_changed:{n}" for n, _ in resolved]
     if decisions:
@@ -2534,7 +2561,10 @@ PHASE_A_PROSE = {"month_in_markets": ("read", None),
 # run's archive held only the last reason, and what a withheld section needed
 # had to be inferred from it.
 PROSE_ARCHIVED = ("state", "published", "reason", "attempts", "first_reason",
-                  "reasons", "words", "figures_cited", "rejected_text")
+                  "reasons", "words", "figures_cited", "rejected_text",
+                  # W10-1 (D46): a partial publication's count, its withheld
+                  # sentences with their reasons, and why a section stayed whole.
+                  "partial", "withheld_sentences", "fallback")
 
 
 def apply_prose(ed: dict, written: dict) -> dict:
@@ -2554,6 +2584,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
     for key, r in written.items():
         ok = bool(r.get("published") and r.get("text"))
         why = r.get("reason") or r.get("state")
+        # W10-1 (D46): published with k sentences withheld -- the status line.
+        part = (f"Commentary {audit_retry.status(int(r['partial']))} by the figure audit."
+                if ok and r.get("partial") else None)
         if key.startswith("stack:"):
             s = secs.get(key.split(":", 1)[1])
             if s is None:
@@ -2562,6 +2595,8 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
                 s["paragraphs"] = s["paragraphs"][:1] if s.get("depth") in (
                     "deep", "medium") and not s.get("claim_only") else []
+                if part:
+                    s["partial_withheld"] = int(r["partial"])
             else:
                 s["withheld"] = why
             continue
@@ -2570,6 +2605,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
             owner, ss = subs[key]
             if ok:
                 ss["paragraphs"] = _paras(r["text"])
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
@@ -2586,12 +2624,17 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 ss["paragraphs"] = _paras(r["text"])
                 # The takeaways now print as their prose: the lines are its data.
                 ss["lines"] = []
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
             continue
         if ok:
             s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
+            if part:
+                s["partial_withheld"] = int(r["partial"])
         else:
             s["withheld"] = why
     ed["prose"] = {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
@@ -2829,6 +2872,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     # EL-6: THE SYSTEM-METRICS BLOCK, the last detail table. Data, not prose:
     # it counts in neither the word budget nor the chart cap.
     ed["detail"].append(system_metrics_block(p, ed, db_path, archive_dir, "monthly"))
+    # THE COVERAGE TABLE (W10-3): the Weekly's, in the appendix.
+    from daily_cascade import coverage                          # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    apx = next((d for d in ed["detail"] if d.get("id") == "appendix"), None)
+    if cov and apx is not None:
+        apx["coverage"] = cov
     if not narrative:
         written = {}
     elif write is not None:
@@ -2846,6 +2895,10 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     except Exception:                                           # noqa: BLE001
         log.exception("the Monthly's charts faulted; the edition prints none")
         charts = {}
+    # THE "WHAT TO SEE" LINE (W10-2): as the Weekly's, after the drawing.
+    if narrative:
+        from daily_cascade import chart_lines                   # noqa: PLC0415
+        chart_lines.write(ed, charts, model=model, client=client)
     ed["levels"] = book
     polish(ed, charts)
     # THE EXECUTIVE SUMMARY, BUILT LAST FROM THE FINISHED SECTIONS (T3.1 item

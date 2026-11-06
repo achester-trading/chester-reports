@@ -101,10 +101,16 @@ commands:
   altdata.decision_quality:
     domain: register
     line: Decision quality -- is the system getting better? (Learning Loop v2, LL-1)
+  altdata.forecasters:
+    domain: register
+    line: "The forecasters (Learning Loop v2, LL-6): two Anthropic and one Gemini, independent, metered under a zero-call budget until set; status and run"
     sources: [derived_probability, derived_grade]
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report
+  altdata.dth1_ledger:
+    domain: portfolio
+    line: "DTH-1 (D41): the anchor's day-trade rules checklist and the manual ledger's aggregates for the Weekly -- counts and R only, read from the box's inbox"
   altdata.error_corpus:
     domain: register
     line: The error corpus -- every graded miss, with what was said, what happened and what was missing (LL-3)
@@ -191,6 +197,9 @@ commands:
   altdata.purge_synthetic:
     domain: reference
     line: "Remove the smoke test's old synthetic.* rows (b51): dry run first; --apply makes and checks a NEW backup first; the operator's, on the box"
+  altdata.price_sources:
+    domain: prices
+    line: "The price sources' per-family switch (A96): each family's active source and keys; every family on yfinance until switched"
   altdata.quality:
     domain: reference
     line: 'The data-quality check, read-only, after each pull: outliers, revisions and cross-source pairs (AUD-3c)'
@@ -452,6 +461,10 @@ commands:
     domain: equity
     line: Quarterly fundamentals for nine AI-capex names -- yfinance, stamped by SEC filing
     sources: [yfinance_fundamentals]
+  altdata.sources.ibkr_bars:
+    domain: prices
+    line: "IBKR historical daily bars (A93, D38's tranche 1): built and switched off until the market-data subscription; plan, pull, backfill"
+    sources: [ibkr_bars]
   altdata.sources.ibkr_costs:
     domain: portfolio
     line: Schedule-derived expression economics -- the Gate 1.5 fallback

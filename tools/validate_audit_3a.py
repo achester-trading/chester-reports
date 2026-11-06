@@ -160,6 +160,8 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "bars_volume_shares", "bars_volume_contracts", "bars_volume_usd",
                   "fred_6e",   # 6e, the rest (16 Oct 2026): the FRED legs of Session 3 and the CPI lead
                   "fred_releases",   # 6e-releases (16 Oct 2026): Batch 7 Group A's FRED legs
+                  # A102 (1 Nov 2026): EDGAR's fundamentals, built and switched off
+                  "edgar_fundamentals",
                   "fred_group_b",    # lenses-group-b (18 Oct 2026): Batch 7 Group B's FRED legs
                   # Tranche A part 1 (17 Oct 2026): the watch names' DefiLlama
                   # fees, and BTC's and ETH's caps and supply in the coin blocks
@@ -168,6 +170,8 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   "note_bars_prices",
                   # A51 (19 Oct 2026): the open note's retail sales form (RSAFS)
                   "fred_notes",
+                  # A93 (29 Oct 2026): the IBKR daily bars, built and switched off
+                  "ibkr_daily_bars",
                   # Batch 12 item 59 (a53, 20 Oct 2026): the bank-stress panel's FRED legs
                   "fred_bank_stress",
                   # Batch 14 item 68 (b55, 23 Oct 2026): the per-household deflator

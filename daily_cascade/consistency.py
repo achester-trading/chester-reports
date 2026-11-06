@@ -141,10 +141,17 @@ def reconcile(ed: dict, fix: bool = True, fail: bool = True) -> list[dict]:
 # the gate's tolerance (one unit in the coarser figure's last decimal), else the
 # run fails; at DIFFERENT dates they are not compared, and a chart caption must
 # carry its source and date ("10-year 5.28% (FRED, 7 Oct)").
+# The tape's yield keys come from the price-source resolver (A96): Yahoo's today,
+# FRED's own once the family is switched, when the pair collapses to one id.
+def _tape(member: str, fred: str) -> tuple[str, ...]:
+    from altdata import price_sources                           # noqa: PLC0415
+    return tuple(dict.fromkeys((member, price_sources.key("us_yields", member), fred)))
+
+
 ALIASES: dict[str, tuple[str, ...]] = {
     "y2": ("y2", "fred.yield_2y"),
-    "y10": ("y10", "yfinance.mkt_tnx", "fred.yield_10y"),
-    "y30": ("y30", "yfinance.mkt_tyx", "fred.yield_30y"),
+    "y10": _tape("y10", "fred.yield_10y"),
+    "y30": _tape("y30", "fred.yield_30y"),
     "hy_oas": ("hy_oas", "fred.hy_oas"),
 }
 
