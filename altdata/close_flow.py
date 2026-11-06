@@ -24,6 +24,10 @@ instant computed:
         stored prior close.
   1645  the 16:45 close (daily_cascade/stack.py, stored by stack_close): each
         underlying's stored close against its stored prior close.
+  MSTR and COIN (D66 ruling 2, A127b) are read from the captured option chains,
+  item 49's treasury read: the session's newest chain at or before the instant
+  against the previous session's newest chain (the chain's spot, not the
+  official close). SNDK has no chain: "gap: no keyless price".
 History builds from the first live run; nothing is backfilled by hand.
 
 THE FLAG (O-1): at 15:00, |the total| of $20bn or more. After 60 stored 15:00
@@ -57,6 +61,8 @@ SOURCE = "close_flow"
 SLOTS = ("1500", "1645")
 TITLE = "Levered-ETF close flow (estimate)"
 NOT_READ_D33 = "underlying not read (not in the price basket; D33 admits no new Yahoo symbol)"
+# The captured chains' directory; None is chain_metrics.chain_dir() (a gate sets it).
+CHAIN_BASE: Optional[Path] = None
 
 
 def config(path: Optional[Path] = None) -> dict:
@@ -99,8 +105,10 @@ def estimate(cfg: dict, aum: dict[str, Optional[float]],
     funds_out = []
     for f in cfg["funds"]:
         t, u = f["ticker"], f["underlying"]
+        ux = (cfg.get("underlyings") or {}).get(u) or {}
         if f.get("method") == "gap":
-            left[t] = f"gap: {f.get('gap')}"
+            left[t] = f"gap: {f.get('gap')}" + (
+                f"; {ux.get('label') or u}: {ux['gap']}" if ux.get("gap") else "")
             continue
         a, r = aum.get(t), returns.get(u)
         if a is None:
@@ -285,11 +293,53 @@ def adv_by_underlying(st, cfg: dict, day: str, cutoff: str) -> dict[str, Optiona
     return out
 
 
+def _chain(symbol: str, day: str, at_or_before: str) -> Optional[tuple[float, str]]:
+    from .sources.treasury import chain_spot                    # noqa: PLC0415
+    return chain_spot(day, CHAIN_BASE, symbol, at_or_before=at_or_before)
+
+
+def chain_return(x: dict, day: str, at_or_before: str,
+                 max_age: Optional[dt.timedelta] = None
+                 ) -> tuple[Optional[float], Optional[str], dict]:
+    """(r, why not, used): the session's newest captured chain spot at or before
+    the instant against the previous session's newest (D66 ruling 2)."""
+    sym = x["chain"]
+    now = _chain(sym, day, at_or_before)
+    if not now:
+        return None, f"no captured {sym} chain on {day} by the estimate's instant", {}
+    if max_age is not None:
+        at = dt.datetime.fromisoformat(at_or_before.replace("Z", "+00:00"))
+        got = dt.datetime.fromisoformat(now[1].replace("Z", "+00:00"))
+        got = got if got.tzinfo else got.replace(tzinfo=dt.timezone.utc)
+        if at - got > max_age:
+            return None, (f"the newest {sym} chain ({now[1]}) is older than "
+                          f"{int(max_age.total_seconds() // 60)} minutes"), {}
+    prev_day = session.previous_trading_session(day).isoformat()
+    prev = _chain(sym, prev_day, at_or_before)
+    if not prev or not prev[0]:
+        return None, f"no captured {sym} chain on {prev_day}", {}
+    return now[0] / prev[0] - 1.0, None, {
+        "symbol": sym, "source": "captured chain spot (not the official close)",
+        "fetched_at": now[1], "price": now[0], "prior_fetched_at": prev[1],
+        "prior_price": prev[0]}
+
+
 def close_returns(st, cfg: dict, day: str, cutoff: str) -> tuple[dict, dict]:
-    """16:45: {underlying: the day's close against the prior stored close}."""
+    """16:45: {underlying: the day's close against the prior stored close}; a
+    chain underlying, its chain spot."""
     rets, why = {}, {}
     for u, x in cfg["underlyings"].items():
         k = x.get("store_key")
+        if x.get("gap"):
+            why[u] = x["gap"]
+            continue
+        if x.get("chain"):
+            r, w, _ = chain_return(x, day, cutoff)
+            if r is None:
+                why[u] = w
+            else:
+                rets[u] = r
+            continue
         if not k:
             why[u] = NOT_READ_D33
             continue
@@ -323,9 +373,21 @@ def intraday_returns(st, cfg: dict, day: str, cutoff: str, now: dt.datetime,
     at = min(at, close_at)
     max_age = dt.timedelta(minutes=int((cfg.get("intraday") or {})
                                        .get("max_bar_age_minutes") or 15))
+    chain_age = dt.timedelta(minutes=int((cfg.get("chain_spot") or {})
+                                         .get("max_age_minutes_1500") or 180))
     rets, why, used = {}, {}, {}
     for u, x in cfg["underlyings"].items():
         sym, k = x.get("yahoo"), x.get("store_key")
+        if x.get("gap"):
+            why[u] = x["gap"]
+            continue
+        if x.get("chain"):
+            r, w, info = chain_return(x, day, min(now, at).isoformat(), chain_age)
+            if r is None:
+                why[u] = w
+            else:
+                rets[u], used[u] = r, info
+            continue
         if not sym or not k:
             why[u] = NOT_READ_D33
             continue

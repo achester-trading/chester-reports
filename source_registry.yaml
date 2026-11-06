@@ -2710,12 +2710,13 @@ sources:
     epistemic_role: primary_fact
     domain: [leverage, etf]
     geography: [US]
-    latency: Direxion's and GraniteShares' files by the morning; REX's page as of its stated date
+    latency: Direxion's and GraniteShares' files by the morning; REX's and Defiance's pages as of their stated dates
     timestamp_reliability: medium
     timestamp_notes: >-
       The pull instant (observed). Each row is observed at the close the issuer's
       figure values: Direxion's holdings file and GraniteShares' workbook dated D
-      carry D's previous session; REX states its own "As of" date.
+      carry D's previous session; REX states its own "As of" date and Defiance
+      its "Data as of" date.
     license: public issuer data, no key; robots.txt read at every pull
     allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
     implemented_by: altdata/sources/levered_etf.py
@@ -2723,9 +2724,11 @@ sources:
     caveats:
       - >-
         Tradr's funds (SNXX, TSLQ) are gaps: the pages fill AUM in the browser and
-        the aggregator checked forbids automated access (6 Nov 2026).
+        the aggregator checked forbids automated access (6 Nov 2026); D66 ruling 4
+        keeps them gaps, no by-hand line.
       - >-
-        Variants: levered_etf:direxion, levered_etf:graniteshares, levered_etf:rex.
+        Variants: levered_etf:direxion, levered_etf:graniteshares, levered_etf:rex,
+        levered_etf:defiance (MSTX, admitted by the $250m floor, A127b).
 
   close_flow:
     name: The levered-ETF close-flow estimate (item 116), our own computation

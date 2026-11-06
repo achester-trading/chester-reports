@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 241
+next_id: 247
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -4943,6 +4943,132 @@ instruments:
   active_to: null
   sources:
     identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00241
+  name: Direxion Daily NVDA Bull 2X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: NVDU
+    store_key: levetf.aum:NVDU
+    ticker: NVDU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127b, the $250m floor of D66 ruling 5); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00242
+  name: Direxion Daily MSFT Bull 2X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: MSFU
+    store_key: levetf.aum:MSFU
+    ticker: MSFU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127b, the $250m floor of D66 ruling 5); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00243
+  name: Direxion Daily META Bull 2X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: METU
+    store_key: levetf.aum:METU
+    ticker: METU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127b, the $250m floor of D66 ruling 5); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00244
+  name: Direxion Daily AMZN Bull 2X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: AMZU
+    store_key: levetf.aum:AMZU
+    ticker: AMZU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127b, the $250m floor of D66 ruling 5); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00245
+  name: T-Rex 2X Long NVIDIA Daily Target ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: BATS
+  identifiers:
+    yahoo: NVDX
+    store_key: levetf.aum:NVDX
+    ticker: NVDX
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127b, the $250m floor of D66 ruling 5); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Z
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00246
+  name: Defiance Daily Target 2x Long MSTR ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: MSTX
+    store_key: levetf.aum:MSTX
+    ticker: MSTX
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127b, the $250m floor of D66 ruling 5); store_key is levetf.aum's instrument
     asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
     currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
     exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G

@@ -236,3 +236,77 @@ The full suite was also run once as a sweep.
 3. **% of ADV for the index buckets** is the ETF's dollar volume, not the constituents'. The semiconductors bucket therefore reads large percentages against SMH. The flag's switch is unaffected, since it uses the box's own history in the same units. Keep this, or rule a constituent-based ADV?
 4. **Tradr is a gap** (SNXX, TSLQ): no keyless figure, and the aggregator's terms forbid automated reads. Leave it as a gap, or rule a by-hand line (rule 3 needs your explicit yes)?
 5. **The roster misses MS's wider universe.** The recomputed $5.3bn per 1% is the roster's own figure; MS's universe is wider. The floor ($500m) is session-set and can be lowered in the config if you want more of the long tail.
+
+
+## A127b: the five rulings on the needs-you (D66, 6 Nov 2026, 16:46 ET)
+
+Base `37c80ce9` (the branch's tip, as expected); paste `docs/pastes/A127b.md`.
+
+**Ruling 1, the 15:00 timer.** Nothing built. See the box steps below.
+
+**Ruling 2, no Yahoo exception (D33 stands).**
+- MSTR's and COIN's spot now come from the captured option chains, through item 49's read, `altdata/sources/treasury.py` `chain_spot`.
+  - That function gained one optional argument, `at_or_before`, so a reader as of a cutoff never sees a later capture. Item 49's own call passes none and behaves as before.
+- The return is the session's newest chain at or before the estimate's instant against the previous session's newest chain. That is the chain's spot, not the official close, and the price record says so.
+- MSTU, MSTZ, CONL and the new MSTX rejoin both estimates on that spot.
+- At 15:00 the newest chain is normally the 12:30 capture. A chain older than 180 minutes at 15:00 (session-set, `chain_spot.max_age_minutes_1500`) leaves the fund out, named.
+- MSTR and COIN have no stored volume, so they are in no `adv` list. The single-stock bucket's ADV is its stored names'.
+- **SNDK has no chain.** Its underlying carries `gap: no keyless price`, which prints on its one fund, SNXX. SNXX is also a Tradr AUM gap. It waits for the price migration.
+
+**Ruling 3, % of ADV against the ETF's own dollar volume.** Kept. The reason is written beside the `buckets` field in `config/levered_etf.yaml`.
+
+**Ruling 4, Tradr stays a gap.** No by-hand line. The config's Tradr comment says why: no figure or file on the page, the aggregator's terms, and rule 3.
+
+**Ruling 5, the floor drops from $500m to $250m.** It is session-set and dated in the config (`aum_floor_set`). Six funds clear it. All six were read live on 6 Nov through the same writer, each at the 5 Nov close:
+
+| Fund | Issuer | L | Underlying | Bucket | AUM, 5 Nov | Id |
+|---|---|---|---|---|---|---|
+| NVDU | Direxion | 2 | NVDA | single stocks | $0.321bn | SM00241 |
+| MSFU | Direxion | 2 | MSFT | single stocks | $0.353bn | SM00242 |
+| METU | Direxion | 2 | META | single stocks | $0.311bn | SM00243 |
+| AMZU | Direxion | 2 | AMZN | single stocks | $0.284bn | SM00244 |
+| NVDX | REX | 2 | NVDA | single stocks | $0.268bn | SM00245 |
+| MSTX | Defiance | 2 | MSTR (chain spot) | single stocks | $0.255bn | SM00246 |
+
+- `next_id` is now 247.
+- MSFT, META and AMZN were already in the price basket (`yfinance.mkt_*`), so no new Yahoo symbol was added.
+- MSTX is the first Defiance fund. The writer gained a `defiance_page` method, which reads the page's "Data as of" date and its "Net Assets". Defiance's robots.txt disallows only its fund-document uploads.
+- NVDX's page reads $0.268bn as of 5 Nov. A127's note gave $0.317bn, presumably an earlier day's figure.
+- PLTU ($0.223bn) and the rest stay below the floor, each listed in the config's `excluded`.
+- The roster is now 38 funds: 36 read and 2 Tradr gaps.
+
+**V-98c, recomputed** from the issuers' 5 Nov figures:
+
+| | A127 ($500m floor) | A127b ($250m floor) |
+|---|---|---|
+| Funds read | 30 | 36 |
+| Roster AUM | $98.1bn | $99.75bn |
+| Dollars per 1%, every underlying | **$5.30bn** | **$5.33bn** |
+| Dollars per 1%, index funds only | $5.14bn | $5.14bn |
+| Single-stock bucket | $0.15bn | $0.19bn |
+
+The long tail adds about $0.03bn per 1%. The gap to MS's universe is not the floor.
+
+**Gates**, one at a time:
+
+| Gate | Result |
+|---|---|
+| validate_item_116 | 68/0 (gains the chain-spot path, the floor and the Defiance parser) |
+| validate_security_master | 102/0 |
+| validate_batch14_b1 | 68/0 |
+| check_registry | OK |
+| validate_gates | 32/0 |
+
+Also run, since `chain_spot` is item 49's:
+- validate_digital_addendum: passed;
+- validate_crypto_sources: passed.
+
+### Box steps (the operator's)
+
+1. **The 15:00 timer.** D66 ruling 1 sets it for Monday 9 Nov, after chain-13's merge and deploy, inside a window:
+   `systemctl --user enable --now chester-close-flow.timer`
+
+### For the price migration
+
+- SNDK (SNXX's underlying): "gap: no keyless price".
+- MSTR and COIN read the chain spot until the migration carries them. Their funds then move to stored closes and enter the bucket's ADV.

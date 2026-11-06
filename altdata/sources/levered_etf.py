@@ -27,6 +27,9 @@ HOW EACH ISSUER IS READ (V-98b, checked 6 Nov 2026), ONE REQUEST PER PAGE OR FIL
   rex_page           www.rexshares.com/<t>/: "As of MM/DD/YYYY ... Fund Assets $n",
                      observed at the As-of date. The host's Crawl-delay (10 s) is
                      honoured between its requests.
+  defiance_page      www.defianceetfs.com/<t>/: "Data as of MM/DD/YYYY ... Net
+                     Assets $n.nnM", observed at that date (MSTX, admitted by
+                     the $250m floor; A127b, D66 ruling 5).
   gap                no keyless reading (Tradr's pages fill AUM in the browser; the
                      aggregator checked forbids automated access): never
                      requested, named in the summary.
@@ -68,7 +71,7 @@ log = logging.getLogger(__name__)
 SOURCE = "levered_etf"
 KEYS = ["levetf.aum"]
 CONFIG = Path(__file__).resolve().parent.parent.parent / "config" / "levered_etf.yaml"
-METHODS = ("direxion_holdings", "granite_holdings", "rex_page")
+METHODS = ("direxion_holdings", "granite_holdings", "rex_page", "defiance_page")
 AGREE_TOL = 0.001            # Direxion's lines must agree within 0.1%
 
 
@@ -178,6 +181,21 @@ def parse_rex(page_html: str, ticker: str) -> tuple[str, float]:
     return day, _num(m.group(2))
 
 
+_SCALE = {"K": 1e3, "M": 1e6, "B": 1e9, "": 1.0}
+
+
+def parse_defiance(page_html: str, ticker: str) -> tuple[str, float]:
+    """Defiance's fund page: "Data as of MM/DD/YYYY ... Net Assets $254.91M" (the
+    figure at that date's close; A127b, D66 ruling 5)."""
+    text = re.sub(r"\s+", " ", re.sub(r"<[^>]*>", " ", page_html))
+    m = re.search(r"Data as of (\d{2}/\d{2}/\d{4}) .{0,200}?Net Assets "
+                  r"\$\s?([\d,.]+)\s?([KMB]?)\b", text)
+    if not m:
+        raise ValueError(f"{ticker}: no 'Data as of ... Net Assets' on the page")
+    day = dt.datetime.strptime(m.group(1), "%m/%d/%Y").date().isoformat()
+    return day, _num(m.group(2)) * _SCALE[m.group(3)]
+
+
 # ---------------------------------------------------------------------------
 # The pull
 # ---------------------------------------------------------------------------
@@ -242,6 +260,8 @@ def read_fund(f: dict, robots: _Robots, get: Callable[..., tuple],
     page = fetch(f["aum_page"]).decode("utf-8", "replace")
     if method == "rex_page":
         return parse_rex(page, t)
+    if method == "defiance_page":
+        return parse_defiance(page, t)
     return parse_granite(granite_rows(fetch(granite_link(page, t))), t)
 
 

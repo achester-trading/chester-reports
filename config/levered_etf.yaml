@@ -29,17 +29,24 @@ aum_max_age_days: 5
 # 2x/3x index family" and the single-stock pairs): each issuer's own figure, read
 # at build on 6 Nov 2026 (A127's notes, docs/briefs/a127-notes.md, list every
 # figure read and every fund below it). A fund the paste names is on the roster
-# whatever its size. Session-set.
-aum_floor_usd: 500000000
-aum_floor_read: "2026-11-06, each issuer's own page or file (A127 notes)"
+# whatever its size. Session-set. D66 ruling 5 (6 Nov 2026, 16:46 ET) dropped it
+# from $500m to $250m; A127b admitted the six funds that clears (NVDU, MSFU,
+# METU, AMZU, NVDX, MSTX), each read through the same writer.
+aum_floor_usd: 250000000
+aum_floor_set: "2026-11-06, D66 ruling 5 (was 500000000 from A127, 6 Nov 2026)"
+aum_floor_read: "2026-11-06, each issuer's own page or file (A127 and A127b notes)"
 
 # THE UNDERLYINGS: the instrument whose return r drives a fund. `store_key` is the
 # stored daily close (and `<store_key>_volume`, its daily volume) the 16:45
 # estimate and the ADV read; `yahoo` is the symbol the 15:00 pass reads intraday.
-# An underlying with neither (MSTR, COIN, SNDK) is not in the price basket, and
-# D33 (24 Oct 2026) admits no new Yahoo symbol, so its funds' AUM is stored and
-# both estimates name them "underlying not read (D33)" until the price-source
-# migration carries the name (A127 needs-you). An index fund's underlying is its
+# MSTR, COIN and SNDK are not in the price basket, and D33 (24 Oct 2026) admits
+# no new Yahoo symbol; D66 ruling 2 (6 Nov 2026) made no exception. MSTR and COIN
+# carry `chain`: their spot is the session's newest captured option chain at or
+# before the estimate's instant, read through item 49's treasury read
+# (altdata/sources/treasury.py chain_spot), against the previous session's
+# newest chain -- the chain's spot, not the official close, labelled. SNDK has no
+# chain, so it carries `gap` and its fund prints "gap: no keyless price" until
+# the price-source migration carries it. An index fund's underlying is its
 # index's stored ETF, a PROXY for the index the fund tracks, labelled wherever it
 # prints.
 underlyings:
@@ -56,9 +63,20 @@ underlyings:
   tsla: {label: "Tesla (TSLA)", yahoo: TSLA, store_key: yfinance.mkt_tsla}
   googl: {label: "Alphabet (GOOGL)", yahoo: GOOGL, store_key: yfinance.mkt_googl}
   amd:  {label: "AMD (AMD)", yahoo: AMD, store_key: yfinance.mkt_amd}
-  mstr: {label: "Strategy (MSTR)", yahoo: null, store_key: null}
-  coin: {label: "Coinbase (COIN)", yahoo: null, store_key: null}
-  sndk: {label: "SanDisk (SNDK)", yahoo: null, store_key: null}
+  msft: {label: "Microsoft (MSFT)", yahoo: MSFT, store_key: yfinance.mkt_msft}
+  meta: {label: "Meta (META)", yahoo: META, store_key: yfinance.mkt_meta}
+  amzn: {label: "Amazon (AMZN)", yahoo: AMZN, store_key: yfinance.mkt_amzn}
+  mstr: {label: "Strategy (MSTR, captured chain spot)", yahoo: null, store_key: null, chain: MSTR}
+  coin: {label: "Coinbase (COIN, captured chain spot)", yahoo: null, store_key: null, chain: COIN}
+  sndk: {label: "SanDisk (SNDK)", yahoo: null, store_key: null,
+         gap: "gap: no keyless price (no captured chain; D33 admits no Yahoo symbol) until the price migration"}
+
+# THE CHAIN SPOT (D66 ruling 2): the 16:45 estimate reads the session's newest
+# captured chain at or before the cutoff; the 15:00 estimate the newest at or
+# before 15:00, which on a normal session is the 12:30 capture. Session-set: the
+# oldest a 15:00 chain spot may be before the fund is left out and named.
+chain_spot:
+  max_age_minutes_1500: 180
 
 # THE BUCKETS, in print order (98.1: semiconductors, Nasdaq 100, S&P 500 and named
 # single stocks; the paste adds the Russell 2000). `other_index` holds the index
@@ -67,8 +85,13 @@ underlyings:
 # 20-session average dollar volume (the stored close x the stored volume) of the
 # instruments whose return drives the bucket -- its `adv` list -- through the
 # session before the estimate's day. For an index bucket that is its ETF's
-# dollar volume, not its constituents' (A127 needs-you); the 60-session switch
-# reads the box's own history in the same units, so the flag is unaffected.
+# dollar volume, not its constituents' (D66 ruling 3, 6 Nov 2026: kept). THE
+# REASON: the ETF is the instrument the funds' swap and basket hedges trade into
+# the close, its dollar volume is one stored series where the constituents' would
+# be hundreds (none of which the basket carries whole), and the 60-session switch
+# reads the box's own history in the same units, so the flag is unaffected. A
+# chain-spot underlying (MSTR, COIN) has no stored volume and is in no `adv`
+# list; the single-stock bucket's ADV is its stored names'.
 buckets:
   - {id: semiconductors, label: "Semiconductors", adv: [smh]}
   - {id: nasdaq_100, label: "Nasdaq 100", adv: [qqq]}
@@ -76,7 +99,7 @@ buckets:
   - {id: russell_2000, label: "Russell 2000", adv: [iwm]}
   - {id: other_index, label: "Other index and sector funds (Dow 30, technology, financials)",
      adv: [dia, xlk, xlf]}
-  - {id: single_stocks, label: "Named single stocks", adv: [nvda, tsla, googl, amd]}
+  - {id: single_stocks, label: "Named single stocks", adv: [nvda, tsla, googl, amd, msft, meta, amzn]}
 
 # THE ROSTER. `writer`: the module that stores the fund's levetf.aum --
 # `proshares` (altdata/sources/proshares.py, the issuer's NAV history file; the
@@ -147,6 +170,15 @@ funds:
      pair_of: TSLL, aum_page: "https://www.direxion.com/holdings/TSLS.csv"}
   - {ticker: GGLL, issuer: Direxion, leverage: 2, underlying: googl, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
      aum_page: "https://www.direxion.com/holdings/GGLL.csv"}
+  # Admitted by the $250m floor (D66 ruling 5; A127b, 6 Nov 2026):
+  - {ticker: NVDU, issuer: Direxion, leverage: 2, underlying: nvda, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/NVDU.csv"}
+  - {ticker: MSFU, issuer: Direxion, leverage: 2, underlying: msft, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/MSFU.csv"}
+  - {ticker: METU, issuer: Direxion, leverage: 2, underlying: meta, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/METU.csv"}
+  - {ticker: AMZU, issuer: Direxion, leverage: 2, underlying: amzn, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/AMZU.csv"}
   # --- GraniteShares: the fund page links its dated holdings workbook; the
   # workbook's Shares Outstanding x NAV/Share is the AUM, at the session before
   # its Position Date. The page's own AUM is filled by a signed endpoint (a key
@@ -162,10 +194,18 @@ funds:
      aum_page: "https://www.rexshares.com/mstu/"}
   - {ticker: MSTZ, issuer: REX, leverage: -2, underlying: mstr, bucket: single_stocks, writer: levered_etf, method: rex_page, named: true,
      aum_page: "https://www.rexshares.com/mstz/"}
-  # --- Tradr: GAPS (V-98b). The fund pages fill AUM in the browser and carry no
-  # figure or file; the one public aggregator checked (stockanalysis.com) forbids
-  # automated access in its terms. Named, and left out of every estimate. Both
-  # are among Tradr's own "largest AUM" list (read 6 Nov 2026).
+  - {ticker: NVDX, issuer: REX, leverage: 2, underlying: nvda, bucket: single_stocks, writer: levered_etf, method: rex_page, named: false,
+     aum_page: "https://www.rexshares.com/nvdx/"}
+  # --- Defiance: the fund page's "Data as of" date and "Net Assets" (robots.txt
+  # disallows only its fund-document uploads). Admitted by the $250m floor.
+  - {ticker: MSTX, issuer: Defiance, leverage: 2, underlying: mstr, bucket: single_stocks, writer: levered_etf, method: defiance_page, named: false,
+     aum_page: "https://www.defianceetfs.com/mstx/"}
+  # --- Tradr: GAPS (V-98b; D66 ruling 4, 6 Nov 2026: stays a gap, no by-hand
+  # line). WHY: the fund pages fill AUM in the browser and carry no figure or
+  # file; the one public aggregator checked (stockanalysis.com) forbids automated
+  # access in its terms; and a recurring by-hand figure needs the operator's yes
+  # in a filed order (rule 3), which D66 declined. Named, and left out of every
+  # estimate. Both are among Tradr's own "largest AUM" list (read 6 Nov 2026).
   - {ticker: SNXX, issuer: Tradr, leverage: 2, underlying: sndk, bucket: single_stocks, writer: levered_etf, method: gap, named: false,
      aum_page: "https://www.tradretfs.com/snxx",
      gap: "Tradr's page fills AUM in the browser (no figure or file); the aggregator checked forbids automated access (read 6 Nov 2026)"}
@@ -180,9 +220,8 @@ excluded:
   - {tickers: [TMF], reason: "Treasuries, not equities"}
   - {tickers: [YINN], reason: "China large caps (FXI), not a US equity close; FXI is not stored"}
   - {tickers: [LABU], reason: "its index (S&P Biotech, XBI) is not in the stored price basket"}
-  - {tickers: [MSTX], reason: "below the AUM floor (Defiance's page, 6 Nov 2026)"}
-  - {tickers: [NVDU, AAPU, PLTU, MSFU, METU, AMZU, WEBL, FNGG, TSLR, AAPB, FBL, MSFL, NVD,
-               PTIR, NVDX, TSLT], reason: "below the AUM floor (the issuer's own figure, 6 Nov 2026)"}
+  - {tickers: [AAPU, PLTU, WEBL, FNGG, TSLR, AAPB, FBL, MSFL, NVD, PTIR, TSLT],
+     reason: "below the $250m AUM floor (the issuer's own figure, 6 Nov 2026)"}
 
 # THE TWO ESTIMATES. `instrument` is the slot stored on each calc row.
 slots:

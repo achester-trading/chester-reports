@@ -112,19 +112,33 @@ def parse_shares(doc: dict) -> Optional[tuple[str, float, str]]:
     return str(f["end"])[:10], float(f["val"]), str(f.get("filed"))
 
 
-def chain_spot(day: str, base: Optional[Path] = None, symbol: str = "MSTR"
-               ) -> Optional[tuple[float, str]]:
-    """(spot, fetched_at) from the session's newest captured chain of `symbol`."""
+def chain_spot(day: str, base: Optional[Path] = None, symbol: str = "MSTR",
+               at_or_before: Optional[str] = None) -> Optional[tuple[float, str]]:
+    """(spot, fetched_at) from the session's newest captured chain of `symbol`.
+    With `at_or_before` (an ISO instant), only a chain whose fetched_at is at or
+    before it counts, so a reader as of a cutoff never sees a later capture (the
+    close-flow estimate's use, A127b; item 49's own call passes none)."""
     from altdata import chain_metrics                            # noqa: PLC0415
     d = (base or chain_metrics.chain_dir()) / day
     files = sorted(p for p in d.glob(f"{symbol}_*.csv") if "_quality" not in p.name) \
         if d.is_dir() else []
-    if not files:
-        return None
-    rows = chain_metrics.load_rows(files[-1])
-    spot = next((r["spot"] for r in rows if r.get("spot")), None)
-    return (spot, next((r["fetched_at"] for r in rows if r.get("fetched_at")), "")) \
-        if spot else None
+    limit = _instant(at_or_before) if at_or_before else None
+    for f in reversed(files):
+        rows = chain_metrics.load_rows(f)
+        spot = next((r["spot"] for r in rows if r.get("spot")), None)
+        at = next((r["fetched_at"] for r in rows if r.get("fetched_at")), "")
+        if limit is not None and (not at or _instant(at) > limit):
+            continue
+        if spot:
+            return spot, at
+        if limit is None:
+            return None
+    return None
+
+
+def _instant(s: str) -> dt.datetime:
+    t = dt.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    return t if t.tzinfo else t.replace(tzinfo=dt.timezone.utc)
 
 
 # ---------------------------------------------------------------------------

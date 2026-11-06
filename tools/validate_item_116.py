@@ -15,7 +15,11 @@ and 98.3; SR-77, provisional), the levered-ETF close flow.
      and prior AUM equals the hand sum; the rows are calc.close_flow.<bucket>,
      .total and _pct_adv, instrument = the slot; a stale AUM is left out; the
      15:00 pass on a fake intraday reader stores instrument 1500 rows, reads only
-     completed bars, and a fund on an unstored underlying is "not read (D33)".
+     completed bars, and no unstored symbol is read from Yahoo (D33). MSTR's and
+     COIN's spot come from fixture captured chains (D66 ruling 2, A127b): the
+     newest chain at or before the instant against the previous session's, a
+     chain fetched after the cutoff never seen, a 15:00 chain older than its
+     allowance refused and named; SNDK's fund prints "gap: no keyless price".
   D  THE PRINTS. The close's table (16:45 and 15:00 by bucket, $bn and % of ADV),
      the flag's line only when it fired, the "mechanical close flow" line with
      "dealer hedging: not yet combined"; the Weekly's sessions largest first; the
@@ -27,7 +31,8 @@ and 98.3; SR-77, provisional), the levered-ETF close flow.
      writer's assertion refuses a planted Brookfield ticker and fails closed when
      the blocklist will not load.
   F  THE WRITER. Direxion's file, GraniteShares' workbook and REX's page parsed
-     from fixtures, each observed at the close it values; Direxion lines that
+     and Defiance's page (A127b) from fixtures, each observed at the close it
+     values; Direxion lines that
      disagree are refused; a robots disallow is never requested; the Crawl-delay
      is honoured; one request per page.
   G  HYGIENE. The keys registered and barred from the market-state object (named
@@ -199,6 +204,36 @@ def group_b() -> None:
 
 
 # ---------------------------------------------------------------------------
+CHAIN_COLS = ["expiry", "dte", "right", "strike", "bid", "ask", "last_price", "volume",
+              "open_interest", "last_trade_date", "fetched_at", "spot"]
+
+
+def seed_chains(base: Path) -> dict:
+    """Fixture captured chains (data/chains/<day>/<SYM>_<utc>.csv) for MSTR and
+    COIN; returns the 16:45 returns by hand. A chain fetched after GATE_NOW (MSTR
+    at 23:30 UTC, spot 500) must never be read; COIN's newest by 15:00 is 11:00 ET,
+    older than the 180-minute allowance."""
+    plan = {
+        ("MSTR", PREV): [("2026-11-05T21:10:00+00:00", 100.0)],
+        ("MSTR", DAY): [("2026-11-06T17:30:00+00:00", 95.0),
+                        ("2026-11-06T20:40:00+00:00", 97.0),
+                        ("2026-11-06T21:10:00+00:00", 90.0),
+                        ("2026-11-06T23:30:00+00:00", 500.0)],
+        ("COIN", PREV): [("2026-11-05T21:10:00+00:00", 200.0)],
+        ("COIN", DAY): [("2026-11-06T16:00:00+00:00", 204.0),
+                        ("2026-11-06T21:10:00+00:00", 210.0)],
+    }
+    for (sym, day), caps in plan.items():
+        d = base / day
+        d.mkdir(parents=True, exist_ok=True)
+        for at, spot in caps:
+            stamp = at[:19].replace("-", "").replace(":", "")
+            with open(d / f"{sym}_{stamp}.csv", "w", encoding="utf-8", newline="") as fh:
+                fh.write(",".join(CHAIN_COLS) + "\n")
+                fh.write(f"2026-11-20,14,C,100,1,1.1,1.05,10,100,{day},{at},{spot}\n")
+    return {"mstr": 90.0 / 100.0 - 1.0, "coin": 210.0 / 200.0 - 1.0}
+
+
 def seed_store(db: Path, aum_day: str = PREV) -> tuple[dict, dict, dict]:
     """AUM for every non-gap fund at `aum_day`; 25 sessions of closes and volume
     for every stored underlying. Returns (aum, r on DAY, adv) by hand."""
@@ -246,8 +281,11 @@ def hand(aum, rets, adv) -> tuple[float, dict]:
 
 def group_c(td: str) -> Path:
     head("C. THE STORE: THE 16:45 ESTIMATE, THE ROWS, THE 15:00 PASS")
+    cf.CHAIN_BASE = Path(td) / "chains"
+    chain_rets = seed_chains(cf.CHAIN_BASE)
     db = Path(td) / "c.db"
     aum, rets, adv = seed_store(db)
+    rets.update(chain_rets)
     tot, byb = hand(aum, rets, adv)
     with observations.ObservationStore(str(db)) as st:
         e = cf.for_close(st, DAY, GATE_NOW)
@@ -269,9 +307,20 @@ def group_c(td: str) -> Path:
           f"({len(rows)} rows)")
     check(close(back["total"][0], tot), "and they read back as stored")
     nr = {t: w for t, w in e["left_out"].items()}
-    check(all("D33" in nr.get(t, "") for t in ("MSTU", "MSTZ", "CONL"))
-          and nr.get("SNXX", "").startswith("gap:"),
-          "MSTU, MSTZ and CONL are 'underlying not read (D33)'; SNXX a named gap")
+    fl45 = {f["ticker"]: f for f in e["funds"]}
+    check(all(t in fl45 for t in ("MSTU", "MSTZ", "MSTX", "CONL"))
+          and close(fl45["MSTU"]["r"], -0.10) and close(fl45["CONL"]["r"], 0.05),
+          "D66 ruling 2: MSTU, MSTZ, MSTX and CONL rejoin the 16:45 estimate on the "
+          "captured chains' spot (MSTR -10.0%, COIN +5.0%), the chain fetched after the "
+          "cutoff never read")
+    check(nr.get("SNXX", "").startswith("gap:") and "no keyless price" in nr["SNXX"],
+          f"SNXX is a named gap and its underlying prints 'gap: no keyless price': "
+          f"{nr.get('SNXX', '')[:60]}...")
+    check(CFG["aum_floor_usd"] == 250e6 and "D66" in CFG.get("aum_floor_set", "")
+          and {"NVDU", "MSFU", "METU", "AMZU", "NVDX", "MSTX"}
+          <= {f["ticker"] for f in CFG["funds"]},
+          "D66 ruling 5: the floor is $250m, dated; NVDU, MSFU, METU, AMZU, NVDX and "
+          "MSTX admitted")
     db2 = Path(td) / "c2.db"
     seed_store(db2, aum_day="2026-10-28")
     with observations.ObservationStore(str(db2)) as st:
@@ -301,10 +350,19 @@ def group_c(td: str) -> Path:
     with observations.ObservationStore(str(db3)) as st:
         s15 = cf.stored(st, DAY, GATE_NOW, "1500")
     prices = out.get("prices") or {}
-    check(out["written"] > 0 and s15["total"][0] is not None
-          and all(p["price"] == 100.0 for p in prices.values()),
+    bars = {u: p for u, p in prices.items() if "bar_end" in p}
+    check(out["written"] > 0 and s15["total"][0] is not None and bars
+          and all(p["price"] == 100.0 for p in bars.values()),
           f"the 15:00 pass stores instrument-1500 rows ({out['written']}) and reads the bar "
           f"ending 15:00 (14:55's), never the bar still open at 15:01")
+    mp = prices.get("mstr") or {}
+    check(mp.get("price") == 95.0 and "chain" in mp.get("source", "")
+          and "MSTU" not in out["left_out"],
+          f"15:00: MSTR's spot is the newest chain at or before 15:00 (12:30 ET, "
+          f"{mp.get('price')}), not the 15:40 capture")
+    check("older than 180 minutes" in out["left_out"].get("CONL", ""),
+          f"15:00: COIN's newest chain by 15:00 (11:00 ET) is past the 180-minute "
+          f"allowance, so CONL is left out and named: {out['left_out'].get('CONL', '')[:70]}")
     check("MSTR" not in calls and "COIN" not in calls and "SNDK" not in calls
           and len(calls) == sum(1 for x in CFG["underlyings"].values() if x.get("yahoo")),
           f"only basket symbols are read intraday (D33): {len(calls)} reads, no MSTR, COIN "
@@ -447,6 +505,8 @@ DIREXION = ("Direxion Daily Semiconductor Bull 3X ETF\nSOXL\nShares Outstanding:
             '"11/6/2026 12:00:00 AM","SOXL","AMD","AMD","1","1","500000000.0000","x","5.0000000000"\n'
             '"11/6/2026 12:00:00 AM","SOXL","NVDA","NVDA","1","1","1000000000.0000","x","10.0000000000"\n'
             '"11/6/2026 12:00:00 AM","SOXL","","SWAP","1","1","100.0000","x","0.0000010000"\n')
+DEFIANCE = ("<div>Fund Details</div> <div>Data as of 11/05/2026</div> <div>Net Assets</div>"
+            "<div>$254.91M</div> <div>Premium/Discount</div> 0.62% NAV $11.94")
 REX = ("<div>Exchange Cboe BZX</div><div>As of 11/04/2026</div> <span>NAV $32.04</span> "
        "NAV Change ($) $2.94 NAV Change (%) 10.12% Closing Price $32.03 Fund Assets "
        "$629,288,957.83 Shares Outstanding 19,646,861")
@@ -476,6 +536,9 @@ def group_f() -> None:
     d, v = le.parse_rex(REX, "MSTU")
     check(d == "2026-11-04" and close(v, 629288957.83),
           "REX: 'Fund Assets' at the page's own As-of date")
+    d, v = le.parse_defiance(DEFIANCE, "MSTX")
+    check(d == PREV and close(v, 254.91e6),
+          "Defiance (A127b): 'Net Assets $254.91M' at the page's 'Data as of' date")
     gets, sleeps = [], []
 
     def get(url, timeout=60, max_retries=1):

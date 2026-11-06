@@ -21137,7 +21137,8 @@ market_state_barred:
     rule: "the roster's funds joined levetf.aum for the close-flow estimate; nothing enters the object"
     keys: ["levetf.aum"]
     instruments: [USD, ROM, SPXL, SPXS, SOXL, SOXS, TNA, TZA, TECL, FAS, TSLL, TSLS, GGLL,
-                  NVDL, AMDL, CONL, MSTU, MSTZ, SNXX, TSLQ]
+                  NVDL, AMDL, CONL, MSTU, MSTZ, SNXX, TSLQ,
+                  NVDU, MSFU, METU, AMZU, NVDX, MSTX]
 
   - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
     rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
