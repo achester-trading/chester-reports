@@ -1819,3 +1819,11 @@ def watch_sessions(c: dict, dates: Optional[dict]) -> Optional[int]:
     d = (dates or {}).get(c.get("id")) or {}
     return d.get("sessions") or c.get("persistence_days")
 
+
+
+def dth1_subsection(ending: Optional[str], path: Optional[str] = None) -> dict:
+    """THE BOOK SECTION'S DTH-1 LINES (D41; A92): the manual day-trade ledger's
+    aggregates -- counts and R-multiples only, never a currency or a single
+    trade's row -- read from the box's inbox by altdata/dth1_ledger.py."""
+    from altdata import dth1_ledger                             # noqa: PLC0415
+    return dth1_ledger.weekly_subsection(ending, path)
