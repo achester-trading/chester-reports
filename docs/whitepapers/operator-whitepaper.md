@@ -288,3 +288,50 @@ The view line also supplies the comparison Part I needs most. Set its hit rate a
 | The view line | The read alone, every session | Views not written down |
 | The rule-break count | Compliance with written rules | Restraint the operator supplies unprompted |
 | The pass log | Declined packets and their reasons | Temptations never drafted |
+
+---
+
+# Part IV — Routed Items as Behavioral Objects
+
+## Chapter 16 — The dip-buying cohort and the rally trap
+
+The signal-triage register routes three items to this paper. Two arrive together from the September rounds: the dip-buying cohort and the rally trap. Both appear in the register's behavioral inventory under SR-8, "bear-market rallies as structure". SR-8's market claim belongs to Tops and Bottoms and the Top & Bottom report. In a bear market, rallies are large, frequent and indistinguishable in real time from a new bull *(the Nasdaq Composite from March 2000 to October 2002, five rallies of 12 to 45 percent inside a 78 percent decline; the register's SR-8 entry, filed 19 September 2026)*. What this paper owns is the behavior on either side of those rallies: the people who buy them, and the trader who mistakes them for a bottom.
+
+**The dip-buying cohort** is a population, not a person. It is the group of investors whose experience has taught them that buying a decline works, because in their trading lives it has. A decade and more of rising markets with fast recoveries reinforced the behavior every time it was tried. Chapter 10's recency mechanism is the core of it: expectations extrapolated from the recent past, and a rule of thumb ("buy the dip") that is really a summary of the last regime. The cohort is not foolish. In a bull market its rule is correct and profitable, and the people who refused it paid the cost the Doctrine's Rule 29 describes. The cohort's behavior becomes a hazard only at a regime change, when the rule keeps firing and the regime no longer pays it.
+
+As a behavioral object, the cohort matters to the operator in two ways. The first is as fuel. Its buying powers the sharp rallies inside a bear, and the Positioning & Flows paper's fuel metrics are the measured version: leveraged-ETF creations on declines, retail flow into falling names, the margin balance. A rally driven by the cohort is a flow event, not a change in the regime. It ends when the cohort's capital or patience does. The second is as a mirror. The operator's own history includes the opposite bias, a short preference and a reluctance to hold the long side, and the cohort is the population on the other side of that bias. When the operator is short and the cohort is buying, the trade is a contest between two learned habits, and the market decides which regime it is in.
+
+**The rally trap** is the trader's half of the same structure: taking a bear-market rally as the bottom, and re-entering the long side at full size on the strength of a move that is, by base rate, more likely to fail than to hold. The mechanisms are three of Part II's at once.
+
+- **Recency.** The rally is the most recent and most vivid evidence, and it overwrites the bear that preceded it.
+- **The narrative fallacy.** A rally always arrives with a story ("the Fed has turned", "the worst is priced"), and the story makes the move feel explained, and therefore durable.
+- **The break-even effect.** A trader who lost on the way down feels the rally as the chance to get back to even, and takes more risk to catch it.
+
+The rally trap is also the operator's own documented failure mode in reverse. The Doctrine records a short campaign that was right into a collapse and wrong through the recovery. That was the same misreading of a turn, made from the other side.
+
+The system's answer is a gate and a flag. The gate is the false-bottom audit's proposal for Book A. Once the Top & Bottom top side has fired and price is below a falling 200-day average, re-entry needs the bottom composite plus confirmation, and rallies in that state are Book C material, not Book A's. The flag is the Daily Cascade's "rally inside bear" line on the 07:00 anchor. The proposed Doctrine rule words the behavioral point exactly: in a declared bear regime a rally is a mechanism, not a signal, and size should assume that a bear rally and a new bull are indistinguishable in real time. The gate's own evidence is weak so far: the audit found one confirmation element that discriminated, against a pre-registered requirement of two *(the false-bottom audit, n 16 rallies, ledger of 18 October 2026)*. The Doctrine monthly decides what follows from that. For this paper the weakness is itself the lesson. The confirmation the trader most wants — something that says this rally is the real one — is the thing the data says is hardest to have.
+
+**What the operator does differently.** In a declared bear, a rally is traded in Book C at Book C's size, with a time stop. A move up does not reopen Book A until the gate opens. When the cohort is visibly buying, the operator reads it as flow, not as information about the regime.
+
+## Chapter 17 — The dated public call
+
+The third routed item is newer. Item 132, filed on 6 November 2026 with Batch 25, adds a "dated public call" entry type to the narrative register. A dated public call is a forecast posted publicly with dates attached, in the form "on this day this will happen", by someone with a following. It is captured with its claims, its dates, the forecaster's incentive tags (a position disclosed, a product sold) and its engagement at capture. Each dated claim is then scored at its expiry as a hit, a miss or unresolved. The register's first row is a fifteen-day crash calendar posted by an X account. Appendix B names its dates, because its claims are forecasts and forecasts belong only in the dated appendix. A count of such calls, both crash calls and melt-up calls, becomes an attention input to the Capitulation Count, carrying no direction.
+
+As a behavioral object, the dated public call is the narrative fallacy in its most contagious form, and it is worth understanding why it spreads.
+
+- **It is vivid.** It names days and numbers, and specific predictions feel more credible than vague ones, the reverse of how they should be weighed.
+- **It is incentivised.** The forecaster who discloses a short position and sells a community subscription is, as the order puts it, talking the book twice over. A call that pays its author whether or not it is right is a call whose accuracy is not its purpose.
+- **It is self-selecting.** The calls that go viral are the extreme ones, so the population of calls a trader sees is a biased sample of all the calls made.
+- **It is unscored.** Until the register's entry type existed, nobody kept the tally, and a forecaster with one famous hit and fifty forgotten misses traded on the hit.
+
+The danger to the operator is anchoring and narrative capture rather than direct imitation. A trader who reads a detailed crash calendar does not usually sell because of it. The calendar, though, becomes an anchor (Chapter 10): a set of dates and levels against which the next week's prints are read. It also becomes a story that the operator's own bearish temperament finds congenial. A short-biased trader who reads a viral crash call is reading a confident statement of the trader's own prior, and the overconfidence literature says that agreement from an unscored source raises confidence without raising accuracy.
+
+The register's treatment is the right one, and it generalises. The call is captured as data about other people's attention, not as a view. It is scored at expiry, so the forecaster's record becomes visible. It enters the system only as a two-sided count, so a wave of crash calls is read as a sentiment reading, potentially a contrarian one, not as information about the crash. And the operator's own view line (Chapter 15) is the same object with no audience and no incentive: a dated, falsifiable call, scored at expiry. The dated public call is what a view line looks like when its author is paid for attention rather than accuracy. Reading the two side by side is a useful discipline.
+
+**What the operator does differently.** A viral call is read once, as data, and its dates go into the register rather than into the operator's head. The operator writes the view line before reading the digest, not after. When a call agrees with the operator's own prior, the agreement is noted as a reason for more scrutiny, not less.
+
+| Routed item | Source | The behavior | The mechanisms (Part II) | The system's handling |
+|---|---|---|---|---|
+| Dip-buying cohort | SR-8, the September rounds | Buying declines because it has always worked | Recency; reinforcement | Read as flow (Positioning & Flows), not regime |
+| Rally trap | SR-8, the September rounds | Taking a bear rally as the bottom | Recency, narrative, break-even | The re-entry gate; the "rally inside bear" flag |
+| Dated public call | Item 132, Batch 25 | Viral, dated, incentivised forecasts | Narrative fallacy; anchoring | A narrative-register entry type; a two-sided attention count |
