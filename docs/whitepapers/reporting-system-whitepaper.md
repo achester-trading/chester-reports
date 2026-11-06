@@ -5,7 +5,7 @@
 **Companion white paper — chester-reports library**
 **Series placement:** Companion **XXXIII** — System shelf, after *The Operating Doctrine* and *Building and Validating a Systematic Book*, per the library guide. Cross-references in this paper are by name.
 **Version:** Draft 4 — 24 October 2026 (Draft 3, 19 October 2026; Draft 2, 9 October 2026; Draft 1, 6 October 2026, described the Monthly before it joined the stack)
-**Status:** Draft 4 — 24 October 2026; as built on chain-7 and a61b-feed-repair, ahead of their merges (a61b 27 Oct; chain-7 after the 1 Nov Monthly). "Built" means the contents of the seventh stitched chain (`chain-7`, which carries the third to sixth chains, the four post-Monthly branches, 6f, the one-day trigger, the new sources and the reading budgets) and of the feed repair (`a61b-feed-repair`, which merges on 27 October). Where the two differ, the paper says which. A capability on a branch that merges later is listed as not built (Appendix E). The paper describes the system as that code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code, and of each item Drafts 2 and 3 called not built. Reread after the first stacked Monthly (1 November 2026), after the Doctrine #2 sitting (7–8 November) and at Audit #5.
+**Status:** Draft 4 — 24 October 2026; as built on chain-7 and a61b-feed-repair, ahead of their merges (a61b 27 Oct; chain-7 after the 1 Nov Monthly). "Built" means the contents of the seventh stitched chain (`chain-7`, which carries the third to sixth chains, the four post-Monthly branches, 6f, the one-day trigger, the new sources and the reading budgets) and of the feed repair (`a61b-feed-repair`, which merges on 27 October). Where the two differ, the paper says which. A capability on a branch that merges later is listed as not built (Appendix E). The paper describes the system as that code stands on the day of writing, says plainly what is specified but not built, and keeps every timer, threshold, budget and source count in the dated Appendix A. Appendix D records what became of each place where Draft 1 found the commissioning brief disagreeing with the code, and of each item Drafts 2 and 3 called not built. Reread after the first stacked Monthly (1 November 2026), after the Doctrine #2 sitting (7–8 November) and at Audit #5. The first reread took place on 1 November 2026. It added Appendix F (the first stacked Monthly, the readable editions, the chat-side tasks and the readers' findings) and changed no body text, Appendices A to E included. The next reread is at Audit #5 (week of 23 November), after the merge week's refresh of Appendix A.
 
 **Errata.** Draft 3's own errata of 19 October (decision 17) are applied: the LBMA gold price is not a source, the Monthly's chart cap is twelve, its reading target is fifty-five minutes, and the chat-side tasks are recorded in the Master Guide. Draft 4 corrects these further slips in Draft 3:
 - §2.3 placed the national statistics offices' CPIs, the Banque de France's yield, the Census Bureau's construction spending, Cboe's indices and the SEC's filings among the official writers; the feed roster files them as external tables.
@@ -1288,3 +1288,126 @@ Of the twenty-five, seventeen are fixed, four are fixed in part and four are ope
 - The debt-cycle branch's state, which waits for the paper that will define it.
 - A reader for the MSTR/MSCI watch's Drive file.
 - The December vendor month, a plan.
+
+---
+
+## Appendix F — The first stacked Monthly, and the readable editions (as of 1 November 2026)
+
+*The first reread, which the status block calls for after the first stacked Monthly. Nothing here edits the body.*
+
+### F.1 The first stacked Monthly, 1 November 2026
+
+The first stacked Monthly went out on 1 November 2026 at 07:49 ET, built from main at `422ea697`. Its run started at 12:36:16 UTC and ended at 12:49:15 UTC; it read the stored data (`--skip-fetch`), was emailed, and exited with code 0. Of its 48 body sections, 33 published and 15 were withheld; of the executive summary's 13 paragraphs, 1 was withheld. The published prose came to 6,916 words against the 10,000-word budget (§4.6). The sources are the A95 paste (`docs/pastes/A95.md` on `a95-monthly-first-edition`), which quotes the run's log, and the B103 paste (`docs/pastes/B103.md`). The log itself stays on the laptop, outside the repository. `docs/briefs/a95-notes.md` did not yet exist when this appendix was written.
+
+**The withholds, by cause** (the A95 paste's list):
+- **A figure bound to the wrong series' row.** The numeral audit refused scaled figures that the series binding (§5.2) tied to a row that does not hold them.
+- **Formatting.** A change of 10,000 or more printed without its unit. A large figure without its thousands separators. An intensity word with no figure in its sentence. A policy word attached to a recession market. The role audit binding a long-run average as a close.
+- **The writer naming the report's own machinery.** "The breadth dimension" in prose, which the tape rules refuse.
+
+**The disposition.** A95 (commit `ba1d289b`, pushed) works under the rule A88 and A90 set: no check is loosened to admit a wrong draft.
+- **False positives** are narrowed with the edition's own drafts as must-pass fixtures, each beside a must-still-fail case (`tests/fixtures/monthly_first_edition_2026-11-01.json`, run by `validate_numeral_audit` group M and `validate_monthly` group K).
+- **Wrong drafts** stay withheld, and the fix goes to what the writer is given:
+  - a rate or a share as a percent;
+  - a raw large level with its separators;
+  - "our breadth read" in place of the machinery word;
+  - the policy frame's allowed phrasing, written out.
+- **The one revision's message** now names every fault the draft carries, not only the first.
+
+A95's Part 6 (the Monthly Letter's seven findings, F.4) was not yet pushed.
+
+**What this says about the audit as designed.** Part V describes the audits (§5.2) and the rule that a paragraph which fails them is withheld with its reason after one revision (§5.3). The first stacked Monthly exercised both at full scale, and the design held:
+- no paragraph that failed a check printed;
+- every withheld section said why in its place;
+- the edition went out shorter and honest.
+
+The cost was sixteen withheld paragraphs on the first run: fifteen body sections and one summary paragraph. The repair goes where §5.1 puts it, into what code computes and hands the model, and not into the checks. The price of the design is paid in withheld prose rather than in wrong figures.
+
+### F.2 The readable editions
+
+The Master Guide's subsection "The readable editions" (B102, 1 November 2026) is copied here as written: first its table of editions, then its contract.
+
+| Edition | When (ET) | Reads | Writes |
+|---|---|---|---|
+| The Weekly Letter | Sunday 06:12 | the Weekly's email (05:10), last Sunday's Letter, the latest Monthly Letter | a private page with 10–18 charts and the PDF; the text edition in Drive chester-letters/; a row on the Letters index; an email with the links; a push |
+| The Monthly Letter | the 1st, 10:43 | the Monthly's email (07:40), the previous Monthly Letter, the latest Weekly Letter | the same four things |
+| The ES day-trading card | weekdays 08:15 and 15:15 | the anchor, the open note and the alert; the operator's settings and ledger in Drive chester-cards/; the day's X triage; the vendor's levels as a cross-check | chester-cards/card-YYYY-MM-DD-am.html and -pm.html, an email, a push |
+| The ES Sunday map | Sunday 18:48 | the Weekly and the Weekly Letter; chester-cards/ | chester-cards/map-YYYY-MM-DD.html, an email, a push |
+| The X triage pushes | daily 07:17; Sunday to Friday 18:05 | the Grok digests | the x-triage files and ledgers (Table 2), a push |
+
+**The contract, in six lines.**
+
+1. **The edition is the record; a Letter is a reading of it.** Every figure in a Letter appears in the edition it reads, copied with its unit and as-of date; the edition's own validation status applies to each; the only arithmetic allowed is a difference between two printed figures, said to be one. The charts are drawn from the edition's own tables.
+2. **No rights.** A Letter never says buy, sell, long, short, add, trim, overweight or underweight. Nothing in the repo, the store, the inbox, a ledger or a flag reads a Letter, a card or a map. The ES cards and the map are the operator's private DTH-1 tool: Claude writes them and places no orders; the system never reads a card.
+3. **Provenance runs one way: store, edition, Letter.** The Letter's footer names the edition it read. A Letter that finds no edition pushes "no edition found" and stops; the operator fires it again once the edition arrives. A Letter never delays, retries or repairs an edition, and the box's heartbeat does not know the Letters exist.
+4. **What the Letters find, the box fixes.** Each Letter prompt carries the edition's known self-contradictions, found while writing. That list is a defect feed, not a patch: each entry is filed in `docs/briefs/letter-findings.md`, fixed in the edition by a session, then retired from the prompt. A Letter says where the edition contradicts itself and does not chart the disputed figure; it never papers over it.
+5. **The repo's rules hold in the Letters.** No person's name (institutions and outlets only, even where the edition prints names), no Brookfield-complex instrument, no secrets, no email addresses. The Letters live in Drive and on private pages, never in the repo; the register is the repo's whole record of them, with no prompt and no figure committed.
+6. **Reading order.** Sunday: the Weekly Letter first (about fifteen minutes), then the Weekly for the book, the scorecard and the post-mortems. The 1st: the Monthly Letter first, then the Monthly's read and its book for the sitting. The editions' configured reading targets stand as the reference reader's, not the first read's.
+
+**What the layer is to this paper.** It is a reading of the record that lives outside the record.
+- It has no rights and no reader in the system. Nothing in Part II's store, Part IV's reports, Part VII's register or Part IX's ledgers reads a Letter, a card or a map.
+- Part II's provenance chain (the store, then the edition; Figure 1) gains a third link, the Letter.
+- That link points back to the edition it read and never forward. No edition, check, ledger or decision depends on it.
+- Its order is `docs/change-order-readable-editions-2026-11-01.md`.
+
+**The reading order.** "Sunday: the Weekly Letter first; the 1st: the Monthly Letter first" supersedes §10.3's Sunday and first-of-month lines. The body keeps them.
+
+### F.3 The chat-side tasks as of 1 November 2026
+
+The register is `docs/master-guide/chat-tasks.yaml` (version 2, updated 1 November 2026), and the Master Guide's Table 2 prints it. Its rows are reproduced below as B102 left them, with the operator's name replaced by "the operator" (B103, Part 0).
+- **The repository holds no prompt text.** The prompts live in the scheduler.
+- **The retired rows stay in the register** for the history.
+- **The operator's Grok plan,** as the register records it: the plan allows two automations, and both are taken by the morning digests (06:00 and 06:15). The evening digest (planned) waits on a third slot. A midday run, proposed in the 1 November order (D56), waits on the same slot.
+
+| Task | When (ET) | Rights | Status |
+|---|---|---|---|
+| Grok X digests, morning (the operator's automations) | daily 06:00 (A, crypto) and 06:15 (B, equity-vol and macro); the operator's Grok plan allows two automations | attention only; an X post never earns measurement rights by volume alone | pilot |
+| X digest triage, morning | daily 07:17 | attention, voices and rumour tracking only; candidates go to the intake for the operator's ruling | pilot |
+| Grok X digest, evening (the operator's automation) | Sunday to Friday 17:40 | attention and rumour tracking only | planned |
+| X digest triage, evening | Sunday to Friday 18:05 | report-only; attention and rumour tracking; no figure in the block is the system's measure | planned (created 30 Oct, paused 1 Nov until its Grok input exists) |
+| AAII weekly read | Thursday 12:10 | a reading (positioning), no decision right | active |
+| Alpha Lab Saturday brief | Saturday 07:50 | hypotheses for the lab only; never a candidate, packet or trade | active |
+| Weekly crypto tech scan (Pearl and new mechanisms) | Saturday 12:00 UTC (07:00 ET in winter) | none (a read) | retiring |
+| Publication watch (the reading shelf) | the 12th and 27th, 06:58 | none (a read) | active |
+| Monthly signal scan | the 25th, 06:57 | none until ruled | active |
+| AI-risk consensus-drift scan | the 20th of even months, 13:00 UTC (08:00 ET in winter) | none (a read) | active |
+| JPM Guide to the Markets read | the 6th of January, April, July and October, 06:56 | none until ruled | active |
+| MSTR / MSCI event watch | weekdays 2-30 Nov, 07:10 (Thanksgiving skipped); the post-effective read on 1 Dec is not yet scheduled (a one-shot to be created in late November) | none (a read) | active |
+| FlashAlpha vendor pull (Wednesday close) | Wednesday 16:25 | a cross-check only; never a source | retired |
+| FlashAlpha vendor reconcile (Thursday morning) | Thursday 07:05 | a cross-check only; never a source | retired |
+| Alternative assets quarterly scan | 06:30 on the Monday of each edition's week (4 Jan, 5 Apr, 5 Jul, 4 Oct 2027) | none (a read) | planned |
+| Weekly Letter | Sunday 06:12 | none: a reading of the edition, every figure copied from it, the edition's validation status applying to each | active |
+| Monthly Letter | the 1st, 10:43 | none, as the Weekly Letter | active (first edition, October 2026, written by hand on 1 Nov; first scheduled run 1 Dec) |
+| ES day-trading card (DTH-1's manual edition) | weekdays 08:15 and 15:15 | none: the operator's private tool; Claude writes the card and places no orders | active |
+| ES Sunday map | Sunday 18:48 | none, as the card | active |
+
+### F.4 What the readers found
+
+The Letters found fourteen places where an edition contradicts itself. `docs/briefs/letter-findings.md` holds them. They are defects in the editions, not in the Letters. Each is fixed on the box by the session named, then retired from the Letters' prompts (the contract's line 4). Their status as of this reread is the file's own: all fourteen open.
+
+| id | edition | finding | session | status |
+|---|---|---|---|---|
+| M1 | Monthly, 1 Nov 2026 | The executive summary's "What doesn't fit" paragraph claims no open contradiction while section 4 lists exceptions | A95 Part 6 | open |
+| M2 | Monthly, 1 Nov 2026 | A spread's month change is printed three ways (the yields table, the Credit Cycle table, the pillar table) | A95 Part 6 | open |
+| M3 | Monthly, 1 Nov 2026 | The header's forecast count against the scenario record's "no probability has been emitted" | A95 Part 6 | open |
+| M4 | Monthly, 1 Nov 2026 | The book section's "vs cash / SPY / 60-40 since 1 Sep" line prints Book Z's levels labelled as excesses (the "Against Book Z since 5 Sep" line is the one that matches the Weekly) | A95 Part 6 | open |
+| M5 | Monthly, 1 Nov 2026 | The equity-credit gap's age differs from the Weekly's | A95 Part 6 | open |
+| M6 | Monthly, 1 Nov 2026 | CPI prose "rose to 4.0% from 4.1%" against a table prior of 3.7% | A95 Part 6 | open |
+| M7 | Monthly, 1 Nov 2026 | The VIX is printed at two dates | A95 Part 6 | open |
+| W1 | Weekly, w/e 30 Oct 2026 | The précis called a -0.56% week "positive" (the précis against the tape table) | A103 | open |
+| W2 | Weekly, w/e 30 Oct 2026 | The précis's gamma narrative against the session table | A103 | open |
+| W3 | Weekly, w/e 30 Oct 2026 | The term premium's weekly change in the plumbing table against the attribution table | A103 | open |
+| W4 | Weekly, w/e 30 Oct 2026 | The gap's "direction" label against the week's prints | A103 | open |
+| W5 | Weekly, w/e 30 Oct 2026 | The narrative commentary's counts against the stories table | A103 | open |
+| W6 | Weekly, w/e 30 Oct 2026 | The week's FOMC decision (28 Oct) is not recorded where the edition records decisions | A103 | open |
+| W7 | Weekly, w/e 30 Oct 2026 | A date differs between "what would change our mind" and the calendar | A103 | open |
+
+### F.5 Not changed by this reread
+
+**Appendix A and Appendix E stand as written.** Appendix A's timers, gates, windows, thresholds, budgets, sources and charts are as of 19 October 2026, and so is Appendix E's not-built list. Both are refreshed after the merge week, not here. No body text was changed:
+- **§10.3's Sunday and first-of-month lines** are superseded for reading order by F.2, and keep their text.
+- **The status block's "Reread after the first stacked Monthly"** is met by this appendix, and keeps its text.
+
+**What this reread hands to Doctrine #2:**
+- D2-83 (Drafts 3 and 4) stands as drafted.
+- The ratification of the readable editions' contract is in the pack's Part 12 (B104).
+- So is the X layer's cadence under the two-slot cap.

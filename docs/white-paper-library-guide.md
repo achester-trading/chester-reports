@@ -1351,7 +1351,7 @@ the system can and cannot automate.
 ---
 
 ## XXXIII. The Reporting System: A Reader's Guide
-**Companion to: every report, the register and the operator's reading · Draft 4 · ~29,000 words, ten parts + five appendices, 1 figure · as-built (24 Oct 2026, the seventh stitched chain and the feed repair; Draft 3, 19 Oct 2026; Draft 2, 9 Oct 2026; Draft 1, 6 Oct 2026)**
+**Companion to: every report, the register and the operator's reading · Draft 4 · ~29,000 words, ten parts + six appendices (Appendix F, the first reread, 1 Nov 2026), 1 figure · as-built (24 Oct 2026, the seventh stitched chain and the feed repair; Draft 3, 19 Oct 2026; Draft 2, 9 Oct 2026; Draft 1, 6 Oct 2026)**
 
 **What it contains.** The System shelf's overview: the one paper that walks a
 number from a public source to a graded lesson. Part I is the purpose — one
