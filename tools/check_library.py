@@ -66,6 +66,9 @@ REGISTRY = {
     # Markets shelf, Draft 1 (AQ-14, 11 Oct 2026). Numeral provisional: assigned
     # at the filing; XXXIV was the next free after XXXIII.
     "XXXIV": "emerging-markets",
+    # Craft shelf, Draft 1 (L-6, B131, 6 Nov 2026; R-1 of the library
+    # programme, D59): XXXV, the next free numeral after XXXIV.
+    "XXXV": "operator",
 }
 
 # D4: the two papers that own a dotted rule namespace, and the chapters whose
