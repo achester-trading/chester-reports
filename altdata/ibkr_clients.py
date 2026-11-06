@@ -25,4 +25,5 @@ CLIENT_IDS: dict[str, int] = {
     "whatif": 20,           # altdata/sources/ibkr_whatif.py; tools/decide.py preview
     "auction": 23,          # altdata/loggers/auction.py
     "borrow": 25,           # altdata/loggers/borrow.py
+    "bars": 27,             # altdata/sources/ibkr_bars.py (A93; built, switched off)
 }
