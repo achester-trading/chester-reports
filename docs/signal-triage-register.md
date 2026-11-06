@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8); [18](change-order-signal-triage-batch-18-2026-10-28.md) (Signal triage Batch 18 (item 98): the 23-hour equity session). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -854,6 +854,21 @@ the concentration twin (SR-50, GTM-3) by 96 (the per-season growth-contribution 
 an allowed recurring by-hand row, J2). 97(b)'s feeds are infrastructure: source
 registry entries for Cboe's daily statistics and FRED's VXNCLS and VXVCLS, with ICI
 flows a listed gap (J4). 97(d) is a library note and a one-off dated record.
+
+---
+
+### SR-68 — Batch 18's provisional row (filed 28 Oct 2026, paste B81)
+
+Provisional, placed by Audit #5: the next free number after Batch 16's SR-60 to
+SR-64 (paste A78) and Batch 17's SR-65 to SR-67 (paste A81), both on unmerged
+branches; the audit that places Batch 18 confirms or renumbers it. The row's text is
+the [Batch 18 order](change-order-signal-triage-batch-18-2026-10-28.md)'s item.
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 68 | 98 | The 23-hour equity session: the cadence unchanged; every bar tagged night, pre, regular or post from its own UTC timestamp, never the venue's trade date, and regular-session statistics read the regular tag only (98(a)); SPY and QQQ overnight beside ES in the 07:00 anchor and the 21:30 evening note, "overnight equities not stored" until night bars are stored (98(b)); night bars from IBKR under the price migration, else a listed gap (98(c)) | Report only | After Doctrine #2, before the first night (target 6 Dec 2026) | provisional, placed by Audit #5 |
+
+*Accepted 28 Oct 2026 (D42.5), as filed with K1–K4; the register status above is unchanged:* 98(c)'s IBKR night bars come under D38's price-migration ruling (b68, ceiling USD 60/month); a data subscription beyond what D38 covers is a new ruling, and 98(a)–(b) stay a listed gap until then.
 
 ---
 
