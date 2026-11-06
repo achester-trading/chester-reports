@@ -667,7 +667,17 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict],
     mis = month_in_state(p)
     hist = {c["id"]: _contradiction_history(st, c["id"], now)
             for c in mis["contradictions"]}
-    b = _month_words(ws.misfit_week(mis, pmb, hist))
+    # A95 (M5, the Monthly Letter of 1 Nov): THE GAP'S AGE IS THE WEEKLY'S. The
+    # Weekly reads each gap's since-date and its sessions from the stored
+    # objects (weekly_sections.state_dates); the Monthly passed no dates, so the
+    # table fell back to the month object's persistence count and printed a
+    # different age for the same gap. Both now read the stored objects.
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    try:
+        dates = wsec.state_dates(ws.stored_objects(st, now))
+    except Exception:                                           # noqa: BLE001
+        dates = None
+    b = _month_words(ws.misfit_week(mis, pmb, hist, dates=dates))
     rows, ids, pts = [], [], []
     for t in (p.get("looking_back") or {}).get("themes") or []:
         for n, it in enumerate(t.get("items") or []):
@@ -831,8 +841,10 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     # yudd_line=False: the yields-up/dollar-down line is the Weekly's (AQ-8a);
     # the Monthly carries the series in the fiscal_dollar theme.
+    # month_aligned (A95, M2): the yields table's month change is the scorecard's
+    # and the themes' (v2.prior_target), not the prior knowable at the month-end.
     b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True,
-                                      yudd_line=False))
+                                      yudd_line=False, month_aligned=True))
     names = {name: k for k, name in ws.PLUMB}
     rows = (b.get("table") or {}).get("rows") or []
     moved = [r[0] for r in rows if names.get(r[0]) in on_tape]
@@ -1462,10 +1474,14 @@ def book_section(p: dict) -> dict:
     bzl = bz.get("book_line") or bz.get("line")
     why = (bz.get("book_line_absent_reason") or bz.get("absent_reason")
            or bz.get("fault") or "not read")
+    # A95 (M4): the one sentence the read's paragraph prints too (v2), so Book
+    # Z's own ledgers are never printed under "Against Book Z".
+    from . import v2 as _v2                                      # noqa: PLC0415
+    zs = _v2.book_z_sentence(bz)
     zsub = {"title": "Against Book Z",
-            "lines": [f"Against Book Z, {bzl}." if bzl else f"Book Z absent: {why}."]}
-    if bzl:
-        items.append(item("book:z", f"Against Book Z, {bzl}.", 2, bzl))
+            "lines": [zs if zs else f"Book Z absent: {why}."]}
+    if zs:
+        items.append(item("book:z", zs, 2, bzl))
         items[-1]["show"] = False
     if r.get("state") == "ok" and r.get("paragraph"):
         lines.append(f"The bound, restated from the weights and the positions: "
@@ -2206,6 +2222,23 @@ def _right(r: dict) -> Optional[bool]:
         return None
 
 
+def forecast_count_line(emitted: list[dict], tail: str = "") -> str:
+    """A95 (M3, the Monthly Letter of 1 Nov): THE HEADER NAMES WHAT IT COUNTS.
+    The header counted every forecast the probability ledger took this month
+    (the close's outlooks, the narrative register's), while the scenario record
+    counts the scenario weights alone and said "No probability has been
+    emitted": two right counters, one unlabelled. The line now says it counts
+    the ledger and how many of those are scenario weights (payload's
+    SCENARIO_SOURCES, the scenario record's own filter)."""
+    from .payload import SCENARIO_SOURCES                         # noqa: PLC0415
+    n = len(emitted)
+    k = sum(1 for r in emitted if r.get("ledger_source") in SCENARIO_SOURCES)
+    scen = ("none of them a scenario weight" if k == 0 else
+            f"{k} of them scenario weight{'' if k == 1 else 's'}")
+    return (f"{n} forecast{'' if n == 1 else 's'} emitted to the probability ledger "
+            f"({scen}){tail}.")
+
+
 def changed_since(p: dict) -> tuple[list[str], list[str]]:
     wc = (p.get("looking_back") or {}).get("what_changed") or {}
     lines, ids = [], []
@@ -2235,8 +2268,8 @@ def changed_since(p: dict) -> tuple[list[str], list[str]]:
                 tail += f": {right} right, {wrong} wrong"
             if right + wrong < len(resolved):
                 tail += f" ({len(resolved) - right - wrong} not yet graded)"
-        lines.append(f"{len(emitted)} forecast{'' if len(emitted) == 1 else 's'} "
-                     f"emitted{tail}.")
+        lines.append(forecast_count_line(
+            [(wc.get("rows") or [])[n] for n in emitted], tail))
         ids += [f"looking_back:what_changed:{n}" for n in emitted] + \
             [f"looking_back:what_changed:{n}" for n, _ in resolved]
     if decisions:

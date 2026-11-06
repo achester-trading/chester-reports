@@ -108,8 +108,10 @@ def log_attempt(report: str, section: str, attempt: int, published: bool,
     """One attempt in the run log: published or withheld, the reason, and the
     draft the audit read (logged, never rendered)."""
     if published:
-        log.warning("audit retry: %s/%s attempt %d of %d published", report, section,
-                    attempt, ATTEMPTS)
+        # A95: a published attempt is news, not a warning (the 1 Nov Monthly's
+        # log carried thirteen WARNING lines for paragraphs that published).
+        log.info("audit retry: %s/%s attempt %d of %d published", report, section,
+                 attempt, ATTEMPTS)
         return
     log.warning("audit retry: %s/%s attempt %d of %d withheld: %s", report, section,
                 attempt, ATTEMPTS, reason)
