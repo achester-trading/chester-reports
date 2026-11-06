@@ -108,7 +108,7 @@ def group_a() -> None:
           and lz["percentile_window"] is not None and not lz["same"],
           f"dual percentiles: five years (n={lz['n_window']}) and full (n={lz['n_full']})")
     line = b14.ecy_line(e)
-    check("not Shiller's own real rate" in line and "percentile of 5 years" in line,
+    check("not Shiller's own real rate" in line and "percentile of 5y" in line,
           f"the line labels it and prints both percentiles ({line[:110]}...)")
     e0 = b14.excess_cape_yield(store([("fred.tips_10y", "2026-01-05", 2.0)]), NOW)
     check(e0["absent"] and "CAPE is not stored" in b14.ecy_line(e0),

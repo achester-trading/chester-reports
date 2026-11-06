@@ -1590,10 +1590,10 @@ def triple(st, key: str, now: str, window_days: int = 1825,
     if f.get("level") is None:
         return None
     lr = derived.long_run_average(key, now, store=st, instrument=instrument)
-    full = (f.get("window_actual_days") or 0) >= window_days - 31
-    yrs = window_days // 365
-    pct_win = (f"{yrs} years, n={f['n']:,}" if full else
-               f"since {f['first_observed']}, n={f['n']:,}; under {yrs} years")
+    # THE WINDOW THROUGH derived.window_label (item 124 T0, step 1): "5y" when the
+    # store covers it, "5y asked, 3.4y held" when it does not; the n stays.
+    pct_win = (f"{derived.window_label(window_days, f.get('window_actual_days'))}, "
+               f"n={f['n']:,}")
     # NO PERCENTILE BELOW THE MINIMUM SAMPLE (T3.3 item 7): one Damodaran print
     # read "100th (since 2026-01-05, n=1)" -- true of any single observation and
     # citable by the prose as if it meant something. Below MIN_PERCENTILE_N the

@@ -62,12 +62,23 @@ def _signed(x: Any, dp: int = 2) -> str:
         return "—"
 
 
+def _window(f: dict, tag: str, short: bool) -> Any:
+    """The window through derived.window_label (item 124 T0, step 1): the asked
+    window, and the held span beside it when the store holds less. A lens computed
+    before the held span was recorded prints the label it carried."""
+    if (tag + "_window_asked") not in f:
+        return f.get(tag + "_window")
+    from altdata import derived                                 # noqa: PLC0415
+    return derived.window_label(f.get(tag + "_window_asked"), f.get(tag + "_window_held"),
+                                compact=short, start=f.get(tag + "_window_start"))
+
+
 def _pct_cell(f: dict, tag: str, short: bool = False) -> Optional[str]:
     if f.get(tag) is None:
         return None
     if short:
-        return f"{f.get(tag + '_ordinal')} ({f.get(tag + '_window')})"
-    return f"{f.get(tag + '_ordinal')} ({f.get(tag + '_window')}, n={f.get(tag + '_n')})"
+        return f"{f.get(tag + '_ordinal')} ({_window(f, tag, True)})"
+    return f"{f.get(tag + '_ordinal')} ({_window(f, tag, False)}, n={f.get(tag + '_n')})"
 
 
 def cell(lens: dict, col: str, short: bool = False) -> Optional[str]:

@@ -330,7 +330,8 @@ def group_d() -> None:
           and lz["percentile_full"] == 100.0,
           "five-year (n=20) and full (n=106) percentiles, each with its n")
     tbl = icb.positioning_subsection.__name__ and ix.allocation_rows(a)
-    check("of 5 years (n=20)" in tbl[0][4] and "since 2000-01-01 (n=106)" in tbl[0][4]
+    check("of 5y" in tbl[0][4] and "(n=20)" in tbl[0][4]
+          and "since 2000-01-01 (n=106)" in tbl[0][4]
           and tbl[0][2] == "Q2 2026",
           f"the table prints both windows: {tbl[0][4][:80]}")
     lines = ix.allocation_lines(a)
@@ -344,7 +345,7 @@ def group_d() -> None:
     with open_store(store(alloc_rows(8))) as st:
         short = ix.allocation(st, NOW, CFG)
     check(short["panels"]["equities"]["lens"]["same"]
-          and "shorter than 5 years" in ix.allocation_rows(short)[0][4],
+          and "5y asked," in ix.allocation_rows(short)[0][4],
           "a short history prints one window, named as shorter than five years")
     with open_store(store([])) as st:
         sub = icb.positioning_subsection(st, NOW)

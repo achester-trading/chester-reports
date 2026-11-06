@@ -118,9 +118,15 @@ def lens(series: list[tuple[str, float]], years: int = 5) -> dict:
     last_day, last = series[-1]
     first = series[0][0]
     start = _years_back(last_day, years)
-    window = [v for d, v in series if d > start]
+    inside = [(d, v) for d, v in series if d > start]
+    window = [v for _, v in inside]
     full = [v for _, v in series]
-    return {"years": years,
+    # THE WINDOW THROUGH derived.window_label (item 124 T0, step 1).
+    asked = round(365.25 * float(years))
+    held = ((derived._as_date(last_day) - derived._as_date(inside[0][0])).days
+            if inside else 0)
+    return {"years": years, "window_asked_days": asked, "window_held_days": held,
+            "window_label": derived.window_label(asked, held),
             "percentile_window": derived.percentile_of(window, last), "n_window": len(window),
             "percentile_full": derived.percentile_of(full, last), "n_full": len(full),
             "percentile": derived.percentile_of(full, last), "n": len(full),
@@ -140,10 +146,11 @@ def lens_text(lz: dict) -> str:
     '64th of five years (n=1,260), 71st since 1997-08-01 (n=7,300)'."""
     if not lz.get("n"):
         return "no percentile (nothing stored)"
+    lab = lz.get("window_label") or derived.window_label(round(365.25 * lz["years"]))
     if lz["same"]:
         return (f"{ordinal(lz['percentile_full'])} percentile of its stored history since "
-                f"{lz['from']} (n={lz['n_full']:,}; shorter than {lz['years']} years)")
-    return (f"{ordinal(lz['percentile_window'])} percentile of {lz['years']} years "
+                f"{lz['from']} (n={lz['n_full']:,}; {lab})")
+    return (f"{ordinal(lz['percentile_window'])} percentile of {lab} "
             f"(n={lz['n_window']:,}), {ordinal(lz['percentile_full'])} since {lz['from']} "
             f"(n={lz['n_full']:,})")
 

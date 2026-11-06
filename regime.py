@@ -154,7 +154,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "1664e465a940aadc"
+METHOD_SOURCE_SHA = "663fc5aab334c743"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -322,6 +322,7 @@ def score_member(spec: dict, as_of: str, window: int,
         "confidence": d["confidence"],
         "confidence_reason": d["confidence_reason"],
         "n": d["n"],
+        "window_actual_days": d.get("window_actual_days"),
         "observed_at": d["observed_at"],
         "staleness_sessions": d["staleness_sessions"],
         "staleness_allowance_sessions": d["staleness_allowance_sessions"],
@@ -428,6 +429,12 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
                  else band_state(primary["percentile"], bands))
     out["raw_state"] = raw_state
     out["percentile"] = primary["percentile"]
+    # THE WINDOW, HONESTLY (item 124 T0, step 1): window_days is what the config
+    # asks; the primary's observations may cover less (HY OAS on FRED: three
+    # years of a five-year window).
+    out["window_label"] = derived.window_label(
+        "full" if full else window,
+        None if full else primary.get("window_actual_days"))
     if absolute:
         out["level"] = primary["level"]
         out["band_basis"] = (f"absolute bands on {primary['metric']}'s level "
@@ -439,7 +446,8 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
         out["percentile_5y"] = m5["percentile"]
         out["percentile_window_note"] = (
             f"the state is banded on the full stored history (n={primary['n']}); "
-            f"the {aw}-day read is {m5['percentile']}")
+            f"the {derived.window_label(aw, m5.get('window_actual_days'))} read is "
+            f"{m5['percentile']}")
     out["rate_of_change"] = primary["rate_of_change"]
     roc = primary["rate_of_change"]
     if roc is None:
@@ -1296,6 +1304,7 @@ def session_move(as_of: Optional[str] = None,
     out["to_date"] = d.get("to_date")
     out["percentile_5y"] = d.get("percentile")
     out["n_5y"] = d.get("n")
+    out["window_label_5y"] = d.get("window_label")
     out["z_5y"] = d.get("z_score")
     if d.get("absent_reason"):
         out["absent_reason"] = d["absent_reason"]

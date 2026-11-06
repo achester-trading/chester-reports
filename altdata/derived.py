@@ -85,6 +85,47 @@ CONVENTION_VERSION = "derived-forms-v1"
 DEFAULT_WINDOW_DAYS = 1826
 
 # ---------------------------------------------------------------------------
+# THE ONE WINDOW LABEL FOR A PERCENTILE (item 124 Tranche 0, step 1; D60,
+# 6 Nov 2026). A percentile "of five years" over a series that holds three and
+# a bit is a claim about two years the store does not have: HY OAS on FRED is
+# three years deep, and its lens said "5y" all the same. Every percentile that
+# prints a window prints it through window_label(): the asked window alone when
+# the held span covers it, and both when it does not -- "5y asked, 3.4y held",
+# or in a compact cell "3.4y/5y" (the caller adds the parentheses).
+# tools/validate_item_124_t0.py fails on a percentile window label built
+# anywhere else.
+# ---------------------------------------------------------------------------
+# A held span within a month of the asked one covers it: a five-year window
+# whose first observation fell on a holiday is still five years.
+HELD_TOLERANCE_DAYS = 31
+
+
+def _years_text(days: float) -> str:
+    y = float(days) / 365.25
+    if abs(y - round(y)) < 0.05 and round(y) >= 1:
+        return f"{int(round(y))}y"
+    return f"{y:.1f}y"
+
+
+def window_label(asked: Any, held_days: Optional[float] = None, *,
+                 compact: bool = False, start: Optional[str] = None) -> str:
+    """The window a percentile was taken over, honestly.
+
+    `asked` is the window in days, or "full" (the store's whole history, which a
+    series always holds, so it is never short). `held_days` is the span the
+    observations in the window actually cover, from the first of them to the
+    as-of. None means unknown, and the asked window prints alone."""
+    if asked == "full":
+        return f"full history from {start}" if start else "full history"
+    a = float(asked)
+    if held_days is None or float(held_days) >= a - HELD_TOLERANCE_DAYS:
+        return _years_text(a)
+    h = max(0.0, float(held_days))
+    if compact:
+        return f"{_years_text(h)}/{_years_text(a)}"
+    return f"{_years_text(a)} asked, {_years_text(h)} held"
+
+# ---------------------------------------------------------------------------
 # DELTA SEMANTICS BY `units`. Rule 2.
 #
 # Keys are the units vocabularies of BOTH registries: metrics_registry.yaml's
@@ -946,6 +987,8 @@ def derived_forms(metric_id: str, as_of: Optional[str] = None,
         "n": len(values),
         "first_observed": windowed[0][0],
         "window_actual_days": (as_of_day - _as_date(windowed[0][0])).days,
+        "window_label": window_label(req_window,
+                                     (as_of_day - _as_date(windowed[0][0])).days),
         "percentile": percentile_of(values, level),
         "z_score": z_of(values, level),
         "staleness_sessions": stale,
@@ -1037,6 +1080,9 @@ def delta_percentile(metric_id: str, as_of: Optional[str] = None,
         "z_score": (round(z_of(changes, changes[-1]), 4)
                     if z_of(changes, changes[-1]) is not None else None),
         "window_days": window,
+        "window_label": window_label(
+            window or DEFAULT_WINDOW_DAYS,
+            (_as_date(as_of or rows[-1][0]) - _as_date(rows[0][0])).days),
         "distribution": {"p5": round(percentile_at(changes, 5), 4),
                          "median": round(percentile_at(changes, 50), 4),
                          "p95": round(percentile_at(changes, 95), 4)},
@@ -1362,21 +1408,29 @@ def _at_or_before(days: list[str], vals: list[float], day: str) -> Optional[tupl
 def _pct_in_window(series: list[tuple[str, float]], level: float, as_of_day: dt.date,
                    years: Any) -> dict:
     if years is None:
-        return {"pct": None, "n": 0, "window": None,
+        return {"pct": None, "n": 0, "window": None, "window_compact": None,
+                "asked_days": None, "held_days": None,
                 "reason": "the family carries no long window (6c: quantities none)"}
     if years == "full":
         vals = [v for _, v in series]
         start = series[0][0] if series else None
-        label = f"full history from {start}"
+        asked: Any = "full"
+        held = None
     else:
-        lo = (as_of_day - dt.timedelta(days=int(round(365.25 * float(years))))).isoformat()
-        vals = [v for d, v in series if d >= lo]
-        label = f"{years}y"
+        asked = round(365.25 * float(years))
+        lo = (as_of_day - dt.timedelta(days=int(asked))).isoformat()
+        inside = [(d, v) for d, v in series if d >= lo]
+        vals = [v for _, v in inside]
+        start = inside[0][0] if inside else None
+        held = ((as_of_day - _as_date(start)).days if start else 0)
+    label = window_label(asked, held, start=start)
+    out = {"n": len(vals), "window": label,
+           "window_compact": window_label(asked, held, compact=True, start=start),
+           "asked_days": asked, "held_days": held, "window_start": start}
     if len(vals) < 2:
-        return {"pct": None, "n": len(vals), "window": label,
-                "reason": f"{len(vals)} observation(s) in the {label} window"}
-    return {"pct": percentile_of(vals, level), "n": len(vals), "window": label,
-            "reason": None}
+        return dict(out, pct=None,
+                    reason=f"{len(vals)} observation(s) in the {label} window")
+    return dict(out, pct=percentile_of(vals, level), reason=None)
 
 
 def _change(now: float, past: Optional[float], kind: str, bp_scale: float) -> Optional[float]:
@@ -1449,6 +1503,9 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
         for tag, p in (("pctile_5y", p5), ("pctile_long", pl)):
             put(tag, p["pct"], p["reason"] or "")
             F[f"{tag}_n"], F[f"{tag}_window"] = p["n"], p["window"]
+            F[f"{tag}_window_asked"] = p["asked_days"]
+            F[f"{tag}_window_held"] = p["held_days"]
+            F[f"{tag}_window_start"] = p.get("window_start")
             F[f"{tag}_ordinal"] = _ord(p["pct"])
         F["pctile_long_basis"] = long_why
         if p5["pct"] is not None and pl["pct"] is not None:
@@ -1595,7 +1652,10 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
     if metric_id in (lens_config().get("anchored_rates") or []):
         _anchor_forms(out, cutoff, store)
     out["forms_shown"] = [k for k in F if not k.endswith(("_n", "_window", "_ordinal",
-                                                          "_basis", "_unit", "_rule"))]
+                                                          "_basis", "_unit", "_rule",
+                                                          "_window_asked",
+                                                          "_window_held",
+                                                          "_window_start"))]
     return out
 
 

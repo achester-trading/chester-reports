@@ -168,7 +168,7 @@ def move_line(wc: dict) -> str:
             f'{float(m["change"]):+.2f}{unit}</strong> '
             f'{esc(m.get("from_date"))} &rarr; {esc(m.get("to_date"))}'
             f'<br>percentile <strong>{pctf(m.get("percentile_5y"))}</strong> of '
-            f'{esc(m.get("n_5y"))} sessions, five years '
+            f'{esc(m.get("n_5y"))} sessions, {esc(m.get("window_label_5y") or "5y")} '
             f'(z {zf(m.get("z_5y"))})'
             f'<br>percentile <strong>{lr}</strong>{beyond}</div>')
 
@@ -376,7 +376,10 @@ def state_table(payload: dict) -> str:
         rows.append(
             f'<tr><td style="{TDL}">{esc(name)}</td>'
             f'<td style="{TDL}">{esc(d["state"])}</td>'
-            f'<td style="{TD}">{pctf(d.get("percentile"))}</td>'
+            f'<td style="{TD}">{pctf(d.get("percentile"))}'
+            + (f' ({esc(d["window_label"])})'
+               if "held" in str(d.get("window_label") or "") else "")
+            + f'</td>'
             f'<td style="{TD}">{esc(d.get("direction"))}</td>'
             f'<td style="{TDL}">{esc(d.get("confidence"))}</td>'
             f'<td style="{TDL}">{contra_s}</td></tr>')

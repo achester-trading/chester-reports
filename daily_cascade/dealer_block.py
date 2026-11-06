@@ -740,7 +740,9 @@ def sentence_facts(p: dict, s: dict, cfg: dict) -> dict:
     }
 
 
-FLAG_WORD = re.compile(r"\b(pinned|pinning|held|amplif(?:ied|ies|y|ying)"
+# A window label's "3.4y held" (derived.window_label, item 124 T0) is no flag
+# word: "held" straight after a year count is the held span of a percentile.
+FLAG_WORD = re.compile(r"\b(pinned|pinning|(?<![0-9]y )held|amplif(?:ied|ies|y|ying)"
                        r"|dampen(?:ed|s|ing)?)\b", re.I)
 # "held" is ordinary English ("the relationships that held"); it is the flag
 # word only about a dealer level -- a wall, the flip, a strike, max pain.

@@ -214,7 +214,7 @@ def group_b() -> None:
           f"the PPI line's year-on-year change by hand ({row['yoy_pct']}%)")
     lz = row["lens"]
     check(lz["n_full"] == len(pcb) - 12 and lz["n_window"] == 60 and not lz["same"]
-          and "percentile of 5 years" in row["lens_text"],
+          and "percentile of 5y" in row["lens_text"],
           "dual percentiles: five years and the full history, each with its n")
     check({m["name"] for m in r["missing"]} == {"computer storage devices", "semiconductors"}
           and "Not read" in ai_trade.ppi_lines(r)[-1],
@@ -320,7 +320,7 @@ def group_c() -> None:
     pn = fr.panel(ev)
     rows = {r[0]: r for r in pn["table"]["rows"]}
     check(ev["depth"]["amihud"]["state"] == "computed"
-          and "of 5 years" in ev["depth"]["amihud"]["lens_text"]
+          and "of 5y" in ev["depth"]["amihud"]["lens_text"]
           and ev["depth"]["range"]["state"] == "computed",
           "the depth proxies with dual percentiles, from the stored daily bars")
     check(rows["ES top-of-book depth"][1] == "NOT TRACKED"

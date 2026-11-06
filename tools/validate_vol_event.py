@@ -410,7 +410,8 @@ def group_f() -> None:
 
 
 NEVER = [(re.compile(r"\b(support|resistance)\b", re.I), "support/resistance"),
-         (re.compile(r"\b(pinned|pinning|held|amplif\w*|dampen\w*)\b", re.I), "a flag word"),
+         (re.compile(r"\b(pinned|pinning|(?<![0-9]y )held|amplif\w*|dampen\w*)\b", re.I),
+          "a flag word"),   # "20y asked, 6.3y held" is a window label (item 124 T0)
          (re.compile(r"dealer[_ ]?(buys|sells)|dealers? (?:will )?(?:buy|sell)\b", re.I),
           "a dealer buy/sell direction")]
 

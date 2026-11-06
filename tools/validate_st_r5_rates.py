@@ -477,7 +477,7 @@ def group_f() -> None:
     check(not m["absent"] and m["week"] == NOW_DAY and m["yoy_pct"] == -12.0
           and m["wow_pct"] == -3.0 and m["lens"]["n_full"] == 110,
           "the latest survey's changes and its year-on-year history (n=110)")
-    check("n=110" in ln and "shorter than 5 years" in ln and "since" in ln
+    check("n=110" in ln and "5y asked," in ln and "y held" in ln and "since" in ln
           and "weekly survey" in ln,
           f"the percentile prints its real window and n: {ln[60:170]}")
     # By hand: 100 at the first week after the gap, then x 1.015 = 101.5,
@@ -532,7 +532,7 @@ def group_g() -> None:
           "CCC narrowing, less than BB: off (CCC must widen)")
     lines = rt.quality_tail_lines(q)
     txt = " ".join(lines)
-    check("shorter than 5 years" in txt and "n=" in txt and "since 2023-10-16" in txt,
+    check("5y asked," in txt and "n=" in txt and "since 2023-10-16" in txt,
           "three years of FRED's ICE series: the percentile names that window and n")
     check("which is not built" in txt and "HY Spread Acceleration" in txt
           and "(descriptive; unvalidated, n=0)" in txt,
@@ -544,7 +544,7 @@ def group_g() -> None:
           "by hand")
     long = tail(spread_rows(40, 15, start="2019-01-02"))
     lt = " ".join(rt.quality_tail_lines(long))
-    check(not long["ccc_bb_lens"]["same"] and "of 5 years (n=" in lt and "since 2019-01-02" in lt,
+    check(not long["ccc_bb_lens"]["same"] and "of 5y (n=" in lt and "since 2019-01-02" in lt,
           "with more than five years stored, both windows print, each with its n")
     with open_store(store([])) as st:
         e = rt.quality_tail(st, NOW, CFG)

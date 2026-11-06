@@ -893,7 +893,7 @@ def group_h() -> None:
     check(g["lens"]["n"] == 2 and g["lens"]["same"],
           "July's cap has no gold close within five days and is not used: n=2")
     line = tr.gold_equity_line(g)
-    check("(n=2; shorter than 10 years)" in line,
+    check("(n=2; 10y asked, " in line and "y held)" in line,
           f"the percentile prints its real window and n ({line[-70:]})")
     with open_store(store(rows[1:])) as st:
         a = tr.gold_equity(st, NOW, cfg2)
@@ -947,7 +947,7 @@ def group_i() -> None:
     lines = tr.diffusion_lines(d)
     check(len(lines) == 2 and "100.94" in lines[1] and "50.2" in lines[1]
           and "Report-only until its lead is ledgered" in lines[1]
-          and re.search(r"\(n=\d+; shorter than 10 years\)", lines[0]),
+          and re.search(r"\(n=\d+; 10y asked, [\d.]+y held\)", lines[0]),
           "the lines: the index with its percentile's n, the CLI and the PMI at the lead, "
           "report-only")
     al = tr.ahead_line(d)

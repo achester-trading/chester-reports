@@ -147,7 +147,7 @@ def group_a() -> None:
     check(nq["state"] == "absent" and "not stored" in hf.contract_line(nq),
           "NQ, unstored, prints its reason")
     t = hf.table(r)
-    check(t["rows"][0][2] == "-20.0%" and "100th of 5 years" in t["rows"][0][3],
+    check(t["rows"][0][2] == "-20.0%" and "100th of 5y" in t["rows"][0][3],
           "the table's row: the share and the dual percentile")
 
 

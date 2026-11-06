@@ -241,7 +241,9 @@ def retrospective(st, first: str, last: str, cutoff: str, cfg: dict,
 # The prose may say pinned, held, amplified or dampened only where the flag says
 # so (6b part 2 extends the audit to dampened; brief v2 section 4)
 # ---------------------------------------------------------------------------
-_FLAG_WORD = re.compile(r"\b(pinned|pinning|held|amplif(?:ied|ies|y|ying)"
+# A window label's "3.4y held" (derived.window_label, item 124 T0) is no flag
+# word: "held" straight after a year count is the held span of a percentile.
+_FLAG_WORD = re.compile(r"\b(pinned|pinning|(?<![0-9]y )held|amplif(?:ied|ies|y|ying)"
                         r"|dampen(?:ed|s|ing)?)\b", re.I)
 _MONTHS = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
 _DATE = re.compile(rf"\b(\d{{1,2}})\s(?:{_MONTHS})[a-z]*\b|\b(?:{_MONTHS})[a-z]*\s"

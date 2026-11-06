@@ -154,7 +154,8 @@ def table(r: dict) -> dict:
         rows.append([c["label"],
                      "—" if c.get("net") is None else f"{c['net']:+,.0f}",
                      f"{c['net_oi_pct']:+.1f}%",
-                     f"{rt.ordinal(lz['percentile_window'])} of {r['years']} years "
+                     f"{rt.ordinal(lz['percentile_window'])} of "
+                     f"{lz.get('window_label') or str(r['years']) + 'y'} "
                      f"(n={lz['n_window']:,}); {rt.ordinal(lz['percentile_full'])} "
                      f"since {lz['from']} (n={lz['n_full']:,})",
                      c["as_of"]])

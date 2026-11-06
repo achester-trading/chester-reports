@@ -204,6 +204,11 @@ def trigger(vix: list[tuple[str, float]], day: str, cfg: dict,
         level[f"pct_{y}y"] = pctile(vals[-n:], v)
         change[f"pct_{y}y"] = pctile(chg[-n:], pts)
         level[f"n_{y}y"] = len(vals[-n:])
+        # THE WINDOW THROUGH derived.window_label (item 124 T0, step 1): sessions
+        # held against sessions asked, in years.
+        from . import derived                                   # noqa: PLC0415
+        level[f"window_{y}y"] = derived.window_label(
+            round(365.25 * int(y)), 365.25 * len(vals[-n:]) / spy)
     return {"day": day, "fired": fired, "direction": direction, "arms": arms,
             "level": level, "change": change, "band": b1, "prior_band": b0}
 
@@ -222,8 +227,10 @@ def trigger_line(tr: dict) -> str:
              f"to {tr['band']})", "compression": "compression to the six-month floor"}
     return (f"VIX {lv['value']:.2f} ({fmt_signed(ch['points'])} points, "
             f"{fmt_signed(ch['pct'], 1, '%')}). Level: {lv.get('pct_5y')} percentile "
-            f"(5y), {lv.get('pct_20y')} (20y). Change: {ch.get('pct_5y')} percentile "
-            f"(5y), {ch.get('pct_20y')} (20y). "
+            f"({lv.get('window_5y') or '5y'}), {lv.get('pct_20y')} "
+            f"({lv.get('window_20y') or '20y'}). Change: {ch.get('pct_5y')} percentile "
+            f"({lv.get('window_5y') or '5y'}), {ch.get('pct_20y')} "
+            f"({lv.get('window_20y') or '20y'}). "
             + ("Event: " + "; ".join(names[w] for w in why) + "." if why
                else "No event."))
 
