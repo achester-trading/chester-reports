@@ -286,6 +286,14 @@ SYMBOLS: dict[str, str] = {
     # replication proxy wherever it prints. Needs tools/backfill_prices.py before
     # its history reads.
     "QAI": "mkt_qai",
+    # SIGNAL-TRIAGE BATCH 22 ITEM 118 (the order's 100; A128, 6 Nov 2026): SPHB and
+    # SPLV, the S&P 500 High Beta and Low Volatility ETFs, whose ratio is the
+    # crowding family's high-beta / low-vol member and the divergence flag's leg
+    # (config/crowding.yaml; altdata/hb_lv.py). The order: "through the existing
+    # yfinance fetcher"; A128 names them. Each needs tools/backfill_prices.py
+    # before its history reads.
+    "SPHB": "mkt_sphb",
+    "SPLV": "mkt_splv",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #

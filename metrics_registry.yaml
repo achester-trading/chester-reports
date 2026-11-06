@@ -557,6 +557,9 @@ vocabularies:
     # Trend breadth (Batch 16 item 89(b), B76): one mechanism, however many
     # markets and lookbacks -- sixty-four signs are one reading of the closes.
     - trend_breadth
+    # The crowding family (Batch 16 item 89(a), not built; Batch 22 item 118,
+    # A128): its members' ratios and flags, one mechanism however many members.
+    - crowding
     # Batch 4 Tranche A part 1 (17 Oct 2026): crypto perp leverage (funding,
     # open interest, long/short across the venues) and Bitcoin's and Ethereum's
     # network state (hashrate, fees, gas).
@@ -17994,6 +17997,42 @@ metrics:
       or 1645 (the close, stored closes); observed_at = the session; available at
       the instant computed. Report and the 15:00 flag only; barred from the
       market-state object.
+  calc.hb_lv_ratio:
+    source: hb_lv
+    mechanism_group: crowding
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    family: ratio
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 118 (A128; altdata/hb_lv.py): SPHB's close over SPLV's on the
+      session both carry, the crowding family's high-beta / low-vol member
+      (config/crowding.yaml). Available at the later of the two closes. Report
+      only; barred from the market-state object.
+  calc.hb_lv_ratio_chg_1d:
+    source: hb_lv
+    mechanism_group: crowding
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_return
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 118 (A128): calc.hb_lv_ratio against its previous common
+      session, percent. Its divergence flag (the S&P 500 up 0.5% or more while
+      this is -2% or less) prints in the close's what doesn't fit with no rights
+      until the backtest (docs/ledgers/hb-lv-divergence-*). Barred from the
+      market-state object.
   calc.close_flow.total_pct_adv:
     source: close_flow
     mechanism_group: leverage_positioning
@@ -18925,7 +18964,7 @@ bulk_imports:
       yfinance.mkt_dspx: vol_index
       yfinance.mkt_cor1m: index_points
       yfinance.mkt_cor3m: index_points
-    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 129   # + SPHB SPLV (Batch 22 item 118, A128, 6 Nov 2026) + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -18982,7 +19021,7 @@ bulk_imports:
     family: quantity
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 97   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
+    expected_members: 99   # + SPHB SPLV (Batch 22 item 118, A128, 6 Nov 2026) + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -19143,7 +19182,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 129   # + SPHB SPLV (Batch 22 item 118, A128, 6 Nov 2026) + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -21133,6 +21172,9 @@ market_state_barred:
   - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 116, the order's 98; O-1)
     rule: "a report line and the 15:00 flag only; nothing enters a composite, the market-state object, the T&B intake queue or a regime"
     keys: ["calc.close_flow.*"]
+  - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 118, the order's 100; A128)
+    rule: "a report line; the divergence flag carries no rights until the backtest; nothing enters a composite or the market-state object"
+    keys: ["calc.hb_lv_ratio", "calc.hb_lv_ratio_chg_1d", "yfinance.mkt_sphb", "yfinance.mkt_splv"]
   - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 116's roster; A127)
     rule: "the roster's funds joined levetf.aum for the close-flow estimate; nothing enters the object"
     keys: ["levetf.aum"]
@@ -21660,3 +21702,4 @@ lens_excluded:
   calc.close_flow.single_stocks_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
   calc.close_flow.total: "an estimate of a flow per session and slot (item 116), not a level series"
   calc.close_flow.total_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.hb_lv_ratio_chg_1d: "a 1-day change of a ratio (item 118), not a level series"

@@ -1165,9 +1165,18 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("trend breadth failed", exc_info=True)
             tbr = {"error": f"{type(exc).__name__}: {exc}"}
+        # BATCH 22 ITEM 118 (A128): the crowding family's high-beta / low-vol
+        # member, SPHB over SPLV and its 1-day change, over its recent sessions
+        # (the history is `python -m altdata.hb_lv compute --full`). Never fatal.
+        try:
+            from . import hb_lv                                  # noqa: PLC0415
+            hbr = hb_lv.compute(as_of=as_of, store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("the high-beta / low-vol member failed", exc_info=True)
+            hbr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
                 "dry_run": dry_run, "correlation": corr, "absorption": absr,
-                "funding_currency": fcr, "trend_breadth": tbr}
+                "funding_currency": fcr, "trend_breadth": tbr, "hb_lv": hbr}
     finally:
         if own:
             db.close()

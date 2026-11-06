@@ -213,6 +213,12 @@ NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      # replication proxy.
                      "yfinance.mkt_qai", "yfinance.mkt_qai_dividend",
                      "yfinance.mkt_qai_split", "yfinance.mkt_qai_volume",
+                     # Batch 22 item 118 (A128, 6 Nov 2026): SPHB and SPLV, the
+                     # crowding family's high-beta / low-vol member.
+                     "yfinance.mkt_sphb", "yfinance.mkt_sphb_dividend",
+                     "yfinance.mkt_sphb_split", "yfinance.mkt_sphb_volume",
+                     "yfinance.mkt_splv", "yfinance.mkt_splv_dividend",
+                     "yfinance.mkt_splv_split", "yfinance.mkt_splv_volume",
                      # Batch 9 item 52 (17 Oct 2026): ^VIX9D and ^VIX6M join the
                      # basket, with their action series.
                      "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",

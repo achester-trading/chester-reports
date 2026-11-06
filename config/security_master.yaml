@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 247
+next_id: 249
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -5072,6 +5072,48 @@ instruments:
     asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
     currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
     exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00247
+  name: Invesco S&P 500 High Beta ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: SPHB
+    store_key: yfinance.mkt_sphb
+    ticker: SPHB
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (Batch 22 item 118, A128; the crowding family's high-beta / low-vol member)
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00248
+  name: Invesco S&P 500 Low Volatility ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: SPLV
+    store_key: yfinance.mkt_splv
+    ticker: SPLV
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: yfinance_source.SYMBOLS (Batch 22 item 118, A128; the crowding family's high-beta / low-vol member)
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
       -> config/listing_exchanges.yaml
     name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
   unverified: []

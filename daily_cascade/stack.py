@@ -1053,6 +1053,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # (daily_cascade/gold_block.py; lines only).
         from . import gold_block                                # noqa: PLC0415
         gold_block.close_extras(built, st, p["session"], cutoff)
+        # SIGNAL-TRIAGE BATCH 22 ITEM 118 (A128): the high-beta / low-vol
+        # divergence flag, one line in What doesn't fit on a fired day only
+        # (daily_cascade/hb_lv_block.py; no rights until the backtest).
+        from . import hb_lv_block                               # noqa: PLC0415
+        hb_lv_block.close_extras(built, st, p["session"], cutoff)
         # 6f TRANCHE 2 (a63): the dials' transition reads, one line.
         from . import state_v2_block                            # noqa: PLC0415
         state_v2_block.close_extras(built, st, cutoff)

@@ -40,6 +40,20 @@ and 98.3; SR-77, provisional), the levered-ETF close flow.
      Book C draft the lab does not import; levered_etf on the external roster
      after proshares; the 15:00 timer held out of DEPLOY_TIMERS; the wrapper's
      one call; the gate on the list.
+  H  THE EVENT-STUDY UTILITY (Batch 16 item 91(a); A128). Windows in sessions,
+     the pre / day-0 / post views, forward returns pending past the end, the
+     cross-event average, the base rate and the two-asset comparison, each by
+     hand; pure arithmetic; one utility, no second implementation.
+  I  THE CLOSE-FLOW LEDGER (98.2; A128). The pre-registration's SHA-256 held;
+     below 20 stored sessions "accruing (n=k of 20)"; the top-decile cut and its
+     events by hand; the measures (the last 30 minutes, the next open, +1, +5);
+     the two seed rows marked "seed, order's figure", 5 Nov "estimate,
+     unconfirmed"; no pass rule; the first edition registers it.
+  J  ITEM 118 (A128). SPHB and SPLV through the Security Master into the basket;
+     the crowding family's member (its config, the 89(a) gauge "not built");
+     calc.hb_lv_ratio and its change by hand; the flag at both edges; its one
+     line in What doesn't fit on a fired day only; the backtest's events and
+     V-100a's two branches; the keys barred; the pre-registration's hash held.
 
 Synthetic fixtures only: no live store, no network, no model. The clock is pinned
 to GATE_NOW (B106's rule).
@@ -72,6 +86,7 @@ GATE_NOW = "2026-11-06T23:00:00+00:00"   # 18:00 ET on a Friday, after the close
 DAY = "2026-11-06"
 PREV = "2026-11-05"
 PASS = FAIL = 0
+TD116 = None
 LINE = "=" * 78
 CFG = cf.config()
 
@@ -624,11 +639,282 @@ def group_g() -> None:
           "the gate is on the code-gate list (GATE_KIND, S1)")
 
 
+# ---------------------------------------------------------------------------
+# A128: the event-study utility, the close-flow ledger, item 118
+# ---------------------------------------------------------------------------
+CF_PREREG_SHA = "2e55de27a48183fc7ba752be94d11b035a735f1402928eb439233580124cd68f"
+HB_PREREG_SHA = "cdadf38f9f3a45732a38a068453d4a912fc0a18116c1222199a3a569cb05de84"
+
+
+def sha_lf(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def group_h() -> None:
+    head("H. THE EVENT-STUDY UTILITY (Batch 16 item 91(a); A128)")
+    from altdata import event_study as es
+    days = weekdays(10, "2026-11-06")
+    px = [100.0, 101.0, 99.0, 102.0, 104.0, 103.0, 105.0, 106.0, 108.0, 107.0]
+    s = list(zip(days, px))
+    w = es.window(s, days[3], 2, 3)
+    check(w["complete"] and w["values"] == {-2: 101.0, -1: 99.0, 0: 102.0, 1: 104.0,
+                                            2: 103.0, 3: 105.0},
+          "window: the values at offsets -2..+3 in sessions, complete")
+    check(not es.window(s, days[8], 1, 3)["complete"]
+          and es.window(s, "2026-11-07", 1, 1)["reason"],
+          "a window past the series' end is incomplete; a day not in the series says so")
+    v = es.views(s, days[3], 2, 2)
+    check(close(v["pre"], 99 / 101 - 1) and close(v["day0"], 102 / 99 - 1)
+          and close(v["post"][1], 104 / 102 - 1) and close(v["post"][2], 103 / 102 - 1),
+          "views: pre (-2 close to -1), day 0 (-1 to 0), post (0 to +k), by hand")
+    check(close(es.forward(s, days[3], 5), 108 / 102 - 1) and es.forward(s, days[8], 5) is None,
+          "forward: the event close to the k-th session's; None (pending) past the end")
+    a = es.average([0.01, -0.02, 0.03, None])
+    check(a["n"] == 3 and close(a["mean"], 0.02 / 3) and close(a["median"], 0.01)
+          and close(a["share_negative"], 1 / 3)
+          and es.average([None])["n"] == 0 and es.average([])["mean"] is None,
+          "average: n, mean, median, share negative over the non-missing values; empty is "
+          "None, never zero")
+    st_ = es.study(s, [days[1], days[7]], (1, 5))
+    check(close(st_["average"][1]["mean"], ((99 / 101 - 1) + (108 / 106 - 1)) / 2)
+          and st_["average"][5]["n"] == 1 and st_["pending"][5] == 1,
+          "study: the cross-event average at each horizon, a pending window left out and "
+          "counted")
+    br = es.base_rate(s, (1,))
+    check(br[1]["n"] == 9 and close(br[1]["mean"],
+                                    sum(px[i + 1] / px[i] - 1 for i in range(9)) / 9),
+          "base rate: the same average over every session whose window has closed")
+    b = list(zip(days, [50.0 + i for i in range(10)]))
+    c = es.compare(s, b, [days[2]], (1,))
+    check(close(c["rows"][0][1]["spread"], (102 / 99 - 1) - (53 / 52 - 1)),
+          "compare: two assets over the same events, a minus b")
+    import ast
+    tree = ast.parse((REPO / "altdata" / "event_study.py").read_text(encoding="utf-8"))
+    mods = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)} | \
+           {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    check(mods <= {"__future__", "math", "typing"},
+          f"pure arithmetic: no store, network or clock import ({sorted(mods)})")
+    hits = [p.name for p in (REPO / "altdata").rglob("*.py")
+            if p.name != "event_study.py"
+            and re.search(r"^def (window|views|forward)\(series", p.read_text(encoding="utf-8"), re.M)]
+    check(not hits, "one utility: no second window/views/forward implementation" +
+          (f" ({hits})" if hits else ""))
+
+
+def _cf_fixture(n_stored: int = 20) -> tuple[dict, list[str]]:
+    days = weekdays(30, "2026-11-06")
+    closes = {"spy": [(d, 100.0 + i) for i, d in enumerate(days)],
+              "qqq": [(d, 200.0 + 2 * i) for i, d in enumerate(days)],
+              "smh": [(d, 300.0 + 3 * i) for i, d in enumerate(days)],
+              "iwm": [(d, 50.0 + 0.5 * i) for i, d in enumerate(days)]}
+    opens = {e: [(d, v + 0.5) for d, v in ser] for e, ser in closes.items()}
+    vals = [0.1 * (i + 1) for i in range(20)]
+    vals[19] = -2.0
+    pct = list(zip(days[5:25], vals))[20 - n_stored:]
+    total = [(d, v * 1e9) for d, v in pct]
+    buckets = {"semiconductors": [], "nasdaq_100": [(days[23], 5e9)],
+               "sp_500": [(days[23], 1e9), (days[24], -8e9)], "russell_2000": []}
+    bars = {"spy": {days[24]: {"15:30": {"open": 120.0, "close": 119.0},
+                               "15:55": {"open": 119.0, "close": 118.8}}}}
+    return ({"mode": "store", "closes": closes, "opens": opens, "bars": bars,
+             "pct": pct, "total": total, "buckets": buckets}, days)
+
+
+def group_i() -> None:
+    head("I. ITEM 116'S CALIBRATION LEDGER (98.2; A128)")
+    from altdata import ledgers as L
+    from altdata.ledgers import close_flow_116 as cfl
+    pre = REPO / cfl.PREREG
+    check(pre.exists() and sha_lf(pre) == CF_PREREG_SHA
+          and CFG["ledger"]["preregistration_sha256"] == CF_PREREG_SHA,
+          f"the pre-registration's SHA-256 is held: {CF_PREREG_SHA[:16]}... (the gate and "
+          f"config/levered_etf.yaml)")
+    txt = pre.read_text(encoding="utf-8")
+    check(all(w in txt for w in ("top decile", "accruing (n=k of 20)", "last-30-minute",
+                                 "gap at the next open", "5-day forward", "None stated",
+                                 "seed, order's figure", "estimate, unconfirmed (V-98a open)")),
+          "it states the event, the measures, no pass rule and the two seeds, before the code")
+    s19, _ = _cf_fixture(19)
+    r19 = cfl.study(s19)
+    check(r19["n"] == 0 and r19["verdict"].startswith("ACCRUING (n=19 of 20)")
+          and any("Accruing (n=19 of 20)" in b for b in r19["body"]),
+          "19 stored sessions: 'accruing (n=19 of 20)', no decile and no event")
+    s, days = _cf_fixture(20)
+    cut, evs, k = cfl.events(s["pct"])
+    check(k == 20 and close(cut, 1.81) and evs == [days[23], days[24]],
+          f"20 stored: the cut is the 90th percentile of |% of ADV| (1.81 by hand), the "
+          f"events the two sessions at or above it ({evs})")
+    r = cfl.study(s)
+    ep = {e["session"]: e for e in r["episodes"]}
+    e23, e24 = ep[days[23]], ep[days[24]]
+    check(e23["index"] == "QQQ" and e24["index"] == "SPY",
+          "each event's index is its largest index bucket's ETF (Nasdaq 100 -> QQQ, "
+          "S&P 500 -> SPY)")
+    check(close(e24["index_last30"], 118.8 / 120.0 - 1)
+          and close(e24["index_gap"], (125.0 + 0.5) / 124.0 - 1)
+          and close(e24["index_fwd1"], 125.0 / 124.0 - 1)
+          and close(e24["index_fwd5"], 129.0 / 124.0 - 1)
+          and e24["gap_against_flow"] is True,
+          "the measures by hand: the last 30 minutes from the 5-minute bars, the next "
+          "open, +1 and +5; a selling day's up-gap is against the flow")
+    check(e23["index_last30"] is None and e23["index_fwd5"] is not None,
+          "an instrument with no bars that session prints no last 30 minutes, never a guess")
+    seeds = [e for e in r["episodes"] if e["mark"].startswith("seed")]
+    check([e["session"] for e in seeds] == ["2026-06-05", "2026-11-05"]
+          and seeds[0]["flow_usd"] == -55e9 and seeds[1]["flow_usd"] == -52e9
+          and all(e["mark"].startswith("seed, order's figure") for e in seeds)
+          and "estimate, unconfirmed" in seeds[1]["mark"]
+          and seeds[1]["index"] == "SMH" and seeds[0]["index"] == "SPY",
+          "rows one and two are the seeds: the order's -$55bn and -$52bn, marked 'seed, "
+          "order's figure', 5 Nov 'estimate, unconfirmed'; never counted as events")
+    check(r["n"] == 2 and r["pass_rule"].startswith("none stated")
+          and r["verdict"] == L.NO_GATE and "grants nothing" in r["rights"],
+          "n counts the events only; no pass rule, no verdict by judgment; grants nothing")
+    md, csv_path = L.write_ledger(dict(r, source_mode="laptop run, public sources",
+                                       sources=["fixture"]), TD116, "2026-11-06")
+    check(md.name == "close-flow-ledger-2026-11-06.md" and csv_path.exists(),
+          "written as docs/ledgers/close-flow-ledger-<date>.md with its CSV")
+    reg = L.registered_rule("close-flow")
+    check(reg and reg.startswith("none stated") and reg == cfl.PASS_RULE,
+          "the first edition on file registers 'none stated' (python -m altdata.ledgers "
+          "run close-flow)")
+    from altdata.ledgers.__main__ import ITEMS
+    check(ITEMS.get("close-flow") == "close_flow_116"
+          and ITEMS.get("hb-lv-divergence") == "hb_lv_118",
+          "both ledgers on the ledgers CLI")
+
+
+def _hb_series(spx_on_1104: float = 1.01) -> tuple[dict, list[str]]:
+    days = weekdays(60, "2026-12-31")
+    ev = {days[10], "2026-11-04"}
+    spx, sphb, splv = [], [], []
+    p, r = 4000.0, 2.0
+    for i, d in enumerate(days):
+        if i:
+            if d == "2026-11-04":
+                p *= spx_on_1104
+                r *= 0.97
+            elif d in ev:
+                p *= 1.01
+                r *= 0.97
+            else:
+                p *= 1.001
+        spx.append((d, p))
+        sphb.append((d, 50.0 * r))
+        splv.append((d, 50.0))
+    return {"spx": spx, "sphb": sphb, "splv": splv}, days
+
+
+def _seed_hb(db: Path, series: dict) -> None:
+    rows = []
+    for name, key in (("spx", "yfinance.mkt_gspc"), ("sphb", "yfinance.mkt_sphb"),
+                      ("splv", "yfinance.mkt_splv")):
+        for d, v in series[name]:
+            rows.append({"registry_key": key, "instrument": None, "observed_at": d,
+                         "available_at": f"{d}T21:05:00+00:00", "value": v,
+                         "source": "yfinance"})
+    with observations.ObservationStore(str(db)) as st:
+        st.write_many(rows)
+
+
+def group_j(td: str) -> None:
+    head("J. ITEM 118: SPHB/SPLV, THE CROWDING MEMBER, THE FLAG, ITS LEDGER (A128)")
+    from altdata import hb_lv
+    from altdata.ledgers import hb_lv_118 as hbl
+    from altdata.security_master import Master
+    from altdata.sources import yfinance_source as yf
+    m = Master()
+    ok = all(m.resolve(t, "yahoo")["asset_class"] == "etf"
+             and m.resolve(t, "yahoo")["identifiers"].get("store_key") == f"yfinance.mkt_{t.lower()}"
+             for t in ("SPHB", "SPLV"))
+    check(ok and yf.SYMBOLS.get("SPHB") == "mkt_sphb" and yf.SYMBOLS.get("SPLV") == "mkt_splv",
+          "SPHB and SPLV are in the Security Master (etf, yahoo, store_key) and the basket")
+    rb = yf.resolve_basket({"SPHB": "mkt_sphb", "SPLV": "mkt_splv"})
+    check(rb == {"SPHB": "mkt_sphb", "SPLV": "mkt_splv"},
+          "the basket resolves them through the master (resolve_basket)")
+    hc = hb_lv.config()
+    cr = yaml.safe_load((REPO / "config" / "crowding.yaml").read_text(encoding="utf-8"))
+    check(cr["gauge"]["built"] is False and "hb_lv" in cr["members"]
+          and hc["keys"] == {"ratio": "calc.hb_lv_ratio", "change_1d": "calc.hb_lv_ratio_chg_1d"},
+          "the crowding family's config: the member declared, the 89(a) gauge 'not built'")
+    pre = REPO / hc["ledger"]["preregistration"]
+    check(pre.exists() and sha_lf(pre) == HB_PREREG_SHA
+          and hc["ledger"]["preregistration_sha256"] == HB_PREREG_SHA,
+          f"the pre-registration's SHA-256 is held: {HB_PREREG_SHA[:16]}... (the gate and "
+          f"config/crowding.yaml)")
+    check(hb_lv.flag(0.5, -2.0) is True and hb_lv.flag(0.49, -3.0) is False
+          and hb_lv.flag(1.0, -1.99) is False and hb_lv.flag(None, -3.0) is None,
+          "the flag: the S&P up 0.5% or more with SPHB/SPLV down 2% or more (both edges)")
+    series, days = _hb_series()
+    db = Path(td) / "hb.db"
+    _seed_hb(db, series)
+    with observations.ObservationStore(str(db)) as st:
+        rows = hb_lv.compute_rows(st, GATE_NOW)
+        ratio = {r["observed_at"]: r for r in rows if r["registry_key"] == "calc.hb_lv_ratio"}
+        chg = {r["observed_at"]: r for r in rows if r["registry_key"] == "calc.hb_lv_ratio_chg_1d"}
+        f = hb_lv.for_session(st, "2026-11-04", GATE_NOW)
+        q = hb_lv.for_session(st, days[12], GATE_NOW)
+        built = {"misfit": {"items": [{"key": "misfit:none", "text": "x"}]}}
+        from daily_cascade import hb_lv_block
+        hb_lv_block.close_extras(built, st, "2026-11-04", GATE_NOW)
+        quiet = {"misfit": {"items": [{"key": "misfit:none", "text": "x"}]}}
+        hb_lv_block.close_extras(quiet, st, days[12], GATE_NOW)
+    check(close(ratio["2026-11-04"]["value"], dict(series["sphb"])["2026-11-04"] / 50.0, 1e-6)
+          and close(chg["2026-11-04"]["value"], -3.0, 1e-4)
+          and dt.datetime.fromisoformat(ratio["2026-11-04"]["available_at"])
+          == dt.datetime.fromisoformat("2026-11-04T21:05:00+00:00"),
+          "calc.hb_lv_ratio and its 1-day change by hand (-3.0%), available at the later close")
+    check(f["fired"] is True and "+1.0%" in f["line"] and "-3.0%" in f["line"]
+          and "No rights until the backtest" in f["line"],
+          f"a fired day's line carries both figures and 'no rights until the backtest': "
+          f"{(f['line'] or '')[:70]}...")
+    items = built["misfit"]["items"]
+    check([i["key"] for i in items] == ["misfit:hb_lv_divergence"]
+          and quiet["misfit"]["items"][0]["key"] == "misfit:none" and q["fired"] is False,
+          "it prints in What doesn't fit on a fired day only (replacing 'nothing open'); a "
+          "quiet day adds nothing")
+    r = hbl.study(series)
+    ev = [e["session"] for e in r["episodes"]]
+    e10 = next(e for e in r["episodes"] if e["session"] == days[10])
+    check(r["n"] == 2 and sorted(ev) == sorted([days[10], "2026-11-04"])
+          and close(e10["spx_fwd_1"], 0.001, 1e-6),
+          f"the backtest: the flag's events by hand (2) and their forward returns through "
+          f"the utility")
+    check(r["v100a"]["holds"] and any(e["mark"] == "the order's day (V-100a checked)"
+                                      for e in r["episodes"])
+          and "V-100a holds" in r["body"][0],
+          "V-100a holds on the fixture: 4 Nov is the order's first row, marked")
+    s2, _ = _hb_series(spx_on_1104=1.003)
+    r2 = hbl.study(s2)
+    check(r2["v100a"]["holds"] is False and "NOT written" in r2["body"][0]
+          and "2026-11-04" not in [e["session"] for e in r2["episodes"]],
+          "V-100a fails when the S&P closed up less than 0.5%: the row is NOT written, "
+          "and the edition says so")
+    check(r["pass_rule"].startswith("none stated") and "grants nothing" in r["rights"],
+          "no pass rule set; grants nothing")
+    from altdata import ledgers as L
+    reg = L.registered_rule("hb-lv-divergence")
+    check(reg and reg == hbl.PASS_RULE, "the first edition on file registers 'none stated'")
+    regm = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
+    barred = [k for b in regm["market_state_barred"] for k in b["keys"]]
+    check(all(k in regm["metrics"] and regm["metrics"][k]["trigger_eligible"] is False
+              and k in barred for k in ("calc.hb_lv_ratio", "calc.hb_lv_ratio_chg_1d"))
+          and "yfinance.mkt_sphb" in barred and "yfinance.mkt_splv" in barred,
+          "the keys registered, trigger-ineligible and barred from the market-state object")
+    ms = (REPO / "config" / "market_state.yaml").read_text(encoding="utf-8")
+    rg = (REPO / "regime.py").read_text(encoding="utf-8")
+    check("hb_lv" not in ms and "hb_lv" not in rg,
+          "named in neither config/market_state.yaml nor regime.py")
+
+
 def main() -> int:
+    global TD116
     pin_clock()
     print(f"the gate's clock is pinned to {GATE_NOW}")
     print(f"{LINE}\nITEM 116: THE LEVERED-ETF CLOSE FLOW (A127)\n{LINE}")
     td = gate_tmp.mkdtemp("item116_")
+    TD116 = Path(td) / "ledgers"
     group_a()
     group_b()
     db = group_c(td)
@@ -636,6 +922,9 @@ def main() -> int:
     group_e()
     group_f()
     group_g()
+    group_h()
+    group_i()
+    group_j(td)
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0
 

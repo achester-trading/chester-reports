@@ -1,0 +1,52 @@
+# crowding.yaml -- the crowding family's members (signal-triage Batch 16 item
+# 89(a), round 7, "the crowding-unwind gauge"; Batch 22 item 118, the order's 100,
+# amends the family). docs/change-order-signal-triage-batch-16-2026-10-26.md
+# section 89; docs/change-order-signal-triage-batch-22-2026-11-05.md section 100.
+#
+# THE GAUGE IS NOT BUILT. 89(a) -- the daily momentum-factor z plus the count of
+# held factor and sector pair spreads past 3 sigma -- sits in Batch 16's Tranche B
+# ("after 8 Nov; Audit #5 places"). A128 found it unbuilt on main and on every
+# branch, and the operator ruled (6 Nov 2026) that A128 builds the event-study
+# utility (91(a)) and leaves 89(a) unbuilt. This file therefore declares the
+# family and its first member; 89(a)'s gauge adopts the members when it lands,
+# and computes nothing here in the meantime.
+#
+# RIGHTS: a report line. The divergence flag prints in the close's "what doesn't
+# fit" with "no rights until the backtest"; nothing here enters a composite, the
+# market-state object, the Top & Bottom intake queue or a regime.
+version: crowding-v1
+updated: 2026-11-06
+
+gauge:
+  built: false
+  item: "Batch 16 item 89(a), the crowding-unwind gauge (Tranche B; not built)"
+  note: "89(a)'s gauge adopts this file's members when it lands; until then each member prints only its own line."
+
+members:
+  hb_lv:
+    label: "High beta / low volatility (SPHB/SPLV)"
+    item: "Batch 22 item 118 (the order's 100); A128, 6 Nov 2026"
+    # The ETF proxies for the S&P 500 High Beta and Low Volatility indices (the
+    # order: "through the existing yfinance fetcher"), in the basket through the
+    # Security Master (SM00247, SM00248).
+    numerator: {symbol: SPHB, key: yfinance.mkt_sphb}
+    denominator: {symbol: SPLV, key: yfinance.mkt_splv}
+    # Stored by the market-features pass (altdata/hb_lv.py), source hb_lv:
+    keys:
+      ratio: calc.hb_lv_ratio           # SPHB's close over SPLV's, units ratio
+      change_1d: calc.hb_lv_ratio_chg_1d  # the ratio against its previous session, percent
+    # THE DIVERGENCE FLAG (the order's 100, accepted 5 Nov 2026): the S&P 500 up
+    # 0.5% or more on the day while SPHB/SPLV is down 2% or more. Both are the
+    # order's thresholds, not session-set.
+    flag:
+      index: {label: "the S&P 500", key: yfinance.mkt_gspc}
+      index_up_pct: 0.5
+      ratio_down_pct: 2.0
+      rights: "no rights until the backtest"
+      prints: "the close's what doesn't fit (one line, both figures), on a fired day only"
+    # THE LEDGER (pre-registered before any code; the gate holds the hash).
+    ledger:
+      item: hb-lv-divergence
+      preregistration: docs/ledgers/hb-lv-divergence-preregistration-2026-11.md
+      preregistration_sha256: cdadf38f9f3a45732a38a068453d4a912fc0a18116c1222199a3a569cb05de84
+      first_row: "2026-11-04"   # the order's day, subject to V-100a

@@ -19,7 +19,10 @@ from . import sources as src
 
 ITEMS = {"30b": "st_r5_30b", "32b": "st_r5_32b", "35b": "st_r5_35b",
          "36b": "st_r5_36b", "43b": "st_r5_43b",
-         "17b": "st_r4_17b", "19b": "st_r4_19b"}
+         "17b": "st_r4_17b", "19b": "st_r4_19b",
+         # Batch 22 (A128, 6 Nov 2026), through the event-study utility: item 116's
+         # close-flow ledger (98.2) and item 118's divergence backtest (100).
+         "close-flow": "close_flow_116", "hb-lv-divergence": "hb_lv_118"}
 MODE = {"public": "laptop run, public sources",
         "store": "box run, the observation store's newest vintages"}
 
@@ -57,12 +60,20 @@ def load_store(spec: dict, db=None) -> dict:
 def run(item: str, source: str = "public", out=None, db=None,
         run_date=None) -> tuple:
     mod = import_module(f".{ITEMS[item]}", __package__)
-    series = (load_public(mod.SERIES_PUBLIC) if source == "public"
-              else load_store(mod.SERIES_STORE, db))
+    if hasattr(mod, "load"):
+        # A study whose inputs are more than daily closes (item 116's opens, bars
+        # and slot-keyed estimates) loads its own, through sources.py.
+        series = mod.load(source, db)
+    else:
+        series = (load_public(mod.SERIES_PUBLIC) if source == "public"
+                  else load_store(mod.SERIES_STORE, db))
     r = mod.study(series)
     r["source_mode"] = MODE[source]
-    r["sources"] = [f"{n}: {k} {a or ''}".strip() for n, (k, a) in mod.SERIES_PUBLIC.items()] \
-        if source == "public" else [f"{n}: store key {k}" for n, k in mod.SERIES_STORE.items()]
+    if hasattr(mod, "sources_list"):
+        r["sources"] = mod.sources_list(source)
+    else:
+        r["sources"] = [f"{n}: {k} {a or ''}".strip() for n, (k, a) in mod.SERIES_PUBLIC.items()] \
+            if source == "public" else [f"{n}: store key {k}" for n, k in mod.SERIES_STORE.items()]
     r["sources"].append(f"read {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')}")
     return write_ledger(r, out, run_date), r
 

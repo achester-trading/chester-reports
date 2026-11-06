@@ -21,6 +21,14 @@ version: levered-etf-v1
 updated: 2026-11-06
 
 aum_key: levetf.aum
+
+# THE CALIBRATION LEDGER (98.2; A128, 6 Nov 2026): pre-registered before its code
+# (altdata/ledgers/close_flow_116.py); the gate holds the hash.
+ledger:
+  item: close-flow
+  preregistration: docs/ledgers/close-flow-preregistration-2026-11.md
+  preregistration_sha256: 2e55de27a48183fc7ba752be94d11b035a735f1402928eb439233580124cd68f
+  min_stored_sessions: 20
 # Session-set (fragility.yaml's own value): the oldest a prior-session AUM may be
 # before a fund is left out of an estimate and named.
 aum_max_age_days: 5

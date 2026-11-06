@@ -45,7 +45,7 @@ FAMILIES: "OrderedDict[str, set]" = OrderedDict([
     ("US equity index funds", {"SPY", "QQQ", "IWM", "DIA", "RSP"}),
     ("Sector funds", {"XLK", "XLF", "KRE", "XLE", "XLV", "XLI", "XLP", "XLY",
                       "XLU", "XLB", "XLRE", "XLC", "SMH"}),
-    ("Style funds", {"IVW", "IVE", "IWF", "IWD"}),
+    ("Style funds", {"IVW", "IVE", "IWF", "IWD", "SPHB", "SPLV"}),
     ("Rates and credit funds", {"TLT", "IEF", "SHY", "HYG", "LQD", "AGG", "TIP",
                                 "MUB", "MBB"}),
     ("Commodity and real-asset funds", {"GLD", "SLV", "USO", "DBC", "DBA", "GUNR",

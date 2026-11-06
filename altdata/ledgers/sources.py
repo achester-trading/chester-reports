@@ -131,3 +131,57 @@ def store(key: str, instrument: Optional[str] = None, db: Optional[str] = None) 
     if not out:
         raise LookupError(f"the store holds no {key}")
     return out
+
+
+# ---------------------------------------------------------------------------
+# A128 (item 116's close-flow ledger): opens, 5-minute bars, a keyed series that
+# may not exist yet.
+# ---------------------------------------------------------------------------
+def yahoo_ohlc(symbol: str) -> dict[str, Series]:
+    """Daily opens and closes, the whole history, through the one yfinance import."""
+    from .. import import_yfinance                              # noqa: PLC0415
+    yf = import_yfinance()
+    h = yf.Ticker(symbol).history(period="max", interval="1d", auto_adjust=False)
+    days = [i.strftime("%Y-%m-%d") for i in h.index]
+    return {"close": [(d, float(c)) for d, c in zip(days, h["Close"]) if c == c],
+            "open": [(d, float(o)) for d, o in zip(days, h["Open"]) if o == o]}
+
+
+def yahoo_5m(symbol: str) -> list[dict]:
+    """Regular-hours 5-minute bars for the last 60 days (all Yahoo serves), each
+    {start (UTC ISO), open, close}."""
+    from .. import import_yfinance                              # noqa: PLC0415
+    yf = import_yfinance()
+    h = yf.Ticker(symbol).history(period="60d", interval="5m", prepost=False,
+                                  auto_adjust=False)
+    out = []
+    for i, o, c in zip(h.index, h["Open"], h["Close"]):
+        if o == o and c == c:
+            out.append({"start": i.tz_convert("UTC").isoformat(), "open": float(o),
+                        "close": float(c)})
+    return out
+
+
+def bars_5m(instrument: str, db: Optional[str] = None) -> list[dict]:
+    """The bars table's stored 5-minute bars of one instrument, read-only, each
+    {start, open, close}."""
+    from ..bars import BarStore                                 # noqa: PLC0415
+    bs = BarStore(db)
+    try:
+        rows = bs.read(instrument, "5m")
+    finally:
+        close = getattr(bs, "close", None)
+        if close:
+            close()
+    return [{"start": str(r["observed_at"]), "open": r.get("open"), "close": r.get("close")}
+            for r in rows if r.get("open") is not None and r.get("close") is not None]
+
+
+def store_or_empty(key: str, instrument: Optional[str] = None,
+                   db: Optional[str] = None) -> Series:
+    """store(), but an empty series where the store holds no row yet (a ledger
+    that accrues from its first live run)."""
+    try:
+        return store(key, instrument, db)
+    except LookupError:
+        return []

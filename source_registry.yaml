@@ -2747,6 +2747,22 @@ sources:
     implemented_by: altdata/close_flow.py
     status: live
 
+  hb_lv:
+    name: The crowding family's high-beta / low-vol member (item 118), our own computation
+    tier: derived
+    epistemic_role: own_computation
+    domain: [positioning, internal]
+    geography: [US]
+    latency: written by the market-features pass after the price fetch
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/hb_lv.py in the market-features pass: SPHB's close over
+      SPLV's, each row available at the later of its two closes' available_at.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/hb_lv.py
+    status: live
+
   reference_libraries:
     name: Edition labels of the reference libraries (French, Damodaran, Shiller, World Bank)
     tier: derived

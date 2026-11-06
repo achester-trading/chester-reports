@@ -312,3 +312,96 @@ Also run, since `chain_spot` is item 49's:
 - MSTR and COIN read the chain spot until the migration carries them. Their funds then move to stored closes and enter the bucket's ADV.
 
 **CI.** A127's run 42280039981 failed on one check: `validate_numeral_audit`, 180/1. `close_flow.py`'s flag line wrote an ordinal suffix by hand ("60th"), and its private `_ord` duplicated the one helper. Both now go through `numeral_audit.ordinal()`, and the gate reads 181/0. The fix is committed after A127b's push, so A127b's own run fails the same way. The fix rides A128's push.
+
+
+## A128: item 116's ledger (98.2) and item 118 (the order's 100)
+
+Base: the branch at `11e946b9` (A127b's pushed tip). Two local commits sat on it: A127b's ordinal fix `86a5af08` and the paste `679aa1eb`. The pre-registrations are `14a343a6`, committed before any code.
+
+### The two missing tools, and the ruling
+
+A128 says to use round 7's event-study utility (Batch 16 item 91(a)) and to add SPHB/SPLV as a member of the crowding-unwind gauge (89(a)), building no second utility. **Neither existed** on main or on any remote branch. Both sit in Batch 16's Tranche B ("after 8 Nov; Audit #5 places").
+
+Asked mid-run, the operator chose to build 91(a) first, then A128, with 89(a) left unbuilt:
+- **91(a), built as the one utility.** `altdata/event_study.py` does what Batch 16 lists: ±N windows in sessions, the pre / day-0 / post views, forward returns that print "pending" past the series' end, cross-event averages, the base rate and the two-asset comparison. It is pure arithmetic: no store, network or clock import. Gate group H holds every function by hand, and fails on a second window/views/forward implementation under `altdata/`.
+- **89(a), not built.** `config/crowding.yaml` declares the family with `gauge.built: false` and one member, `hb_lv`. 89(a)'s gauge adopts the members when it lands. Until then the member prints only its flag line.
+
+### The pre-registrations (SHA-256 of the LF bytes, held by the gate and the configs)
+
+| File | SHA-256 | Held in |
+|---|---|---|
+| `docs/ledgers/close-flow-preregistration-2026-11.md` | `2e55de27a48183fc7ba752be94d11b035a735f1402928eb439233580124cd68f` | `config/levered_etf.yaml` `ledger`, gate group I |
+| `docs/ledgers/hb-lv-divergence-preregistration-2026-11.md` | `cdadf38f9f3a45732a38a068453d4a912fc0a18116c1222199a3a569cb05de84` | `config/crowding.yaml` `members.hb_lv.ledger`, gate group J |
+
+### Part 1: the close-flow ledger (98.2)
+
+`altdata/ledgers/close_flow_116.py` runs on `python -m altdata.ledgers run close-flow`, through the utility.
+
+**The event.** A stored 16:45 session whose |total % of ADV| is in the top decile. Below 20 stored sessions the ledger prints "accruing (n=k of 20)". Each event is measured on its largest index bucket's ETF (SMH, QQQ, SPY or IWM) and on SPY: the last 30 minutes (5-minute bars), the gap at the next open, +1 and +5.
+
+**The first edition** is `docs/ledgers/close-flow-ledger-2026-11-06.md`, a laptop run on public sources. The close-flow history lives only in the box's store, so the edition reads "accruing (n=0 of 20)" with no event and no pass rule ("none stated").
+
+**The seed rows, as written** (judgment drafts for the operator's accept-all, rule 31; returns from Yahoo):
+
+| Row | Session | Flow | Marked | Index | Last 30 min | Next open | +1 | +5 | SPY last 30 | SPY next open | SPY +1 | SPY +5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 2026-06-05 | -$55.0bn | seed, order's figure | SPY | not available | +0.79% | +0.23% | +0.57% | not available | +0.79% | +0.23% | +0.57% |
+| 2 | 2026-11-05 | -$52.0bn | seed, order's figure; estimate, unconfirmed (V-98a open) | SMH | -1.22% | +5.74% | +3.62% | pending | -0.28% | +0.25% | +0.31% | pending |
+
+- 5 Jun's last 30 minutes are "not available": Yahoo serves 5-minute bars for 60 days only.
+- 5 Nov's index is SMH, the order's largest named bucket ($21bn). On 6 Nov SMH opened +5.7% after −11.2% on 5 Nov. Both rows' next open ran against the flow.
+- V-98a stays open.
+
+### Part 2: item 118
+
+**SPHB and SPLV join the basket.** SM00247 SPHB and SM00248 SPLV (Nasdaq Trader's listing, ARCX) are in the Security Master with `yahoo`, `store_key` and `ticker`. `next_id` is 249. Both are in `yfinance_source.SYMBOLS` and resolve through `resolve_basket`. The basket is now 129 symbols, and the registry's member counts are 129 and 99. Both need a price backfill on the box (box steps).
+
+**D33 and this paste.** D33 admits no new Yahoo symbol, and D66 ruling 2 kept it an hour earlier. A128 names these two symbols explicitly, and the order itself says "through the existing yfinance fetcher". I took A128 as the operator's explicit exception, for these two symbols only.
+
+**The member.** `altdata/hb_lv.py` writes `calc.hb_lv_ratio` (SPHB over SPLV) and `calc.hb_lv_ratio_chg_1d` (percent), source `hb_lv`.
+- It runs in the market-features pass over recent sessions; `compute --full` writes the history.
+- Each row is available at the later of its two closes.
+- Both keys are registered (mechanism group `crowding`, new to the vocabulary) and barred from the market-state object.
+
+**The flag.** The S&P 500 up 0.5% or more while SPHB/SPLV is down 2% or more, defined once (`hb_lv.flag`) and used by both the close and the ledger. `daily_cascade/hb_lv_block.py` prints one line in the close's What doesn't fit, on a fired day only, with both figures and "No rights until the backtest". It is read from the stored closes, so it does not wait on the features pass.
+
+**V-100a holds** on the public series: on 4 Nov the S&P 500 closed **+1.58%** (7,568.92 → 7,688.62) and SPHB/SPLV **−2.73%**. The order's first row is written, marked "the order's day (V-100a checked)". It is the backtest's own event for that session, not a second copy.
+
+**The backtest** (first edition, `docs/ledgers/hb-lv-divergence-ledger-2026-11-06.md`; no pass rule set): **n = 9 events** from 6 May 2011 to 6 Nov 2026, over 3,900 sessions screened. All nine fall in 2020 or later. Three overlap the event before them.
+
+| Horizon | Events: n | Mean | Median | Share negative | All sessions: mean | Share negative |
+|---|---|---|---|---|---|---|
+| +1 | 9 | −1.40% | −1.00% | 67% | +0.05% | 46% |
+| +5 | 8 | −0.29% | +0.97% | 38% | +0.25% | 40% |
+| +20 | 8 | +2.81% | +4.56% | 12% | +0.99% | 33% |
+
+The next session is weaker than the base rate (6 of 9 down), and the 20-session window is stronger. With n 9, three of them overlapping, this is recorded, not read.
+
+### Gates (one at a time, foreground)
+
+| Gate | Result |
+|---|---|
+| validate_item_116 | 105/0 (groups H, I and J added) |
+| validate_ledgers_b6 | 41/0 |
+| validate_security_master | 102/0 |
+| validate_stack (whole: its groups are letters, with no what-doesn't-fit or positioning group) | 84/0 |
+| check_registry | OK |
+| validate_gates | 32/0 |
+| check_library | 27 papers, 0 failures, 0 warnings |
+
+Also run:
+- validate_audit_3a 88/0 (after `altdata.hb_lv`'s catalogue line);
+- validate_numeral_audit 181/0;
+- validate_config_refs 149/0;
+- validate_official_sources 383/0;
+- validate_weekly_complete 96/0.
+
+**Counts** (`stitch_counts.py --write`): 168 code gates (165 Python, 3 shell), 8 data gates, 42 external writers, 129 yfinance symbols (was 127).
+
+### Box steps (the operator's)
+
+1. After chain-13's merge, backfill the two new symbols, dry run first:
+   `python tools/backfill_prices.py --symbols SPHB,SPLV --dry-run`, then without `--dry-run`.
+2. Write the ratio's history: `python -m altdata.hb_lv compute --full --dry-run`, then without.
+3. Each ledger's box re-run reads the store: `python -m altdata.ledgers run close-flow --source store` and `python -m altdata.ledgers run hb-lv-divergence --source store`. They apply the first editions' "none stated" and may not change it.
+4. From A127b: `systemctl --user enable --now chester-close-flow.timer` on Monday 9 Nov, inside a window.

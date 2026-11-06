@@ -340,6 +340,10 @@ commands:
     domain: computed
     line: "Batch 22 item 116 (A127): the levered-ETF close-flow estimate, AUM x L x (L - 1) x r by bucket and in total, $ and % of ADV; `estimate --slot 1500 [--dry-run]` the 15:00 pass (re-reads AUM first), `show [--date D]` the stored 15:00 and 16:45 estimates and the flag, `per-move` V-98c's dollars per 1% move from the stored AUM"
     sources: [close_flow]
+  altdata.hb_lv:
+    domain: computed
+    line: "Batch 22 item 118 (A128): the crowding family's high-beta / low-vol member, SPHB over SPLV and its 1-day change (calc.hb_lv_ratio, _chg_1d); `compute [--full] [--dry-run]` (the features pass runs the recent sessions), `show [--date D]` the divergence flag for a session, read only"
+    sources: [hb_lv, yfinance]
   altdata.fragility:
     domain: computed
     line: 'The liquidity-fragility panel and flag (Batch 14 item 71): SPY Amihud and range per volume, margin debt and its share, the leveraged-ETF rebalance, 6b dealer gamma; `show [--date D]`; reads only'
