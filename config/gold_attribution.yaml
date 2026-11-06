@@ -16,7 +16,7 @@ keys:
   gold: yfinance.mkt_gold_front          # GC=F, the COMEX front future, $/oz
   real_yield: fred.tips_10y              # DFII10, the 10-year TIPS real yield, %
   breakeven: fred.breakeven_10y          # T10YIE, the 10-year breakeven, %
-  dollar: yfinance.mkt_dxy               # DX-Y.NYB, the ICE dollar index (filed 73's leg)
+  dollar: "price:dollar_index.dxy"               # DX-Y.NYB, the ICE dollar index (filed 73's leg)
   spx: yfinance.mkt_gspc                 # ^GSPC, the S&P 500
   # The Nasdaq-100: no ^NDX or NQ=F key is stored and D33 adds no symbol, so the
   # lens reads QQQ, the index's tracking fund, stored daily, and says so.

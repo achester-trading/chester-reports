@@ -836,6 +836,12 @@ def week_ahead(ending: str, store: Optional[Any] = None,
             "the table holds no release dates in this window, and the source HAS "
             "written before -- so this is a quiet week rather than a gap")}
 
+    # A102: switched to EDGAR, the forward date is a listed gap, not a quiet week.
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _gap = _ps.gap("earnings_dates", "next_date")
+    if _gap and not earn:
+        out["earnings"] = {"state": "not_tracked", "reason": _gap}
+        return out
     if earn:
         out["earnings"] = {
             "state": "ok", "count": len(earn),

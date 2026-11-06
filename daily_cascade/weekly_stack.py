@@ -1381,11 +1381,13 @@ def story_statuses(stories: list[dict], st, now: str,
         try:
             from altdata import events as ev_mod                # noqa: PLC0415
             end = (dt.date.fromisoformat(now[:10]) + dt.timedelta(days=win)).isoformat()
+            from altdata import price_sources as _ps            # noqa: PLC0415
+            _ec, _ep = _ps.events_clause()  # A102: the earnings rows' source switch
             with ev_mod.EventStore(str(st.path)) as ev:
                 for (payload, obs) in ev.conn.execute(
                         "SELECT payload, observed_at FROM events WHERE type = "
                         "'scheduled' AND observed_at >= ? AND observed_at <= ? "
-                        "AND available_at <= ?", (now[:10], end, now)):
+                        "AND available_at <= ?" + _ec, (now[:10], end, now, *_ep)):
                     pl = json.loads(payload or "{}")
                     if pl.get("kind") == "earnings" and pl.get("symbol"):
                         earn.setdefault(str(pl["symbol"]).upper(), str(obs)[:10])

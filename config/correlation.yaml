@@ -41,7 +41,7 @@ universe:
   - {id: intl_re,  label: "International real estate", key: yfinance.mkt_vnqi, former: true, proxy: "VNQI (Vanguard Global ex-US Real Estate)"}
   - {id: em,       label: "Emerging markets", key: yfinance.mkt_eem,       former: true, proxy: "EEM"}
   - {id: china,    label: "China",         key: yfinance.mkt_mchi,         former: true, proxy: "MCHI (iShares MSCI China)"}
-  - {id: dxy,      label: "Dollar index",  key: yfinance.mkt_dxy,          former: true, proxy: "DX-Y.NYB"}
+  - {id: dxy,      label: "Dollar index",  key: "price:dollar_index.dxy",          former: true, proxy: "DX-Y.NYB"}
   - {id: eur,      label: "Euro",          key: yfinance.mkt_eurusd,       former: true, proxy: "EUR/USD"}
   - {id: jpy,      label: "Yen",           key: yfinance.mkt_usdjpy,       former: true, invert: true, proxy: "USD/JPY, inverted"}
   - {id: cny,      label: "Yuan",          key: yfinance.mkt_usdcny,       former: true, invert: true, proxy: "USD/CNY, inverted"}

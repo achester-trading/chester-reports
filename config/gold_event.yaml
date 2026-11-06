@@ -34,7 +34,7 @@ trigger:
 legs:
   - {id: real_10y, label: "Real 10-year yield (DFII10)", key: fred.tips_10y, unit: bp,
      gold_against: true}
-  - {id: dxy, label: "DXY (ICE, DX-Y.NYB)", key: yfinance.mkt_dxy, unit: pct,
+  - {id: dxy, label: "DXY (ICE, DX-Y.NYB)", key: "price:dollar_index.dxy", unit: pct,
      gold_against: true}
   - {id: brent, label: "Brent (FRED DCOILBRENTEU)", key: fred.brent, unit: pct,
      gold_against: true}

@@ -215,6 +215,10 @@ def _table(t: Optional[dict], wrap: bool = False) -> str:
             for k, r in enumerate(part["rows"]))
         out.append(f'<div style="{SCROLL}"><table style="{tbl}"><tr>{head}</tr>'
                    f'{body}</table></div>')
+    # A SERIES CHANGE (A96, altdata/price_sources.py): the label prints once,
+    # beneath the table that carries the series' first figure.
+    for lab in t.get("break_labels") or []:
+        out.append(f'<p style="{FOOT}">{esc(lab)}</p>')
     return "".join(out)
 
 
