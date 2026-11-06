@@ -661,7 +661,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
           and f"full history since 1990-01-01, n={len(cape)}" in c[2],
           f"the long-run average over the store's full history, the window "
           f"printed beside it ({c[2] if c else None})")
-    check(c and abs(num(c[3]) - pct) < 0.51 and f"5 years, n={len(win)}" in c[3],
+    check(c and abs(num(c[3]) - pct) < 0.51 and f"5y, n={len(win)}" in c[3],
           f"the percentile over five years, its window and n beside it "
           f"({c[3] if c else None}; by hand {pct:.1f})")
     f = rows.get("Forward P/E, total market (Damodaran)") or []
@@ -683,7 +683,7 @@ def triple_group(cfg: dict, ed: dict, out: dict) -> None:
                                                    "Long-run average (window)",
                                                    "Percentile (window)"]
           and abs(num(arow[3]) - gmean) < 0.006 and num(arow[4]) == 100
-          and "5 years" in arow[4],
+          and "(5y, n=" in arow[4],
           "the alternative assets carry the same triple (GLD: full-history "
           "average, the latest at the top of five years)")
     check(any("until the metric lenses (6e)" in x for x in val.get("notes") or [])

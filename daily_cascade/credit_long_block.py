@@ -23,7 +23,7 @@ TITLE = "Credit: the excess bond premium"
 EBP, GZ = "fed.ebp", "fed.gz_spread"
 WINDOW_DAYS = 7305                       # twenty years, the spread family's long window
 NOT_PULLED = ("Excess bond premium (the Fed's FEDS Notes, fed.ebp): not yet pulled "
-              "(python -m altdata.sources.fed_ebp --backfill, once, on the box).")
+              "(the fed_ebp writer's one-time --backfill, on the box).")
 
 
 def _ord(p: Any) -> str:
