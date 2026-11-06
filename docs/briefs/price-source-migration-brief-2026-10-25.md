@@ -261,7 +261,7 @@ The pull retires after the close of the 21st. Any family whose probe fails, or t
 
 ---
 
-## 7. DECISIONS FOR ARI
+## 7. DECISIONS FOR THE OPERATOR
 
 **1. The primary replacement for US funds and single names.** Options: (a) IBKR historical daily bars through the gateway; (b) Massive's Stocks plan; (c) both, IBKR primary and Massive the cross-check. **Recommend (a), with Massive only for the S&P members and corporate actions.** The account and gateway already exist, the subscriptions are a few dollars, and a broker's own data is what the decisions price against. Massive's grouped endpoint solves the one job IBKR's pacing cannot, the 500 members.
 

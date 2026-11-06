@@ -141,7 +141,7 @@ Filed items 64 (the real 10-year against the cyclically adjusted earnings yield)
 | 6 | The stock–bond correlation's sign through regimes | `calc.corr_spy_tlt_60d` |
 | 7 | The cascade as a loop: a conceptual diagram, no series | — |
 
-**EMPHASIS DECISIONS for Ari (XXX).**
+**EMPHASIS DECISIONS for the operator (XXX).**
 
 1. **The cases: equal weight, or weighted to what the ledgers measure.**
    - Options: (a) all seven at equal length; (b) full chapters for the cases the store and the ledgers can measure, and short mechanism chapters for the rest; (c) (b), plus August 2024 and April 2025 as short instances, because the air-pocket ledger already scores them.
@@ -254,7 +254,7 @@ Filed items 64 (the real 10-year against the cyclically adjusted earnings yield)
 | 5 | REITs against the market | `calc.vnq_spy`, `calc.xlre_spy` |
 | 6 | The reinsurance cycle as a loop: capital, losses, price; conceptual, no series (no ILS or reinsurance price index is stored) | — |
 
-**EMPHASIS DECISIONS for Ari (XXIX).**
+**EMPHASIS DECISIONS for the operator (XXIX).**
 
 1. **The weight of housing against CRE and infrastructure.**
    - Options: (a) housing about 4,500 words, CRE 2,500, infrastructure 1,000; (b) equal thirds; (c) CRE first.
@@ -304,7 +304,7 @@ Filed items 64 (the real 10-year against the cyclically adjusted earnings yield)
    - the log, `docs/annual-review/log-<year>.md`, dated and never edited.
 5. **What the review is not** (§5.4): not a re-forecast; an unedited paper is a recorded decision.
 
-**EMPHASIS DECISIONS for Ari (XXXII).**
+**EMPHASIS DECISIONS for the operator (XXXII).**
 
 1. **When to write it.**
    - Options: (a) Draft 1 before the first review, in December 2026; (b) after the first review, written from its log.

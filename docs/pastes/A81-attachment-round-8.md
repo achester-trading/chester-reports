@@ -60,7 +60,7 @@ Every item is REPORT_OK-class. Nothing here has a path to DECISION_BLOCKED, chan
 **Decision.** Amend the concentration twin with a per-season row: top-10 share of index EPS growth · number of decliners · Mag-7 vs ex-Mag-7 growth (FactSet) · sector contributions. Prints in the Weekly during earnings season and in the Monthly's equity structure. Base-rate rights (history from FactSet's seasonal notes, by hand). 1.5 h + 0.25 h/quarter by hand. Voices: Noren, new.
 
 ### 97 · Capitulation Count — a five-family bottom checklist (Book C tool)
-**Source.** X post, 25–26 Oct 2026, "How to Judge the Bottom Yourself During a Sharp Drop" (author handle not captured; cashtags $SOXX $QQQ $SPY $NVDA $MU) — *options educator, independent*. Reviewed at Ari's request against the Top & Bottom framework (analysis in Appendix A).
+**Source.** X post, 25–26 Oct 2026, "How to Judge the Bottom Yourself During a Sharp Drop" (author handle not captured; cashtags $SOXX $QQQ $SPY $NVDA $MU) — *options educator, independent*. Reviewed at the operator's request against the Top & Bottom framework (analysis in Appendix A).
 **Read.** Five families, each with a source, a number and an extreme: (1) VIX > 30 (40 extreme) or VIX/VIX3M > 1; (2) *equity-only* Cboe put/call ≥ 0.8–1.0 (index ≈ 1 is hedging, not sentiment); (3) net gamma flipping negative → positive with the index back above the flip; (4) short interest elevated while price stops making lows; (5) ETF flows turning to sustained inflow, AAII bearish peaking above 50% and falling, with Fear & Greed, NAAIM and % of S&P above the 200-day as context. Grading: one or two = oversold; four or five = historical surrender bottoms. 23 Oct reading (the post's figures, V1): VIX 19.45, VIX3M 20.48 (ratio 0.95), VXN 28.30; put/call total 0.93 / index 1.10 / equity 0.67; AAII bearish 45.8%; Fear & Greed 21; NAAIM 87.7; 57% above the 200-day; SOX −26% from its 22 Jun high. Count: one of five — "panic is concentrated in semis, the index hasn't surrendered."
 **Thought process.** Different question, different clock from T&B: T&B asks whether the regime is turning, on months, and is built to stay quiet through corrections; the checklist asks whether selling is exhausted, on days. We hold the slow version of all five families and the fast version of two (gamma fully; VIX level); three fast series are gaps (equity-only put/call; VXN and the VIX term-structure ratio as a scored input; equity/sector ETF flows). The count omits credit and policy, the two marks our paper finds in six of eight bottoms, so it misses 2022 (which turned on the inflation second derivative) and ran five months early in 2008 — the author concedes the latter. For mechanical corrections (1998, 2018, 2024, March 2026) it is the better instrument. Our false-bottom audit (Oct 2026) admitted one confirmation tell of eleven — RSP/SPY relative breadth after the trough; VIX contango normalising did not discriminate — so the checklist's items are entry-oversold measures, and confirmation stays with relative breadth. **Design ruling (26 Oct):** a separate score printed beside the T&B verdict, never inside it; the pair is the read (Appendix A, table 3).
 **Decisions.**
@@ -95,7 +95,7 @@ Every item is REPORT_OK-class. Nothing here has a path to DECISION_BLOCKED, chan
 | V1 | 97 | The post's 23 Oct figures: VIX 19.45, VIX3M 20.48, VXN 28.30; put/call 0.93 / 1.10 / 0.67; AAII bearish 45.8%; Fear & Greed 21; NAAIM 87.7; 57% above 200-day; SOX −26% from 22 Jun | Box's 23 Oct close; `aaii-weekly.csv`; Cboe daily stats; NAAIM site |
 | V2 | 96 | WSJ: Q3 S&P earnings +29.7%; the ten named contributors; 357 / 132 split | WSJ article stored, or FactSet's seasonal note |
 | V3 | 94 | "200-year average ≈ 2% real + 1% term premium" | Homer & Sylla or Jordà–Schularick–Taylor cited; else stays narrative |
-| V4 | 94 | Author of the LinkedIn post | Ari supplies, or stays "unattributed" |
+| V4 | 94 | Author of the LinkedIn post | the operator supplies, or stays "unattributed" |
 | V5 | 95 | Moody's matrix edition URL and cadence | Moody's Analytics page stored; shelf entry carries it |
 | V6 | 92 | The three episodes (2016 −8%, 2018/19 −6%, 2022 −18%) against our SPX YoY series | Computed from the store |
 | V7 | 97(d) | Cboe's VIX > 30/35/40 forward-return statistics | Cboe publication stored; else the row carries "per Cboe via the post, unverified" |
@@ -130,7 +130,7 @@ Every item is REPORT_OK-class. Nothing here has a path to DECISION_BLOCKED, chan
 
 ## 8. Sign-off
 
-Ari's rulings, as given in chat; together they constitute his signature on this order.
+The operator's rulings, as given in chat; together they constitute his signature on this order.
 
 | Date / time | Items | Ruling as stated |
 |---|---|---|

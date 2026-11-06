@@ -33,6 +33,12 @@ WHAT IT NEVER COUNTS.
                           the box sheet's "user `<login>`"
   The same word in prose is still a hit.
 
+THE PASTE HEADER (B114; ruled 2 Nov 2026). Every paste opens on the standing header
+"From <name> - run this", and it stays as written. On line 1 of a file under
+docs/pastes/ ending .md, that exact header's name token is removed before the
+denylist is matched; the rest of line 1, every other line of a paste, and the same
+header anywhere else are still scanned.
+
 THE PATH ALLOWLIST (B111, ruling (f)). Files that are never edited (the dated
 ledgers in docs/ledgers/) are skipped by path, read from the same place as the
 list: an entry "allow:<path>" in CHESTER_NAMES_DENYLIST or the names file, or
@@ -73,6 +79,8 @@ _ACCOUNT = (
                r"|sudo\s+-u|loginctl\s+(?:enable|disable)-linger)\b[^&;|\n`]*"),  # a command
     re.compile(r"\buser\s+`[\w.-]+`"),                                   # the sheet's user `<login>`
 )
+# The standing paste header (B114): its name token, on line 1 of docs/pastes/*.md only.
+_PASTE_HEADER = re.compile(r"^(\s*From )[\w.'-]+( - run this\b)")
 BINARY_EXT = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".xlsx", ".xls", ".zip",
               ".gz", ".db", ".sqlite", ".parquet", ".ico", ".woff", ".woff2", ".ttf"}
 
@@ -137,10 +145,18 @@ def _pattern(names: list[str]) -> re.Pattern:
     return re.compile(rf"(?<![\w])(?:{alt})(?![\w])", re.I)
 
 
-def hits_in(text: str, pat: re.Pattern) -> list[tuple[int, str]]:
+def is_paste(rel: str) -> bool:
+    """A paste file: docs/pastes/<name>.md (B114's header rule applies to its line 1)."""
+    rel = rel.replace("\\", "/")
+    return rel.startswith("docs/pastes/") and rel.endswith(".md") and rel.count("/") == 2
+
+
+def hits_in(text: str, pat: re.Pattern, rel: str = "") -> list[tuple[int, str]]:
     out = []
+    paste = is_paste(rel)
     for i, line in enumerate(text.splitlines(), 1):
-        if pat.search(_clean(line)):
+        scan = _PASTE_HEADER.sub(r"\1\2", line) if (paste and i == 1) else line
+        if pat.search(_clean(scan)):
             masked = pat.sub("***", line)
             out.append((i, masked.strip()[:160]))
     return out
@@ -204,6 +220,23 @@ def selftest() -> None:
           "allow:<path> entries and CHESTER_NAMES_ALLOW_PATHS are paths, never names")
     check(allow_paths({}) == [], "no allowlist set: nothing is skipped")
 
+    print("C. THE PASTE HEADER (B114; ruled 2 Nov 2026)")
+    head = "From Zed - run this (session B): B1, a paste.\nThe body."
+    check(not hits_in(head, zed, "docs/pastes/B1.md"),
+          "line 1's standing header 'From <name> - run this' in docs/pastes/*.md is not a hit")
+    check(hits_in("From Zed - run this (session B): Zed asks for B1.", zed, "docs/pastes/B1.md")
+          == [(1, "From *** - run this (session B): *** asks for B1.")],
+          "the rest of line 1 is still scanned")
+    check(hits_in("The title.\nFrom Zed - run this (session B): B1", zed, "docs/pastes/B1.md")
+          == [(2, "From *** - run this (session B): B1")],
+          "the header on any line but the first is a hit")
+    check(len(hits_in(head, zed, "docs/briefs/b1-notes.md")) == 1
+          and len(hits_in(head, zed, "docs/pastes/old/B1.md")) == 1
+          and len(hits_in(head, zed, "docs/pastes/B1.txt")) == 1,
+          "the same header outside docs/pastes/*.md is a hit")
+    check(len(hits_in("From Zed, run this: B1", zed, "docs/pastes/B1.md")) == 1,
+          "only the exact pattern is excluded")
+
 
 def main() -> int:
     print("=" * 78 + "\nvalidate_names -- no listed person's name in a committed file (D38)\n" + "=" * 78)
@@ -228,7 +261,7 @@ def main() -> int:
         t = read_text(p)
         if t is None:
             continue
-        h = hits_in(t, pat)
+        h = hits_in(t, pat, str(p.relative_to(REPO)))
         if h:
             by_file[str(p.relative_to(REPO)).replace("\\", "/")] = h
     total = sum(len(v) for v in by_file.values())

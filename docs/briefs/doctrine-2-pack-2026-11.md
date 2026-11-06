@@ -20,7 +20,7 @@
 - **Unchanged:** D2-1 to D2-72 and the annexes, except where Part 9 says a row is amended.
 - **Reading time:** the refresh adds about 3,100 words (about 14 minutes).
 
-**How to take it.** The sitting's shape follows the standing ruling of 24 Oct: "present decision sets as one list with recommendations; Ari accepts in one read unless he disagrees".
+**How to take it.** The sitting's shape follows the standing ruling of 24 Oct: "present decision sets as one list with recommendations; the operator accepts in one read unless he disagrees".
 - Each item is a numbered decision, **D2-n**. Each states the value as set, the alternative, and a one-line recommendation.
 - Parts 1 to 8 give the evidence behind each.
 - A decision marked *block* is meant to be taken with the others in its block.
@@ -63,7 +63,7 @@
 | D2-14 | A lag is documented, never guessed (b51; D29.5) | "a lag is the source's own publication delay, as its publisher documents it, with a holiday's slack -- never a number chosen to clear a key off the stale list"; D29.5: "never a guessed lag" | **Standing**, in those words. |
 | D2-15 | The lab ledger reads filings only (D21) | "filings only (S-1/amendments, 10-Q/10-K or equivalent public filing, cited by URL) … press reports never" | **Standing**, extended to every company-financials line. A66's capex guidance is built to it already. |
 | D2-16 | Budgets are targets (D20) | "depth over brevity; budgets are targets not caps; nothing cut or withheld for length" | **Standing for reading budgets.** The attention budget stays a rule (Part 6). |
-| D2-17 | Decision sets come as one list (STANDING, 24 Oct) | "present decision sets as one list with recommendations; Ari accepts in one read unless he disagrees" | **Standing**, into the Doctrine's governance section. |
+| D2-17 | Decision sets come as one list (STANDING, 24 Oct) | "present decision sets as one list with recommendations; the operator accepts in one read unless he disagrees" | **Standing**, into the Doctrine's governance section. |
 
 ### Part 4. Regime and calibration
 
@@ -546,7 +546,7 @@ No t2-* notes file exists. T2's changes are in the config comments and the minut
 ## Part 6. The attention budget
 
 **The rule** (the Enterprise Layer order, R-6 and §3.4(b); ruled at the first sitting, minutes item 4):
-- "seven packet approvals a week (Ari raised the proposed five); one review sitting a week of at most two hours (the Doctrine monthly and Audit sittings count as their weeks' sittings)";
+- "seven packet approvals a week (the operator raised the proposed five); one review sitting a week of at most two hours (the Doctrine monthly and Audit sittings count as their weeks' sittings)";
 - the Weekly prints the counts;
 - anything beyond queues.
 

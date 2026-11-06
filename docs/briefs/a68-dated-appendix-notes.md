@@ -30,7 +30,7 @@ Docs only and branch-only. Appendices only: no word of any paper's body changed.
 - **The CDS levels and AI borrowing (Batch 15 item 76).** They amend SR-16, whose home is "Disruptive Themes Factor I evidence log".
   - They go in Disruptive Themes' new Appendix B, not Appendix A. Appendix A's entries take a fixed form (a mechanism-scan item, a narrative-register proposal, the operator's confirmation), and these records have none of it.
 - **The 10-year records (items 64 and 70).** No paper was named. They are placed by their series: DGS10 and DFII10, and the 10-year attribution, are the Rate and Liquidity Machine's.
-- **The XII notes (Batch 5 item 23).** The order's "XII" is not the library's XII, which is the Daily Cascade paper. The queue says "the home is Ari's to name" and that the thesis is argued in Factor I, so they are in Disruptive Themes, Factor I's paper. **The operator may name another home.**
+- **The XII notes (Batch 5 item 23).** The order's "XII" is not the library's XII, which is the Daily Cascade paper. The queue says "the home is the operator's to name" and that the thesis is argued in Factor I, so they are in Disruptive Themes, Factor I's paper. **The operator may name another home.**
 
 ### The rule-table row
 

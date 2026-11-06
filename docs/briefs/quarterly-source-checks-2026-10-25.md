@@ -238,7 +238,7 @@ The finding that matters beyond these series is that **Yahoo's chart host disall
 
 ---
 
-## Rulings for Ari
+## Rulings for the operator
 
 | Chapter | Source and series | Verdict | Recommend | Yes / no |
 |---|---|---|---|---|

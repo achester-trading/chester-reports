@@ -171,7 +171,7 @@ Steps 2 to 6 fall between 26 Oct and 4 Nov. The 1 Nov Monthly and its freeze sit
 
 ---
 
-## 8. DECISIONS FOR ARI
+## 8. DECISIONS FOR THE OPERATOR
 
 **1. Pastes in a public repository.** `achester-trading/chester-reports` is public (`gh repo view`: PUBLIC). Options: (a) commit pastes verbatim to `docs/pastes/`, as the paste says; (b) commit them to a private companion repository the sessions also clone; (c) commit them verbatim with only the operator's sign-off line removed. **Recommend (a).** The repository already carries every filed order verbatim (D28: "filed orders stay verbatim"), and the pastes contain no secret: the standing rules forbid one. Every builder must be able to read the paste from the tree, which (b) complicates with a second clone. If a paste ever must carry something private, it stays in chat and the file says so.
 

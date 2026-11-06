@@ -5,7 +5,7 @@
 the order names by a paper's numeral, and by-hand layouts, committed as drafted
 under ruling (c) of 16 October 2026 ("judgment drafts (narrative lines, appendix
 notes, rule-table edits) are committed by the session as drafted and listed for
-Ari's accept-all"). An entry moves into its paper's dated appendix when that
+the operator's accept-all"). An entry moves into its paper's dated appendix when that
 paper is written or next revised, and is then struck from here. Entries are
 added, never rewritten; a correction is a new line under the entry.*
 
@@ -45,7 +45,7 @@ Each entry below stays as queued; the line beneath it, added by A68, says why no
 
 Under Factor IV in the Monthly's slow layers, quarterly, from the IMF Fiscal
 Monitor and the OECD. **Not live:** it is a recurring by-hand data line, and
-ruling (b) of 16 Oct 2026 says none survives without Ari's explicit yes. The
+ruling (b) of 16 Oct 2026 says none survives without the operator's explicit yes. The
 layout, as drafted:
 
 | Country | GFN / GDP | Interest / revenue | Weighted average maturity | Foreign-held share | Primary balance / GDP | Source and vintage |

@@ -222,7 +222,7 @@ The rest waits for the rulings below. The Themes stages need decision 4, and the
 
 ---
 
-## 7. DECISIONS FOR ARI
+## 7. DECISIONS FOR THE OPERATOR
 
 **1. The scope of 6i's ten hours.** Options: (a) the three highest-yield tranches only (6i-1, 6i-2, 6i-5, about 10.5 h), the rest queued; (b) all eight tranches (about 29 h) across November; (c) the harness alone. **Recommend (a).** The audit sized 6i at ten hours, and these three each unblock a printed line: the 40 stored rows print, the harness's ledger exists, and the Themes panels appear. The fetchers and the later Themes stages wait behind rulings and source checks anyway. Option (b) is honest about the size but spends November's nights on readers whose rows mostly lead nowhere until the January Quarterly.
 
