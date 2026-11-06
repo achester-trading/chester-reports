@@ -46,8 +46,10 @@ into and dual-writes beside the observation store. What a 400-day window does no
 seasonal-factor restatement five years back (CPI each February) -- is the FRED
 history run's to take (`pull(..., full=True)`), a by-hand command, not a daily
 cost. A caller that passes `lookback_days` keeps the old fixed window (the
-Monthly's `--lookback-days`). The CSV copy is MERGED, not rewritten, so a narrow
-fetch never truncates it (store.write_observations(merge=True)).
+Monthly's `--lookback-days`). The CSV copy is MERGED, not rewritten, on every path
+-- full=True and lookback_days included (item 124 T0, D60) -- so a narrow fetch never
+truncates it (store.write_observations(merge=True)), and the writer refuses any
+rewrite that would shrink it unless called with allow_shrink=True.
 """
 
 from __future__ import annotations
@@ -250,9 +252,10 @@ def pull(store: Store, lookback_days: Optional[int] = None,
             windows[spec.key] = start
             obs = _fetch_series(spec.fred_id, api_key, None if full else lookback_days,
                                 start=start)
-            # MERGED into the CSV copy: a narrow fetch must never truncate it.
-            n = store.write_observations(spec.key, obs, source="fred",
-                                         merge=start is not None)
+            # MERGED into the CSV copy on EVERY path (item 124 T0, step 2): the
+            # full history and a fixed lookback included. A narrow fetch must
+            # never truncate it, and the store refuses a shrink besides.
+            n = store.write_observations(spec.key, obs, source="fred", merge=True)
             latest = next((o for o in reversed(obs) if o[1] is not None), None)
             series_info[spec.key] = {
                 "rows": n,

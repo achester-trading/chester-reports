@@ -82,9 +82,29 @@ class Store:
     def __init__(self, store_dir: Optional[str] = None):
         self.dir = Path(store_dir or DEFAULT_STORE_DIR)
         self.dir.mkdir(parents=True, exist_ok=True)
+        self.refusals: list[str] = []      # the shrink guard's refusals (item 124 T0)
 
     def _path(self, key: str) -> Path:
         return self.dir / f"{key}.csv"
+
+    @staticmethod
+    def _shrink_refusal(key: str, path: Path, out_rows: list) -> Optional[str]:
+        """The refusal's text when writing `out_rows` would shrink the CSV at
+        `path` (fewer rows, or a later first date), else None."""
+        if not path.exists():
+            return None
+        with path.open(newline="") as fp:
+            old = [r["date"] for r in csv.DictReader(fp) if r.get("date")]
+        if not old:
+            return None
+        new_first = out_rows[0][0] if out_rows else None
+        fewer = len(out_rows) < len(old)
+        later = new_first is None or new_first > min(old)
+        if not (fewer or later):
+            return None
+        return (f"store: refused to rewrite {path.name} for {key}: it would go from "
+                f"{len(old)} rows from {min(old)} to {len(out_rows)} rows from "
+                f"{new_first} (pass allow_shrink=True to mean it)")
 
     def write_observations(
         self,
@@ -93,6 +113,7 @@ class Store:
         source: str,
         dual_write: bool = True,
         merge: bool = False,
+        allow_shrink: bool = False,
     ) -> int:
         """
         Write a batch of (date, value) tuples for one series.
@@ -100,6 +121,12 @@ class Store:
         file's rows for dates the batch does not carry (with their own as_of) and
         replaces the rest: an incremental fetch (audit-leftovers-1) carries only
         the recent window, and must never truncate the history.
+
+        THE CSV NEVER SHRINKS BY ACCIDENT (item 124 Tranche 0, step 2; D60). A
+        rewrite that would leave the file with fewer rows, or start it on a later
+        first date, is refused unless the caller passes allow_shrink=True: the CSV
+        is left as it was, the refusal is logged and kept in `self.refusals`. The
+        observation store's write below is unchanged either way.
 
         Returns count of rows written.
         """
@@ -123,10 +150,15 @@ class Store:
             out_rows.append([date, "" if value is None else f"{value}", source, as_of])
             n += 1
         out_rows.sort(key=lambda r: r[0])
-        with path.open("w", newline="") as fp:
-            w = csv.writer(fp)
-            w.writerow(["date", "value", "source", "as_of"])
-            w.writerows(out_rows)
+        refused = None if allow_shrink else self._shrink_refusal(key, path, out_rows)
+        if refused:
+            log.warning(refused)
+            self.__dict__.setdefault("refusals", []).append(refused)
+        else:
+            with path.open("w", newline="") as fp:
+                w = csv.writer(fp)
+                w.writerow(["date", "value", "source", "as_of"])
+                w.writerows(out_rows)
 
         # DUAL WRITE, this week. The SQLite point-in-time store is a migration,
         # not a cutover: the CSV above stays the human-readable copy and the
