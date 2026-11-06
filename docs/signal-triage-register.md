@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8); [18](change-order-signal-triage-batch-18-2026-10-28.md) (Signal triage Batch 18 (item 98): the 23-hour equity session); [19](change-order-signal-triage-batch-19-2026-10-29.md) (Signal triage Batch 19 (items 99–110): round 9); [20](change-order-signal-triage-batch-20-2026-10-29.md) (Signal triage Batch 20 (items 111–114): round 10); [21](change-order-signal-triage-batch-21-2026-10-30.md) (Signal triage Batch 21 (item 115): round 11). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8); [18](change-order-signal-triage-batch-18-2026-10-28.md) (Signal triage Batch 18 (item 98): the 23-hour equity session); [19](change-order-signal-triage-batch-19-2026-10-29.md) (Signal triage Batch 19 (items 99–110): round 9); [20](change-order-signal-triage-batch-20-2026-10-29.md) (Signal triage Batch 20 (items 111–114): round 10); [21](change-order-signal-triage-batch-21-2026-10-30.md) (Signal triage Batch 21 (item 115): round 11); [22](change-order-signal-triage-batch-22-2026-11-05.md) (Signal triage Batch 22 (items 116–123): round 8). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -943,6 +943,38 @@ item.
 attention layer, is amended by 115: an evening Grok run (17:40 ET) and an evening
 triage (18:05 ET) beside the morning pilot, both chat-side; the seed list of
 principals stays chat-side, and the box prints role and institution only (N3).
+
+### SR-77 to SR-80 — Batch 22's provisional rows (filed 5 Nov 2026, paste B128)
+
+Provisional, placed by Audit #5, numbered after Batch 21's SR-76 (paste B95). Each
+row's text is the [Batch 22 order](change-order-signal-triage-batch-22-2026-11-05.md)'s
+item, by its filed number (P2: the order's 98–105 are 116–123). Its decisions are
+D58's (P4).
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 77 | 116 | Levered-ETF close flow: a Security Master roster of levered and inverse ETFs with each fund's leverage factor and daily issuer AUM; a 15:00 estimate with an alert gate ($20bn either way, then the 90th percentile of own history in % of ADV after 60 sessions; O-1) and a 16:45 estimate of the rebalance flow into the close, in $bn and % of ADV by bucket, with one "mechanical close flow" line beside 6b's dealer hedging; a calibration ledger through the round-7 event-study utility; the DTH-1 draft setup | A report line and the 15:00 flag only | Tranche A | provisional, placed by Audit #5 |
+| 78 | 117 | AI policy-restriction ledger: federal bills, state and local moratoria and ballot measures, each with its stage, the capacity or capex at risk and the market's reaction, feeding Factors I and VI; rows written by the news scan and the X-digest triage with their source links, no by-hand feed | An input line and a flag (enacted restrictions on 10% or more of tracked planned capacity; O-2); no composite change | Tranche C | provisional, placed by Audit #5 |
+| 79 | 119 | Event-vol pricing ledger: for each ranked scheduled event (FOMC, CPI, payrolls, refunding, elections, the 13 tickers' earnings), the T−1 implied one-day move from the box's own chain against the realised move; Ahead prints the implied move beside the event type's median realised; a "cheap event vol" flag; the midterm row amended with 2026 | An "Ahead" line and a flag; log-only until at least 20 events of each type | Tranche A | provisional, placed by Audit #5 |
+| 80 | 123 | AI infrastructure cash-cycle scorecard: a quarterly Factor I sub-panel of eight rows (cloud growth, incremental margin, backlog, capex against OCF, the financing-structure ledger, the private-credit window, GPU rental prices or "gap", useful lives) from EDGAR XBRL and company releases, with a "treadmill" flag; printed in the Monthly and each Disruptive Themes refresh | Factor I input lines and a flag; no composite change | Tranche C | provisional, placed by Audit #5 |
+
+**Batch 22's amendments, recorded against their filed parents.**
+- The crowding family (round 7) is amended by 118: SPHB/SPLV through the yfinance
+  fetcher and a divergence flag (the S&P up 0.5% or more while SPHB/SPLV is down 2%
+  or more), printed in "what doesn't fit"; no rights before the event-study backtest.
+- GTM-7's valuation quad is amended by 120: the sell-side LTCMA anchor row (7.5% for
+  US large caps) beside the CAPE-implied return, the gap printed as a sourced
+  disagreement; with the Factor V dated line (bitcoin's inclusion), the Reading
+  chapter's edition and XVII's appendix table.
+- Item 17, the net-liquidity attribution, is amended by 121: the forward TGA-path
+  row from each quarterly refunding (current TGA to the assumed end-of-quarter
+  balance, the implied reserve add or drain), in plumbing & rates.
+- The Monthly earnings chapter (and the GDP lenses' NIPA-vs-EPS line) is amended by
+  122: the earnings-quality line, NIPA profit growth against S&P operating EPS
+  growth, and its flag (O-3).
+- 123 folds item 11 (round 4, the private AI-financing ledger, unruled) into its row
+  5, the financing-structure ledger (O-4: proposed by the monthly scan, confirmed at
+  a sitting), and SR-16's private-credit window into its row 6 (V-105c).
 
 ---
 
