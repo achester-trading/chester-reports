@@ -335,3 +335,160 @@ The register's treatment is the right one, and it generalises. The call is captu
 | Dip-buying cohort | SR-8, the September rounds | Buying declines because it has always worked | Recency; reinforcement | Read as flow (Positioning & Flows), not regime |
 | Rally trap | SR-8, the September rounds | Taking a bear rally as the bottom | Recency, narrative, break-even | The re-entry gate; the "rally inside bear" flag |
 | Dated public call | Item 132, Batch 25 | Viral, dated, incentivised forecasts | Narrative fallacy; anchoring | A narrative-register entry type; a two-sided attention count |
+
+---
+
+# Part V — Applications, Wiring and Environments
+
+## Chapter 18 — Tactical Applications by horizon
+
+The behavioral mechanisms act at every horizon, but not equally. The shorter the horizon, the faster the mechanism and the less time the trader has to notice it. The longer the horizon, the slower the mechanism and the longer it can run unnoticed. This chapter takes three operators the book contains, the day trader, the swing trader and the allocator, and gives each a short routine for before and after the decision. Book D's opportunist is a fourth, treated briefly at the end. The routines do not add rules. They point to where, in the rules and records that already exist, each horizon's characteristic failure is caught.
+
+**The day trader** (the Day-Trading Layer, a tactics layer for Books B and C). The characteristic failures are overtrading in chop and the break-even effect, and they act within minutes.
+
+- **Before the session**, the day trader writes the view line, including "no view" when there is none. The trader then reads the 07:00 anchor's day-trade checklist and the volatile-day flag, and confirms that the day's loss limit is untouched and that no switch is tripped.
+- **Before each entry**, the one-line thesis is written and the stop is placed in the market on the right side of the structure, at the size the day's budget allows, before the order goes. If the last trade was stopped out, the clock is checked: no flip inside thirty minutes, and the checklist's sixty minutes before re-entry.
+- **After the session**, the trader records each trade's R and rule-broken flag in the manual ledger and grades the view line. The question is whether the view and the trades agreed, not whether the day was green.
+
+The danger sign is a third entry before noon on a Positive-gamma, Calm day. The day trader's discipline is the most mechanical of the three, because the mechanisms are the fastest.
+
+**The swing trader** (Book B, one to six weeks). The characteristic failures are thesis attachment and the disposition effect, and they act over days.
+
+- **Before entry**, the packet's three edge questions are answered and the written exit is complete: the price at which the thesis is wrong, the time by which it must have worked and the profit plan. The counter-trend flag is checked; if it is set, the five-session time stop applies and no add is possible.
+- **During the trade**, the swing trader reads the position against its plan, not against its entry price, once a day at most. Any wish to change the plan is written down and taken to the weekly sitting, not acted on.
+- **After the exit**, the six post-mortem questions are answered before the next Book B packet is approved. The answers are categorical, so that "held past the plan" is a category the record can count.
+
+The danger sign is a thesis line restated more strongly after an adverse move.
+
+**The allocator** (Book A, one to six months). The characteristic failures are recency and narrative capture, and they act over weeks and months. They are the hardest to see because nothing forces a decision in time to reveal them.
+
+- **Before the monthly stance**, the allocator reads the regime's base rates before its narratives, and checks the stance against the band's floor as well as its ceiling. The Doctrine's Rule 29 makes under-investment a rule break, because the allocator's bias is to be out.
+- **Between sittings**, the allocator does nothing. The stance is set for a month, and a mid-month urge to change it is logged and brought to the sitting.
+- **After the month**, the allocator reads Book A's realised exposure against its band and asks one behavioral question: did a story move the stance, or did the stamps?
+
+The danger sign is a stance that moved with the last month's market rather than with the regime stamp.
+
+**The opportunist** (Book D, no fixed horizon). The characteristic failure is the narrative fallacy at its most immediate: a spike, a story and an urge. Book D's discipline is mostly restraint. The alert is given fifteen minutes and usually passed, the pass is logged, and the tail budget is the only home for the tail worry. The behavioral record for Book D is the pass log. A rising share of alerts acted on is the tell.
+
+| Operator | Characteristic failure | Before | After | Danger sign |
+|---|---|---|---|---|
+| Day trader | Chop overtrading; break-even | View line; checklist; stop resting; the flip clock | R and rule flag in the ledger; grade the view line | Third entry before noon in Positive gamma |
+| Swing trader (B) | Attachment; disposition | Edge questions; written exit; counter-trend flag | The six questions before the next packet | Thesis restated stronger after an adverse move |
+| Allocator (A) | Recency; narrative capture | Base rates first; floor and ceiling | Realised exposure against band | Stance moving with last month's market |
+| Opportunist (D) | Narrative at its most immediate | Fifteen minutes; usually pass | Pass logged with a reason | Rising share of alerts acted on |
+
+## Chapter 19 — Wiring
+
+This paper adds no report section and no register field; the Doctrine's Section 9.2 already specified the fields. What it adds is a reading of four existing moments in the operating rhythm as behavioral checkpoints.
+
+**The plan.** The 07:00 anchor and the decisions drafted from it are where judgment is supposed to happen, calmly and before the session. Behaviorally, the plan's job is to move decisions out of the moment. Every field filled at 07:00 is a field the break-even effect cannot fill at 11:30. The view line belongs here. So does the operator's reading of the volatile-day flag, which the machine sets and the operator cannot clear.
+
+**The close's rule-by-rule check.** The 16:45 close enforces the time stops and, with the register, reads each open decision against its plan. Read behaviorally, the close is the day's one honest mirror. It shows which positions are past their written time, which stops were moved and which rules broke, before the evening's story has been written. The close prints the check; the operator reads it before reading the day's P&L.
+
+**The Weekly scorecard.** The Weekly's top prints heat, net exposure, the thirteen-week expectancy by book and regime, and the rule-break count above everything about the market. The day-trading ledger's aggregates, the attention counts and the pass count sit beside them. Behaviorally, the scorecard lengthens the reference period from the day to the quarter, which is Chapter 8's remedy for house money and break-even. It also prints process before outcome, which is Chapter 1's remedy for an account that cannot tell a moved stop from a wrong thesis.
+
+**The Doctrine sitting.** The monthly sitting is where rules change, at their tier and never during a drawdown. Behaviorally, it is the one place where the operator's view of the operator is allowed to change the system, and the place most exposed to narrative capture: a story about why a rule should go is always available. The sitting's defence is the change ladder's evidence requirement and the Saturday post-mortem files, which bring the week's graded misses to the sitting one at a time with the Doctrine's questions blank.
+
+What Draft 2 needs from the wiring is already listed in the Doctrine's Section 9.2: the seven categorical fields, the regime stamp, the tier, the time written and executed, machine-drafted or operator-written, the volatile-day flag, and the reason for any pass. This paper adds two requests and grants itself nothing. The first is the view-line ledger, graded alongside the trade ledger on the same days, which is the comparison Chapter 15 describes. The second is the risk ratio of Chapter 2, risk at entry over the tier's standard, cut by the result of the prior five decisions. Both are reads of existing records, not new data lines.
+
+| Moment | Report or record | The behavioral job | Failure mode it guards |
+|---|---|---|---|
+| The plan | 07:00 anchor; packets; view line | Move decisions out of the moment | Break-even; overtrading |
+| The close | 16:45 close; time stops; the register | Show the plan against what happened | Attachment; size creep |
+| The Weekly | The scorecard at the top | Lengthen the reference period; process before outcome | House money; recency |
+| The sitting | Doctrine monthly; post-mortem files | Change rules on evidence, not on pain | Narrative capture of the rulebook |
+
+## Chapter 20 — Environments
+
+Each market environment invites some failure modes more than others, and knowing which in advance is cheaper than discovering it in the ledger. Four environments matter most for this book. They are described in the Doctrine's dial vocabulary, so that the regime stamp on a packet doubles as a behavioral warning.
+
+**Chop** (Calm volatility, Positive gamma, no trend). Chop invites overtrading above everything. Dealer hedging pins the range, breakout setups fail at their highest rate, and the slow tape makes inactivity feel like waste. Chop also invites the break-even effect after the first failed breakout, and it feeds recency in the opposite direction from the next regime: after weeks of chop, the trader is primed to fade the trend that eventually breaks out. The behavioral rule of thumb is that the decision count should fall in chop, not rise. The tell is the reverse. The trust matrix already reads breakout setups in this state as Off. The attention budget and the no-flip rule are chop's guard rails.
+
+**Trend** (a dial state that persists; Positive or Negative gamma, with direction). A trend invites two opposite failures. For a trader on the right side, it invites house money and size creep: every week pays, and the size quietly grows until the trend's first real reversal costs a month. For a trader on the wrong side, it invites thesis attachment of the most expensive kind, the one the Doctrine's Rule 27 exists for. The operator's record names fighting the tape as the behavior that has cost the most. In a trend, the counter-trend flag and its five-session stop are the most important fields in the packet, and the risk ratio after wins is the number to watch.
+
+**Negative gamma** (the Gamma dial at Negative; dealers' hedging amplifies moves). Negative gamma compresses time. Moves are faster and larger and reversals more violent, so every mechanism in Part II acts at shorter intervals. The break-even effect and the moved stop are the dangers here. A position down two R is down four before the trader has decided anything, and the urge to hold for the snap-back is strongest when the snap-back, if it comes, is most violent. The Doctrine's record that the operator has done well in volatile markets and been badly hurt in extreme ones is a description of this environment. The resting stop, the halved sizes of the volatile-day protocol and the restriction to the prepared list are designed for it. The behavioral rule is that nothing is decided in a negative-gamma session that was not decided before it.
+
+**Event weeks** (a tier-1 release, an FOMC decision or an index mover's earnings). Event weeks invite narrative capture and anchoring. Before the event, the trader builds a story about the print and anchors on a level; after it, the story is fitted to the reaction. The Doctrine's Rule 9 — the reaction is the information, the headline only the occasion — is the guard, and Book C's event-reaction setup is built to trade only after the reaction has been seen. Event weeks are also when the dated public calls of Chapter 17 multiply, because a scheduled event is the easiest thing to attach a date to. The behavioral rule is that the operator writes the view line before the event and grades it after, and trades nothing on the event's story that was not in a packet before the print.
+
+| Environment | Dial reading | Failure modes it invites | The behavioral rule | The guard already built |
+|---|---|---|---|---|
+| Chop | Calm, Positive gamma, no trend | Overtrading; break-even; fading the next trend | Fewer decisions, not more | Trust matrix Off; attention budget; no flip inside thirty minutes |
+| Trend | Persistent direction | Size creep with it; attachment against it | Watch the risk ratio; honour the counter-trend stop | Doctrine Rules 14 and 27 |
+| Negative gamma | Gamma Negative | Moved stops; break-even at speed | Nothing decided in-session | Resting stop; volatile-day protocol |
+| Event weeks | Tier-1 event on the calendar | Narrative capture; anchoring | View line before, graded after | Doctrine Rule 9; the event-reaction setup |
+
+---
+
+## Appendix A — Assumptions and Falsifiers
+
+**The mechanisms this paper assumes.** The paper's mechanisms are drawn from populations: retail accounts, floor traders, laboratory subjects, day traders on two exchanges. It assumes three things about them.
+
+- **They transfer.** The mechanisms act in one experienced discretionary operator as they act in those samples, in direction if not in size.
+- **The rules act on the mechanisms.** The Doctrine's rules and the day-trading order's rules act on the mechanisms rather than on the views, as Chapter 13 claims.
+- **The records are complete.** The register's fields are populated faithfully enough that each failure mode leaves the mark Part I describes.
+
+If the first is wrong, the paper describes someone else. If the second is wrong, compliance should not change outcomes. If the third is wrong, nothing in Draft 2 can be trusted.
+
+**The claims and what would falsify each.** Each claim below carries the observation that would show it wrong in this book. None can be read before its sample exists, and the samples are Evidence and Inference's: thirty decisions in a regime for a conditional claim, fifty in a book, and the change ladder's twenty graded outcomes inside a regime before any regime-specific conclusion.
+
+- **The rules help.** Over at least 100 graded decisions, decisions taken in compliance should have higher expectancy than decisions that broke a rule, after costs. A compliant subset that underperforms the non-compliant one over 100 trades falsifies the paper's central claim, that the rules remove losses rather than profits. It would mean some rule is constraining the operator's edge, and the rule-by-rule cut would say which.
+- **Size creep exists here.** The risk ratio of Chapter 2 should rise after runs of wins, after runs of losses, or both. A ratio flat across the prior-result cut over 100 decisions falsifies Chapter 2 for this operator, and the tier calculator is then doing all the work.
+- **Attachment costs money.** Losses exited later than their written plan should average a larger loss in R than losses exited on plan. No difference over 50 losing decisions falsifies Chapter 3's claim that late exits are where attachment shows.
+- **Chop invites overtrading.** Expectancy per decision should fall as decisions per session rise in Positive gamma and not in Negative. No such pattern falsifies Chapter 4 for this book.
+- **Narrative capture costs money.** Decisions whose thesis cites a narrative-register story should underperform those that cite a setup or a measured signal. The reverse falsifies Chapter 5, and would mean the narratives are the edge.
+- **The view line is a separate instrument.** Its record should differ measurably from the trade ledger's on the same days. If the two track each other closely, the gap of Part I is small for this operator, and the behavioral layer matters less than this paper argues.
+
+**The standing-register items that touch this paper.**
+
+- SR-8, bear-market rallies as structure: the dip-buying cohort and the rally trap, and the re-entry gate the false-bottom audit proposes.
+- Item 132, the dated public call, recorded against items 97 and 50: the entry type and the two-sided attention count.
+- The Doctrine's Section 9.2 field list, which is this paper's data specification.
+
+**The dated figures and their series.** The literature figures of Part II are each tied to a published study, with its sample and period in the closing clause. They were cited for this draft on 6 November 2026 from the published work and not re-read in this session. Each is to be re-verified at the operator's read:
+
+- Tversky and Kahneman 1992;
+- Odean 1998;
+- Kaustia 2010;
+- Locke and Mann;
+- Shapira and Venezia;
+- Seru, Shumway and Stoffman;
+- Thaler and Johnson 1990;
+- Coval and Shumway;
+- Imas 2016;
+- Gervais and Odean 2001;
+- Barber and Odean 2000 and 2001;
+- Barber, Lee, Liu and Odean;
+- Chague, De-Losso and Giovannetti;
+- Greenwood and Shleifer 2014;
+- Tversky and Kahneman 1974;
+- George and Hwang 2004;
+- Taleb 2007; Kahneman 2011; Shiller 2019;
+- Tetlock 2005;
+- Gilovich, Vallone and Tversky 1985; Miller and Sanjurjo 2018;
+- Kahneman and Lovallo 1993; Klein 2007.
+
+The two market figures in Chapter 16 are the register's SR-8 entry (filed 19 September 2026) and the false-bottom audit's ledger (18 October 2026).
+
+## Appendix B — Dated: The register's early figures (as of 6 November 2026)
+
+*Everything in this appendix is early. It illustrates and concludes nothing. It is replaced, not amended, by Draft 2. No dollar or account figure appears here or anywhere in the paper.*
+
+### B.1 — What the register holds (as of 6 November 2026)
+
+The register has been live with the Doctrine's packet schema and post-mortem fields since before any book was active, about two months as of this draft. Its graded sample is too small for any cut in Part I to be read. The Doctrine #2 pack (November 2026) records that no ledger bears on a tier change. It also records that the register holds no graded decisions in numbers that would support one: the Doctrine's own thresholds are thirty decisions in a regime and fifty in a book. In the pack's words, "no cell has 10 graded decisions". The Card's scoreboard therefore prints "accruing (n=k)" in place of the thirteen-week expectancy in every cell. That is the correct output, and it is itself an early behavioral fact: the system declines to score a record too short to score.
+
+### B.2 — The day-trading ledger (as of 6 November 2026)
+
+The DTH-1 manual ledger has lived outside the public repository since the ruling of 27 October 2026 (D41). The Weekly prints only its aggregates: trades, the no-rule-broken share, mean and median R, the win rate and the largest loss in R. This draft does not read it. The session that wrote the draft reads no file on the box and no private folder, and the aggregates enter at the operator's read or at Draft 2. The structure of the aggregates is already the one this paper asks for. The rule-broken share is the compliance cut of Appendix A, and the R figures are the outcome. Their comparison over 100 trades is the paper's central falsifier.
+
+### B.3 — The week of 26 October 2026, a sketch (as of 6 November 2026)
+
+This is a sketch only. The full worked case is Draft 2's, written from register data.
+
+The week was the one in which the behavioral layer was built rather than traded. The secondary notes, the 09:50 open note and the 21:30 evening note, began their live editions on 26 October. The Day-Trading Layer's brief was accepted on 27 October with its ten decisions (D41). That ruling also placed the manual ledger off the public repository, so that orders and sizes print only on the chat-side card. The week ended with the first Monthly's freeze and dry runs.
+
+For this paper the week's significance is what it set up. The day-trade checklist in the 07:00 anchor and the ledger reader in the Weekly were scheduled from it. The rules filed on 6 November as Addendum A to Amendment #5 — the resting stop, the one-line thesis, the 1% and 2% limits, no flip inside thirty minutes and the view line — are the behavioral rules Part III reads. Draft 2 will tell this week's story from the register: which packets were drafted, which taken, which passed and why. None of it is told here.
+
+### B.4 — The first dated public call (as of 6 November 2026)
+
+The register's first "dated public call" row, under item 132, is a fifteen-day crash calendar posted on the evening of 5 November 2026 by an X account the order calls account T. The account disclosed a short position and sells a paid community. The row's expiry is 20 November 2026, when its dated claims are scored hit, miss or unresolved. Its claims are not repeated here, since they are forecasts and not this paper's. The row is recorded because it is the first specimen of Chapter 17's object, and its score at expiry will be the first entry in that object's record.
