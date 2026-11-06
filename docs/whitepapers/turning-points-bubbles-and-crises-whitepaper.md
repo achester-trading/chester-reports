@@ -454,3 +454,66 @@ The body of this paper gives the structure; it does not give the state. Where th
 | Leverage | Which market breaks first | Korea's levered products; the halt ledger |
 | Transmission | How the turn reaches the U.S. | The close's transmission line |
 | U.S. exposure | How much a chain top is a U.S. top | Concentration (item 31's band); the AI ring drawdown table |
+
+---
+
+# Part VII — Reading a Turn From Inside
+
+## Chapter 18 — The Capitulation Count beside the Top & Bottom composite
+
+Every chapter so far has had the advantage of hindsight: the episodes are complete, the stages named, the crises resolved. An operator has none of that. On the day, a decline is a decline, the stage is unknown, and the cause is a candidate list. This Part is about the instruments the system has for that position, and the limits of each.
+
+The system has three bottom reads, and the register's ruling on item 97 layers them deliberately by clock, so that none feeds another except through the intake queue.
+
+**The Capitulation Count reads days.** It asks whether the selling is exhausted. It is an integer from zero to five, one point for each of five families:
+- volatility above 30, or the VIX above its three-month counterpart (an inverted term structure);
+- the equity-only put/call ratio at 0.8 or higher on a twenty-day basis;
+- net dealer gamma flipped from negative to positive with spot above the flip;
+- short interest in the top fifth of its history while price holds above the decline's low, with the equal-weighted index stronger than the cap-weighted one since the low;
+- equity fund flows turned to sustained inflow, with the share of bearish individual investors having peaked above half and falling.
+
+Zero or one is "none", two or three "oversold", four or five "surrender". It prints in the close on exception and in the Weekly whenever the S&P 500 is more than five percent below its 52-week high. It has no decimals, no blending, and no direct entry into the T&B composite.
+
+**The false-bottom gate reads weeks.** It asks whether the low is holding. Thirty or so sessions after a trough, it tests the one confirmation element the audit admitted: the equal-weighted index against the cap-weighted after the trough. It is the gate Book A's re-entry passes through in a declared bear (Chapter 8).
+
+**The T&B composite and its overlays read months.** They ask whether the regime is turning. They were built to stay quiet through corrections, and they catch bottoms at the washout (Chapter 3).
+
+The layering is the design's main idea, and it is the answer to the most common misreading of a capitulation. A count of five says the sellers who had to sell have sold. It does not say the cause of the decline has been repaired, and in a bear whose cause is still at work, the count can reach surrender several times. The SR-8 rallies of Chapter 8 began, typically, from a capitulation. The count marks the start of a rally; the gate and the composite say whether the rally is a recovery.
+
+The count also has a gap the register named when it adopted it. It omits credit and policy, the two marks the episode study found in six of eight bottoms. It therefore misses bottoms that turn on a macro variable rather than on exhaustion. 2022 turned on the second derivative of inflation with almost none of the washout present. And it runs early in a credit bear: in 2008 its families fired months before the low. For the mechanical declines — 1998, 2018, 2024 and their kind — it is the better instrument, because those declines are about positioning and end when positioning clears. The rule that follows is the operator's: in a decline the composite reads as a credit or policy bear, the count is a Book C instrument only; in a decline it reads as mechanical, the count is the main bottom read.
+
+| Read | Clock | Its question | What it catches | What it misses |
+|---|---|---|---|---|
+| Capitulation Count (item 97) | Days | Is selling exhausted? | Mechanical bottoms; the start of every rally | 2022-type macro bottoms; early in credit bears |
+| False-bottom gate (SR-8) | Weeks | Is the low holding? | Rallies that fail, by relative breadth | Only one admitted tell |
+| T&B composite and overlays | Months | Is the regime turning? | Washout bottoms; three kinds of top by overlay | Most tops by the composite; 2007 by the composite |
+
+## Chapter 19 — The opener problem
+
+The tail-days study (item 124) examined the decade's ten best and ten worst days, replayed on the box's own data, and found a problem that sits at the start of every turn. Tail days inside an established high-volatility regime were visible beforehand on index volatility. Volatility was already high, the regime was already stressed, and a large move was the expected kind of day. The day that **opens** an episode is different. It arrives from a calm surface.
+
+The study counted six such "calm-surface openers" since 1990: large down days that arrived with index volatility low, realised volatility low and the volatility curve in contango. The earlier five include 10 October 2018 and 24 February 2020; the five's catalysts are listed as remembered, pending verification. Twenty sessions before the decade's worst days, the median volatility index was about 15, with no large-move days in the window. The sixth opener, 5 November 2026, kept that reading to the day before. It is the first of the six at minus four percent or worse *(the tail-days study's replay, 1990–2026, Parts 1 to 7, draft 3 of 5 November 2026; filed with Batch 23, 6 November 2026)*.
+
+The opener problem is that the instruments a turn is read with are calibrated on stressed markets, and the opener arrives before the stress. The volatility-state read, the dealer read and the Capitulation Count all read the day after the opener well and the opener itself badly. The study proposed one candidate, "calm surface, stressed internals": index volatility low while internal measures are extreme, such as rotation speed, the cap-weighted index against the equal-weighted, sector dispersion and price impact. It found that the description fitted 5 November 2026 and none of the five earlier openers. The register's ruling made it a pre-registered out-of-sample test, not a build. The internal-stress read is built only if the test passes, and its pass criterion was fixed before the test was run. A tell that fits one case out of six, chosen after the case, is the shape of a fitted narrative, and the ruling treats it so.
+
+Three further findings from the study shape how the days after an opener are read, and each corrects a common belief.
+
+**"The best days follow the worst days" is volatility clustering, not reversal.** Raw, a top-decile day follows a bottom-decile day within five sessions far more often than on an ordinary day. Standardised by a volatility forecast, the two-sided clustering falls below a shuffled baseline, about 60 percent against 65, and only a one-way residual of about eight points survives *(the tail-days study, Parts 2 and 4; filed 6 November 2026)*. The best days cluster near the worst because both come from the same high-volatility state. An operator who buys after a bad day expecting the good one is buying volatility, not a reversal.
+
+**Forward returns after a bottom-decile day are ordinary; only their spread is wider.** Standardised, the average return after the worst days is the baseline, and the dispersion of outcomes is larger *(the same study, withdrawing an earlier draft's claim of better-than-baseline returns; filed 6 November 2026)*. Sizing after a tail day therefore rests on dispersion, never on drift. The study's ruling makes this the sizing input through its dispersion columns only.
+
+**Volatility-managed exposure is insurance, and it has a price.** Cutting exposure as volatility rises cost between one and a half and two points of return a year against a matched constant mix, and bought about twenty points less maximum drawdown. Its Sharpe ratio, in excess of bills, was slightly lower, not higher *(the same study's Part 6, against the published literature on volatility-managed portfolios; filed 6 November 2026)*. The insurance is worth buying for a book whose binding constraint is its drawdown, which is most books. It should be bought knowing it is insurance.
+
+What the operator does differently because of this chapter is to expect the first day of a turn to be a surprise, and to have the response already written. Each book's opener response is a rule, not a judgment (Chapter 21). The day after is when the instruments start to work.
+
+## Chapter 20 — Base rates, not analogs
+
+At every turn a chart circulates that overlays the present on a famous past episode — 1929, 1987, 2000, 2008 — and implies the rest of the path. The analog is the most persuasive instrument in market commentary and among the least reliable. It answers a question nobody asked. It answers "what happened in the one or two episodes that look most like this?" when the question is "what happens, across every episode that met this condition?"
+
+The analog's failure is selection. The episodes it uses were chosen after the fact because they ended badly, and they were chosen from the ones the reader remembers. The resemblance is judged by eye on the stretch that has already happened. The register's item 130 records a clean specimen. A post argued that the Nasdaq had fallen eleven percent in the first month of a decline, "as in 2000 and 2008", and that in both of those the eventual bottom was more than fifty percent lower. That is two episodes. The first-month declines of 2018, 2020, 2022 and 2025, which met the same condition and did not end fifty percent lower, were left out *(the register's item 130, filed with Batch 25, 6 November 2026; the replay confirmed the Nasdaq Composite's −11.9% from its 6 October closing high at the 5 November close)*.
+
+The base rate's answer is to define the condition first and take every episode that meets it. The register's ruling on item 130 adds a row to Base Rates: the distribution of the eventual drawdown, and of the time to the low, conditional on a decline of ten percent or more in the first twenty-one sessions off an all-time high. It covers the Nasdaq Composite since 1971 and the S&P 500 since 1950, computed in the study tool and refreshed by the Annual Structural Review. It is printed beside any "2000 and 2008" narrative the register carries. The row will show, as such rows usually do, that the famous analogs sit in the tail of the distribution, not at its centre. It will also show how wide the distribution is, which is the information a sizing decision needs.
+
+The analog keeps one honest use. In the AI ring drawdown table the register also ordered, a 2000–02 column of reference drawdowns sits beside the present, labelled "reference". It is there to scale the present, never to forecast it. The rule is the column's label: an analog is a reference, never a path.
+
+What the operator does differently because of this chapter is to answer every analog with its base rate before reading the analog's chart, and to size on the base rate's spread rather than on the analog's ending.
