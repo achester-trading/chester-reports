@@ -1,12 +1,24 @@
 # The Doctrine #2 preparation pack (7–8 November 2026)
 
 **Reading time.**
-- **Decision list:** about 11 minutes for the decision list (D2-1 to D2-72). It can be taken in one read.
-- **Supporting text:** about 21 minutes for Parts 1–7, the evidence behind the decisions.
-- **Whole pack:** about 68 minutes including the annexes. The annexes are read only for an item the sitting pulls.
-- **Basis:** 230 words a minute, 15,603 words in all, inside the two-hour sitting.
+- **Decision list:** about 22 minutes for the decision list (D2-1 to D2-91, 5,162 words). It can be taken in one read.
+- **Supporting text:** about 40 minutes for Parts 1–12 (9,210 words), the evidence behind the decisions.
+- **Whole pack:** about 100 minutes including the annexes. The annexes are read only for an item the sitting pulls.
+- **Basis:** 230 words a minute, 22,906 words in all by `wc -w`, inside the two-hour sitting.
+- **The B104 addition (1 Nov 2026):** Part 12, in the decision list and in the text, with its line in Part 11, adds 1,791 words (about 8 minutes).
+- **The B105 addition (1 Nov 2026):** D2-90, the EM shock screen's amendment, adds 364 words (about 2 minutes).
+- **The B118 addition (2 Nov 2026):** Part 10's addendum of 2 Nov (the measurements since B96) and two source fixes in Part 12 add 699 words (about 3 minutes).
+- **The B125 addition (2 Nov 2026):** D2-91, the X pilot at its decision point, with Part 10's "X pilot" table and its Part 12 evidence, adds 915 words (about 4 minutes).
 
 **What this is.** This is the pack for the second Doctrine sitting, refreshed with October's rulings (A67, 24 Oct 2026). It replaces the agenda of the 20 Oct edition (a52-doctrine-2-pack) and keeps every item of that edition that still applies (Part 8, with its full text in Annexes A and B). It gathers in one place everything October left "proposed", "session-set" or "to Doctrine #2".
+
+**The B96 refresh (31 Oct 2026).** Session B refreshed this edition with everything ruled or filed between 24 and 31 Oct:
+- **Part 9 of the decision list:** D2-73 to D2-83, options only, each with its source.
+- **Part 9 of the text:** the merges to main since 22 Oct, the rulings D30 to D48 as they bear on the pack, and the evidence for the new items.
+- **Part 10:** the ledgers written since the 20 Oct evidence table, each with its verdict, n and as-of.
+- **Part 11:** the order of business for Sat 7 and Sun 8 Nov, the decisions that hold or release a build first.
+- **Unchanged:** D2-1 to D2-72 and the annexes, except where Part 9 says a row is amended.
+- **Reading time:** the refresh adds about 3,100 words (about 14 minutes).
 
 **How to take it.** The sitting's shape follows the standing ruling of 24 Oct: "present decision sets as one list with recommendations; Ari accepts in one read unless he disagrees".
 - Each item is a numbered decision, **D2-n**. Each states the value as set, the alternative, and a one-line recommendation.
@@ -147,6 +159,63 @@ Each row is the 20 Oct edition's item and its draft, unchanged unless a note say
 - **Deferrals to Audit #5:** D2-46, D2-71.
 
 **Not for a block**, because each changes what a book may do: D2-26, D2-32, D2-35, D2-39, D2-45, D2-49, D2-63, D2-65, D2-67, D2-72.
+
+### Part 9. Added since the A67 edition (B96, 31 Oct 2026)
+
+Every item since 24 Oct that a ruling, an order or a brief sends "to Doctrine #2" or "after Doctrine #2". **Options only.** Where an earlier document drafted a recommendation, the last column names it and its source. B96 adds no recommendation of its own. The evidence for each is in Part 9 below.
+
+| # | Item | Source | To decide | Options already drafted | Drafted earlier |
+|---|---|---|---|---|---|
+| D2-73 | The price-source migration: the plan and the deadline | D33(4) (24 Oct); `price-source-migration-brief-2026-10-25.md` (b68, on chain-8), section 7; D38 (26 Oct) | Under D33(4), the plan and the deadline, "with the exposure stated" | (a) confirm D38's acceptance of b68's ten decisions as the plan: IBKR daily bars primary, Massive for the S&P members and corporate actions; a $60 a month ceiling; DTWEXBGS with its lag labelled; the uncovered keys (^MOVE, the foreign cash indices, ^SET.BK, consensus, the earnings calendar's forward dates) listed gaps; retirement **Fri 8 Jan 2027**; (b) a 22 Dec 2026 deadline; (c) no deadline, family by family | b68: (a) for each; D38 accepted all ten "as recommended" |
+| D2-74 | The Cboe readers: `cboe_indices` (COR1M, COR3M, DSPX) and the VX-curve logger | D40 (27 Oct); D45 (31 Oct); `cboe-terms-check-2026-10.md` (b89), "Decisions for Doctrine #2"; the hold on `b95-cboe-held` | (a) `cboe_indices`; (b) the VX curve; (c) the stored rows; (d) the substitutes; (e) the dispersion story's grade; (f) whether to ask Cboe for a licence; (g) the VIX term-structure dual run | (a) freeze, retire or licence; (b) freeze, retire before 23 Dec with the dual run ended in a v1.13 note, or licence; (c) purge after a backup, or keep frozen; (d) Yahoo's ^VIX and ^VIX3M (the vol dial and the published VIX3M/VIX leg) follow D33's ruling; FRED's VIXCLS, VXVCLS and VXNCLS as the substitute of record (nothing reads VXVCLS today); the VX1-VIX basis a listed gap (D45); the dispersion panel's Yahoo fallback (^DSPX from May 2024; ^COR1M and ^COR3M quotes without history), unused while held; (e) re-point to `yfinance.mkt_dspx`, or void; (f) ask, or not; (g) end at 23 Dec as planned, or end now | b89: retire both; purge after a backup. D45 kept the rows "for now" and held new pulls from the 3 Nov merge |
+| D2-75 | The 23-hour equity session's three adjustments (item 98) | Batch 18 (`change-order-signal-triage-batch-18-2026-10-28.md`, on the filing branches), "built after Doctrine #2"; D42.5 | When 98(a) session-aware bars, 98(b) the overnight read and 98(c) the night bars' source are built | (i) released by this sitting, in the order's work order: 98(c) inside the price migration (D2-73), then (a), then (b); (ii) held for Audit #5's placement of SR-68 | The order: "phase after Doctrine #2"; SR-68 "provisional, placed by Audit #5" |
+| D2-76 | Paper XXXI's roll-up tiers | D38 item 53 ("unconfirmed until Doctrine #2"); D48 (31 Oct) | Whether D48 is the confirmation D38 asked for | (a) record D48 (the memo's decision 7: count fired mechanism families; CLEAR 0–1, WATCH 2, ALERT 3+) as confirmed; (b) reopen | The library review memo (B93), decision 7; accepted by D48 |
+| D2-77 | The Weekly readability order (W10-1 to W10-3) | D36 (25 Oct); `change-order-weekly-readability-2026-10-30.md`; D46 (31 Oct) | Nothing: ruled and filed | For the record. Built by A97 for the 8 Nov Weekly | D46: decisions 1–4 as recommended |
+| D2-78 | The Phase 4 paper engine | D35 (24 Oct); `phase-4-paper-engine-assessment-2026-10.md` (b90); D43 (31 Oct); D44 | Nothing: ruled | For the record: D43 (a)–(f), no live orders before 2027; D44, Pillar 5H from EDGAR 13F, Tranche B | D43 accepted b90's recommendations |
+| D2-79 | Whether D41 closes D2-45 (W-1, the DTH-1 scope) | D41 (27 Oct): the Day-Trading Layer brief's ten decisions accepted; the brief lives outside the repository (D41(i)) | Whether D2-45's question, which engine first and when the Book B scanner's daily candidates are released, was settled by D41 | (a) record D2-45 as closed by D41; (b) rule D2-45 as drafted where D41's brief did not settle it. The pack cannot quote the brief | — |
+| D2-80 | The SR numbering collision (amends D2-22) | Table 5.1's draft (SR-60 to SR-93 for items 45–78); the provisional rows filed since: SR-60–64 (Batch 16, on main), SR-65–67 (Batch 17, `a81-batch-17-filing`), SR-68 (Batch 18), SR-69–72 (Batch 19), SR-73–75 (Batch 20), SR-76 (Batch 21) | Which set keeps SR-60 onward | (a) items 45–78 take SR-77 onward; (b) the batches' provisional rows renumber after items 45–78; (c) both wait for Audit #5, which places every provisional row | Every provisional row reads "placed by Audit #5" |
+| D2-81 | `alignment_weekly`'s split: the hit definition | `a65-6f-tranche4-notes.md` (on chain-8), needs-you 3: "Doctrine #2 can amend it" | What counts as a hit when the split is read | (a) as built: a positive return in the decision's direction, over all graded statuses; (b) ruled R > 0 over taken decisions, as the scoreboard reads | — |
+| D2-82 | A66's capex-guidance extraction rules | `a66-capex-guidance-notes.md` (on chain-8), needs-you 4: "Ratify or amend at Doctrine #2" | The session-set extraction rules and markers (Part 3 of the notes), and the brief's 400-character window | (a) ratify with D2-4's block; (b) amend | — |
+| D2-83 | The Reporting System paper, Drafts 3 and 4 | Table 5.2 (Draft 3, outside the block); `readers-guide-draft-4-notes.md` (on chain-8), needs-you 2 | Whether Draft 4 is accepted under rule 31, and Draft 3's pending acceptance with it | (a) accept Draft 4 as drafted, Draft 3 superseded; (b) review first | — |
+
+**Rows of the A67 edition that this refresh amends.**
+- **D2-22:** read with D2-80. The SR numbers it drafts are now partly taken.
+- **D2-29 and Table 7.1:** add the dated items of Part 9 below.
+- **D2-45:** read with D2-79.
+- **D2-68 (the v1.13 bump):** read with D2-74(b). A dual run ended early would be a v1.13 note too, so the two can be one bump.
+- **D2-33 (the flag's stamp, "record as done"):** unchanged.
+
+**Not for this sitting.** Tranche B and C placements wait for Audit #5 (week of 23 Nov). Listed so that none is mistaken for an open item:
+- Batch 17 (items 92–97; 97(a)–(c) merge after 8 Nov, D39);
+- Batch 19 (items 99–110);
+- Batch 20 (items 111–114, with 111(d) applying under D44);
+- Batch 21 (item 115, the evening X read, D47);
+- SR-68's placement (item 98), once D2-75 is taken;
+- D26's new sources, each pre-registered as an Alpha Lab hypothesis first;
+- the late publishers left stale (D42.4);
+- the Category 2 triggers (D2-46);
+- the dealer engine's later enhancements (D2-71);
+- the debt-cycle branch rule (D30(2): Doctrine #3, early December).
+
+**Blocks, with the additions.** D2-82 can join the values block (D2-1 to D2-4). D2-76, D2-77 and D2-78 are records, taken together. D2-73, D2-74, D2-75, D2-79 and D2-80 each want their own ruling: each releases or holds a build.
+
+
+### Part 12. Added on 1 Nov (B104, 1 Nov 2026)
+
+The decisions that arose on 1 Nov: the readable editions, the X layer under the Grok two-slot cap, the readers' findings, the MSTR/MSCI 1 Dec read and the Monthly's first-edition withholds. **Options only**, in Part 9's shape. Every row is a rule-31 draft that grants nothing, and B104 adds no recommendation. The evidence for each is in Part 12 below. The files named "on b102" are on `b102-readable-editions-register`, filed by B102 and B103.
+
+| # | Item | Source | To decide | Options | Note |
+|---|---|---|---|---|---|
+| D2-84 | The readable editions' contract | The 1 Nov order (`change-order-readable-editions-2026-11-01.md`, on b102), rulings D50–D56, "accept all"; the Master Guide's subsection "The readable editions" (on b102) | Whether to ratify the six-line contract as a standing rule of the reporting system, and the reading order (the Letter first on Sunday and the 1st) over §10.3 of the Reporting System paper | (a) ratify as written; (b) ratify, with the Letters' word budget made a configured target like the editions'; (c) hold until three Monthly Letters exist | The Reporting System paper's Appendix F (B103, on b102) records the reading order as superseding §10.3; the body keeps its text |
+| D2-85 | The X layer's cadence under the operator's Grok plan | The 1 Nov order, findings F1–F6 and D56 (with D57, proposed there); the register row "Grok X digest, evening (the operator's automation)", planned, blocked (`docs/master-guide/chat-tasks.yaml`, on b102) | The plan allows two automations, both taken by the 06:00 and 06:15 runs. The evening run (item 115) and a midday run need a third | (a) a plan change for a third slot: the evening run first, the midday run only if a fourth is cheap; (b) swap: the 06:15 equity-vol run becomes the evening run (the eqmacro attention ledger and the ES card's X read lose their morning input); (c) hold at two until item 50's decision point, and judge the pilot on the morning runs alone | The morning window (about 10:00 UTC the day before, up to the run) already covers the previous evening's after-hours posts. The evening run's value is same-day timing, not coverage (the B104 paste) |
+| D2-86 | The readers' findings as a standing loop | The contract's line 4; `docs/briefs/letter-findings.md` (on b102); A95 Part 6 and A103 | Whether "what a reader finds, the box fixes, then the prompt drops it" becomes a standing practice with a home (the findings file, read at each Audit). And whether the cross-table comparisons A103 adds become a named gate class ("consistency": one figure printed in two places must agree) | (a) standing, with the findings file as the Audit's input and the comparisons folded into the existing frame checks; (b) standing, with a new consistency gate; (c) one-off, closed when A95 and A103 merge | A95's paste already sends a comparison with no gate to "the Monthly's own consistency check … rather than a new gate" |
+| D2-87 | The MSTR/MSCI post-effective read | The register row "MSTR / MSCI event watch" (on b102); the 1 Nov order, F5 | The task's schedule covers November only, and its prompt stands any December run down. How the 1 Dec read happens | (a) a one-shot task for 1 Dec 07:10, with the December clause lifted for that date; (b) fold the read into the 2 Dec morning triage; (c) drop it, so the watch ends 30 Nov | The order's F5 drafted (a) for late November |
+| D2-88 | The ES cards and the Sunday map in the register | The register rows "ES day-trading card (DTH-1's manual edition)" and "ES Sunday map" (on b102); A92 (`a92-notes.md`, on `a92-dth1-box-pieces`) and the A92 addendum the order schedules (F3, D52, D54) | Whether the operator's private cards, read by nothing in the system, belong in Table 2 at all, and whether their Drive folder's archive copy (D54) is the right record | (a) keep the rows and the archive (as ruled); (b) keep the rows, no archive; (c) move the rows to a private note outside the repo | D50 and D54 are the rulings that option (a) restates |
+| D2-89 | The Monthly's first-edition withholds as an incident | A95's paste (`docs/pastes/A95.md`, on `a95-monthly-first-edition`; its notes, `docs/briefs/a95-notes.md`, are on the same branch at `a2737d15`, B118); the 1 Nov order, F4; the Reporting System paper's Appendix F.1 (B103, on b102) | Whether sixteen withheld paragraphs on the first stacked Monthly are logged as an incident under Part IX §9.8 of the Reporting System paper (a failure that reached production), with its lesson, or as the audit's expected behaviour on a first run | (a) an incident, with the lesson "the writer's data block must carry every scaled figure's display string and series name before the audit binds"; (b) not an incident: the audit worked as designed; (c) an incident only if the 1 Dec edition withholds more than three | Appendix F.1 records the run and A95's disposition, and says the audit held. It does not rule the question |
+| D2-90 | The EM shock screen's amendment (filed 105(a), Batch 19) | `docs/briefs/b91-notes.md` Part 3 (B105, on `b91-batch-19-filing`): the operator's box reading of 1 Nov and the drafted amendment; `altdata/move_screen.py` | Whether the screen opens a country's shock on the day of a very large single-member move (Brazil's EWZ, z1 -12.38 on 26 Oct, opened nothing because the session was "mixed"), and what it adds for Brazil's FX and rates legs | (a)(i) a member's \|z1\| at or past a bar (drafted: 4) opens its country's shock that session; (a)(ii) every flagged country on a mixed session opens one; (a)(iii) the dating as built; separately, past sessions classified as of their own close; (b) the central bank's daily PTAX rate as a candidate FX source for the 16 Oct check (A96's switch), FRED's H.10 the reference until then; (c) the policy rate and a DI-pre tenor from the same service as a listed gap with a named candidate; (d) report-only confirmed | B105's notes recommend (a)(i) at 4 with the as-of-close fix, (b) and (c) as candidates for the check, and (d). Those are drafts; the sitting rules |
+| D2-91 | Item 50, the X pilot, at its decision point (B125) | The operator's reading of `x-rumour-ledger.csv`, 2 Nov 2026 (a Drive file, `chester-vendor-checks/x-triage/`, not in the repo): Part 10's "X pilot" table; the register rows of the Grok digests and the triage (`docs/master-guide/chat-tasks.yaml`, on b102); D2-85 | Continue, promote or stop the pilot after fifteen morning runs (19 Oct–2 Nov) | (a) **continue** to Audit #5 as a pilot, the evening run added only if a third Grok slot exists (D2-85), the rumour ledger kept as the base-rate record. Cost: one morning run a day (about 10 minutes), the two Grok slots as now, a third only for the evening run. (b) **promote**: the rumour ledger becomes a registered base-rate source (a read-only row in the register; rights unchanged, attention and rumour tracking only), the evening-note block (item 115) built after the sitting, and the morning triage shortened to the principals, the rumours and the checkable claims, the attention statistics dropped until the ledgers are whole. Cost: the morning run, shorter; the two slots; the evening block's input needs a third slot or D2-85's swap; one build after the sitting. (c) **stop** the pilot and keep the ledgers as a dated record. Cost: none going forward; the two slots and the morning run freed | Options only; no recommendation beyond the rule-31 form. Taken with D2-85, whose option (c) waits on this decision point |
+
+**How Part 12 is taken.** D2-85 holds any X-layer build, and D2-86 holds Audit #5's agenda; Part 11 places them. D2-91 (B125), the X pilot's decision point, is taken with D2-85: the two decide the X layer's runs and slots together. D2-90 (B105) is taken with them; it releases no build until its sources pass the 16 Oct check. D2-84, D2-87 and D2-88 each want their own ruling. D2-89 is a record, and can be taken with D2-83.
 
 ---
 
@@ -517,6 +586,220 @@ No t2-* notes file exists. T2's changes are in the config comments and the minut
 | The Alternative Assets Quarterly's first run (timer disabled until January) | January 2027 | the 20 Oct pack, T8-7 |
 
 ---
+## Part 9. Since the last pack (B96, 31 Oct 2026)
+
+### The merges to main since 22 Oct
+
+A67 was written on 24 Oct, on top of chain-5 (merged 23 Oct, PR #41). Five merges have landed on main since then. Each is listed with what it changed in the reports.
+
+| Merged (ET) | Branch (PR) | What changed in the reports |
+|---|---|---|
+| 28 Oct, 18:34 | A61b, the feed repair (#42) | The refused sources ask nothing: MBA, Farside and Apartment List (`source_registry.yaml` `status: refused`). The MBA line and every ETF-flow line print "not tracked: … refuses automated reads since 2026-10-24". The store check and the heartbeat list declared keys apart (superseded, refused, gap, while_held), never stale. FRED's fetch retries with the status in its reason. A derived key inherits its inputs' largest lag, and ten lag families were added. fed_funds runs ahead of prediction_markets (D29.2). AERO follows DefiLlama's merged parent as a labelled break (D29.3) |
+| 28 Oct, 19:34 | A78, Batch 16's midterm table (#43) | Items 80(b) and 90: the midterm base-rate ledger and the 3 Nov row in the Weekly's Ahead, with its Table 7a row in the Master Guide |
+| 28 Oct, 20:22 | A85, the midterm copy-back (#44) | The box editions of the midterm ledger (2026-10-28) and the wealth ledger (ST-R6.66c, 2026-10-28) replace the laptop's. The Weekly's midterm row reads the box edition. D35–D41 are filed (`rulings-2026-10-25-27.md`) |
+| 29 Oct, 14:42 | A88, the Monthly's audit binding (#45) | From the 28 Oct dry run's 14 withheld sections, by cause: the numeral audit binds the series the prose names, and the role audit skips dates, windows and named weights |
+| 29 Oct, 14:42 | B84, the Monthly's tape, delta and state withholds (#46) | The Monthly's `tape_rules`, `bare_delta` and `state_misstated` withholds of the 28 Oct dry run, fixed by class. One case of `validate_audit_fixes` (B84's looking-ahead calendar) is red on main since: 135 passed, 1 failed |
+
+**Merging Tue 3 Nov, after the 1 Nov Monthly** (branch-only today): chain-8 (`b86-chain-8-assembly`, which carries A67's and A70's editions of this pack); the library papers (B88's rehearsal, D48); the Cboe hold (`b95-cboe-held`, D45); and the filings of Batches 19, 20 and 21 with the rulings record (`docs/briefs/rulings-2026-10-28-31.md`, D42–D48).
+
+### The rulings since the A67 edition
+
+| Ruling | Date | What it settles for this pack |
+|---|---|---|
+| D30 | 24 Oct | XXVII's debt-cycle branch rule goes to Doctrine #3, not #2 |
+| D33 | 24 Oct | yfinance: no new symbols; the migration plan and its deadline to Doctrine #2 (D2-73) |
+| D35, D43 | 24 and 31 Oct | The Phase 4 engine: assessed (b90), then ruled (D2-78) |
+| D36, D46 | 25 and 31 Oct | The Weekly Letter, and the readability order ruled (D2-77) |
+| D37, D39, D42.15–16, D47 | 26–30 Oct | Batches 16, 17, 19, 20 and 21 filed. Their placements are Audit #5's ("not for this sitting") |
+| D38 | 26 Oct | The 60-item morning list accepted, including b68's ten decisions (D2-73) and item 53, XXXI's tiers "unconfirmed until Doctrine #2" (D2-76) |
+| D40, D45 | 27 and 31 Oct | The Cboe readers: a terms check, then a declared hold from 3 Nov, with the rest to this sitting (D2-74) |
+| D41 | 27 Oct | The Day-Trading Layer brief accepted (D2-79) |
+| D42 | 28–30 Oct | The box run's follow-ups: lag allowances, line endings, the chain-8 assembly. Item 98 accepted as filed (D2-75) |
+| D44 | 31 Oct | Pillar 5H built from 13F, Tranche B |
+| D48 | 31 Oct | The twelve library review decisions (D2-76's tiers among them) |
+
+### The evidence for Part 9's items
+
+- **D2-73.** b68's exposure table (section 1) is the "exposure stated" D33(4) asks for. D38 accepted the brief's ten decisions on 26 Oct, so the sitting confirms a plan already in force or amends it. 98(c) depends on it: night bars come from the gateway under the migration's terms.
+- **D2-74.** The b89 check of 30 Oct: both readers fail the terms' storage clause. D45 held new pulls from the 3 Nov merge and kept the stored rows. The hold's notes (`docs/briefs/b95-notes.md` on `b95-cboe-held`) list what goes dark:
+  - the dispersion panel's three rows (Weekly and Monthly Mechanics);
+  - the term structure's champion leg and the VX1-VIX basis;
+  - the Monthly v2's front-month VIX future;
+  - a fired volatility event's breadth lens;
+  - the dispersion story's evidence and grade.
+  The vol dial is untouched: its members are `yfinance.mkt_vix`, `fred.vix` and `calc.vol_spy_realized_20d`. So is the published VIX3M/VIX leg, Yahoo's ^VIX3M over ^VIX. Both are Cboe's index values relayed by Yahoo, which is why b89 puts them under D33. The dual run ends 23 Dec. Until then the champion counts "not comparable" once its rows are stale.
+- **D2-75.** The order (Batch 18, K1–K4) leaves the cadence unchanged. Its work order puts 98(c) first, inside the migration: "whether the gateway serves night-session bars for SPY and QQQ".
+- **D2-80.** The register on each branch: main ends at SR-60–64 (Batch 16); `a81-batch-17-filing` adds SR-65–67; `b91`, `b92` and `b95` add SR-68 to SR-76. None of items 45–78 has a number yet.
+
+### The dated items added to Table 7.1
+
+| Item | Date | Source |
+|---|---|---|
+| The post-Monthly merges (chain-8, the library, the Cboe hold, the filings) | Tue 3 Nov, evening | the pastes B91 to B96 ("merges Tuesday 3 Nov evening"); D45 |
+| The Cboe readers' new pulls stop | Tue 3 Nov (the merge) | D45 |
+| The first Weekly with the readability fixes | Sun 8 Nov | D46 |
+| Doctrine #3 (the debt-cycle branch rule, D30(2)) | early December | D30 |
+| The yfinance retirement | Fri 8 Jan 2027 (22 Dec 2026 the earliest) | D38 (b68, decision 9); D2-73 |
+| The library's corpus review pass | Sat 16 Jan 2027 | D48 (decision 9) |
+
+---
+
+## Part 10. The evidence, refreshed
+
+The 20 Oct evidence table (Annex A, "The evidence in one place") is unchanged: no new edition of any ledger in it has reached main. These are the ledgers written since, with each one's verdict, n and as-of as the ledger states them.
+
+**On main:**
+
+| Ledger | Tests | Verdict | n | As of |
+|---|---|---|---|---|
+| midterm-base-rate-2026-10-28.md (box edition; supersedes 2026-10-26) | the midterm year's drawdown and the low's place (items 80(b), 90) | NO GATE IN THE ORDER, base rate recorded | 19 midterm years; 57 others | 2026-10-28 (S&P 500 close) |
+| st-r6.66c-ledger-2026-10-28.md (box edition; supersedes 2026-10-21) | the wealth-effect impulse against real PCE (item 66) | FAIL: rho +0.06 (rule ≥ 0.20) | 65 | real PCE 2026-08-01; Z.1 2026-04-01; SPX 2026-10-28 |
+| st-r6.59c-ledger-2026-10-20.md | the bank-stress classifier (item 59) | FAIL: crises caught 2 of 2; corrections stayed correction 6 of 16 (the rule needs two-thirds) | 18 | 2026-10-20 |
+| os-12c-ledger-2026-10-20.md | relative options volume (OS-12) | INSUFFICIENT: 0 scored flagged name-days | 0 | 2026-10-20 |
+
+**The midterm base rate's headline** (2026-10-28): the year's drawdown, median −16.6% (mean −17.5%), against −9.9% (mean −12.4%) in the 57 other years. The year's low came before election day in 17 of 19. Base-rate rights only (item 90): it prints beside the 3 Nov row, never as a forecast.
+
+**On chain-8, merging 3 Nov:**
+
+| Ledger | Verdict | n | As of |
+|---|---|---|---|
+| d15-ledger-2026-10-24.md (the one-day 10-year trigger, D15) | INSUFFICIENT: term premium 2, expected short rates 65 episodes (needs 15 each) | 67 | DGS10 2026-10-22 |
+| st-r6.65a-ledger-2026-10-23.md | INSUFFICIENT: 14 and 14 episodes (needs 15 each) | 28 | DGS10 2026-10-22 |
+| st-r6.71d-ledger-2026-10-23.md | FAIL: on before 0 of 3 air pockets (rule 2) | 2,965 | SPY 2026-10-23 |
+| st-r6.74b-ledger-2026-10-23.md | INSUFFICIENT: no ES rows yet | 0 | 2026-10-23 |
+| trend-breadth-2026-10-26.md (item 89(b)) | FAIL (the S&P 500 at +20, the rule's cell) | 163 weeks | 26 Oct 2026 (laptop first edition) |
+| gold-exhaustion-ledger-2026-10-26.md | INSUFFICIENT | 0 weeks | 2026-10-26 |
+| tb-harness-2026-10-26.md (6i's harness) | INSUFFICIENT: 3 of 3 tops and 4 of 4 controls unread | 13 episodes, 17 decision dates | 2026-10-26 |
+
+D9 accepted the 65a, 66c, 71d and 74b first verdicts as rule-31 drafts on 24 Oct. Their 23 and 28 Oct editions keep the verdicts.
+
+**The calibration ledgers.**
+- 6f's first calibration read is unchanged since A67: k = 0 on the laptop, and the box's read follows the post-Monthly merge (D29.9).
+- No transition probability prints (D2-20).
+- The ST-7 and ST-8 calibration editions (sr-NN-ledger-2026-10-18) have no later edition.
+
+**The Master Guide's count** (Part 5, as on main): of twenty-one gated signals with a verdict, one passed, twelve failed and eight are insufficient. The verdicts above add to the failed and insufficient columns once Table 7a carries them.
+
+### The addendum of 2 Nov (B118, 2 Nov 2026)
+
+These are the measurements written since B96, each cited to its committed file,
+the branch it is on and that branch's tip. Every figure is printed as its source
+prints it, and none comes from a Letter. No ledger edition has been written on any
+branch since B96, so the tables above stand.
+
+| Item | What the source prints | Source (file; branch, tip) |
+|---|---|---|
+| The first stacked Monthly (1 Nov 2026), A95 | 88 model calls: 61 first attempts and 27 retries, with 11 sections published on the retry. 45 of 61 sections published: 33 of the 48 body sections (5,790 words) and 12 of the 13 summary paragraphs. 6,916 prose words, about 33 minutes to read against the 55-minute target. The replay of A97's fallback over the log (`a97_replay.py`): 5 of the 16 withheld sections would have published, with 6 markers | `docs/briefs/a95-notes.md`; `a95-monthly-first-edition`, `a2737d15` |
+| The Weekly of w/e 30 Oct, A103 | Seven places where the edition contradicted itself, W1–W7: the précis's sign word against the tape; the gamma story against the session table; two term-premium changes; the gap table's direction; the narratives counts against the stories table; the FOMC decision, printed nowhere; and "what would change our mind" against the calendar. Each is a case in `validate_weekly_readability` group D | `docs/briefs/a103-notes.md`; `a103-weekly-consistency`, `b3a1b9f5` |
+| The clock audit, B106 | 23 gates in the inventory: 4 already pinned, 1 pinned by B106, and 18 that read today on purpose (16 code gates, a data gate and a store tool), each now carrying a comment. 42 files of code under test read the clock directly. **The sixth calendar failure:** `validate_alpha_proposer` went red in CI on 2 Nov (run 41379176410) against its fixture's fixed week of 2026-11-02. It is now pinned: 42/0 on the real clock, on 29 Oct and on 2 Dec | `docs/briefs/b106-notes.md`; `b101-date-drift-gates`, `666611e1` |
+| CI time, B107 | The green run: 134.5 job-minutes in 41.5 minutes of wall time, a parallelism of 3.8. The install step: 53.2 job-minutes, 40% of the run. The wait before the first gate job, on the evenings of 29–31 Oct: main 14.1 minutes, chain-8 55.7, the green rehearsal 13.6. B111 built the ruled set on the same branch | `docs/briefs/b107-ci-time-audit.md`; `b100-hygiene`, `72406edd` |
+| Audit #5's placement, B108 and B115 | 17 provisional rows, SR-60 to SR-76: Batch 16 has 5, 17 has 3, 18 has 1, 19 has 4, 20 has 3 and 21 has 1. **Placeable as merged on 23 Nov:** SR-60, SR-64 and SR-62's Tranche A. **Built but branch-only:** SR-67 and SR-69. The rest are order only. **The five disagreements, settled by B115:** two numbers (SR-74, SR-75) already follow Batch 20's M2, so no edit; two statuses (SR-60's cell corrected to "on main since 28 Oct 2026 (PR #43)"; SR-65 to SR-67 on `a81-batch-17-filing` and chain-8); one ruling (Table 5.1 against the batches' numbers, D2-80), left for the sitting | `docs/briefs/audit-5-placement-pack.md` and `docs/briefs/b108-notes.md`; `b95-batch-21-filing`, `c72f4f38` |
+| The names gate, B109 and B111 | With the operator's first name as the list: 414 hits in 170 files before the sweep; 33 in 20 after B109's sweep (396 replacements in 163 files); 8 in 8 after B111's ruled exclusions, with 3 files allowlisted. The eight are the seven unit-file comments and A78's header, swept in the merge-week deploy window | `docs/briefs/b109-notes.md`; `b109-names-gate`, `46da3bb5` |
+| The merge week rehearsed, A105 and A106 | A105's run green (41393587121). A106 added b97, b98 and b99 (steps 22a–22c): the gate count is 167, and the merged tree's code gates pass on the laptop. A106's run, 41522379720, was queued at its one read; at B118's read, GitHub lists it cancelled, superseded by the script's later push | `docs/briefs/a105-merge-week-script.md`; `a105-merge-week-rehearsal-2`, `b8023fba` |
+| A110's sweep | Pending: no A110 branch was pushed by 2 Nov | — |
+
+**X pilot** (B125, for D2-91). The operator's reading of `x-rumour-ledger.csv`,
+2 Nov 2026: the file `chester-vendor-checks/x-triage/x-rumour-ledger.csv`, rows
+19 Oct to 2 Nov, every figure counted by hand from the file. The ledger lives in
+Drive and the box's inbox, not in the repository, and its handles stay there.
+
+| Item | The operator's reading |
+|---|---|
+| Runs | 15 morning triage days (19 Oct–2 Nov); 0 evening runs (the evening automation has no Grok slot: the plan allows two automations) |
+| Rumours tracked | 37 claim keys: chapter A (crypto) 22, chapter B (equity-vol and macro) 15 |
+| Status per key at 2 Nov | Confirmed 2: both the Binance incident of 29–30 Oct, confirmed on the issuer's own statements (the ~$6.3bn figure, and the founder's post on covering the gap). Denied 1: the CoinDCX outflow, denied by the issuer and contested on-chain. Faded 22: absent three consecutive runs, never resolved against a primary source. Unverified and open 12, among them the MSTR/MSCI exclusion claim (recurring since 19 Oct in eight forms, resolving on MSCI's 11 Nov list), the Iran operation reports, and the DPRK attribution of the Binance hack |
+| Credibility at first sighting, as the triage labelled it | Slogan about 14: every one faded or still circulating as a slogan, none resolved. Recycled about 6: all restatements of the same MSCI methodology or the JPMorgan conditional estimate, none resolved. Doubtful about 7: none confirmed, one contradicted at post time (the "Ibovespa -20%" claim while the market was closed). Plausible about 8: 2 confirmed, both issuer-sourced news rather than rumour; the rest open or faded |
+| So far | 2 of 37 rumours confirmed (5%), both issuer statements of a real event that reached X first; 59% faded without any primary-source resolution; the "slogan" and "recycled" labels were right in every case that resolved |
+| Verification | At most three to five primary-source checks a run (the budget). The morning file's A-chatter sections (reply sentiment, disagreements) have been absent since 29 Oct (the v3 layout) |
+| Data | The attention ledgers' daily rows have been staged in pending files since 31 Oct, because the chat-side task cannot rewrite the full ledgers. A117 fixes the box's reader; the chat-side fold is the operator's |
+| Costs | One Opus run a day of about 10 minutes (morning). The evening run is paused. The Grok side is the operator's subscription, with two automation slots |
+| Not produced | No signal-triage candidate adopted from X: the triage's "candidates" line has read "none" on every run the operator has seen. The x-triage files' Candidates sections could be counted if the sweep's inbox copies were committed; they are not. No measured attention shock preceded a move the system's own readings missed: no such case is recorded |
+
+---
+
+## Part 11. The sitting's order of business
+
+Two sittings, each inside the attention budget's two hours (D2-26). The decisions that hold or release a build come first, so that the week of 9 Nov can start on them. Minutes are planning figures.
+
+### Saturday 7 November (about 110 minutes)
+
+| Slot | Minutes | Items | Why here |
+|---|---|---|---|
+| 1 | 15 | D2-73 the price migration | Releases the gateway and Massive writers and 98(c). The deadline is 8 Jan |
+| 2 | 20 | D2-74 the Cboe readers (a)–(g), with D2-68 (the v1.13 bump) | Lifts or keeps the hold. One bump can carry the dual run's end and the "and climbing" leg |
+| 3 | 10 | D2-75 the 23-hour session | Releases 98(a)–(c) or leaves them to Audit #5 |
+| 4 | 10 | D2-79 and D2-45, the DTH-1 scope | The Book B scanner's daily candidates wait on it |
+| 5 | 20 | D2-32 the volatile-day flag's actions; D2-49, D2-50, D2-63 and D2-64, Book C's touches; D2-41 the entry fill; D2-58, D2-62 and D2-69 | Gate C's build list depends on them |
+| 6 | 15 | D2-35 SR-1's rights; D2-39 the false-bottom rule | Each changes what a book may do |
+| 7 | 10 | D2-80 and D2-22 to D2-25, the register | Audit #5 numbers by them |
+| 8 | 10 | D2-21 and D2-81, `alignment_weekly`'s floor and its hit definition | The stamp's build |
+
+### Sunday 8 November (about 110 minutes)
+
+Not before 06:00 ET, after the Weekly's 05:00 run, which is the first edition with the readability fixes.
+
+| Slot | Minutes | Items | Why here |
+|---|---|---|---|
+| 1 | 15 | The blocks: values (D2-1 to D2-4, D2-8, D2-34, D2-82), standing rules (D2-11 to D2-17), reading rules (D2-36 to D2-38, D2-40) | One ruling each |
+| 2 | 10 | The blocks: measurement, renames, dormant markings, deferrals | One ruling each |
+| 3 | 15 | D2-5 to D2-7, D2-9, D2-10 (budgets and structure); D2-18 to D2-20; D2-47 (the October trigger counts) | Ratifications and one recalibration |
+| 4 | 15 | D2-26 to D2-28, the attention budget | The November build phase |
+| 5 | 30 | D2-65 the first alternative-asset theses (1Q27), with D2-66 and D2-67 | Measurables only, under AQ-6's procedure. The longest item |
+| 6 | 15 | D2-72, the setup stubs (Annex B) | Book by book |
+| 7 | 5 | D2-33, D2-70, D2-76 to D2-78 and D2-83, the records | Read and recorded |
+| 8 | 5 | D2-29 to D2-31, the calendar, with Part 9's dated items | Closes the sitting |
+
+**Spare.** About 20 minutes across the two days, for an item the sitting pulls from the annexes.
+
+**Part 12 (D2-84 to D2-90)** is taken after Part 9, before the builds it releases: D2-85 before any X-layer build; D2-86 before Audit #5's agenda.
+
+**The agenda (B120, 2 Nov 2026):** `docs/briefs/doctrine-2-sitting-2026-11-agenda.md` takes this order into nine blocks, each accepted whole, with the minutes template beside it.
+
+## Part 12. The decisions of 1 Nov (B104, 1 Nov 2026)
+
+The evidence behind the six rows of the decision list's Part 12. Every citation is to a committed file; the files "on b102" are on `b102-readable-editions-register`. No prompt text, no figure from a Letter and no handle is quoted.
+
+- **D2-84, the contract.**
+  - **What exists:** the order (`docs/change-order-readable-editions-2026-11-01.md` (filed by B102, on `b102-readable-editions-register`)) records the readable editions, the Weekly Letter, the Monthly Letter, the Letters index, the ES cards and map and the X triage pushes, with its six-line contract in section 2.
+  - **What was accepted:** the operator accepted D50–D56 "as recommended" on 1 Nov at 12:11 ET. The filed order's status says the rulings record under `docs/briefs/` does not yet carry them.
+  - **Where the contract is written:** B102 wrote it into the Master Guide's Part 2 subsection "The readable editions", and B103 copied it into the Reporting System paper's Appendix F.2. There, the Letter-first reading order is recorded as superseding §10.3's Sunday and first-of-month lines, with the body unchanged.
+  - **What is open:** whether a chat-side layer's contract becomes a standing rule of the system, and whether the Letters' length becomes a configured target like the editions' (option (b)).
+- **D2-85, the X cadence.**
+  - **The two slots:** the register (`docs/master-guide/chat-tasks.yaml`, on b102) records two morning Grok digests, 06:00 (A) and 06:15 (B). It records that "the operator's Grok plan allows two automations". It carries the evening digest as planned and "blocked on 1 Nov", with the evening triage paused until its input exists.
+  - **What waits on a third slot:** the order's D56 holds the evening automation on a third slot, and a midday run (D57, proposed 1 Nov) "waits on the same slot".
+  - **Who reads the B digest:** the register's morning triage row names the ES card as a reader of the day's triage file. The ledger `x-attention-ledger-eqmacro.csv` (a Drive file, not committed; named in the register's `writes` line, on b102) is fed from the B digest, which is what option (b) would move to the evening.
+  - **What the evening run would add:** the B104 paste notes that the morning window already covers the previous evening's posts, so the evening run adds timing, not coverage.
+  - **Related:** finding F1 of the same order, the duplicate `chester-x-digest` folder, is the operator's Drive fix and not this decision.
+- **D2-86, the findings loop.**
+  - **The loop as ruled:** the contract's line 4 makes the Letters' known patterns a defect feed (D53).
+  - **The file:** `docs/briefs/letter-findings.md` (on b102) holds fourteen of them. M1–M7 belong to A95 Part 6, W1–W7 to A103, and all are open as of 1 Nov.
+  - **No new gate so far:** the A95 paste tells the session to add a comparison that no gate makes "to the Monthly's own consistency check (validate_monthly_frames or the stack's frame check …) rather than a new gate". That is option (a)'s shape. Option (b) would name the class and give it a gate of its own.
+  - **What the sitting decides:** whether the loop outlives A95 and A103.
+- **D2-87, the 1 Dec read.**
+  - **The gap:** the register row (on b102) reads "weekdays 2-30 Nov, 07:10 … the post-effective read on 1 Dec is not yet scheduled", and still says it retires "after the 1 Dec post-effective read".
+  - **What was drafted:** the order's F5 says the prompt "tells any December run to stand down", and drafts a one-shot for 1 Dec 07:10 "late November, not now".
+  - **The three ways:** the options are that one-shot, the 2 Dec triage, or ending the watch on 30 Nov.
+- **D2-88, the cards in the register.**
+  - **What the register says:** the rows (on b102) say the cards and the map are "the operator only: the system never reads a card", with rights "none: the operator's private tool".
+  - **What was ruled:** D52 put the DTH-1 ledger's single home in `chester-cards/` with the cards' columns. D54 has the nightly sweep copy `chester-cards/` into the inbox as an archive, "no reader", and the A92 addendum is to build that copy.
+  - **The box side today:** A92 (`docs/briefs/a92-notes.md`, on `a92-dth1-box-pieces`) reads a ledger at `~/chester-data/inbox/dth1/` through a sweep line of its own. That is the path F3 says must change before A92 merges.
+  - **What the sitting decides:** whether a private tool is recorded in Table 2 and archived by the box (as ruled), recorded only, or kept out of the repo.
+- **D2-89, the first edition's withholds.**
+  - **The run:** the A95 paste (on `a95-monthly-first-edition`) gives the run of 1 Nov: 48 body sections with 33 published and 15 withheld, and the executive summary's 13 paragraphs with 1 withheld. The Reporting System paper's Appendix F.1 (on b102) records it, with A95's disposition: false positives narrowed with must-pass fixtures, wrong drafts kept withheld and the writers' data blocks fixed, no check loosened.
+  - **The incident question:** Part IX §9.8 of that paper defines an incident as "a failure that reached production or nearly did". The question is whether a withheld paragraph, which is the audit doing what §5.3 says, is such a failure.
+  - **The lesson option (a) drafts** names the cause class the A95 commit `ba1d289b` fixed: scaled figures without their display string.
+  - **Option (c)** makes the 1 Dec edition the test.
+- **D2-90, the EM shock screen (B105).**
+  - **The reading:** the operator's read-only box query of 1 Nov (recorded verbatim in `docs/briefs/b91-notes.md` Part 3, on `b91-batch-19-filing`) shows Brazil flagged in the basket on 26 Oct with EWZ at z1 -12.38, but no contagion shock dated that day.
+  - **Why, from the code:** `contagion_states` in `altdata/move_screen.py` opens a shock only on an idiosyncratic session (one country flagged); 26 Oct was mixed (Brazil and Indonesia). The shocks are dated 27 and 28 Oct, when Brazil was alone.
+  - **Two more findings there:** the FX leg (`fred.usd_brl`, H.10) was last dated 23 Oct, inside its 7-day allowance; and `contagion` reclassifies past sessions as of the run, so a shock can appear or vanish between runs.
+  - **The options** are B105's draft; nothing is built or fetched before the sitting rules.
+- **D2-91, the X pilot at its decision point (B125).**
+  - **The evidence:** Part 10's "X pilot" table, the operator's reading of `x-rumour-ledger.csv` on 2 Nov 2026 (a Drive file, not committed). Fifteen morning runs, 37 rumours, 2 confirmed, 22 faded, 12 open.
+  - **No existing row carried it:** D2-85 decides the X layer's cadence, and its option (c) is to "hold at two until item 50's decision point". No row decided that point itself, so it is D2-91. Item 50 sits in Table 5.1 as SR-65 (drafted), "not built (Tranche 0 chat-side; Tranche 1 awaits a ruling)".
+  - **What the evidence does not reach:** the attention statistics, staged since 31 Oct until A117's reader and the operator's fold make the ledgers whole; and the candidates count, which needs the triage files committed.
+  - **The options** are the paste's, with each one's runs and slots; nothing is built before the sitting rules.
+
 ## Annex A. The 20 Oct edition's items in full
 
 Parts A and B of the 20 Oct edition (a52-doctrine-2-pack), as written then, with its evidence table. They are the full text behind Part 8's rows. Read an item here only if the sitting pulls it. Where Part 8 notes a change (V-2 done, V-3's count corrected, W-3, W-4 and W-6 moved), Part 8 governs.
@@ -1059,6 +1342,30 @@ Every draft holds `target_n: 40`, the Enterprise Layer order's figure. **Evidenc
 - **Evidence status:** Untested.
 
 ---
+
+## The sources added in this edition (B96)
+
+Read on 31 Oct 2026. Files not on main are read from the branch named.
+
+- **Rulings:**
+  - `docs/briefs/rulings-2026-10-24-evening.md` (D30–D34);
+  - `docs/briefs/rulings-2026-10-25-27.md` (D35–D41);
+  - `docs/briefs/rulings-2026-10-28-31.md` (D42–D48), on `b95-batch-21-filing`.
+- **Orders:**
+  - `docs/change-order-signal-triage-batch-16-2026-10-26.md`, on main;
+  - `docs/change-order-signal-triage-batch-17-2026-10-26.md`, on `a81-batch-17-filing`;
+  - `docs/change-order-signal-triage-batch-18-2026-10-28.md` and `-19-2026-10-29.md`, on `b91-batch-19-filing`;
+  - `docs/change-order-signal-triage-batch-20-2026-10-29.md`, on `b92-batch-20-filing`;
+  - `docs/change-order-signal-triage-batch-21-2026-10-30.md` and `docs/change-order-weekly-readability-2026-10-30.md`, on `b95-batch-21-filing`.
+- **Briefs:**
+  - `docs/briefs/cboe-terms-check-2026-10.md`, on `b89-cboe-terms-check`;
+  - `docs/briefs/phase-4-paper-engine-assessment-2026-10.md`, on `b90-nautilus-assessment`;
+  - the b63–b68 briefs (6i, cloud sessions, Learning Loop v2, Phase 4, the quarterly source checks, the price-source migration), on chain-8 (`b86-chain-8-assembly`);
+  - `docs/briefs/library-review-decisions-2026-10-30.md`, on `b88-library-rehearsal`.
+- **Notes with a Doctrine #2 item:** `a65-6f-tranche4-notes.md`, `a66-capex-guidance-notes.md`, `a70-amendment-3-record-notes.md`, `b60-reading-budgets-notes.md` and `readers-guide-draft-4-notes.md` (all on chain-8); `docs/briefs/b95-notes.md`, on `b95-cboe-held`. The a84, b85 and b86 notes carry no Doctrine #2 item.
+- **The register:** `docs/signal-triage-register.md` on main, `a81-batch-17-filing`, `b91-batch-19-filing`, `b92-batch-20-filing` and `b95-batch-21-filing` (D2-80).
+- **Ledgers:** `docs/ledgers/` on main and on chain-8 (Part 10).
+- **Merges:** `git log --merges origin/main` since 22 Oct (Part 9).
 
 ## The sources added in this edition (A67)
 

@@ -3,7 +3,7 @@
 From the data and architecture audit of 14 Oct, ruled at 09:27 ET. Branch
 `aud-2-ops-security`, from main at `cc91752`. It is branch-only: pushed, not
 merged, not deployed, and nothing was run on the box. Every box step is printed
-below for Ari. It merges in the week of 19 Oct, after a later paste merges the
+below for the operator. It merges in the week of 19 Oct, after a later paste merges the
 new main into it.
 
 Session B is building AUD-1. I stayed out of its five files:
@@ -224,7 +224,7 @@ gzipped fixture databases and a stray file.
 | validate_stack | 71/0 |
 | the rest | see "The gates, as run" at the foot |
 
-## Box commands, for Ari (none run here)
+## Box commands, for the operator (none run here)
 
 After the merge, inside the operating windows. The self-deploy copies the changed
 units and runs the daemon-reload itself, and it writes `restart pending` for any
@@ -410,7 +410,7 @@ catch exactly that. The next commit fixes it.
      `-restore-drill` get 500.
    - The reason is in each unit's comment and in README section 13: a report
      can be rendered again; a day's chains cannot be fetched again; the Gateway
-     needs Ari's supervised login.
+     needs the operator's supervised login.
    - Raising a score needs no privilege, so the 500s and the 300 keep the order
      even if the Gateway's -500 is refused.
    - `validate_systemd_units` holds the exact values and the order: the Gateway

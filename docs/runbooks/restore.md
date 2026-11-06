@@ -32,7 +32,7 @@ three things:
 - **the crypt salt**.
 
 The password and salt are `CHESTER_RCLONE_CRYPT_PASSWORD` and
-`CHESTER_RCLONE_CRYPT_SALT` in `.env`, and in Ari's password manager **off the
+`CHESTER_RCLONE_CRYPT_SALT` in `.env`, and in the operator's password manager **off the
 box**. Lose both copies and the backup is unreadable: keep the password
 manager's copy current. The crypt remote is built from those settings by
 `scripts/rclone_crypt_env.sh`; nothing about it is in `rclone.conf`.

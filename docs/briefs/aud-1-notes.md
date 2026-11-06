@@ -1,8 +1,8 @@
 # AUD-1 — the first fixes from the data and architecture audit (notes)
 
-Built as session B from Ari's paste, amended at 11:57 ET on 14 Oct 2026 (ruled
+Built as session B from the operator's paste, amended at 11:57 ET on 14 Oct 2026 (ruled
 09:27 ET). Branch `aud-1-data-fixes` from main at `cc91752`. Branch-only: pushed,
-not merged, not deployed, nothing run on the box. Every box step is below for Ari
+not merged, not deployed, nothing run on the box. Every box step is below for the operator
 to run. The branch merges in the week of 19 Oct, after a later paste merges the
 new main into it.
 
@@ -214,7 +214,7 @@ Five committed files match the new patterns. As the paste said, none were delete
     does not fail the capture but is named in the close.
   - **Fixture:** validate_audit_1 C.
 
-## Box commands, for Ari. Not run.
+## Box commands, for the operator. Not run.
 
 None of these can run before the merge in the week of 19 Oct: the tools exist
 only on this branch. Run them inside a window.
@@ -381,7 +381,7 @@ sr-38-inbox and sr-43-49. They stack on one another, so the sets are cumulative.
 
 ## 14 Oct evening — the follow-ups, ruled
 
-Ari ruled on the needs-you list above on the evening of 14 Oct. This section
+The operator ruled on the needs-you list above on the evening of 14 Oct. This section
 records what was built from those rulings. Where it and the sections above
 disagree, this section is current.
 
@@ -460,7 +460,7 @@ check_library 0 failures.
      with the repo.
    - **The compaction runs after the merge, on a weekday evening, after the CX33
      move.** Box commands 1–2 above, in that order.
-   - **The first-night timing check (box command 4) is Ari's,** the morning after
+   - **The first-night timing check (box command 4) is the operator's,** the morning after
      the merge.
 
 ### Gates (run locally, one at a time)

@@ -2,7 +2,7 @@
 
 **Branch `alpha-lab-3`, cut from the tip of `audit-leftovers-2` (`d0b7432`). This is my own line, and it merges after `audit-leftovers-2` in the second stitched chain.** It therefore carries everything below it: `alpha-lab-2` (folded with Monday's chain last night), the crypto S-3 series, the meme ingest and the Batch 6 and Batch 5 ledgers.
 
-Branch-only: pushed, not merged, not deployed, nothing run on the box. Every box step is printed below for Ari, and no unit was enabled, started or reconfigured.
+Branch-only: pushed, not merged, not deployed, nothing run on the box. Every box step is printed below for the operator, and no unit was enabled, started or reconfigured.
 
 This paste pulls forward from November three items: X-3.6 (tells as hypotheses), X-3.1 (engine 4, scheduled events) and X-3.2 (engine 5, crypto carry and basis). All three are built, and the rulings of 17 Oct are applied.
 
@@ -26,7 +26,7 @@ Both are recorded in `docs/briefs/audit-leftovers-2-notes.md` (`d0b7432`). There
    - `validate_ledgers_b6` group K holds this: 41/0.
 3. **ST-R4.20a is held until Thursday's 10-year attribution merge**, and is built the week after, not re-scoped. Nothing was built for it here.
 4. **The four keys of 30b, 35b and 36b** arrive with Thursday's merge. Their refusal with a reason stands unchanged.
-5. **On Ari's lists, nothing here:** the source-registry check before Thursday's merge, and the ^TNX/^TYX tolerance measurement in the week of the 19th.
+5. **On the operator's lists, nothing here:** the source-registry check before Thursday's merge, and the ^TNX/^TYX tolerance measurement in the week of the 19th.
 
 The Alpha Lab order's rules hold throughout:
 - The lab writes no candidate, packet, dial, band, tell or narrative. Group E of the new gate diffs those tables.
@@ -234,9 +234,9 @@ All three are documented in `alpha/ledger.py`'s docstring and `docs/alpha-lab.md
 
 **Left to CI,** per the memory rule: `validate_alpha` (the workbench now writes a manifest, and the harness checks it), `validate_alpha_no_orders` (five new modules, none importing anything forbidden by my reading) and every other gate.
 
-## Box commands for Ari
+## Box commands for the operator
 
-Run these inside a window, after this branch merges (Thursday's merge, in the second chain). Each is a box write to `alpha.db` and the research directory only, run by Ari:
+Run these inside a window, after this branch merges (Thursday's merge, in the second chain). Each is a box write to `alpha.db` and the research directory only, run by the operator:
 
 ```bash
 cd ~/chester-reports

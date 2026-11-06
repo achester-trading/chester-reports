@@ -44,6 +44,8 @@ Everything below is checked against the code and config on the chain-8 assembly,
 | The close | weekdays 16:45 | 5 minutes (configured) | all, as record | Setup proposed (the dealer block) | Check what held and broke, the meme line, the book and the switches. |
 | The Weekly, with the Digital Assets addendum | Sunday 05:00 | 20 minutes, plus 5 for the addendum (configured) | B (A for context, D through the addendum) | **Candidate** (Book B) | Select up to three Book B candidates; read the scorecard and the lab line; post-mortems. |
 | The Monthly | the 1st, 07:30 | 55 minutes (configured) | A | Reading and flag; no packet is generated from it | Set Book A's stance within its band at the monthly sitting. |
+| The Weekly Letter | Sunday 06:12 (chat-side) | about 15 minutes | none (a reading of the Weekly) | none | Read it first; the Weekly is the reference |
+| The Monthly Letter | the 1st, 10:43 (chat-side) | about 20 minutes | none (a reading of the Monthly) | none | Read it first on the 1st; the Monthly's read and book for the sitting |
 | The Alternative Assets Quarterly | second Saturday after quarter-end, 06:00 | 90 minutes (configured) | A's sleeves | Reading | Built, **disabled**: the first edition is planned for January 2027. |
 | The open note | weekdays 09:50 | 2 minutes (the order) | C | Confirm or cancel Book C's 07:00 drafts, never add | Optional while Book C is inactive. Built: dry runs until `live_from` 2026-10-26; its timer is enabled by hand. |
 | The evening note | Sunday to Thursday 21:30 | 1 minute; 3 on Sunday (the order) | none | Reading | Optional; never act on it at night. Built: dry runs until `live_from` 2026-10-26; its timer is enabled by hand. |
@@ -52,15 +54,18 @@ Everything below is checked against the code and config on the chain-8 assembly,
 
 | When | What | Time |
 |---|---|---|
-| Weekdays 06:50 (optional) | The X triage push: attention only | 1 minute |
 | Weekdays 07:00 | The morning anchor | 10 minutes |
+| Weekdays 07:17 (optional) | The X triage push: attention only | 1 minute |
+| Weekdays 08:15 and 15:15 (optional, DTH-1 manual) | The ES card | 3 minutes |
 | Weekdays 09:50 (optional) | The open note | 2 minutes |
 | Weekdays 12:30, if it arrives | The 12:30 alert: read, then wait for the close | 2 minutes |
 | Weekdays 16:45 | The close | 5 minutes |
+| Sunday to Friday 18:05 (optional) | The evening X triage push | 1 minute |
 | Sunday to Thursday 21:30 (optional) | The evening note: never act on it at night | 1 minute; 3 on Sunday |
 | Saturday or Sunday | The lab's Saturday brief, and the Saturday crypto scan | 10 minutes |
-| Sunday | The Weekly and the addendum; select up to three Book B candidates; post-mortems | 45–60 minutes |
-| First weekend of the month | The Monthly and the monthly sitting: Book A's stance | 90 minutes |
+| Sunday | The Weekly Letter first; then the Weekly and the addendum; select up to three Book B candidates; post-mortems | 45–60 minutes |
+| Sunday 18:48 (optional, DTH-1 manual) | The ES Sunday map | 3 minutes |
+| First weekend of the month | The Monthly Letter first; then the Monthly and the monthly sitting: Book A's stance | 90 minutes |
 | Quarterly | The JPM read; the lab's quarterly page; from January, the Quarterly | as needed |
 
 ### What is proven so far
@@ -134,27 +139,33 @@ Three things the table does not show:
 
 ### Table 2. The chat-side tasks, and your own automation
 
-The repo's record of these is `docs/master-guide/chat-tasks.yaml` (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and **planned** (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. **A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November**: 12:00 UTC is 08:00 ET until then and 07:00 ET after.
+The repo's record of these is `docs/master-guide/chat-tasks.yaml` (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and **planned** (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. **Two tasks are held in UTC by the scheduler** (the Weekly crypto tech scan and the AI-risk consensus-drift scan); the ET times printed for them are their winter times, daylight saving having ended on 1 November. The register is at version 2 (1 November 2026, B102), which adds the evening X pair and the readable editions (the subsection in Part 2).
 
 <!-- table:chat-tasks -->
 | Task | When (ET) | Writes | Read by | Rights | Status |
 |---|---|---|---|---|---|
-| Grok X digest (Ari's automation) | daily 06:00 | Drive chester-x-digest/x-digest-YYYY-MM-DD.md | the X digest triage; the box's nightly sweep copies the folder into the inbox (scripts/rclone_sync.sh) | attention only; an X post never earns measurement rights by volume alone | pilot |
-| X digest triage | daily 06:50 | Drive chester-vendor-checks/x-triage/ (x-attention-ledger.csv, x-voices-ledger.csv) and a push summary | the box's sweep copies the ledgers in; the Digital Assets addendum reads them (daily_cascade/digital_addendum.py) | attention, voices and rumour tracking only; candidates go to the intake for Ari's ruling | pilot |
-| AAII weekly read | Thursday 12:10 | Drive chester-vendor-checks/aaii/aaii-weekly.csv (one row a week) | the sweep pulls it into ~/chester-data/inbox/aaii; altdata/sources/aaii.py reads it | a reading (positioning), no decision right | active |
+| Grok X digests, morning (the operator's automations) | daily 06:00 (A, crypto) and 06:15 (B, equity-vol and macro); the operator's Grok plan allows two automations | Drive chester-x-digest/x-digest-YYYY-MM-DD.md (chapter A, sections A1-A10) and x-digest-eqmacro-YYYY-MM-DD.md (chapter B); from 2 Nov each ends with a P. Principals section (the posts of a fixed seed list of founders, CEOs and officials whose own posts move markets; crypto handles in A, the rest in B; the triage applies the role tags) | the morning X triage; the box's nightly sweep copies x-digest-YYYY-MM-DD.md into the inbox (scripts/rclone_sync.sh; the B file is not swept) | attention only; an X post never earns measurement rights by volume alone | pilot |
+| X digest triage, morning | daily 07:17 | Drive chester-vendor-checks/x-triage/x-triage-YYYY-MM-DD.md; the ledgers x-attention-ledger.csv, x-attention-ledger-eqmacro.csv, x-voices-ledger.csv, x-rumour-ledger.csv; a push | the box's sweep copies the ledgers in; the Digital Assets addendum reads them (daily_cascade/digital_addendum.py); the ES day-trading card reads the day's triage file | attention, voices and rumour tracking only; candidates go to the intake for the operator's ruling | pilot |
+| Grok X digest, evening (the operator's automation) | Sunday to Friday 17:40 | Drive chester-x-digest/x-digest-evening-YYYY-MM-DD.md (format E v2, with the Principals section) | the evening X triage | attention and rumour tracking only | planned |
+| X digest triage, evening | Sunday to Friday 18:05 | Drive chester-vendor-checks/x-triage/x-triage-evening-YYYY-MM-DD.md; chapter-E rows in x-rumour-ledger.csv; a push | the 21:30 evening note's 'X after hours' block (item 115, Tranche B after 8 Nov, not built; the sweep does not yet pull the evening file) | report-only; attention and rumour tracking; no figure in the block is the system's measure | planned (created 30 Oct, paused 1 Nov until its Grok input exists) |
+| AAII weekly read | Thursday 12:10 | Drive chester-vendor-checks/aaii/weekly/YYYY-MM-DD.csv (one file a week, since 24 Oct; the older aaii-weekly.csv is read-only history) | the sweep pulls only chester-vendor-checks/aaii/aaii-weekly.csv into ~/chester-data/inbox/aaii (scripts/rclone_sync.sh, on main and on b82-aaii-bearish-share alike), which altdata/sources/aaii.py reads; the weekly/ folder is not swept yet (a gap for the merge week, docs/briefs/b102-notes.md) | a reading (positioning), no decision right | active |
 | Alpha Lab Saturday brief | Saturday 07:50 | Drive chester-vendor-checks/lab-inbox/ (at most five short-term and five medium-term hypotheses) | alpha/inbox.py, pre-registered at the file's Drive creation time | hypotheses for the lab only; never a candidate, packet or trade | active |
-| Weekly crypto tech scan (Pearl and new mechanisms) | Saturday 12:00 UTC (08:00 ET until 1 Nov, 07:00 ET after) | a message only | Ari | none (a read) | retiring |
-| Publication watch (the reading shelf) | the 12th and 27th, 06:58 | a reading-watch file that Ari commits to docs/scans/ | the library (the papers' refresh queue) | none (a read) | active |
-| Monthly signal scan | the 25th, 06:57 | docs/scans/signal-scan-YYYY-MM.md, for Ari to rule on | the signal-triage register (Ari's rulings) | none until ruled | active |
-| AI-risk consensus-drift scan | the 20th of even months, 13:00 UTC (09:00 ET until 1 Nov, 08:00 ET after) | one line for Disruptive Themes | Disruptive Themes (human-gated) | none (a read) | active |
-| JPM Guide to the Markets read | the 6th of January, April, July and October, 06:56 | docs/scans/jpm-gtm-YYYYqN.md | Ari's rulings (change-order-jpm-gtm-2026-10-03.md) | none until ruled | active |
-| MSTR / MSCI event watch | weekdays 2-30 Nov, 07:10 (Thanksgiving skipped), and a post-effective read on 1 Dec, 07:10 | Drive chester-vendor-checks/mstr-msci-watch/mstr-msci-watch.csv, and a short push | the Digital Assets addendum's dated calendar | none (a read) | active |
-| FlashAlpha vendor pull (Wednesday close) | Wednesday 16:25 | Drive chester-vendor-checks (one JSON) | the reconcile below | a cross-check only; never a source | retiring |
-| FlashAlpha vendor reconcile (Thursday morning) | Thursday 07:05 | Drive chester-vendor-checks/flashalpha-ledger.md, and an email | a session pastes rows into docs/ledgers/ | a cross-check only; never a source | retiring |
+| Weekly crypto tech scan (Pearl and new mechanisms) | Saturday 12:00 UTC (07:00 ET in winter) | a message only | the operator | none (a read) | retiring |
+| Publication watch (the reading shelf) | the 12th and 27th, 06:58 | a reading-watch file that the operator commits to docs/scans/ | the library (the papers' refresh queue) | none (a read) | active |
+| Monthly signal scan | the 25th, 06:57 | docs/scans/signal-scan-YYYY-MM.md, for the operator to rule on | the signal-triage register (the operator's rulings) | none until ruled | active |
+| AI-risk consensus-drift scan | the 20th of even months, 13:00 UTC (08:00 ET in winter) | one line for Disruptive Themes | Disruptive Themes (human-gated) | none (a read) | active |
+| JPM Guide to the Markets read | the 6th of January, April, July and October, 06:56 | docs/scans/jpm-gtm-YYYYqN.md | the operator's rulings (change-order-jpm-gtm-2026-10-03.md) | none until ruled | active |
+| MSTR / MSCI event watch | weekdays 2-30 Nov, 07:10 (Thanksgiving skipped); the post-effective read on 1 Dec is not yet scheduled (a one-shot to be created in late November) | Drive chester-vendor-checks/mstr-msci-watch/mstr-msci-watch.csv, and a short push | the Digital Assets addendum's dated calendar | none (a read) | active |
+| FlashAlpha vendor pull (Wednesday close) | Wednesday 16:25 | Drive chester-vendor-checks (one JSON) | the reconcile below | a cross-check only; never a source | retired |
+| FlashAlpha vendor reconcile (Thursday morning) | Thursday 07:05 | Drive chester-vendor-checks/flashalpha-ledger.md, and an email | a session pastes rows into docs/ledgers/ | a cross-check only; never a source | retired |
 | Alternative assets quarterly scan | 06:30 on the Monday of each edition's week (4 Jan, 5 Apr, 5 Jul, 4 Oct 2027) | docs/scans/alt-assets-YYYYqN.md | the Alternative Assets Quarterly | none (a read) | planned |
+| Weekly Letter | Sunday 06:12 | a private page with the charts and the PDF; the text edition Drive chester-letters/weekly-letter-YYYY-MM-DD.html; a row on the Letters index page; an email with the links; a push | the operator; the ES Sunday map reads it; the Monthly Letter reads it; nothing in the repo or on the box reads it | none: a reading of the edition, every figure copied from it, the edition's validation status applying to each | active |
+| Monthly Letter | the 1st, 10:43 | the same four things, as monthly-letter-YYYY-MM.html | the operator; the Weekly Letter reads it; nothing in the repo or on the box reads it | none, as the Weekly Letter | active (first edition, October 2026, written by hand on 1 Nov; first scheduled run 1 Dec) |
+| ES day-trading card (DTH-1's manual edition) | weekdays 08:15 and 15:15 | Drive chester-cards/card-YYYY-MM-DD-am.html and -pm.html; an email; a push | the operator only: the system never reads a card | none: the operator's private tool; Claude writes the card and places no orders | active |
+| ES Sunday map | Sunday 18:48 | Drive chester-cards/map-YYYY-MM-DD.html; an email; a push | the operator only | none, as the card | active |
 <!-- /table -->
 
-**The two FlashAlpha chat tasks are retiring.** Batch 11's ruling D7 (19 October, as built) retires them at chain-2's merge, in place of the box sheet's 29 October date: the chat deletes both the morning after. The box's 16:25 vendor writer and its divergence gate take their place, and FlashAlpha stays a cross-check, never a source.
+**The two FlashAlpha chat tasks are retired.** Batch 11's ruling D7 retired them at chain-2's merge (20 October), and both were deleted from the scheduler. The box's 16:25 vendor writer and its divergence gate took their place, and FlashAlpha stays a cross-check, never a source. Their rows stay in the register for the history.
 
 ### Table 3. What arrives only when something happens
 
@@ -185,6 +196,7 @@ Deeper: the Reader's Guide, Appendix A (timers, gates, windows), Part II 2.4 (wh
 | **Top & Bottom** | Not a report. The Monthly reads `top_bottom.composite` and `top_bottom.verdict` as a state variable, but **no writer stores them**: the harness is not built, and the Monthly says so in words. The Weekly prints no T&B verdict; the Book B scanner's T&B hook counts nothing until a writer exists. |
 | **Alternative Asset** | Folded into the Monthly's slow layers. Its successor, the **Alternative Assets Quarterly** (eleven chapters), is built and **disabled**; the first edition is planned for Saturday 9 January 2027. |
 | **Disruptive Themes** | Re-cadenced to quarterly and folded into the **Quarterly Structural**, which is **not built**. The Monthly prints one line saying so. |
+| **(no original)** | The **readable editions**, chat-side since 25 October: the Weekly Letter and the Monthly Letter in front of the two stacked editions, the Letters index, the ES cards and the Sunday map (DTH-1's manual edition), the X triage pushes. None has rights; none is read by the box. The subsection below. |
 
 The live cards follow. Each names its entry point, so the gate can hold it to the code.
 
@@ -299,6 +311,27 @@ Two short, optional notes, ruled on 19 October at 14:14 ET (`docs/change-order-s
 - **What you do with it:** read it if you are up; never act on it at night. The default is nothing.
 - **Its study:** SN-2, after-hours earnings (pre-registered; first edition FAIL, report-only).
 - **Deeper:** the secondary-notes order, sections 2, 3 and 5.
+
+### The readable editions (the Letters, the cards and the pushes; from 25 October, settled 1 November)
+
+Four chat-side tasks sit in front of the reports and write a readable edition for the operator. None has rights, none is read by the box, and every figure they carry is copied from the edition it reads. The repo's record of them is Table 2 and `docs/master-guide/chat-tasks.yaml`; their order is `docs/change-order-readable-editions-2026-11-01.md`.
+
+| Edition | When (ET) | Reads | Writes |
+|---|---|---|---|
+| The Weekly Letter | Sunday 06:12 | the Weekly's email (05:10), last Sunday's Letter, the latest Monthly Letter | a private page with 10–18 charts and the PDF; the text edition in Drive chester-letters/; a row on the Letters index; an email with the links; a push |
+| The Monthly Letter | the 1st, 10:43 | the Monthly's email (07:40), the previous Monthly Letter, the latest Weekly Letter | the same four things |
+| The ES day-trading card | weekdays 08:15 and 15:15 | the anchor, the open note and the alert; the operator's settings and ledger in Drive chester-cards/; the day's X triage; the vendor's levels as a cross-check | chester-cards/card-YYYY-MM-DD-am.html and -pm.html, an email, a push |
+| The ES Sunday map | Sunday 18:48 | the Weekly and the Weekly Letter; chester-cards/ | chester-cards/map-YYYY-MM-DD.html, an email, a push |
+| The X triage pushes | daily 07:17; Sunday to Friday 18:05 | the Grok digests | the x-triage files and ledgers (Table 2), a push |
+
+**The contract, in six lines.**
+
+1. **The edition is the record; a Letter is a reading of it.** Every figure in a Letter appears in the edition it reads, copied with its unit and as-of date; the edition's own validation status applies to each; the only arithmetic allowed is a difference between two printed figures, said to be one. The charts are drawn from the edition's own tables.
+2. **No rights.** A Letter never says buy, sell, long, short, add, trim, overweight or underweight. Nothing in the repo, the store, the inbox, a ledger or a flag reads a Letter, a card or a map. The ES cards and the map are the operator's private DTH-1 tool: Claude writes them and places no orders; the system never reads a card.
+3. **Provenance runs one way: store, edition, Letter.** The Letter's footer names the edition it read. A Letter that finds no edition pushes "no edition found" and stops; the operator fires it again once the edition arrives. A Letter never delays, retries or repairs an edition, and the box's heartbeat does not know the Letters exist.
+4. **What the Letters find, the box fixes.** Each Letter prompt carries the edition's known self-contradictions, found while writing. That list is a defect feed, not a patch: each entry is filed in `docs/briefs/letter-findings.md`, fixed in the edition by a session, then retired from the prompt. A Letter says where the edition contradicts itself and does not chart the disputed figure; it never papers over it.
+5. **The repo's rules hold in the Letters.** No person's name (institutions and outlets only, even where the edition prints names), no Brookfield-complex instrument, no secrets, no email addresses. The Letters live in Drive and on private pages, never in the repo; the register is the repo's whole record of them, with no prompt and no figure committed.
+6. **Reading order.** Sunday: the Weekly Letter first (about fifteen minutes), then the Weekly for the book, the scorecard and the post-mortems. The 1st: the Monthly Letter first, then the Monthly's read and its book for the sitting. The editions' configured reading targets stand as the reference reader's, not the first read's.
 
 ### Short cards: the reports that are not built
 
@@ -677,15 +710,18 @@ Deeper: the Doctrine Appendix B (the packet by book) and 6.4; Options as Express
 
 ### Every trading day
 
-- [ ] **06:50, optional, one minute:** the X triage push. Attention only; never act on it.
+- [ ] **07:17, optional, one minute:** the morning X triage push. Attention only; never act on it.
 - [ ] **07:00, ten minutes:** the anchor. The dials as the close left them; what changed; the volatile-day flag (four arms, the gap provisional); the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. *Not built:* Book C drafts and the 0700 setup list. *Off until your yes:* the crypto paragraph (built behind a switch that ships off).
+- [ ] **08:15 and 15:15, optional, three minutes each, DTH-1 manual:** the ES card (your private tool; the system never reads it).
 - [ ] **09:50, optional, two minutes:** the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.
 - [ ] **12:30, only if it arrives, two minutes:** read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.
 - [ ] **16:45, ten minutes:** the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.
+- [ ] **18:05 Sunday to Friday, optional, one minute:** the evening X triage push.
 - [ ] **21:30 Sunday to Thursday, optional, one minute (three on Sunday):** the evening note (once you enable its timer). Never act on it at night; the 07:00 anchor re-reads all of it.
 
 ### Sunday, 45 to 60 minutes
 
+- [ ] The Weekly Letter (about fifteen minutes): the week's story, the tensions, what is priced against what is positioned.
 - [ ] The Weekly: the précis, what changed, the read and the book.
 - [ ] The scorecard rates (they say "no rate is a decision" until the sample is in).
 - [ ] **Book B:** select up to three candidates, within the attention budget of seven approvals a week. Write each packet, exit first.
@@ -694,9 +730,11 @@ Deeper: the Doctrine Appendix B (the packet by book) and 6.4; Options as Express
 - [ ] The lab line.
 - [ ] Saturday's lab brief and the crypto tech scan (read on Saturday or Sunday).
 - [ ] Note the week's tier-1 events; confirm heat and net exposure, the first two lines at the top of the Weekly (b48-scoreboard).
+- [ ] **18:48, optional:** the ES Sunday map.
 
 ### The first weekend of the month, 90 minutes
 
+- [ ] The Monthly Letter (about twenty minutes), then the Monthly.
 - [ ] The Monthly.
 - [ ] The monthly sitting: read the Macro dial; set **Book A's stance within its band**; approve the rebalance packet.
 - [ ] Rulings on the 25th's signal scan and the reading watch.
@@ -845,6 +883,7 @@ Deeper: the library guide.
 | 4 | a90's remainder | after chain-8 | The Monthly's second dry-run fixes |
 | 5 | a84, b81, b82, b85-crypto-derived-keys, in that order | after a90 | The feed summary and allowances; Batch 18's filing (the 23-hour session); the AAII bearish share; the eight derived crypto keys declared |
 | — | The library papers (XXVII first, then XXIX, XXX, XXXI, XXXII and the phase-3a and figure branches) | each by its own PR, after your review | — |
+| — | The readable editions (B102; `docs/change-order-readable-editions-2026-11-01.md`) | recorded 1 Nov 2026, chat-side | No rights and no reader in the system; the first stacked Monthly went out 1 Nov 07:49 with sixteen withheld blocks (A95 reads it) |
 
 Read from: `docs/briefs/b83-rehearsal-notes.md` (chain-7's script), `docs/briefs/b86-chain-8-notes.md` (chain-8's membership, merges and the order above) and each branch's own notes.
 

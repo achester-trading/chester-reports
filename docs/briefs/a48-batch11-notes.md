@@ -145,7 +145,7 @@ What it registers:
 - Massive "returns options open interest only on its snapshots, as the latest daily figure", so no OI history exists in any form we pay for, as expected;
 - **access:** S3-compatible, endpoint `https://files.massive.com`, bucket `flatfiles`, prefix `us_options_opra`, with an S3 Access Key and Secret Key from the dashboard; rclone is a supported client.
 
-**Starter includes two years of per-contract day bars, so the backfill is built:** `tools/massive_flatfiles_backfill.py`, for Ari to run on the box.
+**Starter includes two years of per-contract day bars, so the backfill is built:** `tools/massive_flatfiles_backfill.py`, for the operator to run on the box.
 - **Resumable,** through `~/chester-data/flatfiles/backfill_state.json`.
 - **Capped:** `--max-days`, default 25 sessions a run. **Dry run first:** one listing to prove the credentials, and the plan; nothing is downloaded.
 - **One day's file at a time,** streamed through `rclone cat` and the gzip reader, never held whole. It keeps only the 17 names' contracts.
@@ -190,7 +190,7 @@ What it registers:
 
 The rest is CI's. That includes `validate_monthly_stack` and `validate_weekly_complete`, which render, and the Weekly gates the per-name table and the scorecard's extra lines may touch.
 
-## Box commands for Ari, after the third chain merges (each dry run first)
+## Box commands for the operator, after the third chain merges (each dry run first)
 
 1. **The scorecard backfill:**
    ```

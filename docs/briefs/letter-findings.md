@@ -1,4 +1,42 @@
-# The Letters' findings: the editions against themselves
+# Letter findings: the editions' self-contradictions, as a defect list
+
+This is the running defect list that line 4 of the readable editions' contract names
+(the Master Guide, Part 2, "The readable editions"; `docs/change-order-readable-editions-2026-11-01.md`,
+D53). While writing a Letter, the chat-side task finds places where the edition it reads
+contradicts itself. The Letter's prompt carries them as "known patterns", so the Letter
+says where the edition disagrees with itself and does not chart the disputed figure. Each
+finding is an edition defect, not something to patch in the prompt: it is filed here,
+fixed in the edition by a session, and then retired from the prompt. A row records the
+finding only. No figure from a Letter is committed, and no prompt text. A row closes when
+its session's fix merges, and it is never deleted. Statuses: open, fixed (with the
+branch), retired (gone from the prompt).
+
+## The Monthly of 1 Nov 2026 (session A95, Part 6)
+
+| id | edition | found | finding | session | status |
+|---|---|---|---|---|---|
+| M1 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | The executive summary's "What doesn't fit" paragraph claims no open contradiction while section 4 lists exceptions | A95 Part 6 | fixed (a95-monthly-first-edition) |
+| M2 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | A spread's month change is printed three ways (the yields table, the Credit Cycle table, the pillar table) | A95 Part 6 | fixed (a95-monthly-first-edition) |
+| M3 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | The header's forecast count against the scenario record's "no probability has been emitted" | A95 Part 6 | fixed (a95-monthly-first-edition) |
+| M4 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | The book section's "vs cash / SPY / 60-40 since 1 Sep" line prints Book Z's levels labelled as excesses (the "Against Book Z since 5 Sep" line is the one that matches the Weekly) | A95 Part 6 | fixed (a95-monthly-first-edition) |
+| M5 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | The equity-credit gap's age differs from the Weekly's | A95 Part 6 | fixed (a95-monthly-first-edition) |
+| M6 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | CPI prose "rose to 4.0% from 4.1%" against a table prior of 3.7% | A95 Part 6 | fixed (a95-monthly-first-edition) |
+| M7 | Monthly, 1 Nov 2026 | 1 Nov 2026, writing the October Monthly Letter | The VIX is printed at two dates | A95 Part 6 | fixed (a95-monthly-first-edition) |
+
+## The Weekly of w/e 30 Oct 2026 (session A103)
+
+| id | edition | found | finding | session | status |
+|---|---|---|---|---|---|
+| W1 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | The précis called a -0.56% week "positive" (the précis against the tape table) | A103 | fixed (a103-weekly-consistency) |
+| W2 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | The précis's gamma narrative against the session table | A103 | fixed (a103-weekly-consistency) |
+| W3 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | The term premium's weekly change in the plumbing table against the attribution table | A103 | fixed (a103-weekly-consistency) |
+| W4 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | The gap's "direction" label against the week's prints | A103 | fixed (a103-weekly-consistency) |
+| W5 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | The narrative commentary's counts against the stories table | A103 | fixed (a103-weekly-consistency) |
+| W6 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | The week's FOMC decision (28 Oct) is not recorded where the edition records decisions | A103 | fixed (a103-weekly-consistency) |
+| W7 | Weekly, w/e 30 Oct 2026 | the Weekly Letter's known patterns, by 1 Nov 2026 | A date differs between "what would change our mind" and the calendar | A103 | fixed (a103-weekly-consistency) |
+
+## The fixes, as the sessions filed them
+
 
 The Monthly Letter and the Weekly Letter are chat-side readings of the editions.
 They have no rights, and every figure in them is copied from the edition. When a
@@ -10,7 +48,7 @@ Each row is one of: **fixed** (with the commit and the check that holds it),
 **not reproducible** (with the reason), or **defers to** a session (with the
 reason).
 
-## M: the Monthly of 1 Nov 2026 (fixed by A95, branch `a95-monthly-first-edition`)
+### M: the Monthly of 1 Nov 2026 (fixed by A95, branch `a95-monthly-first-edition`)
 
 | Row | The finding | Which side was right | The fix | The check |
 |---|---|---|---|---|
@@ -22,7 +60,7 @@ reason).
 | M6 | CPI prose "rose to 4.0% from 4.1%" against a table prior of 3.7% | The date-based table | The release row's year-on-year counted 12 prints back. BLS never published October 2025, so across that gap every CPI year-on-year, and its prior, compared thirteen months. `weekly_stack.headline_form` now matches the same month a year back by date, and the month before by date for month-on-month, and prints n/a where that month was never published. Reproduced on the laptop's store copy: April 2026 reads 3.95% by position, 3.78% by date | `validate_monthly_frames` G (M6) |
 | M7 | The VIX printed at two dates in one edition | Both prints are right; they were two series under one label. FRED's VIXCLS (a session behind) fed the scorecard and the themes; Yahoo's ^VIX fed the tape | The themes' FRED rows are labelled "VIX (FRED VIXCLS close, a session behind)". The new check also found "Dollar-yen" printed over FRED's DEXJPUS and Yahoo's JPY=X, now labelled the same way | `validate_monthly_frames` G (M7): no label prints two series |
 
-## W: the Weekly of w/e 30 Oct 2026 (fixed by A103, branch `a103-weekly-consistency`)
+### W: the Weekly of w/e 30 Oct 2026 (fixed by A103, branch `a103-weekly-consistency`)
 
 **How each was reproduced.** On synthetic fragments in the edition's own
 shapes (`tests/fixtures/weekly_consistency_2026-10-30.json`). The edition's

@@ -53,7 +53,7 @@ No `data/vendor` file or FlashAlpha slot is opened.
 - **No unit and no timer of its own.** The units already allow writes under `%h/chester-reports`, where the store lives.
 - **No accidental default store.** A run given its own `out_dir` without a `db_path` stores nothing, so no gate that captures into a temporary directory writes the default store.
 
-### The backfill: Ari's box command, dry run first
+### The backfill: the operator's box command, dry run first
 
 ```
 cd ~/chester-reports
@@ -205,7 +205,7 @@ How the notes read them:
 | Value | Setting | Reason |
 |---|---|---|
 | `min_atr_sessions` | 15 | three-quarters of the 20-day window: one missed week does not blank the arm, and a fresh store does not pass a thin average off as a 20-day one |
-| `index_movers` | class `earnings_mega` of `config/weekly_ahead.yaml`: the ten largest S&P 500 index weights the ranking holds, plus the hyperscalers. Today that resolves to AAPL, AMZN, AVGO, BRK-B, GOOG, GOOGL, META, MSFT, NVDA, ORCL, TSLA | the largest weights are the names whose own earnings move carries to the index's open, and this ranking is the one list of them the store holds. **Listed for Ari** |
+| `index_movers` | class `earnings_mega` of `config/weekly_ahead.yaml`: the ten largest S&P 500 index weights the ranking holds, plus the hyperscalers. Today that resolves to AAPL, AMZN, AVGO, BRK-B, GOOG, GOOGL, META, MSFT, NVDA, ORCL, TSLA | the largest weights are the names whose own earnings move carries to the index's open, and this ranking is the one list of them the store holds. **Listed for the operator** |
 | earnings window | the session's ET day, or after the prior session's 16:00 close | an after-close report moves the next open |
 
 The RULED values are Doctrine 5.5's: VIX 25 and +20%, 1.5 times the 20-day ATR, a 1% gap either way, and FOMC, CPI and the employment report.
