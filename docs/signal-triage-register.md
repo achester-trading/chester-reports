@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8); [18](change-order-signal-triage-batch-18-2026-10-28.md) (Signal triage Batch 18 (item 98): the 23-hour equity session); [19](change-order-signal-triage-batch-19-2026-10-29.md) (Signal triage Batch 19 (items 99–110): round 9); [20](change-order-signal-triage-batch-20-2026-10-29.md) (Signal triage Batch 20 (items 111–114): round 10); [21](change-order-signal-triage-batch-21-2026-10-30.md) (Signal triage Batch 21 (item 115): round 11); [22](change-order-signal-triage-batch-22-2026-11-05.md) (Signal triage Batch 22 (items 116–123): round 8). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8); [18](change-order-signal-triage-batch-18-2026-10-28.md) (Signal triage Batch 18 (item 98): the 23-hour equity session); [19](change-order-signal-triage-batch-19-2026-10-29.md) (Signal triage Batch 19 (items 99–110): round 9); [20](change-order-signal-triage-batch-20-2026-10-29.md) (Signal triage Batch 20 (items 111–114): round 10); [21](change-order-signal-triage-batch-21-2026-10-30.md) (Signal triage Batch 21 (item 115): round 11); [22](change-order-signal-triage-batch-22-2026-11-05.md) (Signal triage Batch 22 (items 116–123): round 8); [23](change-order-signal-triage-batch-23-2026-11-06.md) (Signal triage Batch 23 (item 124): the tail-days study); [24](change-order-signal-triage-batch-24-2026-11-06.md) (Signal triage Batch 24 (items 125–127): the triage chat's close-out); [25](change-order-signal-triage-batch-25-2026-11-06.md) (Signal triage Batch 25 (items 128–132): round 8 continued). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -975,6 +975,75 @@ D58's (P4).
 - 123 folds item 11 (round 4, the private AI-financing ledger, unruled) into its row
   5, the financing-structure ledger (O-4: proposed by the monthly scan, confirmed at
   a sitting), and SR-16's private-credit window into its row 6 (V-105c).
+
+### SR-81 to SR-85 — Batch 23's provisional rows (filed 6 Nov 2026, paste B129)
+
+Provisional, placed by Audit #5, numbered after Batch 22's SR-80 (paste B128). Each
+row's text is the [Batch 23 order](change-order-signal-triage-batch-23-2026-11-06.md)'s
+sub-item, by its filed number (Q1: the order's 106a–106i are 124a–124i). Its
+decisions are D60's (Q3); Baa less the 10-year is the existing `calc.baa_less_10y`
+(Q4). Tranche 0 (124i, the honest window labels and the credit long window) is A126.
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 81 | 124a | Two-sided tail base rates in Base Rates (XX): raw and standardised columns side by side, the standardised leading; the VIX-bucket rows; the calm-surface openers as rows of their own; refreshed yearly by the Annual Structural Review | Base-rate rows (the sizing input to 124g through the dispersion columns only) | Tranche 1 | provisional, placed by Audit #5 |
+| 82 | 124b | Mechanical flow stack: vol-control, CTA-trend and risk-parity estimators beside item 116's levered-ETF flow and 6b's dealer hedging, one daily "forced flow" line in $bn at 15:00 and 16:45, flip levels in the 07:00 anchor | Report line and flag; sizing input to 124g | Tranche 2 | provisional, placed by Audit #5 |
+| 83 | 124c(i) | Vol-state read: index vol, realised vol, VIX/VIX3M, VVIX and the big-move count, calibrated from 1990 as P(\|return\| ≥ 3% within 10 sessions \| state decile), with transition base rates; printed in the daily close | Daily line; sizing input to 124g | Tranche 1 | provisional, placed by Audit #5 |
+| 84 | 124d | Policy-put trigger panel in plumbing & rates: speed-based triggers (rates, swap spreads, SR-36's basis, funding, CP, HY, Baa−10y Δ20) and availability (the Warsh matrix's stance, inflation room, reversibility, emergency-meeting odds); a "policy-put unavailable" flag conditioning 124a | Report line and flag | Tranche 2 | provisional, placed by Audit #5 |
+| 85 | 124e | Illiquidity proxy: Amihud on SPY and ES as one- and three-year percentiles, the three-year carried in the tape section, SPY quoted spread where Massive provides it; ES volume from stored bars or Massive's futures tier, never a new yfinance dependency (Q3) | Tape line; input to 124c(ii) | Tranche 2 | provisional, placed by Audit #5 |
+
+*Reserved:* **SR-86** for 124c(ii), the internal-stress read, assigned only if its pre-registered out-of-sample test passes (D-4).
+
+**Batch 23's amendments, recorded against their filed parents.**
+- Items 52 (the vol-event ledger) and 119 (the event-vol ledger) are amended by
+  124f: catalyst-class tags on each tail day and the hand-seeded rows; 119's
+  realised window becomes T, T+1 and T+2.
+- DTH-1's sizing rule is amended by 124g(ii): constant-dollar-risk sizing (an ATR
+  stop, contracts = fixed dollar risk ÷ stop distance), the ATR multiple set by
+  124c(i)'s state after a bottom-decile day. 124g(i)'s priced variants go to the
+  Book A rule table at Doctrine #2 or #3 (Q5).
+- The 1 Oct metric-lenses ruling is amended by 124i: the credit family's long
+  window is Baa−10y (`calc.baa_less_10y`), HY and IG OAS keep their 5-year lens
+  with honest spans; and the bank-stress calibration reads the store with the
+  Baa proxy before the stored HY history.
+- Item 116's close-flow line is extended by 124b: the "forced flow" line replaces
+  116's "mechanical close flow" line once 124b lands.
+
+### SR-87 — Batch 24's provisional row (filed 6 Nov 2026, paste B129)
+
+Provisional, placed by Audit #5, numbered after Batch 23's SR-86 reservation. The
+row's text is the [Batch 24 order](change-order-signal-triage-batch-24-2026-11-06.md)'s
+item, by its filed number (R1: the order's 116–118 are 125–127).
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 87 | 125 | The AI-complex rating-action ledger: every S&P, Moody's and Fitch rating or outlook change on the hyperscalers, Oracle, the neoclouds and the large AI-debt issuers, with date, action, stated trigger and the bond-spread and CDS move at +1, +5 and +20 sessions; prints in the daily close on an action's day and in the Monthly credit section; the narrow flag "first outlook cut on a hyperscaler" (fired 30 Oct 2026) | Report and base-rate rights; the flag is not an overlay trigger | Tranche B | provisional, placed by Audit #5 |
+
+**Batch 24's amendments, recorded against their filed parents.**
+- Batch 19 item 101(a), the 07:00 liquidity-levels line, is amended by 126:
+  prior-session POC, VAH and VAL, the overnight VWAP and an anchored VWAP from the
+  current drawdown's high; delta a listed gap. Built with 101(a) in Batch 19's
+  Tranche B.
+- 127, the squeeze-model post, is logged only; its substance is chester-meme's
+  change order M2.
+
+**Batch 25's amendments, recorded against their filed parents** ([Batch 25
+order](change-order-signal-triage-batch-25-2026-11-06.md), items 128–132; no
+register number, S3).
+- Item 71, the fragility panel, is amended by 128: free credit balances and net
+  margin beside the stored `finra.margin_debit`, the 3- and 12-month changes, the
+  monthly positioning & flows print, the "deleveraging" flag (a two-month decline of
+  10% or more) and the XX base-rate row (S2).
+- Item 10, the EM shock screen's spec, is amended by 129 before its build: the AI-chain
+  sub-panel (SOX, KOSPI, TAIEX, Nikkei; Korea's and Taiwan's top-two weights; the
+  circuit-breaker ledger), beside D2-90's amendment.
+- The Equities frame (item 31's concentration block) carries 130: the XX
+  first-month-drawdown base-rate rows and a Weekly "AI ring drawdown" table.
+- The credit dimension's print is amended by 131: the bifurcation line (CCC/HY OAS
+  ratio under an honest span label, CCC−BB 20-day change), built after Tranche 0.
+- Items 97 and 50 carry 132: the narrative register's "dated public call" entry
+  type, and the viral crash-call and melt-up-call counts as an attention input to
+  the Capitulation Count.
 
 ---
 
