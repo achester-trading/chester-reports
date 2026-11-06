@@ -121,3 +121,98 @@ What survives from Part I is a taxonomy, and the rest of the paper is organised 
 | Exogenous | 2020; 1990's trigger | None | Sizing and convexity | No |
 
 What the operator does differently because of Part I is to stop asking "is this the top?" and ask instead "which kind of top would this be, and is that kind's instrument firing?" A valuation instrument that is silent at a credit top is not wrong, and it is not reassurance either.
+
+---
+
+# Part II — Bubbles as an Anatomy
+
+## Chapter 5 — The Minsky–Kindleberger sequence
+
+A bubble is not a price that is too high. Prices are often too high for years without ending in a crash, and a definition that waits for the crash is a definition by outcome. The useful definition is a sequence: a way that credit, belief and price feed on each other through recognisable stages until the feeding stops. The sequence was set out by Hyman Minsky, whose financial instability hypothesis described how stability itself breeds the borrowing that makes a system fragile. Charles Kindleberger turned it into a history of manias across three centuries *(Minsky's Stabilizing an Unstable Economy, 1986, and his 1992 statement of the hypothesis; Kindleberger's Manias, Panics, and Crashes, first edition 1978; cited 6 November 2026)*. It has five stages, and each has a mechanism.
+
+**Displacement.** Something real changes the outlook for some part of the economy: a technology (railways, radio, the internet, AI), a financial innovation, a change in policy or the end of a war. The displacement is genuine. That is why the sequence is so persuasive and so hard to resist. The profits it creates at first are real, and the early buyers are right. Nothing about the first stage is a mistake.
+
+**Boom.** Credit expands to finance the opportunity, prices rise, and the rise attracts capital. Minsky's contribution is the change in how the borrowing is structured. Early borrowers can repay principal and interest from their income, which Minsky called hedge finance. As the boom continues, borrowers increasingly can pay only the interest and must roll the principal (speculative finance), and finally some can pay neither and rely on the asset's price continuing to rise (Ponzi finance). The share of Ponzi finance is the system's fragility. It grows in the good years because the good years make it look safe.
+
+**Euphoria.** The price rise becomes its own justification. New buyers arrive who would not have bought the asset on its fundamentals, because it has risen. Issuance surges as owners and promoters sell to them. Valuation frameworks are replaced by new ones that justify the price ("this time is different", "a new era"). Concentration rises as the leaders of the displacement become the index. The stage is marked by a change in who is buying, from the informed to the uninformed and from the patient to the levered.
+
+**Profit-taking, or distress.** The informed begin to sell. Prices stop rising and drift; the leaders lose momentum while the rest of the market looks fine. Credit begins to tighten at the margin, because lenders notice the Ponzi borrowers. This is the stage Kindleberger called distress: a period, sometimes long, in which the bubble neither grows nor bursts and in which nobody can tell whether it is a pause or the end. Most of the money lost in bubbles is lost by people buying in this stage, because the price is lower than the peak and the story is unchanged.
+
+**Panic, or revulsion.** Something forces sales: a failure, a fraud, a rate rise, a margin call. The Ponzi borrowers must sell to meet obligations, their selling lowers prices, and lower prices force more borrowers into the same position. The sequence that built the bubble now runs in reverse, with credit contracting as fast as it expanded. Revulsion follows, a refusal to touch the asset at any price, which carries prices below any measure of value. That overshoot is the next cycle's displacement opportunity.
+
+The sequence is a mechanism, not a calendar. Stages can last months or years, can be skipped, and can repeat: a panic inside a boom becomes a correction, and the boom resumes. The 1998 near-miss of Chapter 2 is the canonical case of a panic arrested by policy, after which euphoria resumed. And not every displacement ends in a bubble. The best large-sample test found that a sharp run-up in an industry's price, taken alone, does not predict a negative return on average. It does raise the probability of a crash, and the probability rises further when the run-up comes with high volatility, heavy issuance, rising turnover and an accelerating price path *(Greenwood, Shleifer and You, U.S. industries from 1928 and international industries from 1985, with run-ups of 100 percent or more over two years; published 2019; cited 6 November 2026)*. Those features are the stack's signposts, and Chapter 6 maps them.
+
+| Stage | Mechanism | Who is buying | What changes in credit |
+|---|---|---|---|
+| Displacement | A real change in the outlook | The informed early | Little |
+| Boom | Credit finances the opportunity | The informed, then the trend | Hedge finance turns speculative |
+| Euphoria | The rise justifies itself | The uninformed and the levered | Ponzi finance grows; issuance surges |
+| Distress | The informed sell; leaders stall | Dip buyers | Tightens at the margin |
+| Panic and revulsion | Forced sales feed on themselves | Nobody, then value at the overshoot | Contracts as fast as it grew |
+
+## Chapter 6 — The signposts the stack carries at each stage
+
+The sequence is useful to an operator only if its stages can be recognised from data available on the day. The stack carries six families of signpost that bear on the bubble sequence. None of them identifies a stage alone; read together, they narrow the range. Each is described here by what it measures and what it has historically shown, and the cheat sheet at the end maps each to the stages where it moves.
+
+**Valuation** is the slowest signpost and the most often misused. The cyclically adjusted multiple, the forward multiple and the equity risk premium measure how much optimism is in the price. They set the asymmetry of a decline — how far there is to fall — and they explain much of the variance of ten-year returns across the episode study. They do not time anything. The study recorded tops at a cyclically adjusted multiple under ten and bottoms near thirty *(Tops and Bottoms, the eight episodes, May 2026; cited 6 November 2026)*. In the sequence, valuation rises through boom and euphoria and stays high through distress, so a high reading says the bubble has formed but not which stage it is in.
+
+**Concentration** measures how much of the index the displacement's leaders have become. It rises through the boom and peaks near the top of the euphoria, because euphoria is when the leaders are bought for their own momentum. Concentration is the measurable form of the breadth divergence that led the valuation tops by months to years. The concentration overlay reads it, together with complacency in volatility. The routed table of Chapter 8 gives it a historical ceiling, and the concentration twin — the cap-weighted index against its equal-weighted version — prints it daily.
+
+**Issuance** measures the supply response. In euphoria, owners and promoters sell to the new buyers through initial offerings, secondary offerings and convertible debt. Issuance in the bubble's sector rising faster than the sector's earnings is one of the clearest stage markers there is, because it means the informed are selling. The stack carries the hyperscalers' filed capital spending and financing from EDGAR, and the private AI-financing ledger the register proposes covers what does not reach the public bond data.
+
+**Leverage** measures the Ponzi share. Margin debt, leveraged exchange-traded product assets, levered single-stock products and the funding of the bubble's builders all rise through the boom and euphoria and fall in the panic. Leverage's turn is a better marker of the transition from distress to panic than price, because forced selling begins when leverage starts to contract. The stack's fragility panel holds margin debt and its share of household equity, and the leveraged-ETF rebalance. Batch 25 adds free credit balances and a deleveraging flag, a two-month decline of ten percent or more.
+
+**The froth gauge** measures speculation at the edge: how many assets are in a parabolic state, and how much of the index they carry. The register's froth-breadth count (item 113's amendment of item 31) counts the S&P 500 stocks whose six-month return is more than two standard deviations above normal with an accelerating price path, by sector. The Digital Assets addendum's froth gauge does the same for new crypto listings. Froth breadth is the euphoria signpost. Its most useful property is that it shows where froth is moving. A rotation can carry froth from the bubble's sector into defensive sectors, which then become the crowded hiding place.
+
+**The Capitulation Count** measures the panic and the revulsion. It is the system's five-family bottom checklist: volatility, equity-only put/call, the dealer gamma flip, short interest against price, and flows with sentiment. Part VII describes it. In the sequence, it moves only at the end, and it measures exhaustion of selling, not the end of the bubble's cause. A count of four or five in the panic says the selling is exhausted for now. It does not say the revulsion is over.
+
+| Signpost | What it measures | Rises through | Peaks or turns at | The stack's read |
+|---|---|---|---|---|
+| Valuation | Optimism in the price | Boom, euphoria | Stays high into distress | CAPE, forward P/E, ERP; the Monthly |
+| Concentration | The leaders' share of the index | Boom | Late euphoria | Concentration overlay; the twin; item 31's band |
+| Issuance | The informed selling to the new buyer | Euphoria | Late euphoria | EDGAR capital spending; the financing ledger |
+| Leverage | The Ponzi share | Boom, euphoria | Its contraction starts the panic | Fragility panel; margin debt; levered ETFs |
+| Froth breadth | Parabolic assets and their weight | Euphoria | Euphoria; it rotates in distress | Item 113's count; the crypto froth gauge |
+| Capitulation Count | Selling exhausted | — | Panic | Item 97's five families |
+
+What the operator does differently because of this chapter is to read the six together and ask which pattern they make, not whether any one of them is extreme. High valuation with rising concentration, issuance and leverage is euphoria. High valuation with stalled leaders, falling froth and leverage beginning to fall is distress. Only the second is a reason for Book A to act.
+
+## Chapter 7 — A hold-and-trade playbook
+
+A bubble poses a different question to each book, because each book lives on a different clock. The worst mistake is to answer one book's question with another's: a Book A stance moved on a Book C signal, or a Book C trade sized on a Book A conviction. The Doctrine's Rule 19 (top-down sets the budget; a lower horizon may veto but never enlarge) already forbids the second. This chapter says what each book does at each stage. It is a playbook of roles, not a prediction of which stage the market is in. The Doctrine owns the rules and Portfolio Construction owns the sizes.
+
+**Book A holds through.** The allocation book's job in a bubble is the hardest and the simplest: stay inside its band and let the regime, not the narrative, move it. Through displacement and boom, Book A owns the market at the band the regime sets, which means owning the bubble's leaders at their index weight. Underweighting them because they look expensive is the error the Doctrine's Rule 29 names, the cost of being out, and in a long boom it is the largest cost in the record. Through euphoria, Book A does not sell because the market is expensive. It lets the concentration overlay and the regime's stamps move the band, and the high-yield acceleration overlay is the trigger it most needs to respect. In distress, Book A's question is whether the regime has turned, and the T&B composite and overlays are the instruments. A stalled leader is not a turned regime. In the panic, Book A holds its floor, and re-entry after the panic waits for the false-bottom gate, not the first rally (Chapter 8). The book's discipline at a bubble is to be wrong slowly and recover fully, rather than right early and out of the market for years.
+
+**Book B trades the stages.** The swing book is where a bubble's stages are traded directly, because its one-to-six-week clock matches the length of a stage's moves. In boom and euphoria, Book B trades with the trend in the leaders, and its exit discipline (the written exit, the time stop) is what keeps a trend trade from becoming a belief. In distress, Book B's edge is variant perception: the leaders stall while the index holds, and the relative trade — the leaders against the equal-weighted index, or the bubble's sector against defensives — is cleaner than the directional one. In the panic, Book B's counter-trend trades carry the five-session time stop of the Doctrine's Rule 27. A short in the panic is closed on the Top & Bottom bottom signal, not on conviction (Doctrine Rule 26). The swing book's characteristic error in a bubble is to short the euphoria because it is irrational, and the study's 1999 lesson is that irrational markets go further than anyone's patience.
+
+**Book C works the edges.** The tactical book trades the violent sessions at the turns: the blow-off days in late euphoria, the first failed rallies of distress, the capitulation sessions of the panic. Its instruments are the dealer read (negative gamma amplifies; a flip back above the gamma level marks exhaustion), the Capitulation Count, and the event-reaction setup. Book C does not decide what stage the market is in. It takes the edge's mechanical trade at Book C size and leaves the stage question to Books A and B. Its characteristic error is to treat a capitulation session as the bottom and hold it into Book A's horizon.
+
+**Book D holds the convexity.** The opportunistic book's role is the cheap option on the panic. Its tail budget buys defined-risk protection in euphoria, when implied volatility is low because the market is calm, and spends it in the panic, when protection is expensive and pays. Book D is also where forced flows are traded: the levered-ETF rebalance and the margin-call liquidation, each with defined risk.
+
+| Stage | Book A (1–6 months) | Book B (1–6 weeks) | Book C (1–5 days) | Book D |
+|---|---|---|---|---|
+| Displacement, boom | Own the band, leaders at index weight | Trade with the trend; written exits | Ordinary setups | Little to do |
+| Euphoria | Hold the band; respect the HY acceleration overlay | With the trend; no shorts on irrationality | Blow-off sessions, defined risk | Buy cheap protection |
+| Distress | Ask whether the regime has turned | The relative trade: leaders against breadth | Failed rallies | Hold the protection |
+| Panic, revulsion | Hold the floor; re-entry waits for the gate | Counter-trend only with the five-session stop | Capitulation sessions; the gamma flip | Spend the protection; forced flows |
+
+## Chapter 8 — The routed items: peak concentration and the bear rally
+
+The signal-triage register routes two items on bubbles to this paper. Each is read here as a mechanism, with the caveats the register filed with it.
+
+**The peak-concentration table (item 31).** BofA Global Investment Strategy's table of the top basket's share of market capitalisation at the peaks of historic bubbles puts the share in a narrow band. Railroads in the nineteenth century reached about 63 percent; the utilities, telecommunications and industrials of the 1920s about 36 percent; the Nifty Fifty about 40 percent; Japan about 44 percent of the world index in 1989; technology, media and telecom about 41 percent in 2000 *(BofA Global Investment Strategy's chart, relayed through secondary reporting; filed with Batch 6, 15 October 2026; cited 6 November 2026)*.
+
+The register's ruling carries two caveats that this paper repeats because they matter more than the numbers. The baskets are defined after the fact, by people who knew which stocks led. And the measures differ: Japan's is a country's share of a world index, not a basket's share of a domestic one. The table says that when the leaders of a displacement reach roughly two-fifths of the market, the market has usually been at or near the end of a bubble. It does not say that concentration at that level causes a top, or that a top must follow.
+
+The actionable half of the table is the half the register asked for and has not yet built: what followed a 40 percent share, measured as the leaders' relative drawdown, the time to the trough and the behaviour of breadth. The ruling added a peak-band flag on the box's own top-ten share against the 40 to 44 percent historical band, as a calibration of the concentration overlay's existing input with no new weight. The present reading belongs in Appendix B. In the bubble sequence, the table locates late euphoria, and the operator reads it with the other five signposts of Chapter 6, never alone.
+
+**The bear-rally structure (SR-8).** The register's SR-8 entry describes the other end of the sequence. Inside a bear, rallies are large, frequent and indistinguishable in real time from the start of a new bull. The Nasdaq Composite from March 2000 to October 2002 produced five rallies of 12 to 45 percent inside a decline of 78 percent, each a "bottom" in real time *(the Nasdaq Composite, March 2000 to October 2002; the register's SR-8 entry, filed 19 September 2026)*.
+
+The mechanism is the panic's own structure. Forced sellers overshoot. Short sellers and the dip-buying cohort cover and buy, producing a violent rally. The rally attracts trend-followers. When the forced selling resumes — because the cause of the bear has not been repaired — the rally fails. Each rally is fuelled by positioning, not by a change in the cause. That is why the register's confirmation set looks for a change in the cause. It asks for a breadth thrust, leadership by new groups rather than the most-shorted prior leaders, spreads tightening through the rally, a volatility term structure back in contango, and a successful retest. It also carries a time prior: bears off valuation peaks have run two to three years, so a bottom four months in is a low-probability call on the base rate alone.
+
+The system's response is a gate. Once the Top & Bottom top side has fired and price is below a falling 200-day average, Book A's re-entry needs the bottom composite plus two of the confirmation set, and rallies in that state are Book C material. The false-bottom audit tested the confirmation set against the rallies that failed and found only relative breadth after the trough discriminated (Chapter 3). The gate's rule therefore stands on one admitted tell. The proposed Doctrine rule words the behavioral point: in a declared bear regime a rally is a mechanism, not a signal, and size should assume that a bear rally and a new bull are indistinguishable in real time.
+
+| Routed item | What it is | Stage it locates | Caveat | The system's use |
+|---|---|---|---|---|
+| Item 31, peak concentration | The leaders' share at historic bubble peaks, about 36–63%, most near 40% | Late euphoria | Baskets defined after the fact; measures differ | Peak-band flag on the concentration overlay's input; no new weight |
+| SR-8, bear-rally structure | Five rallies of 12–45% inside a 78% decline | Panic and revulsion | One market, one bear | Re-entry gate; rallies are Book C material |
