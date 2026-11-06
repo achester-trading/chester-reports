@@ -42,6 +42,10 @@ CONFIG = REPO / "config" / "eps_overshoot.yaml"
 GAP = ("Implied forward growth and the realised forecast error: listed gaps (item 60, "
        "F3: no keyless forward-EPS source with vintages); the estimates-overshoot flag "
        "does not print.")
+# Batch 14 item 67 (written as 60; F3, b55): PEG and LTEG have no keyless source,
+# so neither prints; the chain carries this one listed-gap line wherever it prints.
+# The note is docs/base-rate-notes/lteg-overshoot-2026-10.md.
+PEG_GAP = "PEG and long-term growth: no keyless source; see the LTEG overshoot note."
 
 
 def config(path: Optional[Path] = None) -> dict:
@@ -99,6 +103,10 @@ def read(st, cutoff: str, revisions_flag: Optional[str] = None,
 
 
 def lines(r: dict) -> list[str]:
+    return _lines(r) + [PEG_GAP]
+
+
+def _lines(r: dict) -> list[str]:
     if r["state"] == "gap":
         return [r["reason"]]
     if r["state"] == "absent":

@@ -1,0 +1,109 @@
+# gold_attribution.yaml -- signal-triage Batch 16 items 87 and 88(a), (c), (d)
+# (written as round 7's 80 and 81; ruled 25-26 Oct 2026; B75, session B). The
+# gold spine's Tranche A: the five-lens attribution, the 60-day real-yield beta,
+# the exhaustion checklist and the Weekly gold block. Read by
+# altdata/gold_attribution.py and daily_cascade/gold_block.py.
+#
+# REPORT RIGHTS ONLY. Nothing here enters a composite, the market-state object, a
+# dial or a packet (metrics_registry.yaml market_state_barred). Every figure is a
+# stored key's; a lens whose input is not stored prints "not stored" (D33: no new
+# yfinance symbol). SESSION-SET unless a line says RULED.
+version: gold-attribution-v1
+updated: 2026-10-26
+
+# THE SERIES. Gold is the series item 38, AQ-8a and filed item 73 already read.
+keys:
+  gold: yfinance.mkt_gold_front          # GC=F, the COMEX front future, $/oz
+  real_yield: fred.tips_10y              # DFII10, the 10-year TIPS real yield, %
+  breakeven: fred.breakeven_10y          # T10YIE, the 10-year breakeven, %
+  dollar: yfinance.mkt_dxy               # DX-Y.NYB, the ICE dollar index (filed 73's leg)
+  spx: yfinance.mkt_gspc                 # ^GSPC, the S&P 500
+  # The Nasdaq-100: no ^NDX or NQ=F key is stored and D33 adds no symbol, so the
+  # lens reads QQQ, the index's tracking fund, stored daily, and says so.
+  ndx: yfinance.mkt_qqq
+  brent: fred.brent                      # DCOILBRENTEU, $/bbl (filed 73's leg)
+  yield_10y: fred.yield_10y              # DGS10, %
+  official_ifs_china: imf.ifs.gold_net_purchases_oz.chn   # PBoC as reported to the IMF, troy oz a month
+
+# Inputs the order names that the store does not hold: each prints "not stored".
+not_stored:
+  gvz: "not stored: no GVZ (CBOE gold volatility) key is in the store, and D33 adds no yfinance symbol"
+  squeeze: "not stored: filed item 74's squeeze-risk flag is computed at read by altdata/hf_positioning.py and stored under no key"
+  ndx_index: "the Nasdaq-100 itself is not stored; the lens reads QQQ, its tracking fund"
+
+# THE TRIGGER. RULED (item 87, written as 80): "every gold move > 2σ". The sigma
+# and its window are the move screen's own (config/move_screen.yaml): the 1- and
+# 5-day log change as a z against the series' own five-year history of such
+# changes (population sigma, today's change excluded), at least 500 observations.
+# Only the threshold differs from the screen's 2.5: the order's 2.
+trigger:
+  sigma: 2.0                             # RULED (item 87)
+  horizons: [1, 5]                       # the move screen's
+
+# THE FIVE LENSES, over the trigger's lead horizon (1 or 5 sessions, whichever z
+# is larger), each a stored measure's change from the session before the horizon
+# to the day, as filed 73's legs read it (altdata/asset_event.leg_change).
+start_tolerance_days: 4
+liquidation:
+  # The same-day correlation of gold's daily log return with the S&P 500's and
+  # the Nasdaq-100's over this many sessions to the day (session-set: a month of
+  # sessions, the window a de-grossing week shows up in).
+  window: 20
+  min_pairs: 15
+
+# THE 60-DAY BETA (item 87): gold's daily log return (%) on the real yield's daily
+# change (bp), ordinary least squares over the last 60 sessions both store.
+# Printed with its window and n. RULED: 60 days.
+beta:
+  window: 60                             # RULED (item 87: "rolling 60-day")
+  min_pairs: 40
+
+# THE OFFICIAL BID: the latest dated record the operator enters
+# (config/gold_official_bid.yaml; the one recurring by-hand row the order's
+# sign-off allows), beside the PBoC's monthly net purchase as the IMF IFS stores it.
+official_bid_records: config/gold_official_bid.yaml
+oz_per_tonne: 32150.7466
+
+# THE EXHAUSTION CHECKLIST (item 88(a)): four tells, each ticked over the week to
+# the as-of (the last five sessions). Pre-registered with its ledger:
+# docs/ledgers/gold-exhaustion-preregistration-2026-10.md (held by SHA-256 in
+# tools/validate_weekly_gold_block.py). No rights.
+exhaustion:
+  week_sessions: 5
+  oil_below: 100.0                       # RULED (item 88(a): "oil < $100"), Brent $/bbl
+  tells:
+    - {id: oil_below_100, label: "Oil below $100 (Brent)"}
+    - {id: ten_falling_oil_rising, label: "The 10-year falling while oil rises"}
+    - {id: gold_up_equity_down, label: "Gold up on an equity-down day"}
+    - {id: liquidation_flip, label: "The liquidation correlation flipping sign"}
+  forward_sessions: [5, 20, 60]
+  preregistration: docs/ledgers/gold-exhaustion-preregistration-2026-10.md
+
+# THE WEEKLY GOLD BLOCK (item 88(a)).
+weekly:
+  first_edition: "2026-11-08"            # RULED: "every Sunday from 8 Nov"
+  before_first: "First edition 8 Nov."
+  ma_sessions: 200
+  vol_sessions: 20
+  # Positioning and flows at 1 week, 3 months and 12 months (calendar days back).
+  windows: {"1 week": 7, "3 months": 91, "12 months": 365}
+  etf:
+    - {key: etf.gld_shares, label: "GLD shares outstanding", unit: shares}
+    - {key: etf.gld_tonnes, label: "GLD gold held", unit: tonnes}
+    - {key: etf.iau_shares, label: "IAU shares outstanding", unit: shares}
+    - {key: etf.iau_tonnes, label: "IAU gold held", unit: tonnes}
+  holders_13f: sec13f.gold_etf_holders   # filed item 72's quarterly 13F line
+  cftc: {key: cftc.dis_managed_money_net, instrument: GOLD,
+         label: "CFTC managed money, net (COMEX gold)"}
+  targets: "Sell-side targets: not yet built (Tranche B)."
+  # THE AHEAD LINE: the Weekly calendar's rows (daily_cascade/weekly_sections.
+  # calendar_week) whose release class moves gold, ranked by the calendar's own
+  # importance tier (1 first), then by date, and numbered 1-5. Session-set list
+  # of the classes in config ahead's release_classes.
+  ahead_classes: [fomc_decision, fomc_minutes, inflation_print, inflation_data,
+                  labour_print, labour_data, growth_print, coupon_benchmark, refunding]
+  ahead_max: 5
+  # THE CHART (W13): gold's close over the stored window (the last two years),
+  # its 200-day average and the record marked. Counted inside the Weekly's chart
+  # cap, after W3 (config budget charts).
+  chart_days: 730

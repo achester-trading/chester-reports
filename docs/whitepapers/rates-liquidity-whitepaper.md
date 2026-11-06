@@ -1045,6 +1045,47 @@ The framework's value is not that it predicts which scenario arrives. It is that
 - **Edition:** a laptop first edition from public sources; the box edition supersedes it.
 - **Note:** Tranche H's hiking-cycle table, computed by rule, with SR-21's conceded and refused rows inside each cycle.
 
+
+## Appendix B — Dated: Records from the signal-triage orders (as of 24 October 2026)
+
+*Moved here from `docs/dated-appendix-queue.md` on 24 October 2026 by session A (A68). Each entry is dated in its heading, keeps its wording as queued, and names the batch or ruling it came from. It changes nothing in the paper's body and grants no right; a figure here is a dated record, not a series.*
+
+### The stock-bond flag's 5.25% crossing (16 October 2026; Batch 5 item 24, amending SR-9)
+
+*Placed here by the register entry it amends: SR-9's home is this paper. The queue named no paper; it suggested XXVII, which is not yet written.*
+
+> The 10-year Treasury yield (FRED DGS10) closed at or above 5.25% in the week of
+> 5 Oct 2026 — 5.31% on 5 Oct, 5.27% on 6 Oct and 5.28% on 7 Oct — after first
+> closing above it at 5.26% on 29 Sep 2026; the last close at or above 5.25% before
+> that was 5.26% on 12 Jun 2007. Verified from FRED, not from the chart.
+
+*Verify item 5, answered 16 Oct 2026 from FRED's DGS10 (fredgraph.csv, read by session B). The draft said "the first time since 2002"; FRED says June 2007, and the cross came the week before 5 Oct, so the line carries the verified dates.*
+
+### The 10-year and the real 10-year at their highs (21 October 2026; Batch 14 item 64)
+
+*Placed by its subject: the levels are this paper's series (DGS10, DFII10). The queue named no paper.*
+
+> *Dated 21 Oct 2026, read from FRED.* The 10-year Treasury yield (FRED DGS10)
+> closed at 5.31% on 5 Oct 2026, its highest close of 2026 and the highest since
+> 14 May 2002 (5.32%). The 10-year TIPS yield (FRED DFII10) closed at 2.95% the
+> same day, the highest since 24 Nov 2008 (3.11%). The post that carried them
+> (an aggregator's charts) dated both "as of 9 Oct 2026"; on 9 Oct DGS10 closed
+> 5.24% and DFII10 2.91%, so the levels are 5 Oct's and the "highest since 2002
+> and 2008" holds for them.
+
+*Batch 14 Part 0 also checked the order's check 5 (Part B's item 65): no DGS10 close reached 5.33% in 2026, and no session in September or October 2026 fell 25 bp (the largest fall in mid-October was 9 bp, 5.19% to 5.10% on 15 Oct), so "5.33% to 5.08% in a single day" does not match FRED's closes; it may be an intraday range. Read from fredgraph.csv by session A, 21 Oct 2026.*
+
+### The 10-year at 8%, a forecast (19 October 2026; Batch 14 item 70)
+
+*Placed by its subject: the 10-year against nominal growth is the attribution this paper carries. The order rules it "appendix only".*
+
+> *Dated 19 Oct 2026, appendix only.* A newsletter writer charted the 10-year
+> yield against the 10-year CAGR of US nominal GDP from 1970 (a stated 93%
+> correlation of two trending levels) and forecast that the 10-year could reach
+> 8%. The chart's own reading, nominal growth near 6%, implies a 10-year near
+> 6%, not 8%. The measure the order builds is the gap: the 10-year less the 10-
+> and 5-year nominal GDP CAGR, in the 10-year attribution, as the US macro r-g.
+
 ---
 
 *End of white paper.*

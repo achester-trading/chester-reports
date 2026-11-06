@@ -495,6 +495,24 @@ def lens_table(ls: dict) -> dict:
                      for k in LENS_ORDER]}
 
 
+# Batch 14 item 71 (ST-R6.71c, F5; a57-batch14-b1): the "liquidity" lens, a
+# REPORT-ONLY row after the ten -- the fragility panel's read (altdata/
+# fragility.lens) -- outside LENS_ORDER, so the attribution the ledger counts and
+# grades is unchanged; the ledger row carries it under `report_only`.
+LIQUIDITY_TITLE = "Liquidity (report only)"
+
+
+def with_liquidity(ev: dict, lens_row: Optional[dict]) -> dict:
+    """A fired event with the liquidity row appended to its table; unchanged when
+    the event did not fire or there is no row."""
+    if not ev.get("fired") or not lens_row or not ev.get("table"):
+        return ev
+    ev["liquidity"] = lens_row
+    ev["table"]["rows"].append([LIQUIDITY_TITLE, lens_row["line"],
+                                lens_row.get("as_of") or "—"])
+    return ev
+
+
 # ---------------------------------------------------------------------------
 # ST-R6.52d -- the base rate
 # ---------------------------------------------------------------------------
@@ -748,6 +766,8 @@ def ledger_row(ev: dict, now: str, outcomes: Optional[dict]) -> dict:
             "vix": ev["trigger"]["level"]["value"],
             "attribution": {LENS_TITLES[k]: ev["lenses"][k]["line"] for k in LENS_ORDER},
             "outcomes": outcomes}
+    if ev.get("liquidity"):
+        body["report_only"] = {LIQUIDITY_TITLE: ev["liquidity"]["line"]}
     return {"registry_key": LEDGER_KEY, "instrument": ev["day"], "observed_at": ev["day"],
             "available_at": now, "value": json.dumps(body, sort_keys=True, default=str),
             "source": "vol_event"}

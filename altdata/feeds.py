@@ -134,7 +134,13 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # Signal-triage Batch 12, item 59 (a53, 20 Oct 2026): the
                     # bank-stress panel's OFR Financial Stress Index and the
                     # FDIC's unrealised securities losses, both keyless
-                    "ofr_fsi", "fdic_qbp")
+                    "ofr_fsi", "fdic_qbp",
+                    # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34):
+                    # oil and energy, agriculture, currencies. PortWatch and the
+                    # Riksbank send one request a day, whatever the timer does.
+                    "eia_buffers", "portwatch", "esmis_wasde", "esmis_crop_progress",
+                    "cpc_oni", "cftc_grains", "boc_valet", "riksbank", "snb_sight",
+                    "mof_intervention")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -212,7 +218,13 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # share count, MSTR's captured spot -- before the derived
                     # writer, which computes mNAV and net purchases from them.
                     "treasury",
-                    "crypto_derived")
+                    "crypto_derived",
+                    # The Quarterly's readers, tranche 2 (b70, 25 Oct 2026; D34):
+                    # iShares' crypto trusts (level, not flow), DefiLlama's breadth
+                    # (stored, never republished), the BDCs' filed facts, and the
+                    # Blockscout field check (PENDING until a supply field exists).
+                    "ishares_holdings", "llama_breadth", "edgar_bdc",
+                    "blockscout_supply")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:
@@ -758,6 +770,20 @@ def freshness(as_of: Optional[str] = None,
         # heartbeat sees them; the explorer's keys are PENDING until it reads.
         from . import prl as _prl                              # noqa: PLC0415
         rosters += [(_prl.ROSTER, list(_prl.ROSTER_KEYS))]
+        # Batch 15 items 77 and 78 (b56): the cyber feeds' Saturday step and the
+        # daily protocol count, both steps of the crypto basket's run.
+        from . import cyber_pressure as _cyb                   # noqa: PLC0415
+        from . import protocol_breadth as _pb                  # noqa: PLC0415
+        rosters += [(_cyb.ROSTER, list(_cyb.ROSTER_KEYS)),
+                    (_pb.ROSTER, list(_pb.ROSTER_KEYS))]
+        # D26 (b59): GDELT, the degree days and the model-release watch, steps
+        # of the crypto basket's run.
+        from .sources import cpc_degree_days as _cpc           # noqa: PLC0415
+        from .sources import gdelt as _gd                      # noqa: PLC0415
+        from .sources import hf_releases as _hf                # noqa: PLC0415
+        rosters += [(_gd.ROSTER, list(_gd.ROSTER_KEYS)),
+                    (_cpc.ROSTER, list(_cpc.ROSTER_KEYS)),
+                    (_hf.ROSTER, list(_hf.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None

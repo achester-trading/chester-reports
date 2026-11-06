@@ -43,7 +43,7 @@ fiscal_anchor:
   weo_balance: "em.weo.fiscal_gdp.{iso3}"
   weo_current_account: "em.weo.ca_gdp.{iso3}"
   min_countries: 10
-  # Courtial's fit excluded China; the cross-section is developed markets only.
+  # The twin-deficit fit excluded China; the cross-section is developed markets only.
   countries:
     - {iso3: usa, name: "United States", yield: fred.oecd_10y_us}
     - {iso3: can, name: "Canada", yield: fred.oecd_10y_ca}
@@ -103,7 +103,8 @@ selloff:
 # that reads the measure; the verdict is code's.
 # ---------------------------------------------------------------------------
 voices:
-  - {voice: "Charles Diebel", claim: "1994-type correlated repricing, nearly complete", test: shape_correlated}
-  - {voice: "Jeremy Courtial (SocGen idea)", claim: "twin deficits imply about 5.8%; about 50 bp of fiscal premium unpaid", test: fiscal_gap_positive, min_gap_bp: 25}
-  - {voice: "Maxence Visseau", claim: "priced for a 5.0-5.5% chop; mechanics flirting with a spiral to 5.75-6.0%", test: level_band, band: [5.0, 5.5], spiral_above: 5.5}
+  # outlet pending operator ruling
+  - {voice: "outlet not named in the order (post cited)", claim: "1994-type correlated repricing, nearly complete", test: shape_correlated}
+  - {voice: "Société Générale (an idea, via a post)", claim: "twin deficits imply about 5.8%; about 50 bp of fiscal premium unpaid", test: fiscal_gap_positive, min_gap_bp: 25}
+  - {voice: "Arkevium", claim: "priced for a 5.0-5.5% chop; mechanics flirting with a spiral to 5.75-6.0%", test: level_band, band: [5.0, 5.5], spiral_above: 5.5}
   - {voice: "Sarmaya Partners", claim: "the Fed blinks", test: outside_axis}

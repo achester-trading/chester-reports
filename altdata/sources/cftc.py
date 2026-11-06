@@ -30,8 +30,9 @@ series above are untouched. Beside them, from the same Socrata host, no key:
              producer/merchant, swap dealer, managed money, other reportables
   gpe5-46if  Traders in Financial Futures, futures only -- the six currency
              futures EUR, JPY, GBP, CHF, CAD, AUD and (SR-36) the six Treasury
-             futures TU, FV, TY, TN, US, WN: dealer, asset manager, leveraged
-             funds, other reportables
+             futures TU, FV, TY, TN, US, WN and (Batch 15 item 74) the E-mini
+             S&P 500 and Nasdaq-100 futures ES and NQ: dealer, asset manager,
+             leveraged funds, other reportables
 Each category is stored long, short and net (contracts), and each of the three
 ALSO as a share of the record's open interest, in percent (`_oi` keys) --
 positions scaled to OI, the standard's rule, so a category's weight compares
@@ -101,7 +102,13 @@ TFF_CONTRACTS = {"099741": "EUR", "097741": "JPY", "096742": "GBP",
                  # its first report (2 Mar 2010) to 7 Jun 2016; 043607, the
                  # Ultra 10-year, starts 8 Mar 2016.
                  "042601": "TU", "044601": "FV", "043602": "TY",
-                 "043607": "TN", "020601": "US", "020604": "WN"}
+                 "043607": "TN", "020601": "US", "020604": "WN",
+                 # Batch 15 item 74 (b56, 23 Oct 2026): the equity-index futures for
+                 # the hedge-fund positioning line, codes read from gpe5-46if that
+                 # day. 13874A is "E-MINI S&P 500 STOCK INDEX" to 1 Feb 2022 and
+                 # "E-MINI S&P 500" after; 209742 is "NASDAQ-100 STOCK INDEX (MINI)"
+                 # to 1 Feb 2022 and "NASDAQ MINI" after. Both from 13 Jun 2006.
+                 "13874A": "ES", "209742": "NQ"}
 # category -> (long column, short column), the dataset's own names. The
 # disaggregated swap-short column is spelled with two underscores at source.
 DISAGG_CATEGORIES = {

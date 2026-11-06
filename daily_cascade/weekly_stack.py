@@ -253,6 +253,28 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
     from . import gtm_block                                     # noqa: PLC0415
     subs = gtm_block.place_mechanics(subs, gtm_block.mechanics_subsections(
         st, cutoff, "weekly"))
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from . import batch14_b1_block                              # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, cutoff)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the edition's sessions. Tables and lines only.
+    from . import batch15_a_block                               # noqa: PLC0415
+    if sessions:
+        subs = batch15_a_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                                     sessions[-1])
+        # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+        # degree days beside natural gas after the oil-shock signature.
+        from . import b59_block                                 # noqa: PLC0415
+        subs = b59_block.mechanics_subsections(subs, st, cutoff, sessions[0],
+                                               sessions[-1])
+    # 6f TRANCHE 3 (a62): the tail families, one line, read from the object.
+    from . import state_v2_block                                # noqa: PLC0415
+    tl = state_v2_block.weekly_subsection(st, cutoff)
+    if tl:
+        subs.append(tl)
+    # 6f TRANCHE 2 (a63): the dials' transition table.
+    subs += state_v2_block.calibration_subsection(st, cutoff)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}
@@ -1002,6 +1024,22 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
                 **({"lines": [basis_proxy.positioning_line(bp)]} if bp else {}),
                 "not_tracked": [n for i, n in CFTC_CONTRACTS
                                 if f"cftc:{i}" not in data]})
+    # SIGNAL-TRIAGE BATCH 15, ITEM 74 (b56): the hedge-fund positioning line and
+    # the squeeze-risk flag, beside the CFTC table. The Weekly's only (TFF is
+    # weekly; the Monthly's Positioning keeps its five read blocks).
+    if cadence == "weekly":
+        from . import batch15_b2_block                          # noqa: PLC0415
+        hfp = batch15_b2_block.positioning_subsection(st, now)
+        if hfp:
+            out.append(hfp)
+    # SIGNAL-TRIAGE BATCH 16, ITEM 89(b) (B76): trend breadth, our own
+    # cross-asset trend signal, one table; the Monthly reads the same table.
+    # Nothing in the daily close.
+    if cadence in ("weekly", "monthly"):
+        from . import trend_breadth_block                       # noqa: PLC0415
+        tbs = trend_breadth_block.positioning_subsection(st, now)
+        if tbs:
+            out.append(tbs)
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
     # slow-money set and of SR-36's unwind watch, never a flag of its own. The
@@ -2104,11 +2142,33 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
                               trig, bz, ending=ending, db_path=db_path, prior=prior,
                               walls=chain_walls(book), dry_run=dry_run),
         }
+        # SIGNAL-TRIAGE BATCH 16 ITEM 88(a) (B75): the gold block, its own section
+        # between Plumbing & rates and Positioning & flows (config order).
+        from . import gold_block                                # noqa: PLC0415
+        try:
+            built[gold_block.SECTION_ID] = gold_block.weekly_section(
+                st, now, ending, computed_dir=p.get("computed_dir"),
+                events=(cal or {}).get("rows"))
+        except Exception:                                       # noqa: BLE001
+            log.warning("the gold block faulted", exc_info=True)
         # SIGNAL-TRIAGE BATCH 6 item 43: the growth lead's line in Ahead.
         from . import t1_rest_block                             # noqa: PLC0415
         ah43 = t1_rest_block.ahead_subsection(st, now)
         if ah43:
             built["ahead"].setdefault("subsections", []).append(ah43)
+        # SIGNAL-TRIAGE BATCH 15, ITEM 77 (b56): the tail register's cyber-
+        # pressure line, report only.
+        from . import batch15_b2_block                          # noqa: PLC0415
+        cyb = batch15_b2_block.cyber_subsection(st, now)
+        if cyb:
+            built["ahead"].setdefault("subsections", []).append(cyb)
+        # D26 (b59): GDELT's geopolitical line in the tail register, and in
+        # Narratives the stories' GDELT counts and the model-release line.
+        from . import b59_block                                 # noqa: PLC0415
+        tl = b59_block.tail_subsection(st, now)
+        if tl:
+            built["ahead"].setdefault("subsections", []).append(tl)
+        b59_block.weekly_narratives(built["narratives"], st, now)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.
@@ -2156,6 +2216,8 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         for c in (built["misfit"]["data"].get("open_contradictions") or []):
             extras["contradictions"][c["name"]] = _contradiction_history(st, c["_id"], now)
     sections = stack_mod.assemble(built, cfg, prior, "weekly")
+    from . import gold_block                                    # noqa: PLC0415
+    gold_block.mark_before_first(sections, built)
     # W-1.3a: the keys assemble does not carry -- a section's one-line summaries
     # (W-1.2 item 2.6), its reference rows and its notes.
     for s in sections:
@@ -2263,6 +2325,12 @@ def chart_plan(ed: dict) -> list[str]:
         want.insert(4, "W12")
     if (misfit.get("data") or {}).get("open_contradictions"):
         want.insert(4, "W6")
+    # W13, THE GOLD BLOCK'S CHART (Batch 16 item 88(a); B75): after W3, inside the
+    # cap, from the block's first edition on (a section printing its header only
+    # draws nothing).
+    gold = next((s for s in ed["sections"] if s["id"] == "gold"), None)
+    if gold is not None and not gold.get("empty"):
+        want.insert(want.index("W3") + 1, "W13")
     return want[:cap]
 
 
@@ -2272,7 +2340,7 @@ PLACE = {"W1": ("tape", None), "W2": ("tape", None), "W8": ("tape", None),
          "W6": ("misfit", None), "W5": ("positioning", 0),
          "W4": ("positioning", 1), "W9": ("positioning", 3),
          "W10": ("priced", 1), "W11": ("priced", None),
-         "W12": ("mechanics", None)}
+         "W12": ("mechanics", None), "W13": ("gold", None)}
 
 # W8's six panels: (tape id, panel title).
 W8_PANELS = (("btc", "Bitcoin"), ("gold", "Gold (front future)"), ("dxy", "DXY"),
@@ -2358,6 +2426,15 @@ def chart_data(st, ed: dict, now: str, ending: str, sessions: list,
     except Exception:                                           # noqa: BLE001
         log.warning("W10 odds unavailable", exc_info=True)
     out["odds"] = odds
+    try:
+        from altdata import gold_attribution as ga               # noqa: PLC0415
+        from . import gold_block                                # noqa: PLC0415
+        gcfg = ga.config()
+        out["gold"] = gold_block.chart_series(
+            ga.read_series(st, now, gcfg).get("gold") or [], ending, gcfg)
+    except Exception:                                           # noqa: BLE001
+        log.warning("W13 series unavailable", exc_info=True)
+        out["gold"] = None
     try:
         from altdata import st_r5_index                          # noqa: PLC0415
         out["carry"] = st_r5_index.chart_series(st, now, "twelve_months")
@@ -2488,6 +2565,9 @@ def produce(p: dict, *, archive_dir: Optional[str], dry_run: bool = False,
     if "W11" in plan:
         charts["W11"] = charts_mod.index_carry("W11", cd.get("carry"), "twelve months",
                                                f"{base}_w11", out_dir)
+    if "W13" in plan:
+        charts["W13"] = charts_mod.gold_chart("W13", cd.get("gold"), f"{base}_w13",
+                                              out_dir)
     if "W12" in plan:
         from . import dealer_block                              # noqa: PLC0415
         mech = next((s for s in ed["sections"] if s["id"] == "mechanics"), {})

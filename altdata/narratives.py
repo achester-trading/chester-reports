@@ -1176,7 +1176,7 @@ def emit_forecast(nid: str, row: dict, state: str, day: str, cutoff: str,
             probability=p, horizon_date=criterion["horizon_date"],
             resolution_criterion=json.dumps(criterion, sort_keys=True),
             scenario_set=f"narrative:{nid}", emitted_at=cutoff,
-            emitted_by=run_id)
+            emitted_by=run_id, missing_inputs=[])       # LL-3: none recorded
 
 
 def close_on_or_before(store: Any, metric: str, day: str, as_of: str
@@ -1302,7 +1302,8 @@ def emit_hypotheses(nid: str, spec: dict, day: str, cutoff: str, store: Any,
                 probability=pr["probability"],
                 horizon_date=criterion["horizon_date"],
                 resolution_criterion=json.dumps(criterion, sort_keys=True),
-                scenario_set=sset, emitted_at=cutoff, emitted_by=run_id)
+                scenario_set=sset, emitted_at=cutoff, emitted_by=run_id,
+                missing_inputs=[])                      # LL-3: none recorded
             out["emitted"].append({"hypothesis": hid, "probability_id": pid,
                                    "probability": pr["probability"]})
             log.info("hypothesis %s:%s entered at %.4f", nid, hid,

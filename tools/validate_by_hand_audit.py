@@ -35,6 +35,8 @@ No gate reads the live store, fetches or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import re
 import sys
 from pathlib import Path
@@ -195,7 +197,7 @@ def group_d() -> None:
               f"item {item}: dated, its scenario, and the measure that adjudicates "
               f"it ({measure})")
     check("accept-all" in text and "weights stay Ari's" in text,
-          "listed for Ari's accept-all; the matrix's weights stay his")
+          "listed for the operator's accept-all; the matrix's weights stay the operator's")
     notes = (REPO / "docs" / "briefs" / "st-r5-t1-rest-notes.md").read_text(encoding="utf-8")
     check("hikes-resume cell up" not in notes and "docs/warsh-matrix-lines.md" in notes,
           "item 42's line moved: the t1-rest notes point to the file")

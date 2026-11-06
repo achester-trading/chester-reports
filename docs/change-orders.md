@@ -4,6 +4,7 @@ An index of every ruled change order in `docs/`, oldest first. Each order is fil
 
 | Date | Order | What it rules |
 |---|---|---|
+| 13 Sep 2026 | [change-order-amendment-3-2026-09-13-record.md](change-order-amendment-3-2026-09-13-record.md) | **Record only; original pending.** Post-Freeze Amendment #3, AI trajectory and governance monitoring (workstream A, the I-b inputs and consensus drift; B, Internal Order as Factor VI), approved in chat; the order's file was never committed (filed 24 Oct 2026, A70) |
 | 25 Sep 2026 | [change-order-signal-triage-2026-09-25.md](change-order-signal-triage-2026-09-25.md) | Signal triage, consolidated (Batches 1–2, SR-1 to SR-27) |
 | 27 Sep 2026 | [change-order-enterprise-layer-2026-09-27.md](change-order-enterprise-layer-2026-09-27.md) | The Enterprise Layer and intraday tactics |
 | 2 Oct 2026 | [change-order-signal-triage-batch-3-2026-10-02.md](change-order-signal-triage-batch-3-2026-10-02.md) | Signal triage Batch 3 and the Japan / US-yields scan |
@@ -25,4 +26,6 @@ An index of every ruled change order in `docs/`, oldest first. Each order is fil
 | 20 Oct 2026 | [change-order-signal-triage-batch-12-2026-10-20.md](change-order-signal-triage-batch-12-2026-10-20.md) | Signal triage items 59–60: the bank-stress panel and classifier; the earnings-estimate overshoot (filing amendments F1–F6) |
 | 20 Oct 2026 | [change-order-signal-triage-batch-13-2026-10-20.md](change-order-signal-triage-batch-13-2026-10-20.md) | Signal triage item 61: relative options volume (OS-12a–d) |
 | 20 Oct 2026 | [change-order-signal-triage-batch-14-2026-10-20.md](change-order-signal-triage-batch-14-2026-10-20.md) | Signal triage items 62–71 (Batch 14, filing amendments F1–F8): Part A, the 1 Nov Monthly candidates (63, 64, 66, 69, 70); Part B after the Monthly |
+| 23 Oct 2026 | [change-order-signal-triage-batch-15-2026-10-23.md](change-order-signal-triage-batch-15-2026-10-23.md) | Signal triage items 72–78 (Batch 15, filing amendments G1–G6, ruled 23 Oct 2026; item 72 ruled 20 Oct): gold-ETF 13F ownership and WGC flows, the gold and developed-market event screens, hedge-fund positioning, the AI-lab ledger, CDS protection demand, cyber pressure, crypto shutdowns; all after the 1 Nov Monthly |
 | 26 Oct 2026 | [change-order-signal-triage-batch-16-2026-10-26.md](change-order-signal-triage-batch-16-2026-10-26.md) | Signal triage items 79–91 (Batch 16, round 7, filing amendments H1–H7): gold coverage, the midterm table and the 3 Nov Ahead row, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; Tranche A's midterm piece for the 1 Nov Weekly |
+| 26 Oct 2026 | [change-order-signal-triage-batch-17-2026-10-26.md](change-order-signal-triage-batch-17-2026-10-26.md) | Signal triage items 92–97 (Batch 17, round 8, filing amendments J1–J6): the Capitulation Count and its feeds, the global liquidity proxy, the ex-post real rate, Moody's matrix, growth-contribution concentration |

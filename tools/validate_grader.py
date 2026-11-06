@@ -30,6 +30,8 @@ the chain-root entry time, interval arithmetic, and the coin line.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import io
 import math
 import sqlite3

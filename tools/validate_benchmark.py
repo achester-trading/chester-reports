@@ -25,6 +25,8 @@ Validation gate for Book Z -- the benchmark ledgers (EL-3, P5-B).
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import sys

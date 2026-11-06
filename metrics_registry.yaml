@@ -162,6 +162,7 @@ vocabularies:
   native_horizon: [intraday, daily, weekly, monthly, quarterly, structural]
   units:
     - usd                    # a dollar amount
+    - usd_bn                 # US dollars in billions (A66: filed capex guidance)
     - usd_per_1pct           # dollars per 1% move in spot
     - usd_per_point          # dollars per one-point move in spot
     - usd_per_volpt          # dollars per 1 implied-vol point
@@ -553,6 +554,9 @@ vocabularies:
     - prediction_market
     # The correlation layer (AQ-5): one mechanism, however many pairs.
     - cross_asset_correlation
+    # Trend breadth (Batch 16 item 89(b), B76): one mechanism, however many
+    # markets and lookbacks -- sixty-four signs are one reading of the closes.
+    - trend_breadth
     # Batch 4 Tranche A part 1 (17 Oct 2026): crypto perp leverage (funding,
     # open interest, long/short across the venues) and Bitcoin's and Ethereum's
     # network state (hashrate, fees, gas).
@@ -577,6 +581,43 @@ defaults:
 # double-counting one chain.
 
 metrics:
+  calc.baa_less_10y:
+    # 6i-3 (A79): its inputs, so it inherits their publication lag.
+    inputs: [fred.dbaa, fred.yield_10y]
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Moody's Baa yield (DBAA) less the 10-year Treasury yield (DGS10), same
+      session, in basis points. The Top & Bottom harness's long credit proxy
+      (6i-3; decision 6 of 25 Oct 2026, both proxies side by side): HY OAS
+      reaches no episode before 2023 on FRED, DBAA reaches every one from 1986.
+      Report only: barred from the market-state object, no dial, band or
+      packet reads it.
+  calc.baa_less_10y_m:
+    inputs: [fred.baa, fred.yield_10y]
+    source: derived_state
+    mechanism_group: macro_valuation_credit
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    trigger_eligible: false
+    description: >-
+      Moody's monthly Baa yield (BAA, a monthly average) less the month's mean
+      10-year yield, in basis points, dated the month's first day and knowable
+      once both are. The harness reads it only before DBAA exists (1962 to
+      1985; DGS10 begins in 1962). Report only, as calc.baa_less_10y.
 
   # --- GEX family -----------------------------------------------------------
   exposure.net_gex:
@@ -3846,6 +3887,206 @@ metrics:
       event (instrument = the event's date) with its attribution and its realised
       5- and 20-session SPX and VIX outcomes; a resolution is a new vintage, never
       an overwrite. No modifier right before 30 events.
+  rates.speed_event_ledger:
+    source: speed_attribution
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 14 item 65 (ST-R6.65a; a57-batch14-b1): the speed-flag attribution's
+      event ledger, one JSON row per day SR-35's 10-year companion fired
+      (instrument = the day), written by the close: the trigger, each
+      term-structure model's split of the 10-year's move into expected short
+      rates and the term premium ("awaiting" until the model's input for the
+      day is stored, F5), and the 10-year's realised 5- and 20-session change.
+      A resolution is a new vintage, never an overwrite. A report: no right.
+  gold.event_ledger:
+    source: gold_event
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 73 (ST-R6.73a; a58-batch15-1): the gold event's ledger, one
+      JSON row per day gold (GC=F) moved 2.5% or more on the day or beyond its
+      95th percentile over five sessions (instrument = the day), written by the
+      close and by the history command: the trigger, each leg's change (real
+      10-year, DXY, Brent; "awaiting" until the leg's input is stored), the
+      not-tracked ETF-flow leg, the IMF IFS central-bank trend, the residual line,
+      and gold's realised 5- and 20-session change. A resolution is a new vintage,
+      never an overwrite. A flag: no composite input.
+  gold.attr.real_yield:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the real yield
+      lens, the real 10-year yield's change (DFII10, fred.tips_10y), bp, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.breakeven:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the breakeven
+      lens, the 10-year breakeven's change (T10YIE, fred.breakeven_10y), bp, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.dollar:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the dollar
+      lens, the ICE dollar index's change (DX-Y.NYB, yfinance.mkt_dxy), %, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.liquidation:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the liquidation
+      lens, gold's 20-session correlation of daily log returns with the S&P 500 (^GSPC) and the Nasdaq-100 (read through QQQ), with the day's signs; filed item 74's squeeze flag is not stored, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.attr.official_bid:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (written as round 7's 80; B75): one JSON row per day gold
+      moved past 2 sigma on the move screen's own sigma and window: the official bid
+      lens, the latest dated record the operator enters (config/gold_official_bid.yaml), and the PBoC's monthly net purchase as the IMF IFS stores it, over the move's lead horizon. Report rights only: no composite,
+      no market-state input.
+  gold.beta_real_60d:
+    source: gold_attribution
+    mechanism_group: factor_attribution
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 87 (B75): gold's rolling 60-session beta to the real yield --
+      OLS of gold's daily log return (%) on DFII10's daily change (bp) -- one JSON
+      row a session with the beta, its n and its window (value_text only, so no
+      screen reads it as a level). Report rights only.
+  equity.dm_drawdown_ledger:
+    source: dm_drawdown
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 73 (ST-R6.73b; a58-batch15-1): the developed-market drawdown
+      screen's ledger, one JSON row per index and day (instrument =
+      "<index>:<day>") whose 10- or 20-session drawdown was beyond its 95th
+      percentile on five years: Nikkei 225 (FRED), KOSPI and TAIEX (ETF proxies,
+      EWY and EWT). The trigger, the attribution legs (local currency, local
+      10-year or "not tracked", the prior US session, Japan's carry stack and
+      SR-32's early line, item 63's capex-chain line) and the index's realised 5-
+      and 20-session change. A resolution is a new vintage. A flag: no composite
+      input.
+  sec13f.gold_etf_holders:
+    source: sec_13f
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 72 (ST-R6.72a; a58-batch15-1): the number of 13F filers
+      reporting a share position in GLD, IAU or either (instrument GLD, IAU,
+      BOTH), at the quarter end (observed_at), counted from SEC EDGAR's Form 13F
+      data sets by altdata/gold_13f.py. Written only for a quarter the loaded
+      files cover through its 45-day deadline; a later load is a new vintage.
+      Report only.
+  sec13f.gold_etf_value_usd:
+    source: sec_13f
+    mechanism_group: commodity_holdings
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Batch 15 item 72: the value 13F filers report for their GLD, IAU or either
+      position (instrument GLD, IAU, BOTH), DOLLARS (VALUE is thousands for
+      filings before 3 Jan 2023 and is scaled), at the quarter end. Report only.
   calc.vol_compression:
     source: vol_event
     mechanism_group: market_state
@@ -4835,6 +5076,80 @@ metrics:
       what always saying 50% gets you, 1 is certain and wrong. revision_policy is
       `never`: a forecast is immutable by trigger and a resolution is written
       once, so the score cannot change once it exists.
+  # LEARNING LOOP v2, LL-1 and LL-3 (B73; the brief of 25 Oct 2026, decisions 1
+  # and 11). Measurement of the system's own forecasting and decisions: report
+  # only, trigger_eligible false, barred from the market-state object below.
+  brier.decomposition:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: monthly
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-1 (altdata/decision_quality.py): Murphy's decomposition of the Brier
+      score over the ledger's resolved rows (reliability, resolution,
+      uncertainty and the within-bin term, ten bins of 0.1) by source family and
+      horizon bucket, "accruing (n=k of 100)" below 100 rows a cell; and the
+      system line over 13 and 52 weeks. Computed at read, never stored; printed
+      in the Monthly's Lab report and the Doctrine pack.
+  grade.counterfactual:
+    source: derived_grade
+    mechanism_group: decision_grade
+    native_horizon: monthly
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-1 (altdata/decision_quality.py): the counterfactual ledger per book,
+      ruled R over the latest grade per decision for the taken, the declined (the
+      filter) and the drafts (the cost of abstention); and the Weekly stance's
+      implied book against Book Z's cash, SPY and 60/40 marks. Computed at read,
+      never stored.
+  learning.error_corpus:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: daily
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-3 (altdata/error_corpus.py): the error_corpus table in chester.db, one
+      append-only row per graded miss (a ledger row past the coin's Brier, or a
+      grade with negative ruled R): what was said, what happened, the margin,
+      and the absent dimensions, awaiting legs and missing inputs at emission.
+      Code only, no model; read by the critic (LL-5), printed nowhere.
+  # LEARNING LOOP v2, LL-2 (A80; the brief's section 2.6). Report only.
+  learning.value_of_information:
+    source: derived_probability
+    mechanism_group: forecast_calibration
+    native_horizon: monthly
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      LL-2 (altdata/value_of_information.py): by source family and horizon, the
+      mean Brier of the resolved rows missing an input at emission less that of
+      the rows that had it, with n and a seeded percentile bootstrap interval;
+      the share missing; the ranked search order from 30 affected rows. Computed
+      at read, never stored; printed in the Monthly's Lab report and the
+      Doctrine pack.
   brier.running:
     source: derived_probability
     mechanism_group: forecast_calibration
@@ -10418,6 +10733,286 @@ metrics:
       Shiller's real home price index, 1890 = 100 (Fig3-1.xls, Irrational
       Exuberance's Figure 3.1 as updated by the author): annual 1890-1952, monthly
       from January 1953. Batch 14 item 69's percentile since 1890 (a56).
+  cyber.kev_added_week:
+    source: cisa_kev
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      CISA's Known Exploited Vulnerabilities catalogue: the entries added in the
+      ISO week (Monday to Sunday) by their dateAdded; observed_at = the week's
+      Monday. The catalogue's first week (its seeding, 287 entries on 3 Nov 2021)
+      is stored and left out of the percentiles. Batch 15 item 77 (b56).
+  cyber.nvd_critical_week:
+    source: nvd
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      NVD's CVE API 2.0: CVEs published in the ISO week with a CVSS v3 severity of
+      CRITICAL (a base score of 9.0 or higher); observed_at = the week's Monday.
+      REVISED: NVD scores a CVE after publication, so each Saturday re-reads the
+      last 8 weeks as new vintages. Batch 15 item 77 (b56).
+  rates.oneday_event_ledger:
+    source: oneday_10y
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      D15 (rulings of 24 Oct 2026; b59): the one-day 10-year trigger's event
+      ledger, one JSON row per day the 10-year's one-day change passed its
+      five-year 97.5th percentile (instrument = the day), written by the close:
+      the trigger, each term-structure model's one-session split ("awaiting"
+      until its input is stored) and the 10-year's 5- and 20-session change.
+      A resolution is a new vintage. Report only: no right, no market-state input.
+  gdelt.events_total:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Every event added that day. Report only.
+  gdelt.source_urls_total:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      The distinct source articles among the day's events. Report only.
+  gdelt.conflict_events:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family (config/gdelt.yaml): events with CAMEO
+      root codes 18-20 whose actors, action location or dyad match it.
+      Report only.
+  gdelt.reduce_relations_events:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: events with CAMEO root code 16 (reduce
+      relations: sanctions, embargoes; economic warfare). Report only.
+  gdelt.conflict_share:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: ratio
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: its conflict events per 10,000 of the day's
+      events, so the level does not move with GDELT's volume or file layout (1.0
+      daily files in the backfill, 2.0 15-minute exports live). Report only.
+  gdelt.avg_tone:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the family: the mean AvgTone of all its events
+      (any root code). Report only.
+  gdelt.narrative_mentions:
+    source: gdelt
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      GDELT's raw event files (D26, b59; altdata/sources/gdelt.py), observed_at = the UTC day the events were added.
+      Instrument = the story (config/narratives.yaml): distinct articles whose
+      address carries one of its declared phrases (config/gdelt.yaml). Attention,
+      not agreement. Report only.
+  noaa.hdd_pop:
+    source: noaa_cpc
+    mechanism_group: reference_library
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      NOAA CPC's daily heating degree days, population-weighted (D26, b59;
+      altdata/sources/cpc_degree_days.py); instrument = conus or the census
+      division; from 1981. The newest days are preliminary: a changed value is a
+      new vintage. The normal (1991-2020) is computed on read. Report only.
+  noaa.cdd_pop:
+    source: noaa_cpc
+    mechanism_group: reference_library
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      NOAA CPC's daily cooling degree days, population-weighted (D26, b59);
+      instrument = conus or the census division; from 1981. Report only.
+  ai.model_releases_week:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      The Hugging Face model-release watch (D26, b59; altdata/sources/hf_releases.py):
+      instrument = the organisation (config/ai_release_watch.yaml); the public
+      model repositories created in the ISO week, observed_at = its Monday (UTC).
+      Recounted for 4 weeks (a late-published repository is a new vintage); the
+      backfill's weeks are reconstructed from createdAt. Report only.
+  ai.model_releases_week_total:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      The same count over every declared organisation (D26, b59); written only
+      when every organisation was read. Report only.
+  ai.model_release_event:
+    source: huggingface
+    mechanism_group: reference_library
+    native_horizon: weekly
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    added_date: "2026-10-24"
+    description: >-
+      One JSON row per new public model repository (D26, b59): instrument = its
+      id, observed_at = its creation day, available_at = the pull that first saw
+      it (never createdAt). Counts and dates only. Report only.
+  defillama.protocols_listed:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      DefiLlama's protocol list (api.llama.fi/protocols), the protocols neither
+      marked dead (deadFrom) nor deprecated, counted on the day of the pull. A
+      daily snapshot from the first pull: the endpoint serves today's list only.
+      Batch 15 item 78 (b56).
+  defillama.protocols_active:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: week
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    added_date: "2026-10-23"
+    description: >-
+      Of defillama.protocols_listed, those with a TVL above zero on the day of the
+      pull: the active-protocol count, crypto's supply-side breadth proxy. A daily
+      snapshot from the first pull. Batch 15 item 78 (b56).
   worldbank.cmo_total:
     source: worldbank_cmo
     mechanism_group: commodity_prices
@@ -13426,6 +14021,21 @@ metrics:
     trigger_eligible: false
     description: >-
       S3b funding stress: SOFR less interest on reserve balances, bp. Same-day only. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.cp_bill_bp:
+    # Its inputs' lags are FRED's daily ones (6f, ruling 6a).
+    source: derived_state
+    mechanism_group: macro_liquidity
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: bps
+    family: spread
+    trigger_eligible: false
+    description: >-
+      6f funding_stress (ruling 6a of 24 Oct 2026): 90-day AA financial commercial paper (fred.fin_cp_3m, DCPF3M) less the 3-month bill (fred.tbill_3m, DTB3), bp. Same-day only; altdata/macro_6e.py.
   calc.sofr_effr_bp:
     source: derived_state
     mechanism_group: macro_liquidity
@@ -15120,6 +15730,141 @@ metrics:
     trigger_eligible: false
     description: >-
       A hyperscaler's payments for property, plant and equipment for its fiscal year, dollars, a positive outflow as filed (XBRL PaymentsToAcquirePropertyPlantAndEquipment, else PaymentsToAcquireProductiveAssets -- Amazon's tag), from EDGAR's annual frames, instrument = the ticker, observed_at = the fiscal year's end. GTM-4's bridge.
+  # A66 (24 Oct 2026; signal-triage items 26 and 63): the hyperscalers' capex
+  # GUIDANCE, read from their own 10-Q and 10-K filings by
+  # altdata/sources/edgar_guidance.py. Rule 30: each figure is stored only beside
+  # its record -- the filing's sentence verbatim, URL, accession, filing date.
+  # observed_at = the filing date; available_at = the filing's acceptance instant.
+  edgar.capex_guidance.amzn:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Amazon's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.amzn); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.amzn:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Amazon's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.googl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Alphabet's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.googl); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.googl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Alphabet's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.meta:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Meta's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.meta); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.meta:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Meta's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.msft:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Microsoft's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.msft); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.msft:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Microsoft's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
+  edgar.capex_guidance.orcl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd_bn
+    trigger_eligible: false
+    description: >-
+      Oracle's capital-expenditure guidance as its newest 10-Q or 10-K states it, US dollars in billions, extracted by rule from the filing's own sentence (a range's midpoint, labelled), observed_at = the filing date. The guided fiscal year, the sentence, the URL and the confidence are the record's (edgar.capex_guidance_record.orcl); no figure is stored without it. Report only.
+  edgar.capex_guidance_record.orcl:
+    source: edgar_guidance
+    mechanism_group: corporate_fundamentals
+    native_horizon: structural
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: label
+    trigger_eligible: false
+    description: >-
+      The sourced record of Oracle's capex guidance, JSON: company, form, accession number, filing date, period, the primary document's URL, the section read, and every guidance sentence verbatim (at most 400 characters) with the figure, fiscal year, rule, label and confidence extracted from it, or "guidance quoted, figure not extracted". observed_at = the filing date.
   # SIGNAL-TRIAGE ST-4 (st-t1-rest, 18 Oct 2026): Duration Absorption and the
   # rates flags, altdata/absorption.py, written by the features pass. Display
   # and modifier only; none is trigger-eligible or enters a composite.
@@ -15787,6 +16532,1204 @@ metrics:
     description: >-
       The J.P.Morgan Global Manufacturing PMI headline (S&P Global; 50 = no change), entered by hand from the public release: the series is S&P Global's. observed_at = the reference month's first day. ST-R5.43a's growth read beside the diffusion index.
 
+  # B69 (b69-quarterly-readers-1, 25 Oct 2026; D34): the Alternative Assets
+  # Quarterly's oil-and-energy, agriculture and currency readers. Report-only;
+  # barred from the market-state object (market_state_barred, below).
+  eia.spr_stocks:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      US Strategic Petroleum Reserve stocks, barrels (EIA WCSSTUS1, thousand barrels x1000; b69). The oil chapter's buffer line beside commercial stocks; report-only.
+  eia.refinery_util:
+    source: eia
+    mechanism_group: oil_inventory
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      US refinery operable utilisation, percent (EIA WPULEUS3; b69). Report-only.
+  eia.gas_storage:
+    source: eia
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Working gas in underground storage, Lower 48, billion cubic feet (EIA NW2_EPG0_SWO_R48_BCF; b69). The five-year band is the chapter's read; report-only.
+  eia.lng_exports:
+    source: eia
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      US liquefied natural gas exports, million cubic feet, monthly (EIA N9133US2; b69). Monthly exports, not daily feedgas, which stays not tracked (B67).
+  imf.portwatch.transits.hormuz:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Strait of Hormuz, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.hormuz.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Strait of Hormuz (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.suez:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Suez Canal, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.suez.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Suez Canal (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.bab_el_mandeb:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Bab el-Mandeb Strait, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.bab_el_mandeb.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Bab el-Mandeb Strait (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  imf.portwatch.transits.malacca:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily transit calls through the Malacca Strait, all vessel classes (IMF PortWatch, n_total; AIS-modelled, revisable; b69). Attributed IMF PortWatch on every row; one request a day; report-only.
+  imf.portwatch.transits.malacca.tanker:
+    source: imf_portwatch
+    mechanism_group: commodity_supply
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      Daily tanker transit calls through the Malacca Strait (IMF PortWatch, n_tanker; b69). Attributed; one request a day; report-only.
+  usda.wasde.wheat.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US wheat ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.wheat.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US wheat ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.wheat:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US wheat crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  usda.wasde.corn.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US corn ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.corn.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US corn ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.corn:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US corn crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  usda.wasde.soybeans.ending_stocks:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: count
+    trigger_eligible: false
+    description: >-
+      WASDE US soybeans ending stocks, million bushels, by release (USDA World Agricultural Outlook Board, through ESMIS; b69). Instrument = the marketing year and its printed status ('2026/27 proj', '2025/26 est', '2024/25'), so projections are kept apart from estimates; each release its own vintage.
+  usda.wasde.soybeans.stocks_to_use:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      WASDE US soybeans ending stocks over total use, percent, by release (b69); the same instruments as the ending stocks.
+  usda.crop_progress.soybeans:
+    source: usda_esmis
+    mechanism_group: commodity_supply
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      USDA NASS Crop Progress: the share of the US soybeans crop rated good or excellent, all reporting states, percent, weekly in season (b69; wheat is winter wheat, else spring wheat).
+  noaa.oni:
+    source: noaa_cpc
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      NOAA CPC's Oceanic Nino Index: the three-month season's sea-surface anomaly, degrees C, observed at the season's centre month (b69). Context only, never extrapolated to a price.
+  cftc.disagg.corn.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT corn: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.corn.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT corn: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  cftc.disagg.wheat.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT wheat: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.wheat.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT wheat: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  cftc.disagg.soybeans.managed_money_net:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT soybeans: managed money long less short, contracts (b69). Report-only.
+  cftc.disagg.soybeans.managed_money_net_oi:
+    source: cftc
+    mechanism_group: futures_positioning
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      CFTC disaggregated COT, CBOT soybeans: managed money net as a percent of open interest (b69); the dual percentiles are read on it.
+  boc.yield_2y:
+    source: boc
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Government of Canada 2-year benchmark bond yield, percent (Bank of Canada Valet BD.CDN.2YR.DQ.YLD; attributed to the Bank of Canada; b69).
+  riksbank.yield_2y:
+    source: riksbank
+    mechanism_group: foreign_rates
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_rate
+    trigger_eligible: false
+    description: >-
+      Swedish government bond yield, 2 years, percent (Riksbank SWEA SEGVB2YC; one request a day; b69).
+  snb.sight_deposits_total:
+    source: snb
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Total sight deposits in Swiss francs at the SNB, CHF millions, weekly (SNB data portal cube snbgwdchfsgw, item TG; attributed Swiss National Bank; own, non-commercial use; b69).
+  snb.sight_deposits_domestic:
+    source: snb
+    mechanism_group: external_position
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Sight deposits of domestic banks at the SNB, CHF millions, weekly (cube snbgwdchfsgw, item GI; attributed; b69).
+  jp.mof.intervention_jpy:
+    source: mof_intervention
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Japan's foreign-exchange intervention for the release period, YEN, from the Ministry of Finance's monthly release (PDL 1.0, source cited on every row; b69). Observed at the period's last day.
+  # B70 (b70-quarterly-readers-2, 25 Oct 2026; D34): the Quarterly's crypto,
+  # credit and Thailand readers, and the declared gaps (status_extra:
+  # not_yet_sourced, each with its reason and check date). Report-only.
+  ishares.ibit.aum:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      iShares Bitcoin Trust (IBIT): total net assets, USD, from the product page (LEVEL, NOT FLOW; Farside's flow tables are the flow source; b70).
+  ishares.ibit.shares:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Bitcoin Trust (IBIT): shares outstanding, from the product page (level, not flow; b70).
+  ishares.etha.aum:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      iShares Ethereum Trust (ETHA): total net assets, USD, from the product page (LEVEL, NOT FLOW; Farside's flow tables are the flow source; b70).
+  ishares.etha.shares:
+    source: ishares_trusts
+    mechanism_group: crypto_flows
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      iShares Ethereum Trust (ETHA): shares outstanding, from the product page (level, not flow; b70).
+  llama.tvl.category.rwa:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'RWA' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.lending:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Lending' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.liquid_staking:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Liquid Staking' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.dexs:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Dexs' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.cdp:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'CDP' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.bridge:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Bridge' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.yield:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Yield' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.derivatives:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Derivatives' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.restaking:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Restaking' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.category.basis_trading:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL summed over the protocols in its 'Basis Trading' category, USD, a daily snapshot (b70). STORED, NEVER REPUBLISHED (DefiLlama's terms); a merged protocol follows the AERO convention (D29 (3)).
+  llama.tvl.chain.arbitrum:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Arbitrum chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.base:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Base chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.optimism:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the OP Mainnet chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.blast:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Blast chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.scroll:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Scroll chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.linea:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Linea chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.zksync_era:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the zkSync Era chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.mantle:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Mantle chain, USD, a daily snapshot (b70). Stored, never republished.
+  llama.tvl.chain.starknet:
+    source: defillama
+    mechanism_group: crypto_protocol_economics
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      DefiLlama TVL on the Starknet chain, USD, a daily snapshot (b70). Stored, never republished.
+  edgar.bdc.arcc.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ARCC: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.arcc.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      ARCC: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.arcc.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      ARCC: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.fsk.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FSK: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.fsk.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      FSK: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.fsk.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      FSK: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.bxsl.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      BXSL: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.bxsl.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      BXSL: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.bxsl.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      BXSL: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.obdc.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      OBDC: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.obdc.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      OBDC: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.obdc.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      OBDC: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  edgar.bdc.main.investments_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MAIN: total investments at fair value, USD, as filed (us-gaap InvestmentOwnedAtFairValue, else InvestmentsFairValueDisclosure; b70).
+  edgar.bdc.main.nav_per_share:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: price
+    trigger_eligible: false
+    description: >-
+      MAIN: net asset value per share, USD, as filed (us-gaap NetAssetValuePerShare; b70).
+  edgar.bdc.main.nonaccrual_fv:
+    source: sec_edgar
+    mechanism_group: credit_supply
+    native_horizon: quarterly
+    freq: quarterly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      MAIN: investments on non-accrual at fair value -- NOT YET SOURCED: no standard us-gaap tag carries it; the BDCs file it in extension tags or prose (b70, 25 Oct 2026).
+  eth.burn_daily:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ETH burnt in the UTC day -- NOT YET SOURCED: Blockscout's public /api/v2/stats carries no burn or issuance field (checked 25 Oct 2026, b70); Etherscan's key is not registered.
+  eth.issuance_daily:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ETH issued in the UTC day -- NOT YET SOURCED: Blockscout's public /api/v2/stats carries no burn or issuance field (checked 25 Oct 2026, b70); Etherscan's key is not registered.
+  eth.net_issuance:
+    source: blockscout
+    mechanism_group: crypto_network
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      ETH issuance less burn -- NOT YET SOURCED: Blockscout's public /api/v2/stats carries no burn or issuance field (checked 25 Oct 2026, b70); Etherscan's key is not registered.
+  thai.current_account_usd:
+    source: bot
+    mechanism_group: external_position
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: usd
+    trigger_eligible: false
+    description: >-
+      Thailand's current account, USD -- NOT YET SOURCED: the Bank of Thailand's statistics pages are indexed by report id with no published index (the page B67 checked, reportID 650, is direct investment abroad), and its API, which needs the operator's BOT_API_KEY, has no verified balance-of-payments endpoint here (b70, 25 Oct 2026).
+  thai.construction_materials_index:
+    source: tpso
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    units: index_points
+    trigger_eligible: false
+    description: >-
+      Thailand's construction-materials price index (Ministry of Commerce) -- CANDIDATE, NOT BUILT: www.price.moc.go.th answered HTTP 500 at B67's check (25 Oct 2026); re-check at the next quarterly scan.
+  pjm.capacity_auction:
+    source: pjm
+    mechanism_group: commodity_prices
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      PJM's capacity auction results -- A LISTED GAP: PJM's legal page states that access "does not confer any license", and its data tools forbid non-members to republish (B67, 25 Oct 2026).
+  lbnl.interconnection_queue:
+    source: lbnl
+    mechanism_group: commodity_supply
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      LBNL's interconnection-queue data -- A LISTED GAP: emp.lbl.gov answered HTTP 403 to the project's request (B67, 25 Oct 2026); not retried.
+  moea.export_orders:
+    source: moea_tw
+    mechanism_group: macro_global_fx
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: count
+    trigger_eligible: false
+    description: >-
+      Taiwan export orders (MOEA) -- A LISTED GAP: www.moea.gov.tw answered HTTP 403 to robots.txt and the page (B67, 25 Oct 2026); not retried.
+  tsmc.monthly_revenue:
+    source: tsmc
+    mechanism_group: corporate_fundamentals
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      TSMC monthly revenue -- A LISTED GAP: TSMC's terms grant access 'solely for your personal, non-commercial use of viewing and browsing' (B67, 25 Oct 2026).
+  circle.usdc_reserves:
+    source: circle
+    mechanism_group: crypto_flows
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      USDC reserve attestations (Circle) -- A LISTED GAP: no general terms of use for circle.com could be found to read (B67, 25 Oct 2026).
+  tether.usdt_reserves:
+    source: tether
+    mechanism_group: crypto_flows
+    native_horizon: monthly
+    freq: monthly
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      USDT reserve attestations (Tether) -- A LISTED GAP: app.tether.to's robots.txt disallows the transparency file (B67, 25 Oct 2026).
+  yahoo_pending.gdx:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      GDX (gold miners) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.sil:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      SIL (silver miners) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.corn_front:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      corn front month (ZC=F) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.wheat_front:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      wheat front month (ZW=F) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  yahoo_pending.soybeans_front:
+    source: yfinance
+    mechanism_group: commodity_prices
+    native_horizon: daily
+    freq: daily
+    status_extra: not_yet_sourced
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: split_only
+    units: price
+    trigger_eligible: false
+    description: >-
+      soybeans front month (ZS=F) -- PENDING D33: no new yfinance symbols from 24 Oct 2026 (Yahoo's chart host disallows every agent; the price-source migration brief maps the replacement). Not added to the basket (b70).
+  trend.flips_week:
+    source: calc
+    mechanism_group: trend_breadth
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 89(b) (B76; altdata/trend_breadth.py): the trend signals' sign
+      changes, across the held markets and the four lookbacks (20, 60, 120, 250
+      sessions), observed in the seven calendar days to the day. Computed from the
+      store's closes; available when the latest input is. Report rights only:
+      barred from the market-state object.
+  trend.reversing_share:
+    source: calc
+    mechanism_group: trend_breadth
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percent_share
+    family: ratio
+    trigger_eligible: false
+    added_date: "2026-10-26"
+    description: >-
+      Batch 16 item 89(b) (B76; altdata/trend_breadth.py): reversing breadth, the
+      share of held markets carrying a state whose state is "reversing" (the
+      20-session sign non-zero, opposite the 250-session one, and changed inside
+      the market's last five sessions), percent. Its calibration ledger is
+      docs/ledgers/trend-breadth-2026-10-26.md, pre-registered; no rights until it
+      is read. Barred from the market-state object.
+
 bulk_imports:
 
   fred_macro:
@@ -16330,6 +18273,58 @@ bulk_imports:
     mechanism_group_map:
       "2": macro_momentum
 
+  fred_households:
+    description: >-
+      The per-household deflator (signal-triage Batch 14, item 68, ST-R6.61a;
+      b55, 23 Oct 2026; F3): the Census Bureau's household estimates (FRED
+      TTLHHM156N), THOUSANDS, not seasonally adjusted, monthly. Redfin's pending
+      sales divided by it make item 36's per-household line, single-source (NAR's
+      index has no free series). See altdata/config.py FRED_HOUSEHOLDS_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_HOUSEHOLDS_SERIES
+    member_families:
+      fred.households: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
+  fred_6i:
+    description: >-
+      The Quarterly's readers, tranche 1 (b69-quarterly-readers-1, 25 Oct 2026; D34;
+      B67 section 5): Cboe's crude-oil volatility index through FRED (OVXCLS), for
+      the oil chapter beside realised volatility. Cboe's copyright ("Copyright,
+      2016, Chicago Board Options Exchange, Inc."): own use, never redistributed;
+      read through the FRED API with the system's key, never the graph CSV. See
+      altdata/config.py FRED_6I_SERIES.
+    source: fred
+    members_from: altdata.config.FRED_6I_SERIES
+    member_families:
+      fred.ovx: price
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "5": macro_sentiment
+
   fred_bank_stress:
     description: >-
       Signal-triage Batch 12, item 59 (ST-R6.59a; a53, 20 Oct 2026): the
@@ -16372,6 +18367,93 @@ bulk_imports:
     mechanism_group_from_member: pillar
     mechanism_group_map:
       "3": macro_liquidity
+      "6": macro_valuation_credit
+
+  fred_batch14_b1:
+    description: >-
+      Signal-triage Batch 14, Part B1 (items 65 and 71; a57-batch14-b1, 23 Oct
+      2026): item 65's AI-bottleneck PPI lines in item 46's pipeline -- BLS's PPI
+      by industry for printed circuit assemblies (PCU334418334418, Dec 2003 =
+      100), computer storage devices (PCU334112334112) and semiconductors
+      (PCU334413334413), indexes, NSA, monthly, through FRED (F3) -- and item
+      71's capitalisation: Z.1's all-sector corporate equities at market value
+      (BOGZ1LM893064105Q, MILLIONS, quarterly), the denominator of margin debt's
+      share. Ids and units read off FRED 23 Oct 2026; see altdata/config.py
+      FRED_BATCH14_B1_SERIES. Report only.
+    source: fred
+    members_from: altdata.config.FRED_BATCH14_B1_SERIES
+    member_families:
+      fred.ppi_pcb_assembly: release
+      fred.ppi_storage_devices: release
+      fred.ppi_semiconductors: release
+      fred.z1_equities_mv: quantity
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 4
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "4": macro_inflation
+      "6": macro_valuation_credit
+
+  fred_batch15_a:
+    description: >-
+      Signal-triage Batch 15 item 73 (a58-batch15-1, 23 Oct 2026): the
+      developed-market drawdown screen's FRED index, NIKKEI225 (Nikkei Stock
+      Average, index, daily close, from 1949-05-16), read off FRED 23 Oct 2026;
+      see altdata/config.py FRED_BATCH15_A_SERIES. A flag's input only.
+    source: fred
+    members_from: altdata.config.FRED_BATCH15_A_SERIES
+    member_families:
+      fred.nikkei225: price
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 1
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "7": macro_global_fx
+
+  fred_6i3:
+    description: >-
+      6i-3 (A79, 26 Oct 2026; the 6i brief's decision 6, both credit proxies):
+      Moody's Seasoned Baa Corporate Bond Yield, DBAA (percent, daily, from
+      1986-01-02) and BAA (percent, monthly average, from 1919-01), read off
+      FRED; the legs of calc.baa_less_10y and calc.baa_less_10y_m, the T&B
+      harness's long credit proxy beside HY OAS. See altdata/config.py
+      FRED_6I3_SERIES. Report only: barred from the market-state object.
+    source: fred
+    members_from: altdata.config.FRED_6I3_SERIES
+    member_families:
+      fred.dbaa: rate
+      fred.baa: rate
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 2
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
       "6": macro_valuation_credit
 
   fred_aq3:
@@ -16536,7 +18618,7 @@ bulk_imports:
       yfinance.mkt_dspx: vol_index
       yfinance.mkt_cor1m: index_points
       yfinance.mkt_cor3m: index_points
-    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
+    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5 items 18 and 27; the union at chain-2) + TIP MUB MBB (the GTM batch, part 2, ruling 2 of 17 Oct 2026) + ^VIX9D ^VIX6M (Batch 9 item 52, 17 Oct 2026); 40 + NVDA + AGG + the tape's ^TNX ^TYX DX-Y.NYB GC=F CL=F (T2.1) + ^MOVE ^VVIX ^SKEW (T2.2) + HG=F JPY=X EURUSD=X (T2.3) + RB=F HO=F (AQ-3) + VNQ VEA HEFA (AQ-3 part 2) + DBC (AQ-4) + DBA ETH-USD SOL-USD ZEC-USD VNQI MCHI (AQ-5) + the 28 earnings names (Book B scanner follow-up 4, 13 Oct 2026) + EURCHF=X (batch 3, SR-30) + TRY=X IDR=X and ten EM country ETFs (SR-46)
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -16593,7 +18675,7 @@ bulk_imports:
     family: quantity
     members_are: values
     member_suffixes: ['_volume']
-    expected_members: 94   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
+    expected_members: 97   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + TIP MUB MBB (the GTM batch, part 2, 17 Oct 2026)
     key_prefix: yfinance.
     units: shares
     native_horizon: daily
@@ -16754,7 +18836,7 @@ bulk_imports:
     # ONE MEMBER, TWO SERIES. Each symbol can carry a dividend series and a split
     # series, so the block declares the suffixes rather than needing 56 lines.
     member_suffixes: ['_dividend', '_split']
-    expected_members: 124   # + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
+    expected_members: 127   # + QAI (ruling D22, a61, 24 Oct 2026) + AIQ SPXT (Batch 14 item 65, a57, 23 Oct 2026) + SMH MU AMD GRID ANET VRT PAVE ASML (Batch 14 item 63, b52, 21 Oct 2026) + KRE (Batch 12 item 59, 20 Oct 2026) + ^DSPX ^COR1M ^COR3M ZN=F (Batch 5) + TIP MUB MBB (the GTM batch, part 2) + ^VIX9D ^VIX6M (Batch 9 item 52); the market_closes basket: 66 (with EURCHF=X, batch 3) (with AQ-3's RB=F HO=F and VNQ VEA HEFA, AQ-4's DBC and AQ-5's six) + the 28 earnings names (scanner follow-up 4) + SR-46's twelve
     key_prefix: yfinance.
     units: price
     native_horizon: daily
@@ -17488,6 +19570,27 @@ bulk_imports:
     mechanism_group: crypto_protocol_economics
     long_window: 365d
 
+  trend_breadth_signs:
+    description: >-
+      Batch 16 item 89(b) (B76): each held market's trend sign at four lookbacks,
+      keyed trend.<market>.<lookback> (trend.ust_10y.250 ...): +1 when the close
+      is above the mean of its last L closes, -1 below, 0 equal, per the market's
+      own sessions (config/trend_breadth.yaml, declared, not fitted). Computed
+      from stored closes only (D33); a sign is available when the latest close in
+      its window is. Report rights only; barred from the market-state object.
+    source: calc
+    members_from: altdata.trend_breadth.SIGN_KEYS
+    members_are: keys
+    expected_members: 64
+    units: ratio
+    native_horizon: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    trigger_eligible: false
+    mechanism_group: trend_breadth
+
 families:
   # Signal-triage Batch 6, the rest of Tranche 1 (16 Oct 2026).
   sp500.member_weight: ratio
@@ -17584,6 +19687,11 @@ families:
   yfinance.mkt_vix6m: conditions
   vol.event_day: conditions
   vol.event_ledger: conditions
+  rates.speed_event_ledger: conditions
+  gold.event_ledger: conditions
+  equity.dm_drawdown_ledger: conditions
+  sec13f.gold_etf_holders: quantity
+  sec13f.gold_etf_value_usd: quantity
   calc.vol_compression: conditions
   calc.net_liquidity: quantity
   fred.bank_reserves: quantity
@@ -17618,6 +19726,11 @@ families:
   fiscaldata.mts_customs_net: quantity
   edgar.xbrl_operating_cash_flow: quantity
   edgar.xbrl_capex: quantity
+  edgar.capex_guidance.amzn: quantity
+  edgar.capex_guidance.googl: quantity
+  edgar.capex_guidance.meta: quantity
+  edgar.capex_guidance.msft: quantity
+  edgar.capex_guidance.orcl: quantity
   yfinance.mkt_tip: price
   yfinance.mkt_mub: price
   yfinance.mkt_mbb: price
@@ -17659,7 +19772,7 @@ families:
   edgar.xbrl_mu_inventory: quantity
   edgar.xbrl_mu_cogs_q: quantity
   # 6e (15 Oct 2026): every other individually registered level series,
-  # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari.
+  # by tools/assign_families.py; `# ambiguous:` marks one listed for the operator.
   aaii.bull_bear_spread: ratio
   acm.fitted_yield_10y: rate
   acm.risk_neutral_yield_10y: rate
@@ -17753,6 +19866,8 @@ families:
   calc.vx_front_slope: ratio
   calc.xlre_spy: ratio
   calc.yield_curve_2s10s: ratio
+  calc.baa_less_10y: spread
+  calc.baa_less_10y_m: spread
   calc.yoy_ahe: ratio   # ambiguous: a return series, not a level; alternative: price
   calc.yoy_core_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
   calc.yoy_core_pce: ratio   # ambiguous: a return series, not a level; alternative: price
@@ -18298,6 +20413,21 @@ families:
   shiller.cape: ratio
   shiller.cpi: price
   shiller.real_home_price: price
+  cyber.kev_added_week: quantity
+  cyber.nvd_critical_week: quantity
+  gdelt.events_total: quantity
+  gdelt.source_urls_total: quantity
+  gdelt.conflict_events: quantity
+  gdelt.reduce_relations_events: quantity
+  gdelt.conflict_share: ratio
+  gdelt.avg_tone: conditions
+  gdelt.narrative_mentions: quantity
+  noaa.hdd_pop: conditions
+  noaa.cdd_pop: conditions
+  ai.model_releases_week: quantity
+  ai.model_releases_week_total: quantity
+  defillama.protocols_listed: quantity
+  defillama.protocols_active: quantity
   shiller.gs10: rate
   shiller.sp_dividend: price
   shiller.sp_earnings: price
@@ -18405,6 +20535,7 @@ families:
   yfinance.fund_orcl_net_debt: quantity
   yfinance.fund_orcl_operating_cash_flow: quantity
   zec.beta_to_btc_60d: ratio
+  gold.beta_real_60d: ratio
   zec.btc_ratio: ratio
   zec.crypto_cap_share: ratio
   zec.market_cap_usd: quantity
@@ -18413,6 +20544,96 @@ families:
   zec.realized_vol_20d: conditions
   zec.shielded_tx_share: ratio
   zec.shielded_value_share: ratio
+  # B69 (25 Oct 2026): the Quarterly's readers, tranche 1
+  eia.spr_stocks: quantity
+  eia.refinery_util: ratio
+  eia.gas_storage: quantity
+  eia.lng_exports: release
+  imf.portwatch.transits.hormuz: quantity
+  imf.portwatch.transits.hormuz.tanker: quantity
+  imf.portwatch.transits.suez: quantity
+  imf.portwatch.transits.suez.tanker: quantity
+  imf.portwatch.transits.bab_el_mandeb: quantity
+  imf.portwatch.transits.bab_el_mandeb.tanker: quantity
+  imf.portwatch.transits.malacca: quantity
+  imf.portwatch.transits.malacca.tanker: quantity
+  usda.wasde.wheat.ending_stocks: quantity
+  usda.wasde.wheat.stocks_to_use: ratio
+  usda.crop_progress.wheat: conditions
+  usda.wasde.corn.ending_stocks: quantity
+  usda.wasde.corn.stocks_to_use: ratio
+  usda.crop_progress.corn: conditions
+  usda.wasde.soybeans.ending_stocks: quantity
+  usda.wasde.soybeans.stocks_to_use: ratio
+  usda.crop_progress.soybeans: conditions
+  noaa.oni: conditions
+  cftc.disagg.corn.managed_money_net: quantity
+  cftc.disagg.corn.managed_money_net_oi: ratio
+  cftc.disagg.wheat.managed_money_net: quantity
+  cftc.disagg.wheat.managed_money_net_oi: ratio
+  cftc.disagg.soybeans.managed_money_net: quantity
+  cftc.disagg.soybeans.managed_money_net_oi: ratio
+  boc.yield_2y: rate
+  riksbank.yield_2y: rate
+  snb.sight_deposits_total: quantity
+  snb.sight_deposits_domestic: quantity
+  jp.mof.intervention_jpy: quantity
+  fred.ovx: price
+  # B70 (25 Oct 2026): the Quarterly's readers, tranche 2
+  ishares.ibit.aum: quantity
+  ishares.ibit.shares: quantity
+  ishares.etha.aum: quantity
+  ishares.etha.shares: quantity
+  llama.tvl.category.rwa: quantity
+  llama.tvl.category.lending: quantity
+  llama.tvl.category.liquid_staking: quantity
+  llama.tvl.category.dexs: quantity
+  llama.tvl.category.cdp: quantity
+  llama.tvl.category.bridge: quantity
+  llama.tvl.category.yield: quantity
+  llama.tvl.category.derivatives: quantity
+  llama.tvl.category.restaking: quantity
+  llama.tvl.category.basis_trading: quantity
+  llama.tvl.chain.arbitrum: quantity
+  llama.tvl.chain.base: quantity
+  llama.tvl.chain.optimism: quantity
+  llama.tvl.chain.blast: quantity
+  llama.tvl.chain.scroll: quantity
+  llama.tvl.chain.linea: quantity
+  llama.tvl.chain.zksync_era: quantity
+  llama.tvl.chain.mantle: quantity
+  llama.tvl.chain.starknet: quantity
+  edgar.bdc.arcc.investments_fv: quantity
+  edgar.bdc.arcc.nav_per_share: price
+  edgar.bdc.arcc.nonaccrual_fv: quantity
+  edgar.bdc.fsk.investments_fv: quantity
+  edgar.bdc.fsk.nav_per_share: price
+  edgar.bdc.fsk.nonaccrual_fv: quantity
+  edgar.bdc.bxsl.investments_fv: quantity
+  edgar.bdc.bxsl.nav_per_share: price
+  edgar.bdc.bxsl.nonaccrual_fv: quantity
+  edgar.bdc.obdc.investments_fv: quantity
+  edgar.bdc.obdc.nav_per_share: price
+  edgar.bdc.obdc.nonaccrual_fv: quantity
+  edgar.bdc.main.investments_fv: quantity
+  edgar.bdc.main.nav_per_share: price
+  edgar.bdc.main.nonaccrual_fv: quantity
+  eth.burn_daily: quantity
+  eth.issuance_daily: quantity
+  eth.net_issuance: quantity
+  thai.current_account_usd: release
+  thai.construction_materials_index: release
+  pjm.capacity_auction: quantity
+  lbnl.interconnection_queue: quantity
+  moea.export_orders: quantity
+  tsmc.monthly_revenue: quantity
+  circle.usdc_reserves: quantity
+  tether.usdt_reserves: quantity
+  yahoo_pending.gdx: price
+  yahoo_pending.sil: price
+  yahoo_pending.corn_front: price
+  yahoo_pending.wheat_front: price
+  yahoo_pending.soybeans_front: price
 
 # THE LONG WINDOW (metric-lenses brief: every level metric carries a five-year
 # percentile AND a long one). `full` is the series' whole stored history; a
@@ -18472,6 +20693,83 @@ member_overrides:
   portfolio.position_currency: {status_extra: while_held}
   portfolio.position_con_id: {status_extra: while_held}
 
+# -----------------------------------------------------------------------------
+# MARKET_STATE_BARRED (6f tranche 5; ruling 12a of 24 Oct 2026). Every key an
+# order keeps out of the market-state object, seeded from the order that bars it.
+# resolve_registry sets `market_state: barred` and `market_state_barred_by` on
+# each key a pattern matches (globs over store keys); `instruments`, where given,
+# bars only those instruments of the key. tools/validate_regime.py group V2
+# refuses a barred key (or instrument) as a member of any dimension, a dial's
+# leg or a horizon read. `pending` names a branch whose keys are not on this base
+# yet: the pattern is seeded now so the bar is in force the day they land.
+# -----------------------------------------------------------------------------
+market_state_barred:
+  - order: docs/change-order-signal-triage-2026-09-25.md (MW-2, R9)
+    rule: "no calc.prl_* path to a composite, overlay, trigger, dial or dimension"
+    keys: ["calc.prl_*"]
+  - order: docs/change-order-signal-triage-2026-09-25.md (2.3.6, SR-19)
+    rule: "narrow flag, conditioner only"
+    keys: ["calc.neg_beta_share_*"]
+  - order: the 30 Sep 2026 withdrawal of rates.driver (ST-3; docs/market-state.md 4)
+    rule: "the rates attribution is not read by regime.py; the object has no rates sub-state"
+    keys: ["calc.attr_*"]
+  - order: ST-5, held by tools/validate_st_t2_rates.py group L
+    rule: "no ST-5 key or candidate row is in the market-state config; regime imports nothing of ST-5"
+    keys: ["calc.jp_front_diff", "calc.jp_front_diff_60d", "calc.jpy_pos_z",
+           "calc.jp_hedged_carry", "calc.usdjpy_rvol_20d", "calc.jpy_unwind",
+           "calc.cny_fix_dev", "calc.uscn_10y_spread", "calc.deval_tell"]
+  - order: docs/change-order-signal-triage-batch-11-2026-10-19.md (section 1; registry ruling 2 of 19 Oct)
+    rule: "no vendor value in any flag, tell, dial, decision or engine; vendor keys are never lensed"
+    keys: ["vendor.*", "dealer.vendor_*"]
+  - order: config/prediction_markets.yaml (the rights; Part 27)
+    rule: "discovery, attention shock and disagreement, and nothing else; never a trigger"
+    keys: ["pm.*"]
+  - order: docs/change-order-signal-triage-batch-14-2026-10-20.md (F5, items 62-71)
+    rule: "nothing enters a composite or the market-state object"
+    keys: ["rates.speed_event_ledger", "fred.ppi_pcb_assembly", "fred.ppi_storage_devices",
+           "fred.ppi_semiconductors", "fred.z1_equities_mv", "fred.households",
+           "shiller.real_home_price", "yfinance.mkt_aiq", "yfinance.mkt_spxt",
+           "yfinance.mkt_smh", "yfinance.mkt_mu", "yfinance.mkt_amd", "yfinance.mkt_grid",
+           "yfinance.mkt_anet", "yfinance.mkt_vrt", "yfinance.mkt_pave", "yfinance.mkt_asml"]
+  - order: docs/change-order-signal-triage-batch-14-2026-10-20.md (F5, item 71) and ruling D13 of 24 Oct 2026
+    rule: "the five funds joined the fragility panel's rebalance estimate; nothing enters the object"
+    keys: ["levetf.aum", "levetf.shares_outstanding", "levetf.nav"]
+    instruments: [QID, UDOW, SDOW, URTY, SRTY]
+  - order: docs/change-order-signal-triage-batch-15-2026-10-23.md (section 1, items 72, 73, 77, 78; the configs' headers)
+    rule: "no composite weights change; rights are flags and report lines only; nothing enters the market-state object"
+    keys: ["sec13f.*", "gold.event_ledger", "equity.dm_drawdown_ledger", "fred.nikkei225",
+           "cyber.*", "defillama.protocols_*"]
+  - order: docs/change-order-signal-triage-batch-15-2026-10-23.md (item 74; config/hf_positioning.yaml)
+    rule: "no composite and no market-state object reads it"
+    keys: ["cftc.tff_lev_money_net", "cftc.tff_lev_money_net_oi", "cftc.tff_lev_money_long",
+           "cftc.tff_lev_money_short"]
+    instruments: [ES, NQ]
+  - order: ruling D22 of 24 Oct 2026 (Batch 15 item 74, a61)
+    rule: "hedge-fund performance (QAI, replication proxy): report only"
+    keys: ["yfinance.mkt_qai"]
+  - order: rulings D15 and D26 of 24 Oct 2026 (b59-trigger-sources; its configs' headers)
+    rule: "report only: nothing here enters a composite or the market-state object"
+    keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
+    pending: b59-trigger-sources
+  - order: docs/briefs/learning-loop-v2-brief-2026-10-25.md (section 3; decisions 1 and 11 ruled 25 Oct 2026; B73)
+    rule: "report only: the system's own grades are evidence for the sittings, never an input to the object"
+    keys: ["brier.decomposition", "grade.counterfactual", "learning.error_corpus", "learning.value_of_information"]
+  - order: change-order-signal-triage-round-7-2026-10-26.md, filed as Batch 16 (items 87, 88; ruled 25-26 Oct 2026; B75)
+    rule: "report rights only: nothing enters a composite, the market-state object, a dial or a packet"
+    keys: ["gold.attr.*", "gold.beta_real_60d"]
+  - order: docs/change-order-signal-triage-round-7-2026-10-26.md (Batch 16 item 89(b), written as 82(b); B76)
+    rule: "trend breadth is a report; it enters the Top & Bottom intake queue only after its calibration ledger is read"
+    keys: ["trend.*"]
+  - order: the 6i brief's decision 6 (25 Oct 2026; 6i-3, A79)
+    rule: "the T&B harness's long credit proxy: report only; nothing enters a composite, the market-state object, a dial, a band or a packet"
+    keys: ["fred.dbaa", "fred.baa", "calc.baa_less_10y", "calc.baa_less_10y_m"]
+
+  - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
+    rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
+    keys: ['eia.spr_stocks', 'eia.refinery_util', 'eia.gas_storage', 'eia.lng_exports', 'imf.portwatch.*', 'usda.wasde.*', 'usda.crop_progress.*', 'noaa.oni', 'cftc.disagg.*', 'boc.*', 'riksbank.*', 'snb.*', 'jp.mof.*', 'fred.ovx']
+  - order: "ruling D34 of 24 Oct 2026 (b70-quarterly-readers-2)"
+    rule: "report only: the Quarterly's tranche-2 readers and declared gaps enter no composite, flag, dial or the market-state object"
+    keys: ['ishares.*', 'llama.tvl.*', 'edgar.bdc.*', 'eth.*', 'thai.current_account_usd', 'thai.construction_materials_index', 'pjm.*', 'lbnl.*', 'moea.*', 'tsmc.*', 'circle.*', 'tether.*', 'yahoo_pending.*']
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:
@@ -18668,6 +20966,10 @@ series_kinds:
   fred.iorb: rate
   fred.fed_funds: rate
   calc.yield_curve_2s10s: spread
+  calc.baa_less_10y: spread
+  calc.baa_less_10y_m: spread
+  fred.dbaa: yield
+  fred.baa: yield
   acm.term_premium_10y: spread
   fred.ig_oas: spread
   fred.hy_oas: spread
@@ -18858,11 +21160,22 @@ reserved:
 # NOT A LEVEL SERIES (6e): no lens family, each with its reason. A block id
 # names every member of the block; a key names one series.
 lens_excluded:
+  edgar.capex_guidance_record.amzn: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.googl: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.meta: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.msft: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
+  edgar.capex_guidance_record.orcl: "units 'label': a JSON record per filing -- the guidance sentences, URL and accession (A66)"
   calc.release_first_hour: "units 'label': a JSON record per release day and instrument (the secondary notes)"
   exposure.regime_word: "units 'label': the capture's gate word per symbol and slot, not a level series (decision 9)"
   calc.after_hours_move: "units 'label': a JSON record per after-hours print (the secondary notes)"
   calc.earnings_move: "units 'label': a JSON record per print, not a level series (item 57)"
   calc.level_zones: "units 'label': a JSON record of zones and levels, not a level series (H6)"
+  # B73 (LL-1, LL-3), placed by B80: computed at read from the ledgers, tables not series.
+  brier.decomposition: "a table of Murphy's three terms per source family and horizon, computed at read, not a level series (LL-1)"
+  grade.counterfactual: "a table per book of taken against not-taken outcomes, computed at read, not a level series (LL-1)"
+  learning.error_corpus: "an append-only table of graded misses, one record each, not a level series (LL-3)"
+  # A80 (LL-2), placed beside B80's: computed at read from the corpus, a table not a series.
+  learning.value_of_information: "a table of each missing input's mean-Brier cost by family and horizon, computed at read, not a level series (LL-2)"
   # The chain-2 stitch, CI round 2 (19 Oct 2026).
   state.or_break: "a sign (+1, -1 or 0), not a level series (EL-5)"
   state.net_gex_sign: "a sign (+1, -1 or 0), not a level series (EL-5)"
@@ -18949,3 +21262,11 @@ lens_excluded:
   structure_comparison: "labels"
   zec.cap_probe: "units 'label': not a level series"
   zec.shielded_probe: "units 'label': not a level series"
+  rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
+  ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"
+  gold.attr.real_yield: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.breakeven: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.dollar: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.liquidation: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  gold.attr.official_bid: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
+  trend_breadth_signs: "a sign (+1, -1 or 0) per market and lookback, not a level series (item 89(b))"

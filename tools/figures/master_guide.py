@@ -10,7 +10,7 @@ chat-side task or the library's roster changes:
   fig-02-clock.svg     the clock: a 24-hour weekday dial of the box's timers
                        (deploy/systemd/*.timer) and the chat-side tasks
                        (docs/master-guide/chat-tasks.yaml) in a second colour,
-                       Ari's touches ringed; a week strip and a month strip
+                       the operator's touches ringed; a week strip and a month strip
   fig-05-library.svg   the library map: the roster's papers (the library guide's
                        at-a-glance table) in the four groups of what they help
                        decide, each with the books it serves
@@ -138,7 +138,7 @@ SHORT = {
     "chester-ibkr-sync": "IBKR sync", "chester-deploy": "Self-deploy",
     "ibgateway-watchdog": "Gateway watchdog",
 }
-# The reports Ari reads, ringed on the dial (his touches).
+# The reports the operator reads, ringed on the dial (the operator's touches).
 # Timers that never run as shipped: the Quarterly ships disabled; the restore
 # drill is superseded by the weekly restore test and never enabled.
 OFF = {"chester-quarterly", "chester-restore-drill"}

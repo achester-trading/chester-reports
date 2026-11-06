@@ -6,7 +6,7 @@ tranche-a-1, 17 Oct 2026). Config: config/crypto_sources.yaml.
     python -m altdata.sources.blockscout     # one pull
 
 WHY NOT ETHERSCAN. The order's DS-11 is Etherscan (ethsupply2 and the gas
-oracle), whose key (ETHERSCAN_API_KEY) is a registration Ari has not made. Under
+oracle), whose key (ETHERSCAN_API_KEY) is a registration the operator has not made. Under
 rule (b) of 16 Oct the Ethereum pieces take a keyless path within robots where one
 exists: https://eth.blockscout.com/api/v2 (robots.txt: Allow /, account and auth
 paths disallowed). What it does not serve -- ETH supply, staked and burnt

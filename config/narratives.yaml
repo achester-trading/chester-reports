@@ -343,7 +343,7 @@ disagreements:
 
 # COMMITTED PROPOSALS -- PENDING THE OPERATOR'S CONFIRM
 # Ruling (c) of 16 Oct 2026: "Judgment drafts (narrative lines, appendix notes,
-# rule-table edits) are committed by the session as drafted and listed for Ari's
+# rule-table edits) are committed by the session as drafted and listed for the operator's
 # accept-all; the register's confirm step stays his." So these enter the register
 # at the next seed as `proposed` (origin config_proposal), emerging, never
 # evaluated, and the Weekly prints each beside its confirm and reject commands,
@@ -418,9 +418,9 @@ proposals:
       than half of the move. The other side of "what's driving 5.3%" -- fiscal
       dominance, already a seeded story, is the first.
     proposed_by: >-
-      session B, as drafted from the Batch 5 change order item 26 (Boivin,
-      BlackRock Investment Institute; Rai) as the disagreement pair "what's driving
-      5.3%" against fiscal_dominance (Kovač, TAAI; Hartnett, BofA); adjudicator the
+      session B, as drafted from the Batch 5 change order item 26 (BlackRock
+      Investment Institute, and a second desk) as the disagreement pair "what's driving
+      5.3%" against fiscal_dominance (TAAI; BofA); adjudicator the
       fiscal-bark flag on the 10-year attribution, monthly. Committed 16 Oct 2026
       under ruling (c)
     linked_dimensions: {rates: "+", growth: "+"}
@@ -524,3 +524,43 @@ proposals:
       comparison: down
       quorum: 1
       horizon_days: 90
+
+  # SIGNAL-TRIAGE BATCH 14, ITEM 67 (written as 60; F3, b55, 23 Oct 2026): the bull
+  # narrative the order rules into the register, seeded PROPOSED with its caveat.
+  # PEG and LTEG are listed gaps, so the story's own measure cannot print; it
+  # starts with its evidence rule on the S&P 500 alone. The adjudicator the order
+  # names, item 60's realised forecast error turning negative, is a listed gap too
+  # (no keyless forward-EPS source with vintages), so the outcome the store can
+  # answer is the index's level two quarters on.
+  market_cheap_on_peg:
+    name: The market is cheap on PEG
+    direction: >-
+      The S&P 500 is cheap because its PEG (forward P/E over five-year consensus
+      long-term earnings growth) is at a record low, so the index rises as
+      earnings growth is delivered. Caveat, carried with the story: the PEG is
+      low because its denominator is an inflated long-term growth estimate, not
+      because the price is low; long-term growth estimates overshoot at peaks
+      (docs/base-rate-notes/lteg-overshoot-2026-10.md), so a record-low PEG is a
+      measure of estimate optimism before it is a measure of value.
+    proposed_by: >-
+      session B, as drafted from the Batch 14 change order item 67 (written as
+      60; a chart-house post, tagged as the order tags it: credible voice;
+      chart-house source). PEG and LTEG are listed gaps under F3 and print
+      nowhere. Committed 23 Oct 2026 as PROPOSED; confirming or rejecting is the
+      operator's
+    linked_dimensions: {trend: "+"}
+    linked_instruments: [yfinance.mkt_gspc]
+    prediction_market_contracts: []
+    evidence:
+      # A five-session rise in the S&P 500 at or beyond its 10th percentile counts
+      # FOR; the store answers the index's close.
+      series_moves:
+        yfinance.mkt_gspc: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        The S&P 500 (^GSPC) is higher at the horizon, two quarters on, than when
+        the forecast was emitted.
+      metrics: [yfinance.mkt_gspc]
+      comparison: up
+      quorum: 1
+      horizon_days: 182
