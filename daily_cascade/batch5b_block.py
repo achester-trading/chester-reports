@@ -85,6 +85,10 @@ def dispersion_subsection(st, now: str, cfg: Optional[dict] = None) -> dict:
     rows, gaps = [], []
     for k, label in LABELS.items():
         r = d["rows"][k]
+        if r.get("held"):
+            # D45: the series' line where its level would be, with the last date.
+            rows.append([label, r["reason"], "—", "—", r.get("as_of") or "—"])
+            continue
         if r.get("absent"):
             gaps.append(label)
             continue

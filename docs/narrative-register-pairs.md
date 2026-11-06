@@ -63,3 +63,15 @@ The pair itself is session B's item-26 draft (`st-r4-tranche-1` notes), and its 
 
 - **The 200-year real-rate claim** (item 94; an unattributed public post, author pending V4): a real premium near 3% "aligns with a 200-year average" of about 2% real return plus about 1% term premium. It stays here until sourced (V3: Homer and Sylla, or Jordà, Schularick and Taylor); it never prints as a figure before then.
 - **"A higher probability of lower returns into 2027"** (item 92; an independent macro analyst, Global Business Cycle Framework): global liquidity momentum at its current level preceded a negative SPX YoY return within a year in three episodes since 2015 (n = 3). The analyst's read, logged; SR-65's proxy and V6 test the episodes from the store.
+
+## Narrative claims logged from Batch 19 (not stories; no implied outcome)
+
+**Added 30 October 2026 (paste B91, filing).** Not a story in `config/narratives.yaml`:
+it carries no implied outcome on a stored series and no right.
+
+- **"Gold and silver could go negative in 2027"** (item 103; a precious-metals fund
+  manager at Crescat, on LinkedIn, 28 Oct 2026, long precious metals: conflicted).
+  It is logged as **media capitulation (source likely fabricated)**: the cited
+  "Horizon Capital Research" article is untraceable (V5), and the claim is
+  mechanically unsound. It sits beside 88(a)'s exhaustion checklist and is not
+  scored.

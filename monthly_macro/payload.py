@@ -171,17 +171,27 @@ def regime_block(as_of: Optional[str] = None,
                 for p in pillars.for_dial(name)],
         }
         if name == "vol":
-            ts = d.get("term_structure") or {}
+            ts = dict(d.get("term_structure") or {})
+            # HELD (D45, 31 Oct 2026): the Cboe legs print the hold (the stored
+            # object is read as it is; altdata.refusals.held_leg).
+            from altdata import refusals                        # noqa: PLC0415
+            for leg_name in ("champion", "basis"):
+                h = refusals.held_leg(ts.get(leg_name), store, as_of)
+                if h:
+                    ts[leg_name] = h
             row["term_structure"] = {
                 "published_by": ts.get("published_by"),
                 "published_state": ts.get("state"),
                 "champion": {k: (ts.get("champion") or {}).get(k)
-                             for k in ("metric", "state", "ratio", "percentile")},
+                             for k in ("metric", "state", "ratio", "percentile",
+                                       "absent_reason")},
                 "challenger": {k: (ts.get("challenger") or {}).get(k)
                                for k in ("metric", "state", "ratio",
                                          "percentile")},
                 "legs_agree": ts.get("legs_agree"),
-                "basis": (ts.get("basis") or {}).get("value"),
+                "basis": ((ts.get("basis") or {}).get("absent_reason")
+                          if (ts.get("basis") or {}).get("held") else
+                          (ts.get("basis") or {}).get("value")),
                 "dual_run_until": ts.get("dual_run_until"),
             }
             row["realized_implied"] = {

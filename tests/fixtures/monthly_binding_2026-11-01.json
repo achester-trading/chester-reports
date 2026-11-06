@@ -1,0 +1,283 @@
+{
+ "source": "The first stacked Monthly's run of 1 Nov 2026 (the laptop's log): the four binding false positives A90's tip still withheld, each its logged sentence (trimmed to the clause in question) over a block in the rows' real labels -- themes from config/monthly_themes.yaml, pillar 1 from altdata/config.py, the metals block from daily_cascade/weekly_sections.plumbing_rows -- holding the values the draft quotes. Synthetic blocks; no store read.",
+ "binding_pass": [
+  {
+   "case": "block:plumbing:metals: a hyphenated name (gold-over-copper)",
+   "text": "Copper closed October at $6.458/lb, down −1.53% on the month, while gold-over-copper fell −5.43% to 604.",
+   "block": {
+    "table": {
+     "columns": [
+      "Series",
+      "Level",
+      "Month change",
+      "As of"
+     ],
+     "rows": [
+      [
+       "Copper, front future ($/lb; a growth gauge)",
+       "$6.458",
+       "−1.53%",
+       "2026-10-30"
+      ],
+      [
+       "Gold over copper (rises when growth fears rise)",
+       "604",
+       "−5.43%",
+       "2026-10-30"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "case": "theme:geopolitics_reserve: a long name without an inner word (China's gold holdings)",
+   "text": "China's gold holdings rose by 740,000 ounces to 77.47 million ounces.",
+   "block": {
+    "series": [
+     {
+      "series": "Gold, COMEX front-month future (GC=F)",
+      "latest_level_display": "3,898.9",
+      "change_pct": -6.87
+     },
+     {
+      "series": "China's foreign-exchange reserves (SAFE)",
+      "latest_level_display": "$3.4tn",
+      "change_pct": -1.11
+     },
+     {
+      "series": "China's official gold holdings (SAFE)",
+      "latest_level_display": "77.47 million ounces",
+      "change_display": "+740,000 ounces"
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:1: \"27+ weeks\" written \"27 weeks\"",
+   "text": "Initial claims on a four-week average fell by −3,750 claims to 196.75 thousand, even as the ranks of those unemployed 27 weeks or longer grew by +14,000 people to 1.94 million.",
+   "block": {
+    "series": [
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "196.75 thousand",
+      "change_display": "−3,750 claims"
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people"
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:sentiment: a name up to its tenor (the Michigan 5-10 year measure)",
+   "text": "The University of Michigan consumer sentiment gauge fell −6.96% to 48.1, while both of its companion inflation-expectations series moved the other way: the Michigan 5-10 year measure rose +10 bp to 3.5% and the NY Fed's 3-year consumer measure rose +6.3 bp to 3.25%.",
+   "block": {
+    "series": [
+     {
+      "series": "University of Michigan consumer sentiment",
+      "latest_level_display": "48.1",
+      "change_pct": -6.96
+     },
+     {
+      "series": "Michigan 5-10 year inflation expectations",
+      "latest_level_display": "3.5%",
+      "change_display": "+10 bp"
+     },
+     {
+      "series": "NY Fed consumer 3-year inflation expectations",
+      "latest_level_display": "3.25%",
+      "change_display": "+6.3 bp"
+     }
+    ]
+   }
+  }
+ ],
+ "binding_fail": [
+  {
+   "case": "copper given gold over copper's change",
+   "text": "Copper fell −5.43% to 604.",
+   "block": {
+    "table": {
+     "columns": [
+      "Series",
+      "Level",
+      "Month change",
+      "As of"
+     ],
+     "rows": [
+      [
+       "Copper, front future ($/lb; a growth gauge)",
+       "$6.458",
+       "−1.53%",
+       "2026-10-30"
+      ],
+      [
+       "Gold over copper (rises when growth fears rise)",
+       "604",
+       "−5.43%",
+       "2026-10-30"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "case": "the hyphenated name given copper's change",
+   "text": "Gold-over-copper fell −1.53% on the month.",
+   "block": {
+    "table": {
+     "columns": [
+      "Series",
+      "Level",
+      "Month change",
+      "As of"
+     ],
+     "rows": [
+      [
+       "Copper, front future ($/lb; a growth gauge)",
+       "$6.458",
+       "−1.53%",
+       "2026-10-30"
+      ],
+      [
+       "Gold over copper (rises when growth fears rise)",
+       "604",
+       "−5.43%",
+       "2026-10-30"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "case": "the COMEX gold future given China's holdings",
+   "text": "The gold future rose to 77.47 million.",
+   "block": {
+    "series": [
+     {
+      "series": "Gold, COMEX front-month future (GC=F)",
+      "latest_level_display": "3,898.9",
+      "change_pct": -6.87
+     },
+     {
+      "series": "China's foreign-exchange reserves (SAFE)",
+      "latest_level_display": "$3.4tn",
+      "change_pct": -1.11
+     },
+     {
+      "series": "China's official gold holdings (SAFE)",
+      "latest_level_display": "77.47 million ounces",
+      "change_display": "+740,000 ounces"
+     }
+    ]
+   }
+  },
+  {
+   "case": "China's foreign-exchange reserves given its gold holdings",
+   "text": "China's foreign-exchange reserves rose to 77.47 million ounces.",
+   "block": {
+    "series": [
+     {
+      "series": "Gold, COMEX front-month future (GC=F)",
+      "latest_level_display": "3,898.9",
+      "change_pct": -6.87
+     },
+     {
+      "series": "China's foreign-exchange reserves (SAFE)",
+      "latest_level_display": "$3.4tn",
+      "change_pct": -1.11
+     },
+     {
+      "series": "China's official gold holdings (SAFE)",
+      "latest_level_display": "77.47 million ounces",
+      "change_display": "+740,000 ounces"
+     }
+    ]
+   }
+  },
+  {
+   "case": "initial claims given the long-term unemployed's level",
+   "text": "Initial claims on a four-week average rose to 1.94 million.",
+   "block": {
+    "series": [
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "196.75 thousand",
+      "change_display": "−3,750 claims"
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people"
+     }
+    ]
+   }
+  },
+  {
+   "case": "the unemployed 27 weeks given claims' level",
+   "text": "Those unemployed 27 weeks or longer numbered 196.75 thousand.",
+   "block": {
+    "series": [
+     {
+      "series": "Initial claims, 4-week avg",
+      "latest_level_display": "196.75 thousand",
+      "change_display": "−3,750 claims"
+     },
+     {
+      "series": "Unemployed 27+ weeks",
+      "latest_level_display": "1.94 million",
+      "change_display": "+14,000 people"
+     }
+    ]
+   }
+  },
+  {
+   "case": "Michigan sentiment given its inflation expectations",
+   "text": "The University of Michigan consumer sentiment gauge rose +10 bp to 3.5%.",
+   "block": {
+    "series": [
+     {
+      "series": "University of Michigan consumer sentiment",
+      "latest_level_display": "48.1",
+      "change_pct": -6.96
+     },
+     {
+      "series": "Michigan 5-10 year inflation expectations",
+      "latest_level_display": "3.5%",
+      "change_display": "+10 bp"
+     },
+     {
+      "series": "NY Fed consumer 3-year inflation expectations",
+      "latest_level_display": "3.25%",
+      "change_display": "+6.3 bp"
+     }
+    ]
+   }
+  },
+  {
+   "case": "the Michigan 5-10 year measure given the NY Fed's figures",
+   "text": "The Michigan 5-10 year measure rose +6.3 bp to 3.25%.",
+   "block": {
+    "series": [
+     {
+      "series": "University of Michigan consumer sentiment",
+      "latest_level_display": "48.1",
+      "change_pct": -6.96
+     },
+     {
+      "series": "Michigan 5-10 year inflation expectations",
+      "latest_level_display": "3.5%",
+      "change_display": "+10 bp"
+     },
+     {
+      "series": "NY Fed consumer 3-year inflation expectations",
+      "latest_level_display": "3.25%",
+      "change_display": "+6.3 bp"
+     }
+    ]
+   }
+  }
+ ]
+}

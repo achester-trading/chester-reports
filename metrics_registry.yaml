@@ -7146,6 +7146,21 @@ metrics:
     trigger_eligible: false
     description: >-
       AAII Sentiment Survey: the share of individual investors bullish minus the share bearish on the next six months, in percentage points.
+  # D40.3 (27 Oct 2026; B82): the same survey's Bearish share, from the same rows
+  # and by the same rules as the spread. Read by B79's Capitulation Count.
+  aaii.bearish_share:
+    source: aaii
+    mechanism_group: retail_activity
+    native_horizon: weekly
+    freq: weekly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    description: >-
+      AAII Sentiment Survey: the share of individual investors bearish on the next six months, in percent of respondents (0-100).
   nyfed.sce_3y:
     source: nyfed_sce
     mechanism_group: inflation_expectations
@@ -19774,6 +19789,7 @@ families:
   # 6e (15 Oct 2026): every other individually registered level series,
   # by tools/assign_families.py; `# ambiguous:` marks one listed for the operator.
   aaii.bull_bear_spread: ratio
+  aaii.bearish_share: ratio
   acm.fitted_yield_10y: rate
   acm.risk_neutral_yield_10y: rate
   acm.term_premium_10y: rate
@@ -20681,6 +20697,36 @@ member_overrides:
   farside.eth_total: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
   farside.btc_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
   farside.eth_issuer: {status_extra: refused, gap_reason: "farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  # HELD (D45, 31 Oct 2026; paste B95): the two Cboe readers. Declared, never
+  # stale; the rows are kept. Lifting the hold removes these lines.
+  cboe.cor1m: {status_extra: held, held_source: cboe_indices, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cboe.cor3m: {status_extra: held, held_source: cboe_indices, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cboe.dspx: {status_extra: held, held_source: cboe_indices, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx_settle: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx1: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx2: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  cfe.vx3: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  calc.vx_front_slope: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  calc.vx_front_ratio: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  calc.vx1_vix_basis: {status_extra: held, held_source: cboe, gap_reason: "Cboe terms, storage in a retrieval system forbidden (checked 30 Oct 2026); held pending Doctrine #2; held from 2026-11-03"}
+  # B85 (29 Oct 2026): the keys the heartbeat named "never written". S-2 is
+  # computed from farside.*_total alone (crypto_derived.s2_rows), so it is refused
+  # with its source; the blocks already print refusals.text("farside").
+  calc.etf_streak: {status_extra: refused, gap_reason: "computed from farside.*_total only; farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  calc.etf_5d_pct: {status_extra: refused, gap_reason: "computed from farside.*_total only; farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  calc.flag_etf_extreme: {status_extra: refused, gap_reason: "computed from farside.*_total only; farside.co.uk answers HTTP 403, a Cloudflare challenge (24 Oct 2026)"}
+  # History still accruing: a gap declared until the first row is due, then
+  # lapsing (derived.declared_status), so a key still unwritten after it is stale.
+  calc.dvol_pct_full: {status_extra: gap, declared_until: 2026-12-02, gap_reason: "accruing: 60 days of deribit.dvol_* needed (crypto_derived.s4_rows); the daily pull keeps 14 days back from its first run of 17 Oct 2026, so the first row is due about 1 Dec 2026 -- at once after the operator's `python -m altdata.sources.deribit backfill`"}
+  calc.dvol_pct_5y: {status_extra: gap, declared_until: 2026-12-02, gap_reason: "accruing: written with calc.dvol_pct_full, on 60 days of deribit.dvol_* (crypto_derived.s4_rows); due about 1 Dec 2026, or at once after the operator's `python -m altdata.sources.deribit backfill`"}
+  calc.froth_z: {status_extra: gap, declared_until: 2027-01-15, gap_reason: "accruing: 90 days of GeckoTerminal's own rows needed (config s5.min_store_days; crypto_derived.s5_rows), and the sample has no backfill; from the first sample of 17 Oct 2026 the first row is due 14 Jan 2027"}
+  calc.flag_froth: {status_extra: gap, declared_until: 2027-01-15, gap_reason: "accruing: written with calc.froth_z for both of a network's measures (crypto_derived.s5_rows); due 14 Jan 2027"}
+  calc.flag_leverage_crowded: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
+  # D42.9 (29 Oct 2026; B87): the two keys that share the leverage flag's missing
+  # input -- 60 observations in 90 days of an aggregate that began with the first
+  # pull -- take its declaration, date and reason.
+  calc.leverage_z: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
+  calc.oi_mcap_z: {status_extra: gap, declared_until: 2026-12-16, gap_reason: "accruing: needs calc.leverage_z, 60 observations of calc.funding_agg in 90 days (crypto_derived.compute); the aggregate began with the first pull, and its z prints from 15 Dec 2026 (ruling 5 of 17 Oct; config z_from)"}
   # Bitcoin's difficulty is set every 2,016 blocks, about 14 days: one row an
   # adjustment, not a day. Weekly cadence plus the btc_difficulty lag.
   mempool.difficulty: {freq: weekly, native_horizon: weekly, information_half_life: until_next_release}

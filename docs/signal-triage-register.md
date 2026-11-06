@@ -8,7 +8,7 @@
 | Seeded | 2026-09-26 by ST-0, with SR-1…SR-27 |
 | Intake | New proposals are written on the [signal intake template](templates/signal-intake.md) and filed here as the next free SR number |
 | Calibration ledgers | [`docs/ledgers/`](ledgers/README.md) — a gate's result is written back to the entry it tests |
-| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
+| Batch orders | [Batch 3](change-order-signal-triage-batch-3-2026-10-02.md), [4](change-order-signal-triage-batch-4-2026-10-06.md), [5](change-order-signal-triage-batch-5-2026-10-09.md), [6](change-order-signal-triage-batch-6-2026-10-15.md), [7](change-order-signal-triage-batch-7-2026-10-16.md), [8](change-order-signal-triage-batch-8-2026-10-17.md), [9](change-order-signal-triage-batch-9-2026-10-17.md) [11](change-order-signal-triage-batch-11-2026-10-19.md) (items 53–58, ruled 19 Oct 2026: amendments to the opening setup and the dealer scorecard, H6 the level clusters), [12](change-order-signal-triage-batch-12-2026-10-20.md) (items 59–60, ruled 20 Oct 2026 with filing amendments F1–F6: the bank-stress panel and the correction-vs-crisis classifier; the earnings-estimate overshoot), [13](change-order-signal-triage-batch-13-2026-10-20.md) (item 61, ruled 20 Oct 2026: relative options volume, OS-12a–d), [14](change-order-signal-triage-batch-14-2026-10-20.md) (items 62–71, ruled 20 Oct 2026 with filing amendments F1–F8: Part A the 1 Nov Monthly candidates, Part B after it), [15](change-order-signal-triage-batch-15-2026-10-23.md) (items 72–78, ruled 20 and 23 Oct 2026 with filing amendments G1–G6: built after the 1 Nov Monthly), and [16](change-order-signal-triage-batch-16-2026-10-26.md) (items 79–91, ruled 24–26 Oct 2026 with filing amendments H1–H7: gold coverage, the midterm table, crowding and trend breadth, the AI-capex bust, the Alpha Lab's event utility; added by hand, until S1's index tool lands); [17](change-order-signal-triage-batch-17-2026-10-26.md) (Signal triage Batch 17 (items 92–97): round 8); [18](change-order-signal-triage-batch-18-2026-10-28.md) (Signal triage Batch 18 (item 98): the 23-hour equity session); [19](change-order-signal-triage-batch-19-2026-10-29.md) (Signal triage Batch 19 (items 99–110): round 9); [20](change-order-signal-triage-batch-20-2026-10-29.md) (Signal triage Batch 20 (items 111–114): round 10); [21](change-order-signal-triage-batch-21-2026-10-30.md) (Signal triage Batch 21 (item 115): round 11). Items 16 onward keep their numbers as IDs in their orders; they are not SR entries |
 
 ## How to read this register
 
@@ -813,7 +813,7 @@ the [Batch 16 order](change-order-signal-triage-batch-16-2026-10-26.md)'s item.
 
 | SR | Item | Entry | Rights class | Built in | Status |
 |---|---|---|---|---|---|
-| 60 | 80(b) with 90 | The midterm event row and the midterm base-rate table: 19 midterms since 1950, nothing omitted; the year's drawdown against the other years, the low's date against election day, forward returns from the low and from election day, the recession flag | Base rate (no trigger) | A78 (`docs/ledgers/midterm-base-rate-2026-10-26.md`; the Weekly's Ahead row for 3 Nov 2026) | provisional, placed by Audit #5 — table built, branch a78-batch-16-midterm |
+| 60 | 80(b) with 90 | The midterm event row and the midterm base-rate table: 19 midterms since 1950, nothing omitted; the year's drawdown against the other years, the low's date against election day, forward returns from the low and from election day, the recession flag | Base rate (no trigger) | A78 (`docs/ledgers/midterm-base-rate-2026-10-26.md`; the Weekly's Ahead row for 3 Nov 2026) | provisional, placed by Audit #5 — table built, on main since 28 Oct 2026 (PR #43; corrected 2 Nov 2026 to match the branch state, B115) |
 | 61 | 83(b) | The hyperscalers' server and network useful-life watch, from 10-Q and 10-K | Narrow flag | Tranche B | provisional, placed by Audit #5 — quarterly read a listed gap (H3) |
 | 62 | 88 | Gold as standing coverage: the Weekly gold block, the Monthly gold chapter, GLD in the nightly exposure files, the close on exception | Report only | Tranche A (88(a), (c), (d)); Tranche B (88(b)) | provisional, placed by Audit #5 — the weekly official-bid line is the one recurring by-hand row allowed (H3) |
 | 63 | 89(a) | The crowding-unwind gauge: the momentum factor's z-score and the count of held pair spreads beyond 3σ | Report only; T&B intake after a calibration ledger | Tranche B | provisional, placed by Audit #5 |
@@ -854,6 +854,95 @@ the concentration twin (SR-50, GTM-3) by 96 (the per-season growth-contribution 
 an allowed recurring by-hand row, J2). 97(b)'s feeds are infrastructure: source
 registry entries for Cboe's daily statistics and FRED's VXNCLS and VXVCLS, with ICI
 flows a listed gap (J4). 97(d) is a library note and a one-off dated record.
+
+---
+
+### SR-68 — Batch 18's provisional row (filed 28 Oct 2026, paste B81)
+
+Provisional, placed by Audit #5: the next free number after Batch 16's SR-60 to
+SR-64 (paste A78) and Batch 17's SR-65 to SR-67 (paste A81), both on unmerged
+branches; the audit that places Batch 18 confirms or renumbers it. The row's text is
+the [Batch 18 order](change-order-signal-triage-batch-18-2026-10-28.md)'s item.
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 68 | 98 | The 23-hour equity session: the cadence unchanged; every bar tagged night, pre, regular or post from its own UTC timestamp, never the venue's trade date, and regular-session statistics read the regular tag only (98(a)); SPY and QQQ overnight beside ES in the 07:00 anchor and the 21:30 evening note, "overnight equities not stored" until night bars are stored (98(b)); night bars from IBKR under the price migration, else a listed gap (98(c)) | Report only | After Doctrine #2, before the first night (target 6 Dec 2026) | provisional, placed by Audit #5 |
+
+*Accepted 28 Oct 2026 (D42.5), as filed with K1–K4; the register status above is unchanged:* 98(c)'s IBKR night bars come under D38's price-migration ruling (b68, ceiling USD 60/month); a data subscription beyond what D38 covers is a new ruling, and 98(a)–(b) stay a listed gap until then.
+
+---
+
+### SR-69 to SR-72 — Batch 19's provisional rows (filed 30 Oct 2026, paste B91)
+
+Provisional, placed by Audit #5. The numbers are the next free ones after Batch 16's
+SR-60 to SR-64 (paste A78), Batch 17's SR-65 to SR-67 (paste A81, on its unmerged
+branch) and Batch 18's SR-68 (paste B81). The audit that places Batch 19 confirms
+or renumbers them. Each row's text is the
+[Batch 19 order](change-order-signal-triage-batch-19-2026-10-29.md)'s item, in filed
+numbers (L1).
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 69 | 100 | The premium sleeve: XSP or SPX put spreads, 30–45 DTE, short strike about 16–20 delta, 50% take-profit, 21-DTE close or roll; entry gated by VRP, IV rank and the dealer read; stand-down on the HY spread acceleration or liquidity overlay, or the Capitulation Count's surrender without a T&B bottom; benchmark Cboe's PUT index | Paper only (Alpha Lab, family `KS options`); promotion only through RAS (91(b)) and the cost cliff (91(c)) | Tranche C, after 99's registry | provisional, placed by Audit #5 |
+| 70 | 102 | The kill-switch board: one row per engine and book, each with lives in, dies in and a pre-registered early-warning threshold on a stored series, green, amber or red with its date; its ledger records whether red preceded each drawdown | Report only; red lights are pause candidates for 91(d), the pause the operator's | Tranche C (last) | provisional, placed by Audit #5 |
+| 71 | 104 | The global AI-complex panel: STAR50, CSI 300, KOSPI, TAIEX, SOX and NDX, drawdown from peak and 20-day correlation to SOX, with a lead-lag ledger; FINRA margin debt if not stored | Report only | Tranche B | provisional, placed by Audit #5 — a market with no stored key is a listed gap (L4; D33) |
+| 72 | 107 | The intraday dealer read: spot against the open's profile at 09:15, 10:30, the 12:30 alert and 15:00 (107(a)); the 0DTE volume-weighted gamma test from the delayed chain, with its pre-registered ledger (107(b)) | Report only; 107(b) a test | Tranche B | provisional, placed by Audit #5 — no new subscription (107(c)) |
+
+**Batch 19's amendments, recorded against their filed parents.**
+- 45 (the ES read) is amended by 101(a), the liquidity-levels line.
+- 60 (the earnings-estimate overshoot; the order's "54", L1) is amended by 109, the
+  hyperscaler earnings-reaction ledger.
+- 29 (r−g) is amended by 110, the real rate against trend growth and r*.
+- SR-12 and item 30 (investor allocation) are amended by 108, money market funds.
+- `em_scorecard` is amended by 105(b), EM local bonds. Item 10 (Batch 4, SR-46, the
+  EM shock screen) is audited by 105(a): read 1 Nov 2026; amendment drafted in
+  b91-notes.md Part 3, pending the operator's ruling.
+- The Digital Assets chapter and 88(b), the Monthly gold chapter, are amended by
+  106, who owns BTC and gold.
+- `docs/alpha-lab-rules.md` is amended by 99: family_ref keys and two leakage cases.
+- 101(b) registers the `liquidity-sweep` family; 103 is a narrative claim.
+
+---
+
+### SR-73 to SR-75 — Batch 20's provisional rows (filed 30 Oct 2026, paste B92)
+
+Provisional, placed by Audit #5, numbered after Batch 19's SR-72 (paste B91). Each
+row's text is the [Batch 20 order](change-order-signal-triage-batch-20-2026-10-29.md)'s
+item. Every source is a candidate under the 16 Oct rule, checked when built (M4).
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 73 | 111(a) | The insider buy/sell ratio: S&P-wide open-market insider buys against sells from SEC Form 4 (EDGAR), with a 1-year percentile, and cluster buying (three or more insiders in one company within a week); weekly, positioning & flows | Report only; a calibration ledger before any candidacy as a Capitulation Count (97) input | Tranche B | provisional, placed by Audit #5 |
+| 74 | 111(b) | The BIS Global Liquidity Indicators: USD credit to non-bank borrowers outside the US (BIS SDMX), quarterly, beside the global-liquidity-momentum proxy (filed 92; the order's "93", M2) and 108 in plumbing & rates | Report only | Tranche B | provisional, placed by Audit #5 |
+| 75 | 111(c) | TARGET2 balances: Italy and Spain debtors, Germany creditor (ECB SDMX), monthly, beside SR-30's OAT–Bund and BTP–Bund (the order's "SR-29", M2) | Report only | Tranche B | provisional, placed by Audit #5 |
+
+**Batch 20's amendments, recorded against their filed parents.**
+- 88(b), the Monthly gold chapter, is amended by 112: a silver drawdown table of every
+  selloff of 30% or more since 1968, typed blow-off or in-bull crash by a criterion
+  fixed in advance (the run-up multiple into the peak); the same typing applied to
+  the gold table.
+- Item 31, peak bubble concentration, is amended by 113: froth breadth, the count and
+  index weight of S&P 500 stocks with a 6-month return z above 2 and positive
+  convexity of the log-price path, by sector, monthly beside SR-19.
+- Pillar 5 (the "5H" smart-money sub-cluster) is amended by 111(d), conditionally:
+  13F via EDGAR. V1 is closed (not built), and whether 111(d) applies is the
+  operator's.
+- 114 is log only.
+
+### SR-76 — Batch 21's provisional row (filed 31 Oct 2026, paste B95)
+
+Provisional, placed by Audit #5, numbered after Batch 20's SR-75 (paste B92). The
+row's text is the [Batch 21 order](change-order-signal-triage-batch-21-2026-10-30.md)'s
+item.
+
+| SR | Item | Entry | Rights class | Built in | Status |
+|---|---|---|---|---|---|
+| 76 | 115 | The evening X read: the chat-side evening triage (`x-triage-evening-YYYY-MM-DD.md`) pulled into the box's x-triage inbox the same evening, and an "X after hours" block in the 21:30 evening note (Sun–Thu): up to five "What broke" lines with time, outlet or handle type and incentive tag, the rumours labelled unverified, confirmed or denied, one verification line; copied from the file, never paraphrased, its figures quoted and never the system's measure; "X evening read not available" when there is no file | Report only (item 50's rights: attention and rumour-tracking, never measurement); no regime, flag, score or decision | Tranche B | provisional, placed by Audit #5 |
+
+**Batch 21's amendment, recorded against its filed parent.** Item 50, the social
+attention layer, is amended by 115: an evening Grok run (17:40 ET) and an evening
+triage (18:05 ET) beside the morning pilot, both chat-side; the seed list of
+principals stays chat-side, and the box prints role and institution only (N3).
 
 ---
 
