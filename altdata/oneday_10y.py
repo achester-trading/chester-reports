@@ -65,8 +65,15 @@ def _years_back(day: str, years: int) -> str:
         return d.replace(year=d.year - years, day=28).isoformat()
 
 
+# WHAT IS COUNTED IS FRED OBSERVATIONS, ONE PER TREASURY SESSION (item 124 T0,
+# step 4): the printed names say "sessions", never "days". D15's ruled name, "the
+# one-day 10-year trigger", stays the trigger's.
+CHANGE_NAME = "10y D1 sessions"
+
+
 def one_day_changes(y: list[tuple[str, float]]) -> list[tuple[str, float]]:
-    """Each stored day's change from the stored observation before it, in bp."""
+    """Each stored observation's change from the stored observation before it, in
+    bp: a one-session change ("10y D1 sessions"), whatever the calendar between."""
     return [(y[i][0], (y[i][1] - y[i - 1][1]) * 100.0) for i in range(1, len(y))]
 
 
@@ -82,13 +89,14 @@ def trigger(y: list[tuple[str, float]], day: str, cfg: Optional[dict] = None,
     today = next((v for d, v in ch if d == day), None)
     if today is None:
         return {"state": "absent", "fired": False, "day": day,
-                "line": f"the 10-year has no one-day change stored on {day}"}
+                "line": f"the 10-year has no one-session change ({CHANGE_NAME}) "
+                        f"stored on {day}"}
     lo = _years_back(day, int(t["window_years"]))
     window = [abs(v) for d, v in ch if lo < d < day]
     if len(window) < int(t["min_changes"]):
         return {"state": "not read", "fired": False, "day": day, "n": len(window),
                 "change_bp": round(today, 1),
-                "line": f"not read: {len(window)} one-day changes in the five years "
+                "line": f"not read: {len(window)} one-session changes in the five years "
                         f"before {day} (the trigger needs {int(t['min_changes'])})"}
     thr = derived.percentile_at(window, float(t["percentile"]))
     fired = abs(today) > thr
@@ -96,8 +104,8 @@ def trigger(y: list[tuple[str, float]], day: str, cfg: Optional[dict] = None,
             "change_bp": round(today, 1), "threshold_bp": round(thr, 1),
             "n": len(window), "from": next(d for d, _ in ch if lo < d),
             "percentile": float(t["percentile"]),
-            "line": (f"{today:+.0f} bp on the day, beyond its five-year threshold "
-                     f"of {thr:.1f} bp ({_pct_words(t['percentile'])} of one-day "
+            "line": (f"{today:+.0f} bp on the session, beyond its five-year threshold "
+                     f"of {thr:.1f} bp ({_pct_words(t['percentile'])} of one-session "
                      f"moves were smaller; n={len(window):,})")}
 
 
@@ -168,8 +176,8 @@ def block(st, cutoff: str, first: str, last: str) -> dict:
     t = cfg["trigger"]
     sub: dict[str, Any] = {"title": BLOCK_TITLE, "paragraph_wanted": False}
     if not evs:
-        sub["lines"] = [f"No 10-year one-day move beyond its five-year threshold (the "
-                        f"move {_pct_words(t['percentile'])} of one-day moves stay "
+        sub["lines"] = [f"No 10-year one-session move beyond its five-year threshold (the "
+                        f"move {_pct_words(t['percentile'])} of one-session moves stay "
                         f"under) in the {n} sessions from {first} to {last} stored (D15)."]
         return sub
     rows = []

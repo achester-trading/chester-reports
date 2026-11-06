@@ -141,7 +141,10 @@ def attribute(series: dict, day: str, horizon: int, cfg: dict) -> dict:
         if awaiting:
             verdict += "; awaiting " + ", ".join(awaiting)
         state = "computed" if not awaiting else "partial"
+    # THE NAME COUNTS SESSIONS (item 124 T0, step 4): `horizon` is FRED
+    # observations of DGS10, one per Treasury session -- "10y D3 sessions".
     return {"state": state, "start": start, "end": day, "horizon": horizon,
+            "name": f"10y D{horizon} sessions",
             "move_bp": round(move, 1), "models": rows, "line": verdict}
 
 
@@ -157,7 +160,9 @@ def table(att: dict) -> dict:
             rows.append([r["label"], f"{att.get('move_bp', 0):+.0f} bp", "—", "—", "—",
                          ("awaiting (stored through " + str(r.get("stored_through"))
                           + ")") if r["state"] == "awaiting" else r.get("reason"), "—"])
-    return {"columns": ["Model (nominal 10-year)", "10-year move", "Expected short rates",
+    return {"columns": ["Model (nominal 10-year)",
+                        (f"10-year move ({att['name']})" if att.get("name")
+                         else "10-year move"), "Expected short rates",
                         "Term premium", "Premium share", "Carried", "As of"],
             "rows": rows}
 

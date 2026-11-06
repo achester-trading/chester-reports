@@ -591,7 +591,7 @@ def group_g() -> None:
     check(len(rows) == 1 and rows[0]["registry_key"] == od.LEDGER_KEY,
           "the close stores the trigger day's ledger row")
     check(blk["table"]["rows"][0][0] == day and blk["table"]["rows"][0][-1] == "awaiting"
-          and quiet["lines"][0].startswith("No 10-year one-day move"),
+          and quiet["lines"][0].startswith("No 10-year one-session move"),
           "the Weekly's and Monthly's block: the trigger days in a table, or one line")
     with observations.ObservationStore(store([])) as st:
         sec: dict = {}
