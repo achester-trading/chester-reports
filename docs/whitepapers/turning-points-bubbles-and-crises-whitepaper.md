@@ -413,3 +413,44 @@ The sub-panel reads four things:
 It prints in the Weekly's equities section and fires the existing EM-shock flag. When the four move together by more than a set threshold, a line in the daily close's "what doesn't fit" reads the transmission, U.S. semiconductors to Asia to U.S. futures. The present state of the four markets is the live case of Part VI, and it belongs in Appendix B.
 
 What the operator does differently because of this Part is to ask, of any emerging-market move, which of two things it is. One is a country running the template, which matters if it spreads. The other is a market trading as part of a global position, which matters because the position is also in the operator's own book.
+
+---
+
+# Part VI — International Tops
+
+## Chapter 16 — When the leading market tops first
+
+The episode study is a study of U.S. turning points, and most of the library reads the world through the S&P 500. Turns do not always start there. In several episodes the market that led the cycle's displacement, the purest and often the most levered exposure to it, topped before the U.S. index did. In those episodes, its top was the earliest public sign that the cycle had turned.
+
+The mechanism is the international version of narrowing breadth. A displacement's purest expressions attract the most speculative capital and the most leverage, so they rise furthest in the boom and are the first to fail when the marginal buyer is exhausted. Within the U.S. market this shows as the speculative tier topping before the index: the study recorded breadth divergence leading valuation tops by months to years, and the speculative tier of 2021 topping eleven months before the index. Across markets it shows as the leading country, sector or region topping first.
+
+Three patterns in the record are worth separating, because they lead to different reads.
+
+**The leader tops first, and the U.S. follows.** Emerging markets and China's market topped in January 2018, eight months before the U.S. top of the 2018 near-miss. Emerging markets and China's internet stocks topped in February 2021, nearly a year before the U.S. top of January 2022, as the speculative tier did at home *(MSCI Emerging Markets and the S&P 500, 2018 and 2021–22; cited 6 November 2026)*. In both, the leader's top was a tightening of global liquidity showing first where the money was most marginal. It was a warning, early and imprecise, like the domestic breadth divergence it mirrors.
+
+**The leader and the U.S. top together.** In 2007, China's market peaked within days of the S&P 500. In 2000, technology markets topped together worldwide. When the displacement is global and the money is global, there is no lead to read, and the coincidence itself is the sign that the position is one position.
+
+**The leader tops, and the U.S. does not follow.** Japan's market peaked at the end of 1989 and did not regain that level for more than three decades. The U.S. bear of 1990 that followed had other causes, and the U.S. bull of the 1990s ran for a decade. Japan's top was the end of its own long cycle, and Debt Cycles, Regimes and Environments, Part III, reads it so. As a turning point for a U.S. operator, it is the counter-example that keeps this chapter honest. A foreign top is a warning about the U.S. only when the two share a driver. When they do not, it is a foreign event.
+
+The rule that follows is narrow. A foreign market's top is information about the U.S. when the foreign market is a purer or more levered expression of the same driver that is carrying the U.S. index. When it is, the foreign top is the domestic speculative tier's top seen from abroad, and it can lead by months. When it is not, it is a foreign event, to be read through the EM template and the dollar channel of Part V.
+
+## Chapter 17 — The AI chain: four markets as one position
+
+The live case of the rule, and the reason this chapter exists, is the AI supply chain. The register's ruling on item 129 treats the U.S. semiconductor index, Korea, Taiwan and Japan as four markets trading as one position. They share one driver, the capital spending of the largest technology companies on AI. Their indices are dominated by the companies that supply it: memory makers in Korea, the leading foundry in Taiwan, equipment and materials makers in Japan, chip designers in the United States. In such a structure, four properties of the position matter for how a turn would show.
+
+**Concentration** decides which market is the purest expression. A national index in which two or three supply-chain companies carry most of the weight is the AI cycle with a country's name on it. It will lead the cycle's top, in the pattern of the previous chapter, because nothing else in the index can offset it.
+
+**Leverage** decides which market breaks first. Where retail margin and levered single-stock products have grown, a fall forces sales that a less levered market would not see. Circuit breakers and trading halts are the visible sign that leverage is unwinding faster than the market can clear.
+
+**Transmission** decides how the turn reaches the U.S. index. A fall in U.S. semiconductors in the U.S. afternoon transmits to Asia in the Asian session and returns to U.S. futures overnight. The cycle repeats each day until one link breaks it. The sub-panel's transmission line in the daily close reads this loop.
+
+**The U.S. index's own exposure** decides how much a turn in the chain is a turn in the S&P 500. The library's Equities paper describes the U.S. index as carrying the AI trade as one position through its largest names, and the concentration of Chapter 8 measures how large that position is. A top in the chain is a U.S. top in proportion to that concentration.
+
+The body of this paper gives the structure; it does not give the state. Where the four markets stand, how concentrated and how levered each is, and whether the chain has topped are dated facts. They are in Appendix B, as of the paper's date, with no forecast. The structure says what to watch: the purest market's top, the most levered market's halts, the transmission loop, and the U.S. index's concentration in the same names.
+
+| Property | What it decides | The stack's read |
+|---|---|---|
+| Concentration | Which market is the purest expression | Top-two weights in Korea and Taiwan (item 129) |
+| Leverage | Which market breaks first | Korea's levered products; the halt ledger |
+| Transmission | How the turn reaches the U.S. | The close's transmission line |
+| U.S. exposure | How much a chain top is a U.S. top | Concentration (item 31's band); the AI ring drawdown table |
