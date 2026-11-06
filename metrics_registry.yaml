@@ -11252,6 +11252,10 @@ metrics:
       FINRA margin statistics: Free credit balances in customers' securities margin accounts, month-end, dollars.
   levetf.aum:
     source: proshares
+    # TWO WRITERS (item 116, A127, 6 Nov 2026): ProShares' NAV files and the
+    # other issuers' pages (altdata/sources/levered_etf.py, source
+    # levered_etf:<issuer>); the instrument names the fund.
+    sources: [proshares, levered_etf]
     mechanism_group: leverage_positioning
     native_horizon: daily
     freq: daily
@@ -11262,7 +11266,10 @@ metrics:
     units: usd
     trigger_eligible: false
     description: >-
-      Assets under management of a ProShares leveraged or inverse ETF, instrument = ticker (TQQQ SQQQ QLD UPRO SPXU SSO SDS).
+      Assets under management of a leveraged or inverse ETF, instrument = ticker:
+      ProShares' funds from the issuer's NAV files (history), the rest of item
+      116's roster (config/levered_etf.yaml) from the issuers' own pages and
+      files, forward from 6 Nov 2026, each at its prior session's close.
   levetf.shares_outstanding:
     source: proshares
     mechanism_group: leverage_positioning
@@ -17745,6 +17752,267 @@ metrics:
       docs/ledgers/trend-breadth-2026-10-26.md, pre-registered; no rights until it
       is read. Barred from the market-state object.
 
+  calc.close_flow.semiconductors:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over semiconductor funds (SOXL, SOXS,
+      USD), sum of AUM x L x (L - 1) x the underlying's return from the prior close,
+      dollars, positive buying into the close. instrument = the slot: 1500 (the
+      15:00 pass, intraday) or 1645 (the close, stored closes); observed_at = the
+      session; available at the instant computed. Report and the 15:00 flag only;
+      barred from the market-state object.
+  calc.close_flow.semiconductors_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.semiconductors as a percent of the
+      20-session average dollar volume of the instruments driving it
+      (config/levered_etf.yaml buckets' adv), through the session before; instrument
+      = the slot. Barred from the market-state object.
+  calc.close_flow.nasdaq_100:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over Nasdaq-100 funds, sum of AUM x L x
+      (L - 1) x the underlying's return from the prior close, dollars, positive
+      buying into the close. instrument = the slot: 1500 (the 15:00 pass, intraday)
+      or 1645 (the close, stored closes); observed_at = the session; available at
+      the instant computed. Report and the 15:00 flag only; barred from the
+      market-state object.
+  calc.close_flow.nasdaq_100_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.nasdaq_100 as a percent of the
+      20-session average dollar volume of the instruments driving it
+      (config/levered_etf.yaml buckets' adv), through the session before; instrument
+      = the slot. Barred from the market-state object.
+  calc.close_flow.sp_500:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over S&P 500 funds, sum of AUM x L x (L -
+      1) x the underlying's return from the prior close, dollars, positive buying
+      into the close. instrument = the slot: 1500 (the 15:00 pass, intraday) or 1645
+      (the close, stored closes); observed_at = the session; available at the
+      instant computed. Report and the 15:00 flag only; barred from the market-state
+      object.
+  calc.close_flow.sp_500_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.sp_500 as a percent of the
+      20-session average dollar volume of the instruments driving it
+      (config/levered_etf.yaml buckets' adv), through the session before; instrument
+      = the slot. Barred from the market-state object.
+  calc.close_flow.russell_2000:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over Russell 2000 funds, sum of AUM x L x
+      (L - 1) x the underlying's return from the prior close, dollars, positive
+      buying into the close. instrument = the slot: 1500 (the 15:00 pass, intraday)
+      or 1645 (the close, stored closes); observed_at = the session; available at
+      the instant computed. Report and the 15:00 flag only; barred from the
+      market-state object.
+  calc.close_flow.russell_2000_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.russell_2000 as a percent of the
+      20-session average dollar volume of the instruments driving it
+      (config/levered_etf.yaml buckets' adv), through the session before; instrument
+      = the slot. Barred from the market-state object.
+  calc.close_flow.other_index:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over the other index and sector funds
+      (Dow 30, technology, financials), sum of AUM x L x (L - 1) x the underlying's
+      return from the prior close, dollars, positive buying into the close.
+      instrument = the slot: 1500 (the 15:00 pass, intraday) or 1645 (the close,
+      stored closes); observed_at = the session; available at the instant computed.
+      Report and the 15:00 flag only; barred from the market-state object.
+  calc.close_flow.other_index_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.other_index as a percent of the
+      20-session average dollar volume of the instruments driving it
+      (config/levered_etf.yaml buckets' adv), through the session before; instrument
+      = the slot. Barred from the market-state object.
+  calc.close_flow.single_stocks:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over the named single-stock funds, sum of
+      AUM x L x (L - 1) x the underlying's return from the prior close, dollars,
+      positive buying into the close. instrument = the slot: 1500 (the 15:00 pass,
+      intraday) or 1645 (the close, stored closes); observed_at = the session;
+      available at the instant computed. Report and the 15:00 flag only; barred from
+      the market-state object.
+  calc.close_flow.single_stocks_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.single_stocks as a percent of the
+      20-session average dollar volume of the instruments driving it
+      (config/levered_etf.yaml buckets' adv), through the session before; instrument
+      = the slot. Barred from the market-state object.
+  calc.close_flow.total:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (SR-77, provisional; A127; altdata/close_flow.py): the
+      levered-ETF close-rebalance estimate over every estimated fund, sum of AUM x L
+      x (L - 1) x the underlying's return from the prior close, dollars, positive
+      buying into the close. instrument = the slot: 1500 (the 15:00 pass, intraday)
+      or 1645 (the close, stored closes); observed_at = the session; available at
+      the instant computed. Report and the 15:00 flag only; barred from the
+      market-state object.
+  calc.close_flow.total_pct_adv:
+    source: close_flow
+    mechanism_group: leverage_positioning
+    native_horizon: intraday
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: never
+    units: percent_share
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 116 (A127): calc.close_flow.total as a percent of the 20-session
+      average dollar volume of the instruments driving it (config/levered_etf.yaml
+      buckets' adv), through the session before; instrument = the slot. The 15:00
+      total's history sets the flag's percentile rule after 60 stored sessions
+      (O-1). Barred from the market-state object.
+
 bulk_imports:
 
   fred_macro:
@@ -20862,6 +21130,14 @@ market_state_barred:
   - order: the 6i brief's decision 6 (25 Oct 2026; 6i-3, A79)
     rule: "the T&B harness's long credit proxy: report only; nothing enters a composite, the market-state object, a dial, a band or a packet"
     keys: ["fred.dbaa", "fred.baa", "calc.baa_less_10y", "calc.baa_less_10y_m"]
+  - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 116, the order's 98; O-1)
+    rule: "a report line and the 15:00 flag only; nothing enters a composite, the market-state object, the T&B intake queue or a regime"
+    keys: ["calc.close_flow.*"]
+  - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 116's roster; A127)
+    rule: "the roster's funds joined levetf.aum for the close-flow estimate; nothing enters the object"
+    keys: ["levetf.aum"]
+    instruments: [USD, ROM, SPXL, SPXS, SOXL, SOXS, TNA, TZA, TECL, FAS, TSLL, TSLS, GGLL,
+                  NVDL, AMDL, CONL, MSTU, MSTZ, SNXX, TSLQ]
 
   - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
     rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
@@ -21369,3 +21645,17 @@ lens_excluded:
   gold.attr.liquidation: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
   gold.attr.official_bid: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
   trend_breadth_signs: "a sign (+1, -1 or 0) per market and lookback, not a level series (item 89(b))"
+  calc.close_flow.semiconductors: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.semiconductors_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.nasdaq_100: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.nasdaq_100_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.sp_500: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.sp_500_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.russell_2000: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.russell_2000_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.other_index: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.other_index_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.single_stocks: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.single_stocks_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.total: "an estimate of a flow per session and slot (item 116), not a level series"
+  calc.close_flow.total_pct_adv: "an estimate of a flow per session and slot (item 116), not a level series"

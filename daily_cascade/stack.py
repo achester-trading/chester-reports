@@ -1115,6 +1115,24 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
                 import logging                                  # noqa: PLC0415
                 logging.getLogger(__name__).warning(
                     "the OS-12 outcome line faulted", exc_info=True)
+        # SIGNAL-TRIAGE BATCH 22 ITEM 116 (A127, 6 Nov 2026): the levered-ETF
+        # close-flow table and the "mechanical close flow" line in Positioning &
+        # flows. The 16:45 estimate is computed here, in memory; the close stores
+        # its rows after the report (stack_close), as it does the gold rows.
+        if built.get("positioning") is not None:
+            from . import close_flow_block                      # noqa: PLC0415
+            _cf, _cf_rows = close_flow_block.close_subsection(
+                st, str(p["session"])[:10], cutoff)
+            if _cf:
+                # The one line is a section ITEM (its fingerprint the day's
+                # total), so a session whose flow moved is never collapsed as
+                # unchanged; the table is the sub-section's.
+                _tot = ((_cf.get("data") or {}).get("close_flow") or {}).get("total_1645") or {}
+                built["positioning"]["items"].append(item(
+                    "pos:close_flow", _cf.pop("mechanical_line"), 2,
+                    None if _tot.get("flow") is None else round(_tot["flow"] / 1e8)))
+                built["positioning"].setdefault("subsections", []).append(_cf)
+            built["positioning"].setdefault("data", {})["_close_flow_rows"] = _cf_rows
         from altdata import crypto_blocks                       # noqa: PLC0415
         if built.get("positioning") is not None and crypto_blocks.daily_enabled():
             built["positioning"].setdefault("subsections", []).append(

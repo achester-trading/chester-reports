@@ -21,7 +21,10 @@
 #   target_n      the graded paper trades before the kill criterion is read
 #   kill          `fixed` -- the order's kill criterion, below, word for word
 #   status        `stub` until the operator completes the entry (Doctrine #2,
-#                 7-8 Nov 2026), then `complete`
+#                 7-8 Nov 2026), then `complete`; `draft` for an entry a ruled
+#                 order puts in the register as a draft (item 116's 98.3,
+#                 A127): the same rights as a stub, never imported as a lab
+#                 hypothesis (config/alpha_tells.yaml setups_skipped)
 #
 # Adding a family: a new entry with its book and the passage it comes from.
 # Removing one: never -- packets that cite it would stop resolving. Retire it with
@@ -143,6 +146,21 @@ setups:
     target_n: 40
     kill: fixed
     status: stub
+  # SIGNAL-TRIAGE BATCH 22 ITEM 116, 98.3 (ruled 5 Nov 2026; A127): the DTH-1
+  # draft setup. A draft, not a rule; the setup register's rights are unchanged.
+  # Its evidence is the close-flow estimate (altdata/close_flow.py, the 15:00
+  # flag) and, once wired, 6b's dealer-hedging estimate; its sizing waits for
+  # 98.2's calibration ledger.
+  c_dth1_close_flow_reversal:
+    book: C
+    name: "DTH-1: no fade into a mechanical close; the next morning's reversal"
+    doctrine: "signal-triage item 116 (the Batch 22 order's 98.3) -- a draft setup, not a rule"
+    mechanism: "DRAFT (98.3). When the 15:00 estimate is large (the flag) and has the same sign as dealer hedging, do not fade the move into the close; the candidate fade is the next morning's reversal, sized by the ledger once it has data. The levered-ETF rebalance is set in advance and trades in the last 30 minutes whatever the price; on a negative-gamma day dealer hedging pushes the same way, and the published work finds the flow partly reverses the next morning."
+    base_rate: not yet
+    claimed_edge: "not yet -- 98.2's calibration ledger (log-only until about 20 events) is the evidence it will be read against"
+    target_n: 40
+    kill: fixed
+    status: draft
 
   # --- Book D -- Opportunistic (Doctrine 4.4) ---------------------------------
   d_behavioral_alert:

@@ -1,0 +1,31 @@
+[Unit]
+Description=Levered-ETF close-flow estimate at 15:00 (item 116; report and alert only)
+Documentation=file:///%h/chester-reports/deploy/systemd/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/chester-reports/scripts/run_close_flow.sh
+
+EnvironmentFile=-%h/chester-reports/.env
+
+# The AUM writers re-read (two issuers' pages, REX's 10-second crawl delay twice)
+# and thirteen intraday reads: a few minutes. It must finish well before 15:30.
+TimeoutStartSec=15min
+Restart=no
+
+# The EOD pass's sandbox (it writes the same store): its log, its status and
+# lock, the checkout (the wrapper's git pull and the observation store), the
+# state directory and the live CSV store, each optional where the box has none.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=no
+ReadWritePaths=%h/logs %h/.chester %h/chester-reports -%h/state -%h/chester-data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=default.target

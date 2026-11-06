@@ -1436,7 +1436,18 @@ def t31_positioning_group(ed: dict, out: dict) -> None:
           and (subs[tbb.TITLE].get("table") or {}).get("columns", [None])[0] == "Market",
           "item 89(b): the Monthly reads the Weekly's trend-breadth table, with no "
           "written read")
-    check([ss.get("phase") for ss in pos["subsections"] if ss.get("title") != tbb.TITLE]
+    # Batch 22 item 116 (A127): the levered-ETF close flow rides Positioning the
+    # same way -- the Weekly's table, the Monthly's five largest sessions, no read.
+    from daily_cascade import close_flow_block as cfb
+    cft = [ss for ss in pos["subsections"]
+           if str(ss.get("title") or "").startswith(cfb.TITLE)]
+    check(len(cft) == 1 and cft[0].get("paragraph_wanted") is False
+          and "five largest" in cft[0]["title"]
+          and (cft[0].get("table") or {}).get("columns") == cfb.WEEK_COLUMNS,
+          "item 116: the Monthly reads the Weekly's close-flow table (its five largest "
+          "sessions), with no written read")
+    check([ss.get("phase") for ss in pos["subsections"]
+           if ss.get("title") != tbb.TITLE and ss not in cft]
           == [f"block:positioning:{g}" for g in want],
           "item 10: each of the six sub-sections -- sectors, CFTC, short interest, "
           "retail sentiment, TIC, and Batch 6's allocation block -- is set up for its "

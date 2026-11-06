@@ -18,9 +18,11 @@ FUNDS -- the largest ProShares leveraged and inverse products on the indices:
   S&P 500      UPRO (3x), SPXU (-3x), SSO (2x), SDS (-2x)
   Dow 30       UDOW (3x), SDOW (-3x)
   Russell 2000 URTY (3x), SRTY (-3x)
+  Semiconductors USD (2x)           Technology  ROM (2x)
 QID, UDOW, SDOW, URTY and SRTY joined by ruling D13 of 24 Oct 2026 (a61); each is
 served by the same file (checked 24 Oct 2026: QID from 2006, the other four from
-2010).
+2010). USD and ROM joined with item 116's roster (A127, 6 Nov 2026;
+config/levered_etf.yaml), both served by the same file (checked 6 Nov 2026).
 
 STORED, instrument = the ticker, observed_at = the NAV date:
   levetf.aum                 Assets Under Management, usd
@@ -29,10 +31,11 @@ STORED, instrument = the ticker, observed_at = the NAV date:
                              (TQQQ's 2010 NAV reads 0.207) -- fine for a size
                              series, and the reason no price is derived from it
 
-NOT COVERED: Direxion (SPXL, SPXS, TECL). Its holdings file carries only today's
-shares outstanding and no NAV or history file exists (checked 26 Sep 2026), so
-its AUM would be a forward-only product of two separately scraped numbers. Left
-out rather than approximated; the ProShares set is the history.
+NOT COVERED HERE: Direxion (SPXL, SPXS, TECL ...). No NAV or history file exists
+(checked 26 Sep 2026), so this writer has no Direxion history. Item 116 (A127)
+reads Direxion's daily holdings file forward from 6 Nov 2026 in
+altdata/sources/levered_etf.py, into the same levetf.aum key; the ProShares set
+is still the only history before then.
 
 AVAILABILITY. The file's Last-Modified, `observed`. NAVs are not revised
 (revision_policy: never).
@@ -54,7 +57,9 @@ log = logging.getLogger(__name__)
 SOURCE = "proshares"
 URL = "https://accounts.profunds.com/etfdata/ByFund/{ticker}-historical_nav.csv"
 FUNDS = ("TQQQ", "SQQQ", "QLD", "UPRO", "SPXU", "SSO", "SDS",
-         "QID", "UDOW", "SDOW", "URTY", "SRTY")
+         "QID", "UDOW", "SDOW", "URTY", "SRTY",
+         # Item 116's roster (A127, 6 Nov 2026; config/levered_etf.yaml)
+         "USD", "ROM")
 KEYS = ["levetf.aum", "levetf.shares_outstanding", "levetf.nav"]
 
 

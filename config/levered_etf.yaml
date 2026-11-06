@@ -1,0 +1,226 @@
+# levered_etf.yaml -- signal-triage Batch 22 item 116 (the order's 98; SR-77,
+# provisional), part 1: 98.1 and 98.3. The levered- and inverse-ETF roster, the
+# 15:00 and 16:45 close-flow estimates (altdata/close_flow.py), the 15:00 flag and
+# the prints (daily_cascade/close_flow_block.py). Ruled 5 Nov 2026 ("accept all",
+# 23:24 ET; O-1 and O-6; filed by D58). docs/change-order-signal-triage-batch-22-
+# 2026-11-05.md, section 4, entry 98.
+#
+# RIGHTS: a report line and the 15:00 flag only. Nothing here enters a composite,
+# the market-state object, the Top & Bottom intake queue or a regime. The flag is
+# alert-only and carries no rights.
+#
+# THE ESTIMATE (98's own formula): rebalance notional = sum over the funds of
+# AUM x L x (L - 1) x r, where AUM is the fund's assets at the PRIOR session's
+# close, L its leverage factor and r its underlying's return from the prior close
+# to the estimate's instant. A 3x fund trades 6 x AUM x r; a 2x or a -1x 2x; a -2x
+# 6x; a -3x 12x. L(L - 1) is positive for every fund, so every fund trades WITH
+# the day's move: a positive figure is buying into the close, a negative one
+# selling. Static AUM overstates the flow when dip-buying creates units (the
+# order's caveat), and swap books net some of it at the counterparty.
+version: levered-etf-v1
+updated: 2026-11-06
+
+aum_key: levetf.aum
+# Session-set (fragility.yaml's own value): the oldest a prior-session AUM may be
+# before a fund is left out of an estimate and named.
+aum_max_age_days: 5
+
+# THE AUM FLOOR for the funds the paste did not name ("the rest of the large
+# 2x/3x index family" and the single-stock pairs): each issuer's own figure, read
+# at build on 6 Nov 2026 (A127's notes, docs/briefs/a127-notes.md, list every
+# figure read and every fund below it). A fund the paste names is on the roster
+# whatever its size. Session-set.
+aum_floor_usd: 500000000
+aum_floor_read: "2026-11-06, each issuer's own page or file (A127 notes)"
+
+# THE UNDERLYINGS: the instrument whose return r drives a fund. `store_key` is the
+# stored daily close (and `<store_key>_volume`, its daily volume) the 16:45
+# estimate and the ADV read; `yahoo` is the symbol the 15:00 pass reads intraday.
+# An underlying with neither (MSTR, COIN, SNDK) is not in the price basket, and
+# D33 (24 Oct 2026) admits no new Yahoo symbol, so its funds' AUM is stored and
+# both estimates name them "underlying not read (D33)" until the price-source
+# migration carries the name (A127 needs-you). An index fund's underlying is its
+# index's stored ETF, a PROXY for the index the fund tracks, labelled wherever it
+# prints.
+underlyings:
+  qqq:  {label: "Nasdaq-100 (QQQ)", yahoo: QQQ, store_key: yfinance.mkt_qqq}
+  spy:  {label: "S&P 500 (SPY)", yahoo: SPY, store_key: yfinance.mkt_spy}
+  iwm:  {label: "Russell 2000 (IWM)", yahoo: IWM, store_key: yfinance.mkt_iwm}
+  smh:  {label: "Semiconductors (SMH, proxy for the funds' semiconductor indices)",
+         yahoo: SMH, store_key: yfinance.mkt_smh}
+  dia:  {label: "Dow 30 (DIA)", yahoo: DIA, store_key: yfinance.mkt_dia}
+  xlk:  {label: "Technology (XLK, proxy for the funds' technology indices)",
+         yahoo: XLK, store_key: yfinance.mkt_xlk}
+  xlf:  {label: "Financials (XLF)", yahoo: XLF, store_key: yfinance.mkt_xlf}
+  nvda: {label: "NVIDIA (NVDA)", yahoo: NVDA, store_key: yfinance.mkt_nvda}
+  tsla: {label: "Tesla (TSLA)", yahoo: TSLA, store_key: yfinance.mkt_tsla}
+  googl: {label: "Alphabet (GOOGL)", yahoo: GOOGL, store_key: yfinance.mkt_googl}
+  amd:  {label: "AMD (AMD)", yahoo: AMD, store_key: yfinance.mkt_amd}
+  mstr: {label: "Strategy (MSTR)", yahoo: null, store_key: null}
+  coin: {label: "Coinbase (COIN)", yahoo: null, store_key: null}
+  sndk: {label: "SanDisk (SNDK)", yahoo: null, store_key: null}
+
+# THE BUCKETS, in print order (98.1: semiconductors, Nasdaq 100, S&P 500 and named
+# single stocks; the paste adds the Russell 2000). `other_index` holds the index
+# and sector funds outside those four (the Dow 30, technology, financials), named
+# rather than folded into a neighbour. "% of ADV" is the bucket's flow against the
+# 20-session average dollar volume (the stored close x the stored volume) of the
+# instruments whose return drives the bucket -- its `adv` list -- through the
+# session before the estimate's day. For an index bucket that is its ETF's
+# dollar volume, not its constituents' (A127 needs-you); the 60-session switch
+# reads the box's own history in the same units, so the flag is unaffected.
+buckets:
+  - {id: semiconductors, label: "Semiconductors", adv: [smh]}
+  - {id: nasdaq_100, label: "Nasdaq 100", adv: [qqq]}
+  - {id: sp_500, label: "S&P 500", adv: [spy]}
+  - {id: russell_2000, label: "Russell 2000", adv: [iwm]}
+  - {id: other_index, label: "Other index and sector funds (Dow 30, technology, financials)",
+     adv: [dia, xlk, xlf]}
+  - {id: single_stocks, label: "Named single stocks", adv: [nvda, tsla, googl, amd]}
+
+# THE ROSTER. `writer`: the module that stores the fund's levetf.aum --
+# `proshares` (altdata/sources/proshares.py, the issuer's NAV history file; the
+# existing writer, extended) or `levered_etf` (altdata/sources/levered_etf.py,
+# one request per issuer page or file, robots.txt read at every pull). `method`
+# is how the page is read; `gap` means no keyless reading exists and the fund is
+# named and left out of every estimate (V-98b; the 16 Oct rule). `aum_page` is the
+# issuer's page the figure comes from. `named`: the paste names the fund, so it is
+# on the roster whatever its size; every other fund cleared the floor at build.
+# The Brookfield complex can never appear: the writer, the estimate and
+# tools/validate_item_116.py each assert every ticker against the blocklist
+# (register/instruments.py).
+funds:
+  # --- ProShares (the existing writer's twelve, then USD and ROM) -------------
+  - {ticker: TQQQ, issuer: ProShares, leverage: 3, underlying: qqq, bucket: nasdaq_100, writer: proshares, method: proshares_nav, named: true,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/TQQQ-historical_nav.csv"}
+  - {ticker: SQQQ, issuer: ProShares, leverage: -3, underlying: qqq, bucket: nasdaq_100, writer: proshares, method: proshares_nav, named: true,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/SQQQ-historical_nav.csv"}
+  - {ticker: QLD, issuer: ProShares, leverage: 2, underlying: qqq, bucket: nasdaq_100, writer: proshares, method: proshares_nav, named: true,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/QLD-historical_nav.csv"}
+  - {ticker: QID, issuer: ProShares, leverage: -2, underlying: qqq, bucket: nasdaq_100, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/QID-historical_nav.csv"}
+  - {ticker: UPRO, issuer: ProShares, leverage: 3, underlying: spy, bucket: sp_500, writer: proshares, method: proshares_nav, named: true,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/UPRO-historical_nav.csv"}
+  - {ticker: SPXU, issuer: ProShares, leverage: -3, underlying: spy, bucket: sp_500, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/SPXU-historical_nav.csv"}
+  - {ticker: SSO, issuer: ProShares, leverage: 2, underlying: spy, bucket: sp_500, writer: proshares, method: proshares_nav, named: true,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/SSO-historical_nav.csv"}
+  - {ticker: SDS, issuer: ProShares, leverage: -2, underlying: spy, bucket: sp_500, writer: proshares, method: proshares_nav, named: true,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/SDS-historical_nav.csv"}
+  - {ticker: UDOW, issuer: ProShares, leverage: 3, underlying: dia, bucket: other_index, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/UDOW-historical_nav.csv"}
+  - {ticker: SDOW, issuer: ProShares, leverage: -3, underlying: dia, bucket: other_index, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/SDOW-historical_nav.csv"}
+  - {ticker: URTY, issuer: ProShares, leverage: 3, underlying: iwm, bucket: russell_2000, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/URTY-historical_nav.csv"}
+  - {ticker: SRTY, issuer: ProShares, leverage: -3, underlying: iwm, bucket: russell_2000, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/SRTY-historical_nav.csv"}
+  - {ticker: USD, issuer: ProShares, leverage: 2, underlying: smh, bucket: semiconductors, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/USD-historical_nav.csv"}
+  - {ticker: ROM, issuer: ProShares, leverage: 2, underlying: xlk, bucket: other_index, writer: proshares, method: proshares_nav, named: false,
+     aum_page: "https://accounts.profunds.com/etfdata/ByFund/ROM-historical_nav.csv"}
+  # --- Direxion: the daily holdings file, whose HoldingsPercent is each line's
+  # share of net assets, so net assets = MarketValue x 100 / HoldingsPercent
+  # (the median over lines of 1% or more; the lines must agree within 0.1%). The
+  # file dated D carries the prices of D's previous session's close, so the AUM
+  # is stored at that session (checked 6 Nov 2026 against AMD's and NVDA's
+  # closes of 5 Nov).
+  - {ticker: SPXL, issuer: Direxion, leverage: 3, underlying: spy, bucket: sp_500, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/SPXL.csv"}
+  - {ticker: SPXS, issuer: Direxion, leverage: -3, underlying: spy, bucket: sp_500, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/SPXS.csv"}
+  - {ticker: SOXL, issuer: Direxion, leverage: 3, underlying: smh, bucket: semiconductors, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/SOXL.csv"}
+  - {ticker: SOXS, issuer: Direxion, leverage: -3, underlying: smh, bucket: semiconductors, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/SOXS.csv"}
+  - {ticker: TNA, issuer: Direxion, leverage: 3, underlying: iwm, bucket: russell_2000, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/TNA.csv"}
+  - {ticker: TZA, issuer: Direxion, leverage: -3, underlying: iwm, bucket: russell_2000, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/TZA.csv"}
+  - {ticker: TECL, issuer: Direxion, leverage: 3, underlying: xlk, bucket: other_index, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/TECL.csv"}
+  - {ticker: FAS, issuer: Direxion, leverage: 3, underlying: xlf, bucket: other_index, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/FAS.csv"}
+  - {ticker: TSLL, issuer: Direxion, leverage: 2, underlying: tsla, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: true,
+     aum_page: "https://www.direxion.com/holdings/TSLL.csv"}
+  - {ticker: TSLS, issuer: Direxion, leverage: -1, underlying: tsla, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
+     pair_of: TSLL, aum_page: "https://www.direxion.com/holdings/TSLS.csv"}
+  - {ticker: GGLL, issuer: Direxion, leverage: 2, underlying: googl, bucket: single_stocks, writer: levered_etf, method: direxion_holdings, named: false,
+     aum_page: "https://www.direxion.com/holdings/GGLL.csv"}
+  # --- GraniteShares: the fund page links its dated holdings workbook; the
+  # workbook's Shares Outstanding x NAV/Share is the AUM, at the session before
+  # its Position Date. The page's own AUM is filled by a signed endpoint (a key
+  # in effect), which is never called.
+  - {ticker: NVDL, issuer: GraniteShares, leverage: 2, underlying: nvda, bucket: single_stocks, writer: levered_etf, method: granite_holdings, named: true,
+     aum_page: "https://graniteshares.com/institutional/us/en-us/etfs/nvdl/"}
+  - {ticker: AMDL, issuer: GraniteShares, leverage: 2, underlying: amd, bucket: single_stocks, writer: levered_etf, method: granite_holdings, named: false,
+     aum_page: "https://graniteshares.com/institutional/us/en-us/etfs/amdl/"}
+  - {ticker: CONL, issuer: GraniteShares, leverage: 2, underlying: coin, bucket: single_stocks, writer: levered_etf, method: granite_holdings, named: true,
+     aum_page: "https://graniteshares.com/institutional/us/en-us/etfs/conl/"}
+  # --- REX (T-Rex): the fund page's "Fund Assets" and its "As of" date.
+  - {ticker: MSTU, issuer: REX, leverage: 2, underlying: mstr, bucket: single_stocks, writer: levered_etf, method: rex_page, named: true,
+     aum_page: "https://www.rexshares.com/mstu/"}
+  - {ticker: MSTZ, issuer: REX, leverage: -2, underlying: mstr, bucket: single_stocks, writer: levered_etf, method: rex_page, named: true,
+     aum_page: "https://www.rexshares.com/mstz/"}
+  # --- Tradr: GAPS (V-98b). The fund pages fill AUM in the browser and carry no
+  # figure or file; the one public aggregator checked (stockanalysis.com) forbids
+  # automated access in its terms. Named, and left out of every estimate. Both
+  # are among Tradr's own "largest AUM" list (read 6 Nov 2026).
+  - {ticker: SNXX, issuer: Tradr, leverage: 2, underlying: sndk, bucket: single_stocks, writer: levered_etf, method: gap, named: false,
+     aum_page: "https://www.tradretfs.com/snxx",
+     gap: "Tradr's page fills AUM in the browser (no figure or file); the aggregator checked forbids automated access (read 6 Nov 2026)"}
+  - {ticker: TSLQ, issuer: Tradr, leverage: -2, underlying: tsla, bucket: single_stocks, writer: levered_etf, method: gap, named: false,
+     aum_page: "https://www.tradretfs.com/tslq",
+     gap: "Tradr's page fills AUM in the browser (no figure or file); the aggregator checked forbids automated access (read 6 Nov 2026)"}
+
+# NOT ON THE ROSTER, each with its reason (the figures read on 6 Nov 2026 are in
+# A127's notes; none is committed here).
+excluded:
+  - {tickers: [UVXY], reason: "a volatility product (VIX futures), not an equity rebalance (the paste)"}
+  - {tickers: [TMF], reason: "Treasuries, not equities"}
+  - {tickers: [YINN], reason: "China large caps (FXI), not a US equity close; FXI is not stored"}
+  - {tickers: [LABU], reason: "its index (S&P Biotech, XBI) is not in the stored price basket"}
+  - {tickers: [MSTX], reason: "below the AUM floor (Defiance's page, 6 Nov 2026)"}
+  - {tickers: [NVDU, AAPU, PLTU, MSFU, METU, AMZU, WEBL, FNGG, TSLR, AAPB, FBL, MSFL, NVD,
+               PTIR, NVDX, TSLT], reason: "below the AUM floor (the issuer's own figure, 6 Nov 2026)"}
+
+# THE TWO ESTIMATES. `instrument` is the slot stored on each calc row.
+slots:
+  "1500": {label: "15:00", at: "15:00", source: "the 15:00 pass's intraday read"}
+  "1645": {label: "16:45", at: "16:45", source: "the stored closes"}
+
+# THE 15:00 PASS'S INTRADAY READ: the underlying's last completed 5-minute bar at
+# or before 15:00 ET, through note_fetch's Yahoo reader. The prior close is the
+# stored close where the underlying is stored, else the last regular-session
+# 5-minute bar of the previous session, labelled.
+intraday:
+  interval: 5m
+  # Session-set: the latest a 15:00 bar may end before the read refuses it.
+  max_bar_age_minutes: 15
+
+# ADV: the 20-session average dollar volume through the session before the
+# estimate's day, at least 15 sessions with volume (fragility.yaml's own values).
+adv_sessions: 20
+adv_min_sessions: 15
+
+# THE FLAG (O-1, ruled 5 Nov 2026): at 15:00, an estimated total of $20bn or more
+# either way. After 60 stored 15:00 sessions it switches, by itself, to the 90th
+# percentile of the box's own 15:00 history of |the total| in % of ADV. The
+# switch is WRITTEN HERE AND DATED IN CODE: altdata/close_flow.flag_rule() counts
+# the stored sessions and names the session the percentile rule took over, so no
+# one edits this block on day 61. Alert-only; no rights.
+flag:
+  slot: "1500"
+  dollar_threshold: 20000000000
+  switch:
+    after_sessions: 60
+    percentile: 90
+    basis: total_pct_adv
+    ruled: "O-1, 5 Nov 2026 (23:24 ET, 'accept all'; filed by D58)"
+
+# THE "MECHANICAL CLOSE FLOW" LINE (98.1): this estimate combined with 6b's
+# dealer-hedging estimate. 6b's estimate is not wired (cross-item note: "If 98
+# lands first, it prints the levered-ETF line alone until 6b is wired in").
+dealer_hedging:
+  wired: false
+  not_combined: "dealer hedging: not yet combined"

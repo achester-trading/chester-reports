@@ -2704,6 +2704,46 @@ sources:
       - >-
         Direxion (SPXL/SPXS/TECL) not covered: no NAV or history file exists.
 
+  levered_etf:
+    name: Levered- and inverse-ETF issuers' own pages and files (item 116's roster)
+    tier: A1
+    epistemic_role: primary_fact
+    domain: [leverage, etf]
+    geography: [US]
+    latency: Direxion's and GraniteShares' files by the morning; REX's page as of its stated date
+    timestamp_reliability: medium
+    timestamp_notes: >-
+      The pull instant (observed). Each row is observed at the close the issuer's
+      figure values: Direxion's holdings file and GraniteShares' workbook dated D
+      carry D's previous session; REX states its own "As of" date.
+    license: public issuer data, no key; robots.txt read at every pull
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/sources/levered_etf.py
+    status: live
+    caveats:
+      - >-
+        Tradr's funds (SNXX, TSLQ) are gaps: the pages fill AUM in the browser and
+        the aggregator checked forbids automated access (6 Nov 2026).
+      - >-
+        Variants: levered_etf:direxion, levered_etf:graniteshares, levered_etf:rex.
+
+  close_flow:
+    name: The levered-ETF close-flow estimate (item 116), our own computation
+    tier: derived
+    epistemic_role: own_computation
+    domain: [leverage, internal]
+    geography: [US]
+    latency: written by the 15:00 pass and the 16:45 close
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/close_flow.py: the 15:00 estimate by the 15:00 pass
+      (scripts/run_close_flow.sh), the 16:45 by the close (daily_cascade/
+      stack_close.py), each available at the instant computed.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical, monthly_macro]
+    implemented_by: altdata/close_flow.py
+    status: live
+
   reference_libraries:
     name: Edition labels of the reference libraries (French, Damodaran, Shiller, World Bank)
     tier: derived

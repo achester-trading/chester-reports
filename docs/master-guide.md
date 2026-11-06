@@ -110,6 +110,7 @@ Read from `deploy/systemd/*.timer`. "Enabled" says who turns it on: the deploy e
 | `chester-ibkr-sync` | `Mon-Fri 09..17:00/30 America/New_York` | weekdays, every 30 minutes, 09:00 to 17:30 | Portfolio Truth from IBKR, read-only | background | by the deploy |
 | `chester-dealer-0945` | `Mon-Fri 09:45 America/New_York` | weekdays 09:45 | the 09:45 chain capture and its exposure profiles | background | by hand |
 | `chester-dealer-1230` | `Mon-Fri 12:30 America/New_York` | weekdays 12:30 | the 12:30 capture and the gates; **the 12:30 alert** only if one opens | you read it (when sent) | by hand |
+| `chester-close-flow` | `Mon-Fri 15:00 America/New_York` | weekdays 15:00 | the levered-ETF close-flow estimate at 15:00 and its flag (item 116; report and alert only) | background (the close prints it) | by hand (A127, chain-13) |
 | `chester-auction` | `Mon-Fri 15:49 America/New_York` | weekdays 15:49 | the closing-auction tick sampler | background | by the deploy |
 | `chester-eod` | `Mon-Fri 16:10 America/New_York` | weekdays 16:10 | the EOD pass: the settled chains, prices, FRED, the official and external writers | background | by the deploy |
 | `chester-flashalpha` | `Mon-Fri 16:25 America/New_York` | weekdays 16:25 | the vendor writer: a cross-check, never a source | background | by hand |

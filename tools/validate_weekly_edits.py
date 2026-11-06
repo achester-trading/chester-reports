@@ -213,7 +213,8 @@ def main() -> int:
     # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts);
     # ST-R4.27a puts Treasury moves by session under the CFTC table; Batch 15 item
     # 74 (b56) the hedge-fund positioning line right after the CFTC table; Batch
-    # 16 item 89(b) (B76) the trend-breadth table after it.
+    # 16 item 89(b) (B76) the trend-breadth table after it; Batch 22 item 116
+    # (A127) the levered-ETF close flow after the TIC table.
     check([ss["title"] for ss in sec["positioning"]["subsections"]] ==
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
            "Hedge-fund positioning (CFTC leveraged funds)",
@@ -221,11 +222,14 @@ def main() -> int:
            "Treasury moves by session: overnight against the US session",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
-           "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash",
+           "Foreign flows (TIC)",
+           "Levered-ETF close flow (estimate), the week's sessions",
+           "Investor allocation: equities, bonds and cash",
            "Crypto flows"],
-          "Positioning in twelve sub-sections, each with its table (the third, Batch 15 "
+          "Positioning in thirteen sub-sections, each with its table (the third, Batch 15 "
           "item 74's hedge-fund positioning; the fourth, Batch 16 item 89(b)'s trend "
-          "breadth; ST-R4.27a's Treasury moves by session; "
+          "breadth; ST-R4.27a's Treasury moves by session; Batch 22 item 116's "
+          "levered-ETF close flow after TIC; "
           "Batch 6 item 30's allocation block; the crypto flows block last, Batch 4 "
           "Tranche A)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in

@@ -380,6 +380,12 @@ def produce(p: dict, *, archive_dir: str, dry_run: bool = False,
                                                session.utc_iso())
             if _gold_rows and not dry_run:
                 st.write_many(_gold_rows)
+            # BATCH 22 ITEM 116 (A127): the 16:45 close-flow estimate's rows,
+            # computed by the build and stored once the report is made.
+            pos = next((s for s in ed["sections"] if s["id"] == "positioning"), {})
+            _cf_rows = (pos.get("data") or {}).pop("_close_flow_rows", None) or []
+            if _cf_rows and not dry_run:
+                st.write_many(_cf_rows)
             # D15 (b59): a trigger day's ledger row, its attribution "awaiting"
             # until the models' inputs land (the EOD resolve).
             from . import b59_block                             # noqa: PLC0415

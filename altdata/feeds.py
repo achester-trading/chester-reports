@@ -163,6 +163,10 @@ EARLY_WRITERS = ("mof", "cfets")
 # (yfinance.mkt_gold_front) under its own name.
 EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     "finra", "proshares",
+                    # Batch 22 item 116 (A127, 6 Nov 2026): the levered-ETF
+                    # roster's other issuers into the same levetf.aum key, after
+                    # the prices (the 15:00 pass re-reads both for its estimate)
+                    "levered_etf",
                     # ST-2 step 3: quarterly fundamentals for the AI-capex six
                     "fundamentals",
                     # The GTM batch, part 2 (17 Oct 2026): the hyperscalers'

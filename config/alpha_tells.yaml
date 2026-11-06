@@ -126,7 +126,9 @@ setups:
     cite: {file: docs/whitepapers/operating-doctrine-whitepaper.md, section: "4.4 Book D",
            quote: "far-out-of-the-money puts, a small long-volatility structure, or an increment to the gold sleeve, sized so that the entire budget can expire worthless every month for a year at a cost of 5% of capital"}
 # Never imported: no setup family is claimed, so there is nothing to predict.
-setups_skipped: [unclassified]
+# A draft setup (98.3's DTH-1, A127) is not imported until it is a stub or
+# complete: a draft is not yet a claim the lab can pre-register.
+setups_skipped: [unclassified, c_dth1_close_flow_reversal]
 
 # --- the probability ledger's graded sources ---------------------------------
 # A source is imported once it has at least one graded row (brier not null).

@@ -336,6 +336,10 @@ commands:
     domain: computed
     line: 'One big AI trade (Batch 14 item 65): the AI-bottleneck PPI line, the Broad-AI proxy pair (AIQ against SPXT, labelled proxy) and the AI-credit gap; `show [--as-of ISO]`; reads only'
     sources: [fred, yfinance]
+  altdata.close_flow:
+    domain: computed
+    line: "Batch 22 item 116 (A127): the levered-ETF close-flow estimate, AUM x L x (L - 1) x r by bucket and in total, $ and % of ADV; `estimate --slot 1500 [--dry-run]` the 15:00 pass (re-reads AUM first), `show [--date D]` the stored 15:00 and 16:45 estimates and the flag, `per-move` V-98c's dollars per 1% move from the stored AUM"
+    sources: [close_flow]
   altdata.fragility:
     domain: computed
     line: 'The liquidity-fragility panel and flag (Batch 14 item 71): SPY Amihud and range per volume, margin debt and its share, the leveraged-ETF rebalance, 6b dealer gamma; `show [--date D]`; reads only'
@@ -614,6 +618,10 @@ commands:
     domain: positioning
     line: Leveraged-ETF assets -- ProShares' daily NAV history files
     sources: [proshares]
+  altdata.sources.levered_etf:
+    domain: positioning
+    line: "Leveraged-ETF assets -- item 116's other issuers (Direxion's holdings file, GraniteShares' workbook, REX's page) into levetf.aum; `--dry-run` reads and prints, writes nothing"
+    sources: [levered_etf]
   altdata.sources.redfin:
     domain: housing
     line: Redfin data center -- national pending sales, listings, months of supply and top-50 metros, monthly

@@ -12,7 +12,7 @@
 # fails the gate (tools/validate_security_master.py).
 version: 1
 schema: security-master-v1
-next_id: 221
+next_id: 241
 instruments:
 - id: SM00001
   name: State Street SPDR S&P 500 ETF Trust
@@ -2716,6 +2716,8 @@ instruments:
   multiplier: 1
   exchange: XNMS
   identifiers:
+    yahoo: TQQQ
+    store_key: levetf.aum:TQQQ
     ticker: TQQQ
   aliases: []
   active_from: null
@@ -2735,6 +2737,8 @@ instruments:
   multiplier: 1
   exchange: XNMS
   identifiers:
+    yahoo: SQQQ
+    store_key: levetf.aum:SQQQ
     ticker: SQQQ
   aliases: []
   active_from: null
@@ -2754,6 +2758,8 @@ instruments:
   multiplier: 1
   exchange: ARCX
   identifiers:
+    yahoo: QLD
+    store_key: levetf.aum:QLD
     ticker: QLD
   aliases: []
   active_from: null
@@ -2773,6 +2779,8 @@ instruments:
   multiplier: 1
   exchange: ARCX
   identifiers:
+    yahoo: UPRO
+    store_key: levetf.aum:UPRO
     ticker: UPRO
   aliases: []
   active_from: null
@@ -2792,6 +2800,8 @@ instruments:
   multiplier: 1
   exchange: ARCX
   identifiers:
+    yahoo: SPXU
+    store_key: levetf.aum:SPXU
     ticker: SPXU
   aliases: []
   active_from: null
@@ -2811,6 +2821,8 @@ instruments:
   multiplier: 1
   exchange: ARCX
   identifiers:
+    yahoo: SSO
+    store_key: levetf.aum:SSO
     ticker: SSO
   aliases: []
   active_from: null
@@ -2830,6 +2842,8 @@ instruments:
   multiplier: 1
   exchange: ARCX
   identifiers:
+    yahoo: SDS
+    store_key: levetf.aum:SDS
     ticker: SDS
   aliases: []
   active_from: null
@@ -4427,6 +4441,8 @@ instruments:
   multiplier: 1
   exchange: null
   identifiers:
+    yahoo: QID
+    store_key: levetf.aum:QID
     ticker: QID
   aliases: []
   active_from: null
@@ -4444,6 +4460,8 @@ instruments:
   multiplier: 1
   exchange: null
   identifiers:
+    yahoo: UDOW
+    store_key: levetf.aum:UDOW
     ticker: UDOW
   aliases: []
   active_from: null
@@ -4461,6 +4479,8 @@ instruments:
   multiplier: 1
   exchange: null
   identifiers:
+    yahoo: SDOW
+    store_key: levetf.aum:SDOW
     ticker: SDOW
   aliases: []
   active_from: null
@@ -4478,6 +4498,8 @@ instruments:
   multiplier: 1
   exchange: null
   identifiers:
+    yahoo: URTY
+    store_key: levetf.aum:URTY
     ticker: URTY
   aliases: []
   active_from: null
@@ -4495,6 +4517,8 @@ instruments:
   multiplier: 1
   exchange: null
   identifiers:
+    yahoo: SRTY
+    store_key: levetf.aum:SRTY
     ticker: SRTY
   aliases: []
   active_from: null
@@ -4505,3 +4529,423 @@ instruments:
   unverified:
   - currency
   - exchange
+- id: SM00221
+  name: ProShares Ultra Semiconductors
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: USD
+    store_key: levetf.aum:USD
+    ticker: USD
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS; store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00222
+  name: ProShares Ultra Technology
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: ROM
+    store_key: levetf.aum:ROM
+    ticker: ROM
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: altdata/sources/proshares.py FUNDS; store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00223
+  name: Direxion Daily S&P 500 Bull 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: SPXL
+    store_key: levetf.aum:SPXL
+    ticker: SPXL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00224
+  name: Direxion Daily S&P 500 Bear 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: SPXS
+    store_key: levetf.aum:SPXS
+    ticker: SPXS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00225
+  name: Direxion Daily Semiconductor Bull 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: SOXL
+    store_key: levetf.aum:SOXL
+    ticker: SOXL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00226
+  name: Direxion Daily Semiconductor Bear 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: SOXS
+    store_key: levetf.aum:SOXS
+    ticker: SOXS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00227
+  name: Direxion Small Cap Bull 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: TNA
+    store_key: levetf.aum:TNA
+    ticker: TNA
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00228
+  name: Direxion Small Cap Bear 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: TZA
+    store_key: levetf.aum:TZA
+    ticker: TZA
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00229
+  name: Direxion Daily Technology Bull 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: TECL
+    store_key: levetf.aum:TECL
+    ticker: TECL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00230
+  name: Direxion Financial Bull 3X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: ARCX
+  identifiers:
+    yahoo: FAS
+    store_key: levetf.aum:FAS
+    ticker: FAS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code P
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00231
+  name: Direxion Daily TSLA Bull 2X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: TSLL
+    store_key: levetf.aum:TSLL
+    ticker: TSLL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00232
+  name: Direxion Daily TSLA Bear 1X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: TSLS
+    store_key: levetf.aum:TSLS
+    ticker: TSLS
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00233
+  name: Direxion Daily GOOGL Bull 2X ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: GGLL
+    store_key: levetf.aum:GGLL
+    ticker: GGLL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00234
+  name: GraniteShares 2x Long NVDA Daily ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: NVDL
+    store_key: levetf.aum:NVDL
+    ticker: NVDL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00235
+  name: GraniteShares 2x Long AMD Daily ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: AMDL
+    store_key: levetf.aum:AMDL
+    ticker: AMDL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00236
+  name: GraniteShares 2x Long COIN Daily ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: CONL
+    store_key: levetf.aum:CONL
+    ticker: CONL
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00237
+  name: T-Rex 2X Long MSTR Daily Target ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: BATS
+  identifiers:
+    yahoo: MSTU
+    store_key: levetf.aum:MSTU
+    ticker: MSTU
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Z
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00238
+  name: T-Rex 2X Inverse MSTR Daily Target ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: BATS
+  identifiers:
+    yahoo: MSTZ
+    store_key: levetf.aum:MSTZ
+    ticker: MSTZ
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Z
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00239
+  name: Tradr 2X Long SNDK Daily ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: BATS
+  identifiers:
+    yahoo: SNXX
+    store_key: levetf.aum:SNXX
+    ticker: SNXX
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Z
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []
+- id: SM00240
+  name: Tradr 2X Short TSLA Daily ETF
+  asset_class: etf
+  currency: USD
+  multiplier: 1
+  exchange: XNMS
+  identifiers:
+    yahoo: TSLQ
+    store_key: levetf.aum:TSLQ
+    ticker: TSLQ
+  aliases: []
+  active_from: null
+  active_to: null
+  sources:
+    identifiers: config/levered_etf.yaml funds (item 116, A127); store_key is levetf.aum's instrument
+    asset_class: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), ETF flag Y
+    currency: 'the listing rule (15 Oct): Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)'
+    exchange: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06), code Q/G
+      -> config/listing_exchanges.yaml
+    name: Nasdaq Trader symbol directories, File Creation Time 1106202612:11 (2026-11-06)
+  unverified: []

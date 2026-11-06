@@ -288,7 +288,7 @@ def group_f() -> None:
                                                                     "claim:")))
                    and int(sp[k].get("target_n") or 0) >= cat["min_target_n"] >= 40
                    and sp[k].get("kill") == "fixed"
-                   and sp[k].get("status") in ("stub", "complete")
+                   and sp[k].get("status") in ("stub", "complete", "draft")
                    and sp[k].get("book") in ("A", "B", "C", "D"))]
     check(not bad, f"every one of the {len(exp)} families is an experiment: "
                    f"mechanism, base rate (cited by id or 'not yet'), claimed edge, "

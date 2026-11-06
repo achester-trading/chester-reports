@@ -1154,6 +1154,14 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
            for k in ("tic.flow_net_foreign", "tic.flow_total") if data.get(k)]
     out.append({"title": "Foreign flows (TIC)",
                 "table": {"columns": ["Series", "Level", "Period"], "rows": tic}})
+    # SIGNAL-TRIAGE BATCH 22 ITEM 116 (A127, 6 Nov 2026): the levered-ETF close
+    # flow, the period's sessions largest first; the Monthly reads the same table
+    # (its five largest). Last, so the sub-sections before it keep their places.
+    if cadence in ("weekly", "monthly"):
+        from . import close_flow_block                          # noqa: PLC0415
+        cfs = close_flow_block.period_subsection(st, now, cadence)
+        if cfs:
+            out.append(cfs)
     return out
 
 
