@@ -455,3 +455,44 @@ rewritten. Five new self-test checks (group C); the self-test is 20/0.
 
 Set before step 1, the Gates workflow fails `validate_names` on the seven comments.
 
+## B114b (6 Nov 2026): the seven unit-file comments
+
+**Base.** `origin/b114-names-sweep` at `43277b20`. The paste was committed first as
+`docs/pastes/B114b.md`.
+
+**The seven lines.** In each, "the Gateway needs <name>'s supervised login" now
+reads "the Gateway needs the operator's supervised login". Comment lines only: no
+directive, ExecStart, ordering or memory cap changed. The diff is seven lines.
+- `deploy/systemd/chester-backup.service:82`
+- `deploy/systemd/chester-daily-close.service:68`
+- `deploy/systemd/chester-eod.service:85`
+- `deploy/systemd/chester-monthly.service:54`
+- `deploy/systemd/chester-voices.service:39`
+- `deploy/systemd/chester-weekly.service:57`
+- `deploy/systemd/ibgateway.service:90`
+
+**The scan with the list set.** The name and the four `allow:` paths were set in
+the environment only. Result: "allowlisted: 4 files" (the Batch 15 order and B111's
+three ledgers), and **0 hits in 0 files**. 21/0, VALIDATION PASSED.
+
+**The gates, one at a time.**
+
+| Gate | Result |
+|---|---|
+| `validate_systemd_units` | 166/0 |
+| `validate_deploy` | 155/0 |
+| `validate_names`, no list (the self-test) | 20/0, "names gate: no denylist; skipped" |
+| `validate_gates` | 32/0 |
+
+**For the operator, in order** (this replaces B114's two steps above):
+1. Open the PR for `b114-names-sweep`.
+2. Merge it.
+3. Set the repository secret `CHESTER_NAMES_DENYLIST`, and the box's `.env` line,
+   to the name plus the four `allow:` entries, comma-separated:
+   - `allow:docs/ledgers/after-hours-earnings-preregistration-2026-10.md`
+   - `allow:docs/ledgers/os-6-ledger-2026-10-19.md`
+   - `allow:docs/ledgers/release-first-hour-preregistration-2026-10.md`
+   - `allow:docs/change-order-signal-triage-batch-15-2026-10-23.md`
+4. The deploy, or the box's self-deploy, copies the seven changed units and
+   prints any restart pending. The change is comments only, so a restart changes
+   no behaviour; restart at your convenience, as `restart_pending` names it.
